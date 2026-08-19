@@ -47,6 +47,9 @@ urlpatterns = _admin_urls + [
 
     # --- API v1 (DEC-V2-02: webhooks registrados con terceros — no renombrar) ---
     path('api/v1/logistics/', include('addons.delivery.controllers.webhook_urls')),
+    # Webhook de base.automation (≙ `/web/hook/<uuid>` de la referencia; el
+    # prefijo v1 sigue el precedente del webhook de logistics).
+    path('api/v1/automation/', include('addons.base_automation.controllers.urls')),
 
     # Despacho genérico por modelo/método (≙ `addons/rpc` de la referencia).
     # Va FUERA de `api/v2/`: la referencia lo monta en `/json/2`, y ese prefijo

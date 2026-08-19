@@ -365,10 +365,12 @@ from addons.base.models import TimeStampedModel
 PROCUREMENT_PRIORITIES = [('0', 'Normal'), ('1', 'Urgent')]
 
 #: ≙ ``_product_location_index`` (``:200``) — objeto de tabla, no atributo de
-#: ORM: su hogar aquí es ``Meta.indexes``, con el nombre de la fuente.
+#: ORM: su hogar aquí es ``Meta.indexes``. La fuente no fija nombre (lo deriva
+#: su ORM); el anterior ``stock_move_product_location_idx`` (31 ch) violaba el
+#: límite de 30 de ``models.E034`` y bloqueaba ``manage.py migrate``.
 PRODUCT_LOCATION_INDEX = models.Index(
     fields=['product', 'location', 'location_dest', 'company', 'state'],
-    name='stock_move_product_location_idx',
+    name='stock_move_product_loc_idx',
 )
 
 

@@ -51,10 +51,11 @@ aún no está poblado.
   reducir la precisión de una divisa ya usada en apuntes.
 
 Cuatro módulos más de la familia ``account.analytic.*`` (tarea #398, tramo 2)
-declaran su ``apply_*_extensions()`` con el mismo patrón, pero **todavía no
-están cableados** en ``AccountConfig._EXTENSIONES`` — ``apps.py`` no estaba
-en el alcance de escritura de ese tramo. Se listan aquí para que la ausencia
-de wiring sea legible desde este índice, no sólo desde cada archivo:
+declaran su ``apply_account_extensions()`` con el mismo patrón — cableados en
+``AccountConfig._EXTENSIONES`` por la tarea #520 (esta prosa decía "todavía
+no cableados"; era estado stale, corregido 2026-08-19). La tanda #75/#398
+tramo 3 añadió 18 módulos más con el patrón uniforme — el índice completo es
+la propia tupla ``_EXTENSIONES`` de ``apps.py``, que es su único dueño:
 
 - ``account_analytic_account.py``      → no-op documentado (BLOQUEADO, ver
   su docstring); cuelga de ``analytic.account.analytic.account``.

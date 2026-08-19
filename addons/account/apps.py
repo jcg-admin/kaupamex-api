@@ -44,6 +44,26 @@ class AccountConfig(AppConfig):
         'addons.account.models.account_analytic_distribution_model',
         'addons.account.models.account_analytic_line',
         'addons.account.models.account_analytic_plan',
+        # Tanda #75/#398 tramo 3 (2026-08-19) — los 18 módulos nuevos, todos
+        # con `apply_account_extensions()` uniforme:
+        'addons.account.models.account_document_import_mixin',
+        'addons.account.models.account_journal_dashboard',
+        'addons.account.models.account_move_line_tax_details',
+        'addons.account.models.account_move_send',
+        'addons.account.models.decimal_precision',
+        'addons.account.models.digest',
+        'addons.account.models.ir_actions_report',
+        'addons.account.models.ir_attachment',
+        'addons.account.models.mail_message',
+        'addons.account.models.mail_template',
+        'addons.account.models.mail_tracking_value',
+        'addons.account.models.merge_partner_automatic',
+        'addons.account.models.onboarding_onboarding',
+        'addons.account.models.onboarding_onboarding_step',
+        'addons.account.models.partner',
+        'addons.account.models.product_catalog_mixin',
+        'addons.account.models.res_country_group',
+        'addons.account.models.res_users',
     )
 
     def ready(self):

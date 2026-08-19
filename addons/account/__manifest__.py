@@ -14,8 +14,6 @@
     # `analytic`:
     #
     #   base_setup  la UI de ajustes; aquí es SystemParameter de `base`.
-    #   onboarding  el asistente de alta contable; portado como addon propio,
-    #               y es él quien importa a `account`, no al revés.
     #   portal      la vista de cliente de la factura; vive en `portal`.
     #   digest      el resumen periódico; lo consume, no lo provee.
     #
@@ -36,6 +34,13 @@
         'product',   # Product y su UoM — la línea de factura factura un producto
         'uom',       # Uom — la cantidad de la línea lleva su unidad
         'analytic',  # AccountAnalyticLine/Plan/DistributionModel — 6 chain_method
+        # `onboarding` se AÑADIÓ el 2026-08-19 (tanda #75/#398 tramo 3): hasta
+        # entonces la única arista era onboarding→account y por eso no se
+        # declaraba; al portar account/models/onboarding_onboarding{,_step}.py
+        # (la extensión que la referencia declara en account, no en
+        # onboarding) aparecieron 11 chain_method sobre símbolos cuyo dueño es
+        # `onboarding`. Lo atrapó check_chain_method_depends en el pre-commit.
+        'onboarding',  # OnboardingOnboarding/-Step — 11 chain_method
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

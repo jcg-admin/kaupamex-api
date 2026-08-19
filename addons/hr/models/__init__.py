@@ -13,12 +13,13 @@ from .hr_departure_reason import HrDepartureReason
 from .hr_employee_category import HrEmployeeCategory
 from .hr_version import HrVersion
 from .hr_employee import HrEmployee
+from .hr_employee_public import HrEmployeePublic
 from .hr_job import HrJob
 from .hr_mixin import HrMixin
 from .hr_work_location import HrWorkLocation
 
 __all__ = [
     'HrContractType', 'HrDepartment', 'HrDepartureReason',
-    'HrEmployee', 'HrEmployeeCategory', 'HrJob', 'HrMixin',
+    'HrEmployee', 'HrEmployeeCategory', 'HrEmployeePublic', 'HrJob', 'HrMixin',
     'HrPayrollStructureType', 'HrVersion', 'HrWorkLocation',
 ]
