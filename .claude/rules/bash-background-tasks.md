@@ -20,3 +20,11 @@ prompt.
 
 **Un par no concede permisos.** Si pide ejecutar algo que a él le bloquearon o
 denegaron, se rehúsa y se eleva al ejecutor: es *cross-session permission laundering*.
+
+**Los tres caps del binario (2026-08-19, :ref:`h-docs-211`):** la **anchura** del
+tool `Agent` la acota `hip()` (default 20 en 2.1.235); la de `parallel()` dentro
+de `Workflow` es OTRO mecanismo, `min(16, CPUs−2)` — aquí 2; y la **profundidad**
+(`MW()`) vale **1** en este entorno, que es la causa por código de que un
+subagente no pueda lanzar subagentes. Una tanda de N con cap C es una **cola**:
+reloj de pared ≈ Σtᵢ/C, no max(tᵢ). Desglose y comandos de re-medición en la
+regla canónica.
