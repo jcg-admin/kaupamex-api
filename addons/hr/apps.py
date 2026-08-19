@@ -32,5 +32,5 @@ class HrConfig(AppConfig):
 
     def ready(self):
         """Aplica lo que hr cuelga de modelos ajenos (resource, res_*, mail)."""
-        for ruta, funcion in self._EXTENSIONES.items():
-            getattr(importlib.import_module(ruta), funcion)()
+        for module_path, function_name in self._EXTENSIONES.items():
+            getattr(importlib.import_module(module_path), function_name)()
