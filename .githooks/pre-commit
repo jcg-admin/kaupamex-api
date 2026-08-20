@@ -24,15 +24,24 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 EXIT_CODE=0
 
-# ─── Gate 1: lazy imports en src/addons/** ────────────────────────
-# Detectar staged .py dentro del scope vigilado.
+# ─── El alcance que comparten TODOS los gates de abajo ───────────────────────
+# Las tres raíces son las que `check_no_lazy_imports.py` declara en su
+# DEFAULT_ROOTS: el código de la app. `addons/` faltaba desde que #317 movió
+# ahí los 90 addons de comunidad, y con él se fue el 69 % del árbol —
+# 550 de 2171 archivos vigilados, medido en H-API-759. Un gate que no cubre no
+# falla: calla, y su OK se lee como árbol limpio.
+#
+# `scripts/` y `src/manage.py` quedan FUERA a propósito, no por olvido: son
+# entrypoints que fijan DJANGO_SETTINGS_MODULE antes de importar Django, así
+# que su import diferido es el constraint del framework — el propio template
+# `manage.py-tpl` de Django lo escribe así.
 STAGED_PY=()
 while IFS= read -r line; do
     [[ -z "$line" ]] && continue
     STAGED_PY+=("$line")
 done < <(
     git diff --cached --name-only --diff-filter=ACM \
-        -- 'src/addons/***.py' 'tests/***.py' 2>/dev/null \
+        -- 'src/addons/***.py' 'addons/***.py' 'tests/***.py' 2>/dev/null \
     | grep -vE 'migrations/|__pycache__' || true
 )
 
