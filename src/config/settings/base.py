@@ -312,11 +312,11 @@ DATABASE_ROUTERS = ['orm.routers.CompanyDatabaseRouter']
 # Plano de control L0 (vive siempre en ``default``, no se particiona por empresa).
 # ``addons.base`` (addon fundacional, ``SystemParameter`` L2 global) es config de
 # instancia, no per-empresa (SOL-090): debe rutear a ``default`` también bajo N>1.
-# ``observability`` (``BusinessEvent``, DEC-12) es telemetria global de la
-# instancia, no per-empresa, por lo que rutea igual que ``base``. Su otro
-# modelo, ``RequestLog``, se retiro con DEC-AF-11; el app_label sigue en la
-# lista mientras ``BusinessEvent`` espere su mudanza a ``mail``.
-MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base', 'observability', 'base_address_extended', 'base_geolocalize')
+# ``observability`` estuvo en esta lista mientras alojó telemetria global de la
+# instancia. Sus dos modelos se retiraron: ``RequestLog`` con DEC-AF-11 y
+# ``BusinessEvent`` con el addon entero (2026-08-20, #621), asi que el
+# app_label ya no existe y sale de la lista. Ver :ref:`h-api-754`.
+MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base', 'base_address_extended', 'base_geolocalize')
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

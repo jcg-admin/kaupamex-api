@@ -3,7 +3,6 @@
 Verifican la politica de retencion sobre su **unico sujeto vivo**:
 
 - ``IrLogging`` INFO/DEBUG > 14 d se purga; WARNING/ERROR se conservan hasta 90 d,
-- ``BusinessEvent`` NUNCA se purga,
 - ``--dry-run`` cuenta pero no borra,
 - idempotente: segunda corrida purga 0.
 
@@ -29,7 +28,6 @@ from django.core.management import call_command
 from django.utils import timezone
 
 from addons.base.models import IrLogging
-from addons.observability.models import BusinessEvent
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -60,13 +58,6 @@ def test_high_level_purged_at_90d():
     _age(IrLogging, err.pk, 91)
     _run()
     assert not IrLogging.objects.filter(pk=err.pk).exists()
-
-
-def test_does_not_touch_business_event():
-    ev = BusinessEvent.objects.create(action=BusinessEvent.ACTION_ORDER_CREATED)
-    _age(BusinessEvent, ev.pk, 400)
-    _run()
-    assert BusinessEvent.objects.filter(pk=ev.pk).exists()
 
 
 def test_dry_run_counts_without_deleting():

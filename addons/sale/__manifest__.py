@@ -19,13 +19,17 @@
     # calibración de `derivar_depends.py` lo midió. Los tres se declararon
     # correctos en su momento y sobrevivieron a la disolución del addon: un
     # `depends` no se invalida solo cuando su destino desaparece.
+    #
+    # CUARTA ocurrencia, y esta vez se retiró en el mismo pase que el addon:
+    # `observability` se retiró entero (2026-08-20, #621) y su único consumo
+    # aquí era el emisor de `ORDER_CANCELLED`, que el chatter ya registraba
+    # por duplicado. Ver :ref:`h-api-754`.
     'depends': [
         'account',
         'authz',
         'base',
         'loyalty',
         'mail',
-        'observability',
         'payment',
         'sales_team',
         'stock',

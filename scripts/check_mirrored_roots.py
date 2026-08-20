@@ -24,7 +24,7 @@ más una familia dinámica, una por addon que ya tenemos portado)::
                                                  declara)
 
 Un addon **enteramente propio** del L0 (``authz``, ``helpdesk``,
-``observability``, …) no tiene par en la referencia — no es una raíz
+``authz_audit``, …) no tiene par en la referencia — no es una raíz
 espejada, y este gate no lo mide: no hay "sitio correcto" que comparar contra
 la nada. Eso lo audita el censo de addons, no éste.
 
@@ -125,7 +125,7 @@ def addon_roots():
     y que la referencia también declara.
 
     Un addon nuestro sin par en la referencia (``authz``, ``helpdesk``,
-    ``observability``, ``sale_subscription``, …) no entra: no es una raíz
+    ``authz_audit``, ``sale_subscription``, …) no entra: no es una raíz
     espejada, es un addon propio del L0 completo. Incluirlo inundaría el
     reporte con "sin contraparte" para cada uno de sus archivos — ruido, no
     la señal que este gate busca.
