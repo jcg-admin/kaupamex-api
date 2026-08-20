@@ -15,26 +15,33 @@ asiento/cuenta/impuesto/socio/empresa apunta; (2) decide si ese mensaje está
 protegido; (3) lanza si alguien intenta borrarlo o mutar sus campos
 sensibles.
 
-**Bloqueado por pieza concreta ausente — medido antes de escribir este
-archivo.** El interruptor que activa la protección es
+**OPERABLE desde 2026-08-20 (tarea #611) — antes estaba inerte por dos campos
+ausentes.** El interruptor que activa la protección es
 ``res.company.restrictive_audit_trail`` y el escape que la desactiva para un
-asiento nunca publicado es ``account.move.posted_before``:
+asiento nunca publicado es ``account.move.posted_before``. Cuando este archivo
+se escribió, ninguno de los dos existía:
 
 .. code-block:: text
 
-   grep -rn "restrictive_audit_trail" src/ addons/    → 0 hits
+   grep -rn "restrictive_audit_trail" src/ addons/    → 0 hits    [entonces]
    grep -n  "posted_before" addons/account/models/account_move.py → 0 hits
 
-Ninguno de los dos existe en este árbol (``ResCompany``:
-``src/addons/base/models/res_company.py``; ``AccountMove``:
-``addons/account/models/account_move.py``, 22-134 líneas, no declara el
-campo). Por tanto la protección queda **estructuralmente completa e inerte**:
-compila, se cuelga, y ``account_audit_log_restricted`` es siempre ``False``
-hasta que esos dos campos aterricen. Sucesor: portar
-``restrictive_audit_trail``/``posted_before`` (Bloque de campos de
-``res.company``/``account.move`` — mismo hueco que ``product.py`` documenta
-para ``income_account_id``) y entonces esta guarda queda operable sin tocar
-este archivo.
+Los dos aterrizaron sin tocar una línea de este archivo, que es lo que su
+sucesor declaró que pasaría:
+
+- ``restrictive_audit_trail`` — ``addons/account/models/res_company.py``, vía
+  ``_add_if_absent`` dentro de ``apply_account_extensions()``; su migración es
+  de **base**, porque el ``app_label`` de ``ResCompany`` es base
+  (``src/addons/base/migrations/0037_rescompany_restrictive_audit_trail.py``).
+- ``posted_before`` — ``addons/account/models/account_move.py``, puesto en el
+  mismo ``save()`` que ``state='posted'`` (``odoo19c:
+  account_move.py:5714-5717``), y su migración en
+  ``addons/account/migrations/0021_accountmove_posted_before.py``.
+
+Los ``getattr(..., False)`` de ``account_audit_log_restricted`` y de
+``_except_audit_log`` se conservan: eran la forma de tolerar la ausencia y hoy
+son la forma de tolerar un objeto de otra clase. No cambian de comportamiento
+con los campos presentes.
 
 Los cinco resolutores ``account_audit_log_<x>_id`` — portados como propiedades
 ==================================================================================
@@ -146,9 +153,9 @@ def account_audit_log_restricted(self):
     ``_except_audit_log`` consume; las otras cuatro requieren el subselect
     genérico documentado como no portado en el docstring del módulo.
 
-    Con ``restrictive_audit_trail`` ausente (ver docstring del módulo),
-    ``getattr(company, 'restrictive_audit_trail', False)`` devuelve siempre
-    ``False`` — la guarda queda inerte, no rota.
+    ``restrictive_audit_trail`` **ya existe** en ``ResCompany`` (tarea #611); el
+    ``getattr(..., False)`` se conserva porque ``move.company`` puede ser
+    ``None`` o un objeto de otra clase, no porque el campo falte.
     """
     move_id = _related_record_id(self, 'account.move')
     if move_id is None:
@@ -177,11 +184,10 @@ def _except_audit_log(self):
     ``merge_partner_automatic.py`` (que SÍ necesita saltarse esta guarda) se
     declara allá con su propia divergencia, no aquí.
 
-    ``posted_before`` ausente (ver docstring del módulo): ``getattr(move,
-    'posted_before', False)`` — un asiento sin el campo se trata como "nunca
-    publicado", que es la rama que la referencia usa para **permitir** el
-    borrado (``continue``). Es la lectura conservadora: no bloquea por un
-    campo que no existe.
+    ``posted_before`` **ya existe** en ``AccountMove`` (tarea #611), y es lo que
+    parte las dos ramas de la referencia: un asiento que nunca se publicó
+    devuelve ``False`` y el borrado **se permite** (el ``continue`` de la
+    fuente); uno publicado alguna vez cae al ``account_audit_log_restricted``.
     """
     move_id = _related_record_id(self, 'account.move')
     if move_id is not None:
@@ -213,6 +219,16 @@ def save(self, *args, **kwargs):
     normalizar espacios (se tolera cualquier cambio de espaciado, la
     referencia lo dice explícitamente); o tener ``body`` no vacío cuando ya
     lo tenía (una edición del cuerpo, no su primera escritura).
+
+    **La guarda se evalúa sobre el estado ALMACENADO, no sobre ``self``.** En
+    la referencia los valores nuevos viajan en ``vals`` y el recordset todavía
+    lleva los de la fila, así que ``_except_audit_log`` decide con el vínculo
+    viejo. Aquí ``self`` ya está mutado cuando ``save()`` corre: preguntarle a
+    ``self`` por su asiento después de asignar ``res_id = 0`` devuelve
+    ``None``, la guarda no encuentra asiento y **deja pasar justo la evasión
+    que existe para impedir** (``test_cant_unown_message``). Por eso el
+    guardián recibe una instancia transitoria con ``model``/``res_id`` de la
+    fila — los dos campos que ``_related_record_id`` consulta.
     """
     if self.pk is not None:
         previous = type(self).objects.filter(pk=self.pk).values(
@@ -233,7 +249,13 @@ def save(self, *args, **kwargs):
                 or (self.body and previous['body'])
             )
             if triggers:
-                self._except_audit_log()
+                stored = type(self)(
+                    pk=self.pk,
+                    model=previous['model'],
+                    res_id=previous['res_id'],
+                    message_type=previous['message_type'],
+                )
+                stored._except_audit_log()
     # Devuelve None a propósito (semántica de relevo de chain_method): el
     # ``save()`` real de Django lo ejecuta la implementación previa.
 
@@ -262,11 +284,11 @@ def find_by_related_record(cls, model, record_id):
 def apply_account_extensions():
     """Cuelga el rastro de auditoría sobre ``mail.message`` — ≙ ``_inherit``.
 
-    **Todavía no cableado** en ``AccountConfig._EXTENSIONES`` (mismo estado
-    declarado que los cuatro ``account_analytic_*`` — ver
-    ``account/models/__init__.py``). Sucesor: cablear junto con
-    ``mail_tracking_value.py`` (comparten el mismo guardián) cuando
-    ``restrictive_audit_trail``/``posted_before`` aterricen.
+    **Cableado** en ``AccountConfig._EXTENSIONES`` (``apps.py:57``), junto a
+    ``mail_tracking_value`` (``:59``), que comparte el mismo guardián. El
+    docstring anterior decía "todavía no cableado" y condicionaba el cableado a
+    que aterrizaran ``restrictive_audit_trail``/``posted_before``: la primera
+    mitad quedó atrás en la tanda #398, y la segunda se cumplió en la #611.
     """
     for field_name, model in AUDIT_LOG_RELATED_MODELS.items():
         if not hasattr(MailMessage, field_name):

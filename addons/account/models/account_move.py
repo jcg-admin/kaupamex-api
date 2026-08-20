@@ -125,6 +125,17 @@ class AccountMove(SequenceMixin, models.Model):
         'base.ResCompany', on_delete=models.CASCADE, related_name='moves',
         help_text='Empresa (Odoo company_id).',
     )
+    posted_before = fields.Boolean(
+        default=False,
+        help_text='Verdadero desde la primera vez que el asiento se publica, '
+                  'y ya no vuelve a False (Odoo posted_before, '
+                  'account_move.py:321). Es lo que distingue un borrador que '
+                  'nunca existió contablemente de uno que sí — la guarda del '
+                  'rastro de auditoría restringido sólo protege el segundo. '
+                  'El copy=False de la fuente no tiene análogo: este ORM no '
+                  'tiene copia de registro (mismo desenlace que '
+                  'sale_timesheet/sale_order_line.py).',
+    )
     amount_total = fields.Monetary(
         max_digits=16, decimal_places=2, default=Decimal('0.00'),
         help_text='Total del asiento (Odoo amount_total, computado de líneas).',
@@ -370,10 +381,15 @@ class AccountMove(SequenceMixin, models.Model):
             # el mismo número.
             self.set_next_sequence()
         self.state = 'posted'
+        # ≙ ``to_post.write({'state': 'posted', 'posted_before': True})``
+        # (``odoo19c: account_move.py:5714-5717``). Se pone en el MISMO write
+        # que el estado, no antes: un asiento que no llega a publicarse no
+        # debe quedar marcado como que alguna vez lo estuvo.
+        self.posted_before = True
         self.constrains_date_sequence()
         self.save(update_fields=[
             'name', 'sequence_prefix', 'sequence_number', 'state',
-            'amount_total',
+            'posted_before', 'amount_total',
         ])
         return True
 
