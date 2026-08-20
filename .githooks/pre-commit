@@ -111,6 +111,22 @@ if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
     fi
 fi
 
+# ─── check_escape_sequences: ninguna cadena declara un escape que Python no ──
+# conoce. Desde 3.12 emiten SyntaxWarning y la documentación anuncia que serán
+# SyntaxError. Se colaban por docstrings con markup RST (``\ `` es el escape de
+# espacio) y con comandos citados (``grep "a\|b"``): el módulo importa, la suite
+# pasa, y el aviso se pierde en la salida. El arreglo es el prefijo r, nunca
+# duplicar la barra — ambos casos necesitan el contenido verbatim.
+# Script: scripts/check_escape_sequences.py.
+if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
+    ESCAPE_CHECKER="$REPO_ROOT/scripts/check_escape_sequences.py"
+    if [[ ! -f "$ESCAPE_CHECKER" ]]; then
+        echo "pre-commit: $ESCAPE_CHECKER no encontrado — skip escape gate" >&2
+    else
+        python3 "$ESCAPE_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
 if [[ "$EXIT_CODE" -ne 0 ]]; then
     echo "" >&2
     echo "pre-commit: gates fallaron. Corrige los problemas o usa" >&2

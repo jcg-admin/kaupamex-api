@@ -1,4 +1,4 @@
-"""``crm.team`` — el contador de carritos abandonados del equipo de venta.
+r"""``crm.team`` — el contador de carritos abandonados del equipo de venta.
 
 Adaptación de ``odoo19c: addons/website_sale/models/crm_team.py``
 (``odoo-tools@622ddc2a``, LGPL-3) — atribución y aviso de licencia preservados

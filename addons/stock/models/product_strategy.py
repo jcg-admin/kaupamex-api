@@ -1,4 +1,4 @@
-"""``product.removal`` y ``stock.putaway.rule`` — addon ``stock``.
+r"""``product.removal`` y ``stock.putaway.rule`` — addon ``stock``.
 
 Adaptación de Odoo ``stock/models/product_strategy.py`` (``odoo-tools@622ddc2a``,
 ``odoo19c:``, LGPL-3) — atribución y aviso de licencia preservados (DEC-KX-03).
