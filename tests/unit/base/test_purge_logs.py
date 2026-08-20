@@ -14,9 +14,9 @@ Verifican la politica de retencion sobre su **unico sujeto vivo**:
 ``RequestLog`` desaparecen con el: no hay ventana intermedia, un 4xx vive hoy
 90 dias como ``WARNING`` (consecuencia declarada, tarea #616).
 
-El archivo vive aqui —y no en ``tests/unit/base/``— porque el sujeto del test
-es el **comando**, que sigue siendo de ``observability``; la politica que el
-comando invoca tiene su propio test en ``tests/unit/base/test_ir_logging.py``.
+El archivo vive aqui porque el sujeto del test —el **comando**— se mudo con su
+modelo al disolverse ``observability`` (H-API-752). La politica que el comando
+invoca tiene su propio test en ``tests/unit/base/test_ir_logging.py``.
 
 ``created_at`` es ``auto_now_add`` → se fuerza con ``queryset.update`` para
 simular antiguedad. Toca DB → ``django_db``.

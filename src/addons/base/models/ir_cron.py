@@ -206,7 +206,7 @@ from django.utils import timezone
 import fields
 import models
 from addons.base.models.ir_actions import IrActionsServer
-from orm.environments import user_scope
+from orm.environments import context_scope, user_scope
 
 _logger = logging.getLogger(__name__)
 
@@ -436,10 +436,25 @@ class IrCron(models.Model):
         scope se fija a ``None``, que es el estado que ya tiene el proceso
         worker: poner el contextmanager de todos modos mantiene un solo
         camino y garantiza que el valor previo se **restaure** al salir, sin
-        filtrar el usuario de un job al siguiente."""
+        filtrar el usuario de un job al siguiente.
+
+        **Y bajo ``context_scope``, que es la otra mitad de ese
+        ``api.Environment``.** La referencia le pasa un dict —``{'lastcall':
+        job['lastcall'], 'cron_id': job['id'], 'cron_end_time': …}``
+        (ir_cron.py:481-486)— y sus callbacks lo leen de ``self.env.context``.
+        Aquí el espejo es ``orm.environments.context_scope``, así que las dos
+        claves que tienen lector se ponen igual. ``cron_end_time`` **no** se
+        pone: pertenece al bucle de progreso por lotes que ``_run_job``
+        declara no portado, y sembrarla sin ese bucle sería declarar una
+        capacidad inexistente.
+
+        Sin esto, ``ir.autovacuum._run_vacuum_cleaner`` —cuyo guard exige el
+        ``cron_id``, como en la fuente— era **inalcanzable desde el cron**:
+        ``method()`` no lleva argumentos. Ver :ref:`h-api-752`."""
         model = apps.get_model(self.model_name)
         method = getattr(model, self.method_name)
-        with user_scope(self.user_id):
+        with user_scope(self.user_id), context_scope(
+                cron_id=self.pk, lastcall=self.lastcall):
             method()
 
     def _run_job(self):

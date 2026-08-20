@@ -78,6 +78,7 @@ from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 
+import api
 from addons.base.models.append_only_mixin import AppendOnlyModel
 
 
@@ -144,7 +145,8 @@ class IrLogging(AppendOnlyModel):
     _HIGH_LEVELS = [LEVEL_WARNING, LEVEL_ERROR, LEVEL_CRITICAL]
 
     @classmethod
-    def purge_expired(cls, dry_run=False):
+    @api.autovacuum
+    def _purge_expired(cls, dry_run=False):
         """Aplica la retención de DEC-LOG-05. Devuelve ``{etiqueta: filas}``.
 
         Vivía en ``RequestLog`` —que cubría los dos modelos— hasta DEC-AF-11.
@@ -153,10 +155,12 @@ class IrLogging(AppendOnlyModel):
         modelo** y lo apunta con ``@api.autovacuum`` (``odoo19c:
         odoo/addons/base/models/res_device.py:116``).
 
-        Sigue siendo un método público porque su llamador de hoy es el comando
-        ``purge_logs`` y el ``ir.cron`` que lo invoca por nombre. El renombre
-        a ``_purge_expired`` —que el decorador asierta— va con el cron del
-        colector, tarea **#615**.
+        **Ese apunte ya está puesto (#615).** El método pasó de público a
+        ``_purge_expired`` porque el decorador asierta que sea privado, y su
+        planificación dejó de ser un ``ir.cron`` propio: hoy lo recoge
+        ``ir.autovacuum``, que es el único cron del barrido — la misma forma
+        que la referencia da a sus purgas. El ``dry_run`` conserva su default
+        ``False`` para que el colector, que invoca sin argumentos, purgue.
 
         ``BusinessEvent`` **no se toca**: es el registro de hechos de negocio,
         no telemetría, y no tiene ventana de retención.

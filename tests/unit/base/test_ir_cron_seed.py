@@ -38,16 +38,19 @@ de verdad al desplegar. Eso se verifica en el despliegue
 import pytest
 from django.apps import apps
 
-from addons.base.data import sembrar_cron
+from addons.base.data import CRON_AUTOVACUUM, sembrar_cron
 from addons.base.models import IrCron
 from addons.helpdesk.data import CRON_AUTO_CLOSE_TICKETS
 from addons.loyalty.data import CRON_EXPIRE_VOUCHERS
 from addons.mail.data import CRON_EMAIL_QUEUE
-from addons.observability.data import CRON_PURGE_LOGS
 
 pytestmark = pytest.mark.django_db
 
-# Los cuatro specs que dejaron de ser management commands sueltos (tarea #124).
+# Los cuatro specs sembrados por data-migration. Tres vienen de la tarea #124
+# (management commands sueltos que ganaron horario); el cuarto es el barrido de
+# ``ir.autovacuum`` (H-API-747), que reemplazó al cron propio de la purga de
+# logs: ese método ahora lleva ``@api.autovacuum`` y lo recoge el colector.
+#
 # Se listan los objetos, no una copia de sus valores: si alguien cambia el
 # method_name en el spec, el test lo sigue, y lo que se verifica es que ese
 # method_name resuelva — que es el defecto real.
@@ -55,7 +58,7 @@ SPECS = [
     CRON_EMAIL_QUEUE,
     CRON_EXPIRE_VOUCHERS,
     CRON_AUTO_CLOSE_TICKETS,
-    CRON_PURGE_LOGS,
+    CRON_AUTOVACUUM,
 ]
 
 
