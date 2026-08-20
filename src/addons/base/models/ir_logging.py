@@ -56,9 +56,10 @@ a Odoo o al ``AppLog`` previo se documenta explícitamente):
 Columnas propias (NO existen en Odoo ``ir.logging``, necesarias para el
 pipeline de logging de este proyecto, DEC-LOG-07):
 
-- ``correlation_id``: une esta fila con el ``BusinessEvent`` de la misma
-  request HTTP, y —cuando el vhost publique ``%{X-Correlation-Id}o`` en su
-  ``LogFormat``, tarea #55— con la línea del ``access_log`` del proxy. Odoo no
+- ``correlation_id``: une las filas de la misma request HTTP entre sí y con la
+  entrada de ``authz_audit``, y —cuando el vhost publique
+  ``%{X-Correlation-Id}o`` en su ``LogFormat``, tarea #55— con la línea del
+  ``access_log`` del proxy. Odoo no
   tiene un concepto de correlación de request a nivel de ``ir.logging``. Lo
   abre y lo cierra ``CorrelationIdMiddleware``
   (``addons/base/models/ir_http.py``).
@@ -139,10 +140,34 @@ class IrLogging(AppendOnlyModel):
     # Ventanas de DEC-LOG-05. Los niveles altos se conservan seis veces más
     # que los bajos: un ERROR sigue siendo útil para diagnosticar meses
     # después; un DEBUG de hace dos semanas ya no.
-    LOW_LEVEL_DAYS = 14    # DEBUG / INFO
-    HIGH_LEVEL_DAYS = 90   # WARNING / ERROR / CRITICAL
+    LOW_LEVEL_DAYS = 14      # DEBUG / INFO
+    HIGH_LEVEL_DAYS = 90     # WARNING / ERROR / CRITICAL que NO son un 4xx
+    ACCESS_LEVEL_DAYS = 30   # el 4xx — la ventana que DEC-LOG-05 dio al acceso
     _LOW_LEVELS = [LEVEL_DEBUG, LEVEL_INFO]
     _HIGH_LEVELS = [LEVEL_WARNING, LEVEL_ERROR, LEVEL_CRITICAL]
+
+    # El discriminador del 4xx, y por qué es exacto (H-API-748 → tarea #616).
+    #
+    # DEC-LOG-05 dio **30 días** a ``RequestLog``, que era donde vivía un 4xx.
+    # DEC-AF-11 retiró ese modelo: hoy el 4xx es una fila de ``ir.logging`` con
+    # nivel ``WARNING``, así que sin esta tercera ventana heredaría los 90 días
+    # de la clase alta — el 3x silencioso que #616 corrige.
+    #
+    # ``django.request`` a nivel WARNING **es** un 4xx, medido en el paquete
+    # instalado (Django 6.0.5), no de memoria:
+    #
+    #   utils/log.py:269    "Log 5xx responses as errors and 4xx responses as
+    #                        warnings" — el mapeo de ``log_response``
+    #   core/handlers/asgi.py:298   logger.warning(..., status_code=400)
+    #   core/handlers/base.py:66,129 · los únicos otros emisores del canal, y
+    #                        los dos son DEBUG (MiddlewareNotUsed, adaptación)
+    #   exception_handling.py:88   nuestro handler: ERROR si >=500, WARNING si no
+    #
+    # Es decir: en los cuatro emisores del árbol, WARNING sobre este logger
+    # implica 4xx y nada más. Si un quinto emisor rompiera esa implicación, la
+    # fila caería en la ventana equivocada **en silencio** — por eso el test
+    # ``test_the_4xx_discriminator_is_still_exact`` la vigila.
+    _ACCESS_LOGGER = 'django.request'
 
     @classmethod
     @api.autovacuum
@@ -162,23 +187,37 @@ class IrLogging(AppendOnlyModel):
         que la referencia da a sus purgas. El ``dry_run`` conserva su default
         ``False`` para que el colector, que invoca sin argumentos, purgue.
 
-        ``BusinessEvent`` **no se toca**: es el registro de hechos de negocio,
-        no telemetría, y no tiene ventana de retención.
+        **Tres ventanas, no dos** (tarea #616). La tercera es el 4xx, que
+        DEC-LOG-05 fijó en 30 días cuando vivía en ``RequestLog``; ver el
+        bloque ``_ACCESS_LOGGER`` de arriba para el discriminador y su
+        medición.
+
+        Los tres conjuntos son **disjuntos por construcción**: el alto excluye
+        el discriminador del 4xx. Sin esa exclusión un 4xx de más de 90 días
+        aparecería en dos conteos, y el ``dry_run`` —cuyo único trabajo es
+        decir cuántas filas caerían— publicaría una cifra inflada.
         """
         ahora = timezone.now()
+        cuatro_xx = models.Q(name=cls._ACCESS_LOGGER, level=cls.LEVEL_WARNING)
 
         low_qs = cls.objects.filter(
             level__in=cls._LOW_LEVELS,
             created_at__lt=ahora - timedelta(days=cls.LOW_LEVEL_DAYS))
+        access_qs = cls.objects.filter(
+            cuatro_xx,
+            created_at__lt=ahora - timedelta(days=cls.ACCESS_LEVEL_DAYS))
         high_qs = cls.objects.filter(
             level__in=cls._HIGH_LEVELS,
-            created_at__lt=ahora - timedelta(days=cls.HIGH_LEVEL_DAYS))
+            created_at__lt=ahora - timedelta(days=cls.HIGH_LEVEL_DAYS),
+        ).exclude(cuatro_xx)
 
         conteos = {
             'IrLogging INFO/DEBUG': low_qs.count(),
+            'IrLogging 4xx': access_qs.count(),
             'IrLogging WARNING/ERROR': high_qs.count(),
         }
         if not dry_run:
             low_qs.delete()
+            access_qs.delete()
             high_qs.delete()
         return conteos

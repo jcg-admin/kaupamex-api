@@ -22,8 +22,9 @@ from addons.base.models import IrLogging
 
 class Command(BaseCommand):
     help = (
-        'Purga IrLogging por retencion (DEC-LOG-05). BusinessEvent '
-        'no se toca. El ciclo normal lo corre el barrido de ir.autovacuum; '
+        'Purga IrLogging por retencion (DEC-LOG-05): tres ventanas '
+        '-- INFO/DEBUG 14 d, el 4xx 30 d, el resto de WARNING/ERROR '
+        '90 d. El ciclo normal lo corre el barrido de ir.autovacuum; '
         'esto es la entrada manual.'
     )
 
