@@ -144,7 +144,7 @@ class HrWorkEntry(TimeStampedModel):
         ('cancelled', 'Cancelled'),
     ]
 
-    name = fields.Char(max_length=255, blank=True, default='')
+    name = fields.Char(blank=True, default='')
     active = fields.Boolean(default=True)
     employee = fields.Many2one(
         'hr.HrEmployee', on_delete=models.CASCADE, db_index=True,
@@ -166,7 +166,7 @@ class HrWorkEntry(TimeStampedModel):
         help_text='Odoo work_entry_type_id. El domain= dinámico es '
                   '_get_work_entry_type_domain (D-7).',
     )
-    state = fields.Selection(max_length=10, choices=STATES, default='draft')
+    state = fields.Selection(choices=STATES, default='draft')
     company = fields.Many2one(
         'base.ResCompany', on_delete=models.PROTECT, null=True, blank=True,
         related_name='work_entries', verbose_name='Company',

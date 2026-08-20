@@ -17,7 +17,7 @@ class HrRecruitmentDegree(TimeStampedModel):
     _description = 'Applicant Degree'
 
     name = fields.Char(
-        max_length=255, verbose_name='Nombre del grado', help_text='Odoo "Degree Name".',
+        verbose_name='Nombre del grado', help_text='Odoo "Degree Name".',
     )
     score = fields.Float(default=0, verbose_name='Puntaje')
     sequence = fields.Integer(default=1, verbose_name='Secuencia')

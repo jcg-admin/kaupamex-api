@@ -80,7 +80,7 @@ class HrSkillType(TimeStampedModel):
     active = fields.Boolean(default=True, verbose_name='Activo')
     sequence = fields.Integer(default=0, verbose_name='Secuencia')
     name = fields.Char(
-        max_length=255, required=True, translate=True, verbose_name='Nombre',
+        required=True, translate=True, verbose_name='Nombre',
     )
     color = fields.Integer(
         default=_get_default_color, verbose_name='Color',

@@ -47,7 +47,7 @@ class HrSkillLevel(TimeStampedModel):
         null=True, blank=True, db_index=True,
         related_name='skill_level_ids', verbose_name='Tipo de habilidad',
     )
-    name = fields.Char(max_length=255, required=True, verbose_name='Nombre')
+    name = fields.Char(required=True, verbose_name='Nombre')
     level_progress = fields.Integer(
         default=0, verbose_name='Progreso',
         help_text='Odoo level_progress — de 0 por ciento (sin conocimiento) '

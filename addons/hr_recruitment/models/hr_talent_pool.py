@@ -46,7 +46,7 @@ class HrTalentPool(MailThread, TimeStampedModel):
 
     active = fields.Boolean(default=True, verbose_name='Activo')
     name = fields.Char(
-        max_length=255, verbose_name='Título', help_text='Odoo "Title".',
+        verbose_name='Título', help_text='Odoo "Title".',
     )
     company = fields.Many2one(
         'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,

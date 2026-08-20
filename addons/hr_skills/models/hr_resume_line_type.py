@@ -17,7 +17,7 @@ class HrResumeLineType(TimeStampedModel):
     _order = 'sequence'
 
     name = fields.Char(
-        max_length=255, required=True, translate=True, verbose_name='Nombre',
+        required=True, translate=True, verbose_name='Nombre',
     )
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     is_course = fields.Boolean(default=False, verbose_name='Curso')

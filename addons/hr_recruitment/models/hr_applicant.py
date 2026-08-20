@@ -105,12 +105,12 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='applicant_ids', db_index=True, verbose_name='Contacto',
     )
-    partner_name = fields.Char(max_length=255, blank=True, default='', verbose_name='Nombre del candidato')
+    partner_name = fields.Char(blank=True, default='', verbose_name='Nombre del candidato')
     email_from = fields.Char(max_length=128, blank=True, default='', db_index=True, verbose_name='Correo')
-    email_normalized = fields.Char(max_length=128, blank=True, default='', db_index=True)
+    email_normalized = fields.Char(blank=True, default='', db_index=True)
     partner_phone = fields.Char(max_length=32, blank=True, default='', verbose_name='Teléfono')
-    partner_phone_sanitized = fields.Char(max_length=32, blank=True, default='', db_index=True)
-    linkedin_profile = fields.Char(max_length=255, blank=True, default='', verbose_name='Perfil de LinkedIn')
+    partner_phone_sanitized = fields.Char(blank=True, default='', db_index=True)
+    linkedin_profile = fields.Char(blank=True, default='', verbose_name='Perfil de LinkedIn')
     type = fields.Many2one(
         'hr_recruitment.HrRecruitmentDegree', on_delete=models.SET_NULL, null=True,
         blank=True, related_name='applicants', verbose_name='Grado académico',
@@ -151,13 +151,13 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         null=True, blank=True, db_index=True, default=timezone.now,
         verbose_name='Última actualización de etapa',
     )
-    priority = fields.Selection(choices=AVAILABLE_PRIORITIES, max_length=1, default='0', verbose_name='Evaluación')
+    priority = fields.Selection(choices=AVAILABLE_PRIORITIES, default='0', verbose_name='Evaluación')
     job = fields.Many2one(
         'hr.HrJob', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='applications', db_index=True, verbose_name='Puesto',
     )
-    salary_proposed_extra = fields.Char(max_length=255, blank=True, default='', verbose_name='Extra propuesto')
-    salary_expected_extra = fields.Char(max_length=255, blank=True, default='', verbose_name='Extra esperado')
+    salary_proposed_extra = fields.Char(blank=True, default='', verbose_name='Extra propuesto')
+    salary_expected_extra = fields.Char(blank=True, default='', verbose_name='Extra esperado')
     salary_proposed = fields.Float(default=0, verbose_name='Salario propuesto')
     salary_expected = fields.Float(default=0, verbose_name='Salario esperado')
     department = fields.Many2one(
@@ -166,7 +166,7 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
     )
     delay_close = fields.Float(null=True, blank=True, verbose_name='Demora al cierre')
     kanban_state = fields.Selection(
-        choices=KANBAN_STATES, max_length=10, default='normal',
+        choices=KANBAN_STATES, default='normal',
         verbose_name='Estado kanban',
     )
     refuse_reason = fields.Many2one(

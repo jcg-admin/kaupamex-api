@@ -48,15 +48,14 @@ class HrJobPlatform(TimeStampedModel):
     _name = 'hr.job.platform'
     _description = 'Job Platforms'
 
-    name = fields.Char(max_length=255)
+    name = fields.Char()
     email = fields.Char(
-        max_length=255,
         help_text="Applications received from this Email won't be linked to "
                   'a contact. There will be no email address set on the '
                   'Applicant either.',
     )
     regex = fields.Char(
-        max_length=255, blank=True, default='',
+        blank=True, default='',
         help_text='The regex facilitates to extract information from the '
                   "subject or body of the received email to autopopulate "
                   "the Applicant's name field.",

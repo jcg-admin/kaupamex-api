@@ -68,7 +68,7 @@ class HrResumeLine(TimeStampedModel):
         verbose_name='Empleado',
     )
     name = fields.Char(
-        max_length=255, required=True, translate=True, verbose_name='Nombre',
+        required=True, translate=True, verbose_name='Nombre',
     )
     date_start = fields.Date(
         default=date.today, verbose_name='Fecha de inicio',
@@ -90,20 +90,20 @@ class HrResumeLine(TimeStampedModel):
         verbose_name='Tipo',
     )
     course_type = fields.Selection(
-        max_length=16, choices=[('external', 'Externo')],
+        choices=[('external', 'Externo')],
         default='external', verbose_name='Tipo de curso',
     )
     color = fields.Char(
-        max_length=16, default='#000000', verbose_name='Color',
+        default='#000000', verbose_name='Color',
         help_text='Odoo color (compute) — recómputo: _compute_color().',
     )
     external_url = fields.Char(
-        max_length=2048, blank=True, default='', verbose_name='URL externa',
+        blank=True, default='', verbose_name='URL externa',
         help_text='Odoo external_url (compute, store=True) — recómputo: '
                   '_compute_external_url().',
     )
     certificate_filename = fields.Char(
-        max_length=255, blank=True, default='',
+        blank=True, default='',
         verbose_name='Nombre de archivo del certificado',
     )
     certificate_file = fields.Binary(

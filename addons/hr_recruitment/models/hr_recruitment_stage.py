@@ -64,7 +64,7 @@ class HrRecruitmentStage(TimeStampedModel):
     _description = 'Recruitment Stages'
     _order = 'sequence'
 
-    name = fields.Char(max_length=255, verbose_name='Nombre de la etapa')
+    name = fields.Char(verbose_name='Nombre de la etapa')
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     jobs = fields.Many2many(
         'hr.HrJob', related_name='recruitment_stages', blank=True,
@@ -95,19 +95,19 @@ class HrRecruitmentStage(TimeStampedModel):
                   'consideren vencidos. 0 desactiva.',
     )
     legend_blocked = fields.Char(
-        max_length=255, default=_default_legend_blocked,
+        default=_default_legend_blocked,
         verbose_name='Etiqueta kanban roja',
     )
     legend_waiting = fields.Char(
-        max_length=255, default=_default_legend_waiting,
+        default=_default_legend_waiting,
         verbose_name='Etiqueta kanban naranja',
     )
     legend_done = fields.Char(
-        max_length=255, default=_default_legend_done,
+        default=_default_legend_done,
         verbose_name='Etiqueta kanban verde',
     )
     legend_normal = fields.Char(
-        max_length=255, default=_default_legend_normal,
+        default=_default_legend_normal,
         verbose_name='Etiqueta kanban gris',
     )
 

@@ -39,7 +39,7 @@ def apply_hr_timesheet_uom_uom_extensions():
     La llama ``HrTimesheetConfig.ready()``.
     """
     _add_if_absent(Uom, 'timesheet_widget', fields.Char(
-        max_length=255, blank=True, default='',
+        blank=True, default='',
         help_text='Odoo timesheet_widget. Widget del cliente web usado '
                   'cuando esta unidad captura la hoja de horas.',
     ))

@@ -43,7 +43,7 @@ class HrApplicantCategory(TimeStampedModel):
     _description = 'Category of applicant'
 
     name = fields.Char(
-        max_length=255, verbose_name='Nombre de la etiqueta',
+        verbose_name='Nombre de la etiqueta',
         help_text='Odoo "Tag Name".',
     )
     color = fields.Integer(

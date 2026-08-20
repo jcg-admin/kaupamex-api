@@ -38,7 +38,7 @@ class HrApplicantRefuseReason(TimeStampedModel):
     _order = 'sequence'
 
     sequence = fields.Integer(default=10)
-    name = fields.Char(max_length=255, verbose_name='Descripción')
+    name = fields.Char(verbose_name='Descripción')
     template = fields.Many2one(
         'mail.MailTemplate', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='hr_applicant_refuse_reasons',

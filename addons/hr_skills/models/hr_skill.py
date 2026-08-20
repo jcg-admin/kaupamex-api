@@ -36,7 +36,7 @@ class HrSkill(TimeStampedModel):
     _order = 'sequence, name'
 
     name = fields.Char(
-        max_length=255, required=True, translate=True, verbose_name='Nombre',
+        required=True, translate=True, verbose_name='Nombre',
     )
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     skill_type = fields.Many2one(

@@ -77,7 +77,7 @@ class HrWorkEntryType(TimeStampedModel):
     _description = 'HR Work Entry Type'
 
     name = fields.Char(
-        max_length=255, required=True, translate=True,
+        required=True, translate=True,
         help_text='Odoo name (required, translate).',
     )
     display_code = fields.Char(
@@ -86,12 +86,12 @@ class HrWorkEntryType(TimeStampedModel):
              '(3 letters max)',
     )
     code = fields.Char(
-        'Payroll Code', max_length=64, required=True,
+        'Payroll Code', required=True,
         help='Careful, the Code is used in many references, changing it '
              'could lead to unwanted changes.',
     )
     external_code = fields.Char(
-        max_length=64, blank=True, default='',
+        blank=True, default='',
         help='Use this code to export your data to a third party',
     )
     color = fields.Integer(default=0)
