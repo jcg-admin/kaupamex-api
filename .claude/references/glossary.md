@@ -76,7 +76,7 @@ Referencia alfabética de términos que aparecen en la documentación de Claude 
 | Dual-instance planning | Patrón de Jon Williams: una instancia de Claude crea un plan detallado, una instancia separada lo ejecuta — evitando contaminación de contexto. | Patrones |
 | Encoded Preference | Tipo de skill que refuerza convenciones, elecciones de estilo o restricciones específicas que Claude no aplicaría por defecto. | Herramientas |
 | Enterprise AI governance | Políticas a nivel org para uso de herramientas de AI: usage charter, registro de servidores MCP, niveles de guardrail y audit trail. | Seguridad |
-| Eval harness | Framework de testing para medir sistemáticamente el comportamiento de agentes, calidad de output y efectividad de skills contra criterios definidos. | Herramientas |
+| Eval harness | El **mismo patrón en tiempo de evaluación**: corre un conjunto fijo de escenarios contra un checkpoint del modelo y registra métricas en vez de actualizar pesos. Sus cinco funciones (`sdd.md`): provee instrucciones y herramientas, ejecuta tareas concurrentemente, registra pasos, **califica** outputs, agrega resultados. Calificar es la única que el harness de inferencia no hace. | Herramientas |
 | Event-driven agents | Patrón donde eventos externos (tickets de Linear, PRs de GitHub, webhooks de Jira) disparan automáticamente workflows de agentes de Claude Code. | Patrones |
 | Extended thinking | Feature del modelo que habilita razonamiento más profundo via "thinking tokens" procesados antes de la respuesta visible. Se activa con `--thinking`. | Modelos |
 | Fast Mode | Modo (v2.1.36+) que corre 2.5x más rápido a 6x el costo de tokens, sobre el mismo modelo subyacente. Toggle con `/fast`. | Modos |
@@ -87,6 +87,8 @@ Referencia alfabética de términos que aparecen en la documentación de Claude 
 | GSD (Get Shit Done) | Metodología de desarrollo pragmática y orientada a resultados: shipear rápido, validar con uso real, iterar basado en feedback. | Patrones |
 | gstack | Suite de 6 skills de Garry Tan: strategic gate + architecture review + code review + release notes + browser QA + retrospectiva. | Ecosistema |
 | Guardrail tiers | Cuatro niveles de cumplimiento de seguridad enterprise: Starter (awareness), Standard (review gates), Strict (approval flows), Regulated (full audit). | Seguridad |
+| Harness | **Estrecho:** la capa de *ejecución* dentro del agente — llama al modelo, atiende sus llamadas a herramienta, decide cuándo parar. **Amplio:** *todo lo que no es el modelo* (scaffold + ejecución); así lo usan los productos, y la doc de Claude Code lo dice — *"Claude Code serves as the agentic harness around Claude"* (citada por [HF agent glossary](https://huggingface.co/blog/agent-glossary); la cadena `agentic harness` **no** está en el ejecutable 2.1.236). La ambigüedad es del campo, no nuestra: el término desnudo lo usa la plataforma (*"BUILD the harness you need"*, 7 literales). **Cualificar siempre que el contexto no lo haga.** No confundir con `Scaffold`. | Herramientas |
+| Harness de Claude Code | El harness **en tiempo de inferencia**: el runtime del cliente que hospeda al agente — dueño del bucle de `tool_use`, del tablero de tareas, de los hooks, del gate de `Stop`, de las `task-notification` y de la contabilidad de tokens. Decide qué se le entrega al agente y cuándo se le vuelve a invocar. No es el modelo ni el transporte. | Herramientas |
 | Hallucination | Cuando un modelo de AI genera información que suena plausible pero es incorrecta, a menudo con alta confianza aparente. | AI Engineering |
 | Hook | Script de automatización disparado por eventos del ciclo de vida de Claude Code. Definido en `settings.json`. Corre sincrónicamente antes o después de la ejecución de herramientas. | Herramientas |
 | Hook types | Cuatro tipos de ejecución: `command` (script shell), `http` (POST webhook), `prompt` (llamada LLM de un solo turno), `agent` (sub-agente multi-turno completo). | Herramientas |
@@ -97,11 +99,13 @@ Referencia alfabética de términos que aparecen en la documentación de Claude 
 | MCP (Model Context Protocol) | Protocolo abierto desarrollado por Anthropic para conectar modelos de AI a herramientas externas, bases de datos y APIs de forma estandarizada. | Arquitectura |
 | Mechanic Stacking | Patrón de capas múltiples de mecanismos de Claude Code (Plan Mode + extended thinking + MCP) para máximo razonamiento en decisiones críticas. | Patrones |
 | Memory hierarchy | Precedencia de tres niveles de CLAUDE.md: Local > Project > Global. Cada nivel extiende el inferior y puede sobreescribirlo para su propio scope. | Configuración |
+| Model | El LLM. **Sin memoria entre llamadas y sin bucle propio**: puede *expresar* la intención de llamar una herramienta, pero ejecutarla es trabajo del harness. `Agente = Modelo + Harness`. | Modelos |
 | Model aliases | Nombres cortos que resuelven a versiones actuales de modelos: `default`, `sonnet`, `opus`, `haiku`, `sonnet[1m]`, `opusplan`. | Modelos |
 | Modular context architecture | Patrón de dividir CLAUDE.md en módulos enfocados cargados dinámicamente via rules con scope de path, reduciendo el overhead de tokens por sesión. | AI Engineering |
 | multiclaude | Spawner multi-agente self-hosted de la comunidad usando tmux + git worktrees. Ejecuta N instancias de Claude Code en paralelo. | Ecosistema |
 | Native sandbox | Sandboxing integrado de Claude Code a nivel OS: Seatbelt en macOS, bubblewrap en Linux. Limita acceso a filesystem y red. | Seguridad |
 | OpusPlan | Modo híbrido: Opus 4.6 maneja la planificación (con thinking), Sonnet ejecuta. Se activa con `/model opusplan`. | Modelos |
+| Orchestrator | Coordina agentes **como unidades** — reparte trabajo, recoge resultados, decide el siguiente paso. **No es un harness**: cada agente que despacha corre el suyo. | Multi-Agent |
 | Packmind | Tool que distribuye estándares de código como archivos `CLAUDE.md`, slash commands y skills a través de repositorios y herramientas de AI (Claude Code, Cursor, Copilot). | Ecosistema |
 | Permission modes | Cinco niveles de autonomía: Default, Auto-accept, Plan, Don't Ask, Bypass Permissions. Se configuran por sesión o en `settings.json`. | Permisos |
 | Plan Mode | Modo de solo lectura donde Claude puede analizar, buscar y proponer pero no puede modificar archivos. Se activa con Shift+Tab o `/plan`. | Modos |
@@ -121,6 +125,7 @@ Referencia alfabética de términos que aparecen en la documentación de Claude 
 | Session handoff | Iniciar manualmente una nueva sesión y pasar un documento de contexto resumido desde una sesión anterior agotada o degradada. | Patrones |
 | SessionStart / SessionEnd | Eventos de hook disparados cuando una sesión comienza o se cierra. Usados para scripts de setup, logging y automatización de cleanup. | Herramientas |
 | Shift+Tab | Atajo de teclado para alternar entre Plan Mode y Act Mode. | Herramientas |
+| Scaffold | La capa que **define la conducta** del modelo: system prompt, descripciones de herramientas, cómo se parsea su respuesta, qué recuerda entre pasos. Es aquello *desde lo que* el modelo trabaja; aquí, `.claude/CLAUDE.md`, `.claude/rules/`, skills y hooks. Se glosa **andamiaje** y **no** es sinónimo de `Harness` — la fuente los compone (*"harness scaffolding"*, *"harness-level scaffolding"*; 123 ocurrencias de `scaffold*`). | Arquitectura |
 | Skeleton project | Template de proyecto mínimo pero completamente funcional generado por Claude para establecer patrones de arquitectura antes de comenzar la implementación completa. | Patrones |
 | Skill | Módulo de conocimiento reutilizable (carpeta + punto de entrada SKILL.md) que provee expertise de dominio o instrucciones de comportamiento bajo demanda. | Herramientas |
 | Skill evals | Criterios de evaluación automatizados que miden la calidad de skills, confiabilidad de invocación y consistencia de output. Parte de Skills 2.0. | Herramientas |
@@ -176,7 +181,7 @@ Adaptive thinking · Claude Haiku 4.5 · Claude Opus 4.6 · Claude Sonnet 4.6 ·
 Auto-accept Mode · Bypass Permissions Mode · Default Mode · Don't Ask Mode · Permission modes · Tool-qualified deny
 
 ### Herramientas (extensibilidad)
-Agent · Auto-memories · Capability Uplift · Checkpoint · Encoded Preference · Eval harness · Git worktree · Hook · Hook types · Plugin · PostToolUse · PreToolUse · Recovery ladder · Rewind · SessionStart/SessionEnd · Shift+Tab · Skill · Skill evals · Skills 2.0 · Slash command · Stop · Sub-agent · Tasks API · UserPromptSubmit
+Agent · Auto-memories · Capability Uplift · Checkpoint · Encoded Preference · Eval harness · Harness · Harness de Claude Code · Scaffold · Git worktree · Hook · Hook types · Plugin · PostToolUse · PreToolUse · Recovery ladder · Rewind · SessionStart/SessionEnd · Shift+Tab · Skill · Skill evals · Skills 2.0 · Slash command · Stop · Sub-agent · Tasks API · UserPromptSubmit
 
 ### Arquitectura
 150K ceiling · ACE pipeline · Auto-compaction · JSONL transcript · Master loop · MCP (Model Context Protocol) · Native sandbox
