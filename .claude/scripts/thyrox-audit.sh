@@ -38,15 +38,15 @@ CANON_DIRS=".claude/commands .claude/rules .claude/agents .claude/skills/thyrox/
 # --- 1. Referencias (markdown links rotos) ---
 if $FAST; then
     echo "SKIP  · Referencias: omitido en modo --fast"
-elif [[ -f .claude/scripts/validate-broken-references.py ]]; then
-    if python3 .claude/scripts/validate-broken-references.py --links-only >/dev/null 2>&1; then
+elif [[ -f .claude/scripts/validate_broken_references.py ]]; then
+    if python3 .claude/scripts/validate_broken_references.py --links-only >/dev/null 2>&1; then
         ok "Referencias: 0 broken markdown links (--links-only)"
     else
-        bad "Referencias: hay broken markdown links — corre validate-broken-references.py"
+        bad "Referencias: hay broken markdown links — corre validate_broken_references.py"
     fi
     rm -f reference-validation-report.txt 2>/dev/null
 else
-    warn "Referencias: validate-broken-references.py no encontrado"
+    warn "Referencias: validate_broken_references.py no encontrado"
 fi
 
 # --- 2a. Lenguaje muerto DURO: tokens de template nunca válidos en kaupamex ---

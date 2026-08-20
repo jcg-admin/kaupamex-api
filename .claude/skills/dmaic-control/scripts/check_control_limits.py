@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-check-control-limits.py — Detect Western Electric Rules violations in process data.
+check_control_limits.py — Detect Western Electric Rules violations in process data.
 
 Usage:
-    python check-control-limits.py <csv_file> [column]
+    python check_control_limits.py <csv_file> [column]
 
 Arguments:
     csv_file   Path to CSV file with sequential measurement data

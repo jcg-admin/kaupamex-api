@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-extract-agent-output.py — Extract the final text response from a large agent task output file.
+extract_agent_output.py — Extract the final text response from a large agent task output file.
 
 Usage:
-    python3 .claude/scripts/extract-agent-output.py <task-output-file> [output-file]
+    python3 .claude/scripts/extract_agent_output.py <task-output-file> [output-file]
 
 When Claude Code agent task output files exceed 256KB, the Read tool refuses to open them.
 This script reads only the last assistant message from the JSONL and writes the text content
 to stdout (or to output-file if provided).
 
 Example:
-    python3 .claude/scripts/extract-agent-output.py /tmp/claude-0/.../tasks/abc123.output
-    python3 .claude/scripts/extract-agent-output.py /tmp/claude-0/.../tasks/abc123.output /tmp/result.md
+    python3 .claude/scripts/extract_agent_output.py /tmp/claude-0/.../tasks/abc123.output
+    python3 .claude/scripts/extract_agent_output.py /tmp/claude-0/.../tasks/abc123.output /tmp/result.md
 """
 
 import json

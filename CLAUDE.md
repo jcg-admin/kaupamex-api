@@ -100,7 +100,7 @@ install-hooks db-up ci-test ci-test-fast` (`make help`).
   (`.claude/skills/backend-drf/SKILL.md`); el contrato OpenAPI en
   **`backend-drf-spectacular`**. No se duplica aquí para no engordar el CLAUDE.
 - **La invocación de esos skills es un GATE mecánico, no prosa.** Un hook
-  `PreToolUse` (`.claude/hooks/inject-drf-skill-gate.py`, ver
+  `PreToolUse` (`.claude/hooks/inject_drf_skill_gate.py`, ver
   `.claude/rules/drf-skill-gate.md`) dispara en CADA `Edit`/`Write`/`MultiEdit`
   sobre Python del monolito modular (`src/**/*.py` y `tests/**/*.py`) e inyecta
   el recordatorio de invocar `backend-drf` (+ `backend-drf-spectacular` si toca

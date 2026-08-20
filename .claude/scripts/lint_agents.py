@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-lint-agents.py — Validator for native Claude Code agents.
+lint_agents.py — Validator for native Claude Code agents.
 
 Validates frontmatter of .claude/agents/*.md files against the agent-spec.md rules:
   - REQUIRED fields: name, description, tools
@@ -9,8 +9,8 @@ Validates frontmatter of .claude/agents/*.md files against the agent-spec.md rul
   - description pattern WARN: should follow "{what}. Usar cuando {condition}."
 
 Usage:
-  python3 lint-agents.py                    # Validate all .claude/agents/*.md
-  python3 lint-agents.py path/to/agent.md  # Validate specific file(s)
+  python3 lint_agents.py                    # Validate all .claude/agents/*.md
+  python3 lint_agents.py path/to/agent.md  # Validate specific file(s)
 """
 
 import sys

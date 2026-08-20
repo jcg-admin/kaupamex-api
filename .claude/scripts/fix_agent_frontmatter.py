@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-fix-agent-frontmatter.py — Batch-fix lint-agents.py errors in .claude/agents/*.md
+fix_agent_frontmatter.py — Batch-fix lint_agents.py errors in .claude/agents/*.md
 
 Fixes:
   1. tools: "X, Y, Z"  →  YAML list format

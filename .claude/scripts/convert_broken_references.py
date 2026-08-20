@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-convert-broken-references.py
+convert_broken_references.py
 Intenta corregir referencias rotas automáticamente buscando el archivo
 correcto en el proyecto y actualizando el path relativo.
 
 Uso:
-    python3 convert-broken-references.py                # Corrige desde directorio actual
-    python3 convert-broken-references.py /path          # Corrige en ruta específica
-    python3 convert-broken-references.py --dry-run      # Muestra cambios sin aplicar
+    python3 convert_broken_references.py                # Corrige desde directorio actual
+    python3 convert_broken_references.py /path          # Corrige en ruta específica
+    python3 convert_broken_references.py --dry-run      # Muestra cambios sin aplicar
 """
 
 import os

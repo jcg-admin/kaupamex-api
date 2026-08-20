@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-migrate-metadata-keys.py — Migra keys de metadata YAML en frontmatter markdown.
+migrate_metadata_keys.py — Migra keys de metadata YAML en frontmatter markdown.
 
 Transforma keys en español (con espacios/tildes) a inglés snake_case.
 Solo modifica el bloque frontmatter (entre ```yml y ```).
 El cuerpo del documento NO se toca.
 
 Uso:
-    python scripts/migrate-metadata-keys.py --layer 1 [--dry-run]
-    python scripts/migrate-metadata-keys.py --layer 1 --layer 2 [--dry-run]
-    python scripts/migrate-metadata-keys.py --file path/to/file.md [--dry-run]
-    python scripts/migrate-metadata-keys.py --all [--dry-run]
-    python scripts/migrate-metadata-keys.py --verify-only [--layer N | --all]
+    python scripts/migrate_metadata_keys.py --layer 1 [--dry-run]
+    python scripts/migrate_metadata_keys.py --layer 1 --layer 2 [--dry-run]
+    python scripts/migrate_metadata_keys.py --file path/to/file.md [--dry-run]
+    python scripts/migrate_metadata_keys.py --all [--dry-run]
+    python scripts/migrate_metadata_keys.py --verify-only [--layer N | --all]
 """
 
 import argparse

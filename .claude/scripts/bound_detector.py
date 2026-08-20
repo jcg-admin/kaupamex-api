@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-bound-detector.py — PreToolUse hook para Agent tool calls
+bound_detector.py — PreToolUse hook para Agent tool calls
 Detecta instrucciones sin scope bound y bloquea hasta que se especifique uno.
 
 Eventos: PreToolUse (matcher: Agent)

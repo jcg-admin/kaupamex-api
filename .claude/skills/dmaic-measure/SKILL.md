@@ -227,15 +227,15 @@ Cuando el baseline está establecido y el MSA validado → `dmaic:analyze`
 - [process-capability.md](./references/process-capability.md) — Cp/Cpk/Pp/Ppk: fórmulas, interpretación, tabla DPMO→Sigma Level, convención 1.5σ, prerequisitos
 
 ### Scripts
-- [calculate-capability.py](./scripts/calculate-capability.py) — Calcula Cp/Cpk/Pp/Ppk desde CSV con límites de especificación
+- [calculate_capability.py](./scripts/calculate_capability.py) — Calcula Cp/Cpk/Pp/Ppk desde CSV con límites de especificación
 
 ```bash
 # Uso básico — primera columna numérica, con límites de especificación
-python .claude/skills/dmaic-measure/scripts/calculate-capability.py measurements.csv --lsl 9.5 --usl 10.5
+python .claude/skills/dmaic-measure/scripts/calculate_capability.py measurements.csv --lsl 9.5 --usl 10.5
 
 # Especificando columna
-python .claude/skills/dmaic-measure/scripts/calculate-capability.py data.csv diameter --lsl 49.8 --usl 50.2
+python .claude/skills/dmaic-measure/scripts/calculate_capability.py data.csv diameter --lsl 49.8 --usl 50.2
 
 # Sin límites — muestra solo media y desviación estándar
-python .claude/skills/dmaic-measure/scripts/calculate-capability.py data.csv
+python .claude/skills/dmaic-measure/scripts/calculate_capability.py data.csv
 ```

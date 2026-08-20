@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-calculate-capability.py — Compute Cp/Cpk process capability from CSV data.
+calculate_capability.py — Compute Cp/Cpk process capability from CSV data.
 
 Usage:
-    python calculate-capability.py <csv_file> [column] [--lsl LSL] [--usl USL]
+    python calculate_capability.py <csv_file> [column] [--lsl LSL] [--usl USL]
 
 Arguments:
     csv_file   Path to CSV file with measurement data
@@ -12,8 +12,8 @@ Arguments:
     --usl      Upper Specification Limit
 
 Examples:
-    python calculate-capability.py measurements.csv --lsl 9.5 --usl 10.5
-    python calculate-capability.py data.csv diameter --lsl 49.8 --usl 50.2
+    python calculate_capability.py measurements.csv --lsl 9.5 --usl 10.5
+    python calculate_capability.py data.csv diameter --lsl 49.8 --usl 50.2
 
 Output:
     Mean, StdDev, Cp, Cpk, Pp, Ppk and interpretation per DMAIC thresholds.

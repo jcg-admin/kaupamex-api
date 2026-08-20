@@ -15,7 +15,7 @@ THYROX es agentic cuando cumple TODOS los criterios siguientes:
 
 | Criterio | Descripción | Estado |
 |---------|-------------|--------|
-| C1 — Auto-rechazo | El motor puede rechazar su propio output | CUMPLE — bound-detector.py (PreToolUse) |
+| C1 — Auto-rechazo | El motor puede rechazar su propio output | CUMPLE — bound_detector.py (PreToolUse) |
 | C2 — Razonamiento sobre incertidumbre | Cada artefacto de gate declara confianza con umbral | PARCIAL — exit-conditions.md.template tiene umbrales, no todos los artefactos los usan |
 | C3 — Persistencia de estado | Persiste estado entre sesiones sin intervención humana | CUMPLE — sync-wp-state.sh, git |
 | C4 — Orquestación especializada | Puede orquestar agentes especializados con scope acotado | CUMPLE — 25+ agentes, bound-detector |
@@ -46,10 +46,10 @@ THYROX es agentic cuando cumple TODOS los criterios siguientes:
 
 | Característica | Riesgo si falla | Indicador de fallo | Mitigación actual |
 |----------------|----------------|-------------------|-------------------|
-| Auto-rechazo (C1) | Agente acepta output incorrecto | bound-detector no intercepta | bound-detector.py (PreToolUse) |
+| Auto-rechazo (C1) | Agente acepta output incorrecto | bound-detector no intercepta | bound_detector.py (PreToolUse) |
 | Calibración epistémica (C2) | Gates avanzan con SPECULATIVE | Claims no clasificados en artefactos | evidence-classification.md + I-012 |
 | Persistencia de estado (C3) | Sesión reinicia sin contexto | sync-wp-state.sh falla silenciosamente | exit 0 explícito (T-071) |
-| Orquestación (C4) | Scope sin límite, agentes unbounded | Agent tool sin bound en prompt | bound-detector.py |
+| Orquestación (C4) | Scope sin límite, agentes unbounded | Agent tool sin bound en prompt | bound_detector.py |
 
 ---
 
@@ -59,10 +59,10 @@ THYROX opera en **autonomía condicional**, no en autonomía plena:
 
 | Tipo | Descripción | Estado en THYROX |
 |------|-------------|-----------------|
-| Autonomía plena | El agente ejecuta sin mecanismo de rechazo o supervisión | NO — bound-detector.py puede rechazar outputs |
+| Autonomía plena | El agente ejecuta sin mecanismo de rechazo o supervisión | NO — bound_detector.py puede rechazar outputs |
 | Autonomía condicional | El agente ejecuta, pero hay mecanismos de rechazo activos con criterios operacionales | SI — C1 + C4 implementados |
 
 **Regla:** Declarar THYROX como "autónomo" sin la distinción condicional/plena reproduce el anti-patrón
 de realismo performativo. La autonomía de THYROX es verificable porque tiene condiciones de fallo
-documentadas (bound-detector.py, exit 0 en sync-wp-state.sh). Sin esas condiciones documentadas,
+documentadas (bound_detector.py, exit 0 en sync-wp-state.sh). Sin esas condiciones documentadas,
 "autónomo" sería un label, no una propiedad del sistema.

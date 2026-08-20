@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-validate-broken-references.py
+validate_broken_references.py
 Valida que no existan referencias rotas en el proyecto.
 Retorna exit code 0 si todo está correcto, 1 si hay referencias rotas.
 
 Diseñado para CI/CD y validación automatizada.
 
 Uso:
-    python3 validate-broken-references.py              # Valida desde directorio actual
-    python3 validate-broken-references.py /path         # Valida desde ruta específica
-    python3 validate-broken-references.py --strict      # Falla también con documentales sin resolver
+    python3 validate_broken_references.py              # Valida desde directorio actual
+    python3 validate_broken_references.py /path         # Valida desde ruta específica
+    python3 validate_broken_references.py --strict      # Falla también con documentales sin resolver
 """
 
 import sys

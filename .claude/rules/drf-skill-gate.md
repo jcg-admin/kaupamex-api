@@ -30,7 +30,7 @@ integrado en el flujo lo hace fiable.
 
 ## Qué hace
 
-Un hook **`PreToolUse`** (`.claude/hooks/inject-drf-skill-gate.py`, matcher
+Un hook **`PreToolUse`** (`.claude/hooks/inject_drf_skill_gate.py`, matcher
 `Edit|Write|MultiEdit`) inspecciona el `file_path` del objetivo. Si es Python
 del **monolito modular** — `src/**/*.py` o `tests/**/*.py` — inyecta un
 `additionalContext` que recuerda invocar los skills obligatorios **ANTES** de
@@ -64,7 +64,7 @@ fuera el tooling de `.claude/` y los `.rst` de docs (no son código de app).
 | Pieza | Ruta | Qué hace |
 |---|---|---|
 | Hook | `.claude/settings.json` → `hooks.PreToolUse` (matcher `Edit\|Write\|MultiEdit`) | dispara antes de cada edición |
-| Script | `.claude/hooks/inject-drf-skill-gate.py` | parsea `tool_input.file_path`; emite `additionalContext` o `{}`; sale 0 siempre |
+| Script | `.claude/hooks/inject_drf_skill_gate.py` | parsea `tool_input.file_path`; emite `additionalContext` o `{}`; sale 0 siempre |
 | Skills | `.claude/skills/backend-drf/` · `.claude/skills/backend-drf-spectacular/` | el contenido que el gate recuerda invocar |
 | Regla (este doc) | `.claude/rules/drf-skill-gate.md` | documenta el gate |
 
@@ -77,14 +77,14 @@ print(d['hooks']['PreToolUse'][0]['hooks'][0]['command'])"
 
 # Dispara sobre capa DRF (views.py) — additionalContext presente:
 printf '{"tool_input":{"file_path":"src/addons/company/views.py"}}' \
-  | python3 .claude/hooks/inject-drf-skill-gate.py
+  | python3 .claude/hooks/inject_drf_skill_gate.py
 
 # Silencioso sobre no-código de app (docs .rst) → {}:
 printf '{"tool_input":{"file_path":"source/foo.rst"}}' \
-  | python3 .claude/hooks/inject-drf-skill-gate.py
+  | python3 .claude/hooks/inject_drf_skill_gate.py
 
 # Nunca rompe el flujo (stdin vacío → {} exit 0):
-printf '' | python3 .claude/hooks/inject-drf-skill-gate.py; echo "exit=$?"
+printf '' | python3 .claude/hooks/inject_drf_skill_gate.py; echo "exit=$?"
 ```
 
 ## Activación (caveat del watcher)
