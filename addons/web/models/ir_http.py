@@ -90,8 +90,8 @@ tomada.** Dos razones independientes, no una sola:
   real de "debug mode" que un backend API-only podría aprovechar es mostrar
   el traceback completo en la respuesta de error cuando el modo está
   activo — que es exactamente lo que
-  ``observability/exception_handling.py::custom_exception_handler``
-  (líneas 12-16) declara **prohibido**: *"PII-safe (DEC-LOG-03): (...) NO es
+  ``addons/base/exception_handling.py::custom_exception_handler``
+  declara **prohibido**: *"PII-safe (DEC-LOG-03): (...) NO es
   el traceback completo (...); aquí solo el mensaje corto"*. Construir un
   toggle de sesión para revelar tracebacks violaría una decisión de
   seguridad ya tomada, no llenaría un hueco del ORM — no es un caso del

@@ -1,8 +1,8 @@
 """
-purge_logs — envoltura de CLI sobre ``RequestLog.purge_expired``.
+purge_logs — envoltura de CLI sobre ``IrLogging.purge_expired``.
 
 La retención de DEC-LOG-05 la aplica el **cron** ``ir_cron_observability_purge``.
-La lógica vive en el modelo —``addons.observability.models.RequestLog.
+La lógica vive en el modelo —``addons.base.models.IrLogging.
 purge_expired``— porque ``ir.cron`` invoca ``<model>.<method>()`` y no sabe
 ejecutar comandos de Django.
 
@@ -16,12 +16,12 @@ operación de humano.
 """
 from django.core.management.base import BaseCommand
 
-from addons.observability.models import RequestLog
+from addons.base.models import IrLogging
 
 
 class Command(BaseCommand):
     help = (
-        'Purga RequestLog/IrLogging por retencion (DEC-LOG-05). BusinessEvent '
+        'Purga IrLogging por retencion (DEC-LOG-05). BusinessEvent '
         'no se toca. El ciclo normal lo corre el cron '
         'ir_cron_observability_purge; esto es la entrada manual.'
     )
@@ -34,7 +34,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry = options['dry_run']
-        conteos = RequestLog.purge_expired(dry_run=dry)
+        conteos = IrLogging.purge_expired(dry_run=dry)
 
         prefijo = '[dry-run] ' if dry else ''
         for etiqueta, n in conteos.items():

@@ -9,8 +9,9 @@ addon net-new ``observability``:
   ``adoptar-arquitectura-server-service-odoo``).
 - ``AppLog`` -> ``IrLogging`` en ``addons/base`` (slice 2, DEC-08). Ver
   ``addons/base/models/ir_logging.py``.
-- ``RequestLog`` -> ``addons/observability`` (slice 3, DEC-08/DEC-12). Ver
-  ``addons/observability/models/request_log.py``.
+- ``RequestLog`` -> ``addons/observability`` (slice 3, DEC-08/DEC-12), y de
+  ahí **retirado** por DEC-AF-11: su mitad de error vive en ``ir.logging`` y
+  la de acceso en el ``access_log`` del proxy inverso.
 
 Este módulo se mantiene vacío (sin modelos) para no romper el import de
 ``core.models`` mientras ``core`` como app Django siga registrada en

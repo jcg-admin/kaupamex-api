@@ -172,12 +172,13 @@ AUTHENTICATION_BACKENDS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # RequestLogMiddleware (DEC-LOG-02): cobertura universal request->DB. Va
-    # cerca del tope para medir la duracion completa; su process_response corre
-    # tras get_response, cuando request.user y resolver_match ya estan puestos.
-    # Vive en addons.observability (addon net-new, DEC-12) desde el slice 3 de
-    # adoptar-arquitectura-server-service-odoo (antes core.middleware.request_log).
-    'addons.observability.middleware.RequestLogMiddleware',
+    # CorrelationIdMiddleware (DEC-LOG-07, DEC-AF-11): abre la correlacion de
+    # la peticion y la cierra al terminar; emite X-Correlation-Id para que el
+    # access_log del proxy pueda unirse a ir.logging. Va cerca del tope porque
+    # la correlacion debe estar abierta antes de que cualquier capa emita log.
+    # Es la mitad que sobrevive de RequestLogMiddleware: la que escribia la
+    # fila RequestLog murio con el modelo (DEC-AF-11).
+    'addons.base.models.ir_http.CorrelationIdMiddleware',
     # CookieGovernanceMiddleware va sobre Session/CSRF: su process_response
     # (orden inverso) corre despues de que aquellas ponen sus cookies, para
     # observarlas/gobernarlas. Fase 1 = auditoria (COOKIE_GOVERNANCE_ENFORCE
@@ -311,8 +312,10 @@ DATABASE_ROUTERS = ['orm.routers.CompanyDatabaseRouter']
 # Plano de control L0 (vive siempre en ``default``, no se particiona por empresa).
 # ``addons.base`` (addon fundacional, ``SystemParameter`` L2 global) es config de
 # instancia, no per-empresa (SOL-090): debe rutear a ``default`` también bajo N>1.
-# ``observability`` (``RequestLog``, DEC-12) es telemetria global de la instancia,
-# no per-empresa, por lo que rutea igual que ``base``.
+# ``observability`` (``BusinessEvent``, DEC-12) es telemetria global de la
+# instancia, no per-empresa, por lo que rutea igual que ``base``. Su otro
+# modelo, ``RequestLog``, se retiro con DEC-AF-11; el app_label sigue en la
+# lista mientras ``BusinessEvent`` espere su mudanza a ``mail``.
 MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base', 'observability', 'base_address_extended', 'base_geolocalize')
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -407,10 +410,11 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    # SOL-011 / ADR-019: envuelve el handler de DRF para sellar exception_class
-    # + error_detail (scrubbed) en RequestLog sin cambiar el cuerpo de error
-    # (conserva la clave canonica ``codigo_error``). No bloqueante (DEC-LOG-04).
-    'EXCEPTION_HANDLER': 'addons.observability.exception_handling.custom_exception_handler',
+    # SOL-011 / ADR-019: envuelve el handler de DRF para emitir el error al
+    # canal de logging —que lo persiste en ``ir.logging`` (DEC-AF-11)— sin
+    # cambiar el cuerpo de error (conserva la clave canonica
+    # ``codigo_error``). No bloqueante (DEC-LOG-04).
+    'EXCEPTION_HANDLER': 'addons.base.exception_handling.custom_exception_handler',
     # DEC-THR-1 (hardening-throttle-endpoints-publicos):
     # Defense in depth contra brute-force/spam en endpoints
     # publicos. Rates conservadores por scope sensible.

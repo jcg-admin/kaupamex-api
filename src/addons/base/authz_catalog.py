@@ -32,6 +32,11 @@ MODULES = [
     ModuleSpec(code='users', name='Usuarios', category='Platform'),
     ModuleSpec(code='account', name='Mi cuenta', category='Platform'),
     ModuleSpec(code='settings', name='Configuración', category='Platform'),
+    # ``audit`` llegó con DEC-AF-11, al disolverse ``observability``: la vista
+    # que expone la bitácora técnica (``AdminLogsView``) sirve ``ir.logging``,
+    # que es de ``base``, así que su capacidad viene con ella. Antes lo
+    # declaraba ``addons/observability/authz_catalog.py``.
+    ModuleSpec(code='audit', name='Auditoría', category='Platform'),
 ]
 
 CAPABILITIES = [
@@ -67,4 +72,5 @@ CAPABILITIES = [
     CapabilitySpec(code='account.wishlist', name='Ver mis favoritos'),
     CapabilitySpec(code='users', name='Usuarios', is_sensitive=True),
     CapabilitySpec(code='settings', name='Configuración', is_sensitive=True),
+    CapabilitySpec(code='audit', name='Auditoría'),
 ]

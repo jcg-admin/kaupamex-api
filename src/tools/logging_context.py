@@ -1,14 +1,23 @@
 """
 tools/logging_context.py
 
-correlation_id por request (DEC-LOG-07): un UUID que une las tres tablas de
-logging (RequestLog + IrLogging + BusinessEvent) para reconstruir "que paso" en
-una request. Se expone via contextvars para que cualquier capa (handler de
-logging, señales de negocio) lo lea sin propagarlo por parametro.
+correlation_id por request (DEC-LOG-07): un UUID que une las dos tablas de
+logging (IrLogging + BusinessEvent) para reconstruir "que paso" en una request.
+Se expone via contextvars para que cualquier capa (handler de logging, señales
+de negocio) lo lea sin propagarlo por parametro.
 
 Movido desde ``core.logging_context`` en el slice 5 de
 ``adoptar-arquitectura-server-service-odoo`` (DEC-10): utilidad de logging sin
 modelo Django, fiel a Odoo la ubica en ``tools/``.
+
+**El error de la request ya no se sella aqui (DEC-AF-11).** Este modulo
+declaraba ademas ``set_request_error``/``get_request_error``: el
+``custom_exception_handler`` de DRF sellaba el error en un ContextVar y el
+``RequestLogMiddleware`` lo copiaba a la fila ``RequestLog``. Retirado
+``RequestLog``, ese ContextVar se quedo sin ningun lector, y un contextvar que
+nadie lee es un mecanismo muerto. Hoy el handler emite el error por el canal de
+logging y ``DatabaseLogHandler`` lo persiste en ``ir.logging`` — ver
+``addons/base/exception_handling.py``.
 """
 import contextvars
 import uuid
@@ -16,13 +25,6 @@ import uuid
 # Default None: fuera de un request (management commands, tests unitarios sin
 # request) no hay correlacion — el consumidor debe tolerar None.
 _correlation_id_var = contextvars.ContextVar("correlation_id", default=None)
-
-# Error de la request en curso (SOL-011 T-04, ADR-019): el
-# ``custom_exception_handler`` de DRF lo fija (clase de excepcion + detalle ya
-# scrubbed) y el ``RequestLogMiddleware`` lo lee al construir la fila RequestLog.
-# Va por contextvar (simetrico con correlation_id) para no acoplar el handler al
-# objeto request. Default None: la mayoria de requests no tienen error.
-_request_error_var = contextvars.ContextVar("request_error", default=None)
 
 
 def new_correlation_id():
@@ -42,25 +44,13 @@ def get_correlation_id():
     return _correlation_id_var.get()
 
 
-def set_request_error(exception_class, error_detail):
-    """Registra el error de la request en curso (ADR-019).
-
-    ``exception_class`` = nombre de la clase de excepcion; ``error_detail`` = un
-    mensaje corto **ya scrubbed** (Nivel 1). Lo consume el RequestLogMiddleware.
-    """
-    _request_error_var.set({
-        'exception_class': exception_class or '',
-        'error_detail': error_detail or '',
-    })
-
-
-def get_request_error():
-    """Devuelve el dict de error de la request, o None si no hubo excepcion."""
-    return _request_error_var.get()
-
-
 def clear_correlation_id():
-    """Limpia el contexto de logging de la request (fin del request): tanto el
-    ``correlation_id`` como el error registrado (ADR-019)."""
+    """Limpia la correlacion al terminar la request (DEC-LOG-07).
+
+    Imprescindible bajo el modelo de concurrencia medido en
+    ``setup/gunicorn.conf.py`` (prefork sincrono, un hilo por worker): sin esta
+    limpieza el identificador sobreviviria a la peticion dentro del mismo
+    worker y las lineas de la siguiente saldrian correlacionadas con la
+    anterior.
+    """
     _correlation_id_var.set(None)
-    _request_error_var.set(None)

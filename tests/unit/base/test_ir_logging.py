@@ -11,9 +11,9 @@ el mapeo de campos completo). Verifica:
   modelo, no en el ``AppLog`` previo.
 
 El contrato append-only detallado (INSERT permitido / UPDATE-DELETE de
-instancia bloqueados / bulk permitido) para ``RequestLog`` vive en
-``tests/unit/core/test_log_immutability.py``; aquí se cubre el mismo contrato
-para ``IrLogging``.
+instancia bloqueados / bulk permitido) se cubre aquí. Tenía un gemelo para
+``RequestLog`` en ``tests/unit/core/test_log_immutability.py``, retirado con
+el modelo (DEC-AF-11).
 
 Toca DB → django_db.
 """

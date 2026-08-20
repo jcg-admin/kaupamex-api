@@ -1,17 +1,17 @@
-"""Modelos del addon ``observability`` -- unico addon net-new del arbol (DEC-12).
+"""Modelos del addon ``observability``.
 
-- ``request_log.py`` -> ``RequestLog`` (telemetria HTTP por request, DEC-LOG-01).
 - ``business_event.py`` -> ``BusinessEvent`` (bitacora append-only de eventos
-  de negocio, SOL-011). Sin analogo en la referencia; llego aqui al disolverse
-  ``users`` en ``base`` (H-API-211).
+  de negocio, SOL-011). Sin analogo directo en la referencia; su contraparte
+  funcional es ``mail.message`` + ``mail.tracking.value``, y su mudanza es la
+  tarea **#497**.
 
-Se reexporta aqui para preservar el contrato de import
-``from addons.observability.models import RequestLog``.
+``RequestLog`` **ya no vive aqui**: DEC-AF-11 lo partio en sus dos mitades —la
+de error se fundio en ``ir.logging`` (``addons.base``) y la de acceso es
+trabajo del ``access_log`` del proxy inverso—. El addon sobrevive solo mientras
+``BusinessEvent`` espere su puente al chatter.
 """
 from .business_event import BusinessEvent
-from .request_log import RequestLog
 
 __all__ = [
     'BusinessEvent',
-    'RequestLog',
 ]

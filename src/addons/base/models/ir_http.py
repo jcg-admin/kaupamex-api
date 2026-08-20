@@ -102,6 +102,7 @@ from contextvars import ContextVar
 import models
 
 from orm.environments import activate_companies, set_current_uid
+from tools.logging_context import clear_correlation_id, new_correlation_id
 
 _logger = logging.getLogger(__name__)
 
@@ -416,3 +417,58 @@ class CompanyContextMiddleware:
             activate_companies((), ())
             set_current_uid(None)
             set_current_request(None)
+
+
+class CorrelationIdMiddleware:
+    """Abre y cierra la correlación de la petición (DEC-LOG-07, DEC-AF-11).
+
+    Es la mitad que **sobrevive** de ``RequestLogMiddleware``. Aquélla hacía
+    dos trabajos en un solo objeto: abrir la correlación de la petición, y
+    escribir una fila de ``RequestLog`` con su metadata de acceso. DEC-AF-11
+    retiró ``RequestLog`` —su mitad de acceso es trabajo del ``access_log``
+    del proxy inverso, no del ORM— y con ella se fueron ``_write_log`` y
+    ``_client_ip``. La correlación no se va con ellos: es la columna que une
+    ``ir.logging`` con ``BusinessEvent``, y tiene tres consumidores medidos.
+
+    - ``tools.logging_handlers.DatabaseLogHandler:77`` — puebla
+      ``IrLogging.correlation_id`` desde el contexto.
+    - ``addons/observability/models/business_event.py:28`` — igual, para el
+      evento de negocio.
+    - ``addons/authz_audit/audit.py:31`` — lee el atributo de la petición,
+      ``getattr(request, 'correlation_id', '')``.
+
+    Vive en ``ir_http`` porque en la referencia ``ir.http`` **es** la capa de
+    petición —autentica, despacha y post-procesa la respuesta— y aquí ya aloja
+    a ``CompanyContextMiddleware`` por el mismo criterio.
+
+    ``X-Correlation-Id`` — la mitad recuperable del acceso
+    =====================================================
+
+    La respuesta sale con el identificador en una cabecera. No es decoración:
+    es la condición que DEC-AF-11 declara para que el log del proxy pueda
+    unirse al de la aplicación (``%{X-Correlation-Id}o`` en un ``LogFormat``
+    propio, cambio de vhost de la tarea **#55**). Sin emitirlo, el
+    ``access_log`` y ``ir.logging`` quedan como dos registros sin llave común.
+
+    Ubicar cerca del tope de ``MIDDLEWARE``: la correlación debe estar abierta
+    antes de que cualquier capa de abajo emita un log.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        cid = new_correlation_id()
+        request.correlation_id = cid
+        try:
+            response = self.get_response(request)
+            try:
+                response['X-Correlation-Id'] = cid
+            except Exception:
+                # silent OK because DEC-LOG-04: una respuesta que no admita
+                # cabeceras (streaming ya cerrado, doble asignacion) jamas
+                # debe romper la peticion del usuario.
+                pass
+            return response
+        finally:
+            clear_correlation_id()

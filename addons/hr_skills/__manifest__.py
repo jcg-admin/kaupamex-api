@@ -4,13 +4,19 @@
     'name': 'Skills Management',
     'version': '1.0',
     'category': 'Human Resources/Employees',
-    'summary': (
-        'hr.skill.type + hr.skill + hr.skill.level + hr.individual.skill.mixin '
-        '+ hr.employee.skill + hr.job.skill + hr.resume.line(.type) — el '
-        'modelo de habilidades/certificaciones y CV; sin vistas XML ni '
-        'static (backend Django REST sin cliente Odoo, fuera de scope de la '
-        'API — mismo criterio que `onboarding/__manifest__.py`)'
-    ),
+    # `summary` verbatim de la referencia (`odoo19c: addons/hr_skills/
+    # __manifest__.py`). Tenía 317 caracteres enumerando los modelos portados,
+    # y `IrModule.summary` es `max_length=255`: el `update_module_list` moría
+    # con `DataError: value too long`. El detalle del porte es un comentario,
+    # no un `summary` — ese campo va a una columna y a la interfaz. Ver
+    # :ref:`h-api-750`.
+    #
+    # Qué porta este addon: hr.skill.type + hr.skill + hr.skill.level +
+    # hr.individual.skill.mixin + hr.employee.skill + hr.job.skill +
+    # hr.resume.line(.type). Sin vistas XML ni `static` (backend Django REST
+    # sin cliente Odoo, fuera del alcance de la API — mismo criterio que
+    # `onboarding/__manifest__.py`).
+    'summary': 'Manage skills, knowledge and resume of your employees',
     # `depends` MEDIDO contra los imports reales de los modelos portados
     # (HrEmployeeSkill.employee_id → hr.HrEmployee, HrJobSkill.job_id →
     # hr.HrJob, extensiones de hr.employee/hr.employee.public/hr.job/
