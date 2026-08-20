@@ -21,15 +21,13 @@ El último test toca DB (``IrLogging``) → ``django_db``. Los tres primeros no:
 en la suite —``testing.py`` sustituye ``LOGGING`` por ``NullHandler``, así que
 el handler ``db`` no corre por sí solo.
 
-**El árbol de logging viene apagado en la suite, y hay que reabrirlo.**
-``testing.py`` declara ``disable_existing_loggers: True``, y eso deja
-``django.request`` con ``disabled = True`` (medido). Un logger deshabilitado
-descarta el registro en ``Logger.handle()``, antes de cualquier handler: sin
-la fixture de abajo los tres primeros casos no verían **nada** y el silencio
-se leería como "el handler no emite", que es justo la conclusión falsa que
-esta suite debe impedir. En producción no aplica —``base.py`` declara
-``disable_existing_loggers: False`` y cablea ``django`` a ``console``,
-``file`` y ``db``.
+**El árbol de logging ya viene vivo en la suite** desde que ``testing.py``
+declara ``disable_existing_loggers: False`` (H-API-749, cerrado por #617).
+Hasta entonces ``django.request`` quedaba con ``disabled = True`` y una fixture
+autouse de este mismo archivo lo reabría caso por caso — un parche local a un
+defecto global: los otros catorce loggers apagados seguían mudos y nadie los
+reabría. Estos tres casos son ahora el **control positivo** de que el árbol
+está vivo: si alguien revierte la clave, fallan aquí.
 """
 import logging
 from unittest import mock
@@ -48,14 +46,17 @@ pytestmark = [pytest.mark.unit]
 LOGGER = 'django.request'
 
 
-@pytest.fixture(autouse=True)
-def _logger_enabled():
-    """Reabre el logger que ``testing.py`` apaga; lo deja como estaba al salir."""
-    logger = logging.getLogger(LOGGER)
-    previo = logger.disabled
-    logger.disabled = False
-    yield
-    logger.disabled = previo
+def test_the_logging_tree_is_alive_in_the_suite():
+    """El control que sostiene a los tres siguientes.
+
+    Sin esto, un ``disable_existing_loggers: True`` los volvería a apagar y
+    fallarían por ``caplog`` vacío — un síntoma que se lee como «el handler no
+    emite». Aquí falla la causa, con su nombre.
+    """
+    assert not logging.getLogger(LOGGER).disabled
+    # No es el único: `dictConfig` apagaba de golpe todo el árbol de Django.
+    assert not logging.getLogger('django').disabled
+    assert not logging.getLogger('django.db.backends').disabled
 
 
 def test_delegates_to_drf_and_logs_the_error(caplog):

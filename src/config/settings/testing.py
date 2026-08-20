@@ -101,10 +101,24 @@ SIMPLE_JWT = {
 # ALLOWED_HOSTS para pruebas
 ALLOWED_HOSTS = ['testserver', 'localhost', '127.0.0.1']
 
-# Sin logs en consola durante tests
+# Sin logs en consola durante tests — pero el árbol queda VIVO (H-API-749).
+#
+# ``disable_existing_loggers: True`` no silencia: **apaga**. Un logger con
+# ``disabled = True`` descarta el registro dentro de ``Logger.handle()``, antes
+# de todo handler y antes de propagar, así que ``caplog`` no ve nada y su
+# silencio se lee como «no se emitió» — una aserción negativa pasa por vacuidad.
+# Medido con `disable_existing_loggers: True`: 15 loggers apagados —los de
+# Django (``django``, ``django.request``, ``django.db.backends``…), ``psycopg``,
+# ``asyncio`` y ``service.db``—, que son los que ya existían cuando corre
+# ``dictConfig``. Los 76 de ``addons.*`` nacen después y quedan vivos: la
+# ceguera era asimétrica y por eso costaba verla.
+#
+# Con ``False`` el árbol emite y nadie lo oye: el único handler es el
+# ``NullHandler`` de la raíz. El nivel efectivo de ``django`` es INFO, así que
+# ``django.db.backends`` (que registra el SQL en DEBUG) sigue callado.
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': True,
+    'disable_existing_loggers': False,
     'handlers': {'null': {'class': 'logging.NullHandler'}},
     'root':     {'handlers': ['null']},
 }
