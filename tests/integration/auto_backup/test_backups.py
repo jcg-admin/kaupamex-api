@@ -1,7 +1,8 @@
 """Tests — los endpoints de respaldo (UC-ADM-05).
 
-  GET  /api/v2/admin/backups/  ``AdminBackupListView`` — historial
-  POST /api/v2/admin/backups/  ``AdminBackupListView`` — disparar ahora
+  GET  /api/v2/admin/backups/                  ``AdminBackupListView`` — historial
+  POST /api/v2/admin/backups/                  ``AdminBackupListView`` — disparar ahora
+  GET  /api/v2/admin/backups/download/<ruta>/  ``BackupDownloadView`` — descargar
 
 **Un solo mecanismo (DEC-AB-01, :ref:`h-api-768`).** El POST ya no implementa
 un respaldo propio: llama a ``DbBackup.action_run_cron()``, que dispara el
@@ -30,6 +31,17 @@ pytestmark = pytest.mark.integration
 
 LIST_URL = '/api/v2/admin/backups/'
 TRIGGER_URL = '/api/v2/admin/backups/'
+DOWNLOAD_URL = '/api/v2/admin/backups/download'
+
+
+def download_url(absolute_path):
+    """La URL de descarga de una ruta absoluta del servidor.
+
+    La vista reconstruye la ruta con ``'/' + file_path.lstrip('/')``, así que
+    el segmento que viaja es la ruta sin su ``/`` inicial. La barra final la
+    exige el ``path()`` de ``admin_urls.py``.
+    """
+    return '%s/%s/' % (DOWNLOAD_URL, str(absolute_path).lstrip('/'))
 
 
 @pytest.fixture(autouse=True)
@@ -198,3 +210,166 @@ class TestBackupFailAlert:
         assert seeded is not None
         assert 'practicayoruba.com' not in seeded
         assert mailoutbox[0].to == [seeded]
+
+
+class TestBackupDownloadConfinement:
+    """El confinamiento de ``BackupDownloadView`` — :ref:`h-api-766`, tarea #639.
+
+    **La fuente sirve cualquier archivo del disco.** Verbatim
+    (``odoo18c: app_auto_backup/controllers/main.py:16-22``):
+
+    .. code-block:: python
+
+       @http.route("/dbbackup/download/<path:file_path>", type="http", auth="user")
+       def download_backupfile(self, file_path, **kw):
+           if not request.env.user.has_group('base.group_system'):
+               raise UserError(_('File not found for user.'))
+           if os.path.exists(file_path):
+               with open(file_path, 'rb') as file:
+                   file_content = file.read()
+
+    Un solo ``os.path.exists`` sobre la ruta que el cliente escriba: un usuario
+    del sistema puede pedir ``/etc/shadow`` por esa ruta. La divergencia —la
+    ruta resuelta debe caer bajo alguna ``DbBackup.folder``— quedó declarada en
+    el docstring de la vista y **verificada por lectura**, sin caso propio.
+    Estos son esos casos.
+
+    **Cada negativo apunta a un archivo que EXISTE.** Es la condición que hace
+    que el 404 mida el confinamiento: contra un archivo ausente, el mismo 404
+    lo produciría ``os.path.isfile`` y el caso pasaría por la razón
+    equivocada — la ceguera que ``metrica-decide-la-conclusion.md`` describe.
+    Por eso cada caso afirma primero ``os.path.isfile(...)``.
+    """
+
+    @pytest.fixture
+    def tree(self, db, tmp_path):
+        """Un árbol con la carpeta configurada y un archivo fuera de ella.
+
+        ``secret.txt`` es hermano de la carpeta, no descendiente: es el
+        objetivo legítimo de las tres formas de escape.
+        """
+        folder = tmp_path / 'backups'
+        folder.mkdir()
+        dump = folder / '2026_08_20_00_00_00_kaupamex_core_qa.zip'
+        dump.write_bytes(b'DUMP')
+        secret = tmp_path / 'secret.txt'
+        secret.write_text('s3cr3t')
+        config = DbBackup.objects.create(
+            name='kaupamex_core_qa', folder=str(folder))
+        return {'config': config, 'folder': folder,
+                'dump': dump, 'secret': secret, 'root': tmp_path}
+
+    # --- permisos: capacidad, no grupo (la primera divergencia) ---
+    def test_download_anon_401(self, api_client, tree):
+        assert api_client.get(download_url(tree['dump'])).status_code == 401
+
+    def test_download_buyer_403(self, auth_client, tree):
+        """Sin ``backups.edit`` no se descarga, aunque el archivo exista.
+
+        La fuente gatea con ``has_group('base.group_system')``; aquí el
+        invariante es ``HasCapability`` fail-closed (DEC-11).
+        """
+        assert os.path.isfile(tree['dump'])
+        assert auth_client.get(download_url(tree['dump'])).status_code == 403
+
+    # --- control positivo: lo que SÍ debe servirse ---
+    def test_a_file_inside_the_configured_folder_downloads(
+            self, admin_client, tree):
+        """El caso que las tres negativas necesitan para no ser vacuas.
+
+        Sin él, una vista que devolviera 404 a todo pasaría los tres casos de
+        escape y el conjunto no mediría nada.
+        """
+        r = admin_client.get(download_url(tree['dump']))
+        assert r.status_code == 200
+        assert b''.join(r.streaming_content) == b'DUMP'
+        assert r['Content-Type'] == 'application/octet-stream'
+        assert tree['dump'].name in r['Content-Disposition']
+
+    # --- las tres formas de escape que #639 enumera ---
+    def test_a_path_outside_every_configured_folder_is_404(
+            self, admin_client, tree):
+        """Forma 1: ruta absoluta ajena. Es el ``/etc/shadow`` de la fuente."""
+        assert os.path.isfile('/etc/passwd')
+        r = admin_client.get(download_url('/etc/passwd'))
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'BACKUP_FILE_NOT_FOUND'
+
+    def test_dot_dot_escaping_the_configured_folder_is_404(
+            self, admin_client, tree):
+        """Forma 2: ``..`` que sale de una carpeta que sí está configurada.
+
+        Lo cierra ``os.path.realpath``, y el orden importa: el confinamiento
+        se comprueba **sobre la ruta ya resuelta**. Comprobarlo antes dejaría
+        pasar la cadena literal, que empieza por la carpeta buena.
+        """
+        assert os.path.isfile(tree['secret'])
+        escape = '%s/../secret.txt' % tree['folder']
+        assert os.path.realpath(escape) == str(tree['secret'])
+        r = admin_client.get(download_url(escape))
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'BACKUP_FILE_NOT_FOUND'
+
+    def test_a_symlink_pointing_outside_is_404(self, admin_client, tree):
+        """Forma 3: enlace simbólico **dentro** de la carpeta configurada.
+
+        Es la forma que un confinamiento por prefijo de cadena no ve: el
+        archivo pedido está dentro de la carpeta y su destino no. Sólo
+        resolver antes de comparar lo detiene.
+        """
+        link = tree['folder'] / 'inocente.zip'
+        os.symlink(str(tree['secret']), str(link))
+        assert os.path.isfile(link)          # el enlace resuelve a un archivo real
+        r = admin_client.get(download_url(link))
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'BACKUP_FILE_NOT_FOUND'
+
+    # --- la frontera que el `+ os.sep` del guard defiende ---
+    def test_a_sibling_folder_sharing_the_prefix_is_404(
+            self, admin_client, tree):
+        """``/…/backups-evil/`` empieza por ``/…/backups`` y no está dentro.
+
+        El guard compara ``resolved == folder or
+        resolved.startswith(folder + os.sep)``. Sin el ``os.sep`` el prefijo
+        desnudo aceptaría este archivo — medido:
+        ``'/tmp/x/backups-evil/f.zip'.startswith('/tmp/x/backups')`` es
+        ``True``, y con el separador es ``False``.
+        """
+        evil = tree['root'] / 'backups-evil'
+        evil.mkdir()
+        planted = evil / 'f.zip'
+        planted.write_bytes(b'NOPE')
+        assert os.path.isfile(planted)
+        assert str(planted).startswith(str(tree['folder']))
+        r = admin_client.get(download_url(planted))
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'BACKUP_FILE_NOT_FOUND'
+
+    # --- fail-closed cuando no hay ninguna carpeta configurada ---
+    def test_without_any_configured_folder_nothing_downloads(
+            self, admin_client, tree):
+        """Sin configuraciones, ``folders`` queda vacío y ``any([])`` es False.
+
+        Es la dirección correcta del fallo: un confinamiento que se abriera al
+        quedarse sin referencia serviría todo el disco justo cuando nadie ha
+        declarado qué se puede servir.
+        """
+        DbBackup.objects.all().delete()
+        assert os.path.isfile(tree['dump'])
+        r = admin_client.get(download_url(tree['dump']))
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'BACKUP_FILE_NOT_FOUND'
+
+    def test_a_folder_left_empty_does_not_confine_anything(
+            self, admin_client, tree):
+        """Una ``DbBackup.folder`` vacía se salta, no se lee como ``''``.
+
+        El guard filtra con ``if folder``. Sin ese filtro,
+        ``os.path.realpath('')`` devuelve el **directorio de trabajo**, que
+        confinaría a un árbol que nadie configuró.
+        """
+        DbBackup.objects.all().delete()
+        DbBackup.objects.create(name='sin-carpeta', folder='')
+        r = admin_client.get(download_url(tree['dump']))
+        assert r.status_code == 404
+        assert r.json()['codigo_error'] == 'BACKUP_FILE_NOT_FOUND'
