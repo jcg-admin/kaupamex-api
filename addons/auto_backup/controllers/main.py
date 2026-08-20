@@ -6,7 +6,7 @@ POST /api/v1/admin/backups/trigger/  — trigger an on-demand backup
 
 The actual dump is performed by db/scripts/backup_db.sh (run via
 subprocess in a background thread so the HTTP response is immediate).
-BackupRecord tracks each execution so the UI can poll/refresh.
+DbBackupDetails tracks each execution so the UI can poll/refresh.
 """
 import logging
 import os
@@ -14,6 +14,7 @@ import subprocess
 import threading
 
 from django.conf import settings
+from django.http import FileResponse
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -24,8 +25,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from addons.mail.models.email_executor import dispatch_email
-from addons.auto_backup.models import BackupRecord
-from addons.auto_backup.controllers.serializers import BackupRecordSerializer
+from addons.auto_backup.models import DbBackup, DbBackupDetails
+from addons.auto_backup.controllers.serializers import DbBackupDetailsSerializer
 
 logger = logging.getLogger('apps')
 
@@ -72,17 +73,30 @@ _BACKUP_LOCK = threading.Lock()
 
 # Path to the DB backup script relative to the repo root.
 # Adjust if the repos are co-located differently in production.
+# H-API-765: apuntaba a ``backup_db.sh``, el script de **MariaDB**. El motor
+# es PostgreSQL desde ADR-028 y el script vivo es ``backup_postgres.sh``
+# (``db/CLAUDE.md``); el viejo sigue en el repo sólo porque hay documentos que
+# lo citan, y no sirve a ningún entorno.
 _BACKUP_SCRIPT = os.path.join(
-    os.path.dirname(__file__),          # apps/backups/
-    '..', '..', '..', '..',            # up to kaupamex-api/
-    '..', 'kaupamex-db',              # sibling repo
-    'scripts', 'backup_db.sh',
+    os.path.dirname(__file__),          # addons/auto_backup/controllers/
+    '..', '..', '..',                   # up to kaupamex-api/
+    '..', 'kaupamex-db',                # sibling repo
+    'scripts', 'backup_postgres.sh',
 )
 _BACKUP_SCRIPT = os.path.normpath(_BACKUP_SCRIPT)
 
 
 def _run_backup(record_pk: int) -> None:
-    """Execute backup_db.sh and update BackupRecord.status."""
+    """Corre ``backup_postgres.sh`` y sella el estado de la corrida.
+
+    Decía ``backup_db.sh`` y ``BackupRecord.status``: los dos nombres
+    murieron —el guion es de MariaDB (:ref:`h-api-765`) y el modelo se
+    llama ``DbBackupDetails`` (:ref:`h-api-763`)—.
+
+    Es el camino **bajo demanda**, distinto del programado: aquél lo
+    conduce ``DbBackup.schedule_backup`` con la configuración en base. Qué
+    frontera queda entre los dos es la decisión pendiente **#610**.
+    """
     try:
         result = subprocess.run(
             ['bash', _BACKUP_SCRIPT],
@@ -91,22 +105,22 @@ def _run_backup(record_pk: int) -> None:
             timeout=300,  # 5 minutes
         )
         if result.returncode == 0:
-            BackupRecord.objects.filter(pk=record_pk).update(
-                status=BackupRecord.STATUS_OK,
+            DbBackupDetails.objects.filter(pk=record_pk).update(
+                status=DbBackupDetails.STATUS_OK,
             )
             logger.info('Backup #%d completado.', record_pk)
         else:
             err = (result.stderr or result.stdout or '')[:1000]
-            BackupRecord.objects.filter(pk=record_pk).update(
-                status=BackupRecord.STATUS_ERROR,
+            DbBackupDetails.objects.filter(pk=record_pk).update(
+                status=DbBackupDetails.STATUS_ERROR,
                 error_detail=err,
             )
             logger.error('Backup #%d error: %s', record_pk, err)
             _notify_backup_failed(record_pk, err)
     except Exception as exc:
         err = str(exc)[:1000]
-        BackupRecord.objects.filter(pk=record_pk).update(
-            status=BackupRecord.STATUS_ERROR,
+        DbBackupDetails.objects.filter(pk=record_pk).update(
+            status=DbBackupDetails.STATUS_ERROR,
             error_detail=err,
         )
         logger.exception('Backup #%d excepcion inesperada.', record_pk)
@@ -130,18 +144,18 @@ class AdminBackupListView(APIView):
 
     @extend_schema(
         summary='Listar historial de backups (UC-ADM-05)',
-        responses={200: BackupRecordSerializer(many=True)},
+        responses={200: DbBackupDetailsSerializer(many=True)},
         tags=['admin-backups'],
     )
     def get(self, request):
-        qs = BackupRecord.objects.all()
+        qs = DbBackupDetails.objects.all()
         paginator = BackupPagination()
         page = paginator.paginate_queryset(qs, request)
         if page is not None:
             return paginator.get_paginated_response(
-                BackupRecordSerializer(page, many=True).data
+                DbBackupDetailsSerializer(page, many=True).data
             )
-        return Response(BackupRecordSerializer(qs, many=True).data)
+        return Response(DbBackupDetailsSerializer(qs, many=True).data)
 
     @extend_schema(
         summary='Disparar backup manual on-demand (UC-ADM-05)',
@@ -161,7 +175,7 @@ class AdminBackupListView(APIView):
                 },
                 status=409,
             )
-        record = BackupRecord.objects.create(type=BackupRecord.TYPE_MANUAL)
+        record = DbBackupDetails.objects.create(type=DbBackupDetails.TYPE_MANUAL)
 
         def _run_and_release(record_pk: int) -> None:
             try:
@@ -174,6 +188,65 @@ class AdminBackupListView(APIView):
         )
         t.start()
         return Response(
-            BackupRecordSerializer(record).data,
+            DbBackupDetailsSerializer(record).data,
             status=202,
         )
+
+
+class BackupDownloadView(APIView):
+    """GET /api/v2/admin/backups/download/<path:file_path>/
+
+    Adaptación de ``AppAutoBackup.download_backupfile``
+    (``app_auto_backup/controllers/main.py:16``, ruta
+    ``/dbbackup/download/<path:file_path>``, LGPL-3).
+
+    Dos divergencias, las dos declaradas:
+
+    1. **La autorización va por capacidad, no por grupo.** La fuente gatea con
+       ``has_group('base.group_system')``; aquí el invariante del árbol es
+       ``HasCapability`` fail-closed (DEC-11), y la capacidad que dueña este
+       dominio ya existe: ``backups``. Usar ``IsAuthenticated`` a secas —o el
+       grupo— saltaría el modelo de capacidades.
+    2. **La ruta se confina al directorio de respaldos.** La fuente sirve
+       *cualquier* archivo del disco cuya ruta el cliente escriba, con un solo
+       ``os.path.exists`` de por medio: un usuario del sistema puede leer
+       ``/etc/shadow`` por esa ruta. Aquí la ruta resuelta debe caer dentro de
+       alguna ``DbBackup.folder`` configurada. Ver :ref:`h-api-766`.
+    """
+
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'backups.edit'
+
+    @extend_schema(
+        summary='Descargar un archivo de respaldo (UC-ADM-05)',
+        responses={
+            200: OpenApiResponse(description='application/octet-stream'),
+            404: OpenApiResponse(description='BACKUP_FILE_NOT_FOUND'),
+        },
+        tags=['admin-backups'],
+    )
+    def get(self, request, file_path):
+        logger.warning('download_backupfile: %s', file_path)
+        resolved = os.path.realpath('/' + file_path.lstrip('/'))
+        folders = [
+            os.path.realpath(folder)
+            for folder in DbBackup.objects.values_list('folder', flat=True)
+            if folder
+        ]
+        confined = any(
+            resolved == folder or resolved.startswith(folder + os.sep)
+            for folder in folders
+        )
+        if not confined or not os.path.isfile(resolved):
+            return Response(
+                {
+                    'detail': 'File not found',
+                    'codigo_error': 'BACKUP_FILE_NOT_FOUND',
+                },
+                status=404,
+            )
+        response = FileResponse(
+            open(resolved, 'rb'), content_type='application/octet-stream')
+        response['Content-Disposition'] = (
+            'attachment; filename="%s"' % os.path.basename(resolved))
+        return response

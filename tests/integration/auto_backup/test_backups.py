@@ -5,7 +5,7 @@ Tests — Backup on-demand admin (UC-ADM-05).
   POST /api/v2/admin/backups/  AdminBackupListView (trigger on-demand)
 
 Cubre: permisos (anon 401, comprador 403), listado/estado, creacion del
-BackupRecord (status PENDING), lock de concurrencia (segundo trigger ->
+DbBackupDetails (status PENDING), lock de concurrencia (segundo trigger ->
 409 BACKUP_IN_PROGRESS), la logica del worker _run_backup (OK / ERROR), y
 la notificacion email-on-fail (_notify_backup_failed).
 
@@ -20,7 +20,7 @@ from unittest import mock
 from django.core import mail
 
 from addons.auto_backup.controllers import main as backups_views
-from addons.auto_backup.models import BackupRecord
+from addons.auto_backup.models import DbBackupDetails
 from addons.base.models import _PARAM_CACHE, SystemParameter
 
 pytestmark = pytest.mark.integration
@@ -67,15 +67,15 @@ class TestBackupEndpoints:
 
     # --- listado / estado ---
     def test_admin_lista_historial(self, admin_client, db):
-        BackupRecord.objects.create(
-            type=BackupRecord.TYPE_AUTO, status=BackupRecord.STATUS_OK,
+        DbBackupDetails.objects.create(
+            type=DbBackupDetails.TYPE_AUTO, status=DbBackupDetails.STATUS_OK,
         )
         r = admin_client.get(LIST_URL)
         assert r.status_code == 200
         body = r.json()
         rows = body['results'] if isinstance(body, dict) and 'results' in body else body
         assert len(rows) == 1
-        assert rows[0]['status'] == BackupRecord.STATUS_OK
+        assert rows[0]['status'] == DbBackupDetails.STATUS_OK
 
     # --- trigger crea record PENDING ---
     def test_trigger_crea_record_pending(self, admin_client, db):
@@ -84,9 +84,9 @@ class TestBackupEndpoints:
             r = admin_client.post(TRIGGER_URL)
         assert r.status_code == 202
         body = r.json()
-        assert body['type'] == BackupRecord.TYPE_MANUAL
-        assert body['status'] == BackupRecord.STATUS_PENDING
-        assert BackupRecord.objects.filter(pk=body['id']).exists()
+        assert body['type'] == DbBackupDetails.TYPE_MANUAL
+        assert body['status'] == DbBackupDetails.STATUS_PENDING
+        assert DbBackupDetails.objects.filter(pk=body['id']).exists()
 
     # --- lock de concurrencia ---
     def test_segundo_trigger_concurrente_409(self, admin_client, db):
@@ -115,21 +115,21 @@ class TestBackupWorker:
         SystemParameter.seed()
 
     def test_run_backup_ok_marca_status_ok(self, db):
-        record = BackupRecord.objects.create(type=BackupRecord.TYPE_MANUAL)
+        record = DbBackupDetails.objects.create(type=DbBackupDetails.TYPE_MANUAL)
         fake = mock.Mock(returncode=0, stdout='ok', stderr='')
         with mock.patch.object(backups_views.subprocess, 'run', return_value=fake):
             backups_views._run_backup(record.pk)
         record.refresh_from_db()
-        assert record.status == BackupRecord.STATUS_OK
+        assert record.status == DbBackupDetails.STATUS_OK
 
     def test_run_backup_error_marca_status_error_y_notifica(self, db):
         mail.outbox = []
-        record = BackupRecord.objects.create(type=BackupRecord.TYPE_MANUAL)
+        record = DbBackupDetails.objects.create(type=DbBackupDetails.TYPE_MANUAL)
         fake = mock.Mock(returncode=1, stdout='', stderr='dump failed: disk full')
         with mock.patch.object(backups_views.subprocess, 'run', return_value=fake):
             backups_views._run_backup(record.pk)
         record.refresh_from_db()
-        assert record.status == BackupRecord.STATUS_ERROR
+        assert record.status == DbBackupDetails.STATUS_ERROR
         assert 'disk full' in record.error_detail
         # email-on-fail: dispatch_email es síncrono en testing (DISPATCH_EMAIL_SYNC).
         assert len(mail.outbox) == 1
@@ -137,12 +137,12 @@ class TestBackupWorker:
 
     def test_run_backup_excepcion_marca_error_y_notifica(self, db):
         mail.outbox = []
-        record = BackupRecord.objects.create(type=BackupRecord.TYPE_MANUAL)
+        record = DbBackupDetails.objects.create(type=DbBackupDetails.TYPE_MANUAL)
         with mock.patch.object(backups_views.subprocess, 'run',
                                side_effect=OSError('bash not found')):
             backups_views._run_backup(record.pk)
         record.refresh_from_db()
-        assert record.status == BackupRecord.STATUS_ERROR
+        assert record.status == DbBackupDetails.STATUS_ERROR
         assert 'bash not found' in record.error_detail
         assert len(mail.outbox) == 1
 
