@@ -246,7 +246,9 @@ def main():
         print(f'  {path}:{lineno}  {name}   →  {", ".join(hits)}')
     print('\nLos identificadores van en INGLÉS; los comentarios y docstrings, en')
     print('español. Traducir el nombre, no buscarle un sinónimo más evocador:')
-    print('  _Modelo → _Model (no _Probe) · _Base se queda _Base.')
+    print('  Modelo → Model (no Probe) · _Base se queda _Base.')
+    print('OJO: un modelo CONCRETO no puede empezar ni terminar en guion bajo')
+    print('  (Django models.E023). Lo vigila check_model_name_lookup.py.')
     print(f'\nMedido: {measured} archivos. Deuda heredada congelada: '
           f'{len(baseline)} (tarea #147).')
     return 1

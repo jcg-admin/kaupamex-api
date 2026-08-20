@@ -136,6 +136,22 @@ if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
     fi
 fi
 
+# ─── check_model_name_lookup: un modelo CONCRETO no puede chocar con la ──────
+# sintaxis de lookup — ni guion bajo al inicio/final (models.E023) ni doble
+# guion bajo (models.E024). Django lo comprueba, pero SÓLO al correr la suite
+# entera: el ofensor de H-API-751 vivía en tests/unit/service/ y hacía fallar
+# un caso de tests/unit/orm/, porque se registra en el registro de apps al
+# importarse su módulo y en aislamiento no reproduce.
+# Script: scripts/check_model_name_lookup.py.
+if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
+    LOOKUP_CHECKER="$REPO_ROOT/scripts/check_model_name_lookup.py"
+    if [[ ! -f "$LOOKUP_CHECKER" ]]; then
+        echo "pre-commit: $LOOKUP_CHECKER no encontrado — skip lookup gate" >&2
+    else
+        python3 "$LOOKUP_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
 if [[ "$EXIT_CODE" -ne 0 ]]; then
     echo "" >&2
     echo "pre-commit: gates fallaron. Corrige los problemas o usa" >&2
