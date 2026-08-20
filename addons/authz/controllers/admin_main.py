@@ -37,7 +37,8 @@ from addons.authz.services import (
     SUPERADMIN_ROLE_CODE, invalidate_capabilities, is_superadmin,
     resolve_capabilities, resolve_capability_levels,
 )
-from addons.observability.audit import audit_log_business
+from addons.authz_audit.audit import audit_authz_event
+from addons.authz_audit.models import AuthzEvent
 
 # Gestionar permisos = nivel FULL del sustantivo ``permissions`` (DEC-11).
 PERMISSIONS_MANAGE = 'permissions.full'
@@ -161,7 +162,7 @@ class AdminRolePermissionsView(APIView):
       ese límite.
 
     Purga la cache de capacidades de todos los usuarios con el rol y audita el
-    cambio (``ADMIN_ROLE_PERMISSIONS_CHANGED``).
+    cambio en ``AuthzEvent`` (``ROLE_PERMS_CHANGED``).
     """
 
     permission_classes = [IsAuthenticated, HasCapability]
@@ -261,13 +262,10 @@ class AdminRolePermissionsView(APIView):
             invalidate_capabilities(uid)
 
         permissions = capability_rows(role)
-        audit_log_business(
-            request.user,
-            'ADMIN_ROLE_PERMISSIONS_CHANGED',
-            request,
-            target_type='role',
-            target_id=role.pk,
-            extra={'role_code': role.code, 'permissions': permissions},
+        audit_authz_event(
+            request, AuthzEvent.ACTION_ROLE_PERMS_CHANGED, '',
+            {'target_type': 'role', 'target_id': role.pk,
+             'role_code': role.code, 'permissions': permissions},
         )
 
         return Response({'role': role.code, 'permissions': permissions})
@@ -379,12 +377,9 @@ class AdminUserPermissionsView(APIView):
             RoleAssignment.objects.bulk_create(
                 [RoleAssignment(user=target, role=r) for r in desired])
         invalidate_capabilities(target.pk)
-        audit_log_business(
-            request.user,
-            'ADMIN_USER_ROLES_ASSIGNED',
-            request,
-            target_type='user',
-            target_id=target.pk,
-            extra={'roles': [r.code for r in desired]},
+        audit_authz_event(
+            request, AuthzEvent.ACTION_USER_ROLES_SET, '',
+            {'target_type': 'user', 'target_id': target.pk,
+             'roles': [r.code for r in desired]},
         )
         return Response({'roles': [r.code for r in desired]})
