@@ -26,11 +26,13 @@ from rest_framework.test import APIClient
 from addons.authz.models import Role, RoleAssignment
 from addons.authz_reauth.models import ReauthSession
 from addons.authz_audit.models import AuthzEvent
+from addons.base.models import is_autovacuum
 from addons.authz.services import (
     SUPERADMIN_ROLE_CODE,
     code_requires_fresh_session,
     has_active_reauth_session,
     is_superadmin,
+    open_reauth_session,
 )
 
 User = get_user_model()
@@ -187,3 +189,69 @@ def test_has_active_reauth_session_expiry(superadmin):
     ReauthSession.objects.filter(user=superadmin).update(
         expires_at=now - timedelta(seconds=1))
     assert has_active_reauth_session(superadmin, 'k') is False
+
+
+# ─── barrido de ventanas vencidas (H-API-767) ────────────────────────────────
+
+@pytest.mark.django_db
+def test_gc_sweeps_expired_and_keeps_fresh(superadmin):
+    """``_gc_reauth_sessions`` borra lo vencido y respeta lo vigente.
+
+    Antes no había barrido: la consulta filtraba por ``expires_at__gt=now`` y
+    el docstring del modelo llamaba a eso «el barrido». Filtrar no es barrer —
+    la clave natural ``(user, session_key)`` rota en cada login, así que cada
+    sesión que alguna vez se elevó dejaba su fila muerta para siempre.
+    """
+    now = timezone.now()
+    ReauthSession.objects.create(
+        user=superadmin, session_key='vencida', started_at=now,
+        expires_at=now - timedelta(seconds=1))
+    ReauthSession.objects.create(
+        user=superadmin, session_key='vigente', started_at=now,
+        expires_at=now + timedelta(seconds=900))
+
+    assert ReauthSession._gc_reauth_sessions() == 1
+
+    assert list(ReauthSession.objects.values_list('session_key', flat=True)) == ['vigente']
+
+
+@pytest.mark.django_db
+def test_gc_is_registered_for_the_collector(superadmin):
+    """El barrido lleva la marca que ``ir.autovacuum`` busca.
+
+    Es la mitad que :ref:`h-api-747` registró como ausente en otro addon: el
+    método puede estar y no tener quien lo llame. El colector lo encuentra por
+    el atributo que el decorador deja, no por su nombre.
+    """
+    assert is_autovacuum(ReauthSession._gc_reauth_sessions) is True
+
+
+# ─── la propiedad sobre la que descansa la divergencia (H-API-767) ───────────
+
+@pytest.mark.django_db
+def test_window_holds_without_a_django_session(superadmin):
+    """La ventana se encuentra aunque NO haya sesión de servidor.
+
+    Es la razón medida por la que la marca vive en tabla y no en
+    ``session['identity-check-last']`` como en la referencia
+    (``odoo19c: odoo/addons/base/models/res_users.py:100``): con
+    ``force_authenticate`` —el modelo de un cliente por token, que
+    ``config/settings/base.py:401-403`` declara como el camino de la app
+    móvil— ``request.session`` no aporta ``session_key``, así que una marca
+    guardada en la sesión no se encontraría en la petición siguiente.
+    """
+    client = APIClient()
+    client.force_authenticate(superadmin)
+
+    # La ventana se abre con ``session_key=''`` — lo que el gate lee cuando la
+    # petición no trae cookie de sesión. Si la marca viviera en la sesión, o si
+    # el gate resolviera otra clave, esta ventana no se encontraría y la
+    # mutación sensible saldría 403: el 200 ES la prueba, no un adorno.
+    #
+    # NO se afirma nada sobre ``client.session``: leer ese atributo **crea y
+    # persiste** una sesión (``django.test.Client.session``), así que mediría
+    # el efecto del accesor y no lo que la petición lleva.
+    open_reauth_session(superadmin, '', None)
+
+    resp = client.patch(SETTINGS_URL, {'min_stock_threshold': 5}, format='json')
+    assert resp.status_code == 200
