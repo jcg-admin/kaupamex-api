@@ -72,7 +72,7 @@ class HrDepartureReason(TimeStampedModel):
 
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     name = fields.Char(
-        'Motivo', max_length=150, required=True, translate=True,
+        'Motivo', required=True, translate=True,
         help='Nombre del motivo de baja (Odoo name).',
     )
     country = fields.Many2one(

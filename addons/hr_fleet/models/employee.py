@@ -199,7 +199,7 @@ def apply_hr_fleet_employee_extensions():
         'hr', 'HrEmployee',
         campos={
             'mobility_card': fields.Char(
-                max_length=64, blank=True, default='',
+                blank=True, default='',
                 verbose_name='Tarjeta de movilidad',
                 help_text='Odoo mobility_card (su groups= no se porta — '
                           'divergencia 1 del docstring del módulo).',

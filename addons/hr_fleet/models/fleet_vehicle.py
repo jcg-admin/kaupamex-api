@@ -238,7 +238,7 @@ def apply_hr_fleet_fleet_vehicle_extensions():
         'fleet', 'FleetVehicle',
         campos={
             'mobility_card': fields.Char(
-                max_length=64, blank=True, default='',
+                blank=True, default='',
                 verbose_name='Tarjeta de movilidad',
                 help_text='Odoo mobility_card (compute+store — lo refresca '
                           'el receptor pre_save de hr_fleet).',

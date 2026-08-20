@@ -44,11 +44,11 @@ class HrContractType(TimeStampedModel):
     _order = 'sequence'
 
     name = fields.Char(
-        'Nombre', max_length=150, required=True, translate=True,
+        'Nombre', required=True, translate=True,
         help='Nombre del tipo de contrato (Odoo name).',
     )
     code = fields.Char(
-        max_length=64, blank=True, default='', verbose_name='Código',
+        blank=True, default='', verbose_name='Código',
         help_text=(
             'Código corto (Odoo code). Se auto-rellena desde name si se '
             'deja vacío — ver save() (Odoo _compute_code).'

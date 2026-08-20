@@ -19,7 +19,7 @@ from addons.mail.models import MailThread
 class HrJob(MailThread, TimeStampedModel):
     """``hr.job`` — catálogo de puestos. El departamento es opcional."""
 
-    name = fields.Char(max_length=150, verbose_name='Puesto')  # D-3: ex title
+    name = fields.Char(verbose_name='Puesto')  # D-3: ex title
     department = fields.Many2one(
         'hr.HrDepartment', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='jobs', verbose_name='Departamento',

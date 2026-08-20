@@ -421,7 +421,7 @@ def apply_hr_work_entry_hr_version_extensions():
                           'groups=hr.group_hr_user, tracking — D-1).',
             ),
             'work_entry_source': fields.Selection(
-                max_length=16, choices=WORK_ENTRY_SOURCES, default='calendar',
+                choices=WORK_ENTRY_SOURCES, default='calendar',
                 help_text='Defines the source for work entries generation. '
                           'Working Schedule: Work entries will be generated '
                           'from the working hours below. Attendances/Planning '

@@ -48,7 +48,7 @@ class HrEmployeeCategory(TimeStampedModel):
     _description = "Employee Category"
 
     name = fields.Char(
-        'Nombre de la etiqueta', max_length=150, required=True,
+        'Nombre de la etiqueta', required=True,
         help='Nombre de la etiqueta (Odoo name).',
     )
     color = fields.Integer(

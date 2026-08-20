@@ -375,7 +375,7 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
 
     # --- resource and user (parte NO delegada) --------------------------
     name = fields.Char(
-        max_length=200, verbose_name='Nombre del empleado',
+        verbose_name='Nombre del empleado',
         help_text='Odoo name (related=resource_id.name — aquí columna '
                   'propia, ver divergencia del docstring del módulo).',
     )
@@ -384,7 +384,6 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
         help_text='Odoo active (related=resource_id.active — columna propia).',
     )
     hr_presence_state = fields.Selection(
-        max_length=20,
         choices=[
             ('present', 'Presente'),
             ('absent', 'Ausente'),
@@ -402,9 +401,8 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
                   '(_compute_last_activity) necesita la presencia del '
                   'usuario, infra bus no portada. Sucesor: tarea #21.',
     )
-    last_activity_time = fields.Char(max_length=16, blank=True, default='')
+    last_activity_time = fields.Char(blank=True, default='')
     hr_icon_display = fields.Selection(
-        max_length=28,
         choices=[
             ('presence_present', 'Presente'),
             ('presence_out_of_working_hour', 'Fuera de horario'),
@@ -423,10 +421,10 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
                   'este campo persiste el último valor calculado.',
     )
 
-    company_country_code = fields.Char(max_length=8, blank=True, default='')
-    work_phone = fields.Char(max_length=32, blank=True, default='', verbose_name='Teléfono de trabajo')
-    mobile_phone = fields.Char(max_length=32, blank=True, default='', verbose_name='Celular de trabajo')
-    work_email = fields.Char(max_length=254, blank=True, default='', verbose_name='Correo de trabajo')
+    company_country_code = fields.Char(blank=True, default='')
+    work_phone = fields.Char(blank=True, default='', verbose_name='Teléfono de trabajo')
+    mobile_phone = fields.Char(blank=True, default='', verbose_name='Celular de trabajo')
+    work_email = fields.Char(blank=True, default='', verbose_name='Correo de trabajo')
     work_contact = fields.Many2one(
         ResPartner, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='employee_work_contacts',
@@ -436,25 +434,25 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
 
     # --- private info -----------------------------------------------------
     legal_name = fields.Char(
-        max_length=200, blank=True, default='', verbose_name='Nombre legal',
+        blank=True, default='', verbose_name='Nombre legal',
         help_text='Odoo legal_name (compute+store+readonly=False — se '
                   'rellena desde name en save() si está vacío).',
     )
-    private_phone = fields.Char(max_length=32, blank=True, default='', verbose_name='Teléfono privado')
-    private_email = fields.Char(max_length=254, blank=True, default='', verbose_name='Correo privado')
+    private_phone = fields.Char(blank=True, default='', verbose_name='Teléfono privado')
+    private_email = fields.Char(blank=True, default='', verbose_name='Correo privado')
     lang = fields.Char(
-        max_length=16, blank=True, default='', verbose_name='Idioma',
+        blank=True, default='', verbose_name='Idioma',
         help_text='Código de base.ResLang.code (Odoo lang — Selection '
                   'dinámico, ver divergencia del docstring del módulo).',
     )
-    place_of_birth = fields.Char(max_length=150, blank=True, default='', verbose_name='Lugar de nacimiento')
+    place_of_birth = fields.Char(blank=True, default='', verbose_name='Lugar de nacimiento')
     country_of_birth = fields.Many2one(
         ResCountry, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='hr_employees_born_here', verbose_name='País de nacimiento',
     )
     birthday = fields.Date(null=True, blank=True, verbose_name='Fecha de nacimiento')
     birthday_public_display = fields.Boolean(default=False, verbose_name='Mostrar a todos los empleados')
-    birthday_public_display_string = fields.Char(max_length=32, blank=True, default='hidden')
+    birthday_public_display_string = fields.Char(blank=True, default='hidden')
 
     bank_account = fields.Many2many(
         ResPartnerBank, blank=True, related_name='hr_employees',
@@ -468,30 +466,29 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
                   '{"sequence", "amount", "amount_is_percentage"}}.',
     )
 
-    permit_no = fields.Char(max_length=64, blank=True, default='', verbose_name='No. de permiso de trabajo')
-    visa_no = fields.Char(max_length=64, blank=True, default='', verbose_name='No. de visa')
+    permit_no = fields.Char(blank=True, default='', verbose_name='No. de permiso de trabajo')
+    visa_no = fields.Char(blank=True, default='', verbose_name='No. de visa')
     visa_expire = fields.Date(null=True, blank=True, verbose_name='Vencimiento de visa')
     work_permit_expiration_date = fields.Date(null=True, blank=True, verbose_name='Vencimiento de permiso de trabajo')
     has_work_permit = fields.Binary(null=True, blank=True, verbose_name='Permiso de trabajo (archivo)')
     work_permit_scheduled_activity = fields.Boolean(default=False)
-    work_permit_name = fields.Char(max_length=255, blank=True, default='')
+    work_permit_name = fields.Char(blank=True, default='')
     certificate = fields.Selection(
-        max_length=8, choices=Certificate.choices, blank=True, default='',
+        choices=Certificate.choices, blank=True, default='',
         verbose_name='Nivel de estudios',
     )
-    study_field = fields.Char(max_length=150, blank=True, default='', verbose_name='Área de estudio')
-    study_school = fields.Char(max_length=150, blank=True, default='', verbose_name='Institución')
-    emergency_contact = fields.Char(max_length=150, blank=True, default='')
-    emergency_phone = fields.Char(max_length=32, blank=True, default='')
+    study_field = fields.Char(blank=True, default='', verbose_name='Área de estudio')
+    study_school = fields.Char(blank=True, default='', verbose_name='Institución')
+    emergency_contact = fields.Char(blank=True, default='')
+    emergency_phone = fields.Char(blank=True, default='')
 
     work_location_name = fields.Char(
-        max_length=150, blank=True, default='',
+        blank=True, default='',
         help_text='Odoo work_location_name — lo materializa '
                   '_compute_work_location_name desde version.work_location '
                   'al guardar (tarea #524).',
     )
     work_location_type = fields.Selection(
-        max_length=6,
         choices=[('home', 'Casa'), ('office', 'Oficina'), ('other', 'Otra')],
         blank=True, default='',
         help_text='Odoo work_location_type — lo materializa '
@@ -519,15 +516,15 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
     # --- misc ---------------------------------------------------------
     color = fields.Integer(default=0, verbose_name='Índice de color')
     barcode = fields.Char(
-        max_length=18, blank=True, null=True,
+        blank=True, null=True,
         verbose_name='ID de gafete',
         help_text='Odoo barcode — identificación del empleado. Unicidad vía '
                   'Meta.constraints (``hr_employee_barcode_uniq``), no aquí.',
     )
-    pin = fields.Char(max_length=32, blank=True, default='', verbose_name='PIN')
+    pin = fields.Char(blank=True, default='', verbose_name='PIN')
     id_card = fields.Binary(null=True, blank=True, verbose_name='Copia de identificación')
     driving_license = fields.Binary(null=True, blank=True, verbose_name='Licencia de conducir')
-    private_car_plate = fields.Char(max_length=32, blank=True, default='')
+    private_car_plate = fields.Char(blank=True, default='')
     related_partners_count = fields.Integer(default=0)
 
     class Meta:

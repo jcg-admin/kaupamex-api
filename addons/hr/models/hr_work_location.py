@@ -52,7 +52,7 @@ class HrWorkLocation(TimeStampedModel):
 
     active = fields.Boolean(default=True, verbose_name='Activo')
     name = fields.Char(
-        'Sede de trabajo', max_length=150, required=True,
+        'Sede de trabajo', required=True,
         help='Nombre de la sede de trabajo (Odoo name).',
     )
     company = fields.Many2one(
@@ -62,7 +62,7 @@ class HrWorkLocation(TimeStampedModel):
                   'en la fuente — ver docstring del módulo).',
     )
     location_type = fields.Selection(
-        max_length=6, choices=LocationType.choices, default=LocationType.OFFICE,
+        choices=LocationType.choices, default=LocationType.OFFICE,
         verbose_name='Tipo de ubicación',
         help_text='Casa / oficina / otra (Odoo location_type).',
     )
@@ -73,7 +73,7 @@ class HrWorkLocation(TimeStampedModel):
                   'en la fuente — ver docstring del módulo).',
     )
     location_number = fields.Char(
-        max_length=64, blank=True, default='', verbose_name='Número de ubicación',
+        blank=True, default='', verbose_name='Número de ubicación',
     )
 
     class Meta:

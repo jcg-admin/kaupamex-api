@@ -173,7 +173,7 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
                   'BLOQUEADO por ``api.depends`` — sin trigger de recómputo, '
                   'lo asigna quien escribe (familia (a)).',
     )
-    name = fields.Char(max_length=150, blank=True, default='', verbose_name='Nombre')
+    name = fields.Char(blank=True, default='', verbose_name='Nombre')
     active = fields.Boolean(default=True, verbose_name='Activa')
     date_version = fields.Date(verbose_name='Fecha de versión')
     last_modified_by = fields.Many2one(
@@ -195,47 +195,53 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
         help_text='Odoo country_id — "Nationality (Country)".',
     )
     identification_no = fields.Char(
-        max_length=64, blank=True, default='', verbose_name='No. de identificación',
+        blank=True, default='', verbose_name='No. de identificación',
         help_text='Odoo identification_id.',
     )
-    ssn = fields.Char(max_length=32, blank=True, default='', verbose_name='No. de seguridad social')
-    passport_no = fields.Char(max_length=64, blank=True, default='', verbose_name='No. de pasaporte')
+    ssn = fields.Char(
+        blank=True, default='', verbose_name='No. de seguridad social',
+        help_text='Odoo ssnid.',
+    )
+    passport_no = fields.Char(
+        blank=True, default='', verbose_name='No. de pasaporte',
+        help_text='Odoo passport_id.',
+    )
     passport_expiration_date = fields.Date(null=True, blank=True, verbose_name='Vencimiento de pasaporte')
     sex = fields.Selection(
-        max_length=6, choices=Sex.choices, blank=True, default='', verbose_name='Sexo',
+        choices=Sex.choices, blank=True, default='', verbose_name='Sexo',
     )
-    private_street = fields.Char(max_length=150, blank=True, default='', verbose_name='Calle (privada)')
-    private_street2 = fields.Char(max_length=150, blank=True, default='', verbose_name='Calle 2 (privada)')
-    private_city = fields.Char(max_length=100, blank=True, default='', verbose_name='Ciudad (privada)')
+    private_street = fields.Char(blank=True, default='', verbose_name='Calle (privada)')
+    private_street2 = fields.Char(blank=True, default='', verbose_name='Calle 2 (privada)')
+    private_city = fields.Char(blank=True, default='', verbose_name='Ciudad (privada)')
     private_state = fields.Many2one(
         ResCountryState, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='hr_versions_private', verbose_name='Estado (privado)',
     )
-    private_zip = fields.Char(max_length=16, blank=True, default='', verbose_name='C.P. (privado)')
+    private_zip = fields.Char(blank=True, default='', verbose_name='C.P. (privado)')
     private_country = fields.Many2one(
         ResCountry, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='hr_versions_private', verbose_name='País (privado)',
     )
     distance_home_work = fields.Integer(default=0, verbose_name='Distancia casa-trabajo')
     distance_home_work_unit = fields.Selection(
-        max_length=10, choices=DistanceUnit.choices, default=DistanceUnit.KM,
+        choices=DistanceUnit.choices, default=DistanceUnit.KM,
         verbose_name='Unidad de distancia',
     )
     marital = fields.Selection(
-        max_length=10, choices=MaritalStatus.choices, default=MaritalStatus.SINGLE,
+        choices=MaritalStatus.choices, default=MaritalStatus.SINGLE,
         verbose_name='Estado civil',
         help_text='DIVERGENCIA: la referencia resuelve las opciones vía '
                   '_get_marital_status_selection (método, se porta abajo); '
                   'aquí son fijas (TextChoices), mismo criterio que Certificate '
                   'en hr_employee.py.',
     )
-    spouse_complete_name = fields.Char(max_length=150, blank=True, default='', verbose_name='Nombre del cónyuge')
+    spouse_complete_name = fields.Char(blank=True, default='', verbose_name='Nombre del cónyuge')
     spouse_birthdate = fields.Date(null=True, blank=True, verbose_name='Fecha de nacimiento del cónyuge')
     children = fields.Integer(default=0, verbose_name='Hijos dependientes')
 
     # --- información laboral ------------------------------------------------
     employee_type = fields.Selection(
-        max_length=10, choices=EmployeeType.choices, default=EmployeeType.EMPLOYEE,
+        choices=EmployeeType.choices, default=EmployeeType.EMPLOYEE,
         verbose_name='Tipo de empleado',
     )
     department = fields.Many2one(
@@ -254,7 +260,7 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
         related_name='hr_versions', verbose_name='Puesto',
     )
     job_title = fields.Char(
-        max_length=150, blank=True, default='', verbose_name='Título del puesto',
+        blank=True, default='', verbose_name='Título del puesto',
         help_text='Odoo job_title (compute+inverse+store). BLOQUEADO el '
                   'auto-sync desde job.name — familia (a); se asigna directo.',
     )

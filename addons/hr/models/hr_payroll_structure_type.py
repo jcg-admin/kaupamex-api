@@ -77,7 +77,7 @@ class HrPayrollStructureType(TimeStampedModel):
     _description = 'Salary Structure Type'
 
     name = fields.Char(
-        'Tipo de estructura salarial', max_length=150, blank=True,
+        'Tipo de estructura salarial', blank=True,
         default='', help_text='Nombre del tipo de estructura salarial (Odoo name).',
     )
     country = fields.Many2one(

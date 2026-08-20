@@ -71,7 +71,7 @@ def apply_hr_res_company_extensions():
                       'presente al empleado.',
         ),
         'hr_presence_control_ip_list': fields.Char(
-            max_length=255, blank=True, default='',
+            blank=True, default='',
             help_text='Odoo hr_presence_control_ip_list ("Valid IP '
                       'addresses") — lista de IPs válidas para el control de '
                       'presencia.',

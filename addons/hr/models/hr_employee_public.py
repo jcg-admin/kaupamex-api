@@ -142,7 +142,7 @@ class HrEmployeePublic(models.Model):
         null=True, blank=True,
         help_text='Odoo create_date — en la vista sale de e.created_at.',
     )
-    name = fields.Char(max_length=200, blank=True, default='')
+    name = fields.Char(blank=True, default='')
     active = fields.Boolean(default=True)
     department_id = fields.Many2one(
         'hr.HrDepartment', on_delete=models.DO_NOTHING, null=True, blank=True,
@@ -164,9 +164,9 @@ class HrEmployeePublic(models.Model):
         related_name='+', db_column='address_id',
         help_text='Origen v.address_id.',
     )
-    mobile_phone = fields.Char(max_length=32, blank=True, default='')
-    work_phone = fields.Char(max_length=32, blank=True, default='')
-    work_email = fields.Char(max_length=254, blank=True, default='')
+    mobile_phone = fields.Char(blank=True, default='')
+    work_phone = fields.Char(blank=True, default='')
+    work_email = fields.Char(blank=True, default='')
     work_contact_id = fields.Many2one(
         'base.ResPartner', on_delete=models.DO_NOTHING, null=True, blank=True,
         related_name='+', db_column='work_contact_id',
