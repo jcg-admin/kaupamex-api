@@ -149,7 +149,15 @@ class TestScheduleBackup:
         assert destination.is_dir()
 
     def test_one_failure_does_not_stop_the_run(self, db, tmp_path):
-        """``except … continue`` — ``:139``: la segunda configuración corre."""
+        """``except … continue`` — ``:139``: la segunda configuración corre.
+
+        DIVERGENCIA declarada (DEC-AB-01, :ref:`h-api-768`): la fuente hace
+        ``continue`` y no deja rastro del fallo fuera del log, así que su
+        historial sólo contiene éxitos. Aquí el fallo **también** produce
+        fila, con ``status=ERROR`` y su ``error_detail`` — es la capacidad
+        que el camino bajo demanda tenía y que al unificar los mecanismos
+        pasa a servir a los dos.
+        """
         DbBackup.objects.create(name='rota', folder=str(tmp_path / 'a'))
         DbBackup.objects.create(name='sana', folder=str(tmp_path / 'b'))
 
@@ -161,8 +169,13 @@ class TestScheduleBackup:
         with mock.patch.object(DbBackup, '_take_dump', _sometimes, create=False):
             DbBackup.schedule_backup()
 
-        assert DbBackupDetails.objects.count() == 1
-        assert DbBackupDetails.objects.get().name.endswith('_sana.zip')
+        ok = DbBackupDetails.objects.get(status=DbBackupDetails.STATUS_OK)
+        assert ok.name.endswith('_sana.zip')
+
+        failed = DbBackupDetails.objects.get(status=DbBackupDetails.STATUS_ERROR)
+        assert failed.name.endswith('_rota.zip')
+        assert 'bad database administrator password' in failed.error_detail
+        assert DbBackupDetails.objects.count() == 2
 
     def test_without_configs_it_does_nothing(self, db):
         DbBackup.objects.all().delete()

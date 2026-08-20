@@ -206,6 +206,7 @@ from django.utils import timezone
 import fields
 import models
 from addons.base.models.ir_actions import IrActionsServer
+from exceptions import UserError
 from orm.environments import context_scope, user_scope
 
 _logger = logging.getLogger(__name__)
@@ -472,6 +473,59 @@ class IrCron(models.Model):
         except Exception:  # noqa: BLE001 — un job no debe tumbar al runner
             _logger.exception('cron %r (id=%s) fallo', self.name, self.pk)
         self._reschedule(now)
+
+    def method_direct_trigger(self, using=DEFAULT_DB_ALIAS):
+        """Corre este cron **ahora**, en el hilo actual (≙
+        ``method_direct_trigger``, ``odoo19c: odoo/addons/base/models/
+        ir_cron.py:150-184``).
+
+        Es el disparo bajo demanda de la referencia, y su forma importa: el
+        job *se corre como lo correría el planificador*, no por un camino
+        paralelo. Por eso adquiere el mismo lock de fila y pasa por
+        ``_run_job`` → ``_callback``, que es lo que pone el ``user_scope``
+        del usuario del cron y su ``context_scope``. Un llamador que
+        invocara el método del job directamente **no** tendría ninguna de
+        las dos cosas, y un guard como el de
+        ``auto_backup.DbBackup._take_dump`` —que exige ser el usuario del
+        cron— lo rechazaría.
+
+        ``include_not_ready=True`` es lo que separa este camino del polling:
+        adquiere el job aunque su ``nextcall`` no haya vencido. El parámetro
+        ya estaba en ``_acquire_one_job`` declarado para este uso; aquí gana
+        su consumidor.
+
+        DIVERGENCIA de transacción, declarada: la fuente corre el job en un
+        **cursor nuevo** y por eso antepone ``env.invalidate_all(flush=True)``
+        —su caché de entorno quedaría rancia al escribir la otra transacción—.
+        Aquí el job corre en la misma conexión, dentro de un
+        ``transaction.atomic``, así que no hay dos cursores que reconciliar ni
+        caché de entorno que invalidar. La consecuencia se declara porque es
+        real: si el callback falla y la transacción del llamador aborta
+        después, la reprogramación de ``_reschedule`` se va con ella, cosa que
+        en la fuente no pasaría.
+
+        DIVERGENCIA de retorno, declarada: la fuente devuelve ``True`` o un
+        dict ``ir.actions.client`` con la excepción serializada para que su
+        cliente la muestre. Aquí no hay canal de acción de cliente —
+        ``IrActionsServer.run()`` levanta ``NotImplementedError`` a
+        propósito—, así que devuelve ``True`` a secas: el fallo del callback
+        ya lo registra ``_run_job`` en el log, y quien dispara lee el
+        resultado en los datos que el job escribió.
+
+        La guarda de acceso de la fuente (``check_access('write')``) tampoco
+        se transcribe: aquí la autorización es por capacidad y vive en el
+        gate de la vista que llama, no en el modelo (DEC-11).
+
+        :raises UserError: si el job ya lo tiene tomado otro worker.
+        """
+        with transaction.atomic(using=using):
+            job = type(self)._acquire_one_job(
+                self.pk, using=using, include_not_ready=True)
+            if job is None:
+                raise UserError(
+                    "El trabajo %r ya se está ejecutando" % (self.name,))
+            job._run_job()
+        return True
 
     @classmethod
     def _process_jobs(cls, using=DEFAULT_DB_ALIAS):

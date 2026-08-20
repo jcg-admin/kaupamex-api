@@ -92,7 +92,8 @@ import time
 import zipfile
 
 import paramiko
-from django.db import DEFAULT_DB_ALIAS, connections, transaction
+from django.conf import settings
+from django.db import DEFAULT_DB_ALIAS, connections
 
 import fields
 import release
@@ -104,10 +105,58 @@ from addons.base.models import SystemParameter, TimeStampedModel
 from addons.base.models.ir_cron import IrCron
 from addons.base.models.ir_module import IrModule
 from addons.mail.models.email_executor import dispatch_email
-from orm.environments import get_current_uid
+from orm.environments import context_scope, get_context, get_current_uid
 from service.db import _pg_env, database_exists
 
 _logger = logging.getLogger(__name__)
+
+#: Clave de contexto que distingue una corrida disparada a mano de una
+#: programada. La pone ``action_run_cron`` alrededor de
+#: ``method_direct_trigger``; la lee ``schedule_backup`` para sellar el campo
+#: propio ``type``. Es el idioma de la fuente —``with_context`` +
+#: ``self.env.context.get(...)``— sobre nuestro espejo ``context_scope``, y
+#: mantiene a ``ir.cron`` genérico: el addon declara su propia clave en vez de
+#: que el disparador sepa de respaldos. Ver :ref:`h-api-768`.
+CONTEXT_MANUAL = 'backup_manual'
+
+
+def notify_backup_failed(backup_name, error_detail):
+    """Alerta por correo cuando un respaldo falla — UC-ADM-05.
+
+    Vivía en ``controllers/main.py`` y sólo cubría el camino bajo demanda;
+    ahora vive junto al único mecanismo, así que **el programado también
+    avisa**. La fuente no alerta en ninguno de los dos: su ``except`` sólo
+    escribe dos ``_logger.warning`` (``:141-146``) — un respaldo nocturno que
+    lleva semanas fallando no se entera nadie hasta que hace falta restaurar.
+    Es divergencia declarada, del mismo linaje que los cuatro campos propios
+    de ``db.backup.details``.
+
+    El destinatario vive en ``SystemParameter`` (``backup.alert_email``,
+    H-API-CFG-01): editable en caliente, sin default cableado.
+
+    No re-lanza: un fallo al notificar no debe enmascarar el fallo del
+    respaldo, que es lo que se está reportando.
+    """
+    recipient = SystemParameter.get_param('backup.alert_email', '')
+    if not recipient:
+        _logger.warning(
+            'El respaldo %r falló pero backup.alert_email no está configurado '
+            '— no se envió alerta.', backup_name)
+        return
+    try:
+        dispatch_email(
+            subject='[Kaupamex] El respaldo %s falló' % (backup_name,),
+            message=(
+                'El respaldo %s terminó en error.\n\nDetalle:\n%s'
+                % (backup_name, error_detail)
+            ),
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
+            recipient_list=[recipient],
+        )
+    except Exception:  # noqa: BLE001 — notificar no debe tapar lo notificado
+        _logger.exception(
+            'No se pudo despachar la alerta del respaldo fallido %r.',
+            backup_name)
 
 #: Los dos formatos que la fuente declara en ``backup_type``.
 BACKUP_TYPES = [('zip', 'Zip'), ('dump', 'Dump')]
@@ -274,7 +323,17 @@ class DbBackup(TimeStampedModel):
 
         Es el método que el ``ir.cron`` de 12 h invoca (``data/backup.py``).
         ``@api.model`` → ``classmethod``, el idioma declarado de este árbol.
+
+        **Es el único mecanismo de respaldo** (DEC-AB-01, :ref:`h-api-768`).
+        El disparo bajo demanda no es un camino paralelo: re-dispara este
+        mismo cron por ``action_run_cron`` → ``method_direct_trigger``, que
+        es lo que hace la fuente (``:355-360``). Lo único que distingue a las
+        dos corridas es la clave de contexto ``CONTEXT_MANUAL``, que sella el
+        campo propio ``type``.
         """
+        run_type = (DbBackupDetails.TYPE_MANUAL
+                    if get_context().get(CONTEXT_MANUAL)
+                    else DbBackupDetails.TYPE_AUTO)
         for rec in cls.objects.all():
             if not os.path.isdir(rec.folder):
                 os.makedirs(rec.folder, exist_ok=True)
@@ -289,9 +348,9 @@ class DbBackup(TimeStampedModel):
                     name=bkp_file,
                     file_path=file_path,
                     url='/dbbackup/download/%s' % file_path,
-                    # Los dos campos propios que la fuente no tiene: esta
-                    # corrida es programada y terminó bien.
-                    type=DbBackupDetails.TYPE_AUTO,
+                    # Los dos campos propios que la fuente no tiene: quién
+                    # disparó esta corrida, y que terminó bien.
+                    type=run_type,
                     status=DbBackupDetails.STATUS_OK,
                     size_bytes=os.path.getsize(file_path),
                 )
@@ -301,6 +360,22 @@ class DbBackup(TimeStampedModel):
                     'password for server running at http://%s:%s',
                     rec.name, rec.host, rec.port)
                 _logger.warning('Exact error from the exception: %s', str(error))
+                # DIVERGENCIA declarada: la fuente hace ``continue`` y no deja
+                # rastro del fallo fuera del log, así que su historial sólo
+                # contiene éxitos. Aquí el fallo **también** es una corrida y
+                # se registra, porque el historial es un endpoint REST y no
+                # una vista con el log al lado. ``error_detail`` se recorta a
+                # 1000 caracteres: el campo alimenta una lista, no un
+                # diagnóstico — el traceback completo vive en el log.
+                DbBackupDetails.objects.create(
+                    name=bkp_file,
+                    file_path=file_path,
+                    db_backup_id=rec,
+                    type=run_type,
+                    status=DbBackupDetails.STATUS_ERROR,
+                    error_detail=str(error)[:1000],
+                )
+                notify_backup_failed(rec.name, str(error)[:1000])
                 continue
 
             if rec.sftp_write:
@@ -534,13 +609,34 @@ class DbBackup(TimeStampedModel):
             'modules': modules,
         }
 
-    def action_run_cron(self):
-        """Dispara ahora el cron del respaldo — ≙ ``:350``.
+    @classmethod
+    def action_run_cron(cls):
+        """Dispara ahora el cron del respaldo — ≙ ``:354-360``.
 
-        ``cron.method_direct_trigger()`` de la fuente equivale aquí a adquirir
-        el job con ``include_not_ready=True`` y correrlo; ``ir_cron.py:384``
-        ya declara esa equivalencia. Devuelve ``True`` si había job que
-        disparar, ``False`` si no — la misma señal que la fuente.
+        Es **el** camino bajo demanda, y su forma la fija la fuente: no
+        implementa un respaldo propio, llama a ``method_direct_trigger()``
+        sobre el mismo cron que corre el planificador. Con eso, el disparo a
+        mano hereda gratis lo que el programado ya tiene —el nombre del
+        archivo, su ruta, su URL de descarga, la FK a la configuración que lo
+        produjo, la copia a SFTP y la purga de caducados—, que es
+        exactamente lo que un segundo camino paralelo no tenía
+        (:ref:`h-api-768`).
+
+        Cuando el porte de ``method_direct_trigger`` aún no existía, este
+        método inlineaba su cuerpo —adquirir con ``include_not_ready=True`` y
+        correr—. Ya existe (``src/addons/base/models/ir_cron.py``), así que se
+        delega: un solo sitio decide cómo se dispara un cron a mano.
+
+        ``@classmethod`` porque no lee ninguna configuración concreta: el
+        recorrido de las configuraciones lo hace ``schedule_backup``. La
+        fuente es método de instancia con ``ensure_one()`` sólo porque su
+        botón cuelga de una vista de formulario.
+
+        :returns: ``True`` si se disparó; ``False`` si el cron no está
+            sembrado.
+        :raises UserError: si el job ya lo tiene tomado otro worker — la
+            propaga ``method_direct_trigger``, y es la señal de "ya hay un
+            respaldo en curso" que el endpoint traduce a 409.
         """
         cron = IrCron.objects.filter(
             ir_actions_server__model_name='auto_backup.DbBackup',
@@ -548,9 +644,6 @@ class DbBackup(TimeStampedModel):
         ).first()
         if cron is None:
             return False
-        with transaction.atomic():
-            job = IrCron._acquire_one_job(cron.pk, include_not_ready=True)
-            if job is None:
-                return False
-            job._run_job()
+        with context_scope(**{CONTEXT_MANUAL: True}):
+            cron.method_direct_trigger()
         return True
