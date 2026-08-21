@@ -649,6 +649,31 @@ class ResUsers(TimeStampedModel):
         no está en ``group_user``."""
         return not self.is_internal()
 
+    # ------------------------------------------------------------------
+    # Segundo factor — el eslabón BASE de una cadena de tres
+    #
+    # Los dos métodos devuelven ``None`` a propósito: son el fondo sobre el
+    # que cada addon de 2FA aporta lo suyo. La referencia los declara aquí
+    # con el mismo cuerpo vacío (``odoo/addons/base/models/res_users.py``,
+    # ``_mfa_type`` y ``_mfa_url``), y los extiende dos veces:
+    #
+    #   base (None) → auth_totp ('totp') → auth_totp_mail ('totp_mail')
+    #
+    # Cada eslabón consulta ``super()`` PRIMERO y sólo aporta si el interno
+    # calló, así que la precedencia la gana el más interno. Aquí eso se
+    # expresa con ``combine=keep_previous`` en ``extend_model`` — ver
+    # ``orm.method_chain.keep_previous``, que documenta por qué el relevo por
+    # defecto daría la precedencia contraria.
+    # ------------------------------------------------------------------
+
+    def _mfa_type(self):
+        """Si hay un método de MFA activo, devuelve su tipo como cadena."""
+        return
+
+    def _mfa_url(self):
+        """Si hay un método de MFA activo, devuelve la URL de su segundo paso."""
+        return
+
 
 class ResUsersLog(TimeStampedModel):
     """``res.users.log`` — que hubo un acceso, no una auditoría.

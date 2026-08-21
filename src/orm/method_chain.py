@@ -184,3 +184,39 @@ def extend_list(new, previous):
     que aporta el addon que se instala.
     """
     return list(previous or []) + list(new or [])
+
+
+def keep_previous(new, previous):
+    """``combine`` de relevo INVERSO — ≙ ``r = super()(); if r is not None: return r``.
+
+    El relevo por defecto de :func:`chain_method` da la precedencia al addon
+    que se instala **después**: corre ``func`` primero y sólo cae en la previa
+    si devolvió ``None``. La referencia hace lo contrario en toda una familia
+    de métodos: consulta ``super()`` **primero** y sólo aporta lo suyo si el
+    eslabón interno no respondió::
+
+        # odoo19c: auth_totp_mail/models/res_users.py:116-125
+        def _mfa_type(self):
+            r = super()._mfa_type()
+            if r is not None:
+                return r
+            ...                       # sólo si el interno calló
+
+    Con ese idioma la precedencia la gana el addon **más interno** —el que se
+    instaló antes— y el orden lo fija la cadena de ``depends``. Ejemplo medido:
+    ``auth_totp`` declara ``'totp'`` y ``auth_totp_mail`` declara ``'totp_mail'``;
+    un usuario con la app configurada **y** la política activa obtiene ``'totp'``,
+    porque ``auth_totp_mail`` depende de ``auth_totp`` y por tanto va después.
+
+    Sin este ``combine`` la cadena devolvería ``'totp_mail'`` — misma población,
+    precedencia invertida, y ningún gate lo vería: los dos valores son válidos.
+
+    **Divergencia declarada:** un ``combine`` invoca las dos implementaciones,
+    así que el cuerpo del eslabón externo corre aunque el interno ya haya
+    respondido — en la referencia el ``if r is not None: return r`` lo salta.
+    Es equivalente mientras los cuerpos sean consultas puras, que es el caso de
+    esta familia. Un eslabón con efectos secundarios NO puede usar este
+    ``combine``: necesita el relevo perezoso, y entonces su precedencia es la
+    contraria.
+    """
+    return previous if previous is not None else new

@@ -4,6 +4,10 @@
 # H-API-231):
 #
 #   totp.py                       → totp.py (algoritmo TOTP/hotp, verbatim)
+#   res_users.py                  → res_users.py — lo que el 2FA cuelga del
+#                                   usuario (_mfa_type/_mfa_url/totp_enabled);
+#                                   su docstring lleva el mapa de los 24
+#                                   símbolos de la fuente, uno por uno
 #   res_users.py (totp_secret     → totp_secret.py — el secreto vive en tabla
 #     NO_ACCESS en res.users)       propia OneToOne, no en el usuario
 #   auth_totp.py                  → NO portado: es `auth_totp.device`

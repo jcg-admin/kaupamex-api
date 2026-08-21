@@ -10,7 +10,12 @@ Métodos de la referencia → aquí:
 - ``_get_totp_mail_key`` / ``_get_totp_mail_code`` / ``_send_totp_mail_code``
   / ``_check_credentials`` (type ``totp_mail``) → ``totp_mail_key`` /
   ``totp_mail_code`` / ``send_totp_mail_code`` / ``verify_totp_mail_code``.
-- ``_mfa_type`` (política ``auth_totp.policy``) → ``totp_mail_required``.
+- ``_mfa_type`` / ``_mfa_url`` → el **eslabón externo** de la cadena de tres
+  (``base`` → ``authz_totp`` → éste), encadenado con
+  ``combine=keep_previous`` para que gane el interno, que es la precedencia de
+  la fuente. Su condición es ``totp_mail_policy_applies`` —sólo la política,
+  como la fuente—; ``totp_mail_required`` es el predicado compuesto, más ancho
+  y hoy sin consumidor (tarea #719).
 - ``action_totp_invite`` / ``get_totp_invite_url`` → ``invite_users`` /
   ``get_totp_invite_url`` (la URL es config L2: el puente de portal la
   re-enruta por audiencia, como hace ``auth_totp_portal`` en la referencia).
@@ -32,6 +37,8 @@ from datetime import datetime
 from django.apps import apps as django_apps
 
 from exceptions import AccessDenied, UserError
+from orm.method_chain import chain_method, keep_previous
+from orm.model_classes import extend_model
 from tools.misc import hmac as tools_hmac
 
 from addons.authz_totp.models.totp import TOTP, hotp
@@ -57,6 +64,12 @@ TOTP_MAIL_TIMESTEP = 3600
 
 TEMPLATE_TOTP_INVITE = 'authz_totp_mail: invitación 2FA'
 TEMPLATE_TOTP_MAIL_CODE = 'authz_totp_mail: código 2FA'
+
+# ≙ la ruta del segundo paso por correo ('/web/login/totp', res_users.py:133).
+# La referencia la escribe literal en los dos archivos de la cadena en vez de
+# compartir una constante; aquí se replica esa independencia —el 2FA de app y
+# el de correo pueden divergir de ruta sin tocarse.
+TOTP_MAIL_SECOND_STEP_URL = '/login/totp'
 
 
 def totp_mail_key(user):
@@ -121,24 +134,84 @@ def send_totp_mail_code(user):
     _logger.info('TOTP mail code sent to %r', user.login)
 
 
-def totp_mail_required(user):
-    """≙ el tramo de política de ``_mfa_type`` (res_users.py:118-128):
-    True si la política L2 exige 2FA a este usuario y no tiene TOTP de app
-    activo (el fallback por correo aplica entonces).
+def totp_mail_policy_applies(user):
+    """≙ el tramo de política de ``_mfa_type`` (res_users.py:120-126): True si
+    la política L2 exige 2FA a este usuario, **sin mirar** si ya tiene TOTP de
+    app.
+
+    Es la condición completa del eslabón externo de la cadena, y sólo ésa: en
+    la fuente, al usuario que ya tiene la app lo descarta el ``super()`` de
+    arriba, no este tramo.
 
     ``employee_required`` (≙ ``_is_internal`` de la referencia) usa
     ``ResUsers.is_internal()`` — el eje interno/portal real, resuelto por el
     ``user_type`` de los grupos (antes era el proxy ``partner.employee``).
     """
-    TotpSecret = django_apps.get_model('authz_totp', 'TotpSecret')
-    if TotpSecret.objects.filter(user=user, confirmed=True).exists():
-        return False  # ya tiene mfa de app; el de correo es el fallback
     policy = SystemParameter.get_param(PARAM_TOTP_POLICY, '')
     if policy == 'all_required':
         return True
     if policy == 'employee_required':
         return user.is_internal()
     return False
+
+
+def totp_mail_required(user):
+    """¿Le toca a este usuario el fallback por correo?
+
+    Predicado **más ancho** que el eslabón de la cadena: la política lo exige
+    **y** no tiene TOTP de app activo.
+
+    **Sin consumidor en producción hoy** — medido al partirlo del eslabón: sólo
+    lo citan tres aserciones de la suite. Su consumidor natural es
+    ``send_code``, que hoy manda el código sin preguntar; en la referencia ese
+    guard es implícito porque a su endpoint sólo se llega por el enrutamiento
+    del login. Decidirlo es la tarea **#719**.
+    """
+    TotpSecret = django_apps.get_model('authz_totp', 'TotpSecret')
+    if TotpSecret.objects.filter(user=user, confirmed=True).exists():
+        return False  # ya tiene mfa de app; el de correo es el fallback
+    return totp_mail_policy_applies(user)
+
+
+def _mfa_type(self):
+    """≙ ``_mfa_type`` (``:116-125``) — ``'totp_mail'`` si la política lo exige.
+
+    Es el eslabón **externo**: devuelve ``None`` cuando la política no aplica,
+    y su valor cede ante el del eslabón interno por ``keep_previous``.
+
+    Consulta ``totp_mail_policy_applies`` y **no** ``totp_mail_required``, que
+    es lo que la fuente hace: su ``_mfa_type`` mira la política y nada más. La
+    diferencia no es cosmética — con la guarda de app aquí dentro, el eslabón
+    calla justo en el caso que la precedencia decide, y entonces la cadena da
+    ``'totp'`` por el predicado y no por el ``combine``. Medido: con
+    ``totp_mail_required`` el control de precedencia
+    (``tests/unit/authz_totp/test_res_users.py``) no discrimina.
+    """
+    if totp_mail_policy_applies(self):
+        return 'totp_mail'
+
+
+def _mfa_url(self):
+    """≙ ``_mfa_url`` (``:127-132``) — la ruta del segundo paso para el correo."""
+    if self._mfa_type() == 'totp_mail':
+        return TOTP_MAIL_SECOND_STEP_URL
+
+
+def _chain_mfa(model):
+    """Instala el eslabón externo con su ``combine``.
+
+    ``keep_previous`` invierte el relevo por defecto de ``chain_method``: sin
+    él este addon —que se instala **después**, porque depende de
+    ``authz_totp``— ganaría la precedencia y devolvería ``'totp_mail'`` donde
+    la fuente devuelve ``'totp'``.
+    """
+    chain_method(model, '_mfa_type', _mfa_type, combine=keep_previous)
+    chain_method(model, '_mfa_url', _mfa_url, combine=keep_previous)
+
+
+def apply_authz_totp_mail_res_users_extensions():
+    """Cuelga sobre ``res.users`` el eslabón de correo — ≙ ``_inherit``."""
+    extend_model('base', 'ResUsers', luego=_chain_mfa)
 
 
 def get_totp_invite_url():

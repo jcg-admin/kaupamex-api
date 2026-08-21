@@ -15,30 +15,34 @@ Porte símbolo por símbolo — 3 de 3 defs
    * - ``_inherit = "res.users"`` (``:5``)
      - portado — lo expresa ``extend_model('base', 'ResUsers', …)``
    * - ``_get_auth_methods`` (``:7``)
-     - portado; **su cuerpo depende de ``_mfa_type``**, que no está en este
-       árbol — ver el bloqueo medido abajo
+     - portado; su cuerpo consume ``_mfa_type``, que ya cuelga de
+       ``res.users`` — ver abajo
    * - ``_get_lock_timeouts`` (``:26``)
      - portado
    * - ``_get_lock_timeout_inactivity`` (``:39``)
      - portado
 
-Bloqueo medido — ``_mfa_type``
-==============================
+Bloqueo LEVANTADO — ``_mfa_type`` (tarea #713)
+===============================================
 
-``_get_auth_methods`` llama a ``self._mfa_type()``, que **no existe aquí**
-(medido: 2 hits en el árbol, ambos en prosa de
-``addons/authz_totp_mail/models/res_users.py``; 0 definiciones). Su hogar en
-la referencia **no es este addon** sino ``auth_totp/models/res_users.py``
-(``:118-128``), un archivo de 19 defs — portarlo aquí sería declarar un
-símbolo en sitio divergente, que es el defecto de :ref:`h-api-578`.
+``_get_auth_methods`` llama a ``self._mfa_type()``, que al escribir este
+archivo no existía en el árbol. Su hogar en la referencia **no es este addon**
+sino ``auth_totp/models/res_users.py`` (``:47-52``) — portarlo aquí habría
+sido declarar un símbolo en sitio divergente, el defecto de
+:ref:`h-api-578`.
 
-Las piezas para construirlo sí están (``user.totp_secret`` con ``confirmed``,
-y ``totp_mail_required`` de ``authz_totp_mail``), así que es trabajo acotado y
-no una incógnita. Sucesor registrado: tarea **#713**.
+Ya está en su sitio, y no es un método suelto sino una **cadena de tres**
+eslabones que la fuente declara en tres archivos distintos::
 
-Mientras tanto ``_get_auth_methods`` levanta ``AttributeError`` si se invoca —
-ruidoso a propósito. Su único consumidor en la referencia es la pantalla de
-confirmación de identidad (``ir_http.py:96``), que este pase tampoco porta.
+    base (None) → authz_totp ('totp') → authz_totp_mail ('totp_mail')
+
+Cada eslabón consulta ``super()`` primero, así que la precedencia la gana el
+más interno; aquí eso lo da ``combine=keep_previous``
+(``orm.method_chain``). Lo que este addon consume es el resultado, sin saber
+cuántos eslabones lo produjeron — igual que la referencia.
+
+El consumidor de ``_get_auth_methods`` sigue pendiente: la pantalla de
+confirmación de identidad (``ir_http.py:96``) es la tarea **#714**.
 
 Divergencia declarada — ``_get_group_ids``
 ==========================================
@@ -65,7 +69,8 @@ def _get_auth_methods(self):
     (WebAuthn), segundo factor (app o correo) y contraseña, según lo que
     tenga configurado y la política de MFA.
 
-    BLOQUEADO por ``_mfa_type`` — ver el docstring del módulo, sucesor #713.
+    ``_mfa_type`` es la cadena de tres eslabones que ``authz_totp`` y
+    ``authz_totp_mail`` cuelgan de ``res.users`` — ver el docstring del módulo.
     """
     auth_methods = []
     if self.passkeys.exists():
