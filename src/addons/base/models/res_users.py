@@ -374,6 +374,71 @@ class ResUsers(TimeStampedModel):
     def has_usable_password(self):
         return hashers.is_password_usable(self.password)
 
+    def _check_credentials(self, credential, env):
+        """≙ ``_check_credentials`` (``odoo19c: res_users.py:312-405``).
+
+        El eslabón **terminal** de la cadena de verificación de credenciales:
+        atiende ``type == 'password'`` y **rechaza** cualquier otro tipo. Los
+        addons de la familia cuelgan los suyos encima con ``chain_method``,
+        que es como este árbol materializa el ``super()`` de la referencia
+        (``authz_totp`` → ``totp``, ``authz_totp_mail`` → ``totp_mail``,
+        ``authz_passkey`` → ``webauthn``).
+
+        **La dirección se invierte y el efecto es el mismo.** La fuente
+        declara al revés —cada addon mira su tipo y llama a ``super()``, que
+        termina aquí— y ``chain_method`` construye la misma pila desde el otro
+        extremo: el eslabón instalado **más tarde** corre primero, devuelve
+        ``None`` si el tipo no es suyo, y el relevo por defecto invoca al
+        anterior. Este método es el último de esa cadena, así que su rechazo es
+        el de la fuente (``:352-353``) y no relevo alguno.
+
+        Sin esa distinción —``None`` es «no es mi tipo», ``AccessDenied`` es
+        «es mío y está mal»— el despacho no puede separar las dos, que es
+        exactamente el defecto que la orquestación a mano tenía (#722).
+
+        **Divergencia declarada — la rama no interactiva.** La fuente, cuando
+        ``env['interactive']`` es falso, acepta además una clave de API
+        (``res.users.apikeys._check_credentials(scope='rpc', key=…)``) y
+        consulta ``_rpc_api_keys_only`` para negar la contraseña cuando hay
+        2FA. Aquí esa rama **no se porta**, por la misma razón medida con que
+        ``authz_totp`` no portó ``_rpc_api_keys_only``: el canal de claves de
+        API para integración externa no está construido, y una guarda que
+        niega el acceso a un canal inexistente no niega nada. Se porta cuando
+        exista el canal. Sucesor: **#490**.
+
+        **Divergencia de mecanismo — el rehash.** La fuente hace
+        ``verify_and_update`` y, si el algoritmo cambió, reescribe el hash y
+        renueva el token de sesión (``:365-374``). Aquí lo cubre
+        ``AbstractBaseUser.check_password``, que ya reescribe el hash por su
+        ``setter``; el token de sesión de Django no se deriva de la contraseña,
+        así que no hay nada que renovar.
+
+        :returns: ``auth_info`` — ``{'uid', 'auth_method', 'mfa'}``. ``mfa``
+            vale ``'skip'`` (el método ya cuenta como los dos factores),
+            ``'default'`` (delegar en el segundo factor) o ``'enforce'``.
+        """
+        # ≙ ``:351-353`` verbatim: el tipo ajeno y la contraseña vacía son el
+        # mismo rechazo. Este eslabón es el último, así que aquí no hay relevo.
+        if not (credential.get('type') == 'password'
+                and credential.get('password')):
+            raise AccessDenied()
+
+        env = env or {}
+        if 'interactive' not in env:
+            # ≙ el aviso de ``:357-361``: sin la clave se asume interactivo.
+            _logger.warning(
+                "_check_credentials sin la clave 'interactive'; se asume "
+                'login interactivo. Revisar llamadores y extensiones.'
+            )
+
+        if not self.check_password(credential['password']):
+            raise AccessDenied()
+        return {
+            'uid': self.pk,
+            'auth_method': 'password',
+            'mfa': 'default',
+        }
+
     def get_session_auth_hash(self):
         """HMAC del hash de password: cambiarlo invalida las sesiones vivas."""
         return salted_hmac(

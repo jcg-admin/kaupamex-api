@@ -57,7 +57,8 @@ sucesor nombrado. Ninguno se omite en silencio
    * - ``_get_session_token_fields`` (``:71``)
      - **NO portado** — el token de sesión de este árbol no se compone por campos
    * - ``_check_credentials`` (``:74``)
-     - ``services.verify_code``, con la guarda del contador — ver abajo
+     - **aquí**, encadenado con el relevo por defecto; delega en
+       ``services.verify_code``, que lleva la guarda del contador — ver abajo
    * - ``_totp_try_setting`` (``:98``)
      - ``services.confirm_setup``
    * - ``_totp_rate_limit`` / ``_totp_rate_limit_purge`` (``:120``, ``:145``)
@@ -122,6 +123,7 @@ El nombre pierde el prefijo ``totp_`` por la misma razón que ``totp_secret`` es
 ``secret``: allá los dos cuelgan de ``res.users`` y el prefijo desambigua; aquí
 los dos viven en ``TotpSecret``.
 """
+from exceptions import AccessDenied
 from orm.method_chain import chain_method, keep_previous
 from orm.model_classes import extend_model
 
@@ -163,15 +165,46 @@ def _mfa_url(self):
         return TOTP_SECOND_STEP_URL
 
 
+def _check_credentials(self, credential, env):
+    """≙ ``_check_credentials`` tipo ``totp`` (``:74-96``).
+
+    Atiende su tipo y **devuelve ``None`` para cualquier otro**, que es el
+    relevo perezoso de ``chain_method`` ocupando el lugar del
+    ``return super()._check_credentials(...)`` de la fuente.
+
+    ``mfa='default'`` es de la referencia y **no** es cosmético: su consumidor
+    en el candado por tiempo compara ``auth['mfa'] != 'skip'`` para decidir si
+    exige el segundo factor. Con ``'skip'`` esa rama no dispara y la
+    confirmación de dos factores colapsa a uno — el defecto que este porte
+    corrige (:ref:`h-api-780`).
+
+    Los dos rechazos que ``services.verify_code`` distingue en el registro
+    —código inválido y código ya usado— salen aquí como el mismo
+    ``AccessDenied``, igual que en la fuente: decir cuál fue le confirmaría al
+    atacante que el código era bueno.
+    """
+    if credential.get('type') != 'totp':
+        return None
+    if not services.verify_code(self, credential.get('token') or ''):
+        raise AccessDenied(
+            'Verification failed, please double-check the 6-digit code')
+    return {'uid': self.pk, 'auth_method': 'totp', 'mfa': 'default'}
+
+
 def _chain_mfa(model):
-    """Instala los dos de la cadena con su ``combine``.
+    """Instala los tres de la cadena con su ``combine``.
 
     Va por ``luego=`` y no por ``metodos=`` porque ``extend_model`` no expone
     ``combine``, y el relevo por defecto daría la precedencia contraria a la de
     la referencia.
+
+    ``_check_credentials`` es la excepción: **sí** quiere el relevo por
+    defecto, porque su semántica en la fuente es la del relevo —cada eslabón
+    atiende su tipo y delega el resto—, no la de ``keep_previous``.
     """
     chain_method(model, '_mfa_type', _mfa_type, combine=keep_previous)
     chain_method(model, '_mfa_url', _mfa_url, combine=keep_previous)
+    chain_method(model, '_check_credentials', _check_credentials)
 
 
 def apply_authz_totp_res_users_extensions():

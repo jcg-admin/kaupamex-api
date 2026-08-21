@@ -8,20 +8,20 @@
 #                               registro; el wizard transient
 #                               auth.passkey.key.create es el POST de
 #                               registro en ../views.py)
-#   res_users.py              → el o2m `auth_passkey_key_ids` es el reverso
-#                               de la FK (related_name='passkeys');
-#                               _login/_check_credentials tipo `webauthn`
-#                               viven en ../backends.py, y los dos caminos
-#                               que _check_credentials sirve están: el login
-#                               (PasskeyBackend.authenticate, búsqueda
-#                               global) y la confirmación de identidad
-#                               (verify_webauthn_credential, acotada al
-#                               usuario), con la cola compartida en
-#                               _consume_assertion; la rotación del session
-#                               token (_get_session_token_*) es del
-#                               mecanismo de sesión de Odoo — la sesión
-#                               Django no deriva su token de campos, no
-#                               aplica.
+#   res_users.py              → res_users.py (#722). Declara el eslabón
+#                               `webauthn` de la cadena _check_credentials,
+#                               con su reparto completo de símbolos en el
+#                               docstring del archivo. El o2m
+#                               `auth_passkey_key_ids` es el reverso de la FK
+#                               (related_name='passkeys'); `_login` es
+#                               PasskeyBackend.authenticate (búsqueda global,
+#                               ../backends.py) y la búsqueda acotada al
+#                               usuario es verify_webauthn_credential, con la
+#                               cola compartida en _consume_assertion; la
+#                               rotación del session token
+#                               (_get_session_token_*) es del mecanismo de
+#                               sesión de Odoo — la sesión Django no deriva su
+#                               token de campos, no aplica.
 #   res_users_identitycheck.py → el método de confirmación por passkey SÍ
 #                               está: authz_timeout::_check_credential
 #                               despacha `webauthn` a

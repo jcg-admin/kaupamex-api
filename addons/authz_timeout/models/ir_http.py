@@ -83,29 +83,32 @@ Divergencias declaradas
    (``web.controllers.session.register_session_info_extension``), y
    ``AuthzTimeoutConfig.ready()`` inscribe ``session_info`` al arrancar.
 
-5. **El webauthn SÍ es un método de confirmación** — el rechazo cambia de
-   forma, no el verificador. ``_check_credential`` despacha las cuatro
-   credenciales que ``_get_auth_methods`` puede ofrecer. La rama ``webauthn``
-   llama a ``authz_passkey::verify_webauthn_credential``, que es el porte de
-   la rama homónima de ``_check_credentials``
-   (``auth_passkey/models/res_users.py:48-72``) y acota la passkey al usuario
-   ya autenticado. El reto sigue viviendo en la sesión —por eso el
-   despachador recibe ``request``— y el verificador es el mismo
+5. **El webauthn SÍ es un método de confirmación**, y desde #722 su eslabón
+   vive donde la referencia lo declara: ``authz_passkey/models/res_users.py``,
+   colgado de la cadena. Acota la passkey al usuario ya autenticado y delega
+   en ``verify_webauthn_credential``, cuyo verificador es el mismo
    ``PasskeyKey.verify_auth`` (≙ ``_verify_auth``) que usa el login.
 
    El ``auth_method`` que devuelve es ``passkey``, no ``webauthn``: la
    asimetría es de la fuente, que compara ``first_fa != auth["auth_method"]``
    (``:106``) y guarda ``credential["type"]`` (``:109``). Es inocua porque
    ``mfa='skip'`` impide que la rama que escribe ``identity-check-1fa`` llegue
-   a correr para este método. Se reproduce verbatim.
+   a correr para este método. Se reproduce verbatim (:ref:`h-api-779`).
 
-6. **``_check_credentials`` unificado no existe en este árbol.** La fuente
-   llama ``user._check_credentials(credential, {"interactive": True})``, un
-   método de ``res.users`` que cada addon de autenticación extiende. Aquí esa
-   unificación no está portada —cada addon expone su verificador— así que
-   ``_check_credential`` (singular) hace ese despacho localmente. No es un
-   símbolo omitido de este archivo: es un símbolo de **otro** archivo que
-   este consume, y su porte es la tarea **#722**.
+6. **``_check_credential`` es un envoltorio de traducción, no un despachador**
+   (#722). La fuente llama ``user._check_credentials(credential,
+   {"interactive": True})`` y deja escapar ``AccessDenied``, que su
+   despachador convierte en respuesta. Aquí ese método **sí existe** como
+   cadena sobre ``res.users`` —``base`` atiende ``password`` y los tres
+   addons de la familia cuelgan ``totp``, ``totp_mail`` y ``webauthn``— así
+   que lo único que queda localmente es traducir la excepción al contrato de
+   la vista: ``None`` es rechazo, y la vista lo sella como **401
+   ``CHECK_IDENTITY_FAILED``**. ``AccessDenied`` es un ``UserError`` de la
+   fachada, no una ``APIException``; dejarlo salir daría un 500.
+
+   ``request`` viaja en ``env`` porque el eslabón de passkey lo necesita: el
+   reto de WebAuthn vive en la sesión y ``PasskeyKey.verify_auth`` lo recibe
+   explícito, donde la fuente lo lee de un hilo-local.
 """
 import logging
 import re
@@ -114,13 +117,10 @@ import time
 from django.contrib.auth.signals import user_logged_in
 from django.http import JsonResponse
 
-from addons.authz_passkey.models.backends import verify_webauthn_credential
 from addons.authz_timeout.exceptions import (
     CheckIdentityRequired,
     SessionLockExpired,
 )
-from addons.authz_totp.services import verify_code as verify_totp_code
-from addons.authz_totp_mail.models.res_users import verify_totp_mail_code
 from addons.web.controllers.session import register_session_info_extension
 from exceptions import AccessDenied
 
@@ -191,51 +191,29 @@ def _must_check_identity(request):
 
 
 def _check_credential(user, credential, request):
-    """El despacho por tipo de credencial — divergencia 6.
+    """≙ ``user._check_credentials(credential, {"interactive": True})`` (``:105``).
 
-    Ocupa el lugar de ``user._check_credentials(credential, …)`` de la fuente,
-    que este árbol no tiene unificado (tarea #722). Devuelve
-    ``{'auth_method': <tipo>, 'mfa': <'skip'|None>}``, o ``None`` si la
-    credencial no verifica.
+    **Envoltorio de traducción, no despachador** — divergencia 6. El despacho
+    por tipo lo hace la cadena de ``_check_credentials`` sobre ``res.users``:
+    ``base`` atiende ``password`` y ``authz_totp`` / ``authz_totp_mail`` /
+    ``authz_passkey`` cuelgan su tipo encima. Lo único que ocurre aquí es
+    convertir el rechazo al contrato local de la vista.
 
-    La fuente devuelve además ``uid``; aquí se proyecta fuera porque el
-    usuario es el de la sesión y ya lo tiene el llamador. La proyección se
-    hace en un solo sitio para que las cuatro ramas devuelvan la misma forma.
+    Devuelve el ``auth_info`` de la fuente —``{'uid', 'auth_method',
+    'mfa'}``— o ``None`` si la credencial no verifica.
 
-    ``mfa='skip'`` significa *este método ya cuenta como los dos factores* —
-    en la fuente lo devuelve el passkey, que autentica y verifica presencia en
-    un solo gesto.
-
-    ``request`` sólo lo consume la rama ``webauthn``: el reto vive en la
-    sesión, así que su verificador lo necesita para leerlo.
+    ``request`` viaja en ``env`` porque el eslabón de passkey lo necesita: el
+    reto de WebAuthn vive en la sesión.
     """
-    tipo = credential.get('type')
-    if tipo == 'password':
-        if not user.check_password(credential.get('password') or ''):
-            return None
-        return {'auth_method': 'password', 'mfa': None}
-    if tipo == 'totp':
-        if not verify_totp_code(user, credential.get('token') or ''):
-            return None
-        return {'auth_method': 'totp', 'mfa': 'skip'}
-    if tipo == 'totp_mail':
-        # ``verify_totp_mail_code`` levanta ``AccessDenied`` como la fuente.
-        # Aquí se traduce al contrato local —``None`` es rechazo— porque
-        # ``AccessDenied`` es un ``UserError`` de la fachada y no una
-        # ``APIException``: dejarlo salir da un 500 donde corresponde el 401
-        # que la vista sella.
-        try:
-            verify_totp_mail_code(user, credential.get('token') or '')
-        except AccessDenied:
-            return None
-        return {'auth_method': 'totp_mail', 'mfa': 'skip'}
-    if tipo == 'webauthn':
-        auth = verify_webauthn_credential(
-            user, request, credential.get('webauthn_response'))
-        if auth is None:
-            return None
-        return {'auth_method': auth['auth_method'], 'mfa': auth['mfa']}
-    return None
+    try:
+        return user._check_credentials(
+            credential, {'interactive': True, 'request': request})
+    except AccessDenied:
+        # La fuente deja escapar ``AccessDenied`` y su despachador la
+        # convierte en respuesta. Aquí sería un 500: es un ``UserError`` de la
+        # fachada, no una ``APIException``, así que el manejador de DRF no la
+        # conoce. La vista sella el ``None`` como 401 ``CHECK_IDENTITY_FAILED``.
+        return None
 
 
 def _check_identity(request, credential):

@@ -8,8 +8,11 @@ funciones sobre el usuario (no hay ``_inherit``), mismo criterio que
 Métodos de la referencia → aquí:
 
 - ``_get_totp_mail_key`` / ``_get_totp_mail_code`` / ``_send_totp_mail_code``
-  / ``_check_credentials`` (type ``totp_mail``) → ``totp_mail_key`` /
-  ``totp_mail_code`` / ``send_totp_mail_code`` / ``verify_totp_mail_code``.
+  → ``totp_mail_key`` / ``totp_mail_code`` / ``send_totp_mail_code``.
+- ``_check_credentials`` (type ``totp_mail``) → portado abajo **con su nombre**
+  y encadenado sobre ``res.users``; ``verify_totp_mail_code`` queda como el
+  verificador que consume, reutilizable por la vista del segundo paso. Es el
+  tercer eslabón de la cadena que ``base`` abre (#722).
 - ``_mfa_type`` / ``_mfa_url`` → el **eslabón externo** de la cadena de tres
   (``base`` → ``authz_totp`` → éste), encadenado con
   ``combine=keep_previous`` para que gane el interno, que es la precedencia de
@@ -34,11 +37,11 @@ Métodos de la referencia → aquí:
   invoca desde su propio ``authenticate`` (``:44-48``), un método de modelo que
   el addon envuelve con ``super()``; aquí el punto de entrada del login es una
   vista DRF y las vistas no se encadenan.
-- ``authenticate`` → NO portado **como método**. No es una omisión del aviso
-  —que sí está— sino de la unificación de credenciales que lo alojaba: la
-  fuente concentra en ``res.users.authenticate`` el chequeo, la fecha de login
-  y el ``auth_info``, y aquí eso lo reparte Django entre sus cuatro backends.
-  Decidir si existe un ``_check_credentials`` unificado es la tarea **#722**.
+- ``authenticate`` → NO portado **como método**: la fuente concentra ahí el
+  chequeo, la fecha de login y el ``auth_info``, y aquí eso lo reparte Django
+  entre sus cuatro backends. Lo que **sí** se unificó (#722) es la mitad de
+  verificación: ``_check_credentials`` existe como cadena sobre ``res.users``,
+  con este addon de tercer eslabón.
 - ``_rpc_api_keys_only`` / ``action_open_my_account_settings`` → NO
   portados: RPC keys y acción de ventana del backoffice Odoo.
 
@@ -208,6 +211,36 @@ def _mfa_url(self):
         return TOTP_MAIL_SECOND_STEP_URL
 
 
+def _check_credentials(self, credential, env):
+    """≙ ``_check_credentials`` tipo ``totp_mail`` (``:138-156``).
+
+    Es el **tercer** eslabón de la cadena: atiende su tipo y devuelve ``None``
+    para cualquier otro, que es el relevo perezoso de ``chain_method``
+    ocupando el lugar del ``return super()._check_credentials(...)`` de la
+    fuente (``:155-156``).
+
+    ``mfa='default'`` es de la referencia (``:154``) y **no** es cosmético: su
+    consumidor en el candado por tiempo compara ``auth['mfa'] != 'skip'`` para
+    decidir si exige el segundo factor. Con ``'skip'`` esa rama no dispara y la
+    confirmación de dos factores colapsa a uno — el defecto que este porte
+    corrige (:ref:`h-api-780`).
+
+    ``verify_totp_mail_code`` ya levanta ``AccessDenied`` con el mensaje de la
+    fuente, así que aquí no se traduce nada: el rechazo atraviesa la cadena
+    entera sin que ningún eslabón lo atienda, que es el contrato.
+
+    **Divergencia declarada — el límite de tasa.** La fuente llama
+    ``_totp_rate_limit('code_check')`` al entrar y purga dos contadores al
+    acertar (``:140``, ``:149-150``). Ese mecanismo persiste en
+    ``auth_totp_rate_limit_log``, modelo **no portado** (gap ya nombrado en el
+    docstring del módulo y en H-API-232). Se porta con el modelo.
+    """
+    if credential.get('type') != 'totp_mail':
+        return None
+    verify_totp_mail_code(self, credential.get('token') or '')
+    return {'uid': self.pk, 'auth_method': 'totp_mail', 'mfa': 'default'}
+
+
 def _notify_security_new_connection(self, request):
     """≙ ``_notify_security_new_connection`` (``:50-67``) — dispositivo nuevo.
 
@@ -237,21 +270,28 @@ def _notify_security_new_connection(self, request):
 
 
 def _chain_res_users(model):
-    """Instala los tres eslabones que este addon cuelga de ``res.users``.
+    """Instala los cuatro eslabones que este addon cuelga de ``res.users``.
 
     ``keep_previous`` invierte el relevo por defecto de ``chain_method``: sin
     él este addon —que se instala **después**, porque depende de
     ``authz_totp``— ganaría la precedencia y devolvería ``'totp_mail'`` donde
     la fuente devuelve ``'totp'``.
 
-    El tercero va **sin** ``combine`` a propósito: no elige un valor, produce
-    un efecto y devuelve ``None``, así que el relevo por defecto es el correcto
-    (ver el comentario del bloque en ``base/models/res_users.py``).
+    Los otros dos van **sin** ``combine``, y por razones distintas:
+
+    - ``_notify_security_new_connection`` no elige un valor: produce un efecto
+      y devuelve ``None``, así que el relevo por defecto es el correcto (ver el
+      comentario del bloque en ``base/models/res_users.py``).
+    - ``_check_credentials`` **sí** quiere el relevo por defecto, porque su
+      semántica en la fuente **es** la del relevo: cada eslabón atiende su tipo
+      y delega el resto. ``keep_previous`` daría la precedencia contraria y el
+      tipo ``totp_mail`` nunca llegaría a atenderse.
     """
     chain_method(model, '_mfa_type', _mfa_type, combine=keep_previous)
     chain_method(model, '_mfa_url', _mfa_url, combine=keep_previous)
     chain_method(model, '_notify_security_new_connection',
                  _notify_security_new_connection)
+    chain_method(model, '_check_credentials', _check_credentials)
 
 
 def apply_authz_totp_mail_res_users_extensions():

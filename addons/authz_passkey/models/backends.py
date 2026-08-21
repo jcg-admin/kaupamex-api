@@ -66,15 +66,18 @@ def verify_webauthn_credential(user, request, webauthn_response):
     dueño es quien la creó; aquí el modelo declara la FK ``user`` explícita
     (``related_name='passkeys'``), que es el mismo predicado con nombre.
 
-    **Divergencia de contrato, no de mecanismo.** La fuente levanta
-    ``AccessDenied`` en los dos rechazos —passkey desconocida y aserción
-    inválida— y su despachador la convierte en respuesta. Aquí devuelve
-    ``None``, que es lo que ``_check_credential`` de ``authz_timeout`` espera
-    de ``password`` y ``totp``, y lo que su vista sella como **401
-    ``CHECK_IDENTITY_FAILED``**. ``AccessDenied`` es un ``UserError`` de la
-    fachada, no una ``APIException``: levantarlo aquí saldría por el manejador
-    de DRF sin conversión y el cliente vería un 500 donde le corresponde un
-    401.
+    **El ``None`` es contrato INTERNO del verificador, no del modelo.** La
+    fuente levanta ``AccessDenied`` en los dos rechazos —passkey desconocida y
+    aserción inválida— y eso se conserva: lo levanta el eslabón de la cadena
+    (``res_users.py``, #722), que es donde la referencia lo hace. Aquí no,
+    porque este verificador tiene **dos** llamadores y el otro es un backend de
+    autenticación de Django, cuyo contrato es devolver ``None`` para que el
+    siguiente backend responda.
+
+    La traducción al **401 ``CHECK_IDENTITY_FAILED``** de la vista la hace el
+    despachador de ``authz_timeout``: ``AccessDenied`` es un ``UserError`` de
+    la fachada, no una ``APIException``, así que dejarlo salir por el manejador
+    de DRF daría un 500 donde corresponde un 401.
     """
     if not webauthn_response or request is None:
         return None
