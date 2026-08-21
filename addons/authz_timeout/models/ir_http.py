@@ -74,7 +74,7 @@ Divergencias declaradas
 
 4. **``session_info``/``get_frontend_session_info`` no extienden a ``web``.**
    La fuente los extiende por ``_inherit`` sobre ``ir.http``. Aquí el
-   productor equivalente es ``web.controllers.session._session_info(user)``,
+   productor equivalente es ``web.controllers.session.build_session_info(user)``,
    una **función de módulo**: extenderla desde este addon exigiría que
    ``web`` conociera a ``authz_timeout``, invirtiendo la dependencia. Los dos
    símbolos se portan y su consumidor es ``GET /api/v2/authz/timeout/``, que

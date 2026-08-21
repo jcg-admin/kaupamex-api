@@ -69,7 +69,7 @@ Por qué 7 de 8 son ausentes — con la re-verificación de hoy
   portado —``ResUsers.is_internal()`` (``base/models/res_users.py:430``)—
   pero la orquestación de a dónde redirigir tras el login es trabajo del
   router de React (que ya recibe ``is_system``/``login``/``name`` de
-  ``session_info()``, ``session.py::_session_info``), no de esta API REST:
+  ``session_info()``, ``session.py::build_session_info``), no de esta API REST:
   ``session_authenticate`` devuelve un cuerpo JSON, no un ``302``. Re-medido
   hoy: ``session.py`` (re-leído completo) declara la brecha del segundo
   factor —``authz_totp`` existe pero "sólo expone gestión... no un corte en

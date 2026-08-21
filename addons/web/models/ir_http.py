@@ -113,7 +113,7 @@ dependencias) sería instalar un método sin ningún invocador — el mismo
 antipatrón de stub que el punto 9 rechaza explícitamente.
 
 **8. ``session_info`` — YA PORTADO, en la capa DRF, no en el modelo.**
-``controllers/session.py::_session_info(user)`` documenta explícitamente
+``controllers/session.py::build_session_info(user)`` documenta explícitamente
 "≙ ``ir.http.session_info()`` de la referencia, recortado a lo publicado" y
 enumera campo por campo qué queda fuera (versión de servidor, módulos
 instalados, config del webclient) y por qué (sin consumidor en un cliente

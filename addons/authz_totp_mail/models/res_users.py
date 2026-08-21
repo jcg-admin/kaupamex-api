@@ -20,9 +20,14 @@ Métodos de la referencia → aquí:
   ``get_totp_invite_url`` (la URL es config L2: el puente de portal la
   re-enruta por audiencia, como hace ``auth_totp_portal`` en la referencia).
 - ``write`` (notificación al activar/desactivar 2FA) → ``../signals.py``.
-- ``authenticate`` + ``_notify_security_new_connection`` → NO portados:
-  dependen de ``auth_totp.device`` (dispositivo de confianza por cookie
-  ``td_id``), modelo no portado — gap nombrado en H-API-232.
+- ``authenticate`` + ``_notify_security_new_connection`` → NO portados. La
+  causa que estas líneas declaraban —*"dependen de ``auth_totp.device``,
+  modelo no portado"*— **caducó**: el modelo se portó en ``api@a07e1b1``
+  (:ref:`h-api-772`) y su cookie quedó cableada al login (:ref:`h-api-773`).
+  Lo que falta ahora es el aviso en sí: la fuente manda un correo al detectar
+  un dispositivo **nuevo** en la autenticación, y este árbol no tiene ese
+  gancho — el segundo paso vive en ``authz_totp/controllers/main.py`` y no
+  notifica. Sucesor: **#728**.
 - ``_rpc_api_keys_only`` / ``action_open_my_account_settings`` → NO
   portados: RPC keys y acción de ventana del backoffice Odoo.
 

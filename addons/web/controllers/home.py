@@ -65,7 +65,7 @@ Los 8 ausentes, agrupados por qué bloquea cada uno
   ``≙ _is_internal (res_users.py:1165-1167)``). Lo que falta es la
   orquestación HTTP de a dónde redirigir — trabajo del router de React, que
   ya recibe ``is_system``/``login``/``name`` de ``session_info()``
-  (``session.py::_session_info``) para decidir la pantalla de aterrizaje.
+  (``session.py::build_session_info``) para decidir la pantalla de aterrizaje.
 - ``switch_to_admin`` — "convertirse en superusuario": eleva el ``uid`` de
   la sesión a ``SUPERUSER_ID`` para un usuario de ``base.group_system``,
   invalidando el caché de registro y rotando el token de sesión. **Este es

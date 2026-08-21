@@ -85,14 +85,38 @@ proveedor externo (Google, etc.) — no el de *enlazar* la sesión ya abierta a
 un backend SaaS ajeno. Divergencia de mecanismo declarada (desenlace 1 de
 ``porte-completo-no-parcial.md``), no omisión silenciosa.
 
-Lo que esta adaptación NO cubre
-================================
+El segundo factor — la sesión PARCIAL
+======================================
 
-El segundo factor. La referencia difiere la finalización de la sesión cuando
-``user._mfa_url()`` devuelve algo (``odoo19c: odoo/http.py:1256-1258``): fija
-``pre_uid`` y espera al segundo factor. Aquí ``authz_totp`` existe pero sólo
-expone gestión (alta, confirmación, baja), no un corte en el login. Cerrar esa
-brecha es trabajo propio y se declara, no se simula.
+La referencia difiere la finalización de la sesión cuando ``user._mfa_url()``
+devuelve algo (``odoo19c: odoo/http.py:1250-1258``)::
+
+    self.uid = None
+    self['pre_login'] = credential['login']
+    self['pre_uid'] = pre_uid
+    # if 2FA is disabled we finalize immediately
+    if auth_info.get('mfa') == 'skip' or not user._mfa_url():
+        self.finalize(env)
+
+Eso se porta verbatim en ``session_authenticate``: con segundo factor activo la
+sesión queda **parcial** —dos claves y ningún ``login()``— y quien la cierra es
+el segundo paso, que vive en el addon del método (``authz_totp``), no aquí.
+
+**Por qué el corte vive en ``web`` y el segundo paso no.** Es el reparto de la
+referencia: el corte está en ``odoo/http.py``, su núcleo, y consulta
+``_mfa_url()`` sin importar ningún addon de 2FA; el segundo paso está en
+``auth_totp/controllers/home.py``, que sí conoce el mecanismo. Aquí
+``_mfa_url()`` lo declara ``base`` (``res_users.py:714``, el eslabón que
+devuelve ``None``), así que este módulo no gana dependencia alguna: pregunta
+por la cadena y no sabe quién la contesta.
+
+Divergencia de forma, no de mecanismo: la referencia **redirige** (303) a
+``_mfa_url()`` porque su cliente es una página. El nuestro es un cliente REST,
+así que devuelve **401** con ``codigo_error: MFA_REQUIRED`` y la url en el
+cuerpo. El 401 es el código correcto y no el 403: la credencial se aceptó pero
+la sesión **no** está abierta — que es exactamente lo que ``self.uid = None``
+declara. Contrastar con ``CHECK_IDENTITY_REQUIRED`` de ``authz_timeout``, que
+sí es 403 porque ahí la sesión existe y sólo hay que reconfirmarla.
 """
 from django.contrib.auth import authenticate, login, logout
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -109,13 +133,40 @@ from addons.web.controllers.serializers import (
 
 _MODULES_RESPONSE = OpenApiResponse(description='["addon_a", "addon_b", ...]')
 
+#: Claves de la sesión **parcial** — ≙ ``pre_login``/``pre_uid`` de
+#: ``odoo19c: odoo/http.py:1252-1253``. Se conservan sus nombres porque son el
+#: contrato entre el corte (aquí) y el segundo paso (el addon del método), que
+#: en la referencia son dos archivos igual de distantes.
+PRE_LOGIN_KEY = 'pre_login'
+PRE_UID_KEY = 'pre_uid'
 
-def _session_info(user):
+#: Tercera clave, **sin contraparte en la referencia**, y la razón es del
+#: stack: allá `finalize()` sólo asigna `uid` porque no hay backends
+#: enchufables. Aquí `login()` exige saber **qué** backend autenticó, y el
+#: segundo paso ya no lo tiene: recupera al usuario del ORM, no de
+#: `authenticate()`, que es quien deja `user.backend` puesto.
+#:
+#: Hardcodear `ModelBackend` sería un fallo silencioso para el resto: los
+#: cuatro backends declarados (`AUTHENTICATION_BACKENDS`) incluyen LDAP, y un
+#: usuario de LDAP quedaría marcado como autenticado por contraseña local.
+#: Así que el primer paso anota cuál fue, y el segundo lo reusa.
+PRE_BACKEND_KEY = 'pre_backend'
+
+
+def build_session_info(user):
     """≙ ``ir.http.session_info()`` de la referencia, recortado a lo publicado.
 
     La referencia devuelve además la versión del servidor, los módulos
     instalados y la configuración del cliente web. Nada de eso tiene consumidor
     en un cliente REST, así que no se emite.
+
+    **Es público, y el nombre no es el de la referencia a propósito.** Allá el
+    símbolo es ``session_info()`` sobre ``ir.http`` —público— pero aquí ese
+    nombre ya lo ocupa la **vista** de más abajo, así que el productor del
+    cuerpo se llama distinto para no colisionar. Se publica porque el segundo
+    paso del login (``authz_totp``) cierra la sesión parcial y tiene que
+    devolver **este mismo cuerpo**: quien recibió el 401 ``MFA_REQUIRED`` está
+    a mitad del flujo de ``session_authenticate`` y espera su respuesta.
     """
     # ``partner`` es obligatorio en el modelo (la referencia no admite usuario
     # sin partner), así que no se guarda contra su ausencia.
@@ -140,7 +191,8 @@ def _session_info(user):
     responses={
         200: SessionInfoSerializer,
         400: OpenApiResponse(description='CREDENTIAL_REQUIRED'),
-        401: OpenApiResponse(description='INVALID_CREDENTIAL'),
+        401: OpenApiResponse(
+            description='INVALID_CREDENTIAL · MFA_REQUIRED (con ``mfa_url``)'),
     },
     auth=[],
 )
@@ -152,6 +204,9 @@ def session_authenticate(request):
     ``login()`` de Django cicla la clave de sesión, que es lo que la referencia
     pide con ``should_rotate`` (``odoo19c: odoo/http.py:1293``): una sesión
     abierta nunca reusa el identificador de la anónima previa.
+
+    Con segundo factor activo la sesión queda **parcial** y ``login()`` no se
+    llama — ver "El segundo factor" en la cabecera del módulo.
     """
     serializer = CredentialSerializer(data=request.data)
     if not serializer.is_valid():
@@ -173,8 +228,22 @@ def session_authenticate(request):
              'detail': 'Credencial inválida.'},
             status=status.HTTP_401_UNAUTHORIZED)
 
+    # ≙ `odoo/http.py:1250-1258` — la sesión queda parcial mientras el segundo
+    # factor no responda. `_mfa_url()` es la cadena que `base` declara vacía y
+    # cada addon de 2FA extiende; este módulo la consulta sin conocer a ninguno.
+    mfa_url = user._mfa_url()
+    if mfa_url is not None:
+        request.session[PRE_LOGIN_KEY] = user.login
+        request.session[PRE_UID_KEY] = user.pk
+        request.session[PRE_BACKEND_KEY] = getattr(user, 'backend', None)
+        return Response(
+            {'codigo_error': 'MFA_REQUIRED',
+             'detail': 'Se requiere el segundo factor.',
+             'mfa_url': mfa_url},
+            status=status.HTTP_401_UNAUTHORIZED)
+
     login(request, user)
-    return Response(_session_info(user))
+    return Response(build_session_info(user))
 
 
 @extend_schema(
@@ -186,7 +255,7 @@ def session_authenticate(request):
 @permission_classes([IsAuthenticated])
 def session_info(request):
     """≙ ``/web/session/get_session_info``."""
-    return Response(_session_info(request.user))
+    return Response(build_session_info(request.user))
 
 
 @extend_schema(
