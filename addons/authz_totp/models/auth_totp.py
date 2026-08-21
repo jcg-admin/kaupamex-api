@@ -99,6 +99,20 @@ TRUSTED_DEVICE_COOKIE = 'td_id'
 #: ``auth_totp.trusted_device_age``.
 TRUSTED_DEVICE_AGE_DAYS = 90
 
+#: ≙ ``scope="browser"``, el ámbito con que se genera y se comprueba la clave
+#: del dispositivo de confianza.
+#:
+#: **La fuente no declara esta constante**: escribe el literal en los TRES
+#: sitios que lo usan — ``auth_totp/controllers/home.py:35,71`` (comprobar y
+#: generar) y ``auth_totp_mail/models/res_users.py:57`` (el aviso de conexión
+#: nueva). Aquí se declara una vez porque generar con un ámbito y comprobar
+#: con otro es un **fallo silencioso**: la clave existe, la comprobación
+#: devuelve ``None``, y el segundo factor se vuelve a pedir sin que nada lo
+#: reporte. Vive junto a ``TRUSTED_DEVICE_COOKIE`` —el otro dato que los tres
+#: comparten— y no en el controlador, porque el tercer consumidor está en otro
+#: addon y no puede importar un símbolo privado de una vista.
+BROWSER_SCOPE = 'browser'
+
 
 class AuthTotpDevice(_ResUsersApikeysBase):
     """``auth_totp.device`` — ≙ ``Auth_TotpDevice`` (``:9-38``)."""

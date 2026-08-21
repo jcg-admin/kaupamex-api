@@ -77,7 +77,7 @@ from addons.authz_totp.controllers.serializers import (
     TotpCodeSerializer, TotpDisableSerializer, TotpLoginSerializer,
 )
 from addons.authz_totp.models.auth_totp import (
-    TRUSTED_DEVICE_COOKIE, AuthTotpDevice,
+    BROWSER_SCOPE, TRUSTED_DEVICE_COOKIE, AuthTotpDevice,
 )
 from addons.authz_totp.services import (
     begin_setup,
@@ -97,13 +97,10 @@ from orm.environments import sudo, user_scope
 _TAGS = ['authz-2fa']
 _CAP = 'account.security'
 
-#: ≙ ``scope="browser"`` (``odoo19c: auth_totp/controllers/home.py:35,71``) —
-#: el ámbito con que se genera y se comprueba la clave del dispositivo. La
-#: fuente lo escribe literal en los dos sitios; aquí se declara una vez porque
-#: generar con un ámbito y comprobar con otro es un fallo silencioso: la clave
-#: existe, la comprobación devuelve ``None`` y el segundo factor se vuelve a
-#: pedir sin que nada lo reporte.
-_BROWSER_SCOPE = 'browser'
+# El ámbito de la clave del dispositivo (``BROWSER_SCOPE``) se declaró aquí
+# hasta que apareció su tercer consumidor —el aviso de conexión nueva, en
+# ``authz_totp_mail``—, que no puede importar un símbolo privado de una vista.
+# Vive ahora junto a ``TRUSTED_DEVICE_COOKIE``, en el módulo del modelo.
 
 
 def _finalize(request, user):
@@ -227,7 +224,7 @@ def totp_login(request):
         # ≙ `:31-40` — la rama del dispositivo de confianza.
         key = request.COOKIES.get(TRUSTED_DEVICE_COOKIE)
         if key and AuthTotpDevice._check_credentials_for_uid(
-                scope=_BROWSER_SCOPE, key=key, uid=user.pk):
+                scope=BROWSER_SCOPE, key=key, uid=user.pk):
             _finalize(request, user)
             return Response(build_session_info(user))
         return Response(
@@ -261,7 +258,7 @@ def totp_login(request):
         age = AuthTotpDevice._get_trusted_device_age()
         with user_scope(user.pk), sudo():
             key = AuthTotpDevice._generate(
-                _BROWSER_SCOPE,
+                BROWSER_SCOPE,
                 _device_name(request),
                 timezone.now() + timedelta(seconds=age),
             )

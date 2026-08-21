@@ -693,9 +693,10 @@ class ResUsers(TimeStampedModel):
     # ------------------------------------------------------------------
     # Segundo factor — el eslabón BASE de una cadena de tres
     #
-    # Los dos métodos devuelven ``None`` a propósito: son el fondo sobre el
-    # que cada addon de 2FA aporta lo suyo. La referencia los declara aquí
-    # con el mismo cuerpo vacío (``odoo/addons/base/models/res_users.py``,
+    # Los TRES métodos devuelven ``None`` a propósito: son el fondo sobre el
+    # que cada addon de 2FA aporta lo suyo. La referencia declara aquí los dos
+    # primeros con el mismo cuerpo vacío
+    # (``odoo19c: odoo/addons/base/models/res_users.py:1313,1317`` —
     # ``_mfa_type`` y ``_mfa_url``), y los extiende dos veces:
     #
     #   base (None) → auth_totp ('totp') → auth_totp_mail ('totp_mail')
@@ -705,6 +706,13 @@ class ResUsers(TimeStampedModel):
     # expresa con ``combine=keep_previous`` en ``extend_model`` — ver
     # ``orm.method_chain.keep_previous``, que documenta por qué el relevo por
     # defecto daría la precedencia contraria.
+    #
+    # El tercero NO lleva ``keep_previous``, y la asimetría es del propósito,
+    # no un descuido: los dos primeros **eligen un valor** —hay una precedencia
+    # que decidir— mientras que el tercero es un **efecto** que devuelve
+    # ``None`` siempre. Con el relevo por defecto, cada eslabón corre y luego
+    # cae en el anterior, que es lo que un aviso quiere: si mañana un segundo
+    # método de 2FA quisiera avisar a su manera, los dos avisos salen.
     # ------------------------------------------------------------------
 
     def _mfa_type(self):
@@ -713,6 +721,31 @@ class ResUsers(TimeStampedModel):
 
     def _mfa_url(self):
         """Si hay un método de MFA activo, devuelve la URL de su segundo paso."""
+        return
+
+    def _notify_security_new_connection(self, request):
+        """Avisa al titular si la credencial se aceptó en un dispositivo nuevo.
+
+        Tercer eslabón vacío de la misma familia, y **la referencia NO lo
+        declara aquí**: lo declara sólo en ``auth_totp_mail``
+        (``odoo19c: auth_totp_mail/models/res_users.py:50-67``), porque allá el
+        punto de extensión ya es un método de modelo de este archivo —
+        ``authenticate`` (``:1240``), que el addon envuelve con ``super()``.
+
+        Aquí el punto de entrada del login es una **vista DRF**
+        (``addons/web/controllers/session.py::session_authenticate``), no un
+        método de ``res.users``. Una vista no se encadena, así que la costura
+        tiene que ser algo que la vista pueda **llamar** — y va donde ya están
+        las otras dos de MFA, para que ``web`` siga preguntándole a la cadena
+        sin conocer a ningún addon de 2FA.
+
+        El parámetro es la segunda divergencia, y también es del stack: la
+        fuente lee la petición de su ``request`` de hilo
+        (``odoo.http.request``) y recibe ``auth_info`` para resolver al usuario.
+        Aquí no hay tal proxy —medido: 0 símbolos de petición ambiental en
+        ``src/orm`` y ``src/tools``— así que la petición se pasa explícita y el
+        usuario es ``self``, igual que en ``_mfa_type``/``_mfa_url``.
+        """
         return
 
 

@@ -110,6 +110,11 @@ referencia: el corte está en ``odoo/http.py``, su núcleo, y consulta
 devuelve ``None``), así que este módulo no gana dependencia alguna: pregunta
 por la cadena y no sabe quién la contesta.
 
+Por la **misma** cadena sale el aviso de dispositivo nuevo
+(``_notify_security_new_connection``, ≙ ``auth_totp_mail``): son dos llamadas
+seguidas a dos eslabones vacíos de ``base``, y ninguna de las dos le dice a
+este módulo qué addon está detrás.
+
 Divergencia de forma, no de mecanismo: la referencia **redirige** (303) a
 ``_mfa_url()`` porque su cliente es una página. El nuestro es un cliente REST,
 así que devuelve **401** con ``codigo_error: MFA_REQUIRED`` y la url en el
@@ -227,6 +232,14 @@ def session_authenticate(request):
             {'codigo_error': 'INVALID_CREDENTIAL',
              'detail': 'Credencial inválida.'},
             status=status.HTTP_401_UNAUTHORIZED)
+
+    # ≙ `auth_totp_mail/models/res_users.py:44-48` — el aviso de conexión desde
+    # un dispositivo nuevo. La fuente lo cuelga de `authenticate`, así que sale
+    # **aquí**, con la credencial ya aceptada y ANTES de que el segundo factor
+    # responda: quien tiene la contraseña y no el segundo factor también lo
+    # dispara, que es de quien protege al titular. Tercer eslabón de la misma
+    # cadena vacía que `_mfa_url`; este módulo tampoco sabe quién lo contesta.
+    user._notify_security_new_connection(request)
 
     # ≙ `odoo/http.py:1250-1258` — la sesión queda parcial mientras el segundo
     # factor no responda. `_mfa_url()` es la cadena que `base` declara vacía y
