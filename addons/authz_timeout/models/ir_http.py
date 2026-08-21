@@ -112,6 +112,7 @@ from addons.authz_timeout.exceptions import (
 )
 from addons.authz_totp.services import verify_code as verify_totp_code
 from addons.authz_totp_mail.models.res_users import verify_totp_mail_code
+from addons.web.controllers.session import register_session_info_extension
 
 _logger = logging.getLogger(__name__)
 
@@ -412,3 +413,22 @@ def register_authz_timeout_signals():
         stamp_session_create_time,
         dispatch_uid='authz_timeout.stamp_session_create_time',
     )
+
+
+def register_authz_timeout_session_info():
+    """Da llamador a ``session_info`` — ≙ heredar ``ir.http.session_info()``.
+
+    En la fuente basta con declarar el método sobre un ``_inherit``: el ORM lo
+    mete en la cadena de ``super()`` y corre solo. Aquí el productor es una
+    función de módulo de ``web``, así que la herencia se sustituye por un
+    registro explícito, y el registro es lo que este addon hace al arrancar.
+
+    Sólo se registra ``session_info``. ``get_frontend_session_info`` **no
+    tiene dónde registrarse**: ``web/models/ir_http.py`` (punto 9 de su tabla
+    de ausencias) declara su base fuera de alcance —el visitante anónimo de
+    este árbol no arranca con un cuerpo de sesión; el carrito de invitado se
+    identifica por cabecera—, así que no hay productor público al que
+    extender. Se conserva escrito porque su día llega si esa decisión cambia,
+    y porque retirarlo sería un porte parcial silencioso.
+    """
+    register_session_info_extension(session_info)

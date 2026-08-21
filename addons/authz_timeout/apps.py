@@ -39,6 +39,16 @@ class AuthzTimeoutConfig(AppConfig):
             'register_authz_timeout_signals',
     }
 
+    #: Extensiones del cuerpo de sesión — misma vía tardía, distinta razón: el
+    #: productor (``web.controllers.session.build_session_info``) es una
+    #: función de módulo, no un modelo, así que su extensión no se aplica con
+    #: ``extend_model`` sino registrándose en su lista. Es el sustituto de la
+    #: cadena de ``super()`` que la fuente obtiene con ``_inherit``.
+    _SESSION_INFO = {
+        'addons.authz_timeout.models.ir_http':
+            'register_authz_timeout_session_info',
+    }
+
     def ready(self):
         """Aplica el candado y el estrechamiento que se desprende de él.
 
@@ -48,4 +58,6 @@ class AuthzTimeoutConfig(AppConfig):
         for module_path, function_name in self._EXTENSIONES.items():
             getattr(importlib.import_module(module_path), function_name)()
         for module_path, function_name in self._SIGNALS.items():
+            getattr(importlib.import_module(module_path), function_name)()
+        for module_path, function_name in self._SESSION_INFO.items():
             getattr(importlib.import_module(module_path), function_name)()

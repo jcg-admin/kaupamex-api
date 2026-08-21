@@ -158,6 +158,33 @@ PRE_UID_KEY = 'pre_uid'
 PRE_BACKEND_KEY = 'pre_backend'
 
 
+#: Extensiones del cuerpo de sesión — ≙ la cadena de ``super()`` que la
+#: referencia obtiene con ``_inherit = "ir.http"`` sobre ``session_info()``.
+#:
+#: Allá cada addon que quiera añadir una clave declara su propio
+#: ``session_info()`` y llama a ``super()``; el ORM compone la cadena por
+#: herencia. Aquí el productor es una **función de módulo**, no un método de
+#: modelo, así que no hay MRO donde encadenar: la lista lo sustituye, y el
+#: orden de registro cumple el papel del orden de herencia.
+#:
+#: Cada elemento recibe ``(user, cuerpo)`` y devuelve el cuerpo — la misma
+#: firma de ida y vuelta que tiene un ``super()`` de la fuente. Registrar es
+#: cosa del ``ready()`` del addon que extiende, no de este módulo: ``web`` no
+#: conoce a sus extensores, igual que ``ir.http`` no conoce quién lo hereda.
+_SESSION_INFO_EXTENSIONS = []
+
+
+def register_session_info_extension(extension):
+    """Añade un extensor al cuerpo de sesión — ≙ heredar de ``ir.http``.
+
+    Idempotente: un ``ready()`` que se ejecute dos veces —lo hace en algunas
+    configuraciones de Django— no debe duplicar la clave ni el trabajo.
+    """
+    if extension not in _SESSION_INFO_EXTENSIONS:
+        _SESSION_INFO_EXTENSIONS.append(extension)
+    return extension
+
+
 def build_session_info(user):
     """≙ ``ir.http.session_info()`` de la referencia, recortado a lo publicado.
 
@@ -181,12 +208,18 @@ def build_session_info(user):
     # declara ``is_superuser``/``is_staff``. En la referencia el equivalente es
     # ``user._is_system()`` (pertenencia a ``base.group_system``) —también una
     # pertenencia, no una columna—, así que la correspondencia es directa.
-    return {
+    cuerpo = {
         'uid': user.pk,
         'login': user.login,
         'name': user.partner.name,
         'is_system': is_superadmin(user),
     }
+    # ≙ el tramo de `super()` que cada addon heredero añade sobre el cuerpo
+    # base. Sin esto, un addon que declare su extensión la deja sin llamador:
+    # el símbolo existe, nunca corre, y nada lo delata.
+    for extension in _SESSION_INFO_EXTENSIONS:
+        cuerpo = extension(user, cuerpo)
+    return cuerpo
 
 
 @extend_schema(
