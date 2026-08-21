@@ -78,18 +78,26 @@ Divergencias declaradas
    una **función de módulo**: extenderla desde este addon exigiría que
    ``web`` conociera a ``authz_timeout``, invirtiendo la dependencia. Los dos
    símbolos se portan y su consumidor es ``GET /api/v2/authz/timeout/``, que
-   es donde el cliente lee su ``lock_timeout_inactivity``. Un registro de
-   extensores para la info de sesión —el mecanismo que faltaría para
-   cablearlo como la fuente— es la tarea **#720**.
+   es donde el cliente lee su ``lock_timeout_inactivity``. El registro de
+   extensores que faltaba para encadenarlo como la fuente ya existe
+   (``web.controllers.session.register_session_info_extension``), y
+   ``AuthzTimeoutConfig.ready()`` inscribe ``session_info`` al arrancar.
 
-5. **El webauthn no es un método de confirmación todavía.**
-   ``_check_credential`` despacha ``password``, ``totp`` y ``totp_mail``
-   contra los verificadores ya portados. ``webauthn`` exige el reto y su
-   verificación del addon de passkeys, cuyo flujo vive en su controlador de
-   pre-autenticación y no en un verificador reutilizable. Levanta
-   ``NotImplementedError`` con su motivo, y ``_get_auth_methods`` sigue
-   ofreciéndolo porque el usuario **sí** lo tiene configurado: quien lo elija
-   recibe un error explícito, no un rechazo silencioso. Tarea **#721**.
+5. **El webauthn SÍ es un método de confirmación** — el rechazo cambia de
+   forma, no el verificador. ``_check_credential`` despacha las cuatro
+   credenciales que ``_get_auth_methods`` puede ofrecer. La rama ``webauthn``
+   llama a ``authz_passkey::verify_webauthn_credential``, que es el porte de
+   la rama homónima de ``_check_credentials``
+   (``auth_passkey/models/res_users.py:48-72``) y acota la passkey al usuario
+   ya autenticado. El reto sigue viviendo en la sesión —por eso el
+   despachador recibe ``request``— y el verificador es el mismo
+   ``PasskeyKey.verify_auth`` (≙ ``_verify_auth``) que usa el login.
+
+   El ``auth_method`` que devuelve es ``passkey``, no ``webauthn``: la
+   asimetría es de la fuente, que compara ``first_fa != auth["auth_method"]``
+   (``:106``) y guarda ``credential["type"]`` (``:109``). Es inocua porque
+   ``mfa='skip'`` impide que la rama que escribe ``identity-check-1fa`` llegue
+   a correr para este método. Se reproduce verbatim.
 
 6. **``_check_credentials`` unificado no existe en este árbol.** La fuente
    llama ``user._check_credentials(credential, {"interactive": True})``, un
@@ -106,6 +114,7 @@ import time
 from django.contrib.auth.signals import user_logged_in
 from django.http import JsonResponse
 
+from addons.authz_passkey.models.backends import verify_webauthn_credential
 from addons.authz_timeout.exceptions import (
     CheckIdentityRequired,
     SessionLockExpired,
@@ -113,6 +122,7 @@ from addons.authz_timeout.exceptions import (
 from addons.authz_totp.services import verify_code as verify_totp_code
 from addons.authz_totp_mail.models.res_users import verify_totp_mail_code
 from addons.web.controllers.session import register_session_info_extension
+from exceptions import AccessDenied
 
 _logger = logging.getLogger(__name__)
 
@@ -180,16 +190,24 @@ def _must_check_identity(request):
     return None
 
 
-def _check_credential(user, credential):
+def _check_credential(user, credential, request):
     """El despacho por tipo de credencial — divergencia 6.
 
     Ocupa el lugar de ``user._check_credentials(credential, …)`` de la fuente,
-    que este árbol no tiene unificado (tarea #722). Devuelve el mismo
-    diccionario que aquél: ``{'auth_method': <tipo>, 'mfa': <'skip'|None>}``.
+    que este árbol no tiene unificado (tarea #722). Devuelve
+    ``{'auth_method': <tipo>, 'mfa': <'skip'|None>}``, o ``None`` si la
+    credencial no verifica.
+
+    La fuente devuelve además ``uid``; aquí se proyecta fuera porque el
+    usuario es el de la sesión y ya lo tiene el llamador. La proyección se
+    hace en un solo sitio para que las cuatro ramas devuelvan la misma forma.
 
     ``mfa='skip'`` significa *este método ya cuenta como los dos factores* —
     en la fuente lo devuelve el passkey, que autentica y verifica presencia en
     un solo gesto.
+
+    ``request`` sólo lo consume la rama ``webauthn``: el reto vive en la
+    sesión, así que su verificador lo necesita para leerlo.
     """
     tipo = credential.get('type')
     if tipo == 'password':
@@ -201,13 +219,22 @@ def _check_credential(user, credential):
             return None
         return {'auth_method': 'totp', 'mfa': 'skip'}
     if tipo == 'totp_mail':
-        verify_totp_mail_code(user, credential.get('token') or '')
+        # ``verify_totp_mail_code`` levanta ``AccessDenied`` como la fuente.
+        # Aquí se traduce al contrato local —``None`` es rechazo— porque
+        # ``AccessDenied`` es un ``UserError`` de la fachada y no una
+        # ``APIException``: dejarlo salir da un 500 donde corresponde el 401
+        # que la vista sella.
+        try:
+            verify_totp_mail_code(user, credential.get('token') or '')
+        except AccessDenied:
+            return None
         return {'auth_method': 'totp_mail', 'mfa': 'skip'}
     if tipo == 'webauthn':
-        raise NotImplementedError(
-            'webauthn como método de confirmación de identidad: el reto y su '
-            'verificación viven en el controlador de pre-autenticación de '
-            'authz_passkey, no en un verificador reutilizable (tarea #721).')
+        auth = verify_webauthn_credential(
+            user, request, credential.get('webauthn_response'))
+        if auth is None:
+            return None
+        return {'auth_method': auth['auth_method'], 'mfa': auth['mfa']}
     return None
 
 
@@ -233,7 +260,7 @@ def _check_identity(request, credential):
     if credential.get('type') in ('totp', 'totp_mail'):
         credential['token'] = int(re.sub(r'\s', '', str(credential['token'])))
 
-    auth = _check_credential(user, credential)
+    auth = _check_credential(user, credential, request)
     if auth is None:
         return None
 
