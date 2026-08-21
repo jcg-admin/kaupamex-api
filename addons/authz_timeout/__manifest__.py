@@ -1,4 +1,4 @@
-# Adaptación de Odoo `auth_timeout` (odoo-tools@622ddc2a, odoo19c:, LGPL-3) —
+# Adaptación de Odoo `auth_timeout` (odoo-tools@abe4040ec1, odoo19c:, LGPL-3) —
 # atribución y aviso de licencia preservados (DEC-KX-03). La licencia se derivó
 # del manifiesto de la fuente, no se afirmó: `"license": "LGPL-3"`.
 #
@@ -12,32 +12,57 @@
 #                                            (o cierra sesión) sin importar qué
 #                                            acción venga
 #
-# COBERTURA MEDIDA — 19 de 35 defs de código (porte-completo-no-parcial.md)
-# ========================================================================
+# COBERTURA MEDIDA — el addon entero, no sólo su Python
+# =====================================================
 #
-# La referencia tiene 8 archivos de código con 35 defs de clase (más 21 en su
-# suite, fuera de este conteo). Portados en este pase:
+# La fuente son **70 blobs** (`git ls-tree -r origin/main`), en cinco familias.
+# Cada una tiene su veredicto; ninguna se omite en silencio
+# (`porte-completo-no-parcial.md`).
 #
-#   models/res_groups.py    16 defs + 2 funciones de módulo + 13 atributos
-#   models/res_users.py      3 defs
+# 1. Código Python — 8 archivos, 35 defs de clase. Cubiertos 32:
 #
-# NO portados, cada uno con su sucesor registrado:
+#      models/res_groups.py    16 defs  → portado (el eje de datos del candado)
+#      models/ir_http.py        8 defs  → portado (middleware + confirmación)
+#      models/res_users.py      3 defs  → portado (_get_auth_methods)
+#      controllers/main.py      3 defs  → portado (las tres rutas, en REST)
+#      controllers/web_home.py             1 def  ─┐ portados por ROL, no por
+#      controllers/auth_passkey_webauthn.py 1 def ─┘ archivo: su cuerpo entero
+#                                                     es re-declarar la exención,
+#                                                     que aquí es el atributo
+#                                                     `check_identity = False`
+#                                                     sobre la vista (ver
+#                                                     controllers/__init__.py)
 #
-#   models/ir_http.py        8 defs + CheckIdentityException  ─┐
-#   controllers/main.py      3 defs                            ├─ tarea #714
-#   controllers/web_home.py  1 def                             │
-#   controllers/auth_passkey_webauthn.py  1 def               ─┘
-#   models/ir_websocket.py   2 defs   → tarea #715 (DESCONOCIDO: sin websocket)
-#   models/auth_totp_device.py  1 def → tarea #716 (falta auth_totp.device)
+#    NO cubiertos, 3 defs, cada uno con su sucesor:
 #
-# Y un símbolo consumido que este árbol no tiene: `_mfa_type`, que vive en
-# `auth_totp` y no aquí → tarea #713.
+#      models/ir_websocket.py      2 defs → #715 (sin productor de presencia)
+#      models/auth_totp_device.py  1 def  → #716 (falta auth_totp.device)
 #
-# El corte no es de conveniencia: lo portado es el EJE DE DATOS completo
-# —dónde se configura el umbral, cómo se resuelve el más corto entre los grupos
-# implicados, y cómo lo consulta el usuario—, y lo ausente es la capa HTTP que
-# lo consume, que exige una decisión de integración con `assert_session_fresh`
-# (ver #714).
+#    Y tres divergencias de mecanismo declaradas en el docstring de
+#    `models/ir_http.py`: #720 (session_info), #721 (webauthn), #722
+#    (_check_credentials unificado).
+#
+# 2. `i18n/` — 50 archivos (49 `.po` + 1 `.pot`). Este árbol tiene **0**
+#    directorios `i18n` sobre 120 manifiestos; el motor de traducción es #400.
+#    Veredicto en #723.
+#
+# 3. `static/` — 4 archivos (el servicio OWL del diálogo, su scss, su tour).
+#    Este árbol tiene **0** directorios `static` y **0** manifiestos con la
+#    clave `'assets'`. El cliente es React y vive en `kaupamex-ui` (#488).
+#    Veredicto en #724.
+#
+# 4. `views/` — 2 XML (`res_groups_views.xml`, `login_templates.xml`). Este
+#    árbol tiene **0** archivos `.xml` y **0** manifiestos con la clave
+#    `'data'`: la siembra es por migración de datos por addon (#40).
+#    Veredicto en #725.
+#
+# 5. `tests/` — `test_auth_timeout.py`, 21 defs. Adaptados a pytest en
+#    `tests/unit/authz_timeout/` y `tests/integration/authz_timeout/`.
+#
+# Métrica: blobs de `git ls-tree -r origin/main` sobre el addon de la fuente;
+# `find`/`grep` sobre `addons/` y `src/addons/` para la superficie de aquí.
+# Ciega a: cadenas traducibles sin catálogo compilado, y assets servidos desde
+# `STATICFILES_DIRS` fuera del árbol de addons.
 {
     'name': 'Candado por tiempo de sesión',
     'version': '1.0',
@@ -52,17 +77,20 @@
     #
     # - `bus` NO se declara: su única razón allá es `ir_websocket.py`, que este
     #   pase no porta (#715).
-    # - `authz_totp_mail` NO se declara: su papel allá es el reenvío del código
-    #   por correo desde `controllers/main.py`, que tampoco se porta (#714).
+    # - `authz_totp_mail` SÍ, desde que `models/ir_http.py` importa
+    #   `verify_totp_mail_code` y `controllers/main.py` importa
+    #   `send_totp_mail_code`. La fuente la declara por la misma razón.
     # - `authz_passkey` SÍ: `_get_auth_methods` lee `user.passkeys`
     #   (models/res_users.py), el reverso del M2M que declara
     #   `authz_passkey/models/auth_passkey_key.py:83`.
-    # - `authz_totp` SÍ: `_get_auth_methods` llama a `_mfa_type`, cuyo hogar es
-    #   ese addon (#713). La arista existe hoy aunque el símbolo no.
+    # - `authz_totp` SÍ: `_get_auth_methods` llama a `_mfa_type`, y
+    #   `_check_credential` verifica el código con `services.verify_code`.
     'depends': [
-        'base',            # ResGroups (el candado) y ResUsers (su lectura)
-        'authz_totp',      # _mfa_type — el segundo factor de app (#713)
-        'authz_passkey',   # user.passkeys — el segundo factor WebAuthn
+        'base',              # ResGroups (el candado) y ResUsers (su lectura)
+        'authz',             # require_capability — la capacidad account.security
+        'authz_totp',        # _mfa_type y services.verify_code
+        'authz_totp_mail',   # verify_totp_mail_code y send_totp_mail_code
+        'authz_passkey',     # user.passkeys — el segundo factor WebAuthn
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',

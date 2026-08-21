@@ -147,6 +147,19 @@ def auth_options(request):
     return Response(PasskeyKey.start_auth(request))
 
 
+#: Exenta del candado por tiempo — ≙
+#: ``auth_timeout/controllers/auth_passkey_webauthn.py``, que re-declara
+#: ``check_identity=False`` sobre esta misma ruta. El reto WebAuthn es el
+#: insumo con que se confirma la identidad; exigir identidad confirmada para
+#: pedirlo sería un candado sobre su propia llave.
+#:
+#: Hoy la vista ya queda fuera por otra vía —es ``AllowAny`` y el candado
+#: retorna temprano ante un usuario anónimo—, pero eso es una consecuencia del
+#: flujo, no una declaración. Se declara para que siga exenta el día que la
+#: ruta admita una sesión ya abierta, que es el caso que la fuente cubre.
+auth_options.check_identity = False
+
+
 @extend_schema(
     tags=['authz-passkey'],
     summary='Login con passkey: verifica la respuesta y abre sesión',

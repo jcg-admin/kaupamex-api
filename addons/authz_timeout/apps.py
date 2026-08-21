@@ -26,7 +26,20 @@ class AuthzTimeoutConfig(AppConfig):
             'apply_authz_timeout_res_users_extensions',
     }
 
+    #: Registradores de señal — misma vía tardía que las extensiones, y por la
+    #: misma razón (el registro de modelos aún no está poblado en tiempo de
+    #: import). ``register_authz_timeout_signals`` engancha ``user_logged_in``
+    #: para sellar ``create_time`` en la sesión: es el ancla del candado
+    #: absoluto, y la referencia la obtiene de su propio almacén de sesión
+    #: (``session.create_time``), que Django no expone.
+    _SIGNALS = {
+        'addons.authz_timeout.models.ir_http':
+            'register_authz_timeout_signals',
+    }
+
     def ready(self):
         """Aplica el candado sobre ``res.groups`` y su lectura en ``res.users``."""
         for module_path, function_name in self._EXTENSIONES.items():
+            getattr(importlib.import_module(module_path), function_name)()
+        for module_path, function_name in self._SIGNALS.items():
             getattr(importlib.import_module(module_path), function_name)()

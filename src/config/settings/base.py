@@ -189,6 +189,15 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # CheckIdentityMiddleware (~auth_timeout): el candado POR TIEMPO. Va
+    # DESPUES de Authentication porque necesita request.user resuelto, y su
+    # gancho es process_view — con la URL ya resuelta, para poder leer la
+    # declaracion `check_identity = False` de la vista despachada, igual que la
+    # referencia lee `routing.get("check_identity", True)` del endpoint.
+    # Ojo: un middleware esta POR ENCIMA del exception handler de DRF, asi que
+    # convierte el a la respuesta el mismo (_handle_error) en vez de dejar que
+    # la excepcion suba como 500.
+    'addons.authz_timeout.models.ir_http.CheckIdentityMiddleware',
     'addons.base.models.ir_http.CompanyContextMiddleware',
     # DeviceLogMiddleware: el punto donde la referencia registra el dispositivo
     # de la peticion (check_session -> res.device.log._update_device,
