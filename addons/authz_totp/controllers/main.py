@@ -21,11 +21,38 @@ addon del método, que sí lo conoce.
 Es el único endpoint de este módulo que **no** lleva ``require_capability``, y
 no por descuido: es **pre-auth**. La sesión está parcial —tiene ``pre_uid`` y
 ningún usuario— así que no hay a quién consultarle una capacidad; el gate es la
-presencia de ``pre_uid`` más el código. La referencia lo declara igual
-(``auth='public'`` frente al ``auth='user'`` de sus rutas de gestión). Mismo
-criterio que ``session_authenticate``, que es ``AllowAny`` por construcción.
-DEC-11 prohíbe ``IsAuthenticated`` **a secas** donde hay usuario; no obliga a
-exigir usuario donde el login todavía no lo ha abierto.
+presencia de ``pre_uid`` más el código. Mismo criterio que
+``session_authenticate``, que es ``AllowAny`` por construcción. DEC-11 prohíbe
+``IsAuthenticated`` **a secas** donde hay usuario; no obliga a exigir usuario
+donde el login todavía no lo ha abierto.
+
+Nuestro ``AllowAny`` **no** equivale entero a su ``auth='public'``
+=================================================================
+
+La redacción anterior cerraba con *"la referencia lo declara igual
+(``auth='public'`` frente al ``auth='user'``)"*, y eso explicaba **la
+referencia** en vez de declarar **nuestra diferencia** — el anti-patrón que
+``porte-completo-no-parcial.md`` prohíbe por su nombre.
+
+Allá ``auth=`` es un despachador, no una etiqueta: ``_authenticate`` lee
+``endpoint.routing['auth']`` y resuelve ``_auth_method_<nivel>``
+(``odoo19c: odoo/addons/base/models/ir_http.py:271-282``). Para ESTA ruta las
+dos formas coinciden —``auth='public'`` y ``AllowAny`` dejan pasar al anónimo—
+pero el nivel ``public`` hace algo más que dejar pasar: **sustituye el actor**.
+
+.. code-block:: python
+
+   def _auth_method_public(cls):                      # ``:265-269``
+       if request.env.uid is None:
+           public_user = request.env.ref('base.public_user')
+           request.update_env(user=public_user.id)    # corre COMO usuario
+
+Aquí no hay tal usuario —medido: 0 menciones de ``public_user`` en
+``src/addons/base/``— así que ``AllowAny`` deja ``AnonymousUser``, que no es un
+actor al que atar la capa de ACL. En el segundo paso del login **da igual**: la
+vista resuelve al usuario por ``pre_uid`` y no consulta reglas de fila. Donde
+sí importa es en la superficie pública de verdad, y ese hueco es la tarea
+**#729** (hermana de **#133**, el row-scoping L1 aplicado a mano).
 
 > **Corregido 2026-08-21 (Clausula 2, estado heredado).** Estas líneas decían
 > que el gate del segundo factor en el login vivía en
