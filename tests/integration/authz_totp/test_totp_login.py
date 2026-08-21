@@ -55,16 +55,25 @@ TOTP_LOGIN   = '/api/v2/authz/totp/login/'
 PASSWORD = 'SegundoPaso123!'
 
 
-def _current_code(secret):
-    """El código que el authenticator mostraría ahora para ``secret``."""
+def _current_code(secret, offset=0):
+    """El código del intervalo actual desplazado ``offset`` pasos."""
     key = base64.b32decode(secret)
-    return f'{hotp(key, int(timezone.now().timestamp()) // TIMESTEP):06d}'
+    counter = int(timezone.now().timestamp()) // TIMESTEP + offset
+    return f'{hotp(key, counter):06d}'
 
 
 def _enable_totp(user):
-    """Deja al usuario con 2FA activo y devuelve ``(secret, recovery_codes)``."""
+    """Deja al usuario con 2FA activo y devuelve ``(secret, recovery_codes)``.
+
+    El alta usa el código del intervalo **anterior**, no el actual. Desde
+    H-API-776 el contador del alta se asienta (≙ ``_totp_try_setting``,
+    ``odoo19c: auth_totp/models/res_users.py:110``), así que reusar el mismo
+    código para el login siguiente es exactamente la repetición que la fuente
+    prohíbe — y es lo que un usuario real tampoco hace: teclea el que ve, y el
+    segundo paso llega después.
+    """
     secret, _uri = begin_setup(user)
-    recovery = confirm_setup(user, _current_code(secret))
+    recovery = confirm_setup(user, _current_code(secret, offset=-1))
     assert recovery, 'el alta de 2FA no se confirmó'
     return secret, recovery
 

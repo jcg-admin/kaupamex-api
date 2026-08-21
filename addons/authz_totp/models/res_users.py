@@ -57,7 +57,7 @@ sucesor nombrado. Ninguno se omite en silencio
    * - ``_get_session_token_fields`` (``:71``)
      - **NO portado** — el token de sesión de este árbol no se compone por campos
    * - ``_check_credentials`` (``:74``)
-     - ``services.verify_code`` — **sin** la guarda del contador, ver abajo
+     - ``services.verify_code``, con la guarda del contador — ver abajo
    * - ``_totp_try_setting`` (``:98``)
      - ``services.confirm_setup``
    * - ``_totp_rate_limit`` / ``_totp_rate_limit_purge`` (``:120``, ``:145``)
@@ -101,15 +101,26 @@ La referencia guarda ``totp_secret`` como campo ``NO_ACCESS`` sobre
 igual —el secreto existe **y** está confirmado— pero la lectura cruza una FK en
 vez de leer una columna del propio usuario.
 
-Gap abierto — ``totp_last_counter`` es anti-repetición, no metadato
-====================================================================
+``totp_last_counter`` es anti-repetición, no metadato — CERRADO (#718)
+=======================================================================
 
 La fuente guarda el contador del último código aceptado y lo compara al
 verificar (``:84-88``): ``if sudo.totp_last_counter and match <=
 sudo.totp_last_counter: raise AccessDenied("please use the latest 6-digit
 code")``. Sin él, un código capturado se vuelve a presentar dentro de su
-ventana. Ni ``TotpSecret`` declara el campo ni ``services.verify_code`` lo
-consulta. Sucesor: **#718**.
+ventana de ~90 s.
+
+Portado en los **cuatro** puntos que la fuente toca, no sólo en la
+comprobación: ``TotpSecret.last_counter`` guarda el intervalo;
+``services.verify_code`` lo exige y lo asienta (``:84-88``);
+``services.confirm_setup`` asienta el del código de alta (``:110``), que si no
+serviría además para el primer login; y ``services.begin_setup`` lo reinicia al
+cambiar el secreto (≙ ``_inverse_token``, ``:228``), porque el contador es del
+secreto viejo.
+
+El nombre pierde el prefijo ``totp_`` por la misma razón que ``totp_secret`` es
+``secret``: allá los dos cuelgan de ``res.users`` y el prefijo desambigua; aquí
+los dos viven en ``TotpSecret``.
 """
 from orm.method_chain import chain_method, keep_previous
 from orm.model_classes import extend_model

@@ -15,7 +15,7 @@ from rest_framework.test import APIClient
 from addons.authz.services import assign_buyer_role, invalidate_capabilities
 from addons.authz_totp.models import TotpSecret
 from addons.authz_totp.services import (
-    _code_matches,
+    _matching_counter,
     generate_secret,
     provisioning_uri,
     verify_code,
@@ -64,12 +64,13 @@ def auth_client(user):
 
 # --- algoritmo (adaptación verbatim de Odoo) --------------------------------
 
-def test_verify_code_matches_current_and_rejects_wrong():
+def test_matching_counter_returns_the_interval_and_none_when_wrong():
     secret = generate_secret()
-    assert _code_matches(secret, _current_code(secret)) is True
-    assert _code_matches(secret, 'abcdef') is False  # no numérico
+    # Devuelve el CONTADOR, no un booleano: es el dato de la anti-repetición.
+    assert isinstance(_matching_counter(secret, _current_code(secret)), int)
+    assert _matching_counter(secret, 'abcdef') is None  # no numérico
     # un código de un paso lejano NO casa (fuera de la ventana ±30s)
-    assert _code_matches(secret, _current_code(secret, offset=10)) is False
+    assert _matching_counter(secret, _current_code(secret, offset=10)) is None
 
 
 def test_provisioning_uri_shape():

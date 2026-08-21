@@ -66,10 +66,11 @@ TOTP_LOGIN = '/api/v2/authz/totp/login/'
 PASSWORD = 'DispositivoNuevo123!'
 
 
-def _current_code(secret):
-    """El código que el authenticator mostraría ahora para ``secret``."""
+def _current_code(secret, offset=0):
+    """El código del intervalo actual desplazado ``offset`` pasos."""
     key = base64.b32decode(secret)
-    return f'{hotp(key, int(timezone.now().timestamp()) // TIMESTEP):06d}'
+    counter = int(timezone.now().timestamp()) // TIMESTEP + offset
+    return f'{hotp(key, counter):06d}'
 
 
 def _with_totp(login, name):
@@ -81,7 +82,10 @@ def _with_totp(login, name):
     """
     user = User.objects.create_user(login=login, password=PASSWORD, name=name)
     secret, _uri = begin_setup(user)
-    assert confirm_setup(user, _current_code(secret)), 'el alta de 2FA falló'
+    # Con el código del intervalo anterior: desde H-API-776 el alta asienta
+    # su contador, y el login siguiente necesita uno más nuevo.
+    assert confirm_setup(user, _current_code(secret, offset=-1)), \
+        'el alta de 2FA falló'
     django_mail.outbox.clear()
     return user, secret
 
