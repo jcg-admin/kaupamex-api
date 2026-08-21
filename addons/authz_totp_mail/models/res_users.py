@@ -14,8 +14,16 @@ Métodos de la referencia → aquí:
   (``base`` → ``authz_totp`` → éste), encadenado con
   ``combine=keep_previous`` para que gane el interno, que es la precedencia de
   la fuente. Su condición es ``totp_mail_policy_applies`` —sólo la política,
-  como la fuente—; ``totp_mail_required`` es el predicado compuesto, más ancho
-  y hoy sin consumidor (tarea #719).
+  como la fuente.
+
+  **``totp_mail_required`` se retiró (#719, H-API-777).** Era un predicado
+  nuestro —0 hits en la referencia— que devolvía *"la política lo exige **y**
+  no tiene TOTP de app"*, y esa conjunción es exactamente lo que el
+  ``combine=keep_previous`` de la cadena ya calcula: con app activa gana el
+  eslabón interno y ``_mfa_type()`` da ``'totp'``. La forma de la fuente para
+  la misma pregunta es ``_mfa_type() == 'totp_mail'``, que usa en 5 sitios.
+  Tener las dos invitaba a consultar la equivocada, que es literalmente lo que
+  la tarea #719 preguntaba.
 - ``action_totp_invite`` / ``get_totp_invite_url`` → ``invite_users`` /
   ``get_totp_invite_url`` (la URL es config L2: el puente de portal la
   re-enruta por audiencia, como hace ``auth_totp_portal`` en la referencia).
@@ -173,37 +181,22 @@ def totp_mail_policy_applies(user):
     return False
 
 
-def totp_mail_required(user):
-    """¿Le toca a este usuario el fallback por correo?
-
-    Predicado **más ancho** que el eslabón de la cadena: la política lo exige
-    **y** no tiene TOTP de app activo.
-
-    **Sin consumidor en producción hoy** — medido al partirlo del eslabón: sólo
-    lo citan tres aserciones de la suite. Su consumidor natural es
-    ``send_code``, que hoy manda el código sin preguntar; en la referencia ese
-    guard es implícito porque a su endpoint sólo se llega por el enrutamiento
-    del login. Decidirlo es la tarea **#719**.
-    """
-    TotpSecret = django_apps.get_model('authz_totp', 'TotpSecret')
-    if TotpSecret.objects.filter(user=user, confirmed=True).exists():
-        return False  # ya tiene mfa de app; el de correo es el fallback
-    return totp_mail_policy_applies(user)
-
-
 def _mfa_type(self):
     """≙ ``_mfa_type`` (``:116-125``) — ``'totp_mail'`` si la política lo exige.
 
     Es el eslabón **externo**: devuelve ``None`` cuando la política no aplica,
     y su valor cede ante el del eslabón interno por ``keep_previous``.
 
-    Consulta ``totp_mail_policy_applies`` y **no** ``totp_mail_required``, que
-    es lo que la fuente hace: su ``_mfa_type`` mira la política y nada más. La
-    diferencia no es cosmética — con la guarda de app aquí dentro, el eslabón
-    calla justo en el caso que la precedencia decide, y entonces la cadena da
-    ``'totp'`` por el predicado y no por el ``combine``. Medido: con
-    ``totp_mail_required`` el control de precedencia
+    Consulta ``totp_mail_policy_applies`` —sólo la política— y ésa es la forma
+    de la fuente. La diferencia no es cosmética: meter aquí dentro la guarda
+    *"…y no tiene TOTP de app"* haría callar al eslabón justo en el caso que la
+    precedencia decide, y entonces la cadena daría ``'totp'`` por el predicado y
+    no por el ``combine``. Medido: escrito así, el control de precedencia
     (``tests/unit/authz_totp/test_res_users.py``) no discrimina.
+
+    **La pregunta compuesta se hace sobre el resultado, no antes:**
+    ``user._mfa_type() == 'totp_mail'`` — la forma que la fuente usa en sus 5
+    consumidores. Ver #719 / :ref:`h-api-777`.
     """
     if totp_mail_policy_applies(self):
         return 'totp_mail'

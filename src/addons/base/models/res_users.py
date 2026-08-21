@@ -657,8 +657,8 @@ class ResUsers(TimeStampedModel):
     # ``res_groups.py``). Así que "es interno" = "pertenece a ≥1 grupo cuyo
     # ``user_type`` es 'internal'". Esto es lo que el eje interno/portal
     # necesitaba y no existía: los consumidores (p. ej.
-    # ``authz_totp_mail.totp_mail_required``, la re-ruta de invitación por
-    # audiencia, los puentes ``_portal``) usaban ``partner.employee`` como
+    # ``authz_totp_mail.totp_mail_policy_applies``, la re-ruta de invitación
+    # por audiencia, los puentes ``_portal``) usaban ``partner.employee`` como
     # proxy — este es el criterio real.
 
     def _has_user_type(self, user_type):

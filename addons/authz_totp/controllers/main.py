@@ -190,9 +190,18 @@ def totp_login(request):
 
     Lo que la fuente hace aquí y este árbol todavía no: envolver la
     comprobación en ``user._assert_can_auth`` —el limitador de intentos—, que
-    sigue sin portar (sucesor **#726**), y contar el paso del contador TOTP
-    contra la repetición del mismo código (**#718**). Ninguno de los dos
-    bloquea el cableado de la cookie, que es lo que esta vista cierra.
+    sigue sin portar (sucesor **#726**). El anti-repetición del código TOTP
+    **ya está** desde #718: ``verify_code`` exige que el intervalo del código
+    presentado supere a ``TotpSecret.last_counter``.
+
+    **Y el POST codifica la vía de app.** La fuente despacha por tipo —
+    ``credentials = {'type': user._mfa_type(), 'token': …}`` seguido de
+    ``user._check_credentials(...)`` (``auth_totp/controllers/home.py:46-50``)—
+    así que un usuario con ``totp_mail`` completa su segundo paso por el
+    eslabón de correo. Aquí no: ``verify_code`` mira sólo el secreto de la
+    app, de modo que la política de correo deja el login sin cerrar. Ver
+    :ref:`h-api-777` y su sucesor **#730**; la mitad del despacho pertenece a
+    **#722**.
     """
     if request.user.is_authenticated:
         # ≙ `if request.session.uid: return redirect(...)` (`:24-25`) — el
