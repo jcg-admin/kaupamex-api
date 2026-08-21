@@ -39,7 +39,9 @@ sucesor nombrado. Ninguno se omite en silencio
    * - ``totp_enabled`` (Boolean compute)
      - ``property`` de este módulo, delegando en ``services.totp_enabled``
    * - ``totp_trusted_device_ids`` (One2many)
-     - **NO portado** — ``auth_totp.device``, sucesor **#716**
+     - ``totp_trusted_devices`` — el reverso de la FK que declara
+       ``auth_totp.py``. En Django el One2many no se declara: es el
+       ``related_name`` del lado Many2one
    * - ``init`` (``:38``)
      - divergencia de mecanismo: la columna la crea una migración de Django
    * - ``SELF_READABLE_FIELDS`` (``:44``)
@@ -65,9 +67,13 @@ sucesor nombrado. Ninguno se omite en silencio
    * - ``action_totp_enable_wizard`` (``:182``)
      - ``services.begin_setup`` + ``controllers.main.totp_setup``
    * - ``revoke_all_devices`` / ``_revoke_all_devices`` (``:208``, ``:211``)
-     - **NO portados** — dependen de ``auth_totp.device``, sucesor **#716**
+     - ``auth_totp.revoke_all_devices`` — **una** función, no dos: la identidad
+       fresca que allá pone ``@check_identity`` la exige aquí la vista
+       (DEC-12), así que los dos cuerpos coinciden
    * - ``change_password`` (``:215``)
-     - **NO portado** — su cuerpo entero es revocar dispositivos (**#716**)
+     - divergencia de mecanismo: su cuerpo entero es revocar y delegar en
+       ``super()``; el cambio de contraseña vive en ``authz`` y llama a
+       ``auth_totp.revoke_all_devices``
    * - ``_compute_totp_secret`` / ``_inverse_token`` (``:219``, ``:227``)
      - divergencia de mecanismo: el secreto es una fila, no un campo calculado
    * - ``_totp_enable_search`` (``:233``)

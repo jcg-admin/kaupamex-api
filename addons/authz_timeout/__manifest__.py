@@ -19,7 +19,7 @@
 # Cada una tiene su veredicto; ninguna se omite en silencio
 # (`porte-completo-no-parcial.md`).
 #
-# 1. Código Python — 8 archivos, 35 defs de clase. Cubiertos 32:
+# 1. Código Python — 8 archivos, 35 defs de clase. Cubiertos 33:
 #
 #      models/res_groups.py    16 defs  → portado (el eje de datos del candado)
 #      models/ir_http.py        8 defs  → portado (middleware + confirmación)
@@ -33,10 +33,14 @@
 #                                                     sobre la vista (ver
 #                                                     controllers/__init__.py)
 #
-#    NO cubiertos, 3 defs, cada uno con su sucesor:
+#      models/auth_totp_device.py  1 def  → portado (el estrechamiento de la
+#                                            confianza del dispositivo; su
+#                                            sustrato, `auth_totp.device`, se
+#                                            portó en #716)
+#
+#    NO cubiertos, 2 defs, con su sucesor:
 #
 #      models/ir_websocket.py      2 defs → #715 (sin productor de presencia)
-#      models/auth_totp_device.py  1 def  → #716 (falta auth_totp.device)
 #
 #    Y tres divergencias de mecanismo declaradas en el docstring de
 #    `models/ir_http.py`: #720 (session_info), #721 (webauthn), #722

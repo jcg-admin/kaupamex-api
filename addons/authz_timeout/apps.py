@@ -7,8 +7,8 @@ class AuthzTimeoutConfig(AppConfig):
     """Candado por tiempo de sesión — ≙ ``auth_timeout`` de la referencia.
 
     El addon no declara ningún modelo propio: su aporte entero son campos y
-    métodos que cuelga de ``res.groups`` y ``res.users``. Por eso su única
-    responsabilidad al arrancar es aplicar esas extensiones.
+    métodos que cuelga de ``res.groups``, ``res.users`` y ``auth_totp.device``.
+    Por eso su única responsabilidad al arrancar es aplicar esas extensiones.
     """
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'addons.authz_timeout'
@@ -24,6 +24,8 @@ class AuthzTimeoutConfig(AppConfig):
             'apply_authz_timeout_res_groups_extensions',
         'addons.authz_timeout.models.res_users':
             'apply_authz_timeout_res_users_extensions',
+        'addons.authz_timeout.models.auth_totp_device':
+            'apply_authz_timeout_auth_totp_device_extensions',
     }
 
     #: Registradores de señal — misma vía tardía que las extensiones, y por la
@@ -38,7 +40,11 @@ class AuthzTimeoutConfig(AppConfig):
     }
 
     def ready(self):
-        """Aplica el candado sobre ``res.groups`` y su lectura en ``res.users``."""
+        """Aplica el candado y el estrechamiento que se desprende de él.
+
+        ``res.groups`` lleva el dato, ``res.users`` su lectura, y
+        ``auth_totp.device`` recibe el estrechamiento de la confianza.
+        """
         for module_path, function_name in self._EXTENSIONES.items():
             getattr(importlib.import_module(module_path), function_name)()
         for module_path, function_name in self._SIGNALS.items():
