@@ -50,9 +50,30 @@ Referencia                       Aquí
 Cuatro divergencias declaradas
 ================================
 
-1. **Sin parámetro ``db``.** La referencia lo recibe y valida contra
-   ``http.db_filter`` porque un servidor sirve N bases. Aquí la base es una y
-   la fija el despliegue; aceptarlo sería superficie sin función.
+1. **Sin parámetro ``db`` — bloqueado, NO inaplicable.** La referencia lo
+   recibe y valida contra ``http.db_filter`` porque un servidor sirve N bases.
+
+   Esta viñeta decía *"aquí la base es una y la fija el despliegue; aceptarlo
+   sería superficie sin función"*, y las dos mitades eran falsas
+   (:ref:`h-api-781`). **Este árbol también sirve N bases:** declara
+   ``DATABASE_ROUTERS = ['orm.routers.CompanyDatabaseRouter']``
+   (``src/config/settings/base.py:319``), puebla aliases ``company_<N>_db``
+   con ``install_company_aliases`` (``:314``), sabe crearlas y migrarlas
+   (``company_create`` / ``company_migrate_all``) y su cron las recorre con
+   ``list_company_db_names``. Y el mecanismo de la referencia **está portado
+   fielmente**: ``service.db.db_filter`` (``:145``, con ``%h``/``%d``,
+   normalización de puerto y ``www.``), ``db_list_for_host`` (≙ ``db_list``)
+   y ``db_monodb``, con sus pruebas en
+   ``tests/unit/service/test_db_resolution.py``.
+
+   Lo que falta es **otra cosa, y es lo que bloquea al parámetro**: nadie
+   resuelve la base **por petición**. Medido sobre ``src/`` y ``addons/``,
+   excluyendo ``service/db.py`` y los tests, ``db_list_for_host`` y
+   ``db_monodb`` tienen **0 consumidores**; hoy la base la elige el router por
+   app/modelo, no el host. Aceptar un ``db`` sin ese resolutor sería aceptar un
+   valor que nada consume — que es un defecto distinto del que la viñeta
+   afirmaba. Se repone cuando el resolutor exista. Sucesor: **#736**;
+   iniciativa ``implementar-aislamiento-multi-db-per-company``.
 2. **``logout`` no redirige.** La referencia devuelve un 303 a ``/odoo``
    porque su cliente es una página. El nuestro es un cliente REST: 204.
 3. **``destroy`` y ``logout`` hacen lo mismo.** En la referencia difieren en
