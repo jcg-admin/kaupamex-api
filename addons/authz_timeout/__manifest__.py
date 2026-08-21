@@ -85,9 +85,20 @@
     #   `authz_passkey/models/auth_passkey_key.py:83`.
     # - `authz_totp` SÍ: `_get_auth_methods` llama a `_mfa_type`, y
     #   `_check_credential` verifica el código con `services.verify_code`.
+    #
+    # `authz` es una dependencia TRANSITORIA, y se declara como tal.
+    # `require_capability` es obligatorio por DEC-11 —ninguna vista se gatea con
+    # `IsAuthenticated` a secas— y hoy sólo vive en `addons/authz/permissions.py`,
+    # que 42 archivos fuera de ese addon ya consumen. Pero la familia `authz*`
+    # está declarada «partición de lo que la referencia mantiene en `base`»
+    # (`analisis-familias-referencia.rst`), su alineación es la tarea #20, y el
+    # ciclo `base ↔ authz` que esa partición produce es la #322: `base` importa
+    # de `authz` en tres archivos mientras `authz` declara `depends: ['base']`.
+    # Cuando #20 mude la capacidad a `base`, esta línea desaparece y el import
+    # de `controllers/main.py` cambia de raíz — no de mecanismo.
     'depends': [
         'base',              # ResGroups (el candado) y ResUsers (su lectura)
-        'authz',             # require_capability — la capacidad account.security
+        'authz',             # TRANSITORIA (#20/#322) — require_capability, DEC-11
         'authz_totp',        # _mfa_type y services.verify_code
         'authz_totp_mail',   # verify_totp_mail_code y send_totp_mail_code
         'authz_passkey',     # user.passkeys — el segundo factor WebAuthn
