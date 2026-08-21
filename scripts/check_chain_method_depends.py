@@ -137,6 +137,57 @@ def _bound_names(target: ast.AST) -> set[str]:
     return {n.id for n in ast.walk(target) if isinstance(n, ast.Name)}
 
 
+def _clases_de_callback(tree: ast.AST) -> dict[str, str]:
+    """``{nombre_de_función: ClaseDestino}`` de cada ``extend_model(…, luego=fn)``.
+
+    El idioma que la tarea #332 vuelve norma nombra la clase en ``extend_model``
+    y no en el ``chain_method``::
+
+        def _chain_res_users(model):
+            chain_method(model, '_check_credentials', …)   # ← args[0] es 'model'
+
+        extend_model('base', 'ResUsers', luego=_chain_res_users)
+
+    Sin este mapa el gate registra el instalador bajo la clase ``model``, que no
+    existe: las formas 1 y 2 quedan vacías por construcción y la 3 dispara entre
+    **pares**, que es justo lo que el docstring del módulo promete no señalar.
+    Ver :ref:`h-api-782`.
+    """
+    de_callback: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and _called_name(node) == 'extend_model'):
+            continue
+        destino = _literal_strings(ast.Tuple(elts=list(node.args), ctx=ast.Load()))
+        if not destino:
+            continue
+        for kw in node.keywords:
+            if kw.arg == 'luego' and isinstance(kw.value, ast.Name):
+                de_callback[kw.value.id] = destino[-1]
+    return de_callback
+
+
+def _clase_instalada(call: ast.Call, parents: dict[ast.AST, ast.AST],
+                     de_callback: dict[str, str]) -> str:
+    """La clase sobre la que instala la llamada, resolviendo el callback.
+
+    Devuelve la fuente del primer argumento tal cual, salvo cuando es un
+    **parámetro** de una función que ``extend_model`` pasa como ``luego=``: ahí
+    la clase real es la que ``extend_model`` nombra.
+    """
+    cls = ast.unparse(call.args[0])
+    if not isinstance(call.args[0], ast.Name):
+        return cls
+    nodo: ast.AST | None = call
+    while nodo is not None:
+        if isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            parametros = {a.arg for a in nodo.args.args}
+            if nodo.name in de_callback and cls in parametros:
+                return de_callback[nodo.name]
+            return cls
+        nodo = parents.get(nodo)
+    return cls
+
+
 def scan(roots=ADDONS_PATHS):
     """Recorre el árbol.
 
@@ -163,6 +214,8 @@ def scan(roots=ADDONS_PATHS):
             parents = {hijo: padre
                        for padre in ast.walk(tree)
                        for hijo in ast.iter_child_nodes(padre)}
+
+            de_callback = _clases_de_callback(tree)
 
             # ``from <otro addon> import IrHttp as BaseIrHttp`` — el nombre
             # ORIGINAL de cada símbolo importado, por su alias local. Es lo que
@@ -199,7 +252,7 @@ def scan(roots=ADDONS_PATHS):
                 nombre = _called_name(node)
                 if nombre not in INSTALLERS:
                     continue
-                cls = ast.unparse(node.args[0])
+                cls = _clase_instalada(node, parents, de_callback)
                 for metodo in _method_names(node, parents):
                     instala[(cls, metodo)].add(addon)
                     if nombre == 'chain_method':
@@ -235,14 +288,33 @@ def owners(cls: str, metodo: str, declara_clase, cuerpo, instala,
     Un instalador es dueño sólo si **otro instalador ya depende de él**: eso lo
     pone en el fondo de la cadena por construcción del grafo. Los instaladores
     mutuamente incomparables son pares y no entran.
+
+    **La forma 2 cierra la pregunta; la 1 no** (:ref:`h-api-782`). Un método
+    declarado en el **cuerpo** de la clase existe al definirse la clase, así que
+    ningún ``setattr`` de ningún ``ready()`` puede precederlo: el fondo es
+    inequívoco y la forma 3 sólo puede añadir un **par** disfrazado de dueño.
+    Declarar la *clase* no da esa garantía —el terminal puede instalarlo un
+    tercero, que es exactamente el caso de ``account`` frente a
+    ``account_qr_code_emv``— así que ahí la forma 3 sigue haciendo falta.
+
+    Medido en el episodio: ``base`` declara ``_check_credentials`` en el cuerpo
+    de ``ResUsers``, y aun así la forma 3 elegía además a ``authz_totp`` —porque
+    ``authz_totp_mail`` depende de él— y exigía que ``authz_passkey`` lo
+    declarara. La referencia dice lo contrario: ``odoo19c:
+    auth_passkey/__manifest__.py`` declara ``depends: ['base_setup', 'web']`` y
+    **no** nombra a ``auth_totp``. Son pares allá y aquí.
     """
+    en_cuerpo = cuerpo.get((cls, metodo), set())
+    if en_cuerpo:
+        return declara_clase.get(cls, set()) | en_cuerpo
+
     instaladores = instala.get((cls, metodo), set())
     ancestros = {
         candidato for candidato in instaladores
         if any(candidato in transitive_depends(otro, cache, depends_of)
                for otro in instaladores - {candidato})
     }
-    return declara_clase.get(cls, set()) | cuerpo.get((cls, metodo), set()) | ancestros
+    return declara_clase.get(cls, set()) | ancestros
 
 
 def violations(roots=ADDONS_PATHS, depends_of=manifest_depends):
