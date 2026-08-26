@@ -48,7 +48,7 @@ def _next_sale_name() -> str:
         if seq is None:
             seq = IrSequence.objects.create(
                 name='Sales Order', code='sale.order', prefix='S', padding=5)
-        return seq.get_next()
+        return seq.next_by_id()
 
 
 #: Centinela: la instancia no se cargó de la base, así que no hay valor

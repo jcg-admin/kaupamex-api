@@ -395,13 +395,34 @@ def equivalencias_declaradas(ruta):
     Medido en el mismo pase: de las 38, **23** citaban el compute y **15** no.
     Las 15 son trabajo real —declarar su origen—, no ruido del gate.
 
-    *Métrica:* ``_compute_<campo>`` de la referencia cuyo ``<campo>`` es una
-    ``property``/``cached_property`` de nuestro archivo Y cuyo docstring
-    contiene la cadena ``_compute_<campo>``.
+    **Cuatro prefijos, no uno** (añadido 2026-08-26, :ref:`h-api-792`). La
+    referencia no nombra sus derivados de una sola forma, y la versión anterior
+    de esta función sólo veía ``_compute_``. Medido sobre Community 19
+    (``odoo19c: odoo/addons`` + ``addons``, ``git grep -oh`` por forma):
+
+    ==================  =====  =====================================
+    forma               veces  hogar aquí
+    ==================  =====  =====================================
+    ``compute='_compute_x'``  3048  ``property x``
+    ``inverse='_inverse_x'``   153  ``@x.setter``
+    ``inverse='_set_x'``        40  ``@x.setter``
+    ``compute='_get_x'``        35  ``property x``
+    ==================  =====  =====================================
+
+    Los tres que faltaban suman **228**: no es residual, y su ausencia declaró
+    ausentes cuatro símbolos de ``ir_sequence`` que SÍ están portados como
+    ``property number_next_actual`` con su ``setter``. El ``inverse`` es el que
+    el gate no contemplaba en absoluto — el setter de una ``property`` no es
+    una función con decorador ``property``, sino con ``<campo>.setter``.
+
+    *Métrica:* ``_compute_<campo>`` / ``_get_<campo>`` / ``_inverse_<campo>`` /
+    ``_set_<campo>`` de la referencia cuyo ``<campo>`` es una
+    ``property``/``cached_property``/``<campo>.setter`` de nuestro archivo Y
+    cuyo docstring contiene la cadena del símbolo.
     *Ciega a:* el mismo porte con el campo renombrado (``_compute_qty`` →
-    ``property quantity``), y a los ``_inverse_x``/``_search_x``, que la
-    referencia declara junto al compute y que aquí se resuelven de otras
-    formas. Ambos siguen saliendo como ausentes — el lado seguro.
+    ``property quantity``) y a los ``_search_x``, que la referencia declara
+    junto al compute y que aquí se resuelven de otras formas. Siguen saliendo
+    como ausentes — el lado seguro.
     """
     try:
         arbol = ast.parse(ruta.read_text())
@@ -417,14 +438,21 @@ def equivalencias_declaradas(ruta):
         if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         for dec in n.decorator_list:
+            # ``@property`` / ``@cached_property`` → el lado de lectura.
+            # ``@<campo>.setter`` → el lado de escritura, que es donde vive el
+            # ``inverse`` de la referencia. Se recoge bajo el MISMO nombre de
+            # campo, porque el símbolo que absuelve depende del prefijo, no de
+            # cuál de los dos lados lo declare.
             name = (dec.id if isinstance(dec, ast.Name) else
-                      dec.attr if isinstance(dec, ast.Attribute) else '')
-            if 'property' in name:
+                    dec.attr if isinstance(dec, ast.Attribute) else '')
+            if 'property' in name or name == 'setter':
                 properties.setdefault(n.name, []).append(
                     ast.get_docstring(n) or '')
                 break
-    return {f'_compute_{field}' for field, docs in properties.items()
-            if any(f'_compute_{field}' in doc for doc in docs)}
+    return {f'_{prefijo}_{field}'
+            for field, docs in properties.items()
+            for prefijo in ('compute', 'get', 'inverse', 'set')
+            if any(f'_{prefijo}_{field}' in doc for doc in docs)}
 
 
 def addon_classes(raiz):

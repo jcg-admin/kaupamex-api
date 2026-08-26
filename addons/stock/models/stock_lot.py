@@ -309,12 +309,12 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
 
         Sin nombre, lo saca de la secuencia declarada en la plantilla del
         producto. La fuente llama ``lot_sequence_id.next_by_id()``; aquí el
-        equivalente es ``get_next()`` — ``next_by_id`` no existe en este árbol
+        equivalente es ``next_by_id()`` — ``next_by_id`` no existe en este árbol
         (:ref:`h-api-619`).
         """
         if not self.name:
             secuencia = getattr(self.product, 'lot_sequence', None)
-            self.name = secuencia.get_next() if secuencia is not None else ''
+            self.name = secuencia.next_by_id() if secuencia is not None else ''
 
     def _compute_company_id(self):
         """≙ ``_compute_company_id`` (``odoo19c: :136-142``).
