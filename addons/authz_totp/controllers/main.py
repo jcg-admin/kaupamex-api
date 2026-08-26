@@ -89,9 +89,11 @@ from addons.authz_totp.services import (
     totp_enabled,
     verify_code,
 )
+from addons.base.models.res_users import ResUsers
 from addons.web.controllers.session import (
     PRE_BACKEND_KEY, PRE_LOGIN_KEY, PRE_UID_KEY, build_session_info,
 )
+from exceptions import AccessDenied
 from orm.environments import sudo, user_scope
 
 _TAGS = ['authz-2fa']
@@ -188,11 +190,10 @@ def totp_login(request):
     **POST** — el código. Acepta un TOTP de la app **o** un código de
     recuperación (divergencia declarada en ``TotpLoginSerializer``).
 
-    Lo que la fuente hace aquí y este árbol todavía no: envolver la
-    comprobación en ``user._assert_can_auth`` —el limitador de intentos—, que
-    sigue sin portar (sucesor **#726**). El anti-repetición del código TOTP
-    **ya está** desde #718: ``verify_code`` exige que el intervalo del código
-    presentado supere a ``TotpSecret.last_counter``.
+    El limitador de intentos **ya está** (#726): la comprobación va envuelta
+    en ``ResUsers._assert_can_auth``, igual que en la fuente. Y el
+    anti-repetición del código TOTP está desde #718: ``verify_code`` exige que
+    el intervalo del código presentado supere a ``TotpSecret.last_counter``.
 
     **Y el POST codifica la vía de app.** La fuente despacha por tipo —
     ``credentials = {'type': user._mfa_type(), 'token': …}`` seguido de
@@ -246,10 +247,22 @@ def totp_login(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     code = serializer.validated_data['code']
-    if not (verify_code(user, code) or consume_recovery_code(user, code)):
-        # ≙ `except AccessDenied` (`:51-52`) — un solo desenlace para el código
-        # errado y el de recuperación gastado, por la misma razón que
-        # `session_authenticate` no separa credencial de cuenta inexistente.
+    # ≙ `with user._assert_can_auth(user=user.id):` (`:45`) — el segundo paso
+    # es tan fuerza-bruteable como el primero: seis dígitos son un espacio de
+    # un millón, y sin limitador un atacante con la credencial ya validada lo
+    # recorre entero. La fuente envuelve aquí, no en `verify_code`, porque lo
+    # que cuenta es el *intento*, no el mecanismo que lo rechaza.
+    try:
+        with ResUsers._assert_can_auth(user=user.pk):
+            if not (verify_code(user, code)
+                    or consume_recovery_code(user, code)):
+                # ≙ `except AccessDenied` (`:51-52`) — un solo desenlace para
+                # el código errado y el de recuperación gastado, por la misma
+                # razón que `session_authenticate` no separa credencial de
+                # cuenta inexistente. Se lanza para que el limitador lo cuente:
+                # su contador sólo ve `AccessDenied`.
+                raise AccessDenied('Código de verificación inválido.')
+    except AccessDenied:
         return Response(
             {'codigo_error': 'TOTP_INVALID',
              'detail': 'Código de verificación inválido.'},

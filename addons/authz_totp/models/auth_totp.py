@@ -84,7 +84,11 @@ from django.db.models.lookups import Exact
 import fields
 import models
 
-from addons.base.models.res_users import INDEX_SIZE, _ResUsersApikeysBase
+from addons.base.models.res_users import (
+    INDEX_SIZE,
+    _ResUsersApikeysBase,
+    index_name_for,
+)
 from orm.environments import get_current_user
 
 _logger = logging.getLogger(__name__)
@@ -141,9 +145,10 @@ class AuthTotpDevice(_ResUsersApikeysBase):
         indexes = [
             # El ``init()`` de la clave de API usa ``%(table)s``, así que el
             # hijo por prototipo crea el mismo índice sobre SU tabla. El nombre
-            # sigue la convención de la fuente, ``<tabla>_user_id_index_idx``.
+            # sigue la convención de la fuente, con su rama de truncamiento
+            # incluida — ver ``index_name_for``.
             models.Index(fields=['user', 'index'],
-                         name='auth_totp_device_user_id_index_idx'),
+                         name=index_name_for('auth_totp_device')),
         ]
         constraints = [
             # Misma forma que el padre, y por la misma razón: Django no

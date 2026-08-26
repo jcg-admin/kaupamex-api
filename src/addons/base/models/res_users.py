@@ -59,6 +59,10 @@ vive en ``authz`` por capacidad (DEC-11), y un flag de superusuario saltaría
 ese modelo. Los *hashers* de Django sí se usan, como librería.
 """
 import binascii
+import contextlib
+import datetime
+import hashlib
+import ipaddress
 import logging
 import os
 from datetime import timedelta
@@ -78,6 +82,8 @@ from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
 from addons.base.models import signals
+from addons.base.models.ir_http import get_current_request
+from addons.base.models.res_device import _client_ip
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import AccessDenied, AccessError, UserError
 from orm.environments import get_current_user, is_su
@@ -85,6 +91,22 @@ from orm.environments import get_current_user, is_su
 #: Registro del bloque de claves de API — ≙ el ``_logger`` de módulo que la
 #: referencia declara en la cabecera de ``res_users.py``.
 _apikeys_logger = logging.getLogger(__name__)
+
+#: Contador de intentos fallidos por origen, para el enfriamiento de acceso.
+#:
+#: DIVERGENCIA DE MECANISMO, declarada: la fuente lo cuelga del **registro**
+#: (``registry._login_failures``, ``odoo19c: res_users.py:1247-1250``), que en
+#: su arquitectura es un objeto por proceso y por base. Aquí no hay tal objeto,
+#: así que vive a nivel de módulo — **mismo alcance efectivo**: uno por proceso.
+#:
+#: La fuente declara ella misma la limitación que esto acarrea, y vale igual
+#: aquí: *"The login counter is not shared between workers and not specifically
+#: thread-safe, the feature exists mostly for rate-limiting on large number of
+#: login attempts (brute-forcing passwords) so that should not be much of an
+#: issue."* Su punto de extensión para una estrategia compartida —base de datos,
+#: caché distribuida— es sobrescribir ``_assert_can_auth``, y ese punto se
+#: conserva.
+_LOGIN_FAILURES: dict = {}
 
 # Sal del HMAC de sesión. Literal de Django (``AbstractBaseUser``): cambiarlo
 # invalidaría toda sesión viva, así que se replica verbatim.
@@ -813,6 +835,115 @@ class ResUsers(TimeStampedModel):
         """
         return
 
+    @classmethod
+    @contextlib.contextmanager
+    def _assert_can_auth(cls, user=None):
+        """≙ ``_assert_can_auth`` (``odoo19c: res_users.py:1214-1281``).
+
+        Enfriamiento lineal de acceso: tras N fallos consecutivos desde el
+        mismo origen, los intentos se **ignoran** durante un plazo y se
+        registran. Es un gestor de contexto, igual que en la fuente, para que
+        envuelva al procedimiento de acceso sin que éste tenga que invocarlo.
+
+        Fuera de una petición no hay origen que contar, así que cede el paso —
+        la fuente hace lo mismo con ``if not request``. Eso deja al cron y al
+        arranque fuera del limitador a propósito.
+
+        DIVERGENCIA, y es del stack: la fuente lee su ``request`` de hilo
+        (``odoo.http.request``); aquí el equivalente es la ``ContextVar`` que
+        ``ir_http`` fija por petición (``get_current_request()``). Mismo
+        alcance —una petición, un valor— y el mismo desenlace cuando no hay
+        ninguna.
+
+        DIVERGENCIA DE FIRMA, declarada: la fuente lo declara método de
+        instancia —``_assert_can_auth(self, user=None)``— porque allá se llama
+        sobre un recordset, que puede estar vacío: ``self.env['res.users']``
+        es el modelo y ``user`` es un registro, y los dos aceptan la misma
+        llamada. Aquí no existe el recordset vacío, así que lo que la fuente
+        invoca sobre el modelo se declara ``classmethod`` — la forma que este
+        árbol ya usa para ese caso: **126** en ``base/models``, entre ellas
+        ``SystemParameter._get_param``, que es el análogo exacto de
+        ``self.env['ir.config_parameter'].sudo()``. Los dos puntos de llamada
+        de la fuente siguen valiendo: ``ResUsers._assert_can_auth(...)`` sobre
+        la clase y ``usuario._assert_can_auth(...)`` sobre una instancia
+        resuelven al mismo método.
+
+        :param user: id o login, sólo para el registro.
+        """
+        request = get_current_request()
+        if request is None:
+            yield
+            return
+
+        source = _client_ip(request)
+        failures, previous = _LOGIN_FAILURES.get(source, (0, datetime.datetime.min))
+        if cls._on_login_cooldown(failures, previous):
+            _apikeys_logger.warning(
+                "Intento de acceso ignorado para %s (usuario %r): "
+                "%d fallo(s) desde el último acierto, el último a las %s. "
+                "El número de fallos antes del enfriamiento y su duración se "
+                "configuran en los parámetros del sistema; para desactivarlo, "
+                "poner `base.login_cooldown_after` a 0.",
+                source, user or "?", failures, previous)
+            # El aviso del proxy mal configurado es de la fuente, y es útil:
+            # si la IP limitada es privada, lo más probable es que se esté
+            # contando la del proxy inverso y no la del cliente — con lo que
+            # el limitador castiga a todo el mundo a la vez.
+            try:
+                is_private = ipaddress.ip_address(source).is_private
+            except ValueError:
+                is_private = False
+            if is_private:
+                _apikeys_logger.warning(
+                    "La IP limitada %s es privada y *podría* ser un proxy. Si "
+                    "este servicio corre detrás de un proxy inverso, revisar "
+                    "que reenvíe X-Forwarded-For y que se esté leyendo.",
+                    source)
+            raise AccessDenied(
+                'Demasiados intentos fallidos, espera un poco antes de volver '
+                'a intentarlo.')
+
+        try:
+            yield
+        except AccessDenied:
+            failures, __ = _LOGIN_FAILURES.get(source, (0, datetime.datetime.min))
+            _LOGIN_FAILURES[source] = (failures + 1, datetime.datetime.now())
+            raise
+        else:
+            _LOGIN_FAILURES.pop(source, None)
+
+    @classmethod
+    def _on_login_cooldown(cls, failures, previous):
+        """≙ ``_on_login_cooldown`` (``odoo19c: res_users.py:1283-1306``).
+
+        Decide si el origen está en enfriamiento. Es el punto de extensión que
+        la fuente separa a propósito: para cambiar el **criterio** se
+        sobrescribe esto; para cambiar el **almacén** —a base de datos o a una
+        caché compartida— se sobrescribe ``_assert_can_auth``.
+
+        ``base.login_cooldown_after`` a 0 desactiva el mecanismo entero, y es
+        la vía documentada para hacerlo.
+
+        :param int failures: fallos registrados desde el último acierto.
+        :param previous: marca de tiempo del fallo anterior.
+        :returns: si el origen está en enfriamiento.
+        """
+        icp = apps.get_model('base', 'SystemParameter')
+        try:
+            min_failures = int(icp.get_param('base.login_cooldown_after', 5))
+        except (TypeError, ValueError):
+            min_failures = 5
+        if min_failures == 0:
+            return False
+
+        try:
+            delay = int(icp.get_param('base.login_cooldown_duration', 60))
+        except (TypeError, ValueError):
+            delay = 60
+        return (failures >= min_failures
+                and (datetime.datetime.now() - previous)
+                < datetime.timedelta(seconds=delay))
+
 
 class ResUsersLog(TimeStampedModel):
     """``res.users.log`` — que hubo un acceso, no una auditoría.
@@ -878,6 +1009,38 @@ INDEX_SIZE = 8
 
 #: ≙ ``DEFAULT_PROGRAMMATIC_API_KEYS_LIMIT`` (``:1527``).
 DEFAULT_PROGRAMMATIC_API_KEYS_LIMIT = 10
+
+
+#: Limite de longitud del nombre de un indice, y NO es el de la fuente.
+#:
+#: DIVERGENCIA DEL STACK, declarada: la referencia acota a **63** —el limite de
+#: identificador de PostgreSQL— y trunca por encima
+#: (``odoo19c: res_users.py:1546-1550``). Django acota a **30** en su propio
+#: check ``models.E034``, que es transversal a todos sus motores y por tanto
+#: mas estricto que el del motor que usamos. Manda el mas estricto: por debajo
+#: de 30 el nombre vale en los dos.
+INDEX_NAME_MAX = 30
+
+
+def index_name_for(table):
+    """Nombre del indice ``(user_id, index)`` de una tabla de claves.
+
+    Porta el algoritmo de la fuente **entero**, incluida su rama de
+    truncamiento, que el porte anterior habia omitido: la fuente calcula
+    ``<tabla>_user_id_index_idx`` y, si se pasa del limite, lo sustituye por
+    ``<tabla>[:50] + "_idx_" + sha256(<tabla>)[:8]`` — determinista, para que
+    dos arranques generen el mismo nombre.
+
+    Omitir esa rama dejaba dos nombres de 35 y 34 caracteres, y con ellos
+    ``manage.py migrate`` **abortaba** con ``models.E034`` antes de tocar la
+    base. Es el desenlace que ``porte-completo-no-parcial.md`` describe: un
+    porte parcial que pasa por completo hasta que algo lo ejerce.
+    """
+    name = f'{table}_user_id_index_idx'
+    if len(name) > INDEX_NAME_MAX:
+        return table[:50] + '_idx_' + hashlib.sha256(
+            table.encode()).hexdigest()[:8]
+    return name
 
 #: ≙ ``KEY_CRYPT_CONTEXT`` (``:1521-1526``).
 #:
@@ -973,10 +1136,13 @@ class _ResUsersApikeysBase(TimeStampedModel):
        referencia declara —el público con su comprobación de propiedad, el
        interno sin ella— y el gate de identidad lo pone quien los exponga.
 
-    3. **``_assert_can_auth`` no existe en este árbol** (medido: 0 hits). Es
-       el limitador de intentos que la referencia envuelve alrededor de
-       ``generate``/``revoke``. Los dos métodos se portan **sin** él y el
-       hueco queda declarado: sucesor **#726**.
+    3. **``_assert_can_auth`` — CERRADA, ya no es divergencia.** Era el
+       limitador de intentos que la referencia envuelve alrededor de
+       ``generate``/``revoke``, y al portar este bloque no existía aquí
+       (medido entonces: 0 hits). Portado con la tarea **#726**:
+       ``ResUsers._assert_can_auth`` y su ``_on_login_cooldown``, y los dos
+       métodos ya lo envuelven. Lo que sí queda como divergencia declarada es
+       **dónde vive el contador** — ver ``_LOGIN_FAILURES``.
 
     4. **El SQL crudo se expresa con el ORM.** La referencia lo necesita
        porque ``key``/``index`` no son campos suyos; aquí sí lo son, así que
@@ -1168,10 +1334,24 @@ class _ResUsersApikeysBase(TimeStampedModel):
         scope (including global). A scoped key can only generate credentials
         for its own scope."*
 
-        **Sin el limitador de intentos** de la fuente
-        (``_assert_can_auth``) — divergencia 3, sucesor #726.
+        Envuelta por el limitador de intentos de la fuente
+        (``ResUsers._assert_can_auth``), portado con la tarea #726: un
+        ``AccessDenied`` desde aquí cuenta como fallo del origen, y tras
+        ``base.login_cooldown_after`` fallos el origen entra en enfriamiento.
         """
         cls._ensure_can_manage_keys_programmatically()
+        with ResUsers._assert_can_auth(user=key[:INDEX_SIZE]):
+            return cls._generate_checked(key, scope, name, expiration_date)
+
+    @classmethod
+    def _generate_checked(cls, key, scope, name, expiration_date):
+        """El cuerpo de ``generate``, ya dentro del limitador.
+
+        La fuente escribe el ``with`` alrededor del cuerpo entero; aquí se
+        parte en dos porque el cuerpo es largo y anidarlo lo desplazaría
+        completo, ensuciando el diff sin cambiar la semántica. El ``AccessDenied``
+        que este método levanta atraviesa el gestor de contexto igual.
+        """
         actor = get_current_user()
         uid = getattr(actor, 'pk', None)
         now = timezone.now()
@@ -1210,10 +1390,18 @@ class _ResUsersApikeysBase(TimeStampedModel):
 
         Recorre las filas cuyo prefijo coincide y verifica el hash de cada
         una, porque el prefijo **no** es único: es el mismo bucle de la
-        fuente. Sin el limitador de intentos — divergencia 3.
+        fuente. Envuelta por el limitador de intentos igual que ``generate``
+        (``ResUsers._assert_can_auth``, tarea #726).
         """
         cls._ensure_can_manage_keys_programmatically()
         assert key, 'key required'
+        with ResUsers._assert_can_auth(user=key[:INDEX_SIZE]):
+            return cls._revoke_checked(key)
+
+    @classmethod
+    def _revoke_checked(cls, key):
+        """El cuerpo de ``revoke``, ya dentro del limitador. Ver
+        ``_generate_checked`` para por qué va partido."""
         now = timezone.now()
         candidates = cls.objects.filter(
             models.Q(expiration_date__isnull=True) | models.Q(expiration_date__gte=now),
@@ -1274,7 +1462,7 @@ class ResUsersApikeys(_ResUsersApikeysBase):
             # ``init()`` (``:1548-1555``). El nombre lo fija la referencia por
             # convención ``<tabla>_user_id_index_idx``; aquí se conserva.
             models.Index(fields=['user', 'index'],
-                         name='res_users_apikeys_user_id_index_idx'),
+                         name=index_name_for('res_users_apikeys')),
         ]
         constraints = [
             # ≙ ``CHECK (char_length(index) = %(index_size)s)`` (``:1541``).

@@ -87,7 +87,7 @@ class Migration(migrations.Migration):
                 "indexes": [
                     models.Index(
                         fields=["user", "index"],
-                        name="res_users_apikeys_user_id_index_idx",
+                        name="res_users_apikeys_idx_24148d42",
                     )
                 ],
                 "constraints": [

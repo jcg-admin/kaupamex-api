@@ -88,7 +88,7 @@ class Migration(migrations.Migration):
                 "indexes": [
                     models.Index(
                         fields=["user", "index"],
-                        name="auth_totp_device_user_id_index_idx",
+                        name="auth_totp_device_idx_e1c3d492",
                     )
                 ],
                 "constraints": [
