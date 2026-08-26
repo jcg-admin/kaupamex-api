@@ -88,9 +88,12 @@ from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import AccessDenied, AccessError, UserError
 from orm.environments import get_current_user, is_su
 
-#: Registro del bloque de claves de API — ≙ el ``_logger`` de módulo que la
-#: referencia declara en la cabecera de ``res_users.py``.
-_apikeys_logger = logging.getLogger(__name__)
+#: ≙ el ``_logger`` de módulo que la referencia declara en la cabecera de
+#: ``res_users.py`` (``odoo19c: res_users.py:38``). Se llamaba
+#: ``_logger``, que era una acotación nuestra y no de la fuente: allá
+#: lo usan el bloque de claves de API, el enfriamiento de acceso Y el cambio de
+#: contraseña. El nombre acotado sugería que cada bloque traía el suyo.
+_logger = logging.getLogger(__name__)
 
 #: Contador de intentos fallidos por origen, para el enfriamiento de acceso.
 #:
@@ -460,6 +463,77 @@ class ResUsers(TimeStampedModel):
             'auth_method': 'password',
             'mfa': 'default',
         }
+
+    def change_password(self, old_passwd, new_passwd):
+        """≙ ``change_password`` (``odoo19c: res_users.py:899-917``).
+
+        Cambia la contraseña del usuario **exigiendo la anterior**. La fuente
+        declara por qué en su docstring, y vale igual aquí: *"Old password must
+        be provided explicitly to prevent hijacking an existing user session"* —
+        una sesión robada no basta para quedarse con la cuenta.
+
+        Es la vía **autoportante**: no depende de la re-autenticación de
+        DEC-12, porque la credencial anterior es ella misma la prueba de
+        identidad. La fuente tiene además una segunda vía —el asistente
+        ``change.password.own``, decorado ``@check_identity``— que aquí no se
+        porta como modelo: su equivalente es el gate de sesión fresca que ya
+        existe (``authz_reauth.assert_session_fresh``), y el asistente en sí es
+        la capa de formulario de su UI, que este árbol resuelve con un
+        serializer. Ver :ref:`h-api-790`.
+
+        :raises AccessDenied: si la contraseña anterior falta o es incorrecta.
+        :raises UserError: si la nueva está vacía.
+        :returns: ``True``.
+        """
+        if not old_passwd:
+            raise AccessDenied()
+
+        credential = {
+            'login': self.get_username(),
+            'password': old_passwd,
+            'type': 'password',
+        }
+        self._check_credentials(credential, {'interactive': True})
+
+        self._change_password(new_passwd)
+        return True
+
+    def _change_password(self, new_passwd):
+        """≙ ``_change_password`` (``odoo19c: res_users.py:919-932``).
+
+        El eslabón interno: **no** verifica identidad — eso es de quien llama.
+        Recorta, rechaza el vacío y **deja constancia de quién cambió la
+        contraseña de quién y desde dónde**, que es el rastro que hace
+        auditable un cambio de credencial.
+
+        La fuente lee la IP de su ``request`` de hilo; aquí sale de la misma
+        ``ContextVar`` y el mismo ``_client_ip`` que usa el limitador de
+        acceso, así que las dos entradas del registro se pueden cruzar por
+        origen.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente asigna
+        ``self.password = new_passwd`` y su ORM cifra en el ``write``. Aquí el
+        cifrado es explícito —``set_password`` llama a ``hashers.make_password``—
+        y hay que **persistir**: el modelo de la fuente escribe en la asignación
+        y el de Django no.
+        """
+        new_passwd = (new_passwd or '').strip()
+        if not new_passwd:
+            raise UserError(
+                'Dejar la contraseña vacía no está permitido, por seguridad.')
+
+        request = get_current_request()
+        source = _client_ip(request) if request is not None else 'n/a'
+        actor = get_current_user()
+        _logger.info(
+            "Cambio de contraseña de %r (#%s) por %r (#%s) desde %s",
+            self.get_username(), self.pk,
+            getattr(actor, 'username', None) or '?',
+            getattr(actor, 'pk', None) or '?',
+            source)
+
+        self.set_password(new_passwd)
+        self.save(update_fields=['password'])
 
     def get_session_auth_hash(self):
         """HMAC del hash de password: cambiarlo invalida las sesiones vivas."""
@@ -878,7 +952,7 @@ class ResUsers(TimeStampedModel):
         source = _client_ip(request)
         failures, previous = _LOGIN_FAILURES.get(source, (0, datetime.datetime.min))
         if cls._on_login_cooldown(failures, previous):
-            _apikeys_logger.warning(
+            _logger.warning(
                 "Intento de acceso ignorado para %s (usuario %r): "
                 "%d fallo(s) desde el último acierto, el último a las %s. "
                 "El número de fallos antes del enfriamiento y su duración se "
@@ -894,7 +968,7 @@ class ResUsers(TimeStampedModel):
             except ValueError:
                 is_private = False
             if is_private:
-                _apikeys_logger.warning(
+                _logger.warning(
                     "La IP limitada %s es privada y *podría* ser un proxy. Si "
                     "este servicio corre detrás de un proxy inverso, revisar "
                     "que reenvíe X-Forwarded-For y que se esté leyendo.",
@@ -1227,7 +1301,7 @@ class _ResUsersApikeysBase(TimeStampedModel):
         """
         actor = get_current_user()
         if is_su() or self.user_id == getattr(actor, 'pk', None):
-            _apikeys_logger.info(
+            _logger.info(
                 "API key(s) removed: scope: <%s> for '%s' (#%s)",
                 self.scope, getattr(actor, 'login', 'n/a'),
                 getattr(actor, 'pk', None),
@@ -1303,7 +1377,7 @@ class _ResUsersApikeysBase(TimeStampedModel):
             key=_hash_api_key(k),
             index=k[:INDEX_SIZE],
         )
-        _apikeys_logger.info(
+        _logger.info(
             "%s generated: scope: <%s> for '%s' (#%s)",
             cls._description, scope, getattr(actor, 'login', 'n/a'),
             getattr(actor, 'pk', None),
@@ -1365,7 +1439,7 @@ class _ResUsersApikeysBase(TimeStampedModel):
                 'base.programmatic_api_keys_limit',
                 DEFAULT_PROGRAMMATIC_API_KEYS_LIMIT))
         except (TypeError, ValueError):
-            _apikeys_logger.warning(
+            _logger.warning(
                 "Invalid value for 'base.programmatic_api_keys_limit', "
                 "using default value.")
             nb_keys_limit = DEFAULT_PROGRAMMATIC_API_KEYS_LIMIT
@@ -1379,7 +1453,7 @@ class _ResUsersApikeysBase(TimeStampedModel):
             raise AccessDenied(
                 'La clave de API dada no es válida o no pertenece al usuario actual.')
         new_key = cls._generate(scope, name, expiration_date)
-        _apikeys_logger.info("%s %r generated from %r", cls._description,
+        _logger.info("%s %r generated from %r", cls._description,
                              new_key[:INDEX_SIZE], key[:INDEX_SIZE])
         return new_key
 
@@ -1421,7 +1495,7 @@ class _ResUsersApikeysBase(TimeStampedModel):
             expiration_date__isnull=False,
             expiration_date__lt=timezone.now(),
         ).delete()
-        _apikeys_logger.info("GC %r delete %d entries", cls._name, deleted)
+        _logger.info("GC %r delete %d entries", cls._name, deleted)
 
 
 class ResUsersApikeys(_ResUsersApikeysBase):
