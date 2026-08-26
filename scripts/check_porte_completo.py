@@ -148,6 +148,28 @@ import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from addons_roots import addon_dirs, addon_path
 
+
+def reference_root(addon):
+    """Raiz de un addon en la referencia, que NO tiene una sola forma.
+
+    La referencia reparte sus addons en dos raices: ``addons/`` (629
+    directorios) y ``odoo/addons/`` (24), y ``base`` —el addon del que depende
+    el arranque— vive en la segunda. Una version anterior de este gate probaba
+    solo la primera, asi que ``base`` quedaba fuera del alcance medido: 49
+    pares de archivo invisibles, todos con contraparte aqui.
+
+    Y el gate no lo delataba, porque un addon sin pares emite ``0 hallazgos``,
+    que se lee igual que un porte completo. Es el sub-patron D de
+    ``metrica-decide-la-conclusion.md``: un verde que no discrimina entre
+    "no falta nada" y "no se miro". El denominador ya se publicaba
+    (``alcance medido: N pares``) y decia ``0`` — la cifra estaba a la vista.
+    """
+    for root in (ODOO19C / 'addons', ODOO19C / 'odoo' / 'addons'):
+        candidate = root / addon
+        if candidate.is_dir():
+            return candidate
+    return ODOO19C / 'addons' / addon
+
 #: Renombres declarados: ``nombre en la referencia -> nombre aquí``. Cada
 #: entrada es una decisión, no una conveniencia — si el nombre cambió sin
 #: motivo, la entrada correcta es arreglar el nombre, no añadir el alias.
@@ -483,7 +505,7 @@ def _class_without_counterpart(addon, file_path, klass, metodos, instalado,
 
 def compara(addon):
     """Devuelve ``(pares, [hallazgo, ...], no_resolubles, absoluciones)``."""
-    ref_raiz = ODOO19C / 'addons' / addon
+    ref_raiz = reference_root(addon)
     mio_raiz = addon_path(addon) or pathlib.Path('/nonexistent')
     if not ref_raiz.is_dir() or not mio_raiz.is_dir():
         return 0, [], 0, 0
@@ -648,7 +670,7 @@ def main():
                 'NO PORTADO' if tipo == 'ARCHIVO NO PORTADO'
                 else previo or 'PARCIAL')
         for addon in addons:
-            ref_dir = ODOO19C / 'addons' / addon / 'models'
+            ref_dir = reference_root(addon) / 'models'
             if not ref_dir.is_dir() or addon_path(addon) is None:
                 continue
             for ref_py in sorted(ref_dir.glob('*.py')):
