@@ -170,32 +170,32 @@ PORTE_ALIAS = {
 #: medida. Vive en un archivo aparte y no en este guion, porque un guion de
 #: ``.claude/scripts`` es mecanismo y no registro — mismo criterio que
 #: ``calibration-verified-numbers.md`` fija para las cifras.
-DIVERGENCIAS = pathlib.Path(__file__).with_name('divergencias_declaradas.txt')
+DECLARED_DIVERGENCES = pathlib.Path(__file__).with_name('divergencias_declaradas.txt')
 
 
-def cargar_divergencias():
+def load_divergences():
     """Las claves declaradas, en sus tres granularidades.
 
     Devuelve el conjunto de claves tal cual están escritas. El emparejamiento
     contra un hallazgo prueba las tres formas, de la más específica a la más
     amplia: símbolo, clase, archivo.
     """
-    if not DIVERGENCIAS.is_file():
+    if not DECLARED_DIVERGENCES.is_file():
         return set()
     return {
-        linea.strip()
-        for linea in DIVERGENCIAS.read_text(encoding='utf-8').splitlines()
-        if linea.strip() and not linea.lstrip().startswith('#')
+        line.strip()
+        for line in DECLARED_DIVERGENCES.read_text(encoding='utf-8').splitlines()
+        if line.strip() and not line.lstrip().startswith('#')
     }
 
 
-def claves_de(addon, file_path, klass, simbolo):
+def keys_of(addon, file_path, klass, symbol):
     """Las tres claves con que una divergencia puede cubrir a este símbolo."""
-    archivo = f'{addon}/models/{file_path}'
-    return (f'{archivo}::{klass}::{simbolo}', f'{archivo}::{klass}', archivo)
+    file = f'{addon}/models/{file_path}'
+    return (f'{file}::{klass}::{symbol}', f'{file}::{klass}', file)
 
 
-def separar_declarado(todos, declaradas):
+def split_declared(all_findings, declared_keys):
     """Parte los hallazgos en (deuda, declarados, claves_usadas).
 
     Un hallazgo cuyos símbolos estén TODOS declarados sale de la deuda; uno
@@ -204,22 +204,22 @@ def separar_declarado(todos, declaradas):
     símbolo — el mismo criterio con que ``CLASE EXTENDIDA`` nunca absuelve la
     clase completa.
     """
-    deuda, declarados, usadas = [], [], set()
-    for addon, file_path, klass, tipo, simbolos in todos:
-        pendientes, cubiertos = [], []
-        for simbolo in simbolos:
-            clave = next((c for c in claves_de(addon, file_path, klass, simbolo)
-                          if c in declaradas), None)
-            if clave is None:
-                pendientes.append(simbolo)
+    debt, declared, used = [], [], set()
+    for addon, file_path, klass, tipo, symbols in all_findings:
+        pending, covered = [], []
+        for symbol in symbols:
+            key = next((c for c in keys_of(addon, file_path, klass, symbol)
+                          if c in declared_keys), None)
+            if key is None:
+                pending.append(symbol)
             else:
-                cubiertos.append(simbolo)
-                usadas.add(clave)
-        if cubiertos:
-            declarados.append((addon, file_path, klass, tipo, cubiertos))
-        if pendientes:
-            deuda.append((addon, file_path, klass, tipo, pendientes))
-    return deuda, declarados, usadas
+                covered.append(symbol)
+                used.add(key)
+        if covered:
+            declared.append((addon, file_path, klass, tipo, covered))
+        if pending:
+            debt.append((addon, file_path, klass, tipo, pending))
+    return debt, declared, used
 
 
 #: Receptores de ``add_to_class`` que NO son una clase resoluble en estático:
@@ -617,25 +617,25 @@ def main():
     # desaparece: la linea de resumen lo publica siempre, y las entradas que ya
     # no cubren nada se nombran. Un registro que congela deuda inexistente es
     # el defecto que la poda del baseline de vocabulario cerro (H-DOCS-441).
-    declaradas = cargar_divergencias()
-    todos, declarados, usadas = separar_declarado(todos, declaradas)
-    muertas = sorted(declaradas - usadas)
-    simb_declarados = sum(len(h[4]) for h in declarados)
+    declared_keys = load_divergences()
+    todos, declared, used = split_declared(todos, declared_keys)
+    dead = sorted(declared_keys - used)
+    declared_symbols = sum(len(h[4]) for h in declared)
 
     if args.divergencias:
         print('divergencias declaradas:')
-        for clave in sorted(declaradas):
-            estado = 'viva  ' if clave in usadas else 'MUERTA'
-            print(f'  {estado}  {clave}')
-        print(f'\n{len(declaradas)} declarada(s) · {len(usadas)} viva(s) · '
-              f'{len(muertas)} muerta(s) '
+        for key in sorted(declared_keys):
+            estado = 'viva  ' if key in used else 'MUERTA'
+            print(f'  {estado}  {key}')
+        print(f'\n{len(declared_keys)} declarada(s) · {len(used)} viva(s) · '
+              f'{len(dead)} muerta(s) '
               f'(alcance medido: {pares_total} pares de archivo, '
               f'{len(addons)} addons)')
-        if muertas:
+        if dead:
             print('\nUna entrada MUERTA ya no cubre ningun hallazgo: o el '
                   'simbolo se porto —y entonces la entrada se retira—, o la '
                   'clave esta mal escrita. Las dos piden accion.')
-        return 1 if (args.strict and muertas) else 0
+        return 1 if (args.strict and dead) else 0
 
     if args.mapa:
         # El inventario completo: cada archivo de la referencia con su estado.
@@ -681,10 +681,10 @@ def main():
         # El registro va en su propio renglon y con su propio conteo: lo
         # declarado NO se suma a la deuda ni se calla. Y una entrada muerta se
         # nombra aqui aunque nadie pida `--divergencias`.
-        print(f'divergencias declaradas: {len(declarados)} hallazgo(s), '
-              f'{simb_declarados} simbolo(s), '
-              f'{len(usadas)} de {len(declaradas)} entrada(s) vivas'
-              + (f' — MUERTAS: {", ".join(muertas)}' if muertas else ''))
+        print(f'divergencias declaradas: {len(declared)} hallazgo(s), '
+              f'{declared_symbols} simbolo(s), '
+              f'{len(used)} de {len(declared_keys)} entrada(s) vivas'
+              + (f' — MUERTAS: {", ".join(dead)}' if dead else ''))
     return 1 if (args.strict and todos) else 0
 
 
