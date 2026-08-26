@@ -184,7 +184,16 @@ PORTE_ALIAS = {
     'AccountChartTemplate': 'ChartTemplate',
     # El guion bajo es un artefacto de la convención de la referencia para el
     # nombre técnico; los identificadores de este árbol van en CamelCase.
+    # Ojo: el aplanamiento MECÁNICO de guiones ya no vive aquí — lo hace
+    # ``class_key``. Esta entrada se conserva porque además cambia de palabra.
     'Sparse_FieldsTest': 'SparseFieldsTest',
+    # Renombres SEMÁNTICOS: la clase se llama por lo que es en este árbol, no
+    # por su nombre técnico en la referencia. Ninguna regla los deriva, así que
+    # se declaran uno por uno, y cada uno con su ``_name`` como prueba de que
+    # es la misma entidad y no un homónimo.
+    'IrConfig_Parameter': 'SystemParameter',        # _name = ir.config_parameter
+    'IrModuleModule': 'IrModule',                   # _name = ir.module.module
+    'IrModuleModuleDependency': 'IrModuleDependency',  # _name = ir.module.module.dependency
 }
 
 
@@ -439,13 +448,40 @@ def addon_classes(raiz):
         if 'migrations' in py.parts or '__pycache__' in py.parts:
             continue
         for klass, metodos in (simbolos(py) or {}).items():
-            by_class.setdefault(normaliza(klass), set()).update(metodos)
+            by_class.setdefault(class_key(klass), set()).update(metodos)
     return by_class
 
 
 def normaliza(name):
     """El nombre comparable: alias declarado, y sin guiones bajos de borde."""
     return PORTE_ALIAS.get(name, name).strip('_')
+
+
+def class_key(name):
+    """La llave con que se compara un nombre de CLASE, que no es la de un metodo.
+
+    La referencia deriva el nombre de la clase de su ``_name`` y conserva el
+    separador: ``ir.mail_server`` da ``IrMail_Server``,
+    ``ir.actions.act_window`` da ``IrActionsAct_Window``. Este arbol escribe
+    el mismo nombre en PascalCase — ``IrMailServer``, ``IrActionsActWindow``.
+    Es una diferencia **formal y mecanica**, no un renombre: comparar el
+    literal declaraba ausentes nueve clases que estan portadas, 96 simbolos.
+
+    Por eso NO se toca ``normaliza``: para un metodo el guion bajo es el
+    contrato —``_foo`` es interno y ``foo`` es publico, y despromoverlo es un
+    defecto propio (:ref:`h-api-581`)—, asi que aplanar guiones alli borraria
+    la distincion que otro gate vigila. Aqui no hay tal contrato: una clase
+    ``_Privada`` conserva su guion de borde, que es lo unico que ``strip``
+    quita.
+
+    *Metrica:* colisiones de la llave dentro de cada arbol. Medido sobre el
+    addon ``base``: **0** en 150 clases nuestras y **0** en 442 de la
+    referencia.
+    *Ciega a:* un renombre semantico (``IrConfig_Parameter`` ->
+    ``SystemParameter``), que no es formal y no se puede derivar. Ese va a
+    ``PORTE_ALIAS``, decidido uno por uno.
+    """
+    return normaliza(name).replace('_', '')
 
 
 def _class_without_counterpart(addon, file_path, klass, metodos, instalado,
@@ -539,14 +575,14 @@ def compara(addon):
             # portado con ``chain_method`` no está sin portar, aunque ninguna
             # clase lleve su nombre.
             if ref_clases and not any(
-                    normaliza(c) in by_class or normaliza(c) in instalado
+                    class_key(c) in by_class or normaliza(c) in instalado
                     for c in ref_clases):
                 hallazgos.append(
                     (addon, ref_py.name, '(archivo)', 'ARCHIVO NO PORTADO',
                      sorted(ref_clases)))
                 continue
             for klass, metodos in ref_clases.items():
-                aqui = by_class.get(normaliza(klass))
+                aqui = by_class.get(class_key(klass))
                 if aqui is None:
                     # Sin archivo pareado no hay property nuestra que leer, así
                     # que aquí no se absuelve nada: el conjunto va vacío.
@@ -565,14 +601,29 @@ def compara(addon):
         pares += 1
         ref_clases = simbolos(ref_py) or {}
         mias = simbolos(mio_py) or {}
-        mias_norm = {normaliza(c): ms for c, ms in mias.items()}
+        mias_norm = {class_key(c): ms for c, ms in mias.items()}
         from_file = {normaliza(x) for x in file_symbols(mio_py)}
         # Un compute sin store portado como property, con la equivalencia
         # declarada en su docstring. Ver equivalencias_declaradas().
         absueltos = {normaliza(x) for x in equivalencias_declaradas(mio_py)}
 
         for klass, metodos in ref_clases.items():
-            aqui = mias_norm.get(normaliza(klass))
+            aqui = mias_norm.get(class_key(klass))
+            out_of_file = False
+            if aqui is None:
+                # La clase no esta en el archivo pareado. ANTES de declararla
+                # ausente se busca en el resto del addon: este arbol parte un
+                # archivo de la referencia en varios —``res_bank.py`` ->
+                # ``res_partner_bank.py``— y la rama de "archivo sin
+                # contraparte" ya lo hacia, pero esta no. Medido: 9 clases y
+                # 96 simbolos declarados ausentes estando portados.
+                #
+                # No absuelve: el veredicto es CLASE FUERA DE SITIO y sus
+                # metodos se comparan igual. Es lo que :ref:`h-api-350` exige
+                # —la version que dio COMPLETO por tener la clase en otro sitio
+                # sin mirar un solo metodo es justo lo que no se puede repetir.
+                aqui = by_class.get(class_key(klass))
+                out_of_file = aqui is not None
             if aqui is None:
                 hallazgo, absueltas = _class_without_counterpart(
                     addon, ref_py.name, klass, metodos, instalado, absueltos)
@@ -580,6 +631,10 @@ def compara(addon):
                 if hallazgo is not None:
                     hallazgos.append(hallazgo)
                 continue
+            if out_of_file:
+                hallazgos.append(
+                    (addon, ref_py.name, klass, 'CLASE FUERA DE SITIO',
+                     [f'portada fuera de {ref_py.name}']))
             aqui_norm = {normaliza(m) for m in aqui}
             faltan, out_of_place = [], []
             for m in sorted(metodos):
