@@ -346,8 +346,18 @@ class PortalPasswordView(APIView):
                         'no se cambió.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        user.set_password(new)
-        user.save(update_fields=['password'])
+        # ≙ ``self.env.user._change_password(new)`` — la referencia delega
+        # aquí en el mismo eslabón interno que usan sus dos vías de cambio
+        # (``portal.py:911`` y ``change.password.own``), y por eso el rastro
+        # de auditoría es uno solo. Este endpoint lo reimplementaba con
+        # ``set_password`` + ``save``, así que un cambio de credencial hecho
+        # por esta vía no dejaba constancia de quién ni desde dónde.
+        #
+        # Se usa el eslabón INTERNO y no ``change_password(old, new)`` a
+        # propósito: aquél exige y comprueba la anterior, y aquí eso ya pasó
+        # arriba, con el orden de errores del portal —que no es el mismo que
+        # el de ``base``—. Es exactamente la separación que la fuente diseña.
+        user._change_password(new)
         update_session_auth_hash(request, user)
         return Response({'password': True})
 

@@ -9,6 +9,8 @@ la **sesión**: el cambio de contraseña rehace el hash de sesión y la baja la
 cierra — con ``session_key=''`` esos pasos no se ejercitarían de verdad
 (ADR-018: la sesión de servidor es la credencial).
 """
+import logging
+
 from addons.authz.models import Role, RoleAssignment
 from addons.authz.services import invalidate_capabilities
 from addons.base.models import SystemParameter
@@ -143,6 +145,27 @@ class TestSeguridad:
         assert r.status_code == 200, r.data
         comprador.refresh_from_db()
         assert comprador.check_password(PASS_NUEVA)
+
+    def test_the_change_leaves_an_audit_trace(self, comprador, caplog):
+        """El endpoint delega en ``_change_password``, y ese eslabon registra
+        quien cambio la contrasena de quien y desde donde.
+
+        Es el control que puede fallar de esa delegacion: si la vista vuelve a
+        hacer ``set_password`` + ``save`` a mano —que es lo que hacia— el
+        cambio sigue funcionando y este caso cae. Medido: revirtiendo la
+        delegacion, este es el unico de los 29 del subconjunto que falla.
+        """
+        with caplog.at_level(
+                logging.INFO, logger='addons.base.models.res_users'):
+            r = _cliente(comprador).post(
+                PASSWORD,
+                {'old': PASS_VIEJA, 'new1': PASS_NUEVA, 'new2': PASS_NUEVA},
+                format='json')
+        assert r.status_code == 200, r.data
+        trace = [x.getMessage() for x in caplog.records
+                  if 'Cambio de contraseña' in x.getMessage()]
+        assert trace, 'el cambio no dejo constancia'
+        assert comprador.get_username() in trace[0]
 
     def test_campo_vacio_se_rechaza_antes_de_comparar(self, comprador):
         r = _cliente(comprador).post(
