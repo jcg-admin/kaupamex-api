@@ -1,0 +1,88 @@
+# Divergencias declaradas del porte — lo que NO se porta, por decision medida.
+#
+# `porte-completo-no-parcial.md` enumera TRES desenlaces validos para un simbolo
+# de la referencia que no se porta:
+#
+#   1. divergencia de mecanismo declarada   <- ESTE archivo
+#   2. bloqueo medido con sucesor            -> `check_bloqueo_declarado.py`
+#   3. DESCONOCIDO con condicion de cierre   -> sin hogar todavia
+#
+# El (2) YA tenia hogar y conviene decirlo, porque la primera version de esta
+# cabecera afirmaba que ninguno lo tenia y era falso: `check_bloqueo_declarado.py`
+# gatea la FORMA de una marca de bloqueo —exige que nombre su destino en
+# code-span y fije la direccion con `por`— sobre un baseline de 341 marcas
+# heredadas. Lo que ese gate NO hace, ni debe, es descontar nada: un bloqueo
+# sigue siendo deuda, y su declaracion existe para que la arista
+# `bloqueado -> bloqueador` sea recorrible.
+#
+# El (1) es el que no tenia hogar. Medido al abrir este archivo: **417 archivos**
+# de `src/` y `addons/` declaran una divergencia en prosa, y
+# `check_porte_completo.py` no puede ver ni una.
+#
+# La forma es la de `coreutils: util/gnu-unfixable-tests.txt` — la lista por
+# nombre de lo que la reimplementacion nunca va a satisfacer, con el motivo por
+# entrada, consumida por el instrumento para que la excepcion se excluya **por
+# su nombre** y no por la memoria de quien mide.
+#
+# ---------------------------------------------------------------------------
+# LA CLAUSULA QUE HACE QUE ESTO SIRVA
+# ---------------------------------------------------------------------------
+#
+# Un simbolo que es **meramente dificil, o que esta pendiente, o que nadie ha
+# mirado todavia, NO pertenece aqui**: se queda contado, a proposito. Este
+# archivo es para lo que **no tiene conducta que replicar** en este stack, no
+# para lo que aun no se ha hecho.
+#
+# El caso que fija la frontera esta medido y es de este arbol: `write` sale como
+# ausente **90 veces**, y la tentacion de aliasarlo a `save` esta
+# deliberadamente descartada en el docstring de `check_porte_completo.py`
+# —convertiria noventa preguntas abiertas en noventa absoluciones silenciosas—.
+# `write` NO entra aqui por la misma razon.
+#
+# Contraste, para que la frontera se lea de un vistazo:
+#
+#   ENTRA    el parametro que ningun llamador puede pasar, porque el framework
+#            lo rechaza con TypeError: no hay conducta que replicar.
+#   NO ENTRA el metodo cuya maquinaria aun no esta portada. Eso es un bloqueo
+#            con sucesor, y su hogar es `check_bloqueo_declarado.py` — sigue
+#            contado como deuda, con su arista declarada.
+#   NO ENTRA el metodo que hace lo mismo con otro nombre. Eso es `PORTE_ALIAS`.
+#   NO ENTRA lo que nadie ha medido. Eso es deuda, y se cuenta.
+#
+# ---------------------------------------------------------------------------
+# CONTRATO
+# ---------------------------------------------------------------------------
+#
+# Formato, una entrada por renglon:
+#
+#     <addon>/models/<archivo>.py::<Clase>::<simbolo>    un simbolo
+#     <addon>/models/<archivo>.py::<Clase>               una clase entera
+#     <addon>/models/<archivo>.py                        un archivo entero
+#
+# Cada entrada exige, en el comentario que la precede: **el motivo medido** y
+# **donde vive su prueba** (`api@<hash>`, o el archivo y la linea que la
+# declaran). Una entrada sin motivo es una absolucion, no una declaracion.
+#
+# NUNCA es una absolucion silenciosa: `check_porte_completo.py` las descuenta
+# de la deuda **y las publica con su propio conteo** en la linea de resumen. Lo
+# que se declara aqui sale del numerador de la deuda y entra en un numerador
+# propio; no desaparece.
+#
+# Y las entradas MUERTAS se reportan. Una entrada cuyo simbolo ya esta portado,
+# o cuyo archivo de referencia ya no existe, congela deuda que no existe — el
+# mismo defecto que la poda del baseline de vocabulario cerro el 2026-08-26
+# (H-DOCS-441). `--divergencias` las lista; el gate las nombra al final.
+
+# ===========================================================================
+# base_sparse_field
+# ===========================================================================
+
+# `_valid_field_parameter` existe en la referencia para que su ORM ACEPTE el
+# kwarg `sparse='data'` sin avisar. Aqui no hay tal kwarg: la clase base de
+# este puerto es `django.db.models.Field`, del framework, y lo rechaza —
+# `TypeError: Field.__init__() got an unexpected keyword argument 'sparse'`,
+# medido en api@0a9a0fb. Por eso `Sparse` es un descriptor propio
+# (`fields.Sparse('data')`). Un validador de parametros que nadie puede pasar
+# no tiene conducta que replicar.
+# Declarado en: addons/base_sparse_field/models/ir_model_fields.py:29-42
+base_sparse_field/models/models.py::Base::_valid_field_parameter

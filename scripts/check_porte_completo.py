@@ -166,6 +166,62 @@ PORTE_ALIAS = {
 }
 
 
+#: El registro de divergencias declaradas: lo que NO se porta, por decisión
+#: medida. Vive en un archivo aparte y no en este guion, porque un guion de
+#: ``.claude/scripts`` es mecanismo y no registro — mismo criterio que
+#: ``calibration-verified-numbers.md`` fija para las cifras.
+DIVERGENCIAS = pathlib.Path(__file__).with_name('divergencias_declaradas.txt')
+
+
+def cargar_divergencias():
+    """Las claves declaradas, en sus tres granularidades.
+
+    Devuelve el conjunto de claves tal cual están escritas. El emparejamiento
+    contra un hallazgo prueba las tres formas, de la más específica a la más
+    amplia: símbolo, clase, archivo.
+    """
+    if not DIVERGENCIAS.is_file():
+        return set()
+    return {
+        linea.strip()
+        for linea in DIVERGENCIAS.read_text(encoding='utf-8').splitlines()
+        if linea.strip() and not linea.lstrip().startswith('#')
+    }
+
+
+def claves_de(addon, file_path, klass, simbolo):
+    """Las tres claves con que una divergencia puede cubrir a este símbolo."""
+    archivo = f'{addon}/models/{file_path}'
+    return (f'{archivo}::{klass}::{simbolo}', f'{archivo}::{klass}', archivo)
+
+
+def separar_declarado(todos, declaradas):
+    """Parte los hallazgos en (deuda, declarados, claves_usadas).
+
+    Un hallazgo cuyos símbolos estén TODOS declarados sale de la deuda; uno
+    con parte declarada **conserva los pendientes** y sólo los declarados se
+    contabilizan aparte. Nunca se absuelve una clase entera por una entrada de
+    símbolo — el mismo criterio con que ``CLASE EXTENDIDA`` nunca absuelve la
+    clase completa.
+    """
+    deuda, declarados, usadas = [], [], set()
+    for addon, file_path, klass, tipo, simbolos in todos:
+        pendientes, cubiertos = [], []
+        for simbolo in simbolos:
+            clave = next((c for c in claves_de(addon, file_path, klass, simbolo)
+                          if c in declaradas), None)
+            if clave is None:
+                pendientes.append(simbolo)
+            else:
+                cubiertos.append(simbolo)
+                usadas.add(clave)
+        if cubiertos:
+            declarados.append((addon, file_path, klass, tipo, cubiertos))
+        if pendientes:
+            deuda.append((addon, file_path, klass, tipo, pendientes))
+    return deuda, declarados, usadas
+
+
 #: Receptores de ``add_to_class`` que NO son una clase resoluble en estático:
 #: el ayudante recibe el modelo por parámetro o por variable de bucle, así que
 #: el nombre que se lee del AST es el de la variable, no el del modelo.
@@ -535,6 +591,10 @@ def main():
                    help='inventario por archivo con su estado')
     p.add_argument('--quiet', action='store_true')
     p.add_argument('--strict', action='store_true')
+    p.add_argument('--divergencias', action='store_true',
+                   help='listar el registro de divergencias declaradas con su '
+                        'estado (viva si sigue cubriendo un hallazgo, MUERTA '
+                        'si ya no cubre nada)')
     args = p.parse_args()
 
     if not ODOO19C.is_dir():
@@ -552,6 +612,30 @@ def main():
         todos += hallazgos
         opacas += no_resolubles
         absueltos_total += absolutions
+
+    # Lo declarado sale de la deuda y entra en un numerador PROPIO. No
+    # desaparece: la linea de resumen lo publica siempre, y las entradas que ya
+    # no cubren nada se nombran. Un registro que congela deuda inexistente es
+    # el defecto que la poda del baseline de vocabulario cerro (H-DOCS-441).
+    declaradas = cargar_divergencias()
+    todos, declarados, usadas = separar_declarado(todos, declaradas)
+    muertas = sorted(declaradas - usadas)
+    simb_declarados = sum(len(h[4]) for h in declarados)
+
+    if args.divergencias:
+        print('divergencias declaradas:')
+        for clave in sorted(declaradas):
+            estado = 'viva  ' if clave in usadas else 'MUERTA'
+            print(f'  {estado}  {clave}')
+        print(f'\n{len(declaradas)} declarada(s) · {len(usadas)} viva(s) · '
+              f'{len(muertas)} muerta(s) '
+              f'(alcance medido: {pares_total} pares de archivo, '
+              f'{len(addons)} addons)')
+        if muertas:
+            print('\nUna entrada MUERTA ya no cubre ningun hallazgo: o el '
+                  'simbolo se porto —y entonces la entrada se retira—, o la '
+                  'clave esta mal escrita. Las dos piden accion.')
+        return 1 if (args.strict and muertas) else 0
 
     if args.mapa:
         # El inventario completo: cada archivo de la referencia con su estado.
@@ -594,6 +678,13 @@ def main():
               f'{len(addons)} addons; '
               f'{opacas} instalaciones con receptor no resoluble; '
               f'{absueltos_total} compute absueltos por property declarada)')
+        # El registro va en su propio renglon y con su propio conteo: lo
+        # declarado NO se suma a la deuda ni se calla. Y una entrada muerta se
+        # nombra aqui aunque nadie pida `--divergencias`.
+        print(f'divergencias declaradas: {len(declarados)} hallazgo(s), '
+              f'{simb_declarados} simbolo(s), '
+              f'{len(usadas)} de {len(declaradas)} entrada(s) vivas'
+              + (f' — MUERTAS: {", ".join(muertas)}' if muertas else ''))
     return 1 if (args.strict and todos) else 0
 
 
