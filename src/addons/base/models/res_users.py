@@ -1385,6 +1385,33 @@ class _ResUsersApikeysBase(TimeStampedModel):
         return k
 
     @classmethod
+    def check_access_make_key(cls):
+        """≙ ``check_access_make_key`` (``odoo19c: res_users.py:1832-1834``).
+
+        *"Only internal users can create API keys"*. Es la guarda de la vía
+        **interactiva** —un usuario creando su primera clave— y es otra puerta
+        que ``_ensure_can_manage_keys_programmatically``, que gobierna la vía
+        **programática** (una clave viva generando otra). La referencia tiene
+        las dos y no las confunde.
+
+        Va aquí y **no dentro de ``_generate``**, que es donde la tentación
+        estaría: la fuente la pone en ``make_key`` a propósito, porque
+        ``_generate`` también sirve al dispositivo de confianza de 2FA, y ése
+        lo usa un usuario de portal con todo derecho. Meter la guarda en la
+        primitiva rompería ese flujo — medido: ``authz_totp`` lo llama con
+        ``BROWSER_SCOPE`` para cualquier usuario que active el segundo factor.
+
+        Su consumidor es el endpoint que exponga la creación de claves, igual
+        que en la fuente lo es el asistente. Ese endpoint es la tarea **#490**;
+        hasta entonces la regla existe, se puede probar, y no está inventada en
+        el sitio equivocado.
+        """
+        actor = get_current_user()
+        if actor is None or not getattr(actor, 'is_internal', lambda: False)():
+            raise AccessError(
+                'Sólo un usuario interno puede crear claves de API.')
+
+    @classmethod
     def _ensure_can_manage_keys_programmatically(cls):
         """≙ ``_ensure_can_manage_keys_programmatically`` (``:1618-1633``).
 
