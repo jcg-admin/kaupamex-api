@@ -110,7 +110,7 @@ class PasskeyKey(TimeStampedModel):
     # ------------------------------------------------------------------
 
     @classmethod
-    def start_auth(cls, request):
+    def _start_auth(cls, request):
         """≙ ``_start_auth``: opciones de autenticación + challenge en la
         sesión."""
         authentication_options = json.loads(options_to_json(
@@ -123,7 +123,7 @@ class PasskeyKey(TimeStampedModel):
         return authentication_options
 
     @classmethod
-    def verify_auth(cls, request, auth, public_key, sign_count):
+    def _verify_auth(cls, request, auth, public_key, sign_count):
         """≙ ``_verify_auth``: devuelve el nuevo ``sign_count``."""
         parsed = urlparse(_base_url(request))
         expected_origin = f'{parsed.scheme}://{parsed.netloc}'
@@ -144,7 +144,7 @@ class PasskeyKey(TimeStampedModel):
     # ------------------------------------------------------------------
 
     @classmethod
-    def start_registration(cls, request, user):
+    def _start_registration(cls, request, user):
         """≙ ``_start_registration``: opciones de registro + challenge."""
         registration_options = json.loads(options_to_json(
             generate_registration_options(
@@ -162,7 +162,7 @@ class PasskeyKey(TimeStampedModel):
         return registration_options
 
     @classmethod
-    def verify_registration_options(cls, request, registration):
+    def _verify_registration_options(cls, request, registration):
         """≙ ``_verify_registration_options``."""
         parsed = urlparse(_base_url(request))
         expected_origin = f'{parsed.scheme}://{parsed.netloc}'

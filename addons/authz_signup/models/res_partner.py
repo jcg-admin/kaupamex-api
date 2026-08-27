@@ -9,20 +9,20 @@ que ``authz_ldap.res_users``). El ``signup_type`` persiste en
 Métodos de la referencia → aquí:
 
 - ``signup_prepare`` / ``signup_cancel`` → ``signup_prepare`` / ``signup_cancel``.
-- ``_generate_signup_token`` → ``generate_signup_token``: firma
+- ``_generate_signup_token`` → ``_generate_signup_token``: firma
   ``[partner.id, user_ids, login_date, signup_type]`` (``../token.py``). El
   ``login_date`` en el payload invalida el token al iniciar sesión.
-- ``_get_partner_from_token`` → ``get_partner_from_token``: verifica firma +
+- ``_get_partner_from_token`` → ``_get_partner_from_token``: verifica firma +
   edad (validez por tipo) + que login_date/user_ids/signup_type siguen
   coincidiendo con el estado actual.
-- ``_signup_retrieve_info`` → ``signup_retrieve_info``: dict con db/token/
+- ``_signup_retrieve_info`` → ``_signup_retrieve_info``: dict con db/token/
   name/login/email para la pantalla de set-password del SPA.
 - ``_get_login_date`` → ``_login_date``.
 - ``signup_get_auth_param`` → ``signup_get_auth_param`` (para el share url de
   portal): token si no hay usuario, login si ya existe.
 - ``_get_signup_url*`` → NO portados: arman la URL ``/web/reset_password`` del
   frontend QWeb de Odoo; el SPA arma su propia URL con el token que devuelve
-  ``signup_retrieve_info``/``signup_get_auth_param``.
+  ``_signup_retrieve_info``/``signup_get_auth_param``.
 """
 from datetime import datetime
 
@@ -94,7 +94,7 @@ def signup_cancel(partner):
     return True
 
 
-def generate_signup_token(partner):
+def _generate_signup_token(partner):
     """≙ ``_generate_signup_token`` (res_partner.py:171-191)."""
     signup_type = _signup_type(partner) or SignupRequest.TYPE_SIGNUP
     user_ids = sorted(partner.users.values_list('id', flat=True))
@@ -102,7 +102,7 @@ def generate_signup_token(partner):
     return sign_signup_payload(payload)
 
 
-def get_partner_from_token(token):
+def _get_partner_from_token(token):
     """≙ ``_get_partner_from_token`` (res_partner.py:193-201).
 
     Verifica firma, edad (validez por tipo) y que el estado del partner
@@ -131,10 +131,10 @@ def get_partner_from_token(token):
     return None
 
 
-def signup_retrieve_info(token):
+def _signup_retrieve_info(token):
     """≙ ``_signup_retrieve_info`` (res_partner.py:132-161): datos para la
     pantalla de set-password (``None`` si el token no es válido)."""
-    partner = get_partner_from_token(token)
+    partner = _get_partner_from_token(token)
     if partner is None:
         return None
     res = {'token': token, 'name': partner.name}
@@ -157,5 +157,5 @@ def signup_get_auth_param(partner, requester):
         return {'auth_login': user.login}
     if signup_open():
         signup_prepare(partner)
-        return {'auth_signup_token': generate_signup_token(partner)}
+        return {'auth_signup_token': _generate_signup_token(partner)}
     return {}

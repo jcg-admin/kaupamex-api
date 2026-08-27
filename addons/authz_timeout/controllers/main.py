@@ -20,7 +20,7 @@ Porte símbolo por símbolo — 3 de 3
    * - ``check_identity_session`` (``:15``)
      - ``check_identity_submit``
      - ``POST …/timeout/session/check-identity/``
-   * - ``send_totp_mail_code`` (``:20``)
+   * - ``_send_totp_mail_code`` (``:20``)
      - ``send_totp_mail_code_view``
      - ``POST …/timeout/send-totp-mail-code/``
 
@@ -71,7 +71,7 @@ from rest_framework.response import Response
 from addons.authz.permissions import require_capability
 from addons.authz_timeout.controllers.serializers import CheckIdentitySerializer
 from addons.authz_timeout.models.ir_http import _check_identity, _must_check_identity
-from addons.authz_totp_mail.models.res_users import send_totp_mail_code
+from addons.authz_totp_mail.models.res_users import _send_totp_mail_code
 
 _TAGS = ['authz-candado-tiempo']
 _CAP = 'account.security'
@@ -153,13 +153,13 @@ def check_identity_submit(request):
 @api_view(['POST'])
 @require_capability(_CAP)
 def send_totp_mail_code_view(request):
-    """POST — ≙ ``send_totp_mail_code`` (``main.py:20``).
+    """POST — ≙ ``_send_totp_mail_code`` (``main.py:20``).
 
     La fuente llama ``self.env.user._send_totp_mail_code()``; aquí el mismo
-    mecanismo es la función de módulo ``send_totp_mail_code(user)`` de
+    mecanismo es la función de módulo ``_send_totp_mail_code(user)`` de
     ``authz_totp_mail``, que es donde este árbol lo declara.
     """
-    send_totp_mail_code(request.user)
+    _send_totp_mail_code(request.user)
     return Response({'sent': True})
 
 

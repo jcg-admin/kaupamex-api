@@ -22,7 +22,7 @@ from exceptions import AccessDenied, UserError
 from addons.authz.permissions import require_capability
 from addons.authz_totp_mail.models.res_users import (
     invite_users,
-    send_totp_mail_code,
+    _send_totp_mail_code,
     verify_totp_mail_code,
 )
 
@@ -48,7 +48,7 @@ class InviteSerializer(serializers.Serializer):
 @api_view(['POST'])
 @require_capability(_CAP)
 def send_code(request):
-    """≙ ``auth_timeout/controllers/main.py::send_totp_mail_code`` (``:20-23``).
+    """≙ ``auth_timeout/controllers/main.py::_send_totp_mail_code`` (``:20-23``).
 
     **No lleva guarda de ``_mfa_type()``, y la fuente tampoco.** Es la
     respuesta medida a #719, que preguntaba si debía consultar un predicado
@@ -65,7 +65,7 @@ def send_code(request):
     caso de quien tiene 2FA de app y aun así quiere la vía por correo.
     """
     try:
-        send_totp_mail_code(request.user)
+        _send_totp_mail_code(request.user)
     except UserError as exc:
         return Response(
             {'codigo_error': 'TOTP_MAIL_SEND_FAILED', 'detail': str(exc)},

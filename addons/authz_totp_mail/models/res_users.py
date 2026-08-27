@@ -8,7 +8,7 @@ funciones sobre el usuario (no hay ``_inherit``), mismo criterio que
 Métodos de la referencia → aquí:
 
 - ``_get_totp_mail_key`` / ``_get_totp_mail_code`` / ``_send_totp_mail_code``
-  → ``totp_mail_key`` / ``totp_mail_code`` / ``send_totp_mail_code``.
+  → ``totp_mail_key`` / ``totp_mail_code`` / ``_send_totp_mail_code``.
 - ``_check_credentials`` (type ``totp_mail``) → portado abajo **con su nombre**
   y encadenado sobre ``res.users``; ``verify_totp_mail_code`` queda como el
   verificador que consume, reutilizable por la vista del segundo paso. Es el
@@ -143,7 +143,7 @@ def verify_totp_mail_code(user, code):
     return True
 
 
-def send_totp_mail_code(user):
+def _send_totp_mail_code(user):
     """≙ ``_send_totp_mail_code`` (res_users.py:184-216): renderiza la
     plantilla del código y la despacha al email del usuario."""
     if not user.login:
@@ -256,7 +256,7 @@ def _notify_security_new_connection(self, request):
     al titular. Moverlo al final del flujo lo dejaría mudo justo en ese caso.
 
     Aquí el correo es ``login`` (este árbol no declara un campo ``email``
-    aparte), igual que en ``send_totp_mail_code`` y en ``../signals.py``.
+    aparte), igual que en ``_send_totp_mail_code`` y en ``../signals.py``.
     """
     if request is None or not self.login or not self._mfa_type():
         return

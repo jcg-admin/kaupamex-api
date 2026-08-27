@@ -167,7 +167,7 @@ def signup_info(request):
     de set-password pinte la política antes de enviar.
     """
     token = request.query_params.get('token', '')
-    info = partner_svc.signup_retrieve_info(token) if token else None
+    info = partner_svc._signup_retrieve_info(token) if token else None
     if info is None:
         return Response(
             {'codigo_error': 'SIGNUP_INVALID_TOKEN',

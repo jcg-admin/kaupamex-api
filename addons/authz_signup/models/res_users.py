@@ -62,7 +62,7 @@ def signup(values, token=None):
     """
     ResUsers = django_apps.get_model('base', 'ResUsers')
     if token:
-        partner = partner_svc.get_partner_from_token(token)
+        partner = partner_svc._get_partner_from_token(token)
         if partner is None:
             raise UserError(
                 "Signup token '%s' is not valid or expired" % token)
@@ -122,7 +122,7 @@ def send_reset_password(user, signup_type=SignupRequest.TYPE_RESET):
         raise UserError(
             'Cannot send email: user %s has no email address.' % user)
     partner_svc.signup_prepare(user.partner, signup_type=signup_type)
-    token = partner_svc.generate_signup_token(user.partner)
+    token = partner_svc._generate_signup_token(user.partner)
     base = str(SystemParameter.get_param(
         PARAM_SET_PASSWORD_URL, '/account/set-password'))
     link = '%s?token=%s' % (base, token)
@@ -170,7 +170,7 @@ def send_verification_email(user):
         raise UserError('This account cannot be reactivated by email.')
     partner_svc.signup_prepare(
         user.partner, signup_type=SignupRequest.TYPE_VERIFY)
-    token = partner_svc.generate_signup_token(user.partner)
+    token = partner_svc._generate_signup_token(user.partner)
     base = str(SystemParameter.get_param(
         PARAM_VERIFY_EMAIL_URL, '/account/verify-email'))
     link = '%s?token=%s' % (base, token)
@@ -199,7 +199,7 @@ def verify_email(token):
     ``signup_type`` va dentro del payload firmado, el mismo token deja de
     resolver en cuanto se consume.
     """
-    partner = partner_svc.get_partner_from_token(token) if token else None
+    partner = partner_svc._get_partner_from_token(token) if token else None
     if partner is None:
         raise UserError('Verification token is not valid or expired.')
     request = SignupRequest.objects.filter(partner=partner).first()

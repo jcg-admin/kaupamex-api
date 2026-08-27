@@ -2,8 +2,8 @@
 
 El test de la referencia (``test_passkey_demo.py``, 523 loc) reproduce
 respuestas WebAuthn grabadas contra SU rp_id/orígenes — no son portables a
-otro dominio. Aquí la capa criptográfica (``verify_auth`` /
-``verify_registration_options``) se mockea, igual que la capa LDAP/OAuth en
+otro dominio. Aquí la capa criptográfica (``_verify_auth`` /
+``_verify_registration_options``) se mockea, igual que la capa LDAP/OAuth en
 sus tests hermanos, y se cubre el contrato: challenge en sesión, alta y
 login, passkey desconocida, aislamiento por dueño y campos no expuestos.
 """
@@ -64,7 +64,7 @@ class TestPasskeyLogin:
         PasskeyKey.objects.create(
             user=user, name='llave', credential_identifier='cred-1',
             public_key='pk', sign_count=3)
-        with patch.object(PasskeyKey, 'verify_auth', return_value=4):
+        with patch.object(PasskeyKey, '_verify_auth', return_value=4):
             resp = api_client.post(SIGNIN_URL, {
                 'webauthn_response': {'id': 'cred-1'},
             }, format='json')
@@ -91,7 +91,7 @@ class TestPasskeyManagement:
         _elevar(api_client, user)  # cubre la sesión ya materializada
 
         with patch.object(
-            PasskeyKey, 'verify_registration_options',
+            PasskeyKey, '_verify_registration_options',
             return_value={'credential_id': b'cred-bytes',
                           'credential_public_key': b'pk-bytes'},
         ):

@@ -48,32 +48,32 @@ class TestSignupToken:
         partner = ResPartner.objects.create(
             name='Invitado', email='inv@kaupamex.mx')
         pp.signup_prepare(partner)
-        token = pp.generate_signup_token(partner)
-        assert pp.get_partner_from_token(token) == partner
+        token = pp._generate_signup_token(partner)
+        assert pp._get_partner_from_token(token) == partner
 
     def test_token_invalido_devuelve_none(self, seeded, db):
-        assert pp.get_partner_from_token('firma.mala.zzz') is None
+        assert pp._get_partner_from_token('firma.mala.zzz') is None
 
     def test_token_se_invalida_al_cancelar(self, seeded, db):
         partner = ResPartner.objects.create(
             name='X', email='x@kaupamex.mx')
         pp.signup_prepare(partner)
-        token = pp.generate_signup_token(partner)
+        token = pp._generate_signup_token(partner)
         pp.signup_cancel(partner)
         # el signup_type ya no coincide → token inválido
-        assert pp.get_partner_from_token(token) is None
+        assert pp._get_partner_from_token(token) is None
 
     def test_token_se_invalida_al_iniciar_sesion(self, seeded, db):
         partner = ResPartner.objects.create(
             name='Y', email='y@kaupamex.mx')
         user = User.objects.create_user(login='y@kaupamex.mx', partner=partner)
         pp.signup_prepare(partner)
-        token = pp.generate_signup_token(partner)
-        assert pp.get_partner_from_token(token) == partner
+        token = pp._generate_signup_token(partner)
+        assert pp._get_partner_from_token(token) == partner
         # simular login: last_login cambia → login_date del payload difiere
         user.last_login = timezone.now()
         user.save(update_fields=['last_login'])
-        assert pp.get_partner_from_token(token) is None
+        assert pp._get_partner_from_token(token) is None
 
 
 class TestSignupFlow:
@@ -83,7 +83,7 @@ class TestSignupFlow:
         partner = ResPartner.objects.create(
             name='Nuevo', email='nuevo@kaupamex.mx')
         pp.signup_prepare(partner)
-        token = pp.generate_signup_token(partner)
+        token = pp._generate_signup_token(partner)
 
         resp = api_client.post(SIGNUP_URL, {
             'token': token, 'password': 'Sup3rSecret!',
@@ -98,7 +98,7 @@ class TestSignupFlow:
         partner = ResPartner.objects.create(
             name='Info', email='info@kaupamex.mx')
         pp.signup_prepare(partner)
-        token = pp.generate_signup_token(partner)
+        token = pp._generate_signup_token(partner)
         SystemParameter.set_param('authz.password_minlength', '10')
         resp = api_client.get(INFO_URL, {'token': token})
         assert resp.status_code == 200, resp.data

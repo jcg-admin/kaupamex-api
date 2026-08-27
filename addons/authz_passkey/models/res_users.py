@@ -44,7 +44,7 @@ Divergencia declarada — ``request`` viaja en ``env``
 ====================================================
 
 La fuente lee la petición de un hilo-local (su ``request`` global), así que su
-``_check_credentials`` no la recibe. Aquí ``PasskeyKey.verify_auth`` la toma
+``_check_credentials`` no la recibe. Aquí ``PasskeyKey._verify_auth`` la toma
 explícita —el reto de WebAuthn vive en la sesión— y el único canal que la
 cadena ofrece es ``env``. Por eso el llamador pasa
 ``{'interactive': True, 'request': request}`` y este eslabón lo lee de ahí.
