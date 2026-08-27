@@ -86,3 +86,31 @@
 # no tiene conducta que replicar.
 # Declarado en: addons/base_sparse_field/models/ir_model_fields.py:29-42
 base_sparse_field/models/models.py::Base::_valid_field_parameter
+
+# --- res_device.py (tarea #71) -------------------------------------------
+# El porte esta cerrado: los 15 metodos de la fuente tienen contraparte. Lo
+# que sigue son las divergencias de FORMA que el docstring del modulo declara
+# una por una, y que el gate —que compara por nombre y por clase— no puede
+# ver.
+#
+# Tres cambian de nombre porque su mecanismo aqui es otro:
+base/models/res_device.py::ResDeviceLog::_compute_display_name
+base/models/res_device.py::ResDeviceLog::_compute_is_current
+base/models/res_device.py::ResDeviceLog::_order_field_to_sql
+#
+# Cuatro son el DDL de la vista, que en Django vive en la migracion
+# `base.0004_resdevice` y no en el modelo:
+base/models/res_device.py::ResDevice::_select
+base/models/res_device.py::ResDevice::_from
+base/models/res_device.py::ResDevice::_where
+base/models/res_device.py::ResDevice::_query
+#
+# Cinco estan FUERA DE SITIO —existen en el archivo, en otra clase— y su
+# veredicto es este: la fuente declara todo sobre `res.device.log` y hace que
+# `res.device` lo herede con `_inherit`; aqui esa herencia por prototipo es una
+# base abstracta (`_ResDeviceFields`), y el recordset es un `QuerySet`.
+base/models/res_device.py::ResDeviceLog::_is_mobile
+base/models/res_device.py::ResDeviceLog::_compute_linked_ip_addresses
+base/models/res_device.py::ResDevice::_revoke
+base/models/res_device.py::ResDevice::revoke
+base/models/res_device.py::ResDevice::init
