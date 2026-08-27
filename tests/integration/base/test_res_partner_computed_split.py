@@ -10,7 +10,7 @@ Qué se corrige aquí, y no es cosmético
 =======================================
 
 Tres de los cinco **ya funcionaban** en este árbol, pero como ``property``
-pública sin su cómputo privado. La fuente parte cada uno en dos —el campo
+pública sin su cómputo privado. La fuente parte cada uno en dos —el field
 ``X`` que se lee, y el ``_compute_X`` que lo calcula— y esa frontera es el
 punto de extensión: un addon que quiera cambiar cómo se deriva la entidad
 comercial sobreescribe ``_compute_commercial_partner``, no la lectura.
@@ -44,7 +44,7 @@ pytestmark = pytest.mark.integration
 
 
 class TestPrivatePublicSplit:
-    """Los tres que ya existían: el campo sigue leyéndose igual y ahora hay
+    """Los tres que ya existían: el field sigue leyéndose igual y ahora hay
     dónde engancharse."""
 
     def test_the_commercial_partner_field_still_reads(self, db):
@@ -52,23 +52,28 @@ class TestPrivatePublicSplit:
         who = ResPartner.objects.create(name='Ana', parent=company)
         assert who.commercial_partner == company
 
-    def test_the_field_delegates_to_the_private_compute(self, db):
-        """CONTROL de la partición — si el campo no delegara, sobreescribir
-        el cómputo no cambiaría la lectura y el punto de extensión sería
-        decorativo."""
-        company = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
-        who = ResPartner.objects.create(name='Ana', parent=company)
-        assert who.commercial_partner == who._compute_commercial_partner()
+    @pytest.mark.parametrize('field, compute', [
+        ('commercial_partner', '_compute_commercial_partner'),
+        ('commercial_company_name', '_compute_commercial_company_name'),
+        ('contact_address', '_compute_contact_address'),
+    ])
+    def test_overriding_the_compute_changes_the_read(self, db, monkeypatch,
+                                                     field, compute):
+        """CONTROL de la partición, y tiene que hacerse SOBREESCRIBIENDO.
 
-    def test_the_company_name_field_delegates_too(self, db):
-        company = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
-        who = ResPartner.objects.create(name='Ana', parent=company)
-        assert who.commercial_company_name == who._compute_commercial_company_name()
+        Comparar ``who.X == who._compute_X()`` **no discrimina**: si el
+        cuerpo siguiera inline en la property, los dos lados darían lo mismo
+        y el control pasaría igual. Medido: con la property inline, 9 passed.
 
-    def test_the_contact_address_field_delegates_too(self, db):
-        who = ResPartner.objects.create(name='Ana', street='Reforma 1',
-                                        city='CDMX')
-        assert who.contact_address == who._compute_contact_address()
+        Lo que sí discrimina es hacer lo que hace un addon — sobreescribir el
+        cómputo y leer el field. Si la property no delega, la lectura ignora
+        el override y el punto de extensión es decorativo.
+        """
+        company = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
+        who = ResPartner.objects.create(name='Ana', parent=company,
+                                        street='Reforma 1', city='CDMX')
+        monkeypatch.setattr(ResPartner, compute, lambda self: 'DESDE EL ADDON')
+        assert getattr(who, field) == 'DESDE EL ADDON'
 
 
 class TestIsPublic:
@@ -109,7 +114,7 @@ class TestSelfAlias:
         assert who.self == who
 
     def test_it_is_not_merely_the_pk(self, db):
-        """CONTROL — la fuente declara el campo como ``Many2one``, no como
+        """CONTROL — la fuente declara el field como ``Many2one``, no como
         entero: devuelve el REGISTRO. Sin eso, quien lo lea no podría
         atravesar a sus campos."""
         who = ResPartner.objects.create(name='Ana')
