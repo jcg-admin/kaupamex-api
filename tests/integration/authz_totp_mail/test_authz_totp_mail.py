@@ -1,7 +1,7 @@
 """Tests — addons.authz_totp_mail (2FA por correo e invitación).
 
 Porta la intención de ``odoo19c: auth_totp_mail/tests/``: el código emitido
-por ``totp_mail_code`` verifica contra ``verify_totp_mail_code`` (ida y
+por ``_get_totp_mail_code`` verifica contra ``verify_totp_mail_code`` (ida y
 vuelta del TOTP con timestep 3600), la invitación omite a quienes ya tienen
 2FA activo, y la política ``authz_totp.policy`` decide quién queda obligado.
 El transporte de correo corre síncrono en testing (DISPATCH_EMAIL_SYNC) y se
@@ -20,7 +20,7 @@ from addons.authz.services import invalidate_capabilities
 from addons.authz_totp.models import TotpSecret
 from addons.authz_totp_mail.data import seed as seed_totp_mail
 from addons.authz_totp_mail.models.res_users import (
-    totp_mail_code,
+    _get_totp_mail_code,
     verify_totp_mail_code,
 )
 from addons.base.models import SystemParameter
@@ -42,7 +42,7 @@ def user(db):
 class TestTotpMailCode:
 
     def test_codigo_emitido_verifica(self, user):
-        code, expiration = totp_mail_code(user)
+        code, expiration = _get_totp_mail_code(user)
         assert len(code) == 6
         assert expiration == 3600
         assert verify_totp_mail_code(user, code) is True
@@ -53,7 +53,7 @@ class TestTotpMailCode:
 
     def test_codigo_de_otro_usuario_no_verifica(self, user, db):
         otro = User.objects.create_user(login='otro@kaupamex.mx')
-        code, _ = totp_mail_code(otro)
+        code, _ = _get_totp_mail_code(otro)
         with pytest.raises(AccessDenied):
             verify_totp_mail_code(user, code)
 
@@ -70,7 +70,7 @@ class TestTotpMailCode:
         assert len(django_mail.outbox) == 1
         assert django_mail.outbox[0].to == [user.login]
 
-        code, _ = totp_mail_code(user)
+        code, _ = _get_totp_mail_code(user)
         resp = api_client.post(VERIFY_URL, {'code': code}, format='json')
         assert resp.status_code == 200, resp.data
         resp = api_client.post(VERIFY_URL, {'code': '999999'}, format='json')

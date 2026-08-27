@@ -8,7 +8,7 @@ funciones sobre el usuario (no hay ``_inherit``), mismo criterio que
 Métodos de la referencia → aquí:
 
 - ``_get_totp_mail_key`` / ``_get_totp_mail_code`` / ``_send_totp_mail_code``
-  → ``totp_mail_key`` / ``totp_mail_code`` / ``_send_totp_mail_code``.
+  → ``_get_totp_mail_key`` / ``_get_totp_mail_code`` / ``_send_totp_mail_code``.
 - ``_check_credentials`` (type ``totp_mail``) → portado abajo **con su nombre**
   y encadenado sobre ``res.users``; ``verify_totp_mail_code`` queda como el
   verificador que consume, reutilizable por la vista del segundo paso. Es el
@@ -101,7 +101,7 @@ NEW_CONNECTION_CONTENT = 'A new device was used to sign in to your account.'
 TOTP_MAIL_SECOND_STEP_URL = '/login/totp'
 
 
-def totp_mail_key(user):
+def _get_totp_mail_key(user):
     """≙ ``_get_totp_mail_key`` (res_users.py:160-162): clave HMAC derivada
     del secreto del despliegue + identidad y último login del usuario (el
     ``login_date`` de la referencia invalida los códigos al re-loguear)."""
@@ -109,13 +109,13 @@ def totp_mail_key(user):
     return tools_hmac('auth_totp_mail-code', message).encode()
 
 
-def totp_mail_code(user):
+def _get_totp_mail_code(user):
     """≙ ``_get_totp_mail_code`` (res_users.py:164-182): ``(code, segundos)``.
 
     El guard de sesión pre-auth de la referencia (``request.session.pre_uid``)
     pertenece a su flujo de login web; aquí el llamador controla el contexto.
     """
-    key = totp_mail_key(user)
+    key = _get_totp_mail_key(user)
     counter = int(datetime.now().timestamp() / TOTP_MAIL_TIMESTEP)
     code = hotp(key, counter)
     return str(code).zfill(6), TOTP_MAIL_WINDOW
@@ -133,7 +133,7 @@ def verify_totp_mail_code(user, code):
         token = None
     match = None
     if token is not None:
-        match = TOTP(totp_mail_key(user)).match(
+        match = TOTP(_get_totp_mail_key(user)).match(
             token, window=TOTP_MAIL_WINDOW, timestep=TOTP_MAIL_TIMESTEP)
     if match is None:
         _logger.info('2FA check (mail): FAIL for %r', user.login)
@@ -149,7 +149,7 @@ def _send_totp_mail_code(user):
     if not user.login:
         raise UserError(
             'Cannot send email: user %s has no email address.' % user)
-    code, expiration = totp_mail_code(user)
+    code, expiration = _get_totp_mail_code(user)
     template = MailTemplate.objects.filter(
         name=TEMPLATE_TOTP_MAIL_CODE).first()
     if template is None:

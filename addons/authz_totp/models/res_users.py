@@ -86,12 +86,33 @@ Bloqueo medido — ``_rpc_api_keys_only``
 La referencia lo usa para negar el acceso RPC por contraseña cuando hay 2FA
 (``odoo/addons/base/models/res_users.py:356,396`` son sus dos consumidores).
 Este árbol **no tiene el canal que restringiría**: las claves de API para
-integración externa no están construidas, y su porte es la tarea **#490**. Un
+integración externa no están construidas, y su porte es la tarea **#85**. Un
 método que niega el acceso a un canal inexistente no niega nada — sería un
 símbolo muerto con nombre de guarda, que es peor que su ausencia.
 
 Se porta cuando exista el canal; su eslabón base tampoco se declaró en
-``src/addons/base/models/res_users.py`` por la misma razón. Sucesor: **#490**.
+``src/addons/base/models/res_users.py`` por la misma razón. Sucesor: **#85**.
+
+Los otros tres bloqueos, con su sucesor
+========================================
+
+Porte BLOQUEADO — 4 de 24 símbolos, cada uno por un mecanismo que este árbol
+no tiene todavía. Ninguno es omisión:
+
+- ``SELF_READABLE_FIELDS`` — BLOQUEADO por ``base.ResUsers.SELF_READABLE_FIELDS``
+  — la lista blanca que la referencia **extiende** no existe aquí, así que no
+  hay qué extender. Sucesor: **#85**.
+- ``_rpc_api_keys_only`` — BLOQUEADO por ``res.users.apikeys`` — el canal RPC
+  por clave de API no está construido (arriba). Sucesor: **#85**.
+- ``_totp_rate_limit`` — BLOQUEADO por ``auth_totp_rate_limit_log`` — la tabla
+  donde la referencia persiste los intentos no está portada (H-API-232).
+  Sucesor: **#85**.
+- ``_totp_rate_limit_purge`` — BLOQUEADO por ``auth_totp_rate_limit_log`` — el
+  barrido de esa misma tabla. Sucesor: **#85**.
+
+``authz_totp_mail`` declara ``_rpc_api_keys_only`` y llama al rate limit desde
+``_send_totp_mail_code``: los dos bloqueos son de la cadena entera, no de este
+eslabón.
 
 Divergencia declarada — dónde vive el secreto
 ==============================================

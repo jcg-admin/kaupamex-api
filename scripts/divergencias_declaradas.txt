@@ -229,3 +229,89 @@ authz_passkey/models/res_users.py::ResUsers::action_create_passkey
 authz_passkey/models/res_users.py::ResUsers::_login
 authz_passkey/models/res_users.py::ResUsers::_get_session_token_fields
 authz_passkey/models/res_users.py::ResUsers::_get_session_token_query_params
+#
+# --- authz_totp: 12 de 16, cada uno con su renglon en la tabla del archivo ----
+#
+# El 2FA por app no puede colgar de `res.users` por herencia, asi que su
+# superficie se reparte entre `services.py`, los controllers y una tabla
+# lateral. Los cuatro que NO entran aqui son BLOQUEOS y siguen contados:
+# SELF_READABLE_FIELDS (base no declara la lista blanca), _rpc_api_keys_only
+# (el canal RPC por clave de API no esta construido) y el par
+# _totp_rate_limit/_purge con su tabla (H-API-232).
+#
+#   init -> la columna la crea una migracion de Django, no un ALTER TABLE.
+#   _compute_totp_enabled -> `property` del modulo: = el compute sin `store`.
+#   _get_session_token_fields -> el token de sesion de este arbol NO se compone
+#     por campos del usuario; no hay nada que extender.
+#   _totp_try_setting -> services.confirm_setup.
+#   action_totp_disable -> services.disable + controllers.main.totp_disable.
+#   action_totp_enable_wizard -> services.begin_setup + controllers.main.totp_setup.
+#   revoke_all_devices / _revoke_all_devices -> auth_totp.revoke_all_devices, UNA
+#     funcion y no dos: la identidad fresca que alla pone @check_identity la
+#     exige aqui la vista (DEC-12), asi que los dos cuerpos coinciden.
+#   change_password -> su cuerpo entero es revocar y delegar en super(); el
+#     cambio de contrasena vive en `authz` y llama a revoke_all_devices.
+#   _compute_totp_secret / _inverse_token -> el secreto es una FILA (tabla
+#     lateral OneToOne), no un campo calculado sobre la del usuario.
+#   _totp_enable_search -> se busca por `totp_secret__confirmed=True`, que es
+#     el mismo predicado sobre la relacion.
+authz_totp/models/res_users.py::ResUsers::init
+authz_totp/models/res_users.py::ResUsers::_compute_totp_enabled
+authz_totp/models/res_users.py::ResUsers::_get_session_token_fields
+authz_totp/models/res_users.py::ResUsers::_totp_try_setting
+authz_totp/models/res_users.py::ResUsers::action_totp_disable
+authz_totp/models/res_users.py::ResUsers::action_totp_enable_wizard
+authz_totp/models/res_users.py::ResUsers::revoke_all_devices
+authz_totp/models/res_users.py::ResUsers::_revoke_all_devices
+authz_totp/models/res_users.py::ResUsers::change_password
+authz_totp/models/res_users.py::ResUsers::_compute_totp_secret
+authz_totp/models/res_users.py::ResUsers::_inverse_token
+authz_totp/models/res_users.py::ResUsers::_totp_enable_search
+
+# --- authz_totp_mail/models/res_users.py -----------------------------------
+# El addon NO usa `_inherit`: la referencia extiende `res.users` y aqui son
+# FUNCIONES sobre el usuario (mismo criterio que authz_ldap.models.res_users).
+# El gate compara METODOS DE CLASE, asi que una funcion de modulo con el nombre
+# fiel le sale igual de ausente que una omitida. Las siete primeras SI estan
+# portadas, con su nombre; las tres ultimas son divergencia de mecanismo.
+#
+# Portadas como funcion de modulo, con el nombre de la fuente:
+#   _get_totp_mail_key / _get_totp_mail_code / _send_totp_mail_code
+#     -> res_users.py:104,112,146. El guion bajo se restauro en este pase:
+#        estaban como `totp_mail_key` / `totp_mail_code`, que promovia a API
+#        publica lo que la fuente reserva (H-API-581).
+#   get_totp_invite_url -> res_users.py:305, como config L2.
+#   write -> ../signals.py, como senal sobre TotpSecret (no hay _inherit que
+#        envolver; el evento equivalente es la transicion de `confirmed`).
+#   action_totp_invite -> `invite_users` (res_users.py:311). Renombre
+#        deliberado: la fuente devuelve una accion de cliente `display_
+#        notification` del backoffice; aqui devuelve la lista de invitados y
+#        la vista decide como mostrarla.
+#
+# Divergencia de mecanismo:
+#   authenticate -> la fuente concentra ahi el chequeo, la fecha de login y el
+#     auth_info; aqui eso lo reparte Django entre sus cuatro backends. La
+#     mitad de verificacion SI se unifico: `_check_credentials` existe como
+#     cadena sobre res.users, con este addon de tercer eslabon.
+#   action_open_my_account_settings -> devuelve un `ir.actions.act_window`
+#     sobre una vista de formulario del backoffice; el SPA tiene su ruta.
+#   _notify_security_setting_update_prepare_values -> prepara los valores de la
+#     plantilla QWeb `mail.account_security_alert` con su `suggest_2fa`. Esa
+#     plantilla es capa de presentacion del backoffice y no se porta; el correo
+#     va directo por `dispatch_email`.
+authz_totp_mail/models/res_users.py::ResUsers::_get_totp_mail_key
+authz_totp_mail/models/res_users.py::ResUsers::_get_totp_mail_code
+authz_totp_mail/models/res_users.py::ResUsers::_send_totp_mail_code
+authz_totp_mail/models/res_users.py::ResUsers::get_totp_invite_url
+authz_totp_mail/models/res_users.py::ResUsers::write
+authz_totp_mail/models/res_users.py::ResUsers::action_totp_invite
+authz_totp_mail/models/res_users.py::ResUsers::authenticate
+authz_totp_mail/models/res_users.py::ResUsers::action_open_my_account_settings
+authz_totp_mail/models/res_users.py::ResUsers::_notify_security_setting_update_prepare_values
+
+# --- authz_totp_mail/models/auth_totp_device.py ----------------------------
+# Sus DOS simbolos portados en ../signals.py: `unlink` -> notify_device_removed
+# (pre_delete + on_commit) y `_classify_by_user` -> _classify_by_user, con el
+# nombre de la fuente. La premisa que decia que no se podia portar era falsa
+# (H-API-830).
+authz_totp_mail/models/auth_totp_device.py
