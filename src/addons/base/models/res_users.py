@@ -465,7 +465,7 @@ class ResUsers(TimeStampedModel):
     **este mismo archivo**, y listarlos aquí como pendientes contradecía esa
     declaración.
 
-    *Portados — 6:*
+    *Portados — 7:*
 
     - ``_deactivate_portal_user`` (``:934-987``) → :meth:`ResUsersQuerySet
       ._deactivate_portal_user`. Su consumidor **ya existía** y hacía dos de
@@ -479,12 +479,10 @@ class ResUsers(TimeStampedModel):
       Django el M2M nunca se escribe en el ``save()``: va siempre por su
       propio camino, y ese camino es justo la condición que su ``write``
       comprueba a mano con ``if 'company_ids' not in vals``. Tarea **#68**.
-
-    *Trabajo, con tarea propia — 1:*
-
-    - ``_action_revoke_all_devices`` (``:1028-1031``): BLOQUEADO por
-      ``ResDevice._revoke`` — sus tres líneas delegan enteras en él, y ese
-      método no está portado. Tarea **#69**.
+    - ``_action_revoke_all_devices`` (``:1028-1031``) →
+      :meth:`_action_revoke_all_devices`. Estuvo BLOQUEADO por
+      ``ResDevice._revoke``, que se portó en la tarea **#69**; el bloqueo era
+      real y se cerró desbloqueándolo, no rebajándolo.
 
     *Divergencia declarada — 3:*
 
@@ -855,6 +853,38 @@ class ResUsers(TimeStampedModel):
                 'contraseña con la anterior: por esta vía la sesión en curso '
                 'se quedaría con la credencial vieja.')
         self._change_password(new_password)
+
+    def _action_revoke_all_devices(self, request=None):
+        """≙ ``_action_revoke_all_devices`` (``odoo19c: res_users.py:1028-1031``).
+
+        Cierra **todas** las sesiones de esta persona menos la que está usando
+        ahora: si también cerrara la actual, el gesto de «expulsar al intruso»
+        expulsaría a quien lo pide.
+
+        **Un solo cuerpo donde la fuente tiene dos.** Su ``action_revoke_all
+        _devices`` (``:1021-1025``) es el público con ``@check_identity`` y
+        éste el interno sin él; aquí la identidad fresca la exige
+        ``authz_reauth.assert_session_fresh`` desde la vista (DEC-12), así que
+        el gate lo pone quien lo exponga. Misma resolución que
+        ``authz_totp.revoke_all_devices`` y que
+        :meth:`ResDeviceQuerySet._revoke`.
+
+        DIVERGENCIA DE MECANISMO, declarada en el retorno: la fuente devuelve
+        ``{'type': 'ir.actions.client', 'tag': 'reload'}`` — una orden para su
+        cliente web, no un dato. Aquí no hay tal cliente: devuelve **cuántas
+        filas de log quedaron revocadas**, que es lo que el llamador puede
+        verificar.
+
+        :param request: la petición en curso; por defecto la del contexto. Es
+            la que decide cuál dispositivo es el actual.
+        """
+        request = request if request is not None else get_current_request()
+        device = apps.get_model('base', 'ResDevice')
+        devices = device.objects.filter(user_id=self.pk)
+        if request is not None:
+            devices = devices.exclude(
+                pk__in=[d.pk for d in devices if d.is_current(request)])
+        return devices._revoke(request)
 
     @classmethod
     def _get_session_token_fields(cls):
