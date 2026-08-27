@@ -91,6 +91,13 @@ Qué NO se porta, con su medición
   términos XML. Se portan las **columnas** (``arch_db``, ``arch_fs``,
   ``arch_prev``, ``arch_updated``) — que son el dato— y no los cómputos, que
   dependen del lector de archivos y del mecanismo de traducción de Odoo.
+
+  **Portar la columna no basta si nadie la escribe** (#76, :ref:`h-api-836`).
+  ``arch_prev`` estuvo aquí como columna y **sin un solo escritor**, mientras
+  ``ResetViewArchWizard.source_arch_for(view, 'soft')`` la leía: el reinicio
+  suave devolvía siempre la cadena vacía, que se lee como *"no había nada
+  previo"*. Ahora la escriben ``save`` —≙ ``create:626`` y ``write:657-658``,
+  los dos únicos sitios que la fuente toca— y la limpia ``reset_arch``.
 - **``get_view_arch_from_file``** y ``_hasclass``: lectura de la vista desde
   su archivo fuente y una extensión XPath. Ambos son del combinador.
 - **``xml_id`` / ``model_data_id``**: dependen de ``ir.model.data``. ``key``
@@ -304,6 +311,113 @@ class IrUiView(TimeStampedModel):
                     'No se pueden crear vistas heredadas recursivas.')
             seen.add(node.pk)
             node = node.inherit_id
+
+    def save(self, *args, from_file=False, save_prev=True, **kwargs):
+        """≙ ``create:626`` + ``write:640-658`` — el ciclo de vida del arch.
+
+        La fuente reparte en dos metodos lo que aqui hace uno, y lo que hacen
+        son tres cosas:
+
+        #. **La copia previa** — ``arch_prev`` guarda el ``arch_db`` que habia
+           antes de esta escritura. Al crear, la fuente la fija al arch que
+           entra (``:626``); al escribir, al que estaba en la base
+           (``:657-658``).
+        #. **La marca de editado** — ``arch_updated`` distingue *"lo edito una
+           persona"* de *"lo trajo el archivo"*. La fuente lo decide por la
+           presencia de ``install_filename`` en su contexto; aqui por el
+           argumento ``from_file``, que es el mismo dato sin contexto global.
+        #. **La limpieza** — las personalizaciones de ``ir.ui.view.custom``
+           mueren con cada escritura, *"otherwise not all users would see the
+           updated views"* (``:650-653``, comentario verbatim).
+
+        ``save_prev=False`` ≙ ``no_save_prev`` de la fuente: se usa al
+        reiniciar, donde el arch que se descarta esta roto y guardarlo como
+        copia lo dejaria como unico destino del proximo reinicio.
+
+        **Por que hacia falta.** ``arch_prev`` era una columna que nadie
+        escribia, y ``ResetViewArchWizard.source_arch_for(view, 'soft')`` la
+        leia: el reinicio suave devolvia siempre la cadena vacia, que se lee
+        como *"no habia nada previous"*. Misma forma que :ref:`h-api-833`.
+
+        **Divergencia declarada:** la fuente escribe ``arch_prev`` tambien
+        desde ``arch`` y ``arch_base``, sus dos campos calculados con
+        traduccion. Aqui el unico dato es ``arch_db`` —la traduccion por campo
+        no se porta, ver el docstring del modulo—, asi que la copia se toma de
+        el.
+        """
+        is_new = self.pk is None
+        previous = None
+        if not is_new:
+            previous = (type(self).objects.filter(pk=self.pk)
+                        .values_list('arch_db', flat=True).first())
+
+        the_arch_changes = is_new or (previous is not None
+                                      and previous != self.arch_db)
+
+        if is_new:
+            self.arch_prev = self.arch_db or ''
+        elif the_arch_changes and save_prev:
+            self.arch_prev = previous or ''
+
+        if the_arch_changes and not is_new and not from_file:
+            self.arch_updated = True
+
+        result = super().save(*args, **kwargs)
+        # La fuente las borra en CADA write, no solo cuando cambia el arch.
+        IrUiViewCustom.objects.filter(ref_id=self.pk).delete()
+        return result
+
+    def reset_arch(self, mode=RESET_SOFT, arch=None):
+        """≙ ``reset_arch`` (``:281-293``) — vuelve al arch anterior o al del archivo.
+
+        - ``soft`` — de ``arch_prev``. Si esta vacio no hace nada, como la
+          fuente: su ``if arch:`` protege de reiniciar a la nada.
+        - ``hard`` — del archivo de origen. **La lectura del disco no vive
+          aqui**: este arbol no tiene el cargador de addons de la referencia,
+          asi que el arch leido entra por el argumento ``arch`` y la
+          **decision** —que columnas se tocan— se conserva verbatim:
+          ``arch_prev`` a vacio y ``arch_updated`` a falso. Es la misma
+          frontera que ``ResetViewArchWizard.source_arch_for``, que para el
+          modo duro devuelve la RUTA y no el contenido.
+
+        Devuelve ``True`` si hubo reinicio y ``False`` si no habia a que
+        volver — la fuente no devuelve nada y decide por el mismo ``if``.
+        """
+        if mode == RESET_SOFT:
+            if not self.arch_prev:
+                return False
+            self.arch_db = self.arch_prev
+        elif mode == RESET_HARD:
+            if not (self.arch_fs and arch):
+                return False
+            self.arch_db = arch
+            self.arch_prev = ''
+            self.arch_updated = False
+        else:
+            raise ValidationError(f'Modo de reinicio desconocido: {mode!r}.')
+        self.save(save_prev=False, from_file=(mode == RESET_HARD))
+        return True
+
+    @classmethod
+    def default_view(cls, model, view_type):
+        """≙ ``default_view`` — la primaria de menor prioridad del par.
+
+        Su docstring de la fuente, verbatim: *"Fetches the default view for the
+        provided (model, view_type) pair: primary view with the lowest
+        priority"*.
+
+        El filtro ``mode='primary'`` de ``_get_default_view_domain`` es lo que
+        hace la funcion: sin el, una vista de **extension** con prioridad menor
+        ganaria, y una extension no es una pantalla — es un parche sobre otra.
+
+        Devuelve el ``pk``, o ``None`` si no hay ninguna. La fuente devuelve
+        ``False``; aqui el ausente de una consulta es ``None``, que es lo que
+        el resto del arbol comprueba.
+        """
+        return (cls.objects
+                .filter(model=model, type=view_type, mode=MODE_PRIMARY)
+                .order_by('priority', 'name', 'id')
+                .values_list('pk', flat=True).first())
 
     @property
     def root_view(self):
