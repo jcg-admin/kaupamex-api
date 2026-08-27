@@ -641,7 +641,36 @@ class IrCron(models.Model):
         con jobs atascados mas de ``MAX_FAIL_TIME`` la fuente deja de
         bloquear. Aqui esa rama es inalcanzable mientras ``cambios`` sea cero;
         se declara asi en vez de omitirla, para que el dia que ``ir.module``
-        gane sus estados el metodo ya este completo. Sucesor: tarea #46.
+        gane sus estados el metodo ya este completo.
+
+        **Veredicto de la tarea #46 (2026-08-27): los estados transitorios NO
+        se portan, y la divergencia queda cerrada.** La tarea pedia decidir si
+        este arbol tiene una fase en que la fila queda a medias. Medido: no la
+        tiene. ``_derive_state`` (``update_module_list``) es funcion pura de
+        ``(manifest, INSTALLED_APPS)``, ``INSTALLED_APPS`` se congela en
+        ``django.setup()`` y el comando escribe el estado final dentro de una
+        transaccion — no hay escritor incremental que pueda dejar un ``to %``.
+
+        Y el peligro que la fuente protege —no correr crons mientras el schema
+        muta— **si esta cubierto en este arbol**, por el hermano
+        ``_check_version``: una migracion sin aplicar levanta ``BadVersion``.
+        No falta proteccion; el mismo riesgo se detecta por otra senal, y esa
+        senal ya esta portada. Implementar estados que nadie puede escribir
+        seria inventar una capacidad.
+
+        **La tercera rama de la fuente NO se porta, y se declara aqui.** Tras
+        superar el umbral la fuente llama a ``reset_modules_state(cr.dbname)``
+        (``odoo19c: ir_cron.py:279-281``) para limpiar los estados zombis. Aqui
+        no hay estado que resetear —es la misma ausencia de arriba—, asi que el
+        porte llega hasta *dejar de bloquear* y para. Se nombra en vez de
+        omitirse: un simbolo de la fuente que no aparece ni en el codigo ni en
+        la declaracion es porte parcial silencioso.
+
+        Cobertura: ``tests/unit/base/test_ir_cron_guardas_de_arranque.py``
+        ejercita la rama del umbral **inyectando a mano** la fila que el arbol
+        no sabe producir, que es la unica forma de saber si la logica del
+        umbral funciona o es decorado. Control con la guarda anulada: caen 2 de
+        6, los dos que esperan bloqueo.
         """
         # Medido: ``IrModule.STATES`` declara TRES estados —``uninstallable``,
         # ``uninstalled``, ``installed``— y ninguno empieza con ``'to '``. La
