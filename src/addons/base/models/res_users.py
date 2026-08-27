@@ -458,19 +458,53 @@ class ResUsers(TimeStampedModel):
     invalidador, y su ausencia es **la razón declarada** de que
     :meth:`_get_group_ids` no memorice. Sucesor: tarea **#58**.
 
-    **7. Lo que sigue pendiente de portar, con tarea propia — 18 símbolos.**
-    ``_set_password``, ``_set_encrypted_password``, ``_compute_password``,
-    ``_set_new_password``, ``_deactivate_portal_user``,
-    ``_action_revoke_all_devices``, ``_legacy_session_token_hash_compute``,
-    ``UsersMultiCompany`` (``create``, ``write``, ``new``), los cuatro de los
-    asistentes de contraseña (``_default_user_ids``,
-    ``change_password_button``, ``_check_password_confirmation``,
-    ``run_check``) y los cinco de ``ResUsersApikeysDescription``
-    (``_selection_duration``, ``_compute_expiration_date``,
-    ``_onchange_expiration_date``, ``create``, ``make_key``). Los wizards
-    divergen en forma y
-    su desenlace está en :ref:`h-api-801`; el resto es trabajo, no divergencia.
-    Sucesor: tarea **#59**.
+    **7. El resto, triado uno por uno — 19 símbolos.** Este bloque decía
+    *"18"* y listaba **19**; el conteo se corrigió al triarlos (tarea #59),
+    y con él la afirmación de que *"el resto es trabajo, no divergencia"* —
+    medido, nueve de los diecinueve ya tenían su desenlace declarado en
+    **este mismo archivo**, y listarlos aquí como pendientes contradecía esa
+    declaración.
+
+    *Portados en el pase de #59 — 3:*
+
+    - ``_deactivate_portal_user`` (``:934-987``) → :meth:`ResUsersQuerySet
+      ._deactivate_portal_user`. Su consumidor **ya existía** y hacía dos de
+      sus seis mitades a mano.
+    - ``_set_encrypted_password`` (``:299-306``) y ``_set_new_password``
+      (``:414-426``) → los dos aquí abajo, con sus guardas.
+
+    *Trabajo, con tarea propia — 4:*
+
+    - ``UsersMultiCompany`` (``create``, ``write``, ``new``): un solo
+      invariante colgado de tres ganchos de su ORM — más de una empresa
+      implica pertenecer a ``base.group_multi_company``. Tarea **#68**.
+    - ``_action_revoke_all_devices`` (``:1028-1031``): BLOQUEADO por
+      ``ResDevice._revoke`` — sus tres líneas delegan enteras en él, y ese
+      método no está portado. Tarea **#69**.
+
+    *Divergencia declarada — 3:*
+
+    - ``_set_password`` y ``_compute_password``: existen porque su ``password``
+      es un campo **compute/inverse** que nunca guarda lo que se le asigna.
+      Aquí es la columna de Django y el cifrado es explícito
+      (:meth:`set_password`), así que no hay *inverse* que colgar ni valor que
+      blanquear al leer.
+    - ``_legacy_session_token_hash_compute`` (``:886-896``): su único
+      consumidor es ``odoo19c: odoo/service/security.py:27-32``, que migra un
+      token de sesión del formato viejo al nuevo **dentro de su propio
+      almacén de sesiones**. Aquí las sesiones son de Django y no hay corpus
+      heredado que convertir: portarlo daría un método sin quién lo llame.
+
+    *Con desenlace ya declarado en este archivo — 9:*
+
+    - los cuatro de los asistentes de contraseña (``_default_user_ids``,
+      ``change_password_button``, ``_check_password_confirmation``,
+      ``run_check``) → :ref:`h-api-801`;
+    - los cinco de ``ResUsersApikeysDescription`` (``_selection_duration``,
+      ``_compute_expiration_date``, ``_onchange_expiration_date``, ``create``,
+      ``make_key``) → declarados en el docstring de
+      :class:`_ResUsersApikeysBase`, punto 5, con su sucesor **#490** y con la
+      mitad que **no** es presentación ya medida aparte.
     """
 
     _name                 = 'res.users'
@@ -746,6 +780,77 @@ class ResUsers(TimeStampedModel):
 
         self.set_password(new_passwd)
         self.save(update_fields=['password'])
+
+    @classmethod
+    def _set_encrypted_password(cls, uid, pw):
+        """≙ ``_set_encrypted_password`` (``odoo19c: res_users.py:299-306``).
+
+        Escribe una contraseña **ya cifrada**, sin volver a pasarla por el
+        cifrador. Es la vía por la que entra una credencial que se hasheó en
+        otra parte —una importación, un directorio LDAP—: asignarla por
+        :meth:`set_password` la hashearía otra vez y dejaría de validar.
+
+        La fuente baja a SQL crudo (``UPDATE res_users SET password=%s``) por
+        la misma razón por la que aquí se usa ``QuerySet.update()``: el camino
+        normal de escritura del ORM cifraría lo que ya está cifrado. Ninguno de
+        los dos pasa por el modelo.
+
+        DIVERGENCIA DE MECANISMO, declarada, y es la única: la fuente afirma la
+        precondición con ``assert self._crypt_context().identify(pw) !=
+        'plaintext'``. Aquí es un ``UserError``, no un ``assert`` — un ``assert``
+        desaparece con ``python -O`` y éste guarda una credencial: con la
+        aserción compilada fuera, un texto plano entraría a la columna de
+        contraseña y **validaría contra nada**. Quién identifica el hash
+        también cambia: allá es su ``passlib``, aquí
+        ``hashers.identify_hasher``, que es el registro de ``PASSWORD_HASHERS``
+        de la instalación.
+
+        :raises UserError: si ``pw`` no es un hash que la instalación reconozca.
+        """
+        try:
+            hashers.identify_hasher(pw)
+        except (ValueError, TypeError):
+            raise UserError(
+                'Sólo se admite una contraseña ya cifrada por esta vía: el '
+                'valor recibido no lo reconoce ningún hasher de la '
+                'instalación. Para una contraseña en claro va set_password.')
+        cls.objects.filter(pk=uid).update(password=pw)
+
+    def _set_new_password(self, new_password):
+        """≙ ``_set_new_password`` (``odoo19c: res_users.py:414-426``).
+
+        Fija la contraseña de **otra** persona — un administrador sobre la
+        cuenta que administra. Dos reglas, las dos de la fuente:
+
+        1. **Un valor vacío se ignora en silencio** (``:416-419``): *"Do not
+           update the password if no value is provided, ignore silently. For
+           example web client submits False values for all empty fields."*
+        2. **Nadie cambia la suya por aquí** (``:421-424``). El comentario de
+           la fuente da la razón, y vale igual: *"To change their own password,
+           users must use the client-specific change password wizard, so that
+           the new password is immediately used for further RPC requests,
+           otherwise the user will face unexpected 'Access Denied'
+           exceptions."* La vía propia es :meth:`change_password`, que exige la
+           anterior y por eso no depende de re-autenticación.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente es el *inverse* del
+        campo ``new_password`` de su formulario, así que su ORM la invoca al
+        escribir y ella asigna ``user.password``, que su propio ``write``
+        cifra. Aquí no hay campo de formulario ni cifrado implícito: es un
+        método que se llama y que cifra y persiste explícitamente. Lo que se
+        porta es la **regla**, no el gancho.
+
+        :raises UserError: si el sujeto es el usuario en curso.
+        """
+        if not new_password:
+            return
+        actor = get_current_user()
+        if getattr(actor, 'pk', None) == self.pk:
+            raise UserError(
+                'Para cambiar tu propia contraseña usa el cambio de '
+                'contraseña con la anterior: por esta vía la sesión en curso '
+                'se quedaría con la credencial vieja.')
+        self._change_password(new_password)
 
     @classmethod
     def _get_session_token_fields(cls):
