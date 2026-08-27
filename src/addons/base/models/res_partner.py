@@ -335,6 +335,17 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         help_text='Interfaz de is_company: "company" o "person" '
                   '(Odoo company_type). NO usar en logica de negocio — la '
                   'fuente lo dice en un comentario propio (``:281``).')
+    is_public = fields.NonStored(
+        default=lambda partner: partner._compute_is_public(),
+        help_text='True si algun usuario suyo es el visitante anonimo '
+                  '(Odoo is_public). compute_sudo en la fuente: la respuesta '
+                  'no depende de quien pregunte.')
+    self = fields.NonStored(
+        default=lambda partner: partner._compute_get_ids(),
+        help_text='Alias del propio registro (Odoo self, un Many2one a '
+                  'res.partner con compute _compute_get_ids). Existe para '
+                  'que una vista se refiera al partner actual con el mismo '
+                  'vocabulario con que referiria a otro.')
     same_vat_partner_id = fields.NonStored(
         default=lambda partner: partner._compute_same_vat_partner_id(),
         help_text='Otro partner con el mismo identificador fiscal '
@@ -454,7 +465,28 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         PDF, y ``_display_address`` devuelve cuatro con saltos. Quien necesite
         el formato del país llama al otro; quien necesite la línea, a ésta.
 
-        ≙ ``_compute_contact_address`` (``odoo19c: base/models/res_partner.py``).
+        El campo publico es ``contact_address``; el computo privado es
+        :meth:`_compute_contact_address`, que es donde se engancha quien
+        quiera otra forma de linea.
+
+        ≙ el campo ``contact_address``
+        (``odoo19c: base/models/res_partner.py:506``).
+        """
+        return self._compute_contact_address()
+
+    def _compute_contact_address(self):
+        """≙ ``_compute_contact_address`` (``odoo19c: res_partner.py:506``).
+
+        DIVERGENCIA DE CONTENIDO declarada, no de forma: la fuente devuelve
+        ``partner._display_address()`` —la plantilla del pais, con saltos de
+        linea— y aqui se unen con coma las partes presentes.
+
+        La razon esta medida y sigue viva: los cinco consumidores
+        (``sale/report/report_catalog.py:66,83`` y
+        ``sale/data/report_templates.py:36,43``) imprimen UNA linea en un PDF,
+        y ``_display_address`` devuelve cuatro. El hermano fiel existe desde
+        2026-08-27 y esta en este archivo: quien necesite el formato del pais
+        llama a :meth:`_display_address`; quien necesite la linea, a este.
         """
         return ', '.join(
             part for part in (self.street, self.city, self.zip) if part)
@@ -873,7 +905,23 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         suelto (sin padre) es su propia entidad comercial — por eso el corte
         es ``is_company or not parent``, no sólo ``is_company``.
 
-        ≙ ``_compute_commercial_partner`` (``odoo19c: base/models/res_partner.py``).
+        El campo publico es ``commercial_partner``; el computo privado es
+        :meth:`_compute_commercial_partner`. La fuente parte cada campo en
+        dos y esa frontera ES el punto de extension: un addon que cambie
+        como se deriva la entidad comercial sobreescribe el computo, no la
+        lectura.
+
+        ≙ el campo ``commercial_partner_id``
+        (``odoo19c: base/models/res_partner.py:515``).
+        """
+        return self._compute_commercial_partner()
+
+    def _compute_commercial_partner(self):
+        """≙ ``_compute_commercial_partner`` (``odoo19c: res_partner.py:515``).
+
+        Sube por la cadena de padres hasta la primera company. El corte es
+        ``is_company or not parent_id`` verbatim de la fuente: un contacto
+        suelto es su propia entidad comercial.
         """
         if self.is_company or not self.parent_id:
             return self
@@ -887,7 +935,21 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         ``company_name`` escrito a mano en este contacto. La referencia lo
         resuelve con ``p.is_company and p.name or partner.company_name``.
 
-        ≙ ``_compute_commercial_company_name`` (``odoo19c: base/models/res_partner.py``).
+        El campo publico es ``commercial_company_name``; el computo privado
+        es :meth:`_compute_commercial_company_name`.
+
+        ≙ el campo ``commercial_company_name``
+        (``odoo19c: base/models/res_partner.py:523``).
+        """
+        return self._compute_commercial_company_name()
+
+    def _compute_commercial_company_name(self):
+        """≙ ``_compute_commercial_company_name``
+        (``odoo19c: res_partner.py:523``).
+
+        La fuente lo resuelve con ``p.is_company and p.name or
+        partner.company_name``: si la entidad comercial es empresa, su
+        nombre; si no, la razon social escrita a mano en este contacto.
         """
         p = self.commercial_partner
         return p.name if p.is_company else self.company_name
@@ -1039,6 +1101,45 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     #   de los dos desenlaces toca —portarlo verbatim con su defecto, o
     #   divergir arreglándolo— es decisión del ejecutor: **tarea #103**.
     # ------------------------------------------------------------------
+    def _compute_is_public(self):
+        """¿Algun usuario de este partner es el visitante anonimo?
+
+        ≙ ``_compute_is_public`` (``odoo19c: res_partner.py:851``):
+        ``users and any(user._is_public() for user in users)``.
+
+        Sin esto nada distingue un cliente real del registro que representa a
+        «cualquiera que entre sin sesion». El ``and`` de la fuente no es
+        redundante con ``any([])``: declara que la pregunta se hace sobre un
+        conjunto no vacio.
+
+        Dos divergencias de mecanismo, ninguna de conducta:
+
+        - ``with_context(active_test=False)`` — la fuente desactiva el filtro
+          implicito de ``active`` para contar tambien usuarios archivados.
+          Aqui ese filtro no existe: ``self.users.all()`` no filtra por
+          ``active``, asi que el conjunto ya es el que la fuente busca.
+        - ``compute_sudo=True`` — la respuesta no depende de quien pregunte.
+          Aqui la lectura de la relacion inversa no pasa por regla de fila,
+          asi que el efecto ya se cumple.
+        """
+        users = list(self.users.all()) if self.pk else []
+        return bool(users) and any(user._is_public() for user in users)
+
+    def _compute_get_ids(self):
+        """El propio registro — ≙ ``_compute_get_ids``
+        (``odoo19c: res_partner.py:510``).
+
+        La fuente escribe ``partner.self = partner.id`` sobre un campo
+        declarado ``Many2one('res.partner')`` (``:312``), asi que el valor
+        que se lee es el REGISTRO, no su entero: quien lo consume puede
+        atravesar a sus campos.
+
+        Aqui se devuelve ``self`` directo. El campo publico se llama ``self``
+        igual que alla; no colisiona con el parametro porque el descriptor
+        vive en la clase y el parametro en el ambito del metodo.
+        """
+        return self
+
     # ------------------------------------------------------------------
     # display_name — el nombre enriquecido segun quien lo pide
     # ≙ ``odoo19c: odoo/addons/base/models/res_partner.py:1038-1069``
