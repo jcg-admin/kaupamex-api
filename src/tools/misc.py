@@ -10,6 +10,7 @@ Adaptado de Odoo Community ``odoo/tools/misc.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
 import hmac as hmac_lib
+import re
 import typing
 from collections import defaultdict
 from collections.abc import Callable, Iterable, MutableSet
@@ -279,3 +280,34 @@ class _PrintfArgs:
     def __getitem__(self, key):
         self.values.append(self.mapping[key])
         return "%s"
+
+
+#: ≙ ``ADDRESS_REGEX`` (``odoo19c: odoo/tools/misc.py:1913``), verbatim.
+#:
+#: Tres grupos: el nombre de la calle (no codicioso), un número que empieza por
+#: dígito, y un segundo número tras un `` - ``. El ``re.DOTALL`` es de la
+#: fuente y no es cosmético: una calle capturada de un formulario puede traer
+#: un salto de línea, y sin él el ``.`` no lo cruza y el número se pierde.
+ADDRESS_REGEX = re.compile(r'^(.*?)(\s[0-9][0-9\S]*)?(?: - (.+))?$',
+                           flags=re.DOTALL)
+
+
+def street_split(street):
+    """≙ ``street_split`` (``odoo19c: odoo/tools/misc.py:1914-1921``), verbatim.
+
+    Parte una calle en sus tres piezas. La fuente la consume en
+    ``ResPartner._get_street_split`` y la reusan siete addons más —los de
+    localización de facturación electrónica (``l10n_ch``, ``l10n_dk_oioubl``)
+    y ``payment_adyen``—, que necesitan el número por separado porque el
+    formato de intercambio lo pide en su propio campo.
+
+    Devuelve siempre las tres claves; las ausentes son cadena vacía, nunca
+    ``None`` — ``match.groups('')`` fija ese valor por defecto.
+    """
+    match = ADDRESS_REGEX.match(street or '')
+    results = match.groups('') if match else ('', '', '')
+    return {
+        'street_name': results[0].strip(),
+        'street_number': results[1].strip(),
+        'street_number2': results[2],
+    }

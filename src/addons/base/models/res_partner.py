@@ -28,9 +28,11 @@ import fields
 import models
 
 from addons.base.models.avatar_mixin import AvatarMixin
-from addons.base.models.res_country import ADDRESS_FORMAT_KEYS
+from addons.base.models.res_country import (ADDRESS_FORMAT_KEYS,
+                                            DEFAULT_ADDRESS_FORMAT)
 from exceptions import ValidationError
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from tools.misc import street_split
 
 
 class ResPartner(AvatarMixin, TimeStampedModel):
@@ -348,6 +350,15 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         dueña es el partner y tanto el builder como la plantilla en BD la
         leen de aquí.
 
+        **Su hermano multilínea ya existe:** :meth:`_display_address` es el
+        porte fiel —rellena la plantilla del país— y desde 2026-08-27 está en
+        este archivo. Esta property NO delega en él y la divergencia se
+        sostiene con su consumidor medido: los cinco sitios que la leen
+        (``sale/report/report_catalog.py:66,83`` y
+        ``sale/data/report_templates.py:36,43``) imprimen **una** línea en un
+        PDF, y ``_display_address`` devuelve cuatro con saltos. Quien necesite
+        el formato del país llama al otro; quien necesite la línea, a ésta.
+
         ≙ ``_compute_contact_address`` (``odoo19c: base/models/res_partner.py``).
         """
         return ', '.join(
@@ -461,6 +472,225 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         """
         p = self.commercial_partner
         return p.name if p.is_company else self.company_name
+
+    # ------------------------------------------------------------------
+    # Dirección — ``odoo19c: res_partner.py:1120-1250``.
+    #
+    # **El formato lo pone el PAÍS, no el código.** La referencia no formatea
+    # una dirección en Python: pide al país su ``address_format`` —una
+    # plantilla de ``%(campo)s``— y la rellena. Es la diferencia entre servir
+    # a México y servir a Japón, donde el orden se invierte; un formateador
+    # cableado es correcto en uno y falso en el otro, y el error no se ve
+    # hasta que hay un cliente allá.
+    #
+    # **Divergencia de nombre, única y declarada:** la referencia usa
+    # ``state_id`` / ``country_id`` / ``parent_id`` / ``child_ids``; aquí son
+    # ``state`` / ``country`` / ``parent`` / ``children`` (la convención de FK
+    # de Django, ya declarada en :meth:`_address_fields`). Y donde la fuente
+    # escribe ``self[campo]`` —el ``__getitem__`` de su recordset— aquí va
+    # ``getattr(self, campo)``: ``models.Model`` de Django no lo declara.
+    #
+    # **Cobertura del bloque: 10 de 12 símbolos.** Los dos que NO se portan
+    # son del asistente de importación CSV, y su razón es medida, no de
+    # conveniencia:
+    #
+    # - ``get_import_templates`` (``odoo19c: res_partner.py:1215-1220``)
+    #   devuelve la ruta de un ``.xlsx`` bajo ``/base/static/xls/``. Ese
+    #   archivo no existe en este árbol y el asistente que lo ofrece tampoco.
+    # - ``_check_import_consistency`` (``:1222-1240``) sólo se invoca desde
+    #   ``create`` cuando el contexto trae ``import_file`` (``:928-929``) —
+    #   la ruta del asistente, que aquí no hay. Además su cuerpo **no puede
+    #   rechazar nada**: deriva ``country_id`` del mismo estado que luego
+    #   compara contra ``state.country_id.id``, así que la condición es
+    #   siempre falsa. Idéntico en 18 (``odoo18c: :1097-1104``), o sea que
+    #   no es una regresión de 19 sino un no-op estable de la fuente. Cuál
+    #   de los dos desenlaces toca —portarlo verbatim con su defecto, o
+    #   divergir arreglándolo— es decisión del ejecutor: **tarea #103**.
+    # ------------------------------------------------------------------
+    def _get_street_split(self):
+        """≙ ``_get_street_split`` (``odoo19c: res_partner.py:331-333``).
+
+        Delega en :func:`tools.misc.street_split`, como la fuente. El
+        ``ensure_one()`` de allá no se porta: aquí ``self`` es **una** fila
+        por construcción, no un recordset de N.
+        """
+        return street_split(self.street or '')
+
+    @classmethod
+    def _get_default_address_format(cls):
+        """≙ ``_get_default_address_format`` (``odoo19c: res_partner.py:1169-1171``).
+
+        La fuente repite el literal aquí y en el ``default`` de
+        ``res.country.address_format`` (``odoo19c: res_country.py:52``). Aquí
+        la cadena vive **una sola vez**, en ``DEFAULT_ADDRESS_FORMAT``, y los
+        dos sitios la leen de ahí: dos copias de la misma plantilla es dos
+        sitios donde se puede corregir una y olvidar la otra.
+        """
+        return DEFAULT_ADDRESS_FORMAT
+
+    def _get_address_format(self):
+        """≙ ``_get_address_format`` (``odoo19c: res_partner.py:1173-1175``).
+
+        El país manda; si no hay país —o su plantilla está vacía— cae al
+        formato por defecto.
+        """
+        country_format = self.country.address_format if self.country else ''
+        return country_format or self._get_default_address_format()
+
+    def _prepare_display_address(self, without_company=False):
+        """≙ ``_prepare_display_address`` (``odoo19c: res_partner.py:1177-1194``).
+
+        Devuelve la pareja ``(plantilla, argumentos)`` que
+        :meth:`_display_address` aplica. El ``defaultdict(str)`` es de la
+        fuente y es lo que hace que una plantilla de un país que pida un
+        campo que aquí no existe rinda cadena vacía en vez de reventar con
+        ``KeyError`` — un país mal configurado no debe tumbar una factura.
+        """
+        address_format = self._get_address_format()
+        args = defaultdict(str, {
+            'state_code': (self.state.code if self.state else '') or '',
+            'state_name': (self.state.name if self.state else '') or '',
+            'country_code': (self.country.code if self.country else '') or '',
+            'country_name': self._get_country_name(),
+            'company_name': self.commercial_company_name or '',
+        })
+        for field in self._formatting_address_fields():
+            args[field] = getattr(self, field) or ''
+        if without_company:
+            args['company_name'] = ''
+        elif self.commercial_company_name:
+            address_format = '%(company_name)s\n' + address_format
+        return address_format, args
+
+    def _display_address(self, without_company=False):
+        """≙ ``_display_address`` (``odoo19c: res_partner.py:1196-1207``).
+
+        Docstring de la fuente, verbatim: *"The purpose of this function is to
+        build and return an address formatted accordingly to the standards of
+        the country where it belongs."*
+
+        :param without_company: si la dirección lleva la razón social encima.
+        :returns: la dirección con las costumbres de su país (o las del
+            formato por defecto si no se especificó país).
+        """
+        address_format, args = self._prepare_display_address(without_company)
+        return address_format % args
+
+    @classmethod
+    def _display_address_depends(cls):
+        """≙ ``_display_address_depends`` (``odoo19c: res_partner.py:1209-1213``).
+
+        Los campos de los que depende :meth:`_display_address`. Allá alimenta
+        un ``@api.depends`` de un campo computado y almacenado; aquí
+        :attr:`contact_address` es una property que se calcula al leerla, así
+        que la lista **no invalida ninguna caché**. Se porta igual porque es
+        el punto de extensión: un addon que añada un campo a la dirección lo
+        declara aquí, y quien sí guarde el valor —una vista materializada, un
+        índice— sabrá qué mirar.
+        """
+        return cls._formatting_address_fields() + [
+            'country', 'company_name', 'state',
+        ]
+
+    def _get_country_name(self):
+        """≙ ``_get_country_name`` (``odoo19c: res_partner.py:1242-1243``).
+
+        Cadena vacía, nunca ``None``: el valor entra en un ``%(…)s`` y un
+        ``None`` se imprimiría literalmente como «None» en la dirección.
+        """
+        return (self.country.name if self.country else '') or ''
+
+    def _get_all_addr(self):
+        """≙ ``_get_all_addr`` (``odoo19c: res_partner.py:1245-1254``).
+
+        La forma que consume el cálculo de impuestos por dirección. La fuente
+        devuelve **una** entrada; existe como lista y como punto de extensión
+        porque un addon de localización puede tener varias direcciones
+        fiscales para el mismo partner.
+
+        El ``ensure_one()`` de la fuente no se porta (``self`` es una fila).
+        """
+        return [{
+            'contact_type': self.street,
+            'street': self.street,
+            'zip': self.zip,
+            'city': self.city,
+            'country': self.country.code if self.country else False,
+        }]
+
+    @classmethod
+    def _get_res_city_by_name(cls, name, country_id):
+        """≙ ``_get_res_city_by_name`` (``odoo19c: res_partner.py:1256-1258``).
+
+        Gancho vacío en la fuente (su cuerpo es ``pass``): lo implementa
+        ``base_address_city``, que añade el modelo ``res.city``. Se porta con
+        el mismo cuerpo para que ese addon tenga qué extender — un gancho
+        ausente obliga al addon a declararlo, y entonces dos addons que lo
+        necesiten se pisan (el criterio de :ref:`h-api-819`).
+        """
+        return None
+
+    def address_get(self, adr_pref=None):
+        """≙ ``address_get`` (``odoo19c: res_partner.py:1120-1158``).
+
+        Docstring de la fuente, verbatim: *"Find contacts/addresses of the
+        right type(s) by doing a depth-first-search through descendants within
+        company boundaries (stop at entities flagged ``is_company``) then
+        continuing the search at the ancestors that are within the same company
+        boundaries. Defaults to partners of type ``'default'`` when the exact
+        type is not found, or to the provided partner itself if no type
+        ``'default'`` is found either."*
+
+        **Es una búsqueda, no un getter**, y las dos mitades importan:
+
+        - **desciende en profundidad** por los hijos, así que encuentra la
+          bodega colgada de una sucursal colgada de la empresa; un
+          ``children.filter(type=…)`` plano pasa el caso de un nivel y falla
+          en el de tres, que es para el que existe;
+        - **no cruza la frontera de otra empresa** (``is_company``): la
+          dirección de una filial no es la de su matriz.
+
+        Si tras el descenso no encuentra el tipo y este partner **no** es una
+        empresa, sube al padre y repite.
+
+        Divergencias de mecanismo, las tres del mismo origen —aquí ``self`` es
+        una fila y no un recordset—: el bucle exterior ``for partner in self``
+        se colapsa a una pasada; ``visited`` guarda claves primarias en vez de
+        registros (dos instancias distintas de la misma fila no son iguales en
+        Django); y el ``fetch`` previo de la fuente —que precarga columnas para
+        no pagar N+1— se resuelve con ``select_related`` sobre los hijos.
+        """
+        adr_pref = set(adr_pref or [])
+        if 'contact' not in adr_pref:
+            adr_pref.add('contact')
+        result = {}
+        visited = set()
+        current_partner = self
+        while current_partner:
+            to_scan = [current_partner]
+            # Descenso en profundidad
+            while to_scan:
+                record = to_scan.pop(0)
+                visited.add(record.pk)
+                if record.type in adr_pref and not result.get(record.type):
+                    result[record.type] = record.pk
+                if len(result) == len(adr_pref):
+                    return result
+                children = record.children.select_related('parent').all()
+                to_scan = [child for child in children
+                           if child.pk not in visited
+                           if not child.is_company] + to_scan
+
+            # Sigue por el ancestro si este partner no es entidad comercial
+            if current_partner.is_company or not current_partner.parent_id:
+                break
+            current_partner = current_partner.parent
+
+        # Por defecto el contacto, y si tampoco hay, el propio partner
+        default = result.get('contact', self.pk or False)
+        for adr_type in adr_pref:
+            result[adr_type] = result.get(adr_type) or default
+        return result
 
 
 class FormatVatLabelMixin:
