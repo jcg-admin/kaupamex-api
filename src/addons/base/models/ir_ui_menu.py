@@ -99,9 +99,12 @@ class CapabilityPrunedMenuManager(models.Manager):
     """Manager con el mecanismo de podado — el equivalente de los métodos de
     ``ir.ui.menu`` en la referencia.
 
-    Nombres alineados uno a uno: ``visible_menu_ids`` ≡ ``_visible_menu_ids``,
-    ``filter_visible_menus`` ≡ ``_filter_visible_menus``, ``load_menus`` ≡
-    ``load_menus``.
+    Nombres alineados uno a uno con la referencia, **guion bajo incluido**:
+    ``_visible_menu_ids``, ``_filter_visible_menus`` y ``load_menus``. Los
+    dos primeros nacieron aquí sin él —promoviendo a API pública lo que la
+    fuente reserva—; se corrigió al medir que Enterprise extiende
+    ``_visible_menu_ids`` por su nombre privado
+    (``porte-completo-no-parcial.md``, «el guion bajo se porta»).
 
     **Compartido entre los dos modelos de menú, y por qué.** La referencia
     tiene dos implementaciones distintas porque sus contextos difieren:
@@ -134,7 +137,7 @@ class CapabilityPrunedMenuManager(models.Manager):
         que ``hr`` hace con las listas de ``res.users``.
 
         **La caché no lo ve, y hay que decirlo.** La clave de
-        :meth:`visible_menu_ids` se compone de la generación y del conjunto de
+        :meth:`_visible_menu_ids` se compone de la generación y del conjunto de
         capacidades; la lista negra **no** entra en ella. Es correcto mientras
         sea estática por instalación —un addon la fija al cargarse— y deja de
         serlo el día que alguien la calcule por usuario o por empresa. Ese día
@@ -144,7 +147,7 @@ class CapabilityPrunedMenuManager(models.Manager):
         """
         return []
 
-    def visible_menu_ids(self, user, capabilities, superadmin=False):
+    def _visible_menu_ids(self, user, capabilities, superadmin=False):
         """Ids de los ítems visibles para ``user`` (``_visible_menu_ids``).
 
         Cacheado por **conjunto de capacidades**, no por usuario — igual que la
@@ -209,9 +212,9 @@ class CapabilityPrunedMenuManager(models.Manager):
         cache.set(key, visible, _MENU_CACHE_TTL)
         return visible
 
-    def filter_visible_menus(self, user, capabilities, superadmin=False):
+    def _filter_visible_menus(self, user, capabilities, superadmin=False):
         """Los ítems visibles, ya materializados (``_filter_visible_menus``)."""
-        visible = self.visible_menu_ids(user, capabilities, superadmin)
+        visible = self._visible_menu_ids(user, capabilities, superadmin)
         return list(
             self.filter(pk__in=visible)
             .select_related('group')
@@ -237,7 +240,7 @@ class CapabilityPrunedMenuManager(models.Manager):
         público, que se decide aparte y toca ``kaupamex-ui``; no se hace de
         rebote al adaptar el modelo.
         """
-        menus = self.filter_visible_menus(user, capabilities, superadmin)
+        menus = self._filter_visible_menus(user, capabilities, superadmin)
 
         children_by_parent = {}
         for menu in menus:
@@ -283,7 +286,7 @@ class CapabilityPrunedMenuManager(models.Manager):
         que el cliente OWL de la referencia indexa por id. Vive aquí, con el
         resto del mecanismo, para que el controlador siga siendo thin.
         """
-        menus = self.filter_visible_menus(user, capabilities, superadmin)
+        menus = self._filter_visible_menus(user, capabilities, superadmin)
 
         children_by_parent = {}
         for menu in menus:

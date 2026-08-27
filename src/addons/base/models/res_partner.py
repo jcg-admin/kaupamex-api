@@ -21,6 +21,7 @@ cliente sin migrar filas.
 ``ResUsers`` la reimplementa con una FK requerida más propiedades que
 reenvían. Ver ``res_users.py``.
 """
+from collections import defaultdict
 from random import randint
 
 import fields
@@ -104,6 +105,36 @@ class ResPartner(AvatarMixin, TimeStampedModel):
       de ``check_company`` fuera de este docstring), así que construirlo
       exige tocar el ORM espejado — mecanismo transversal que usan **21
       clases** de la referencia, no sólo ``res.partner``.
+
+    Los tres enganches que Enterprise usa sobre este modelo
+    ========================================================
+
+    Medido sobre ``19.x/odoo19-enterprise-main``, clases con
+    ``_inherit = 'res.partner'``, cruzado con lo que ``odoo19c:
+    res_partner.py`` declara:
+
+    - ``_compute_application_statistics_hook`` — **portado** abajo, con su
+      compute y su propiedad. Es el único de los tres que era un hueco: un
+      campo cuya base devuelve vacío y que existe **para** que otros lo
+      llenen.
+    - ``_default_category`` (``odoo19c: :197-198``) — **divergencia de
+      mecanismo**. Lee ``category_id`` del ``env.context``, la bolsa de
+      contexto por petición del ORM de la referencia. Aquí no hay ``env``:
+      el valor inicial de un M2M lo pasa quien crea el registro, y el sitio
+      donde se decide es el serializer, no un default del modelo. Portarlo
+      con la firma de la fuente exigiría inventar la bolsa de contexto.
+    - ``_compute_display_name`` — **divergencia de mecanismo**, y ya
+      declarada arriba: los computados quedan fuera y el enganche de nombre
+      para mostrar de Django es ``__str__``, que sí está y sí se hereda. La
+      diferencia de **contenido** es real: la fuente encadena el nombre
+      completo con la empresa; ``__str__`` da ``nombre (tipo)`` para una
+      dirección y el nombre a secas para un contacto.
+
+    *Métrica:* nombres declarados en el cuerpo de las clases de Enterprise
+    que heredan de ``res.partner``, intersectados con los que la referencia
+    declara y este archivo no.
+    *Ciega a:* un enganche que Enterprise consuma por ``super()`` de un
+    tercero sin declararlo.
     """
 
     _name                = 'res.partner'
@@ -253,6 +284,52 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         if self.parent_id and self.type != self.TYPE_CONTACT:
             return f'{self.name} ({self.get_type_display()})'
         return self.name
+
+    # ---- El campo que existe para que otros addons lo llenen -------------
+
+    @classmethod
+    def _compute_application_statistics_hook(cls, partners):
+        """≙ ``_compute_application_statistics_hook`` (``odoo19c:
+        res_partner.py:320-324``).
+
+        Docstring de la fuente: *"Hook for override, as overriding compute
+        method does not update cache accordingly. All overrides receive False
+        instead of previously assigned value."* Es decir: el enganche existe
+        **porque sobreescribir el compute no sirve** allá; aquí no hay motor
+        de compute que invalidar, pero el enganche se porta igual, y por la
+        misma razón práctica: es el único punto por el que un addon aporta
+        estadísticas sin tocar este archivo.
+
+        Devuelve un mapa ``{pk: [estadística, …]}``. La base no aporta
+        ninguna — igual que la fuente, que devuelve un ``defaultdict`` vacío.
+
+        Recibe ``partners`` en vez de operar sobre ``self`` porque aquí no
+        hay recordset: el lote es explícito. Es la misma divergencia de firma
+        que ``IrModelFields._reflect_field_params``.
+        """
+        return defaultdict(list)
+
+    @classmethod
+    def _compute_application_statistics(cls, partners):
+        """≙ ``_compute_application_statistics`` (``:315-318``).
+
+        Reparte por ``pk`` lo que el enganche devuelva, dando lista vacía al
+        partner que nadie mencionó. La fuente escribe el resultado en el
+        campo; aquí lo devuelve, porque el campo es una propiedad derivada y
+        no una columna.
+        """
+        result = cls._compute_application_statistics_hook(partners)
+        return {p.pk: result.get(p.pk, []) for p in partners}
+
+    @property
+    def application_statistics(self):
+        """≙ el campo ``application_statistics`` (``:313``).
+
+        Allá es ``fields.Json`` con ``compute=`` y **sin** ``store``: un
+        derivado que se recalcula al leerlo. Aquí eso es una propiedad, que
+        es lo mismo sin columna que mantener.
+        """
+        return type(self)._compute_application_statistics([self])[self.pk]
 
     @property
     def is_address(self) -> bool:

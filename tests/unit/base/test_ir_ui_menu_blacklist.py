@@ -19,7 +19,7 @@ Devolviendo la lista de ítems **sin** el ``exclude`` —el estado anterior— c
 ``test_a_blacklisted_menu_is_not_visible`` y sobreviven los otros dos, que
 miden la forma del punto y no su efecto.
 
-*Métrica:* ids devueltos por ``visible_menu_ids`` con y sin veto.
+*Métrica:* ids devueltos por ``_visible_menu_ids`` con y sin veto.
 *Ciega a:* la caché — la clave se compone de la generación y las capacidades,
 no de la lista negra, así que un veto calculado por usuario no se propagaría.
 Está declarado en el docstring del método; hoy la lista es estática.
@@ -52,13 +52,13 @@ def test_a_blacklisted_menu_is_not_visible(db, monkeypatch):
     otro = IrUiMenu.objects.create(
         name='Otro', route='/otro', sequence=2, key='test.otro')
 
-    visibles = IrUiMenu.objects.visible_menu_ids(None, frozenset(), superadmin=True)
+    visibles = IrUiMenu.objects._visible_menu_ids(None, frozenset(), superadmin=True)
     assert {vetado.pk, otro.pk} <= set(visibles)
 
     monkeypatch.setattr(CapabilityPrunedMenuManager, '_load_menus_blacklist',
                         lambda self: [vetado.pk])
     cache.clear()
-    visibles = IrUiMenu.objects.visible_menu_ids(None, frozenset(), superadmin=True)
+    visibles = IrUiMenu.objects._visible_menu_ids(None, frozenset(), superadmin=True)
     assert vetado.pk not in visibles
     assert otro.pk in visibles
 
@@ -66,7 +66,7 @@ def test_a_blacklisted_menu_is_not_visible(db, monkeypatch):
 def test_the_cache_does_not_see_the_blacklist(db, monkeypatch):
     """La ceguera declarada, medida en vez de supuesta.
 
-    La clave de :meth:`visible_menu_ids` se compone de la generación y del
+    La clave de :meth:`_visible_menu_ids` se compone de la generación y del
     conjunto de capacidades; la lista negra **no** entra en ella. Con la lista
     estática por instalación eso es correcto —un addon la fija al cargarse— y
     dejaría de serlo el día que alguien la calcule por usuario o por empresa.
@@ -78,15 +78,15 @@ def test_the_cache_does_not_see_the_blacklist(db, monkeypatch):
     menu = IrUiMenu.objects.create(
         name='Tarde', route='/tarde', sequence=1, key='test.tarde')
 
-    visibles = IrUiMenu.objects.visible_menu_ids(None, frozenset(), superadmin=True)
+    visibles = IrUiMenu.objects._visible_menu_ids(None, frozenset(), superadmin=True)
     assert menu.pk in visibles                      # entra al caché
 
     monkeypatch.setattr(CapabilityPrunedMenuManager, '_load_menus_blacklist',
                         lambda self: [menu.pk])
     # Sin tocar la generación, el veto no llega: el caché responde lo viejo.
-    assert menu.pk in IrUiMenu.objects.visible_menu_ids(
+    assert menu.pk in IrUiMenu.objects._visible_menu_ids(
         None, frozenset(), superadmin=True)
 
     cache.clear()
-    assert menu.pk not in IrUiMenu.objects.visible_menu_ids(
+    assert menu.pk not in IrUiMenu.objects._visible_menu_ids(
         None, frozenset(), superadmin=True)

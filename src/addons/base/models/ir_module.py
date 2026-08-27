@@ -29,6 +29,33 @@ máquina de estados de un instalador que aquí no existe — el registro de apps
 Django se congela en ``django.setup()`` y el schema es compartido entre
 companies (ADR-021). Registrar un estado que nadie puede alcanzar sería
 inventar una capacidad.
+
+Los cuatro enganches que Enterprise usa sobre este modelo
+==========================================================
+
+Medido sobre Enterprise 19 (``odoo19e:``, ``odoo-tools@bf077302``): **4
+archivos** con ``_inherit = 'ir.module.module'``, con **3** nombres de método
+distintos. El árbol viene duplicado en el repo —``odoo19-enterprise-main/`` y
+``odoo19pro-main/`` son la misma población— así que el grep crudo da 8 rutas y
+la población es 4.
+
+Ninguno se porta, y los cuatro caen **dentro de la divergencia ya declarada
+arriba**: los tres primeros son la transición ``to remove`` vista desde fuera,
+y el cuarto crea un módulo que ningún registro cargó.
+
+============================  =========================  ==========================
+Addon                         Método                     Qué hace, y por qué no aplica
+============================  =========================  ==========================
+``pos_blackbox_be``           ``module_uninstall``       veta la desinstalación si hay una caja certificada. Sin desinstalador no hay qué vetar.
+``helpdesk``                  ``module_uninstall``       apaga por SQL las banderas de ``helpdesk_team`` del addon que se va. Misma transición.
+``timesheet_grid``            ``button_uninstall``       arrastra ``hr_timesheet``/``sale_timesheet`` a la desinstalación — extiende el **conjunto**, no el registro.
+``web_studio``                ``get_studio_module``      crea al vuelo un módulo ``imported=True`` con ``state='installed'``. Aquí ``state`` es **derivado** de ``INSTALLED_APPS`` (ver el ``help_text`` del campo): no hay dónde escribirlo, y ``imported`` no se declara.
+============================  =========================  ==========================
+
+*Métrica:* archivos de Enterprise 19 con ``_inherit`` a ``ir.module.module``,
+y los ``def`` de nivel de clase que declaran.
+*Ciega a:* una extensión que llegue por un mixin intermedio sin nombrar el
+modelo, y a Enterprise 18 — que no se midió en este pase.
 """
 import fields
 import models

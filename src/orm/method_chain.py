@@ -220,3 +220,23 @@ def keep_previous(new, previous):
     contraria.
     """
     return previous if previous is not None else new
+
+
+def merge_dict(new, previous):
+    """``combine`` para el override que ENRIQUECE un diccionario.
+
+    ≙ el idioma ``res = super()._format_settings(...); res['x'] = ...; return
+    res`` (``odoo19c: addons/web/models/res_users_settings.py:9-14``): el
+    eslabón externo no reemplaza el formato, le añade su clave.
+
+    El relevo por defecto no sirve para esta familia y el modo de fallo es
+    silencioso: un diccionario vacío **no es ``None``**, así que
+    :func:`chain_method` lo da por respuesta buena y nunca invoca la previa.
+    Medido en ``res.users.settings``: el eslabón de ``web`` arrancaba en
+    ``{}`` y el formato perdía ``id`` y ``user`` — el porte de base entregaba
+    los cinco métodos y su resultado no llegaba a ningún llamador.
+
+    Las claves de ``new`` ganan sobre las de ``previous``, que es el orden del
+    idioma que replica: el override escribe **después** de leer a ``super()``.
+    """
+    return {**(previous or {}), **(new or {})}

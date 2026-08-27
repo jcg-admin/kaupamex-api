@@ -27,18 +27,22 @@ Divergencias de mecanismo declaradas
   (``res_users_settings_embedded_action.py``). No hay nada que colgar aquí
   con ``chain_method`` — no es un método a sobrescribir, es una relación que
   el modelo hijo ya declaró.
-- ``_format_settings`` en la referencia extiende ``super()._format_settings()``.
-  ``base.ResUsersSettings`` (nuestro "contenedor" — su propio docstring dice
-  *"cada addon le añade sus preferencias por ``_inherit``"*) **no** define
-  ``_format_settings`` todavía: ``web`` es el primer addon en instalarlo, así
-  que ``chain_method`` encuentra ``previous=None`` y no hay ``super()`` que
-  encadenar — el diccionario arranca en ``{}`` aquí mismo, con el mismo
-  resultado que tendría un ``super()`` que devolviera ``{}`` vacío.
+- ``_format_settings`` en la referencia extiende ``super()._format_settings()``,
+  y aquí ese ``super()`` lo aporta ``combine=merge_dict``: el eslabón devuelve
+  **sólo su clave** y :func:`orm.method_chain.merge_dict` la funde sobre lo que
+  entregó base. **Corregido 2026-08-27**: este párrafo declaraba que
+  ``base.ResUsersSettings`` no definía ``_format_settings`` y que por tanto el
+  diccionario arrancaba en ``{}`` "con el mismo resultado que tendría un
+  ``super()`` vacío". Los cinco métodos de la fuente se portaron a base ese
+  mismo día, así que la premisa dejó de ser cierta — y sin ``combine`` el
+  relevo por defecto de ``chain_method`` daba el ``{}`` por respuesta buena
+  (un diccionario vacío no es ``None``) y **descartaba** ``id`` y ``user``.
+  Estado incorrecto heredado, corregido en el mismo pase (Clausula 2).
 - ``self.ensure_one()`` (reference, ``get_embedded_actions_settings``) no se
   porta como aserción — mismo razonamiento que ``res_users.py`` en este
   directorio: una instancia Django es siempre una sola fila.
 """
-from orm.method_chain import chain_method
+from orm.method_chain import chain_method, merge_dict
 
 from addons.base.models.res_users_settings import ResUsersSettings
 from addons.web.models.res_users_settings_embedded_action import (
@@ -49,8 +53,10 @@ from addons.web.models.res_users_settings_embedded_action import (
 def _format_settings(self, fields_to_format):
     """≙ ``_format_settings`` (odoo19c: web/models/res_users_settings.py:9-14).
 
-    Ver la sección de divergencias del docstring del módulo: arranca en
-    ``{}`` porque no hay ``super()`` que encadenar todavía.
+    Devuelve **sólo lo que este addon aporta**; el ``super()`` de la
+    referencia lo pone ``combine=merge_dict`` al instalarlo, que funde esta
+    clave sobre el formato que entrega base. Ver la sección de divergencias
+    del docstring del módulo.
     """
     res = {}
     if 'embedded_actions_config_ids' in fields_to_format:
@@ -110,12 +116,18 @@ def apply_web_extensions():
     """Cuelga las preferencias de acciones embebidas sobre
     ``base.ResUsersSettings``.
 
-    Se invoca desde ``WebConfig.ready()`` (pendiente de sumar
-    ``'addons.web.models.res_users_settings'`` a ``WebConfig._EXTENSIONES``
-    — fase de consolidación del batch, ver ``apps.py``), mismo patrón que
-    ``ir_http.py``/``res_partner.py``/``res_users.py``.
+    Se invoca desde ``WebConfig.ready()`` — ``'addons.web.models.res_users_settings'``
+    está en ``WebConfig._EXTENSIONES``, mismo patrón que
+    ``ir_http.py``/``res_partner.py``/``res_users.py``. (Este párrafo decía
+    "pendiente de sumar"; se cableó y la nota quedó atrás.)
+
+    ``_format_settings`` va con ``combine=merge_dict`` porque su idioma es
+    enriquecer el diccionario de ``super()``, no relevarlo. Los otros dos son
+    métodos propios de este addon: no hay previa que encadenar.
     """
-    chain_method(ResUsersSettings, '_format_settings', _format_settings)
+    chain_method(
+        ResUsersSettings, '_format_settings', _format_settings,
+        combine=merge_dict)
     chain_method(
         ResUsersSettings, 'get_embedded_actions_settings',
         get_embedded_actions_settings)

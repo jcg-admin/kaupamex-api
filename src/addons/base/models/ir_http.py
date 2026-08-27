@@ -186,6 +186,25 @@ class IrHttp(models.Model):
         abstract = True
 
     @classmethod
+    def _post_logout(cls):
+        """≙ ``_post_logout`` (``odoo19c: ir_http.py:362-364``).
+
+        El cuerpo de la fuente es ``pass``, y eso **es** el porte: existe sólo
+        para que un addon corra algo al cerrar sesión —limpiar una caché por
+        usuario, cerrar una llamada, soltar un bloqueo— sin tocar el endpoint.
+        Enterprise 19 lo hereda en dos clases con ``_inherit = 'ir.http'``.
+
+        Lo invocan los dos cierres de ``web``: ``session_destroy`` y
+        ``session_logout``. Sin ese par de llamadas el método sería un
+        símbolo sin consumidor, que es el defecto que :ref:`h-api-346`
+        registró — un enganche que nadie llama no engancha nada.
+
+        Corre **después** del ``logout()`` de Django, igual que en la fuente,
+        que lo llama tras destruir la sesión: quien enganche aquí ya no tiene
+        usuario en la petición, y eso es deliberado.
+        """
+
+    @classmethod
     def slugify_one(cls, value, max_length=None):
         """``_slugify_one`` — un texto a un segmento de URL.
 
