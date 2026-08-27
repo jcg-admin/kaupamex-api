@@ -131,6 +131,62 @@ Qué NO se porta, con su medición
   ``ir.model.access`` se porta como **dato** —el permiso CRUD declarado por
   modelo y grupo—, no como el gate que corre en cada request: ese es
   ``HasCapability``, fail-closed. Portar la tabla no cambia quién decide.
+
+Los enganches que Enterprise usa sobre esta familia
+===================================================
+
+Medido sobre ``19.x/odoo19-enterprise-main``, clases con ``_inherit`` a uno de
+estos modelos, cruzado con lo que ``odoo19c: ir_model.py`` declara: seis
+enganches que aquí no existían por su nombre. Uno se abrió; los otros cinco
+caen dentro de divergencias ya declaradas arriba, y se nombran para que no
+haya que volver a medirlo.
+
+======================================== ====================================
+Enganche                                 Desenlace
+======================================== ====================================
+``IrModelFields._reflect_field_params``  **portado** — se extrajo del cuerpo
+                                         de ``reflect_fields``, que lo tenía
+                                         en línea. Es el único que era un
+                                         hueco de verdad.
+``IrModelFields._check_name``            **divergencia de mecanismo** — el
+                                         enganche de validación de Django es
+                                         ``clean()``, y ahí está portado con
+                                         su cita. Un addon lo extiende por
+                                         ``clean()``, no por ese nombre.
+``IrModelFields._compute_display_name``  **divergencia de mecanismo** — aquí
+                                         es ``__str__``. Y de **contenido**:
+                                         la fuente devuelve
+                                         ``"<descripción> (<modelo>)"``;
+                                         aquí, ``"<modelo>.<campo>"``, que es
+                                         el identificador y no la etiqueta.
+``IrModelFields._instanciate_attrs``     **divergencia declarada** — es la
+                                         maquinaria de campos manuales
+                                         (``_instanciate``), primera viñeta
+                                         de la sección de arriba.
+``IrModel.name_create``                  **divergencia declarada** — crea una
+                                         fila ``x_...`` para que
+                                         ``_add_manual_models`` la instancie.
+                                         Sin esa maquinaria la fila no la
+                                         lee nadie.
+``IrModelData._build_insert_xmlids_values`` **divergencia de mecanismo** — es
+                                         la lista de columnas del ``INSERT
+                                         ... ON CONFLICT`` en crudo del
+                                         cargador. Aquí ``set_xmlid`` escribe
+                                         con ``update_or_create``: el
+                                         diccionario existe, pero es el
+                                         ``defaults`` del ORM y no
+                                         marcadores de posición de SQL.
+                                         Darle ese nombre a algo con otra
+                                         forma de retorno engañaría a quien
+                                         lo herede.
+======================================== ====================================
+
+*Métrica:* nombres declarados en el cuerpo de las clases de Enterprise que
+heredan de estos modelos, intersectados con los que ``odoo19c: ir_model.py``
+declara y este archivo no.
+*Ciega a:* un enganche que Enterprise consuma sin declararlo (por
+``super()`` de un tercero), y a la distinción entre *"aquí se llama distinto"*
+y *"aquí no existe"* — ésa la resolvió la lectura, no el conteo.
 """
 import logging
 import re
@@ -585,12 +641,52 @@ class IrModelFields(TimeStampedModel):
         return DJANGO_TYPE_TO_TTYPE.get(internal, 'char')
 
     @classmethod
+    def _reflect_field_params(cls, field, model_row):
+        """``_reflect_field_params`` — la fila que le toca a un campo.
+
+        Está aparte del recorrido por la misma razón que en la referencia
+        (``odoo19c: ir_model.py:1164``): es el **punto de extensión** por el
+        que un addon añade columnas sin reescribir ``reflect_fields``.
+        Enterprise 19 lo hereda en dos clases con
+        ``_inherit = 'ir.model.fields'``; aquí el diccionario vivía en línea
+        y no había dónde engancharse.
+
+        La firma diverge de la fuente en su segundo argumento —``model_row``,
+        la fila, en vez de ``model_id``, el entero— porque aquí la columna es
+        una FK y el ORM quiere el objeto. El primero (``field``) también es
+        otra cosa: allá un ``odoo.fields.Field``, aquí un campo de Django. Son
+        las dos caras del mismo hecho: este recorrido es el **inverso** del de
+        la referencia (ver el docstring del módulo).
+        """
+        remote = getattr(field, 'related_model', None)
+        return {
+            'model': model_row.model,
+            'model_id': model_row,
+            'ttype': cls.ttype_for(field),
+            'field_description': str(
+                getattr(field, 'verbose_name', '') or field.name),
+            'help': str(getattr(field, 'help_text', '') or ''),
+            'required': not getattr(field, 'null', True),
+            'index': bool(getattr(field, 'db_index', False)),
+            'store': bool(getattr(field, 'concrete', True)),
+            'state': STATE_BASE,
+            'relation': (
+                f'{remote._meta.app_label}.{remote._meta.object_name}'
+                if remote is not None else ''
+            ),
+            'size': getattr(field, 'max_length', None),
+        }
+
+    @classmethod
     def reflect_fields(cls, model_row):
         """Refleja los campos de un modelo — inverso de ``_reflect_fields``.
 
         Devuelve ``(creados, actualizados)``. Salta los reversos de relación
         (``auto_created`` sin columna propia): en la referencia esos tampoco
         son filas de ``ir_model_fields``, son el One2many del otro lado.
+
+        La fila de cada campo la arma ``_reflect_field_params``, que es el
+        enganche; este método sólo recorre y escribe.
         """
         model = model_row.django_model
         if model is None:
@@ -599,24 +695,7 @@ class IrModelFields(TimeStampedModel):
         for field in model._meta.get_fields():
             if field.auto_created and not field.concrete:
                 continue
-            remote = getattr(field, 'related_model', None)
-            values = {
-                'model': model_row.model,
-                'model_id': model_row,
-                'ttype': cls.ttype_for(field),
-                'field_description': str(
-                    getattr(field, 'verbose_name', '') or field.name),
-                'help': str(getattr(field, 'help_text', '') or ''),
-                'required': not getattr(field, 'null', True),
-                'index': bool(getattr(field, 'db_index', False)),
-                'store': bool(getattr(field, 'concrete', True)),
-                'state': STATE_BASE,
-                'relation': (
-                    f'{remote._meta.app_label}.{remote._meta.object_name}'
-                    if remote is not None else ''
-                ),
-                'size': getattr(field, 'max_length', None),
-            }
+            values = cls._reflect_field_params(field, model_row)
             _row, was_created = cls.objects.update_or_create(
                 model=model_row.model, name=field.name, defaults=values)
             created += was_created

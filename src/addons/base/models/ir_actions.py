@@ -74,6 +74,55 @@ Qué NO se porta, con su medición
   razón: montar un evaluador sobre entrada almacenada es superficie de
   ejecución de código y exige decidir explícitamente el evaluador y su
   contexto. ``run()`` deja el punto de extensión declarado y levanta.
+
+  **La superficie de configuración que ese motor consume tampoco se porta, y
+  es la mayor parte de la clase.** Medido sobre ``odoo19c:
+  ir_actions.py``, clase ``IrActionsServer``: la referencia declara **36**
+  campos y **44** métodos; aquí hay **5** campos propios más ``name``/``type``
+  de ``IrActionsBase``, ``parent`` (que da ``child_ids`` por ``related_name``)
+  y ``crons`` (el reverso de la FK de ``IrCron``) — **26** campos genuinamente
+  ausentes y **41** métodos. Los 26 son de tres familias, ninguna separable
+  del motor:
+
+  - **el destino del CRUD** — ``crud_model_id``, ``crud_model_name``,
+    ``link_field_id``, ``update_field_id``, ``update_path``,
+    ``update_related_model_id``, ``update_field_type``,
+    ``update_m2m_operation``, ``update_boolean_value``, ``value``,
+    ``evaluation_type``, ``html_value``, ``sequence_id``, ``resource_ref``,
+    ``selection_value``, ``value_field_to_show``. Describen **qué campo de qué
+    modelo** escribe una acción ``object_write`` y **con qué valor**; sin
+    ``_run_action_object_write`` no hay quien los lea. Casi todos cuelgan
+    además de ``ir.model.fields`` como FK, que es la misma conversión diferida
+    que ``model_id`` (la viñeta de abajo).
+  - **el webhook** — ``webhook_url``, ``webhook_field_ids``,
+    ``webhook_sample_payload``: la carga que ``_run_action_webhook`` arma y
+    envía.
+  - **lo derivado de las dos anteriores** — ``allowed_states``, ``warning``,
+    ``automated_name``, ``available_model_ids``, ``show_code_history``: cinco
+    computados cuyos insumos son los campos de arriba.
+
+  **La excepción, que no es de motor:** ``group_ids`` —los grupos que pueden
+  ejecutar la acción— y su lector ``_can_execute_action_on_records``. Aquí la
+  autorización efectiva es **por capacidad** (DEC-11, ``HasCapability``,
+  fail-closed), no una lista de grupos colgada del registro. Es la misma
+  divergencia ya declarada para ``ir.model.access`` en ``ir_model.py``:
+  portar la columna no cambiaría quién decide.
+
+  **Los ocho enganches que Enterprise 19 extiende sobre este modelo caen todos
+  ahí dentro** — medido sobre ``19.x/odoo19-enterprise-main``, clases con
+  ``_inherit = 'ir.actions.server'``: ``_compute_allowed_states`` (2),
+  ``_generate_action_name`` (2), ``_run_action_object_write``,
+  ``evaluation_type``, ``update_field_type`` y
+  ``_can_execute_action_on_records``. No son ocho huecos independientes: son
+  ocho vistas del mismo hueco, y aparecen cuando entra el motor.
+
+  *Métrica:* símbolos declarados en el cuerpo de la clase, por AST, en la
+  referencia y aquí; cruzados con los nombres que declaran las clases de
+  Enterprise que heredan de este modelo.
+  *Ciega a:* un símbolo que Enterprise extienda por herencia sin nombrarlo, y
+  a un campo nuestro que cubra el mismo papel con otro nombre y sin nota — los
+  cuatro que sí lo hacen (``name``, ``type``, ``parent``, ``crons``) se
+  descontaron a mano.
 - **``model_id`` como FK a ``ir.model``.** **Actualizado** (porte de
   ``ir_model.py``): ``grep -rn "^class IrModel\b" src/`` → **1** clase.
   [PROVEN] La medición que justificaba el ``Char`` —**0** clases— dejó de ser
