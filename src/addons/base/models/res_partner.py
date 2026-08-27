@@ -21,10 +21,14 @@ cliente sin migrar filas.
 ``ResUsers`` la reimplementa con una FK requerida más propiedades que
 reenvían. Ver ``res_users.py``.
 """
+from random import randint
+
 import fields
 import models
 
 from addons.base.models.avatar_mixin import AvatarMixin
+from addons.base.models.res_country import ADDRESS_FORMAT_KEYS
+from exceptions import ValidationError
 from addons.base.models.timestamped_mixin import TimeStampedModel
 
 
@@ -68,7 +72,7 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     - ``_order`` — verbatim. ``Meta.ordering`` **no** puede derivarse tal cual:
       ``complete_name`` es un campo computado que este puerto no trae (medido:
       0 apariciones en este archivo), así que la forma Django ordena por el
-      campo que sí existe.
+      field_name que sí existe.
     - ``_rec_names_search`` — los cinco campos que ``name_search`` considera.
     - ``_allow_sudo_commands`` / ``_check_company_auto`` — verbatim.
     - ``_complete_name_displayed_types`` (``:195``) — constante de clase, no
@@ -132,7 +136,7 @@ class ResPartner(AvatarMixin, TimeStampedModel):
 
     name        = fields.Char(
         max_length=200, db_index=True,
-        help_text='Nombre de la persona o empresa (Odoo res.partner.name).',
+        help_text='Nombre de la persona o company (Odoo res.partner.name).',
     )
     parent      = fields.Many2one(
         'self', on_delete=models.SET_NULL, null=True, blank=True,
@@ -148,7 +152,7 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     )
     is_company  = fields.Boolean(
         default=False,
-        help_text='True = empresa; False = persona física (Odoo is_company).',
+        help_text='True = company; False = persona física (Odoo is_company).',
     )
     active      = fields.Boolean(
         default=True, db_index=True,
@@ -281,7 +285,7 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     def commercial_partner(self):
         """El partner que representa la **entidad comercial** del contacto.
 
-        Sube por la cadena de padres hasta la primera empresa. Un contacto
+        Sube por la cadena de padres hasta la primera company. Un contacto
         suelto (sin padre) es su propia entidad comercial — por eso el corte
         es ``is_company or not parent``, no sólo ``is_company``.
         """
@@ -299,3 +303,260 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         """
         p = self.commercial_partner
         return p.name if p.is_company else self.company_name
+
+
+class FormatVatLabelMixin:
+    """``format.vat.label.mixin`` — ≙ ``FormatVatLabelMixin``
+    (``odoo19c: odoo/addons/base/models/res_partner.py:45-58``).
+
+    El identificador fiscal no se llama igual en todas partes: «RFC» en
+    Mexico, «NIF» en Espana. La fuente resuelve la etiqueta desde el pais de
+    la empresa (``env.company.country_id.vat_label``) y la **inyecta en el XML
+    de la vista**, tanto en el ``<field name="vat">`` como en su ``<label>``.
+
+    DIVERGENCIA DE MECANISMO, medida y declarada. Medido en este arbol:
+
+    - el **dato** SI esta: ``ResCountry.vat_label``
+      (``res_country.py:84``), portado con su ``help_text``;
+    - el **mecanismo** de la fuente NO: ``_get_view`` da **0 hits** en todo
+      el arbol (``grep -rn "def _get_view\b" src/ addons/``). No hay arch XML
+      que mutar porque la interfaz es React y consume JSON.
+
+    Por eso el mixin porta el metodo que **calcula** la etiqueta —que es la
+    decision— y no el que la escribe en un arbol XML que aqui no existe. Un
+    serializer que exponga ``vat`` lee ``vat_label_for`` y manda la etiqueta
+    en la respuesta; ese cableado es la tarea **#47**.
+    """
+
+    _name = 'format.vat.label.mixin'
+    _description = 'Country Specific VAT Label'
+
+    @staticmethod
+    def vat_label_for(company):
+        """La etiqueta del identificador fiscal segun el pais de ``company``.
+
+        ≙ la condicion ``if vat_label := self.env.company.country_id.vat_label``
+        de la fuente (``:49``). Devuelve cadena vacia cuando el pais no
+        declara tag, que es cuando la fuente no toca nada.
+        """
+        country = getattr(company, 'country', None)
+        return getattr(country, 'vat_label', '') or ''
+
+
+class FormatAddressMixin:
+    """``format.address.mixin`` — ≙ ``FormatAddressMixin``
+    (``odoo19c: odoo/addons/base/models/res_partner.py:61-136``).
+
+    Una direccion no se escribe en el mismo orden en todos los paises: en unos
+    va «codigo postal, ciudad, estado» y en otros «ciudad, estado, codigo
+    postal». La fuente lee ``country.address_format`` y **reordena los nodos
+    del XML** de la vista para que el usuario vea el orden al que esta
+    acostumbrado.
+
+    DIVERGENCIA DE MECANISMO, medida y declarada — la misma que el mixin de
+    arriba y por la misma razon:
+
+    - el **dato** SI esta: ``ResCountry.address_format``
+      (``res_country.py:74``) con sus once claves admitidas en
+      ``ADDRESS_FORMAT_KEYS``;
+    - el **mecanismo** NO: ``_get_view``, ``_get_view_cache_key`` y
+      ``postprocess_and_fields`` dan **0 hits**; ``ir.ui.view`` no tiene arch
+      que postprocesar en este arbol.
+
+    Lo que SI se porta es ``_extract_fields_from_address``, que es **trabajo
+    de cadena puro** y por tanto independiente del canal: dice en que orden
+    van los campos, que es exactamente lo que una interfaz React necesita
+    recibir para pintarlos bien. Su consumidor —el serializer que exponga ese
+    orden— es la tarea **#47**.
+
+    Lo que NO se porta, y su razon: ``_view_get_address`` (muta nodos
+    ``//div[hasclass('o_address_format')]`` con XPath), ``_get_view`` y
+    ``_get_view_cache_key``. Los tres operan sobre un arbol XML de vista Odoo;
+    no hay conducta que replicar porque no hay arbol.
+    """
+
+    _name = 'format.address.mixin'
+    _description = 'Address Format'
+
+    #: ≙ ``ADDRESS_FIELDS + ('state_code', 'state_name')`` de la fuente
+    #: (``:71``). Se toma de ``res_country.ADDRESS_FORMAT_KEYS``, que ya porta
+    #: la lista completa con sus derivados.
+    @staticmethod
+    def _extract_fields_from_address(address_line):
+        """≙ ``_extract_fields_from_address`` (``:65-72``).
+
+        Docstring de la fuente, verbatim: *"Extract keys from the address
+        line. For example, if the address line is ``"zip: %(zip)s, city:
+        %(city)s."``, this method will return ``['zip', 'city']``."*
+
+        El orden de salida es el de **aparicion en la linea**, no el de la
+        lista de claves: por eso la fuente ordena por ``address_line.index``.
+        Es lo unico que importa del metodo — decir en que orden van.
+        """
+        candidates = ['%(' + field_name + ')s'
+                      for field_name in ADDRESS_FORMAT_KEYS]
+        return sorted(
+            [c[2:-2] for c in candidates if c in address_line],
+            key=address_line.index)
+
+    @classmethod
+    def field_order_for(cls, country):
+        """El orden de ``zip`` / ``city`` / ``state`` que pide ``country``.
+
+        Es la decision que ``_view_get_address`` toma antes de mover nodos
+        (``:105-108``): busca la **linea del formato que contiene la ciudad**
+        y de ahi saca el orden. Sin el XML de por medio, esa decision es todo
+        lo que hay que portar.
+
+        Devuelve lista vacia cuando el pais no declara formato, que es cuando
+        la fuente no reordena nada.
+        """
+        fmt = getattr(country, 'address_format', '') or ''
+        lines = [cls._extract_fields_from_address(line)
+                  for line in fmt.split('\n') if 'city' in line]
+        return lines[0] if lines else []
+
+
+
+class ResPartnerCategory(TimeStampedModel):
+    """``res.partner.category`` — ≙ ``ResPartnerCategory``
+    (``odoo19c: odoo/addons/base/models/res_partner.py:139-181``).
+
+    Las etiquetas con que se clasifica un contacto, y son **jerarquicas**: una
+    tag puede colgar de otra, y su nombre para mostrar es la cadena
+    completa (``'Clientes / Mayoristas / Norte'``). Esa jerarquia es lo que
+    hace que el modelo no sea una tabla de dos columnas.
+
+    Estaba ausente de este arbol: ``res_partner.py`` declaraba **una** clase
+    contra las cuatro de la referencia.
+    """
+
+    _name = 'res.partner.category'
+    _description = 'Partner Tags'
+    _order = 'name, id'
+    _parent_store = True
+
+    #: Tope del reparto de color — ``randint(1, 11)`` de la fuente (``:144``).
+    COLOR_MAX = 11
+
+    name = fields.Char(max_length=120, verbose_name='Nombre')
+    color = fields.Integer(
+        default=0, verbose_name='Color',
+        help_text='Odoo color. Un entero de 1 a 11 repartido al azar al crear.')
+    parent = fields.Many2one(
+        'self', on_delete=models.CASCADE, null=True, blank=True,
+        db_index=True, related_name='child_ids', verbose_name='Categoría',
+        help_text='Odoo parent_id, con ondelete cascade.')
+    active = fields.Boolean(
+        default=True,
+        help_text='Permite ocultar la categoría sin borrarla (Odoo active).')
+    parent_path = fields.Char(
+        max_length=255, blank=True, default='', db_index=True,
+        verbose_name='Ruta de ancestros',
+        help_text="Ruta materializada '1/4/9/' — sostiene _parent_store.")
+    partners = fields.Many2many(
+        ResPartner, blank=True, related_name='category_ids',
+        verbose_name='Contactos',
+        help_text='Odoo partner_ids, con column1=category_id.')
+
+    class Meta:
+        db_table = 'res_partner_category'
+        ordering = ['name', 'id']
+        verbose_name = 'Etiqueta de contacto'
+        verbose_name_plural = 'Etiquetas de contacto'
+
+    def __str__(self):
+        return self.display_name
+
+    def save(self, *args, **kwargs):
+        """Siembra el color al azar y mantiene la ruta materializada.
+
+        El color solo se reparte **al crear** y solo si nadie lo puso, que es
+        lo que hace el ``default=_get_default_color`` de la fuente: un default
+        callable corre una vez, no en cada escritura.
+        """
+        creating = self._state.adding
+        if creating and not self.color:
+            self.color = self._get_default_color()
+        self._check_parent_id()
+        result = super().save(*args, **kwargs)
+        path = self._compute_parent_path()
+        if self.parent_path != path:
+            type(self).objects.filter(pk=self.pk).update(parent_path=path)
+            self.parent_path = path
+        return result
+
+    @staticmethod
+    def _get_default_color():
+        """≙ ``_get_default_color`` (``:143-144``).
+
+        La fuente reparte un color al azar entre once para que las etiquetas
+        se distingan de un vistazo. Alla es el ``default=`` callable del campo;
+        aqui lo llama ``save()`` al crear, que es cuando ese default corre.
+        """
+        return randint(1, ResPartnerCategory.COLOR_MAX)
+
+    def _check_parent_id(self):
+        """≙ ``_check_parent_id`` (``:157-160``) — ``@api.constrains``.
+
+        Mensaje de la fuente, verbatim: *"You can not create recursive tags."*
+        La fuente lo resuelve con ``_has_cycle()`` del ORM; aqui se recorre la
+        cadena, que es lo que ese helper hace por dentro.
+        """
+        seen = set()
+        current = self.parent
+        while current is not None:
+            if current.pk == self.pk or current.pk in seen:
+                raise ValidationError('No se pueden crear etiquetas recursivas.')
+            seen.add(current.pk)
+            current = current.parent
+
+    def _compute_parent_path(self):
+        """Ruta materializada del ancestro, terminada en ``/``.
+
+        Mismo mecanismo que ``ResCompany._compute_parent_path`` — el
+        ``_parent_store`` de la referencia se sostiene sobre esta columna.
+        """
+        if self.parent_id is None:
+            return f'{self.pk}/'
+        return f'{self.parent.parent_path}{self.pk}/'
+
+    @property
+    def display_name(self):
+        """≙ ``_compute_display_name`` (``:162-172``).
+
+        Docstring de la fuente: *"Return the categories' display name,
+        including their direct parent by default."* La cadena completa
+        separada por ``' / '``, de la raiz hacia abajo.
+        """
+        names = []
+        current = self
+        while current is not None:
+            names.append(current.name or '')
+            current = current.parent
+        return ' / '.join(reversed(names))
+
+    @classmethod
+    def _search_display_name(cls, operator, value):
+        """≙ ``_search_display_name`` (``:174-181``).
+
+        Buscar por nombre para mostrar devuelve la etiqueta **y toda su
+        descendencia** —el ``child_of`` de la fuente—, porque quien busca
+        "Clientes" espera tambien "Clientes / Mayoristas".
+
+        DIVERGENCIA declarada: la fuente devuelve ``NotImplemented`` para los
+        operadores negados (``not like``), porque su dominio no sabe negar un
+        ``child_of``. Aqui se conserva esa negativa: un ``not`` sobre la
+        jerarquia pediria el complemento de un arbol, que no es lo mismo que
+        negar cada nombre.
+        """
+        if not operator.endswith('like'):
+            return models.Q(name__iexact=value)
+        if operator.startswith('not'):
+            return NotImplemented
+        roots = cls.objects.filter(name__icontains=value)
+        paths = [r.parent_path for r in roots if r.parent_path]
+        condition = models.Q(pk__in=[r.pk for r in roots])
+        for path in paths:
+            condition |= models.Q(parent_path__startswith=path)
+        return condition
