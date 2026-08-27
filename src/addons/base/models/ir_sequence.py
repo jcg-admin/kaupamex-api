@@ -39,26 +39,35 @@ escribir **sin ningún candado**, así que dos llamadas concurrentes devolvían 
 mismo número. Ni ``standard`` (que no lo necesita, porque delega en el motor)
 ni ``no_gap`` (que lo necesita y no lo tenía).
 
-DIVERGENCIA HEREDADA, declarada y con sucesor
-----------------------------------------------
+El log-access, y qué mitad de él existe aquí
+---------------------------------------------
 
 La fuente **no** declara ``_log_access = False`` en ninguna de las dos clases,
 así que su ORM les añade las cuatro columnas de auditoría
-(``create_uid``/``create_date``/``write_uid``/``write_date``). Aquí ninguna de
-las dos hereda ``TimeStampedModel``: ``ir.sequence`` no lo hacía antes de este
-porte, y ``ir.sequence.date_range`` se escribe igual que ella para no dejar dos
-tablas hermanas con contratos distintos.
+(``create_uid``/``create_date``/``write_uid``/``write_date``). Hasta la tarea
+**#40** ninguna de las dos las llevaba, y la divergencia estaba declarada con
+su sucesor: añadir una columna con ``auto_now_add`` a una tabla viva bloquea
+``makemigrations`` en su cuestionario, y la conducta correcta es una migración
+escrita a mano con su ``default``, no responderlo. Es lo que hace
+``base.0045_ir_sequence_audit_columns``.
 
-**No se corrige en este pase a propósito**: añadir las columnas a una tabla
-viva es una migración con default sobre filas existentes, y ése es un cambio
-con su propio riesgo, no un efecto colateral de portar la subsecuencia.
-Sucesor: tarea **#40**.
+Ahora las dos heredan ``TimeStampedModel``, que es la forma que este árbol
+adoptó del log-access. Trae **dos** columnas —``created_at``/``updated_at``,
+≙ ``create_date``/``write_date``— y no cuatro: las de **quién**
+(``create_uid``/``write_uid``) no existen en **ningún** modelo del proyecto
+(medido: ``grep -rln "create_uid = fields" src/ addons/`` → 0). Esa mitad es
+una divergencia **del mixin**, no de estas dos tablas, y ya está declarada como
+alternativa diferida en DEC-09 de
+``adoptar-arquitectura-server-service-odoo`` — la auto-inyección en la capa
+``orm/``, que es donde la referencia la pone.
 """
 import logging
 from datetime import datetime, timedelta
 
 from django.db import connection, models as django_models
 from django.utils import timezone
+
+from addons.base.models.timestamped_mixin import TimeStampedModel
 
 import fields
 import models
@@ -186,7 +195,7 @@ def _predict_nextval(seq_id):
     return last_value
 
 
-class IrSequence(models.Model):
+class IrSequence(TimeStampedModel):
     """``ir.sequence`` — ≙ ``IrSequence`` (``odoo19c: ir_sequence.py:83-292``).
 
     Docstring de la fuente, verbatim: *"The sequence model allows to define and
@@ -501,7 +510,7 @@ class IrSequence(models.Model):
         return secuencia._next(sequence_date=sequence_date)
 
 
-class IrSequenceDateRange(models.Model):
+class IrSequenceDateRange(TimeStampedModel):
     """``ir.sequence.date_range`` — ≙ ``IrSequenceDate_Range`` (``:295-376``).
 
     La subsecuencia por rango: lo que hace que un folio reinicie al cambiar el
