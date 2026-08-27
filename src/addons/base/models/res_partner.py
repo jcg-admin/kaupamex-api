@@ -283,6 +283,81 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     # ``compute=... store=True``; aquí son propiedades, que es como este árbol
     # expresa un computado (mismo patrón que ``ResCompany.name``).
 
+    # ------------------------------------------------------------------
+    # Puntos de enganche del contacto — ``odoo19c: res_partner.py:660-700``.
+    # Enterprise 19 los extiende 5 veces (tarea #78); cada addon SUMA a lo que
+    # devuelve el ``super()``, así que sin base que extender dos addons se
+    # pisarían. Mismo criterio con que se cerraron ``SELF_READABLE_FIELDS`` y
+    # ``_load_menus_blacklist`` (:ref:`h-api-819`).
+    # ------------------------------------------------------------------
+    @classmethod
+    def _address_fields(cls):
+        """≙ ``_address_fields`` (``odoo19c: res_partner.py:659-662``).
+
+        Docstring de la fuente, verbatim: *"Returns the list of address fields
+        that are synced from the parent."*
+
+        La fuente devuelve ``list(ADDRESS_FIELDS)``, su tupla de módulo. Aquí
+        el nombre del campo cambia por la convención de este árbol —``state_id``
+        y ``country_id`` son ``state`` y ``country``—, y esa correspondencia es
+        la única divergencia.
+        """
+        return ['street', 'street2', 'zip', 'city', 'state', 'country']
+
+    @classmethod
+    def _formatting_address_fields(cls):
+        """≙ ``_formatting_address_fields`` (``odoo19c: res_partner.py:664-667``).
+
+        Docstring de la fuente, verbatim: *"Returns the list of address fields
+        usable to format addresses."*
+
+        Delega en :meth:`_address_fields`, como la fuente. Existe aparte porque
+        es **otro** punto de extensión: un addon puede querer más campos para
+        **formatear** que los que sincroniza del padre, y la fuente le da dos
+        ganchos distintos para no obligarle a elegir.
+        """
+        return cls._address_fields()
+
+    @classmethod
+    def _synced_commercial_fields(cls):
+        """≙ ``_synced_commercial_fields`` (``odoo19c: res_partner.py:695-700``).
+
+        Docstring de la fuente, verbatim: *"Returns the list of fields that are
+        managed by the commercial entity to which a partner belongs. When
+        modified on a children, update is propagated until the commercial
+        entity."*
+
+        Los que se propagan **hacia arriba**: cambiarlos en un hijo actualiza a
+        la entidad comercial. Es el subconjunto estricto de
+        :meth:`_commercial_fields`, y por eso se declara antes.
+        """
+        return ['vat']
+
+    @classmethod
+    def _commercial_fields(cls):
+        """≙ ``_commercial_fields`` (``odoo19c: res_partner.py:685-693``).
+
+        Docstring de la fuente, verbatim: *"Returns the list of fields that are
+        managed by the commercial entity to which a partner belongs. These
+        fields are meant to be hidden on partners that aren't `commercial
+        entities` themselves, or synchronized at update (if present in
+        _synced_commercial_fields), and will be delegated to the parent
+        `commercial entity`. The list is meant to be extended by inheriting
+        classes."*
+
+        La última frase es el contrato: **está pensado para extenderse**.
+
+        La fuente compone los sincronizados **más dos campos propios**,
+        ``company_registry`` e ``industry_id``, y aquí **ninguno de los dos
+        existe**: medido, ``company_registry`` sólo aparece en
+        ``_rec_names_search`` sin campo que lo respalde, e ``industry_id``
+        necesita ``res.partner.industry``, que está sin portar. Así que la
+        lista es hoy la de sincronizados a secas, y las dos ausencias se
+        nombran aquí en vez de fabricar una lista con campos que no existen.
+        Portar los dos campos es la tarea **#48**.
+        """
+        return list(cls._synced_commercial_fields())
+
     @property
     def commercial_partner(self):
         """El partner que representa la **entidad comercial** del contacto.
