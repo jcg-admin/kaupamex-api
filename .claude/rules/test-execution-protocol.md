@@ -43,11 +43,10 @@ sigue siendo precondición de cualquier pytest (`pg_isready`; si no responde,
 `pg_ctlcluster 16 main start`) y **nunca SQLite**. Un fallo pre-existente se
 cita, no se silencia.
 
-Baseline vigente de api: **4 759 passed, 21 skipped, 0 failed** contra
-PostgreSQL 16.13 (medido 2026-08-27T00:48). La cifra anterior de esta línea
-—2 235, del 2026-08-06— llevaba tres semanas describiendo un árbol que ya no
-existe. El build de docs es **opcional**, no parte del
-DoD.
+Baseline vigente de api: **4 837 passed, 21 skipped, 0 failed** contra
+PostgreSQL 16.13 (medido 2026-08-27T02:40, cierre de la tarea #51). Sube de
+4 759 por los 66 casos de las tres suites nuevas de ``res_users``, sin
+regresión. El build de docs es **opcional**, no parte del DoD.
 
 Motor: PostgreSQL desde `docs: source/backend/adr/adr-028-postgresql.rst`. El
 gate de conexión vive en `db-conexion-socket.md` (en libpq el socket **es** el
