@@ -126,7 +126,25 @@ class TestLineCleanup:
     (``:1067-1068``)."""
 
     def test_it_leaves_no_trailing_blanks_before_a_newline(self, contact):
-        with context_scope(show_address=True):
+        """El par ``show_address`` + ``show_vat`` es lo que ejercita la
+        limpieza, y sólo ese par.
+
+        Medido con una sonda sobre ``_display_address(without_company=True)``:
+        la plantilla del país devuelve ``'Reforma 1\n\nCDMX  \n'`` — dos
+        espacios antes del salto final, porque el estado y el código postal
+        van vacíos. Con **sólo** ``show_address`` ese blanco queda al FINAL y
+        se lo lleva el ``.strip()``, así que la limpieza no tiene nada que
+        hacer y un control con esa sola clave **pasa con la limpieza
+        anulada** — medido: 13 passed.
+
+        Con ``show_vat`` detrás, el blanco queda en MEDIO y sólo el
+        ``re.sub`` lo colapsa.
+
+        *Métrica:* presencia de ``' \n'`` en el resultado.
+        *Ciega a:* un blanco que la plantilla de otro país deje en una
+        posición distinta; se midió con la de México.
+        """
+        with context_scope(show_address=True, show_vat=True):
             name = contact.display_name
         assert ' \n' not in name, 'la fuente colapsa el blanco antes del salto'
         assert name == name.strip()
