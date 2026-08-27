@@ -824,3 +824,161 @@ base/models/ir_ui_view.py::Base::_get_default_pivot_view
 #     el diff visual es del backoffice. La DECISION de los tres modos si esta
 #     portada, en `source_arch_for`.
 base/models/ir_ui_view.py::ResetViewArchWizard::_compute_arch_diff
+
+# --- ir_qweb: el compilador de plantillas, 82 simbolos ---------------------
+#
+# El docstring del modulo lo declara con DOS mediciones independientes, y
+# cada una bastaria: en este arbol hay **0** archivos `.xml` y **0**
+# plantillas con directivas `t-*`; el HTML lo genera React en el cliente y el
+# backend sirve JSON por DRF. Un compilador de plantillas sin plantillas no es
+# una pieza dificil: es una pieza muerta.
+#
+# Lo que SI se porta y se queda contado: el vocabulario y las primitivas del
+# motor. Lo de abajo es el compilador y su empaquetado de assets.
+#   __prepare_globals -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::__prepare_globals
+#   _append_text -> acumula el texto que el compilador emite entre directivas.
+base/models/ir_qweb.py::IrQweb::_append_text
+#   _compile -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile
+#   _compile_bool -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_bool
+#   _compile_directive -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_directive
+#   _compile_directive_as -> compila la directiva `t-as` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_as
+#   _compile_directive_att -> compila la directiva `t-att` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_att
+#   _compile_directive_call -> compila la directiva `t-call` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_call
+#   _compile_directive_call_assets -> compila la directiva `t-call_assets` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_call_assets
+#   _compile_directive_consumed_options -> compila la directiva `t-consumed_options` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_consumed_options
+#   _compile_directive_debug -> compila la directiva `t-debug` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_debug
+#   _compile_directive_elif -> compila la directiva `t-elif` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_elif
+#   _compile_directive_else -> compila la directiva `t-else` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_else
+#   _compile_directive_esc -> compila la directiva `t-esc` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_esc
+#   _compile_directive_field -> compila la directiva `t-field` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_field
+#   _compile_directive_foreach -> compila la directiva `t-foreach` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_foreach
+#   _compile_directive_groups -> compila la directiva `t-groups` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_groups
+#   _compile_directive_if -> compila la directiva `t-if` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_if
+#   _compile_directive_inner_content -> compila la directiva `t-inner_content` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_inner_content
+#   _compile_directive_lang -> compila la directiva `t-lang` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_lang
+#   _compile_directive_options -> compila la directiva `t-options` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_options
+#   _compile_directive_out -> compila la directiva `t-out` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_out
+#   _compile_directive_raw -> compila la directiva `t-raw` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_raw
+#   _compile_directive_set -> compila la directiva `t-set` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_set
+#   _compile_directive_tag_close -> compila la directiva `t-tag_close` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_tag_close
+#   _compile_directive_tag_open -> compila la directiva `t-tag_open` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_tag_open
+#   _compile_directive_value -> compila la directiva `t-value` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_value
+#   _compile_directive_valuef -> compila la directiva `t-valuef` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_valuef
+#   _compile_directives -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_directives
+#   _compile_expr -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_expr
+#   _compile_expr_tokens -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_expr_tokens
+#   _compile_format -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_format
+#   _compile_node -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_node
+#   _compile_static_node -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_static_node
+#   _compile_to_str -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_to_str
+#   _debug_trace -> ata el error del compilador al nodo XML que lo produjo.
+base/models/ir_qweb.py::IrQweb::_debug_trace
+#   _flush_text -> acumula el texto que el compilador emite entre directivas.
+base/models/ir_qweb.py::IrQweb::_flush_text
+#   _generate_asset_links -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_generate_asset_links
+#   _generate_asset_links_cache -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_generate_asset_links_cache
+#   _generate_code -> genera el codigo Python de una plantilla ya compilada.
+base/models/ir_qweb.py::IrQweb::_generate_code
+#   _generate_code_cached -> genera el codigo Python de una plantilla ya compilada.
+base/models/ir_qweb.py::IrQweb::_generate_code_cached
+#   _generate_code_uncached -> genera el codigo Python de una plantilla ya compilada.
+base/models/ir_qweb.py::IrQweb::_generate_code_uncached
+#   _get_asset_bundle -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_asset_bundle
+#   _get_asset_content -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_asset_content
+#   _get_asset_link_urls -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_asset_link_urls
+#   _get_asset_links -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_asset_links
+#   _get_asset_nodes -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_asset_nodes
+#   _get_bundles_from_views -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_bundles_from_views
+#   _get_bundles_to_pregenarate -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_bundles_to_pregenarate
+#   _get_converted_image_data_uri -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_get_converted_image_data_uri
+#   _get_error_info -> ata el error del compilador al nodo XML que lo produjo.
+base/models/ir_qweb.py::IrQweb::_get_error_info
+#   _get_field -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_get_field
+#   _get_lazy_bundles_from_js -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_lazy_bundles_from_js
+#   _get_preload_attribute_xmlids -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_get_preload_attribute_xmlids
+#   _get_template -> resuelve y memoriza la plantilla que el compilador va a compilar.
+base/models/ir_qweb.py::IrQweb::_get_template
+#   _get_template_cache_keys -> resuelve y memoriza la plantilla que el compilador va a compilar.
+base/models/ir_qweb.py::IrQweb::_get_template_cache_keys
+#   _get_template_info -> resuelve y memoriza la plantilla que el compilador va a compilar.
+base/models/ir_qweb.py::IrQweb::_get_template_info
+#   _get_widget -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_get_widget
+#   _is_static_node -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_is_static_node
+#   _link_to_node -> ata el error del compilador al nodo XML que lo produjo.
+base/models/ir_qweb.py::IrQweb::_link_to_node
+#   _links_to_nodes -> ata el error del compilador al nodo XML que lo produjo.
+base/models/ir_qweb.py::IrQweb::_links_to_nodes
+#   _post_processing_att -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_post_processing_att
+#   _pregenerate_assets_bundles -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_pregenerate_assets_bundles
+#   _preload_trees -> resuelve y memoriza la plantilla que el compilador va a compilar.
+base/models/ir_qweb.py::IrQweb::_preload_trees
+#   _prepare_environment -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_prepare_environment
+#   _render_iterall -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_render_iterall
+#   _rstrip_text -> acumula el texto que el compilador emite entre directivas.
+base/models/ir_qweb.py::IrQweb::_rstrip_text
+#
+# Y las tres clases de apoyo del compilador, por clase:
+#
+#   QwebContent -> el envoltorio de salida que el codigo generado acumula;
+#     sin codigo generado no hay nada que acumular.
+base/models/ir_qweb.py::QwebContent
+#   QwebCallParameters -> los parametros de un `t-call`, que es una directiva.
+base/models/ir_qweb.py::QwebCallParameters
+#   QwebStackFrame -> un marco de la pila del compilador, para el rastro de error.
+base/models/ir_qweb.py::QwebStackFrame
+#   QwebJSON -> el serializador JSON que sabe volcar un QwebContent; sin
+#     QwebContent no hay caso que tratar de forma especial.
+base/models/ir_qweb.py::QwebJSON
