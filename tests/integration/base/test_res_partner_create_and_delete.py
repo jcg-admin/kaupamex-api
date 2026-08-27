@@ -93,12 +93,20 @@ class TestNameCreate:
         assert who.name == 'sola@practicayoruba.mx'
         assert who.email == 'sola@practicayoruba.mx'
 
-    def test_without_an_email_no_email_is_written(self, db):
-        """CONTROL del ``if email_normalized`` que decide si se escribe.
+    def test_without_an_email_the_partner_has_none(self, db):
+        """Un texto sin correo no deja basura en el campo.
 
-        Qué lo haría fallar: escribir siempre la clave. El partner quedaría
-        con el correo en cadena vacía, que no es lo mismo que sin correo
-        cuando alguien busca por ese campo.
+        **Este caso NO discrimina el ``if email_normalized`` de la fuente, y
+        conviene decirlo.** Se midió: sustituir la guarda por escribir la
+        clave siempre deja los 23 casos en verde. La razón es que aquí el
+        campo es ``blank=True, default=''``, así que *no escribir* y
+        *escribir la cadena vacía* dan el mismo valor almacenado — el
+        fenómeno que la guarda protege no existe en este árbol.
+
+        Allá sí existe: su comentario dice *"keep default_email in context"*,
+        y omitir la clave deja ganar al ``default_email`` que ``default_get``
+        pone. La guarda se porta igual, por fidelidad, y se vuelve observable
+        cuando ``default_get`` exista. Sucesor: tarea **#113**.
         """
         pk, _display = ResPartner.name_create('Solo un nombre')
         who = ResPartner.objects.get(pk=pk)

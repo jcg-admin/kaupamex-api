@@ -1244,10 +1244,16 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         email value. If 'force_email' key in context: must find the email
         address."*
 
-        Las dos asimetrias que importan: el nombre cae al correo cuando no hay
-        nombre —una fila sin nada legible no sirve en ninguna lista—, y el
-        correo **solo se escribe si lo hay**, porque la cadena vacia y la
-        ausencia se distinguen al buscar por ese campo.
+        La asimetria que importa: el nombre cae al correo cuando no hay
+        nombre — una fila sin nada legible no sirve en ninguna lista.
+
+        **La guarda ``if email_normalized`` se porta y hoy es neutra**, y eso
+        se declara en vez de callarse. Alla decide si gana el ``default_email``
+        del contexto —su comentario lo dice: *"keep default_email in
+        context"*—; aqui el campo es ``blank=True, default=''``, asi que no
+        escribir la clave y escribir la cadena vacia dan el mismo valor. Se
+        conserva por fidelidad y se vuelve observable cuando ``default_get``
+        se porte. Sucesor: tarea **#113**.
 
         **Divergencia de mecanismo, declarada:** la fuente empieza limpiando
         un ``default_type`` invalido del contexto
