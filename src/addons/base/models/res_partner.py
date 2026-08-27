@@ -32,7 +32,7 @@ from addons.base.models.res_country import (ADDRESS_FORMAT_KEYS,
                                             DEFAULT_ADDRESS_FORMAT)
 from exceptions import ValidationError
 from addons.base.models.timestamped_mixin import TimeStampedModel
-from tools.misc import street_split
+from tools.misc import OrderedSet, street_split
 
 
 class ResPartner(AvatarMixin, TimeStampedModel):
@@ -445,6 +445,330 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         Portar los dos campos es la tarea **#48**.
         """
         return list(cls._synced_commercial_fields())
+
+    # ------------------------------------------------------------------
+    # Sincronización en la jerarquía — ``odoo19c: res_partner.py:653-843``.
+    #
+    # **Por qué no es un campo relacionado.** Una dirección es un partner
+    # hijo, y para que la de facturación lleve la calle de su empresa la
+    # fuente sincroniza **valores** en las tres direcciones —del padre al
+    # hijo, del hijo al padre y del padre a los nietos— en vez de declarar un
+    # ``related``. La razón es que el hijo debe poder **divergir**: una bodega
+    # tiene su propia calle y no la pierde cuando alguien edita la empresa.
+    # Un campo relacionado no admite esa excepción; un sincronizador sí,
+    # porque decide caso por caso cuándo copiar.
+    #
+    # **Las dos fronteras, que es lo que un porte ingenuo se salta:** la
+    # dirección baja sólo a los hijos de tipo contacto (una de entrega es
+    # distinta a propósito), y los campos comerciales no cruzan otra empresa
+    # (una filial tiene su propio RFC).
+    #
+    # Divergencias de mecanismo, todas del mismo origen —aquí ``self`` es una
+    # fila y el ORM es Django—:
+    #
+    # - ``super().write(vals)`` de la fuente evita el ``write`` sobrecargado
+    #   para no recursar. El equivalente exacto es ``QuerySet.update()``, que
+    #   **no** llama a ``save()`` ni dispara señales; además se asignan los
+    #   atributos en memoria, que es lo que allá hace la caché del registro.
+    # - ``self._fields[fname]`` es ``self._meta.get_field(fname)``.
+    # - ``_convert_to_write`` no tiene análogo: el valor que se asigna a una
+    #   FK en Django **es** el objeto, así que el diccionario se arma con
+    #   ``getattr`` directo.
+    # - ``child_ids`` / ``parent_id`` / ``commercial_partner_id`` son aquí
+    #   ``children`` / ``parent`` / ``commercial_partner``.
+    # ------------------------------------------------------------------
+    def _convert_fields_to_values(self, field_names):
+        """≙ ``_convert_fields_to_values`` (``odoo19c: res_partner.py:653-657``).
+
+        Docstring de la fuente, verbatim: *"Returns dict of write() values for
+        synchronizing ``field_names``"*.
+
+        La guarda contra el ``one2many`` se porta con su motivo intacto:
+        sincronizar una relación inversa copiaría la lista de hijos del padre
+        al hijo, que es un ciclo y no una dirección. Aquí un ``one2many`` es
+        un ``ManyToOneRel`` —el reverso de una FK— o un ``ManyToManyField``.
+        """
+        for fname in field_names:
+            field = self._meta.get_field(fname)
+            if isinstance(field, (models.ManyToOneRel, models.ManyToManyRel,
+                                  models.ManyToManyField)):
+                raise AssertionError(
+                    'Los campos one2many no se pueden sincronizar como parte '
+                    'de `commercial_fields` o `address fields`')
+        return {fname: getattr(self, fname) for fname in field_names}
+
+    def _get_address_values(self):
+        """≙ ``_get_address_values`` (``odoo19c: res_partner.py:669-675``).
+
+        Docstring de la fuente, verbatim: *"Get address values from record if
+        at least one value is set. Otherwise it is considered empty and
+        nothing is returned."*
+
+        Devolver ``{}`` y no un diccionario de vacíos es la diferencia entre
+        «este partner no tiene dirección» y «su dirección es la cadena vacía»:
+        lo segundo, propagado al padre, **borraría** la del padre.
+        """
+        address_fields = self._address_fields()
+        if any(getattr(self, key) for key in address_fields):
+            return self._convert_fields_to_values(address_fields)
+        return {}
+
+    def _update_address(self, vals):
+        """≙ ``_update_address`` (``odoo19c: res_partner.py:677-683``).
+
+        Docstring de la fuente, verbatim: *"Filter values from vals that are
+        liked to address definition, and update recordset using super().write
+        to avoid loops and side effects due to synchronization of address
+        fields through partner hierarchy."*
+
+        El ``super().write`` es la mitad importante: escribe **saltándose** el
+        ``write`` sobrecargado, que volvería a sincronizar. Aquí ese salto lo
+        da ``QuerySet.update()``, que no invoca ``save()`` ni emite señales.
+        Los atributos se asignan además en memoria porque allá el registro
+        queda actualizado en caché tras el ``write``.
+        """
+        addr_vals = {key: vals[key] for key in self._address_fields()
+                     if key in vals}
+        if not addr_vals:
+            return
+        type(self).objects.filter(pk=self.pk).update(**addr_vals)
+        for key, value in addr_vals.items():
+            setattr(self, key, value)
+
+    def _get_commercial_values(self):
+        """≙ ``_get_commercial_values`` (``odoo19c: res_partner.py:702-709``).
+
+        Docstring de la fuente, verbatim: *"Get commercial values from record.
+        Return only set values, as they are considered individually, and only
+        set values should be taken into account."*
+        """
+        set_commercial_fields = [fname for fname in self._commercial_fields()
+                                 if getattr(self, fname)]
+        if set_commercial_fields:
+            return self._convert_fields_to_values(set_commercial_fields)
+        return {}
+
+    def _get_synced_commercial_values(self):
+        """≙ ``_get_synced_commercial_values`` (``odoo19c: res_partner.py:711-718``).
+
+        Docstring de la fuente, verbatim (con su errata *"from ercord"*):
+        *"Get synchronized commercial values from ercord. Return only set
+        values as for other commercial values."*
+        """
+        set_synced_fields = [fname for fname in self._synced_commercial_fields()
+                             if getattr(self, fname)]
+        if set_synced_fields:
+            return self._convert_fields_to_values(set_synced_fields)
+        return {}
+
+    @classmethod
+    def _company_dependent_commercial_fields(cls):
+        """≙ ``_company_dependent_commercial_fields`` (``odoo19c: :720-724``).
+
+        **Devuelve siempre la lista vacía en este árbol, y es divergencia
+        declarada, no olvido.** La fuente filtra por
+        ``self._fields[fname].company_dependent`` — un atributo de campo que
+        aquí **no existe**: medido, 0 apariciones de ``company_dependent`` en
+        ``src/fields.py`` y en ``src/orm/``. Sin el atributo no hay a qué
+        preguntar, así que el filtro no puede seleccionar nada.
+
+        Se porta igual —y no se omite— porque es el punto de extensión: el día
+        que se construya el mecanismo de campo por empresa, esta lista y su
+        sincronizador ya tienen su sitio y su llamador.
+        """
+        return []
+
+    def _commercial_sync_from_company(self):
+        """≙ ``_commercial_sync_from_company`` (``odoo19c: :726-735``).
+
+        Docstring de la fuente, verbatim: *"Handle sync of commercial fields
+        when a new parent commercial entity is set, as if they were related
+        fields"*.
+
+        El ``!= self`` es el corte: una entidad comercial no hereda de sí
+        misma. Sin él, una empresa se sincronizaría consigo y bajaría sus
+        propios valores a los descendientes en cada escritura.
+        """
+        commercial_partner = self.commercial_partner
+        if commercial_partner.pk == self.pk:
+            return
+        sync_vals = commercial_partner._get_commercial_values()
+        if sync_vals:
+            type(self).objects.filter(pk=self.pk).update(**sync_vals)
+            for key, value in sync_vals.items():
+                setattr(self, key, value)
+            self._commercial_sync_to_descendants()
+        self._company_dependent_commercial_sync()
+
+    def _company_dependent_commercial_sync(self):
+        """≙ ``_company_dependent_commercial_sync`` (``odoo19c: :737-749``).
+
+        Docstring de la fuente, verbatim: *"Propagate sync of company dependant
+        commercial fields to other commpanies."* (la errata *"commpanies"* es
+        de la fuente).
+
+        **No-op mientras :meth:`_company_dependent_commercial_fields` sea
+        vacía**, que es hoy siempre — ver la divergencia declarada allí. El
+        cuerpo conserva la guarda temprana de la fuente para que el día que la
+        lista se pueble, el recorrido por empresas sea lo único que falte.
+        """
+        if not self._company_dependent_commercial_fields():
+            return
+        raise NotImplementedError(
+            'El campo por empresa no existe en este stack; cuando exista, '
+            'aquí va el recorrido de res.company que hace la fuente')
+
+    def _commercial_sync_to_descendants(self, fields_to_sync=None):
+        """≙ ``_commercial_sync_to_descendants`` (``odoo19c: :751-768``).
+
+        Docstring de la fuente, verbatim: *"Handle sync of commercial fields to
+        descendants"*.
+
+        **La frontera es ``is_company``**, y es la mitad que un recorrido
+        ingenuo se salta: una filial tiene su propio RFC, y heredar el de la
+        matriz es un error fiscal, no cosmético. El recorrido sí desciende
+        *dentro* de la filial —la fuente llama recursivamente sobre cada hijo
+        no-empresa— pero la filial misma no recibe nada.
+
+        Escribe **una sola vez** sobre los que de verdad difieren, no sobre
+        todos: allá con un ``OrderedSet`` de ids, aquí con el mismo conjunto y
+        un ``update`` por lote.
+        """
+        commercial_partner = self.commercial_partner
+        if fields_to_sync is None:
+            fields_to_sync = self._commercial_fields()
+        fields_to_sync = list(fields_to_sync)
+        if not fields_to_sync:
+            return
+        sync_vals = commercial_partner._convert_fields_to_values(fields_to_sync)
+        children_ids_to_sync = OrderedSet()
+        for child in self.children.all():
+            if child.is_company:
+                continue
+            if any(getattr(child, fname) != sync_vals[fname]
+                   for fname in fields_to_sync):
+                children_ids_to_sync.add(child.pk)
+            child._commercial_sync_to_descendants(fields_to_sync)
+        if children_ids_to_sync:
+            type(self).objects.filter(
+                pk__in=list(children_ids_to_sync)).update(**sync_vals)
+
+    def _fields_sync(self, values):
+        """≙ ``_fields_sync`` (``odoo19c: res_partner.py:770-814``).
+
+        Docstring de la fuente, verbatim: *"Sync commercial fields and address
+        fields from company and to children. Also synchronize address to
+        parent. This somehow mimics related fields to the parent, with more
+        control. This method should be called after updating values in cache
+        e.g. self should contain new values."*
+
+        Las tres direcciones, en el orden de la fuente:
+
+        1. **Del padre** — al fijarse un padre nuevo o pasar a tipo contacto,
+           bajan los comerciales y la dirección.
+        2. **Al padre** — para un contacto la dirección **es** la de su
+           empresa, así que corregirla en cualquiera de los dos lados la
+           corrige en ambos. Es el sentido que sorprende, y es deliberado.
+        3. **A los hijos** — vía :meth:`_children_sync`.
+
+        :param dict values: los valores que acaban de cambiar y disparan la
+            sincronización.
+        """
+        # 1. Del padre hacia aquí
+        if values.get('parent') or values.get('type') == self.TYPE_CONTACT:
+            if values.get('parent'):
+                self._commercial_sync_from_company()
+            if self.parent_id and self.type == self.TYPE_CONTACT:
+                address_values = self.parent._get_address_values()
+                if address_values:
+                    self._update_address(address_values)
+
+        # 2. De aquí hacia el padre
+        address_fields = self._address_fields()
+        address_to_upstream = (
+            bool(self.parent_id) and self.type == self.TYPE_CONTACT
+            and (any(field in values for field in address_fields)
+                 or 'parent' in values)
+            and any(getattr(self, fname) != getattr(self.parent, fname)
+                    for fname in address_fields)
+        )
+        if address_to_upstream:
+            # La fuente escribe ``self.parent_id.write(new_address)`` y su
+            # propio comentario dice *"is going to trigger _fields_sync
+            # again"*: tolera la reentrada porque converge cuando los valores
+            # ya coinciden. Aquí ``write`` **todavía no está portado** (sigue
+            # entre los ausentes de este archivo), así que el efecto se compone
+            # con las dos piezas que sí existen —escribir sin recursar y bajar
+            # a los hijos— en vez de inventar un símbolo público que la
+            # referencia no declara (la clase de :ref:`h-api-578`). Cuando
+            # ``write`` se porte, estas dos líneas son una: su llamada.
+            new_address = self._get_address_values()
+            self.parent._update_address(new_address)
+            self.parent._children_sync(new_address)
+        synced_fields = self._synced_commercial_fields()
+        commercial_to_upstream = (
+            bool(self.parent_id)
+            and self.commercial_partner.pk != self.pk
+            and (any(field in values for field in synced_fields)
+                 or 'parent' in values)
+            and any(getattr(self, fname) != getattr(self.parent, fname)
+                    for fname in synced_fields)
+        )
+        if commercial_to_upstream:
+            new_synced = self._get_synced_commercial_values()
+            if new_synced:
+                type(self).objects.filter(pk=self.parent_id).update(**new_synced)
+
+        # 3. De aquí hacia los hijos
+        self._children_sync(values)
+
+    def _children_sync(self, values):
+        """≙ ``_children_sync`` (``odoo19c: res_partner.py:816-827``).
+
+        **La dirección baja sólo a los hijos de tipo contacto.** Una dirección
+        de entrega es distinta a propósito; pisarla con la de la empresa
+        destruye el dato que alguien capturó — y es el control que separa este
+        porte de un ``children.update(**vals)``.
+        """
+        if not self.children.exists():
+            return
+        # Comerciales: sólo si este partner ES la entidad comercial
+        if self.commercial_partner.pk == self.pk:
+            fields_to_sync = [fname for fname in self._commercial_fields()
+                              if fname in values]
+            if fields_to_sync:
+                self._commercial_sync_to_descendants(fields_to_sync)
+        # Dirección: sólo si cambió, y sólo a los contactos
+        address_fields = self._address_fields()
+        if any(field in values for field in address_fields):
+            for contact in self.children.filter(type=self.TYPE_CONTACT):
+                contact._update_address(values)
+
+    def _handle_first_contact_creation(self):
+        """≙ ``_handle_first_contact_creation`` (``odoo19c: :829-841``).
+
+        Docstring de la fuente, verbatim: *"On creation of first contact for a
+        company (or root) that has no address, assume contact address was
+        meant to be company address"*.
+
+        Es una **heurística de captura**, y sus tres condiciones son lo que la
+        hace segura: el padre es empresa o raíz, el padre **no** tiene
+        dirección, y éste es su **único** hijo. Con dos hijos la suposición ya
+        no se sostiene —¿la de cuál?— y con el padre ya direccionado, aplicarla
+        pisaría un dato existente.
+        """
+        parent = self.parent
+        if parent is None:
+            return
+        address_fields = self._address_fields()
+        if (
+            (parent.is_company or not parent.parent_id)
+            and any(getattr(self, f) for f in address_fields)
+            and not any(getattr(parent, f) for f in address_fields)
+            and parent.children.count() == 1
+        ):
+            parent._update_address(
+                self._convert_fields_to_values(address_fields))
 
     @property
     def commercial_partner(self):
