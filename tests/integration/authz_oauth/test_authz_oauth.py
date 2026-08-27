@@ -5,7 +5,7 @@ La referencia no trae tests de auth_oauth (medido: sin ``tests/`` en
 completo (``models/res_users.py`` + ``controllers/main.py``): alta federada
 al primer signin, re-login del ya ligado (refresca token), alta bloqueada
 con signup cerrado, proveedor deshabilitado, y el CRUD admin gateado. La
-capa de red (``auth_oauth_rpc``) se mockea — igual que hace el test de
+capa de red (``_auth_oauth_rpc``) se mockea — igual que hace el test de
 ``auth_ldap`` con su capa LDAP.
 """
 from datetime import timedelta
@@ -56,7 +56,7 @@ class TestOauthSignin:
             self, api_client, provider, signup_abierto):
         assert not User.objects.filter(login='fede@kaupamex.mx').exists()
         with patch(
-            'addons.authz_oauth.models.res_users.auth_oauth_rpc',
+            'addons.authz_oauth.models.res_users._auth_oauth_rpc',
             return_value=dict(VALIDATION),
         ):
             resp = api_client.post(SIGNIN_URL, {
@@ -73,7 +73,7 @@ class TestOauthSignin:
     def test_relogin_refresca_token_sin_duplicar(
             self, api_client, provider, signup_abierto):
         with patch(
-            'addons.authz_oauth.models.res_users.auth_oauth_rpc',
+            'addons.authz_oauth.models.res_users._auth_oauth_rpc',
             return_value=dict(VALIDATION),
         ):
             api_client.post(SIGNIN_URL, {
@@ -91,7 +91,7 @@ class TestOauthSignin:
         SystemParameter.objects.update_or_create(
             key='authz.signup_allow_uninvited', defaults={'value': '0'})
         with patch(
-            'addons.authz_oauth.models.res_users.auth_oauth_rpc',
+            'addons.authz_oauth.models.res_users._auth_oauth_rpc',
             return_value=dict(VALIDATION),
         ):
             resp = api_client.post(SIGNIN_URL, {
@@ -113,7 +113,7 @@ class TestOauthSignin:
     def test_error_del_proveedor_502(
             self, api_client, provider, signup_abierto):
         with patch(
-            'addons.authz_oauth.models.res_users.auth_oauth_rpc',
+            'addons.authz_oauth.models.res_users._auth_oauth_rpc',
             return_value={'error': 'invalid_token'},
         ):
             resp = api_client.post(SIGNIN_URL, {

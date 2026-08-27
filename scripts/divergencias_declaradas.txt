@@ -165,3 +165,25 @@ authz_passkey/models/res_users_identitycheck.py
 # capa. Por eso este addon no tiene paquete `models/`: es una decision, y su
 # prueba es el docstring de `validators.py`, que cita el codigo de la fuente.
 authz_password_policy/models/res_users.py
+#
+# `res.users` NO se puede extender por herencia entre apps de Django, asi que
+# los cuatro simbolos de este archivo conservan su CONTENIDO con la mecanica
+# nativa y cambian de SITIO, cada uno declarado en el docstring del archivo:
+# `_login`/`_check_credentials` son `LdapBackend.authenticate` (../backends.py)
+# porque AUTHENTICATION_BACKENDS ES la cadena de `super()._login` de la
+# referencia —el backend local intenta primero y este es el fallback, igual que
+# su `except AccessDenied`—; `change_password` y `_set_empty_password` son
+# funciones de modulo que el flujo de `account.password` invoca antes de tocar
+# el password local. El guion bajo de `_set_empty_password` se restauro en el
+# mismo pase (H-API-581).
+authz_ldap/models/res_users.py
+#
+# Mismo caso que `authz_ldap/models/res_users.py`: `res.users` no se extiende
+# por herencia entre apps. Los cinco `@api.model` de la referencia —que no
+# llevan estado del recordset— son funciones de este archivo; el
+# `_check_credentials` que valida el token almacenado es `OauthTokenBackend`
+# (../backends.py); y los campos viven en tabla propia `OauthAccount`
+# (OneToOne), porque en la referencia un usuario tiene UN proveedor. Los cuatro
+# simbolos que NO se portan estan contados y declarados en el docstring del
+# archivo, con su sucesor. Guiones bajos restaurados en el mismo pase.
+authz_oauth/models/res_users.py

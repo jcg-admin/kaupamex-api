@@ -38,12 +38,12 @@ def change_password(user, old_passwd, new_passwd):
             changed = CompanyLdap._change_password(
                 conf, user.login, old_passwd, new_passwd)
             if changed:
-                set_empty_password(user)
+                _set_empty_password(user)
                 return True
     return False
 
 
-def set_empty_password(user):
+def _set_empty_password(user):
     """≙ ``_set_empty_password`` (res_users.py:63-69).
 
     La referencia pone ``password=NULL`` con SQL directo; el mecanismo
