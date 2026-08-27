@@ -88,7 +88,7 @@ import requests
 import fields
 import models
 from addons.account_edi.models.account_edi_document import lock_for_update
-from addons.account_edi_proxy_client.models.account_edi_proxy_auth import OdooEdiProxyAuth
+from addons.account_edi_proxy_client.models.account_edi_proxy_auth import KaupaMexEdiProxyAuth
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.certificate.models.key import CertificateKey
 from exceptions import LockError, UserError
@@ -227,7 +227,7 @@ class AccountEdiProxyUser(models.Model):
             res = requests.post(
                 url, json=payload, timeout=DEFAULT_TIMEOUT,
                 headers={'content-type': 'application/json'},
-                auth=OdooEdiProxyAuth(user=self, auth_type=auth_type))
+                auth=KaupaMexEdiProxyAuth(user=self, auth_type=auth_type))
             res.raise_for_status()
             response = res.json()
         except (ValueError, requests.exceptions.ConnectionError,

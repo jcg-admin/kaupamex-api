@@ -1,5 +1,9 @@
-r"""``OdooEdiProxyAuth`` — firma las peticiones al proxy EDI (Odoo
-``account_edi_proxy_client``).
+r"""``KaupaMexEdiProxyAuth`` — firma las peticiones al proxy EDI.
+
+Renombrado desde ``OdooEdiProxyAuth``, que es como se llama en la
+referencia: el nombre del proveedor no va en un identificador de este
+árbol (directiva del ejecutor 2026-08-27). La cita ``≙`` de la clase sí
+conserva el nombre original — nombra el símbolo de la fuente, no el nuestro.
 
 Adaptación de ``odoo19c: account_edi_proxy_client/models/
 account_edi_proxy_auth.py`` (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a
@@ -59,7 +63,7 @@ from urllib.parse import parse_qs, urlsplit
 import requests
 
 
-class OdooEdiProxyAuth(requests.auth.AuthBase):
+class KaupaMexEdiProxyAuth(requests.auth.AuthBase):
     """≙ ``OdooEdiProxyAuth`` (``odoo19c: :12-19``).
 
     Firma cada petición al proxy con HMAC (token de refresco) o firma

@@ -16,23 +16,23 @@ from addons.base.models import SystemParameter
 class TestHeaderClassAttributes:
     """Los 5 atributos ORM que la referencia declara, verbatim."""
 
-    def test_name_matches_odoo_model_name(self):
+    def test_name_matches_the_reference_model_name(self):
         # odoo19c: ir_config_parameter.py:30 — _name = 'ir.config_parameter'
         assert SystemParameter._name == 'ir.config_parameter'
 
-    def test_description_matches_odoo_description(self):
+    def test_description_matches_the_reference_description(self):
         # odoo19c: ir_config_parameter.py:31 — _description = 'System Parameter'
         assert SystemParameter._description == 'System Parameter'
 
-    def test_rec_name_matches_odoo_rec_name(self):
+    def test_rec_name_matches_the_reference_rec_name(self):
         # odoo19c: ir_config_parameter.py:32 — _rec_name = 'key'
         assert SystemParameter._rec_name == 'key'
 
-    def test_order_matches_odoo_order(self):
+    def test_order_matches_the_reference_order(self):
         # odoo19c: ir_config_parameter.py:33 — _order = 'key'
         assert SystemParameter._order == 'key'
 
-    def test_allow_sudo_commands_matches_odoo_value(self):
+    def test_allow_sudo_commands_matches_the_reference_value(self):
         # odoo19c: ir_config_parameter.py:34 — _allow_sudo_commands = False
         assert SystemParameter._allow_sudo_commands is False
 

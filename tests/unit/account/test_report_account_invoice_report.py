@@ -31,10 +31,10 @@ class TestModelClassAttributes:
     TODOS o ninguno; aqui van los 6 que la fuente declara.
     """
 
-    def test_odoo_name(self):
+    def test_reference_name(self):
         assert AccountInvoiceReport._name == 'account.invoice.report'
 
-    def test_odoo_description(self):
+    def test_reference_description(self):
         assert AccountInvoiceReport._description == 'Invoices Statistics'
 
     def test_auto_is_false(self):
