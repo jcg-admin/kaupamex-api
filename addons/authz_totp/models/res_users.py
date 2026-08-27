@@ -62,7 +62,8 @@ sucesor nombrado. Ninguno se omite en silencio
    * - ``_totp_try_setting`` (``:98``)
      - ``services.confirm_setup``
    * - ``_totp_rate_limit`` / ``_totp_rate_limit_purge`` (``:120``, ``:145``)
-     - **NO portados** — ``auth_totp_rate_limit_log``, gap nombrado en H-API-232
+     - **aquí**, con su tabla ``auth_totp_rate_limit_log`` (#85). Cierra el gap
+       que H-API-232 nombró
    * - ``action_totp_disable`` (``:155``)
      - ``services.disable`` + ``controllers.main.totp_disable``
    * - ``action_totp_enable_wizard`` (``:182``)
@@ -93,26 +94,33 @@ símbolo muerto con nombre de guarda, que es peor que su ausencia.
 Se porta cuando exista el canal; su eslabón base tampoco se declaró en
 ``src/addons/base/models/res_users.py`` por la misma razón. Sucesor: **#85**.
 
-Los otros tres bloqueos, con su sucesor
-========================================
+Los otros dos bloqueos, con su sucesor
+======================================
 
-Porte BLOQUEADO — 4 de 24 símbolos, cada uno por un mecanismo que este árbol
-no tiene todavía. Ninguno es omisión:
+Porte BLOQUEADO — 2 de 24 símbolos, los dos por el mismo mecanismo que este
+árbol no tiene todavía. Ninguno es omisión:
 
 - ``SELF_READABLE_FIELDS`` — BLOQUEADO por ``base.ResUsers.SELF_READABLE_FIELDS``
   — la lista blanca que la referencia **extiende** no existe aquí, así que no
   hay qué extender. Sucesor: **#85**.
 - ``_rpc_api_keys_only`` — BLOQUEADO por ``res.users.apikeys`` — el canal RPC
   por clave de API no está construido (arriba). Sucesor: **#85**.
-- ``_totp_rate_limit`` — BLOQUEADO por ``auth_totp_rate_limit_log`` — la tabla
-  donde la referencia persiste los intentos no está portada (H-API-232).
-  Sucesor: **#85**.
-- ``_totp_rate_limit_purge`` — BLOQUEADO por ``auth_totp_rate_limit_log`` — el
-  barrido de esa misma tabla. Sucesor: **#85**.
 
-``authz_totp_mail`` declara ``_rpc_api_keys_only`` y llama al rate limit desde
-``_send_totp_mail_code``: los dos bloqueos son de la cadena entera, no de este
-eslabón.
+``authz_totp_mail`` declara ``_rpc_api_keys_only`` y hereda de aquí los dos
+métodos del limitador: el bloqueo del canal RPC es de la cadena entera, no de
+este eslabón.
+
+El límite de tasa ya NO está bloqueado
+=======================================
+
+Los dos métodos y su tabla se portaron en el mismo pase de **#85**
+(:ref:`h-api-833`). El bloqueo decía *"la tabla donde la referencia persiste
+los intentos no está portada"*, y era cierto: el obstáculo real era que el
+``TransientModel`` de este árbol declara ``managed = False`` y no crea tabla,
+así que el porte directo habría dado una guarda que cuenta siempre cero. Se
+resolvió construyendo el modelo real con su propio barrido ``@api.autovacuum`` —
+``porte-completo-no-parcial.md``: si el stack no trae el mecanismo, se
+construye.
 
 Divergencia declarada — dónde vive el secreto
 ==============================================
@@ -144,17 +152,56 @@ El nombre pierde el prefijo ``totp_`` por la misma razón que ``totp_secret`` es
 ``secret``: allá los dos cuelgan de ``res.users`` y el prefijo desambigua; aquí
 los dos viven en ``TotpSecret``.
 """
+from datetime import timedelta
+
+from django.utils import timezone
+
 from exceptions import AccessDenied
 from orm.method_chain import chain_method, keep_previous
 from orm.model_classes import extend_model
 
 from addons.authz_totp import services
+from addons.authz_totp.models.auth_totp_rate_limit_log import (
+    GC_MAX_AGE_SECONDS, AuthTotpRateLimitLog,
+)
 
 # ≙ la ruta del segundo paso. En la referencia es del backoffice
 # ('/web/login/totp', res_users.py:59); aquí es config L2 para que cada
 # despliegue apunte a su ruta del SPA, mismo criterio que PARAM_INVITE_URL
 # de authz_totp_mail.
 TOTP_SECOND_STEP_URL = '/login/totp'
+
+#: ≙ ``TOTP_RATE_LIMITS`` (``odoo19c: auth_totp/models/res_users.py:24-27``),
+#: verbatim: ``(intentos, segundos)`` por tipo. La fuente los cablea —no lee
+#: parámetro— y aquí igual: convertirlos en config L2 sería inventar una
+#: superficie que la referencia no tiene.
+TOTP_RATE_LIMITS = {
+    'send_email': (5, 3600),
+    'code_check': (5, 3600),
+}
+
+#: ≙ los dos mensajes de ``_totp_rate_limit`` (``:131-135``), verbatim.
+RATE_LIMIT_DESCRIPTIONS = {
+    'send_email': ('You reached the limit of authentication mails sent for '
+                   'your account, please try again later.'),
+    'code_check': ('You reached the limit of code verifications for your '
+                   'account, please try again later.'),
+}
+
+# El barrido de ``auth_totp_rate_limit_log`` no puede cortar por debajo del
+# intervalo más largo: borrar una fila que todavía cuenta le devuelve al
+# atacante un intento que ya gastó. En la fuente los dos valen 3600 s por
+# coincidencia de dos defaults independientes —``transient_age_limit`` y el
+# literal de ``TOTP_RATE_LIMITS``—, así que nadie garantiza que sigan
+# coincidiendo. Este módulo es el único que conoce los dos, y lo verifica al
+# importar: si alguien sube un intervalo sin subir el barrido, el arranque
+# falla en vez de degradar el límite en silencio.
+_INTERVALO_MAS_LARGO = max(interval for _limit, interval in TOTP_RATE_LIMITS.values())
+assert GC_MAX_AGE_SECONDS >= _INTERVALO_MAS_LARGO, (
+    'el barrido de auth_totp_rate_limit_log (%ds) corta por debajo del '
+    'intervalo más largo de TOTP_RATE_LIMITS (%ds)'
+    % (GC_MAX_AGE_SECONDS, _INTERVALO_MAS_LARGO)
+)
 
 
 def totp_enabled(self):
@@ -203,13 +250,72 @@ def _check_credentials(self, credential, env):
     —código inválido y código ya usado— salen aquí como el mismo
     ``AccessDenied``, igual que en la fuente: decir cuál fue le confirmaría al
     atacante que el código era bueno.
+
+    El **tercer** rechazo posible es el del limitador, y ése sí lleva mensaje
+    propio (``:131-135``): dice que se agotaron los intentos, no que el código
+    esté mal. No filtra nada — quien llega aquí ya presentó la credencial de la
+    cuenta — y sin él el cliente reintentaría contra una puerta cerrada.
     """
     if credential.get('type') != 'totp':
         return None
+    # ≙ ``:76`` — el freno va ANTES de mirar el código, y ``:90`` — la cuota se
+    # devuelve entera al acertar. Los dos sitios son de la fuente: contar
+    # después dejaría pasar el intento número seis, y no purgar castigaría al
+    # usuario legítimo que se equivoca cuatro veces y acierta a la quinta.
+    self._totp_rate_limit('code_check')
     if not services.verify_code(self, credential.get('token') or ''):
         raise AccessDenied(
             'Verification failed, please double-check the 6-digit code')
+    self._totp_rate_limit_purge('code_check')
     return {'uid': self.pk, 'auth_method': 'totp', 'mfa': 'default'}
+
+
+def _totp_rate_limit(self, limit_type, ip=''):
+    """≙ ``_totp_rate_limit`` (``odoo19c: auth_totp/models/res_users.py:120-143``).
+
+    Cuenta los intentos de ``limit_type`` del usuario dentro del intervalo y
+    levanta ``AccessDenied`` al alcanzar el tope; si no, **asienta el intento**
+    creando su fila. Ese asiento es la mitad del mecanismo: sin él la cuenta
+    nunca sube y la guarda pasa siempre.
+
+    Los dos rechazos posibles llevan el mensaje de la fuente, que **sí**
+    distingue por tipo — al contrario que el rechazo de código, que es único a
+    propósito. Aquí la distinción no filtra nada: quien llega a este punto ya
+    presentó la credencial de la cuenta.
+
+    Tres divergencias, y ninguna cambia lo que la guarda decide:
+
+    - **``ensure_one``** no tiene receptor: ``self`` es una instancia, no un
+      recordset.
+    - **``sudo()``** tampoco: la fuente lo necesita porque la ACL del modelo
+      niega todo a ``base.group_user`` (``security/ir.model.access.csv:4``,
+      cuatro ceros); el ORM de Django no interpone ACL sobre el queryset.
+    - **``ip``** llega como argumento con default vacío. La fuente lo saca de
+      su petición global (``request.httprequest.environ['REMOTE_ADDR']``) y
+      por eso empieza con ``assert request``; aquí no hay petición global —
+      medido: 0 ``threading.local`` de petición en el árbol— y el llamador que
+      la tenga la pasa. Ninguna lógica lee la columna, ni allá ni aquí.
+    """
+    limit, interval = TOTP_RATE_LIMITS[limit_type]
+    desde = timezone.now() - timedelta(seconds=interval)
+    count = AuthTotpRateLimitLog.objects.filter(
+        user_id=self.pk, limit_type=limit_type, created_at__gte=desde,
+    ).count()
+    if count >= limit:
+        raise AccessDenied(RATE_LIMIT_DESCRIPTIONS[limit_type])
+    AuthTotpRateLimitLog.objects.create(
+        user_id=self.pk, ip=ip or '', limit_type=limit_type)
+
+
+def _totp_rate_limit_purge(self, limit_type):
+    """≙ ``_totp_rate_limit_purge`` (``:145-152``) — borra los intentos del tipo.
+
+    Lo llama el acierto: quien demuestra tener el factor recupera su cuota
+    entera, así que un usuario legítimo que se equivoca cuatro veces y acierta
+    a la quinta no arrastra el castigo al login siguiente.
+    """
+    AuthTotpRateLimitLog.objects.filter(
+        user_id=self.pk, limit_type=limit_type).delete()
 
 
 def _chain_mfa(model):
@@ -238,5 +344,12 @@ def apply_authz_totp_res_users_extensions():
     """
     extend_model('base', 'ResUsers', propiedades={
         'totp_enabled': totp_enabled,
+    })
+    # Los dos del limitador van por ``metodos=``: no eligen entre valores, así
+    # que el relevo por defecto de ``chain_method`` es el correcto — y como
+    # ``base.ResUsers`` no declara ninguno de los dos, se instalan tal cual.
+    extend_model('base', 'ResUsers', metodos={
+        '_totp_rate_limit': _totp_rate_limit,
+        '_totp_rate_limit_purge': _totp_rate_limit_purge,
     })
     extend_model('base', 'ResUsers', luego=_chain_mfa)

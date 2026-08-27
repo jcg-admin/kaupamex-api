@@ -230,14 +230,19 @@ authz_passkey/models/res_users.py::ResUsers::_login
 authz_passkey/models/res_users.py::ResUsers::_get_session_token_fields
 authz_passkey/models/res_users.py::ResUsers::_get_session_token_query_params
 #
-# --- authz_totp: 12 de 16, cada uno con su renglon en la tabla del archivo ----
+# --- authz_totp: 12 de 14, cada uno con su renglon en la tabla del archivo ----
 #
 # El 2FA por app no puede colgar de `res.users` por herencia, asi que su
 # superficie se reparte entre `services.py`, los controllers y una tabla
-# lateral. Los cuatro que NO entran aqui son BLOQUEOS y siguen contados:
-# SELF_READABLE_FIELDS (base no declara la lista blanca), _rpc_api_keys_only
-# (el canal RPC por clave de API no esta construido) y el par
-# _totp_rate_limit/_purge con su tabla (H-API-232).
+# lateral. Los dos que NO entran aqui son BLOQUEOS y siguen contados:
+# SELF_READABLE_FIELDS (base no declara la lista blanca) y _rpc_api_keys_only
+# (el canal RPC por clave de API no esta construido).
+#
+# Eran CUATRO hasta #85: el par _totp_rate_limit/_purge con su tabla ya esta
+# portado (H-API-833), asi que sale del denominador en vez de mudarse de
+# desenlace. El bloqueo decia que faltaba `auth_totp_rate_limit_log`, y era
+# cierto; lo que no decia es por que faltaba — el TransientModel de este arbol
+# declara `managed = False` y no crea tabla.
 #
 #   init -> la columna la crea una migracion de Django, no un ALTER TABLE.
 #   _compute_totp_enabled -> `property` del modulo: = el compute sin `store`.

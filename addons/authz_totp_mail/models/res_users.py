@@ -45,10 +45,11 @@ Métodos de la referencia → aquí:
 - ``_rpc_api_keys_only`` / ``action_open_my_account_settings`` → NO
   portados: RPC keys y acción de ventana del backoffice Odoo.
 
-**Rate limit (divergencia declarada):** la referencia llama
-``_totp_rate_limit('code_check'|'send_email')`` de ``auth_totp``, que
-persiste en ``auth_totp_rate_limit_log`` — modelo NO portado (mismo gap).
-Hasta portarlo, estos flujos quedan sin rate limit propio.
+**Límite de tasa:** portado en **#85** (:ref:`h-api-833`). Los dos métodos y
+su tabla viven en ``authz_totp`` —donde la fuente los declara— y este addon los
+llama en los tres sitios que la referencia declara: el freno de ``code_check``
+al verificar, la purga de los dos contadores al acertar, y el freno de
+``send_email`` al enviar.
 """
 import logging
 from datetime import datetime
@@ -145,7 +146,14 @@ def verify_totp_mail_code(user, code):
 
 def _send_totp_mail_code(user):
     """≙ ``_send_totp_mail_code`` (res_users.py:184-216): renderiza la
-    plantilla del código y la despacha al email del usuario."""
+    plantilla del código y la despacha al email del usuario.
+
+    El freno de ``send_email`` es la **primera** línea, igual que en la fuente
+    (``:183``): va antes incluso de comprobar que el usuario tenga correo. Sin
+    él, este endpoint es un generador de correo ilimitado contra la bandeja de
+    cualquier cuenta cuyo ``login`` se conozca.
+    """
+    user._totp_rate_limit('send_email')
     if not user.login:
         raise UserError(
             'Cannot send email: user %s has no email address.' % user)
@@ -229,15 +237,20 @@ def _check_credentials(self, credential, env):
     fuente, así que aquí no se traduce nada: el rechazo atraviesa la cadena
     entera sin que ningún eslabón lo atienda, que es el contrato.
 
-    **Divergencia declarada — el límite de tasa.** La fuente llama
-    ``_totp_rate_limit('code_check')`` al entrar y purga dos contadores al
-    acertar (``:140``, ``:149-150``). Ese mecanismo persiste en
-    ``auth_totp_rate_limit_log``, modelo **no portado** (gap ya nombrado en el
-    docstring del módulo y en H-API-232). Se porta con el modelo.
+    **El límite de tasa está cableado** en sus tres sitios de la fuente: el
+    freno al entrar (``:140``) y la purga de los **dos** contadores al acertar
+    (``:149-150``). Los métodos los hereda de ``authz_totp``, que es donde la
+    fuente los declara.
     """
     if credential.get('type') != 'totp_mail':
         return None
+    self._totp_rate_limit('code_check')
     verify_totp_mail_code(self, credential.get('token') or '')
+    # La fuente purga los DOS contadores al acertar (``:149-150``), no sólo el
+    # que acaba de gastar. Es deliberado: quien demuestra tener el correo ya no
+    # necesita que se le racione el envío de códigos a ese mismo correo.
+    self._totp_rate_limit_purge('code_check')
+    self._totp_rate_limit_purge('send_email')
     return {'uid': self.pk, 'auth_method': 'totp_mail', 'mfa': 'default'}
 
 

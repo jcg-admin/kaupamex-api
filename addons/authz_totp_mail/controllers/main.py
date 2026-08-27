@@ -43,7 +43,8 @@ class InviteSerializer(serializers.Serializer):
     summary='Enviar el código 2FA por correo al usuario autenticado',
     request=None,
     responses={202: OpenApiResponse(description='Código enviado'),
-               400: OpenApiResponse(description='TOTP_MAIL_SEND_FAILED')},
+               400: OpenApiResponse(description='TOTP_MAIL_SEND_FAILED'),
+               403: OpenApiResponse(description='TOTP_RATE_LIMITED')},
 )
 @api_view(['POST'])
 @require_capability(_CAP)
@@ -66,6 +67,16 @@ def send_code(request):
     """
     try:
         _send_totp_mail_code(request.user)
+    except AccessDenied as exc:
+        # El limitador de ``send_email`` (#85). Va ANTES del ``except
+        # UserError``, y no es cosmético: ``AccessDenied`` **hereda** de
+        # ``UserError``, así que el orden inverso lo tragaría y devolvería
+        # 400 TOTP_MAIL_SEND_FAILED — «el envío falló» — cuando lo que pasa es
+        # que la cuota se agotó. Un cliente que lee eso reintenta; uno que lee
+        # 403 espera, que es lo que el freno quiere que haga.
+        return Response(
+            {'codigo_error': 'TOTP_RATE_LIMITED', 'detail': str(exc)},
+            status=status.HTTP_403_FORBIDDEN)
     except UserError as exc:
         return Response(
             {'codigo_error': 'TOTP_MAIL_SEND_FAILED', 'detail': str(exc)},
