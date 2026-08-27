@@ -99,9 +99,8 @@ Lo que se porto en ese pase, y que antes esta seccion enumeraba como ausente:
   que este arbol nunca porto: es lo que distingue la accion de un cron de una
   suelta, y lo escribe ``IrCron.save()`` al crear.
 
-Las divergencias que quedan estan declaradas **en el metodo que las tiene**,
-no aqui: el cursor propio de ``_run_job`` (tarea #42) y la zona horaria del
-usuario en ``_reschedule_later`` (tarea #43).
+La divergencia que queda esta declarada **en el metodo que la tiene**, no
+aqui: el cursor propio de ``_run_job`` (tarea #42).
 
 Adquisicion: ``FOR NO KEY UPDATE SKIP LOCKED`` via
 ``QuerySet.select_for_update(skip_locked=True, no_key=True)`` — la misma
@@ -183,6 +182,8 @@ import logging
 import os
 import time
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.apps import apps
 from django.conf import settings
@@ -339,6 +340,31 @@ _intervalTypes = {
     'months': lambda dt, interval: _add_months(dt, interval),
     'minutes': lambda dt, interval: dt + timedelta(minutes=interval),
 }
+
+
+def _resolve_tz(user=None):
+    """≙ ``Environment.tz`` (``odoo19c: odoo/orm/environments.py:286-294``).
+
+    El mismo orden que la fuente: ``context['tz']`` primero, la zona del
+    usuario despues, UTC de respaldo. Y su misma tolerancia — una zona
+    invalida se registra en DEBUG y **no** aborta el cron; degradar a UTC es
+    preferible a que una tarea programada muera por un dato de perfil.
+
+    DIVERGENCIA de biblioteca, declarada: la fuente usa ``pytz``; aqui es
+    ``zoneinfo`` de la biblioteca estandar, que es lo que Django 6 consume
+    (``pytz`` no esta en el arbol — medido). El comportamiento observable es
+    el mismo, incluido el cambio de horario de verano, que es la razon de que
+    la conversion exista.
+    """
+    name = get_context().get('tz')
+    if not name and user is not None:
+        name = getattr(user, 'tz', '') or ''
+    if name:
+        try:
+            return ZoneInfo(name)
+        except ZoneInfoNotFoundError:
+            _logger.debug('Zona horaria invalida %r', name, exc_info=True)
+    return dt_timezone.utc
 
 
 def _add_interval(dt, number, interval_type):
@@ -1125,19 +1151,28 @@ class IrCron(models.Model):
         ``lastcall``. El bucle es de la fuente: un cron parado una semana no
         dispara siete veces seguidas al volver.
 
-        DIVERGENCIA declarada: la fuente convierte a la zona del usuario antes
-        de sumar —para que "cada dia a las 9" siga siendo a las 9 al cambiar
-        el horario de verano— con ``fields.Datetime.context_timestamp``. Aqui
-        no hay contexto de sesion por job, asi que la suma es en UTC; la
-        consecuencia real es que un intervalo en dias cruza el cambio de hora
-        desplazado. Sucesor: tarea #43.
+        **La suma es en la zona del usuario**, como en la fuente: convierte,
+        suma, y vuelve a UTC. El comentario de la fuente dice por que, y es la
+        razon entera de que el paso exista:
+
+            When adding a day or more, the user may want to keep the same hour
+            each day. The interval won't be fixed, but the hour will stay the
+            same, even when changing DST.
+
+        Un cron diario a las 09:00 en ``America/Mexico_City`` seguiria a las
+        09:00 tras el cambio de horario; sumando en UTC pasaria a las 08:00 o
+        las 10:00, y ahi se quedaria. La zona se resuelve con ``_resolve_tz``,
+        que es ``Environment.tz`` de la fuente: ``context['tz']`` primero, la
+        del usuario del cron despues, UTC de respaldo.
         """
         job = job if job is not None else self
         ahora = timezone.now().replace(microsecond=0)
         nextcall = job.nextcall
+        zone = _resolve_tz(job.user)
         while nextcall <= ahora:
             nextcall = _add_interval(
-                nextcall, job.interval_number, job.interval_type)
+                nextcall.astimezone(zone), job.interval_number,
+                job.interval_type).astimezone(dt_timezone.utc)
         type(self).objects.filter(pk=job.pk).update(
             nextcall=nextcall, lastcall=ahora)
         job.nextcall = nextcall
