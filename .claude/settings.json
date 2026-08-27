@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/scripts/lint-agents.py || true"
+            "command": "python3 .claude/scripts/lint_agents.py || true"
           },
           {
             "type": "command",
@@ -66,7 +66,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/inject-drf-skill-gate.py"
+            "command": "python3 .claude/hooks/inject_drf_skill_gate.py"
           }
         ]
       }

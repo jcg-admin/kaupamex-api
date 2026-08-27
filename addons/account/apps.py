@@ -25,11 +25,45 @@ class AccountConfig(AppConfig):
     #: (``odoo19c: account/models/{product,res_currency}.py``).
     #: El orden importa: ``res_company`` cuelga el impuesto por defecto que
     #: ``product`` lee para inicializar el suyo.
+    #:
+    #: Los 4 ``account_analytic_*``/``account_code_mapping`` extienden modelos
+    #: del addon ``analytic`` (``account.analytic.{account,line,distribution
+    #: .model,applicability}``) — cableados en tarea #520. Todos declaran
+    #: ``apply_account_extensions()`` (mismo nombre en cada módulo — es lo que
+    #: ``ready()`` invoca uniformemente abajo); antes de #520 se llamaban
+    #: ``apply_account_analytic_*_extensions`` y NO estaban en esta tupla.
+    #: ``account_code_mapping`` no aparece: no declara ningún modelo Django
+    #: (divergencia de mecanismo, ver su docstring) y por tanto no tiene
+    #: función que cablear.
     _EXTENSIONES = (
         'addons.account.models.res_company',
         'addons.account.models.product',
         'addons.account.models.res_currency',
         'addons.account.models.res_partner_bank',
+        'addons.account.models.account_analytic_account',
+        'addons.account.models.account_analytic_distribution_model',
+        'addons.account.models.account_analytic_line',
+        'addons.account.models.account_analytic_plan',
+        # Tanda #75/#398 tramo 3 (2026-08-19) — los 18 módulos nuevos, todos
+        # con `apply_account_extensions()` uniforme:
+        'addons.account.models.account_document_import_mixin',
+        'addons.account.models.account_journal_dashboard',
+        'addons.account.models.account_move_line_tax_details',
+        'addons.account.models.account_move_send',
+        'addons.account.models.decimal_precision',
+        'addons.account.models.digest',
+        'addons.account.models.ir_actions_report',
+        'addons.account.models.ir_attachment',
+        'addons.account.models.mail_message',
+        'addons.account.models.mail_template',
+        'addons.account.models.mail_tracking_value',
+        'addons.account.models.merge_partner_automatic',
+        'addons.account.models.onboarding_onboarding',
+        'addons.account.models.onboarding_onboarding_step',
+        'addons.account.models.partner',
+        'addons.account.models.product_catalog_mixin',
+        'addons.account.models.res_country_group',
+        'addons.account.models.res_users',
     )
 
     def ready(self):

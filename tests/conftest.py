@@ -20,7 +20,12 @@ from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.base.models import SystemParameter
 from addons.base.security.base_security import seed as base_rules_seed
 from addons.base.data.res_country_data import seed as countries_seed
+from addons.base.data.res_lang_data import seed as langs_seed
+from addons.base.data.res_groups_data import seed as base_groups_seed
 from addons.base_geolocalize.data import seed as geo_providers_seed
+from addons.hr.data.hr_departure_reason_data import (
+    seed as departure_reasons_seed,
+)
 from addons.sale.data.report_templates import seed as sale_report_view_seed
 from addons.sale.security.ir_rules import seed as sale_rules_seed
 from addons.sale_stock.data.report_templates import (
@@ -312,11 +317,14 @@ def _reset_system_parameter_cache():
 _SEEDERS = (
     SystemParameter.seed,       # base/0002 + base/0003 (_DEFAULT_PARAMETERS)
     countries_seed,             # base/0017 (251 países + 8 agrupaciones)
+    langs_seed,                 # base/0026 (93 idiomas, en_US activo)
+    base_groups_seed,           # base/0027 (12 grupos + 2 privilegios)
     password_policy_seed,       # authz_password_policy/0001
     signup_flags_seed,          # authz_signup/0001
     totp_params_seed,           # authz_totp/0001 + 0002
     mail_subtypes_seed,         # mail/0002
     geo_providers_seed,         # base_geolocalize/0002
+    departure_reasons_seed,     # hr/0003 (3 motivos de baja maestros)
     bootstrap_company_seed,     # BOOTSTRAP_COMPANY_CODE (no-op si no se declara)
     base_rules_seed,            # base/security (record rules multi-company)
     sale_rules_seed,            # sale/security/ir_rules

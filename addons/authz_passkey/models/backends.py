@@ -9,6 +9,16 @@ credencial ``{'type': 'webauthn', 'webauthn_response': ...}`` en dos pasos:
 ``mfa: 'skip'`` de la referencia (una passkey ya es multifactor: posesión +
 verificación del usuario) se hereda como semántica: el flujo que use este
 backend no exige el segundo factor TOTP.
+
+**Dos caminos, un verificador.** La fuente usa el mismo ``_verify_auth`` para
+el login y para la confirmación de identidad; lo que cambia es el predicado
+de búsqueda de la passkey. En el login el usuario es desconocido, así que
+busca por ``credential_identifier`` sobre todo el registro
+(``auth_passkey/models/res_users.py:38-46``); en la confirmación el usuario ya
+está autenticado, así que acota a las suyas
+(``("create_uid", "=", self.env.user.id)``, ``:52-55``). Aquí son
+``PasskeyBackend.authenticate`` y ``verify_webauthn_credential``, y comparten
+la cola en ``_consume_assertion``.
 """
 import logging
 
@@ -20,6 +30,71 @@ from webauthn.helpers.exceptions import InvalidAuthenticationResponse
 from addons.authz_passkey.models.auth_passkey_key import PasskeyKey
 
 _logger = logging.getLogger(__name__)
+
+
+def _consume_assertion(request, passkey, webauthn_response):
+    """La cola común de ``_check_credentials`` — ≙ ``res_users.py:56-67``.
+
+    Verifica la aserción contra el reto de la sesión y asienta el nuevo
+    ``sign_count``. Devuelve ``True`` si la aserción es válida.
+
+    El contador es lo que impide reproducir una aserción capturada: el
+    autenticador lo incrementa en cada uso, y ``verify_auth`` rechaza uno que
+    no supere al guardado. Por eso el asiento va **aquí** y no en cada
+    llamador — un camino que verificara sin asentar dejaría la passkey
+    reutilizable por el mismo valor.
+    """
+    try:
+        new_sign_count = PasskeyKey.verify_auth(
+            request, webauthn_response, passkey.public_key,
+            passkey.sign_count)
+    except InvalidAuthenticationResponse as exc:
+        _logger.info('Passkey assertion failed for %r: %s',
+                     passkey.user.login, exc)
+        return False
+    passkey.sign_count = new_sign_count
+    passkey.save(update_fields=['sign_count', 'updated_at'])
+    return True
+
+
+def verify_webauthn_credential(user, request, webauthn_response):
+    """≙ ``_check_credentials`` tipo ``webauthn`` (``res_users.py:48-72``).
+
+    La passkey se busca **entre las del usuario ya autenticado**, no en todo
+    el registro: es la diferencia que separa este camino del login. La fuente
+    lo escribe como ``("create_uid", "=", self.env.user.id)`` porque allá el
+    dueño es quien la creó; aquí el modelo declara la FK ``user`` explícita
+    (``related_name='passkeys'``), que es el mismo predicado con nombre.
+
+    **El ``None`` es contrato INTERNO del verificador, no del modelo.** La
+    fuente levanta ``AccessDenied`` en los dos rechazos —passkey desconocida y
+    aserción inválida— y eso se conserva: lo levanta el eslabón de la cadena
+    (``res_users.py``, #722), que es donde la referencia lo hace. Aquí no,
+    porque este verificador tiene **dos** llamadores y el otro es un backend de
+    autenticación de Django, cuyo contrato es devolver ``None`` para que el
+    siguiente backend responda.
+
+    La traducción al **401 ``CHECK_IDENTITY_FAILED``** de la vista la hace el
+    despachador de ``authz_timeout``: ``AccessDenied`` es un ``UserError`` de
+    la fachada, no una ``APIException``, así que dejarlo salir por el manejador
+    de DRF daría un 500 donde corresponde un 401.
+    """
+    if not webauthn_response or request is None:
+        return None
+    passkey = (
+        PasskeyKey.objects
+        .select_related('user')
+        .filter(user=user, credential_identifier=webauthn_response.get('id'))
+        .first()
+    )
+    if passkey is None:
+        # ≙ AccessDenied('Unknown passkey') — contrato local: None.
+        _logger.info('Identity check (passkey): unknown passkey for %r',
+                     user.login)
+        return None
+    if not _consume_assertion(request, passkey, webauthn_response):
+        return None
+    return {'uid': user.pk, 'auth_method': 'passkey', 'mfa': 'skip'}
 
 
 class PasskeyBackend(BaseBackend):
@@ -37,16 +112,8 @@ class PasskeyBackend(BaseBackend):
         if passkey is None:
             # ≙ AccessDenied('Unknown passkey') — contrato de backend: None.
             return None
-        try:
-            new_sign_count = PasskeyKey.verify_auth(
-                request, webauthn_response, passkey.public_key,
-                passkey.sign_count)
-        except InvalidAuthenticationResponse as exc:
-            _logger.info('Passkey auth failed for %r: %s',
-                         passkey.user.login, exc)
+        if not _consume_assertion(request, passkey, webauthn_response):
             return None
-        passkey.sign_count = new_sign_count
-        passkey.save(update_fields=['sign_count', 'updated_at'])
         return passkey.user
 
     def get_user(self, user_id):

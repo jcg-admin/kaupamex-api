@@ -48,6 +48,22 @@ class InviteSerializer(serializers.Serializer):
 @api_view(['POST'])
 @require_capability(_CAP)
 def send_code(request):
+    """≙ ``auth_timeout/controllers/main.py::send_totp_mail_code`` (``:20-23``).
+
+    **No lleva guarda de ``_mfa_type()``, y la fuente tampoco.** Es la
+    respuesta medida a #719, que preguntaba si debía consultar un predicado
+    antes de enviar: la referencia declara **dos** llamadores de
+    ``_send_totp_mail_code`` con guardas distintas, y éste es el ungated —
+    ``auth="user"``, ``check_identity=False``, cuerpo de una línea. El
+    guardado es el otro, el del **login** (``auth_totp_mail/controllers/
+    home.py:19-26``), que este árbol todavía no tiene: ver
+    :ref:`h-api-777` y su sucesor.
+
+    Por qué la fuente lo deja abierto: quien llega aquí ya tiene sesión y pide
+    el código para **reconfirmar identidad**. Negárselo por su ``_mfa_type()``
+    no protege nada —el código sólo sirve para su propia cuenta— y rompería el
+    caso de quien tiene 2FA de app y aun así quiere la vía por correo.
+    """
     try:
         send_totp_mail_code(request.user)
     except UserError as exc:

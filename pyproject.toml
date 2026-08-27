@@ -50,6 +50,7 @@ dependencies = [
     # odoo19c: setup/odoo-wsgi.example.py (odoo-tools@622ddc2a).
     "gunicorn>=23.0.0",
     "lxml>=6.1.1",
+    "paramiko>=3.4.0",
 ]
 
 [project.optional-dependencies]

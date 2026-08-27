@@ -26,14 +26,17 @@ partiéndolo, según el orden que fija :ref:`h-api-601`:
 5    segundo pase de este       ``orderpoint_id`` + los métodos que lo consumen
 ===  =========================  ====================================================
 
-**Por qué ``orderpoint_id`` no está aquí, y no es una omisión silenciosa.**
-``stock.warehouse.orderpoint`` **no existe en este árbol** — medido:
-``grep -rn "class .*Orderpoint" addons/ src/`` → **0**. Una FK por cadena es
-perezosa en el *orden de resolución*, no en la *existencia* del destino: Django
-emite ``fields.E300`` cuando el modelo no está instalado, y el commit
-``07044d3`` lo midió con 18 errores por exactamente esa causa. El campo entra en
-el paso 5, cuando el paso 4 haya aterrizado. Sucesores: tareas **#257** y
-**#330**.
+**El paso 5 está cerrado (tarea #382).** ``orderpoint`` se declara abajo, junto
+a ``next_serial_count``, en la misma posición que la fuente
+(``odoo19c: :189``). El campo faltó mientras
+``stock.warehouse.orderpoint`` no existía en este árbol: una FK por cadena es
+perezosa en el *orden de resolución*, no en la *existencia* del destino —
+Django emite ``fields.E300`` cuando el modelo no está instalado, y el commit
+``07044d3`` lo midió con 18 errores por exactamente esa causa. Aterrizado el
+modelo (tarea **#257**), la FK entra con su migración y su acceso inverso
+``stock_moves``, que es lo que hace resoluble el dominio
+``Domain('orderpoint_id', 'in', self.ids)`` de
+``odoo19c: stock_orderpoint.py:645``.
 
 Los 73 campos de este pase
 ============================
@@ -362,10 +365,12 @@ from addons.base.models import TimeStampedModel
 PROCUREMENT_PRIORITIES = [('0', 'Normal'), ('1', 'Urgent')]
 
 #: ≙ ``_product_location_index`` (``:200``) — objeto de tabla, no atributo de
-#: ORM: su hogar aquí es ``Meta.indexes``, con el nombre de la fuente.
+#: ORM: su hogar aquí es ``Meta.indexes``. La fuente no fija nombre (lo deriva
+#: su ORM); el anterior ``stock_move_product_location_idx`` (31 ch) violaba el
+#: límite de 30 de ``models.E034`` y bloqueaba ``manage.py migrate``.
 PRODUCT_LOCATION_INDEX = models.Index(
     fields=['product', 'location', 'location_dest', 'company', 'state'],
-    name='stock_move_product_location_idx',
+    name='stock_move_product_loc_idx',
 )
 
 
@@ -639,6 +644,12 @@ class StockMove(TimeStampedModel):
     next_serial_count = fields.Integer(
         default=0,
         help_text='Cuántos números de serie generar (Odoo next_serial_count).',
+    )
+    orderpoint      = fields.Many2one(
+        'stock.StockWarehouseOrderpoint', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='stock_moves', db_index=True,
+        help_text='La regla de reabastecimiento que originó el movimiento '
+                  '(Odoo orderpoint_id, «Original Reordering Rule», index).',
     )
 
     class Meta:
@@ -2721,7 +2732,7 @@ class StockMove(TimeStampedModel):
                 ordenes.append(('update', linea, dict(vals)))
                 por_ubicacion[linea.location_dest_id] += cantidad
             else:
-                donde = destino or self.location_dest.get_putaway_strategy(
+                donde = destino or self.location_dest._get_putaway_strategy(
                     self.product, quantity=cantidad,
                     additional_qty=por_ubicacion)
                 ordenes.append(('create', {**base, **vals, 'location_dest': donde}))
@@ -2919,7 +2930,7 @@ class StockMove(TimeStampedModel):
         for lote, qty in zip(nombres, cantidades):
             if not lote.get('quantity'):
                 lote['quantity'] = qty
-            donde = (destino.get_putaway_strategy(product, quantity=lote['quantity'])
+            donde = (destino._get_putaway_strategy(product, quantity=lote['quantity'])
                      if destino is not None else None)
             valores.append({
                 **por_defecto, **lote,

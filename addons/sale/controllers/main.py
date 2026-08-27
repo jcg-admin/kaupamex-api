@@ -32,8 +32,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from addons.authz.permissions import HasCapability
-from addons.observability.audit import audit_log_business
-from addons.observability.models import BusinessEvent
 
 from addons.sale.models import SaleOrder
 from addons.sale.controllers.serializers import (
@@ -210,11 +208,11 @@ class OrderCancelView(APIView):
                 status=503,
             )
 
-        audit_log_business(
-            request.user, BusinessEvent.ACTION_ORDER_CANCELLED, request,
-            target_type=BusinessEvent.TARGET_ORDER, target_id=order.pk,
-            extra={'order_number': order.name, 'reason': reason},
-        )
+        # El rastro de la cancelación lo registra el chatter, no un emisor
+        # aparte: ``cancel_order`` llama a ``track_sale_state`` (services.py) y
+        # ``action_cancel`` a ``_track_state`` (sale_order.py), que escriben el
+        # cambio de estado y el motivo en ``mail.message`` /
+        # ``mail.tracking.value``. Ver :ref:`h-api-754`.
 
         # Re-consultar con los prefetch: ``cancel_order`` devuelve la instancia
         # bloqueada, sin ellos, y serializarla dispararía N+1.

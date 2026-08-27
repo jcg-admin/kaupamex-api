@@ -133,8 +133,9 @@ from addons.base.models.res_partner import ResPartner
 from addons.base.models.res_partner_bank import ResPartnerBank
 from addons.product.models.product_template import ProductTemplate
 from addons.uom.models.uom_uom import Uom
-from exceptions import UserError
+from exceptions import UserError, ValidationError
 from orm.environments import get_current_companies
+from tools.translate import _
 
 
 def _default_tax(help_text, tax_use):
@@ -162,6 +163,40 @@ def _add_if_absent(model, name, field):
     """
     if not any(f.name == name for f in model._meta.get_fields()):
         model.add_to_class(name, field)
+
+
+def _compute_force_restrictive_audit_trail(self):
+    """≙ ``_compute_force_restrictive_audit_trail`` (``odoo19c:
+    company.py:347-349``), cuyo cuerpo entero es ``= False``.
+
+    No es un esbozo: en la referencia el campo existe **para que una
+    localización lo redefina**. Mientras nadie lo haga, ninguna empresa tiene
+    el rastro forzado y ``check_audit_trail_restriction`` no bloquea nada. El
+    primer consumidor real será una localización que exija el rastro por ley;
+    ``l10n_mx`` no lo hace hoy — medido: 0 hits de
+    ``force_restrictive_audit_trail`` en ``addons/l10n_mx/``.
+    """
+    return False
+
+
+def _check_audit_trail_restriction(self):
+    """≙ ``_check_audit_trail_restriction`` (``odoo19c: company.py:319-322``).
+
+    Impide **apagar** el rastro restringido cuando la localización lo fuerza.
+    Se llama desde ``ResCompany.save()``; la referencia lo declara
+    ``@api.constrains('restrictive_audit_trail')``, que es su forma de decir
+    "se valida al escribir ese campo".
+
+    El guion bajo se conserva porque la referencia lo declara privado
+    (``porte-completo-no-parcial.md``). Las demás funciones libres de este
+    archivo lo perdieron antes de que existiera esa regla — deuda #337, que
+    se paga al tocar cada una, no aquí.
+    """
+    if not self.restrictive_audit_trail and self.force_restrictive_audit_trail:
+        raise ValidationError(
+            _('No se puede desactivar el rastro de auditoría restringido: '
+              'lo fuerza la localización.')
+        )
 
 
 def get_user_lock_date(self, soft_lock_date_field, user=None, ignore_exceptions=False):
@@ -571,6 +606,28 @@ def apply_account_extensions():
             help_text=lock_help,
         ))
 
+    # El interruptor del rastro de auditoría restringido — ≙ ``odoo19c:
+    # company.py:257-262``. Es lo que vuelve OPERABLE la guarda que
+    # ``addons/account/models/mail_message.py`` ya declaraba completa e inerte:
+    # sin este campo, ``account_audit_log_restricted`` era siempre False.
+    _add_if_absent(ResCompany, 'restrictive_audit_trail', fields.Boolean(
+        default=False, verbose_name='Rastro de auditoría restrictivo',
+        help_text='Impide borrar o mutar los mensajes del chatter que '
+                  'documentan asientos ya publicados de esta empresa (Odoo '
+                  'restrictive_audit_trail).',
+    ))
+    # ``force_restrictive_audit_trail`` es ``compute=`` SIN ``store`` en la
+    # referencia y su cuerpo devuelve False para toda empresa
+    # (``odoo19c: company.py:347-349``): es un gancho para que una
+    # localización lo redefina y bloquee la desactivación. Sin columna que
+    # registrar, la forma equivalente aquí es una ``property`` — mismo criterio
+    # que los cinco resolutores de ``mail_message.py`` (:ref:`h-api-611`).
+    if not hasattr(ResCompany, 'force_restrictive_audit_trail'):
+        ResCompany.force_restrictive_audit_trail = property(
+            _compute_force_restrictive_audit_trail)
+    if not hasattr(ResCompany, '_check_audit_trail_restriction'):
+        ResCompany._check_audit_trail_restriction = _check_audit_trail_restriction
+
     # El mecanismo que le da sentido a los cinco candados — cierra los
     # computados que ``account_lock_exception.py`` declaraba pendientes.
     for nombre, funcion in (
@@ -629,6 +686,25 @@ def apply_account_extensions():
         load_chart_for_new_company, sender=ResCompany,
         dispatch_uid='account.load_chart_for_new_company',
     )
+    dj_models.signals.pre_save.connect(
+        check_audit_trail_on_save, sender=ResCompany,
+        dispatch_uid='account.check_audit_trail_restriction',
+    )
+
+
+def check_audit_trail_on_save(sender, instance, **kwargs):
+    """Dispara la restricción del rastro **antes** de escribir la fila.
+
+    ≙ ``@api.constrains('restrictive_audit_trail')`` (``odoo19c:
+    company.py:318``). El decorador de la referencia declara *cuándo* se
+    valida; aquí ese cuándo lo fija la señal, que es la vía ya usada en este
+    archivo para ``load_chart_for_new_company``.
+
+    Va en ``pre_save`` y no en ``post_save`` porque la referencia **impide** la
+    escritura: validar después dejaría la fila con el rastro ya apagado y sólo
+    levantaría el error a continuación.
+    """
+    instance._check_audit_trail_restriction()
 
 
 def load_chart_for_new_company(sender, instance, created, **kwargs):

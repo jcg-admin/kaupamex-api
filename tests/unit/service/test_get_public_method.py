@@ -38,11 +38,18 @@ class _Base(models.Model):
         return 'no debería alcanzarse'
 
 
-class _Model(_Base):
+class Model(_Base):
     """Concreto pero ``managed = False``: se instancia sin tabla.
 
     ``get_public_method`` no toca la base —sólo inspecciona la clase— así que
     un modelo no gestionado basta y evita crear una tabla de prueba.
+
+    **Sin guion bajo, y no es una elección de estilo.** Django rechaza un
+    modelo **concreto** cuyo nombre empiece o termine en ``_``
+    (``models.E023``: *"collides with the query lookup syntax"*), así que
+    ``_Model`` hacía fallar ``run_checks_or_raise()`` en cuanto la suite
+    completa importaba este módulo. ``_Base`` sí lo conserva: es abstracto y
+    el check no lo alcanza. Ver :ref:`h-api-751`.
     """
 
     _name = 'test.public.method'
@@ -80,7 +87,7 @@ class _Model(_Base):
 
 @pytest.fixture
 def model():
-    return _Model()
+    return Model()
 
 
 def test_returns_the_public_method(model):

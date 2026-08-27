@@ -20,8 +20,8 @@ métodos**. Ninguno se omite en silencio — cada uno cita abajo su desenlace
 comparación es de lectura, no de conteo — por eso cada divergencia declara **en
 qué** difiere, no sólo que difiere.
 
-Campos — 12 PORTADOS · 1 DIVERGENCIA · 1 BLOQUEADO
----------------------------------------------------
+Campos — 13 PORTADOS · 1 DIVERGENCIA · 0 BLOQUEADOS
+----------------------------------------------------
 
 .. list-table::
    :header-rows: 1
@@ -74,11 +74,10 @@ Campos — 12 PORTADOS · 1 DIVERGENCIA · 1 BLOQUEADO
      - PORTADO
      - ``@property`` — la cardinalidad de la anterior.
    * - ``partner_ids`` (58)
-     - BLOQUEADO
-     - Exige ``StockPicking.partner``, que hoy no existe: el modelo declara
-       siete campos (``name``, ``state``, ``location``, ``location_dest``,
-       ``sale_order``, ``is_locked``, ``picking_type``) y ninguno es el
-       tercero. Sucesor: tarea **#390**, que porta ``stock_picking.py``.
+     - PORTADO
+     - **Desbloqueado en este pase (tarea #390).** ``StockPicking.partner``
+       ya existe (``stock_picking.py:1139``); sólo faltaba esa pieza. Ver
+       :ref:`h-api-678` para la divergencia de orden (``date_done`` ausente).
    * - ``lot_properties`` (59)
      - PORTADO
      - **Columna nueva.** ``fields.Json`` — la definición vive en
@@ -89,15 +88,15 @@ Campos — 12 PORTADOS · 1 DIVERGENCIA · 1 BLOQUEADO
      - **Columna nueva.** Almacenada con compute e *inverse*, las dos mitades:
        ``_compute_single_location`` y ``_set_single_location``.
 
-Métodos — 15 PORTADOS · 7 DIVERGENCIA · 2 BLOQUEADOS
+Métodos — 17 PORTADOS · 7 DIVERGENCIA · 0 BLOQUEADOS
 -----------------------------------------------------
 
-De los 24, **13 conservan el nombre de la fuente** y se ven en el AST; los dos
+De los 24, **15 conservan el nombre de la fuente** y se ven en el AST; los dos
 restantes que sí están portados lo hacen bajo otra forma declarada —
 ``_compute_delivery_ids`` como las propiedades ``delivery_ids``/
-``delivery_count``, y ``write`` dentro de ``save()``. Los 11 que un conteo por
-nombre reporta como ausentes son esos dos más los 7 DIVERGENCIA y los 2
-BLOQUEADOS; ninguno se omite en silencio.
+``delivery_count``, y ``write`` dentro de ``save()``. Los que un conteo por
+nombre reporta como ausentes son esos dos más los 7 DIVERGENCIA; ninguno se
+omite en silencio.
 
 .. list-table::
    :header-rows: 1
@@ -145,8 +144,9 @@ BLOQUEADOS; ninguno se omite en silencio.
      - PORTADO
      - Vía las propiedades ``delivery_ids`` / ``delivery_count``.
    * - ``_compute_partner_ids`` (161-167)
-     - BLOQUEADO
-     - Mismo bloqueo que su campo — tarea **#390**.
+     - PORTADO
+     - Vía la propiedad ``partner_ids``. **DIVERGENCIA declarada:** ordena por
+       ``pk`` descendente en vez de ``date_done`` (:ref:`h-api-678`).
    * - ``_compute_single_location`` (169-173)
      - PORTADO
      - Mitad de lectura de ``location``.
@@ -177,8 +177,10 @@ BLOQUEADOS; ninguno se omite en silencio.
      - ``classmethod``; los ocho operadores de ``PY_OPERATORS``, incluida la
        inclusión del cero que la fuente calcula con ``op(0.0, value)``.
    * - ``_search_partner_ids`` (265-291)
-     - BLOQUEADO
-     - Mismo bloqueo — tarea **#390**.
+     - PORTADO
+     - Desbloqueado en este pase. Usa ``orm.domains.Domain``/``to_q`` sobre
+       ``picking.partner``/``move.partner`` (rutas de nuestros propios
+       nombres de campo, no los de la fuente).
    * - ``action_lot_open_quants`` (293-297)
      - DIVERGENCIA
      - Devuelve un ``ir.actions.act_window``. El consumidor real aquí es un
@@ -219,6 +221,7 @@ from addons.base.models import TimeStampedModel
 from addons.mail.models.mail_activity_mixin import MailActivityMixin
 from addons.mail.models.mail_thread import MailThread
 from exceptions import UserError, ValidationError
+from orm.domains import Domain, to_q
 from orm.environments import get_current_companies, get_current_company
 from tools.translate import _
 
@@ -441,6 +444,46 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         """≙ el campo ``delivery_count`` (``odoo19c: :57``)."""
         return len(self.delivery_ids)
 
+    @property
+    def partner_ids(self):
+        """≙ el campo ``partner_ids`` (``odoo19c: :58``) — **desbloqueado en
+        este pase** (tarea #390): ``StockPicking.partner`` ya existe
+        (``stock_picking.py:1139``), que era la única pieza que faltaba.
+
+        Contactos que recibieron el lote — en entrega directa, o vía los
+        lotes que lo consumieron en producción. Sigue el mismo camino que
+        ``delivery_ids``: primero las entregas, luego el contacto de cada una.
+        """
+        return self._compute_partner_ids()
+
+    def _compute_partner_ids(self):
+        """≙ ``_compute_partner_ids`` (``odoo19c: :159-166``) — el compute de
+        ``partner_ids``.
+
+        **DIVERGENCIA de mecanismo declarada:** la fuente ordena las entregas
+        por ``date_done`` (fecha de validación del albarán) antes de tomar sus
+        contactos. ``StockPicking`` en este árbol aún no declara ese campo —
+        sólo tiene ``created_at``/``updated_at`` de ``TimeStampedModel``, sin
+        marca de "cuándo se validó". Se ordena por ``pk`` descendente, el
+        proxy más cercano al orden cronológico disponible hoy.
+
+        Devuelve una lista de ids de contacto — no un queryset — para no atar
+        el resultado a una consulta perezosa en la capa de propiedad; mismo
+        criterio que ``delivery_ids``.
+        """
+        entregas = self._find_delivery_ids_by_lot_iterative().get(self.pk, [])
+        if not entregas:
+            return []
+        picking_model = apps.get_model('stock', 'StockPicking')
+        partners_by_picking = picking_model.objects.filter(
+            pk__in=entregas).order_by('-pk').values_list('partner_id', flat=True)
+        vistos, contactos = set(), []
+        for contacto_id in partners_by_picking:
+            if contacto_id is not None and contacto_id not in vistos:
+                vistos.add(contacto_id)
+                contactos.append(contacto_id)
+        return contactos
+
     # ------------------------------------------------------------------ #
     # Generación de nombres                                               #
     # ------------------------------------------------------------------ #
@@ -642,6 +685,59 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         — es el puente que su mecanismo necesita.
         """
         criterio = cls._search_product_qty(operator, value)
+        if criterio is NotImplemented:
+            raise UserError(_('Operador no soportado: %s') % operator)
+        return cls.objects.filter(criterio)
+
+    @classmethod
+    def _search_partner_ids(cls, operator, value):
+        """≙ ``_search_partner_ids`` (``odoo19c: :265-291``) — **desbloqueado
+        en este pase** (tarea #390): igual que ``partner_ids``, sólo faltaba
+        ``StockPicking.partner``.
+
+        Devuelve los lotes cuyas líneas de salida (o las de los lotes que
+        consumieron, vía ``_get_outgoing_domain``) llegaron a alguno de los
+        contactos indicados. **No** es simétrico con la propiedad
+        ``partner_ids`` — usa un camino más barato para búsqueda masiva sobre
+        ``stock.move.line``, exactamente como advierte la fuente.
+
+        El caso ``operator == 'in'`` con ``value == [False]`` se invierte:
+        primero se hallan los lotes que SÍ tienen contacto de entrega, y se
+        devuelven los que no están ahí.
+        """
+        if (operator in Domain.NEGATIVE_OPERATORS
+                or not isinstance(value, Iterable)):
+            return NotImplemented
+        valores = list(value)
+        es_sin_contacto = operator == 'in' and valores == [False]
+
+        condition = Domain([('lot', '!=', False), ('state', '=', 'done')])
+        if es_sin_contacto:
+            condition &= Domain('picking.partner', 'not in', valores)
+        else:
+            condition &= Domain.OR([
+                Domain('picking.partner', operator, value),
+                Domain('move.partner', operator, value),
+            ])
+        criterio = to_q(condition) & cls._get_outgoing_domain()
+
+        modelo_linea = apps.get_model('stock', 'StockMoveLine')
+        ids_lote = set(
+            modelo_linea.objects.filter(criterio).values_list('lot_id', flat=True))
+
+        if es_sin_contacto:
+            return ~Q(pk__in=ids_lote)
+        return Q(pk__in=ids_lote)
+
+    @classmethod
+    def ids_matching_partner_ids(cls, operator, value):
+        """Azúcar de consulta sobre ``_search_partner_ids``.
+
+        Mismo criterio que ``ids_matching_product_qty``: el ``search=`` de la
+        fuente lo invoca el motor de dominios al resolver una expresión sobre
+        el campo, y aquí no hay tal motor.
+        """
+        criterio = cls._search_partner_ids(operator, value)
         if criterio is NotImplemented:
             raise UserError(_('Operador no soportado: %s') % operator)
         return cls.objects.filter(criterio)

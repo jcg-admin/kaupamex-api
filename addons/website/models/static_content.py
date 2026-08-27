@@ -1,9 +1,16 @@
-"""Contenido estático con historial (UC-CFG-04).
+"""Contenido estático con historial (UC-CFG-04) — interinato conservado.
 
-Sin análogo directo portado: en la referencia el equivalente es
-``website.page``, que **delega** en ``ir.ui.view`` (``_inherits``) y saca de
-ahí su versionado. Portarlo fiel exige ``ir.ui.view``, que este árbol no
-tiene todavía. Ver la iniciativa ``alinear-addon-website-referencia``.
+En la referencia el equivalente es ``website.page``, que **delega** en
+``ir.ui.view`` (``_inherits``) y saca de ahí su versionado — **#104 ya lo
+portó** (``website_page.py``; ``ir.ui.view`` vive en ``base`` desde #544).
+
+**Decisión de #104: este par se CONSERVA, absorbido en papel pero no en
+datos** — misma decisión y mismas razones que ``static_page.py`` (flujo
+editorial con historial sin hogar en ``website.page`` mientras el COW de la
+vista no esté portado; consumidores REST vivos en
+``controllers/static_content*.py`` y sus tests de integración). Ninguna
+tabla se borra ni migra; la migración de contenido y endpoints va en la
+tarea **#560**.
 """
 from django.conf import settings
 from django.db import models

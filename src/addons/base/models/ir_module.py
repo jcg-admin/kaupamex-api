@@ -53,7 +53,12 @@ class IrModuleCategory(TimeStampedModel):
     técnico del módulo.
     """
 
-    name        = fields.Char(max_length=120)
+    _name = 'ir.module.category'
+    _description = "Application"
+    _order = 'sequence, name, id'
+    _allow_sudo_commands = False
+
+    name        = fields.Char()
     parent      = fields.Many2one(
         'self', on_delete=models.PROTECT, null=True, blank=True,
         db_index=True, related_name='child',
@@ -66,7 +71,7 @@ class IrModuleCategory(TimeStampedModel):
 
     class Meta:
         db_table = 'ir_module_category'
-        ordering = ['sequence', 'name', 'id']
+        ordering = ['sequence', 'name', 'id']   # derivado de _order
         verbose_name = 'Aplicación'
         verbose_name_plural = 'Aplicaciones'
 
@@ -80,7 +85,58 @@ class IrModule(TimeStampedModel):
     ``name`` es el **nombre técnico** —la carpeta—, igual que en la referencia.
     Es lo que lo distingue del catálogo comercial, cuyo ``code`` es un nombre de
     dominio que puede no coincidir con ninguna carpeta.
+
+    Ningún ``Char`` de aquí lleva tope (H-API-750)
+    ==============================================
+
+    Los **16** ``fields.Char`` de ``odoo19c: odoo/addons/base/models/ir_module.py``
+    se declaran sin tamaño, así que la columna es un ``varchar`` sin límite. Los
+    nuestros llevaban topes inventados —``summary`` 255, ``shortdesc`` 200,
+    ``name`` 100, ``version`` 32— y el primero ya había truncado datos reales.
+
+    El tope no se subió: se **retiró**, porque este stack expresa exactamente lo
+    que la referencia tiene. Medido en el entorno, no de memoria::
+
+        supports_unlimited_charfield = True      # backend PostgreSQL de Django 6
+        CharField(max_length=None).db_type()  -> 'varchar'
+        CharField(max_length=255).db_type()   -> 'varchar(255)'
+
+    Que el tope era arbitrario lo dice la propia referencia: su ``summary`` más
+    largo mide **251** caracteres (``account_add_gln``, de 328 manifiestos con
+    ``summary``) — cuatro por debajo del techo que teníamos. Un límite que la
+    fuente no impone y que su propio corpus casi toca no protege de nada; sólo
+    espera para romper.
+
+    ``category`` es la excepción declarada, y su comentario dice por qué.
+
+    Cobertura de campos — 8 de 31, declarada
+    =========================================
+
+    ``odoo19c: odoo/addons/base/models/ir_module.py:158-330`` declara **31**
+    campos; de ellos coinciden por nombre **8** (``name``, ``shortdesc``,
+    ``summary``, ``sequence``, ``application``, ``auto_install``, ``state``,
+    ``license``). Otros **2** son formas nuestras: ``category``, un
+    desnormalizado de su ``category_id``, y ``version``, que colapsa sus tres
+    (``installed_version`` / ``latest_version`` / ``published_version``).
+
+    Quedan **23 ausentes**, y la mayoría **no** está bloqueada por nada — son
+    ``Char`` planos del manifest (``author``, ``maintainer``, ``website``,
+    ``url``, ``icon``). El resto sí depende de mecanismos que este árbol todavía
+    no tiene: ``description_html`` (QWeb), ``icon_image`` (Binary servido), los
+    tres ``*_by_module`` (introspección de menús/vistas/reportes), y
+    ``exclusion_ids`` (``ir.module.module.exclusion``, sin portar).
+
+    **No se portan en este pase por alcance, no por imposibilidad** — el pase
+    es la corrección del tope de ``Char`` (:ref:`h-api-756`). Su porte es la
+    tarea **#452**, que ya cubre la reestructuración de ``category`` a FK.
     """
+
+    _name = 'ir.module.module'
+    _rec_name = "shortdesc"
+    _rec_names_search = ['name', 'shortdesc', 'summary']
+    _description = "Module"
+    _order = 'application desc,sequence,name'
+    _allow_sudo_commands = False
 
     # Sólo los estados que este árbol puede producir. Odoo declara seis; las
     # tres transiciones restantes pertenecen a su instalador.
@@ -114,16 +170,22 @@ class IrModule(TimeStampedModel):
     ]
 
     name         = fields.Char(
-        max_length=100, unique=True, db_index=True,
+        unique=True, db_index=True,
         help_text='Nombre técnico = carpeta del addon (Odoo ir.module.module.name).',
     )
     shortdesc    = fields.Char(
-        max_length=200, blank=True, default='',
+        blank=True, default='',
         help_text='Nombre legible del manifest (Odoo shortdesc ← manifest name).',
     )
-    summary      = fields.Char(max_length=255, blank=True, default='')
+    summary      = fields.Char(blank=True, default='')
+    # ``category`` NO pierde su tope: no tiene contraparte de esta forma en la
+    # referencia, que declara ``category_id`` como FK a ``ir.module.category``.
+    # Es un desnormalizado nuestro y provisional — su reestructuración es #452.
     category     = fields.Char(max_length=100, blank=True, default='Uncategorized')
-    version      = fields.Char(max_length=32, blank=True, default='1.0')
+    version      = fields.Char(blank=True, default='1.0')
+    # Lo nombra ``_order``; sin él el atributo describiría un orden que este
+    # modelo no puede cumplir. ``odoo19c: …/ir_module.py:294`` — default 100.
+    sequence     = fields.Integer(default=100)
     license      = fields.Selection(
         max_length=32, choices=LICENSES, default='LGPL-3',
         help_text='Licencia declarada por el manifest. NO se re-etiqueta (DEC-KX-03).',
@@ -140,11 +202,20 @@ class IrModule(TimeStampedModel):
 
     class Meta:
         db_table     = 'ir_module_module'
-        ordering     = ['name']
+        # Derivado de _order. ``application desc`` es ``-application``: las
+        # aplicaciones vendibles primero, luego la secuencia, luego el nombre.
+        ordering     = ['-application', 'sequence', 'name']
         verbose_name = 'Módulo técnico'
 
     def __str__(self):
-        return f'{self.name} ({self.state})'
+        """Consume ``_rec_name``, con respaldo al nombre técnico.
+
+        La referencia etiqueta el registro por ``shortdesc`` (el nombre legible
+        del manifest). Aquí ese campo admite vacío —hay filas sembradas desde
+        carpetas sin manifest—, así que se cae al ``name`` técnico en vez de
+        devolver una cadena vacía.
+        """
+        return getattr(self, self._rec_name, '') or self.name
 
 
 class IrModuleDependency(TimeStampedModel):
@@ -154,14 +225,27 @@ class IrModuleDependency(TimeStampedModel):
     dependencia se declara por **nombre**, y el nombre puede apuntar a un addon
     que todavía no está en el catálogo. Un M2M exigiría que el destino exista, y
     perdería justamente el caso que interesa detectar.
+
+    **Divergencia declarada en** ``_log_access``. La referencia lo pone en
+    ``False`` —*"inserts are done manually, create and write uid, dates are
+    always null"*— y aquí la clase hereda ``TimeStampedModel``, que sí escribe
+    esas columnas. No se retira: nuestra siembra **no** inserta a mano, pasa por
+    el ORM, así que las columnas llevan un valor real y no el ``null`` que la
+    fuente describe. El atributo se declara verbatim para que la divergencia sea
+    greppeable, no para que el ORM lo obedezca.
     """
+
+    _name = 'ir.module.module.dependency'
+    _description = "Module dependency"
+    _log_access = False   # ver la divergencia declarada en el docstring
+    _allow_sudo_commands = False
 
     module = fields.Many2one(
         IrModule, on_delete=models.CASCADE, related_name='dependencies',
         help_text='El addon que declara la dependencia.',
     )
     name   = fields.Char(
-        max_length=100, db_index=True,
+        db_index=True,
         help_text='Nombre técnico del addon del que depende.',
     )
 

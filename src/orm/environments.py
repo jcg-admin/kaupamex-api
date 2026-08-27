@@ -202,9 +202,48 @@ def company_scope(company_id):
 # (``addons.base.models.ir_rule``, dominio ``[('company_id','in',
 # company_ids)]``) aplicadas por ``RuleScopedManager`` de ese módulo.
 
+# --- Canal del contexto ----------------------------------------------------
+# El eje que faltaba de los TRES que la fuente declara juntos
+# (``odoo19c: odoo/orm/environments.py:54-56`` — ``uid``, ``context``, ``su``).
+# ``uid`` y ``su`` ya vivían aquí; ``context`` no, y su ausencia se notó al
+# portar ``Website.get_current_website`` (tarea #535), cuyo segundo escalón de
+# resolución es literalmente ``self.env.context.get('website_id')``: un cron o
+# una llamada interna declara sobre qué sitio opera sin que haya petición.
+#
+# Es un dict de **sólo lectura** por diseño, igual que el ``frozendict`` de la
+# fuente: se entra con ``context_scope`` y se sale restaurando. Así nadie muta
+# el contexto de quien lo llamó.
+
+_context: ContextVar = ContextVar('context', default=None)
+
+
+def get_context():
+    """El contexto en curso — el ``env.context`` de la referencia.
+
+    Devuelve un dict **vacío** fuera de todo ``context_scope``, no ``None``,
+    para que el llamador escriba ``get_context().get('clave')`` sin guarda.
+    """
+    return _context.get() or {}
+
+
+@contextmanager
+def context_scope(**values):
+    """Añade claves al contexto en el bloque y **restaura** el previo.
+
+    Las claves se **suman** a las que ya hubiera, como el ``with_context`` de
+    la fuente: entrar a un contexto no borra lo que trae el de fuera.
+    """
+    token = _context.set({**get_context(), **values})
+    try:
+        yield
+    finally:
+        _context.reset(token)
+
+
 __all__ = [
     'apps', 'connection', 'connections',
     'get_current_company', 'get_current_companies', 'set_current_company',
     'activate_companies', 'company_scope', 'sudo', 'is_su',
     'get_current_uid', 'get_current_user', 'set_current_uid', 'user_scope',
+    'get_context', 'context_scope',
 ]

@@ -47,7 +47,7 @@ from collections import defaultdict
 import fields
 import models
 from orm.domains import Domain, to_q
-from orm.registry import model_by_odoo_name
+from orm.registry import model_by_name
 
 #: Los tres ejes, en el orden de la fuente: parámetro de URL, campo del mixin y
 #: nombre de la cookie. Es el contrato que ``ir_http`` lee para saber qué
@@ -168,7 +168,7 @@ class UtmMixin(models.Model):
         if model_name in cls._tracking_models():
             record = cls._find_or_create_record(model_name, name)
         else:
-            model = model_by_odoo_name(model_name)
+            model = model_by_name(model_name)
             if model is None:
                 raise LookupError(f'Modelo desconocido: {model_name}')
             rec_name = getattr(model, '_rec_name', 'name')
@@ -188,7 +188,7 @@ class UtmMixin(models.Model):
         Aquí ``record`` arranca en ``None``, así que un nombre en blanco crea
         el registro con el nombre en blanco, que es lo que la fuente pretende.
         """
-        model = model_by_odoo_name(model_name)
+        model = model_by_name(model_name)
         if model is None:
             raise LookupError(f'Modelo desconocido: {model_name}')
 
@@ -224,7 +224,7 @@ class UtmMixin(models.Model):
         ambiente. Sirve para lo mismo — que un registro no colisione consigo
         mismo al actualizarse, e incremente el contador en cada guardado.
         """
-        model = model_by_odoo_name(model_name)
+        model = model_by_name(model_name)
         if model is None:
             raise LookupError(f'Modelo desconocido: {model_name}')
 

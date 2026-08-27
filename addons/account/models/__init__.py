@@ -49,6 +49,26 @@ aún no está poblado.
   (impuestos de venta y compra, cuentas de ingreso y gasto, etiquetas).
 - ``res_currency.py`` → cuelga de ``res.currency`` el guard que impide
   reducir la precisión de una divisa ya usada en apuntes.
+
+Cuatro módulos más de la familia ``account.analytic.*`` (tarea #398, tramo 2)
+declaran su ``apply_account_extensions()`` con el mismo patrón — cableados en
+``AccountConfig._EXTENSIONES`` por la tarea #520 (esta prosa decía "todavía
+no cableados"; era estado stale, corregido 2026-08-19). La tanda #75/#398
+tramo 3 añadió 18 módulos más con el patrón uniforme — el índice completo es
+la propia tupla ``_EXTENSIONES`` de ``apps.py``, que es su único dueño:
+
+- ``account_analytic_account.py``      → no-op documentado (BLOQUEADO, ver
+  su docstring); cuelga de ``analytic.account.analytic.account``.
+- ``account_analytic_distribution_model.py`` → cuelga ``prefix_placeholder``
+  (``store=False``) de ``analytic.account.analytic.distribution.model``.
+- ``account_analytic_line.py``         → no-op documentado (BLOQUEADO, ver
+  su docstring); cuelga de ``analytic.account.analytic.line``.
+- ``account_analytic_plan.py``         → amplía ``business_domain`` y cuelga
+  ``display_account_prefix``/``account_prefix_placeholder`` (``store=False``)
+  de ``analytic.account.analytic.applicability``.
+
+``account_code_mapping.py`` no declara ``apply_*_extensions()``: no crea
+modelo (divergencia de mecanismo declarada en su propio docstring).
 """
 from .account_account import AccountAccount
 from .account_account_tag import AccountAccountTag

@@ -1,116 +1,41 @@
-"""
-Views — addons.auto_backup (UC-ADM-05).
+"""Endpoints de respaldo — addons.auto_backup (UC-ADM-05).
 
-GET  /api/v1/admin/backups/          — list backup history
-POST /api/v1/admin/backups/trigger/  — trigger an on-demand backup
+GET  /api/v2/admin/backups/            — historial paginado
+POST /api/v2/admin/backups/            — disparar un respaldo ahora
+GET  /api/v2/admin/backups/download/…  — descargar un archivo de respaldo
 
-The actual dump is performed by db/scripts/backup_db.sh (run via
-subprocess in a background thread so the HTTP response is immediate).
-BackupRecord tracks each execution so the UI can poll/refresh.
+**Un solo mecanismo (DEC-AB-01, :ref:`h-api-768`).** El POST no implementa un
+respaldo propio: dispara el mismo ``ir.cron`` que corre el planificador, vía
+``DbBackup.action_run_cron()`` → ``IrCron.method_direct_trigger()``. Es la
+forma de la fuente (``app_auto_backup``: su botón *Run Backup* llama
+``action_run_cron``, ``views/backup_view.xml:12``), y con ella el disparo a
+mano hereda todo lo que el programado ya hacía — el archivo con su nombre, su
+ruta bajo ``DbBackup.folder``, su URL de descarga, la FK a la configuración
+que lo produjo, la copia a SFTP y la purga de caducados.
+
+Lo que había antes era un **segundo camino**: un ``subprocess`` a
+``backup_postgres.sh`` en un hilo, que creaba una fila sin ninguno de esos
+cuatro campos — indescargable por ``BackupDownloadView``, invisible para
+``_remove_old_local_backups``, y escrita fuera de la carpeta configurada.
 """
 import logging
 import os
-import subprocess
-import threading
 
-from django.conf import settings
+from django.http import FileResponse
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
-
-from addons.authz.permissions import HasCapability
-from addons.base.models import SystemParameter
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from addons.mail.models.email_executor import dispatch_email
-from addons.auto_backup.models import BackupRecord
-from addons.auto_backup.controllers.serializers import BackupRecordSerializer
+import models
+from exceptions import UserError
+
+from addons.authz.permissions import HasCapability
+from addons.auto_backup.models import DbBackup, DbBackupDetails
+from addons.auto_backup.controllers.serializers import DbBackupDetailsSerializer
 
 logger = logging.getLogger('apps')
-
-
-def _notify_backup_failed(record_pk: int, error_detail: str) -> None:
-    """
-    UC-ADM-05: alerta por email cuando un backup on-demand falla.
-
-    Usa dispatch_email (patrón síncrono del proyecto, sin Celery): si el SMTP
-    falla, la alerta se persiste en EmailTask y send_pending_emails la
-    reintenta con backoff — los reintentos del propio envío salen gratis.
-    No re-lanza: una falla al notificar no debe enmascarar la falla del backup.
-    """
-    # Migrado desde settings.BACKUP_ALERT_EMAIL (H-API-CFG-01,
-    # :ref:`hallazgos-estrategia-configuracion-kaupamex`): tenía default=
-    # cableado y stale (practicayoruba.com); ahora vive editable en caliente
-    # en SystemParameter (L2, sembrado por addons.base migration 0003).
-    recipient = SystemParameter.get_param('backup.alert_email', '')
-    if not recipient:
-        logger.warning('Backup #%d falló pero BACKUP_ALERT_EMAIL no está '
-                       'configurado — no se envió alerta.', record_pk)
-        return
-    try:
-        dispatch_email(
-            subject=f'[Kaupamex] Backup #{record_pk} falló',
-            message=(
-                f'El backup on-demand #{record_pk} terminó en error.\n\n'
-                f'Detalle:\n{error_detail}'
-            ),
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
-            recipient_list=[recipient],
-        )
-    except Exception:
-        logger.exception('No se pudo despachar la alerta de backup fallido #%d.',
-                         record_pk)
-
-# H-CICLO82-03: lock en proceso para serializar peticiones concurrentes de
-# backup. Sin este lock, N POST simultaneos a /backups/trigger/ lanzan N
-# threads de backup_db.sh al mismo tiempo, corrompiendo el dump (escrituras
-# concurrentes sobre el mismo archivo de destino) y saturando I/O del VPS.
-# Un threading.Lock es suficiente porque el proceso Django es un unico proceso
-# (mod_wsgi/WSGI — no Celery, no workers separados).
-_BACKUP_LOCK = threading.Lock()
-
-# Path to the DB backup script relative to the repo root.
-# Adjust if the repos are co-located differently in production.
-_BACKUP_SCRIPT = os.path.join(
-    os.path.dirname(__file__),          # apps/backups/
-    '..', '..', '..', '..',            # up to kaupamex-api/
-    '..', 'kaupamex-db',              # sibling repo
-    'scripts', 'backup_db.sh',
-)
-_BACKUP_SCRIPT = os.path.normpath(_BACKUP_SCRIPT)
-
-
-def _run_backup(record_pk: int) -> None:
-    """Execute backup_db.sh and update BackupRecord.status."""
-    try:
-        result = subprocess.run(
-            ['bash', _BACKUP_SCRIPT],
-            capture_output=True,
-            text=True,
-            timeout=300,  # 5 minutes
-        )
-        if result.returncode == 0:
-            BackupRecord.objects.filter(pk=record_pk).update(
-                status=BackupRecord.STATUS_OK,
-            )
-            logger.info('Backup #%d completado.', record_pk)
-        else:
-            err = (result.stderr or result.stdout or '')[:1000]
-            BackupRecord.objects.filter(pk=record_pk).update(
-                status=BackupRecord.STATUS_ERROR,
-                error_detail=err,
-            )
-            logger.error('Backup #%d error: %s', record_pk, err)
-            _notify_backup_failed(record_pk, err)
-    except Exception as exc:
-        err = str(exc)[:1000]
-        BackupRecord.objects.filter(pk=record_pk).update(
-            status=BackupRecord.STATUS_ERROR,
-            error_detail=err,
-        )
-        logger.exception('Backup #%d excepcion inesperada.', record_pk)
-        _notify_backup_failed(record_pk, err)
 
 
 class BackupPagination(PageNumberPagination):
@@ -130,50 +55,136 @@ class AdminBackupListView(APIView):
 
     @extend_schema(
         summary='Listar historial de backups (UC-ADM-05)',
-        responses={200: BackupRecordSerializer(many=True)},
+        responses={200: DbBackupDetailsSerializer(many=True)},
         tags=['admin-backups'],
     )
     def get(self, request):
-        qs = BackupRecord.objects.all()
+        qs = DbBackupDetails.objects.all()
         paginator = BackupPagination()
         page = paginator.paginate_queryset(qs, request)
         if page is not None:
             return paginator.get_paginated_response(
-                BackupRecordSerializer(page, many=True).data
+                DbBackupDetailsSerializer(page, many=True).data
             )
-        return Response(BackupRecordSerializer(qs, many=True).data)
+        return Response(DbBackupDetailsSerializer(qs, many=True).data)
 
     @extend_schema(
-        summary='Disparar backup manual on-demand (UC-ADM-05)',
+        summary='Disparar el respaldo ahora (UC-ADM-05)',
         request=None,
         responses={
-            202: OpenApiResponse(description='Backup encolado.'),
+            200: DbBackupDetailsSerializer(many=True),
+            409: OpenApiResponse(description='BACKUP_IN_PROGRESS'),
+            503: OpenApiResponse(description='BACKUP_CRON_NOT_SEEDED'),
         },
         tags=['admin-backups'],
     )
     def post(self, request):
-        # H-CICLO82-03: rechazar si ya hay un backup en curso.
-        if not _BACKUP_LOCK.acquire(blocking=False):
+        """Corre el cron del respaldo **en el hilo de esta petición**.
+
+        Es lo que la fuente hace y lo dice explícitamente:
+        *"Run the CRON job in the current (HTTP) thread"*
+        (``odoo19c: odoo/addons/base/models/ir_cron.py:151``). Antes esto
+        devolvía 202 y corría en un hilo daemon; el 202 prometía "encolado"
+        y el cliente no tenía forma de saber **qué** filas produjo su
+        disparo. Ahora la respuesta trae exactamente las corridas de este
+        disparo, que es lo que UC-ADM-05 lista.
+
+        DIVERGENCIA declarada, con su costo: la petición **bloquea** lo que
+        dure el volcado, y un proxy con timeout corto cerrará la conexión
+        antes de la respuesta. El volcado no se pierde por eso —termina en
+        disco y su fila queda registrada—, pero el operador no ve el
+        resultado. Para bases grandes el camino correcto es el programado,
+        que es el mismo mecanismo sin nadie esperando.
+
+        El candado de concurrencia también cambia de naturaleza, y a mejor:
+        era un ``threading.Lock`` de proceso cuyo propio comentario alegaba
+        *"el proceso Django es un único proceso"* — falso desde ADR-027,
+        ``setup/gunicorn.conf.py`` declara ``workers = 4``. Ahora lo hace el
+        ``FOR NO KEY UPDATE SKIP LOCKED`` de la fila del cron, que sí cruza
+        procesos.
+        """
+        last_pk_before = DbBackupDetails.objects.aggregate(
+            top=models.Max('pk'))['top'] or 0
+        try:
+            fired = DbBackup.action_run_cron()
+        except UserError as exc:
             return Response(
                 {
-                    'detail': 'Ya hay un backup en curso. Intenta de nuevo cuando finalice.',
+                    'detail': str(exc),
                     'codigo_error': 'BACKUP_IN_PROGRESS',
                 },
                 status=409,
             )
-        record = BackupRecord.objects.create(type=BackupRecord.TYPE_MANUAL)
+        if not fired:
+            # El cron lo siembra ``migrations/0003_seed_cron_backup``; sin
+            # él no hay nada que disparar, y decirlo es más útil que un 200
+            # con lista vacía.
+            logger.error('El cron del respaldo no está sembrado.')
+            return Response(
+                {
+                    'detail': 'El cron del respaldo no está sembrado.',
+                    'codigo_error': 'BACKUP_CRON_NOT_SEEDED',
+                },
+                status=503,
+            )
+        runs = DbBackupDetails.objects.filter(pk__gt=last_pk_before)
+        return Response(DbBackupDetailsSerializer(runs, many=True).data)
 
-        def _run_and_release(record_pk: int) -> None:
-            try:
-                _run_backup(record_pk)
-            finally:
-                _BACKUP_LOCK.release()
 
-        t = threading.Thread(
-            target=_run_and_release, args=(record.pk,), daemon=True
+class BackupDownloadView(APIView):
+    """GET /api/v2/admin/backups/download/<path:file_path>/
+
+    Adaptación de ``AppAutoBackup.download_backupfile``
+    (``app_auto_backup/controllers/main.py:16``, ruta
+    ``/dbbackup/download/<path:file_path>``, LGPL-3).
+
+    Dos divergencias, las dos declaradas:
+
+    1. **La autorización va por capacidad, no por grupo.** La fuente gatea con
+       ``has_group('base.group_system')``; aquí el invariante del árbol es
+       ``HasCapability`` fail-closed (DEC-11), y la capacidad que dueña este
+       dominio ya existe: ``backups``. Usar ``IsAuthenticated`` a secas —o el
+       grupo— saltaría el modelo de capacidades.
+    2. **La ruta se confina al directorio de respaldos.** La fuente sirve
+       *cualquier* archivo del disco cuya ruta el cliente escriba, con un solo
+       ``os.path.exists`` de por medio: un usuario del sistema puede leer
+       ``/etc/shadow`` por esa ruta. Aquí la ruta resuelta debe caer dentro de
+       alguna ``DbBackup.folder`` configurada. Ver :ref:`h-api-766`.
+    """
+
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'backups.edit'
+
+    @extend_schema(
+        summary='Descargar un archivo de respaldo (UC-ADM-05)',
+        responses={
+            200: OpenApiResponse(description='application/octet-stream'),
+            404: OpenApiResponse(description='BACKUP_FILE_NOT_FOUND'),
+        },
+        tags=['admin-backups'],
+    )
+    def get(self, request, file_path):
+        logger.warning('download_backupfile: %s', file_path)
+        resolved = os.path.realpath('/' + file_path.lstrip('/'))
+        folders = [
+            os.path.realpath(folder)
+            for folder in DbBackup.objects.values_list('folder', flat=True)
+            if folder
+        ]
+        confined = any(
+            resolved == folder or resolved.startswith(folder + os.sep)
+            for folder in folders
         )
-        t.start()
-        return Response(
-            BackupRecordSerializer(record).data,
-            status=202,
-        )
+        if not confined or not os.path.isfile(resolved):
+            return Response(
+                {
+                    'detail': 'File not found',
+                    'codigo_error': 'BACKUP_FILE_NOT_FOUND',
+                },
+                status=404,
+            )
+        response = FileResponse(
+            open(resolved, 'rb'), content_type='application/octet-stream')
+        response['Content-Disposition'] = (
+            'attachment; filename="%s"' % os.path.basename(resolved))
+        return response

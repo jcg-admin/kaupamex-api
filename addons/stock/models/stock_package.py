@@ -74,13 +74,13 @@ Símbolo de la referencia (línea)                 Aquí
 ``_compute_owner_id`` (185-192)                  property ``owner``
 ``_compute_outermost_package_id`` (194-200)      property ``outermost_package``
 ``_compute_valid_sscc`` (202-206)                property ``valid_sscc``
-``_search_all_children_package_ids`` (208-210)   ``search_all_children_package_ids``
-``_search_contained_quant_ids`` (212-217)        ``search_contained_quant_ids``
-``_search_location_dest_id`` (219-228)           ``search_location_dest``
-``_search_move_line_ids`` (230-248)              ``search_move_line_ids``
-``_search_outermost_package_id`` (250-259)       ``search_outermost_package``
-``_search_owner`` (261-264)                      ``search_owner``
-``_search_picking_ids`` (266-276)                ``search_picking_ids``
+``_search_all_children_package_ids`` (208-210)   ``_search_all_children_package_ids``
+``_search_contained_quant_ids`` (212-217)        ``_search_contained_quant_ids``
+``_search_location_dest_id`` (219-228)           ``_search_location_dest_id``
+``_search_move_line_ids`` (230-248)              ``_search_move_line_ids``
+``_search_outermost_package_id`` (250-259)       ``_search_outermost_package_id``
+``_search_owner`` (261-264)                      ``_search_owner``
+``_search_picking_ids`` (266-276)                ``_search_picking_ids``
 ``create`` (278-287)                             ``create`` (classmethod)
 ``write`` (289-314)                              ``write``
 ``unpack`` (316-325)                             ``unpack``
@@ -90,13 +90,13 @@ Símbolo de la referencia (línea)                 Aquí
 ``action_put_in_pack`` (347-367)                 ``action_put_in_pack``
 ``action_remove_package`` (369-405)              ``action_remove_package``
 ``action_view_picking`` (407-412)                ``action_view_picking``
-``_check_move_lines_map_quant`` (414-433)        ``check_move_lines_map_quant``
+``_check_move_lines_map_quant`` (414-433)        ``_check_move_lines_map_quant``
 ``_get_weight`` (435-470)                        ``get_weight``
 ``_has_issues`` (472-474)                        ``has_issues``
 ``_apply_dest_to_package`` (476-509)             ``apply_dest_to_package``
 ``_get_all_children_package_dest_ids`` (511-531) ``get_all_children_package_dest_ids``
 ``_get_all_package_dest_ids`` (533-544)          ``get_all_package_dest_ids``
-``_apply_package_dest_for_entire_packs`` (546-558) ``apply_package_dest_for_entire_packs``
+``_apply_package_dest_for_entire_packs`` (546-558) ``_apply_package_dest_for_entire_packs``
 ===============================================  ======================================
 
 Divergencias declaradas
@@ -118,6 +118,66 @@ Divergencias declaradas
    referencia hace ``json.dumps`` porque su widget lo consume como cadena;
    aquí el consumidor es DRF, que serializa él mismo. El contenido —título,
    mensaje con las ubicaciones, color e icono— es el mismo.
+
+Cuatro computes que el gate de porte reporta ausentes, y por qué no lo están
+(:ref:`h-api-680`)
+--------------------------------------------------------------------------------
+
+``check_porte_completo.py`` absuelve un ``_compute_<campo>`` cuando existe una
+``property`` **con el mismo nombre exacto** que el campo de la referencia y su
+docstring cita el símbolo — ``equivalencias_declaradas()``,
+``scripts/check_porte_completo.py:289-340``. Los cuatro casos siguientes fallan
+esa condición por una razón *distinta* cada vez, verificada leyendo ambos
+archivos línea a línea, no asumida:
+
+4. **``_compute_location_dest_id`` → property ``location_dest`` (:377).** El
+   campo de la referencia es ``location_dest_id``; este árbol retira el
+   sufijo ``_id`` de todo FK (convención del proyecto, no de este archivo:
+   ``picking_id`` → ``picking``, ``package_dest_id`` → ``package_dest``, ya
+   arriba en este mismo docstring). La property se llama ``location_dest``,
+   así que la clave que el gate deriva es ``_compute_location_dest`` —no
+   ``_compute_location_dest_id``— y nunca coincide con el nombre real de la
+   referencia. El cuerpo (``:378-384``) es el mismo: la ubicación destino de
+   la **primera** línea en curso, con el conflicto multi-destino reportado
+   por ``has_issues``/``json_popover``.
+5. **``_compute_outermost_package_id`` → property ``outermost_package``
+   (:423).** Mismo mecanismo — el campo es ``outermost_package_id`` allá,
+   ``outermost_package`` aquí. Cuerpo idéntico: recursión por
+   ``package_dest`` hasta la raíz.
+6. **``_compute_owner_id`` → property ``owner`` (:409).** Mismo mecanismo —
+   ``owner_id`` → ``owner``. Cuerpo idéntico: sólo hay dueño si todos los
+   quants coinciden.
+7. **``_compute_display_name`` — divergencia real, no ceguera del gate.** La
+   referencia computa el campo ``display_name`` leyendo tres claves de
+   ``self.env.context`` (``is_done``/``show_src_package``/
+   ``show_dest_package``) que pone su cliente web al abrir el formulario
+   (``odoo19c: :72-90``). Este stack no tiene ese contexto implícito de
+   petición — no hay `` env.context`` que leer en un método de modelo — así
+   que la rama por defecto vive en ``__str__`` (:198) y las tres explícitas en
+   ``display_name(self, is_done=False, show_src_package=False,
+   show_dest_package=False, formatted=False)`` (:209), con los mismos
+   parámetros como argumentos en vez de contexto ambiental. No es property
+   porque toma argumentos —Python no permite parametrizar un ``property``—,
+   así que el gate no la absuelve nunca por esta vía. Es la misma decisión de
+   diseño que ya declaran los tres ``_default_*`` de
+   ``product_strategy.py::StockPutawayRule`` (contexto por parámetro
+   explícito, no ambiental).
+
+Deuda saldada al tocar el archivo (2026-08-18)
+================================================
+
+``_check_move_lines_map_quant`` y ``_apply_package_dest_for_entire_packs``
+estaban despromovidos (H-API-581) — la referencia los declara privados y el
+puerto los había publicado. Restaurados con su guion bajo al consumirlos el
+grupo «Paquetes» de ``stock.picking`` (tarea #521); medido antes del cambio,
+**0 llamadores** con el nombre público fuera de este archivo (``grep -rn``
+sobre ``addons/``, ``src/`` y ``tests/``). Los demás despromovidos de este
+archivo (``get_weight``, ``has_issues``, ``apply_dest_to_package``,
+``get_all_children_package_dest_ids``, ``get_all_package_dest_ids``,
+``pre_put_in_pack_hook``, ``post_put_in_pack_hook``) siguen en el barrido de
+la tarea **#337** — dos de ellos tienen llamadores externos medidos
+(``apply_dest_to_package`` y ``get_all_package_dest_ids``, en
+``stock_move_line.py``) y ninguno lo consume el grupo Paquetes de este pase.
 """
 import datetime
 from collections import defaultdict
@@ -139,6 +199,19 @@ ONGOING_EXCLUDED_STATES = ('done', 'cancel')
 
 class StockPackage(TimeStampedModel):
     """``stock.package`` — contenedor de existencias y/o de otros paquetes."""
+
+    # Atributos de clase de modelo — los seis que la referencia declara
+    # (``odoo19c: stock/models/stock_package.py:18-23``), verbatim
+    # (:ref:`h-api-680`). ``_parent_store``/``_parent_name`` describen el
+    # árbol de contenedores ACTUALES (``parent_package``); el segundo árbol
+    # de DESTINOS (``package_dest``) no se materializa con ``parent_path`` —
+    # ver la nota de cabecera sobre las dos jerarquías.
+    _name = 'stock.package'
+    _description = 'Package'
+    _order = 'name, id'
+    _parent_name = 'parent_package'
+    _parent_store = True
+    _rec_name = 'complete_name'
 
     name              = fields.Char(
         max_length=120, db_index=True,
@@ -278,6 +351,26 @@ class StockPackage(TimeStampedModel):
             self.location = hijos[0].location
             if all(p.company_id == hijos[0].company_id for p in hijos):
                 self.company = hijos[0].company
+
+    def save(self, *args, **kwargs):
+        """Los ``compute … store=True`` se disparan en CADA escritura.
+
+        Mismo defecto y mismo remedio que ``StockLocation.save``
+        (``stock_location.py:545``): la clase declara ``_parent_store``, pero
+        sin este disparo ``objects.create(...)`` —el camino de Django, el que
+        usan los tests y buena parte del árbol— dejaba ``parent_path`` vacío.
+        Con la ruta vacía, ``_search_all_children_package_ids`` y
+        ``_search_contained_quant_ids`` devolvían el conjunto vacío para
+        jerarquías que sí existían: el silencio del campo se leía como
+        ausencia de ancestros.
+
+        El recálculo va **después** del ``INSERT`` porque ``parent_path``
+        incluye el propio ``id``, y persiste con ``update_fields`` para no
+        reescribir el resto. No hay recursión: ``refresh_computed_fields``
+        llama a ``super().save()``, que es el de ``TimeStampedModel``.
+        """
+        super().save(*args, **kwargs)
+        self.refresh_computed_fields()
 
     def refresh_computed_fields(self):
         """Recalcula y persiste los cuatro campos almacenados de la referencia."""
@@ -422,9 +515,15 @@ class StockPackage(TimeStampedModel):
         return bool(self.name) and check_barcode_encoding(self.name, 'sscc')
 
     # -- las siete búsquedas --
+    #
+    # Los siete métodos de esta sección restauran su guion bajo
+    # (:ref:`h-api-680`, porte-completo-no-parcial.md/H-API-581): la
+    # referencia los declara privados (``_search_x``) y el puerto los había
+    # publicado sin él. Medido antes de corregir: 0 llamadores fuera de este
+    # archivo (``grep -rn`` sobre ``addons/`` y ``tests/``).
 
     @classmethod
-    def search_all_children_package_ids(cls, packages):
+    def _search_all_children_package_ids(cls, packages):
         """≙ ``_search_all_children_package_ids`` (``odoo19c: :208-210``).
 
         Los ancestros de los paquetes dados — ``parent_of`` en su idioma.
@@ -436,7 +535,7 @@ class StockPackage(TimeStampedModel):
         return cls.objects.filter(pk__in=pks)
 
     @classmethod
-    def search_contained_quant_ids(cls, quants):
+    def _search_contained_quant_ids(cls, quants):
         """≙ ``_search_contained_quant_ids`` (``odoo19c: :212-217``).
 
         Los paquetes que contienen esos quants, y sus ancestros.
@@ -444,10 +543,10 @@ class StockPackage(TimeStampedModel):
         directos = cls.objects.filter(quant_ids__in=quants).distinct()
         if not directos.exists():
             return cls.objects.none()
-        return cls.search_all_children_package_ids(directos)
+        return cls._search_all_children_package_ids(directos)
 
     @classmethod
-    def search_location_dest(cls, locations):
+    def _search_location_dest_id(cls, locations):
         """≙ ``_search_location_dest_id`` (``odoo19c: :219-228``)."""
         StockMoveLine = apps.get_model('stock', 'StockMoveLine')
         lineas = (StockMoveLine.objects
@@ -461,7 +560,7 @@ class StockPackage(TimeStampedModel):
         return cls.objects.filter(pk__in=pks)
 
     @classmethod
-    def search_move_line_ids(cls, move_lines=None, unassigned=False):
+    def _search_move_line_ids(cls, move_lines=None, unassigned=False):
         """≙ ``_search_move_line_ids`` (``odoo19c: :230-248``).
 
         Con ``unassigned=True`` devuelve los paquetes **sin** ninguna línea en
@@ -481,19 +580,19 @@ class StockPackage(TimeStampedModel):
         return cls.objects.filter(pk__in=pks)
 
     @classmethod
-    def search_outermost_package(cls, packages):
+    def _search_outermost_package_id(cls, packages):
         """≙ ``_search_outermost_package_id`` (``odoo19c: :250-259``)."""
         directos = cls.objects.filter(package_dest__in=packages)
         _por_paquete, todos = cls.get_all_children_package_dest_ids_for(directos)
         return cls.objects.filter(pk__in=todos)
 
     @classmethod
-    def search_owner(cls, partners):
+    def _search_owner(cls, partners):
         """≙ ``_search_owner`` (``odoo19c: :261-264``)."""
         return cls.objects.filter(quant_ids__owner__in=partners).distinct()
 
     @classmethod
-    def search_picking_ids(cls, pickings):
+    def _search_picking_ids(cls, pickings):
         """≙ ``_search_picking_ids`` (``odoo19c: :266-276``)."""
         StockMoveLine = apps.get_model('stock', 'StockMoveLine')
         lineas = (StockMoveLine.objects
@@ -717,7 +816,7 @@ class StockPackage(TimeStampedModel):
 
     # -- verificación y peso --
 
-    def check_move_lines_map_quant(self, move_lines):
+    def _check_move_lines_map_quant(self, move_lines):
         """≙ ``_check_move_lines_map_quant`` (``odoo19c: :414-433``).
 
         ¿Las líneas cubren exactamente lo que el paquete contiene? Se agrupa
@@ -864,7 +963,7 @@ class StockPackage(TimeStampedModel):
             actual = actual.package_dest
         return list(ids)
 
-    def apply_package_dest_for_entire_packs(self, allowed_package_ids=None):
+    def _apply_package_dest_for_entire_packs(self, allowed_package_ids=None):
         """≙ ``_apply_package_dest_for_entire_packs`` (``odoo19c: :546-558``).
 
         Si al asignar paquetes se añadió un contenedor **completo**, el
@@ -883,4 +982,4 @@ class StockPackage(TimeStampedModel):
                     self.package_dest = contenedor
                     self.save(update_fields=['package_dest'])
         if self.package_dest is not None:
-            self.package_dest.apply_package_dest_for_entire_packs(allowed_package_ids)
+            self.package_dest._apply_package_dest_for_entire_packs(allowed_package_ids)

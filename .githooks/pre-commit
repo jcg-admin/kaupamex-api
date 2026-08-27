@@ -24,15 +24,24 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 EXIT_CODE=0
 
-# ─── Gate 1: lazy imports en src/addons/** ────────────────────────
-# Detectar staged .py dentro del scope vigilado.
+# ─── El alcance que comparten TODOS los gates de abajo ───────────────────────
+# Las tres raíces son las que `check_no_lazy_imports.py` declara en su
+# DEFAULT_ROOTS: el código de la app. `addons/` faltaba desde que #317 movió
+# ahí los 90 addons de comunidad, y con él se fue el 69 % del árbol —
+# 550 de 2171 archivos vigilados, medido en H-API-759. Un gate que no cubre no
+# falla: calla, y su OK se lee como árbol limpio.
+#
+# `scripts/` y `src/manage.py` quedan FUERA a propósito, no por olvido: son
+# entrypoints que fijan DJANGO_SETTINGS_MODULE antes de importar Django, así
+# que su import diferido es el constraint del framework — el propio template
+# `manage.py-tpl` de Django lo escribe así.
 STAGED_PY=()
 while IFS= read -r line; do
     [[ -z "$line" ]] && continue
     STAGED_PY+=("$line")
 done < <(
     git diff --cached --name-only --diff-filter=ACM \
-        -- 'src/addons/***.py' 'tests/***.py' 2>/dev/null \
+        -- 'src/addons/***.py' 'addons/***.py' 'tests/***.py' 2>/dev/null \
     | grep -vE 'migrations/|__pycache__' || true
 )
 
@@ -96,6 +105,53 @@ if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
     fi
 fi
 
+# ─── check_bloqueo_declarado: el simbolo no portado nombra su bloqueador ─────
+# "No lo porte porque falta que algo lo llame" es una ARISTA dirigida, y el
+# orden de lo que queda sale de recorrer ese grafo. Mientras la razon viva en
+# prosa libre no hay grafo: medido, 103 marcas y solo unas pocas con direccion.
+# Baseline de deuda heredada; una marca nueva sin forma fija SI bloquea.
+# Script: scripts/check_bloqueo_declarado.py.
+if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
+    BLOQUEO_CHECKER="$REPO_ROOT/scripts/check_bloqueo_declarado.py"
+    if [[ ! -f "$BLOQUEO_CHECKER" ]]; then
+        echo "pre-commit: $BLOQUEO_CHECKER no encontrado — skip bloqueo gate" >&2
+    else
+        python3 "$BLOQUEO_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
+# ─── check_escape_sequences: ninguna cadena declara un escape que Python no ──
+# conoce. Desde 3.12 emiten SyntaxWarning y la documentación anuncia que serán
+# SyntaxError. Se colaban por docstrings con markup RST (``\ `` es el escape de
+# espacio) y con comandos citados (``grep "a\|b"``): el módulo importa, la suite
+# pasa, y el aviso se pierde en la salida. El arreglo es el prefijo r, nunca
+# duplicar la barra — ambos casos necesitan el contenido verbatim.
+# Script: scripts/check_escape_sequences.py.
+if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
+    ESCAPE_CHECKER="$REPO_ROOT/scripts/check_escape_sequences.py"
+    if [[ ! -f "$ESCAPE_CHECKER" ]]; then
+        echo "pre-commit: $ESCAPE_CHECKER no encontrado — skip escape gate" >&2
+    else
+        python3 "$ESCAPE_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
+# ─── check_model_name_lookup: un modelo CONCRETO no puede chocar con la ──────
+# sintaxis de lookup — ni guion bajo al inicio/final (models.E023) ni doble
+# guion bajo (models.E024). Django lo comprueba, pero SÓLO al correr la suite
+# entera: el ofensor de H-API-751 vivía en tests/unit/service/ y hacía fallar
+# un caso de tests/unit/orm/, porque se registra en el registro de apps al
+# importarse su módulo y en aislamiento no reproduce.
+# Script: scripts/check_model_name_lookup.py.
+if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
+    LOOKUP_CHECKER="$REPO_ROOT/scripts/check_model_name_lookup.py"
+    if [[ ! -f "$LOOKUP_CHECKER" ]]; then
+        echo "pre-commit: $LOOKUP_CHECKER no encontrado — skip lookup gate" >&2
+    else
+        python3 "$LOOKUP_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
 if [[ "$EXIT_CODE" -ne 0 ]]; then
     echo "" >&2
     echo "pre-commit: gates fallaron. Corrige los problemas o usa" >&2
@@ -103,7 +159,7 @@ if [[ "$EXIT_CODE" -ne 0 ]]; then
     echo "(solo emergencias documentadas)." >&2
 fi
 
-# ─── Gate 4: direccion de dependencias entre addons (T-036) ─────────────────
+# ─── check_addon_cycles: direccion de dependencias entre addons (T-036) ─────
 # Un addon fundacional (identidad, acceso, correo, catalogo) NO importa uno de
 # negocio: en la referencia Odoo la dependencia apunta siempre hacia abajo.
 # Ratchet sobre INVERSIONES_CONOCIDAS — falla solo ante una inversion NUEVA.
@@ -118,7 +174,7 @@ if [ -f "$CYCLES_CHECKER" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Gate 5: declaracion del catalogo L0 (SOL-100).
+# check_catalog_declaration: declaracion del catalogo L0 (SOL-100).
 # Cada addon declara sus modulos/capacidades en authz_catalog.py; el seed solo
 # recolecta. Este gate verifica que la declaracion sea coherente ANTES de que
 # llegue a una DB: addon en INSTALLED_APPS, sin duenos duplicados, sin
@@ -136,7 +192,7 @@ if [ -f "$CATALOG_CHECKER" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Gate 6: procedencia de addon (H-API-119, reincidido en H-API-256).
+# check_addon_names: procedencia de addon (H-API-119, reincidido en H-API-256).
 # El eje NO es "existe en la referencia" — tener addons propios es legitimo.
 # Lo que se exige es que cada addon que no resuelve por nombre DECLARE su
 # procedencia en scripts/addon_provenance.txt citando un documento que exista;

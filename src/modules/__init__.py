@@ -15,8 +15,10 @@ Qué se porta y qué NO — declarado, no omitido en silencio
 ``loading.py`` (632)         **NO** — el orden de carga lo da ``INSTALLED_APPS``
                              + ``django.apps``
 ``db.py`` (200)              **PARCIAL** — su *algoritmo* de ``auto_install`` SÍ
-                             (→ ``ModuleGraph.auto_installable``); su
-                             *almacenamiento* (``ir_module_module``) no
+                             (→ ``ModuleGraph.auto_installable``); sus sondas de
+                             capacidad (``FunctionStatus``/``has_unaccent``/
+                             ``has_trigram``) SÍ (→ ``modules/db.py``); su
+                             *almacenamiento* (``ir_module_module``) no (#298)
 ``migration.py`` (253)       **NO** — resuelto 2026-08-02; ver abajo
 ``neutralize.py`` (41)       **NO** — depende de ``loading``
 ===========================  ==========================================================

@@ -8,6 +8,7 @@ izquierda: ``hotp`` devuelve el entero, ``int('012345') == 12345``).
 """
 import base64
 import hashlib
+import logging
 import os
 import secrets
 from urllib.parse import quote, urlencode
@@ -17,6 +18,8 @@ from django.utils import timezone
 from addons.base.models import SystemParameter
 from addons.authz_totp.models import TotpRecoveryCode, TotpSecret
 from addons.authz_totp.models.totp import ALGORITHM, DIGITS, TIMESTEP, TOTP, TOTP_SECRET_SIZE
+
+_logger = logging.getLogger(__name__)
 
 # Marca mostrada en la app authenticator. NADA cableado: L2, sembrado por la
 # migración (0001) a 'Kaupamex' (marca de plataforma L0), editable en caliente.
@@ -109,13 +112,23 @@ def provisioning_uri(email, secret):
     return f'otpauth://totp/{label}?{params}'
 
 
-def _code_matches(secret, code):
-    """True si ``code`` (str de 6 dígitos) casa el secreto base32 ahora."""
+def _matching_counter(secret, code):
+    """El intervalo en que ``code`` casa el secreto base32, o ``None``.
+
+    ≙ ``TOTP(key).match(credentials['token'])`` (``odoo19c:
+    auth_totp/models/res_users.py:79``). Devuelve el **contador**, no un
+    booleano: es el dato con el que la fuente impide reusar un código, y
+    colapsarlo a ``bool`` es lo que dejaba abierta la ventana entera.
+
+    ``match`` recorre ``[t-window, t+window]`` con ``window = TIMESTEP``, así
+    que un mismo código casa durante ~90 s. Sin el contador no hay forma de
+    distinguir *"otro código del mismo minuto"* de *"el mismo código otra vez"*.
+    """
     code = str(code or '').strip()
     if not code.isdigit():
-        return False
+        return None
     key = base64.b32decode(secret)
-    return TOTP(key).match(int(code)) is not None
+    return TOTP(key).match(int(code))
 
 
 def totp_enabled(user):
@@ -126,11 +139,34 @@ def totp_enabled(user):
 
 
 def verify_code(user, code):
-    """Verifica ``code`` contra el secreto confirmado del usuario (login 2FA)."""
+    """Verifica ``code`` contra el secreto confirmado del usuario (login 2FA).
+
+    ≙ la rama ``type == 'totp'`` de ``_check_credentials`` (``odoo19c:
+    auth_totp/models/res_users.py:76-92``), incluida su **segunda** guarda: un
+    código ya usado no vale una segunda vez.
+
+    Sin ella la ventana de ``match`` —±30 s alrededor del intervalo actual—
+    convierte cada código en un pase reutilizable durante ~90 s. Quien lo vea
+    de reojo, lo lea de un registro o lo intercepte, entra con él.
+
+    La fuente distingue los dos rechazos en el registro (``FAIL`` contra
+    ``REUSE``) y **no** al llamador: los dos son la misma negativa hacia fuera,
+    porque decir cuál fue le confirmaría al atacante que el código era bueno.
+    """
     row = TotpSecret.objects.filter(user_id=user.pk, confirmed=True).first()
     if row is None:
         return False
-    return _code_matches(row.secret, code)
+    counter = _matching_counter(row.secret, code)
+    if counter is None:
+        _logger.info('2FA check: FAIL for %r', user.login)
+        return False
+    if row.last_counter is not None and counter <= row.last_counter:
+        _logger.warning('2FA check: REUSE for %r', user.login)
+        return False
+    row.last_counter = counter
+    row.save(update_fields=['last_counter', 'updated_at'])
+    _logger.info('2FA check: SUCCESS for %r', user.login)
+    return True
 
 
 def begin_setup(user):
@@ -139,8 +175,13 @@ def begin_setup(user):
     if totp_enabled(user):
         return None
     secret = generate_secret()
+    # ≙ ``_inverse_token`` (``:227-228``), que pone ``totp_last_counter = False``
+    # al cambiar el secreto: el contador es del secreto viejo y con otro secreto
+    # no significa nada. Sin este reinicio, un alta nueva heredaría el umbral de
+    # la anterior y rechazaría códigos legítimos hasta alcanzarlo.
     TotpSecret.objects.update_or_create(
-        user_id=user.pk, defaults={'secret': secret, 'confirmed': False},
+        user_id=user.pk,
+        defaults={'secret': secret, 'confirmed': False, 'last_counter': None},
     )
     return secret, provisioning_uri(user.email, secret)
 
@@ -150,14 +191,22 @@ def confirm_setup(user, code):
 
     Devuelve la lista de códigos de recuperación EN CLARO en caso de éxito
     (se muestran una sola vez, como Odoo), o ``None`` si el código es inválido
-    o no hay alta pendiente."""
+    o no hay alta pendiente.
+
+    Asienta el contador del código de alta — ≙ ``self.sudo().totp_last_counter
+    = match`` de ``_totp_try_setting`` (``:110``). No es contabilidad: es lo que
+    impide que el **mismo** código que acaba de activar el 2FA sirva además
+    para el primer login, que ocurre segundos después y cae en la misma
+    ventana."""
     row = TotpSecret.objects.filter(user_id=user.pk, confirmed=False).first()
     if row is None:
         return None
-    if not _code_matches(row.secret, code):
+    counter = _matching_counter(row.secret, code)
+    if counter is None:
         return None
     row.confirmed = True
-    row.save(update_fields=['confirmed', 'updated_at'])
+    row.last_counter = counter
+    row.save(update_fields=['confirmed', 'last_counter', 'updated_at'])
     return generate_recovery_codes(user)
 
 
@@ -170,7 +219,9 @@ def disable(user, code):
     row = TotpSecret.objects.filter(user_id=user.pk, confirmed=True).first()
     if row is None:
         return False
-    if not _code_matches(row.secret, code) and not consume_recovery_code(user, code):
+    counter = _matching_counter(row.secret, code)
+    reused = counter is not None and row.last_counter is not None and counter <= row.last_counter
+    if (counter is None or reused) and not consume_recovery_code(user, code):
         return False
     row.delete()
     TotpRecoveryCode.objects.filter(user_id=user.pk).delete()

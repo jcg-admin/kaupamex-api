@@ -6,6 +6,10 @@
 # platform/ pagado (2026-08-03): el addon se disolvió — Company en base,
 # billing en sale_subscription (controllers/ security/ data/), contexto en
 # orm.environments, middleware en base.models.ir_http. Ver H-API-261/262.
+#
+# observability/ pagado (2026-08-20): el addon se retiró entero — RequestLog
+# partido con DEC-AF-11 (error a ir.logging, acceso al proxy) y BusinessEvent
+# retirado por decisión del ejecutor. Ver H-API-753/754.
 
 account/authz_catalog.py
 authz/views.py
@@ -32,9 +36,6 @@ loyalty/serializers.py
 loyalty/urls.py
 loyalty/schema.py
 loyalty/authz_catalog.py
-observability/views.py
-observability/admin_urls.py
-observability/authz_catalog.py
 payment/authz_catalog.py
 product/authz_catalog.py
 rating/authz_catalog.py

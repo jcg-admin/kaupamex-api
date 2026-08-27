@@ -9,8 +9,11 @@
         'y devuelve el avance al pedido'
     ),
     # `depends` MEDIDO da tres y la referencia declara ['sale_management',
-    # 'sale_service'] más `project_account`, que este árbol no tiene (tarea
-    # #199). La divergencia es de HOGAR, como en `sale_margin`: aquí el
+    # 'sale_service'] más `project_account`, que este árbol SÍ tiene desde
+    # api@7d27d5b — no se añade porque nada de este addon lo importa: su
+    # superficie de rentabilidad sigue bloqueada por `Project.account_id`
+    # (ver el docstring de `project_account`). La divergencia es de HOGAR,
+    # como en `sale_margin`: aquí el
     # terminal es la línea de pedido y el proyecto, no la vista de gestión.
     #
     # Porte PARCIAL declarado: `sale_project` es de la Capa 0 (tarea #202).

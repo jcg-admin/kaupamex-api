@@ -50,33 +50,33 @@ from django.dispatch import receiver
 
 __all__ = [
     'apps', 'connections',
-    'MODELS_BY_ODOO_NAME', 'odoo_name_of', 'model_by_odoo_name',
+    'MODELS_BY_NAME', 'name_of', 'model_by_name',
     'resolve_model_key', 'check_table_matches_name',
 ]
 
 
 #: ``'product.removal' -> <class ProductRemoval>``. Ver :func:`_ensure_seeded`
 #: sobre por qué se puebla por dos vías y no por una.
-MODELS_BY_ODOO_NAME = {}
+MODELS_BY_NAME = {}
 
 
-def _register(modelo):
+def _register(model):
     """Anota el modelo bajo su ``_name``, rechazando el nombre duplicado."""
-    nombre = modelo.__dict__.get('_name')
-    if not nombre:
+    name = model.__dict__.get('_name')
+    if not name:
         return
-    previo = MODELS_BY_ODOO_NAME.get(nombre)
-    if previo is not None and previo is not modelo:
+    previous = MODELS_BY_NAME.get(name)
+    if previous is not None and previous is not model:
         raise ValueError(
-            f'Dos modelos declaran _name={nombre!r}: '
-            f'{previo._meta.label} y {modelo._meta.label}. '
+            f'Dos modelos declaran _name={name!r}: '
+            f'{previous._meta.label} y {model._meta.label}. '
             f'El nombre punteado identifica un modelo, no una familia.'
         )
-    MODELS_BY_ODOO_NAME[nombre] = modelo
+    MODELS_BY_NAME[name] = model
 
 
-@receiver(class_prepared, dispatch_uid='orm.model_naming.register_odoo_name')
-def _register_odoo_name(sender, **kwargs):
+@receiver(class_prepared, dispatch_uid='orm.registry.register_name')
+def _register_name(sender, **kwargs):
     """Registra el ``_name`` del modelo recién construido, si lo declara.
 
     ``class_prepared`` dispara al final de ``ModelBase.__new__``, así que el
@@ -105,15 +105,15 @@ def _ensure_seeded():
     """
     if _ensure_seeded.hecho or not apps.ready:
         return
-    for modelo in apps.get_models(include_auto_created=True):
-        _register(modelo)
+    for model in apps.get_models(include_auto_created=True):
+        _register(model)
     _ensure_seeded.hecho = True
 
 
 _ensure_seeded.hecho = False
 
 
-def odoo_name_of(model):
+def name_of(model):
     """El ``_name`` declarado del modelo, o ``None``.
 
     Se lee de ``__dict__`` y no con ``getattr`` a propósito: con ``getattr``
@@ -122,10 +122,10 @@ def odoo_name_of(model):
     return model.__dict__.get('_name')
 
 
-def model_by_odoo_name(nombre):
+def model_by_name(name):
     """La clase que declara ese ``_name``, o ``None`` si no está cargada."""
     _ensure_seeded()
-    return MODELS_BY_ODOO_NAME.get(nombre)
+    return MODELS_BY_NAME.get(name)
 
 
 def resolve_model_key(*args):
@@ -149,26 +149,26 @@ def resolve_model_key(*args):
     de construir ninguna clase.
     """
     if len(args) == 2:
-        etiqueta, nombre = args
-        return (etiqueta, nombre.lower())
+        label, name = args
+        return (label, name.lower())
     if len(args) != 1:
         raise TypeError(
             'resolve_model_key acepta "app.Modelo" (dos argumentos) o '
             'el nombre punteado de la referencia (uno), no %d' % len(args))
 
-    nombre_punteado = args[0]
+    dotted_name = args[0]
     _ensure_seeded()
-    modelo = MODELS_BY_ODOO_NAME.get(nombre_punteado)
-    if modelo is None:
+    model = MODELS_BY_NAME.get(dotted_name)
+    if model is None:
         raise LookupError(
-            f'Ningún modelo cargado declara _name={nombre_punteado!r}. '
+            f'Ningún modelo cargado declara _name={dotted_name!r}. '
             f'Si el destino todavía no se ha importado, nómbralo con el par '
             f'de Django: extend_model("app", "Modelo", …).'
         )
-    return (modelo._meta.app_label, modelo._meta.model_name)
+    return (model._meta.app_label, model._meta.model_name)
 
 
-def check_table_matches_name(modelos=None):
+def check_table_matches_name(models_found=None):
     """¿Coincide ``db_table`` con lo que la referencia derivaría de ``_name``?
 
     La referencia obtiene la tabla por sustitución; aquí es una declaración
@@ -180,17 +180,17 @@ def check_table_matches_name(modelos=None):
     comparar, y contarlos como divergencia sería medir su ausencia, no su
     forma.
     """
-    if modelos is None:
+    if models_found is None:
         _ensure_seeded()
-        modelos = list(MODELS_BY_ODOO_NAME.values())
-    divergencias = []
-    for modelo in modelos:
-        nombre = odoo_name_of(modelo)
-        if not nombre:
+        models_found = list(MODELS_BY_NAME.values())
+    divergences = []
+    for model in models_found:
+        name = name_of(model)
+        if not name:
             continue
-        esperado = nombre.replace('.', '_')
-        real = modelo._meta.db_table
-        if esperado != real:
-            divergencias.append((modelo._meta.label, nombre, esperado, real))
-    return divergencias
+        expected = name.replace('.', '_')
+        actual = model._meta.db_table
+        if expected != actual:
+            divergences.append((model._meta.label, name, expected, actual))
+    return divergences
 

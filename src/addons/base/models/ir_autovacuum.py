@@ -21,11 +21,14 @@ resuelve un problema real y no son intercambiables:
 
 **Divergencias, medidas.**
 
-- ``self.env.is_admin()`` + ``context.get('cron_id')`` de la referencia →
-  parámetro ``cron_id`` explícito y verificación de capacidad en el llamador
-  (DEC-11). La referencia usa ese doble check para negarse a correr fuera del
-  cron; aquí ``cron_id`` cumple el mismo papel y su ausencia levanta
-  ``PermissionError``.
+- ``self.env.is_admin()`` de la referencia → verificación de capacidad en el
+  llamador (DEC-11). La otra mitad de su doble check —
+  ``context.get('cron_id')``— **sí** se porta con su forma: se lee de
+  ``orm.environments.get_context()``, el espejo de ``env.context``, que el
+  runner del cron puebla con ``context_scope``. La adaptación anterior lo
+  declaraba como parámetro explícito y era **inalcanzable**: ``_callback``
+  invoca ``method()`` sin argumentos, así que el barrido levantaba
+  ``PermissionError`` en toda corrida programada. Ver :ref:`h-api-752`.
 - ``self.env.values()`` (el registro de modelos de Odoo) → ``apps.get_models()``
   de Django, que es el registro equivalente.
 - ``func(model)`` → ``func()``. La referencia obtiene la función **sin ligar**
@@ -50,7 +53,10 @@ import random
 import time
 
 from django.apps import apps
+from django.db import models as django_models
 from django.db import transaction
+
+from orm.environments import get_context
 
 _logger = logging.getLogger(__name__)
 
@@ -60,14 +66,30 @@ def is_autovacuum(func):
     return callable(func) and getattr(func, '_autovacuum', False)
 
 
-class IrAutovacuum:
+class IrAutovacuum(django_models.Model):
     """Colector del decorador ``@api.autovacuum`` (``ir.autovacuum``).
 
-    En la referencia es un ``AbstractModel`` — un modelo sin tabla que sólo
-    aporta comportamiento. Aquí es una clase plana por la misma razón: no
-    tiene columnas, y un modelo abstracto de Django no aporta nada sobre una
-    clase normal cuando no hay campos que heredar.
+    En la referencia es un ``AbstractModel`` — un modelo **sin tabla** que sólo
+    aporta comportamiento, pero que **sí está registrado por nombre**: por eso
+    su cron lo apunta con ``model_id ref="model_ir_autovacuum"``
+    (``odoo19c: odoo/addons/base/data/ir_cron_data.xml:5``).
+
+    Aquí eso se traduce a un modelo concreto con ``Meta.managed = False``, que
+    es el mapeo declarado de su ``_auto`` (``atributos-de-clase-de-modelo.md``):
+    Django lo registra —``apps.get_model('base', 'IrAutovacuum')`` resuelve— y
+    no le crea tabla. **Era una clase plana**, y esa forma lo hacía inalcanzable
+    para el runner del cron, que resuelve su objetivo con ``apps.get_model``.
+    Ver :ref:`h-api-752`.
     """
+
+    _name = 'ir.autovacuum'
+    _description = 'Automatic Vacuum'
+
+    class Meta:
+        managed = False
+        db_table = 'ir_autovacuum'
+        verbose_name = 'Barrido automático'
+        verbose_name_plural = 'Barridos automáticos'
 
     @staticmethod
     def _collect_methods():
@@ -78,19 +100,31 @@ class IrAutovacuum:
             for attr, func in inspect.getmembers(model, is_autovacuum)
         ]
 
-    def run_vacuum_cleaner(self, cron_id=None):
+    @classmethod
+    def _run_vacuum_cleaner(cls):
         """Limpieza completa: llama con seguridad a cada método decorado.
 
-        ``cron_id`` es el equivalente del ``context['cron_id']`` de la
-        referencia: sin él, el barrido se niega a correr. La capacidad del
-        invocador se verifica en el llamador (DEC-11).
+        **``classmethod`` y con guion bajo**, las dos por contrato ajeno:
+
+        - el runner del cron invoca ``getattr(apps.get_model(m), método)()``
+          sin argumentos (``ir_cron.py:_callback``), así que un método de
+          instancia no se puede despachar;
+        - la fuente lo declara ``_run_vacuum_cleaner`` y el guion bajo **es**
+          el contrato (``porte-completo-no-parcial.md``). Se llamaba
+          ``run_vacuum_cleaner``, que promovía a API pública lo que la fuente
+          reservó.
+
+        El ``cron_id`` sale del contexto —``get_context()``, el espejo de
+        ``env.context``— que ``_callback`` puebla con ``context_scope``. Sin él
+        el barrido se niega a correr, igual que la referencia.
         """
-        if not cron_id:
+        if not get_context().get('cron_id'):
             raise PermissionError(
-                'run_vacuum_cleaner sólo corre desde el cron (falta cron_id)'
+                '_run_vacuum_cleaner sólo corre desde el cron (falta cron_id '
+                'en el contexto)'
             )
 
-        all_methods = self._collect_methods()
+        all_methods = cls._collect_methods()
         # Barajar en cada corrida: evita que un método bloqueante deje
         # siempre sin correr a los que van detrás (comentario de la fuente).
         random.shuffle(all_methods)

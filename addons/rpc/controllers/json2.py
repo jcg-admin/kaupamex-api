@@ -67,7 +67,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from addons.authz.permissions import require_capability
-from orm.registry import model_by_odoo_name
+from orm.registry import model_by_name
 from service.model import get_public_method
 
 
@@ -97,7 +97,7 @@ def resolve_call(model_name, method_name, ids, kwargs=None):
     """
     kwargs = kwargs or {}
 
-    model = model_by_odoo_name(model_name)
+    model = model_by_name(model_name)
     if model is None:
         # ≙ `raise NotFound(f"the model {__model__!r} does not exist")`.
         raise NotFound(f"the model '{model_name}' does not exist")

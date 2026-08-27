@@ -75,6 +75,11 @@ Qué NO se porta, con su medición
   ``ModelsConverter``, ``SignedIntConverter``) y las clases de optimización
   del compilado de rutas (``LazyCompiledBuilder``, ``FasterRule``). En este
   árbol eso es la URLconf de Django más el router de DRF.
+
+  Excepción quirúrgica (tarea #546): de ``_match`` sí se porta **una** de sus
+  responsabilidades — estampar ``request.is_frontend`` desde lo que el
+  endpoint despachado declara. Vive en ``CompanyContextMiddleware`` (el
+  default) y su ``process_view`` (el estampado); ver sus docstrings.
 - **Los métodos de autenticación** (``_auth_method_user`` / ``_none`` /
   ``_public`` / ``_bearer``, ``_authenticate``, ``_authenticate_explicit``).
   Se conserva **el vocabulario** —los cuatro nombres, que es lo que un
@@ -92,12 +97,61 @@ import logging
 import os
 import re
 import unicodedata
+from contextvars import ContextVar
 
 import models
 
 from orm.environments import activate_companies, set_current_uid
+from tools.logging_context import clear_correlation_id, new_correlation_id
 
 _logger = logging.getLogger(__name__)
+
+#: La petición en curso — el ``request`` global de la referencia
+#: (``odoo19c: odoo/http.py``), que ``website.py`` consulta 30 veces para
+#: resolver el sitio, la sesión y el ``Host``.
+#:
+#: Vive **aquí** y no en un ``src/http.py`` nuevo porque este archivo ya es el
+#: hogar declarado del enlace petición→entorno en este árbol: es donde vive
+#: ``CompanyContextMiddleware``, que hace el papel de ``ir.http._authenticate``.
+#: Crear un ``src/http.py`` para una sola variable abriría una raíz espejada
+#: entera —enrutado, despacho, sesiones— por un ContextVar.
+#:
+#: ``ContextVar`` y no un global, por la misma razón que los tres ejes del
+#: entorno (``orm.environments``) — y con el modelo de concurrencia **medido**,
+#: no supuesto. ``setup/gunicorn.conf.py`` declara **prefork síncrono**:
+#: ``workers = 4`` y ``threads = 1`` por defecto, y su propio comentario prohíbe
+#: pasar a un worker asíncrono sin ADR. Es decir, cada worker es un proceso que
+#: atiende **una petición a la vez en el mismo hilo**, y ese hilo se reutiliza
+#: para la petición siguiente.
+#:
+#: De ahí las dos mitades del mecanismo, que sin esa medición parecen
+#: redundantes:
+#:
+#: - un **global** filtraría el sitio de una petición a la siguiente del mismo
+#:   worker, porque el hilo es el mismo;
+#: - el ``ContextVar`` no basta por sí solo: se limpia en el ``finally`` del
+#:   middleware justo por eso. Sin ese ``finally``, el valor sobreviviría a la
+#:   petición dentro del mismo worker.
+#:
+#: Con ``GUNICORN_THREADS > 1`` Gunicorn pasa a hilos y el ``ContextVar`` aísla
+#: por hilo — el mecanismo vale igual en las dos configuraciones.
+_current_request: ContextVar = ContextVar('current_request', default=None)
+
+
+def get_current_request():
+    """La petición en curso, o ``None`` fuera de una — ≙ el ``request`` global.
+
+    Devolver ``None`` en vez de levantar es deliberado y es lo que hace la
+    fuente: ``website.py`` escribe ``if request and …`` una y otra vez, porque
+    el mismo código corre en una petición web y en un cron sin petición
+    ninguna. Un acceso que reventara fuera de petición rompería el cron.
+    """
+    return _current_request.get()
+
+
+def set_current_request(request):
+    """Fija la petición en curso (o la limpia con ``None``)."""
+    _current_request.set(request)
 
 #: Extensiones cuyo tipo MIME sirve la web — verbatim de la fuente. En modo
 #: ``path`` la extensión se preserva en vez de convertirse en parte del slug.
@@ -212,6 +266,24 @@ class IrHttp(models.Model):
         """
         return cookies
 
+    @classmethod
+    def _is_allowed_cookie(cls, cookie_type):
+        """``_is_allowed_cookie`` — ¿esta clase de cookie está permitida?
+
+        ≙ ``odoo19c: odoo/addons/base/models/ir_http.py:450-452``. En ``base``
+        la política es mínima: la cookie requerida pasa siempre; las demás
+        pasan mientras haya una petición que las transporte. Los módulos de
+        sitio la restringen sobreescribiendo este método (el consentimiento
+        vive en ``addons/website/models/ir_http.py``).
+
+        Divergencia declarada: la fuente devuelve ``bool(request.env.user)``,
+        que es verdadero siempre que hay petición — su usuario público es un
+        registro real, nunca falsy. Aquí el mismo hecho se expresa como
+        ``get_current_request() is not None``: fuera de una petición (cron,
+        shell) no hay transporte de cookies y la respuesta es ``False``.
+        """
+        return True if cookie_type == 'required' else get_current_request() is not None
+
 
 class CompanyContextMiddleware:
     """Ata la petición al canal del dato — el rol de ``ir.http._authenticate``.
@@ -231,10 +303,83 @@ class CompanyContextMiddleware:
     DEC-AISL-04).
 
     Ubicar DESPUÉS de ``AuthenticationMiddleware`` (necesita ``request.user``).
+
+    ``is_frontend`` — la marca de petición de cara pública (tarea #546)
+    ====================================================================
+
+    En la referencia la marca la pone el **despacho**, no un prefijo de path:
+    ``_match`` lee la metadata de routing del endpoint que resultó despachado
+    y estampa ``request.is_frontend = routing.get('website', False)``
+    (``odoo19c: addons/http_routing/models/ir_http.py:375`` y ``:473``). Es
+    decir: el endpoint **declara** ser de sitio (``@route(..., website=True)``)
+    y el despachador copia esa declaración a la petición. El valor por defecto
+    es ``False`` (``odoo19c: addons/http_routing/__init__.py:11``).
+
+    Aquí se conserva esa semántica con las dos piezas análogas de Django:
+
+    - ``__call__`` estampa el **default** ``request.is_frontend = False``
+      antes de despachar — el papel del ``_post_init_hook`` de la fuente.
+    - ``process_view`` (hook que Django invoca justo tras resolver la URL y
+      antes de la vista — el punto ``_match`` → ``_pre_dispatch`` de la
+      fuente) lee la **declaración de la vista despachada**: un atributo
+      ``is_frontend = True`` en la clase de la vista (o en la función, para
+      FBV). Ese atributo es el análogo directo de ``website=True`` en el
+      ``@route`` de la referencia: metadata declarada por el endpoint, no
+      adivinada del path.
+
+    Alternativa considerada y descartada: leer el ``namespace`` de la URL
+    resuelta (``request.resolver_match.namespace``). Acoplaría la marca al
+    nombre que cada addon eligió para su ``app_name`` — una convención de
+    nombres, que es la misma clase de adivinanza que el prefijo de path. La
+    declaración explícita en la vista es lo que la fuente hace.
+
+    Divergencias declaradas frente a la fuente:
+
+    - **404 sin vista → ``False``, no ``True``.** La fuente pone ``True`` en
+      ``NotFound`` (``:478-479``) porque su frontend renderiza una página 404
+      bonita con el sitio. Aquí el 404 lo responde DRF/Django en JSON y no hay
+      render de sitio, así que el default conservador se mantiene.
+    - **``is_frontend_multilang`` no se porta.** Su condición
+      (``routing.get('multilang', routing['type'] == 'http')``, ``:376``)
+      describe el reescritor de idioma-en-URL de la fuente, mecanismo que este
+      árbol no tiene; portar el atributo sin su consumidor sería un nombre sin
+      mecanismo. Se porta cuando llegue ese reescritor.
     """
 
     def __init__(self, get_response):
         self.get_response = get_response
+
+    @staticmethod
+    def _view_declares_frontend(view_func):
+        """¿La vista despachada se declara de cara pública?
+
+        Lee el atributo ``is_frontend`` donde la declaración vive según el
+        estilo de la vista — medido en los paquetes instalados, no de
+        memoria: DRF ``as_view`` expone la clase como ``view.cls``
+        (``rest_framework/views.py:140``); las CBV de Django la exponen como
+        ``view.view_class`` (``django/views/generic/base.py:108``); una FBV
+        lleva el atributo en la propia función.
+        """
+        view_owner = (
+            getattr(view_func, 'cls', None)
+            or getattr(view_func, 'view_class', None)
+            or view_func
+        )
+        return bool(getattr(view_owner, 'is_frontend', False))
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        """Estampa ``request.is_frontend`` desde la vista despachada.
+
+        ≙ ``ir.http._match`` copiando ``routing.get('website', False)`` a la
+        petición (``odoo19c: addons/http_routing/models/ir_http.py:375``).
+        Django invoca este hook tras resolver la URL y antes de llamar la
+        vista, así que la decisión es del **despacho** — qué vista sirve la
+        petición — nunca de un prefijo de path.
+
+        Devuelve ``None`` siempre: este hook marca, no responde.
+        """
+        request.is_frontend = self._view_declares_frontend(view_func)
+        return None
 
     def __call__(self, request):
         user = getattr(request, 'user', None)
@@ -256,8 +401,74 @@ class CompanyContextMiddleware:
         # petición, pero son ejes distintos: el actor no acota el dato.
         set_current_uid(user.pk if authenticated else None)
         activate_companies((), permitted)
+        # La petición misma es el tercer dato que la referencia deja
+        # disponible antes del despacho (su ``request`` global). Lo consume
+        # todo lo que resuelve "en qué sitio estamos": ``Website._force``,
+        # ``get_current_website`` y su cadena.
+        set_current_request(request)
+        # Default de la marca de cara pública — el papel del
+        # ``_post_init_hook`` de la fuente (``odoo19c:
+        # addons/http_routing/__init__.py:11``): toda petición nace backend;
+        # ``process_view`` la promueve si la vista despachada lo declara.
+        request.is_frontend = False
         try:
             return self.get_response(request)
         finally:
             activate_companies((), ())
             set_current_uid(None)
+            set_current_request(None)
+
+
+class CorrelationIdMiddleware:
+    """Abre y cierra la correlación de la petición (DEC-LOG-07, DEC-AF-11).
+
+    Es la mitad que **sobrevive** de ``RequestLogMiddleware``. Aquélla hacía
+    dos trabajos en un solo objeto: abrir la correlación de la petición, y
+    escribir una fila de ``RequestLog`` con su metadata de acceso. DEC-AF-11
+    retiró ``RequestLog`` —su mitad de acceso es trabajo del ``access_log``
+    del proxy inverso, no del ORM— y con ella se fueron ``_write_log`` y
+    ``_client_ip``. La correlación no se va con ellos: es la columna que une
+    ``ir.logging`` con ``BusinessEvent``, y tiene tres consumidores medidos.
+
+    - ``tools.logging_handlers.DatabaseLogHandler:77`` — puebla
+      ``IrLogging.correlation_id`` desde el contexto.
+    - ``addons/observability/models/business_event.py:28`` — igual, para el
+      evento de negocio.
+    - ``addons/authz_audit/audit.py:31`` — lee el atributo de la petición,
+      ``getattr(request, 'correlation_id', '')``.
+
+    Vive en ``ir_http`` porque en la referencia ``ir.http`` **es** la capa de
+    petición —autentica, despacha y post-procesa la respuesta— y aquí ya aloja
+    a ``CompanyContextMiddleware`` por el mismo criterio.
+
+    ``X-Correlation-Id`` — la mitad recuperable del acceso
+    =====================================================
+
+    La respuesta sale con el identificador en una cabecera. No es decoración:
+    es la condición que DEC-AF-11 declara para que el log del proxy pueda
+    unirse al de la aplicación (``%{X-Correlation-Id}o`` en un ``LogFormat``
+    propio, cambio de vhost de la tarea **#55**). Sin emitirlo, el
+    ``access_log`` y ``ir.logging`` quedan como dos registros sin llave común.
+
+    Ubicar cerca del tope de ``MIDDLEWARE``: la correlación debe estar abierta
+    antes de que cualquier capa de abajo emita un log.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        cid = new_correlation_id()
+        request.correlation_id = cid
+        try:
+            response = self.get_response(request)
+            try:
+                response['X-Correlation-Id'] = cid
+            except Exception:
+                # silent OK because DEC-LOG-04: una respuesta que no admita
+                # cabeceras (streaming ya cerrado, doble asignacion) jamas
+                # debe romper la peticion del usuario.
+                pass
+            return response
+        finally:
+            clear_correlation_id()

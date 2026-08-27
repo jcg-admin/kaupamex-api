@@ -19,7 +19,7 @@ from addons.mail.models import MailThread
 class HrJob(MailThread, TimeStampedModel):
     """``hr.job`` — catálogo de puestos. El departamento es opcional."""
 
-    name = fields.Char(max_length=150, verbose_name='Puesto')  # D-3: ex title
+    name = fields.Char(verbose_name='Puesto')  # D-3: ex title
     department = fields.Many2one(
         'hr.HrDepartment', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='jobs', verbose_name='Departamento',
@@ -27,7 +27,7 @@ class HrJob(MailThread, TimeStampedModel):
     # D-2: FK directa a base.ResCompany (Odoo company_id), igual que HrDepartment.
     company = fields.Many2one(
         'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='hr_jobs', verbose_name='Empresa (tenant)',
+        related_name='hr_jobs', verbose_name='Empresa',
         help_text='Empresa dueña del puesto (Odoo company_id).',
     )
     no_of_recruitment = fields.Integer(

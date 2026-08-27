@@ -1,4 +1,4 @@
-"""``stock.warehouse`` — addon ``stock``.
+r"""``stock.warehouse`` — addon ``stock``.
 
 Adaptación de Odoo ``stock/models/stock_warehouse.py`` (``odoo-tools@622ddc2a``,
 ``odoo19c:``, LGPL-3) — atribución y aviso de licencia preservados (DEC-KX-03).
@@ -141,8 +141,8 @@ produciría un ``None`` silencioso.
 - **Lo que NO es:** un porte parcial. Los 78 símbolos de **este** archivo están;
   lo que falta pertenece a otros, y está nombrado uno por uno arriba.
 
-Tres divergencias de mecanismo declaradas
-===========================================
+Cuatro divergencias de mecanismo declaradas
+=============================================
 
 **D-1 — la resolución por XML ID.** La referencia usa ``self.env.ref('stock.…')``
 para hallar las ubicaciones de cliente/proveedor y las rutas globales. Aquí el
@@ -170,6 +170,91 @@ Aquí el M2M lo declara ``StockRoute.warehouse_ids`` con
 nombre exacto de la referencia** y es un manager normal: ``.all()``, ``.set()``,
 ``.values_list()`` funcionan igual. No es un símbolo omitido — es una relación
 declarada una vez en vez de dos, que es como este ORM expresa lo mismo.
+
+**D-4 — quién dispara el recálculo de** ``StockLocation.warehouse`` **(tarea
+#503, cierra** :ref:`h-api-667` **).** La referencia declara ``warehouse_id``
+``compute=… store=True`` con ``@api.depends('warehouse_view_ids',
+'location_id')`` (``odoo19c: stock_location.py:84-85``) — **almacenado**, no
+``property``; :ref:`h-api-667` medía lo contrario y la premisa era falsa (ver
+la corrección en el propio hallazgo). El motor de dependencias que dispara ese
+recálculo en cada extremo de la relación **no existe en este ORM** —
+``src/orm/decorators.py`` deja ``@api.depends`` como anotación no-op, y
+construirlo es la tarea **#191**. Sin ese motor, alguien tiene que disparar el
+recálculo a mano cuando el lado ``stock.warehouse`` de la relación cambia; el
+``save()`` de este modelo lo hace, delegando en
+``StockLocation.compute_warehouse()`` para cada ubicación del subárbol de
+``view_location`` — el mismo método que ya usa cada ubicación para
+autocalcularse, así que no hay una segunda copia de la regla «gana el ancestro
+más profundo».
+
+Medido al escribir este ``save()``: el ``create()`` de este archivo (líneas
+495-511 antes de este cambio) ya traía un backfill manual equivalente, pero
+**nunca se ejecutó en producción** — los siete llamadores reales de este
+modelo (``res_company.py:268`` y seis fixtures de test) crean con
+``StockWarehouse.objects.create(...)``, el manager de Django, que no pasa por
+el ``classmethod create()`` de la referencia (0 ocurrencias de
+``StockWarehouse.create(`` en todo el árbol). El ``save()`` nuevo corre en
+CUALQUIER camino de persistencia — ``.objects.create()``, ``create()``,
+``write()`` — porque todos terminan invocándolo; por eso el backfill manual de
+``create()`` se retiró en el mismo cambio: dos mecanismos para la misma regla
+divergían además en el resultado (ver el punto siguiente).
+
+El backfill retirado escribía ``view_location.warehouse = self`` a mano. Ese
+resultado es **correcto** —la referencia también resuelve la vista a su propio
+almacén: ``path = set(int(loc_id) for loc_id in loc.parent_path.split('/')[:-1])``
+recorta el elemento **vacío** que deja la barra final de la ruta materializada
+(``«1/4/9/»`` → ``['1','4','9','']``), no el ``id`` de la propia ``loc``— pero
+la forma no lo era: dos mecanismos para la misma regla, y sólo uno resolvía
+«gana el ancestro más profundo». Delegar en ``StockLocation.compute_warehouse()``
+deja una sola regla, con el mismo resultado.
+
+Este párrafo afirmaba lo contrario (una «exclusión» de la propia ubicación) en
+el primer pase de la tarea #503; se corrigió midiendo la fuente en vez de
+razonar sobre el nombre del recorte. Ver :ref:`h-api-676`.
+
+**Lo que este ``save()`` NO cierra — nombrado, no diferido. Ninguno de los tres
+tiene ID de tarea verificado** (``calibration-verified-numbers.md`` — el
+tablero de tareas leído al escribir este cambio no llega a **#503**, así que
+no hay forma de citar un número real sin fabricarlo); quedan **DESCONOCIDO**
+con su condición de cierre:
+
+- **``StockWarehouse.create()`` (el ``classmethod`` de arriba, con toda la
+  generación de topología) no lo llama nadie.** Medido: **0** ocurrencias de
+  ``StockWarehouse.create(`` fuera de su propia definición en todo el árbol
+  (``grep -rn "StockWarehouse\.create(" addons/ src/ tests/``). Los **7**
+  llamadores reales (``res_company.py:268`` y 6 fixtures de test) usan
+  ``.objects.create()``, que corre este ``save()`` pero no la creación de
+  ubicaciones/secuencias/tipos de operación/rutas del ``classmethod``. Este
+  pase cierra sólo el síntoma que medía :ref:`h-api-667` (``.warehouse``
+  stale); que ningún almacén real reciba su topología generada es un defecto
+  mayor y arquitectónico —requiere decidir si se llama el ``classmethod``
+  desde los 7 sitios o si su lógica se mueve a ``save()``— que excede este
+  pase. Condición de cierre: medir cuántos de los 7 llamadores necesitan la
+  topología completa (¿``create_missing_warehouse`` sí, los fixtures de test
+  tal vez no si ya crean sus propias ubicaciones a mano?) antes de decidir la
+  forma del fix.
+- **``create_missing_warehouse`` (``res_company.py:255-273``) no puede
+  insertar la fila.** Crea con ``warehouse_model.objects.create(name=…,
+  code=…, company=…, partner_id=…)`` sin ``view_location_id`` ni
+  ``lot_stock_id`` — los dos son ``Many2one`` obligatorios en este archivo
+  (``:327-338``, sin ``null=True``). Viola NOT NULL antes de que este
+  ``save()`` tenga oportunidad de correr. Mismo origen que el punto anterior
+  (no pasa por el ``classmethod create()`` que sí resolvería ambos FK) — es
+  plausible que cerrar ése cierre éste también, pero no está medido. Fuera
+  del alcance de archivos de este pase (``res_company.py`` no está en la
+  lista de archivos tocables). Condición de cierre: reproducir el
+  ``IntegrityError`` con un test de integración contra PostgreSQL real antes
+  de tocar el archivo.
+- **Reparentar una ubicación no propaga a sus descendientes.**
+  ``StockLocation.write()`` recalcula ``self.parent_path``/``self.warehouse``
+  cuando cambia ``location`` (el padre), pero no toca ``parent_path`` ni
+  ``warehouse`` de los hijos de ``self`` — que quedan con la ruta y el almacén
+  viejos hasta su propio próximo ``save()``. Mismo defecto de fondo
+  (dependencia cruzada sin motor que la dispare), disparador distinto
+  (``location_id`` de la propia ubicación, no ``warehouse_view_ids`` de un
+  almacén). Condición de cierre: extender ``StockLocation.write()`` con el
+  mismo patrón de refresco de subárbol que ``_refresh_descendant_warehouses``
+  aplica aquí, cuando ``location`` cambie.
 """
 from collections import namedtuple
 from decimal import Decimal
@@ -504,14 +589,62 @@ class StockWarehouse(TimeStampedModel):
             if vals.get('partner_id'):
                 cls._update_partner_data(vals['partner_id'], vals.get('company_id'))
 
-            # El almacén no existía cuando se crearon sus ubicaciones.
-            raiz = location_model.objects.filter(pk=vals['view_location_id'])
-            location_model.objects.filter(
-                Q(pk=vals['view_location_id']) | Q(location__in=raiz)
-            ).update(warehouse=warehouse)
+            # El almacén no existía cuando se crearon sus ubicaciones — pero
+            # `cls.objects.create(**vals)` (línea de arriba) ya disparó
+            # `save()`, que ya recalculó `warehouse` en todo el subárbol de
+            # `view_location` (ver `save()`/D-4). No hace falta repetirlo aquí.
 
         cls._check_multiwarehouse_group()
         return warehouses
+
+    def save(self, *args, **kwargs):
+        """Dispara el recálculo de ``StockLocation.warehouse`` en el subárbol.
+
+        No es un símbolo de la referencia — Odoo no tiene ``save()`` de
+        Django. Existe porque ``@api.depends`` no dispara nada en este ORM
+        (``src/orm/decorators.py``; el motor real es la tarea **#191**), así
+        que el lado ``stock.warehouse`` de la dependencia
+        ``@api.depends('warehouse_view_ids', 'location_id')`` de la referencia
+        (``odoo19c: stock_location.py:159-160``) necesita disparar el
+        recálculo a mano cuando cambia. Ver D-4 en el docstring del módulo
+        para la medición completa y por qué reemplaza al backfill manual que
+        tenía ``create()``.
+
+        Corre en CUALQUIER camino de persistencia — ``.objects.create()``
+        (el que usan los siete llamadores reales de este modelo, ninguno pasa
+        por el ``classmethod create()``), el propio ``create()``, y
+        ``write()`` (que llama ``warehouse.save()`` en su línea de guardado) —
+        porque los tres terminan en este método.
+        """
+        super().save(*args, **kwargs)
+        self._refresh_descendant_warehouses()
+
+    def _refresh_descendant_warehouses(self):
+        """Recalcula ``.warehouse`` en ``view_location`` y todo su subárbol.
+
+        Delega en ``StockLocation.compute_warehouse()`` por ubicación —no
+        escribe ``warehouse = self`` a mano— porque ese método ya resuelve
+        «gana el ancestro más profundo» (varios almacenes anidados), que es la
+        parte que el backfill manual NO hacía. La propia ``view_location``
+        entra en el conjunto de candidatos: ``parent_path.split('/')[:-1]``
+        recorta el elemento vacío de la barra final, no el ``id`` propio —
+        igual que la referencia en ``_compute_warehouse_id`` (D-4). Sólo
+        escribe cuando el
+        valor calculado difiere del guardado, para no generar un ``UPDATE``
+        por ubicación en cada ``save()`` del almacén cuando nada cambió.
+        """
+        if self.view_location_id is None:
+            return
+        location_model = apps.get_model('stock', 'StockLocation')
+        view = self.view_location
+        affected = location_model.objects.filter(
+            parent_path__startswith=view.parent_path)
+        for location in affected:
+            previous = location.warehouse_id
+            location.compute_warehouse()
+            if location.warehouse_id != previous:
+                location_model.objects.filter(pk=location.pk).update(
+                    warehouse=location.warehouse)
 
     def copy_data(self, default=None):
         """≙ ``copy_data`` (``odoo19c: :175-183``).

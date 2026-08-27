@@ -2,8 +2,8 @@
 tools/log_scrubber.py
 
 PIIScrubber (SOL-011 T-02, DEC-LOG-03 Nivel 1): redacta *secretos* del texto
-libre que llega a los logs (``IrLogging.message`` / ``IrLogging.trace`` /
-``RequestLog.error_detail``). Es obligatorio tambien en tracebacks: los
+libre que llega a los logs (``IrLogging.message`` / ``IrLogging.trace``). Es
+obligatorio tambien en tracebacks: los
 ``locals`` que Python muestra en una traza pueden contener ``password=...`` o
 ``card_token=...``.
 

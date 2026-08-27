@@ -21,7 +21,6 @@ from addons.authz_totp.models import TotpSecret
 from addons.authz_totp_mail.data import seed as seed_totp_mail
 from addons.authz_totp_mail.models.res_users import (
     totp_mail_code,
-    totp_mail_required,
     verify_totp_mail_code,
 )
 from addons.base.models import SystemParameter
@@ -80,22 +79,37 @@ class TestTotpMailCode:
 
 
 class TestPolicy:
+    """La política se lee por ``_mfa_type()``, la forma de la fuente.
+
+    Los tres casos medían antes un predicado propio, ``totp_mail_required``,
+    retirado en #719 por redundante: su conjunción *"la política lo exige **y**
+    no tiene TOTP de app"* es exactamente lo que el ``combine=keep_previous``
+    de la cadena calcula. Preguntado así, cada caso ejercita **el mecanismo**
+    —los tres eslabones y su precedencia— en vez de una función paralela que
+    ningún camino de producción consultaba.
+    """
 
     def test_policy_all_required(self, user):
         SystemParameter.objects.update_or_create(
             key='authz_totp.policy', defaults={'value': 'all_required'})
-        assert totp_mail_required(user) is True
+        assert user._mfa_type() == 'totp_mail'
 
     def test_policy_apagada(self, user):
         SystemParameter.objects.update_or_create(
             key='authz_totp.policy', defaults={'value': ''})
-        assert totp_mail_required(user) is False
+        assert user._mfa_type() is None
 
     def test_con_totp_de_app_no_exige_mail(self, user):
+        """CONTROL de precedencia — el eslabón interno gana al externo.
+
+        Qué lo haría fallar: encadenar el eslabón de correo sin
+        ``keep_previous``. Con el relevo por defecto ganaría el último en
+        registrarse, y un usuario con app activa recibiría códigos por correo.
+        """
         SystemParameter.objects.update_or_create(
             key='authz_totp.policy', defaults={'value': 'all_required'})
         TotpSecret.objects.create(user=user, secret='S3CRET', confirmed=True)
-        assert totp_mail_required(user) is False
+        assert user._mfa_type() == 'totp'
 
 
 class TestInvite:

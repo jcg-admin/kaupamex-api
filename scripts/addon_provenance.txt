@@ -31,7 +31,6 @@ base_bank     | propio | source/gestion/pm/api/iniciativas/adaptar-familias-odoo
 # mensaje, no por petición; Odoo loguea HTTP con logging de Python sin modelo
 # (odoo/http.py:214); mail.tracking.value audita campos, no acciones; y los
 # tres *audit_trail* existen SÓLO en 18e (0 hits en los 735 addons de 19e).
-observability | propio | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-observability.rst
 # "authz_audit — sin análogo directo" en la tabla de la familia auth.
 authz_audit   | propio | source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/analisis-familia-auth-vs-authz-y-modelo-de-autorizacion.rst
 

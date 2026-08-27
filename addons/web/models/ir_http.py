@@ -90,8 +90,8 @@ tomada.** Dos razones independientes, no una sola:
   real de "debug mode" que un backend API-only podría aprovechar es mostrar
   el traceback completo en la respuesta de error cuando el modo está
   activo — que es exactamente lo que
-  ``observability/exception_handling.py::custom_exception_handler``
-  (líneas 12-16) declara **prohibido**: *"PII-safe (DEC-LOG-03): (...) NO es
+  ``addons/base/exception_handling.py::custom_exception_handler``
+  declara **prohibido**: *"PII-safe (DEC-LOG-03): (...) NO es
   el traceback completo (...); aquí solo el mensaje corto"*. Construir un
   toggle de sesión para revelar tracebacks violaría una decisión de
   seguridad ya tomada, no llenaría un hueco del ORM — no es un caso del
@@ -113,7 +113,7 @@ dependencias) sería instalar un método sin ningún invocador — el mismo
 antipatrón de stub que el punto 9 rechaza explícitamente.
 
 **8. ``session_info`` — YA PORTADO, en la capa DRF, no en el modelo.**
-``controllers/session.py::_session_info(user)`` documenta explícitamente
+``controllers/session.py::build_session_info(user)`` documenta explícitamente
 "≙ ``ir.http.session_info()`` de la referencia, recortado a lo publicado" y
 enumera campo por campo qué queda fuera (versión de servidor, módulos
 instalados, config del webclient) y por qué (sin consumidor en un cliente

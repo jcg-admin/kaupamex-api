@@ -17,6 +17,12 @@ devolvería 403 sin excepción. Ambas capacidades son deliberadamente amplias
 registro — ver divergencia 3 del docstring de ``binary.py``), de ahí
 ``is_sensitive=True``: mismo criterio que ``platform.provision``/``users``/
 ``settings``.
+
+Las tres siguientes las suma la tarea **#397** (cierre de huecos de porte de
+``domain.py``/``pivot.py``/``vcard.py``, medidos por
+``check_mirrored_roots.py``) — mismo criterio de declaración explícita, para
+no repetir la deuda que ``web.export`` (``controllers/export.py``) dejó
+pendiente (usada ahí, sin fila en este catálogo).
 """
 from addons.authz.declaration import CapabilitySpec, ModuleSpec
 
@@ -33,6 +39,21 @@ CAPABILITIES = [
     CapabilitySpec(
         code='web.attachment.create',
         name='Subir adjuntos vinculados a un registro',
+        is_sensitive=True,
+    ),
+    CapabilitySpec(
+        code='web.domain.validate',
+        name='Validar un dominio de búsqueda contra cualquier modelo',
+        is_sensitive=True,
+    ),
+    CapabilitySpec(
+        code='web.pivot.export',
+        name='Exportar una tabla dinámica ya calculada a XLSX',
+        is_sensitive=False,
+    ),
+    CapabilitySpec(
+        code='web.vcard.download',
+        name='Descargar la vCard de cualquier contacto',
         is_sensitive=True,
     ),
 ]

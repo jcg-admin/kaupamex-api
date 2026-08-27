@@ -80,9 +80,16 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
 
     Equivale a ``_inherits = {'<delegado>': '<fk_name>'}`` de la referencia.
     Idempotente: reinstalarla no duplica nada.
+
+    **El mecanismo CONSUME ``_inherits``; no lo escribe** (tarea #385). Hasta
+    hoy esta función lo sobreescribía con la etiqueta de Django —
+    ``{'base.ResPartner': 'partner'}`` — pisando el ``{'res.partner': …}`` que
+    la clase declara verbatim de la fuente. Con eso, el atributo de clase que
+    ``atributos-de-clase-de-modelo.md`` manda portar dejaba de existir en cuanto
+    ``ready()`` corría: quien lo leyera vería la traducción, no el contrato.
+    El estado interno vive en ``_inherits_fields``, que es de este mecanismo.
     """
     delegated = _delegable_field_names(delegate_model, delegant_cls)
-    delegant_cls._inherits = {delegate_model._meta.label: fk_name}
     delegant_cls._inherits_fields = delegated
 
     def __getattr__(self, name):

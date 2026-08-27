@@ -198,7 +198,7 @@ en español. No se migran. Ambos formatos son entendidos por Claude.
 | `Fase actual` | `current_phase` |
 | `Fase de origen` | `source_phase` |
 
-Mapa completo en `scripts/migrate-metadata-keys.py` → `KEY_MAP`.
+Mapa completo en `scripts/migrate_metadata_keys.py` → `KEY_MAP`.
 
 ---
 

@@ -13,13 +13,24 @@ from addons.base.models import AppendOnlyModel
 
 class AuthzEvent(AppendOnlyModel):
     """Auditoría append-only de autorización (DEC-07): se emite en denegación
-    (403) y en uso exitoso de una ``Capability.is_sensitive=True``. Mismo patrón
-    que ``BusinessEvent``. PII-safe: no guarda tokens ni passwords."""
+    (403), en uso exitoso de una ``Capability.is_sensitive=True`` y al
+    administrar la concesión misma. PII-safe: no guarda tokens ni passwords.
+
+    Las dos acciones de administración llegaron aquí el 2026-08-20: se emitían
+    contra ``BusinessEvent`` con cadenas libres que **no** estaban en su
+    ``ACTION_CHOICES``, y su eje declarado es el de autorización, no el de
+    negocio (ver :ref:`h-api-753`). Sus códigos se acortaron para caber en el
+    ``max_length=20`` del campo — ``ADMIN_ROLE_PERMISSIONS_CHANGED`` medía 29.
+    """
     ACTION_DENY = 'DENY'
     ACTION_SENSITIVE_USE = 'SENSITIVE_USE'
+    ACTION_ROLE_PERMS_CHANGED = 'ROLE_PERMS_CHANGED'
+    ACTION_USER_ROLES_SET = 'USER_ROLES_SET'
     ACTION_CHOICES = [
         (ACTION_DENY, 'Denegación (403)'),
         (ACTION_SENSITIVE_USE, 'Uso de capacidad sensible'),
+        (ACTION_ROLE_PERMS_CHANGED, 'Permisos de un rol modificados'),
+        (ACTION_USER_ROLES_SET, 'Roles de un usuario reasignados'),
     ]
 
     actor = models.ForeignKey(

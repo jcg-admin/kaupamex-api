@@ -109,3 +109,49 @@ class TestDeactivation:
         assert user.active is False
         assert user.deactivated_reason == User.DEACTIVATION_SUSPENDED
         assert user.deactivated_at is not None
+
+
+class TestModelClassAttributes:
+    """Los cinco atributos de clase de ``res.users`` (``odoo19c: :163-167``).
+
+    ``atributos-de-clase-de-modelo.md``: si la clase de la referencia los
+    declara, se portan **todos**. Este bloque los lee uno a uno contra la
+    fuente y verifica que la forma Django derivada no los contradice.
+    """
+
+    def test_the_model_declares_its_name(self):
+        """``_name = 'res.users'`` — lo que hace resoluble ``extend_model``."""
+        assert User._name == 'res.users'
+
+    def test_the_informal_name_matches_the_source(self):
+        """``_description = 'User'`` — convive con ``verbose_name``."""
+        assert User._description == 'User'
+
+    def test_the_delegation_to_the_partner_is_declared(self):
+        """``_inherits = {'res.partner': 'partner_id'}``.
+
+        El mecanismo ya estaba cableado en ``BaseConfig.ready()``; lo que
+        faltaba era la **declaración**, que es de donde el cableado debe leer
+        su destino.
+        """
+        assert User._inherits == {'res.partner': 'partner'}
+
+    def test_the_source_order_is_declared_verbatim(self):
+        """``_order = 'name, login'`` — el nombre viene del partner delegado."""
+        assert User._order == 'name, login'
+
+    def test_the_model_refuses_privileged_commands(self):
+        """``_allow_sudo_commands = False`` — la fuente lo declara explícito."""
+        assert User._allow_sudo_commands is False
+
+    def test_the_django_ordering_derives_from_the_source_order(self):
+        """``Meta.ordering`` traduce ``'name, login'`` al lookup del delegado.
+
+        ``name`` no es columna de ``res_users``: la fuente lo obtiene del
+        partner por ``_inherits``. Aquí eso es ``partner__name``.
+        """
+        assert User._meta.ordering == ['partner__name', 'login']
+
+    def test_the_table_name_matches_what_the_source_derives_from_name(self):
+        """``_table = _name.replace('.', '_')`` (``model_classes.py:266``)."""
+        assert User._meta.db_table == 'res_users'

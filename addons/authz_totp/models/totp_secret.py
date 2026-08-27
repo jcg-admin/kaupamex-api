@@ -6,6 +6,17 @@ Adaptación de Odoo ``auth_totp`` (LGPL-3): la referencia guarda
 feature opcional), OneToOne con el usuario. Mientras se configura,
 ``confirmed=False``; al verificar el primer código, ``confirmed=True`` y el
 2FA queda activo.
+
+Divergencia declarada — el nombre del contador
+===============================================
+
+La referencia declara ``totp_last_counter`` **junto a** ``totp_secret``, los dos
+sobre ``res.users`` (``odoo19c: auth_totp/models/res_users.py:31,34``), así que
+el prefijo ``totp_`` los desambigua de todo lo demás que vive en ese modelo.
+Aquí los dos viven en **este** modelo, que ya se llama ``TotpSecret``: el
+prefijo se cae por la misma razón por la que ``totp_secret`` es ``secret``
+—precedente de este archivo, no invención de este pase— y quedan ``secret`` y
+``last_counter``.
 """
 from django.conf import settings
 
@@ -33,6 +44,14 @@ class TotpSecret(TimeStampedModel):
     confirmed = fields.Boolean(
         default=False, db_index=True, verbose_name='Confirmado',
         help_text='True cuando el usuario verificó el primer código (2FA activo).',
+    )
+    last_counter = fields.Integer(
+        null=True, blank=True, default=None, verbose_name='Último contador',
+        help_text=(
+            'Odoo totp_last_counter — el intervalo del último código aceptado. '
+            'Un código sólo vale una vez: la comprobación exige que el contador '
+            'del código presentado sea ESTRICTAMENTE mayor que éste.'
+        ),
     )
 
     class Meta:

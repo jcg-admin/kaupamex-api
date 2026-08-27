@@ -172,12 +172,13 @@ AUTHENTICATION_BACKENDS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # RequestLogMiddleware (DEC-LOG-02): cobertura universal request->DB. Va
-    # cerca del tope para medir la duracion completa; su process_response corre
-    # tras get_response, cuando request.user y resolver_match ya estan puestos.
-    # Vive en addons.observability (addon net-new, DEC-12) desde el slice 3 de
-    # adoptar-arquitectura-server-service-odoo (antes core.middleware.request_log).
-    'addons.observability.middleware.RequestLogMiddleware',
+    # CorrelationIdMiddleware (DEC-LOG-07, DEC-AF-11): abre la correlacion de
+    # la peticion y la cierra al terminar; emite X-Correlation-Id para que el
+    # access_log del proxy pueda unirse a ir.logging. Va cerca del tope porque
+    # la correlacion debe estar abierta antes de que cualquier capa emita log.
+    # Es la mitad que sobrevive de RequestLogMiddleware: la que escribia la
+    # fila RequestLog murio con el modelo (DEC-AF-11).
+    'addons.base.models.ir_http.CorrelationIdMiddleware',
     # CookieGovernanceMiddleware va sobre Session/CSRF: su process_response
     # (orden inverso) corre despues de que aquellas ponen sus cookies, para
     # observarlas/gobernarlas. Fase 1 = auditoria (COOKIE_GOVERNANCE_ENFORCE
@@ -188,6 +189,15 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # CheckIdentityMiddleware (~auth_timeout): el candado POR TIEMPO. Va
+    # DESPUES de Authentication porque necesita request.user resuelto, y su
+    # gancho es process_view — con la URL ya resuelta, para poder leer la
+    # declaracion `check_identity = False` de la vista despachada, igual que la
+    # referencia lee `routing.get("check_identity", True)` del endpoint.
+    # Ojo: un middleware esta POR ENCIMA del exception handler de DRF, asi que
+    # convierte el a la respuesta el mismo (_handle_error) en vez de dejar que
+    # la excepcion suba como 500.
+    'addons.authz_timeout.models.ir_http.CheckIdentityMiddleware',
     'addons.base.models.ir_http.CompanyContextMiddleware',
     # DeviceLogMiddleware: el punto donde la referencia registra el dispositivo
     # de la peticion (check_session -> res.device.log._update_device,
@@ -311,9 +321,11 @@ DATABASE_ROUTERS = ['orm.routers.CompanyDatabaseRouter']
 # Plano de control L0 (vive siempre en ``default``, no se particiona por empresa).
 # ``addons.base`` (addon fundacional, ``SystemParameter`` L2 global) es config de
 # instancia, no per-empresa (SOL-090): debe rutear a ``default`` también bajo N>1.
-# ``observability`` (``RequestLog``, DEC-12) es telemetria global de la instancia,
-# no per-empresa, por lo que rutea igual que ``base``.
-MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base', 'observability', 'base_address_extended', 'base_geolocalize')
+# ``observability`` estuvo en esta lista mientras alojó telemetria global de la
+# instancia. Sus dos modelos se retiraron: ``RequestLog`` con DEC-AF-11 y
+# ``BusinessEvent`` con el addon entero (2026-08-20, #621), asi que el
+# app_label ya no existe y sale de la lista. Ver :ref:`h-api-754`.
+MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes', 'base', 'base_address_extended', 'base_geolocalize')
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -388,8 +400,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         # ADR-018 — migracion completa a sesion de servidor (web).
         # La UNICA auth por defecto es la cookie de sesion HttpOnly, exenta
-        # de token CSRF: la defensa CSRF es SameSite=Strict + prefijo __Host-
-        # (la cookie no viaja cross-site, que es el vector de CSRF). Esto
+        # de token CSRF: la defensa CSRF es SameSite=Lax + prefijo __Host-
+        # (la cookie no viaja en un POST cross-site, que es el vector de CSRF,
+        # y toda mutacion del SPA es XHR POST/PATCH/DELETE). Esto
         # arregla el incidente en que las mutaciones por sesion pedian
         # X-CSRFToken y el SPA, tras recargar (JWT en memoria perdido), no lo
         # tenia -> 403 -> logout. Ver analisis-incidente-csrf-mutaciones.
@@ -406,10 +419,11 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    # SOL-011 / ADR-019: envuelve el handler de DRF para sellar exception_class
-    # + error_detail (scrubbed) en RequestLog sin cambiar el cuerpo de error
-    # (conserva la clave canonica ``codigo_error``). No bloqueante (DEC-LOG-04).
-    'EXCEPTION_HANDLER': 'addons.observability.exception_handling.custom_exception_handler',
+    # SOL-011 / ADR-019: envuelve el handler de DRF para emitir el error al
+    # canal de logging —que lo persiste en ``ir.logging`` (DEC-AF-11)— sin
+    # cambiar el cuerpo de error (conserva la clave canonica
+    # ``codigo_error``). No bloqueante (DEC-LOG-04).
+    'EXCEPTION_HANDLER': 'addons.base.exception_handling.custom_exception_handler',
     # DEC-THR-1 (hardening-throttle-endpoints-publicos):
     # Defense in depth contra brute-force/spam en endpoints
     # publicos. Rates conservadores por scope sensible.
@@ -663,15 +677,17 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 # Auth por sesion (ADR-018, DEC-STF-AUTH-COOKIE) — sesion como unica auth web.
 # La cookie de sesion es HttpOnly y SameSite=Lax (mismo origin en dev via el
 # proxy de webpack y en prod mismo dominio). El endurecimiento a __Host- +
-# Secure + SameSite=Strict vive en production.py; ese SameSite=Strict es la
-# defensa CSRF que reemplaza al token (ver DEFAULT_AUTHENTICATION_CLASSES).
+# Secure vive en production.py; el SameSite se queda en Lax TAMBIEN alli
+# (CR-5, ver production.py:18-25), y ese SameSite=Lax es la defensa CSRF que
+# reemplaza al token (ver DEFAULT_AUTHENTICATION_CLASSES).
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
 # CSRF: NO se usa token CSRF. La auth por sesion esta exenta
-# (CsrfExemptSessionAuthentication) y la defensa CSRF es SameSite=Strict +
+# (CsrfExemptSessionAuthentication) y la defensa CSRF es SameSite=Lax +
 # __Host- de la cookie de sesion. Por eso NO se define CSRF_USE_SESSIONS ni se
 # emite cookie/token CSRF: no hay plumbing de token que el SPA deba mantener.
+# Guardrail que acompania a Lax: ningun endpoint muta estado por GET.
 
 # Cache — DatabaseCache (cnst-arquitectura T4/T5).
 # UC-SRCH-02 (autocomplete) usa la clave "autocomplete:<prefijo>" con TTL 60s.

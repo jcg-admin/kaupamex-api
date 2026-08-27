@@ -1,0 +1,345 @@
+# Deuda heredada de marcas de bloqueo sin forma fija.
+# Una marca listada NO bloquea; una NUEVA si. Se paga al tocar
+# el archivo — mismo criterio prospectivo que el baseline de
+# idioma. Al reescribir una marca, borrar su linea de aqui.
+addons/account/models/__init__.py::- ``account_analytic_account.py``      → no-op documentado (BLOQUEADO, ver
+addons/account/models/__init__.py::- ``account_analytic_line.py``         → no-op documentado (BLOQUEADO, ver
+addons/account/models/account_analytic_account.py::Los cuatro símbolos — BLOQUEADO, ninguno se porta
+addons/account/models/account_analytic_account.py::Tarea #520 — sigue BLOQUEADO, misma causa, ahora con el conector construido
+addons/account/models/account_analytic_distribution_model.py::``H-API-684`` (tramo anterior) dejó BLOQUEADOS estos 3 métodos porque su
+addons/account/models/account_analytic_line.py::BLOQUEADO por la migración ausente.
+addons/account/models/account_analytic_line.py::Los 2 `def` que el conector desbloquea a medias — BLOQUEADO de segundo orden
+addons/account/models/account_analytic_line.py::``H-API-684`` (tramo anterior) dejó los 11 ``def`` BLOQUEADOS porque
+addons/account/models/account_analytic_line.py::``account_move_line.py`` fuera de alcance. BLOQUEADO, sin cambio.
+addons/account/models/account_analytic_line.py::escribibles de esta tarea. BLOQUEADO, no campo.
+addons/account/models/account_analytic_plan.py::BLOQUEADOS porque ``addons/analytic/migrations/`` no estaba en el alcance de
+addons/account/models/digest.py::**BLOQUEADO** — ``super()._compute_kpis_actions`` no existe en
+addons/account/models/digest.py::help_text='Odoo kpi_account_total_revenue_value — BLOQUEADO, '
+addons/account/models/product.py::``tax_string``                     template    DESBLOQUEADO — pendiente de portar (#141)
+addons/account/report/account_hash_integrity_templates.py::**Por que ``_get_report_values`` esta BLOQUEADO, y no es una excusa.** Su
+addons/account/report/account_hash_integrity_templates.py::- BLOQUEADO -- ver abajo
+addons/account/report/account_hash_integrity_templates.py::Cobertura del porte -- 1 de 1 simbolo (con su unico metodo BLOQUEADO)
+addons/account/report/account_invoice_report.py::""">= ``_from`` (``odoo19c: :128-``). BLOQUEADO -- ver el
+addons/account/report/account_invoice_report.py::"""Genera la URL de codigo QR por factura -- BLOQUEADO.
+addons/account/report/account_invoice_report.py::'AccountInvoiceReport._from esta BLOQUEADO: requiere '
+addons/account/report/account_invoice_report.py::'AccountInvoiceReport._read_group_select esta BLOQUEADO: '
+addons/account/report/account_invoice_report.py::'AccountInvoiceReport._select esta BLOQUEADO: casi todas sus '
+addons/account/report/account_invoice_report.py::'AccountInvoiceReport._table_query esta BLOQUEADO: depende de '
+addons/account/report/account_invoice_report.py::'de ``_read_group_select``, BLOQUEADO -- ver el '
+addons/account/report/account_invoice_report.py::**Por que ``AccountInvoiceReport`` esta BLOQUEADO -- con las citas exactas.**
+addons/account/report/account_invoice_report.py::BLOQUEADO -- ver el docstring del modulo. La fuente compone
+addons/account/report/account_invoice_report.py::Cobertura del porte -- 45 de 45 simbolos (forma), 3 BLOQUEADOS (comportamiento)
+addons/account/report/account_invoice_report.py::``_read_group_select`` **BLOQUEADOS** en tiempo de ejecucion
+addons/account/report/account_invoice_report.py::aislan en :meth:`_qr_code_urls`, que si esta BLOQUEADO -- ver su
+addons/account/tools/structured_reference.py::pieza BLOQUEADA, pero con salida: los tres algoritmos que ``stdnum`` provee
+addons/account_edi_proxy_client/__manifest__.py::# BLOQUEADO, sin mecanismo de hook post-instalación en este stack (ver
+addons/account_edi_ubl_cii/models/account_move.py::# BLOQUEADOS — piezas nombradas ausentes (ver la tabla del docstring)
+addons/account_edi_ubl_cii/models/res_partner.py::# BLOQUEADOS — piezas nombradas ausentes (ver la tabla del docstring)
+addons/account_peppol/__manifest__.py::#   marcado *BLOQUEADO por account_edi_ubl_cii* en el docstring de su
+addons/account_peppol/controllers/authentication.py::"""Rutas de autenticación del alta Peppol (itsme®). BLOQUEADAS.
+addons/account_peppol/controllers/portal.py::"""Portal del cliente — los campos Peppol en su dirección. BLOQUEADO.
+addons/account_peppol/controllers/portal.py::- BLOQUEADO — añade a la plantilla del portal la lista de códigos EAS
+addons/account_peppol/controllers/portal.py::- BLOQUEADO — hace obligatorios ``peppol_eas`` y ``peppol_endpoint`` en
+addons/account_peppol/controllers/portal.py::- BLOQUEADO — valida ese par contra las reglas de endpoint por EAS, que
+addons/account_peppol/controllers/webhooks.py::"""Rutas de webhook del proxy Peppol. BLOQUEADAS por el cableado de URLs.
+addons/account_peppol/controllers/webhooks.py::cron de estados. BLOQUEADO.
+addons/account_peppol/controllers/webhooks.py::cron de recogida. BLOQUEADO — ver abajo.
+addons/account_peppol/controllers/webhooks.py::estado del participante. BLOQUEADO.
+addons/account_peppol/models/account_edi_common.py::"""``account.edi.common`` extendido por ``account_peppol``. BLOQUEADO.
+addons/account_peppol/models/account_edi_proxy_user.py::- BLOQUEADO — crea ``ir.attachment`` con ``raw`` y llama a
+addons/account_peppol/models/account_edi_proxy_user.py::- BLOQUEADO — orquesta ``_peppol_import_invoice`` (arriba) y depende de
+addons/account_peppol/models/account_edi_proxy_user.py::account_edi_proxy_user.py:201``). BLOQUEADO su cuerpo Peppol: lee
+addons/account_peppol/models/account_edi_proxy_user.py::cuyos consumidores están BLOQUEADOS (``_peppol_get_new_documents`` /
+addons/account_peppol/models/account_edi_ubl_xml.py::"""``account.edi.ubl`` extendido por ``account_peppol``. BLOQUEADO, no se instala.
+addons/account_peppol/models/account_edi_xml_ubl_bis3.py::"""``account.edi.xml.ubl_bis3`` extendido por ``account_peppol``. BLOQUEADO.
+addons/account_peppol/models/account_journal.py::- BLOQUEADOS por los métodos base homónimos de ``account`` (0 hits: la
+addons/account_peppol/models/account_move_send.py::"""``account.move.send`` extendido por ``account_peppol``. BLOQUEADO.
+addons/account_peppol/models/res_company.py::- BLOQUEADO por la plantilla de correo
+addons/account_peppol/models/res_company.py::``peppol_verification_state`` por empresa— está BLOQUEADO (ver la cabecera
+addons/account_peppol/models/res_config_settings.py::"""``res.config.settings`` extendido por ``account_peppol``. BLOQUEADO.
+addons/account_peppol/models/res_config_settings.py::- BLOQUEADO el ``inverse`` — notifica al proxy el cambio de correo con
+addons/account_peppol/models/res_config_settings.py::- BLOQUEADO — reinicia la configuración y abre el asistente de alta
+addons/account_peppol/models/res_config_settings.py::- BLOQUEADOS — el rol de participación (emisor / receptor / ninguno) se
+addons/account_peppol/models/res_partner.py::- BLOQUEADO — orquesta ``_get_peppol_verification_state`` (abajo) y
+addons/account_peppol/models/res_partner.py::- BLOQUEADO — su cuerpo llama a ``_update_peppol_state_per_company``.
+addons/account_peppol/models/res_partner.py::- BLOQUEADO — su razón de existir es que ``peppol_verification_state`` es
+addons/account_peppol/models/res_partner.py::- BLOQUEADOS — alimentan widgets y dependen de campos de ``account`` /
+addons/account_peppol/models/res_partner.py::- BLOQUEADOS — dependen de los dos anteriores y de ``PEPPOL_LIST``
+addons/account_peppol/tools/demo_utils.py::"""``demo_utils`` — el arnés de modo demo. BLOQUEADO, no se instala.
+addons/account_peppol/tools/demo_utils.py::**BLOQUEADOS** por lo anterior: el mapa apunta a los simulacros y el
+addons/account_peppol/tools/demo_utils.py::- ``_mock_call_peppol_proxy`` (``:34-93``) — además **BLOQUEADO por el
+addons/account_peppol/tools/demo_utils.py::``_mock_can_connect`` (``:150-154``) — **BLOQUEADOS por su simulacro**: cada
+addons/account_peppol/tools/demo_utils.py::``get_demo_vendor_bill`` (``:16-28``) — **BLOQUEADOS por los tres archivos
+addons/account_peppol/wizard/account_move_send_batch_wizard.py::"""``account.move.send.batch.wizard`` extendido por ``account_peppol``. BLOQUEADO.
+addons/account_peppol/wizard/account_move_send_batch_wizard.py::``action_send_and_print`` (``:7-14``) — **BLOQUEADO** por sus tres llamadas,
+addons/account_peppol/wizard/account_move_send_wizard.py::"""``account.move.send.wizard`` extendido por ``account_peppol``. BLOQUEADO.
+addons/account_peppol/wizard/account_move_send_wizard.py::- BLOQUEADO — el texto que explica por qué la casilla está deshabilitada;
+addons/account_peppol/wizard/account_move_send_wizard.py::- BLOQUEADO — etiqueta de la casilla «Enviar por Peppol» del formulario
+addons/account_peppol/wizard/peppol_config_wizard.py::"""``peppol.config.wizard`` — los servicios dados de alta. BLOQUEADO.
+addons/account_peppol/wizard/peppol_registration.py::"""``peppol.registration`` — el asistente de alta en la red. BLOQUEADO.
+addons/base_automation/models/base_automation.py::BLOQUEADO — devuelve un ``{'warning': {...}}`` para el cliente web
+addons/base_automation/models/base_automation.py::BLOQUEADO — dispara mientras el usuario edita ``filter_domain`` en
+addons/base_automation/models/base_automation.py::BLOQUEADO — ver ``_onchange_domain``; ``trigger_field_ids`` se
+addons/base_import_module/__manifest__.py::'base_import_module — BLOQUEADO por completo: instalar un addon aquí '
+addons/base_import_module/models/base_import_module.py::BLOQUEADO EN SU TOTALIDAD — divergencia arquitectónica declarada, no
+addons/base_install_request/__manifest__.py::'base_install_request — BLOQUEADO por completo: ceremonia alrededor '
+addons/base_install_request/models/base_module_install_request.py::BLOQUEADO EN SU TOTALIDAD — mismo veredicto que ``addons/base_import_
+addons/hr/models/hr_employee_category.py::# DEFERIDO (no stub): employee_ids — requiere hr.employee (BLOQUEADO,
+addons/hr/models/hr_employee_category.py::- BLOQUEADO
+addons/hr/models/hr_employee_public.py::**Métodos (18)** — 15 portados, 1 resuelto sin código, 2 BLOQUEADOS:
+addons/hr/models/hr_employee_public.py::``im_status``/``last_activity``/``last_activity_time`` BLOQUEADOS por la
+addons/hr/models/hr_mixin.py::# create()/write() — BLOQUEADO, ver tabla del docstring del módulo.
+addons/hr/models/hr_mixin.py::- BLOQUEADO
+addons/hr/models/hr_mixin.py::- BLOQUEADO
+addons/hr/models/hr_payroll_structure_type.py::declaró BLOQUEADO en el pase que portó este archivo por no tener el
+addons/hr/models/hr_version.py::# recordset por lotes — ver las tres familias BLOQUEADAS en el docstring)
+addons/hr/models/hr_version.py::'BLOQUEADO el inverse (sincroniza employee.resource.calendar '
+addons/hr/models/hr_version.py::'helper explícito (ver métodos); BLOQUEADO el auto-sync '
+addons/hr/models/hr_version.py::'— sesión, familia b, ver _get_default_address_id BLOQUEADO).',
+addons/hr/models/hr_version.py::BLOQUEADO — tres familias, con la pieza que falta nombrada:
+addons/hr/models/hr_version.py::addons/ src/ → 0 hits"*— y declaraba BLOQUEADOS ~70 campos y 83 métodos por su
+addons/hr/models/hr_version.py::help_text='Odoo is_custom_job_title (compute+store). BLOQUEADO el '
+addons/hr/models/hr_version.py::help_text='Odoo job_title (compute+inverse+store). BLOQUEADO el '
+addons/hr/models/ir_ui_menu.py::- portado (una rama BLOQUEADA, ver abajo)
+addons/hr/models/ir_ui_menu.py::4. **BLOQUEADO — la rama del gerente de departamento.** La referencia
+addons/hr/models/mail_activity_plan_template.py::Porte PARCIAL DECLARADO — 2 de 4 símbolos; los otros 2 BLOQUEADOS
+addons/hr/models/models.py::2. **BLOQUEADO por la pasarela de correo entrante.** El propio
+addons/hr/models/models.py::BLOQUEADO es su integración en una pasarela que no existe
+addons/hr/models/models.py::Porte símbolo por símbolo — 1 de 1 (forma), con la mitad de pasarela BLOQUEADA
+addons/hr/models/res_company.py::- portado — es la pieza que ``hr_employee.py`` declaraba BLOQUEADA
+addons/hr/models/res_company.py::BLOQUEADO en ``hr_employee.py`` — sucesor: tarea **#515**.
+addons/hr/models/res_partner.py::- BLOQUEADO
+addons/hr/models/res_partner.py::- BLOQUEADO
+addons/hr/models/res_partner.py::Porte símbolo por símbolo — 10 símbolos: 6 portados, 1 ya existente, 3 BLOQUEADOS
+addons/hr/models/res_partner_bank.py::- BLOQUEADO a medias — el enmascarado del número de cuenta se porta
+addons/hr/models/res_partner_bank.py::- BLOQUEADO — delega en
+addons/hr/models/res_partner_bank.py::Porte símbolo por símbolo — 17 símbolos: 15 portados, 2 BLOQUEADOS
+addons/hr/models/res_users.py::- BLOQUEADO (ver ``is_system`` arriba)
+addons/hr/models/res_users.py::- BLOQUEADO — ``@api.onchange``, familia (c) de ``hr_employee.py``
+addons/hr/models/res_users.py::- BLOQUEADO — ``ir.actions.act_window`` + external ids, familia (b)
+addons/hr/models/res_users.py::- BLOQUEADO — familia (b)
+addons/hr/models/res_users.py::- BLOQUEADO — familia (b)
+addons/hr/models/res_users.py::- BLOQUEADO — familia (b)
+addons/hr/models/res_users.py::- BLOQUEADOS — vistas del cliente Odoo, familia (b)/(d)
+addons/hr/models/resource.py::BLOQUEADOS por la infraestructura de presencia — ver
+addons/hr/models/resource.py::código necesario, 4 BLOQUEADOS
+addons/hr/models/resource.py::no-RR.HH.) queda BLOQUEADA por la vista SQL de
+addons/hr/report/hr_manager_department_report.py::- portado con la rama de gerencia BLOQUEADA (ver abajo)
+addons/hr/report/hr_manager_department_report.py::- portado con la rama de gerencia BLOQUEADA (ver abajo)
+addons/hr/wizard/mail_activity_schedule.py::Porte PARCIAL DECLARADO — 1 de 6 símbolos; los otros 5 BLOQUEADOS
+addons/hr_fleet/models/mail_activity_plan_template.py::Porte PARCIAL DECLARADO — 1 de 3 símbolos; los otros 2 BLOQUEADOS
+addons/hr_fleet/models/mail_activity_plan_template.py::``_check_responsible_hr_fleet`` (``:15-20``)                 BLOQUEADO —
+addons/hr_fleet/models/mail_activity_plan_template.py::``responsible_type`` (``selection_add``, ``:11-13``)         BLOQUEADO — no
+addons/hr_homeworking/models/hr_employee.py::3. **La mitad ``super()._compute_presence_icon()`` está BLOQUEADA** — el
+addons/hr_homeworking/models/hr_employee.py::BLOQUEADOS, familia (b)/(d) de ``hr_employee.py``).
+addons/hr_homeworking/models/hr_employee.py::``hr_icon_display`` "BLOQUEADO por hr_presence_state … Sucesor: tarea
+addons/hr_homeworking/models/res_partner.py::Porte BLOQUEADO DECLARADO — 0 de 1 símbolo
+addons/hr_homeworking/models/res_users.py::Lo BLOQUEADO — ``_compute_im_status``
+addons/hr_homeworking/models/res_users.py::``_compute_im_status`` (``:30-38``)                          BLOQUEADO (ver
+addons/hr_hourly_cost/__init__.py::``hr.version`` — 0 hits, no BLOQUEADO
+addons/hr_hourly_cost/models/hr_employee.py::- ``groups="hr.group_hr_user"`` — **BLOQUEADO**. Es visibilidad de campo por
+addons/hr_hourly_cost/models/hr_employee.py::- ``tracking=True`` — **BLOQUEADO**. Greppeado
+addons/hr_recruitment/__manifest__.py::# `web_tour` (0 hits) — sus consumidores quedan BLOQUEADOS con la pieza
+addons/hr_recruitment/__manifest__.py::'digest',  # DigestDigest (extensión declarada BLOQUEADA — ver models/digest.py)
+addons/hr_recruitment/models/calendar.py::de este addon) también queda BLOQUEADO, por el mismo ausente.
+addons/hr_recruitment/models/digest.py::'BLOQUEADO — ver docstring del módulo.',
+addons/hr_recruitment/models/digest.py::- BLOQUEADO — delega en ``_calculate_company_based_kpi``, que
+addons/hr_recruitment/models/digest.py::- BLOQUEADO — el propio ``digest.py`` de ``addons.digest`` lista
+addons/hr_recruitment/models/digest.py::- BLOQUEADO — su ``compute`` depende del símbolo siguiente
+addons/hr_recruitment/models/digest.py::Porte símbolo por símbolo — 1 de 4, 3 BLOQUEADOS
+addons/hr_recruitment/models/hr_applicant.py::# Métodos NO portados — BLOQUEADOS, con su pieza faltante nombrada
+addons/hr_recruitment/models/hr_applicant.py::(fuente ``:667-676``) queda BLOQUEADA — depende de saber qué
+addons/hr_recruitment/models/hr_applicant.py::**13 BLOQUEADOS** (framework de acciones cliente Odoo — familia (b);
+addons/hr_recruitment/models/hr_applicant.py::``refuse_reason``, ``meeting_ids``/``meeting_display_*`` — BLOQUEADOS
+addons/hr_recruitment/models/hr_applicant.py::se declara BLOQUEADO por símbolo, no se omite en silencio.
+addons/hr_recruitment/models/hr_employee.py::- BLOQUEADO — ``@api.depends`` y el cómputo de ``partner_count`` que
+addons/hr_recruitment/models/hr_employee.py::- BLOQUEADO — ``_message_log_with_view`` (plantilla QWeb
+addons/hr_recruitment/models/hr_job.py::- BLOQUEADO — ``related='department_id.manager_id'``;
+addons/hr_recruitment/models/hr_job.py::- BLOQUEADO — ``res.partner.industry`` no existe (medido: 0 hits)
+addons/hr_recruitment/models/hr_job.py::- BLOQUEADO — dato XML (``mt_job_new``) no sembrado
+addons/hr_recruitment/models/hr_job.py::- BLOQUEADO — ordenamiento SQL de vista de lista; sin consumidor
+addons/hr_recruitment/models/hr_job.py::- BLOQUEADOS — ``mail.alias.mixin`` ausente (mismo bloqueo que
+addons/hr_recruitment/models/hr_job.py::- BLOQUEADOS — familia (b): framework de acciones cliente Odoo
+addons/hr_recruitment/models/hr_job.py::- BLOQUEADOS — la única lógica de negocio propia (fuera de la
+addons/hr_recruitment/models/hr_job.py::Porte símbolo por símbolo — 27 de 43 medidos, 16 BLOQUEADOS
+addons/hr_recruitment/models/hr_recruitment_source.py::- BLOQUEADO
+addons/hr_recruitment/models/hr_recruitment_source.py::- BLOQUEADO — llama enteramente a ``create_alias``
+addons/hr_recruitment/models/hr_recruitment_source.py::- portado (una rama BLOQUEADA — ver divergencia 1)
+addons/hr_recruitment/models/hr_recruitment_source.py::2. **``create_alias``/``create_and_get_alias`` BLOQUEADOS por tres piezas
+addons/hr_recruitment/models/hr_recruitment_source.py::Porte símbolo por símbolo — 6 de 10, 4 BLOQUEADOS
+addons/hr_recruitment/models/hr_talent_pool.py::- BLOQUEADO — familia (b): ``ir.actions.act_window`` (framework de
+addons/hr_recruitment/models/ir_ui_menu.py::símbolo, con la mitad de dato BLOQUEADA (ver divergencia 2).
+addons/hr_recruitment/models/utm_campaign.py::Porte símbolo por símbolo — 1 de 1 (forma), con su dato BLOQUEADO
+addons/hr_recruitment/wizard/applicant_refuse_reason.py::- BLOQUEADOS — overrides de ``mail.composer.mixin``, ausente (mismo
+addons/hr_recruitment/wizard/applicant_refuse_reason.py::Porte símbolo por símbolo — 8 de 10, 2 BLOQUEADOS
+addons/hr_recruitment/wizard/applicant_send_mail.py::- BLOQUEADO — override de ``mail.composer.mixin``, ausente en este
+addons/hr_recruitment/wizard/applicant_send_mail.py::Porte símbolo por símbolo — 2 de 3, 1 BLOQUEADO
+addons/hr_recruitment_skills/models/hr_applicant.py::- BLOQUEADO — protocolo de comandos x2many (DIVERGENCIA 3 de
+addons/hr_recruitment_skills/models/hr_applicant.py::- BLOQUEADOS — ambos existen sólo para fusionar/transformar listas de
+addons/hr_recruitment_skills/models/hr_job.py::- BLOQUEADO — ``ir.actions.actions._for_xml_id`` + vistas XML +
+addons/hr_skills/models/hr_employee.py::- BLOQUEADO — ``convert.convert_file`` (carga de datos demo XML), sin
+addons/hr_skills/models/hr_employee.py::- BLOQUEADOS — protocolo de comandos x2many (ver DIVERGENCIA 3 de
+addons/hr_skills/models/hr_employee.py::protocolo de comandos BLOQUEADO (ver ``hr_individual_skill_
+addons/hr_skills/models/hr_employee_skill.py::"""BLOQUEADO — ``ir.actions.act_window_close`` (``:38-39``)."""
+addons/hr_skills/models/hr_employee_skill.py::"""BLOQUEADO — ``ir.actions.act_window`` (``:26-36``), ver la tabla
+addons/hr_skills/models/hr_employee_skill.py::- BLOQUEADO — ``ir.actions.act_window_close``, ídem
+addons/hr_skills/models/hr_employee_skill.py::- BLOQUEADO — ``ir.actions.act_window`` (acción de cliente Odoo), sin
+addons/hr_skills/models/hr_individual_skill_mixin.py::"""BLOQUEADO — ver DIVERGENCIA 3 del docstring del módulo."""
+addons/hr_skills/models/hr_individual_skill_mixin.py::"""BLOQUEADO — ver DIVERGENCIA 3."""
+addons/hr_skills/models/hr_individual_skill_mixin.py::"""BLOQUEADO — ver DIVERGENCIA 3."""
+addons/hr_skills/models/hr_individual_skill_mixin.py::"""BLOQUEADO — ver DIVERGENCIA 3."""
+addons/hr_skills/models/hr_individual_skill_mixin.py::# BLOQUEADO — protocolo de comandos x2many (ver DIVERGENCIA 3)
+addons/hr_skills/models/hr_individual_skill_mixin.py::- BLOQUEADO — la forma multi-vals-dict sólo tiene sentido para validar
+addons/hr_skills/models/hr_individual_skill_mixin.py::- BLOQUEADO — ver DIVERGENCIA 3
+addons/hr_skills/models/hr_individual_skill_mixin.py::- BLOQUEADO — ídem
+addons/hr_skills/models/hr_individual_skill_mixin.py::- BLOQUEADO — ídem
+addons/hr_skills/models/hr_individual_skill_mixin.py::- BLOQUEADO — ídem
+addons/hr_skills/models/hr_job.py::- BLOQUEADO — usa ``fields.Domain``, no exportado en este árbol
+addons/hr_skills/models/hr_job.py::- BLOQUEADOS — protocolo de comandos x2many (ver DIVERGENCIA 3 de
+addons/hr_skills/models/hr_job.py::``search`` queda BLOQUEADA (ver abajo)
+addons/hr_skills/models/hr_skill.py::``from_skill_dropdown`` BLOQUEADA: ``@api.depends_context`` es
+addons/hr_skills/models/hr_skill.py::``from_skill_dropdown`` — BLOQUEADA como cómputo automático (sin
+addons/hr_skills/models/hr_skill_level.py::``hr.skill.type``, BLOQUEADO en ``hr_skill_type.py`` por ausencia
+addons/hr_skills/models/hr_skill_type.py::- BLOQUEADO — ``@api.onchange`` es reactividad de formulario cliente;
+addons/hr_skills/models/hr_skill_type.py::- BLOQUEADO — ``copy()``/``copy_data()`` genérico no existe en este
+addons/hr_skills/wizard/hr_employee_cv_wizard.py::``ir.actions.act_url`` que la envuelve queda BLOQUEADO (acción de
+addons/hr_skills/wizard/hr_employee_cv_wizard.py::que la envuelve queda BLOQUEADO (ver la tabla del docstring del
+addons/hr_timesheet/models/hr_employee.py::``_compute_display_name`` (:32-46)   **BLOQUEADO** — depende de
+addons/hr_timesheet/models/hr_employee.py::``action_timesheet_from_employee``   **BLOQUEADO** — ídem, ``ir.actions.
+addons/hr_timesheet/models/hr_employee.py::``action_unlink_wizard`` (:49-57)    **BLOQUEADO** — acción de UI que abre
+addons/hr_timesheet/models/hr_employee_public.py::``action_timesheet_from_employee`` **BLOQUEADO** — acción de UI
+addons/hr_timesheet/models/hr_timesheet.py::**BLOQUEADO — trivial sin consumidor:** ``_get_report_base_filename``
+addons/hr_timesheet/models/hr_timesheet.py::**BLOQUEADOS — UOM/conversión, requieren seed de ``uom.product_uom_hour``/
+addons/hr_timesheet/models/hr_timesheet.py::**BLOQUEADOS — sesión/entorno (``self.env``, ``has_group``, ``sudo``),
+addons/hr_timesheet/models/hr_timesheet.py::- **BLOQUEADO — declarado, no un símbolo nuevo.** El campo ``user`` YA
+addons/hr_timesheet/models/hr_timesheet.py::- **BLOQUEADO** — ``compute`` sobre ``task_id.partner_id``/
+addons/hr_timesheet/models/hr_timesheet.py::- **BLOQUEADO** — ``project.milestone`` no existe en este árbol (0
+addons/hr_timesheet/models/hr_timesheet.py::- **BLOQUEADO** — ``related='task_id.parent_id'``. ``project.ProjectTask``
+addons/hr_timesheet/models/hr_timesheet.py::- **BLOQUEADO** — deriva de ``company_id.timesheet_encode_uom_id``
+addons/hr_timesheet/models/hr_timesheet.py::- **BLOQUEADO** — texto de UI para la vista de calendario
+addons/hr_timesheet/models/hr_timesheet.py::- **BLOQUEADO** — visibilidad por grupo de seguridad
+addons/hr_timesheet/models/project_project.py::- **BLOQUEADO** — ``account.analytic.account`` no está enlazado a
+addons/hr_timesheet/models/project_project.py::- **BLOQUEADO** — ``related='account_id.active'``; depende del
+addons/hr_timesheet/models/project_project.py::- **BLOQUEADO** — deriva de ``company_id.timesheet_encode_uom_id``
+addons/hr_timesheet/models/project_project.py::- **BLOQUEADO** — requiere conversión de unidades (UOM factor +
+addons/hr_timesheet/models/project_project.py::- **BLOQUEADO** — ídem, depende de la compañía ambiental.
+addons/hr_timesheet/models/project_project.py::Métodos — todos BLOQUEADOS
+addons/hr_timesheet/models/project_project.py::``tracking=True`` de la referencia queda **BLOQUEADO** — mismo
+addons/hr_timesheet/models/project_project.py::help_text='Odoo allocated_hours. tracking=True BLOQUEADO — ver '
+addons/hr_timesheet/models/project_task.py::- **BLOQUEADO** — dependen de ``allocated_hours`` y/o de
+addons/hr_timesheet/models/project_task.py::- **BLOQUEADO** — dependen de ``allocated_hours``, ausente en
+addons/hr_timesheet/models/project_task.py::- **BLOQUEADO** — el ``domain=`` es metadata de formulario del
+addons/hr_timesheet/models/project_task.py::- **BLOQUEADO** — el override sólo redeclara el texto de ayuda de un
+addons/hr_timesheet/models/project_task.py::- **BLOQUEADO** — lista blanca de campos expuestos al portal de
+addons/hr_timesheet/models/project_task.py::- **BLOQUEADO** — sesión (``self.env.company``), mismo criterio que
+addons/hr_timesheet/models/project_task.py::Métodos — todos BLOQUEADOS
+addons/hr_timesheet/models/res_company.py::- **BLOQUEADO** — crea un proyecto + dos tareas semilla
+addons/hr_timesheet/models/res_company.py::- **BLOQUEADO** — llama a ``_create_internal_project_task`` en cada
+addons/hr_timesheet/models/uom_uom.py::``_unprotected_uom_xml_ids`` (:9-17) **BLOQUEADO** — protege de borrado dos
+addons/hr_timesheet/wizard/hr_employee_delete_wizard.py::- **BLOQUEADO** — acción de UI (``ir.actions.act_window``); sin
+addons/hr_timesheet/wizard/hr_employee_delete_wizard.py::- **BLOQUEADO** — delega en ``hr.departure.wizard`` (acción de UI,
+addons/hr_work_entry/models/hr_version.py::BLOQUEADOS (12) — cada uno con la pieza que falta, greppeable:
+addons/hr_work_entry/models/hr_version.py::arriba) · **12 BLOQUEADOS** con su pieza nombrada.
+addons/hr_work_entry/models/hr_work_entry.py::- **BLOQUEADOS (4) por el motor de intervalos** (``resource: models/
+addons/hr_work_entry/models/hr_work_entry.py::BLOQUEADO (motor de intervalos) y se reconecta al desbloquearse.
+addons/hr_work_entry/models/hr_work_entry.py::Métodos (24) — 17 portados, 3 divergencia declarada, 4 BLOQUEADOS:
+addons/hr_work_entry/models/hr_work_entry.py::``_mark_leaves_outside_schedule`` (``:144``) NO se invoca (BLOQUEADO
+addons/product_expiry/models/stock_move_line.py::**Estaba BLOQUEADO y ya no lo está.** Hasta hoy este archivo era un no-op
+addons/project_hr_skills/apps.py::(``report/report_project_task_user.py``) está BLOQUEADO — ver ese módulo.
+addons/project_hr_skills/report/__init__.py::``report_project_task_user`` NO se importa: su extensión está BLOQUEADA
+addons/project_todo/models/res_users.py::``_generate_onboarding_todo`` (``:96-115``) — BLOQUEADO por el motor QWeb
+addons/project_todo/models/res_users.py::``_get_activity_groups`` (``:12-89``) — BLOQUEADO en dos niveles
+addons/project_todo/models/res_users.py::``_onboard_users_into_project`` (``:91-94``) — BLOQUEADO
+addons/sale_timesheet/models/account_move.py::- **BLOQUEADO** — desenlaza los apuntes de la factura original cuando se
+addons/sale_timesheet/models/account_move.py::- **BLOQUEADO** — recorre ``invoice_line_ids.sale_line_ids`` para
+addons/sale_timesheet/models/account_move_line.py::- **BLOQUEADO** — antes de borrar líneas de factura en borrador,
+addons/sale_timesheet/models/account_move_line.py::- **BLOQUEADO** — el dominio se arma sobre ``so_line`` y
+addons/sale_timesheet/models/hr_employee.py::``default_get`` (:9-15) — **BLOQUEADO por mecanismo ausente**.
+addons/sale_timesheet/models/hr_timesheet.py::- **BLOQUEADO** — ``related='project_id.allow_billable'``, y
+addons/sale_timesheet/models/hr_timesheet.py::- **BLOQUEADO** — ver "El bloqueo raíz" arriba.
+addons/sale_timesheet/models/hr_timesheet.py::- BLOQUEADO — ``sale.SaleOrderLine`` de este árbol no declara
+addons/sale_timesheet/models/hr_timesheet.py::- BLOQUEADO — el base es visibilidad de campo por grupo, que aquí es
+addons/sale_timesheet/models/hr_timesheet.py::- BLOQUEADO — el base lo declara ``hr_timesheet``, que ya lo dejó sin
+addons/sale_timesheet/models/hr_timesheet.py::- BLOQUEADO — el base no existe (0 hits de ``_get_timesheets_to_merge``).
+addons/sale_timesheet/models/hr_timesheet.py::- BLOQUEADO — el base tampoco se portó en ``hr_timesheet`` (declarado
+addons/sale_timesheet/models/hr_timesheet.py::- BLOQUEADOS — restringen el compute heredado a los apuntes no
+addons/sale_timesheet/models/product_product.py::- **BLOQUEADO** — ``self.type == 'service' and self.service_policy ==
+addons/sale_timesheet/models/product_product.py::- BLOQUEADO — no hay motor de ``onchange`` en este árbol (mismo desenlace
+addons/sale_timesheet/models/product_product.py::- BLOQUEADO — ídem, y delega en
+addons/sale_timesheet/models/product_product.py::- BLOQUEADOS — protegen el producto semilla
+addons/sale_timesheet/models/product_template.py::- **BLOQUEADO** — ``selection_add=[('timesheet', …)]`` sobre un campo que
+addons/sale_timesheet/models/product_template.py::- **BLOQUEADO** — su compute (:26-38) compara el ``factor`` de la unidad
+addons/sale_timesheet/models/product_template.py::- **BLOQUEADOS** — redeclaraciones que sólo estrechan el ``domain``; los
+addons/sale_timesheet/models/product_template.py::- BLOQUEADO — ``visible_expense_policy`` lo declara ``sale_expense``
+addons/sale_timesheet/models/product_template.py::- BLOQUEADO — decide qué proyecto/plantilla limpiar según
+addons/sale_timesheet/models/product_template.py::- BLOQUEADO — inserta ``delivered_timesheet`` en el ``selection`` de un
+addons/sale_timesheet/models/product_template.py::- BLOQUEADO — texto de ayuda del formulario, condicionado a
+addons/sale_timesheet/models/product_template.py::- BLOQUEADO — ver el campo homónimo.
+addons/sale_timesheet/models/product_template.py::- BLOQUEADOS — los dos protegen el producto semilla
+addons/sale_timesheet/models/product_template.py::- BLOQUEADOS — no hay motor de ``onchange`` en este árbol (mismo
+addons/sale_timesheet/models/project_project.py::- **BLOQUEADO** — redeclaración que sólo añade ``compute``/``store``; el
+addons/sale_timesheet/models/project_project.py::- BLOQUEADO — ``sale_order_count``/``sale_order_line_count`` los declara
+addons/sale_timesheet/models/project_project.py::- BLOQUEADO — construye SQL con ``odoo.tools.SQL``/``Query`` sobre
+addons/sale_timesheet/models/project_project.py::- BLOQUEADO — traduce el compute a dominio de búsqueda sobre
+addons/sale_timesheet/models/project_project.py::- BLOQUEADOS — el panel de rentabilidad completo. Tres bloqueadores a la
+addons/sale_timesheet/models/project_sale_line_employee_map.py::**BLOQUEADO en su efecto**: la fuente delega en
+addons/sale_timesheet/models/project_sale_line_employee_map.py::- **BLOQUEADO en su efecto** — delega en
+addons/sale_timesheet/models/project_sale_line_employee_map.py::- **BLOQUEADO** — ``related='project_id.sale_order_id'``, y
+addons/sale_timesheet/models/project_sale_line_employee_map.py::- **BLOQUEADO** — ``sale.order.line._sellable_lines_domain`` no existe en
+addons/sale_timesheet/models/project_sale_line_employee_map.py::- **BLOQUEADO** — su ``compute``/``inverse`` convierten el costo horario
+addons/sale_timesheet/models/project_sale_line_employee_map.py::``compute``/``domain`` quedan BLOQUEADOS: dependen de
+addons/sale_timesheet/models/project_task.py::- **BLOQUEADO** — ``related='sale_line_id.remaining_hours_available'``,
+addons/sale_timesheet/models/project_task.py::- **BLOQUEADO** — redeclaración que sólo estrecha el ``domain``; el campo
+addons/sale_timesheet/models/project_task.py::- **BLOQUEADO** — su compute (:61-70) busca la última línea vendible del
+addons/sale_timesheet/models/project_task.py::- **BLOQUEADO** — su compute (:90-93) compara ``timesheet_ids.so_line``
+addons/sale_timesheet/models/project_task.py::- BLOQUEADO — ``project.ProjectTask`` de este árbol no declara
+addons/sale_timesheet/models/project_task.py::- BLOQUEADO — el base lo declara ``hr_timesheet`` y no se portó (0 hits
+addons/sale_timesheet/models/project_task.py::- BLOQUEADO — la lista base la declara ``project`` para su portal, que no
+addons/sale_timesheet/models/project_task.py::- BLOQUEADO — ver ``has_multi_sol`` arriba.
+addons/sale_timesheet/models/project_task.py::- BLOQUEADOS — ver ``last_sol_of_customer`` arriba. El segundo además usa
+addons/sale_timesheet/models/res_config_settings.py::help="Timesheets taken when invoicing time spent")``. **BLOQUEADO.**
+addons/sale_timesheet/models/sale_order.py::- **BLOQUEADO** — su compute (:70-73) lee ``project_count``
+addons/sale_timesheet/models/sale_order.py::- BLOQUEADO — el base no existe (0 hits de ``_create_invoices`` en
+addons/sale_timesheet/models/sale_order.py::- BLOQUEADO — engancha el motor de compute de Odoo para disparar la
+addons/sale_timesheet/models/sale_order.py::- BLOQUEADO — su rama entera está condicionada a la clave de contexto
+addons/sale_timesheet/models/sale_order.py::- BLOQUEADO — ver ``show_hours_recorded_button`` arriba.
+addons/sale_timesheet/models/sale_order_line.py::- **BLOQUEADO** — ``selection_add`` sobre un campo de ``sale``
+addons/sale_timesheet/models/sale_order_line.py::- **BLOQUEADO** — redeclaración que sólo estrecha el ``domain``; el campo
+addons/sale_timesheet/models/sale_order_line.py::- **BLOQUEADO** — su compute (:45-50) lee
+addons/sale_timesheet/models/sale_order_line.py::- **BLOQUEADO** — su compute (:52-60) resta ``qty_delivered`` de
+addons/sale_timesheet/models/sale_order_line.py::- BLOQUEADO — necesita ``product_uom_id`` en la línea (0 hits) y las
+addons/sale_timesheet/models/sale_order_line.py::- BLOQUEADO — tres bloqueadores: ``invoice_status``/``qty_to_invoice``
+addons/sale_timesheet/models/sale_order_line.py::- BLOQUEADOS — el base lo declara ``sale_project`` y su puerto aquí es
+addons/sale_timesheet/models/sale_order_line.py::- BLOQUEADOS — ver los campos homónimos.
+addons/sale_timesheet/report/project_report.py::- **BLOQUEADO** por dos piezas: el informe base (arriba) y
+addons/sale_timesheet/report/project_report.py::- **BLOQUEADOS** — los tres son fragmentos de SQL que se concatenan a los
+addons/sale_timesheet/wizard/sale_make_invoice_advance.py::- **BLOQUEADO** por el asistente base **y** por su compute (:20-28), que
+addons/sale_timesheet/wizard/sale_make_invoice_advance.py::- **BLOQUEADO** — tres bloqueadores encadenados: el asistente base;
+addons/sale_timesheet/wizard/sale_make_invoice_advance.py::- **BLOQUEADO** — ver arriba.
+addons/sale_timesheet/wizard/sale_make_invoice_advance.py::- **BLOQUEADOS** por el asistente base. Son dos ``fields.Date`` sin más
+addons/stock/models/stock_lot.py::Campos — 13 PORTADOS · 1 DIVERGENCIA · 0 BLOQUEADOS
+addons/stock/models/stock_lot.py::Métodos — 17 PORTADOS · 7 DIVERGENCIA · 0 BLOQUEADOS
+addons/stock/models/stock_move.py::habría producido una docena de BLOQUEADOS que la ola siguiente tendría que
+addons/stock/models/stock_picking.py::# BLOQUEADO (``_compute_scheduled_date``), ``created_at`` sustituye al
+addons/stock/models/stock_picking.py::(grupo backorder BLOQUEADO); el llamador confirma explícitamente
+addons/stock/models/stock_picking.py::BLOQUEADO.
+addons/stock/models/stock_picking.py::El motor de recálculo condicional vive en el grupo BLOQUEADO
+addons/stock/models/stock_picking.py::``_compute_show_lots_text``, que sigue BLOQUEADO (Grupo D).
+addons/stock/models/stock_picking.py::``scheduled_date``, que sigue BLOQUEADO— y quedó ahí mismo (arriba).
+addons/stock/models/stock_picking.py::acceso. Se retiró antes de cerrar el pase y pasó al grupo BLOQUEADO,
+addons/stock/models/stock_picking.py::el grupo BLOQUEADO (backorder/autoconfirm, ver el docstring de la
+addons/stock/models/stock_picking.py::grupo BLOQUEADO). Habría reventado con ``AttributeError`` en el primer
+src/addons/base/report/report_base_report_irmodulereference.py::"""≙ ``_fields_find`` (``odoo19c: :18-26``) — **BLOQUEADO**.
+src/addons/base/report/report_base_report_irmodulereference.py::- **BLOQUEADO** en ``fields_get``; ver abajo
+src/addons/base/wizard/base_partner_merge.py::(``:240-320``) quedan BLOQUEADOS.** Reasignan los valores por empresa que
+src/addons/base/wizard/base_partner_merge.py::BLOQUEADOS por la tarea **#381** — ver la divergencia 2 del módulo.
+tests/unit/account/test_account_analytic_account.py::``account/models/account_analytic_account.py``) siguen BLOQUEADOS — ver el
+tests/unit/account/test_account_analytic_line.py::"""``create``/``write``/``unlink`` (BLOQUEADO): el campo que
+tests/unit/account/test_account_analytic_line.py::BLOQUEADO: ``account.move.line`` no declara ``journal``."""
+tests/unit/account/test_account_analytic_line.py::``journal``/``_compute_partner_id`` — BLOQUEADO de segundo orden
+tests/unit/account/test_account_analytic_line.py::alcance); ``create``/``write``/``unlink`` — BLOQUEADO (``analytic_
+tests/unit/account/test_report_account_hash_integrity_templates.py::#398, hallazgo H-API-682). El unico metodo esta BLOQUEADO -- ver su
+tests/unit/account/test_report_account_invoice_report.py::"""Los cinco metodos que arman la vista SQL estan BLOQUEADOS -- el
+tests/unit/hr/test_hr_mixin.py::``create``/``write`` quedan BLOQUEADOS en este tramo (ver el docstring del
+tests/unit/stock/test_stock_lot_partner_ids.py::(``_search_partner_ids``). Los tres símbolos quedaban **BLOQUEADOS** en el
+tests/unit/stock/test_stock_picking.py::``_action_done``) queda declarado BLOQUEADO — ver :ref:`h-api-685` y

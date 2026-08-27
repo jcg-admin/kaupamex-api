@@ -91,6 +91,8 @@ class PortalAccountView(APIView):
 
     permission_classes = [IsAuthenticated, HasCapability]
     required_capability = 'account.profile'
+    # ≙ website=True en ``odoo19c: addons/portal/controllers/portal.py:190``
+    is_frontend = True
 
     def _partner_o_404(self, request):
         partner = current_partner(request.user)
@@ -166,6 +168,8 @@ class PortalAddressListView(APIView):
 
     permission_classes = [IsAuthenticated, HasCapability]
     required_capability = 'account.profile'
+    # ≙ website=True en ``odoo19c: addons/portal/controllers/portal.py:219``
+    is_frontend = True
 
     @extend_schema(
         summary='Listar mis direcciones (≙ /my/addresses)',
@@ -198,6 +202,8 @@ class PortalAddressArchiveView(APIView):
 
     permission_classes = [IsAuthenticated, HasCapability]
     required_capability = 'account.profile'
+    # ≙ website=True en ``odoo19c: addons/portal/controllers/portal.py:858``
+    is_frontend = True
 
     @extend_schema(
         summary='Archivar una dirección (≙ /my/address/archive)',
@@ -252,6 +258,8 @@ class PortalSecurityView(APIView):
 
     permission_classes = [IsAuthenticated, HasCapability]
     required_capability = 'account.security'
+    # ≙ website=True en ``odoo19c: addons/portal/controllers/portal.py:871``
+    is_frontend = True
 
     @extend_schema(
         summary='Estado de seguridad de mi cuenta (≙ GET /my/security)',
@@ -287,6 +295,8 @@ class PortalPasswordView(APIView):
 
     permission_classes = [IsAuthenticated, HasCapability]
     required_capability = 'account.password'
+    # ≙ website=True en ``odoo19c: addons/portal/controllers/portal.py:871``
+    is_frontend = True
 
     @extend_schema(
         summary='Cambiar mi contraseña (≙ POST /my/security)',
@@ -354,6 +364,8 @@ class PortalDeactivationView(APIView):
 
     permission_classes = [IsAuthenticated, HasCapability]
     required_capability = 'account.deactivate'
+    # ≙ website=True en ``odoo19c: addons/portal/controllers/portal.py:914``
+    is_frontend = True
 
     @extend_schema(
         summary='Dar de baja mi cuenta (≙ /my/deactivate_account)',

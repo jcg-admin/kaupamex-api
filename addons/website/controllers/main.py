@@ -189,6 +189,9 @@ class PublicStaticPageView(APIView):
 
     permission_classes = [AllowAny]
     serializer_class = PublicStaticPageSerializer
+    # ≙ website=True en ``odoo19c: addons/website/controllers/main.py:344``
+    # (``/website/info`` — página pública de contenido del sitio)
+    is_frontend = True
 
     @extend_schema(summary='Contenido público de página estática (UC-CFG-04)',
                    tags=['config'],

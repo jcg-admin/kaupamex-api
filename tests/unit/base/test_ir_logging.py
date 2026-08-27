@@ -11,16 +11,19 @@ el mapeo de campos completo). Verifica:
   modelo, no en el ``AppLog`` previo.
 
 El contrato append-only detallado (INSERT permitido / UPDATE-DELETE de
-instancia bloqueados / bulk permitido) para ``RequestLog`` vive en
-``tests/unit/core/test_log_immutability.py``; aquí se cubre el mismo contrato
-para ``IrLogging``.
+instancia bloqueados / bulk permitido) se cubre aquí. Tenía un gemelo para
+``RequestLog`` en ``tests/unit/core/test_log_immutability.py``, retirado con
+el modelo (DEC-AF-11).
 
 Toca DB → django_db.
 """
 import logging
+from datetime import timedelta
 
 import pytest
+from django.utils import timezone
 
+from addons.base import exception_handling
 from addons.base.models import AppendOnlyModel, IrLogging
 from tools.logging_context import clear_correlation_id
 from tools.logging_handlers import DatabaseLogHandler
@@ -128,3 +131,83 @@ def test_database_log_handler_puebla_call_site(logger):
     assert row.path  # LogRecord.pathname del propio test
     assert row.func  # LogRecord.funcName
     assert row.line and row.line != '0'
+
+
+# --- Retención: la tercera ventana, la del 4xx (tarea #616) ----------------
+#
+# DEC-LOG-05 dio 30 días al 4xx cuando vivía en ``RequestLog``. DEC-AF-11
+# retiró ese modelo y el 4xx pasó a ser un ``WARNING`` de ``ir.logging``, que
+# se conserva 90. Estos casos fijan que la ventana volvió a 30 **sin** tocar
+# la de los demás WARNING.
+
+def _age(pk, days):
+    IrLogging.objects.filter(pk=pk).update(
+        created_at=timezone.now() - timedelta(days=days))
+
+
+def _make(name, level, days):
+    row = IrLogging.objects.create(name=name, level=level, message='x')
+    _age(row.pk, days)
+    return row
+
+
+def test_the_4xx_is_purged_at_30_days():
+    row = _make('django.request', IrLogging.LEVEL_WARNING, 31)
+    IrLogging._purge_expired()
+    assert not IrLogging.objects.filter(pk=row.pk).exists()
+
+
+def test_the_4xx_survives_before_30_days():
+    row = _make('django.request', IrLogging.LEVEL_WARNING, 29)
+    IrLogging._purge_expired()
+    assert IrLogging.objects.filter(pk=row.pk).exists()
+
+
+def test_a_warning_that_is_not_4xx_keeps_its_90_days():
+    """El caso que separa las dos ventanas: mismo nivel, otro logger."""
+    row = _make('addons.sale.services', IrLogging.LEVEL_WARNING, 31)
+    IrLogging._purge_expired()
+    assert IrLogging.objects.filter(pk=row.pk).exists()
+    _age(row.pk, 91)
+    IrLogging._purge_expired()
+    assert not IrLogging.objects.filter(pk=row.pk).exists()
+
+
+def test_a_django_request_error_stays_out_of_the_4xx_window():
+    """Un 5xx emite ERROR por el mismo logger: la clase alta lo conserva."""
+    row = _make('django.request', IrLogging.LEVEL_ERROR, 31)
+    IrLogging._purge_expired()
+    assert IrLogging.objects.filter(pk=row.pk).exists()
+
+
+def test_the_three_sets_are_disjoint_in_the_count():
+    """Un 4xx de más de 90 días se cuenta UNA vez, no dos.
+
+    Sin el ``.exclude(cuatro_xx)`` del conjunto alto, el ``dry_run`` —cuyo
+    único trabajo es decir cuántas filas caerían— publicaría 2 por 1 fila.
+    """
+    _make('django.request', IrLogging.LEVEL_WARNING, 100)
+    conteos = IrLogging._purge_expired(dry_run=True)
+    assert conteos['IrLogging 4xx'] == 1
+    assert conteos['IrLogging WARNING/ERROR'] == 0
+    assert IrLogging.objects.count() == 1   # dry_run no borra
+
+
+def test_the_4xx_discriminator_is_still_exact():
+    """Vigila la premisa: WARNING sobre ``django.request`` implica 4xx.
+
+    La medición está en el bloque ``_ACCESS_LOGGER`` del modelo: en Django
+    6.0.5 los emisores de ese canal son ``log_response`` (4xx→WARNING,
+    5xx→ERROR), el ``UnicodeDecodeError`` de ASGI (status_code=400) y dos
+    ``logger.debug`` de los handlers. Un quinto emisor a WARNING metería su
+    fila en la ventana de 30 días **en silencio**.
+
+    Este caso no puede detectar ese quinto emisor —no hay forma sintáctica de
+    hacerlo— pero sí fija el nombre del canal, que es de dónde cuelga toda la
+    política. Si alguien lo renombra, esto falla en vez de purgar mal.
+    """
+    assert IrLogging._ACCESS_LOGGER == 'django.request'
+    assert IrLogging.ACCESS_LEVEL_DAYS == 30
+    assert IrLogging.HIGH_LEVEL_DAYS == 90
+    # El logger que nuestro propio handler usa, leído del módulo que emite.
+    assert exception_handling._logger.name == IrLogging._ACCESS_LOGGER

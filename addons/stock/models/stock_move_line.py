@@ -193,6 +193,17 @@ con ``res_model``/``views``/``res_id``—, que es el contrato de datos; lo que n
 existe aquí es el cliente que lo consume. Mismo criterio que
 ``stock_picking.py`` ya usa con ``_action_by_xmlid``.
 
+**D-3 — ``_compute_picking_type_id`` → property ``picking_type`` (:483)**
+(:ref:`h-api-680`). El campo de la referencia es ``picking_type_id``; este
+árbol retira el sufijo ``_id`` de todo FK, así que la clave que
+``check_porte_completo.py`` deriva de la property (``_compute_picking_type``)
+nunca coincide con el nombre real de la referencia
+(``_compute_picking_type_id``), y el gate lo reporta ausente aunque el
+docstring de ``picking_type`` (:484) ya cite el símbolo. Mismo mecanismo que
+``stock_package.py::StockPackage`` y
+``stock_orderpoint.py::StockWarehouseOrderpoint`` ya declaran para el mismo
+patrón.
+
 Primitivas del proyecto, no Django crudo
 ==========================================
 
@@ -659,13 +670,19 @@ class StockMoveLine(TimeStampedModel):
                 'picking').first()
         albaran_previo = origen.picking if origen is not None else None
 
+        # La rama "el albarán cambió" sólo aplica a líneas EXISTENTES: en una
+        # nueva no hay ``_origin`` y dispararía siempre, pisando el valor que
+        # el llamador fijó explícitamente — la fuente sólo rellena lo no
+        # provisto (precompute) y resincroniza al cambiar el albarán.
         if (self.location_id is None
-                or getattr(albaran_previo, 'location_id', None) != del_albaran):
+                or (origen is not None
+                    and getattr(albaran_previo, 'location_id', None) != del_albaran)):
             nueva = del_movimiento or del_albaran
             if nueva is not None:
                 self.location_id = nueva
         if (self.location_dest_id is None
-                or getattr(albaran_previo, 'location_dest_id', None) != dest_albaran):
+                or (origen is not None
+                    and getattr(albaran_previo, 'location_dest_id', None) != dest_albaran)):
             nueva = dest_movimiento or dest_albaran
             if nueva is not None:
                 self.location_dest_id = nueva
@@ -2124,7 +2141,7 @@ class StockMoveLine(TimeStampedModel):
         ignoran las no tomadas — el capturista ya declaró qué va.
         """
         lines = list(lines)
-        tipos = {l.picking_type_id for l in lines if l.picking_type is not None}
+        tipos = {l.picking_type.pk for l in lines if l.picking_type is not None}
         if len(tipos) > 1:
             raise UserError(_('You cannot pack products into the same package when '
                               'they are from different transfers with different '
@@ -2254,7 +2271,7 @@ class StockMoveLine(TimeStampedModel):
         Con más de un tipo de operación en juego no hay respuesta única, así
         que la referencia responde que no.
         """
-        tipos = {l.picking_type_id for l in lines if l.picking_type is not None}
+        tipos = {l.picking_type.pk for l in lines if l.picking_type is not None}
         if len(tipos) != 1:
             return False
         tipo = next(l.picking_type for l in lines if l.picking_type is not None)

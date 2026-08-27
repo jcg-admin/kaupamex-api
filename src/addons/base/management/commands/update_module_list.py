@@ -16,6 +16,13 @@ declara ``installable: False``, ``uninstallable``. Es la diferencia entre
 registrar un hecho y pretender gobernarlo: el comando **describe** el árbol, no
 lo instala.
 
+**El recorrido usa las raíces canónicas, no una constante propia.** Los addons
+viven en **dos** raíces —``src/addons`` (sólo ``base``) y ``<repo>/addons`` (los
+90 de comunidad)— y ``modules.module.ADDONS_PATHS`` es quien las declara. Este
+comando tuvo una constante propia (``BASE_DIR / 'addons'``) que resolvía sólo a
+la primera: registraba **1** módulo de 94 y lo reportaba como éxito, mientras la
+línea siguiente publicaba **94** desde otro instrumento. Ver :ref:`h-api-649`.
+
 ``auto_install``: la referencia instala, aquí se verifica
 ----------------------------------------------------------
 
@@ -45,8 +52,6 @@ Uso::
     python manage.py update_module_list           # aplica
     python manage.py update_module_list --dry-run # sólo reporta
 """
-import os
-
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -56,9 +61,7 @@ from addons.authz.declaration import (
 )
 from addons.base.models import IrModule, IrModuleDependency
 from modules import ModuleGraph
-from modules.module import get_modules
-
-ADDONS_ROOT = os.path.join(settings.BASE_DIR, 'addons')
+from modules.module import ADDONS_PATHS, get_module_path, get_modules
 
 
 def installed_addon_names():
@@ -91,9 +94,9 @@ class Command(BaseCommand):
         updated = added = 0
         without_manifest = []
 
-        for addon in sorted(os.listdir(ADDONS_ROOT)):
-            addon_dir = os.path.join(ADDONS_ROOT, addon)
-            if not os.path.isdir(addon_dir) or addon.startswith('__'):
+        for addon in get_modules():
+            addon_dir = get_module_path(addon)
+            if addon_dir is None:
                 continue
 
             manifest = read_manifest(addon_dir)
@@ -190,9 +193,17 @@ class Command(BaseCommand):
             module.dependencies.filter(name__in=existing - declared).delete()
 
     def _report(self, added, updated, without_manifest, dry_run):
+        """El conteo va con su denominador — sin él, dos instrumentos mienten igual.
+
+        ``h-api-649``: la salida decía ``1 añadidos`` y, dos líneas abajo,
+        ``94 addon(s) … en el árbol``. Las dos cifras eran correctas y medían
+        universos distintos; nada en el reporte lo delataba.
+        """
         prefix = '[dry-run] ' if dry_run else ''
+        alcance = ', '.join(str(root) for root in ADDONS_PATHS if root.is_dir())
         self.stdout.write(self.style.SUCCESS(
-            f'{prefix}Catálogo técnico: {added} añadidos, {updated} actualizados.'
+            f'{prefix}Catálogo técnico: {added} añadidos, {updated} actualizados '
+            f'(alcance medido: {len(get_modules())} addon(s) en {alcance}).'
         ))
         if without_manifest:
             self.stdout.write(self.style.WARNING(

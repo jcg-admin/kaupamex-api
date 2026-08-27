@@ -36,9 +36,30 @@ def test_the_foreign_keys_pointing_at_a_table_are_discovered():
 
 
 def test_a_column_without_unique_or_check_constraint_is_reported_as_free():
-    """≙ ``_has_check_or_unique_constraint`` (``:104-117``)."""
-    # ``res_partner.name`` no lleva UNIQUE ni CHECK.
-    assert PartnerMerge._has_check_or_unique_constraint('res_partner', 'name') is False
+    """≙ ``_has_check_or_unique_constraint`` (``:104-117``).
+
+    ``image_1920`` no lleva UNIQUE ni CHECK — verificado contra ``pg_constraint``
+    sobre ``res_partner``, no elegido de memoria.
+
+    Antes este caso usaba ``name``, y pasaba **sólo porque el porte estaba
+    incompleto**: al portar ``_check_name`` a ``Meta.constraints`` (H-API-675),
+    ``name`` pasó a estar cubierto por un CHECK y el test empezó a fallar. La
+    respuesta correcta del método es ``True`` — en la fuente, con
+    ``_check_name`` declarado, también lo sería. El test afirmaba un estado que
+    sólo existía por lo que faltaba.
+    """
+    assert PartnerMerge._has_check_or_unique_constraint(
+        'res_partner', 'image_1920') is False
+
+
+def test_the_name_column_is_reported_as_constrained_after_the_port():
+    """El reverso: ``name`` SÍ está cubierto desde que ``_check_name`` existe.
+
+    Es el control positivo del método — un check que sólo supiera decir "libre"
+    no distinguiría una columna sin restricción de una consulta rota.
+    """
+    assert PartnerMerge._has_check_or_unique_constraint(
+        'res_partner', 'name') is True
 
 
 # --- El orden de destino (``_get_ordered_partner``) ---

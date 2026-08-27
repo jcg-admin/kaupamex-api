@@ -17,7 +17,10 @@ class TestDefaultSearchDomainVals:
 
     def test_no_partner_category_key(self):
         vals = AccountAnalyticDistributionModel._get_default_search_domain_vals()
-        assert vals == {'company_id': None, 'partner_id': None}
+        # account extiende el dict con product/product_categ (combine |,
+        # account_analytic_distribution_model.py) — fiel a odoo19c: :81-84.
+        assert vals == {'company_id': None, 'partner_id': None,
+                        'product': None, 'product_categ': None}
         assert 'partner_category_id' not in vals
 
 

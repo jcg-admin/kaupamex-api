@@ -53,8 +53,9 @@ def test_abstractos_ya_no_se_definen_en_core():
     definen ni se importan en ``core.models``.
 
     (Slice 3 de ``adoptar-arquitectura-server-service-odoo``, DEC-08: con
-    ``RequestLog`` movido a ``addons.observability``, ``core.models`` quedó
-    sin modelos y sin necesidad de importar ``AppendOnlyModel``. ``AppLog``
+    ``RequestLog`` movido a ``addons.observability`` —y de ahí retirado por
+    DEC-AF-11—, ``core.models`` quedó sin modelos y sin necesidad de importar
+    ``AppendOnlyModel``. ``AppLog``
     ya había migrado a ``IrLogging`` en ``addons.base`` en el slice 2. Ambos
     mixins/modelos se definen en ``addons.base``.)
     """

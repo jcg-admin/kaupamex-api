@@ -284,7 +284,9 @@ def _client_ip(request):
     La fuente lee ``request.httprequest.remote_addr``
     (``odoo19c: odoo/http.py:1318``), que werkzeug ya resuelve tras su
     ``ProxyFix``. Aquí el equivalente es leer ``X-Forwarded-For`` primero, el
-    mismo criterio que ``observability.middleware`` usa para ``RequestLog``.
+    mismo criterio que usaba ``observability.middleware`` para ``RequestLog``
+    (retirado por DEC-AF-11; el criterio sobrevive aquí y en
+    ``observability.audit.extract_ip``).
     """
     xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
     if xff:

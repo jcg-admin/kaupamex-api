@@ -50,9 +50,30 @@ Referencia                       Aquí
 Cuatro divergencias declaradas
 ================================
 
-1. **Sin parámetro ``db``.** La referencia lo recibe y valida contra
-   ``http.db_filter`` porque un servidor sirve N bases. Aquí la base es una y
-   la fija el despliegue; aceptarlo sería superficie sin función.
+1. **Sin parámetro ``db`` — bloqueado, NO inaplicable.** La referencia lo
+   recibe y valida contra ``http.db_filter`` porque un servidor sirve N bases.
+
+   Esta viñeta decía *"aquí la base es una y la fija el despliegue; aceptarlo
+   sería superficie sin función"*, y las dos mitades eran falsas
+   (:ref:`h-api-781`). **Este árbol también sirve N bases:** declara
+   ``DATABASE_ROUTERS = ['orm.routers.CompanyDatabaseRouter']``
+   (``src/config/settings/base.py:319``), puebla aliases ``company_<N>_db``
+   con ``install_company_aliases`` (``:314``), sabe crearlas y migrarlas
+   (``company_create`` / ``company_migrate_all``) y su cron las recorre con
+   ``list_company_db_names``. Y el mecanismo de la referencia **está portado
+   fielmente**: ``service.db.db_filter`` (``:145``, con ``%h``/``%d``,
+   normalización de puerto y ``www.``), ``db_list_for_host`` (≙ ``db_list``)
+   y ``db_monodb``, con sus pruebas en
+   ``tests/unit/service/test_db_resolution.py``.
+
+   Lo que falta es **otra cosa, y es lo que bloquea al parámetro**: nadie
+   resuelve la base **por petición**. Medido sobre ``src/`` y ``addons/``,
+   excluyendo ``service/db.py`` y los tests, ``db_list_for_host`` y
+   ``db_monodb`` tienen **0 consumidores**; hoy la base la elige el router por
+   app/modelo, no el host. Aceptar un ``db`` sin ese resolutor sería aceptar un
+   valor que nada consume — que es un defecto distinto del que la viñeta
+   afirmaba. Se repone cuando el resolutor exista. Sucesor: **#736**;
+   iniciativa ``implementar-aislamiento-multi-db-per-company``.
 2. **``logout`` no redirige.** La referencia devuelve un 303 a ``/odoo``
    porque su cliente es una página. El nuestro es un cliente REST: 204.
 3. **``destroy`` y ``logout`` hacen lo mismo.** En la referencia difieren en
@@ -85,14 +106,43 @@ proveedor externo (Google, etc.) — no el de *enlazar* la sesión ya abierta a
 un backend SaaS ajeno. Divergencia de mecanismo declarada (desenlace 1 de
 ``porte-completo-no-parcial.md``), no omisión silenciosa.
 
-Lo que esta adaptación NO cubre
-================================
+El segundo factor — la sesión PARCIAL
+======================================
 
-El segundo factor. La referencia difiere la finalización de la sesión cuando
-``user._mfa_url()`` devuelve algo (``odoo19c: odoo/http.py:1256-1258``): fija
-``pre_uid`` y espera al segundo factor. Aquí ``authz_totp`` existe pero sólo
-expone gestión (alta, confirmación, baja), no un corte en el login. Cerrar esa
-brecha es trabajo propio y se declara, no se simula.
+La referencia difiere la finalización de la sesión cuando ``user._mfa_url()``
+devuelve algo (``odoo19c: odoo/http.py:1250-1258``)::
+
+    self.uid = None
+    self['pre_login'] = credential['login']
+    self['pre_uid'] = pre_uid
+    # if 2FA is disabled we finalize immediately
+    if auth_info.get('mfa') == 'skip' or not user._mfa_url():
+        self.finalize(env)
+
+Eso se porta verbatim en ``session_authenticate``: con segundo factor activo la
+sesión queda **parcial** —dos claves y ningún ``login()``— y quien la cierra es
+el segundo paso, que vive en el addon del método (``authz_totp``), no aquí.
+
+**Por qué el corte vive en ``web`` y el segundo paso no.** Es el reparto de la
+referencia: el corte está en ``odoo/http.py``, su núcleo, y consulta
+``_mfa_url()`` sin importar ningún addon de 2FA; el segundo paso está en
+``auth_totp/controllers/home.py``, que sí conoce el mecanismo. Aquí
+``_mfa_url()`` lo declara ``base`` (``res_users.py:714``, el eslabón que
+devuelve ``None``), así que este módulo no gana dependencia alguna: pregunta
+por la cadena y no sabe quién la contesta.
+
+Por la **misma** cadena sale el aviso de dispositivo nuevo
+(``_notify_security_new_connection``, ≙ ``auth_totp_mail``): son dos llamadas
+seguidas a dos eslabones vacíos de ``base``, y ninguna de las dos le dice a
+este módulo qué addon está detrás.
+
+Divergencia de forma, no de mecanismo: la referencia **redirige** (303) a
+``_mfa_url()`` porque su cliente es una página. El nuestro es un cliente REST,
+así que devuelve **401** con ``codigo_error: MFA_REQUIRED`` y la url en el
+cuerpo. El 401 es el código correcto y no el 403: la credencial se aceptó pero
+la sesión **no** está abierta — que es exactamente lo que ``self.uid = None``
+declara. Contrastar con ``CHECK_IDENTITY_REQUIRED`` de ``authz_timeout``, que
+sí es 403 porque ahí la sesión existe y sólo hay que reconfirmarla.
 """
 from django.contrib.auth import authenticate, login, logout
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -109,13 +159,67 @@ from addons.web.controllers.serializers import (
 
 _MODULES_RESPONSE = OpenApiResponse(description='["addon_a", "addon_b", ...]')
 
+#: Claves de la sesión **parcial** — ≙ ``pre_login``/``pre_uid`` de
+#: ``odoo19c: odoo/http.py:1252-1253``. Se conservan sus nombres porque son el
+#: contrato entre el corte (aquí) y el segundo paso (el addon del método), que
+#: en la referencia son dos archivos igual de distantes.
+PRE_LOGIN_KEY = 'pre_login'
+PRE_UID_KEY = 'pre_uid'
 
-def _session_info(user):
+#: Tercera clave, **sin contraparte en la referencia**, y la razón es del
+#: stack: allá `finalize()` sólo asigna `uid` porque no hay backends
+#: enchufables. Aquí `login()` exige saber **qué** backend autenticó, y el
+#: segundo paso ya no lo tiene: recupera al usuario del ORM, no de
+#: `authenticate()`, que es quien deja `user.backend` puesto.
+#:
+#: Hardcodear `ModelBackend` sería un fallo silencioso para el resto: los
+#: cuatro backends declarados (`AUTHENTICATION_BACKENDS`) incluyen LDAP, y un
+#: usuario de LDAP quedaría marcado como autenticado por contraseña local.
+#: Así que el primer paso anota cuál fue, y el segundo lo reusa.
+PRE_BACKEND_KEY = 'pre_backend'
+
+
+#: Extensiones del cuerpo de sesión — ≙ la cadena de ``super()`` que la
+#: referencia obtiene con ``_inherit = "ir.http"`` sobre ``session_info()``.
+#:
+#: Allá cada addon que quiera añadir una clave declara su propio
+#: ``session_info()`` y llama a ``super()``; el ORM compone la cadena por
+#: herencia. Aquí el productor es una **función de módulo**, no un método de
+#: modelo, así que no hay MRO donde encadenar: la lista lo sustituye, y el
+#: orden de registro cumple el papel del orden de herencia.
+#:
+#: Cada elemento recibe ``(user, cuerpo)`` y devuelve el cuerpo — la misma
+#: firma de ida y vuelta que tiene un ``super()`` de la fuente. Registrar es
+#: cosa del ``ready()`` del addon que extiende, no de este módulo: ``web`` no
+#: conoce a sus extensores, igual que ``ir.http`` no conoce quién lo hereda.
+_SESSION_INFO_EXTENSIONS = []
+
+
+def register_session_info_extension(extension):
+    """Añade un extensor al cuerpo de sesión — ≙ heredar de ``ir.http``.
+
+    Idempotente: un ``ready()`` que se ejecute dos veces —lo hace en algunas
+    configuraciones de Django— no debe duplicar la clave ni el trabajo.
+    """
+    if extension not in _SESSION_INFO_EXTENSIONS:
+        _SESSION_INFO_EXTENSIONS.append(extension)
+    return extension
+
+
+def build_session_info(user):
     """≙ ``ir.http.session_info()`` de la referencia, recortado a lo publicado.
 
     La referencia devuelve además la versión del servidor, los módulos
     instalados y la configuración del cliente web. Nada de eso tiene consumidor
     en un cliente REST, así que no se emite.
+
+    **Es público, y el nombre no es el de la referencia a propósito.** Allá el
+    símbolo es ``session_info()`` sobre ``ir.http`` —público— pero aquí ese
+    nombre ya lo ocupa la **vista** de más abajo, así que el productor del
+    cuerpo se llama distinto para no colisionar. Se publica porque el segundo
+    paso del login (``authz_totp``) cierra la sesión parcial y tiene que
+    devolver **este mismo cuerpo**: quien recibió el 401 ``MFA_REQUIRED`` está
+    a mitad del flujo de ``session_authenticate`` y espera su respuesta.
     """
     # ``partner`` es obligatorio en el modelo (la referencia no admite usuario
     # sin partner), así que no se guarda contra su ausencia.
@@ -125,12 +229,18 @@ def _session_info(user):
     # declara ``is_superuser``/``is_staff``. En la referencia el equivalente es
     # ``user._is_system()`` (pertenencia a ``base.group_system``) —también una
     # pertenencia, no una columna—, así que la correspondencia es directa.
-    return {
+    cuerpo = {
         'uid': user.pk,
         'login': user.login,
         'name': user.partner.name,
         'is_system': is_superadmin(user),
     }
+    # ≙ el tramo de `super()` que cada addon heredero añade sobre el cuerpo
+    # base. Sin esto, un addon que declare su extensión la deja sin llamador:
+    # el símbolo existe, nunca corre, y nada lo delata.
+    for extension in _SESSION_INFO_EXTENSIONS:
+        cuerpo = extension(user, cuerpo)
+    return cuerpo
 
 
 @extend_schema(
@@ -140,7 +250,8 @@ def _session_info(user):
     responses={
         200: SessionInfoSerializer,
         400: OpenApiResponse(description='CREDENTIAL_REQUIRED'),
-        401: OpenApiResponse(description='INVALID_CREDENTIAL'),
+        401: OpenApiResponse(
+            description='INVALID_CREDENTIAL · MFA_REQUIRED (con ``mfa_url``)'),
     },
     auth=[],
 )
@@ -152,6 +263,9 @@ def session_authenticate(request):
     ``login()`` de Django cicla la clave de sesión, que es lo que la referencia
     pide con ``should_rotate`` (``odoo19c: odoo/http.py:1293``): una sesión
     abierta nunca reusa el identificador de la anónima previa.
+
+    Con segundo factor activo la sesión queda **parcial** y ``login()`` no se
+    llama — ver "El segundo factor" en la cabecera del módulo.
     """
     serializer = CredentialSerializer(data=request.data)
     if not serializer.is_valid():
@@ -173,8 +287,30 @@ def session_authenticate(request):
              'detail': 'Credencial inválida.'},
             status=status.HTTP_401_UNAUTHORIZED)
 
+    # ≙ `auth_totp_mail/models/res_users.py:44-48` — el aviso de conexión desde
+    # un dispositivo nuevo. La fuente lo cuelga de `authenticate`, así que sale
+    # **aquí**, con la credencial ya aceptada y ANTES de que el segundo factor
+    # responda: quien tiene la contraseña y no el segundo factor también lo
+    # dispara, que es de quien protege al titular. Tercer eslabón de la misma
+    # cadena vacía que `_mfa_url`; este módulo tampoco sabe quién lo contesta.
+    user._notify_security_new_connection(request)
+
+    # ≙ `odoo/http.py:1250-1258` — la sesión queda parcial mientras el segundo
+    # factor no responda. `_mfa_url()` es la cadena que `base` declara vacía y
+    # cada addon de 2FA extiende; este módulo la consulta sin conocer a ninguno.
+    mfa_url = user._mfa_url()
+    if mfa_url is not None:
+        request.session[PRE_LOGIN_KEY] = user.login
+        request.session[PRE_UID_KEY] = user.pk
+        request.session[PRE_BACKEND_KEY] = getattr(user, 'backend', None)
+        return Response(
+            {'codigo_error': 'MFA_REQUIRED',
+             'detail': 'Se requiere el segundo factor.',
+             'mfa_url': mfa_url},
+            status=status.HTTP_401_UNAUTHORIZED)
+
     login(request, user)
-    return Response(_session_info(user))
+    return Response(build_session_info(user))
 
 
 @extend_schema(
@@ -186,7 +322,7 @@ def session_authenticate(request):
 @permission_classes([IsAuthenticated])
 def session_info(request):
     """≙ ``/web/session/get_session_info``."""
-    return Response(_session_info(request.user))
+    return Response(build_session_info(request.user))
 
 
 @extend_schema(

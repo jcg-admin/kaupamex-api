@@ -58,6 +58,12 @@ reimplementa el contrato de auth a mano (U-D puro, T-203) para no arrastrar
 vive en ``authz`` por capacidad (DEC-11), y un flag de superusuario saltaría
 ese modelo. Los *hashers* de Django sí se usan, como librería.
 """
+import binascii
+import logging
+import os
+from datetime import timedelta
+
+import api
 import fields
 import models
 
@@ -65,17 +71,35 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import hashers
 from django.core.exceptions import ValidationError
+from django.db.models import F
+from django.db.models.functions import Length
+from django.db.models.lookups import Exact
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
 from addons.base.models import signals
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from exceptions import AccessDenied, AccessError, UserError
+from orm.environments import get_current_user, is_su
+
+#: Registro del bloque de claves de API — ≙ el ``_logger`` de módulo que la
+#: referencia declara en la cabecera de ``res_users.py``.
+_apikeys_logger = logging.getLogger(__name__)
 
 # Sal del HMAC de sesión. Literal de Django (``AbstractBaseUser``): cambiarlo
 # invalidaría toda sesión viva, así que se replica verbatim.
 _SESSION_AUTH_KEY_SALT = (
     'django.contrib.auth.models.AbstractBaseUser.get_session_auth_hash'
 )
+
+#: El grupo "funciones técnicas". La referencia lo hace efectivo sólo en modo
+#: depuración (``res_users.py:1080-1082``); aquí no hay tal modo — ver
+#: :meth:`ResUsers.has_group`.
+GROUP_NO_ONE_XMLID = 'base.group_no_one'
+
+#: El grupo de usuario interno. Es el que la guarda de :meth:`ResUsers.has_group`
+#: exige a quien pregunta por los grupos de otro.
+GROUP_USER_XMLID = 'base.group_user'
 
 
 class ResUsersManager(models.Manager):
@@ -184,7 +208,39 @@ class ResUsers(TimeStampedModel):
     cambia la autorización: este árbol sigue autorizando por **capacidad**
     (DEC-11, ``HasCapability`` fail-closed) sobre ``authz``; el re-apuntado de
     los consumidores es una decisión de producto aparte.
+
+    Los cinco atributos de clase (H-API-618, tarea #385)
+    -----------------------------------------------------
+
+    La fuente los declara en ``:163-167``; aquí van los cinco, con su forma
+    Django derivada al lado cuando existe:
+
+    - ``_inherits`` — el destino de la delegación. **El mecanismo ya estaba**
+      (``orm/inherits.py``, tarea #88, aplicado en ``BaseConfig.ready()``); lo
+      que faltaba era la declaración, que es de donde ese cableado ahora lee su
+      par delegado→FK en vez de tenerlo escrito a mano. El valor de la FK es
+      ``partner``, no ``partner_id``: este árbol suprime el sufijo ``_id``.
+    - ``_order = 'name, login'`` → ``Meta.ordering = ['partner__name',
+      'login']``. ``name`` **no es columna** de ``res_users``: la fuente lo
+      obtiene del partner por la misma delegación, y aquí eso es el lookup de
+      la FK. Antes decía ``['login']`` — divergencia silenciosa, ahora cerrada.
+    - ``_allow_sudo_commands = False`` — la fuente lo declara explícito: este
+      modelo **no** admite comandos con privilegio.
+    - ``_name`` y ``_description`` — verbatim; ``_description`` convive con
+      ``Meta.verbose_name``, no lo sustituye.
+
+    **El objeto de tabla ``_login_key``** (``UNIQUE (login)``, ``:274``) ya
+    existe y con el nombre de la referencia: ``login`` se declara
+    ``unique=True`` y PostgreSQL nombra el constraint ``res_users_login_key``
+    — verificado con ``pg_constraint``. No hace falta un ``Meta.constraints``
+    para renombrarlo.
     """
+
+    _name                 = 'res.users'
+    _description          = 'User'
+    _inherits             = {'res.partner': 'partner'}
+    _order                = 'name, login'
+    _allow_sudo_commands  = False
 
     # Causas distintas de ``active=False`` (UC-AUTH-01 Alt-A, UC-AUTH-13/16).
     # No están en la referencia: allí ``active`` es un booleano sin motivo.
@@ -251,7 +307,9 @@ class ResUsers(TimeStampedModel):
 
     class Meta:
         db_table            = 'res_users'
-        ordering            = ['login']
+        # Derivado de ``_order = 'name, login'``: ``name`` vive en el partner
+        # delegado, así que aquí es el lookup de la FK.
+        ordering            = ['partner__name', 'login']
         verbose_name        = 'Usuario'
         verbose_name_plural = 'Usuarios'
 
@@ -315,6 +373,71 @@ class ResUsers(TimeStampedModel):
 
     def has_usable_password(self):
         return hashers.is_password_usable(self.password)
+
+    def _check_credentials(self, credential, env):
+        """≙ ``_check_credentials`` (``odoo19c: res_users.py:312-405``).
+
+        El eslabón **terminal** de la cadena de verificación de credenciales:
+        atiende ``type == 'password'`` y **rechaza** cualquier otro tipo. Los
+        addons de la familia cuelgan los suyos encima con ``chain_method``,
+        que es como este árbol materializa el ``super()`` de la referencia
+        (``authz_totp`` → ``totp``, ``authz_totp_mail`` → ``totp_mail``,
+        ``authz_passkey`` → ``webauthn``).
+
+        **La dirección se invierte y el efecto es el mismo.** La fuente
+        declara al revés —cada addon mira su tipo y llama a ``super()``, que
+        termina aquí— y ``chain_method`` construye la misma pila desde el otro
+        extremo: el eslabón instalado **más tarde** corre primero, devuelve
+        ``None`` si el tipo no es suyo, y el relevo por defecto invoca al
+        anterior. Este método es el último de esa cadena, así que su rechazo es
+        el de la fuente (``:352-353``) y no relevo alguno.
+
+        Sin esa distinción —``None`` es «no es mi tipo», ``AccessDenied`` es
+        «es mío y está mal»— el despacho no puede separar las dos, que es
+        exactamente el defecto que la orquestación a mano tenía (#722).
+
+        **Divergencia declarada — la rama no interactiva.** La fuente, cuando
+        ``env['interactive']`` es falso, acepta además una clave de API
+        (``res.users.apikeys._check_credentials(scope='rpc', key=…)``) y
+        consulta ``_rpc_api_keys_only`` para negar la contraseña cuando hay
+        2FA. Aquí esa rama **no se porta**, por la misma razón medida con que
+        ``authz_totp`` no portó ``_rpc_api_keys_only``: el canal de claves de
+        API para integración externa no está construido, y una guarda que
+        niega el acceso a un canal inexistente no niega nada. Se porta cuando
+        exista el canal. Sucesor: **#490**.
+
+        **Divergencia de mecanismo — el rehash.** La fuente hace
+        ``verify_and_update`` y, si el algoritmo cambió, reescribe el hash y
+        renueva el token de sesión (``:365-374``). Aquí lo cubre
+        ``AbstractBaseUser.check_password``, que ya reescribe el hash por su
+        ``setter``; el token de sesión de Django no se deriva de la contraseña,
+        así que no hay nada que renovar.
+
+        :returns: ``auth_info`` — ``{'uid', 'auth_method', 'mfa'}``. ``mfa``
+            vale ``'skip'`` (el método ya cuenta como los dos factores),
+            ``'default'`` (delegar en el segundo factor) o ``'enforce'``.
+        """
+        # ≙ ``:351-353`` verbatim: el tipo ajeno y la contraseña vacía son el
+        # mismo rechazo. Este eslabón es el último, así que aquí no hay relevo.
+        if not (credential.get('type') == 'password'
+                and credential.get('password')):
+            raise AccessDenied()
+
+        env = env or {}
+        if 'interactive' not in env:
+            # ≙ el aviso de ``:357-361``: sin la clave se asume interactivo.
+            _logger.warning(
+                "_check_credentials sin la clave 'interactive'; se asume "
+                'login interactivo. Revisar llamadores y extensiones.'
+            )
+
+        if not self.check_password(credential['password']):
+            raise AccessDenied()
+        return {
+            'uid': self.pk,
+            'auth_method': 'password',
+            'mfa': 'default',
+        }
 
     def get_session_auth_hash(self):
         """HMAC del hash de password: cambiarlo invalida las sesiones vivas."""
@@ -404,6 +527,191 @@ class ResUsers(TimeStampedModel):
             'active', 'deactivated_reason', 'deactivated_at', 'updated_at',
         ])
 
+    # --- Pertenencia a grupo por identificador externo (≙ :1034-1096) ---
+    #
+    # La referencia resuelve el xmlid contra
+    # ``res.groups._get_group_definitions().get_id(...)``, una caché del grafo
+    # de grupos que este árbol no tiene. Aquí la resolución va por
+    # ``ir.model.data`` —el mismo camino que ``env.ref`` toma allá— y la
+    # clausura transitiva sale de ``ResGroups.all_implied_by_ids``, que ya
+    # estaba portada.
+    #
+    # El puente entre ambas es una identidad, no una aproximación: la fuente
+    # pregunta ``group_id in user.all_group_ids`` con
+    # ``all_group_ids = group_ids.all_implied_ids`` (``:447-449``), es decir
+    # «¿algún grupo mío implica a G?». Leída desde G, esa misma arista es
+    # ``G.all_implied_by_ids``. Es exactamente el cómputo que
+    # ``ResGroups.all_user_ids`` ya hacía en este árbol, visto desde el
+    # usuario en vez de desde el grupo.
+    #
+    # ``ResGroups`` se resuelve por el registro de apps y no por import:
+    # ``res_groups.py`` importa ``ResUsers`` para declarar su M2M, así que un
+    # import en esta dirección cerraría el ciclo. Mismo criterio —y mismo
+    # mecanismo— que ``_partner_model()`` de arriba.
+
+    @property
+    def all_group_ids(self):
+        """≙ ``all_group_ids`` (``:258-259``) — los grupos del usuario, cerrados
+        transitivamente.
+
+        La fuente lo declara como ``Many2many`` calculado, y su cómputo es una
+        línea: ``user.all_group_ids = user.group_ids.all_implied_ids``
+        (``_compute_all_group_ids``, ``:447-449``). Aquí es una ``property``
+        sobre la misma clausura ya portada — mismo resultado, sin motor de
+        cómputo almacenado.
+
+        Es **reflexiva**: incluye los grupos propios del usuario, no sólo los
+        implicados. Lo garantiza ``ResGroups._closure``, cuyo BFS marca cada
+        semilla como visitada antes de expandirla.
+
+        ``ResGroups`` se resuelve por el registro de apps y no por import, por
+        la misma razón que el bloque de arriba: ``res_groups.py`` importa
+        ``ResUsers`` para declarar su M2M, así que un import en esta dirección
+        cerraría el ciclo. Mismo mecanismo que ``_partner_model()``.
+
+        Su primer consumidor es ``ResUsersApikeys._check_expiration_date``, que
+        lee ``api_key_duration`` de estos grupos.
+        """
+        groups = apps.get_model('base', 'ResGroups')
+        seeds = list(self.group_ids.all())
+        return groups.objects.filter(
+            pk__in=groups._closure(seeds, lambda g: g.implied_ids.all()))
+
+    def has_groups(self, group_spec: str) -> bool:
+        """¿Satisface ``self`` las restricciones de grupo de ``group_spec``?
+
+        Verdadero cuando el usuario pertenece a **al menos uno** de los grupos
+        positivos y a **ninguno** de los precedidos por ``!``.
+
+        ``group_spec`` es una lista separada por comas de identificadores
+        externos totalmente calificados, cada uno opcionalmente precedido por
+        ``!`` — p. ej. ``"base.group_user,base.group_portal,!base.group_system"``.
+
+        Tres detalles de la fuente que se conservan porque cambian el
+        resultado, no la forma:
+
+        - El punto solo (``"."``) es falso por definición: es el marcador de
+          "ningún grupo satisface esto" del cargador de vistas.
+        - Los negativos se evalúan **primero**, por coste: un negativo que
+          acierta corta sin tocar los positivos.
+        - Un ``group_spec`` **sólo** de negativos que no aciertan es
+          verdadero (``return not positives``). No es un caso de borde
+          decorativo: ``"!base.group_system"`` significa "cualquiera que no
+          sea administrador", y con la lectura contraria no designaría a nadie.
+
+        Igual que en :meth:`has_group`, ``base.group_no_one`` no es efectivo
+        aquí — ver el porqué en ese método.
+        """
+        if group_spec == '.':
+            return False
+
+        positives = []
+        negatives = []
+        for group_ext_id in group_spec.split(','):
+            group_ext_id = group_ext_id.strip()
+            if group_ext_id.startswith('!'):
+                negatives.append(group_ext_id[1:])
+            else:
+                positives.append(group_ext_id)
+
+        # Por coste, los negativos primero — verbatim de la fuente.
+        if any(self.has_group(ext_id) for ext_id in negatives):
+            return False
+        if any(self.has_group(ext_id) for ext_id in positives):
+            return True
+        return not positives
+
+    def has_group(self, group_ext_id: str) -> bool:
+        """¿Pertenece ``self`` al grupo de ese identificador externo?
+
+        ``group_ext_id`` va **totalmente calificado** (``modulo.ext_id``): no
+        hay módulo implícito con el que completarlo.
+
+        Dos diferencias con :meth:`_has_group`, y las dos son de la fuente:
+
+        **1. La guarda de acceso.** La referencia levanta ``AccessError`` si
+        quien llama no está elevado, no se está preguntando por sí mismo, y no
+        es un usuario interno (``:1077-1080``); su comentario dice para qué:
+        *"this prevents RPC calls from non-internal users to retrieve
+        information about other users"*.
+
+        Aquí el actor sale de ``orm.environments`` (``is_su`` / la PK del
+        usuario en contexto), no de un ``env`` recibido. Eso añade un cuarto
+        estado que la referencia no tiene: **no hay actor en contexto**. Le
+        pasa a todo lo que corre fuera de una petición —cron, migraciones,
+        tests— y se resuelve como permitido, porque ahí no existe la llamada
+        RPC de la que la guarda protege. Denegarlo haría inusable el método
+        justo donde nadie está autenticándose.
+
+        **2. ``base.group_no_one``.** La fuente lo hace efectivo **sólo** en
+        modo depuración (``result and bool(request and request.session.debug)``).
+        Este árbol **no tiene modo desarrollador**: el matiz queda BLOQUEADO
+        por ``request.session.debug`` — no existe tal interruptor aquí.
+        Sucesor: tarea #450.
+
+        Mientras tanto la decisión es **fail-closed y explícita**: este método
+        devuelve ``False`` para ``base.group_no_one`` aunque el usuario esté en
+        el grupo. Es la lectura fiel de "sólo efectivo en depuración" cuando no
+        hay depuración, y **no es una precaución teórica**: el propio XML de la
+        fuente declara ``group_no_one.implied_by_ids = [group_user,
+        group_system]`` (``base_groups.xml:58``), así que **todo** usuario
+        interno lo tiene por implicación. Sin el matiz, las funciones técnicas
+        quedarían encendidas para todos y para siempre — que es exactamente lo
+        que la comprobación de depuración impide allá.
+
+        Quien necesite la pertenencia cruda tiene :meth:`_has_group`, que es
+        justo el método que la fuente deja sin el matiz.
+        """
+        if not (is_su() or self._caller_may_query_groups()):
+            raise AccessError(
+                'has_group() sólo puede consultarse sobre el usuario actual.')
+        if group_ext_id == GROUP_NO_ONE_XMLID:
+            # Sin modo desarrollador el grupo nunca es efectivo (ver docstring).
+            return False
+        return self._has_group(group_ext_id)
+
+    def _caller_may_query_groups(self) -> bool:
+        """¿Puede el actor en contexto preguntar por los grupos de ``self``?
+
+        **No es un símbolo de la referencia**: allá la condición cabe en la
+        línea de la guarda porque ``self.env.user`` siempre existe. Aquí hay
+        que distinguir el caso "sin actor" del caso "actor ajeno", y meter esa
+        distinción dentro del ``if`` lo volvía ilegible.
+
+        Sin actor en contexto → permitido (código de servidor, no RPC).
+        Con actor → o es uno mismo, o es interno (``base.group_user``).
+        """
+        actor = get_current_user()
+        if actor is None:
+            return True
+        if actor.pk == self.pk:
+            return True
+        return actor._has_group(GROUP_USER_XMLID)
+
+    def _has_group(self, group_ext_id: str) -> bool:
+        """Pertenencia cruda al grupo, sin guarda ni matiz de depuración.
+
+        :param str group_ext_id: identificador externo (XML ID) del grupo,
+           **totalmente calificado** (``modulo.ext_id``).
+        :return: ``True`` si ``self`` es miembro del grupo, explícita o
+           implícitamente (algún grupo suyo lo implica, directa o
+           transitivamente).
+
+        Devuelve ``False`` —en vez de fallar— cuando el identificador no
+        resuelve, resuelve a algo que no es un grupo, o el usuario todavía no
+        tiene PK. Es la misma postura fail-closed que la fuente da a un
+        ``group_id`` ausente de ``all_group_ids``: un grupo que no existe no
+        otorga pertenencia.
+        """
+        if self.pk is None:
+            return False
+        data_model = apps.get_model('base', 'IrModelData')
+        group = data_model.ref(group_ext_id, raise_if_not_found=False)
+        if not isinstance(group, apps.get_model('base', 'ResGroups')):
+            return False
+        implying = list(group.all_implied_by_ids.values_list('pk', flat=True))
+        return self.group_ids.filter(pk__in=implying).exists()
+
     # --- Eje interno / portal / público (≙ res_users.py:1165-1179) ---
     #
     # La referencia resuelve ``_is_internal``/``_is_portal``/``_is_public``
@@ -414,8 +722,8 @@ class ResUsers(TimeStampedModel):
     # ``res_groups.py``). Así que "es interno" = "pertenece a ≥1 grupo cuyo
     # ``user_type`` es 'internal'". Esto es lo que el eje interno/portal
     # necesitaba y no existía: los consumidores (p. ej.
-    # ``authz_totp_mail.totp_mail_required``, la re-ruta de invitación por
-    # audiencia, los puentes ``_portal``) usaban ``partner.employee`` como
+    # ``authz_totp_mail.totp_mail_policy_applies``, la re-ruta de invitación
+    # por audiencia, los puentes ``_portal``) usaban ``partner.employee`` como
     # proxy — este es el criterio real.
 
     def _has_user_type(self, user_type):
@@ -446,6 +754,64 @@ class ResUsers(TimeStampedModel):
         público), igual que la referencia marca ``share=True`` a todo lo que
         no está en ``group_user``."""
         return not self.is_internal()
+
+    # ------------------------------------------------------------------
+    # Segundo factor — el eslabón BASE de una cadena de tres
+    #
+    # Los TRES métodos devuelven ``None`` a propósito: son el fondo sobre el
+    # que cada addon de 2FA aporta lo suyo. La referencia declara aquí los dos
+    # primeros con el mismo cuerpo vacío
+    # (``odoo19c: odoo/addons/base/models/res_users.py:1313,1317`` —
+    # ``_mfa_type`` y ``_mfa_url``), y los extiende dos veces:
+    #
+    #   base (None) → auth_totp ('totp') → auth_totp_mail ('totp_mail')
+    #
+    # Cada eslabón consulta ``super()`` PRIMERO y sólo aporta si el interno
+    # calló, así que la precedencia la gana el más interno. Aquí eso se
+    # expresa con ``combine=keep_previous`` en ``extend_model`` — ver
+    # ``orm.method_chain.keep_previous``, que documenta por qué el relevo por
+    # defecto daría la precedencia contraria.
+    #
+    # El tercero NO lleva ``keep_previous``, y la asimetría es del propósito,
+    # no un descuido: los dos primeros **eligen un valor** —hay una precedencia
+    # que decidir— mientras que el tercero es un **efecto** que devuelve
+    # ``None`` siempre. Con el relevo por defecto, cada eslabón corre y luego
+    # cae en el anterior, que es lo que un aviso quiere: si mañana un segundo
+    # método de 2FA quisiera avisar a su manera, los dos avisos salen.
+    # ------------------------------------------------------------------
+
+    def _mfa_type(self):
+        """Si hay un método de MFA activo, devuelve su tipo como cadena."""
+        return
+
+    def _mfa_url(self):
+        """Si hay un método de MFA activo, devuelve la URL de su segundo paso."""
+        return
+
+    def _notify_security_new_connection(self, request):
+        """Avisa al titular si la credencial se aceptó en un dispositivo nuevo.
+
+        Tercer eslabón vacío de la misma familia, y **la referencia NO lo
+        declara aquí**: lo declara sólo en ``auth_totp_mail``
+        (``odoo19c: auth_totp_mail/models/res_users.py:50-67``), porque allá el
+        punto de extensión ya es un método de modelo de este archivo —
+        ``authenticate`` (``:1240``), que el addon envuelve con ``super()``.
+
+        Aquí el punto de entrada del login es una **vista DRF**
+        (``addons/web/controllers/session.py::session_authenticate``), no un
+        método de ``res.users``. Una vista no se encadena, así que la costura
+        tiene que ser algo que la vista pueda **llamar** — y va donde ya están
+        las otras dos de MFA, para que ``web`` siga preguntándole a la cadena
+        sin conocer a ningún addon de 2FA.
+
+        El parámetro es la segunda divergencia, y también es del stack: la
+        fuente lee la petición de su ``request`` de hilo
+        (``odoo.http.request``) y recibe ``auth_info`` para resolver al usuario.
+        Aquí no hay tal proxy —medido: 0 símbolos de petición ambiental en
+        ``src/orm`` y ``src/tools``— así que la petición se pasa explícita y el
+        usuario es ``self``, igual que en ``_mfa_type``/``_mfa_url``.
+        """
+        return
 
 
 class ResUsersLog(TimeStampedModel):
@@ -482,3 +848,474 @@ class ResUsersLog(TimeStampedModel):
 
     def __str__(self) -> str:
         return f'acceso de {self.user_id} el {self.created_at}'
+
+
+# =========================================================================
+# Soporte de claves de API — ≙ ``# API keys support`` (``:1518-1750``)
+#
+# La referencia declara este bloque **en este mismo archivo**, después de
+# ``res.users``: constantes de módulo, el modelo ``res.users.apikeys``, la
+# función ``_check_apikey_credentials`` y dos modelos transitorios de su
+# formulario web. El sitio se conserva por
+# ``atributos-de-clase-de-modelo.md`` cláusula 2 — inventar un
+# ``res_users_apikeys.py`` habría creado un archivo que la referencia no
+# tiene, que es el defecto de :ref:`h-api-578`.
+#
+# Su primer consumidor NO es la integración externa sino el **dispositivo de
+# confianza** del segundo factor: ``auth_totp.device`` declara
+# ``_inherit = ["res.users.apikeys"]`` y guarda ahí la cookie ``td_id``
+# (``odoo19c: auth_totp/models/auth_totp.py:16``). Por eso este bloque entra
+# con la tarea #716 y no con #490, que es la superficie RPC.
+# =========================================================================
+
+#: ≙ ``API_KEY_SIZE`` (``:1519``) — bytes de entropía de la clave.
+API_KEY_SIZE = 20
+
+#: ≙ ``INDEX_SIZE`` (``:1520``) — dígitos hexadecimales del prefijo indexado,
+#: «4 bytes, o el 20 % de la clave». Es lo que permite buscar la fila sin
+#: comparar el hash de todas.
+INDEX_SIZE = 8
+
+#: ≙ ``DEFAULT_PROGRAMMATIC_API_KEYS_LIMIT`` (``:1527``).
+DEFAULT_PROGRAMMATIC_API_KEYS_LIMIT = 10
+
+#: ≙ ``KEY_CRYPT_CONTEXT`` (``:1521-1526``).
+#:
+#: La referencia usa ``passlib.CryptContext(['pbkdf2_sha512'],
+#: pbkdf2_sha512__rounds=6000)`` y explica la elección: *"default is 29000
+#: rounds which is 25~50ms, which is probably unnecessary given in this case
+#: all the keys are completely random data: dictionary attacks on API keys
+#: isn't much of a concern"*.
+#:
+#: ``passlib`` no está en este árbol (medido: 0 en ``pyproject.toml``); el
+#: mecanismo equivalente son los *hashers* de Django, que este archivo ya usa
+#: para la contraseña. Se instancia la clase directamente en vez de
+#: registrarla en ``PASSWORD_HASHERS``: así el número de rondas queda atado a
+#: **este** uso y no cambia el coste de verificar una contraseña.
+#:
+#: La familia cambia de ``sha512`` a ``sha256`` porque es la que Django trae;
+#: el argumento de la referencia —entropía completa, no hay ataque de
+#: diccionario— no distingue entre las dos.
+KEY_HASHER = hashers.PBKDF2PasswordHasher()
+KEY_HASHER_ITERATIONS = 6000
+
+
+def _hash_api_key(key):
+    """Codifica una clave con :data:`KEY_HASHER` — ≙ ``KEY_CRYPT_CONTEXT.hash``."""
+    hasher = hashers.PBKDF2PasswordHasher()
+    hasher.iterations = KEY_HASHER_ITERATIONS
+    return hasher.encode(key, hasher.salt())
+
+
+def _verify_api_key(key, encoded):
+    """≙ ``KEY_CRYPT_CONTEXT.verify`` — comparación en tiempo constante."""
+    return hashers.check_password(key, encoded)
+
+
+class _ResUsersApikeysBase(TimeStampedModel):
+    """Campos y mecanismo de ``res.users.apikeys`` — abstracta, sin tabla.
+
+    Portación de ``odoo19c: odoo/addons/base/models/res_users.py:1519-1720``
+    (LGPL-3) — atribución y aviso de licencia preservados (DEC-KX-03).
+
+    **Por qué es abstracta.** La referencia declara un segundo modelo sobre
+    éste: ``auth_totp.device`` lleva ``_name`` propio **y**
+    ``_inherit = ["res.users.apikeys"]`` (``odoo19c:
+    auth_totp/models/auth_totp.py:15-16``). Ese constructo es herencia por
+    **prototipo**: el hijo copia campos y métodos y obtiene **tabla aparte**,
+    no comparte filas con el padre. La forma Django del prototipo es una base
+    abstracta, que es la misma adaptación que ``res_device.py`` ya hace para
+    ``res.device`` sobre ``res.device.log``.
+
+    Sus métodos son ``classmethod`` precisamente por esto: ``cls`` es el
+    modelo sobre el que se invocan, así que ``auth_totp.device._generate``
+    escribe en la tabla de dispositivos y ``res.users.apikeys._generate`` en la
+    de claves, sin que ninguno de los dos sepa del otro. Es el mismo reparto
+    que la fuente logra pasando el nombre de tabla a
+    ``_check_apikey_credentials``.
+
+    La FK a usuario **no** vive aquí: la declara cada concreto, para conservar
+    su propio ``related_name`` (``api_keys`` / ``totp_trusted_devices``). Una
+    base abstracta obligaría a nombrarlo con ``%(class)s``, que es lo que
+    ``res_device.py`` evita por la misma razón.
+
+    **Lo que la hace distinta de un token cualquiera** es el par
+    ``index``/``key``: la clave completa **nunca** se guarda. Se guarda su
+    hash (``key``) y su prefijo de 8 hexadecimales en claro (``index``), que
+    es lo único por lo que se puede buscar. Sin ese prefijo habría que
+    verificar el hash de cada fila de la tabla en cada petición.
+
+    Divergencias declaradas
+    =======================
+
+    1. **``_auto = False`` y ``init()``.** La referencia desactiva la creación
+       automática de tabla y la emite a mano con ``CREATE TABLE`` porque
+       ``key`` e ``index`` **no pueden ser campos del ORM**: cualquier lectura
+       genérica los expondría. Aquí el ORM es Django y la tabla la crea su
+       migración, así que las dos columnas se declaran como campos y su
+       protección es la misma que la del secreto TOTP
+       (``authz_totp/models/totp_secret.py``): ningún serializer las nombra.
+
+       El contenido de ``init()`` no se pierde — se reparte en su forma
+       declarativa, que es lo que ``atributos-de-clase-de-modelo.md`` prescribe
+       para los objetos de tabla:
+
+       - ``CREATE INDEX … (user_id, index)`` → ``Meta.indexes``
+       - ``CHECK (char_length(index) = 8)`` → ``Meta.constraints``
+       - ``ON DELETE CASCADE`` sobre ``user_id`` → ``on_delete=CASCADE``
+
+    2. **``remove()`` pierde su ``@check_identity``.** En la referencia el
+       decorador vive en ``base`` y envuelve el método del modelo, porque su
+       RPC expone modelos directamente. Aquí la identidad fresca la exige
+       ``authz_reauth.assert_session_fresh`` desde la **vista** (DEC-12), y
+       ``base`` no puede depender de ``authz_reauth`` sin invertir el grafo.
+       Así que ``remove()`` y ``_remove()`` quedan como los dos métodos que la
+       referencia declara —el público con su comprobación de propiedad, el
+       interno sin ella— y el gate de identidad lo pone quien los exponga.
+
+    3. **``_assert_can_auth`` no existe en este árbol** (medido: 0 hits). Es
+       el limitador de intentos que la referencia envuelve alrededor de
+       ``generate``/``revoke``. Los dos métodos se portan **sin** él y el
+       hueco queda declarado: sucesor **#726**.
+
+    4. **El SQL crudo se expresa con el ORM.** La referencia lo necesita
+       porque ``key``/``index`` no son campos suyos; aquí sí lo son, así que
+       ``INSERT`` → ``objects.create``, el ``SELECT`` con ``JOIN res_users`` →
+       ``filter(user__active=True, …)`` y el ``DELETE`` del barrido →
+       ``.delete()``. Mismo predicado, misma semántica.
+
+    5. **Los dos modelos de asistente NO se portan** —
+       ``res.users.apikeys.description`` (``:1753``, transitorio, 6 defs) y
+       ``res.users.apikeys.show`` (``:1837``, abstracto, 0 defs)—. Su cuerpo
+       entero es la forma del diálogo del backoffice OWL: un selector de
+       duración, un ``make_key`` que devuelve un ``ir.actions.act_window``
+       hacia el segundo modelo, y un segundo modelo cuya única razón de existir
+       es sostener un campo de sólo lectura dentro de esa ventana modal. Aquí
+       el cliente es React (#488) y el equivalente es un endpoint que devuelve
+       la clave en el cuerpo de la respuesta, con su ``@extend_schema`` y su
+       gate de capacidad — sucesor **#490**.
+
+       **Lo que NO es presentación se mide aparte**, porque un veredicto de
+       "asistente" lo habría barrido con el resto:
+
+       - el tope de duración por grupo (``api_key_duration``) **sí está
+         portado**: ``_selection_duration`` sólo filtra la lista que ofrece,
+         y la regla que decide vive en ``_check_expiration_date``;
+       - ``check_access_make_key`` —*"Only internal users can create API
+         keys"*— **no tiene contraparte todavía**. Es una regla de negocio, no
+         de diálogo: la pone quien exponga el endpoint, y ``_is_internal()``
+         ya existe en este árbol para expresarla.
+    """
+
+    name = fields.Char(
+        verbose_name='Descripción',
+        help_text='Odoo name ("Description") — para qué es esta clave.',
+    )
+    scope = fields.Char(
+        null=True, blank=True,
+        verbose_name='Ámbito',
+        help_text='Odoo scope. NULL da acceso a cualquier RPC; con valor, '
+                  'sólo a ese ámbito ("rpc", "browser").',
+    )
+    expiration_date = fields.Datetime(
+        null=True, blank=True,
+        verbose_name='Fecha de caducidad',
+        help_text='Odoo expiration_date. NULL es una clave permanente, que '
+                  'sólo un usuario de sistema puede crear.',
+    )
+    index = fields.Char(
+        max_length=INDEX_SIZE, db_index=True,
+        verbose_name='Prefijo',
+        help_text='Odoo index — los primeros 8 hexadecimales de la clave, en '
+                  'claro. Es por lo que se busca la fila; NO es la clave.',
+    )
+    key = fields.Char(
+        verbose_name='Clave (hash)',
+        help_text='Odoo key — el hash de la clave completa. SECRETO: ningún '
+                  'serializer lo expone, igual que el secreto TOTP.',
+    )
+
+    class Meta:
+        abstract = True
+
+    def __str__(self) -> str:
+        return f'{self.name} ({self.index})'
+
+    def remove(self):
+        """≙ ``remove`` (``:1556-1558``) — el punto de entrada público.
+
+        La referencia lo decora con ``@check_identity``; aquí ese gate vive en
+        la vista (divergencia 2). El método se conserva porque la referencia
+        declara **dos** —público e interno— y fundirlos borraría la distinción
+        que su propio docstring explica.
+        """
+        return self._remove()
+
+    def _remove(self):
+        """≙ ``_remove`` (``:1559-1572``).
+
+        Su docstring de la fuente, verbatim: *"Use the remove() method to
+        remove an API Key. This method implement logic, but won't check the
+        identity (mainly used to remove trusted devices)"* — y ese paréntesis
+        es exactamente el consumidor que la tarea #716 desbloquea.
+        """
+        actor = get_current_user()
+        if is_su() or self.user_id == getattr(actor, 'pk', None):
+            _apikeys_logger.info(
+                "API key(s) removed: scope: <%s> for '%s' (#%s)",
+                self.scope, getattr(actor, 'login', 'n/a'),
+                getattr(actor, 'pk', None),
+            )
+            self.delete()
+            return
+        raise AccessError(
+            'No puede retirar claves de API que no sean suyas, salvo que sea '
+            'un usuario de sistema.'
+        )
+
+    @classmethod
+    def _check_credentials(cls, *, scope, key):
+        """≙ ``_check_credentials`` (``:1574-1575``).
+
+        Es ``classmethod`` y no método de instancia porque la referencia lo
+        llama sobre el modelo vacío (``self.env['res.users.apikeys']``), que
+        aquí no tiene equivalente de instancia.
+        """
+        return _check_apikey_credentials(scope=scope, key=key, model=cls)
+
+    @classmethod
+    def _check_expiration_date(cls, date):
+        """≙ ``_check_expiration_date`` (``:1577-1587``).
+
+        Tres reglas de la fuente, conservadas: un usuario de sistema puede
+        todo; el resto **debe** poner fecha; y esa fecha no puede exceder el
+        máximo que sus grupos permitan (``api_key_duration``, en días).
+
+        ``api_key_duration`` ya estaba portado en ``res.groups`` con un
+        docstring que decía *"este árbol … no tiene API keys que lo
+        consuman"*. Este método es ese consumidor — el stub deja de
+        racionalizar su ausencia (:ref:`h-api-638`).
+        """
+        if is_su():
+            return
+        actor = get_current_user()
+        if not date:
+            raise ValidationError('La clave de API debe tener fecha de caducidad.')
+        durations = [
+            group.api_key_duration
+            for group in actor.all_group_ids
+            if group.api_key_duration
+        ] if actor is not None else []
+        max_duration = max(durations) if durations else 1.0
+        if date > timezone.now() + timedelta(days=max_duration):
+            raise ValidationError(
+                f'No puede exceder {max_duration} días.'
+            )
+
+    @classmethod
+    def _generate(cls, scope, name, expiration_date):
+        """≙ ``_generate`` (``:1589-1616``) — genera una clave y la devuelve.
+
+        Su docstring de la fuente conserva la advertencia que importa: *"This
+        method must be called in sudo to use a duration greater than that
+        allowed by the user's privileges. For a persistent key (infinite
+        duration), no value for expiration date."*
+
+        La clave en claro se devuelve **una sola vez**: lo que queda en la
+        tabla es su hash. La fuente lo dice con un comentario en el sitio —
+        *"no need to clear the LRU when adding a key, only when removing"*—
+        que aquí no tiene receptor porque no hay caché de claves.
+        """
+        cls._check_expiration_date(expiration_date)
+        k = binascii.hexlify(os.urandom(API_KEY_SIZE)).decode()
+        actor = get_current_user()
+        cls.objects.create(
+            name=name,
+            user_id=getattr(actor, 'pk', None),
+            scope=scope,
+            expiration_date=expiration_date or None,
+            key=_hash_api_key(k),
+            index=k[:INDEX_SIZE],
+        )
+        _apikeys_logger.info(
+            "%s generated: scope: <%s> for '%s' (#%s)",
+            cls._description, scope, getattr(actor, 'login', 'n/a'),
+            getattr(actor, 'pk', None),
+        )
+        return k
+
+    @classmethod
+    def _ensure_can_manage_keys_programmatically(cls):
+        """≙ ``_ensure_can_manage_keys_programmatically`` (``:1618-1633``).
+
+        El comentario largo de la fuente explica por qué el administrador es
+        una excepción y no depende del parámetro: habilitar, llamar y
+        restaurar son tres pasos no atómicos, y un fallo entre el segundo y el
+        tercero dejaría la gestión abierta para todos.
+        """
+        icp = apps.get_model('base', 'SystemParameter')
+        enabled = icp.get_param('base.enable_programmatic_api_keys', 'False')
+        if not (is_su() or str(enabled).lower() in ('1', 'true', 'yes')):
+            raise UserError('La gestión programática de claves de API no está habilitada.')
+
+    @classmethod
+    @api.model
+    def generate(cls, key, scope, name, expiration_date):
+        """≙ ``generate`` (``:1634-1684``) — una clave nueva a partir de otra viva.
+
+        Las reglas de compatibilidad de ámbito son las de la fuente, verbatim
+        en su comentario: *"A global key can generate credentials for any
+        scope (including global). A scoped key can only generate credentials
+        for its own scope."*
+
+        **Sin el limitador de intentos** de la fuente
+        (``_assert_can_auth``) — divergencia 3, sucesor #726.
+        """
+        cls._ensure_can_manage_keys_programmatically()
+        actor = get_current_user()
+        uid = getattr(actor, 'pk', None)
+        now = timezone.now()
+        nb_keys = cls.objects.filter(
+            models.Q(expiration_date__isnull=True) | models.Q(expiration_date__gte=now),
+            user_id=uid,
+        ).count()
+        icp = apps.get_model('base', 'SystemParameter')
+        try:
+            nb_keys_limit = int(icp.get_param(
+                'base.programmatic_api_keys_limit',
+                DEFAULT_PROGRAMMATIC_API_KEYS_LIMIT))
+        except (TypeError, ValueError):
+            _apikeys_logger.warning(
+                "Invalid value for 'base.programmatic_api_keys_limit', "
+                "using default value.")
+            nb_keys_limit = DEFAULT_PROGRAMMATIC_API_KEYS_LIMIT
+        if nb_keys >= nb_keys_limit:
+            raise UserError(
+                f'Se alcanzó el límite de {nb_keys_limit} claves de API para '
+                f'creación programática.')
+
+        checked_uid = cls._check_credentials(scope=scope or 'rpc', key=key)
+        if not checked_uid or checked_uid != uid:
+            raise AccessDenied(
+                'La clave de API dada no es válida o no pertenece al usuario actual.')
+        new_key = cls._generate(scope, name, expiration_date)
+        _apikeys_logger.info("%s %r generated from %r", cls._description,
+                             new_key[:INDEX_SIZE], key[:INDEX_SIZE])
+        return new_key
+
+    @classmethod
+    @api.model
+    def revoke(cls, key):
+        """≙ ``revoke`` (``:1685-1711``) — retira una clave viva.
+
+        Recorre las filas cuyo prefijo coincide y verifica el hash de cada
+        una, porque el prefijo **no** es único: es el mismo bucle de la
+        fuente. Sin el limitador de intentos — divergencia 3.
+        """
+        cls._ensure_can_manage_keys_programmatically()
+        assert key, 'key required'
+        now = timezone.now()
+        candidates = cls.objects.filter(
+            models.Q(expiration_date__isnull=True) | models.Q(expiration_date__gte=now),
+            index=key[:INDEX_SIZE],
+        )
+        for candidate in candidates:
+            if _verify_api_key(key, candidate.key):
+                candidate._remove()
+                return True
+        raise AccessDenied('La clave de API dada no es válida.')
+
+    @classmethod
+    @api.autovacuum
+    def _gc_user_apikeys(cls):
+        """≙ ``_gc_user_apikeys`` (``:1712-1720``) — barre las caducadas."""
+        deleted, _ = cls.objects.filter(
+            expiration_date__isnull=False,
+            expiration_date__lt=timezone.now(),
+        ).delete()
+        _apikeys_logger.info("GC %r delete %d entries", cls._name, deleted)
+
+
+class ResUsersApikeys(_ResUsersApikeysBase):
+    """``res.users.apikeys`` — la clave de API de integración externa.
+
+    El concreto del prototipo: aporta el nombre del modelo, su tabla y la FK a
+    usuario; los campos y los diez métodos vienen de
+    :class:`_ResUsersApikeysBase`, que documenta el mecanismo y sus cuatro
+    divergencias.
+
+    Su hermano por prototipo es ``auth_totp.device``
+    (``addons/authz_totp/models/auth_totp.py``), que declara la **misma** forma
+    sobre **otra** tabla.
+    """
+
+    _name = 'res.users.apikeys'
+    _description = 'Users API Keys'
+    #: La referencia lo declara ``False`` para emitir la tabla a mano
+    #: (divergencia 1). Aquí la tabla la gestiona Django, así que el atributo
+    #: se conserva **verbatim** como declaración de procedencia y su forma
+    #: efectiva es ``Meta.managed = True``.
+    _auto = False
+    _allow_sudo_commands = False
+
+    user = fields.Many2one(
+        'base.ResUsers', on_delete=models.CASCADE, db_index=True,
+        related_name='api_keys',
+        help_text='Odoo user_id — el dueño de la clave.',
+    )
+
+    class Meta:
+        db_table            = 'res_users_apikeys'
+        ordering            = ['-id']
+        verbose_name        = 'Clave de API'
+        verbose_name_plural = 'Claves de API'
+        indexes = [
+            # ≙ el ``CREATE INDEX … ON %(table)s (user_id, index)`` de
+            # ``init()`` (``:1548-1555``). El nombre lo fija la referencia por
+            # convención ``<tabla>_user_id_index_idx``; aquí se conserva.
+            models.Index(fields=['user', 'index'],
+                         name='res_users_apikeys_user_id_index_idx'),
+        ]
+        constraints = [
+            # ≙ ``CHECK (char_length(index) = %(index_size)s)`` (``:1541``).
+            #
+            # NO se usa ``Q(index__length=…)``: Django no registra ``__length``
+            # como lookup de ``CharField`` — medido, ``FieldError: Unsupported
+            # lookup 'length'``. La forma que sí compila es la que
+            # ``account_group.py`` ya verificó con ``constraint_sql()``:
+            # ``Exact`` sobre ``Length``, que emite el ``char_length`` de la
+            # fuente sin mutar el lookup global.
+            models.CheckConstraint(
+                condition=Exact(Length(F('index')), INDEX_SIZE),
+                name='res_users_apikeys_index_size',
+                violation_error_code='API_KEY_INDEX_SIZE',
+            ),
+        ]
+
+
+def _check_apikey_credentials(*, scope, key, model=None):
+    """≙ ``_check_apikey_credentials`` (``:1722-1750``).
+
+    Devuelve el ``user_id`` si la clave es válida, ``None`` si no. El
+    predicado es el de la fuente, término a término: el usuario **activo**, el
+    prefijo coincidente, el ámbito nulo o igual, y la fecha nula o futura.
+
+    La fuente recibe un cursor y el nombre de tabla porque el modelo hijo
+    (``auth_totp.device``) comparte esta función con **otra** tabla; aquí ese
+    parámetro es el modelo, por la misma razón y con la misma consecuencia: un
+    dispositivo de confianza no valida contra las claves de RPC.
+    """
+    assert scope and key, 'scope and key required'
+    if model is None:
+        model = ResUsersApikeys
+    now = timezone.now()
+    candidates = model.objects.filter(
+        models.Q(scope__isnull=True) | models.Q(scope=scope),
+        models.Q(expiration_date__isnull=True) | models.Q(expiration_date__gte=now),
+        user__active=True,
+        index=key[:INDEX_SIZE],
+    ).values_list('user_id', 'key')
+    for user_id, current_key in candidates:
+        if _verify_api_key(key, current_key):
+            return user_id
+    return None

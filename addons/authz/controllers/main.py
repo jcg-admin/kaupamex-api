@@ -65,6 +65,13 @@ class MyMenuView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    #: Exenta del candado por tiempo — ≙ ``auth_timeout/controllers/web_home.py``,
+    #: que re-declara ``@http.route(check_identity=False)`` sobre
+    #: ``web_load_menus``. El menú es lo que el cliente pide para **dibujar la
+    #: pantalla en la que se confirma la identidad**: someterlo al candado deja
+    #: al usuario sin superficie donde confirmar.
+    check_identity = False
+
     MENU_MODEL_BY_AUDIENCE = {
         'admin': IrUiMenu,
         'account': WebsiteMenu,

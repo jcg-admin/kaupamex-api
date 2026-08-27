@@ -36,6 +36,16 @@ Se excluyen a propósito las partículas ambiguas con el inglés (``no``, ``son`
 palabra fuera del léxico. Es una **cota inferior**: un 0 no prueba que no quede
 español, prueba que no queda del que este instrumento sabe ver.
 
+Su gemelo en prosa
+==================
+
+``docs: .claude/rules/redaccion-tecnica-es.md``, sección «Elegir el término».
+Miden la misma pregunta sobre ejes distintos, y **el veredicto puede ser el
+opuesto**: ``ejecución`` es correcto en prosa y defecto en un identificador
+(``run_id``); ``run`` al revés. ``SPANISH_WORDS`` es la forma ejecutable de la
+tabla de términos que esa regla resuelve — cuando resuelve uno nuevo, su palabra
+española entra aquí.
+
 Baseline
 ========
 
@@ -75,6 +85,11 @@ SPANISH_WORDS = frozenset({
     'clase', 'metodo', 'atributo', 'archivo', 'ejemplo', 'tarea', 'datos',
     'tienda', 'carrito', 'pedido', 'entrega', 'moneda', 'impuesto', 'cuenta',
     'asiento', 'almacen', 'existencia', 'comprador', 'vendedor', 'cobro',
+    # Vocabulario resuelto por redaccion-tecnica-es.md («Elegir el término»):
+    # el árbol nombra estas cosas en inglés, así que en un identificador
+    # el español es defecto. En PROSA el veredicto puede ser el opuesto.
+    'corrida', 'corridas', 'tanda', 'tandas', 'guion', 'guiones',
+    'lote', 'lotes',
 })
 
 
@@ -86,6 +101,48 @@ def split_words(name):
     return [w.lower() for w in out if w]
 
 
+#: Igual que ``split_words`` pero conservando los dígitos como token propio.
+#: ``split_words`` los descarta, y esa pérdida es la que hace ilegible
+#: ``CenEn16931``: sin el ``16931``, el ``En`` queda suelto y se lee como la
+#: preposición española.
+_TOKEN = re.compile(r'[A-Z]+(?![a-z])|[A-Z][a-z]+|[a-z]+|\d+')
+
+
+def _particles_before_digits(name):
+    """Partículas que van pegadas a dígitos — códigos, no preposiciones.
+
+    ``En16931`` es la norma europea EN 16931. El español no numera sus
+    preposiciones, así que una partícula seguida de dígitos es siempre un
+    token técnico. Medido sobre los 1137 del baseline: no pierde ninguno.
+    """
+    out = set()
+    for chunk in re.split(r'_+', name):
+        tokens = _TOKEN.findall(chunk)
+        for cur, nxt in zip(tokens, tokens[1:]):
+            if cur.lower() in SPANISH_PARTICLES and nxt.isdigit():
+                out.add(cur.lower())
+    return out
+
+
+def _technical_suffix(name):
+    """¿La partícula final es un código, no una preposición?
+
+    ``AccountEdiXmlUbl_De`` termina en el ISO-3166 de Alemania. La señal es la
+    **forma mixta**: CamelCase real antes del guion bajo. El español en
+    identificadores se escribe en snake_case puro (``_tracking_de``,
+    ``_apunte_en``, ``resp_con``), nunca mezclado — medido sobre los 1137 del
+    baseline, esta regla no pierde ninguno.
+
+    Y una preposición española no cierra un nombre: conecta (``orden_de_compra``).
+    Cuando queda al final de un identificador CamelCase, es un sufijo técnico.
+    """
+    if '_' not in name:
+        return False
+    head, _, tail = name.rpartition('_')
+    return (tail.lower() in SPANISH_PARTICLES
+            and re.search(r'[a-z][A-Z]', head) is not None)
+
+
 def spanish_words_in(name):
     """Palabras españolas del identificador, o lista vacía."""
     words = split_words(name)
@@ -93,7 +150,13 @@ def spanish_words_in(name):
             if w in SPANISH_WORDS
             or (len(w) > 5 and SPANISH_MORPHOLOGY.search(w))]
     if len(words) >= 2:
-        hits += [w for w in words if w in SPANISH_PARTICLES]
+        # Las dos exenciones se miden contra el baseline entero antes de
+        # entrar: ninguna de las dos pierde un solo caso de español real.
+        tecnicas = _particles_before_digits(name)
+        if _technical_suffix(name):
+            tecnicas.add(name.rpartition('_')[2].lower())
+        hits += [w for w in words
+                 if w in SPANISH_PARTICLES and w not in tecnicas]
     return sorted(set(hits))
 
 
@@ -183,7 +246,9 @@ def main():
         print(f'  {path}:{lineno}  {name}   →  {", ".join(hits)}')
     print('\nLos identificadores van en INGLÉS; los comentarios y docstrings, en')
     print('español. Traducir el nombre, no buscarle un sinónimo más evocador:')
-    print('  _Modelo → _Model (no _Probe) · _Base se queda _Base.')
+    print('  Modelo → Model (no Probe) · _Base se queda _Base.')
+    print('OJO: un modelo CONCRETO no puede empezar ni terminar en guion bajo')
+    print('  (Django models.E023). Lo vigila check_model_name_lookup.py.')
     print(f'\nMedido: {measured} archivos. Deuda heredada congelada: '
           f'{len(baseline)} (tarea #147).')
     return 1

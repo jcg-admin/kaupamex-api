@@ -20,7 +20,10 @@ from addons.web.controllers.database import (
     database_list,
     database_restore,
 )
+from addons.web.controllers.domain import validate as domain_validate
 from addons.web.controllers.home import health, robots
+from addons.web.controllers.pivot import export_xlsx as pivot_export_xlsx
+from addons.web.controllers.vcard import download_vcard
 from addons.web.controllers.webmanifest import (
     scoped_app_icon_png,
     scoped_app_manifest,
@@ -71,4 +74,10 @@ urlpatterns = [
     path('manifest.webmanifest', webmanifest, name='webmanifest'),
     path('manifest.scoped_app_manifest', scoped_app_manifest, name='scoped-app-manifest'),
     path('scoped_app_icon_png', scoped_app_icon_png, name='scoped-app-icon-png'),
+    # ≙ domain.py (tarea #397) — validación de dominios contra un modelo.
+    path('domain/validate/', domain_validate, name='domain-validate'),
+    # ≙ pivot.py (tarea #397) — exportación de tabla dinámica a XLSX.
+    path('pivot/export_xlsx/', pivot_export_xlsx, name='pivot-export-xlsx'),
+    # ≙ vcard.py (tarea #397) — descarga de vCard de uno o varios contactos.
+    path('vcard/download/', download_vcard, name='vcard-download'),
 ]

@@ -112,7 +112,7 @@ Ver ROADMAP.md para detalle de cada FASE.
 - \`validate-session-close.sh\` — Valida cierre de sesión
 - \`validate-phase-readiness.sh\` — Valida readiness por fase
 - \`session-start.sh\` — Hook SessionStart (inyecta contexto)
-- \`lint-agents.py\` — Valida formato de agentes nativos
+- \`lint_agents.py\` — Valida formato de agentes nativos
 
 ---
 

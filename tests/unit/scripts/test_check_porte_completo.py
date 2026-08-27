@@ -75,7 +75,7 @@ def test_the_real_addon_declares_its_installations():
     """
     raiz = gate.addon_path('base_sparse_field')
     assert raiz is not None, 'base_sparse_field no se resuelve en ninguna raíz'
-    mapa, no_resolubles = gate.instalaciones_del_addon(raiz)
+    mapa, no_resolubles = gate.addon_installations(raiz)
     assert mapa[gate.normaliza('IrModelFields')] == {
         'reflect_fields', 'save', 'serialization_field_id', 'ttype_for'}
     assert no_resolubles == 0
@@ -94,24 +94,42 @@ def test_the_underscore_of_the_reference_normalizes_away():
 
 
 def test_a_class_nobody_extends_is_absent():
-    assert gate._clase_sin_contraparte(
+    """``(hallazgo, absoluciones)`` — el segundo valor es el contador que
+    ``compara()`` acumula para el denominador ``compute absueltos`` del
+    reporte (H-API-612, ``api@d8a5fc4``). Sin ``absueltos`` en la llamada no
+    hay nada que absolver, así que el contador es 0 — no el hallazgo solo.
+    """
+    assert gate._class_without_counterpart(
         'x', 'f.py', 'Cualquiera', {'a', 'b'}, {}) == (
-            'x', 'f.py', 'Cualquiera', 'CLASE AUSENTE', ['a', 'b'])
+            ('x', 'f.py', 'Cualquiera', 'CLASE AUSENTE', ['a', 'b']), 0)
 
 
 def test_an_extended_class_reports_only_what_is_pending():
     """Nunca absuelve: lo instalado se descuenta, el resto se lista."""
-    assert gate._clase_sin_contraparte(
+    assert gate._class_without_counterpart(
         'x', 'f.py', 'C', {'uno', 'dos', 'tres'}, {'C': {'uno'}}) == (
-            'x', 'f.py', 'C', 'CLASE EXTENDIDA', ['dos', 'tres'])
+            ('x', 'f.py', 'C', 'CLASE EXTENDIDA', ['dos', 'tres']), 0)
 
 
 def test_a_fully_covered_extension_is_not_a_finding():
     """Una extensión de sólo campos cubre entera una clase sin métodos."""
-    assert gate._clase_sin_contraparte(
-        'x', 'f.py', 'C', set(), {'C': {'campo'}}) is None
-    assert gate._clase_sin_contraparte(
-        'x', 'f.py', 'C', {'uno'}, {'C': {'uno'}}) is None
+    assert gate._class_without_counterpart(
+        'x', 'f.py', 'C', set(), {'C': {'campo'}}) == (None, 0)
+    assert gate._class_without_counterpart(
+        'x', 'f.py', 'C', {'uno'}, {'C': {'uno'}}) == (None, 0)
+
+
+def test_absolved_symbols_are_counted_in_the_second_value():
+    """El contador SÍ sube cuando ``absueltos`` cubre un símbolo pendiente.
+
+    Sin este caso los tres tests de arriba nunca ejercitan el parámetro
+    ``absueltos``, y el contador siempre da 0 — no alcanza para distinguir
+    "el contador existe y funciona" de "el contador siempre es cero".
+    """
+    finding, absolutions = gate._class_without_counterpart(
+        'x', 'f.py', 'C', {'uno', 'dos'}, {}, absueltos={'uno'})
+    assert finding == ('x', 'f.py', 'C', 'CLASE AUSENTE', ['dos'])
+    assert absolutions == 1
 
 
 def test_write_is_not_aliased_to_save():

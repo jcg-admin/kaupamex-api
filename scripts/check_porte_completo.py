@@ -166,13 +166,69 @@ PORTE_ALIAS = {
 }
 
 
+#: El registro de divergencias declaradas: lo que NO se porta, por decisión
+#: medida. Vive en un archivo aparte y no en este guion, porque un guion de
+#: ``.claude/scripts`` es mecanismo y no registro — mismo criterio que
+#: ``calibration-verified-numbers.md`` fija para las cifras.
+DECLARED_DIVERGENCES = pathlib.Path(__file__).with_name('divergencias_declaradas.txt')
+
+
+def load_divergences():
+    """Las claves declaradas, en sus tres granularidades.
+
+    Devuelve el conjunto de claves tal cual están escritas. El emparejamiento
+    contra un hallazgo prueba las tres formas, de la más específica a la más
+    amplia: símbolo, clase, archivo.
+    """
+    if not DECLARED_DIVERGENCES.is_file():
+        return set()
+    return {
+        line.strip()
+        for line in DECLARED_DIVERGENCES.read_text(encoding='utf-8').splitlines()
+        if line.strip() and not line.lstrip().startswith('#')
+    }
+
+
+def keys_of(addon, file_path, klass, symbol):
+    """Las tres claves con que una divergencia puede cubrir a este símbolo."""
+    file = f'{addon}/models/{file_path}'
+    return (f'{file}::{klass}::{symbol}', f'{file}::{klass}', file)
+
+
+def split_declared(all_findings, declared_keys):
+    """Parte los hallazgos en (deuda, declarados, claves_usadas).
+
+    Un hallazgo cuyos símbolos estén TODOS declarados sale de la deuda; uno
+    con parte declarada **conserva los pendientes** y sólo los declarados se
+    contabilizan aparte. Nunca se absuelve una clase entera por una entrada de
+    símbolo — el mismo criterio con que ``CLASE EXTENDIDA`` nunca absuelve la
+    clase completa.
+    """
+    debt, declared, used = [], [], set()
+    for addon, file_path, klass, tipo, symbols in all_findings:
+        pending, covered = [], []
+        for symbol in symbols:
+            key = next((c for c in keys_of(addon, file_path, klass, symbol)
+                          if c in declared_keys), None)
+            if key is None:
+                pending.append(symbol)
+            else:
+                covered.append(symbol)
+                used.add(key)
+        if covered:
+            declared.append((addon, file_path, klass, tipo, covered))
+        if pending:
+            debt.append((addon, file_path, klass, tipo, pending))
+    return debt, declared, used
+
+
 #: Receptores de ``add_to_class`` que NO son una clase resoluble en estático:
 #: el ayudante recibe el modelo por parámetro o por variable de bucle, así que
 #: el nombre que se lee del AST es el de la variable, no el del modelo.
 _RECEPTOR_NO_RESOLUBLE = frozenset({'model', 'modelo', 'cls', 'self'})
 
 
-def instalaciones_del_addon(raiz):
+def addon_installations(raiz):
     """``{clase_destino: {símbolos instalados}}`` — la extensión cross-app.
 
     Este árbol no puede fusionar dos definiciones del mismo modelo declaradas
@@ -222,12 +278,12 @@ def _destino_y_clave(nodo):
     tres addons repiten para hacer idempotente el ``add_to_class``.
     """
     f = nodo.func
-    nombre = f.id if isinstance(f, ast.Name) else (
+    name = f.id if isinstance(f, ast.Name) else (
         f.attr if isinstance(f, ast.Attribute) else None)
 
-    if nombre in ('chain_method', '_add_if_absent') and len(nodo.args) >= 2:
+    if name in ('chain_method', '_add_if_absent') and len(nodo.args) >= 2:
         destino, clave = nodo.args[0], nodo.args[1]
-    elif nombre == 'add_to_class' and nodo.args:
+    elif name == 'add_to_class' and nodo.args:
         # El receptor es el destino: ``ResBank.add_to_class('campo', …)``.
         destino = f.value if isinstance(f, ast.Attribute) else None
         clave = nodo.args[0]
@@ -256,7 +312,7 @@ def simbolos(ruta):
     }
 
 
-def simbolos_del_archivo(ruta):
+def file_symbols(ruta):
     """Todos los símbolos de UN archivo: métodos de clase y funciones sueltas.
 
     Delimita qué cuenta como *portado en otro sitio*. Un símbolo que la
@@ -325,22 +381,22 @@ def equivalencias_declaradas(ruta):
     # otra no— y con un dict simple ganaría la última en aparecer. El
     # instrumento decidiría por orden de lectura, que es exactamente la clase
     # de arbitrariedad que este gate ha pagado antes.
-    propiedades = {}
+    properties = {}
     for n in ast.walk(arbol):
         if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         for dec in n.decorator_list:
-            nombre = (dec.id if isinstance(dec, ast.Name) else
+            name = (dec.id if isinstance(dec, ast.Name) else
                       dec.attr if isinstance(dec, ast.Attribute) else '')
-            if 'property' in nombre:
-                propiedades.setdefault(n.name, []).append(
+            if 'property' in name:
+                properties.setdefault(n.name, []).append(
                     ast.get_docstring(n) or '')
                 break
-    return {f'_compute_{campo}' for campo, docs in propiedades.items()
-            if any(f'_compute_{campo}' in doc for doc in docs)}
+    return {f'_compute_{field}' for field, docs in properties.items()
+            if any(f'_compute_{field}' in doc for doc in docs)}
 
 
-def clases_del_addon(raiz):
+def addon_classes(raiz):
     """``{clase_normalizada: {métodos}}`` de TODO el addon.
 
     Un archivo de la referencia puede estar portado **repartido** en varios
@@ -356,21 +412,21 @@ def clases_del_addon(raiz):
     existe en otro archivo. Es un COMPLETO falso, la forma más cara de error en
     un instrumento de cobertura. Ver :ref:`h-api-350`.
     """
-    por_clase = {}
+    by_class = {}
     for py in raiz.rglob('*.py'):
         if 'migrations' in py.parts or '__pycache__' in py.parts:
             continue
-        for clase, metodos in (simbolos(py) or {}).items():
-            por_clase.setdefault(normaliza(clase), set()).update(metodos)
-    return por_clase
+        for klass, metodos in (simbolos(py) or {}).items():
+            by_class.setdefault(normaliza(klass), set()).update(metodos)
+    return by_class
 
 
-def normaliza(nombre):
+def normaliza(name):
     """El nombre comparable: alias declarado, y sin guiones bajos de borde."""
-    return PORTE_ALIAS.get(nombre, nombre).strip('_')
+    return PORTE_ALIAS.get(name, name).strip('_')
 
 
-def _clase_sin_contraparte(addon, archivo, clase, metodos, instalado,
+def _class_without_counterpart(addon, file_path, klass, metodos, instalado,
                            absueltos=frozenset()):
     """``(hallazgo|None, absoluciones)`` de una clase que no existe aquí.
 
@@ -390,17 +446,25 @@ def _clase_sin_contraparte(addon, archivo, clase, metodos, instalado,
     consultaba ``absueltos``. Ver :ref:`h-api-612`.
 
     Si tras absolver no queda ningún método, no hay hallazgo.
+
+    *Métrica:* ``absoluciones`` cuenta cuántos símbolos de ``metodos`` quedaron
+    cubiertos por ``absueltos`` en ESTA llamada — el segundo valor del
+    retorno, que ``compara()`` acumula para publicar el denominador
+    ``compute absueltos por property declarada`` del reporte final.
+    *Ciega a:* una absolución que ocurrió en la rama de clase casada (no la de
+    clase sin contraparte) — esa la cuenta ``compara()`` por su cuenta, en el
+    bucle de la clase casada, sin pasar por esta función.
     """
-    puestos = instalado.get(normaliza(clase))
+    puestos = instalado.get(normaliza(klass))
     ya = {normaliza(p) for p in puestos} if puestos is not None else set()
     tipo = 'CLASE AUSENTE' if puestos is None else 'CLASE EXTENDIDA'
-    pendientes, absoluciones = [], 0
+    pendientes, absolutions = [], 0
     for m in sorted(metodos):
         n = normaliza(m)
         if n in ya:
             continue
         if n in absueltos:
-            absoluciones += 1
+            absolutions += 1
             continue
         pendientes.append(m)
     # Una clase AUSENTE con la lista vacía sigue siendo un hallazgo: la
@@ -411,10 +475,10 @@ def _clase_sin_contraparte(addon, archivo, clase, metodos, instalado,
     # con sólo 4 absoluciones nuevas, que es la señal de que el instrumento
     # había dejado de ver algo en vez de resolverlo.
     if metodos and not pendientes:
-        return None, absoluciones
+        return None, absolutions
     if not metodos and tipo == 'CLASE EXTENDIDA':
-        return None, absoluciones
-    return (addon, archivo, clase, tipo, pendientes), absoluciones
+        return None, absolutions
+    return (addon, file_path, klass, tipo, pendientes), absolutions
 
 
 def compara(addon):
@@ -424,9 +488,9 @@ def compara(addon):
     if not ref_raiz.is_dir() or not mio_raiz.is_dir():
         return 0, [], 0, 0
 
-    por_clase = clases_del_addon(mio_raiz)
-    instalado, no_resolubles = instalaciones_del_addon(mio_raiz)
-    pares, hallazgos, absoluciones = 0, [], 0
+    by_class = addon_classes(mio_raiz)
+    instalado, no_resolubles = addon_installations(mio_raiz)
+    pares, hallazgos, absolutions = 0, [], 0
 
     for ref_py in sorted((ref_raiz / 'models').glob('*.py')):
         if ref_py.name == '__init__.py':
@@ -453,19 +517,19 @@ def compara(addon):
             # portado con ``chain_method`` no está sin portar, aunque ninguna
             # clase lleve su nombre.
             if ref_clases and not any(
-                    normaliza(c) in por_clase or normaliza(c) in instalado
+                    normaliza(c) in by_class or normaliza(c) in instalado
                     for c in ref_clases):
                 hallazgos.append(
                     (addon, ref_py.name, '(archivo)', 'ARCHIVO NO PORTADO',
                      sorted(ref_clases)))
                 continue
-            for clase, metodos in ref_clases.items():
-                aqui = por_clase.get(normaliza(clase))
+            for klass, metodos in ref_clases.items():
+                aqui = by_class.get(normaliza(klass))
                 if aqui is None:
                     # Sin archivo pareado no hay property nuestra que leer, así
                     # que aquí no se absuelve nada: el conjunto va vacío.
-                    hallazgo, _ = _clase_sin_contraparte(
-                        addon, ref_py.name, clase, metodos, instalado)
+                    hallazgo, _ = _class_without_counterpart(
+                        addon, ref_py.name, klass, metodos, instalado)
                     if hallazgo is not None:
                         hallazgos.append(hallazgo)
                     continue
@@ -474,34 +538,34 @@ def compara(addon):
                           if normaliza(m) not in aqui_norm]
                 if faltan:
                     hallazgos.append(
-                        (addon, ref_py.name, clase, 'MÉTODOS AUSENTES', faltan))
+                        (addon, ref_py.name, klass, 'MÉTODOS AUSENTES', faltan))
             continue
         pares += 1
         ref_clases = simbolos(ref_py) or {}
         mias = simbolos(mio_py) or {}
         mias_norm = {normaliza(c): ms for c, ms in mias.items()}
-        del_archivo = {normaliza(x) for x in simbolos_del_archivo(mio_py)}
+        from_file = {normaliza(x) for x in file_symbols(mio_py)}
         # Un compute sin store portado como property, con la equivalencia
         # declarada en su docstring. Ver equivalencias_declaradas().
         absueltos = {normaliza(x) for x in equivalencias_declaradas(mio_py)}
 
-        for clase, metodos in ref_clases.items():
-            aqui = mias_norm.get(normaliza(clase))
+        for klass, metodos in ref_clases.items():
+            aqui = mias_norm.get(normaliza(klass))
             if aqui is None:
-                hallazgo, absueltas = _clase_sin_contraparte(
-                    addon, ref_py.name, clase, metodos, instalado, absueltos)
-                absoluciones += absueltas
+                hallazgo, absueltas = _class_without_counterpart(
+                    addon, ref_py.name, klass, metodos, instalado, absueltos)
+                absolutions += absueltas
                 if hallazgo is not None:
                     hallazgos.append(hallazgo)
                 continue
             aqui_norm = {normaliza(m) for m in aqui}
-            faltan, fuera_de_sitio = [], []
+            faltan, out_of_place = [], []
             for m in sorted(metodos):
                 n = normaliza(m)
                 if n in aqui_norm:
                     continue
                 if n in absueltos:
-                    absoluciones += 1
+                    absolutions += 1
                     continue
                 # El símbolo existe en ESTE archivo pero NO en la clase que le
                 # toca: función suelta, o método de otra clase del archivo.
@@ -509,15 +573,15 @@ def compara(addon):
                 # como portado — el gate medía **presencia del nombre**, no su
                 # sitio (#159). El alcance era el addon entero hasta #164, y
                 # entonces un homónimo de otro modelo lo daba por ubicado.
-                (fuera_de_sitio if n in del_archivo else faltan).append(m)
+                (out_of_place if n in from_file else faltan).append(m)
             if faltan:
                 hallazgos.append(
-                    (addon, ref_py.name, clase, 'MÉTODOS AUSENTES', faltan))
-            if fuera_de_sitio:
+                    (addon, ref_py.name, klass, 'MÉTODOS AUSENTES', faltan))
+            if out_of_place:
                 hallazgos.append(
-                    (addon, ref_py.name, clase, 'FUERA DE SITIO',
-                     fuera_de_sitio))
-    return pares, hallazgos, no_resolubles, absoluciones
+                    (addon, ref_py.name, klass, 'FUERA DE SITIO',
+                     out_of_place))
+    return pares, hallazgos, no_resolubles, absolutions
 
 
 def main():
@@ -527,6 +591,10 @@ def main():
                    help='inventario por archivo con su estado')
     p.add_argument('--quiet', action='store_true')
     p.add_argument('--strict', action='store_true')
+    p.add_argument('--divergencias', action='store_true',
+                   help='listar el registro de divergencias declaradas con su '
+                        'estado (viva si sigue cubriendo un hallazgo, MUERTA '
+                        'si ya no cubre nada)')
     args = p.parse_args()
 
     if not ODOO19C.is_dir():
@@ -539,20 +607,44 @@ def main():
 
     pares_total, todos, opacas, absueltos_total = 0, [], 0, 0
     for addon in addons:
-        pares, hallazgos, no_resolubles, absoluciones = compara(addon)
+        pares, hallazgos, no_resolubles, absolutions = compara(addon)
         pares_total += pares
         todos += hallazgos
         opacas += no_resolubles
-        absueltos_total += absoluciones
+        absueltos_total += absolutions
+
+    # Lo declarado sale de la deuda y entra en un numerador PROPIO. No
+    # desaparece: la linea de resumen lo publica siempre, y las entradas que ya
+    # no cubren nada se nombran. Un registro que congela deuda inexistente es
+    # el defecto que la poda del baseline de vocabulario cerro (H-DOCS-441).
+    declared_keys = load_divergences()
+    todos, declared, used = split_declared(todos, declared_keys)
+    dead = sorted(declared_keys - used)
+    declared_symbols = sum(len(h[4]) for h in declared)
+
+    if args.divergencias:
+        print('divergencias declaradas:')
+        for key in sorted(declared_keys):
+            estado = 'viva  ' if key in used else 'MUERTA'
+            print(f'  {estado}  {key}')
+        print(f'\n{len(declared_keys)} declarada(s) · {len(used)} viva(s) · '
+              f'{len(dead)} muerta(s) '
+              f'(alcance medido: {pares_total} pares de archivo, '
+              f'{len(addons)} addons)')
+        if dead:
+            print('\nUna entrada MUERTA ya no cubre ningun hallazgo: o el '
+                  'simbolo se porto —y entonces la entrada se retira—, o la '
+                  'clave esta mal escrita. Las dos piden accion.')
+        return 1 if (args.strict and dead) else 0
 
     if args.mapa:
         # El inventario completo: cada archivo de la referencia con su estado.
         # Es lo que convierte el gate en un mapa — sin él sólo se ve la deuda,
         # no la superficie sobre la que se mide.
         estado = {}
-        for addon, archivo, _clase, tipo, _s in todos:
-            previo = estado.get((addon, archivo))
-            estado[(addon, archivo)] = (
+        for addon, file_path, _klass, tipo, _s in todos:
+            previo = estado.get((addon, file_path))
+            estado[(addon, file_path)] = (
                 'NO PORTADO' if tipo == 'ARCHIVO NO PORTADO'
                 else previo or 'PARCIAL')
         for addon in addons:
@@ -567,8 +659,8 @@ def main():
     elif args.quiet:
         print(len(todos))
     else:
-        for addon, archivo, clase, tipo, simbolos_ in todos:
-            print(f'{addon}/models/{archivo} :: {clase} — {tipo} ({len(simbolos_)})')
+        for addon, file_path, klass, tipo, simbolos_ in todos:
+            print(f'{addon}/models/{file_path} :: {klass} — {tipo} ({len(simbolos_)})')
             print(f'    {", ".join(simbolos_)}')
         # El denominador va SIEMPRE junto al conteo: un 0 sin alcance medido no
         # distingue "no hay deuda" de "el instrumento no vio nada".
@@ -586,6 +678,13 @@ def main():
               f'{len(addons)} addons; '
               f'{opacas} instalaciones con receptor no resoluble; '
               f'{absueltos_total} compute absueltos por property declarada)')
+        # El registro va en su propio renglon y con su propio conteo: lo
+        # declarado NO se suma a la deuda ni se calla. Y una entrada muerta se
+        # nombra aqui aunque nadie pida `--divergencias`.
+        print(f'divergencias declaradas: {len(declared)} hallazgo(s), '
+              f'{declared_symbols} simbolo(s), '
+              f'{len(used)} de {len(declared_keys)} entrada(s) vivas'
+              + (f' — MUERTAS: {", ".join(dead)}' if dead else ''))
     return 1 if (args.strict and todos) else 0
 
 

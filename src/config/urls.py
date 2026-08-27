@@ -47,6 +47,9 @@ urlpatterns = _admin_urls + [
 
     # --- API v1 (DEC-V2-02: webhooks registrados con terceros — no renombrar) ---
     path('api/v1/logistics/', include('addons.delivery.controllers.webhook_urls')),
+    # Webhook de base.automation (≙ `/web/hook/<uuid>` de la referencia; el
+    # prefijo v1 sigue el precedente del webhook de logistics).
+    path('api/v1/automation/', include('addons.base_automation.controllers.urls')),
 
     # Despacho genérico por modelo/método (≙ `addons/rpc` de la referencia).
     # Va FUERA de `api/v2/`: la referencia lo monta en `/json/2`, y ese prefijo
@@ -61,7 +64,7 @@ urlpatterns = _admin_urls + [
 
     # ─── API v2 (F2: cart, wishlist, referral, notifications) ───────────────────
     # SOL-011 T-06: logs tecnicos read-only (UC-ADM-06, DEC-LOG-08 revisada).
-    path('api/v2/admin/',          include(('addons.observability.controllers.admin_urls', 'admin_core'), namespace='admin_core_v2')),
+    path('api/v2/admin/',          include(('addons.base.controllers.admin_urls', 'admin_core'), namespace='admin_core_v2')),
     path('api/v2/notifications/',  include(('addons.mail.controllers.urls', 'notifications'),     namespace='notifications_v2')),
     path('api/v2/bus/',            include(('addons.bus.controllers.urls', 'bus'),                 namespace='bus_v2')),
     path('api/v2/admin/',          include(('addons.mail.controllers.admin_notifications', 'admin_notifications'),
@@ -167,6 +170,11 @@ urlpatterns = _admin_urls + [
     path('api/v2/authz/',      include(('addons.authz_passkey.controllers.urls', 'authz_passkey'),         namespace='authz_passkey_v2')),
     # ~auth_signup: alta/set-password/reset por token firmado (pre-auth)
     path('api/v2/authz/',      include(('addons.authz_signup.controllers.urls', 'authz_signup'),           namespace='authz_signup_v2')),
+    # ~auth_timeout: confirmar identidad al vencer el candado por tiempo.
+    # El prefijo es el que `authz_timeout/exceptions.py::CHECK_IDENTITY_URL`
+    # publica en el cuerpo del 403 CHECK_IDENTITY_REQUIRED — si uno cambia,
+    # cambia el otro.
+    path('api/v2/authz/timeout/', include(('addons.authz_timeout.controllers.urls', 'authz_timeout'),      namespace='authz_timeout_v2')),
     # Consulta pública de CP → asentamientos (autocompletado de dirección).
     # FORMA PROPIA: la referencia no expone superficie de códigos postales
     # (base_address_extended y base_geolocalize sin controllers/). Ver el
