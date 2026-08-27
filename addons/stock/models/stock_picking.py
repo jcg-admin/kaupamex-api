@@ -1701,13 +1701,19 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
 
     @property
     def use_create_lots(self) -> bool:
-        """≙ ``use_create_lots`` (``odoo19c: :629``, ``related``)."""
+        """≙ ``use_create_lots`` (``odoo19c: :629``, ``related``).
+
+        ≙ ``_compute_use_create_lots`` (``odoo19c: stock/models/stock_picking.py``).
+        """
         return bool(
             self.picking_type is not None and self.picking_type.use_create_lots)
 
     @property
     def use_existing_lots(self) -> bool:
-        """≙ ``use_existing_lots`` (``odoo19c: :630``, ``related``)."""
+        """≙ ``use_existing_lots`` (``odoo19c: :630``, ``related``).
+
+        ≙ ``_compute_use_existing_lots`` (``odoo19c: stock/models/stock_picking.py``).
+        """
         return bool(
             self.picking_type is not None
             and self.picking_type.use_existing_lots)

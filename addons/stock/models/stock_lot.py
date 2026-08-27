@@ -436,6 +436,8 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
     @property
     def delivery_ids(self):
         """≙ el campo ``delivery_ids`` (``odoo19c: :56``) — las entregas del
+
+        ≙ ``_compute_delivery_ids`` (``odoo19c: stock/models/stock_lot.py``).
         lote, incluidas las de los lotes que lo consumieron."""
         return self._find_delivery_ids_by_lot_iterative().get(self.pk, [])
 
@@ -453,6 +455,8 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         Contactos que recibieron el lote — en entrega directa, o vía los
         lotes que lo consumieron en producción. Sigue el mismo camino que
         ``delivery_ids``: primero las entregas, luego el contacto de cada una.
+
+        ≙ ``_compute_partner_ids`` (``odoo19c: stock/models/stock_lot.py``).
         """
         return self._compute_partner_ids()
 

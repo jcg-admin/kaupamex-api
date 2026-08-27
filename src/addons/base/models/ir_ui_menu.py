@@ -338,7 +338,10 @@ class IrUiMenu(TimeStampedModel):
 
     @property
     def complete_name(self):
-        """Ruta completa del menú (``ir.ui.menu.complete_name``)."""
+        """Ruta completa del menú (``ir.ui.menu.complete_name``).
+
+        ≙ ``_compute_complete_name`` (``odoo19c: base/models/ir_ui_menu.py``).
+        """
         return self._get_full_name()
 
     def _get_full_name(self, level=6):

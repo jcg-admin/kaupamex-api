@@ -452,6 +452,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         """≙ ``action_server_ids`` de la referencia — vía la tabla-liga
         ``BaseAutomationAction`` (ver "Decisión de mecanismo" del
         docstring del módulo). Requiere ``pk`` (accede al reverso
+
+        ≙ ``_compute_action_server_ids`` (``odoo19c: base_automation/models/base_automation.py``).
         ``action_links``, que no existe sobre una instancia sin guardar)."""
         if self.pk is None:
             return IrActionsServer.objects.none()

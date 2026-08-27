@@ -82,6 +82,8 @@ class HrSkillLevel(TimeStampedModel):
         referencia siempre asigna ``False`` (campo técnico que sólo el
         front-end muta vía ``_onchange_skill_level_ids`` de
         ``hr.skill.type``, BLOQUEADO en ``hr_skill_type.py`` por ausencia
+
+        ≙ ``_compute_technical_is_new_default`` (``odoo19c: hr_skills/models/hr_skill_level.py``).
         de motor de onchange)."""
         return False
 

@@ -178,6 +178,7 @@ class ResourceCalendar(TimeStampedModel):
 
     @flexible_hours.setter
     def flexible_hours(self, value):
+        """≙ ``_inverse_flexible_hours`` (``odoo19c: resource/models/resource_calendar.py``)."""
         self.schedule_type = 'flexible' if value else 'fully_fixed'
 
     # --------------------------------------------------------------

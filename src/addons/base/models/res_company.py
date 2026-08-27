@@ -369,6 +369,7 @@ class ResCompany(TimeStampedModel):
 
     @street.setter
     def street(self, value):
+        """≙ ``_inverse_street`` (``odoo19c: base/models/res_company.py``)."""
         self._address_set('street', value)
 
     @property
@@ -377,6 +378,7 @@ class ResCompany(TimeStampedModel):
 
     @street2.setter
     def street2(self, value):
+        """≙ ``_inverse_street2`` (``odoo19c: base/models/res_company.py``)."""
         self._address_set('street2', value)
 
     @property
@@ -385,6 +387,7 @@ class ResCompany(TimeStampedModel):
 
     @zip.setter
     def zip(self, value):
+        """≙ ``_inverse_zip`` (``odoo19c: base/models/res_company.py``)."""
         self._address_set('zip', value)
 
     @property
@@ -393,6 +396,7 @@ class ResCompany(TimeStampedModel):
 
     @city.setter
     def city(self, value):
+        """≙ ``_inverse_city`` (``odoo19c: base/models/res_company.py``)."""
         self._address_set('city', value)
 
     @property
@@ -401,6 +405,7 @@ class ResCompany(TimeStampedModel):
 
     @state.setter
     def state(self, value):
+        """≙ ``_inverse_state`` (``odoo19c: base/models/res_company.py``)."""
         self._address_set('state', value)
 
     @property
@@ -409,6 +414,7 @@ class ResCompany(TimeStampedModel):
 
     @country.setter
     def country(self, value):
+        """≙ ``_inverse_country`` (``odoo19c: base/models/res_company.py``)."""
         self._address_set('country', value)
 
     @property
@@ -469,6 +475,8 @@ class ResCompany(TimeStampedModel):
 
         El respaldo ``id % 12`` de la fuente da un color **estable** por
         compañía en vez de un default fijo; 12 es el tamaño de la paleta.
+
+        ≙ ``_compute_color`` (``odoo19c: base/models/res_company.py``).
         """
         root = self.root_id
         declared = getattr(root.partner, 'color', None)
@@ -482,6 +490,8 @@ class ResCompany(TimeStampedModel):
 
         El ``(180, 0)`` de la fuente no significa "sin alto": significa el que
         resulte de preservar la proporción.
+
+        ≙ ``_compute_logo_web`` (``odoo19c: base/models/res_company.py``).
         """
         return getattr(self.partner, 'image_256', None) or self.logo
 

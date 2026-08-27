@@ -270,6 +270,8 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         el builder del recibo (``sale/report/report_catalog.py``); ahora la
         dueña es el partner y tanto el builder como la plantilla en BD la
         leen de aquí.
+
+        ≙ ``_compute_contact_address`` (``odoo19c: base/models/res_partner.py``).
         """
         return ', '.join(
             part for part in (self.street, self.city, self.zip) if part)
@@ -288,6 +290,8 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         Sube por la cadena de padres hasta la primera company. Un contacto
         suelto (sin padre) es su propia entidad comercial — por eso el corte
         es ``is_company or not parent``, no sólo ``is_company``.
+
+        ≙ ``_compute_commercial_partner`` (``odoo19c: base/models/res_partner.py``).
         """
         if self.is_company or not self.parent_id:
             return self
@@ -300,6 +304,8 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         Si la entidad comercial es una empresa, su ``name``; si no, el
         ``company_name`` escrito a mano en este contacto. La referencia lo
         resuelve con ``p.is_company and p.name or partner.company_name``.
+
+        ≙ ``_compute_commercial_company_name`` (``odoo19c: base/models/res_partner.py``).
         """
         p = self.commercial_partner
         return p.name if p.is_company else self.company_name

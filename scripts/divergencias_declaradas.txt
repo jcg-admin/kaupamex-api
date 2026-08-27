@@ -93,24 +93,33 @@ base_sparse_field/models/models.py::Base::_valid_field_parameter
 # una por una, y que el gate —que compara por nombre y por clase— no puede
 # ver.
 #
-# Tres cambian de nombre porque su mecanismo aqui es otro:
+# El `display_name` que su ORM da a todo modelo es aqui `__str__`.
 base/models/res_device.py::ResDeviceLog::_compute_display_name
+# Su `compute` lee la peticion de un global; aqui `ResDevice.is_current(request)`
+# la recibe explicita.
 base/models/res_device.py::ResDeviceLog::_compute_is_current
+# Django no tiene punto de extension de campo-a-SQL en el orden:
+# `ResDeviceQuerySet.order_by_is_current` expone la misma capacidad.
 base/models/res_device.py::ResDeviceLog::_order_field_to_sql
-#
-# Cuatro son el DDL de la vista, que en Django vive en la migracion
-# `base.0004_resdevice` y no en el modelo:
+# El DDL de la vista vive en la migracion `base.0004_resdevice`, no en el
+# modelo: en la referencia el modelo crea su propia vista al cargar.
 base/models/res_device.py::ResDevice::_select
+# Idem — parte del mismo `CREATE OR REPLACE VIEW`.
 base/models/res_device.py::ResDevice::_from
+# Idem — parte del mismo `CREATE OR REPLACE VIEW`.
 base/models/res_device.py::ResDevice::_where
+# Idem — parte del mismo `CREATE OR REPLACE VIEW`.
 base/models/res_device.py::ResDevice::_query
-#
-# Cinco estan FUERA DE SITIO —existen en el archivo, en otra clase— y su
-# veredicto es este: la fuente declara todo sobre `res.device.log` y hace que
-# `res.device` lo herede con `_inherit`; aqui esa herencia por prototipo es una
-# base abstracta (`_ResDeviceFields`), y el recordset es un `QuerySet`.
+# Fuera de sitio: la fuente lo declara sobre `res.device.log` y `res.device` lo
+# hereda con `_inherit`; aqui esa herencia es la base abstracta
+# `_ResDeviceFields`, que es donde vive.
 base/models/res_device.py::ResDeviceLog::_is_mobile
+# Idem — en `_ResDeviceFields`, por la misma adaptacion del `_inherit`.
 base/models/res_device.py::ResDeviceLog::_compute_linked_ip_addresses
+# El recordset de la referencia es aqui un `QuerySet`, y ahi vive.
 base/models/res_device.py::ResDevice::_revoke
+# Idem — el par publico/interno colapsa en un cuerpo (la identidad fresca la
+# exige `authz_reauth.assert_session_fresh` desde la vista, DEC-12).
 base/models/res_device.py::ResDevice::revoke
+# El `init()` que crea la vista es aqui la migracion `base.0004_resdevice`.
 base/models/res_device.py::ResDevice::init

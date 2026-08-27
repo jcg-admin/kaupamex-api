@@ -624,12 +624,16 @@ class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, Time
         DIVERGENCIA: ``version_ids`` en sí no necesita property — es el
         reverso automático de ``hr.HrVersion.employee``
         (``related_name='versions'``): ``self.versions.all()``.
+
+        ≙ ``_compute_versions_count`` (``odoo19c: hr/models/hr_employee.py``).
         """
         return self.versions.count()
 
     @property
     def version_revision(self):
         """≙ ``version_revision`` (``:199``) — posición 1-based en el
+
+        ≙ ``_compute_version_revision`` (``odoo19c: hr/models/hr_employee.py``).
         historial ordenado por ``date_version``."""
         if not self.version_id:
             return 0

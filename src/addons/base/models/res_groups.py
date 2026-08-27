@@ -208,13 +208,18 @@ class ResGroups(TimeStampedModel):
         """El grupo con todos sus implicados, directos e indirectos.
 
         Reflexiva: incluye al propio grupo, como el ``g.ids + …`` de la fuente.
+
+        ≙ ``_compute_all_implied_ids`` (``odoo19c: base/models/res_groups.py``).
         """
         return type(self).objects.filter(
             pk__in=self._closure([self], lambda g: g.implied_ids.all()))
 
     @property
     def all_implied_by_ids(self):
-        """Todos los grupos que implican a éste, directa o indirectamente."""
+        """Todos los grupos que implican a éste, directa o indirectamente.
+
+        ≙ ``_compute_all_implied_by_ids`` (``odoo19c: base/models/res_groups.py``).
+        """
         return type(self).objects.filter(
             pk__in=self._closure([self], lambda g: g.implied_by_ids.all()))
 
@@ -224,6 +229,8 @@ class ResGroups(TimeStampedModel):
 
         Vacío si el grupo no declara tipo de usuario — igual que la fuente
         devuelve falso para un grupo que no es de tipo.
+
+        ≙ ``_compute_disjoint_ids`` (``odoo19c: base/models/res_groups.py``).
         """
         model = type(self)
         if not self.user_type:
@@ -265,13 +272,18 @@ class ResGroups(TimeStampedModel):
 
         ``all_user_ids`` de la fuente: quien está en un grupo que implica a
         éste, está implícitamente en éste.
+
+        ≙ ``_compute_all_user_ids`` (``odoo19c: base/models/res_groups.py``).
         """
         implying = self.all_implied_by_ids.values_list('pk', flat=True)
         return ResUsers.objects.filter(group_ids__in=list(implying)).distinct()
 
     @property
     def all_users_count(self):
-        """Cuántos usuarios lo tienen, implícita o explícitamente."""
+        """Cuántos usuarios lo tienen, implícita o explícitamente.
+
+        ≙ ``_compute_all_users_count`` (``odoo19c: base/models/res_groups.py``).
+        """
         return self.all_user_ids.count()
 
     # === Mutación del grafo ===============================================

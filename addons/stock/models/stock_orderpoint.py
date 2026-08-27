@@ -557,6 +557,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
 
     @qty_to_order.setter
     def qty_to_order(self, value):
+        """≙ ``_inverse_qty_to_order`` (``odoo19c: stock/models/stock_orderpoint.py``)."""
         self._qty_to_order_assigned = value
         self._inverse_qty_to_order()
 
