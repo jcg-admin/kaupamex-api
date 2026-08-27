@@ -23,6 +23,7 @@ reenvían. Ver ``res_users.py``.
 """
 from collections import defaultdict
 from random import randint
+from urllib.parse import urlsplit, urlunsplit
 
 import fields
 import models
@@ -31,6 +32,7 @@ from addons.base.models.avatar_mixin import AvatarMixin
 from addons.base.models.res_country import (ADDRESS_FORMAT_KEYS,
                                             DEFAULT_ADDRESS_FORMAT)
 from exceptions import ValidationError
+from orm.environments import get_context
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from tools.misc import OrderedSet, street_split
 
@@ -796,6 +798,99 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         """
         p = self.commercial_partner
         return p.name if p.is_company else self.company_name
+
+    # ------------------------------------------------------------------
+    # El punto de entrada de escritura — ``odoo19c: res_partner.py:856-948``.
+    #
+    # La referencia parte en dos lo que Django unifica: ``create(vals_list)`` y
+    # ``write(vals)``. Aquí los dos caminos viven en ``save()`` y se distinguen
+    # por ``self._state.adding``, que es como este ORM dice «esta fila es
+    # nueva». Lo que ambos hacen es idéntico en la fuente y aquí también:
+    # limpiar la web, borrar ``company_name`` si se fijó un padre, y **llamar a
+    # `_fields_sync`** — que hasta este porte existía sin llamador, la forma que
+    # :ref:`h-api-836` registró.
+    # ------------------------------------------------------------------
+    #: Campos cuyo cambio dispara la sincronización — los que ``_fields_sync``
+    #: consulta en sus tres pasos. Se deriva de los tres métodos que ya
+    #: declaran su lista en vez de repetirla aquí: una cuarta copia sería un
+    #: sitio más donde olvidar añadir un campo.
+    @classmethod
+    def _sync_trigger_fields(cls):
+        return list(dict.fromkeys(
+            cls._address_fields() + cls._commercial_fields()
+            + ['parent', 'type']))
+
+    @staticmethod
+    def _clean_website(website):
+        """≙ ``_clean_website`` (``odoo19c: res_partner.py:843-849``).
+
+        Una web capturada como ``kaupamex.mx`` no es un enlace: el navegador
+        la resuelve como ruta relativa. La fuente le antepone el esquema, y su
+        rodeo por ``netloc``/``path`` es porque un parseo sin esquema mete todo
+        en ``path``. Aquí lo hace ``urlsplit`` de la stdlib, que expone las
+        mismas piezas.
+        """
+        if not website:
+            return website
+        partes = urlsplit(website)
+        if partes.scheme:
+            return website
+        if not partes.netloc:
+            partes = partes._replace(netloc=partes.path, path='')
+        return urlunsplit(partes._replace(scheme='http'))
+
+    def save(self, *args, **kwargs):
+        """Escribe y sincroniza — ≙ ``create`` (``:926``) y ``write`` (``:856``).
+
+        Las dos preparaciones que la fuente hace en ambos caminos, y el porqué
+        de cada una:
+
+        - **la web se limpia** para que ``kaupamex.mx`` sea un enlace y no una
+          ruta relativa;
+        - **``company_name`` se borra al fijar un padre**, porque ese campo es
+          la razón social escrita a mano de un contacto **suelto**; con padre,
+          la razón social la da la entidad comercial y tener las dos es tener
+          dos verdades.
+
+        Después escribe y **sincroniza sólo lo que de verdad cambió**. Ese
+        filtro es de la fuente y no es una optimización: su comentario lo dice
+        —*"we should avoid infinite loops in case same value is updated due to
+        cycles"*—. Sincronizar un valor que no cambió puede reentrar por el
+        ciclo padre/hijo y no terminar.
+
+        Escape declarado, ≙ el contexto ``_partners_skip_fields_sync`` de la
+        fuente (``:942``): dentro de un ``context_scope`` con esa clave, la
+        escritura no sincroniza. Existe para la carga masiva de datos, donde
+        sincronizar fila a fila es cuadrático y el cargador ya escribe los
+        valores finales.
+        """
+        creating = self._state.adding
+        if self.website:
+            self.website = self._clean_website(self.website)
+        if self.parent_id:
+            self.company_name = ''
+
+        watched = self._sync_trigger_fields()
+        pre_values = {}
+        if not creating:
+            fila = type(self).objects.filter(pk=self.pk).first()
+            if fila is not None:
+                pre_values = {fname: getattr(fila, fname) for fname in watched}
+
+        result = super().save(*args, **kwargs)
+
+        if get_context().get('_partners_skip_fields_sync'):
+            return result
+
+        if creating:
+            updated = {fname: getattr(self, fname) for fname in watched
+                       if getattr(self, fname)}
+        else:
+            updated = {fname: getattr(self, fname) for fname in watched
+                       if getattr(self, fname) != pre_values.get(fname)}
+        if updated:
+            self._fields_sync(updated)
+        return result
 
     # ------------------------------------------------------------------
     # Dirección — ``odoo19c: res_partner.py:1120-1250``.

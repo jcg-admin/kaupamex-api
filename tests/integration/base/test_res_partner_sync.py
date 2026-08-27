@@ -48,20 +48,45 @@ Qué haría fallar a cada control
 import pytest
 
 from addons.base.models.res_partner import ResPartner
+from orm.environments import context_scope
 
 pytestmark = pytest.mark.integration
+
+
+def _sin_sincronizar(**data):
+    """Crea el partner **sin** que ``save()`` sincronice.
+
+    Este archivo mide cada método del bloque **por separado**: los llama a
+    mano y observa su efecto. Desde que ``save()`` invoca ``_fields_sync``
+    (``api@<este commit>``), construir el escenario con un ``create`` normal
+    lo sincroniza antes de que el test llegue a llamar nada — y entonces el
+    caso pasa por el motivo equivocado, sin ponerse rojo.
+
+    Ocurrió, y por eso este ayudante existe: al cablear ``save()``,
+    ``test_it_does_nothing_when_the_parent_already_has_one`` seguía verde
+    porque el contacto ya no tenía la dirección divergente que el caso decía
+    darle. Un verde que no discrimina, en la forma que
+    ``metrica-decide-la-conclusion.md`` llama sub-patrón D.
+
+    La bandera es la de la fuente —``_partners_skip_fields_sync``
+    (``odoo19c: res_partner.py:942``)—, no un invento para el test. El
+    comportamiento **cableado** se mide en
+    ``test_res_partner_save_sync.py``, que es su sitio.
+    """
+    with context_scope(_partners_skip_fields_sync=True):
+        return ResPartner.objects.create(**data)
 
 
 def _company(**extra):
     data = dict(name='Kaupamex SA', is_company=True)
     data.update(extra)
-    return ResPartner.objects.create(**data)
+    return _sin_sincronizar(**data)
 
 
 def _contact(parent, **extra):
     data = dict(name='Ana', parent=parent, type=ResPartner.TYPE_CONTACT)
     data.update(extra)
-    return ResPartner.objects.create(**data)
+    return _sin_sincronizar(**data)
 
 
 class TestConvertFieldsToValues:
@@ -161,7 +186,7 @@ class TestCommercialSync:
         """CONTROL — una filial tiene su propio RFC; heredarlo es un error
         fiscal, no cosmetico."""
         company = _company(vat='KAU010101AAA')
-        filial = ResPartner.objects.create(
+        filial = _sin_sincronizar(
             name='Filial', parent=company, is_company=True)
         company._commercial_sync_to_descendants()
         filial.refresh_from_db()
@@ -190,7 +215,7 @@ class TestAddressDownstream:
         """CONTROL de la frontera: una direccion de entrega es distinta a
         proposito, y pisarla destruye lo que alguien capturo."""
         company = _company()
-        bodega = ResPartner.objects.create(
+        bodega = _sin_sincronizar(
             name='Bodega', parent=company, type=ResPartner.TYPE_DELIVERY,
             city='Tlaquepaque')
         company._children_sync({'city': 'Zapopan'})
@@ -227,7 +252,7 @@ class TestFieldsSync:
     def test_a_delivery_child_does_not_push_up(self, db):
         """CONTROL — sólo el contacto comparte dirección con su empresa."""
         company = _company(city='Guadalajara')
-        bodega = ResPartner.objects.create(
+        bodega = _sin_sincronizar(
             name='Bodega', parent=company, type=ResPartner.TYPE_DELIVERY,
             city='Tlaquepaque')
         bodega._fields_sync({'city': 'Tlaquepaque'})
