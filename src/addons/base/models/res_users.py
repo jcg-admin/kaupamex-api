@@ -82,7 +82,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import F, Q
 from django.db.models.functions import Length
 from django.db.models.lookups import Exact
-from django.db.models.signals import pre_delete
+from django.db.models.signals import m2m_changed, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
@@ -465,19 +465,23 @@ class ResUsers(TimeStampedModel):
     **este mismo archivo**, y listarlos aquí como pendientes contradecía esa
     declaración.
 
-    *Portados en el pase de #59 — 3:*
+    *Portados — 6:*
 
     - ``_deactivate_portal_user`` (``:934-987``) → :meth:`ResUsersQuerySet
       ._deactivate_portal_user`. Su consumidor **ya existía** y hacía dos de
       sus seis mitades a mano.
     - ``_set_encrypted_password`` (``:299-306``) y ``_set_new_password``
       (``:414-426``) → los dos aquí abajo, con sus guardas.
+    - ``UsersMultiCompany`` — sus tres símbolos (``create``, ``write``,
+      ``new``) son **el mismo cuerpo colgado de tres ganchos** de su ORM.
+      Aquí es **un** receptor de ``m2m_changed``
+      (:func:`_sync_multi_company_group`, al final del archivo), porque en
+      Django el M2M nunca se escribe en el ``save()``: va siempre por su
+      propio camino, y ese camino es justo la condición que su ``write``
+      comprueba a mano con ``if 'company_ids' not in vals``. Tarea **#68**.
 
-    *Trabajo, con tarea propia — 4:*
+    *Trabajo, con tarea propia — 1:*
 
-    - ``UsersMultiCompany`` (``create``, ``write``, ``new``): un solo
-      invariante colgado de tres ganchos de su ORM — más de una empresa
-      implica pertenecer a ``base.group_multi_company``. Tarea **#68**.
     - ``_action_revoke_all_devices`` (``:1028-1031``): BLOQUEADO por
       ``ResDevice._revoke`` — sus tres líneas delegan enteras en él, y ese
       método no está portado. Tarea **#69**.
@@ -2702,3 +2706,72 @@ def _forbid_deleting_master_data(sender, instance, **kwargs):
             'No se puede eliminar al usuario %r: se usa en la '
             'configuración de seguridad y en el acceso anónimo. '
             'Archívalo en su lugar.' % instance.login)
+
+
+@receiver(m2m_changed, sender='base.ResCompanyUsersRel',
+          dispatch_uid='base.res_users.multi_company')
+def _sync_multi_company_group(sender, instance, action, reverse, pk_set,
+                              **kwargs):
+    """≙ ``UsersMultiCompany`` (``odoo19c: res_users.py:1352-1397``).
+
+    Un usuario con más de una empresa pertenece a ``base.group_multi_company``;
+    con una o ninguna, no. La pertenencia se **deriva del conteo**: no se
+    escribe a mano en ningún sitio.
+
+    **Por qué un gancho y no tres.** La fuente cuelga el mismo cuerpo de
+    ``create``, ``write`` y ``new`` porque su ORM escribe el M2M **dentro** de
+    los dos primeros — de ahí su ``if 'company_ids' not in vals: return``, que
+    es literalmente «actúa sólo cuando la escritura tocó el M2M».
+
+    En Django un M2M **nunca** se escribe en el ``save()``: va siempre por su
+    propio camino, y ese camino emite ``m2m_changed``. Así que esta señal es
+    exactamente la condición que su ``write`` comprueba a mano, y cubre por
+    construcción los dos ganchos de escritura. El tercero, ``new``, no tiene
+    contraparte: construye un recordset **en memoria** que su cliente web
+    consulta antes de guardar, y aquí no hay tal objeto.
+
+    **Los dos lados del M2M.** ``company.user_ids`` es el lado directo
+    (``reverse=False``: los usuarios afectados vienen en ``pk_set``);
+    ``user.company_ids`` es el inverso (``reverse=True``: el afectado es
+    ``instance``). La señal reporta ambos, así que la pertenencia se mantiene
+    se escriba por donde se escriba.
+
+    **El ``clear()`` desde la empresa** llega con ``pk_set = None`` — Django no
+    dice a quién vació. Por eso se anota la membresía en ``pre_clear``, que aún
+    la ve, y se recalcula en ``post_clear``. Es MÁS completo que la fuente: su
+    ``write`` de ``res.users`` no se entera de un ``company.user_ids = [(5,)]``
+    escrito del lado de la empresa.
+
+    **Ciego a** una escritura de la tabla intermedia por SQL crudo o por
+    ``ResCompanyUsersRel.objects.create()``, que no pasan por el descriptor y
+    no emiten la señal. La fuente tiene el mismo hueco con su ``cr.execute``.
+    """
+    if action == 'pre_clear' and not reverse:
+        instance._multi_company_cleared = list(
+            instance.user_ids.values_list('pk', flat=True))
+        return
+
+    if action not in ('post_add', 'post_remove', 'post_clear'):
+        return
+
+    group_id = apps.get_model('base', 'IrModelData').xmlid_to_res_id(
+        'base.group_multi_company', raise_if_not_found=False)
+    if not group_id:
+        # ≙ el ``if group_multi_company_id:`` de la fuente — mientras la
+        # siembra no haya dejado el xmlid, la pregunta no tiene sentido.
+        return
+
+    if reverse:
+        user_ids = [instance.pk]
+    elif action == 'post_clear':
+        user_ids = getattr(instance, '_multi_company_cleared', [])
+    else:
+        user_ids = list(pk_set or ())
+
+    for user in ResUsers.objects.filter(pk__in=user_ids):
+        company_count = user.company_ids.count()
+        belongs = user.group_ids.filter(pk=group_id).exists()
+        if company_count <= 1 and belongs:
+            user.group_ids.remove(group_id)
+        elif company_count > 1 and not belongs:
+            user.group_ids.add(group_id)
