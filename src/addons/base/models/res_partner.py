@@ -22,6 +22,7 @@ cliente sin migrar filas.
 reenvían. Ver ``res_users.py``.
 """
 import datetime
+import re
 from base64 import b64encode
 from collections import defaultdict
 from random import randint
@@ -1038,6 +1039,78 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     #   de los dos desenlaces toca —portarlo verbatim con su defecto, o
     #   divergir arreglándolo— es decisión del ejecutor: **tarea #103**.
     # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # display_name — el nombre enriquecido segun quien lo pide
+    # ≙ ``odoo19c: odoo/addons/base/models/res_partner.py:1038-1069``
+    # ------------------------------------------------------------------
+    def _compute_display_name(self):
+        """El nombre completo, enriquecido segun cinco claves de contexto.
+
+        ≙ ``_compute_display_name`` (``odoo19c: res_partner.py:1038``).
+
+        ``complete_name`` es el nombre para una lista; ``display_name`` es ese
+        nombre **adaptado a quien lo pide**: el mismo partner se muestra
+        distinto en un selector de correo (con el buzon), en una pantalla de
+        soporte (con el id de base) o en un documento fiscal (con el RFC). La
+        fuente resuelve eso con cinco claves y dos formas.
+
+        La rama ``formatted_display_name`` no anexa: cambia la FORMA entera a
+        «Empresa \t --Persona--». Dentro de ella el correo y el id son
+        **alternativos** (``elif`` en la fuente), no acumulativos como en la
+        otra rama — es una diferencia real y el test la mide.
+
+        El ``with_context(lang=...)`` de la fuente no se porta: fija el idioma
+        del hilo para la traduccion de la etiqueta del tipo. Aqui el catalogo
+        esta vacio (0 archivos ``.po``, medido) y ``_get_complete_name`` lee
+        ``TYPES``, que es una lista literal — no hay traduccion que fijar. Se
+        cierra con el catalogo, no antes.
+        """
+        contexto = get_context()
+        type_description = dict(self.TYPES)
+
+        if contexto.get('formatted_display_name'):
+            name = self.name or ''
+            if self.parent_id or self.company_name:
+                company = self.company_name or (
+                    self.parent.name if self.parent_id else '')
+                own = self.name or type_description.get(self.type, '')
+                name = f"{company} \t --{own}--"
+            if contexto.get('show_email') and self.email:
+                name = f"{name} \t --{self.email}--"
+            elif contexto.get('partner_show_db_id'):
+                name = f"{name} \t --{self.pk}--"
+        else:
+            name = self._get_complete_name()
+            if contexto.get('partner_show_db_id'):
+                name = f"{name} ({self.pk})"
+            if contexto.get('show_email') and self.email:
+                name = f"{name} <{self.email}>"
+            if contexto.get('show_address'):
+                name = name + "\n" + self._display_address(without_company=True)
+            if contexto.get('show_vat') and self.vat:
+                if contexto.get('show_address'):
+                    name = f"{name} \n {self.vat}"
+                else:
+                    name = f"{name} - {self.vat}"
+
+        # ≙ *"Remove extra empty lines"* de la fuente (``:1067``): la plantilla
+        # del pais deja blancos delante del salto cuando una parte va vacia.
+        name = re.sub(r'\s+\n', '\n', name)
+        return name.strip()
+
+    @property
+    def display_name(self):
+        """El campo publico; el computo privado es ``_compute_display_name``.
+
+        La fuente declara ``display_name`` como campo y ``_compute_display_name``
+        como su computo — la frontera del guion bajo que
+        ``porte-completo-no-parcial.md`` exige conservar. Aqui el campo es una
+        ``property`` porque no lleva columna, pero la particion es la misma:
+        quien lo lee usa ``display_name``; quien lo extiende sobreescribe
+        ``_compute_display_name``.
+        """
+        return self._compute_display_name()
+
     # ------------------------------------------------------------------
     # El avatar y su relleno por tipo de direccion
     # ≙ ``odoo19c: odoo/addons/base/models/res_partner.py:334-377``
