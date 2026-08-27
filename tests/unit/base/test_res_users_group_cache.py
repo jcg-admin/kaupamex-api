@@ -45,7 +45,8 @@ from django.test.utils import CaptureQueriesContext
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.res_partner import ResPartner
-from addons.base.models.res_users import ResUsers
+from addons.base.models.res_users import (ResUsers,
+                                          _invalidate_group_ids)
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -202,3 +203,41 @@ def test_a_group_that_does_not_imply_is_not_membership(db):
     user.group_ids.add(tip)
     ajeno = ResGroups.objects.create(name='Ajeno')
     assert user._has_group(_xmlid(ajeno, 'grupo_ajeno')) is False
+
+
+def test_a_raw_write_to_the_join_table_is_invisible_to_the_invalidator(db):
+    """La ceguera del invalidador, medida en vez de supuesta (tarea #73).
+
+    ``m2m_changed`` lo emite el **descriptor** del ORM. Un ``INSERT`` directo
+    sobre ``res_groups_users_rel`` no pasa por él, así que ningún receptor se
+    entera y la entrada de caché sobrevive con el valor viejo hasta que expira
+    su TTL.
+
+    Este caso no arregla nada: **prueba que el hueco existe** y cuál es su
+    tamaño. Es la contraparte del sub-patrón D de
+    ``metrica-decide-la-conclusion.md`` — un control que sólo afirma que el
+    invalidador funciona no distingue *"cubre todos los caminos"* de *"el test
+    sólo usa los que cubre"*.
+
+    Medido en el mismo pase sobre ``src/`` y ``addons/`` (sin migraciones):
+    **0** escrituras crudas a esas dos tablas. El camino existe en el lenguaje
+    y no en el árbol, que es exactamente lo que el TTL de 300 s acota.
+    """
+    user = _make_user('escritura-cruda@ejemplo.mx')
+    group = ResGroups.objects.create(name='Crudo')
+
+    assert user._get_group_ids() == []          # entra al caché
+
+    tabla = ResGroups.user_ids.through._meta.db_table
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f'INSERT INTO {tabla} (resgroups_id, resusers_id) VALUES (%s, %s)',
+            [group.pk, user.pk])
+
+    # El ORM lo ve; el caché no — y ésa es la afirmación del caso.
+    assert list(user.all_group_ids.values_list('pk', flat=True)) == [group.pk]
+    assert user._get_group_ids() == []
+
+    # Y la purga explícita lo recupera: el hueco es de aviso, no de mecanismo.
+    _invalidate_group_ids([user.pk])
+    assert user._get_group_ids() == [group.pk]
