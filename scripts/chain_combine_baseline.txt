@@ -1,0 +1,33 @@
+# Llamadas a chain_method sin combine= cuyo homonimo en la referencia COMBINA.
+#
+# Cada entrada llevo su veredicto ESCRITO tras leer el par de archivos —el
+# nuestro y el de la referencia—, no un grep: el tipo de retorno no dice cual
+# de los dos idiomas es. Una entrada listada no bloquea; una nueva si.
+#
+# Barrido inicial: tarea #79, sucesora de H-API-823 (2026-08-27). De las 301
+# llamadas medidas, 8 quedaron aqui y NINGUNA resulto ser el defecto de
+# H-API-823: seis son bloqueos y dos son relevos declarados.
+#
+# --- Bloqueos: el eslabon LANZA, no devuelve. combine no tiene receptor. ---
+# Los seis instalan un stub _blocked() con su razon medida (0 hits de la pieza
+# que la referencia usa). El dia que se porten, esta linea se retira y el gate
+# exige el combine que su idioma pide.
+addons/account_edi_ubl_cii/models/account_move.py::_get_fields_to_detach
+addons/account_edi_ubl_cii/models/account_move.py::get_extra_print_items
+addons/account_edi_ubl_cii/models/account_move_send.py::_get_move_constraints
+addons/account_edi_ubl_cii/models/account_move_send.py::_get_alerts
+addons/account_edi_ubl_cii/models/account_move_send.py::_get_placeholder_mail_attachments_data
+addons/account_edi_ubl_cii/models/ir_actions_report.py::_render_qweb_pdf_prepare_streams
+#
+# --- Relevos declarados: el instrumento ve la FORMA, el eslabon hace el FONDO ---
+# _get_source_document: la referencia escribe `return self.purchase_line_id.
+#   order_id or res`, que asigna super() y lo usa en un `or` — forma de
+#   combinacion. Nuestro eslabon devuelve None cuando no hay linea de compra,
+#   asi que el relevo por defecto produce el mismo `or res`. Declarado en su
+#   docstring desde el porte.
+addons/purchase_stock/models/stock_move.py::_get_source_document
+# _get_available_payment_method_lines: la referencia filtra el resultado de
+#   super(); aqui NO hay base que encadenar —AccountJournal no declara el
+#   metodo— y el eslabon reimplementa la seleccion completa, filtro incluido.
+#   Divergencia declarada en el docstring del eslabon.
+addons/account_payment/models/account_journal.py::_get_available_payment_method_lines

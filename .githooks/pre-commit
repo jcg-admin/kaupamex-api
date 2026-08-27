@@ -152,6 +152,24 @@ if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
     fi
 fi
 
+# ─── check_chain_combine: el eslabon que ENRIQUECE lleva combine= ────────────
+# El relevo por defecto de chain_method invoca la previa solo si la nueva
+# devolvio None, y un contenedor vacio no lo es: el eslabon lo da por respuesta
+# buena y descarta lo que entrego la previa. Medido en res.users.settings, el
+# de `web` arrancaba en {} y el formato perdia id y user — sin excepcion y sin
+# simbolo ausente, con el gate de porte declarando el archivo completo.
+# El idioma lo decide la REFERENCIA (return super() vs res = super(); res[x]),
+# no el tipo de retorno. Baseline de deuda revisada; una llamada nueva SI
+# bloquea. Script: scripts/check_chain_combine.py.
+if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
+    COMBINE_CHECKER="$REPO_ROOT/scripts/check_chain_combine.py"
+    if [[ ! -f "$COMBINE_CHECKER" ]]; then
+        echo "pre-commit: $COMBINE_CHECKER no encontrado — skip combine gate" >&2
+    else
+        python3 "$COMBINE_CHECKER" --strict "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
 if [[ "$EXIT_CODE" -ne 0 ]]; then
     echo "" >&2
     echo "pre-commit: gates fallaron. Corrige los problemas o usa" >&2
