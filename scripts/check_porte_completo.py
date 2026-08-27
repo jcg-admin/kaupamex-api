@@ -233,6 +233,7 @@ PORTE_ALIAS = {
     # ``models/__init__.py``, que nombra el archivo destino de cada uno.
     'ResCompanyLdap': 'CompanyLdap',                # _name = res.company.ldap
     'AuthOauthProvider': 'OauthProvider',           # _name = auth.oauth.provider
+    'AuthPasskeyKey': 'PasskeyKey',                 # _name = auth.passkey.key
 }
 
 

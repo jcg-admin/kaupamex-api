@@ -187,3 +187,45 @@ authz_ldap/models/res_users.py
 # simbolos que NO se portan estan contados y declarados en el docstring del
 # archivo, con su sucesor. Guiones bajos restaurados en el mismo pase.
 authz_oauth/models/res_users.py
+#
+# Los seis simbolos de `auth.passkey.key` que no llevan contraparte de nombre
+# tienen su conducta en la superficie REST del addon, y cada uno lo declara con
+# su `=` en `controllers/main.py`:
+#
+#   action_delete_passkey + unlink -> PasskeyViewSet.perform_destroy (la misma
+#     comprobacion de identidad, el mismo log, y el borrado); el acotado a las
+#     propias es get_queryset, = su `create_uid == env.user`.
+#   action_rename_passkey -> el PATCH del viewset: en la referencia devuelve un
+#     `ir.actions.act_window` que abre un formulario, que es UI, no conducta.
+#   AuthPasskeyKeyCreate.make_key -> la accion `register`, que es el POST del
+#     flujo WebAuthn. El wizard transient de la referencia ES ese POST.
+#   _compute_public_key / _inverse_public_key / init -> `public_key` es una
+#     columna declarada del modelo (auth_passkey_key.py:73). La referencia
+#     necesita el compute y el `ALTER TABLE` de `init` porque su ORM no la
+#     puede declarar; aqui la declara el campo y la crea la migracion, asi que
+#     no hay compute que replicar: leer el atributo ES leer la columna.
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::_compute_public_key
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::_inverse_public_key
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::init
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::unlink
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::action_delete_passkey
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::action_rename_passkey
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKeyCreate
+#
+# Cuatro de los cinco de `res.users` en authz_passkey, cada uno con su renglon
+# en la tabla del docstring del archivo. `SELF_READABLE_FIELDS` NO entra: es un
+# BLOQUEO —se portaria el dia que base.ResUsers declare la lista blanca— y
+# sigue contado como deuda, con su arista declarada en el mismo renglon.
+#
+#   action_create_passkey -> la accion de ventana del backoffice es aqui el
+#     endpoint de registro (controllers/main.py: registration_options + register).
+#   _login -> backends.PasskeyBackend.authenticate, el camino de login con la
+#     busqueda global por credential_identifier; AUTHENTICATION_BACKENDS ES la
+#     cadena de super()._login.
+#   _get_session_token_fields / _get_session_token_query_params -> el token de
+#     sesion de Django NO se deriva de campos del usuario, asi que no hay nada
+#     que extender: no es trabajo pendiente, es conducta que no existe aqui.
+authz_passkey/models/res_users.py::ResUsers::action_create_passkey
+authz_passkey/models/res_users.py::ResUsers::_login
+authz_passkey/models/res_users.py::ResUsers::_get_session_token_fields
+authz_passkey/models/res_users.py::ResUsers::_get_session_token_query_params
