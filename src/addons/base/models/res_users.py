@@ -78,11 +78,12 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import authenticate as django_authenticate
 from django.contrib.auth import hashers
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db.models import F, Q
 from django.db.models.functions import Length
 from django.db.models.lookups import Exact
-from django.db.models.signals import m2m_changed, pre_delete
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
@@ -101,6 +102,72 @@ from orm.utils import SUPERUSER_ID
 #: lo usan el bloque de claves de API, el enfriamiento de acceso Y el cambio de
 #: contraseña. El nombre acotado sugería que cada bloque traía el suyo.
 _logger = logging.getLogger(__name__)
+
+#: Prefijo de la clave con que se memoriza la clausura de grupos de un usuario.
+#:
+#: ≙ el ``@tools.ormcache('self.id')`` que la referencia cuelga de
+#: ``_get_group_ids`` (``odoo19c: res_users.py:1098``). Su ``ormcache`` es un
+#: diccionario por registro y por base; aquí el equivalente es el backend de
+#: caché configurado, y la clave lleva **dos** ejes porque hay dos cosas que
+#: pueden cambiar el resultado: el usuario y el grafo de implicación.
+_GROUP_IDS_CACHE_PREFIX = 'base:group_ids'
+
+#: Clave del contador de generación del grafo de implicación.
+#:
+#: El grafo de ``res.groups`` es **compartido**: reescribir un ``implied_ids``
+#: cambia la clausura de todos los usuarios a la vez, no la de uno. Purgar por
+#: usuario exigiría enumerarlos —lo que no escala y la propia fuente evita en
+#: ``check_user_disjoint_groups``—, así que el invalidador de grafo incrementa
+#: esta generación y con ello **jubila todas las claves vivas de golpe**.
+#:
+#: Es la adaptación de lo que la fuente resuelve con ``registry.clear_cache()``
+#: (``odoo19c: res_users.py:643``), que purga el registro entero. Aquí un
+#: ``cache.clear()`` sería más ancho todavía: barrería también las capacidades
+#: de ``addons.authz.resolution``, que no dependen de este grafo.
+_GROUP_GRAPH_GENERATION_KEY = 'base:group_graph_generation'
+
+#: Vigencia del memo, en segundos. Es un techo, no el mecanismo de corrección:
+#: quien corrige es el invalidador. El TTL sólo acota la ventana de una
+#: escritura que ocurriera fuera de los descriptores del ORM —SQL crudo, o un
+#: ``bulk_create`` sobre la tabla intermedia—, que no emite señal.
+_GROUP_IDS_CACHE_TTL = 300
+
+
+def _group_graph_generation():
+    """La generación vigente del grafo de implicación.
+
+    ``cache.get_or_set`` en vez de ``get`` con respaldo: si la clave se cayó
+    —desalojo, reinicio del proceso— la generación arranca de nuevo en 1, y
+    eso es **seguro por construcción**: las claves de la generación anterior
+    quedan huérfanas y nadie vuelve a leerlas.
+    """
+    return cache.get_or_set(_GROUP_GRAPH_GENERATION_KEY, 1, None)
+
+
+def _group_ids_cache_key(user_pk):
+    return f'{_GROUP_IDS_CACHE_PREFIX}:{_group_graph_generation()}:{user_pk}'
+
+
+def _invalidate_group_ids(user_pks=None):
+    """Purga el memo de la clausura de grupos.
+
+    Sin argumento, **jubila la generación entera**: es el caso del grafo de
+    implicación, cuyo cambio afecta a todos los usuarios. Con una lista de PKs,
+    purga sólo a ésos: es el caso de un usuario que gana o pierde un grupo.
+
+    Las dos vías comparten nombre a propósito — anularlo con un ``return`` al
+    entrar desactiva la invalidación completa, que es el control de
+    ``metrica-decide-la-conclusion.md`` sub-patrón D que la suite ejercita.
+    """
+    if user_pks is None:
+        try:
+            cache.incr(_GROUP_GRAPH_GENERATION_KEY)
+        except ValueError:
+            # La clave no existe todavía: sembrarla ya jubila lo que hubiera.
+            cache.set(_GROUP_GRAPH_GENERATION_KEY, 2, None)
+        return
+    cache.delete_many([_group_ids_cache_key(pk) for pk in user_pks if pk])
+
 
 #: Contador de intentos fallidos por origen, para el enfriamiento de acceso.
 #:
@@ -451,12 +518,17 @@ class ResUsers(TimeStampedModel):
     que ``set_password``/``check_password`` ya consumen — incluido el rehash
     automático que su ``verify_and_update`` hace a mano.
 
-    **6. La caché de autorización — 3 símbolos.** ``_get_invalidation_fields``,
-    ``_compute_session_token``, ``_get_session_token_query_params``. Los dos
-    últimos son la memorización y el SQL crudo de un token que aquí calcula
-    Django (ver :meth:`_get_session_token_fields`); el primero es el
-    invalidador, y su ausencia es **la razón declarada** de que
-    :meth:`_get_group_ids` no memorice. Sucesor: tarea **#58**.
+    **6. La caché de autorización — 3 símbolos.**
+    ``_get_invalidation_fields`` está **portado** (tarea #58), y con él
+    :meth:`_get_group_ids` memoriza como en la fuente: el bloque de módulo
+    ``_group_ids_cache_key`` / ``_invalidate_group_ids`` y sus cuatro
+    receptores son la forma que toma aquí el ``registry.clear_cache()`` que
+    allá se dispara desde ``write``.
+
+    Los otros dos —``_compute_session_token`` y
+    ``_get_session_token_query_params``— son la memorización y el SQL crudo de
+    un token que aquí calcula Django (ver :meth:`_get_session_token_fields`).
+    Quedan como **divergencia de stack declarada**, no como trabajo.
 
     **7. El resto, triado uno por uno — 19 símbolos.** Este bloque decía
     *"18"* y listaba **19**; el conteo se corrigió al triarlos (tarea #59),
@@ -1145,6 +1217,27 @@ class ResUsers(TimeStampedModel):
             ids = [getattr(c, 'pk', c) for c in companies]
         return Q(company_ids__in=ids)
 
+    @classmethod
+    def _get_invalidation_fields(cls):
+        """≙ ``_get_invalidation_fields`` (``odoo19c: res_users.py:735-740``).
+
+        Los campos cuyo cambio jubila lo memorizado del usuario. La fuente los
+        cruza contra las claves escritas en su ``write`` —``if
+        invalidation_fields & vals.keys(): registry.clear_cache()``
+        (``:641-643``)— y con eso purga el registro entero.
+
+        Se portan **los seis que declara** más los de sesión, aunque aquí sólo
+        ``group_ids`` entre en el cómputo de la clausura: el conjunto es un
+        **punto de extensión**, igual que :meth:`_get_session_token_fields`, y
+        recortarlo a lo que hoy se usa lo convertiría en una lista privada de
+        este memo. ``lang``, ``tz`` y las dos de empresa gobiernan otras
+        memorizaciones que la fuente tiene y este árbol todavía no.
+        """
+        return {
+            'group_ids', 'active', 'lang', 'tz', 'company_id', 'company_ids',
+            *cls._get_session_token_fields(),
+        }
+
     def _get_group_ids(self):
         """≙ ``_get_group_ids`` (``odoo19c: res_users.py:1098-1104``).
 
@@ -1153,13 +1246,26 @@ class ResUsers(TimeStampedModel):
         fuente declara las dos formas porque su ``ormcache`` guarda ids, no
         recordsets.
 
-        DIVERGENCIA DE MECANISMO, declarada: la fuente lo memoriza con
-        ``@tools.ormcache('self.id')``. Aquí no — el árbol no tiene todavía el
-        invalidador que la fuente cuelga de ``_get_invalidation_fields``, y una
-        caché de autorización sin invalidación es peor que ninguna: mantendría
-        vivo un permiso ya retirado. Sucesor: tarea #58.
+        **Memorizado**, como allá. Lo que aquí es distinto es la forma del
+        invalidador, no su existencia: la fuente purga el registro entero desde
+        su ``write``; aquí purgan las señales del ORM —``post_save`` del
+        usuario, ``m2m_changed`` de ``group_ids`` por los dos lados— y el
+        contador de generación del grafo de implicación (ver
+        ``_invalidate_group_ids``).
+
+        **Sin PK no se memoriza.** Es la misma decisión que la fuente escribe
+        en el consumidor: *"for new record don't fill the ormcache"*
+        (``:1095-1096``). Una clave con ``None`` colisionaría entre todos los
+        usuarios sin guardar.
         """
-        return list(self.all_group_ids.values_list('pk', flat=True))
+        if self.pk is None:
+            return []
+        key = _group_ids_cache_key(self.pk)
+        ids = cache.get(key)
+        if ids is None:
+            ids = list(self.all_group_ids.values_list('pk', flat=True))
+            cache.set(key, ids, _GROUP_IDS_CACHE_TTL)
+        return ids
 
     # --- Presentación ---
     def get_full_name(self):
@@ -1352,6 +1458,15 @@ class ResUsers(TimeStampedModel):
         tiene PK. Es la misma postura fail-closed que la fuente da a un
         ``group_id`` ausente de ``all_group_ids``: un grupo que no existe no
         otorga pertenencia.
+
+        **La pregunta se hace contra** :meth:`_get_group_ids`, como en la
+        fuente (``group_id in self._get_group_ids()``, ``:1096``). Antes se
+        hacía desde el otro extremo —``group.all_implied_by_ids`` y un
+        ``.exists()`` sobre ``group_ids``—, que da **el mismo conjunto** (es la
+        identidad que el bloque de arriba ya argumenta) y recorría la clausura
+        entera en cada llamada: medido sobre una cadena de cinco grupos, **9
+        consultas por llamada, sin amortizar**. Por el memo son 9 la primera y
+        las del ``ref`` del xmlid después.
         """
         if self.pk is None:
             return False
@@ -1359,8 +1474,7 @@ class ResUsers(TimeStampedModel):
         group = data_model.ref(group_ext_id, raise_if_not_found=False)
         if not isinstance(group, apps.get_model('base', 'ResGroups')):
             return False
-        implying = list(group.all_implied_by_ids.values_list('pk', flat=True))
-        return self.group_ids.filter(pk__in=implying).exists()
+        return group.pk in self._get_group_ids()
 
     # --- Eje interno / portal / público (≙ res_users.py:1165-1179) ---
     #
@@ -2805,3 +2919,78 @@ def _sync_multi_company_group(sender, instance, action, reverse, pk_set,
             user.group_ids.remove(group_id)
         elif company_count > 1 and not belongs:
             user.group_ids.add(group_id)
+
+
+# ---------------------------------------------------------------------------
+# El invalidador del memo de grupos (≙ ``_get_invalidation_fields`` + el
+# ``registry.clear_cache()`` que la fuente dispara desde su ``write``).
+#
+# La fuente tiene **un** punto de purga porque su ORM hace pasar toda
+# escritura por ``write``. Aquí no: un M2M nunca se escribe en el ``save()``
+# —va por su descriptor, que emite ``m2m_changed``— así que el invalidador se
+# reparte entre las señales que sí cubren cada camino. Son cuatro receptores
+# porque hay cuatro caminos, no cuatro reglas.
+# ---------------------------------------------------------------------------
+
+@receiver(post_save, sender='base.ResUsers',
+          dispatch_uid='base.res_users.invalidate_group_ids')
+def _invalidate_on_user_save(sender, instance, **kwargs):
+    """Purga al guardar el usuario, si tocó un campo del invalidador.
+
+    ``update_fields`` es ``None`` cuando quien guarda no lo declara — el caso
+    común de ``obj.save()``. Ahí se purga **siempre**: es la postura
+    conservadora, y equivale a lo que la fuente hace con su
+    ``registry.clear_cache()``, que tampoco distingue por usuario.
+    """
+    campos = kwargs.get('update_fields')
+    if campos is None or set(campos) & ResUsers._get_invalidation_fields():
+        _invalidate_group_ids([instance.pk])
+
+
+@receiver(m2m_changed, sender='base.ResGroups_user_ids',
+          dispatch_uid='base.res_users.invalidate_group_ids_m2m')
+def _invalidate_on_groups_changed(sender, instance, action, reverse, pk_set,
+                                  **kwargs):
+    """Purga cuando cambia la pertenencia, desde cualquiera de los dos lados.
+
+    ``post_clear`` llega con ``pk_set = None`` —Django no dice a quién vació—
+    y desde el lado del grupo el conjunto afectado son **sus** usuarios, que ya
+    no se pueden enumerar después del vaciado. Por eso ese caso jubila la
+    generación entera en vez de intentar una purga por usuario: es más ancho
+    de lo necesario y **nunca deja un permiso retirado vivo**, que es la única
+    dirección en la que un error aquí importa.
+    """
+    if action not in ('post_add', 'post_remove', 'post_clear'):
+        return
+    if action == 'post_clear':
+        _invalidate_group_ids()
+        return
+    _invalidate_group_ids([instance.pk] if reverse else list(pk_set or ()))
+
+
+@receiver(m2m_changed, sender='base.ResGroups_implied_ids',
+          dispatch_uid='base.res_groups.invalidate_group_graph')
+def _invalidate_on_implication_changed(sender, action, **kwargs):
+    """Purga TODO cuando cambia el grafo de implicación.
+
+    Una arista nueva entre dos grupos cambia la clausura de cualquier usuario
+    que alcance el origen, y quiénes son ésos es justamente lo que el memo
+    guarda. Enumerarlos exigiría recorrer todos los usuarios — la operación
+    que ``ResGroups.check_user_disjoint_groups`` evita por escala, siguiendo el
+    comentario de la propia fuente.
+    """
+    if action in ('post_add', 'post_remove', 'post_clear'):
+        _invalidate_group_ids()
+
+
+@receiver(post_delete, sender='base.ResGroups',
+          dispatch_uid='base.res_groups.invalidate_group_graph_delete')
+def _invalidate_on_group_deleted(sender, **kwargs):
+    """Un grupo borrado desaparece de la clausura de quien lo tuviera.
+
+    Django emite ``m2m_changed`` al vaciar las tablas intermedias en cascada,
+    pero **no está garantizado** para todo camino de borrado (un
+    ``QuerySet.delete()`` con borrado rápido no instancia las filas). Este
+    receptor cierra el hueco por el lado que sí es fiable.
+    """
+    _invalidate_group_ids()
