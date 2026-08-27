@@ -21,20 +21,27 @@ cliente sin migrar filas.
 ``ResUsers`` la reimplementa con una FK requerida más propiedades que
 reenvían. Ver ``res_users.py``.
 """
+import datetime
 from collections import defaultdict
 from random import randint
 from urllib.parse import urlsplit, urlunsplit
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import fields
 import models
+from django.apps import apps
 
 from addons.base.models.avatar_mixin import AvatarMixin
 from addons.base.models.res_country import (ADDRESS_FORMAT_KEYS,
                                             DEFAULT_ADDRESS_FORMAT)
+from addons.base.models.res_lang import ResLang
 from exceptions import ValidationError
-from orm.environments import get_context
+from orm.environments import get_context, get_current_company
+from orm.utils import SUPERUSER_ID
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from tools.mail import email_normalize_all, formataddr
 from tools.misc import OrderedSet, street_split
+from tools.translate import _
 
 
 class ResPartner(AvatarMixin, TimeStampedModel):
@@ -206,6 +213,30 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         max_length=120, blank=True, default='',
         help_text='Puesto (Odoo function).',
     )
+    complete_name = fields.Char(
+        max_length=512, blank=True, default='', db_index=True,
+        help_text=(
+            'Nombre para listas: «Empresa, Persona» (Odoo complete_name). '
+            'Es store=True en la fuente — se escribe al guardar, no se '
+            'calcula al leer.'
+        ),
+    )
+    company_registry = fields.Char(
+        max_length=64, blank=True, default='', db_index=True,
+        help_text=(
+            'Identificador de la empresa en su registro mercantil '
+            '(Odoo company_registry). store=True y readonly=False: se '
+            'captura a mano y las localizaciones lo pueden derivar.'
+        ),
+    )
+    partner_share = fields.Boolean(
+        default=True, db_index=True,
+        help_text=(
+            'Cliente sin acceso, o usuario compartido (Odoo partner_share). '
+            'Es store=True en la fuente — se escribe al guardar. False solo '
+            'cuando algun usuario suyo es interno.'
+        ),
+    )
     company_name = fields.Char(
         max_length=150, blank=True, default='',
         help_text='Razón social escrita a mano cuando el contacto NO cuelga '
@@ -254,13 +285,73 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     )
     comment     = fields.Text(blank=True, default='')
 
+    # --- Etiquetas calculadas, SIN columna --------------------------------
+    #
+    # Diez de los trece campos de este bloque NO son columnas: la fuente los
+    # declara ``compute=`` sin ``store=True`` — existen para leerse, no para
+    # consultarse. Aqui eso es ``fields.NonStored``
+    # (``src/orm/fields_nonstored.py``), el mecanismo que este arbol ya
+    # construyo para ``store=False``.
+    #
+    # Los TRES que si llevan columna estan arriba con los demas campos:
+    # ``complete_name`` (``odoo19c: res_partner.py:214``), ``company_registry``
+    # (``:241``) y ``partner_share`` (``:295``). Medido sobre las trece
+    # declaraciones de la fuente, no estimado.
+    #
+    # El ``default`` es un invocable que recibe la instancia: el descriptor lo
+    # llama al leer. La fuente ASIGNA dentro del compute
+    # (``partner.tz_offset = ...``); aqui el metodo DEVUELVE y el descriptor
+    # guarda. Divergencia de mecanismo, misma lectura en el sitio de consumo.
+    active_lang_count = fields.NonStored(
+        default=lambda partner: partner._compute_active_lang_count(),
+        help_text='Cuantos idiomas activos hay (Odoo active_lang_count).')
+    tz_offset = fields.NonStored(
+        default=lambda partner: partner._compute_tz_offset(),
+        help_text='Desfase de la zona horaria, en la forma +HHMM '
+                  '(Odoo tz_offset).')
+    vat_label = fields.NonStored(
+        default=lambda partner: partner._compute_vat_label(),
+        help_text='Como se llama el identificador fiscal en el pais de la '
+                  'empresa activa (Odoo vat_label).')
+    company_registry_label = fields.NonStored(
+        default=lambda partner: partner._compute_company_registry_label(),
+        help_text='Como se llama el registro mercantil en su pais '
+                  '(Odoo company_registry_label).')
+    company_registry_placeholder = fields.NonStored(
+        default=lambda partner: partner._compute_company_registry_placeholder(),
+        help_text='Texto guia del campo de registro mercantil '
+                  '(Odoo company_registry_placeholder).')
+    type_address_label = fields.NonStored(
+        default=lambda partner: partner._compute_type_address_label(),
+        help_text='Como se llama esta direccion (Odoo type_address_label).')
+    email_formatted = fields.NonStored(
+        default=lambda partner: partner._compute_email_formatted(),
+        help_text='Lo que va en la cabecera To: de un correo '
+                  '(Odoo email_formatted).')
+    company_type = fields.NonStored(
+        default=lambda partner: partner._compute_company_type(),
+        help_text='Interfaz de is_company: "company" o "person" '
+                  '(Odoo company_type). NO usar en logica de negocio — la '
+                  'fuente lo dice en un comentario propio (``:281``).')
+    same_vat_partner_id = fields.NonStored(
+        default=lambda partner: partner._compute_same_vat_partner_id(),
+        help_text='Otro partner con el mismo identificador fiscal '
+                  '(Odoo same_vat_partner_id). BLOQUEADO por ``EU_EXTRA_VAT_CODES`` — '
+                  'falta la tabla de codigos de IVA; ver tarea #105.')
+    same_company_registry_partner_id = fields.NonStored(
+        default=lambda partner: partner._compute_same_company_registry_partner_id(),
+        help_text='Otro partner con el mismo registro mercantil '
+                  '(Odoo same_company_registry_partner_id). '
+                  'BLOQUEADO por ``partner.company_id`` — ver tarea #105.')
+
     class Meta:
         db_table            = 'res_partner'
-        # Derivado de ``_order = 'complete_name ASC, id DESC'``. ``complete_name``
-        # es un compute que este puerto no trae, así que el primer tramo se
-        # sustituye por ``name`` — el campo que lo alimenta en la fuente. El
-        # segundo tramo se conserva verbatim.
-        ordering            = ['name', '-id']
+        # Derivado de ``_order = 'complete_name ASC, id DESC'``, ahora
+        # VERBATIM: ``complete_name`` es una columna real desde que se porto
+        # su bloque, asi que ya no hace falta sustituir el primer tramo por
+        # ``name``. El comentario anterior decia que era «un compute que este
+        # puerto no trae» — cierto al escribirlo, falso desde este commit.
+        ordering            = ['complete_name', '-id']
         verbose_name        = 'Partner'
         verbose_name_plural = 'Partners'
         constraints         = [
@@ -877,6 +968,26 @@ class ResPartner(AvatarMixin, TimeStampedModel):
             if fila is not None:
                 pre_values = {fname: getattr(fila, fname) for fname in watched}
 
+        # Las DOS columnas calculadas del bloque de etiquetas. La tercera,
+        # ``company_registry``, tiene un compute que es no-op deliberado en la
+        # fuente (*"exists to allow overrides"*), asi que no se cablea aqui:
+        # se captura a mano y una localizacion lo deriva sobreescribiendo
+        # ``_compute_company_registry``.
+        self.complete_name = self._compute_complete_name()
+        if not creating:
+            # ``partner_share`` mira ``self.users``, que necesita PK. Al crear
+            # no hay usuarios todavia y queda en su default (True = cliente
+            # sin acceso), que es lo que la fuente calcula para un partner sin
+            # ``user_ids``.
+            #
+            # COBERTURA PARCIAL DECLARADA: la fuente lo declara
+            # ``@api.depends('user_ids.share', 'user_ids.active')`` — recalcula
+            # cuando cambian los USUARIOS, no cuando cambia el partner. Aqui
+            # se recalcula en el lado del partner; el lado del usuario
+            # (crear/borrar/mover de grupo un ``ResUsers`` de este partner) NO
+            # dispara todavia. Sucesor: tarea **#108**.
+            self.partner_share = self._compute_partner_share()
+
         result = super().save(*args, **kwargs)
 
         if get_context().get('_partners_skip_fields_sync'):
@@ -926,6 +1037,290 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     #   de los dos desenlaces toca —portarlo verbatim con su defecto, o
     #   divergir arreglándolo— es decisión del ejecutor: **tarea #103**.
     # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # El nombre completo y las etiquetas calculadas
+    # ≙ ``odoo19c: odoo/addons/base/models/res_partner.py:378-544, 602-648``
+    # ------------------------------------------------------------------
+    def _get_complete_name(self):
+        """El nombre que se muestra en una lista — «Empresa, Persona».
+
+        ≙ ``_get_complete_name`` (``odoo19c: res_partner.py:378``). Sin esta
+        anteposicion una lista con contactos de varias empresas es ilegible:
+        salen tres «Ana» sin decir de quien es cada una.
+
+        Dos divergencias de mecanismo, ambas medidas:
+
+        - El catalogo de tipos: la fuente lo pide con
+          ``self._fields['type']._description_selection(self.env)`` porque su
+          Selection puede ser un invocable; aqui ``TYPES`` es una lista
+          literal en la clase y ``dict(self.TYPES)`` es la misma tabla.
+        - ``self.sudo().parent_id.name``: el ``sudo()`` de la fuente esquiva
+          la regla de fila para poder anteponer el nombre de una empresa que
+          el lector no puede ver. Aqui se lee ``self.parent.name`` directo —
+          el confinamiento por fila de este arbol vive en el queryset del
+          endpoint, no en el atravesar la FK, asi que no hay nada que
+          esquivar.
+        """
+        displayed_types = self._complete_name_displayed_types
+        type_description = dict(self.TYPES)
+
+        name = self.name or ''
+        if self.company_name or self.parent_id:
+            if not name and self.type in displayed_types:
+                name = type_description[self.type]
+            if (not self.is_company
+                    and not get_context().get(
+                        'partner_display_name_hide_company')):
+                padre = self.parent.name if self.parent_id else ''
+                name = f"{self.commercial_company_name or padre}, {name}"
+        return name.strip()
+
+    def _compute_complete_name(self):
+        """El valor que se escribe en la columna ``complete_name``.
+
+        ≙ ``_compute_complete_name`` (``:393``). La fuente lo calcula
+        ``with_context({})`` — vaciando el contexto — para que el valor
+        ALMACENADO nunca dependa de ``partner_display_name_hide_company``,
+        que es una clave de vista.
+
+        DIVERGENCIA DECLARADA: aqui no se vacia el contexto.
+
+        *Metrica:* consumidores de esa clave, ``grep -rn`` sobre ``src/``,
+        ``addons/`` y ``tests/``.
+        *Resultado:* **0**. En la fuente el unico que la fija es
+        ``crm/views/crm_lead_views.xml`` — una vista XML, y aqui la interfaz
+        es React y no hay arch XML que la ponga. Vaciar un contexto que nadie
+        puebla no cambia ningun valor.
+        *Ciega a:* un consumidor futuro. Cuando alguien fije esa clave, este
+        metodo necesita un ambito que la limpie — registrado como tarea
+        **#106**.
+        """
+        return self._get_complete_name()
+
+    def _compute_active_lang_count(self):
+        """Cuantos idiomas activos hay instalados.
+
+        ≙ ``_compute_active_lang_count`` (``:408``), que hace
+        ``len(self.env['res.lang'].get_installed())``.
+
+        ``get_installed`` todavia no esta portado (tarea **#104**), pero el
+        NUMERO no depende de el: ``get_installed`` devuelve los idiomas
+        ``active`` y lo unico que la fuente usa es su longitud. Se cuenta
+        directo. Cuando **#104** aterrice, el cuerpo delega en el.
+        """
+        return ResLang.objects.filter(active=True).count()
+
+    def _compute_tz_offset(self):
+        """El desfase de la zona horaria, en la forma ``+HHMM``.
+
+        ≙ ``_compute_tz_offset`` (``:414``):
+        ``datetime.datetime.now(pytz.timezone(partner.tz or 'GMT')).strftime('%z')``
+
+        DIVERGENCIA DE STACK: ``pytz`` no esta instalado (medido:
+        ``ModuleNotFoundError``). Se usa ``zoneinfo`` de la biblioteca
+        estandar, que da el mismo ``%z``.
+
+        DIVERGENCIA DE ESQUEMA, y esta si cambia la conducta: la fuente
+        declara ``tz`` como **Selection** acotada a ``pytz.all_timezones``
+        (``:223``), asi que una zona invalida es imposible por construccion y
+        ``pytz.timezone`` nunca recibe basura. Aqui ``tz`` es un
+        ``fields.Char`` libre, asi que SI puede llegar basura de un dato
+        viejo — y ``ZoneInfo`` levantaria ``ZoneInfoNotFoundError`` al LEER
+        el partner, no al escribirlo.
+
+        Por eso se cae a GMT en vez de propagar: no es inventar una conducta
+        que la fuente no tiene, es cubrir un caso que su esquema hace
+        imposible y el nuestro no. Cerrar la divergencia —acotar ``tz`` a una
+        Selection como la fuente— es la tarea **#107**.
+        """
+        try:
+            zona = ZoneInfo(self.tz or 'GMT')
+        except (ZoneInfoNotFoundError, ValueError):
+            zona = ZoneInfo('GMT')
+        return datetime.datetime.now(zona).strftime('%z')
+
+    def _compute_vat_label(self):
+        """Como se llama el identificador fiscal: «RFC» en Mexico, «NIF» en
+        Espana.
+
+        ≙ ``_compute_vat_label`` (``:490``):
+        ``self.env.company.country_id.vat_label or _("Tax ID")``.
+
+        Es del pais de la **empresa activa**, no del pais del partner: un
+        operador mexicano ve «RFC» en toda ficha, sea de quien sea. El
+        ``env.company`` de la fuente es aqui ``get_current_company()``
+        (``src/orm/environments.py:153``), y la etiqueta la resuelve
+        ``FormatVatLabelMixin.vat_label_for``, que ya existe.
+        """
+        company_id = get_current_company()
+        if company_id:
+            # ``apps.get_model`` y no un import al top: ``res_company.py:97``
+            # importa ``ResPartner``, asi que el import directo cierra un
+            # ciclo REAL (medido con grep en ambos sentidos). Es la excepcion
+            # #3 de ``no-lazy-imports.md`` resuelta como manda —refactor al
+            # mecanismo de Django— y no con un import perezoso: es una
+            # llamada, no un statement.
+            ResCompany = apps.get_model('base', 'ResCompany')
+            company = ResCompany.objects.filter(pk=company_id).first()
+            if company is not None:
+                etiqueta = FormatVatLabelMixin.vat_label_for(company)
+                if etiqueta:
+                    return etiqueta
+        return _('Tax ID')
+
+    def _compute_type_address_label(self):
+        """Como se llama esta direccion.
+
+        ≙ ``_compute_type_address_label`` (``:494``), verbatim incluidos los
+        cuatro literales, que van por ``_()`` como en la fuente.
+
+        Salen en INGLES, y es correcto: el arbol declara
+        ``LANGUAGE_CODE = 'es-mx'`` y ``USE_I18N = True`` pero tiene **0**
+        catalogos ``.po``/``.mo`` (medido con ``find src -name '*.po'``), asi
+        que ``_()`` devuelve el literal de la fuente. Traducirlos es poblar el
+        catalogo, no cambiar el codigo.
+        """
+        if self.type == self.TYPE_INVOICE:
+            return _('Invoice Address')
+        if self.type == self.TYPE_DELIVERY:
+            return _('Delivery Address')
+        if self.type == self.TYPE_CONTACT and self.parent_id:
+            return _('Company Address')
+        return _('Address')
+
+    def _compute_company_registry(self):
+        """No-op deliberado — ≙ ``_compute_company_registry`` (``:528``).
+
+        La fuente escribe ``company.company_registry = company.company_registry``
+        y lo explica en su propio comentario: *"exists to allow overrides"*.
+        El campo es ``store=True, readonly=False``: se captura a mano, y el
+        compute existe solo para que una localizacion lo pueda derivar
+        sobreescribiendo este metodo. Se porta con esa forma para que el
+        punto de extension exista.
+        """
+        return self.company_registry
+
+    def _compute_company_registry_label(self):
+        """Como se llama el registro mercantil en su pais.
+
+        ≙ ``_compute_company_registry_label`` (``:534``). Lee el pais del
+        **partner** (la fuente nombra ``company`` a la variable del bucle,
+        pero itera sobre ``self``, que son partners).
+        """
+        label_by_country = self._get_company_registry_labels()
+        country_code = self.country.code if self.country_id else None
+        return label_by_country.get(country_code, _('Company ID'))
+
+    @classmethod
+    def _get_company_registry_labels(cls):
+        """El mapa pais → etiqueta, VACIO por diseno.
+
+        ≙ ``_get_company_registry_labels`` (``:540``), que devuelve ``{}``.
+        Lo pueblan las localizaciones (``l10n_*``) sobreescribiendolo. Que lo
+        haria fallar: inventar entradas que ninguna localizacion portada
+        respalde.
+        """
+        return {}
+
+    def _compute_company_registry_placeholder(self):
+        """``False`` por diseno — ≙ ``_compute_company_registry_placeholder``
+        (``:543``). Lo llenan las localizaciones, igual que el mapa."""
+        return False
+
+    def _compute_email_formatted(self):
+        """Lo que va en la cabecera ``To:`` de un correo.
+
+        ≙ ``_compute_email_formatted`` (``:602``). El docstring de la fuente
+        enumera los defensivos y todos se portan, porque cada uno tapa un
+        fallo real de envio:
+
+        - **doble formato**: si ``email`` ya trae ``'Ana' <ana@x>``, componer
+          sobre el daria ``"Ana" <"Ana" <ana@x>>``, que ningun servidor
+          acepta. Lo evita ``email_normalize_all``, que extrae la direccion.
+        - **multi-buzon**: a veces el campo lleva dos direcciones. Se
+          conservan las dos, sin formato individual.
+        - **correo invalido**: se conserva TAL CUAL en vez de vaciarlo —
+          facilita diagnosticar por que fallo el envio en vez de esconderlo.
+        - **correo vacio**: ``False``, porque no hay nada que hacer con el.
+        """
+        if not self.email:
+            return False
+        emails_normalized = email_normalize_all(self.email)
+        if emails_normalized:
+            return formataddr((self.name or 'False',
+                               ','.join(emails_normalized)))
+        return formataddr((self.name or 'False', self.email))
+
+    def _compute_company_type(self):
+        """``'company'`` o ``'person'`` — ≙ ``_compute_company_type``
+        (``:635``). Es la cara legible de ``is_company``."""
+        return 'company' if self.is_company else 'person'
+
+    def _write_company_type(self):
+        """El inverso — mueve ``is_company`` desde ``company_type``.
+
+        ≙ ``_write_company_type`` (``:639``). Sin el, ``company_type`` seria
+        de solo lectura y el formulario que lo ofrece no cambiaria nada.
+        """
+        self.is_company = self.company_type == 'company'
+
+    def onchange_company_type(self):
+        """≙ ``onchange_company_type`` (``:644``) — el mismo movimiento, en el
+        momento en que el usuario cambia el selector, antes de guardar.
+
+        La fuente declara ambos (``inverse`` y ``@api.onchange``) y hacen lo
+        mismo; se portan los dos porque cubren dos momentos distintos.
+        """
+        self.is_company = self.company_type == 'company'
+
+    def _compute_partner_share(self):
+        """¿Este partner es un cliente sin acceso, o un usuario compartido?
+
+        ≙ ``_compute_partner_share`` (``:443``):
+        ``not partner.user_ids or not any(not user.share for user in
+        partner.user_ids)``, con el partner del super-usuario forzado a
+        ``False``.
+
+        ``user.share`` todavia no esta portado como campo (tarea **#104**),
+        pero su definicion en la fuente es
+        ``not user.has_group('base.group_user')`` — lo contrario de interno.
+        Aqui eso es ``user._is_internal()`` (``res_users.py:1625``), que SI
+        existe. Asi que la expresion se porta sin degradar: «comparte» =
+        ningun usuario suyo es interno.
+        """
+        if self.pk and self.users.filter(pk=SUPERUSER_ID).exists():
+            return False
+        usuarios = list(self.users.all()) if self.pk else []
+        if not usuarios:
+            return True
+        return not any(user._is_internal() for user in usuarios)
+
+    def _compute_same_vat_partner_id(self):
+        """BLOQUEADO por ``EU_EXTRA_VAT_CODES`` — otro partner con el mismo
+        identificador fiscal.
+
+        ≙ ``_compute_same_vat_partner_id`` (``:451``). Su cuerpo necesita dos
+        piezas que este arbol NO tiene, medidas:
+
+        - ``EU_EXTRA_VAT_CODES`` — la tabla de codigos de IVA europeos que la
+          fuente consulta para decidir si el VAT se valida por pais;
+        - ``partner.company_id`` — el campo de empresa del partner, que aqui
+          no existe todavia (el confinamiento por empresa vive en el
+          queryset, no en una FK del partner).
+
+        Devolver ``None`` es la conducta declarada mientras eso siga asi: NO
+        es «no hay ningun partner con el mismo VAT», es «no se puede
+        responder». Sucesor registrado: tarea **#105**.
+        """
+        return None
+
+    def _compute_same_company_registry_partner_id(self):
+        """BLOQUEADO por ``partner.company_id`` — la fuente resuelve los dos
+        en ``_compute_same_vat_partner_id`` (``:451-487``), y la mitad del
+        registro mercantil depende de ese campo, que aqui no existe.
+        Sucesor: tarea **#105**."""
+        return None
+
     def _get_street_split(self):
         """≙ ``_get_street_split`` (``odoo19c: res_partner.py:331-333``).
 

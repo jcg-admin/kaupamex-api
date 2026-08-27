@@ -360,8 +360,31 @@ class ResCompany(TimeStampedModel):
         return getattr(self.partner, fname, None)
 
     def _address_set(self, fname, value):
-        """El *inverse* de la fuente: escribir en la compañía escribe el partner."""
+        """El *inverse* de la fuente: escribir en la compañía escribe el partner.
+
+        **Y lo PERSISTE.** Hasta este commit el cuerpo era sólo el ``setattr``,
+        así que la escritura vivía en la instancia en memoria y se perdía al
+        releer: la compañía se guardaba, su partner no. Medido con una sonda
+        antes de corregirlo::
+
+            c.country = mexico; c.save()
+            c.country                        -> Mexico     (en memoria)
+            ResCompany.objects.get(pk=c.pk).country -> None (releído)
+
+        La fuente no tiene ese hueco porque su ``inverse`` escribe por el ORM,
+        que persiste por construcción (``odoo19c: base/models/res_company.py``,
+        los ``_inverse_*`` de dirección). Aquí la property tiene que hacerlo
+        explícito.
+
+        Se guarda el partner ENTERO, no ``update_fields=[fname]``: cambiar un
+        campo de dirección debe disparar ``ResPartner.save`` completo, que es
+        quien propaga la dirección a los hijos (``_fields_sync``) y recalcula
+        las columnas derivadas. Acotar los campos saltaría esa propagación —
+        el mismo efecto que la fuente sí produce al escribir.
+        """
         setattr(self.partner, fname, value)
+        if self.partner.pk:
+            self.partner.save()
 
     @property
     def street(self):
