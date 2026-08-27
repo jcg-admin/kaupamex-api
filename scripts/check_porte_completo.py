@@ -149,6 +149,37 @@ _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from addons_roots import addon_dirs, addon_path
 
 
+#: Addons cuyo nombre AQUI no es el de la referencia. Sin este mapa el gate
+#: no encuentra la contraparte y publica ``0 pares de archivo``, que se lee
+#: igual que un porte completo — el mismo sub-patron D que cerro la tarea #24
+#: al darle la segunda raiz. Lo destapo construir ``check_chain_combine``
+#: (tarea #80): ``--addon authz_totp`` medía cero.
+#:
+#: Cada entrada se verifico por SOLAPE DE ARCHIVOS, no por parecido de nombre:
+#: un homonimo no es una contraparte. Comunes medidos: ldap 5 · oauth 6 ·
+#: passkey 7 · password_policy 2 · signup 7 · timeout 9 · totp 7 · totp_mail 5.
+#:
+#: NO estan aqui, y no por olvido: ``authz``, ``authz_audit`` y ``authz_reauth``
+#: no tienen contraparte de ningun nombre (no existe ``auth``, ``auth_audit`` ni
+#: ``auth_reauth``); ``helpdesk`` y ``sale_subscription`` viven en Enterprise 19,
+#: que es OTRA raiz y otra licencia (OEEL-1, DEC-KX-03); ``auto_backup`` adapta
+#: ``odoo18c: app_auto_backup``, que es otra version. Ninguno de los cinco es un
+#: renombre: son fuentes distintas, y forzarlos aqui mediria otra poblacion.
+#: Contra que raiz se miden esos cuatro es DESCONOCIDO declarado, con su
+#: condicion de cierre en la tarea #82; el triaje de los 29 hallazgos que este
+#: mapa destapa, en la #81.
+ADDON_ALIAS = {
+    'authz_ldap': 'auth_ldap',
+    'authz_oauth': 'auth_oauth',
+    'authz_passkey': 'auth_passkey',
+    'authz_password_policy': 'auth_password_policy',
+    'authz_signup': 'auth_signup',
+    'authz_timeout': 'auth_timeout',
+    'authz_totp': 'auth_totp',
+    'authz_totp_mail': 'auth_totp_mail',
+}
+
+
 def reference_root(addon):
     """Raiz de un addon en la referencia, que NO tiene una sola forma.
 
@@ -164,11 +195,12 @@ def reference_root(addon):
     "no falta nada" y "no se miro". El denominador ya se publicaba
     (``alcance medido: N pares``) y decia ``0`` — la cifra estaba a la vista.
     """
+    name = ADDON_ALIAS.get(addon, addon)
     for root in (ODOO19C / 'addons', ODOO19C / 'odoo' / 'addons'):
-        candidate = root / addon
+        candidate = root / name
         if candidate.is_dir():
             return candidate
-    return ODOO19C / 'addons' / addon
+    return ODOO19C / 'addons' / name
 
 #: Renombres declarados: ``nombre en la referencia -> nombre aquí``. Cada
 #: entrada es una decisión, no una conveniencia — si el nombre cambió sin
