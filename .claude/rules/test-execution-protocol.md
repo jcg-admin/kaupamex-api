@@ -37,6 +37,23 @@ un PR o al cerrar un bloque** (ahí sí importa la ceguera del derivado — un
 consumidor que llega por herencia sin nombrar el símbolo), y cuando el ejecutor
 la pide.
 
+**El reparto por proceso está ADOPTADO — `-n 4` en local, NUNCA en CI**
+(directiva del ejecutor 2026-08-27). `pytest-xdist==3.6.1` vive en el grupo
+`test` de `pyproject.toml`. Medido pareado, misma población (792 passed):
+serie caliente **130.81 s**, `-n 4` caliente **51.50 s** (**2.54×**), `-n 4` en
+frío **286.63 s** (**0.46×** — más lento). Por eso:
+
+| Caso | Modo |
+|---|---|
+| CI (`--create-db`, siempre frío) | **serie** — `-n` ahí empeora |
+| local, varios directorios, bases calientes | **`-n 4`** |
+| un test o un solo archivo | **serie** |
+
+No va en `addopts`: lo heredarían los tres casos y en dos resta. La base por
+worker la resuelve `pytest-django` sufijando `TEST.NAME` con el `workerid`, así
+que `kaupamex_core_qa` nunca se toca. Costo de arranque 235 s, equilibrio en la
+tercera ejecución. Ver H-API-804.
+
 Los gates estáticos (`check_no_lazy_imports`, `check_silent_oks`,
 `check-canon`) cuestan segundos y **sí** se corren siempre. La DB por socket
 sigue siendo precondición de cualquier pytest (`pg_isready`; si no responde,

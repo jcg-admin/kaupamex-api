@@ -76,6 +76,12 @@ test = [
     "pytest==7.4.4",
     "pytest-django==4.7.0",
     "factory-boy==3.3.0",
+    # Reparto por proceso, con una base por worker. pytest-django lo resuelve
+    # en django_db_modify_db_settings_xdist_suffix: sufija TEST.NAME con el
+    # workerid, asi que la base compartida nunca se toca. Medido 2.54x con
+    # cuatro workers en cuatro CPUs, equilibrio en la tercera ejecucion sobre
+    # las mismas bases. Ver H-API-804.
+    "pytest-xdist==3.6.1",
 ]
 dev = [
     # Herramientas de desarrollo (shell_plus, graph_models, etc.) + todo test.
