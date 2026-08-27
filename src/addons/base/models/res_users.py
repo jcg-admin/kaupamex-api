@@ -500,15 +500,25 @@ class ResUsers(TimeStampedModel):
     action*, que este árbol no tiene: BLOQUEADO por ``action_id`` — no hay
     campo que validar.
 
-    **4. La superficie RPC de integración externa — 6 símbolos.** BLOQUEADO
-    por ``canal RPC crudo`` — no está construido; sucesor **#490**.
-    ``_rpc_api_keys_only``,
-    ``SELF_READABLE_FIELDS``, ``SELF_WRITEABLE_FIELDS``,
-    ``_self_accessible_fields``, ``_has_field_access``, ``context_get``. Son
-    el control de qué campos puede leerse y escribirse un usuario **a sí
-    mismo por RPC**. Aquí ese control lo ejerce el serializer con su
-    ``Meta.fields`` explícito y la autorización por capacidad (DEC-11), que es
-    fail-closed; el canal RPC crudo no está construido.
+    **4. La superficie de cuenta propia — 4 de 6 portados, 2 divergen.**
+    Son el control de qué campos puede leerse y escribirse un usuario **a sí
+    mismo**. El grupo entero se declaraba detenido *"por canal RPC crudo — no
+    está construido"*, y esa premisa **caducó**: el canal existe desde #85
+    (:ref:`h-api-835`). La marca se retira porque ya no hay bloqueo que
+    declarar, no porque se reescriba su forma.
+
+    Portados: ``_rpc_api_keys_only`` (#85), ``SELF_READABLE_FIELDS`` y
+    ``SELF_WRITEABLE_FIELDS`` (#66 y #85, extensibles con
+    ``orm.model_classes.extend_property`` — :ref:`h-api-834`), y
+    ``_self_accessible_fields``, que deriva las dos listas.
+
+    DIVERGENCIA DE MECANISMO, los dos que quedan. ``_has_field_access`` es el
+    enganche del control de acceso **por campo** de su ORM; aquí ese control
+    lo ejerce el serializer con su ``Meta.fields`` explícito más la
+    autorización por capacidad (DEC-11), que es fail-closed — no hay un
+    despacho por campo al que engancharse. ``context_get`` compone el contexto
+    de sesión de su ORM, que este árbol no tiene: el equivalente es
+    ``request.user`` más ``orm.environments``.
 
     **5. Su cifrador de contraseñas — 9 símbolos.** DIVERGENCIA DE STACK.
     ``CryptContext`` entera —``__init__``, ``copy``, ``hash``, ``identify``,
@@ -719,6 +729,21 @@ class ResUsers(TimeStampedModel):
     def has_usable_password(self):
         return hashers.is_password_usable(self.password)
 
+    def _rpc_api_keys_only(self):
+        """≙ ``_rpc_api_keys_only`` (``odoo19c: res_users.py:308-310``).
+
+        Su docstring de la fuente, verbatim: *"To be overridden if RPC access
+        needs to be restricted to API keys, e.g. for 2FA"*.
+
+        Es el eslabón **vacío** de una cadena de tres, igual que ``_mfa_type``:
+        ``base`` dice que no y cada addon de 2FA aporta su razón para decir que
+        sí. Se encadena con ``combine=first_truthy`` porque la forma de la
+        fuente es ``<lo propio> or super()`` — con el relevo por defecto, un
+        ``False`` del eslabón externo cortaría la cadena y el interno nunca
+        respondería.
+        """
+        return False
+
     def _check_credentials(self, credential, env):
         """≙ ``_check_credentials`` (``odoo19c: res_users.py:312-405``).
 
@@ -741,15 +766,20 @@ class ResUsers(TimeStampedModel):
         «es mío y está mal»— el despacho no puede separar las dos, que es
         exactamente el defecto que la orquestación a mano tenía (#722).
 
-        **Divergencia declarada — la rama no interactiva.** La fuente, cuando
-        ``env['interactive']`` es falso, acepta además una clave de API
-        (``res.users.apikeys._check_credentials(scope='rpc', key=…)``) y
-        consulta ``_rpc_api_keys_only`` para negar la contraseña cuando hay
-        2FA. Aquí esa rama **no se porta**, por la misma razón medida con que
-        ``authz_totp`` no portó ``_rpc_api_keys_only``: el canal de claves de
-        API para integración externa no está construido, y una guarda que
-        niega el acceso a un canal inexistente no niega nada. Se porta cuando
-        exista el canal. Sucesor: **#490**.
+        **La rama no interactiva, portada (#85).** Cuando ``env['interactive']``
+        es falso, este método es el canal RPC: acepta una **clave de API** en
+        el lugar de la contraseña, y consulta ``_rpc_api_keys_only`` para
+        negar la contraseña cuando el usuario tiene 2FA. Las dos mitades son
+        de la fuente (``:356`` y ``:387-400``) y las dos son necesarias: sin la
+        primera no hay canal, y sin la segunda el 2FA se rodea presentando la
+        contraseña por RPC.
+
+        Su bloqueo decía que el canal *"no está construido"*, y esa premisa
+        **caducó sin que este archivo cambiara**: el modelo ``res.users.apikeys``
+        se portó entero —``_check_credentials(scope, key)``, ``_generate``,
+        ``revoke``, ``_assert_can_auth``— en las tareas #23, #26 y #34. Lo
+        único que faltaba era esta rama. Es la sexta vez que una divergencia
+        declarada caduca así (:ref:`h-api-835`).
 
         **Divergencia de mecanismo — el rehash.** La fuente hace
         ``verify_and_update`` y, si el algoritmo cambió, reescribe el hash y
@@ -776,13 +806,43 @@ class ResUsers(TimeStampedModel):
                 'login interactivo. Revisar llamadores y extensiones.'
             )
 
-        if not self.check_password(credential['password']):
-            raise AccessDenied()
-        return {
-            'uid': self.pk,
-            'auth_method': 'password',
-            'mfa': 'default',
-        }
+        # ≙ ``:356`` — la contraseña sólo se mira si el login es interactivo o
+        # si el usuario no exige clave de API. Con 2FA activo, un RPC por
+        # contraseña rodearía el segundo factor entero.
+        interactive = env.get('interactive', True)
+        if interactive or not self._rpc_api_keys_only():
+            if self.check_password(credential['password']):
+                return {
+                    'uid': self.pk,
+                    'auth_method': 'password',
+                    'mfa': 'default',
+                }
+
+        if not interactive:
+            # ≙ ``:387-394``, con su comentario: *"'rpc' scope does not really
+            # exist, we basically require a global key (scope NULL)"*. La clave
+            # viaja en el campo de la contraseña, que es el canal de la fuente
+            # — no una cabecera propia.
+            ResUsersApikeys = apps.get_model('base', 'ResUsersApikeys')
+            if ResUsersApikeys._check_credentials(
+                    scope='rpc', key=credential['password']) == self.pk:
+                return {
+                    'uid': self.pk,
+                    'auth_method': 'apikey',
+                    'mfa': 'default',
+                }
+
+            if self._rpc_api_keys_only():
+                # ≙ ``:396-400`` verbatim. El registro distingue este rechazo
+                # del de credencial errónea; la respuesta al cliente NO, y
+                # ésa es la mitad que protege: decirle que su contraseña es
+                # correcta pero el canal exige clave le confirma la contraseña.
+                _logger.info(
+                    'Invalid API key or password-based authentication '
+                    'attempted for a non-interactive (API) context that '
+                    'requires API key authentication only.')
+
+        raise AccessDenied()
 
     def change_password(self, old_passwd, new_passwd):
         """≙ ``change_password`` (``odoo19c: res_users.py:899-917``).
@@ -2010,10 +2070,15 @@ class ResUsers(TimeStampedModel):
 
         DIVERGENCIA DE MECANISMO, declarada: la fuente memoriza el resultado con
         ``@tools.ormcache('uid', 'passwd')`` para no rehashear en cada llamada
-        RPC. Aquí NO se memoriza: guardar en caché un par (id, contraseña) es
-        guardar la contraseña en claro en memoria del proceso, y el canal que
-        justificaba el coste —el RPC de integración externa— no está construido
-        (misma medición que ``_rpc_api_keys_only``, sucesor **#490**).
+        RPC. Aquí NO se memoriza, y la razón es de seguridad, no de alcance:
+        guardar en caché un par (id, contraseña) es guardar la contraseña en
+        claro en la memoria del proceso durante la vida de la entrada.
+
+        Su segunda razón —*"el canal RPC de integración externa no está
+        construido"*— **caducó al portarse #85** y se retira: el canal existe.
+        Lo que no cambia es la primera, que es la que sostiene la divergencia.
+        El coste del rehash por llamada queda como lo que es: el precio de no
+        tener la contraseña en memoria.
         """
         if not passwd:
             raise AccessDenied()

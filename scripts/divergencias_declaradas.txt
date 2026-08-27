@@ -204,18 +204,44 @@ authz_oauth/models/res_users.py
 #     necesita el compute y el `ALTER TABLE` de `init` porque su ORM no la
 #     puede declarar; aqui la declara el campo y la crea la migracion, asi que
 #     no hay compute que replicar: leer el atributo ES leer la columna.
+#   _compute_public_key -> `public_key` es una columna declarada del modelo
+#     (auth_passkey_key.py:73). La referencia necesita el compute y el `ALTER
+#     TABLE` de `init` porque su ORM no la puede declarar; aqui la declara el
+#     campo y la crea la migracion, asi que no hay compute que replicar: leer el
+#     atributo ES leer la columna.
 authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::_compute_public_key
+#   _inverse_public_key -> `public_key` es una columna declarada del modelo
+#     (auth_passkey_key.py:73). La referencia necesita el compute y el `ALTER
+#     TABLE` de `init` porque su ORM no la puede declarar; aqui la declara el
+#     campo y la crea la migracion, asi que no hay compute que replicar: leer el
+#     atributo ES leer la columna.
 authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::_inverse_public_key
+#   init -> `public_key` es una columna declarada del modelo
+#     (auth_passkey_key.py:73). La referencia necesita el compute y el `ALTER
+#     TABLE` de `init` porque su ORM no la puede declarar; aqui la declara el
+#     campo y la crea la migracion, asi que no hay compute que replicar: leer el
+#     atributo ES leer la columna.
 authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::init
+#   unlink -> PasskeyViewSet.perform_destroy (la misma comprobacion de
+#     identidad, el mismo log, y el borrado); el acotado a las propias es
+#     get_queryset, = su `create_uid == env.user`.
 authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::unlink
+#   action_delete_passkey -> PasskeyViewSet.perform_destroy (la misma
+#     comprobacion de identidad, el mismo log, y el borrado); el acotado a las
+#     propias es get_queryset, = su `create_uid == env.user`.
 authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::action_delete_passkey
+#   action_rename_passkey -> el PATCH del viewset: en la referencia devuelve
+#     un `ir.actions.act_window` que abre un formulario, que es UI, no conducta.
 authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::action_rename_passkey
+#   AuthPasskeyKeyCreate -> el wizard transient entero ES el POST de registro
+#     del flujo WebAuthn (controllers/main.py: registration_options + register).
 authz_passkey/models/auth_passkey_key.py::AuthPasskeyKeyCreate
 #
 # Cuatro de los cinco de `res.users` en authz_passkey, cada uno con su renglon
-# en la tabla del docstring del archivo. `SELF_READABLE_FIELDS` NO entra: es un
-# BLOQUEO —se portaria el dia que base.ResUsers declare la lista blanca— y
-# sigue contado como deuda, con su arista declarada en el mismo renglon.
+# en la tabla del docstring del archivo. `SELF_READABLE_FIELDS` NO entra: sigue
+# contado como deuda, y ya no por el motivo que decia —base la declara desde
+# #66 y `extend_property` da la via de suma (H-API-834)—, sino porque este
+# addon todavia no la declara. Es TRABAJO, no divergencia.
 #
 #   action_create_passkey -> la accion de ventana del backoffice es aqui el
 #     endpoint de registro (controllers/main.py: registration_options + register).
@@ -225,24 +251,39 @@ authz_passkey/models/auth_passkey_key.py::AuthPasskeyKeyCreate
 #   _get_session_token_fields / _get_session_token_query_params -> el token de
 #     sesion de Django NO se deriva de campos del usuario, asi que no hay nada
 #     que extender: no es trabajo pendiente, es conducta que no existe aqui.
+#   action_create_passkey -> la accion de ventana del backoffice es aqui el
+#     endpoint de registro (controllers/main.py: registration_options +
+#     register).
 authz_passkey/models/res_users.py::ResUsers::action_create_passkey
+#   _login -> backends.PasskeyBackend.authenticate, el camino de login con la
+#     busqueda global por credential_identifier; AUTHENTICATION_BACKENDS ES la
+#     cadena de super()._login.
 authz_passkey/models/res_users.py::ResUsers::_login
+#   _get_session_token_fields -> el token de sesion de Django NO se deriva de
+#     campos del usuario, asi que no hay nada que extender: no es trabajo
+#     pendiente, es conducta que no existe aqui.
 authz_passkey/models/res_users.py::ResUsers::_get_session_token_fields
+#   _get_session_token_query_params -> el token de sesion de Django NO se
+#     deriva de campos del usuario, asi que no hay nada que extender: no es
+#     trabajo pendiente, es conducta que no existe aqui.
 authz_passkey/models/res_users.py::ResUsers::_get_session_token_query_params
 #
 # --- authz_totp: 12 de 14, cada uno con su renglon en la tabla del archivo ----
 #
 # El 2FA por app no puede colgar de `res.users` por herencia, asi que su
 # superficie se reparte entre `services.py`, los controllers y una tabla
-# lateral. Los dos que NO entran aqui son BLOQUEOS y siguen contados:
-# SELF_READABLE_FIELDS (base no declara la lista blanca) y _rpc_api_keys_only
-# (el canal RPC por clave de API no esta construido).
+# lateral.
 #
-# Eran CUATRO hasta #85: el par _totp_rate_limit/_purge con su tabla ya esta
-# portado (H-API-833), asi que sale del denominador en vez de mudarse de
-# desenlace. El bloqueo decia que faltaba `auth_totp_rate_limit_log`, y era
-# cierto; lo que no decia es por que faltaba — el TransientModel de este arbol
-# declara `managed = False` y no crea tabla.
+# Eran CUATRO bloqueos hasta #85 y hoy no queda ninguno; ninguno se mudo de
+# desenlace: los cuatro salieron del denominador porque se portaron.
+#   _totp_rate_limit / _purge -> su tabla decia faltar, y faltaba; lo que no
+#     decia es por que — el TransientModel de este arbol declara
+#     `managed = False` y no crea tabla (H-API-833).
+#   _rpc_api_keys_only -> decia que el canal RPC por clave de API no estaba
+#     construido; la premisa caduco al portarse #85 (H-API-835).
+#   SELF_READABLE_FIELDS -> decia que base no declaraba la lista blanca; la
+#     declara desde #66, y lo que faltaba era la via para sumar a una property
+#     ya instalada: `extend_property` (H-API-834).
 #
 #   init -> la columna la crea una migracion de Django, no un ALTER TABLE.
 #   _compute_totp_enabled -> `property` del modulo: = el compute sin `store`.
@@ -260,17 +301,39 @@ authz_passkey/models/res_users.py::ResUsers::_get_session_token_query_params
 #     lateral OneToOne), no un campo calculado sobre la del usuario.
 #   _totp_enable_search -> se busca por `totp_secret__confirmed=True`, que es
 #     el mismo predicado sobre la relacion.
+#   init -> la columna la crea una migracion de Django, no un ALTER TABLE.
 authz_totp/models/res_users.py::ResUsers::init
+#   _compute_totp_enabled -> `property` del modulo: = el compute sin `store`.
 authz_totp/models/res_users.py::ResUsers::_compute_totp_enabled
+#   _get_session_token_fields -> el token de sesion de este arbol NO se
+#     compone por campos del usuario; no hay nada que extender.
 authz_totp/models/res_users.py::ResUsers::_get_session_token_fields
+#   _totp_try_setting -> services.confirm_setup.
 authz_totp/models/res_users.py::ResUsers::_totp_try_setting
+#   action_totp_disable -> services.disable + controllers.main.totp_disable.
 authz_totp/models/res_users.py::ResUsers::action_totp_disable
+#   action_totp_enable_wizard -> services.begin_setup +
+#     controllers.main.totp_setup.
 authz_totp/models/res_users.py::ResUsers::action_totp_enable_wizard
+#   revoke_all_devices -> auth_totp.revoke_all_devices, UNA funcion y no dos:
+#     la identidad fresca que alla pone @check_identity la exige aqui la vista
+#     (DEC-12), asi que los dos cuerpos coinciden.
 authz_totp/models/res_users.py::ResUsers::revoke_all_devices
+#   _revoke_all_devices -> auth_totp.revoke_all_devices, UNA funcion y no dos:
+#     la identidad fresca que alla pone @check_identity la exige aqui la vista
+#     (DEC-12), asi que los dos cuerpos coinciden.
 authz_totp/models/res_users.py::ResUsers::_revoke_all_devices
+#   change_password -> su cuerpo entero es revocar y delegar en super(); el
+#     cambio de contrasena vive en `authz` y llama a revoke_all_devices.
 authz_totp/models/res_users.py::ResUsers::change_password
+#   _compute_totp_secret -> el secreto es una FILA (tabla lateral OneToOne),
+#     no un campo calculado sobre la del usuario.
 authz_totp/models/res_users.py::ResUsers::_compute_totp_secret
+#   _inverse_token -> el secreto es una FILA (tabla lateral OneToOne), no un
+#     campo calculado sobre la del usuario.
 authz_totp/models/res_users.py::ResUsers::_inverse_token
+#   _totp_enable_search -> se busca por `totp_secret__confirmed=True`, que es
+#     el mismo predicado sobre la relacion.
 authz_totp/models/res_users.py::ResUsers::_totp_enable_search
 
 # --- authz_totp_mail/models/res_users.py -----------------------------------
@@ -304,14 +367,31 @@ authz_totp/models/res_users.py::ResUsers::_totp_enable_search
 #     plantilla QWeb `mail.account_security_alert` con su `suggest_2fa`. Esa
 #     plantilla es capa de presentacion del backoffice y no se porta; el correo
 #     va directo por `dispatch_email`.
+#   _get_totp_mail_key -> portado CON SU NOMBRE como funcion de modulo; el
+#     gate lo ve ausente porque busca una clase `ResUsers`, que aqui no existe.
 authz_totp_mail/models/res_users.py::ResUsers::_get_totp_mail_key
+#   _get_totp_mail_code -> portado CON SU NOMBRE como funcion de modulo
+#     (idem).
 authz_totp_mail/models/res_users.py::ResUsers::_get_totp_mail_code
+#   _send_totp_mail_code -> portado CON SU NOMBRE como funcion de modulo
+#     (idem).
 authz_totp_mail/models/res_users.py::ResUsers::_send_totp_mail_code
+#   get_totp_invite_url -> res_users.py:305, como config L2.
 authz_totp_mail/models/res_users.py::ResUsers::get_totp_invite_url
-authz_totp_mail/models/res_users.py::ResUsers::write
+#   action_totp_invite -> `invite_users` (res_users.py:311). Renombre
 authz_totp_mail/models/res_users.py::ResUsers::action_totp_invite
+#   authenticate -> la fuente concentra ahi el chequeo, la fecha de login y el
+#     auth_info; aqui eso lo reparte Django entre sus cuatro backends. La mitad
+#     de verificacion SI se unifico: `_check_credentials` existe como cadena
+#     sobre res.users, con este addon de tercer eslabon.
 authz_totp_mail/models/res_users.py::ResUsers::authenticate
+#   action_open_my_account_settings -> devuelve un `ir.actions.act_window`
+#     sobre una vista de formulario del backoffice; el SPA tiene su ruta.
 authz_totp_mail/models/res_users.py::ResUsers::action_open_my_account_settings
+#   _notify_security_setting_update_prepare_values -> prepara los valores de
+#     la plantilla QWeb `mail.account_security_alert` con su `suggest_2fa`. Esa
+#     plantilla es capa de presentacion del backoffice y no se porta; el correo
+#     va directo por `dispatch_email`.
 authz_totp_mail/models/res_users.py::ResUsers::_notify_security_setting_update_prepare_values
 
 # --- authz_totp_mail/models/auth_totp_device.py ----------------------------
@@ -344,8 +424,10 @@ authz_timeout/models/ir_http.py::IrHttp
 # (`save` + `delete`), instalados por `extend_model(metodos=...)`, que va por
 # `chain_method` (model_classes.py:169-170) y por tanto relevan.
 # Divergencia 2 del docstring del archivo.
+#   create -> Django no separa alta de modificacion: las dos son `save()`, que
+#     este addon encadena para invalidar la cache de `_get_lock_timeouts`.
 authz_timeout/models/res_groups.py::ResGroups::create
-authz_timeout/models/res_groups.py::ResGroups::write
+#   unlink -> `delete()`, encadenado por el mismo motivo que `save()`.
 authz_timeout/models/res_groups.py::ResGroups::unlink
 
 # --- authz_signup/models/res_partner.py -------------------------------------
@@ -366,9 +448,20 @@ authz_timeout/models/res_groups.py::ResGroups::unlink
 #
 # `SignupError` de la fuente vive en `../exceptions.py` — de ahi el hallazgo
 # CLASE FUERA DE SITIO, que es donde le corresponde estar.
+#   _get_signup_url -> arman la URL `/web/reset_password` del frontend QWeb;
+#     el SPA arma la suya con el token que devuelven `_signup_retrieve_info` /
+#     `signup_get_auth_param`.
 authz_signup/models/res_partner.py::ResPartner::_get_signup_url
+#   _get_signup_url_for_action -> arman la URL `/web/reset_password` del
+#     frontend QWeb; el SPA arma la suya con el token que devuelven
+#     `_signup_retrieve_info` / `signup_get_auth_param`.
 authz_signup/models/res_partner.py::ResPartner::_get_signup_url_for_action
+#   action_signup_prepare -> su cuerpo entero es `return
+#     self.signup_prepare()`, alias para un boton del backoffice. Sin ese
+#     formulario no envuelve nada.
 authz_signup/models/res_partner.py::ResPartner::action_signup_prepare
+#   SignupError -> vive en `../exceptions.py`, que es donde le corresponde —
+#     de ahi el hallazgo CLASE FUERA DE SITIO.
 authz_signup/models/res_partner.py::SignupError
 #
 # Y los 8 que SI estan portados, cada uno con su nombre, como funcion de
@@ -376,13 +469,34 @@ authz_signup/models/res_partner.py::SignupError
 # aqui no existe: Django no admite `_inherit`. Se listan uno a uno y no por
 # clase a proposito: asi un simbolo NUEVO de la referencia si saldria como
 # hallazgo en vez de quedar absuelto por arrastre.
+#   _generate_signup_token -> portado CON SU NOMBRE como funcion de modulo; se
+#     lista uno a uno para que un simbolo NUEVO de la referencia salga como
+#     hallazgo.
 authz_signup/models/res_partner.py::ResPartner::_generate_signup_token
+#   _get_login_date -> portado CON SU NOMBRE como funcion de modulo; se lista
+#     uno a uno para que un simbolo NUEVO de la referencia salga como hallazgo.
 authz_signup/models/res_partner.py::ResPartner::_get_login_date
+#   _get_partner_from_token -> portado CON SU NOMBRE como funcion de modulo;
+#     se lista uno a uno para que un simbolo NUEVO de la referencia salga como
+#     hallazgo.
 authz_signup/models/res_partner.py::ResPartner::_get_partner_from_token
+#   _signup_retrieve_info -> portado CON SU NOMBRE como funcion de modulo; se
+#     lista uno a uno para que un simbolo NUEVO de la referencia salga como
+#     hallazgo.
 authz_signup/models/res_partner.py::ResPartner::_signup_retrieve_info
+#   _signup_retrieve_partner -> portado CON SU NOMBRE como funcion de modulo;
+#     se lista uno a uno para que un simbolo NUEVO de la referencia salga como
+#     hallazgo.
 authz_signup/models/res_partner.py::ResPartner::_signup_retrieve_partner
+#   signup_cancel -> portado CON SU NOMBRE como funcion de modulo; se lista
+#     uno a uno para que un simbolo NUEVO de la referencia salga como hallazgo.
 authz_signup/models/res_partner.py::ResPartner::signup_cancel
+#   signup_get_auth_param -> portado CON SU NOMBRE como funcion de modulo; se
+#     lista uno a uno para que un simbolo NUEVO de la referencia salga como
+#     hallazgo.
 authz_signup/models/res_partner.py::ResPartner::signup_get_auth_param
+#   signup_prepare -> portado CON SU NOMBRE como funcion de modulo; se lista
+#     uno a uno para que un simbolo NUEVO de la referencia salga como hallazgo.
 authz_signup/models/res_partner.py::ResPartner::signup_prepare
 
 # --- authz_signup/models/res_users.py ---------------------------------------
@@ -390,13 +504,22 @@ authz_signup/models/res_partner.py::ResPartner::signup_prepare
 #
 # Portados CON SU NOMBRE (el gate los ve ausentes porque busca una clase
 # `ResUsers`, que aqui no existe — Django no admite `_inherit`):
+#   signup -> portado CON SU NOMBRE como funcion de modulo; el gate lo ve
+#     ausente porque busca una clase `ResUsers`, que aqui no existe.
 authz_signup/models/res_users.py::ResUsers::signup
+#   _signup_create_user -> portado CON SU NOMBRE como funcion de modulo; el
+#     gate lo ve ausente porque busca una clase `ResUsers`, que aqui no existe.
 authz_signup/models/res_users.py::ResUsers::_signup_create_user
+#   reset_password -> portado CON SU NOMBRE como funcion de modulo; el gate lo
+#     ve ausente porque busca una clase `ResUsers`, que aqui no existe.
 authz_signup/models/res_users.py::ResUsers::reset_password
+#   _action_reset_password -> portado CON SU NOMBRE como funcion de modulo; el
+#     gate lo ve ausente porque busca una clase `ResUsers`, que aqui no existe.
 authz_signup/models/res_users.py::ResUsers::_action_reset_password
 # `write` (rama de desactivacion) y `_ondelete_signup_cancel` -> ../signals.py,
 # dos senales con el mismo cuerpo:
-authz_signup/models/res_users.py::ResUsers::write
+#   _ondelete_signup_cancel -> portado en `../signals.py` como receptor de
+#     `post_delete`.
 authz_signup/models/res_users.py::ResUsers::_ondelete_signup_cancel
 #
 # Divergencia de mecanismo:
@@ -417,14 +540,34 @@ authz_signup/models/res_users.py::ResUsers::_ondelete_signup_cancel
 #     fallo de `dispatch_email` lo sella el manejador central (ADR-019).
 #   copy -> evita el correo de reset al DUPLICAR un usuario, accion del
 #     backoffice que aqui no existe.
+#   _get_signup_invitation_scope -> policy.signup_open. La fuente lee un enum
+#     ('b2b'/'b2c') y su unico consumidor compara `!= 'b2c'`: un enum de dos
+#     valores usado como bandera. Aqui es booleano, y el nombre cambia con la
+#     codificacion — `_get_signup_invitation_scope` prometeria un ambito.
 authz_signup/models/res_users.py::ResUsers::_get_signup_invitation_scope
+#   _create_user_from_template -> no se copia un template user; el alta pasa
+#     por `create_user` con password inutilizable hasta fijarlo con el token.
 authz_signup/models/res_users.py::ResUsers::_create_user_from_template
+#   _compute_state -> el campo `state` (new/active) es de la lista de usuarios
+#     del backoffice.
 authz_signup/models/res_users.py::ResUsers::_compute_state
+#   _search_state -> el campo `state` (new/active) es de la lista de usuarios
+#     del backoffice.
 authz_signup/models/res_users.py::ResUsers::_search_state
+#   web_create_users -> UI de usuarios del backoffice y cron de recordatorio.
 authz_signup/models/res_users.py::ResUsers::web_create_users
+#   send_unregistered_user_reminder -> UI de usuarios del backoffice y cron de
+#     recordatorio.
 authz_signup/models/res_users.py::ResUsers::send_unregistered_user_reminder
+#   create -> la invitacion automatica en cada alta; aqui se dispara
+#     explicitamente con `_action_reset_password`.
 authz_signup/models/res_users.py::ResUsers::create
+#   action_reset_password -> envoltorio publico que traduce
+#     MailDeliveryException a UserError para el formulario del backoffice; el
+#     fallo de `dispatch_email` lo sella el manejador central (ADR-019).
 authz_signup/models/res_users.py::ResUsers::action_reset_password
+#   copy -> evita el correo de reset al DUPLICAR un usuario, accion del
+#     backoffice que aqui no existe.
 authz_signup/models/res_users.py::ResUsers::copy
 
 # --- authz_signup/models/ir_http.py ------------------------------------------

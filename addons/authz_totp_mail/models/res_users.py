@@ -42,8 +42,10 @@ Métodos de la referencia → aquí:
   entre sus cuatro backends. Lo que **sí** se unificó (#722) es la mitad de
   verificación: ``_check_credentials`` existe como cadena sobre ``res.users``,
   con este addon de tercer eslabón.
-- ``_rpc_api_keys_only`` / ``action_open_my_account_settings`` → NO
-  portados: RPC keys y acción de ventana del backoffice Odoo.
+- ``_rpc_api_keys_only`` → portado abajo (#85), encadenado con
+  ``combine=first_truthy`` sobre los eslabones de ``authz_totp`` y ``base``.
+  ``action_open_my_account_settings`` sigue sin portar: es una acción de
+  ventana del backoffice Odoo.
 
 **Límite de tasa:** portado en **#85** (:ref:`h-api-833`). Los dos métodos y
 su tabla viven en ``authz_totp`` —donde la fuente los declara— y este addon los
@@ -57,7 +59,7 @@ from datetime import datetime
 from django.apps import apps as django_apps
 
 from exceptions import AccessDenied, UserError
-from orm.method_chain import chain_method, keep_previous
+from orm.method_chain import chain_method, first_truthy, keep_previous
 from orm.model_classes import extend_model
 from tools.misc import hmac as tools_hmac
 
@@ -219,6 +221,16 @@ def _mfa_url(self):
         return TOTP_MAIL_SECOND_STEP_URL
 
 
+def _rpc_api_keys_only(self):
+    """≙ ``_rpc_api_keys_only`` (``:135-136``) — el eslabón externo.
+
+    ``self._mfa_type() == 'totp_mail'`` es la forma de la fuente, y usarla
+    —en vez de un predicado propio— es lo que #719 dejó fijado: la pregunta
+    compuesta se hace **sobre el resultado de la cadena**, no antes.
+    """
+    return self._mfa_type() == 'totp_mail'
+
+
 def _check_credentials(self, credential, env):
     """≙ ``_check_credentials`` tipo ``totp_mail`` (``:138-156``).
 
@@ -305,6 +317,8 @@ def _chain_res_users(model):
     chain_method(model, '_notify_security_new_connection',
                  _notify_security_new_connection)
     chain_method(model, '_check_credentials', _check_credentials)
+    chain_method(model, '_rpc_api_keys_only', _rpc_api_keys_only,
+                 combine=first_truthy)
 
 
 def apply_authz_totp_mail_res_users_extensions():

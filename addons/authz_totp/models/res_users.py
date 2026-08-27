@@ -45,7 +45,7 @@ sucesor nombrado. Ninguno se omite en silencio
    * - ``init`` (``:38``)
      - divergencia de mecanismo: la columna la crea una migración de Django
    * - ``SELF_READABLE_FIELDS`` (``:44``)
-     - **NO portado** — ``base.ResUsers`` no declara la lista blanca que extiende
+     - **aquí** (#85), sumada a la de ``base`` con ``extend_property``
    * - ``_mfa_type`` (``:47``)
      - **aquí**, encadenado con ``keep_previous``
    * - ``_mfa_url`` (``:54``)
@@ -53,7 +53,7 @@ sucesor nombrado. Ninguno se omite en silencio
    * - ``_compute_totp_enabled`` (``:62``)
      - **aquí**, como ``property`` — ≙ el ``compute`` sin ``store``
    * - ``_rpc_api_keys_only`` (``:66``)
-     - **NO portado** — bloqueo medido, ver abajo
+     - **aquí** (#85), encadenado con ``first_truthy`` — ver abajo
    * - ``_get_session_token_fields`` (``:71``)
      - **NO portado** — el token de sesión de este árbol no se compone por campos
    * - ``_check_credentials`` (``:74``)
@@ -81,34 +81,22 @@ sucesor nombrado. Ninguno se omite en silencio
    * - ``_totp_enable_search`` (``:233``)
      - divergencia de mecanismo: se busca por ``totp_secret__confirmed=True``
 
-Bloqueo medido — ``_rpc_api_keys_only``
-=======================================
+El canal RPC ya NO está bloqueado
+=================================
 
-La referencia lo usa para negar el acceso RPC por contraseña cuando hay 2FA
-(``odoo/addons/base/models/res_users.py:356,396`` son sus dos consumidores).
-Este árbol **no tiene el canal que restringiría**: las claves de API para
-integración externa no están construidas, y su porte es la tarea **#85**. Un
-método que niega el acceso a un canal inexistente no niega nada — sería un
-símbolo muerto con nombre de guarda, que es peor que su ausencia.
+Los dos bloqueos que quedaban —``_rpc_api_keys_only`` y
+``SELF_READABLE_FIELDS``— se cerraron en el mismo pase de **#85**
+(:ref:`h-api-835`, :ref:`h-api-834`).
 
-Se porta cuando exista el canal; su eslabón base tampoco se declaró en
-``src/addons/base/models/res_users.py`` por la misma razón. Sucesor: **#85**.
+El primero decía que este árbol *"no tiene el canal que restringiría"*, y esa
+premisa **caducó sin que este archivo cambiara**: ``res.users.apikeys`` se
+portó entero en #23, #26 y #34, y lo único que faltaba era la rama no
+interactiva de ``_check_credentials``, portada ahora. La guarda vuelve a negar
+algo real: con 2FA activo, una contraseña presentada por RPC deja de valer.
 
-Los otros dos bloqueos, con su sucesor
-======================================
-
-Porte BLOQUEADO — 2 de 24 símbolos, los dos por el mismo mecanismo que este
-árbol no tiene todavía. Ninguno es omisión:
-
-- ``SELF_READABLE_FIELDS`` — BLOQUEADO por ``base.ResUsers.SELF_READABLE_FIELDS``
-  — la lista blanca que la referencia **extiende** no existe aquí, así que no
-  hay qué extender. Sucesor: **#85**.
-- ``_rpc_api_keys_only`` — BLOQUEADO por ``res.users.apikeys`` — el canal RPC
-  por clave de API no está construido (arriba). Sucesor: **#85**.
-
-``authz_totp_mail`` declara ``_rpc_api_keys_only`` y hereda de aquí los dos
-métodos del limitador: el bloqueo del canal RPC es de la cadena entera, no de
-este eslabón.
+El segundo decía que *"la lista blanca que la referencia extiende no existe
+aquí"*; existe desde el cierre de #66. Lo que faltaba era la vía para **sumar
+a** una property ya declarada, que es ``orm.model_classes.extend_property``.
 
 El límite de tasa ya NO está bloqueado
 =======================================
@@ -157,8 +145,8 @@ from datetime import timedelta
 from django.utils import timezone
 
 from exceptions import AccessDenied
-from orm.method_chain import chain_method, keep_previous
-from orm.model_classes import extend_model
+from orm.method_chain import chain_method, first_truthy, keep_previous
+from orm.model_classes import extend_model, extend_property
 
 from addons.authz_totp import services
 from addons.authz_totp.models.auth_totp_rate_limit_log import (
@@ -318,20 +306,62 @@ def _totp_rate_limit_purge(self, limit_type):
         user_id=self.pk, limit_type=limit_type).delete()
 
 
+def _rpc_api_keys_only(self):
+    """≙ ``_rpc_api_keys_only`` (``:66-69``), con su comentario verbatim.
+
+    *"2FA enabled means we can't allow password-based RPC"* — con segundo
+    factor activo, aceptar la contraseña por el canal no interactivo dejaría el
+    2FA en nada: quien tenga la contraseña entra por RPC sin presentar el
+    segundo factor.
+
+    ``ensure_one`` de la fuente no tiene receptor: ``self`` es una instancia.
+    """
+    return self.totp_enabled
+
+
+def SELF_READABLE_FIELDS(self, anterior):
+    """≙ ``SELF_READABLE_FIELDS`` (``:44-45``) — lo que este addon suma.
+
+    La fuente añade ``['totp_enabled', 'totp_trusted_device_ids']``; aquí el
+    segundo es ``totp_trusted_devices``, el ``related_name`` del lado Many2one
+    que ``auth_totp.py`` declara (el One2many no se declara en Django).
+
+    ``anterior`` es el ``super()``, y lo entrega
+    :func:`orm.model_classes.extend_property`. **No** va por
+    ``extend_model(propiedades=…)``: ese bloque no pisa una existente, y
+    ``base`` ya declara la property — es el defecto que :ref:`h-api-834` midió
+    en ``hr``, donde 32 campos no llegaban al modelo.
+    """
+    return list(anterior or []) + ['totp_enabled', 'totp_trusted_devices']
+
+
 def _chain_mfa(model):
-    """Instala los tres de la cadena con su ``combine``.
+    """Instala los cuatro encadenados y la property, cada uno con su relevo.
 
-    Va por ``luego=`` y no por ``metodos=`` porque ``extend_model`` no expone
-    ``combine``, y el relevo por defecto daría la precedencia contraria a la de
-    la referencia.
+    Va por ``luego=`` y no por ``metodos=``/``propiedades=`` porque
+    ``extend_model`` no expone ``combine`` y su bloque de properties no pisa
+    una existente — dos relevos que aquí sí hacen falta.
 
-    ``_check_credentials`` es la excepción: **sí** quiere el relevo por
-    defecto, porque su semántica en la fuente es la del relevo —cada eslabón
-    atiende su tipo y delega el resto—, no la de ``keep_previous``.
+    Cada uno lleva el suyo, y no son intercambiables:
+
+    - ``_mfa_type`` / ``_mfa_url`` → ``keep_previous``: gana lo que el eslabón
+      previo ya decidió.
+    - ``_check_credentials`` → **relevo por defecto**: su semántica en la
+      fuente es la del relevo — cada eslabón atiende su tipo y delega el resto.
+    - ``_rpc_api_keys_only`` → ``first_truthy``: la forma de la fuente es
+      ``<lo propio> or super()``, y basta una razón para exigir clave.
+    - ``SELF_READABLE_FIELDS`` → ``extend_property``: suma a la lista que
+      ``base`` ya declara (:ref:`h-api-834`).
     """
     chain_method(model, '_mfa_type', _mfa_type, combine=keep_previous)
     chain_method(model, '_mfa_url', _mfa_url, combine=keep_previous)
     chain_method(model, '_check_credentials', _check_credentials)
+    # ≙ ``<lo propio> or super()``: cada eslabón aporta su razón para exigir
+    # clave de API, y basta una. Con el relevo por defecto, un ``False`` aquí
+    # cortaría la cadena antes de llegar al eslabón de ``base``.
+    chain_method(model, '_rpc_api_keys_only', _rpc_api_keys_only,
+                 combine=first_truthy)
+    extend_property(model, 'SELF_READABLE_FIELDS', SELF_READABLE_FIELDS)
 
 
 def apply_authz_totp_res_users_extensions():

@@ -87,7 +87,7 @@ from orm.registry import resolve_model_key
 
 __all__ = [
     'ModelBase', 'is_model_class', 'is_model_definition',
-    'extend_model', 'add_field_if_absent', 'model_key',
+    'extend_model', 'extend_property', 'add_field_if_absent', 'model_key',
 ]
 
 
@@ -175,3 +175,48 @@ def extend_model(*destino, campos=None, metodos=None,
             luego(modelo)
 
     apps.lazy_model_operation(aplicar, resolve_model_key(*destino))
+
+
+def extend_property(modelo, nombre, funcion):
+    """Extiende una ``property`` que YA existe — ≙ ``super().PROP + [...]``.
+
+    Es el hermano de ``extend_model(propiedades=…)``, y la frontera entre los
+    dos es exactamente la que su nombre dice:
+
+    - ``propiedades=`` **declara** una property que no existía. No pisa una
+      existente, a propósito: pisarla borraría la aportación de quien la
+      declaró antes.
+    - ``extend_property`` **suma a** la que existe. Envuelve el ``fget``
+      instalado en ese momento y le pasa su valor a ``funcion``, que devuelve
+      el valor ampliado.
+
+    ``funcion(self, anterior)`` recibe el valor del eslabón previo ya
+    calculado, que es lo que el ``super().PROP`` de la fuente entrega. Si la
+    property no existía todavía, ``anterior`` llega como ``None`` — el mismo
+    desenlace que ``super()`` sobre un atributo ausente.
+
+    **Por qué existe.** Sin él, un addon que quisiera sumar a una property
+    tenía dos salidas y las dos estaban mal: ``propiedades=``, que el guard de
+    ``extend_model`` **descarta en silencio**, o un ``setattr`` a mano
+    duplicado por addon. La primera se ejerció y falló sin ruido — ``hr``
+    declaraba sus 32 campos de ``SELF_READABLE_FIELDS`` y ninguno llegaba al
+    modelo (:ref:`h-api-834`).
+
+    Es idempotente: reinstalar la misma ``funcion`` es un no-op, igual que
+    ``chain_method``.
+    """
+    previo = getattr(modelo, nombre, None)
+    if isinstance(previo, property):
+        fget_previo = previo.fget
+        if getattr(fget_previo, '_extendida_por', None) is funcion:
+            return          # ya está en la cadena
+    else:
+        fget_previo = None
+
+    def fget(self):
+        anterior = fget_previo(self) if fget_previo is not None else None
+        return funcion(self, anterior)
+
+    fget.__name__ = nombre
+    fget._extendida_por = funcion
+    setattr(modelo, nombre, property(fget))

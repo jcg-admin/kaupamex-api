@@ -186,6 +186,35 @@ def extend_list(new, previous):
     return list(previous or []) + list(new or [])
 
 
+def first_truthy(new, previous):
+    """``combine`` de disyunción — ≙ ``return <lo propio> or super().metodo()``.
+
+    Es el idioma de los **predicados** de la referencia: cada eslabón aporta su
+    razón para decir que sí, y basta una para que el conjunto la diga. Medido
+    sobre ``odoo19c``: **43** métodos lo escriben así, entre ellos los dos de
+    ``_rpc_api_keys_only`` que la familia del 2FA declara::
+
+        # odoo19c: auth_totp_mail/models/res_users.py:136
+        def _rpc_api_keys_only(self):
+            return self._mfa_type() == 'totp_mail' or super()._rpc_api_keys_only()
+
+    **Sin él, el relevo por defecto rompe la cadena de tres.** Ese relevo sólo
+    cae en el eslabón previo cuando el nuevo devuelve ``None``, y aquí el
+    valor de «no por mi parte» es ``False``: un usuario con 2FA de app y sin
+    política de correo obtendría ``False`` del eslabón externo y el interno
+    —el que sí tiene razón para decir que sí— nunca se consultaría.
+
+    **Divergencia de mecanismo, declarada:** el ``or`` de la fuente
+    cortocircuita y aquí **los dos eslabones se evalúan**, porque
+    :func:`chain_method` llama a ``previous`` antes de pasar su valor al
+    ``combine``. Es la forma del mecanismo, compartida con ``keep_previous`` y
+    ``extend_list``; para un predicado sin efectos —que es lo que la familia
+    de los 43 usa— la diferencia es coste, no conducta. Un eslabón con efectos
+    laterales NO debe encadenarse con este ``combine``.
+    """
+    return new or previous
+
+
 def keep_previous(new, previous):
     """``combine`` de relevo INVERSO — ≙ ``r = super()(); if r is not None: return r``.
 
