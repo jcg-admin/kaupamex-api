@@ -285,6 +285,45 @@ def email_normalize_all(text):
     return list(filter(None, [_normalize_email(addr) for addr in emails]))
 
 
+def parse_contact_from_email(text):
+    """≙ ``parse_contact_from_email`` (``odoo19c: odoo/tools/mail.py:1031-1056``).
+
+    Docstring de la fuente, verbatim: *"Parse contact name and email (given by
+    text) in order to find contact information, able to populate records like
+    partners, leads, ... Supported syntax:*
+
+      * ``Raoul <raoul@grosbedon.fr>``
+      * ``"Raoul le Grand" <raoul@grosbedon.fr>``
+      * ``Raoul raoul@grosbedon.fr`` *(strange fault tolerant support from
+        df40926d2a57c101a3e2d221ecfd08fbb4fea30e now supported directly in
+        'email_split_tuples')*
+
+    *Otherwise: default, text is set as name.*
+
+    :return: name, email (normalized if possible)
+
+    El caso por defecto es la mitad que importa: un texto que no parsea **es
+    el nombre**, no un vacío. Devolver ``('', '')`` ahí dejaría al llamador
+    creando filas sin nada legible.
+
+    ``strict=False`` en la normalización es de la fuente: aquí ya se aisló una
+    dirección, así que el modo estricto —que rechaza cuando hay dos— no tiene
+    nada que proteger, y su ``or email`` conserva la original cuando no se
+    puede normalizar.
+    """
+    if not text or not text.strip():
+        return '', ''
+    split_results = email_split_tuples(text)
+    name, email = split_results[0] if split_results else ('', '')
+
+    if email:
+        email_normalized = email_normalize(email, strict=False) or email
+    else:
+        name, email_normalized = text, ''
+
+    return name, email_normalized
+
+
 def formataddr(pair, charset='utf-8'):
     """≙ ``formataddr`` (``:961-1002``).
 

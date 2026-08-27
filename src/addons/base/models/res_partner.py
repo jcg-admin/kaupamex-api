@@ -39,12 +39,13 @@ from addons.base.models.avatar_mixin import AvatarMixin
 from addons.base.models.res_country import (ADDRESS_FORMAT_KEYS,
                                             DEFAULT_ADDRESS_FORMAT)
 from addons.base.models.res_lang import ResLang
-from exceptions import ValidationError
+from exceptions import RedirectWarning, ValidationError
 from orm.environments import (get_context, get_current_company,
                               get_current_user)
 from orm.utils import SUPERUSER_ID
 from addons.base.models.timestamped_mixin import TimeStampedModel
-from tools.mail import email_normalize_all, formataddr
+from tools.mail import (email_normalize_all, formataddr,
+                        parse_contact_from_email)
 from tools.misc import OrderedSet, street_split
 from tools.translate import _
 
@@ -1221,6 +1222,169 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         if updated:
             self._fields_sync(updated)
         return result
+
+    # ------------------------------------------------------------------
+    # Alta desde un texto, promocion a empresa, y guarda del borrado —
+    # ``odoo19c: res_partner.py:951-961``, ``:1004-1021`` y ``:1072-1120``.
+    #
+    # ``ensure_one()`` de la fuente NO aparece en los cuerpos de abajo: es
+    # divergencia de STACK, no una omision. Alla ``self`` es un recordset que
+    # puede traer N registros y el metodo exige uno; aqui una instancia de
+    # Django **es** un registro, asi que la comprobacion no tiene sobre que
+    # fallar.
+    # ------------------------------------------------------------------
+    @classmethod
+    def name_create(cls, name):
+        """≙ ``name_create`` (``odoo19c: res_partner.py:1072-1093``).
+
+        Docstring de la fuente, verbatim: *"Override of orm's name_create
+        method for partners. The purpose is to handle some basic formats to
+        create partners using the name_create. If only an email address is
+        received and that the regex cannot find a name, the name will have the
+        email value. If 'force_email' key in context: must find the email
+        address."*
+
+        Las dos asimetrias que importan: el nombre cae al correo cuando no hay
+        nombre —una fila sin nada legible no sirve en ninguna lista—, y el
+        correo **solo se escribe si lo hay**, porque la cadena vacia y la
+        ausencia se distinguen al buscar por ese campo.
+
+        **Divergencia de mecanismo, declarada:** la fuente empieza limpiando
+        un ``default_type`` invalido del contexto
+        (``self._fields['type'].get_values(self.env)``). Aqui el tipo lo
+        valida el ``choices`` del campo en el propio ``save``, asi que un
+        valor invalido no llega a escribirse; no hay contexto que limpiar.
+
+        :return: la tupla ``(id, display_name)`` de la fuente.
+        """
+        name, email_normalized = parse_contact_from_email(name)
+        if get_context().get('force_email') and not email_normalized:
+            raise ValidationError(
+                'No se puede crear un contacto sin direccion de correo.')
+
+        create_values = {'name': name or email_normalized}
+        if email_normalized:
+            create_values['email'] = email_normalized
+        partner = cls.objects.create(**create_values)
+        return partner.pk, partner.display_name
+
+    @classmethod
+    def find_or_create(cls, email, assert_valid_email=False):
+        """≙ ``find_or_create`` (``odoo19c: res_partner.py:1095-1120``).
+
+        Docstring de la fuente, verbatim: *"Find a partner with the given
+        ``email`` or use :meth:`name_create` to create a new one."*
+
+        :param str email: texto tipo correo, que debe traer al menos una
+            direccion — p. ej. ``"Raoul Grosbedon <r.g@grosbedon.fr>"``.
+        :param bool assert_valid_email: revienta si no encuentra una valida.
+
+        La busqueda es ``=ilike`` en la fuente, y eso **no** es descuido: un
+        correo escrito en mayusculas crearia un segundo partner para la misma
+        persona, que es justo el duplicado que este metodo existe para evitar.
+        """
+        if not email:
+            raise ValueError(
+                'find_or_create necesita una direccion de correo.')
+
+        parsed_name, parsed_email_normalized = parse_contact_from_email(email)
+        if not parsed_email_normalized and assert_valid_email:
+            raise ValueError(
+                'find_or_create necesita una direccion de correo valida.')
+
+        if parsed_email_normalized:
+            partner = cls.objects.filter(
+                email__iexact=parsed_email_normalized).first()
+            if partner is not None:
+                return partner
+
+        create_values = {'name': parsed_name or parsed_email_normalized}
+        if parsed_email_normalized:
+            create_values['email'] = parsed_email_normalized
+        return cls.objects.create(**create_values)
+
+    def create_company(self):
+        """≙ ``create_company`` (``odoo19c: res_partner.py:1004-1012``).
+
+        Promueve la razon social escrita a mano de un contacto suelto a un
+        partner **padre real**, y le cuelga el contacto y sus hijos.
+
+        Mover a los hijos no es cosmetico: sin ese paso las direcciones se
+        quedan colgando del contacto en vez de de la empresa, y la jerarquia
+        acaba con dos niveles donde la fuente deja uno.
+
+        **Divergencia de mecanismo, declarada:** la fuente lo hace en un solo
+        ``write`` con ``Command.update`` sobre ``child_ids``. ``write`` no
+        esta portado (sigue entre los ausentes de este archivo), asi que el
+        efecto se compone con las dos piezas que si existen — guardar el
+        propio registro y un ``update`` en bloque sobre los hijos. Cuando
+        ``write`` se porte, las dos son una.
+        """
+        new_company = self._create_contact_parent_company()
+        if new_company is not None:
+            children_ids = list(
+                self.children.values_list('pk', flat=True))
+            self.parent = new_company
+            self.save()
+            if children_ids:
+                type(self).objects.filter(pk__in=children_ids).update(
+                    parent=new_company)
+        return True
+
+    def _create_contact_parent_company(self):
+        """≙ ``_create_contact_parent_company`` (``odoo19c: :1014-1021``).
+
+        La empresa nueva se lleva el nombre, el identificador fiscal y la
+        direccion del contacto. Sin ``company_name`` devuelve ``None`` — la
+        fuente devuelve ``self.browse()``, un recordset vacio, y el llamador
+        distingue ese caso: crear un padre sin nombre dejaria un partner vacio
+        colgando de cada contacto que pulse el boton por error.
+        """
+        if not self.company_name:
+            return None
+        values = dict(name=self.company_name, is_company=True, vat=self.vat)
+        values.update(self._convert_fields_to_values(self._address_fields()))
+        return type(self).objects.create(**values)
+
+    def delete(self, *args, **kwargs):
+        """Guarda del borrado — ≙ ``_unlink_except_user`` (``:951-961``).
+
+        La fuente lo declara ``@api.ondelete(at_uninstall=False)``; el enganche
+        equivalente de Django es sobreescribir ``delete``.
+        """
+        self._unlink_except_user()
+        return super().delete(*args, **kwargs)
+
+    def _unlink_except_user(self):
+        """≙ ``_unlink_except_user`` (``odoo19c: res_partner.py:951-961``).
+
+        Un partner con cuenta **activa** no se borra. Su comentario propio dice
+        el caso contrario —*"no linked user, operation is allowed"*— y su
+        mensaje da el consejo: archivar el usuario primero.
+
+        Nombrar las cuentas en el mensaje es parte del contrato, no adorno: sin
+        el ``names=`` de la fuente, quien lo lee no sabe **cual** archivar y el
+        consejo no se puede seguir.
+
+        **Divergencia de mecanismo, declarada:** la fuente adjunta al
+        ``RedirectWarning`` la accion ``users._action_show()``, una ventana de
+        ``ir.actions.act_window``. Ese simbolo no existe aqui (medido: 0
+        definiciones; su unica aparicion es la lista de ausentes del docstring
+        de ``res_users.py``), y este arbol no tiene consumidor de acciones de
+        ventana. Se levanta la misma excepcion sin accion; el mensaje, que es
+        lo que el usuario lee, va entero.
+        """
+        if not self.pk:
+            return
+        users = list(self.users.all())
+        if not users:
+            return
+        names = ', '.join(str(user) for user in users)
+        raise RedirectWarning(
+            'No se pueden borrar contactos ligados a un usuario activo.\n'
+            'Conviene archivarlos despues de archivar su usuario asociado.\n\n'
+            f'Usuarios activos ligados: {names}',
+            button_text='Ir a usuarios')
 
     # ------------------------------------------------------------------
     # Dirección — ``odoo19c: res_partner.py:1120-1250``.
