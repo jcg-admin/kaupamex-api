@@ -247,7 +247,7 @@ class IrRule(TimeStampedModel):
         return queryset.exclude(pk__in=list(allowed))
 
 
-class RuleScopedManager(models.Manager):
+class RuleScopedManager(models.AccessManager):
     """Aplica las record rules del modelo al queryset — el rol de
     ``_check_access`` (``odoo19c: odoo/orm/models.py:4114``).
 
@@ -271,6 +271,14 @@ class RuleScopedManager(models.Manager):
     El nombre del método se conserva del manager retirado
     (``for_current_company``) para no tocar a los llamadores; lo que hace
     ahora es aplicar las reglas del modelo, no una compañía cableada.
+
+    **Hereda de** ``orm.models.AccessManager`` desde la tarea #93, así que los
+    modelos que ya lo declaran tienen también las cuatro formas de la fuente
+    (``check_access`` / ``has_access`` / ``_filtered_access`` / el
+    ``_check_access`` que las compone). La diferencia entre las dos superficies
+    es real y conviene tenerla clara: ``for_current_company`` aplica **sólo** la
+    mitad de reglas; ``_filtered_access`` aplica **las dos**, ACL primero. Un
+    llamador que quiera la resolución completa de la referencia usa la segunda.
     """
 
     def for_current_company(self, mode='read', group_ids=(), user=None):

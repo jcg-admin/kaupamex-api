@@ -198,11 +198,17 @@ class TestAclPermission:
     global, que ignore la de grupo, o que responda ``True`` sin usuario.
     """
 
+    #: El label de Django, que es lo que ``ir_model.model`` guarda en este
+    #: arbol. La primera version de estos casos usaba el nombre punteado de la
+    #: fuente (``ir.ui.view``) y por eso ninguna ACL declarada aqui coincidia
+    #: con la que la guarda consultaba — ver :ref:`h-api-839`.
+    VIEW_LABEL = 'base.IrUiView'
+
     def _acl(self, **extra):
         IrModel = apps.get_model('base', 'IrModel')
         IrModelAccess = apps.get_model('base', 'IrModelAccess')
         view_model, _ = IrModel.objects.get_or_create(
-            model='ir.ui.view', defaults={'name': 'Vista'})
+            model=self.VIEW_LABEL, defaults={'name': 'Vista'})
         data = dict(name='acl de prueba', model_id=view_model,
                     perm_write=True)
         data.update(extra)

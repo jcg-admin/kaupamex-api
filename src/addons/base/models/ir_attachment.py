@@ -193,26 +193,34 @@ class IrAttachment(models.Model):
     def _can_write_views(user):
         """¿El usuario puede escribir vistas? — ≙ ``ir.ui.view.has_access('write')``.
 
-        Es la condicion de permiso de ``_check_contents``, derivada de la ACL
-        que este arbol **si** tiene portada: ``ir.model.access``, con su
-        ``perm_write`` por modelo y grupo.
+        Es la condicion de permiso de ``_check_contents``, y desde la tarea #93
+        la responde el resolvedor de la ACL, no una consulta escrita aqui:
+        ``IrModelAccess.check('ir.ui.view', 'write')``, que es literalmente lo
+        que la fuente pregunta.
 
-        Dos casos, los dos de la fuente: una ACL **sin grupo** abre el modo a
-        todos (``has_global_access``), y una con grupo lo abre a quien
-        pertenezca a el —incluidos los grupos implicados, que es lo que
-        ``_get_group_ids`` devuelve—.
+        **Por que cambio, y es un defecto medido.** La primera version armaba la
+        consulta a mano y filtraba ``model_id__model='ir.ui.view'`` — el nombre
+        punteado de la fuente. Este arbol guarda el **label de Django** en
+        ``ir_model.model``, asi que ese filtro no podia coincidir **nunca**, ni
+        con la tabla poblada. Y la tabla ademas estaba vacia: ningun sembrador
+        la escribia. Dos capas de lo mismo — una guarda que consulta un almacen
+        que no puede responderle, y cuyo ``False`` constante se lee igual que
+        una denegacion legitima. Ver :ref:`h-api-839`.
+
+        Ahora la respuesta es la de la semilla, que copia el CSV de la
+        referencia: escribir vistas es de ``group_system`` y de nadie mas
+        (``ir.model.access.csv:35-36``).
 
         Sin usuario responde ``False``. No es un caso raro: es el de una
-        creacion sin peticion detras, y ahi degradar es lo correcto.
+        creacion sin peticion detras, y ahi degradar es lo correcto — el
+        resolvedor lo da solo, porque sin usuario no hay grupos y la unica ACL
+        de ``ir.ui.view`` con ``perm_write`` es la de grupo.
         """
         if user is None or getattr(user, 'pk', None) is None:
             return False
         IrModelAccess = apps.get_model('base', 'IrModelAccess')
-        if IrModelAccess.has_global_access('ir.ui.view', 'write'):
-            return True
-        return IrModelAccess.objects.filter(
-            model_id__model='ir.ui.view', active=True, perm_write=True,
-            group_id__in=user._get_group_ids()).exists()
+        return IrModelAccess.check(
+            'ir.ui.view', 'write', raise_exception=False, user=user)
 
     @classmethod
     def _check_contents(cls, values, user=None, trusted=False):

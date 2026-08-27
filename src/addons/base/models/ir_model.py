@@ -200,6 +200,9 @@ from addons.base.models.ir_module import IrModule
 from addons.base.models.ir_ui_view import IrUiView
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from exceptions import AccessError
+from orm import registry
+from orm.environments import get_current_user, is_su
 from orm.fields import __all__ as _FIELD_NAMES
 
 _logger = logging.getLogger(__name__)
@@ -259,6 +262,28 @@ STATE_CHOICES = [
 
 #: Modos de acceso de ``ir.model.access``, en el orden de la fuente.
 ACCESS_MODES = ('read', 'write', 'create', 'unlink')
+
+#: Las cuatro cabeceras del error de acceso — ``ACCESS_ERROR_HEADER``
+#: (``odoo19c: odoo/addons/base/models/ir_model.py:25-31``), traducidas al
+#: idioma de la prosa de este árbol. La fuente las declara *in extenso* «so
+#: they are properly exported in translation terms»; aquí se conserva esa
+#: forma —una por operación, no una plantilla con el verbo interpolado— por la
+#: misma razón: un traductor necesita la frase entera.
+ACCESS_ERROR_HEADER = {
+    'read': 'No tiene permiso para consultar registros de «%(document_kind)s» '
+            '(%(document_model)s).',
+    'write': 'No tiene permiso para modificar registros de «%(document_kind)s» '
+             '(%(document_model)s).',
+    'create': 'No tiene permiso para crear registros de «%(document_kind)s» '
+              '(%(document_model)s).',
+    'unlink': 'No tiene permiso para borrar registros de «%(document_kind)s» '
+              '(%(document_model)s).',
+}
+ACCESS_ERROR_GROUPS = ('Esta operación está permitida para los siguientes '
+                       'grupos:\n%(groups_list)s')
+ACCESS_ERROR_NOGROUP = 'Ningún grupo permite actualmente esta operación.'
+ACCESS_ERROR_RESOLUTION = ('Contacte a su administrador para solicitar el '
+                           'acceso si lo necesita.')
 
 
 class Base(models.Model):
@@ -919,10 +944,137 @@ class IrModelAccess(TimeStampedModel):
         """
         cls._check_mode(access_mode)
         rows = cls.objects.filter(
-            model_id__model=model_name, active=True,
+            model_id__model=cls._model_label(model_name), active=True,
             group_id__isnull=False, **{f'perm_{access_mode}': True},
         ).select_related('group_id', 'group_id__privilege')
         return [access.group_id.full_name for access in rows]
+
+    @classmethod
+    def _model_label(cls, model):
+        """Normaliza el nombre del modelo a la clave que guarda ``ir_model``.
+
+        Este árbol guarda el **label de Django** en ``ir_model.model`` — lo
+        declara su ``help_text`` y de ello depende ``IrModel.django_model``,
+        que hace ``model.split('.', 1)`` y llama a ``apps.get_model``. La
+        fuente guarda el nombre punteado del modelo (``ir.ui.view``).
+
+        Divergencia de forma, no de mecanismo: se normaliza **en la puerta**
+        con ``orm.registry``, así que un llamador puede nombrar el modelo como
+        lo nombra su fuente —``check('ir.ui.view', 'write')``— y leer igual que
+        ella, sin que la tabla cambie de clave.
+
+        Un nombre que el registro no conozca se devuelve tal cual: puede ser un
+        label válido de un modelo que aún no declara ``_name``, y denegar por
+        no resolverlo sería confundir *«no está permitido»* con *«no sé quién
+        es»*.
+        """
+        model_class = registry.model_by_name(model)
+        if model_class is not None:
+            return model_class._meta.label
+        return model
+
+    @classmethod
+    def _get_allowed_models(cls, access_mode='read', user=None):
+        """Los modelos con ``access_mode`` para ese usuario — ``_get_allowed_models``.
+
+        Fiel a ``odoo19c: odoo/addons/base/models/ir_model.py:2134``: fila
+        **activa**, con ``perm_<mode>``, y con ``group_id`` **nulo** (global) o
+        entre los grupos del usuario.
+
+        De ahí se sigue el invariante que gobierna todo lo demás: **un modelo
+        sin ninguna fila queda fuera del conjunto**, y por tanto denegado. El
+        fail-closed no lo pone una guarda escrita aparte — lo pone la forma de
+        la consulta.
+
+        La fuente lo hace en SQL crudo y lo memoriza con ``ormcache`` sobre
+        ``(uid, mode)``. Aquí es el ORM y **no se memoriza**: la caché de la
+        fuente tiene su invalidador (``call_cache_clearing_methods``, llamado
+        desde ``create``/``write``/``unlink`` de esta misma tabla) y aquí ese
+        invalidador no existe todavía. Memorizar sin invalidador es la clase de
+        defecto que la tarea #58 ya midió en ``_get_group_ids``: una ACL
+        revocada seguiría concediendo hasta reiniciar el proceso.
+        """
+        cls._check_mode(access_mode)
+        if user is None:
+            user = get_current_user()
+        group_ids = list(user._get_group_ids()) if user is not None else []
+        rows = cls.objects.filter(
+            active=True, **{f'perm_{access_mode}': True},
+        ).filter(
+            models.Q(group_id__isnull=True) | models.Q(group_id__in=group_ids)
+        ).values_list('model_id__model', flat=True)
+        return frozenset(rows)
+
+    @classmethod
+    def check(cls, model=None, access_mode='read', raise_exception=True,
+              user=None, **django_checks):
+        """¿Tiene el usuario ``access_mode`` sobre ``model``? — ``check``.
+
+        **El nombre colisiona con Django, y la colisión se resuelve aquí.**
+        ``django.db.models.Model.check(**kwargs)`` es el hook del framework de
+        *system checks*: lo llama ``manage.py check`` con ``databases=…`` y
+        espera una lista de mensajes. La fuente llama ``check`` a otra cosa
+        entera —la resolución de permiso— y este modelo hereda las dos.
+
+        Renombrar la nuestra sería promover el símbolo a otro nombre que la
+        referencia no declara (``porte-completo-no-parcial.md``); tapar la de
+        Django dejaría el árbol sin *system checks* sobre esta tabla. Así que
+        **se despachan por la firma**, que es inequívoca: Django llama sin
+        argumento posicional, la referencia siempre nombra un modelo.
+
+        Los dos caminos tienen su control en
+        ``tests/integration/base/test_ir_model_access_check.py``; el defecto
+        que lo destapó está en :ref:`h-api-840`.
+
+        Fiel a ``odoo19c: odoo/addons/base/models/ir_model.py:2153``: bajo
+        elevación devuelve ``True`` **sin consultar la tabla** (*"User root
+        have all accesses"*), y con ``raise_exception`` levanta el error
+        compuesto en vez de devolver ``False``.
+
+        Esta es la **primera mitad** de la resolución de permiso; la segunda
+        son las reglas de registro (``ir.rule``), que acotan qué filas. Las
+        compone ``orm.models.AccessQuerySet._check_access``, igual que
+        ``_check_access`` las compone en la fuente.
+        """
+        if model is None:
+            return super().check(**django_checks)
+        cls._check_mode(access_mode)
+        if is_su():
+            return True
+        label = cls._model_label(model)
+        has_access = label in cls._get_allowed_models(access_mode, user=user)
+        if not has_access and raise_exception:
+            raise cls._make_access_error(label, access_mode)
+        return has_access
+
+    @classmethod
+    def _make_access_error(cls, model, access_mode):
+        """El error que explica el rechazo — ``_make_access_error``.
+
+        Tres partes, como la fuente: qué operación se negó sobre qué modelo,
+        qué grupos la permitirían (o que ninguno lo hace), y a quién pedirla.
+        La segunda es la que convierte un 403 opaco en algo accionable, y sale
+        de ``group_names_with_access``, que ya estaba portado.
+        """
+        _logger.info(
+            'Acceso denegado por la ACL — operación: %s, modelo: %s',
+            access_mode, model)
+        described = IrModel.objects.filter(model=model).values_list(
+            'name', flat=True).first() or model
+        operation_error = ACCESS_ERROR_HEADER[access_mode] % {
+            'document_kind': described,
+            'document_model': model,
+        }
+        groups = '\n'.join(
+            f'\t- {name}'
+            for name in cls.group_names_with_access(model, access_mode))
+        if groups:
+            group_info = ACCESS_ERROR_GROUPS % {'groups_list': groups}
+        else:
+            group_info = ACCESS_ERROR_NOGROUP
+        return AccessError(
+            operation_error + '\n\n' + group_info + '\n\n'
+            + ACCESS_ERROR_RESOLUTION)
 
     @classmethod
     def has_global_access(cls, model_name, access_mode):
@@ -935,7 +1087,8 @@ class IrModelAccess(TimeStampedModel):
         """
         cls._check_mode(access_mode)
         return cls.objects.filter(
-            model_id__model=model_name, active=True, group_id__isnull=True,
+            model_id__model=cls._model_label(model_name), active=True,
+            group_id__isnull=True,
             **{f'perm_{access_mode}': True},
         ).exists()
 

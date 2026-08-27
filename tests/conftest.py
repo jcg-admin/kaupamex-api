@@ -19,6 +19,7 @@ from addons.authz.models import Role, RoleAssignment
 from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.base.models import SystemParameter
 from addons.base.security.base_security import seed as base_rules_seed
+from addons.base.security.ir_model_access import seed as base_acl_seed
 from addons.base.data.res_country_data import seed as countries_seed
 from addons.base.data.res_lang_data import seed as langs_seed
 from addons.base.data.res_groups_data import seed as base_groups_seed
@@ -361,6 +362,7 @@ _SEEDERS = (
     departure_reasons_seed,     # hr/0003 (3 motivos de baja maestros)
     bootstrap_company_seed,     # BOOTSTRAP_COMPANY_CODE (no-op si no se declara)
     base_rules_seed,            # base/security (record rules multi-company)
+    base_acl_seed,              # base/security (ir.model.access, 23 filas)
     sale_rules_seed,            # sale/security/ir_rules
     subscription_rules_seed,    # sale_subscription/security/ir_rules
     sale_report_view_seed,      # sale/0002 (plantilla del documento)
