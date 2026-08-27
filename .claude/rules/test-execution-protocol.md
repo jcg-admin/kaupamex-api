@@ -60,12 +60,14 @@ sigue siendo precondición de cualquier pytest (`pg_isready`; si no responde,
 `pg_ctlcluster 16 main start`) y **nunca SQLite**. Un fallo pre-existente se
 cita, no se silencia.
 
-Baseline vigente de api: **5 131 passed, 21 skipped, 0 failed** contra
-PostgreSQL 16.13 (medido 2026-08-27T21:42:49, cierre del cableado de
-``ResPartner.save``, ``api@33a37972``; 876.02 s). Sube de 4 837 con el bloque
-de dirección, el de sincronización y su cableado —58 casos nuevos— más lo que
-aterrizó entre ambas medidas; **el delta no se desglosa aquí porque no se
-midió commit a commit**. Lo que sí es medida: 0 failed y la cifra sube.
+Baseline vigente de api: **5 182 passed, 21 skipped, 0 failed** contra
+PostgreSQL 16.13 (medido 2026-08-27T22:48:04, cierre del bloque de nombre y
+etiquetas de ``ResPartner``, ``api@53e6c368``; 865.38 s).
+
+Sube de **5 131** (medida anterior, ``api@33a37972``). El bloque de etiquetas
+aporta **34** casos nuevos; los **17** restantes aterrizaron entre ambas
+medidas y **no se desglosan aquí porque no se midieron commit a commit**. Lo
+que sí es medida: 0 failed y la cifra sube.
 
 El build de docs es **opcional**, no parte del DoD.
 

@@ -41,9 +41,11 @@ Qué haría fallar a cada control
     El eje del nombre completo: un contacto se muestra «Empresa, Persona»
     para que una lista de contactos de varias empresas sea legible.
 
-``TestCompleteName.test_a_company_is_not_prefixed_with_itself``
-    CONTROL — la fuente excluye ``is_company``; sin él saldría
-    «Kaupamex SA, Kaupamex SA».
+``TestCompleteName.test_a_subsidiary_company_is_not_prefixed_with_its_parent``
+    CONTROL — la fuente excluye ``is_company``; sin él una filial
+    saldría «Matriz SA, Filial SA». Tiene que ser una empresa CON
+    padre: una suelta no llega a la guarda y el control no
+    discriminaría.
 
 ``TestCompanyType.test_writing_the_type_moves_is_company``
     CONTROL del inverso: sin él ``company_type`` sería de sólo lectura y el
@@ -75,9 +77,29 @@ class TestCompleteName:
         who = ResPartner.objects.create(name='Ana Ruiz', parent=company)
         assert who._get_complete_name() == 'Kaupamex SA, Ana Ruiz'
 
-    def test_a_company_is_not_prefixed_with_itself(self, db):
-        """CONTROL — la fuente excluye ``is_company`` de la anteposición."""
-        filial = ResPartner.objects.create(name='Filial SA', is_company=True)
+    def test_a_subsidiary_company_is_not_prefixed_with_its_parent(self, db):
+        """CONTROL de la exclusión por ``is_company`` — y tiene que ser una
+        empresa CON padre.
+
+        Una empresa suelta no ejerce la guarda: el ``if`` externo
+        (``self.company_name or self.parent_id``) es falso y el flujo nunca
+        llega a la condición que se dice medir. Una **filial** sí: tiene
+        padre, entra al bloque, y ahí ``is_company`` es lo único que decide.
+
+        Sin la guarda saldría «Matriz SA, Filial SA» — una filial no se
+        anuncia como contacto de su matriz.
+
+        .. note::
+
+           La versión anterior de este caso creaba una empresa sin padre y
+           **pasaba con la guarda anulada**: medido, la mutación que quita
+           ``not self.is_company`` daba 34 passed. Un control que no puede
+           fallar es adorno, no red (sub-patrón D de
+           ``metrica-decide-la-conclusion.md``).
+        """
+        matriz = ResPartner.objects.create(name='Matriz SA', is_company=True)
+        filial = ResPartner.objects.create(name='Filial SA', is_company=True,
+                                           parent=matriz)
         assert filial._get_complete_name() == 'Filial SA'
 
     def test_a_nameless_address_takes_its_type_as_name(self, db):
