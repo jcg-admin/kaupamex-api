@@ -53,10 +53,16 @@ al guardar cuando hay ``datas`` — equivalente simplificado de
 Cross-app: ``company`` → ``company.Company`` (Odoo ``company_id``,
 DEC-SALE-01 — FK cross-app en vez de tenant scope implícito).
 """
+import base64
 import hashlib
+import mimetypes
+import uuid
+
+from django.apps import apps
 
 import fields
 import models
+from exceptions import ValidationError
 
 
 class IrAttachment(models.Model):
@@ -139,18 +145,163 @@ class IrAttachment(models.Model):
     def __str__(self) -> str:
         return self.name
 
-    def save(self, *args, **kwargs):
+    def clean(self):
+        """``_check_circular_attachment`` — un adjunto no se adjunta a si mismo.
+
+        Su mensaje de la fuente, verbatim: *"You cannot attach an attachment to
+        itself"*. Prohibe el **bucle**, no la relacion: un adjunto de OTRO
+        adjunto es legitimo y se conserva.
+        """
+        super().clean()
+        if self.res_model == 'ir.attachment' and self.pk and \
+                self.res_id == self.pk:
+            raise ValidationError(
+                'No se puede adjuntar un adjunto a si mismo. '
+                f'El adjunto {self.pk} no puede tener res_id: {self.res_id}.')
+
+    @staticmethod
+    def _compute_mimetype(values):
+        """≙ ``_compute_mimetype`` — el tipo, del valor dado o adivinado.
+
+        Su docstring de la fuente, verbatim: *"compute the mimetype of the
+        given values … :return mime : string indicating the mimetype, or
+        application/octet-stream by default"*.
+
+        El orden de la fuente se conserva y es el que importa: el valor
+        explicito, el nombre, la **url sin su cadena de consulta**, y por
+        ultimo el contenido. Sale siempre en minusculas.
+        """
+        mimetype = values.get('mimetype')
+        if not mimetype and values.get('name'):
+            mimetype = mimetypes.guess_type(values['name'])[0]
+        if not mimetype and values.get('url'):
+            mimetype = mimetypes.guess_type(values['url'].split('?')[0])[0]
+        if not mimetype or mimetype == 'application/octet-stream':
+            raw = values.get('raw')
+            if raw is None and values.get('datas'):
+                raw = base64.b64decode(values['datas'])
+            if raw:
+                # DIVERGENCIA DE MECANISMO: la fuente adivina por los magic
+                # bytes con su `guess_mimetype`. Aqui no hay equivalente en la
+                # biblioteca estandar, asi que se conserva lo adivinado por
+                # nombre o url y no se inventa un detector propio. Lo que NO
+                # cambia es el desenlace por defecto.
+                mimetype = mimetype or None
+        return (mimetype or 'application/octet-stream').lower()
+
+    @staticmethod
+    def _can_write_views(user):
+        """¿El usuario puede escribir vistas? — ≙ ``ir.ui.view.has_access('write')``.
+
+        Es la condicion de permiso de ``_check_contents``, derivada de la ACL
+        que este arbol **si** tiene portada: ``ir.model.access``, con su
+        ``perm_write`` por modelo y grupo.
+
+        Dos casos, los dos de la fuente: una ACL **sin grupo** abre el modo a
+        todos (``has_global_access``), y una con grupo lo abre a quien
+        pertenezca a el —incluidos los grupos implicados, que es lo que
+        ``_get_group_ids`` devuelve—.
+
+        Sin usuario responde ``False``. No es un caso raro: es el de una
+        creacion sin peticion detras, y ahi degradar es lo correcto.
+        """
+        if user is None or getattr(user, 'pk', None) is None:
+            return False
+        IrModelAccess = apps.get_model('base', 'IrModelAccess')
+        if IrModelAccess.has_global_access('ir.ui.view', 'write'):
+            return True
+        return IrModelAccess.objects.filter(
+            model_id__model='ir.ui.view', active=True, perm_write=True,
+            group_id__in=user._get_group_ids()).exists()
+
+    @classmethod
+    def _check_contents(cls, values, user=None, trusted=False):
+        """≙ ``_check_contents`` — degrada a texto lo que puede ejecutarse.
+
+        La fuente convierte a ``text/plain`` todo lo que huela a HTML o XML
+        —``ht`` en el mimetype, o ``xml`` **sin** ser un formato Office— cuando
+        quien sube **no** puede escribir vistas. No es una comprobacion de
+        formato: es la que evita el XSS almacenado. Un ``.svg`` con un
+        ``<script>`` dentro, servido de vuelta con su propio mimetype, se
+        ejecuta en el navegador de quien lo abra y en el origen del producto.
+
+        La excepcion de Office la fija la fuente por nombre
+        (``application/vnd.openxmlformats``) y se conserva: un ``.docx`` lleva
+        ``xml`` en su mimetype y no se degrada.
+
+        **La condicion de permiso SI se porta, contra la ACL.** Alla es
+        ``not self.env['ir.ui.view'].sudo(False).has_access('write')``. Este
+        arbol tiene ``ir.model.access`` portada —como **dato**, porque el gate
+        efectivo del producto es ``HasCapability`` (DEC-11)— y consultarla es
+        exactamente lo que hace la fuente: ¿tiene este usuario permiso de
+        escritura sobre ``ir.ui.view``, por una ACL global o por una de sus
+        grupos? Eso lo responde :meth:`_can_write_views`.
+
+        Dos vias, y las dos hacen falta:
+
+        - ``user`` — la fiel. Se deriva de la ACL, como la fuente.
+        - ``trusted`` — el atajo para el llamador que **ya** resolvio la
+          autorizacion en la capa DRF y no quiere que el modelo la repita.
+
+        Sin ninguna de las dos se degrada: fail-closed, como la propia
+        ``HasCapability``, para que olvidarse del argumento degrade de mas y
+        nunca de menos.
+        """
+        values = dict(values)
+        trusted = trusted or cls._can_write_views(user)
+        mimetype = values['mimetype'] = cls._compute_mimetype(values)
+        xml_like = 'ht' in mimetype or (
+            'xml' in mimetype
+            and not mimetype.startswith('application/vnd.openxmlformats'))
+        if xml_like and not trusted:
+            values['mimetype'] = 'text/plain'
+        return values
+
+    @staticmethod
+    def _generate_access_token():
+        """≙ ``_generate_access_token`` — un uuid4 en su forma canonica."""
+        return str(uuid.uuid4())
+
+    def generate_access_token(self):
+        """≙ ``generate_access_token`` — devuelve el token, creandolo si falta.
+
+        La fuente devuelve el que ya hay cuando lo hay, y esa es la mitad que
+        importa: un token que cambia en cada llamada invalida los enlaces ya
+        repartidos.
+
+        **Divergencia de forma:** alla opera sobre un conjunto y devuelve una
+        lista; aqui ``self`` es una instancia y devuelve **su** token.
+        """
+        if not self.access_token:
+            self.access_token = self._generate_access_token()
+            type(self).objects.filter(pk=self.pk).update(
+                access_token=self.access_token)
+        return self.access_token
+
+    def save(self, *args, user=None, trusted=False, **kwargs):
         """Calcula ``file_size``/``checksum`` cuando hay contenido — versión
         simplificada de ``_get_datas_related_values``/``_compute_checksum``
         de Odoo (sin el sharding sha1 propio del filestore; Django ``FileField``
-        ya resuelve dónde vive el archivo)."""
+        ya resuelve dónde vive el archivo).
+
+        Y **aquí se cablea** ``_check_contents``: la fuente lo llama desde su
+        ``create`` y su ``write``, que son los dos únicos caminos por los que
+        un adjunto llega a la base. Sin ese cableado la degradación existiría
+        y no protegería a nadie — el defecto que :ref:`h-api-836` acaba de
+        registrar en otro modelo del mismo addon.
+
+        ``trusted`` viaja hasta ``_check_contents`` y su valor por defecto es
+        falso: quien tenga permiso para subir HTML lo declara, y quien se
+        olvide degrada de más.
+        """
         if self.datas:
             content = self.datas.read()
             self.datas.seek(0)
             self.file_size = len(content)
             self.checksum = hashlib.sha1(content).hexdigest()
-            if not self.mimetype:
-                self.mimetype = 'application/octet-stream'
+        self.mimetype = self._check_contents(
+            {'mimetype': self.mimetype, 'name': self.name, 'url': self.url},
+            user=user, trusted=trusted)['mimetype']
         super().save(*args, **kwargs)
         if self.datas and self.datas.name and self.store_fname != self.datas.name:
             self.store_fname = self.datas.name
