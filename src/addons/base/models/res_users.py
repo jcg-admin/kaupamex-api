@@ -65,6 +65,7 @@ import hashlib
 import ipaddress
 import logging
 import os
+from dataclasses import dataclass
 from datetime import timedelta
 
 import api
@@ -1608,3 +1609,200 @@ def _check_apikey_credentials(*, scope, key, model=None):
         if _verify_api_key(key, current_key):
             return user_id
     return None
+
+
+# ==========================================================================
+# Los tres asistentes de credencial — ≙ odoo19c: res_users.py:1615-1732
+# ==========================================================================
+#
+# La referencia los declara como ``TransientModel`` en este mismo archivo, y
+# aqui se portan con el precedente que el arbol ya fijo en
+# ``base_partner_merge.py`` y en ``account_check_printing.print_prenumbered_
+# checks``: **formulario, no tabla**. Los campos de un wizard son parametros;
+# lo que es contenedor de datos se queda como ``dataclass`` congelada.
+#
+# Por que ese precedente y no un ``TransientModel`` mas: un wizard de la
+# referencia existe porque su RPC expone modelos y su cliente OWL necesita una
+# fila que sostener entre dos llamadas. Aqui el cliente es React y el canal es
+# un endpoint DRF, asi que la fila intermedia no tiene a quien sostener. Lo
+# que **si** cruza es la conducta, y esa es la que va abajo.
+#
+# Antes de este porte las tres clases estaban **ausentes y sin declarar**, que
+# es el defecto que ``porte-completo-no-parcial.md`` nombra: no eran una
+# divergencia declarada, eran un hueco silencioso. Ver :ref:`h-api-801`.
+
+
+@dataclass(frozen=True)
+class PasswordChangeLine:
+    """≙ ``change.password.user`` (``odoo19c: res_users.py:1699-1712``).
+
+    Una linea del asistente de cambio masivo: a que usuario, con que login se
+    mostro, y cual es su contrasena nueva. La referencia la guarda como fila
+    transitoria con ``wizard_id``; aqui es un valor inmutable, igual que
+    ``MergeGroup`` en ``base_partner_merge.py`` — sin wizard que agrupe, no hay
+    a quien apuntar.
+
+    ``user_login`` se conserva aunque sea derivable de ``user``: la fuente lo
+    declara ``readonly`` a proposito, porque el operador tiene que ver **con
+    que login** esta cambiando la contrasena antes de confirmar, y ese login
+    puede haber cambiado entre que se abrio el dialogo y que se envio.
+    """
+
+    user: object
+    new_password: str
+    user_login: str = ''
+
+
+class PasswordChangeWizard:
+    """≙ ``change.password.wizard`` (``odoo19c: res_users.py:1676-1697``).
+
+    El cambio de contrasena **de otro**: un administrador fija credenciales
+    nuevas para N usuarios de una vez. Es la tercera via de la fuente, distinta
+    de las otras dos que este archivo ya porta:
+
+    ======================================  ==================================
+    Via de la fuente                          Aqui
+    ======================================  ==================================
+    ``change_password(old, new)``             ``ResUsers.change_password``
+    ``change.password.own`` + identidad       gate de sesion fresca (DEC-12)
+    ``change.password.wizard`` (esta)         esta clase
+    ======================================  ==================================
+
+    Lo que NO se porta, y se declara: ``_default_user_ids``, que lee
+    ``context['active_ids']`` para prellenar el dialogo desde una seleccion de
+    lista del backoffice, y el ``return`` de ``change_password_button``, que es
+    un descriptor ``ir.actions.client`` para que el cliente OWL recargue. Los
+    dos son la forma del dialogo; el ``reload`` aqui lo decide el cliente React
+    al ver que su propia sesion cambio.
+    """
+
+    @staticmethod
+    def lines_for(users, passwords):
+        """≙ ``_default_user_ids`` (``:1682-1687``) — sin el contexto.
+
+        La fuente saca los usuarios de ``context['active_ids']``; aqui los
+        recibe quien llama, porque no hay seleccion de lista que leer. Lo que
+        se conserva es **que la linea nace con el login ya capturado**, que es
+        lo unico que ese metodo hace de sustantivo.
+        """
+        return [
+            PasswordChangeLine(user=u, new_password=p,
+                               user_login=u.get_username())
+            for u, p in zip(users, passwords)
+        ]
+
+    @classmethod
+    def apply(cls, lines):
+        """≙ ``change_password_button`` de las dos clases (``:1689`` y ``:1714``).
+
+        La fuente lo parte en dos —el wizard itera sus lineas y cada linea
+        llama a ``_change_password``— y las dos mitades se conservan: el bucle
+        aqui, la escritura en ``ResUsers._change_password``, que ya deja su
+        rastro de auditoria.
+
+        Tres cosas de la fuente que **si** cruzan, y no son cosmeticas:
+
+        1. **Una linea sin contrasena se salta**, no falla
+           (``if line.new_passwd``). Un operador que deja un campo vacio en un
+           dialogo de N usuarios esta diciendo *"a este no"*, no *"aborta
+           todo"*.
+        2. **Las contrasenas temporales no sobreviven a la operacion**
+           (``self.write({'new_passwd': False})``, con su comentario *"don't
+           keep temporary passwords in the database longer than necessary"*).
+           Aqui la linea es inmutable y nunca toco la base, asi que la
+           equivalencia es no devolverla: ``apply`` devuelve **cuantas**
+           cambio, no cuales.
+        3. **Si el actor se cambio a si mismo, hay que decirlo**
+           (``if self.env.user in self.user_ids.user_id``). La fuente devuelve
+           un ``reload`` porque su sesion acaba de quedar invalida. Aqui se
+           devuelve esa señal como dato —``self_changed``— y el cliente decide.
+
+        :returns: ``(cambiadas, self_changed)``.
+        """
+        actor = get_current_user()
+        changed = 0
+        self_changed = False
+        for line in lines:
+            if not line.new_password:
+                continue
+            line.user._change_password(line.new_password)
+            changed += 1
+            if actor is not None and actor.pk == line.user.pk:
+                self_changed = True
+        return changed, self_changed
+
+
+class IdentityCheck:
+    """≙ ``res.users.identitycheck`` (``odoo19c: res_users.py:1615-1673``).
+
+    Su docstring en la fuente dice para que existe, y vale igual aqui:
+
+        Wizard used to re-check the user's credentials (password) and
+        eventually revoke access to his account to every device he has an
+        active session on. Might be useful before the more security-sensitive
+        operations, users might be leaving their computer unlocked &
+        unattended.
+
+    **La mitad que cruza es ``_check_identity``**: verificar la credencial del
+    actor y levantar un error legible si no coincide. Eso es una regla de
+    seguridad, no una pantalla.
+
+    **La mitad que NO cruza, declarada:** ``run_check`` (``:1654-1673``).
+    Deserializa de ``self.request`` un ``(ctx, model, ids, method, args,
+    kwargs)`` guardado, resuelve el metodo por ``getattr`` y lo invoca. Es un
+    despachador de RPC generico: la referencia lo necesita porque su cliente
+    hace la llamada, recibe *"hace falta re-autenticar"*, abre el dialogo y la
+    llamada original tiene que sobrevivir en algun sitio mientras tanto.
+
+    Aqui no sobrevive en ningun sitio y es deliberado: el cliente React reemite
+    su propia peticion despues de re-autenticar, y el gate que la deja pasar es
+    ``authz_reauth.assert_session_fresh`` desde la vista (DEC-12). Guardar una
+    llamada serializada y despacharla por ``getattr`` seria construir un
+    ejecutor de metodos arbitrarios por nombre — exactamente lo que este arbol
+    evita en ``IrActionsServer.run()``, que levanta ``NotImplementedError`` por
+    la misma razon.
+
+    Tambien se marca ``request`` con ``groups=fields.NO_ACCESS`` en la fuente
+    (``:1628``), que es el reconocimiento explicito de que ese campo es
+    peligroso. No portar el despachador cierra ese riesgo en vez de replicarlo.
+    """
+
+    #: ≙ ``auth_method`` (``:1629``). La fuente declara un ``Selection`` con un
+    #: solo valor y un ``default`` calculado por ``_get_default_auth_method``,
+    #: preparado para que un addon anada mas (``totp``, en Enterprise). Aqui es
+    #: la misma lista de un elemento, extensible por el mismo motivo.
+    AUTH_METHODS = (('password', 'Contraseña'),)
+
+    @staticmethod
+    def default_auth_method():
+        """≙ ``_get_default_auth_method`` (``:1632-1633``)."""
+        return 'password'
+
+    @staticmethod
+    def check_identity(user, password):
+        """≙ ``_check_identity`` (``:1635-1644``).
+
+        La fuente construye la credencial con el ``login`` del usuario en
+        sesion y la contrasena del **contexto**, y llama a
+        ``_check_credentials`` sobre ``create_uid`` — el que abrio el
+        asistente. Aqui el usuario llega como parametro porque no hay fila del
+        asistente de la que leerlo, y la contrasena tambien: el contexto de la
+        fuente es su canal de transporte, no parte de la regla.
+
+        El mensaje de error se conserva verbatim en su intencion: la fuente
+        remite a *"Forgot Password"* porque su pantalla lo ofrece.
+
+        :raises UserError: si la credencial no coincide.
+        """
+        credential = {
+            'login': user.get_username(),
+            'password': password,
+            'type': 'password',
+        }
+        try:
+            user._check_credentials(credential, {'interactive': True})
+        except AccessDenied:
+            raise UserError(
+                'Contraseña incorrecta. Vuelve a intentarlo, o restablece '
+                'tu contraseña si la olvidaste.'
+            ) from None
