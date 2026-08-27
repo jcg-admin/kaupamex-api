@@ -67,6 +67,7 @@ import logging
 import os
 from dataclasses import dataclass
 from datetime import timedelta
+from zoneinfo import available_timezones
 
 import api
 import fields
@@ -74,9 +75,10 @@ import models
 
 from django.apps import apps
 from django.conf import settings
+from django.contrib.auth import authenticate as django_authenticate
 from django.contrib.auth import hashers
 from django.core.exceptions import ValidationError
-from django.db.models import F
+from django.db.models import F, Q
 from django.db.models.functions import Length
 from django.db.models.lookups import Exact
 from django.utils import timezone
@@ -87,7 +89,8 @@ from addons.base.models.ir_http import get_current_request
 from addons.base.models.res_device import _client_ip
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import AccessDenied, AccessError, UserError
-from orm.environments import get_current_user, is_su
+from orm.environments import get_current_company, get_current_user, is_su
+from orm.utils import SUPERUSER_ID
 
 #: ≙ el ``_logger`` de módulo que la referencia declara en la cabecera de
 #: ``res_users.py`` (``odoo19c: res_users.py:38``). Se llamaba
@@ -126,6 +129,13 @@ GROUP_NO_ONE_XMLID = 'base.group_no_one'
 #: El grupo de usuario interno. Es el que la guarda de :meth:`ResUsers.has_group`
 #: exige a quien pregunta por los grupos de otro.
 GROUP_USER_XMLID = 'base.group_user'
+
+#: El grupo de administración del sistema — ``_is_system`` (``:1177-1179``).
+GROUP_SYSTEM_XMLID = 'base.group_system'
+
+#: El grupo de administración funcional — la segunda mitad de ``_is_admin``
+#: (``:1181-1183``).
+GROUP_ERP_MANAGER_XMLID = 'base.group_erp_manager'
 
 
 class ResUsersManager(models.Manager):
@@ -844,6 +854,57 @@ class ResUsers(TimeStampedModel):
         """≙ ``_is_public`` (res_users.py:1173-1175)."""
         return self._has_user_type('public')
 
+    def _is_system(self):
+        """≙ ``_is_system`` (``odoo19c: res_users.py:1177-1179``).
+
+        Pertenencia a ``base.group_system`` — el grupo de administración del
+        sistema. A diferencia de los tres de arriba, **no** se resuelve por
+        ``user_type``: los tres anteriores preguntan por la *clase* de usuario
+        (interno / portal / público), que la fuente resuelve por grupo y este
+        árbol por la Selection ``ResGroups.user_type``. Éste pregunta por un
+        grupo **concreto**, así que va por ``_has_group``.
+
+        Se usa ``_has_group`` y no ``has_group`` a propósito: la fuente
+        antepone ``.sudo()``, que salta su guarda de acceso, y el equivalente
+        exacto de esa elevación es el método sin la guarda.
+        """
+        return self._has_group(GROUP_SYSTEM_XMLID)
+
+    def _is_admin(self):
+        """≙ ``_is_admin`` (``odoo19c: res_users.py:1181-1183``).
+
+        El super-usuario **o** el administrador funcional. La fuente evalúa en
+        ese orden y aquí también: ``_is_superuser`` no consulta la base.
+        """
+        return self._is_superuser() or self._has_group(GROUP_ERP_MANAGER_XMLID)
+
+    def _is_superuser(self):
+        """≙ ``_is_superuser`` (``odoo19c: res_users.py:1185-1187``).
+
+        Identidad por id, no por grupo: ``SUPERUSER_ID`` es el 1 codificado que
+        ``orm/utils.py`` ya declara con la misma razón que la fuente.
+
+        NO es el ``is_superuser`` de Django: ese flag no existe en este modelo
+        —la cabecera de la clase lo declara— porque la autorización va por
+        capacidad (DEC-11), no por banderas del usuario.
+        """
+        return self.pk == SUPERUSER_ID
+
+    @classmethod
+    def get_company_currency_id(cls):
+        """≙ ``get_company_currency_id`` (``odoo19c: res_users.py:1189-1191``).
+
+        La moneda de la empresa activa. La fuente la lee de ``self.env.company``
+        —la empresa del entorno de la petición— y aquí sale de la misma
+        ``ContextVar`` que el resto del árbol usa para el alcance por empresa.
+
+        Devuelve ``None`` cuando no hay empresa en contexto; la fuente no tiene
+        ese caso porque su ``env.company`` siempre resuelve, y allá el
+        equivalente sería un ``env`` sin empresa, que su ORM no admite.
+        """
+        company = get_current_company()
+        return getattr(getattr(company, 'currency', None), 'pk', None)
+
     @property
     def share(self):
         """≙ ``_compute_share`` (res_users.py:460-464): compartido = NO
@@ -1019,6 +1080,235 @@ class ResUsers(TimeStampedModel):
                 and (datetime.datetime.now() - previous)
                 < datetime.timedelta(seconds=delay))
 
+    # ------------------------------------------------------------------
+    # El procedimiento de acceso — ≙ ``:742-827``
+    # ------------------------------------------------------------------
+
+    def _update_last_login(self):
+        """≙ ``_update_last_login`` (``odoo19c: res_users.py:742-746``).
+
+        Deja constancia del acceso creando **una fila nueva** en
+        ``res.users.log``. El comentario de la fuente explica por qué crea en
+        vez de actualizar, y vale igual aquí: *"only create new records to
+        avoid any side-effect on concurrent transactions"* — dos accesos
+        simultáneos del mismo usuario no compiten por la misma fila. El exceso
+        lo recorta ``ResUsersLog._gc_user_logs``, que conserva la última.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente crea el registro vacío y
+        su ORM lo puebla con los campos mágicos ``create_uid``/``create_date``.
+        Aquí ``create_uid`` es la FK ``user``, que se pasa explícita; la fecha
+        la pone ``TimeStampedModel``.
+
+        DIVERGENCIA DE FIRMA, declarada: la fuente lo declara ``@api.model`` y
+        resuelve el actor desde el entorno del recordset. Aquí no hay entorno,
+        así que el actor es ``self`` — y es el mismo dato: sus dos puntos de
+        llamada (``_login`` y el RPC) lo invocan sobre el usuario que acaba de
+        entrar, que es exactamente lo que su ``create_uid`` acaba valiendo.
+        """
+        ResUsersLog.objects.create(user=self)
+
+    @classmethod
+    def _get_login_domain(cls, login):
+        """≙ ``_get_login_domain`` (``:748-750``) — cómo se busca al usuario.
+
+        Punto de extensión de la fuente: un addon que admita entrar con el
+        correo lo ensancha aquí. ``Domain('login', '=', login)`` es
+        ``Q(login=login)``; el ``Domain`` de la referencia y el ``Q`` de Django
+        son el mismo objeto de predicado componible.
+        """
+        return Q(login=login)
+
+    @classmethod
+    def _get_email_domain(cls, email):
+        """≙ ``_get_email_domain`` (``:752-754``) — búsqueda por correo.
+
+        La fuente usa ``=ilike`` con ``tools.escape_psql`` sobre el valor: el
+        escape existe porque ``ilike`` interpreta ``%`` y ``_`` como comodines
+        y un correo puede llevarlos. El equivalente exacto es ``__iexact``,
+        que compara sin distinguir mayúsculas y **sin** interpretar comodines,
+        así que no hay nada que escapar — Django parametriza la consulta.
+
+        DIVERGENCIA DE MECANISMO, declarada, y es la frontera de ``_inherits``:
+        allá ``email`` es un campo **delegado** de ``res.users``, así que su
+        ``Domain('email', …)`` lo busca como si fuera columna propia. Aquí la
+        delegación (``orm/inherits.py``) resuelve **atributos**, no lookups de
+        consulta: ``user.email`` lee, pero ``Q(email=…)`` no resuelve. El
+        equivalente que sí consulta es recorrer la FK — ``partner__email``.
+        """
+        return Q(partner__email__iexact=email or '')
+
+    @classmethod
+    def _get_login_order(cls):
+        """≙ ``_get_login_order`` (``:756-758``) — el orden del desempate.
+
+        La fuente devuelve ``self._order``; aquí es ``Meta.ordering``, que ya
+        lleva el ``'name, login'`` de la referencia traducido
+        (``['partner__name', 'login']``). Importa cuando el dominio de acceso
+        devuelve más de una fila: decide **cuál** de ellas autentica.
+        """
+        return tuple(cls._meta.ordering or ())
+
+    @classmethod
+    def _login(cls, credential, user_agent_env):
+        """≙ ``_login`` (``odoo19c: res_users.py:760-781``).
+
+        Resuelve la credencial a un usuario, con el limitador de acceso
+        envolviendo el intento. Los cuatro pasos de la fuente se conservan:
+        el gestor de contexto ``_assert_can_auth``, la búsqueda por
+        ``_get_login_domain`` con ``_get_login_order``, la verificación de la
+        credencial, y el registro del acceso.
+
+        **Cierra la tarea #26**: ``_assert_can_auth`` se portó con la familia
+        de claves de API y hasta hoy sólo tenía allí consumidor. El acceso por
+        contraseña —el que la fuente protege— pasaba sin contar fallos.
+
+        DIVERGENCIA DE MECANISMO, declarada, y es la que ``authz_ldap`` ya tenía
+        escrita: la fuente verifica con ``_check_credentials``, que es la
+        cadena que sus addons extienden con ``super()``; aquí esa cadena son
+        los ``AUTHENTICATION_BACKENDS``
+        (``addons/authz_ldap/models/res_users.py:9-12`` lo declara verbatim:
+        *"la cadena ``AUTHENTICATION_BACKENDS`` ES la cadena de
+        ``super()._login`` de Odoo"*). Por eso la verificación delega en
+        ``django_authenticate``, que recorre local → LDAP → OAuth → passkey, y
+        no en ``_check_credentials`` a secas, que sólo es el eslabón de
+        contraseña.
+
+        El ``auth_info`` que la fuente devuelve lo construye el eslabón
+        terminal (``_check_credentials``), así que aquí se reconstruye con el
+        ``backend`` que ``django_authenticate`` dejó puesto — el dato
+        equivalente a su ``auth_method``.
+
+        :param dict credential: ``{'type', 'login', 'password'}``.
+        :param dict user_agent_env: entorno de la petición; ``interactive``.
+        :raises AccessDenied: credencial inválida, o origen en enfriamiento.
+        :returns: ``auth_info`` — ``{'uid', 'auth_method', 'mfa', 'user'}``.
+        """
+        login = credential['login']
+        request = get_current_request()
+        source = _client_ip(request) if request is not None else 'n/a'
+        try:
+            with cls._assert_can_auth(user=login):
+                user = django_authenticate(
+                    request,
+                    username=login,
+                    password=credential.get('password'),
+                    **{k: v for k, v in credential.items()
+                       if k not in ('type', 'login', 'password')})
+                if user is None:
+                    raise AccessDenied()
+                auth_info = {
+                    'uid': user.pk,
+                    'auth_method': getattr(user, 'backend', None) or 'password',
+                    'mfa': 'default',
+                    'user': user,
+                }
+                cls._set_tz_from_request(user, request)
+                user._update_last_login()
+        except AccessDenied:
+            _logger.info("Login failed for login:%s from %s", login, source)
+            raise
+
+        _logger.info("Login successful for login:%s from %s", login, source)
+        return auth_info
+
+    @staticmethod
+    def _set_tz_from_request(user, request):
+        """≙ las cuatro líneas de zona horaria de ``_login`` (``:772-775``).
+
+        *"first login or missing tz -> set tz to browser tz"*. Se extrae a un
+        método propio porque aquí ``tz`` no vive en ``res_users``: llega por la
+        delegación ``_inherits`` al partner, y la escritura la enruta
+        ``orm/inherits.py``. Dejarlo en línea escondería esa indirección.
+
+        DIVERGENCIA DE STACK, declarada: la fuente valida contra
+        ``pytz.all_timezones``; ``pytz`` no está instalado —medido— y el
+        equivalente de la biblioteca estándar es
+        ``zoneinfo.available_timezones()``, que lee la misma base de datos IANA.
+
+        Y ``not user.login_date`` de la fuente se lee aquí sobre
+        ``res.users.log``: allá ``login_date`` es un campo **relacionado** a la
+        fecha de creación de esa misma tabla (``:229``), así que «nunca ha
+        entrado» es «no tiene filas de acceso». NO se lee sobre ``last_login``,
+        que es el campo de Django y aquí **nadie lo escribe** — leerlo daría
+        siempre vacío y la zona se sobreescribiría en cada acceso, que es lo
+        contrario de lo que la condición pide.
+
+        El orden importa y es el de la fuente: esto corre **antes** de
+        ``_update_last_login``, así que en el primer acceso todavía no hay fila.
+        """
+        if request is None:
+            return
+        tz = request.COOKIES.get('tz')
+        if tz and tz in available_timezones() and (
+                not user.tz or not user.logs.exists()):
+            user.tz = tz
+            user.save()
+
+    @classmethod
+    def authenticate(cls, credential, user_agent_env):
+        """≙ ``authenticate`` (``odoo19c: res_users.py:784-810``).
+
+        Envoltura pública de ``_login``. Su único aporte propio es adivinar la
+        URL base al entrar un usuario del grupo de sistema, para que los
+        enlaces que el servidor genera apunten a donde el usuario realmente
+        llegó — y sólo si nadie la congeló con ``web.base.url.freeze``.
+
+        La fuente traga cualquier excepción de ese bloque y la registra: fijar
+        un parámetro de configuración no debe tumbar un acceso válido. Se
+        conserva, con el mismo ``_logger.exception``.
+
+        :param dict credential: ver ``_login``.
+        :param dict user_agent_env: puede traer ``base_location``.
+        :returns: ``auth_info`` de ``_login``.
+        """
+        auth_info = cls._login(credential, user_agent_env=user_agent_env)
+        if user_agent_env and user_agent_env.get('base_location'):
+            user = auth_info['user']
+            if user._is_system():
+                try:
+                    icp = apps.get_model('base', 'SystemParameter')
+                    if not icp.get_param('web.base.url.freeze'):
+                        icp.set_param('web.base.url',
+                                      user_agent_env['base_location'])
+                except Exception:
+                    _logger.exception(
+                        "Failed to update web.base.url configuration parameter")
+        return auth_info
+
+    @classmethod
+    def _check_uid_passwd(cls, uid, passwd):
+        """≙ ``_check_uid_passwd`` (``odoo19c: res_users.py:813-827``).
+
+        Verifica el par (id, contraseña) **sin abrir sesión**: es la guarda que
+        el RPC usa antes de dejar pasar una llamada, y por eso su rechazo es
+        una excepción y no un valor de retorno.
+
+        Los tres rechazos de la fuente se conservan y en su orden: contraseña
+        vacía —*"empty passwords disallowed for obvious security reasons"*—,
+        usuario inactivo, y credencial incorrecta. El limitador envuelve los
+        dos últimos, igual que en ``_login``; **cierra la otra mitad de #26**.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente memoriza el resultado con
+        ``@tools.ormcache('uid', 'passwd')`` para no rehashear en cada llamada
+        RPC. Aquí NO se memoriza: guardar en caché un par (id, contraseña) es
+        guardar la contraseña en claro en memoria del proceso, y el canal que
+        justificaba el coste —el RPC de integración externa— no está construido
+        (misma medición que ``_rpc_api_keys_only``, sucesor **#490**).
+        """
+        if not passwd:
+            raise AccessDenied()
+
+        with cls._assert_can_auth(user=uid):
+            user = cls.objects.filter(pk=uid).first()
+            if user is None or not user.active:
+                raise AccessDenied()
+            credential = {
+                'login': user.get_username(),
+                'password': passwd,
+                'type': 'password',
+            }
+            user._check_credentials(credential, {'interactive': False})
+
 
 class ResUsersLog(TimeStampedModel):
     """``res.users.log`` — que hubo un acceso, no una auditoría.
@@ -1054,6 +1344,27 @@ class ResUsersLog(TimeStampedModel):
 
     def __str__(self) -> str:
         return f'acceso de {self.user_id} el {self.created_at}'
+
+    @classmethod
+    @api.autovacuum
+    def _gc_user_logs(cls):
+        """≙ ``_gc_user_logs`` (``odoo19c: res_users.py:143-152``).
+
+        Conserva **la fila más reciente por usuario** y borra el resto. Es lo
+        que hace de este modelo un "último acceso" y no una auditoría: la
+        historia se recorta en cada barrido.
+
+        La fuente lo resuelve con un ``DELETE ... WHERE EXISTS`` correlacionado
+        sobre ``create_uid``/``create_date``. Aquí el mismo predicado se
+        expresa con el ORM —una subconsulta correlacionada por ``user``, con
+        ``id`` como desempate para las filas del mismo segundo— y el conteo
+        sale del propio ``delete()``, que es el ``cr.rowcount`` de la fuente.
+        """
+        mas_nueva = cls.objects.filter(user=models.OuterRef('user')).order_by(
+            '-created_at', '-id').values('id')[:1]
+        deleted, _ = cls.objects.exclude(
+            pk=models.Subquery(mas_nueva)).delete()
+        _logger.info("GC'd %d user log entries", deleted)
 
 
 # =========================================================================
