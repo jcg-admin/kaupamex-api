@@ -9,6 +9,10 @@ código Python**, que luego se ejecuta con una lista blanca de opcodes.
 Este archivo porta el **vocabulario y las primitivas**; no el compilador. La
 razón está medida abajo, y no es "falta tiempo".
 
+Cubre de paso los **2 enganches** que Enterprise 19 usa aquí
+—``_prepare_environment`` y ``_get_template_cache_keys``—, los dos del
+compilador. Tarea #78, :ref:`h-api-819`.
+
 Por qué el compilador no se porta
 =================================
 

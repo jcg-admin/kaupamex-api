@@ -23,6 +23,13 @@ commit (regla de H-API-149).
 El motor de render: dos sustratos, no uno con hueco
 ===================================================
 
+Esta divergencia cubre **10 puntos de enganche** que Enterprise 19 usa sobre
+este modelo —``_render_qweb_pdf`` (2), ``_render_qweb_html``,
+``_get_rendering_context``, ``_get_rendering_context_model``,
+``_render_qweb_pdf_prepare_streams``, ``_run_wkhtmltopdf``, ``associated_view``,
+``report_action``, ``_get_readable_fields``—: todos son del pipeline
+HTML→PDF que aquí no existe. Medido en la tarea #78, :ref:`h-api-819`.
+
 La referencia rinde HTML con QWeb y lo convierte con ``wkhtmltopdf``, un
 binario externo cuyo estado (``install`` / ``ok`` / ``upgrade`` / ``workers``
 / ``broken``) el propio modelo consulta.

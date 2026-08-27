@@ -8,6 +8,16 @@ sobre el árbol del padre.
 
 Se porta el **registro y las reglas de herencia**; no el combinador de XML.
 
+Esa divergencia cubre también **12 puntos de enganche** que Enterprise 19 usa
+sobre este modelo y que aquí no existen —``_get_default_view_domain`` (3),
+``_postprocess_attributes``, ``_postprocess_debug``, ``_validate_tag_button``,
+``_contains_branded``, ``is_node_branded``, ``_get_x2many_missing_view_archs``,
+``_postprocess_access_rights``, ``_is_qweb_based_view``,
+``_postprocess_debug_to_cache``—: los diez son del combinador, y operan sobre un
+árbol XML que este producto no tiene. No son deuda de porte sino la misma
+divergencia vista desde el otro lado. Medido en la tarea #78,
+:ref:`h-api-819`.
+
 Qué desbloquea
 ==============
 
