@@ -14,8 +14,11 @@
 #                              database.uuid en el init forzado — es la
 #                              integración de cuentas de la casa Odoo, sin
 #                              análogo aquí.
-#   res_config_settings.py   → SIN archivo: expone el toggle de Google en la
-#                              UI de ajustes de `base_setup`, que este árbol
-#                              no tiene; la superficie es el CRUD DRF.
+#   res_config_settings.py   → PENDIENTE, no divergencia. Decía "la UI de
+#                              ajustes de `base_setup`, que este árbol no
+#                              tiene"; medido 2026-08-27 es FALSO: existe, y
+#                              once addons extienden `ResConfigSettings`. La
+#                              premisa caducó al portarse `base_setup`, sin que
+#                              este archivo cambiara. Ver tarea #84.
 from addons.authz_oauth.models.oauth_provider import OauthProvider  # noqa: F401
 from addons.authz_oauth.models.res_users import OauthAccount  # noqa: F401

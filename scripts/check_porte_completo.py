@@ -226,6 +226,13 @@ PORTE_ALIAS = {
     'IrConfig_Parameter': 'SystemParameter',        # _name = ir.config_parameter
     'IrModuleModule': 'IrModule',                   # _name = ir.module.module
     'IrModuleModuleDependency': 'IrModuleDependency',  # _name = ir.module.module.dependency
+    # La familia authz_*: el nombre de la clase suelta el prefijo del addon,
+    # que aqui lo lleva el paquete. Los dos se verificaron simbolo a simbolo,
+    # no por parecido — 9 de 9 en el primero, y el segundo no declara metodos
+    # en la referencia (solo campos). Declarados en el mapa de porte de su
+    # ``models/__init__.py``, que nombra el archivo destino de cada uno.
+    'ResCompanyLdap': 'CompanyLdap',                # _name = res.company.ldap
+    'AuthOauthProvider': 'OauthProvider',           # _name = auth.oauth.provider
 }
 
 

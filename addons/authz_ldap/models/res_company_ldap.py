@@ -71,7 +71,7 @@ class LDAPWrapper:
 
 class CompanyLdapManager(models.Manager):
 
-    def get_ldap_dicts(self):
+    def _get_ldap_dicts(self):
         """≙ ``_get_ldap_dicts`` (res_company_ldap.py:74-95): configuraciones
         en formato dict, ordenadas por ``sequence``."""
         return list(

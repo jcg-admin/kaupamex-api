@@ -34,7 +34,7 @@ def change_password(user, old_passwd, new_passwd):
     decide el fallback — mismo orden, sin herencia.
     """
     if new_passwd:
-        for conf in CompanyLdap.objects.get_ldap_dicts():
+        for conf in CompanyLdap.objects._get_ldap_dicts():
             changed = CompanyLdap._change_password(
                 conf, user.login, old_passwd, new_passwd)
             if changed:

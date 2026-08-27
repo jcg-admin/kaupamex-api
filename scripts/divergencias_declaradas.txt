@@ -123,3 +123,45 @@ base/models/res_device.py::ResDevice::_revoke
 base/models/res_device.py::ResDevice::revoke
 # El `init()` que crea la vista es aqui la migracion `base.0004_resdevice`.
 base/models/res_device.py::ResDevice::init
+
+# --- authz_ldap / authz_oauth: la familia de autorizacion ---------------------
+#
+# Triadas al cerrar la tarea #81, cuando el mapa de renombre de addon (#80) puso
+# la familia dentro del alcance del gate por primera vez. Las tres tienen su
+# motivo medido y su prueba en el mapa de porte del `models/__init__.py` del
+# addon, que nombra archivo por archivo el destino de cada uno.
+#
+# El One2many `ldaps` de res.company ES el reverso de la FK en Django:
+# `related_name='ldaps'` en CompanyLdap.company (migrations/0001_initial.py:101).
+# La conducta existe; lo que no existe es un archivo que la declare, y crearlo
+# seria fabricar un stub vacio.
+authz_ldap/models/res_company.py
+#
+# `_get_ldap_dicts` consulta el conjunto, no un registro: en la referencia eso
+# es un metodo de modelo porque un recordset ES el conjunto, y aqui vive en el
+# manager (`CompanyLdap.objects._get_ldap_dicts()`,
+# models/res_company_ldap.py:74). Divergencia de la separacion manager/modelo
+# de Django, no un simbolo ausente: el guion bajo se le restauro en el mismo
+# pase, porque quitarlo lo promovia a API publica (H-API-581).
+authz_ldap/models/res_company_ldap.py::ResCompanyLdap::_get_ldap_dicts
+#
+# El unico contenido del archivo de la referencia fija el client_id del
+# proveedor Odoo.com al database.uuid: es la integracion de cuentas de la casa
+# Odoo, y no hay conducta que replicar en un arbol que no se conecta a ella.
+authz_oauth/models/ir_config_parameter.py
+#
+# El wizard transient `auth.passkey.key.create` y la confirmacion de identidad
+# por passkey SI estan portados; lo que diverge es su FORMA. La referencia los
+# resuelve como wizard con vista; aqui son endpoints REST — el POST de registro
+# en los controllers del addon, y el despacho de `webauthn` a
+# `verify_webauthn_credential` (../backends.py) desde authz_timeout. Declarado
+# archivo por archivo en el mapa de porte de `models/__init__.py`.
+authz_passkey/models/res_users_identitycheck.py
+#
+# La politica de contrasena vive en un VALIDADOR de Django
+# (`validators.py` + `data.py`, cableados por AUTH_PASSWORD_VALIDATORS), que es
+# el mecanismo del stack para esto y corre en TODOS los caminos de cambio de
+# contrasena. La referencia la cuelga de res.users porque su ORM no tiene esa
+# capa. Por eso este addon no tiene paquete `models/`: es una decision, y su
+# prueba es el docstring de `validators.py`, que cita el codigo de la fuente.
+authz_password_policy/models/res_users.py
