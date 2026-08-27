@@ -28,7 +28,10 @@ Reparto de los cuatro símbolos de la fuente
      - **NO portado, y es un BLOQUEO, no una divergencia**: se podría portar el
        día que ``base.ResUsers`` declare la lista blanca que la referencia
        extiende. BLOQUEADO por ``base.ResUsers.SELF_READABLE_FIELDS`` — 0 hits
-       en el árbol. Sigue contado como deuda; sucesor: tarea #83.
+       en el árbol. Sigue contado como deuda; sucesor: tarea **#85**, que es
+       donde vive ese porte — es el mismo bloqueo que ``authz_totp`` declara
+       sobre el mismo símbolo. Citaba #83 (el porte de la familia), que se
+       cierra sin haberlo tocado porque no depende de este addon.
    * - ``action_create_passkey`` (``:21``)
      - divergencia de mecanismo: la acción de ventana del backoffice es aquí el
        endpoint de registro — ``controllers/main.py``

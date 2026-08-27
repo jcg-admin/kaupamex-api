@@ -12,16 +12,36 @@ Métodos de la referencia → aquí:
 - ``_signup_create_user`` → ``_signup_create_user``: valida scope + email
   único + crea.
 - ``reset_password`` / ``_action_reset_password`` → ``reset_password`` /
-  ``send_reset_password``: genera el token y envía el correo con el enlace.
+  ``_action_reset_password``: genera el token y envía el correo con el enlace.
 - ``_create_user_from_template`` → NO se copia un template user (Odoo copia
   ``base.template_portal_user_id``): aquí el alta pasa por
   ``ResUsers.objects.create_user`` con password inutilizable hasta que el
   usuario lo fije con el token.
+- ``write`` (desactivar cancela el signup) / ``_ondelete_signup_cancel`` →
+  ``../signals.py``: dos señales sobre el modelo de usuario con el mismo
+  cuerpo. La fuente los declara como dos métodos porque su ORM separa
+  escritura de borrado; el evento que importa es el mismo.
+- ``_get_signup_invitation_scope`` → ``policy.signup_open``: **misma pregunta,
+  otra codificación**. La fuente lee un enum (``'b2b'``/``'b2c'``) y aquí es un
+  booleano (``authz.signup_allow_uninvited``), porque el único consumidor
+  compara ``!= 'b2c'`` — un enum de dos valores usado como bandera. El nombre
+  cambia con la codificación: ``_get_signup_invitation_scope`` prometería
+  devolver un ámbito.
 - ``state`` (new/active) / ``web_create_users`` / ``send_unregistered_user_reminder``
   / la invitación automática en ``create`` → NO portados: son la UI de
   usuarios del backoffice y un cron de recordatorio; el alta automática por
-  correo se dispara explícitamente (``send_reset_password``), no en cada
+  correo se dispara explícitamente (``_action_reset_password``), no en cada
   ``create``.
+- ``action_reset_password`` → NO portado: es el envoltorio público que traduce
+  ``MailDeliveryException`` a ``UserError`` para el formulario del backoffice.
+  Aquí el despacho de correo va por ``dispatch_email`` y su fallo lo sella el
+  manejador central (ADR-019), así que el envoltorio no tendría qué traducir.
+- ``copy`` → NO portado: evita mandar el correo de reset al **duplicar** un
+  usuario, que es una acción del backoffice. Sin esa acción no hay duplicado
+  que silenciar.
+- ``_notify_inviter`` → BLOQUEADO por ``bus._bus_send`` — avisa a quien invitó
+  cuando el invitado se conecta, y ese canal no está construido (DEC-AF-06, la
+  misma causa que ``authz_timeout/models/ir_websocket.py``). Sucesor: **#87**.
 """
 import logging
 
@@ -110,10 +130,10 @@ def reset_password(login):
         raise UserError('No account found for this login')
     if len(users) > 1:
         raise UserError('Multiple accounts found for this login')
-    return send_reset_password(users[0], signup_type=SignupRequest.TYPE_RESET)
+    return _action_reset_password(users[0], signup_type=SignupRequest.TYPE_RESET)
 
 
-def send_reset_password(user, signup_type=SignupRequest.TYPE_RESET):
+def _action_reset_password(user, signup_type=SignupRequest.TYPE_RESET):
     """≙ ``_action_reset_password`` (res_users.py:156-230): prepara el signup,
     genera el token y envía el correo con el enlace de set-password."""
     if not user.active:
@@ -153,7 +173,7 @@ def send_reset_password(user, signup_type=SignupRequest.TYPE_RESET):
 def send_verification_email(user):
     """Manda el enlace de verificación al buzón del usuario.
 
-    Gemela de ``send_reset_password``, con una diferencia obligada: **no**
+    Gemela de ``_action_reset_password``, con una diferencia obligada: **no**
     exige ``user.active``. Una cuenta pendiente de verificar nace
     ``active=False`` con ``deactivated_reason='unverified'``, así que el gate
     de archivado del reset la rechazaría justo cuando más se la necesita.

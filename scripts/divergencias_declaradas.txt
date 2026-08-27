@@ -379,3 +379,52 @@ authz_signup/models/res_partner.py::ResPartner::_signup_retrieve_partner
 authz_signup/models/res_partner.py::ResPartner::signup_cancel
 authz_signup/models/res_partner.py::ResPartner::signup_get_auth_param
 authz_signup/models/res_partner.py::ResPartner::signup_prepare
+
+# --- authz_signup/models/res_users.py ---------------------------------------
+# Funciones sobre el usuario; el docstring del archivo lleva el mapa completo.
+#
+# Portados CON SU NOMBRE (el gate los ve ausentes porque busca una clase
+# `ResUsers`, que aqui no existe — Django no admite `_inherit`):
+authz_signup/models/res_users.py::ResUsers::signup
+authz_signup/models/res_users.py::ResUsers::_signup_create_user
+authz_signup/models/res_users.py::ResUsers::reset_password
+authz_signup/models/res_users.py::ResUsers::_action_reset_password
+# `write` (rama de desactivacion) y `_ondelete_signup_cancel` -> ../signals.py,
+# dos senales con el mismo cuerpo:
+authz_signup/models/res_users.py::ResUsers::write
+authz_signup/models/res_users.py::ResUsers::_ondelete_signup_cancel
+#
+# Divergencia de mecanismo:
+#   _get_signup_invitation_scope -> policy.signup_open. La fuente lee un enum
+#     ('b2b'/'b2c') y su unico consumidor compara `!= 'b2c'`: un enum de dos
+#     valores usado como bandera. Aqui es booleano, y el nombre cambia con la
+#     codificacion — `_get_signup_invitation_scope` prometeria un ambito.
+#   _create_user_from_template -> no se copia un template user; el alta pasa
+#     por `create_user` con password inutilizable hasta fijarlo con el token.
+#   _compute_state / _search_state -> el campo `state` (new/active) es de la
+#     lista de usuarios del backoffice.
+#   web_create_users / send_unregistered_user_reminder -> UI de usuarios del
+#     backoffice y cron de recordatorio.
+#   create -> la invitacion automatica en cada alta; aqui se dispara
+#     explicitamente con `_action_reset_password`.
+#   action_reset_password -> envoltorio publico que traduce
+#     MailDeliveryException a UserError para el formulario del backoffice; el
+#     fallo de `dispatch_email` lo sella el manejador central (ADR-019).
+#   copy -> evita el correo de reset al DUPLICAR un usuario, accion del
+#     backoffice que aqui no existe.
+authz_signup/models/res_users.py::ResUsers::_get_signup_invitation_scope
+authz_signup/models/res_users.py::ResUsers::_create_user_from_template
+authz_signup/models/res_users.py::ResUsers::_compute_state
+authz_signup/models/res_users.py::ResUsers::_search_state
+authz_signup/models/res_users.py::ResUsers::web_create_users
+authz_signup/models/res_users.py::ResUsers::send_unregistered_user_reminder
+authz_signup/models/res_users.py::ResUsers::create
+authz_signup/models/res_users.py::ResUsers::action_reset_password
+authz_signup/models/res_users.py::ResUsers::copy
+
+# --- authz_signup/models/ir_http.py ------------------------------------------
+# Un solo simbolo, `_pre_dispatch`, que inyecta la config de signup en la
+# sesion del frontend QWeb. El SPA lee esa config por su propio endpoint, asi
+# que no hay despachador de paginas donde inyectarla. Declarado en el
+# `models/__init__.py` del addon.
+authz_signup/models/ir_http.py
