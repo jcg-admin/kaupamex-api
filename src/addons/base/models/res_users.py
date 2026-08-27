@@ -65,6 +65,7 @@ import hashlib
 import ipaddress
 import logging
 import os
+import time
 from dataclasses import dataclass
 from datetime import timedelta
 from zoneinfo import available_timezones
@@ -145,6 +146,100 @@ GROUP_ERP_MANAGER_XMLID = 'base.group_erp_manager'
 _SYSTEM_LOGINS = frozenset({'admin', 'public', '__system__'})
 
 
+class ResUsersQuerySet(models.QuerySet):
+    """El **recordset** de la credencial.
+
+    La referencia declara sobre el recordset los métodos que actúan sobre un
+    conjunto (``self.filtered(...)``, un ``for user in self``); aquí el
+    recordset es el ``QuerySet``, no la instancia. Declararlos en el modelo
+    obligaría a quien llama a iterar por su cuenta, y con eso se perdería la
+    guarda que la fuente aplica **al conjunto entero antes de tocar nada**.
+    """
+
+    def _deactivate_portal_user(self, **post):
+        """≙ ``_deactivate_portal_user`` (``odoo19c: res_users.py:934-987``).
+
+        Su docstring de la fuente dice para qué existe: *"This is used to give
+        the opportunity to portal users to de-activate their accounts. Indeed,
+        as the portal users can easily create accounts, they will sometimes
+        wish it removed because they don't use this Odoo portal anymore."*
+
+        Seis efectos, en el orden de la fuente:
+
+        1. **La guarda de clase, sobre el conjunto entero.** Si algún usuario
+           del recordset no es de portal, no se da de baja a **ninguno** —
+           ``AccessDenied`` antes del primer ``save()``. La fuente hace lo
+           mismo con ``self.filtered(lambda user: not user.share)``.
+        2. **El login se ofusca** a ``__deleted_user_<pk>_<epoch>``: libera el
+           correo para que la persona pueda volver a registrarse, y deja la
+           fila trazable mientras la cola de borrado la procesa.
+        3. **La contraseña queda inutilizable.** La fuente escribe ``''``;
+           aquí ``set_unusable_password()`` es la forma del stack, y es más
+           estricta — un hash con prefijo ``!`` que ningún hasher valida.
+        4. **Se retiran las claves de API** con ``_remove()``, que **sigue
+           exigiendo identidad**: la baja la pide el propio usuario, así que
+           el actor es él. Es la misma condición que la fuente impone
+           (``env.is_system()`` o ser el dueño), y no se relaja aquí.
+        5. **Se archivan el usuario y su partner.** La fuente envuelve las dos
+           en ``try/except`` porque su ``action_archive`` puede fallar por una
+           restricción de integridad (*"if the partner is related to an
+           invoice e.g."*); aquí son escrituras de campo y no lanzan, así que
+           el ``except`` no se porta — no hay excepción que tragar.
+        6. **Se encola la fila de ``res.users.deletion``** en estado ``todo``,
+           que es lo que la fuente hace al final.
+
+        DIVERGENCIA, y es un **añadido** de este árbol: se escribe además
+        ``deactivated_reason = DEACTIVATION_SELF_DELETED`` con su
+        ``deactivated_at``. La fuente no lo necesita porque su ``active`` es un
+        booleano sin motivo; aquí el flujo de reactivación por email decide
+        con esa causa, y sin ella una baja voluntaria es indistinguible de una
+        suspensión administrativa.
+
+        :raises AccessDenied: si algún usuario del recordset no es de portal.
+        """
+        users = list(self)
+        if not users:
+            return
+        no_portal = [user for user in users if not user.share]
+        if no_portal:
+            raise AccessDenied(
+                'Sólo los usuarios de portal pueden dar de baja su cuenta. '
+                'No se puede dar de baja a: %s'
+                % ', '.join(user.login for user in no_portal))
+
+        request = get_current_request()
+        origen = _client_ip(request) if request is not None else 'n/a'
+        ahora = timezone.now()
+        model = self.model
+        deletion = apps.get_model('base', 'ResUsersDeletion')
+
+        for user in users:
+            _logger.info(
+                'Baja de cuenta solicitada para %r (#%s) desde %s. '
+                'Se archiva al usuario y se retira su información de acceso.',
+                user.login, user.pk, origen)
+
+            user.login = '__deleted_user_%s_%s' % (user.pk, time.time())
+            user.set_unusable_password()
+            user.active = False
+            user.deactivated_reason = model.DEACTIVATION_SELF_DELETED
+            user.deactivated_at = ahora
+            user.save(update_fields=[
+                'login', 'password', 'active',
+                'deactivated_reason', 'deactivated_at',
+            ])
+
+            for clave in list(user.api_keys.all()):
+                clave._remove()
+
+            if user.partner_id is not None:
+                user.partner.active = False
+                user.partner.save(update_fields=['active'])
+
+            deletion.objects.create(
+                user=user, user_int=user.pk, state=deletion.STATE_TODO)
+
+
 class ResUsersManager(models.Manager):
     """Manager de la credencial. Replica lo que el framework consume.
 
@@ -154,6 +249,14 @@ class ResUsersManager(models.Manager):
     """
 
     use_in_migrations = True
+
+    def get_queryset(self):
+        return ResUsersQuerySet(self.model, using=self._db)
+
+    def _deactivate_portal_user(self, **post):
+        """Delegación al recordset — ver
+        :meth:`ResUsersQuerySet._deactivate_portal_user`."""
+        return self.get_queryset()._deactivate_portal_user(**post)
 
     @staticmethod
     def normalize_email(email):

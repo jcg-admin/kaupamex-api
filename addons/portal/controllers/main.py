@@ -66,7 +66,7 @@ from addons.authz_ldap.models.res_users import change_password as ldap_change_pa
 from addons.authz_password_policy.validators import get_password_policy
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.res_partner import ResPartner
-from addons.base.models.res_users_deletion import ResUsersDeletion
+from addons.base.models.res_users import ResUsers
 from addons.portal.controllers.serializers import (
     DeactivateAccountSerializer,
     PasswordChangeSerializer,
@@ -407,8 +407,15 @@ class PortalDeactivationView(APIView):
             )
 
         with transaction.atomic():
-            user.active = False
-            user.save(update_fields=['active'])
-            ResUsersDeletion.objects.create(user=user, user_int=user.pk)
+            # Delega en el recordset — ≙ ``request.env.user
+            # ._deactivate_portal_user()`` de la fuente
+            # (``odoo19c: addons/portal/controllers/portal.py``). Antes esta
+            # vista abría el método a mano y sólo hacía dos de sus seis
+            # mitades: archivaba y encolaba. Faltaban la guarda de clase, la
+            # ofuscación del login, la inutilización de la contraseña, el
+            # retiro de las claves de API, el archivado del partner y la causa
+            # ``deactivated_reason``, sin la cual la reactivación por email no
+            # distingue una baja voluntaria de una suspensión.
+            ResUsers.objects.filter(pk=user.pk)._deactivate_portal_user()
             logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
