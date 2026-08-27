@@ -81,6 +81,8 @@ from django.core.exceptions import ValidationError
 from django.db.models import F, Q
 from django.db.models.functions import Length
 from django.db.models.lookups import Exact
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
@@ -866,24 +868,16 @@ class ResUsers(TimeStampedModel):
         su asistente de invitación, y este árbol invita por endpoint, así que
         esa fila no existe. No es omisión: no hay a quién proteger.
 
-        DIVERGENCIA DE MECANISMO, declarada: la fuente lo cuelga de
-        ``@api.ondelete(at_uninstall=True)``, un gancho de su ORM. Aquí el
-        gancho equivalente es sobrescribir ``delete()``, que es por donde pasa
-        tanto la instancia como el ``QuerySet.delete()`` cuando se llama sobre
-        el objeto. El borrado en lote por ``QuerySet`` **no** pasa por aquí —
-        es una limitación conocida de Django, y la misma que su
-        ``@api.ondelete`` no tiene. Sucesor: tarea #57.
+        El cuerpo de la guarda **no vive aquí**: vive en
+        :func:`_forbid_deleting_master_data`, un receptor de ``pre_delete``.
+        Sobrescribir ``delete()`` sólo cubría la instancia, y el borrado en
+        lote por ``QuerySet.delete()`` se saltaba la protección — que es
+        justo lo que ``@api.ondelete`` **no** deja pasar en la fuente.
+
+        Este método se conserva porque el árbol lo llama y porque su docstring
+        es donde vive la razón de cada usuario protegido; la verificación la
+        hace la señal, en los dos caminos.
         """
-        if self.pk == SUPERUSER_ID:
-            raise UserError(
-                'No se puede eliminar al super-usuario: es quien crea los '
-                'recursos internos (actualizaciones, instalación de módulos). '
-                'Archívalo en su lugar.')
-        if self.login in _SYSTEM_LOGINS:
-            raise UserError(
-                'No se puede eliminar al usuario %r: se usa en la '
-                'configuración de seguridad y en el acceso anónimo. '
-                'Archívalo en su lugar.' % self.login)
         return super().delete(*args, **kwargs)
 
     @classmethod
@@ -2424,3 +2418,79 @@ class IdentityCheck:
                 'Contraseña incorrecta. Vuelve a intentarlo, o restablece '
                 'tu contraseña si la olvidaste.'
             ) from None
+
+
+@receiver(pre_delete, sender=ResUsers, dispatch_uid='base.res_users.master_data')
+def _forbid_deleting_master_data(sender, instance, **kwargs):
+    """≙ ``_unlink_except_master_data`` (``odoo19c: res_users.py:647-660``).
+
+    Los usuarios de sistema no se borran, ni de uno en uno ni en lote.
+
+    **Por qué una señal y no un ``delete()``.** El gancho de la fuente es
+    ``@api.ondelete(at_uninstall=True)``, y su ``unlink`` lo invoca **una vez
+    con el recordset entero**, antes de tocar la base
+    (``odoo19c: odoo/orm/models.py:4206-4209`` — ``func(self)``). Por eso allá
+    da igual borrar uno o mil: el gancho ve el lote completo.
+
+    En este ORM ``Model.delete()`` **no** es ese punto: ``QuerySet.delete()``
+    no pasa por él, así que la guarda escrita ahí protegía la instancia y
+    dejaba pasar el lote. El equivalente real es ``pre_delete``, medido en el
+    paquete instalado:
+
+    - ``Collector.can_fast_delete`` (``django/db/models/deletion.py:186``)
+      exige que el modelo **no tenga listeners**; registrar este receptor
+      desactiva el borrado rápido y fuerza a Django a instanciar las filas.
+    - ``Collector.delete`` (``:459-466``) emite ``pre_delete`` por instancia
+      **dentro de** ``transaction.atomic`` y **antes** de cualquier borrado, así
+      que si esto lanza, el lote entero revierte.
+
+    DIVERGENCIA DE MECANISMO, declarada: la fuente valida **el lote de una
+    vez**; aquí se valida **una instancia por emisión**. El efecto es el mismo
+    —un solo usuario de sistema aborta todo el lote, porque comparten
+    transacción— pero el mensaje nombra al primer infractor que Django emita,
+    no a todos.
+
+    **Qué protege, y contra qué población.** Gobierna ``odoo19c``, que declara
+    cuatro; se conservan los tres que este árbol tiene:
+
+    - el **super-usuario** — *"it is used internally for resources created by
+      Odoo (updates, module installation, ...)"*;
+    - el **administrador** — *"it is utilized in various places (such as
+      security configurations,...). Instead, archive it."*;
+    - el **usuario público** — *"Deleting the public user is not allowed."*
+
+    El cuarto de 19 no se porta, y no es omisión: DIVERGENCIA DE MECANISMO
+    declarada. ``base.template_portal_user_id`` es la plantilla del asistente
+    de invitación de la fuente; este árbol invita por endpoint, así que esa
+    fila no existe y no hay a quién proteger.
+
+    Medido también en 18, porque 19 sola no lo mostraba:
+
+    - ``odoo18c: res_users.py:810-823`` protege **además** ``base.default_user``
+      junto a la plantilla portal. **19 lo retiró**, y gobierna 19: no se porta.
+    - ``odoo18e`` (misma versión, otra edición) **no** protege ``public_user``.
+      Las dos ediciones de 18 no coinciden entre sí, así que citar «18» sin
+      decir cuál mezclaría dos poblaciones.
+    - ``odoo19e`` **no participa**: no trae el núcleo — no existe ahí
+      ``addons/base/models/res_users.py``. Es un árbol de addons sobre
+      Community, a diferencia de ``odoo18e``, que sí lleva su propia copia del
+      núcleo. Y de sus addons que extienden ``res.users``, **ninguno** declara
+      ``@api.ondelete``: Enterprise 19 no añade ni quita guardas.
+
+    Cuatro poblaciones medidas, entonces, y el veredicto no cambia: gobierna
+    ``odoo19c``.
+
+    Lo que la fuente hace y aquí no: ``self.env.registry.clear_cache()`` en
+    mitad del gancho. DIVERGENCIA DE STACK — ese registro es el suyo, y su
+    equivalente aquí se invalida por otra vía.
+    """
+    if instance.pk == SUPERUSER_ID:
+        raise UserError(
+            'No se puede eliminar al super-usuario: es quien crea los '
+            'recursos internos (actualizaciones, instalación de módulos). '
+            'Archívalo en su lugar.')
+    if instance.login in _SYSTEM_LOGINS:
+        raise UserError(
+            'No se puede eliminar al usuario %r: se usa en la '
+            'configuración de seguridad y en el acceso anónimo. '
+            'Archívalo en su lugar.' % instance.login)
