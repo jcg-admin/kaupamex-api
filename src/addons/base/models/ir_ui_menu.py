@@ -114,6 +114,36 @@ class CapabilityPrunedMenuManager(models.Manager):
     esconderse.
     """
 
+    def _load_menus_blacklist(self):
+        """≙ ``_load_menus_blacklist`` (``odoo19c: ir_ui_menu.py:209-211``).
+
+        Los ids que **no** se sirven aunque el usuario los pudiera ver. La
+        fuente lo declara devolviendo ``[]`` y lo consume antes de filtrar por
+        visibilidad (``:237-241``): es un punto de extensión puro, cuyo cuerpo
+        aquí es el mismo vacío.
+
+        **Se declara aunque nadie lo extienda todavía.** Enterprise 19 lo
+        extiende **7 veces**, más que ningún otro símbolo de ``ir.ui.menu``
+        (tarea #67), y cada addon **suma** sus ids a los del ``super()``. Sin
+        base que extender, dos addons que lo declararan se pisarían — el mismo
+        defecto que ``SELF_READABLE_FIELDS`` tenía antes de :ref:`h-api-819`,
+        y por eso se cierra con él y no cuando aparezca el primer consumidor.
+
+        El punto está en el **queryset** porque el filtro que lo consume
+        también lo está; una extensión lo sobreescribe sobre la clase, igual
+        que ``hr`` hace con las listas de ``res.users``.
+
+        **La caché no lo ve, y hay que decirlo.** La clave de
+        :meth:`visible_menu_ids` se compone de la generación y del conjunto de
+        capacidades; la lista negra **no** entra en ella. Es correcto mientras
+        sea estática por instalación —un addon la fija al cargarse— y deja de
+        serlo el día que alguien la calcule por usuario o por empresa. Ese día
+        la lista entra en la clave; hasta entonces, un cambio se propaga
+        renovando la generación, que es lo que ya hace cualquier escritura de
+        menú.
+        """
+        return []
+
     def visible_menu_ids(self, user, capabilities, superadmin=False):
         """Ids de los ítems visibles para ``user`` (``_visible_menu_ids``).
 
@@ -145,8 +175,12 @@ class CapabilityPrunedMenuManager(models.Manager):
         if cached is not None:
             return cached
 
+        # La fuente descuenta la lista negra ANTES de filtrar por
+        # visibilidad (``odoo19c: ir_ui_menu.py:237-241``): un id vetado no
+        # entra aunque el usuario tuviera la capacidad.
         items = list(
             self.filter(active=True)
+            .exclude(pk__in=self._load_menus_blacklist())
             .select_related('group')
             .order_by('parent_id', 'sequence', 'id')
         )
