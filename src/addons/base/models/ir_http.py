@@ -390,9 +390,9 @@ class CompanyContextMiddleware:
             # M2M, el reverso de ``res_company_users_rel``) — el
             # ``user.company_ids`` de la referencia, con la propia primero
             # (``env.company`` = la primera activada). El cómputo vive en
-            # ``ResUsers._permitted_company_ids`` (≙ ``_get_company_ids``),
+            # ``ResUsers._get_company_ids`` — el nombre de la referencia,
             # que filtra las compañías archivadas como hace la fuente.
-            permitir = getattr(user, '_permitted_company_ids', None)
+            permitir = getattr(user, '_get_company_ids', None)
             if permitir is not None:
                 permitted = permitir()
         # Los dos ejes del entorno que la referencia deja listos antes del

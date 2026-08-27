@@ -60,8 +60,8 @@ Ausentes (10) — con razón medida hoy, agrupados por causa
 Este árbol NO selecciona compañía por cookie: ``CompanyContextMiddleware``
 (``base/models/ir_http.py:216-263``, cableado en
 ``config/settings/base.py:183``) la fija en cada petición desde
-``request.user`` — vía ``ResUsers._permitted_company_ids`` (≙
-``_get_company_ids``) — y la limpia en el ``finally``. Verificado hoy que no
+``request.user`` — vía ``ResUsers._get_company_ids``, que lleva el nombre de
+la referencia — y la limpia en el ``finally``. Verificado hoy que no
 hay ningún otro cookie de estado compuesto que sanear:
 ``grep -rn "'cids'\\|response.set_cookie\\|COOKIE" src/ --include=*.py -i``
 → **0** hits fuera de este mismo docstring y del de ``base/models/ir_http.py``.

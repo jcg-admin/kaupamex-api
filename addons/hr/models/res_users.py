@@ -356,7 +356,7 @@ def action_create_employee(self):
     tienen destino real.
     """
     company_id = get_current_company()
-    permitted = self._permitted_company_ids()
+    permitted = self._get_company_ids()
     if company_id and permitted and company_id not in permitted:
         raise UserError(
             _('No puedes crear un empleado: el usuario no tiene acceso a '

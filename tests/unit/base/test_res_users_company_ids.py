@@ -78,7 +78,7 @@ def test_permitidas_ponen_la_propia_primero(usuario, companias):
     """``env.company`` es la primera activada — de ahí el orden."""
     alfa, beta = companias
     usuario.company_ids.add(beta, alfa)
-    assert usuario._permitted_company_ids()[0] == alfa.pk
+    assert usuario._get_company_ids()[0] == alfa.pk
 
 
 def test_permitidas_excluyen_companias_archivadas(usuario, companias):
@@ -87,4 +87,4 @@ def test_permitidas_excluyen_companias_archivadas(usuario, companias):
     usuario.company_ids.add(alfa, beta)
     beta.active = False
     beta.save(update_fields=['active'])
-    assert usuario._permitted_company_ids() == (alfa.pk,)
+    assert usuario._get_company_ids() == (alfa.pk,)

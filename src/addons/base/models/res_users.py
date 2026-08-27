@@ -137,6 +137,11 @@ GROUP_SYSTEM_XMLID = 'base.group_system'
 #: (``:1181-1183``).
 GROUP_ERP_MANAGER_XMLID = 'base.group_erp_manager'
 
+#: Los logins que :meth:`ResUsers.delete` protege — ≙ los cuatro ``env.ref``
+#: de ``_unlink_except_master_data`` (``:648-660``), menos la plantilla de
+#: usuario portal, que este árbol no tiene (invita por endpoint).
+_SYSTEM_LOGINS = frozenset({'admin', 'public', '__system__'})
+
 
 class ResUsersManager(models.Manager):
     """Manager de la credencial. Replica lo que el framework consume.
@@ -664,17 +669,17 @@ class ResUsers(TimeStampedModel):
             return
         if self.company_ids.filter(pk=self.company_id).exists():
             return
-        permitidas = ', '.join(
+        allowed = ', '.join(
             self.company_ids.values_list('partner__name', flat=True)) or '—'
         raise ValidationError(
             'La compañía %(company)s no está entre las permitidas para el '
             'usuario %(user)s (%(allowed)s).' % {
                 'company': self.company.partner.name,
                 'user': self.login,
-                'allowed': permitidas,
+                'allowed': allowed,
             })
 
-    def _permitted_company_ids(self):
+    def _get_company_ids(self):
         """Odoo ``_get_company_ids`` (``odoo19c: res_users.py:726-730``).
 
         La referencia filtra por ``('active', '=', True)`` — una compañía
@@ -693,6 +698,141 @@ class ResUsers(TimeStampedModel):
     def clean(self):
         super().clean()
         self._check_user_company()
+        self._check_disjoint_groups()
+
+    # ------------------------------------------------------------------
+    # Las tres restricciones de integridad — ≙ :535-556 y :647-660
+    # ------------------------------------------------------------------
+
+    def _check_disjoint_groups(self):
+        """≙ ``_check_disjoint_groups`` (``odoo19c: res_users.py:535-548``).
+
+        Su docstring dice qué protege, y vale igual aquí: *"We check that no
+        users are both portal and users (same with public). This could
+        typically happen because of implied groups."*
+
+        Un usuario en dos clases a la vez rompe todo lo que decide por clase —
+        empezando por ``share``, que es literalmente «no es interno». La fuente
+        resuelve las clases con tres xmlid reservados; aquí son los valores de
+        ``ResGroups.user_type``, que es el mismo eje declarado de otra forma
+        (ver el comentario de :meth:`_has_user_type`).
+
+        Se invoca desde :meth:`clean`, no como decorador: Django no valida M2M
+        en ``full_clean()`` porque la relación no existe hasta que hay PK — es
+        la misma razón por la que ``_check_user_company`` se porta así.
+        """
+        if self.pk is None:
+            return
+        classes = set(
+            self.group_ids.exclude(user_type__isnull=True)
+            .values_list('user_type', flat=True))
+        if len(classes) > 1:
+            raise ValidationError(
+                'El usuario %(user)s no puede estar a la vez en clases '
+                'excluyentes: %(classes)s.' % {
+                    'user': self.login,
+                    'classes': ', '.join(sorted(classes)),
+                })
+
+    @classmethod
+    def _check_at_least_one_administrator(cls):
+        """≙ ``_check_at_least_one_administrator`` (``:550-555``).
+
+        *"You must have at least an administrator user."* — quitarle el último
+        grupo de sistema al último administrador deja la instalación sin quién
+        la administre, y sin nadie que pueda devolverlo.
+
+        La fuente se exime durante la actualización del módulo ``base``
+        (``if not self.env.registry._init_modules: return``), porque a mitad de
+        una migración el estado intermedio puede no tener administrador. Aquí
+        el equivalente es la siembra: mientras no exista **ningún** grupo de
+        sistema, no hay restricción que aplicar — el árbol todavía no llegó al
+        punto en que la pregunta tiene sentido.
+        """
+        data_model = apps.get_model('base', 'IrModelData')
+        system_group = data_model.ref(GROUP_SYSTEM_XMLID, raise_if_not_found=False)
+        if system_group is None:
+            return
+        if not system_group.all_user_ids.exists():
+            raise ValidationError(
+                'Debe quedar al menos un usuario administrador.')
+
+    def delete(self, *args, **kwargs):
+        """≙ ``_unlink_except_master_data`` (``odoo19c: res_users.py:647-660``).
+
+        Los usuarios de sistema no se borran. La fuente protege cuatro y da su
+        razón para cada uno; se conservan los tres que este árbol tiene:
+
+        - el **super-usuario** — *"it is used internally for resources created
+          by Odoo (updates, module installation, ...)"*;
+        - el **administrador** — *"it is utilized in various places (such as
+          security configurations,...). Instead, archive it."*;
+        - el **usuario público** — *"Deleting the public user is not allowed.
+          Deleting this profile will compromise critical functionalities."*
+
+        El cuarto de la fuente no se porta: BLOQUEADO por
+        ``base.template_portal_user_id`` — es la plantilla de usuario portal de
+        su asistente de invitación, y este árbol invita por endpoint, así que
+        esa fila no existe. No es omisión: no hay a quién proteger.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente lo cuelga de
+        ``@api.ondelete(at_uninstall=True)``, un gancho de su ORM. Aquí el
+        gancho equivalente es sobrescribir ``delete()``, que es por donde pasa
+        tanto la instancia como el ``QuerySet.delete()`` cuando se llama sobre
+        el objeto. El borrado en lote por ``QuerySet`` **no** pasa por aquí —
+        es una limitación conocida de Django, y la misma que su
+        ``@api.ondelete`` no tiene. Sucesor: tarea #57.
+        """
+        if self.pk == SUPERUSER_ID:
+            raise UserError(
+                'No se puede eliminar al super-usuario: es quien crea los '
+                'recursos internos (actualizaciones, instalación de módulos). '
+                'Archívalo en su lugar.')
+        if self.login in _SYSTEM_LOGINS:
+            raise UserError(
+                'No se puede eliminar al usuario %r: se usa en la '
+                'configuración de seguridad y en el acceso anónimo. '
+                'Archívalo en su lugar.' % self.login)
+        return super().delete(*args, **kwargs)
+
+    @classmethod
+    def _check_company_domain(cls, companies):
+        """≙ ``_check_company_domain`` (``odoo19c: res_users.py:169-173``).
+
+        El predicado con que ``check_company`` valida a un usuario contra un
+        conjunto de empresas. La fuente lo redefine **aquí** porque el default
+        del ORM compara ``company_id`` —la empresa por defecto— y para un
+        usuario la pregunta correcta es por ``company_ids``: el usuario es
+        válido si **alguna** de sus empresas permitidas está en el conjunto.
+
+        Sin empresas que exigir, la fuente devuelve ``Domain.TRUE``; el
+        equivalente es un ``Q()`` vacío, que Django trata como «sin filtro».
+        """
+        if not companies:
+            return Q()
+        if isinstance(companies, str):
+            ids = [companies]
+        elif hasattr(companies, 'values_list'):
+            ids = list(companies.values_list('pk', flat=True))
+        else:
+            ids = [getattr(c, 'pk', c) for c in companies]
+        return Q(company_ids__in=ids)
+
+    def _get_group_ids(self):
+        """≙ ``_get_group_ids`` (``odoo19c: res_users.py:1098-1104``).
+
+        Los ids de **todos** los grupos del usuario, implicados incluidos. Es
+        el mismo conjunto que :attr:`all_group_ids` expone como registros; la
+        fuente declara las dos formas porque su ``ormcache`` guarda ids, no
+        recordsets.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente lo memoriza con
+        ``@tools.ormcache('self.id')``. Aquí no — el árbol no tiene todavía el
+        invalidador que la fuente cuelga de ``_get_invalidation_fields``, y una
+        caché de autorización sin invalidación es peor que ninguna: mantendría
+        vivo un permiso ya retirado. Sucesor: tarea #58.
+        """
+        return list(self.all_group_ids.values_list('pk', flat=True))
 
     # --- Presentación ---
     def get_full_name(self):
