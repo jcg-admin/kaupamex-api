@@ -8,6 +8,15 @@ sobre el árbol del padre.
 
 Se porta el **registro y las reglas de herencia**; no el combinador de XML.
 
+Esa divergencia estuvo **sólo en esta prosa** desde que el archivo se portó,
+y ningún gate la ve. Desde #76 sus **95 símbolos** están enumerados uno a uno
+en ``scripts/divergencias_declaradas.txt`` —70 del combinador, 24 de la API
+que sirve el arch, ``NameManager`` entera— cada uno con su motivo. Lo que NO
+entró ahí sigue contado como trabajo: ``create``/``write``/``unlink``/
+``copy_data``, los cuatro cómputos de ``arch``/``arch_base``, los tres de
+``xml_id``/``model_data_id``, los dos de ``model_id``, ``_check_groups`` y
+``_check_view_access``.
+
 Esa divergencia cubre también **12 puntos de enganche** que Enterprise 19 usa
 sobre este modelo y que aquí no existen —``_get_default_view_domain`` (3),
 ``_postprocess_attributes``, ``_postprocess_debug``, ``_validate_tag_button``,

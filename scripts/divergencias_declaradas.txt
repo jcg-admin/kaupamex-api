@@ -576,3 +576,251 @@ authz_signup/models/res_users.py::ResUsers::copy
 # que no hay despachador de paginas donde inyectarla. Declarado en el
 # `models/__init__.py` del addon.
 authz_signup/models/ir_http.py
+
+# --- ir_ui_view: el combinador de XML, 70 simbolos -------------------------
+#
+# El modulo lo declara en su docstring desde que se porto: «se porta el
+# registro y las reglas de herencia; no el combinador de XML». Esa prosa no la
+# ve ningun gate, asi que los 70 seguian contados como porte pendiente.
+#
+# Que los hace divergencia y no deuda: en la referencia una vista ES un arbol
+# XML que el servidor combina, valida, post-procesa y envia al cliente. Aqui
+# la pantalla la dibuja React contra el contrato DRF, y `arch_db` es un Text
+# que este archivo NO interpreta. No hay conducta que replicar — no es que sea
+# dificil, es que no hay arbol.
+#
+# Lo que NO entra aqui, a proposito: `create`, `write`, `unlink`, `copy_data`
+# (clausula anti-abuso), los cuatro computos de `arch`/`arch_base`, los tres de
+# `xml_id`/`model_data_id`, los dos de `model_id`, `_check_groups` y
+# `_check_view_access`. Esos siguen contados: son trabajo, no divergencia.
+#
+# valida el XML contra el modelo — aqui el arch no describe formularios, los
+# describe el front en React, asi que no hay arbol que validar
+#   _check_xml -> reparsea el arch y valida cada etiqueta contra los campos.
+base/models/ir_ui_view.py::IrUiView::_check_xml
+#   _check_field_paths -> resuelve rutas de campo dentro del XML.
+base/models/ir_ui_view.py::IrUiView::_check_field_paths
+#   _check_dropdown_menu -> valida la estructura de un menu desplegable.
+base/models/ir_ui_view.py::IrUiView::_check_dropdown_menu
+#   _check_progress_bar -> valida los atributos de una barra de progreso.
+base/models/ir_ui_view.py::IrUiView::_check_progress_bar
+#   _validate_view -> entrada del validador de un arbol XML.
+base/models/ir_ui_view.py::IrUiView::_validate_view
+#   _validate_module_views -> valida todas las vistas de un modulo al instalar.
+base/models/ir_ui_view.py::IrUiView::_validate_module_views
+#   _validate_custom_views -> valida las vistas personalizadas de un modelo.
+base/models/ir_ui_view.py::IrUiView::_validate_custom_views
+#   _validate_attributes -> valida atributos sueltos de un nodo XML.
+base/models/ir_ui_view.py::IrUiView::_validate_attributes
+#   _validate_classes -> valida las clases CSS declaradas en el XML.
+base/models/ir_ui_view.py::IrUiView::_validate_classes
+#   _validate_expression -> evalua una expresion Python incrustada en el XML.
+base/models/ir_ui_view.py::IrUiView::_validate_expression
+#   _validate_domain_identifiers -> valida los identificadores de un dominio del XML.
+base/models/ir_ui_view.py::IrUiView::_validate_domain_identifiers
+#   _validate_qweb_directive -> valida una directiva t-* de QWeb.
+base/models/ir_ui_view.py::IrUiView::_validate_qweb_directive
+#   _validate_fa_class_accessibility -> valida la accesibilidad de un icono Font Awesome.
+base/models/ir_ui_view.py::IrUiView::_validate_fa_class_accessibility
+#   _validate_xml_encoding -> comprueba la codificacion declarada del XML.
+base/models/ir_ui_view.py::IrUiView::_validate_xml_encoding
+#   _compute_invalid_locators -> lista los xpath que no resuelven en el arbol.
+base/models/ir_ui_view.py::IrUiView::_compute_invalid_locators
+#   _compute_warning_info -> compone el aviso que el editor muestra sobre el arbol.
+base/models/ir_ui_view.py::IrUiView::_compute_warning_info
+#   _add_validation_flag -> marca el nodo XML como ya validado.
+base/models/ir_ui_view.py::IrUiView::_add_validation_flag
+#   _raise_view_error -> levanta el error del validador con su nodo.
+base/models/ir_ui_view.py::IrUiView::_raise_view_error
+#   _log_view_warning -> registra el aviso del validador con su nodo.
+base/models/ir_ui_view.py::IrUiView::_log_view_warning
+#
+# valida UNA etiqueta concreta del XML; su contraparte aqui es el componente
+# React que dibuja ese control, no una funcion de este modelo
+#   _validate_tag_a -> valida la etiqueta <a> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_a
+#   _validate_tag_button -> valida la etiqueta <button> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_button
+#   _validate_tag_calendar -> valida la etiqueta <calendar> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_calendar
+#   _validate_tag_div -> valida la etiqueta <div> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_div
+#   _validate_tag_field -> valida la etiqueta <field> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_field
+#   _validate_tag_filter -> valida la etiqueta <filter> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_filter
+#   _validate_tag_form -> valida la etiqueta <form> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_form
+#   _validate_tag_graph -> valida la etiqueta <graph> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_graph
+#   _validate_tag_groupby -> valida la etiqueta <groupby> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_groupby
+#   _validate_tag_img -> valida la etiqueta <img> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_img
+#   _validate_tag_label -> valida la etiqueta <label> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_label
+#   _validate_tag_list -> valida la etiqueta <list> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_list
+#   _validate_tag_page -> valida la etiqueta <page> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_page
+#   _validate_tag_search -> valida la etiqueta <search> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_search
+#   _validate_tag_searchpanel -> valida la etiqueta <searchpanel> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_searchpanel
+#   _validate_tag_ul -> valida la etiqueta <ul> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_ul
+#
+# post-procesa el arbol XML ya combinado — reescribe nodos antes de enviarlo
+# al cliente. Sin arbol no hay post-proceso
+#   _postprocess_view -> entrada del post-proceso de un arbol.
+base/models/ir_ui_view.py::IrUiView::_postprocess_view
+#   _postprocess_attributes -> reescribe los atributos de cada nodo.
+base/models/ir_ui_view.py::IrUiView::_postprocess_attributes
+#   _postprocess_on_change -> inyecta los on_change que el cliente necesita.
+base/models/ir_ui_view.py::IrUiView::_postprocess_on_change
+#   _postprocess_access_rights -> poda del arbol lo que el usuario no puede ver.
+base/models/ir_ui_view.py::IrUiView::_postprocess_access_rights
+#   _postprocess_debug -> anade al arbol la informacion del modo depuracion.
+base/models/ir_ui_view.py::IrUiView::_postprocess_debug
+#   _postprocess_debug_to_cache -> memoriza el resultado del anterior.
+base/models/ir_ui_view.py::IrUiView::_postprocess_debug_to_cache
+#   _modifiers_from_model -> deriva readonly/invisible desde el modelo al nodo.
+base/models/ir_ui_view.py::IrUiView::_modifiers_from_model
+#   _get_x2many_missing_view_archs -> completa el arch de las vistas anidadas.
+base/models/ir_ui_view.py::IrUiView::_get_x2many_missing_view_archs
+#
+# post-procesa una etiqueta concreta del arbol combinado
+#   _postprocess_tag_calendar -> post-procesa <calendar> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_calendar
+#   _postprocess_tag_field -> post-procesa <field> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_field
+#   _postprocess_tag_form -> post-procesa <form> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_form
+#   _postprocess_tag_groupby -> post-procesa <groupby> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_groupby
+#   _postprocess_tag_label -> post-procesa <label> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_label
+#   _postprocess_tag_list -> post-procesa <list> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_list
+#   _postprocess_tag_search -> post-procesa <search> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_search
+#
+# marca el arbol con atributos data-oe-* para que el editor web sepa que
+# nodo corresponde a que registro. Aqui no hay editor sobre el XML
+#   distribute_branding -> reparte las marcas data-oe-* por el arbol.
+base/models/ir_ui_view.py::IrUiView::distribute_branding
+#   inherit_branding -> marca los nodos que llegan por herencia.
+base/models/ir_ui_view.py::IrUiView::inherit_branding
+#   is_node_branded -> dice si un nodo ya lleva marca.
+base/models/ir_ui_view.py::IrUiView::is_node_branded
+#   _contains_branded -> dice si un subarbol contiene algun nodo marcado.
+base/models/ir_ui_view.py::IrUiView::_contains_branded
+#   _pop_view_branding -> retira las marcas antes de guardar.
+base/models/ir_ui_view.py::IrUiView::_pop_view_branding
+#
+# decide si un nodo del XML es editable desde el editor web
+#   _editable_node -> entrada de la decision, por tipo de nodo.
+base/models/ir_ui_view.py::IrUiView::_editable_node
+#   _editable_tag_form -> la variante de <form>.
+base/models/ir_ui_view.py::IrUiView::_editable_tag_form
+#   _editable_tag_list -> la variante de <list>.
+base/models/ir_ui_view.py::IrUiView::_editable_tag_list
+#   _editable_tag_field -> la variante de <field>.
+base/models/ir_ui_view.py::IrUiView::_editable_tag_field
+#   _onchange_able_view -> dice si la vista admite on_change.
+base/models/ir_ui_view.py::IrUiView::_onchange_able_view
+#   _onchange_able_view_form -> la variante de <form>.
+base/models/ir_ui_view.py::IrUiView::_onchange_able_view_form
+#   _onchange_able_view_list -> la variante de <list>.
+base/models/ir_ui_view.py::IrUiView::_onchange_able_view_list
+#   _onchange_able_view_kanban -> la variante de <kanban>.
+base/models/ir_ui_view.py::IrUiView::_onchange_able_view_kanban
+#
+# opera sobre el arbol lxml: lo obtiene, lo recorre o lo renderiza
+#   _get_view_etrees -> devuelve el arbol lxml de cada vista.
+base/models/ir_ui_view.py::IrUiView::_get_view_etrees
+#   locate_node -> localiza un nodo por su especificacion de herencia.
+base/models/ir_ui_view.py::IrUiView::locate_node
+#   postprocess_and_fields -> combina, post-procesa y devuelve el arbol y sus campos.
+base/models/ir_ui_view.py::IrUiView::postprocess_and_fields
+#   _render_template -> renderiza una plantilla QWeb a HTML.
+base/models/ir_ui_view.py::IrUiView::_render_template
+#   _add_missing_fields -> anade al arbol los campos que el cliente necesita.
+base/models/ir_ui_view.py::IrUiView::_add_missing_fields
+#   _valid_inheritance -> comprueba que la herencia no use un atributo traducido como selector.
+base/models/ir_ui_view.py::IrUiView::_valid_inheritance
+#   _is_qweb_based_view -> dice si el arbol es QWeb mirando su etiqueta raiz.
+base/models/ir_ui_view.py::IrUiView::_is_qweb_based_view
+
+# --- ir_ui_view: la API que SIRVE el arch, 37 simbolos --------------------
+#
+# `NameManager` es la libreta del validador: acumula que campos y acciones
+# nombra el arbol para comprobarlos contra el modelo al terminar. Es del
+# combinador entero, asi que va por CLASE y no simbolo a simbolo.
+#
+#   la clase entera -> libreta del validador de XML; sin arbol no hay nada que
+#     apuntar ni contra que comprobarlo.
+base/models/ir_ui_view.py::NameManager
+#
+# La clase `Base` de este archivo es la extension que la referencia cuelga de
+# TODOS los modelos para servirles su vista: `get_view` devuelve el arch ya
+# combinado y post-procesado, y los `_get_default_*_view` FABRICAN un arch
+# minimo cuando el modelo no declara ninguno.
+#
+# Aqui esa superficie la cubre otra cosa, y esta construida: el contrato lo
+# publica drf-spectacular (`/api/schema/`) y la pantalla la arma React contra
+# el. No es que falte el equivalente — es que el equivalente no es un metodo
+# de este modelo.
+#   get_view -> devuelve el arch combinado y post-procesado de un modelo.
+base/models/ir_ui_view.py::Base::get_view
+#   get_views -> lo mismo para varias vistas en una llamada.
+base/models/ir_ui_view.py::Base::get_views
+#   _get_view -> el escalon interno de get_view.
+base/models/ir_ui_view.py::Base::_get_view
+#   _get_view_cache -> memoriza el arch servido.
+base/models/ir_ui_view.py::Base::_get_view_cache
+#   _get_view_cache_key -> compone la llave de esa memoria.
+base/models/ir_ui_view.py::Base::_get_view_cache_key
+#   _get_view_postprocessed -> devuelve el arch ya post-procesado.
+base/models/ir_ui_view.py::Base::_get_view_postprocessed
+#   _get_view_fields -> los campos que el arch nombra.
+base/models/ir_ui_view.py::Base::_get_view_fields
+#   _get_view_field_attributes -> los atributos que cada campo lleva en el arch.
+base/models/ir_ui_view.py::Base::_get_view_field_attributes
+#   _get_fields_spec -> la especificacion de campos que el cliente pide.
+base/models/ir_ui_view.py::Base::_get_fields_spec
+#   _onchange_spec -> que on_change dispara cada campo del arch.
+base/models/ir_ui_view.py::Base::_onchange_spec
+#   get_empty_list_help -> el HTML de ayuda cuando la lista sale vacia.
+base/models/ir_ui_view.py::Base::get_empty_list_help
+#   view_header_get -> el titulo que la vista muestra.
+base/models/ir_ui_view.py::Base::view_header_get
+#   get_formview_id -> el id de la vista de formulario de un registro.
+base/models/ir_ui_view.py::Base::get_formview_id
+#   get_formview_action -> la accion de ventana que abre ese formulario.
+base/models/ir_ui_view.py::Base::get_formview_action
+#   _get_access_action -> la accion que abre un registro desde un enlace.
+base/models/ir_ui_view.py::Base::_get_access_action
+#   _get_records_action -> la accion de ventana sobre un conjunto de registros.
+base/models/ir_ui_view.py::Base::_get_records_action
+#   _get_default_form_view -> fabrica un arch <form> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_form_view
+#   _get_default_list_view -> fabrica un arch <list> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_list_view
+#   _get_default_search_view -> fabrica un arch <search> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_search_view
+#   _get_default_kanban_view -> fabrica un arch <kanban> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_kanban_view
+#   _get_default_calendar_view -> fabrica un arch <calendar> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_calendar_view
+#   _get_default_graph_view -> fabrica un arch <graph> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_graph_view
+#   _get_default_pivot_view -> fabrica un arch <pivot> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_pivot_view
+#
+# Y el diff del asistente, que su propio docstring ya declaraba:
+#
+#   _compute_arch_diff -> compara dos arch y devuelve el HTML de diferencias;
+#     el diff visual es del backoffice. La DECISION de los tres modos si esta
+#     portada, en `source_arch_for`.
+base/models/ir_ui_view.py::ResetViewArchWizard::_compute_arch_diff
