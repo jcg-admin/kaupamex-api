@@ -780,6 +780,123 @@ class ResPartner(AvatarMixin, TimeStampedModel):
             type(self).objects.filter(
                 pk__in=list(children_ids_to_sync)).update(**sync_vals)
 
+    # ------------------------------------------------------------------
+    # Restricciones y onchange — ``odoo19c: res_partner.py:546-599`` y ``:647``.
+    #
+    # Son dos mecanismos y no se confunden. La **restriccion** corre al
+    # guardar y rechaza un estado imposible; el **onchange** corre con el
+    # formulario abierto y propone un valor coherente antes de guardar. Un
+    # estado de otro pais no es imposible —se persiste sin error—, sólo es
+    # falso: por eso hace falta el segundo.
+    #
+    # TRES de los siete simbolos de este bloque no se portan, y su motivo:
+    #
+    # - ``_check_partner_company`` (``:551-561``) —
+    #   BLOQUEADO por ``company_id`` — el campo ``res.partner.company_id``
+    #   (``odoo19c: :285``) no existe en este puerto (medido: 0 declaraciones
+    #   en este archivo). Sin el no hay que comparar contra que.
+    # - ``_onchange_company_id`` (``:596-599``) —
+    #   BLOQUEADO por ``company_id`` — mismo campo ausente.
+    #   Los dos se desbloquean juntos; sucesor: tarea **#110**.
+    # - ``_check_barcode_unicity`` (``:647-651``) —
+    #   BLOQUEADO por ``barcode`` — la fuente lo declara
+    #   ``company_dependent=True`` (``odoo19c: :309``), y ese mecanismo de ORM
+    #   no existe aqui: es el mismo bloqueo ya declarado en
+    #   :meth:`_company_dependent_commercial_fields`. Portarlo como ``Char``
+    #   pelado seria una divergencia silenciosa en el eje que importa —una
+    #   empresa veria el codigo de otra—. Sucesor: tarea **#111**.
+    # ------------------------------------------------------------------
+    def _check_parent_id(self):
+        """≙ ``_check_parent_id`` (``odoo19c: res_partner.py:546-549``).
+
+        Mensaje de la fuente, verbatim: *"You cannot create recursive Partner
+        hierarchies."*
+
+        La fuente lo resuelve con ``_has_cycle()`` del ORM; aqui se recorre la
+        cadena, que es lo que ese ayudante hace por dentro — mismo mecanismo
+        que :meth:`ResPartnerCategory._check_parent_id`, ya portado.
+
+        **Por que es una restriccion y no un aviso:** con un ciclo
+        persistido, ``_compute_complete_name``, ``_compute_parent_path`` y
+        ``_children_sync`` recorren el arbol sin condicion de parada. Medido
+        antes de portarla: guardar un partner como padre de si mismo levanta
+        ``RecursionError``, no un error de datos.
+        """
+        seen = set()
+        current = self.parent
+        while current is not None:
+            if current.pk == self.pk or current.pk in seen:
+                raise ValidationError(
+                    'No se pueden crear jerarquias recursivas de contactos.')
+            seen.add(current.pk)
+            current = current.parent
+
+    def onchange_parent_id(self):
+        """≙ ``onchange_parent_id`` (``odoo19c: res_partner.py:571-583``).
+
+        Comentario de la fuente, verbatim: *"return values in result, as this
+        method is used by _fields_sync()"* — devuelve, no muta. Y el suyo
+        sobre el cuerpo: *"for contacts: copy the parent address, if set (aka,
+        at least one value is set in the address: otherwise, keep the one from
+        the contact)"*.
+
+        **``self._origin``, y por que se traduce en vez de construirse.** La
+        fuente lee el tipo **guardado**, no el del formulario:
+        ``(partner.type or self.type)`` con ``partner = self._origin``. Un
+        contacto que esta en la base como ``invoice`` y al que el formulario
+        acaba de cambiar el tipo NO toma la direccion del padre hasta que se
+        guarde.
+
+        ``_origin`` es un concepto del ORM entero —42 usos en
+        ``odoo19c: odoo/``— y su hogar es ``src/orm``, no este archivo
+        (segunda clausula de ``atributos-de-clase-de-modelo.md``); construirlo
+        aqui seria fabricarlo en el sitio equivocado, la clase de
+        ``H-API-578``. Lo que se porta es su **significado** en este metodo:
+        el valor almacenado de un campo, que es una lectura acotada. El
+        ``_origin`` general queda como sucesor: tarea **#112**.
+        """
+        if not self.parent_id:
+            return
+        result = {}
+        stored_type = None
+        if self.pk:
+            stored_type = type(self).objects.filter(pk=self.pk).values_list(
+                'type', flat=True).first()
+        if (stored_type or self.type) == self.TYPE_CONTACT:
+            address_values = self.parent._get_address_values()
+            if address_values:
+                result['value'] = address_values
+        return result
+
+    def _onchange_country_id(self):
+        """≙ ``_onchange_country_id`` (``odoo19c: res_partner.py:586-589``).
+
+        Cambiar el pais invalida el estado que pertenecia a otro. La guarda
+        ``if self.country_id`` es de la fuente y no es cosmetica: **borrar**
+        el pais no puede arrastrar al estado, o quien lo reescriba pierde lo
+        que ya habia puesto.
+        """
+        if self.country_id and self.country_id != (
+                self.state.country_id if self.state is not None else None):
+            self.state = None
+
+    def _onchange_state(self):
+        """≙ ``_onchange_state`` (``odoo19c: res_partner.py:591-594``).
+
+        El sentido contrario: el estado **manda** sobre el pais, porque un
+        estado sólo pertenece a uno.
+
+        **Divergencia de stack, declarada.** La fuente escribe
+        ``self.state_id.country_id`` sobre un Many2one que puede estar vacio;
+        alla eso es un recordset vacio y el acceso devuelve falso. Aqui
+        ``self.state`` es ``None`` y el mismo acceso levantaria
+        ``AttributeError``, asi que la guarda se hace explicita.
+        """
+        if self.state is None:
+            return
+        if self.state.country_id and self.country_id != self.state.country_id:
+            self.country = self.state.country
+
     def _fields_sync(self, values):
         """≙ ``_fields_sync`` (``odoo19c: res_partner.py:770-814``).
 
@@ -1020,6 +1137,11 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         valores finales.
         """
         creating = self._state.adding
+        # ``@api.constrains('parent_id')`` de la fuente. Va ANTES de tocar
+        # nada: un ciclo hace que ``_compute_complete_name`` mas abajo recurse
+        # sin condicion de parada, asi que el rechazo tiene que llegar
+        # primero.
+        self._check_parent_id()
         if self.website:
             self.website = self._clean_website(self.website)
         if self.parent_id:
