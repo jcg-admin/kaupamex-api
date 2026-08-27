@@ -124,6 +124,7 @@ columnas viven en este árbol). Detalle:
 from django.db import models as dj_models
 
 from addons.base.models import ResPartnerBank
+from addons.base.models.res_users import ResUsers as BaseResUsers
 from addons.hr.models.hr_employee import HrEmployee
 from addons.hr.models.hr_employee_category import HrEmployeeCategory
 from exceptions import UserError
@@ -238,14 +239,24 @@ def employee_count(self):
 
 
 def SELF_READABLE_FIELDS(self):
-    """≙ ``SELF_READABLE_FIELDS`` (``:124-127``) — la aportación de ``hr``
-    (sin base que extender, ver docstring del módulo)."""
-    return HR_READABLE_FIELDS + HR_WRITABLE_FIELDS
+    """≙ ``SELF_READABLE_FIELDS`` (``:124-127``) — la aportación de ``hr``,
+    **sumada** a la de ``base``.
+
+    La fuente lo hace con ``super().SELF_READABLE_FIELDS + [...]``; aquí la
+    propiedad se inyecta sobre la clase, así que la base se lee del punto que
+    ``base.ResUsers`` declara. Devolvía **sólo** lo de ``hr`` con la nota *"sin
+    base que extender"*, que era cierta cuando se escribió y dejó de serlo al
+    cerrar la tarea #66: sin sumar, dos addons que declaren la propiedad se
+    pisan y el último en instalarse gana.
+    """
+    return (list(BaseResUsers.SELF_READABLE_FIELDS.fget(self))
+            + HR_READABLE_FIELDS + HR_WRITABLE_FIELDS)
 
 
 def SELF_WRITEABLE_FIELDS(self):
-    """≙ ``SELF_WRITEABLE_FIELDS`` (``:129-131``)."""
-    return HR_WRITABLE_FIELDS
+    """≙ ``SELF_WRITEABLE_FIELDS`` (``:129-131``) — sumada a la de ``base``."""
+    return (list(BaseResUsers.SELF_WRITEABLE_FIELDS.fget(self))
+            + HR_WRITABLE_FIELDS)
 
 
 def _bind_employee(self, employee_to_bind):

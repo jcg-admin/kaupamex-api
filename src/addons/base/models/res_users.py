@@ -1217,6 +1217,69 @@ class ResUsers(TimeStampedModel):
             ids = [getattr(c, 'pk', c) for c in companies]
         return Q(company_ids__in=ids)
 
+    # ------------------------------------------------------------------
+    # El punto de enganche de la cuenta propia — ``odoo19c: res_users.py:
+    # 175-196``. Enterprise 19 lo extiende **13 veces** en 7 addons, más que
+    # ningún otro símbolo de ``base`` (tarea #67); es el punto de extensión
+    # más usado de este modelo y por eso existe como propiedad y no como
+    # constante.
+    # ------------------------------------------------------------------
+    @property
+    def SELF_READABLE_FIELDS(self):
+        """≙ ``SELF_READABLE_FIELDS`` (``odoo19c: res_users.py:175-186``).
+
+        Los campos que un usuario puede leer de **su propio** registro. La
+        fuente lo dice en su docstring: *"In order to add fields, please
+        override this property on model extensions"* — es un punto de
+        extensión, y el modo de extenderlo es sumar a lo que devuelve
+        ``super()``, nunca reemplazarlo.
+
+        **Se declara aquí aunque el canal RPC crudo no exista.** El docstring
+        de este archivo lo daba por bloqueado por esa razón, y era una
+        afirmación falsa sobre el árbol: ``addons/hr`` ya lo implementaba
+        —``hr/models/res_users.py:240``— con la nota *"sin base que extender"*.
+        Dos referentes que se contradecían, y el coste no era teórico: sin base
+        que extender, **dos addons que lo declararan se pisarían**, porque cada
+        uno devuelve su lista entera en vez de sumarla. Ver la tarea #66.
+
+        La lista se porta verbatim salvo los campos que este árbol no tiene, y
+        cada ausencia se nombra: ``tz_offset`` (derivado que no declaramos),
+        ``action_id`` (BLOQUEADO por ``ir.actions.act_window``, ver el bloque 3
+        del docstring de este archivo) y ``share`` (su noción de usuario
+        compartido, que aquí resuelve ``_is_portal``).
+        """
+        return [
+            'signature', 'company_id', 'login', 'email', 'name',
+            'image_1920', 'image_1024', 'image_512', 'image_256', 'image_128',
+            'lang', 'tz', 'group_ids', 'partner_id', 'write_date',
+            'avatar_1920', 'avatar_1024', 'avatar_512', 'avatar_256',
+            'avatar_128', 'device_ids', 'api_key_ids', 'phone', 'display_name',
+        ]
+
+    @property
+    def SELF_WRITEABLE_FIELDS(self):
+        """≙ ``SELF_WRITEABLE_FIELDS`` (``odoo19c: res_users.py:188-193``).
+
+        Los que puede **escribir**. Subconjunto propio, no derivado del de
+        lectura: la fuente los declara por separado y un campo legible no es
+        por ello escribible.
+        """
+        return ['signature', 'company_id', 'email', 'name', 'image_1920',
+                'lang', 'tz', 'api_key_ids', 'phone']
+
+    @classmethod
+    def _self_accessible_fields(cls):
+        """≙ ``_self_accessible_fields`` (``odoo19c: res_users.py:195-201``).
+
+        Los dos conjuntos, congelados. La fuente lo memoriza con su
+        ``ormcache``; aquí no hay memo porque el cálculo son dos listas
+        literales y sus extensiones — el costo que su caché amortiza es el de
+        su ORM resolviendo la herencia, no el de construir la lista.
+        """
+        probe = cls()
+        return (frozenset(probe.SELF_READABLE_FIELDS),
+                frozenset(probe.SELF_WRITEABLE_FIELDS))
+
     @classmethod
     def _get_invalidation_fields(cls):
         """≙ ``_get_invalidation_fields`` (``odoo19c: res_users.py:735-740``).
