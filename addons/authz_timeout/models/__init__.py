@@ -10,23 +10,41 @@
 #
 #   auth_totp_device.py → auth_totp_device.py (la edad del dispositivo de
 #                         confianza, que es lo que el timeout consulta).
-#   ir_http.py          → ir_http.py — PENDIENTE: 8 símbolos de la referencia
-#                         sin contraparte (_authenticate, _check_identity,
-#                         _handle_error, _must_check_identity,
-#                         _session_info_common_auth_timeout,
-#                         _set_session_inactivity, get_frontend_session_info,
-#                         session_info). El endpoint REST existe
-#                         (`controllers/main.py`, GET …/timeout/check-identity/)
-#                         pero el enganche del dispatcher no. Tarea #83.
-#   res_groups.py       → res_groups.py — PENDIENTE: create/unlink/write, los
-#                         tres lados de escritura que invalidan el cache de
-#                         timeouts por grupo. Tarea #83.
+#   ir_http.py          → ir_http.py — PORTADO, 8 de 8 defs, cada una con su
+#                         nombre, como funciones de módulo más
+#                         `CheckIdentityMiddleware`. El docstring del archivo
+#                         lleva la tabla símbolo a símbolo y sus cuatro
+#                         divergencias declaradas.
+#                         CORREGIDO 2026-08-27: esta línea decía "PENDIENTE: 8
+#                         símbolos de la referencia sin contraparte". Era FALSA
+#                         y la escribí yo al triar #81, transcribiendo la
+#                         salida del gate ("CLASE AUSENTE (8)") sin abrir el
+#                         archivo. El gate busca una clase `IrHttp`; aquí el
+#                         despachador es Django y el enganche un middleware.
+#                         Ver H-API-831.
+#   res_groups.py       → res_groups.py — PORTADO: create/unlink/write son
+#                         `save` + `delete`, porque Django no separa alta de
+#                         modificación. Los tres existen en la fuente sólo
+#                         para invalidar la caché de `_get_lock_timeouts`, y
+#                         los dos nuestros hacen eso. Divergencia 2 del
+#                         docstring del archivo. Misma corrección que arriba:
+#                         la línea decía PENDIENTE y el código ya los tenía.
 #   res_users.py        → res_users.py (los tres _get_lock_timeout*).
-#   ir_websocket.py     → PENDIENTE, y NO bloqueado: la capa existe aquí en
-#                         `addons/bus/models/ir_websocket.py`, que declara la
-#                         política de suscripción como funciones de módulo
-#                         (build_bus_channel_list, prepare_subscribe_data). Lo
-#                         que falta es el eslabón de este addon sobre ellas.
-#                         Medido 2026-08-27; el gate lo daba por ARCHIVO NO
-#                         PORTADO porque busca una clase `IrWebsocket` y aquí
-#                         el mecanismo son funciones. Tarea #83.
+#   ir_websocket.py     → BLOQUEADO por ``bus.ir_websocket`` — sus dos
+#                         métodos `_update_mail_presence` y
+#                         `_on_websocket_closed`, que la
+#                         referencia extiende aquí, y que
+#                         `addons/bus/models/ir_websocket.py` NO porta por
+#                         DEC-AF-06 (transporte WebSocket descartado). Sin
+#                         productor de presencia, el eslabón no tendría a quién
+#                         extender. Sucesor: #87.
+#
+#                         Y la premisa de DEC-AF-06 caducó, medido 2026-08-27:
+#                         sus dos razones eran "pg_notify no existe en MariaDB"
+#                         —el motor es PostgreSQL desde ADR-028, y
+#                         `src/addons/base/models/ir_cron.py:225` verifica que
+#                         `pg_notify` existe en 16.13— y "exigiría ASGI,
+#                         incompatible con Apache + mod_wsgi" — mod_wsgi se
+#                         retiró (H-SERVER-04) y Apache es proxy inverso ante
+#                         gunicorn (ADR-027). Re-decidirlo es del ejecutor:
+#                         tarea #87. Ver H-API-831.

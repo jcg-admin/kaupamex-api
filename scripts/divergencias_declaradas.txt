@@ -315,3 +315,30 @@ authz_totp_mail/models/res_users.py::ResUsers::_notify_security_setting_update_p
 # nombre de la fuente. La premisa que decia que no se podia portar era falsa
 # (H-API-830).
 authz_totp_mail/models/auth_totp_device.py
+
+# --- authz_timeout/models/ir_http.py ---------------------------------------
+# 8 de 8 defs portadas, cada una CON SU NOMBRE, como funciones de modulo mas
+# `CheckIdentityMiddleware`. La referencia las cuelga de una clase `ir.http`
+# por _inherit; aqui el despachador es Django y el enganche es un middleware,
+# asi que no hay clase `IrHttp` que el gate pueda casar. Divergencia de stack,
+# no simbolos ausentes — el docstring del archivo lleva la tabla simbolo a
+# simbolo y las cuatro divergencias (create_time por senal de login;
+# _authenticate levanta y _handle_error responde dentro del middleware;
+# _set_session_inactivity sin productor de presencia; session_info consumido
+# por el endpoint del addon y no por `web`).
+#
+# La linea de `models/__init__.py` que decia "PENDIENTE: 8 simbolos de la
+# referencia sin contraparte" era FALSA: se escribio transcribiendo la salida
+# del gate ("CLASE AUSENTE (8)") sin abrir el archivo. Corregida (H-API-831).
+authz_timeout/models/ir_http.py::IrHttp
+
+# --- authz_timeout/models/res_groups.py ------------------------------------
+# Los tres lados de escritura existen en la fuente SOLO para invalidar la
+# cache de `_get_lock_timeouts`, y Django no separa alta de modificacion:
+# ambas son `save()`. Son 3 simbolos de la fuente contra 2 nuestros
+# (`save` + `delete`), instalados por `extend_model(metodos=...)`, que va por
+# `chain_method` (model_classes.py:169-170) y por tanto relevan.
+# Divergencia 2 del docstring del archivo.
+authz_timeout/models/res_groups.py::ResGroups::create
+authz_timeout/models/res_groups.py::ResGroups::write
+authz_timeout/models/res_groups.py::ResGroups::unlink
