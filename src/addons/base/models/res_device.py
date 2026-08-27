@@ -167,8 +167,8 @@ class ResDeviceLog(_ResDeviceFields):
     # Atributos de clase de modelo — los tres de ORM que la referencia declara
     # (``odoo19c: res_device.py:17-19``), verbatim. Los otros dos que lleva su
     # cabecera —``_composite_idx`` y ``_revoked_idx``— NO son atributos de ORM
-    # sino **objetos de tabla** (``models.Index`` parciales); su hogar aquí es
-    # ``Meta.indexes``, y llevarlos exige migración: tarea **#70**.
+    # sino **objetos de tabla**; su hogar es ``Meta.indexes``, abajo, con el
+    # nombre de la referencia conservado (tarea #70).
     _name = 'res.device.log'
     _description = 'Device Log'
     _rec_names_search = ['platform', 'browser']
@@ -184,6 +184,34 @@ class ResDeviceLog(_ResDeviceFields):
         ordering            = ['-last_activity']
         verbose_name        = 'Registro de dispositivo'
         verbose_name_plural = 'Registros de dispositivo'
+        # ≙ los dos objetos de tabla de la cabecera de la referencia
+        # (``odoo19c: res_device.py:37-38``). Son **parciales**: la condición
+        # ``WHERE revoked IS NOT TRUE`` es lo que los hace baratos — el índice
+        # sólo cubre las sesiones vivas, que es lo único que la vista
+        # ``res.device`` consulta (ver ``migrations/0004_resdevice.py``).
+        #
+        # El nombre de la fuente se conserva, como manda
+        # ``atributos-de-clase-de-modelo.md`` para un objeto de tabla portado.
+        # PostgreSQL corta a 63 caracteres, así que los dos van sin prefijo.
+        #
+        # ``~Q(revoked=True)`` y no ``Q(revoked=False)``: en SQL de tres
+        # valores no son lo mismo. La fuente escribe ``IS NOT TRUE``, que
+        # incluye el NULL; ``revoked=False`` lo dejaría fuera y el índice
+        # no cubriría una fila cuyo ``revoked`` quedara nulo por una
+        # escritura que esquive el ``default``.
+        indexes = [
+            models.Index(
+                fields=['user', 'session_identifier', 'platform', 'browser',
+                        'last_activity', 'id'],
+                condition=~models.Q(revoked=True),
+                name='res_device_log_composite_idx',
+            ),
+            models.Index(
+                fields=['revoked'],
+                condition=~models.Q(revoked=True),
+                name='res_device_log_revoked_idx',
+            ),
+        ]
 
     # ------------------------------------------------------------------
     # Productor — Odoo ``_update_device`` (``res_device.py:76-114``)
