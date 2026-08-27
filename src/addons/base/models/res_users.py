@@ -546,20 +546,96 @@ class ResUsers(TimeStampedModel):
         self.set_password(new_passwd)
         self.save(update_fields=['password'])
 
-    def get_session_auth_hash(self):
-        """HMAC del hash de password: cambiarlo invalida las sesiones vivas."""
+    @classmethod
+    def _get_session_token_fields(cls):
+        """≙ ``_get_session_token_fields`` (``odoo19c: res_users.py:829-830``).
+
+        Los campos de los que **depende una sesión viva**: cambiar cualquiera
+        de ellos la invalida. La fuente declara exactamente estos cuatro, y
+        cada uno tiene su razón — ``password`` (cambio de credencial),
+        ``active`` (cuenta archivada), ``login`` (identidad renombrada) e
+        ``id`` (por si el hash viajara entre usuarios).
+
+        Es un **punto de extensión**, no una constante: la fuente lo ensancha
+        desde sus addons (``auth_passkey`` añade sus llaves para que revocar
+        una cierre las sesiones que abrió). Aquí lo consume
+        :meth:`_session_token_get_values`, que a su vez alimenta el
+        ``get_session_auth_hash`` que Django valida en cada petición.
+        """
+        return {'id', 'login', 'password', 'active'}
+
+    def _session_token_get_values(self):
+        """≙ ``_session_token_get_values`` (``:858-869``) — el par nombre/valor.
+
+        La fuente lee las columnas con SQL crudo y devuelve tuplas
+        ``(nombre, valor)`` *"allowing for overrides to manipulate the
+        values"*. Aquí no hace falta bajar a SQL —los campos son atributos del
+        modelo— pero **sí** se conserva la forma del retorno: es lo que permite
+        que una extensión añada un valor sin reescribir el cálculo del hash.
+
+        Se ordena por nombre, igual que el ``sorted()`` de la fuente
+        (``:836``): sin orden estable el mismo usuario daría hashes distintos
+        entre procesos y toda sesión moriría al primer salto.
+        """
+        return tuple(
+            (name, getattr(self, 'pk' if name == 'id' else name, None))
+            for name in sorted(self._get_session_token_fields())
+        )
+
+    @staticmethod
+    def _session_token_hash_compute(field_values, secret=None):
+        """≙ ``_session_token_hash_compute`` (``:871-884``).
+
+        Construye la llave con los pares cuyo valor **no es ``None``**. La
+        fuente explica por qué el filtro existe, y vale igual aquí: *"To avoid
+        invalidating sessions when installing a new feature modifying the
+        session token computation while not still being used"* — un campo
+        nuevo y vacío no debe cerrar las sesiones de todo el mundo.
+
+        DIVERGENCIA DE MECANISMO, declarada, y es la única del bloque: la fuente
+        hmaquea **el identificador de sesión** con esa llave, porque su
+        ``http.py`` valida sesión contra token. Aquí la sesión la valida
+        Django, que llama a ``get_session_auth_hash()`` **sin** identificador,
+        así que el mensaje es la propia llave y el secreto es el de la
+        instalación. Los dos hmac dependen del mismo conjunto de campos, que es
+        lo que decide qué invalida una sesión; lo que cambia es quién aporta la
+        entropía, y allá tampoco es el usuario.
+        """
+        clave = tuple((k, v) for k, v in field_values if v is not None)
         return salted_hmac(
-            _SESSION_AUTH_KEY_SALT, self.password, algorithm='sha256',
+            _SESSION_AUTH_KEY_SALT, str(clave),
+            secret=secret, algorithm='sha256',
         ).hexdigest()
+
+    def get_session_auth_hash(self):
+        """El hash que Django compara en cada petición para validar la sesión.
+
+        Hasta este pase hmaqueaba **sólo** ``self.password``, que es el default
+        de ``AbstractBaseUser``. Con eso, archivar una cuenta o renombrar su
+        login **no cerraba sus sesiones vivas** — la referencia sí las cierra,
+        porque su token depende de los cuatro campos de
+        :meth:`_get_session_token_fields`.
+
+        El ensanche invalida **una vez** todas las sesiones abiertas, porque el
+        mensaje del hmac cambia. Es el precio declarado de cerrar el hueco, y
+        ocurre una sola vez: a partir de aquí el conjunto es estable y su
+        extensión es el punto declarado de arriba.
+        """
+        return self._session_token_hash_compute(self._session_token_get_values())
 
     def get_session_auth_fallback_hash(self):
         """Hashes bajo ``SECRET_KEY_FALLBACKS`` — mantiene válidas las sesiones
-        durante la rotación de ``SECRET_KEY``."""
+        durante la rotación de ``SECRET_KEY``.
+
+        ≙ ``_legacy_session_token_hash_compute`` (``:886-896``) en su propósito:
+        la fuente conserva el cálculo viejo para no cerrar las sesiones que se
+        abrieron con él. Aquí el eje del legado no es la fórmula sino el
+        secreto, que es lo que Django rota — de ahí que sea el mismo cómputo
+        con otro ``secret`` y no una segunda fórmula.
+        """
         for fallback_secret in settings.SECRET_KEY_FALLBACKS:
-            yield salted_hmac(
-                _SESSION_AUTH_KEY_SALT, self.password,
-                secret=fallback_secret, algorithm='sha256',
-            ).hexdigest()
+            yield self._session_token_hash_compute(
+                self._session_token_get_values(), secret=fallback_secret)
 
     # --- Compañías permitidas (≙ ``company_id`` + ``company_ids``) ---
     #
