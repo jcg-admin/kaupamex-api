@@ -22,6 +22,7 @@ cliente sin migrar filas.
 reenvían. Ver ``res_users.py``.
 """
 import datetime
+from base64 import b64encode
 from collections import defaultdict
 from random import randint
 from urllib.parse import urlsplit, urlunsplit
@@ -1037,6 +1038,77 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     #   de los dos desenlaces toca —portarlo verbatim con su defecto, o
     #   divergir arreglándolo— es decisión del ejecutor: **tarea #103**.
     # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # El avatar y su relleno por tipo de direccion
+    # ≙ ``odoo19c: odoo/addons/base/models/res_partner.py:334-377``
+    # ------------------------------------------------------------------
+    def _avatar_get_placeholder_path(self):
+        """Que dibujo le toca a este partner cuando no hay imagen.
+
+        ≙ ``_avatar_get_placeholder_path`` (``odoo19c: res_partner.py:367``),
+        cascada verbatim incluido su ORDEN: ``is_company`` se pregunta ANTES
+        que el tipo, asi que una empresa marcada como direccion de entrega es
+        un edificio y no un camion.
+
+        El motivo es de producto: una bodega no es una persona, y ponerle la
+        inicial «B» sobre un color aleatorio no comunica nada. Un camion si.
+        """
+        if self.is_company:
+            return 'base/static/img/company_image.png'
+        if self.type == self.TYPE_DELIVERY:
+            return 'base/static/img/truck.png'
+        if self.type == self.TYPE_INVOICE:
+            return 'base/static/img/bill.png'
+        if self.type == self.TYPE_OTHER:
+            return 'base/static/img/puzzle.png'
+        return super()._avatar_get_placeholder_path()
+
+    def _compute_avatar(self, image_field):
+        """Reenruta la decision del mixin en tres ramas.
+
+        ≙ ``_compute_avatar`` (``odoo19c: res_partner.py:355``). El mixin
+        resuelve «imagen si la hay, si no la inicial»; ``res.partner`` lo
+        reenruta porque no todos sus registros son personas:
+
+        1. **Con usuario interno, o de tipo ``contact``** → lo del mixin. Es
+           una persona: su inicial sirve.
+        2. **Sin usuario interno y sin imagen** → el relleno de SU TIPO
+           (camion, factura, pieza, edificio).
+        3. **Sin usuario interno pero con imagen** → su propia imagen.
+
+        DIVERGENCIA DE FIRMA declarada: la fuente recibe
+        ``(avatar_field, image_field)`` y ASIGNA sobre un conjunto de
+        registros; el mixin de aqui recibe ``(image_field)`` y DEVUELVE para
+        uno solo, porque los cinco ``avatar_NNNN`` son ``property``. La
+        particion en tres es la misma; lo que cambia es que aqui no hay
+        conjunto que filtrar.
+
+        ``user.share`` de la fuente es lo contrario de interno; aqui eso es
+        ``user._is_internal()`` (``res_users.py:1625``) — la misma
+        equivalencia que usa ``_compute_partner_share``.
+        """
+        has_internal_user = bool(
+            self.pk and any(user._is_internal() for user in self.users.all()))
+        if has_internal_user or self.type == self.TYPE_CONTACT:
+            return super()._compute_avatar(image_field)
+        imagen = getattr(self, image_field, None)
+        if not imagen:
+            return b64encode(self._avatar_get_placeholder())
+        return imagen
+
+    # Los cinco ``_compute_avatar_NNNN`` (``:334-353``) NO se portan, y es
+    # divergencia declarada, no omision: en la fuente su cuerpo es UNA linea
+    # —``super()._compute_avatar_NNNN()``— y existen solo para redeclarar
+    # ``@api.depends`` con ``name``, ``user_ids.share``, ``is_company`` y
+    # ``type``, porque su ORM necesita saber de que depende el computo para
+    # invalidarlo. Aqui los cinco ``avatar_NNNN`` son ``property``: se
+    # calculan al leer, asi que no hay grafo de dependencias que declarar y
+    # el mecanismo que los justifica no tiene receptor.
+    #
+    # *Metrica:* el cuerpo de los cinco en ``odoo19c: res_partner.py:334-353``.
+    # *Ciega a:* un addon que sobreescriba uno de los cinco para hacer algo
+    # mas que delegar. Medido en la referencia: ninguno lo hace en ``base``.
+
     # ------------------------------------------------------------------
     # El nombre completo y las etiquetas calculadas
     # ≙ ``odoo19c: odoo/addons/base/models/res_partner.py:378-544, 602-648``
