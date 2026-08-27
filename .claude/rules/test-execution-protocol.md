@@ -60,10 +60,14 @@ sigue siendo precondición de cualquier pytest (`pg_isready`; si no responde,
 `pg_ctlcluster 16 main start`) y **nunca SQLite**. Un fallo pre-existente se
 cita, no se silencia.
 
-Baseline vigente de api: **4 837 passed, 21 skipped, 0 failed** contra
-PostgreSQL 16.13 (medido 2026-08-27T02:40, cierre de la tarea #51). Sube de
-4 759 por los 66 casos de las tres suites nuevas de ``res_users``, sin
-regresión. El build de docs es **opcional**, no parte del DoD.
+Baseline vigente de api: **5 131 passed, 21 skipped, 0 failed** contra
+PostgreSQL 16.13 (medido 2026-08-27T21:42:49, cierre del cableado de
+``ResPartner.save``, ``api@33a37972``; 876.02 s). Sube de 4 837 con el bloque
+de dirección, el de sincronización y su cableado —58 casos nuevos— más lo que
+aterrizó entre ambas medidas; **el delta no se desglosa aquí porque no se
+midió commit a commit**. Lo que sí es medida: 0 failed y la cifra sube.
+
+El build de docs es **opcional**, no parte del DoD.
 
 Motor: PostgreSQL desde `docs: source/backend/adr/adr-028-postgresql.rst`. El
 gate de conexión vive en `db-conexion-socket.md` (en libpq el socket **es** el
