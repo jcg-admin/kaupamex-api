@@ -275,6 +275,97 @@ class ResUsers(TimeStampedModel):
     ``unique=True`` y PostgreSQL nombra el constraint ``res_users_login_key``
     — verificado con ``pg_constraint``. No hace falta un ``Meta.constraints``
     para renombrarlo.
+
+    Los 73 símbolos que este porte NO trae, y su desenlace
+    -------------------------------------------------------
+
+    Medido con ``check_porte_completo`` contra
+    ``odoo19c: odoo/addons/base/models/res_users.py`` tras el pase de #51.
+    Ninguno se omite en silencio — ``porte-completo-no-parcial.md`` admite
+    tres desenlaces y cada familia declara el suyo.
+
+    *Métrica:* nombres de método declarados en la referencia y ausentes por
+    **literal** en este archivo (AST, no grep).
+    *Ciega a:* un símbolo portado **bajo otro nombre**, que el instrumento
+    cuenta como ausente. Aquí hay uno y va declarado: la lista incluye
+    ``_unlink_except_master_data``, que **sí está portado** — como
+    :meth:`delete`, porque el gancho equivalente de Django es sobrescribir ese
+    método y no un ``@api.ondelete``. Los 72 restantes sí son ausencias.
+
+    **1. La capa de vista de su cliente OWL — 21 símbolos.** DIVERGENCIA DE
+    STACK. ``onchange``, ``on_change_login``, ``onchange_parent_id``,
+    ``_onchange_role``, ``fields_get``, ``_get_view_postprocessed``,
+    ``_default_view_group_hierarchy``, ``_action_show``,
+    ``action_show_groups``, ``action_show_accesses``,
+    ``action_show_rules``, ``action_get``,
+    ``action_change_password_wizard``, ``api_key_wizard``,
+    ``preference_save``, ``preference_change_password``,
+    ``action_revoke_all_devices``, ``_compute_email_domain_placeholder``,
+    ``_compute_signature``, ``_compute_role``, ``copy_data``,
+    ``_default_groups``. Son el diálogo entre su ORM y su cliente web: un
+    ``@api.onchange`` recalcula un formulario abierto, y una ``action_*``
+    devuelve un diccionario que su cliente interpreta como «abre esta vista».
+    Aquí el cliente es React sobre endpoints DRF: el equivalente del onchange
+    es la validación del serializer, y el de la acción es la URL que el
+    frontend ya conoce. Portarlas produciría métodos sin quién los llame — el
+    defecto que este mismo archivo evitó con los wizards (:ref:`h-api-801`).
+
+    **2. Ganchos del ciclo de vida de su ORM — 11 símbolos.** DIVERGENCIA DE
+    MECANISMO. ``create``, ``write``, ``read``, ``init``, ``_register_hook``,
+    ``name_search``, ``_search_display_name``, ``_search_all_group_ids``,
+    ``_search_res_users_settings_id``, ``_compute_all_group_ids``,
+    ``_compute_res_users_settings_id``. Django los tiene con otro nombre y
+    otra forma: ``create``/``write`` son ``save()``, ``read`` es el queryset,
+    ``init`` son las migraciones, ``_register_hook`` es ``AppConfig.ready()``,
+    y un ``_search_*`` de campo calculado es un ``annotate()``. El
+    comportamiento vive donde el stack lo pone, no ausente.
+
+    **3. Contabilidad para su vista de ajustes — 5 símbolos.** DIVERGENCIA DE
+    MECANISMO. ``_compute_companies_count``, ``_compute_accesses_count``,
+    ``_compute_share``, ``_compute_tz_offset``, ``_check_action_id``. Los
+    cuatro primeros alimentan contadores de su formulario; ``share`` sí existe
+    aquí, como ``property``. ``_check_action_id`` valida el campo *home
+    action*, que este árbol no tiene: BLOQUEADO por ``action_id`` — no hay
+    campo que validar.
+
+    **4. La superficie RPC de integración externa — 6 símbolos.** BLOQUEADO
+    por ``canal RPC crudo`` — no está construido; sucesor **#490**.
+    ``_rpc_api_keys_only``,
+    ``SELF_READABLE_FIELDS``, ``SELF_WRITEABLE_FIELDS``,
+    ``_self_accessible_fields``, ``_has_field_access``, ``context_get``. Son
+    el control de qué campos puede leerse y escribirse un usuario **a sí
+    mismo por RPC**. Aquí ese control lo ejerce el serializer con su
+    ``Meta.fields`` explícito y la autorización por capacidad (DEC-11), que es
+    fail-closed; el canal RPC crudo no está construido.
+
+    **5. Su cifrador de contraseñas — 9 símbolos.** DIVERGENCIA DE STACK.
+    ``CryptContext`` entera —``__init__``, ``copy``, ``hash``, ``identify``,
+    ``verify``, ``verify_and_update``, ``schemes``, ``update``— más
+    ``_crypt_context``. Es su envoltura
+    de ``passlib``; aquí el equivalente son los ``PASSWORD_HASHERS`` de Django,
+    que ``set_password``/``check_password`` ya consumen — incluido el rehash
+    automático que su ``verify_and_update`` hace a mano.
+
+    **6. La caché de autorización — 3 símbolos.** ``_get_invalidation_fields``,
+    ``_compute_session_token``, ``_get_session_token_query_params``. Los dos
+    últimos son la memorización y el SQL crudo de un token que aquí calcula
+    Django (ver :meth:`_get_session_token_fields`); el primero es el
+    invalidador, y su ausencia es **la razón declarada** de que
+    :meth:`_get_group_ids` no memorice. Sucesor: tarea **#58**.
+
+    **7. Lo que sigue pendiente de portar, con tarea propia — 18 símbolos.**
+    ``_set_password``, ``_set_encrypted_password``, ``_compute_password``,
+    ``_set_new_password``, ``_deactivate_portal_user``,
+    ``_action_revoke_all_devices``, ``_legacy_session_token_hash_compute``,
+    ``UsersMultiCompany`` (``create``, ``write``, ``new``), los cuatro de los
+    asistentes de contraseña (``_default_user_ids``,
+    ``change_password_button``, ``_check_password_confirmation``,
+    ``run_check``) y los cinco de ``ResUsersApikeysDescription``
+    (``_selection_duration``, ``_compute_expiration_date``,
+    ``_onchange_expiration_date``, ``create``, ``make_key``). Los wizards
+    divergen en forma y
+    su desenlace está en :ref:`h-api-801`; el resto es trabajo, no divergencia.
+    Sucesor: tarea **#59**.
     """
 
     _name                 = 'res.users'
@@ -2301,12 +2392,12 @@ class IdentityCheck:
     AUTH_METHODS = (('password', 'Contraseña'),)
 
     @staticmethod
-    def default_auth_method():
+    def _get_default_auth_method():
         """≙ ``_get_default_auth_method`` (``:1632-1633``)."""
         return 'password'
 
     @staticmethod
-    def check_identity(user, password):
+    def _check_identity(user, password):
         """≙ ``_check_identity`` (``:1635-1644``).
 
         La fuente construye la credencial con el ``login`` del usuario en

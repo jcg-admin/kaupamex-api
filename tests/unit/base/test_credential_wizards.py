@@ -148,7 +148,7 @@ def test_apply_returns_a_count_not_the_passwords(admin, targets):
 # --------------------------------------------------------------------------
 
 def test_the_right_password_passes(admin):
-    assert IdentityCheck.check_identity(admin, PASSWORD) is None
+    assert IdentityCheck._check_identity(admin, PASSWORD) is None
 
 
 def test_the_wrong_password_raises_a_readable_error(admin):
@@ -158,13 +158,13 @@ def test_the_wrong_password_raises_a_readable_error(admin):
     no el error crudo del motor.
     """
     with pytest.raises(UserError) as exc:
-        IdentityCheck.check_identity(admin, 'una-clave-que-no-es')
+        IdentityCheck._check_identity(admin, 'una-clave-que-no-es')
     assert 'incorrecta' in str(exc.value).lower()
 
 
 def test_the_default_auth_method_is_password(db):
     """≙ ``_get_default_auth_method`` (``:1632-1633``)."""
-    assert IdentityCheck.default_auth_method() == 'password'
+    assert IdentityCheck._get_default_auth_method() == 'password'
     assert IdentityCheck.AUTH_METHODS == (('password', 'Contraseña'),)
 
 
