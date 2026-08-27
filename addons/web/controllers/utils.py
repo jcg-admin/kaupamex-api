@@ -66,7 +66,7 @@ Por qué 7 de 8 son ausentes — con la re-verificación de hoy
   minimalista", ausente porque el problema que resuelve ya lo resuelve otra
   pieza, con otra forma (middleware de Django, no parámetro de sesión).
 - **``_get_login_redirect_url``.** El primitivo del que depende SÍ está
-  portado —``ResUsers.is_internal()`` (``base/models/res_users.py:430``)—
+  portado —``ResUsers._is_internal()`` (``base/models/res_users.py:430``)—
   pero la orquestación de a dónde redirigir tras el login es trabajo del
   router de React (que ya recibe ``is_system``/``login``/``name`` de
   ``session_info()``, ``session.py::build_session_info``), no de esta API REST:
@@ -158,7 +158,7 @@ from addons.base.models import ResUsers
 def is_user_internal(uid):
     """≙ referencia ``is_user_internal`` (``utils.py``, módulo).
 
-    El primitivo real ya está portado: ``ResUsers.is_internal()``
+    El primitivo real ya está portado: ``ResUsers._is_internal()``
     (``base/models/res_users.py:430``). Esta función es el wrapper de
     conveniencia que reemplaza ``request.env['res.users'].browse(uid)`` por
     una búsqueda directa por ``pk`` — mismo contrato de entrada (recibe el
@@ -171,4 +171,4 @@ def is_user_internal(uid):
         iterar un recordset vacío (``any()`` sobre nada es ``False``).
     """
     user = ResUsers.objects.filter(pk=uid).first()
-    return bool(user and user.is_internal())
+    return bool(user and user._is_internal())

@@ -47,7 +47,7 @@ de ``ResGroups._closure``/``implied_ids``
 chequeo de acceso real por usuario que faltaba, sin inventar mecanismo
 nuevo (Rule 6 de ``porte-completo-no-parcial.md``: componer piezas
 existentes, no fabricar). ``self.env.user._is_internal()`` tiene destino
-real y exacto: ``ResUsers.is_internal()`` (``base/models/res_users.py:430``),
+real y exacto: ``ResUsers._is_internal()`` (``base/models/res_users.py:430``),
 que YA resuelve el eje interno/portal/público por ``user_type`` de grupo.
 
 Qué NO se porta, con su medición de hoy
@@ -117,7 +117,7 @@ def _is_valid_for_model_selector(cls, user, model_name):
     web/models/ir_model.py:36-45``).
 
     Las cuatro condiciones de la referencia, con destino real cada una:
-    usuario interno (``ResUsers.is_internal()``), el modelo existe
+    usuario interno (``ResUsers._is_internal()``), el modelo existe
     (``django_model``), no transitorio, no abstracto, y acceso de lectura
     (``_has_access``, arriba).
     """
@@ -127,7 +127,7 @@ def _is_valid_for_model_selector(cls, user, model_name):
         return False
     return (
         user is not None
-        and user.is_internal()
+        and user._is_internal()
         and model_row.django_model is not None
         and not model_row.transient
         and not model_row.abstract

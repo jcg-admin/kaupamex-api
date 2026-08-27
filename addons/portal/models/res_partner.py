@@ -14,7 +14,7 @@ funciones sobre el partner (mismo criterio que ``authz_ldap.res_users``).
   user)``: el partner es editable si es el del usuario o un hijo de su
   entidad comercial con tipo dirección.
 - ``_get_current_partner`` → ``current_partner(user)``: el partner del
-  usuario, o vacío si es público (usa ``ResUsers.is_public()``, el eje real
+  usuario, o vacío si es público (usa ``ResUsers._is_public()``, el eje real
   portado en H-API-234).
 - ``_get_delivery_address_domain`` → NO portado: arma un ``Domain`` de Odoo
   para el selector de direcciones de envío del checkout QWeb; el filtrado de
@@ -44,7 +44,7 @@ def can_edit_vat(partner):
 def current_partner(user):
     """≙ ``_get_current_partner`` (res_partner.py:44-49): el partner del
     usuario, o ``None`` si es público."""
-    if user.is_public():
+    if user._is_public():
         return None
     return user.partner
 

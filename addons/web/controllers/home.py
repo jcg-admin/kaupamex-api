@@ -61,7 +61,7 @@ Los 8 ausentes, agrupados por qué bloquea cada uno
   ``utils.py`` de la referencia, que a su vez depende de
   ``is_user_internal()`` y de ``_mfa_url()`` para decidir la URL de
   aterrizaje post-login. El **primitivo del que depende SÍ está portado**:
-  ``ResUsers.is_internal()`` (``base/models/res_users.py:430``, docstring
+  ``ResUsers._is_internal()`` (``base/models/res_users.py:430``, docstring
   ``≙ _is_internal (res_users.py:1165-1167)``). Lo que falta es la
   orquestación HTTP de a dónde redirigir — trabajo del router de React, que
   ya recibe ``is_system``/``login``/``name`` de ``session_info()``

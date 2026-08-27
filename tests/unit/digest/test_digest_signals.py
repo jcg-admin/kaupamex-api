@@ -101,7 +101,7 @@ class TestCreateUserAppliesGroups:
         user = ResUsers.objects.create_user(
             login='conmigrupo@practicayoruba.mx', group_ids=[grupo_interno])
         assert list(user.group_ids.all()) == [grupo_interno]
-        assert user.is_internal() is True
+        assert user._is_internal() is True
 
     def test_without_group_ids_user_has_none(self):
         user = ResUsers.objects.create_user(login='pelado@practicayoruba.mx')

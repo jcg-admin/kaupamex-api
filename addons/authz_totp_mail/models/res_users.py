@@ -173,14 +173,14 @@ def totp_mail_policy_applies(user):
     arriba, no este tramo.
 
     ``employee_required`` (≙ ``_is_internal`` de la referencia) usa
-    ``ResUsers.is_internal()`` — el eje interno/portal real, resuelto por el
+    ``ResUsers._is_internal()`` — el eje interno/portal real, resuelto por el
     ``user_type`` de los grupos (antes era el proxy ``partner.employee``).
     """
     policy = SystemParameter.get_param(PARAM_TOTP_POLICY, '')
     if policy == 'all_required':
         return True
     if policy == 'employee_required':
-        return user.is_internal()
+        return user._is_internal()
     return False
 
 

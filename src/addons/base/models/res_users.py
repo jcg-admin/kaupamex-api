@@ -831,15 +831,15 @@ class ResUsers(TimeStampedModel):
         """
         return self.group_ids.filter(user_type=user_type).exists()
 
-    def is_internal(self):
+    def _is_internal(self):
         """≙ ``_is_internal`` (res_users.py:1165-1167)."""
         return self._has_user_type('internal')
 
-    def is_portal(self):
+    def _is_portal(self):
         """≙ ``_is_portal`` (res_users.py:1169-1171)."""
         return self._has_user_type('portal')
 
-    def is_public(self):
+    def _is_public(self):
         """≙ ``_is_public`` (res_users.py:1173-1175)."""
         return self._has_user_type('public')
 
@@ -849,7 +849,7 @@ class ResUsers(TimeStampedModel):
         interno. Un usuario sin ningún grupo de tipo es 'share' (portal/
         público), igual que la referencia marca ``share=True`` a todo lo que
         no está en ``group_user``."""
-        return not self.is_internal()
+        return not self._is_internal()
 
     # ------------------------------------------------------------------
     # Segundo factor — el eslabón BASE de una cadena de tres
@@ -1407,7 +1407,7 @@ class _ResUsersApikeysBase(TimeStampedModel):
         el sitio equivocado.
         """
         actor = get_current_user()
-        if actor is None or not getattr(actor, 'is_internal', lambda: False)():
+        if actor is None or not getattr(actor, '_is_internal', lambda: False)():
             raise AccessError(
                 'Sólo un usuario interno puede crear claves de API.')
 
