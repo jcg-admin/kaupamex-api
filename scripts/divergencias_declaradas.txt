@@ -342,3 +342,40 @@ authz_timeout/models/ir_http.py::IrHttp
 authz_timeout/models/res_groups.py::ResGroups::create
 authz_timeout/models/res_groups.py::ResGroups::write
 authz_timeout/models/res_groups.py::ResGroups::unlink
+
+# --- authz_signup/models/res_partner.py -------------------------------------
+# El addon NO usa `_inherit`: son funciones sobre el partner. El docstring del
+# archivo lleva el mapa simbolo a simbolo; aqui solo lo que NO se porta.
+#
+#   _get_signup_url / _get_signup_url_for_action -> arman la URL
+#     `/web/reset_password` del frontend QWeb; el SPA arma la suya con el token
+#     que devuelven `_signup_retrieve_info` / `signup_get_auth_param`.
+#   action_signup_prepare -> su cuerpo entero es `return self.signup_prepare()`,
+#     alias para un boton del backoffice. Sin ese formulario no envuelve nada.
+#   random_token -> divergencia de mecanismo: la fuente genera 20 caracteres al
+#     azar y los GUARDA en la fila; aqui el token es una carga firmada
+#     (`../token.py`), sin cadena aleatoria ni columna donde ponerla.
+#   now -> `datetime.now() + timedelta(**kwargs)`, ayudante de una linea que
+#     existe porque su ORM compara fechas en el dominio. Aqui la validez se
+#     mide en segundos de edad de la firma (`_validity_seconds`).
+#
+# `SignupError` de la fuente vive en `../exceptions.py` — de ahi el hallazgo
+# CLASE FUERA DE SITIO, que es donde le corresponde estar.
+authz_signup/models/res_partner.py::ResPartner::_get_signup_url
+authz_signup/models/res_partner.py::ResPartner::_get_signup_url_for_action
+authz_signup/models/res_partner.py::ResPartner::action_signup_prepare
+authz_signup/models/res_partner.py::SignupError
+#
+# Y los 8 que SI estan portados, cada uno con su nombre, como funcion de
+# modulo — el gate los ve ausentes porque busca una clase `ResPartner`, que
+# aqui no existe: Django no admite `_inherit`. Se listan uno a uno y no por
+# clase a proposito: asi un simbolo NUEVO de la referencia si saldria como
+# hallazgo en vez de quedar absuelto por arrastre.
+authz_signup/models/res_partner.py::ResPartner::_generate_signup_token
+authz_signup/models/res_partner.py::ResPartner::_get_login_date
+authz_signup/models/res_partner.py::ResPartner::_get_partner_from_token
+authz_signup/models/res_partner.py::ResPartner::_signup_retrieve_info
+authz_signup/models/res_partner.py::ResPartner::_signup_retrieve_partner
+authz_signup/models/res_partner.py::ResPartner::signup_cancel
+authz_signup/models/res_partner.py::ResPartner::signup_get_auth_param
+authz_signup/models/res_partner.py::ResPartner::signup_prepare
