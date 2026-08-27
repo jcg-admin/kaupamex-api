@@ -291,6 +291,77 @@ def split_declared(all_findings, declared_keys):
 _RECEPTOR_NO_RESOLUBLE = frozenset({'model', 'modelo', 'cls', 'self'})
 
 
+def _extend_model_class(nodo):
+    """El nombre de clase que nombra un ``extend_model(...)``, o ``None``.
+
+    ``extend_model`` es la CUARTA forma de instalacion del arbol, y la unica
+    que nombra su destino con un literal — mas resoluble que las otras tres, no
+    menos. Sus dos formas (``src/orm/model_classes.py``)::
+
+        extend_model('product.removal', campos={...})       # el _name portado
+        extend_model('stock', 'ProductRemoval', luego=...)  # el par de Django
+
+    El nombre punteado se convierte al de la clase con la misma regla mecanica
+    que declara ``class_key``: la referencia deriva el nombre de su ``_name``
+    conservando el separador, y este arbol escribe lo mismo en PascalCase.
+    """
+    f = nodo.func
+    name = f.id if isinstance(f, ast.Name) else (
+        f.attr if isinstance(f, ast.Attribute) else None)
+    if name != 'extend_model' or not nodo.args:
+        return None
+    literales = [a.value for a in nodo.args
+                 if isinstance(a, ast.Constant) and isinstance(a.value, str)]
+    if not literales:
+        return None
+    if len(literales) >= 2:
+        return literales[1]
+    return ''.join(parte.capitalize() for parte in literales[0].split('.'))
+
+
+def _extend_model_symbols(nodo, funcs):
+    """Los simbolos que un ``extend_model`` instala sobre su destino.
+
+    Tres vienen de los diccionarios literales —``campos``, ``metodos``,
+    ``propiedades``—; el cuarto viene de ``luego=<funcion>``, la escotilla que
+    usan los addons cuyo enganche necesita ``combine=`` (``extend_model`` no lo
+    expone). Ahi el destino es el PARAMETRO de esa funcion, asi que sus
+    ``chain_method(model, 'x', ...)`` no se pueden atribuir mirando la llamada:
+    hay que seguir el ``luego``.
+
+    Medido antes de escribir esto: 104 llamadas en 25 addons, y las de
+    ``authz_totp`` publicaban sus tres enganches como *receptor no resoluble*
+    mientras el archivo entero salia como CLASE AUSENTE con 19 simbolos.
+    """
+    salida, nodos = set(), set()
+    for k in nodo.keywords:
+        if k.arg in ('campos', 'metodos', 'propiedades') and isinstance(k.value, ast.Dict):
+            salida |= {c.value for c in k.value.keys
+                       if isinstance(c, ast.Constant) and isinstance(c.value, str)}
+        if k.arg != 'luego':
+            continue
+        # ``luego=`` llega de dos formas: una funcion con nombre y un lambda
+        # en linea. Las dos nombran su destino igual —el primer parametro—,
+        # asi que el mismo recorrido sirve para ambas.
+        if isinstance(k.value, ast.Name):
+            fn = funcs.get(k.value.id)
+        elif isinstance(k.value, ast.Lambda):
+            fn = k.value
+        else:
+            fn = None
+        if fn is None or not fn.args.args:
+            continue
+        param = fn.args.args[0].arg
+        for sub in ast.walk(fn):
+            if not isinstance(sub, ast.Call):
+                continue
+            destino, clave = _destino_y_clave(sub)
+            if clave is not None and destino == param:
+                salida.add(clave)
+                nodos.add(id(sub))
+    return salida, nodos
+
+
 def addon_installations(raiz):
     """``{clase_destino: {símbolos instalados}}`` — la extensión cross-app.
 
@@ -320,6 +391,24 @@ def addon_installations(raiz):
             arbol = ast.parse(py.read_text())
         except (SyntaxError, UnicodeDecodeError):
             continue
+        funcs = {n.name: n for n in arbol.body if isinstance(n, ast.FunctionDef)}
+        # ``extend_model`` primero: sus ``luego=`` atribuyen enganches que el
+        # recorrido plano contaria como receptor no resoluble.
+        atribuidos = set()
+        for nodo in ast.walk(arbol):
+            if not isinstance(nodo, ast.Call):
+                continue
+            klass = _extend_model_class(nodo)
+            if klass is None:
+                continue
+            simbolos_ext, nodos_ext = _extend_model_symbols(nodo, funcs)
+            mapa.setdefault(normaliza(klass), set()).update(simbolos_ext)
+            atribuidos |= nodos_ext
+        for nodo in ast.walk(arbol):
+            for klass, clave in _loop_installations(nodo):
+                mapa.setdefault(normaliza(klass), set()).add(clave)
+        in_loop = {id(n) for nodo in ast.walk(arbol)
+                    for n in _loop_resolved_nodes(nodo)}
         for nodo in ast.walk(arbol):
             if not isinstance(nodo, ast.Call):
                 continue
@@ -327,10 +416,66 @@ def addon_installations(raiz):
             if clave is None:
                 continue
             if destino is None or destino in _RECEPTOR_NO_RESOLUBLE:
-                no_resolubles += 1
+                if id(nodo) not in atribuidos and id(nodo) not in in_loop:
+                    no_resolubles += 1
                 continue
             mapa.setdefault(normaliza(destino), set()).add(clave)
     return mapa, no_resolubles
+
+
+def _loop_iterable_classes(nodo):
+    """Las clases que un ``for`` recorre, si su iterable las nombra.
+
+    Forma medida en el arbol: ``for model, funcion in ((ResPartnerBank, f1),
+    (Uom, f2), ...): model.add_to_class('campo', ...)``. El receptor de la
+    llamada es la variable del bucle, pero el iterable **si** nombra las
+    clases, asi que la instalacion es atribuible a todas ellas.
+    """
+    salida = []
+    for elt in ast.walk(nodo.iter):
+        if isinstance(elt, ast.Tuple):
+            for x in elt.elts:
+                if isinstance(x, ast.Name) and x.id[:1].isupper():
+                    salida.append(x.id)
+        elif isinstance(elt, ast.Name) and elt.id[:1].isupper():
+            salida.append(elt.id)
+    return salida
+
+
+def _loop_vars(nodo):
+    objetivo = nodo.target
+    if isinstance(objetivo, ast.Name):
+        return {objetivo.id}
+    return {x.id for x in ast.walk(objetivo) if isinstance(x, ast.Name)}
+
+
+def _loop_installations(nodo):
+    """``(clase, simbolo)`` de las instalaciones dentro de un ``for`` cuyo
+    iterable nombra las clases."""
+    if not isinstance(nodo, ast.For):
+        return []
+    clases = _loop_iterable_classes(nodo)
+    if not clases:
+        return []
+    variables = _loop_vars(nodo)
+    salida = []
+    for sub in ast.walk(nodo):
+        if not isinstance(sub, ast.Call):
+            continue
+        destino, clave = _destino_y_clave(sub)
+        if clave is not None and destino in variables:
+            salida += [(c, clave) for c in clases]
+    return salida
+
+
+def _loop_resolved_nodes(nodo):
+    """Los nodos de llamada que ``_loop_installations`` ya atribuyo."""
+    if not isinstance(nodo, ast.For) or not _loop_iterable_classes(nodo):
+        return []
+    variables = _loop_vars(nodo)
+    return [sub for sub in ast.walk(nodo) if isinstance(sub, ast.Call)
+            and _destino_y_clave(sub)[1] is not None
+            and _destino_y_clave(sub)[0] in variables]
 
 
 def _destino_y_clave(nodo):
