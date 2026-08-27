@@ -423,8 +423,25 @@ class IrActionsServer(IrActionsBase):
         ('multi', 'Varias acciones'),
     ]
 
+    #: ≙ ``usage`` (``odoo19c: ir_actions.py:608-611``) — lo que distingue una
+    #: accion suelta de la que respalda a un ``ir.cron``. Lo escribe
+    #: ``IrCron.save()`` al crear, igual que la fuente lo fija en ``create``
+    #: (``ir_cron.py:137``). Sin este campo la accion de un cron era
+    #: indistinguible de cualquier otra, y el filtro de la fuente —*"Used to
+    #: filter menu and home actions from the user form"*— no tenia por donde.
+    USAGE_CHOICES = [
+        ('ir_actions_server', 'Acción de servidor'),
+        ('ir_cron', 'Acción programada'),
+    ]
+
     state = fields.Selection(
         max_length=16, choices=STATE_CHOICES, verbose_name='Tipo')
+    usage = fields.Selection(
+        max_length=20, choices=USAGE_CHOICES, default='ir_actions_server',
+        verbose_name='Uso',
+        help_text='Odoo usage. ir_cron cuando la accion respalda a una tarea '
+                  'programada.',
+    )
     sequence = fields.Integer(
         default=5, verbose_name='Secuencia',
         help_text='Orden de ejecución en una acción de tipo "varias".',

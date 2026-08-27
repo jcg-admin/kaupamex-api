@@ -106,7 +106,11 @@ def test_process_jobs_ejecuta_callback_y_reprograma(monkeypatch):
     assert cron.nextcall > nextcall_previo, 'nextcall debe avanzar tras procesar el job'
     assert cron.nextcall > antes, 'el nuevo nextcall debe superar "ahora"'
     assert cron.lastcall is not None
-    assert cron.lastcall >= antes
+    # La fuente trunca a segundos —``now.replace(microsecond=0)`` en
+    # ``_reschedule_later`` (``odoo19c: ir_cron.py:637``)— asi que el
+    # ``lastcall`` puede quedar por debajo de ``antes`` por microsegundos.
+    # Comparar sin truncar medía el redondeo, no la reprogramacion.
+    assert cron.lastcall >= antes.replace(microsecond=0)
 
 
 def test_process_jobs_no_toca_job_con_nextcall_futuro(monkeypatch):
@@ -173,8 +177,13 @@ def test_job_que_falla_no_bloquea_a_los_siguientes(monkeypatch):
 
 
 def test_run_job_no_propaga_la_excepcion_del_callback(monkeypatch):
-    """``_run_job`` en aislamiento (sin pasar por ``_process_jobs``): la
-    excepcion del callback se atrapa y de todos modos se reprograma."""
+    """``_process_job`` en aislamiento (sin pasar por ``_process_jobs``): la
+    excepcion del callback se atrapa y de todos modos se reprograma.
+
+    Llama a ``_process_job`` y no a ``_run_job`` porque desde el porte
+    completo esos son dos metodos distintos, como en la fuente: ``_run_job``
+    corre el bucle y **devuelve** el desenlace; quien reprograma segun ese
+    desenlace es ``_process_job``."""
     def _falla(cls):
         raise RuntimeError('boom')
 
@@ -183,7 +192,7 @@ def test_run_job_no_propaga_la_excepcion_del_callback(monkeypatch):
     nextcall_previo = cron.nextcall
 
     with transaction.atomic():
-        cron._run_job()  # NO debe lanzar
+        IrCron._process_job(cron)  # NO debe lanzar
 
     cron.refresh_from_db()
     assert cron.nextcall > nextcall_previo
