@@ -136,7 +136,7 @@ class ResPartner(AvatarMixin, TimeStampedModel):
 
     name        = fields.Char(
         max_length=200, db_index=True,
-        help_text='Nombre de la persona o company (Odoo res.partner.name).',
+        help_text='Nombre de la persona o empresa (Odoo res.partner.name).',
     )
     parent      = fields.Many2one(
         'self', on_delete=models.SET_NULL, null=True, blank=True,
@@ -152,7 +152,7 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     )
     is_company  = fields.Boolean(
         default=False,
-        help_text='True = company; False = persona física (Odoo is_company).',
+        help_text='True = empresa; False = persona física (Odoo is_company).',
     )
     active      = fields.Boolean(
         default=True, db_index=True,
@@ -333,7 +333,7 @@ class FormatVatLabelMixin:
 
     @staticmethod
     def vat_label_for(company):
-        """La etiqueta del identificador fiscal segun el pais de ``company``.
+        """La etiqueta del identificador fiscal segun el pais de la empresa.
 
         ≙ la condicion ``if vat_label := self.env.company.country_id.vat_label``
         de la fuente (``:49``). Devuelve cadena vacia cuando el pais no

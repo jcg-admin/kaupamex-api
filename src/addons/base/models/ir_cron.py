@@ -100,9 +100,8 @@ Lo que se porto en ese pase, y que antes esta seccion enumeraba como ausente:
   suelta, y lo escribe ``IrCron.save()`` al crear.
 
 Las divergencias que quedan estan declaradas **en el metodo que las tiene**,
-no aqui: el cursor propio de ``_run_job`` (tarea #42), la zona horaria del
-usuario en ``_reschedule_later`` (tarea #43), y los dos ``action_open_*``
-que delegan en campos de ``ir_actions.py`` que no existen (tarea #44).
+no aqui: el cursor propio de ``_run_job`` (tarea #42) y la zona horaria del
+usuario en ``_reschedule_later`` (tarea #43).
 
 Adquisicion: ``FOR NO KEY UPDATE SKIP LOCKED`` via
 ``QuerySet.select_for_update(skip_locked=True, no_key=True)`` — la misma
@@ -562,17 +561,6 @@ class IrCron(models.Model):
         )
 
     @classmethod
-    def _ready_q(cls):
-        """Alias historico de ``_get_ready_sql_condition``.
-
-        DESPROMOCION INVERSA, declarada: este nombre es **nuestro** —la
-        referencia no lo tiene— y existia porque su condicion vivia aqui. Se
-        conserva porque tiene llamadores en el arbol; delega, no duplica.
-        Su retiro es la tarea #45.
-        """
-        return cls._get_ready_sql_condition()
-
-    @classmethod
     def _get_all_ready_jobs(cls, using=DEFAULT_DB_ALIAS):
         """≙ ``_get_all_ready_jobs`` (``odoo19c: ir_cron.py:296-305``).
 
@@ -702,16 +690,6 @@ class IrCron(models.Model):
         job.timed_out_counter = (
             ultimo.timed_out_counter if ultimo is not None else 0) or 0
         return job
-
-    def _reschedule(self, now=None):
-        """Alias historico de ``_reschedule_later``.
-
-        DESPROMOCION INVERSA, declarada: este nombre es **nuestro** —la
-        referencia declara ``_reschedule_later``— y existia porque su logica
-        vivia aqui. Se conserva porque tiene llamadores en el arbol; delega,
-        no duplica. Su retiro es la tarea #45.
-        """
-        return self._reschedule_later()
 
     def _callback(self):
         """Invoca el método delegado por la acción servidor (==
@@ -913,8 +891,8 @@ class IrCron(models.Model):
         ``transaction.atomic``, así que no hay dos cursores que reconciliar ni
         caché de entorno que invalidar. La consecuencia se declara porque es
         real: si el callback falla y la transacción del llamador aborta
-        después, la reprogramación de ``_reschedule`` se va con ella, cosa que
-        en la fuente no pasaría.
+        después, la reprogramación de ``_reschedule_later`` se va con ella,
+        cosa que en la fuente no pasaría.
 
         DIVERGENCIA de retorno, declarada: la fuente devuelve ``True`` o un
         dict ``ir.actions.client`` con la excepción serializada para que su
@@ -1223,23 +1201,19 @@ class IrCron(models.Model):
     def action_open_parent_action(self):
         """≙ ``action_open_parent_action`` (``odoo19c: ir_cron.py:889-891``).
 
-        La fuente delega en ``ir_actions_server_id.action_open_parent_action()``
-        (``ir_actions.py:1328-1335``), que devuelve un descriptor
-        ``ir.actions.act_window`` apuntando al ``parent_id`` de la accion.
-
-        BLOQUEO MEDIDO, declarado: ``IrActionsServer`` de este arbol **no
-        tiene** el campo ``parent`` (medido: 0 hits de ``parent`` en
-        ``ir_actions.py``), asi que no hay a que apuntar. El metodo conserva
-        la firma y delega; el campo es alcance de ``ir_actions.py``.
-        Sucesor: tarea #44.
+        Delega en la accion servidor, igual que la fuente. El bloqueo que
+        este metodo declaraba —``IrActionsServer`` sin campo ``parent``— se
+        cerro: el campo esta portado en ``ir_actions.py`` con el
+        ``ondelete='cascade'`` y el indice de la fuente.
         """
         return self.ir_actions_server.action_open_parent_action()
 
     def action_open_scheduled_action(self):
         """≙ ``action_open_scheduled_action`` (``odoo19c: ir_cron.py:892-894``).
 
-        Mismo bloqueo que el anterior: la fuente delega en la accion servidor,
-        que resuelve por ``ir_cron_ids``. Sucesor: tarea #44.
+        Delega igual. El inverso que la fuente llama ``ir_cron_ids`` es aqui
+        el ``related_name='crons'`` de la FK de este mismo modelo, asi que
+        siempre existio — lo que faltaba era el metodo del otro lado.
         """
         return self.ir_actions_server.action_open_scheduled_action()
 
