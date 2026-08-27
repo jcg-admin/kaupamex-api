@@ -144,7 +144,7 @@ la sesión **no** está abierta — que es exactamente lo que ``self.uid = None`
 declara. Contrastar con ``CHECK_IDENTITY_REQUIRED`` de ``authz_timeout``, que
 sí es 403 porque ahí la sesión existe y sólo hay que reconfirmarla.
 """
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import login, logout
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -152,10 +152,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from addons.authz.services import is_superadmin
-from addons.base.models import IrModule, ResLang
+from addons.base.models import IrModule, ResLang, ResUsers
 from addons.web.controllers.serializers import (
     CredentialSerializer, LangSerializer, SessionInfoSerializer,
 )
+from exceptions import AccessDenied
 
 _MODULES_RESPONSE = OpenApiResponse(description='["addon_a", "addon_b", ...]')
 
@@ -274,18 +275,31 @@ def session_authenticate(request):
              'detail': serializer.errors},
             status=status.HTTP_400_BAD_REQUEST)
 
-    user = authenticate(
-        request,
-        username=serializer.validated_data['login'],
-        password=serializer.validated_data['password'],
-    )
-    if user is None:
-        # Un solo código para credencial errónea y cuenta inexistente: separar
-        # los dos casos revelaría qué logins existen.
+    # ≙ `odoo19c: odoo/http.py:1240` — el endpoint llama a
+    # `res.users.authenticate`, no a la verificación de credencial a secas. La
+    # diferencia importa: `_login` es quien envuelve el intento con el
+    # limitador de acceso (`_assert_can_auth`) y quien registra el acceso en
+    # `res.users.log`. Llamar a `authenticate()` de Django directamente —como
+    # se hacía hasta este pase— saltaba las dos cosas.
+    try:
+        auth_info = ResUsers.authenticate(
+            {'type': 'password',
+             'login': serializer.validated_data['login'],
+             'password': serializer.validated_data['password']},
+            {'interactive': True,
+             'base_location': request.build_absolute_uri('/').rstrip('/')},
+        )
+    except AccessDenied as exc:
+        # Un solo código para credencial errónea, cuenta inexistente y origen
+        # en enfriamiento: separar los casos revelaría qué logins existen. El
+        # detalle del limitador sí viaja, porque le dice al cliente que espere
+        # en vez de reintentar.
         return Response(
             {'codigo_error': 'INVALID_CREDENTIAL',
-             'detail': 'Credencial inválida.'},
+             'detail': str(exc) or 'Credencial inválida.'},
             status=status.HTTP_401_UNAUTHORIZED)
+
+    user = auth_info['user']
 
     # ≙ `auth_totp_mail/models/res_users.py:44-48` — el aviso de conexión desde
     # un dispositivo nuevo. La fuente lo cuelga de `authenticate`, así que sale

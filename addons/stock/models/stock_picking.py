@@ -1481,7 +1481,7 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
 
         Sin nombre explícito (o con el placeholder ``/``), y con un tipo de
         operación que tenga secuencia, el nombre sale de
-        ``picking_type.sequence_id.get_next()`` — el equivalente de
+        ``picking_type.sequence_id.next_by_id()`` — el equivalente de
         ``next_by_id()`` en este ORM (``ir.sequence.get_next``).
 
         **Divergencia declarada (D-8):** la referencia llama
@@ -1494,7 +1494,7 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         picking_type = vals.get('picking_type')
         if vals.get('name', '') in ('', '/') and picking_type is not None \
                 and picking_type.sequence_id is not None:
-            vals['name'] = picking_type.sequence_id.get_next()
+            vals['name'] = picking_type.sequence_id.next_by_id()
         return cls.objects.create(**vals)
 
     def write(self, vals):
@@ -1519,7 +1519,7 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         nuevo_tipo = vals.get('picking_type')
         if nuevo_tipo is not None and nuevo_tipo != self.picking_type:
             if nuevo_tipo.sequence_id is not None:
-                self.name = nuevo_tipo.sequence_id.get_next()
+                self.name = nuevo_tipo.sequence_id.next_by_id()
             vals.setdefault('location', nuevo_tipo.default_location_src)
             vals.setdefault(
                 'location_dest', nuevo_tipo.default_location_dest)

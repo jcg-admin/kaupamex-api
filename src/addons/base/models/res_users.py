@@ -59,9 +59,15 @@ vive en ``authz`` por capacidad (DEC-11), y un flag de superusuario saltaría
 ese modelo. Los *hashers* de Django sí se usan, como librería.
 """
 import binascii
+import contextlib
+import datetime
+import hashlib
+import ipaddress
 import logging
 import os
+from dataclasses import dataclass
 from datetime import timedelta
+from zoneinfo import available_timezones
 
 import api
 import fields
@@ -69,22 +75,45 @@ import models
 
 from django.apps import apps
 from django.conf import settings
+from django.contrib.auth import authenticate as django_authenticate
 from django.contrib.auth import hashers
 from django.core.exceptions import ValidationError
-from django.db.models import F
+from django.db.models import F, Q
 from django.db.models.functions import Length
 from django.db.models.lookups import Exact
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
 from addons.base.models import signals
+from addons.base.models.ir_http import get_current_request
+from addons.base.models.res_device import _client_ip
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import AccessDenied, AccessError, UserError
-from orm.environments import get_current_user, is_su
+from orm.environments import get_current_company, get_current_user, is_su
+from orm.utils import SUPERUSER_ID
 
-#: Registro del bloque de claves de API — ≙ el ``_logger`` de módulo que la
-#: referencia declara en la cabecera de ``res_users.py``.
-_apikeys_logger = logging.getLogger(__name__)
+#: ≙ el ``_logger`` de módulo que la referencia declara en la cabecera de
+#: ``res_users.py`` (``odoo19c: res_users.py:38``). Se llamaba
+#: ``_logger``, que era una acotación nuestra y no de la fuente: allá
+#: lo usan el bloque de claves de API, el enfriamiento de acceso Y el cambio de
+#: contraseña. El nombre acotado sugería que cada bloque traía el suyo.
+_logger = logging.getLogger(__name__)
+
+#: Contador de intentos fallidos por origen, para el enfriamiento de acceso.
+#:
+#: DIVERGENCIA DE MECANISMO, declarada: la fuente lo cuelga del **registro**
+#: (``registry._login_failures``, ``odoo19c: res_users.py:1247-1250``), que en
+#: su arquitectura es un objeto por proceso y por base. Aquí no hay tal objeto,
+#: así que vive a nivel de módulo — **mismo alcance efectivo**: uno por proceso.
+#:
+#: La fuente declara ella misma la limitación que esto acarrea, y vale igual
+#: aquí: *"The login counter is not shared between workers and not specifically
+#: thread-safe, the feature exists mostly for rate-limiting on large number of
+#: login attempts (brute-forcing passwords) so that should not be much of an
+#: issue."* Su punto de extensión para una estrategia compartida —base de datos,
+#: caché distribuida— es sobrescribir ``_assert_can_auth``, y ese punto se
+#: conserva.
+_LOGIN_FAILURES: dict = {}
 
 # Sal del HMAC de sesión. Literal de Django (``AbstractBaseUser``): cambiarlo
 # invalidaría toda sesión viva, así que se replica verbatim.
@@ -100,6 +129,18 @@ GROUP_NO_ONE_XMLID = 'base.group_no_one'
 #: El grupo de usuario interno. Es el que la guarda de :meth:`ResUsers.has_group`
 #: exige a quien pregunta por los grupos de otro.
 GROUP_USER_XMLID = 'base.group_user'
+
+#: El grupo de administración del sistema — ``_is_system`` (``:1177-1179``).
+GROUP_SYSTEM_XMLID = 'base.group_system'
+
+#: El grupo de administración funcional — la segunda mitad de ``_is_admin``
+#: (``:1181-1183``).
+GROUP_ERP_MANAGER_XMLID = 'base.group_erp_manager'
+
+#: Los logins que :meth:`ResUsers.delete` protege — ≙ los cuatro ``env.ref``
+#: de ``_unlink_except_master_data`` (``:648-660``), menos la plantilla de
+#: usuario portal, que este árbol no tiene (invita por endpoint).
+_SYSTEM_LOGINS = frozenset({'admin', 'public', '__system__'})
 
 
 class ResUsersManager(models.Manager):
@@ -234,6 +275,97 @@ class ResUsers(TimeStampedModel):
     ``unique=True`` y PostgreSQL nombra el constraint ``res_users_login_key``
     — verificado con ``pg_constraint``. No hace falta un ``Meta.constraints``
     para renombrarlo.
+
+    Los 73 símbolos que este porte NO trae, y su desenlace
+    -------------------------------------------------------
+
+    Medido con ``check_porte_completo`` contra
+    ``odoo19c: odoo/addons/base/models/res_users.py`` tras el pase de #51.
+    Ninguno se omite en silencio — ``porte-completo-no-parcial.md`` admite
+    tres desenlaces y cada familia declara el suyo.
+
+    *Métrica:* nombres de método declarados en la referencia y ausentes por
+    **literal** en este archivo (AST, no grep).
+    *Ciega a:* un símbolo portado **bajo otro nombre**, que el instrumento
+    cuenta como ausente. Aquí hay uno y va declarado: la lista incluye
+    ``_unlink_except_master_data``, que **sí está portado** — como
+    :meth:`delete`, porque el gancho equivalente de Django es sobrescribir ese
+    método y no un ``@api.ondelete``. Los 72 restantes sí son ausencias.
+
+    **1. La capa de vista de su cliente OWL — 21 símbolos.** DIVERGENCIA DE
+    STACK. ``onchange``, ``on_change_login``, ``onchange_parent_id``,
+    ``_onchange_role``, ``fields_get``, ``_get_view_postprocessed``,
+    ``_default_view_group_hierarchy``, ``_action_show``,
+    ``action_show_groups``, ``action_show_accesses``,
+    ``action_show_rules``, ``action_get``,
+    ``action_change_password_wizard``, ``api_key_wizard``,
+    ``preference_save``, ``preference_change_password``,
+    ``action_revoke_all_devices``, ``_compute_email_domain_placeholder``,
+    ``_compute_signature``, ``_compute_role``, ``copy_data``,
+    ``_default_groups``. Son el diálogo entre su ORM y su cliente web: un
+    ``@api.onchange`` recalcula un formulario abierto, y una ``action_*``
+    devuelve un diccionario que su cliente interpreta como «abre esta vista».
+    Aquí el cliente es React sobre endpoints DRF: el equivalente del onchange
+    es la validación del serializer, y el de la acción es la URL que el
+    frontend ya conoce. Portarlas produciría métodos sin quién los llame — el
+    defecto que este mismo archivo evitó con los wizards (:ref:`h-api-801`).
+
+    **2. Ganchos del ciclo de vida de su ORM — 11 símbolos.** DIVERGENCIA DE
+    MECANISMO. ``create``, ``write``, ``read``, ``init``, ``_register_hook``,
+    ``name_search``, ``_search_display_name``, ``_search_all_group_ids``,
+    ``_search_res_users_settings_id``, ``_compute_all_group_ids``,
+    ``_compute_res_users_settings_id``. Django los tiene con otro nombre y
+    otra forma: ``create``/``write`` son ``save()``, ``read`` es el queryset,
+    ``init`` son las migraciones, ``_register_hook`` es ``AppConfig.ready()``,
+    y un ``_search_*`` de campo calculado es un ``annotate()``. El
+    comportamiento vive donde el stack lo pone, no ausente.
+
+    **3. Contabilidad para su vista de ajustes — 5 símbolos.** DIVERGENCIA DE
+    MECANISMO. ``_compute_companies_count``, ``_compute_accesses_count``,
+    ``_compute_share``, ``_compute_tz_offset``, ``_check_action_id``. Los
+    cuatro primeros alimentan contadores de su formulario; ``share`` sí existe
+    aquí, como ``property``. ``_check_action_id`` valida el campo *home
+    action*, que este árbol no tiene: BLOQUEADO por ``action_id`` — no hay
+    campo que validar.
+
+    **4. La superficie RPC de integración externa — 6 símbolos.** BLOQUEADO
+    por ``canal RPC crudo`` — no está construido; sucesor **#490**.
+    ``_rpc_api_keys_only``,
+    ``SELF_READABLE_FIELDS``, ``SELF_WRITEABLE_FIELDS``,
+    ``_self_accessible_fields``, ``_has_field_access``, ``context_get``. Son
+    el control de qué campos puede leerse y escribirse un usuario **a sí
+    mismo por RPC**. Aquí ese control lo ejerce el serializer con su
+    ``Meta.fields`` explícito y la autorización por capacidad (DEC-11), que es
+    fail-closed; el canal RPC crudo no está construido.
+
+    **5. Su cifrador de contraseñas — 9 símbolos.** DIVERGENCIA DE STACK.
+    ``CryptContext`` entera —``__init__``, ``copy``, ``hash``, ``identify``,
+    ``verify``, ``verify_and_update``, ``schemes``, ``update``— más
+    ``_crypt_context``. Es su envoltura
+    de ``passlib``; aquí el equivalente son los ``PASSWORD_HASHERS`` de Django,
+    que ``set_password``/``check_password`` ya consumen — incluido el rehash
+    automático que su ``verify_and_update`` hace a mano.
+
+    **6. La caché de autorización — 3 símbolos.** ``_get_invalidation_fields``,
+    ``_compute_session_token``, ``_get_session_token_query_params``. Los dos
+    últimos son la memorización y el SQL crudo de un token que aquí calcula
+    Django (ver :meth:`_get_session_token_fields`); el primero es el
+    invalidador, y su ausencia es **la razón declarada** de que
+    :meth:`_get_group_ids` no memorice. Sucesor: tarea **#58**.
+
+    **7. Lo que sigue pendiente de portar, con tarea propia — 18 símbolos.**
+    ``_set_password``, ``_set_encrypted_password``, ``_compute_password``,
+    ``_set_new_password``, ``_deactivate_portal_user``,
+    ``_action_revoke_all_devices``, ``_legacy_session_token_hash_compute``,
+    ``UsersMultiCompany`` (``create``, ``write``, ``new``), los cuatro de los
+    asistentes de contraseña (``_default_user_ids``,
+    ``change_password_button``, ``_check_password_confirmation``,
+    ``run_check``) y los cinco de ``ResUsersApikeysDescription``
+    (``_selection_duration``, ``_compute_expiration_date``,
+    ``_onchange_expiration_date``, ``create``, ``make_key``). Los wizards
+    divergen en forma y
+    su desenlace está en :ref:`h-api-801`; el resto es trabajo, no divergencia.
+    Sucesor: tarea **#59**.
     """
 
     _name                 = 'res.users'
@@ -439,20 +571,167 @@ class ResUsers(TimeStampedModel):
             'mfa': 'default',
         }
 
-    def get_session_auth_hash(self):
-        """HMAC del hash de password: cambiarlo invalida las sesiones vivas."""
+    def change_password(self, old_passwd, new_passwd):
+        """≙ ``change_password`` (``odoo19c: res_users.py:899-917``).
+
+        Cambia la contraseña del usuario **exigiendo la anterior**. La fuente
+        declara por qué en su docstring, y vale igual aquí: *"Old password must
+        be provided explicitly to prevent hijacking an existing user session"* —
+        una sesión robada no basta para quedarse con la cuenta.
+
+        Es la vía **autoportante**: no depende de la re-autenticación de
+        DEC-12, porque la credencial anterior es ella misma la prueba de
+        identidad. La fuente tiene además una segunda vía —el asistente
+        ``change.password.own``, decorado ``@check_identity``— que aquí no se
+        porta como modelo: su equivalente es el gate de sesión fresca que ya
+        existe (``authz_reauth.assert_session_fresh``), y el asistente en sí es
+        la capa de formulario de su UI, que este árbol resuelve con un
+        serializer. Ver :ref:`h-api-790`.
+
+        :raises AccessDenied: si la contraseña anterior falta o es incorrecta.
+        :raises UserError: si la nueva está vacía.
+        :returns: ``True``.
+        """
+        if not old_passwd:
+            raise AccessDenied()
+
+        credential = {
+            'login': self.get_username(),
+            'password': old_passwd,
+            'type': 'password',
+        }
+        self._check_credentials(credential, {'interactive': True})
+
+        self._change_password(new_passwd)
+        return True
+
+    def _change_password(self, new_passwd):
+        """≙ ``_change_password`` (``odoo19c: res_users.py:919-932``).
+
+        El eslabón interno: **no** verifica identidad — eso es de quien llama.
+        Recorta, rechaza el vacío y **deja constancia de quién cambió la
+        contraseña de quién y desde dónde**, que es el rastro que hace
+        auditable un cambio de credencial.
+
+        La fuente lee la IP de su ``request`` de hilo; aquí sale de la misma
+        ``ContextVar`` y el mismo ``_client_ip`` que usa el limitador de
+        acceso, así que las dos entradas del registro se pueden cruzar por
+        origen.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente asigna
+        ``self.password = new_passwd`` y su ORM cifra en el ``write``. Aquí el
+        cifrado es explícito —``set_password`` llama a ``hashers.make_password``—
+        y hay que **persistir**: el modelo de la fuente escribe en la asignación
+        y el de Django no.
+        """
+        new_passwd = (new_passwd or '').strip()
+        if not new_passwd:
+            raise UserError(
+                'Dejar la contraseña vacía no está permitido, por seguridad.')
+
+        request = get_current_request()
+        source = _client_ip(request) if request is not None else 'n/a'
+        actor = get_current_user()
+        _logger.info(
+            "Cambio de contraseña de %r (#%s) por %r (#%s) desde %s",
+            self.get_username(), self.pk,
+            getattr(actor, 'username', None) or '?',
+            getattr(actor, 'pk', None) or '?',
+            source)
+
+        self.set_password(new_passwd)
+        self.save(update_fields=['password'])
+
+    @classmethod
+    def _get_session_token_fields(cls):
+        """≙ ``_get_session_token_fields`` (``odoo19c: res_users.py:829-830``).
+
+        Los campos de los que **depende una sesión viva**: cambiar cualquiera
+        de ellos la invalida. La fuente declara exactamente estos cuatro, y
+        cada uno tiene su razón — ``password`` (cambio de credencial),
+        ``active`` (cuenta archivada), ``login`` (identidad renombrada) e
+        ``id`` (por si el hash viajara entre usuarios).
+
+        Es un **punto de extensión**, no una constante: la fuente lo ensancha
+        desde sus addons (``auth_passkey`` añade sus llaves para que revocar
+        una cierre las sesiones que abrió). Aquí lo consume
+        :meth:`_session_token_get_values`, que a su vez alimenta el
+        ``get_session_auth_hash`` que Django valida en cada petición.
+        """
+        return {'id', 'login', 'password', 'active'}
+
+    def _session_token_get_values(self):
+        """≙ ``_session_token_get_values`` (``:858-869``) — el par nombre/valor.
+
+        La fuente lee las columnas con SQL crudo y devuelve tuplas
+        ``(nombre, valor)`` *"allowing for overrides to manipulate the
+        values"*. Aquí no hace falta bajar a SQL —los campos son atributos del
+        modelo— pero **sí** se conserva la forma del retorno: es lo que permite
+        que una extensión añada un valor sin reescribir el cálculo del hash.
+
+        Se ordena por nombre, igual que el ``sorted()`` de la fuente
+        (``:836``): sin orden estable el mismo usuario daría hashes distintos
+        entre procesos y toda sesión moriría al primer salto.
+        """
+        return tuple(
+            (name, getattr(self, 'pk' if name == 'id' else name, None))
+            for name in sorted(self._get_session_token_fields())
+        )
+
+    @staticmethod
+    def _session_token_hash_compute(field_values, secret=None):
+        """≙ ``_session_token_hash_compute`` (``:871-884``).
+
+        Construye la llave con los pares cuyo valor **no es ``None``**. La
+        fuente explica por qué el filtro existe, y vale igual aquí: *"To avoid
+        invalidating sessions when installing a new feature modifying the
+        session token computation while not still being used"* — un campo
+        nuevo y vacío no debe cerrar las sesiones de todo el mundo.
+
+        DIVERGENCIA DE MECANISMO, declarada, y es la única del bloque: la fuente
+        hmaquea **el identificador de sesión** con esa llave, porque su
+        ``http.py`` valida sesión contra token. Aquí la sesión la valida
+        Django, que llama a ``get_session_auth_hash()`` **sin** identificador,
+        así que el mensaje es la propia llave y el secreto es el de la
+        instalación. Los dos hmac dependen del mismo conjunto de campos, que es
+        lo que decide qué invalida una sesión; lo que cambia es quién aporta la
+        entropía, y allá tampoco es el usuario.
+        """
+        clave = tuple((k, v) for k, v in field_values if v is not None)
         return salted_hmac(
-            _SESSION_AUTH_KEY_SALT, self.password, algorithm='sha256',
+            _SESSION_AUTH_KEY_SALT, str(clave),
+            secret=secret, algorithm='sha256',
         ).hexdigest()
+
+    def get_session_auth_hash(self):
+        """El hash que Django compara en cada petición para validar la sesión.
+
+        Hasta este pase hmaqueaba **sólo** ``self.password``, que es el default
+        de ``AbstractBaseUser``. Con eso, archivar una cuenta o renombrar su
+        login **no cerraba sus sesiones vivas** — la referencia sí las cierra,
+        porque su token depende de los cuatro campos de
+        :meth:`_get_session_token_fields`.
+
+        El ensanche invalida **una vez** todas las sesiones abiertas, porque el
+        mensaje del hmac cambia. Es el precio declarado de cerrar el hueco, y
+        ocurre una sola vez: a partir de aquí el conjunto es estable y su
+        extensión es el punto declarado de arriba.
+        """
+        return self._session_token_hash_compute(self._session_token_get_values())
 
     def get_session_auth_fallback_hash(self):
         """Hashes bajo ``SECRET_KEY_FALLBACKS`` — mantiene válidas las sesiones
-        durante la rotación de ``SECRET_KEY``."""
+        durante la rotación de ``SECRET_KEY``.
+
+        ≙ ``_legacy_session_token_hash_compute`` (``:886-896``) en su propósito:
+        la fuente conserva el cálculo viejo para no cerrar las sesiones que se
+        abrieron con él. Aquí el eje del legado no es la fórmula sino el
+        secreto, que es lo que Django rota — de ahí que sea el mismo cómputo
+        con otro ``secret`` y no una segunda fórmula.
+        """
         for fallback_secret in settings.SECRET_KEY_FALLBACKS:
-            yield salted_hmac(
-                _SESSION_AUTH_KEY_SALT, self.password,
-                secret=fallback_secret, algorithm='sha256',
-            ).hexdigest()
+            yield self._session_token_hash_compute(
+                self._session_token_get_values(), secret=fallback_secret)
 
     # --- Compañías permitidas (≙ ``company_id`` + ``company_ids``) ---
     #
@@ -481,17 +760,17 @@ class ResUsers(TimeStampedModel):
             return
         if self.company_ids.filter(pk=self.company_id).exists():
             return
-        permitidas = ', '.join(
+        allowed = ', '.join(
             self.company_ids.values_list('partner__name', flat=True)) or '—'
         raise ValidationError(
             'La compañía %(company)s no está entre las permitidas para el '
             'usuario %(user)s (%(allowed)s).' % {
                 'company': self.company.partner.name,
                 'user': self.login,
-                'allowed': permitidas,
+                'allowed': allowed,
             })
 
-    def _permitted_company_ids(self):
+    def _get_company_ids(self):
         """Odoo ``_get_company_ids`` (``odoo19c: res_users.py:726-730``).
 
         La referencia filtra por ``('active', '=', True)`` — una compañía
@@ -510,6 +789,141 @@ class ResUsers(TimeStampedModel):
     def clean(self):
         super().clean()
         self._check_user_company()
+        self._check_disjoint_groups()
+
+    # ------------------------------------------------------------------
+    # Las tres restricciones de integridad — ≙ :535-556 y :647-660
+    # ------------------------------------------------------------------
+
+    def _check_disjoint_groups(self):
+        """≙ ``_check_disjoint_groups`` (``odoo19c: res_users.py:535-548``).
+
+        Su docstring dice qué protege, y vale igual aquí: *"We check that no
+        users are both portal and users (same with public). This could
+        typically happen because of implied groups."*
+
+        Un usuario en dos clases a la vez rompe todo lo que decide por clase —
+        empezando por ``share``, que es literalmente «no es interno». La fuente
+        resuelve las clases con tres xmlid reservados; aquí son los valores de
+        ``ResGroups.user_type``, que es el mismo eje declarado de otra forma
+        (ver el comentario de :meth:`_has_user_type`).
+
+        Se invoca desde :meth:`clean`, no como decorador: Django no valida M2M
+        en ``full_clean()`` porque la relación no existe hasta que hay PK — es
+        la misma razón por la que ``_check_user_company`` se porta así.
+        """
+        if self.pk is None:
+            return
+        classes = set(
+            self.group_ids.exclude(user_type__isnull=True)
+            .values_list('user_type', flat=True))
+        if len(classes) > 1:
+            raise ValidationError(
+                'El usuario %(user)s no puede estar a la vez en clases '
+                'excluyentes: %(classes)s.' % {
+                    'user': self.login,
+                    'classes': ', '.join(sorted(classes)),
+                })
+
+    @classmethod
+    def _check_at_least_one_administrator(cls):
+        """≙ ``_check_at_least_one_administrator`` (``:550-555``).
+
+        *"You must have at least an administrator user."* — quitarle el último
+        grupo de sistema al último administrador deja la instalación sin quién
+        la administre, y sin nadie que pueda devolverlo.
+
+        La fuente se exime durante la actualización del módulo ``base``
+        (``if not self.env.registry._init_modules: return``), porque a mitad de
+        una migración el estado intermedio puede no tener administrador. Aquí
+        el equivalente es la siembra: mientras no exista **ningún** grupo de
+        sistema, no hay restricción que aplicar — el árbol todavía no llegó al
+        punto en que la pregunta tiene sentido.
+        """
+        data_model = apps.get_model('base', 'IrModelData')
+        system_group = data_model.ref(GROUP_SYSTEM_XMLID, raise_if_not_found=False)
+        if system_group is None:
+            return
+        if not system_group.all_user_ids.exists():
+            raise ValidationError(
+                'Debe quedar al menos un usuario administrador.')
+
+    def delete(self, *args, **kwargs):
+        """≙ ``_unlink_except_master_data`` (``odoo19c: res_users.py:647-660``).
+
+        Los usuarios de sistema no se borran. La fuente protege cuatro y da su
+        razón para cada uno; se conservan los tres que este árbol tiene:
+
+        - el **super-usuario** — *"it is used internally for resources created
+          by Odoo (updates, module installation, ...)"*;
+        - el **administrador** — *"it is utilized in various places (such as
+          security configurations,...). Instead, archive it."*;
+        - el **usuario público** — *"Deleting the public user is not allowed.
+          Deleting this profile will compromise critical functionalities."*
+
+        El cuarto de la fuente no se porta: BLOQUEADO por
+        ``base.template_portal_user_id`` — es la plantilla de usuario portal de
+        su asistente de invitación, y este árbol invita por endpoint, así que
+        esa fila no existe. No es omisión: no hay a quién proteger.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente lo cuelga de
+        ``@api.ondelete(at_uninstall=True)``, un gancho de su ORM. Aquí el
+        gancho equivalente es sobrescribir ``delete()``, que es por donde pasa
+        tanto la instancia como el ``QuerySet.delete()`` cuando se llama sobre
+        el objeto. El borrado en lote por ``QuerySet`` **no** pasa por aquí —
+        es una limitación conocida de Django, y la misma que su
+        ``@api.ondelete`` no tiene. Sucesor: tarea #57.
+        """
+        if self.pk == SUPERUSER_ID:
+            raise UserError(
+                'No se puede eliminar al super-usuario: es quien crea los '
+                'recursos internos (actualizaciones, instalación de módulos). '
+                'Archívalo en su lugar.')
+        if self.login in _SYSTEM_LOGINS:
+            raise UserError(
+                'No se puede eliminar al usuario %r: se usa en la '
+                'configuración de seguridad y en el acceso anónimo. '
+                'Archívalo en su lugar.' % self.login)
+        return super().delete(*args, **kwargs)
+
+    @classmethod
+    def _check_company_domain(cls, companies):
+        """≙ ``_check_company_domain`` (``odoo19c: res_users.py:169-173``).
+
+        El predicado con que ``check_company`` valida a un usuario contra un
+        conjunto de empresas. La fuente lo redefine **aquí** porque el default
+        del ORM compara ``company_id`` —la empresa por defecto— y para un
+        usuario la pregunta correcta es por ``company_ids``: el usuario es
+        válido si **alguna** de sus empresas permitidas está en el conjunto.
+
+        Sin empresas que exigir, la fuente devuelve ``Domain.TRUE``; el
+        equivalente es un ``Q()`` vacío, que Django trata como «sin filtro».
+        """
+        if not companies:
+            return Q()
+        if isinstance(companies, str):
+            ids = [companies]
+        elif hasattr(companies, 'values_list'):
+            ids = list(companies.values_list('pk', flat=True))
+        else:
+            ids = [getattr(c, 'pk', c) for c in companies]
+        return Q(company_ids__in=ids)
+
+    def _get_group_ids(self):
+        """≙ ``_get_group_ids`` (``odoo19c: res_users.py:1098-1104``).
+
+        Los ids de **todos** los grupos del usuario, implicados incluidos. Es
+        el mismo conjunto que :attr:`all_group_ids` expone como registros; la
+        fuente declara las dos formas porque su ``ormcache`` guarda ids, no
+        recordsets.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente lo memoriza con
+        ``@tools.ormcache('self.id')``. Aquí no — el árbol no tiene todavía el
+        invalidador que la fuente cuelga de ``_get_invalidation_fields``, y una
+        caché de autorización sin invalidación es peor que ninguna: mantendría
+        vivo un permiso ya retirado. Sucesor: tarea #58.
+        """
+        return list(self.all_group_ids.values_list('pk', flat=True))
 
     # --- Presentación ---
     def get_full_name(self):
@@ -735,17 +1149,68 @@ class ResUsers(TimeStampedModel):
         """
         return self.group_ids.filter(user_type=user_type).exists()
 
-    def is_internal(self):
+    def _is_internal(self):
         """≙ ``_is_internal`` (res_users.py:1165-1167)."""
         return self._has_user_type('internal')
 
-    def is_portal(self):
+    def _is_portal(self):
         """≙ ``_is_portal`` (res_users.py:1169-1171)."""
         return self._has_user_type('portal')
 
-    def is_public(self):
+    def _is_public(self):
         """≙ ``_is_public`` (res_users.py:1173-1175)."""
         return self._has_user_type('public')
+
+    def _is_system(self):
+        """≙ ``_is_system`` (``odoo19c: res_users.py:1177-1179``).
+
+        Pertenencia a ``base.group_system`` — el grupo de administración del
+        sistema. A diferencia de los tres de arriba, **no** se resuelve por
+        ``user_type``: los tres anteriores preguntan por la *clase* de usuario
+        (interno / portal / público), que la fuente resuelve por grupo y este
+        árbol por la Selection ``ResGroups.user_type``. Éste pregunta por un
+        grupo **concreto**, así que va por ``_has_group``.
+
+        Se usa ``_has_group`` y no ``has_group`` a propósito: la fuente
+        antepone ``.sudo()``, que salta su guarda de acceso, y el equivalente
+        exacto de esa elevación es el método sin la guarda.
+        """
+        return self._has_group(GROUP_SYSTEM_XMLID)
+
+    def _is_admin(self):
+        """≙ ``_is_admin`` (``odoo19c: res_users.py:1181-1183``).
+
+        El super-usuario **o** el administrador funcional. La fuente evalúa en
+        ese orden y aquí también: ``_is_superuser`` no consulta la base.
+        """
+        return self._is_superuser() or self._has_group(GROUP_ERP_MANAGER_XMLID)
+
+    def _is_superuser(self):
+        """≙ ``_is_superuser`` (``odoo19c: res_users.py:1185-1187``).
+
+        Identidad por id, no por grupo: ``SUPERUSER_ID`` es el 1 codificado que
+        ``orm/utils.py`` ya declara con la misma razón que la fuente.
+
+        NO es el ``is_superuser`` de Django: ese flag no existe en este modelo
+        —la cabecera de la clase lo declara— porque la autorización va por
+        capacidad (DEC-11), no por banderas del usuario.
+        """
+        return self.pk == SUPERUSER_ID
+
+    @classmethod
+    def get_company_currency_id(cls):
+        """≙ ``get_company_currency_id`` (``odoo19c: res_users.py:1189-1191``).
+
+        La moneda de la empresa activa. La fuente la lee de ``self.env.company``
+        —la empresa del entorno de la petición— y aquí sale de la misma
+        ``ContextVar`` que el resto del árbol usa para el alcance por empresa.
+
+        Devuelve ``None`` cuando no hay empresa en contexto; la fuente no tiene
+        ese caso porque su ``env.company`` siempre resuelve, y allá el
+        equivalente sería un ``env`` sin empresa, que su ORM no admite.
+        """
+        company = get_current_company()
+        return getattr(getattr(company, 'currency', None), 'pk', None)
 
     @property
     def share(self):
@@ -753,7 +1218,7 @@ class ResUsers(TimeStampedModel):
         interno. Un usuario sin ningún grupo de tipo es 'share' (portal/
         público), igual que la referencia marca ``share=True`` a todo lo que
         no está en ``group_user``."""
-        return not self.is_internal()
+        return not self._is_internal()
 
     # ------------------------------------------------------------------
     # Segundo factor — el eslabón BASE de una cadena de tres
@@ -813,6 +1278,344 @@ class ResUsers(TimeStampedModel):
         """
         return
 
+    @classmethod
+    @contextlib.contextmanager
+    def _assert_can_auth(cls, user=None):
+        """≙ ``_assert_can_auth`` (``odoo19c: res_users.py:1214-1281``).
+
+        Enfriamiento lineal de acceso: tras N fallos consecutivos desde el
+        mismo origen, los intentos se **ignoran** durante un plazo y se
+        registran. Es un gestor de contexto, igual que en la fuente, para que
+        envuelva al procedimiento de acceso sin que éste tenga que invocarlo.
+
+        Fuera de una petición no hay origen que contar, así que cede el paso —
+        la fuente hace lo mismo con ``if not request``. Eso deja al cron y al
+        arranque fuera del limitador a propósito.
+
+        DIVERGENCIA, y es del stack: la fuente lee su ``request`` de hilo
+        (``odoo.http.request``); aquí el equivalente es la ``ContextVar`` que
+        ``ir_http`` fija por petición (``get_current_request()``). Mismo
+        alcance —una petición, un valor— y el mismo desenlace cuando no hay
+        ninguna.
+
+        DIVERGENCIA DE FIRMA, declarada: la fuente lo declara método de
+        instancia —``_assert_can_auth(self, user=None)``— porque allá se llama
+        sobre un recordset, que puede estar vacío: ``self.env['res.users']``
+        es el modelo y ``user`` es un registro, y los dos aceptan la misma
+        llamada. Aquí no existe el recordset vacío, así que lo que la fuente
+        invoca sobre el modelo se declara ``classmethod`` — la forma que este
+        árbol ya usa para ese caso: **126** en ``base/models``, entre ellas
+        ``SystemParameter._get_param``, que es el análogo exacto de
+        ``self.env['ir.config_parameter'].sudo()``. Los dos puntos de llamada
+        de la fuente siguen valiendo: ``ResUsers._assert_can_auth(...)`` sobre
+        la clase y ``usuario._assert_can_auth(...)`` sobre una instancia
+        resuelven al mismo método.
+
+        :param user: id o login, sólo para el registro.
+        """
+        request = get_current_request()
+        if request is None:
+            yield
+            return
+
+        source = _client_ip(request)
+        failures, previous = _LOGIN_FAILURES.get(source, (0, datetime.datetime.min))
+        if cls._on_login_cooldown(failures, previous):
+            _logger.warning(
+                "Intento de acceso ignorado para %s (usuario %r): "
+                "%d fallo(s) desde el último acierto, el último a las %s. "
+                "El número de fallos antes del enfriamiento y su duración se "
+                "configuran en los parámetros del sistema; para desactivarlo, "
+                "poner `base.login_cooldown_after` a 0.",
+                source, user or "?", failures, previous)
+            # El aviso del proxy mal configurado es de la fuente, y es útil:
+            # si la IP limitada es privada, lo más probable es que se esté
+            # contando la del proxy inverso y no la del cliente — con lo que
+            # el limitador castiga a todo el mundo a la vez.
+            try:
+                is_private = ipaddress.ip_address(source).is_private
+            except ValueError:
+                is_private = False
+            if is_private:
+                _logger.warning(
+                    "La IP limitada %s es privada y *podría* ser un proxy. Si "
+                    "este servicio corre detrás de un proxy inverso, revisar "
+                    "que reenvíe X-Forwarded-For y que se esté leyendo.",
+                    source)
+            raise AccessDenied(
+                'Demasiados intentos fallidos, espera un poco antes de volver '
+                'a intentarlo.')
+
+        try:
+            yield
+        except AccessDenied:
+            failures, __ = _LOGIN_FAILURES.get(source, (0, datetime.datetime.min))
+            _LOGIN_FAILURES[source] = (failures + 1, datetime.datetime.now())
+            raise
+        else:
+            _LOGIN_FAILURES.pop(source, None)
+
+    @classmethod
+    def _on_login_cooldown(cls, failures, previous):
+        """≙ ``_on_login_cooldown`` (``odoo19c: res_users.py:1283-1306``).
+
+        Decide si el origen está en enfriamiento. Es el punto de extensión que
+        la fuente separa a propósito: para cambiar el **criterio** se
+        sobrescribe esto; para cambiar el **almacén** —a base de datos o a una
+        caché compartida— se sobrescribe ``_assert_can_auth``.
+
+        ``base.login_cooldown_after`` a 0 desactiva el mecanismo entero, y es
+        la vía documentada para hacerlo.
+
+        :param int failures: fallos registrados desde el último acierto.
+        :param previous: marca de tiempo del fallo anterior.
+        :returns: si el origen está en enfriamiento.
+        """
+        icp = apps.get_model('base', 'SystemParameter')
+        try:
+            min_failures = int(icp.get_param('base.login_cooldown_after', 5))
+        except (TypeError, ValueError):
+            min_failures = 5
+        if min_failures == 0:
+            return False
+
+        try:
+            delay = int(icp.get_param('base.login_cooldown_duration', 60))
+        except (TypeError, ValueError):
+            delay = 60
+        return (failures >= min_failures
+                and (datetime.datetime.now() - previous)
+                < datetime.timedelta(seconds=delay))
+
+    # ------------------------------------------------------------------
+    # El procedimiento de acceso — ≙ ``:742-827``
+    # ------------------------------------------------------------------
+
+    def _update_last_login(self):
+        """≙ ``_update_last_login`` (``odoo19c: res_users.py:742-746``).
+
+        Deja constancia del acceso creando **una fila nueva** en
+        ``res.users.log``. El comentario de la fuente explica por qué crea en
+        vez de actualizar, y vale igual aquí: *"only create new records to
+        avoid any side-effect on concurrent transactions"* — dos accesos
+        simultáneos del mismo usuario no compiten por la misma fila. El exceso
+        lo recorta ``ResUsersLog._gc_user_logs``, que conserva la última.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente crea el registro vacío y
+        su ORM lo puebla con los campos mágicos ``create_uid``/``create_date``.
+        Aquí ``create_uid`` es la FK ``user``, que se pasa explícita; la fecha
+        la pone ``TimeStampedModel``.
+
+        DIVERGENCIA DE FIRMA, declarada: la fuente lo declara ``@api.model`` y
+        resuelve el actor desde el entorno del recordset. Aquí no hay entorno,
+        así que el actor es ``self`` — y es el mismo dato: sus dos puntos de
+        llamada (``_login`` y el RPC) lo invocan sobre el usuario que acaba de
+        entrar, que es exactamente lo que su ``create_uid`` acaba valiendo.
+        """
+        ResUsersLog.objects.create(user=self)
+
+    @classmethod
+    def _get_login_domain(cls, login):
+        """≙ ``_get_login_domain`` (``:748-750``) — cómo se busca al usuario.
+
+        Punto de extensión de la fuente: un addon que admita entrar con el
+        correo lo ensancha aquí. ``Domain('login', '=', login)`` es
+        ``Q(login=login)``; el ``Domain`` de la referencia y el ``Q`` de Django
+        son el mismo objeto de predicado componible.
+        """
+        return Q(login=login)
+
+    @classmethod
+    def _get_email_domain(cls, email):
+        """≙ ``_get_email_domain`` (``:752-754``) — búsqueda por correo.
+
+        La fuente usa ``=ilike`` con ``tools.escape_psql`` sobre el valor: el
+        escape existe porque ``ilike`` interpreta ``%`` y ``_`` como comodines
+        y un correo puede llevarlos. El equivalente exacto es ``__iexact``,
+        que compara sin distinguir mayúsculas y **sin** interpretar comodines,
+        así que no hay nada que escapar — Django parametriza la consulta.
+
+        DIVERGENCIA DE MECANISMO, declarada, y es la frontera de ``_inherits``:
+        allá ``email`` es un campo **delegado** de ``res.users``, así que su
+        ``Domain('email', …)`` lo busca como si fuera columna propia. Aquí la
+        delegación (``orm/inherits.py``) resuelve **atributos**, no lookups de
+        consulta: ``user.email`` lee, pero ``Q(email=…)`` no resuelve. El
+        equivalente que sí consulta es recorrer la FK — ``partner__email``.
+        """
+        return Q(partner__email__iexact=email or '')
+
+    @classmethod
+    def _get_login_order(cls):
+        """≙ ``_get_login_order`` (``:756-758``) — el orden del desempate.
+
+        La fuente devuelve ``self._order``; aquí es ``Meta.ordering``, que ya
+        lleva el ``'name, login'`` de la referencia traducido
+        (``['partner__name', 'login']``). Importa cuando el dominio de acceso
+        devuelve más de una fila: decide **cuál** de ellas autentica.
+        """
+        return tuple(cls._meta.ordering or ())
+
+    @classmethod
+    def _login(cls, credential, user_agent_env):
+        """≙ ``_login`` (``odoo19c: res_users.py:760-781``).
+
+        Resuelve la credencial a un usuario, con el limitador de acceso
+        envolviendo el intento. Los cuatro pasos de la fuente se conservan:
+        el gestor de contexto ``_assert_can_auth``, la búsqueda por
+        ``_get_login_domain`` con ``_get_login_order``, la verificación de la
+        credencial, y el registro del acceso.
+
+        **Cierra la tarea #26**: ``_assert_can_auth`` se portó con la familia
+        de claves de API y hasta hoy sólo tenía allí consumidor. El acceso por
+        contraseña —el que la fuente protege— pasaba sin contar fallos.
+
+        DIVERGENCIA DE MECANISMO, declarada, y es la que ``authz_ldap`` ya tenía
+        escrita: la fuente verifica con ``_check_credentials``, que es la
+        cadena que sus addons extienden con ``super()``; aquí esa cadena son
+        los ``AUTHENTICATION_BACKENDS``
+        (``addons/authz_ldap/models/res_users.py:9-12`` lo declara verbatim:
+        *"la cadena ``AUTHENTICATION_BACKENDS`` ES la cadena de
+        ``super()._login`` de Odoo"*). Por eso la verificación delega en
+        ``django_authenticate``, que recorre local → LDAP → OAuth → passkey, y
+        no en ``_check_credentials`` a secas, que sólo es el eslabón de
+        contraseña.
+
+        El ``auth_info`` que la fuente devuelve lo construye el eslabón
+        terminal (``_check_credentials``), así que aquí se reconstruye con el
+        ``backend`` que ``django_authenticate`` dejó puesto — el dato
+        equivalente a su ``auth_method``.
+
+        :param dict credential: ``{'type', 'login', 'password'}``.
+        :param dict user_agent_env: entorno de la petición; ``interactive``.
+        :raises AccessDenied: credencial inválida, o origen en enfriamiento.
+        :returns: ``auth_info`` — ``{'uid', 'auth_method', 'mfa', 'user'}``.
+        """
+        login = credential['login']
+        request = get_current_request()
+        source = _client_ip(request) if request is not None else 'n/a'
+        try:
+            with cls._assert_can_auth(user=login):
+                user = django_authenticate(
+                    request,
+                    username=login,
+                    password=credential.get('password'),
+                    **{k: v for k, v in credential.items()
+                       if k not in ('type', 'login', 'password')})
+                if user is None:
+                    raise AccessDenied()
+                auth_info = {
+                    'uid': user.pk,
+                    'auth_method': getattr(user, 'backend', None) or 'password',
+                    'mfa': 'default',
+                    'user': user,
+                }
+                cls._set_tz_from_request(user, request)
+                user._update_last_login()
+        except AccessDenied:
+            _logger.info("Login failed for login:%s from %s", login, source)
+            raise
+
+        _logger.info("Login successful for login:%s from %s", login, source)
+        return auth_info
+
+    @staticmethod
+    def _set_tz_from_request(user, request):
+        """≙ las cuatro líneas de zona horaria de ``_login`` (``:772-775``).
+
+        *"first login or missing tz -> set tz to browser tz"*. Se extrae a un
+        método propio porque aquí ``tz`` no vive en ``res_users``: llega por la
+        delegación ``_inherits`` al partner, y la escritura la enruta
+        ``orm/inherits.py``. Dejarlo en línea escondería esa indirección.
+
+        DIVERGENCIA DE STACK, declarada: la fuente valida contra
+        ``pytz.all_timezones``; ``pytz`` no está instalado —medido— y el
+        equivalente de la biblioteca estándar es
+        ``zoneinfo.available_timezones()``, que lee la misma base de datos IANA.
+
+        Y ``not user.login_date`` de la fuente se lee aquí sobre
+        ``res.users.log``: allá ``login_date`` es un campo **relacionado** a la
+        fecha de creación de esa misma tabla (``:229``), así que «nunca ha
+        entrado» es «no tiene filas de acceso». NO se lee sobre ``last_login``,
+        que es el campo de Django y aquí **nadie lo escribe** — leerlo daría
+        siempre vacío y la zona se sobreescribiría en cada acceso, que es lo
+        contrario de lo que la condición pide.
+
+        El orden importa y es el de la fuente: esto corre **antes** de
+        ``_update_last_login``, así que en el primer acceso todavía no hay fila.
+        """
+        if request is None:
+            return
+        tz = request.COOKIES.get('tz')
+        if tz and tz in available_timezones() and (
+                not user.tz or not user.logs.exists()):
+            user.tz = tz
+            user.save()
+
+    @classmethod
+    def authenticate(cls, credential, user_agent_env):
+        """≙ ``authenticate`` (``odoo19c: res_users.py:784-810``).
+
+        Envoltura pública de ``_login``. Su único aporte propio es adivinar la
+        URL base al entrar un usuario del grupo de sistema, para que los
+        enlaces que el servidor genera apunten a donde el usuario realmente
+        llegó — y sólo si nadie la congeló con ``web.base.url.freeze``.
+
+        La fuente traga cualquier excepción de ese bloque y la registra: fijar
+        un parámetro de configuración no debe tumbar un acceso válido. Se
+        conserva, con el mismo ``_logger.exception``.
+
+        :param dict credential: ver ``_login``.
+        :param dict user_agent_env: puede traer ``base_location``.
+        :returns: ``auth_info`` de ``_login``.
+        """
+        auth_info = cls._login(credential, user_agent_env=user_agent_env)
+        if user_agent_env and user_agent_env.get('base_location'):
+            user = auth_info['user']
+            if user._is_system():
+                try:
+                    icp = apps.get_model('base', 'SystemParameter')
+                    if not icp.get_param('web.base.url.freeze'):
+                        icp.set_param('web.base.url',
+                                      user_agent_env['base_location'])
+                except Exception:
+                    _logger.exception(
+                        "Failed to update web.base.url configuration parameter")
+        return auth_info
+
+    @classmethod
+    def _check_uid_passwd(cls, uid, passwd):
+        """≙ ``_check_uid_passwd`` (``odoo19c: res_users.py:813-827``).
+
+        Verifica el par (id, contraseña) **sin abrir sesión**: es la guarda que
+        el RPC usa antes de dejar pasar una llamada, y por eso su rechazo es
+        una excepción y no un valor de retorno.
+
+        Los tres rechazos de la fuente se conservan y en su orden: contraseña
+        vacía —*"empty passwords disallowed for obvious security reasons"*—,
+        usuario inactivo, y credencial incorrecta. El limitador envuelve los
+        dos últimos, igual que en ``_login``; **cierra la otra mitad de #26**.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente memoriza el resultado con
+        ``@tools.ormcache('uid', 'passwd')`` para no rehashear en cada llamada
+        RPC. Aquí NO se memoriza: guardar en caché un par (id, contraseña) es
+        guardar la contraseña en claro en memoria del proceso, y el canal que
+        justificaba el coste —el RPC de integración externa— no está construido
+        (misma medición que ``_rpc_api_keys_only``, sucesor **#490**).
+        """
+        if not passwd:
+            raise AccessDenied()
+
+        with cls._assert_can_auth(user=uid):
+            user = cls.objects.filter(pk=uid).first()
+            if user is None or not user.active:
+                raise AccessDenied()
+            credential = {
+                'login': user.get_username(),
+                'password': passwd,
+                'type': 'password',
+            }
+            user._check_credentials(credential, {'interactive': False})
+
 
 class ResUsersLog(TimeStampedModel):
     """``res.users.log`` — que hubo un acceso, no una auditoría.
@@ -849,6 +1652,27 @@ class ResUsersLog(TimeStampedModel):
     def __str__(self) -> str:
         return f'acceso de {self.user_id} el {self.created_at}'
 
+    @classmethod
+    @api.autovacuum
+    def _gc_user_logs(cls):
+        """≙ ``_gc_user_logs`` (``odoo19c: res_users.py:143-152``).
+
+        Conserva **la fila más reciente por usuario** y borra el resto. Es lo
+        que hace de este modelo un "último acceso" y no una auditoría: la
+        historia se recorta en cada barrido.
+
+        La fuente lo resuelve con un ``DELETE ... WHERE EXISTS`` correlacionado
+        sobre ``create_uid``/``create_date``. Aquí el mismo predicado se
+        expresa con el ORM —una subconsulta correlacionada por ``user``, con
+        ``id`` como desempate para las filas del mismo segundo— y el conteo
+        sale del propio ``delete()``, que es el ``cr.rowcount`` de la fuente.
+        """
+        mas_nueva = cls.objects.filter(user=models.OuterRef('user')).order_by(
+            '-created_at', '-id').values('id')[:1]
+        deleted, _ = cls.objects.exclude(
+            pk=models.Subquery(mas_nueva)).delete()
+        _logger.info("GC'd %d user log entries", deleted)
+
 
 # =========================================================================
 # Soporte de claves de API — ≙ ``# API keys support`` (``:1518-1750``)
@@ -878,6 +1702,38 @@ INDEX_SIZE = 8
 
 #: ≙ ``DEFAULT_PROGRAMMATIC_API_KEYS_LIMIT`` (``:1527``).
 DEFAULT_PROGRAMMATIC_API_KEYS_LIMIT = 10
+
+
+#: Limite de longitud del nombre de un indice, y NO es el de la fuente.
+#:
+#: DIVERGENCIA DEL STACK, declarada: la referencia acota a **63** —el limite de
+#: identificador de PostgreSQL— y trunca por encima
+#: (``odoo19c: res_users.py:1546-1550``). Django acota a **30** en su propio
+#: check ``models.E034``, que es transversal a todos sus motores y por tanto
+#: mas estricto que el del motor que usamos. Manda el mas estricto: por debajo
+#: de 30 el nombre vale en los dos.
+INDEX_NAME_MAX = 30
+
+
+def index_name_for(table):
+    """Nombre del indice ``(user_id, index)`` de una tabla de claves.
+
+    Porta el algoritmo de la fuente **entero**, incluida su rama de
+    truncamiento, que el porte anterior habia omitido: la fuente calcula
+    ``<tabla>_user_id_index_idx`` y, si se pasa del limite, lo sustituye por
+    ``<tabla>[:50] + "_idx_" + sha256(<tabla>)[:8]`` — determinista, para que
+    dos arranques generen el mismo nombre.
+
+    Omitir esa rama dejaba dos nombres de 35 y 34 caracteres, y con ellos
+    ``manage.py migrate`` **abortaba** con ``models.E034`` antes de tocar la
+    base. Es el desenlace que ``porte-completo-no-parcial.md`` describe: un
+    porte parcial que pasa por completo hasta que algo lo ejerce.
+    """
+    name = f'{table}_user_id_index_idx'
+    if len(name) > INDEX_NAME_MAX:
+        return table[:50] + '_idx_' + hashlib.sha256(
+            table.encode()).hexdigest()[:8]
+    return name
 
 #: ≙ ``KEY_CRYPT_CONTEXT`` (``:1521-1526``).
 #:
@@ -973,10 +1829,13 @@ class _ResUsersApikeysBase(TimeStampedModel):
        referencia declara —el público con su comprobación de propiedad, el
        interno sin ella— y el gate de identidad lo pone quien los exponga.
 
-    3. **``_assert_can_auth`` no existe en este árbol** (medido: 0 hits). Es
-       el limitador de intentos que la referencia envuelve alrededor de
-       ``generate``/``revoke``. Los dos métodos se portan **sin** él y el
-       hueco queda declarado: sucesor **#726**.
+    3. **``_assert_can_auth`` — CERRADA, ya no es divergencia.** Era el
+       limitador de intentos que la referencia envuelve alrededor de
+       ``generate``/``revoke``, y al portar este bloque no existía aquí
+       (medido entonces: 0 hits). Portado con la tarea **#726**:
+       ``ResUsers._assert_can_auth`` y su ``_on_login_cooldown``, y los dos
+       métodos ya lo envuelven. Lo que sí queda como divergencia declarada es
+       **dónde vive el contador** — ver ``_LOGIN_FAILURES``.
 
     4. **El SQL crudo se expresa con el ORM.** La referencia lo necesita
        porque ``key``/``index`` no son campos suyos; aquí sí lo son, así que
@@ -1061,7 +1920,7 @@ class _ResUsersApikeysBase(TimeStampedModel):
         """
         actor = get_current_user()
         if is_su() or self.user_id == getattr(actor, 'pk', None):
-            _apikeys_logger.info(
+            _logger.info(
                 "API key(s) removed: scope: <%s> for '%s' (#%s)",
                 self.scope, getattr(actor, 'login', 'n/a'),
                 getattr(actor, 'pk', None),
@@ -1137,12 +1996,39 @@ class _ResUsersApikeysBase(TimeStampedModel):
             key=_hash_api_key(k),
             index=k[:INDEX_SIZE],
         )
-        _apikeys_logger.info(
+        _logger.info(
             "%s generated: scope: <%s> for '%s' (#%s)",
             cls._description, scope, getattr(actor, 'login', 'n/a'),
             getattr(actor, 'pk', None),
         )
         return k
+
+    @classmethod
+    def check_access_make_key(cls):
+        """≙ ``check_access_make_key`` (``odoo19c: res_users.py:1832-1834``).
+
+        *"Only internal users can create API keys"*. Es la guarda de la vía
+        **interactiva** —un usuario creando su primera clave— y es otra puerta
+        que ``_ensure_can_manage_keys_programmatically``, que gobierna la vía
+        **programática** (una clave viva generando otra). La referencia tiene
+        las dos y no las confunde.
+
+        Va aquí y **no dentro de ``_generate``**, que es donde la tentación
+        estaría: la fuente la pone en ``make_key`` a propósito, porque
+        ``_generate`` también sirve al dispositivo de confianza de 2FA, y ése
+        lo usa un usuario de portal con todo derecho. Meter la guarda en la
+        primitiva rompería ese flujo — medido: ``authz_totp`` lo llama con
+        ``BROWSER_SCOPE`` para cualquier usuario que active el segundo factor.
+
+        Su consumidor es el endpoint que exponga la creación de claves, igual
+        que en la fuente lo es el asistente. Ese endpoint es la tarea **#490**;
+        hasta entonces la regla existe, se puede probar, y no está inventada en
+        el sitio equivocado.
+        """
+        actor = get_current_user()
+        if actor is None or not getattr(actor, '_is_internal', lambda: False)():
+            raise AccessError(
+                'Sólo un usuario interno puede crear claves de API.')
 
     @classmethod
     def _ensure_can_manage_keys_programmatically(cls):
@@ -1168,10 +2054,24 @@ class _ResUsersApikeysBase(TimeStampedModel):
         scope (including global). A scoped key can only generate credentials
         for its own scope."*
 
-        **Sin el limitador de intentos** de la fuente
-        (``_assert_can_auth``) — divergencia 3, sucesor #726.
+        Envuelta por el limitador de intentos de la fuente
+        (``ResUsers._assert_can_auth``), portado con la tarea #726: un
+        ``AccessDenied`` desde aquí cuenta como fallo del origen, y tras
+        ``base.login_cooldown_after`` fallos el origen entra en enfriamiento.
         """
         cls._ensure_can_manage_keys_programmatically()
+        with ResUsers._assert_can_auth(user=key[:INDEX_SIZE]):
+            return cls._generate_checked(key, scope, name, expiration_date)
+
+    @classmethod
+    def _generate_checked(cls, key, scope, name, expiration_date):
+        """El cuerpo de ``generate``, ya dentro del limitador.
+
+        La fuente escribe el ``with`` alrededor del cuerpo entero; aquí se
+        parte en dos porque el cuerpo es largo y anidarlo lo desplazaría
+        completo, ensuciando el diff sin cambiar la semántica. El ``AccessDenied``
+        que este método levanta atraviesa el gestor de contexto igual.
+        """
         actor = get_current_user()
         uid = getattr(actor, 'pk', None)
         now = timezone.now()
@@ -1185,7 +2085,7 @@ class _ResUsersApikeysBase(TimeStampedModel):
                 'base.programmatic_api_keys_limit',
                 DEFAULT_PROGRAMMATIC_API_KEYS_LIMIT))
         except (TypeError, ValueError):
-            _apikeys_logger.warning(
+            _logger.warning(
                 "Invalid value for 'base.programmatic_api_keys_limit', "
                 "using default value.")
             nb_keys_limit = DEFAULT_PROGRAMMATIC_API_KEYS_LIMIT
@@ -1199,7 +2099,7 @@ class _ResUsersApikeysBase(TimeStampedModel):
             raise AccessDenied(
                 'La clave de API dada no es válida o no pertenece al usuario actual.')
         new_key = cls._generate(scope, name, expiration_date)
-        _apikeys_logger.info("%s %r generated from %r", cls._description,
+        _logger.info("%s %r generated from %r", cls._description,
                              new_key[:INDEX_SIZE], key[:INDEX_SIZE])
         return new_key
 
@@ -1210,10 +2110,18 @@ class _ResUsersApikeysBase(TimeStampedModel):
 
         Recorre las filas cuyo prefijo coincide y verifica el hash de cada
         una, porque el prefijo **no** es único: es el mismo bucle de la
-        fuente. Sin el limitador de intentos — divergencia 3.
+        fuente. Envuelta por el limitador de intentos igual que ``generate``
+        (``ResUsers._assert_can_auth``, tarea #726).
         """
         cls._ensure_can_manage_keys_programmatically()
         assert key, 'key required'
+        with ResUsers._assert_can_auth(user=key[:INDEX_SIZE]):
+            return cls._revoke_checked(key)
+
+    @classmethod
+    def _revoke_checked(cls, key):
+        """El cuerpo de ``revoke``, ya dentro del limitador. Ver
+        ``_generate_checked`` para por qué va partido."""
         now = timezone.now()
         candidates = cls.objects.filter(
             models.Q(expiration_date__isnull=True) | models.Q(expiration_date__gte=now),
@@ -1233,7 +2141,7 @@ class _ResUsersApikeysBase(TimeStampedModel):
             expiration_date__isnull=False,
             expiration_date__lt=timezone.now(),
         ).delete()
-        _apikeys_logger.info("GC %r delete %d entries", cls._name, deleted)
+        _logger.info("GC %r delete %d entries", cls._name, deleted)
 
 
 class ResUsersApikeys(_ResUsersApikeysBase):
@@ -1274,7 +2182,7 @@ class ResUsersApikeys(_ResUsersApikeysBase):
             # ``init()`` (``:1548-1555``). El nombre lo fija la referencia por
             # convención ``<tabla>_user_id_index_idx``; aquí se conserva.
             models.Index(fields=['user', 'index'],
-                         name='res_users_apikeys_user_id_index_idx'),
+                         name=index_name_for('res_users_apikeys')),
         ]
         constraints = [
             # ≙ ``CHECK (char_length(index) = %(index_size)s)`` (``:1541``).
@@ -1319,3 +2227,200 @@ def _check_apikey_credentials(*, scope, key, model=None):
         if _verify_api_key(key, current_key):
             return user_id
     return None
+
+
+# ==========================================================================
+# Los tres asistentes de credencial — ≙ odoo19c: res_users.py:1615-1732
+# ==========================================================================
+#
+# La referencia los declara como ``TransientModel`` en este mismo archivo, y
+# aqui se portan con el precedente que el arbol ya fijo en
+# ``base_partner_merge.py`` y en ``account_check_printing.print_prenumbered_
+# checks``: **formulario, no tabla**. Los campos de un wizard son parametros;
+# lo que es contenedor de datos se queda como ``dataclass`` congelada.
+#
+# Por que ese precedente y no un ``TransientModel`` mas: un wizard de la
+# referencia existe porque su RPC expone modelos y su cliente OWL necesita una
+# fila que sostener entre dos llamadas. Aqui el cliente es React y el canal es
+# un endpoint DRF, asi que la fila intermedia no tiene a quien sostener. Lo
+# que **si** cruza es la conducta, y esa es la que va abajo.
+#
+# Antes de este porte las tres clases estaban **ausentes y sin declarar**, que
+# es el defecto que ``porte-completo-no-parcial.md`` nombra: no eran una
+# divergencia declarada, eran un hueco silencioso. Ver :ref:`h-api-801`.
+
+
+@dataclass(frozen=True)
+class PasswordChangeLine:
+    """≙ ``change.password.user`` (``odoo19c: res_users.py:1699-1712``).
+
+    Una linea del asistente de cambio masivo: a que usuario, con que login se
+    mostro, y cual es su contrasena nueva. La referencia la guarda como fila
+    transitoria con ``wizard_id``; aqui es un valor inmutable, igual que
+    ``MergeGroup`` en ``base_partner_merge.py`` — sin wizard que agrupe, no hay
+    a quien apuntar.
+
+    ``user_login`` se conserva aunque sea derivable de ``user``: la fuente lo
+    declara ``readonly`` a proposito, porque el operador tiene que ver **con
+    que login** esta cambiando la contrasena antes de confirmar, y ese login
+    puede haber cambiado entre que se abrio el dialogo y que se envio.
+    """
+
+    user: object
+    new_password: str
+    user_login: str = ''
+
+
+class PasswordChangeWizard:
+    """≙ ``change.password.wizard`` (``odoo19c: res_users.py:1676-1697``).
+
+    El cambio de contrasena **de otro**: un administrador fija credenciales
+    nuevas para N usuarios de una vez. Es la tercera via de la fuente, distinta
+    de las otras dos que este archivo ya porta:
+
+    ======================================  ==================================
+    Via de la fuente                          Aqui
+    ======================================  ==================================
+    ``change_password(old, new)``             ``ResUsers.change_password``
+    ``change.password.own`` + identidad       gate de sesion fresca (DEC-12)
+    ``change.password.wizard`` (esta)         esta clase
+    ======================================  ==================================
+
+    Lo que NO se porta, y se declara: ``_default_user_ids``, que lee
+    ``context['active_ids']`` para prellenar el dialogo desde una seleccion de
+    lista del backoffice, y el ``return`` de ``change_password_button``, que es
+    un descriptor ``ir.actions.client`` para que el cliente OWL recargue. Los
+    dos son la forma del dialogo; el ``reload`` aqui lo decide el cliente React
+    al ver que su propia sesion cambio.
+    """
+
+    @staticmethod
+    def lines_for(users, passwords):
+        """≙ ``_default_user_ids`` (``:1682-1687``) — sin el contexto.
+
+        La fuente saca los usuarios de ``context['active_ids']``; aqui los
+        recibe quien llama, porque no hay seleccion de lista que leer. Lo que
+        se conserva es **que la linea nace con el login ya capturado**, que es
+        lo unico que ese metodo hace de sustantivo.
+        """
+        return [
+            PasswordChangeLine(user=u, new_password=p,
+                               user_login=u.get_username())
+            for u, p in zip(users, passwords)
+        ]
+
+    @classmethod
+    def apply(cls, lines):
+        """≙ ``change_password_button`` de las dos clases (``:1689`` y ``:1714``).
+
+        La fuente lo parte en dos —el wizard itera sus lineas y cada linea
+        llama a ``_change_password``— y las dos mitades se conservan: el bucle
+        aqui, la escritura en ``ResUsers._change_password``, que ya deja su
+        rastro de auditoria.
+
+        Tres cosas de la fuente que **si** cruzan, y no son cosmeticas:
+
+        1. **Una linea sin contrasena se salta**, no falla
+           (``if line.new_passwd``). Un operador que deja un campo vacio en un
+           dialogo de N usuarios esta diciendo *"a este no"*, no *"aborta
+           todo"*.
+        2. **Las contrasenas temporales no sobreviven a la operacion**
+           (``self.write({'new_passwd': False})``, con su comentario *"don't
+           keep temporary passwords in the database longer than necessary"*).
+           Aqui la linea es inmutable y nunca toco la base, asi que la
+           equivalencia es no devolverla: ``apply`` devuelve **cuantas**
+           cambio, no cuales.
+        3. **Si el actor se cambio a si mismo, hay que decirlo**
+           (``if self.env.user in self.user_ids.user_id``). La fuente devuelve
+           un ``reload`` porque su sesion acaba de quedar invalida. Aqui se
+           devuelve esa señal como dato —``self_changed``— y el cliente decide.
+
+        :returns: ``(cambiadas, self_changed)``.
+        """
+        actor = get_current_user()
+        changed = 0
+        self_changed = False
+        for line in lines:
+            if not line.new_password:
+                continue
+            line.user._change_password(line.new_password)
+            changed += 1
+            if actor is not None and actor.pk == line.user.pk:
+                self_changed = True
+        return changed, self_changed
+
+
+class IdentityCheck:
+    """≙ ``res.users.identitycheck`` (``odoo19c: res_users.py:1615-1673``).
+
+    Su docstring en la fuente dice para que existe, y vale igual aqui:
+
+        Wizard used to re-check the user's credentials (password) and
+        eventually revoke access to his account to every device he has an
+        active session on. Might be useful before the more security-sensitive
+        operations, users might be leaving their computer unlocked &
+        unattended.
+
+    **La mitad que cruza es ``_check_identity``**: verificar la credencial del
+    actor y levantar un error legible si no coincide. Eso es una regla de
+    seguridad, no una pantalla.
+
+    **La mitad que NO cruza, declarada:** ``run_check`` (``:1654-1673``).
+    Deserializa de ``self.request`` un ``(ctx, model, ids, method, args,
+    kwargs)`` guardado, resuelve el metodo por ``getattr`` y lo invoca. Es un
+    despachador de RPC generico: la referencia lo necesita porque su cliente
+    hace la llamada, recibe *"hace falta re-autenticar"*, abre el dialogo y la
+    llamada original tiene que sobrevivir en algun sitio mientras tanto.
+
+    Aqui no sobrevive en ningun sitio y es deliberado: el cliente React reemite
+    su propia peticion despues de re-autenticar, y el gate que la deja pasar es
+    ``authz_reauth.assert_session_fresh`` desde la vista (DEC-12). Guardar una
+    llamada serializada y despacharla por ``getattr`` seria construir un
+    ejecutor de metodos arbitrarios por nombre — exactamente lo que este arbol
+    evita en ``IrActionsServer.run()``, que levanta ``NotImplementedError`` por
+    la misma razon.
+
+    Tambien se marca ``request`` con ``groups=fields.NO_ACCESS`` en la fuente
+    (``:1628``), que es el reconocimiento explicito de que ese campo es
+    peligroso. No portar el despachador cierra ese riesgo en vez de replicarlo.
+    """
+
+    #: ≙ ``auth_method`` (``:1629``). La fuente declara un ``Selection`` con un
+    #: solo valor y un ``default`` calculado por ``_get_default_auth_method``,
+    #: preparado para que un addon anada mas (``totp``, en Enterprise). Aqui es
+    #: la misma lista de un elemento, extensible por el mismo motivo.
+    AUTH_METHODS = (('password', 'Contraseña'),)
+
+    @staticmethod
+    def _get_default_auth_method():
+        """≙ ``_get_default_auth_method`` (``:1632-1633``)."""
+        return 'password'
+
+    @staticmethod
+    def _check_identity(user, password):
+        """≙ ``_check_identity`` (``:1635-1644``).
+
+        La fuente construye la credencial con el ``login`` del usuario en
+        sesion y la contrasena del **contexto**, y llama a
+        ``_check_credentials`` sobre ``create_uid`` — el que abrio el
+        asistente. Aqui el usuario llega como parametro porque no hay fila del
+        asistente de la que leerlo, y la contrasena tambien: el contexto de la
+        fuente es su canal de transporte, no parte de la regla.
+
+        El mensaje de error se conserva verbatim en su intencion: la fuente
+        remite a *"Forgot Password"* porque su pantalla lo ofrece.
+
+        :raises UserError: si la credencial no coincide.
+        """
+        credential = {
+            'login': user.get_username(),
+            'password': password,
+            'type': 'password',
+        }
+        try:
+            user._check_credentials(credential, {'interactive': True})
+        except AccessDenied:
+            raise UserError(
+                'Contraseña incorrecta. Vuelve a intentarlo, o restablece '
+                'tu contraseña si la olvidaste.'
+            ) from None

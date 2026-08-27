@@ -148,6 +148,28 @@ import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from addons_roots import addon_dirs, addon_path
 
+
+def reference_root(addon):
+    """Raiz de un addon en la referencia, que NO tiene una sola forma.
+
+    La referencia reparte sus addons en dos raices: ``addons/`` (629
+    directorios) y ``odoo/addons/`` (24), y ``base`` —el addon del que depende
+    el arranque— vive en la segunda. Una version anterior de este gate probaba
+    solo la primera, asi que ``base`` quedaba fuera del alcance medido: 49
+    pares de archivo invisibles, todos con contraparte aqui.
+
+    Y el gate no lo delataba, porque un addon sin pares emite ``0 hallazgos``,
+    que se lee igual que un porte completo. Es el sub-patron D de
+    ``metrica-decide-la-conclusion.md``: un verde que no discrimina entre
+    "no falta nada" y "no se miro". El denominador ya se publicaba
+    (``alcance medido: N pares``) y decia ``0`` — la cifra estaba a la vista.
+    """
+    for root in (ODOO19C / 'addons', ODOO19C / 'odoo' / 'addons'):
+        candidate = root / addon
+        if candidate.is_dir():
+            return candidate
+    return ODOO19C / 'addons' / addon
+
 #: Renombres declarados: ``nombre en la referencia -> nombre aquí``. Cada
 #: entrada es una decisión, no una conveniencia — si el nombre cambió sin
 #: motivo, la entrada correcta es arreglar el nombre, no añadir el alias.
@@ -162,7 +184,16 @@ PORTE_ALIAS = {
     'AccountChartTemplate': 'ChartTemplate',
     # El guion bajo es un artefacto de la convención de la referencia para el
     # nombre técnico; los identificadores de este árbol van en CamelCase.
+    # Ojo: el aplanamiento MECÁNICO de guiones ya no vive aquí — lo hace
+    # ``class_key``. Esta entrada se conserva porque además cambia de palabra.
     'Sparse_FieldsTest': 'SparseFieldsTest',
+    # Renombres SEMÁNTICOS: la clase se llama por lo que es en este árbol, no
+    # por su nombre técnico en la referencia. Ninguna regla los deriva, así que
+    # se declaran uno por uno, y cada uno con su ``_name`` como prueba de que
+    # es la misma entidad y no un homónimo.
+    'IrConfig_Parameter': 'SystemParameter',        # _name = ir.config_parameter
+    'IrModuleModule': 'IrModule',                   # _name = ir.module.module
+    'IrModuleModuleDependency': 'IrModuleDependency',  # _name = ir.module.module.dependency
 }
 
 
@@ -364,13 +395,34 @@ def equivalencias_declaradas(ruta):
     Medido en el mismo pase: de las 38, **23** citaban el compute y **15** no.
     Las 15 son trabajo real —declarar su origen—, no ruido del gate.
 
-    *Métrica:* ``_compute_<campo>`` de la referencia cuyo ``<campo>`` es una
-    ``property``/``cached_property`` de nuestro archivo Y cuyo docstring
-    contiene la cadena ``_compute_<campo>``.
+    **Cuatro prefijos, no uno** (añadido 2026-08-26, :ref:`h-api-792`). La
+    referencia no nombra sus derivados de una sola forma, y la versión anterior
+    de esta función sólo veía ``_compute_``. Medido sobre Community 19
+    (``odoo19c: odoo/addons`` + ``addons``, ``git grep -oh`` por forma):
+
+    ==================  =====  =====================================
+    forma               veces  hogar aquí
+    ==================  =====  =====================================
+    ``compute='_compute_x'``  3048  ``property x``
+    ``inverse='_inverse_x'``   153  ``@x.setter``
+    ``inverse='_set_x'``        40  ``@x.setter``
+    ``compute='_get_x'``        35  ``property x``
+    ==================  =====  =====================================
+
+    Los tres que faltaban suman **228**: no es residual, y su ausencia declaró
+    ausentes cuatro símbolos de ``ir_sequence`` que SÍ están portados como
+    ``property number_next_actual`` con su ``setter``. El ``inverse`` es el que
+    el gate no contemplaba en absoluto — el setter de una ``property`` no es
+    una función con decorador ``property``, sino con ``<campo>.setter``.
+
+    *Métrica:* ``_compute_<campo>`` / ``_get_<campo>`` / ``_inverse_<campo>`` /
+    ``_set_<campo>`` de la referencia cuyo ``<campo>`` es una
+    ``property``/``cached_property``/``<campo>.setter`` de nuestro archivo Y
+    cuyo docstring contiene la cadena del símbolo.
     *Ciega a:* el mismo porte con el campo renombrado (``_compute_qty`` →
-    ``property quantity``), y a los ``_inverse_x``/``_search_x``, que la
-    referencia declara junto al compute y que aquí se resuelven de otras
-    formas. Ambos siguen saliendo como ausentes — el lado seguro.
+    ``property quantity``) y a los ``_search_x``, que la referencia declara
+    junto al compute y que aquí se resuelven de otras formas. Siguen saliendo
+    como ausentes — el lado seguro.
     """
     try:
         arbol = ast.parse(ruta.read_text())
@@ -386,14 +438,21 @@ def equivalencias_declaradas(ruta):
         if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         for dec in n.decorator_list:
+            # ``@property`` / ``@cached_property`` → el lado de lectura.
+            # ``@<campo>.setter`` → el lado de escritura, que es donde vive el
+            # ``inverse`` de la referencia. Se recoge bajo el MISMO nombre de
+            # campo, porque el símbolo que absuelve depende del prefijo, no de
+            # cuál de los dos lados lo declare.
             name = (dec.id if isinstance(dec, ast.Name) else
-                      dec.attr if isinstance(dec, ast.Attribute) else '')
-            if 'property' in name:
+                    dec.attr if isinstance(dec, ast.Attribute) else '')
+            if 'property' in name or name == 'setter':
                 properties.setdefault(n.name, []).append(
                     ast.get_docstring(n) or '')
                 break
-    return {f'_compute_{field}' for field, docs in properties.items()
-            if any(f'_compute_{field}' in doc for doc in docs)}
+    return {f'_{prefijo}_{field}'
+            for field, docs in properties.items()
+            for prefijo in ('compute', 'get', 'inverse', 'set')
+            if any(f'_{prefijo}_{field}' in doc for doc in docs)}
 
 
 def addon_classes(raiz):
@@ -417,13 +476,40 @@ def addon_classes(raiz):
         if 'migrations' in py.parts or '__pycache__' in py.parts:
             continue
         for klass, metodos in (simbolos(py) or {}).items():
-            by_class.setdefault(normaliza(klass), set()).update(metodos)
+            by_class.setdefault(class_key(klass), set()).update(metodos)
     return by_class
 
 
 def normaliza(name):
     """El nombre comparable: alias declarado, y sin guiones bajos de borde."""
     return PORTE_ALIAS.get(name, name).strip('_')
+
+
+def class_key(name):
+    """La llave con que se compara un nombre de CLASE, que no es la de un metodo.
+
+    La referencia deriva el nombre de la clase de su ``_name`` y conserva el
+    separador: ``ir.mail_server`` da ``IrMail_Server``,
+    ``ir.actions.act_window`` da ``IrActionsAct_Window``. Este arbol escribe
+    el mismo nombre en PascalCase — ``IrMailServer``, ``IrActionsActWindow``.
+    Es una diferencia **formal y mecanica**, no un renombre: comparar el
+    literal declaraba ausentes nueve clases que estan portadas, 96 simbolos.
+
+    Por eso NO se toca ``normaliza``: para un metodo el guion bajo es el
+    contrato —``_foo`` es interno y ``foo`` es publico, y despromoverlo es un
+    defecto propio (:ref:`h-api-581`)—, asi que aplanar guiones alli borraria
+    la distincion que otro gate vigila. Aqui no hay tal contrato: una clase
+    ``_Privada`` conserva su guion de borde, que es lo unico que ``strip``
+    quita.
+
+    *Metrica:* colisiones de la llave dentro de cada arbol. Medido sobre el
+    addon ``base``: **0** en 150 clases nuestras y **0** en 442 de la
+    referencia.
+    *Ciega a:* un renombre semantico (``IrConfig_Parameter`` ->
+    ``SystemParameter``), que no es formal y no se puede derivar. Ese va a
+    ``PORTE_ALIAS``, decidido uno por uno.
+    """
+    return normaliza(name).replace('_', '')
 
 
 def _class_without_counterpart(addon, file_path, klass, metodos, instalado,
@@ -483,7 +569,7 @@ def _class_without_counterpart(addon, file_path, klass, metodos, instalado,
 
 def compara(addon):
     """Devuelve ``(pares, [hallazgo, ...], no_resolubles, absoluciones)``."""
-    ref_raiz = ODOO19C / 'addons' / addon
+    ref_raiz = reference_root(addon)
     mio_raiz = addon_path(addon) or pathlib.Path('/nonexistent')
     if not ref_raiz.is_dir() or not mio_raiz.is_dir():
         return 0, [], 0, 0
@@ -517,14 +603,14 @@ def compara(addon):
             # portado con ``chain_method`` no está sin portar, aunque ninguna
             # clase lleve su nombre.
             if ref_clases and not any(
-                    normaliza(c) in by_class or normaliza(c) in instalado
+                    class_key(c) in by_class or normaliza(c) in instalado
                     for c in ref_clases):
                 hallazgos.append(
                     (addon, ref_py.name, '(archivo)', 'ARCHIVO NO PORTADO',
                      sorted(ref_clases)))
                 continue
             for klass, metodos in ref_clases.items():
-                aqui = by_class.get(normaliza(klass))
+                aqui = by_class.get(class_key(klass))
                 if aqui is None:
                     # Sin archivo pareado no hay property nuestra que leer, así
                     # que aquí no se absuelve nada: el conjunto va vacío.
@@ -543,14 +629,29 @@ def compara(addon):
         pares += 1
         ref_clases = simbolos(ref_py) or {}
         mias = simbolos(mio_py) or {}
-        mias_norm = {normaliza(c): ms for c, ms in mias.items()}
+        mias_norm = {class_key(c): ms for c, ms in mias.items()}
         from_file = {normaliza(x) for x in file_symbols(mio_py)}
         # Un compute sin store portado como property, con la equivalencia
         # declarada en su docstring. Ver equivalencias_declaradas().
         absueltos = {normaliza(x) for x in equivalencias_declaradas(mio_py)}
 
         for klass, metodos in ref_clases.items():
-            aqui = mias_norm.get(normaliza(klass))
+            aqui = mias_norm.get(class_key(klass))
+            out_of_file = False
+            if aqui is None:
+                # La clase no esta en el archivo pareado. ANTES de declararla
+                # ausente se busca en el resto del addon: este arbol parte un
+                # archivo de la referencia en varios —``res_bank.py`` ->
+                # ``res_partner_bank.py``— y la rama de "archivo sin
+                # contraparte" ya lo hacia, pero esta no. Medido: 9 clases y
+                # 96 simbolos declarados ausentes estando portados.
+                #
+                # No absuelve: el veredicto es CLASE FUERA DE SITIO y sus
+                # metodos se comparan igual. Es lo que :ref:`h-api-350` exige
+                # —la version que dio COMPLETO por tener la clase en otro sitio
+                # sin mirar un solo metodo es justo lo que no se puede repetir.
+                aqui = by_class.get(class_key(klass))
+                out_of_file = aqui is not None
             if aqui is None:
                 hallazgo, absueltas = _class_without_counterpart(
                     addon, ref_py.name, klass, metodos, instalado, absueltos)
@@ -558,6 +659,10 @@ def compara(addon):
                 if hallazgo is not None:
                     hallazgos.append(hallazgo)
                 continue
+            if out_of_file:
+                hallazgos.append(
+                    (addon, ref_py.name, klass, 'CLASE FUERA DE SITIO',
+                     [f'portada fuera de {ref_py.name}']))
             aqui_norm = {normaliza(m) for m in aqui}
             faltan, out_of_place = [], []
             for m in sorted(metodos):
@@ -648,7 +753,7 @@ def main():
                 'NO PORTADO' if tipo == 'ARCHIVO NO PORTADO'
                 else previo or 'PARCIAL')
         for addon in addons:
-            ref_dir = ODOO19C / 'addons' / addon / 'models'
+            ref_dir = reference_root(addon) / 'models'
             if not ref_dir.is_dir() or addon_path(addon) is None:
                 continue
             for ref_py in sorted(ref_dir.glob('*.py')):

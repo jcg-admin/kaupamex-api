@@ -337,7 +337,7 @@ class CheckPrintingPaymentInfo(TimeStampedModel):
         if not journal_settings.manual_sequencing:
             return row
         journal_settings = CheckPrintingJournalSettings.ensure_check_sequence(payment.journal)
-        row.check_number = journal_settings.sequence.get_next()
+        row.check_number = journal_settings.sequence.next_by_id()
         row.save(update_fields=['check_number', 'updated_at'])
         cls.validate_check_number_uniqueness(payment)
         return row

@@ -355,7 +355,7 @@ class StockPackageType(TimeStampedModel):
         1. El cuerpo llamaba ``self.sequence_ref.next_by_id()``, y ese método
            **no existe en ningún punto del árbol** — medido:
            ``grep -rn "def next_by_id" addons/ src/`` → 0. El equivalente
-           nuestro de ``_next()``/``next_by_id()`` es ``get_next()``
+           nuestro de ``_next()``/``next_by_id()`` es ``next_by_id()``
            (``src/addons/base/models/ir_sequence.py:94``), y lo dice el propio
            docstring de ``account_check_printing/models/ir_sequence.py:17``.
            Fallaba con ``AttributeError`` en tiempo de EJECUCIÓN, no de import,
@@ -365,5 +365,5 @@ class StockPackageType(TimeStampedModel):
            aquí porque este pase toca el archivo.
         """
         if self.sequence_ref is not None:
-            return self.sequence_ref.get_next()
+            return self.sequence_ref.next_by_id()
         return IrSequence.next_by_code('stock.package')

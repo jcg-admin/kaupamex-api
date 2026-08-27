@@ -16,6 +16,8 @@ from decimal import Decimal
 import pytest
 from django.db import IntegrityError, transaction
 
+from orm.environments import context_scope
+
 from addons.base.models import (
     DecimalPrecision,
     IrSequence,
@@ -103,23 +105,47 @@ class TestResBank:
 
 class TestIrSequence:
     def test_get_next_padding_prefix_suffix(self):
+        """Con ``standard`` el contador vive en la secuencia NATIVA.
+
+        La fila conserva su ``number_next``; lo que avanza es la secuencia de
+        PostgreSQL, y quien la lee es el campo calculado ``number_next_actual``
+        (≙ ``_get_number_next_actual`` → ``_predict_nextval``). Este caso
+        afirmaba ``seq.number_next == 2`` porque el porte anterior llevaba el
+        contador en la fila para las dos implementaciones.
+        """
         seq = IrSequence.objects.create(
             name='Factura', code='account.invoice', prefix='INV/', suffix='/26',
             padding=5, number_next=1, number_increment=1)
-        assert seq.get_next() == 'INV/00001/26'
-        seq.refresh_from_db()
-        assert seq.number_next == 2
-        assert seq.get_next() == 'INV/00002/26'
+        assert seq.next_by_id() == 'INV/00001/26'
+        assert seq.number_next_actual == 2
+        assert seq.next_by_id() == 'INV/00002/26'
 
     def test_get_next_increment_step(self):
         seq = IrSequence.objects.create(
-            name='Pick', prefix='WH/OUT/', padding=4, number_next=10, number_increment=5)
-        assert seq.get_next() == 'WH/OUT/0010'
+            name='Pick', prefix='WH/OUT/', padding=4, number_next=10,
+            number_increment=5)
+        assert seq.next_by_id() == 'WH/OUT/0010'
+        assert seq.number_next_actual == 15
+
+    def test_get_next_increment_step_no_gap(self):
+        """La otra implementación SÍ lleva el contador en la fila."""
+        seq = IrSequence.objects.create(
+            name='Pick sin hueco', prefix='WH/OUT/', padding=4, number_next=10,
+            number_increment=5, implementation='no_gap')
+        assert seq.next_by_id() == 'WH/OUT/0010'
         seq.refresh_from_db()
         assert seq.number_next == 15
 
     def test_date_interpolation(self):
+        """La fecha de interpolación viaja por CONTEXTO, no por parámetro.
+
+        ≙ ``self.env.context.get('ir_sequence_date')`` de
+        ``_get_prefix_suffix``; aquí ``orm.environments.context_scope``. El
+        ``sequence_date`` de ``next_by_id`` elige el RANGO, que es otra cosa y
+        sólo aplica con ``use_date_range``.
+        """
         seq = IrSequence.objects.create(
             name='Orden', prefix='SO/%(year)s/', padding=3, number_next=7)
-        out = seq.get_next(for_date=date(2026, 7, 18))
+        with context_scope(ir_sequence_date=date(2026, 7, 18)):
+            out = seq.next_by_id()
         assert out == 'SO/2026/007'

@@ -150,7 +150,7 @@ def signup_get_auth_param(partner, requester):
     """≙ ``signup_get_auth_param`` (res_partner.py:91-108): token si no hay
     usuario y el signup público está abierto; login si ya existe. Sólo un
     usuario interno lo pide (el que comparte el documento del portal)."""
-    if not requester.is_internal():
+    if not requester._is_internal():
         raise AccessDenied('Only internal users can request a signup param.')
     user = partner.users.first()
     if user is not None:

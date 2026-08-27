@@ -423,8 +423,25 @@ class IrActionsServer(IrActionsBase):
         ('multi', 'Varias acciones'),
     ]
 
+    #: ≙ ``usage`` (``odoo19c: ir_actions.py:608-611``) — lo que distingue una
+    #: accion suelta de la que respalda a un ``ir.cron``. Lo escribe
+    #: ``IrCron.save()`` al crear, igual que la fuente lo fija en ``create``
+    #: (``ir_cron.py:137``). Sin este campo la accion de un cron era
+    #: indistinguible de cualquier otra, y el filtro de la fuente —*"Used to
+    #: filter menu and home actions from the user form"*— no tenia por donde.
+    USAGE_CHOICES = [
+        ('ir_actions_server', 'Acción de servidor'),
+        ('ir_cron', 'Acción programada'),
+    ]
+
     state = fields.Selection(
         max_length=16, choices=STATE_CHOICES, verbose_name='Tipo')
+    usage = fields.Selection(
+        max_length=20, choices=USAGE_CHOICES, default='ir_actions_server',
+        verbose_name='Uso',
+        help_text='Odoo usage. ir_cron cuando la accion respalda a una tarea '
+                  'programada.',
+    )
     sequence = fields.Integer(
         default=5, verbose_name='Secuencia',
         help_text='Orden de ejecución en una acción de tipo "varias".',
@@ -448,12 +465,74 @@ class IrActionsServer(IrActionsBase):
         help_text='Método a invocar sobre model_name. Alternativa segura al '
                   'code Python del modo "code"; este archivo tampoco lo invoca.',
     )
+    #: ≙ ``parent_id`` (``odoo19c: ir_actions.py:648``) — el enlace del modo
+    #: ``multi``: una acción compuesta encadena a sus hijas. La fuente declara
+    #: ``ondelete='cascade'`` e ``index=True``; los dos se conservan.
+    #:
+    #: El inverso ``child_ids`` (``:649-650``) es aquí ``related_name``: en
+    #: Django la relación se declara una vez y el reverso lo da el ORM. Su
+    #: ``domain`` y su ``copy=True`` NO se portan — el primero es filtro de
+    #: vista y el segundo es semántica de ``copy()``, que este árbol resuelve
+    #: en el serializer. Divergencia declarada, no omisión.
+    parent = fields.Many2one(
+        'self', on_delete=models.CASCADE, db_index=True,
+        null=True, blank=True, related_name='child_ids',
+        verbose_name='Acción padre',
+        help_text='Odoo parent_id. Acción compuesta que encadena a ésta.',
+    )
 
     class Meta:
         db_table = 'ir_act_server'
         ordering = ['sequence', 'name', 'id']
         verbose_name = 'Acción de servidor'
         verbose_name_plural = 'Acciones de servidor'
+
+    # ---- Las dos acciones de apertura de la referencia -------------------
+
+    def action_open_parent_action(self):
+        """≙ ``action_open_parent_action`` (``odoo19c: ir_actions.py:1328-1335``).
+
+        Devuelve el descriptor ``ir.actions.act_window`` que abre la accion
+        padre. ``ir.cron`` delega aqui (``ir_cron.py:889-891``), que es por
+        que el metodo vive en este modelo y no alli.
+
+        Sin ``parent`` declarado —el estado hasta este pase— no habia a que
+        apuntar y el metodo era una firma vacia.
+        """
+        return {
+            'type': 'ir.actions.act_window',
+            'target': 'current',
+            'views': [[False, 'form']],
+            'res_model': self.TYPE,
+            'res_id': self.parent_id,
+        }
+
+    def action_open_scheduled_action(self):
+        """≙ ``action_open_scheduled_action`` (``odoo19c: :1337-1344``).
+
+        Abre el ``ir.cron`` que esta accion respalda. La fuente lo resuelve
+        con ``self.ir_cron_ids.ids[0]``; aqui el inverso de la FK de
+        ``IrCron`` se llama ``crons``, y **incluye los inactivos** sin hacer
+        nada: el manager por defecto de Django no filtra, que es exactamente
+        lo que la fuente pide con ``context={'active_test': False}``
+        (``:641``).
+
+        Devuelve ``None`` cuando la accion no respalda ningun cron — la
+        fuente indexaria ``[0]`` y reventaria con ``IndexError``. Divergencia
+        declarada: un descriptor que apunta a nada no es mas util que
+        ninguno, y aqui el llamador es una vista React que sabe leer el
+        ``None``.
+        """
+        cron = self.crons.first()
+        if cron is None:
+            return None
+        return {
+            'type': 'ir.actions.act_window',
+            'target': 'current',
+            'views': [[False, 'form']],
+            'res_model': 'ir.cron',
+            'res_id': cron.pk,
+        }
 
     def run(self):
         """Punto de extensión del motor de ejecución.

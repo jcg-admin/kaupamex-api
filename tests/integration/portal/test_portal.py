@@ -5,8 +5,8 @@ Cubre lo portado en este pase (``odoo19c: portal/``, leído completo):
 - ``document_check_access`` (≙ ``_document_check_access``, portal.py:961-980):
   el token concede acceso en tiempo constante cuando el permiso normal no.
 - las reglas de edición del partner por portal/público
-  (``portal/models/res_partner.py``), sobre el eje ``is_public()``/
-  ``is_internal()`` real (H-API-234).
+  (``portal/models/res_partner.py``), sobre el eje ``_is_public()``/
+  ``_is_internal()`` real (H-API-234).
 
 ``PortalMixin`` es abstracto (sin tabla): su aplicación a un documento
 concreto (``SaleOrder``) es la decisión siguiente del loop — por eso su

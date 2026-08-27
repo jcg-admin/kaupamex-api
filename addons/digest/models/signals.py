@@ -21,7 +21,7 @@ motivo es estructural, no un descuido:
   recién creado.
 - En Django, el M2M sólo puede escribirse **después** de que la fila tenga
   PK. En ``post_save(created=True)`` el usuario todavía no tiene ningún
-  grupo, y ``share`` —definido como ``not is_internal()``
+  grupo, y ``share`` —definido como ``not _is_internal()``
   (``res_users.py:421-426``)— es **True para todo usuario recién creado**.
   El guard cortaba siempre.
 

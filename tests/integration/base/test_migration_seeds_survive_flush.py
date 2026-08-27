@@ -21,6 +21,21 @@ un test transaccional. Estos tests fijan las dos mitades del contrato:
 2. Un test transaccional **no** deja sin semillas al siguiente — el orden de
    ejecución deja de importar.
 
+**Ampliación 2026-08-26 — la familia ``ir.cron``.** Las siete siembras de cron
+del árbol (``base/0032`` y seis de addon) no estaban en ``_SEEDERS``: eran
+data-migrations sin ``seed()`` registrado, así que caían por el mismo agujero
+que este archivo cierra. Medido en ``kaupamex_core_qa`` antes del arreglo:
+``select count(*) from ir_cron`` → **0**, con ``auto_backup/0003`` registrada
+como aplicada, y los cuatro casos de ``tests/integration/auto_backup/``
+fallando por un cron que la suite ya no volvía a sembrar.
+
+*El control que puede fallar:* retirando ``_crons_seed`` de ``_SEEDERS``, este
+archivo pasa de **6 passed** a **1 failed, 5 passed** — cae
+``test_el_hook_de_teardown_esta_cableado``, el único cuyo veredicto depende de
+que el seeder esté cableado. Los otros cinco sobreviven porque llaman a
+``_ALL_SEEDERS`` directamente, y ahí está el punto: sin ese caso, la suite
+seguiría verde con la red desconectada.
+
 El test 2 depende del orden dentro de esta clase (``-p no:randomly`` está en
 ``pytest.ini``): el transaccional corre antes que el que verifica.
 """
@@ -42,6 +57,7 @@ from addons.sale_subscription.data.res_company_data import (
 )
 from addons.base.models import ResCompany
 from addons.mail.data import CANONICAL_SUBTYPES
+from addons.base.models.ir_cron import IrCron
 from addons.mail.data import seed as mail_subtypes_seed
 from addons.mail.models import MailMessageSubtype
 
@@ -53,7 +69,8 @@ _SEED_KEYS = (tuple(PASSWORD_POLICY_PARAMETERS) + tuple(SIGNUP_PARAMETERS)
               + tuple(TOTP_PARAMETERS))
 
 _ALL_SEEDERS = (password_policy_seed, signup_flags_seed, totp_params_seed,
-                mail_subtypes_seed, geo_providers_seed, bootstrap_company_seed)
+                mail_subtypes_seed, geo_providers_seed, bootstrap_company_seed,
+                conftest._crons_seed)
 
 # La empresa de bootstrap NO entra en ``_seeds_present``: su semilla depende de
 # ``BOOTSTRAP_COMPANY_CODE`` (DEC-3 — la app ya no nombra ninguna empresa L1 en
@@ -72,6 +89,14 @@ def _seeds_present():
             res_model='').count(),
         'geo': GeoProvider.objects.filter(
             tech_name__in=[t for t, _ in GEO_PROVIDERS]).count(),
+        # Añadida 2026-08-26: las siete siembras de ``ir.cron`` estaban fuera
+        # de la red de H-API-22. Medido antes del arreglo, ``ir_cron`` tenía
+        # **0** filas en ``kaupamex_core_qa`` con sus migraciones registradas
+        # como aplicadas, y los cuatro casos de ``auto_backup`` fallaban por
+        # eso — a diez archivos de distancia de la causa.
+        'crons': IrCron.objects.filter(
+            ir_actions_server__method_name__in=[
+                s['method_name'] for s in conftest._CRON_SPECS]).count(),
     }
 
 
@@ -79,6 +104,7 @@ _ESPERADO = {
     'params': len(_SEED_KEYS),
     'subtypes': len(CANONICAL_SUBTYPES),
     'geo': len(GEO_PROVIDERS),
+    'crons': len(conftest._CRON_SPECS),
 }
 
 
@@ -123,6 +149,7 @@ class TestRestauracionTrasElFlush:
         SystemParameter.objects.filter(key__in=_SEED_KEYS).delete()
         MailMessageSubtype.objects.filter(res_model='').delete()
         GeoProvider.objects.all().delete()
+        IrCron.objects.all().delete()
         assert _seeds_present() != _ESPERADO      # el flush deja hueco real
 
         for seed in _ALL_SEEDERS:                 # lo que corre el hook

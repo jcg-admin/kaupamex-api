@@ -38,6 +38,14 @@ from addons.sale_subscription.data.res_company_data import (
     seed as bootstrap_company_seed,
 )
 from addons.mail.data import seed as mail_subtypes_seed
+from addons.auto_backup.data import CRON_BACKUP
+from addons.base.data import CRON_AUTOVACUUM
+from addons.base.data.cron import sembrar_cron_vivo
+from addons.base_automation.data import CRON_BASE_AUTOMATION_CHECK
+from addons.helpdesk.data import CRON_AUTO_CLOSE_TICKETS
+from addons.loyalty.data import CRON_EXPIRE_VOUCHERS
+from addons.mail.data import CRON_EMAIL_QUEUE
+from addons.website_sale.models.website import CRON_SEND_ABANDONED_CART_EMAIL
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 
 import pytest
@@ -314,6 +322,32 @@ def _reset_system_parameter_cache():
 # envío en cada test colisiona con los tests que crean las suyas y afirman
 # conteos — el mismo choque que ya costó un CI rojo. Queda registrado como
 # hallazgo aparte en vez de arrastrarlo aquí a ciegas.
+# Las siete siembras de ``ir.cron`` del arbol — ``base/0032`` y las seis de
+# addon. Estaban FUERA de esta red hasta 2026-08-26: cada una es una
+# data-migration sin ``seed()`` registrado aqui, asi que un solo test
+# transaccional las borraba y ``django_migrations`` las seguia dando por
+# aplicadas. Medido en ``kaupamex_core_qa``: ``select count(*) from ir_cron``
+# devolvia **0** con las tres migraciones de ``auto_backup`` registradas, y los
+# cuatro casos de ``tests/integration/auto_backup/`` fallaban por un cron que
+# la suite nunca volvia a sembrar. Es H-API-22 otra vez, en la familia que su
+# fixture no cubria.
+_CRON_SPECS = (
+    CRON_AUTOVACUUM,                  # base/0032
+    CRON_BACKUP,                      # auto_backup/0003
+    CRON_EMAIL_QUEUE,                 # mail/0004
+    CRON_EXPIRE_VOUCHERS,             # loyalty/0002
+    CRON_AUTO_CLOSE_TICKETS,          # helpdesk/0002
+    CRON_SEND_ABANDONED_CART_EMAIL,   # website_sale/0002
+    CRON_BASE_AUTOMATION_CHECK,       # base_automation
+)
+
+
+def _crons_seed():
+    """Re-aplica las siete siembras de cron. Idempotente por clave natural."""
+    for spec in _CRON_SPECS:
+        sembrar_cron_vivo(spec)
+
+
 _SEEDERS = (
     SystemParameter.seed,       # base/0002 + base/0003 (_DEFAULT_PARAMETERS)
     countries_seed,             # base/0017 (251 países + 8 agrupaciones)
@@ -331,6 +365,7 @@ _SEEDERS = (
     subscription_rules_seed,    # sale_subscription/security/ir_rules
     sale_report_view_seed,      # sale/0002 (plantilla del documento)
     incoterm_extension_seed,    # sale_stock/0003 — después de la primaria
+    _crons_seed,                # las siete siembras de ir.cron
 )
 
 
