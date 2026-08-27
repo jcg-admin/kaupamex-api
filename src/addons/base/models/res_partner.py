@@ -32,13 +32,16 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import fields
 import models
 from django.apps import apps
+from django.conf import settings
+from django.utils.translation import get_language
 
 from addons.base.models.avatar_mixin import AvatarMixin
 from addons.base.models.res_country import (ADDRESS_FORMAT_KEYS,
                                             DEFAULT_ADDRESS_FORMAT)
 from addons.base.models.res_lang import ResLang
 from exceptions import ValidationError
-from orm.environments import get_context, get_current_company
+from orm.environments import (get_context, get_current_company,
+                              get_current_user)
 from orm.utils import SUPERUSER_ID
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from tools.mail import email_normalize_all, formataddr
@@ -130,12 +133,14 @@ class ResPartner(AvatarMixin, TimeStampedModel):
       compute y su propiedad. Es el único de los tres que era un hueco: un
       campo cuya base devuelve vacío y que existe **para** que otros lo
       llenen.
-    - ``_default_category`` (``odoo19c: :197-198``) — **divergencia de
-      mecanismo**. Lee ``category_id`` del ``env.context``, la bolsa de
-      contexto por petición del ORM de la referencia. Aquí no hay ``env``:
-      el valor inicial de un M2M lo pasa quien crea el registro, y el sitio
-      donde se decide es el serializer, no un default del modelo. Portarlo
-      con la firma de la fuente exigiría inventar la bolsa de contexto.
+    - ``_default_category`` (``odoo19c: :197-198``) — **portado**, abajo.
+      Estuvo declarado como divergencia de mecanismo con esta razón: *"Aquí
+      no hay ``env``… portarlo con la firma de la fuente exigiría inventar la
+      bolsa de contexto"*. La bolsa **existe** desde que se portó el bloque de
+      ``display_name`` (``orm.environments.get_context``), y este mismo
+      archivo la consulta con cinco claves en ``_compute_display_name``. La
+      divergencia se retiró en el mismo pase que lo destapó — estado heredado
+      incorrecto, Clausula 2 del principio rector.
     - ``_compute_display_name`` — **divergencia de mecanismo**, y ya
       declarada arriba: los computados quedan fuera y el enganche de nombre
       para mostrar de Django es ``__str__``, que sí está y sí se hereda. La
@@ -287,6 +292,23 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     )
     comment     = fields.Text(blank=True, default='')
 
+    # Aviso de la fuente, verbatim (``odoo19c: res_partner.py:230``):
+    # *"Warning: user_id is a Salesperson, not the inverse of partner_id in
+    # res.users. For the latter, see user_ids and main_user_id."* Aqui son
+    # ``user`` (el vendedor, esta columna) y ``users``/``main_user`` (el
+    # inverso). Confundirlos hace que asignar un comercial cambie de quien es
+    # la cuenta.
+    #
+    # ``related_name='+'`` es divergencia de STACK declarada: la fuente NO
+    # declara inverso para este campo, y Django fabricaria uno que alla no
+    # existe. El ``+`` es lo mas cercano a no tenerlo.
+    user        = fields.Many2one(
+        'base.ResUsers', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+',
+        help_text='Vendedor: el usuario interno a cargo de este contacto '
+                  '(Odoo user_id). store=True con compute y readonly=False: '
+                  'se hereda del padre al crear y se reescribe a mano.')
+
     # --- Etiquetas calculadas, SIN columna --------------------------------
     #
     # Diez de los trece campos de este bloque NO son columnas: la fuente los
@@ -356,6 +378,12 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         help_text='Otro partner con el mismo registro mercantil '
                   '(Odoo same_company_registry_partner_id). '
                   'BLOQUEADO por ``partner.company_id`` — ver tarea #105.')
+    main_user = fields.NonStored(
+        default=lambda partner: partner._compute_main_user_id(),
+        help_text='De las cuentas que apuntan a este partner, la mas '
+                  'apropiada (Odoo main_user_id). NO es el vendedor: ese es '
+                  '``user``, y la fuente avisa de la confusion en un '
+                  'comentario propio (``:230``).')
 
     class Meta:
         db_table            = 'res_partner'
@@ -1160,6 +1188,11 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         # se captura a mano y una localizacion lo deriva sobreescribiendo
         # ``_compute_company_registry``.
         self.complete_name = self._compute_complete_name()
+        # Los dos computos con columna del bloque de usuario e idioma. Van
+        # ANTES del ``super().save`` porque ``store=True`` en la fuente: el
+        # valor se persiste, no se deriva en cada lectura.
+        self.lang = self._compute_lang()
+        self.user = self._compute_user_id()
         if not creating:
             # ``partner_share`` mira ``self.users``, que necesita PK. Al crear
             # no hay usuarios todavia y queda en su default (True = cliente
@@ -1640,6 +1673,117 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         mismo; se portan los dos porque cubren dos momentos distintos.
         """
         self.is_company = self.company_type == 'company'
+
+    def _compute_lang(self):
+        """≙ ``_compute_lang`` (``odoo19c: res_partner.py:398-405``).
+
+        Docstring de la fuente, verbatim: *"While creating / updating child
+        contact, take the parent lang by default if any. 0therwise, fallback
+        to default context / DB lang"* (el cero es de la fuente).
+
+        La asimetria del ``if``/``elif`` importa y no es cosmetica: **con
+        padre, el idioma del padre gana** sobre el que el hijo ya tuviera; sin
+        padre, sólo se rellena si esta vacio. Un contacto de una empresa
+        japonesa recibe su correspondencia en japones aunque alguien le
+        hubiera puesto otro idioma a mano.
+
+        **Divergencia de mecanismo, declarada:** la fuente cae a
+        ``partner.default_get(['lang']).get('lang') or partner.env.lang``.
+        ``default_get`` no esta portado (sigue entre los ausentes de este
+        archivo) y ``env.lang`` es el idioma activo de la peticion, que aqui
+        lo lleva Django: ``get_language()`` con el ``LANGUAGE_CODE`` de
+        ``settings`` de respaldo. Es la misma cascada con las dos piezas que
+        este arbol si tiene.
+        """
+        fallback = get_language() or settings.LANGUAGE_CODE
+        if self.parent_id:
+            return self.parent.lang or fallback
+        return self.lang or fallback
+
+    def _compute_user_id(self):
+        """≙ ``_compute_user_id`` (``odoo19c: res_partner.py:419-423``).
+
+        Docstring de la fuente, verbatim: *"Synchronize sales rep with parent
+        if partner is a person"*.
+
+        Tres condiciones, y las tres discriminan: sólo si **no** hay vendedor
+        propio (el computo no pisa una reasignacion manual), sólo si el
+        partner es una **persona** (una filial es entidad comercial propia y
+        lleva el suyo), y sólo si el padre **tiene** uno.
+
+        Devuelve el vendedor que corresponde — el propio cuando no toca
+        heredar—, no ``None``, para que el llamador asigne sin guarda.
+        """
+        if (not self.user_id
+                and self._compute_company_type() == 'person'
+                and self.parent_id
+                and self.parent.user_id):
+            return self.parent.user
+        return self.user
+
+    def _compute_main_user_id(self):
+        """≙ ``_compute_main_user_id`` (``odoo19c: res_partner.py:426-441``).
+
+        De las cuentas que apuntan a este partner, la mas apropiada. **No es
+        el vendedor** — ese es ``user``, y son campos distintos que la fuente
+        se molesta en desambiguar en un comentario propio.
+
+        Tres reglas, en el orden de la fuente:
+
+        1. **Quien mira gana.** Si el partner es el del usuario en curso, el
+           principal es el — antes de ordenar nada.
+        2. **Sólo cuentas activas.** Una archivada no puede ser la principal:
+           el correo iria a quien ya no esta.
+        3. **Interno antes que compartido; entre internos, el mas antiguo.**
+           Es lo que dice ``sorted(key=lambda u: (not u.share, -u.id),
+           reverse=True)[:1]`` de la fuente, desenvuelto: descendente por
+           ``not share`` pone al interno primero, y descendente por ``-id``
+           deja arriba el id mas bajo.
+
+        **Divergencia de mecanismo, declarada:** el caso especial de la fuente
+        —*"Special case for OdooBot as its user might be archived"*— ancla la
+        cuenta raiz por ``xmlid`` (``base.partner_root`` / ``base.user_root``).
+        Aqui esos identificadores no estan sembrados (medido: 0 apariciones de
+        ``partner_root``); el ancla equivalente es ``SUPERUSER_ID``, el mismo
+        que ya usa :meth:`_compute_partner_share`.
+        """
+        if not self.pk:
+            return None
+        current = get_current_user()
+        if current is not None and getattr(current, 'partner_id', None) == self.pk:
+            return current.pk
+        active_users = [user for user in self.users.all() if user.active]
+        if not active_users:
+            root_partner = type(self).objects.filter(
+                users__pk=SUPERUSER_ID).values_list('pk', flat=True).first()
+            if root_partner == self.pk:
+                return SUPERUSER_ID
+            return None
+        active_users.sort(key=lambda user: (not user.share, -user.pk),
+                          reverse=True)
+        return active_users[0].pk
+
+    @classmethod
+    def _default_category(cls):
+        """≙ ``_default_category`` (``odoo19c: res_partner.py:197-198``).
+
+        La categoria inicial la pone quien abre el formulario, por contexto:
+        ``self.env['res.partner.category'].browse(self.env.context.get(
+        'category_id'))``. ``browse(None)`` es un recordset **vacio**, no el
+        conjunto entero — por eso sin clave devuelve nada.
+
+        **Este simbolo estaba declarado como divergencia de mecanismo, y la
+        razon que se daba ya no se sostiene.** Decia *"Aqui no hay ``env``"*;
+        la bolsa de contexto existe desde que se porto el bloque de
+        ``display_name``: ``orm.environments.get_context``, que el propio
+        ``_compute_display_name`` de este archivo consulta con cinco claves.
+        Estado heredado incorrecto, corregido en el mismo pase (Clausula 2 del
+        principio rector).
+        """
+        category_id = get_context().get('category_id')
+        if not category_id:
+            return ResPartnerCategory.objects.none()
+        return ResPartnerCategory.objects.filter(pk=category_id)
 
     def _compute_partner_share(self):
         """¿Este partner es un cliente sin acceso, o un usuario compartido?
