@@ -46,7 +46,7 @@ def test_the_web_link_adds_its_own_key_on_top(settings):
     action = IrActionsActWindow.objects.create(
         name='Ventas embebidas', res_model='sale.SaleOrder')
     ResUsersSettingsEmbeddedAction.objects.create(
-        user_setting=settings, action_id=action.pk, res_id=1,
+        user_setting_id=settings, action_id_id=action.pk, res_id=1,
         embedded_actions_order='7,false', embedded_actions_visibility='7')
 
     formatted = settings._format_settings(

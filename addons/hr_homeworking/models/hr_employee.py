@@ -86,9 +86,9 @@ def _compute_exceptional_location_id(self):
     if self.pk is None:
         return None
     exception = HrEmployeeLocation.objects.filter(
-        employee=self, date=date.today(),
-    ).select_related('work_location').first()
-    return exception.work_location if exception else None
+        employee_id=self, date=date.today(),
+    ).select_related('work_location_id').first()
+    return exception.work_location_id if exception else None
 
 
 def _current_location(self):

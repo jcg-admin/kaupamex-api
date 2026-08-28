@@ -107,13 +107,13 @@ def product(db):
 @pytest.fixture
 def team(company):
     """El equipo que **sí** es salesteam de un sitio."""
-    return CrmTeam.objects.create(name='Ventas web', company=company)
+    return CrmTeam.objects.create(name='Ventas web', company_id=company)
 
 
 @pytest.fixture
 def other_team(company):
     """El equipo de control: existe, tiene carritos, y no es salesteam."""
-    return CrmTeam.objects.create(name='Ventas mostrador', company=company)
+    return CrmTeam.objects.create(name='Ventas mostrador', company_id=company)
 
 
 @pytest.fixture
@@ -329,7 +329,7 @@ def test_archived_team_is_not_defaulted(company, monkeypatch):
     devolvería, porque la siembra no existe todavía. Sin este caso, el
     ``and team.active`` podría perderse sin que nada lo notara.
     """
-    archived = CrmTeam.objects.create(name='Web (archivado)', company=company,
+    archived = CrmTeam.objects.create(name='Web (archivado)', company_id=company,
                                       active=False)
     monkeypatch.setattr(website_module.IrModelData, 'ref',
                         classmethod(lambda cls, xmlid, **kw: archived))

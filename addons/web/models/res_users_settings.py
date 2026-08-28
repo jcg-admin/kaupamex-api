@@ -84,12 +84,13 @@ def set_embedded_actions_setting(self, action_id, res_id, vals):
     ``embedded_actions_visibility`` llegan como lista de ids (``False``
     marca un hueco) y se serializan a CSV — el mismo formato que
     ``ResUsersSettingsEmbeddedAction._embedded_action_settings_format``
-    deserializa. ``action_id=`` se filtra/crea por la FK cruda (sin cargar
-    el ``IrActionsActWindow``), igual que ``action_id.id`` en la referencia
-    no exige el registro completo.
+    deserializa. Se filtra y se crea por la FK **cruda** —``action_id_id``,
+    el *attname* que la forma C deja tras el simbolo ``action_id``— sin cargar
+    el ``IrActionsActWindow``, igual que ``action_id.id`` en la referencia no
+    exige el registro completo.
     """
     embedded_actions_config = self.embedded_actions_config_ids.filter(
-        action_id=action_id, res_id=res_id).first()
+        action_id_id=action_id, res_id=res_id).first()
     new_vals = {}
     for field, value in vals.items():
         if field in ('embedded_actions_order', 'embedded_actions_visibility'):
@@ -106,8 +107,8 @@ def set_embedded_actions_setting(self, action_id, res_id, vals):
     else:
         ResUsersSettingsEmbeddedAction.objects.create(
             **new_vals,
-            user_setting=self,
-            action_id=action_id,
+            user_setting_id=self,
+            action_id_id=action_id,
             res_id=res_id,
         )
 

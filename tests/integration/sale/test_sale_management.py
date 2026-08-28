@@ -30,7 +30,7 @@ def test_template_creation_defaults(db):
 def test_template_lines_product_and_section(producto):
     t = SaleOrderTemplate.objects.create(name='Con líneas')
     prod_line = SaleOrderTemplateLine.objects.create(
-        template=t, product=producto, product_uom_qty=Decimal('2.00'), sequence=20,
+        template=t, product_id=producto, product_uom_qty=Decimal('2.00'), sequence=20,
     )
     section = SaleOrderTemplateLine.objects.create(
         template=t, name='Servicios', display_type=SaleOrderTemplateLine.DISPLAY_SECTION,

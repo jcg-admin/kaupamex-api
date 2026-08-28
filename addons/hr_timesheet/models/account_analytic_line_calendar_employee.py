@@ -48,15 +48,17 @@ class AccountAnalyticLineCalendarEmployee(models.Model):
     """``account.analytic.line.calendar.employee`` — qué empleados muestra
     el calendario personal de un usuario."""
 
-    user = fields.Many2one(
+    user_id = fields.Many2one(
         ResUsers, on_delete=models.CASCADE, related_name='timesheet_calendar_filters',
         verbose_name='Usuario',
         help_text='Odoo user_id (required, ondelete=cascade). Sin default '
                   'a env.user — ver docstring del módulo.',
+        db_column='user_id',
     )
-    employee = fields.Many2one(
+    employee_id = fields.Many2one(
         HrEmployee, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='calendar_filters', verbose_name='Empleado',
+        db_column='employee_id',
     )
     checked = fields.Boolean(default=True, verbose_name='Marcado')
     active = fields.Boolean(default=True, verbose_name='Activo')
@@ -67,4 +69,4 @@ class AccountAnalyticLineCalendarEmployee(models.Model):
         verbose_name_plural = 'Filtros de empleado en calendario'
 
     def __str__(self):
-        return f'{self.user} / {self.employee}'
+        return f'{self.user_id} / {self.employee_id}'

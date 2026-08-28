@@ -175,7 +175,7 @@ class TestCodeCheck:
                                             {'interactive': True})
         assert resultado['auth_method'] == 'totp'
         assert AuthTotpRateLimitLog.objects.filter(
-            user_id=user.pk, limit_type='code_check').count() == 0
+            user_id_id=user.pk, limit_type='code_check').count() == 0
 
         # La cuota entera está de vuelta: los cinco siguientes fallan por
         # código, no por freno.
@@ -193,7 +193,7 @@ class TestCodeCheck:
         # única vía que no vuelve a pasar por el default del campo.
         viejo = timezone.now() - timezone.timedelta(
             seconds=INTERVAL_CODE_CHECK + 60)
-        AuthTotpRateLimitLog.objects.filter(user_id=user.pk).update(
+        AuthTotpRateLimitLog.objects.filter(user_id_id=user.pk).update(
             created_at=viejo)
 
         with pytest.raises(AccessDenied) as excinfo:
@@ -206,11 +206,11 @@ class TestCodeCheck:
         user, _secret = enrolled
         for _ in range(LIMIT_SEND_EMAIL + 3):
             AuthTotpRateLimitLog.objects.create(
-                user_id=user.pk, ip='', limit_type='send_email')
+                user_id_id=user.pk, ip='', limit_type='send_email')
 
         user._totp_rate_limit('code_check')  # no levanta
         assert AuthTotpRateLimitLog.objects.filter(
-            user_id=user.pk, limit_type='code_check').count() == 1
+            user_id_id=user.pk, limit_type='code_check').count() == 1
 
 
 class TestMailCode:
@@ -242,7 +242,7 @@ class TestMailCode:
         for _ in range(LIMIT_SEND_EMAIL):
             _send_totp_mail_code(mail_user)
         assert AuthTotpRateLimitLog.objects.filter(
-            user_id=mail_user.pk, limit_type='send_email').count() == \
+            user_id_id=mail_user.pk, limit_type='send_email').count() == \
             LIMIT_SEND_EMAIL
 
         code, _expiration = _get_totp_mail_code(mail_user)
@@ -251,7 +251,7 @@ class TestMailCode:
         assert resultado['auth_method'] == 'totp_mail'
 
         assert AuthTotpRateLimitLog.objects.filter(
-            user_id=mail_user.pk).count() == 0
+            user_id_id=mail_user.pk).count() == 0
         # Y la prueba de que la purga sirve para algo: se puede volver a pedir.
         _send_totp_mail_code(mail_user)
 
@@ -267,9 +267,9 @@ class TestSweep:
         """
         user, _secret = enrolled
         vieja = AuthTotpRateLimitLog.objects.create(
-            user_id=user.pk, ip='', limit_type='code_check')
+            user_id_id=user.pk, ip='', limit_type='code_check')
         reciente = AuthTotpRateLimitLog.objects.create(
-            user_id=user.pk, ip='', limit_type='code_check')
+            user_id_id=user.pk, ip='', limit_type='code_check')
         AuthTotpRateLimitLog.objects.filter(pk=vieja.pk).update(
             created_at=timezone.now() - timezone.timedelta(
                 seconds=GC_MAX_AGE_SECONDS + 60))

@@ -79,7 +79,7 @@ class HrEmployeeLocation(TimeStampedModel):
     _name = 'hr.employee.location'
     _description = "Employee Location"
 
-    work_location = fields.Many2one(
+    work_location_id = fields.Many2one(
         'hr.HrWorkLocation', on_delete=models.PROTECT,
         related_name='homeworking_exceptions',
         verbose_name='Ubicación',
@@ -87,13 +87,15 @@ class HrEmployeeLocation(TimeStampedModel):
                   'PROTECT: el borrado de una sede pasa por '
                   '_unlink_except_used_by_employee, que limpia estas filas '
                   'antes (ver hr_work_location.py de este addon).',
+        db_column='work_location_id',
     )
-    employee = fields.Many2one(
+    employee_id = fields.Many2one(
         'hr.HrEmployee', on_delete=models.CASCADE,
         related_name='homeworking_exceptions',
         verbose_name='Empleado',
         help_text='Odoo employee_id (required, ondelete=cascade; su default '
                   'de usuario ambiente no se porta — divergencia 2).',
+        db_column='employee_id',
     )
     date = fields.Date(null=True, blank=True, verbose_name='Fecha')
 
@@ -106,7 +108,7 @@ class HrEmployeeLocation(TimeStampedModel):
             # employee_id, date)', …)`` (``:20-23``) — nombre conservado
             # (25 caracteres, bajo el tope de 30 de models.E034).
             models.UniqueConstraint(
-                fields=['employee', 'date'],
+                fields=['employee_id', 'date'],
                 name='_uniq_exceptional_per_day',
                 violation_error_message=(
                     'Only one default work location and one exceptional '
@@ -116,8 +118,8 @@ class HrEmployeeLocation(TimeStampedModel):
         ]
 
     def __str__(self):
-        employee_name = self.employee.name if self.employee_id else ''
-        location_name = self.work_location.name if self.work_location_id else ''
+        employee_name = self.employee_id.name if self.employee_id_id else ''
+        location_name = self.work_location_id.name if self.work_location_id_id else ''
         return f'{employee_name} - {location_name} ({self.date})'
 
     # --- related no almacenados → properties (divergencia 4) ---------------
@@ -125,17 +127,17 @@ class HrEmployeeLocation(TimeStampedModel):
     @property
     def work_location_name(self):
         """≙ ``work_location_name`` (``related='work_location_id.name'``)."""
-        return self.work_location.name if self.work_location_id else ''
+        return self.work_location_id.name if self.work_location_id_id else ''
 
     @property
     def work_location_type(self):
         """≙ ``work_location_type`` (``related='work_location_id.location_type'``)."""
-        return self.work_location.location_type if self.work_location_id else ''
+        return self.work_location_id.location_type if self.work_location_id_id else ''
 
     @property
     def employee_name(self):
         """≙ ``employee_name`` (``related='employee_id.name'``)."""
-        return self.employee.name if self.employee_id else ''
+        return self.employee_id.name if self.employee_id_id else ''
 
     @property
     def day_week_string(self):
