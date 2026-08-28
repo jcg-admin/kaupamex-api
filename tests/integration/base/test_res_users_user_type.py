@@ -19,9 +19,9 @@ def grupos(db):
         name='Internos', user_type=ResGroups.USER_TYPE_INTERNAL)
     portal = ResGroups.objects.create(
         name='Portal', user_type=ResGroups.USER_TYPE_PORTAL)
-    publico = ResGroups.objects.create(
+    public = ResGroups.objects.create(
         name='Público', user_type=ResGroups.USER_TYPE_PUBLIC)
-    return interno, portal, publico
+    return interno, portal, public
 
 
 def _user(login):
@@ -46,10 +46,10 @@ class TestUserTypeAxis:
         assert u._is_internal() is False
         assert u.share is True
 
-    def test_publico(self, grupos):
-        _i, _p, publico = grupos
+    def test_public(self, grupos):
+        _i, _p, public = grupos
         u = _user('anon@kaupamex.mx')
-        publico.user_ids.add(u)
+        public.user_ids.add(u)
         assert u._is_public() is True
         assert u.share is True
 

@@ -343,5 +343,5 @@ class TestGetAvailableQrMethods:
 
     def test_incluye_sct_qr_con_secuencia_20(self, cuenta_sepa):
         metodos = cuenta_sepa._get_available_qr_methods()
-        codigos = {codigo: secuencia for codigo, _nombre, secuencia in metodos}
+        codigos = {codigo: secuencia for codigo, _name, secuencia in metodos}
         assert codigos.get('sct_qr') == 20

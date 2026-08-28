@@ -50,6 +50,6 @@ def resolve_audience_user_ids(recipient_type, **kwargs):
 
 def count_audience(recipient_type, **kwargs):
     """Cuenta el público sin materializar la lista cuando es un queryset."""
-    audiencia = resolve_audience_user_ids(recipient_type, **kwargs)
-    counter = getattr(audiencia, 'count', None)
-    return counter() if callable(counter) else len(list(audiencia))
+    audience = resolve_audience_user_ids(recipient_type, **kwargs)
+    counter = getattr(audience, 'count', None)
+    return counter() if callable(counter) else len(list(audience))

@@ -124,9 +124,9 @@ class TestInvite:
         RoleAssignment.objects.create(user=admin, role=role)
         invalidate_capabilities(admin.id)
 
-        con_2fa = User.objects.create_user(login='ya2fa@kaupamex.mx')
+        with_2fa = User.objects.create_user(login='ya2fa@kaupamex.mx')
         TotpSecret.objects.create(
-            user=con_2fa, secret='S3CRET', confirmed=True)
+            user=with_2fa, secret='S3CRET', confirmed=True)
         # El create anterior dispara la notificación "2FA Activated" (la
         # señal de este addon) — se limpia para asertar solo la invitación.
         assert len(django_mail.outbox) == 1
@@ -135,7 +135,7 @@ class TestInvite:
 
         api_client.force_authenticate(admin)
         resp = api_client.post(INVITE_URL, {
-            'user_ids': [user.id, con_2fa.id],
+            'user_ids': [user.id, with_2fa.id],
         }, format='json')
         assert resp.status_code == 200, resp.data
         assert len(resp.data['invited']) == 1

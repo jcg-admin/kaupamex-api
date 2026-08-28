@@ -76,7 +76,7 @@ class TestSaleService:
 
 class TestSaleLoyaltyDelivery:
 
-    def _con_envio(self, orden, precio='50.00'):
+    def _with_shipping(self, orden, precio='50.00'):
         SaleOrderLine.objects.create(
             order=orden, product=orden.order_line.first().product,
             name='Envío estándar', price_unit=Decimal(precio),
@@ -91,13 +91,13 @@ class TestSaleLoyaltyDelivery:
         SaleOrderCoupon.objects.create(order=orden, voucher=voucher)
 
     def test_el_envio_gratis_vale_el_precio_del_envio(self, orden):
-        self._con_envio(orden, '50.00')
+        self._with_shipping(orden, '50.00')
         self._con_cupon(orden)
         assert free_shipping_discount(orden) == Decimal('50.00')
 
     def test_max_discount_acota_como_en_la_fuente(self, orden):
         # -min(discount_max_amount, delivery.price_unit) de la fuente.
-        self._con_envio(orden, '50.00')
+        self._with_shipping(orden, '50.00')
         self._con_cupon(orden, max_discount=Decimal('30.00'))
         assert free_shipping_discount(orden) == Decimal('30.00')
 
@@ -106,7 +106,7 @@ class TestSaleLoyaltyDelivery:
         assert free_shipping_discount(orden) == Decimal('0.00')
 
     def test_otro_tipo_de_cupon_no_descuenta_envio(self, orden):
-        self._con_envio(orden, '50.00')
+        self._with_shipping(orden, '50.00')
         voucher = Voucher.objects.create(
             code='DIEZ', voucher_type=Voucher.TYPE_FIXED,
             discount_value=Decimal('10.00'), valid_from=timezone.now(),

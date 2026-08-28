@@ -228,7 +228,7 @@ def alert_date_exceeded(cls):
     )
     # ≙ la intersección con `quant_ids` de ubicación interna y `quantity > 0`
     # (`production_lot.py:92-99`): un lote agotado no genera aviso.
-    con_existencia = set(
+    with_stock = set(
         StockQuant.objects
         .filter(lot__in=candidatos, quantity__gt=0,
                 location__usage='internal')
@@ -236,7 +236,7 @@ def alert_date_exceeded(cls):
     )
     marcados = []
     for lote in candidatos:
-        if lote.pk not in con_existencia:
+        if lote.pk not in with_stock:
             continue
         lote.product_expiry_reminded = True
         lote.save(update_fields=['product_expiry_reminded', 'updated_at'])

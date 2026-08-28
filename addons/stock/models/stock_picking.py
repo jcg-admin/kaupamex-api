@@ -591,10 +591,10 @@ class StockPickingType(TimeStampedModel):
         if user is None:
             return queryset.order_by('sequence', 'id')
         rel = apps.get_model('stock', 'PickingTypeFavoriteUserRel')
-        marcado = Exists(rel.objects.filter(
+        marked = Exists(rel.objects.filter(
             picking_type_id=OuterRef('pk'), user_id=user.pk))
         return queryset.annotate(
-            is_favorite=marcado).order_by('-is_favorite', 'sequence', 'id')
+            is_favorite=marked).order_by('-is_favorite', 'sequence', 'id')
 
     # -- los conteos del tablero: sin columna, se calculan al leerse (D-2) --
 
@@ -910,14 +910,14 @@ class StockPickingType(TimeStampedModel):
         """
         stock_picking = apps.get_model('stock', 'StockPicking')
         ids = [t.pk for t in picking_types]
-        por_tipo = {i: [] for i in ids}
+        by_type = {i: [] for i in ids}
         abiertas = stock_picking.objects.filter(
             picking_type_id__in=ids,
             state__in=('assigned', 'waiting', 'confirmed'),
         ).values_list('picking_type_id', 'scheduled_date')
         for tipo_id, fecha in abiertas:
-            por_tipo[tipo_id].append(fecha)
-        return [(i, f, _('Transferencias')) for i, f in por_tipo.items()]
+            by_type[tipo_id].append(fecha)
+        return [(i, f, _('Transferencias')) for i, f in by_type.items()]
 
     @classmethod
     def _prepare_graph_data(cls, summaries):
@@ -1461,9 +1461,9 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         ``readonly=False``— así que se deriva siempre. Ver :ref:`h-api-687`.
         """
         campos = kwargs.get('update_fields')
-        insertando = self._state.adding
+        inserting = self._state.adding
         cambio_tipo = campos is not None and 'picking_type' in campos
-        if (insertando or cambio_tipo) and self.picking_type_id:
+        if (inserting or cambio_tipo) and self.picking_type_id:
             tocados = ['company']
             self.company = self.picking_type.company
             if cambio_tipo or not self.move_type:

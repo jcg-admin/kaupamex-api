@@ -619,14 +619,14 @@ class StockMoveLine(TimeStampedModel):
             movimiento.product_uom_qty, uom_linea, rounding_method='HALF-UP')
         hecho = movimiento.product_uom.compute_quantity(
             visible, uom_linea, rounding_method='HALF-UP')
-        del_quant = uom_producto.compute_quantity(
+        of_quant = uom_producto.compute_quantity(
             quant.available_qty(quant.product, quant.location), uom_linea,
             rounding_method='HALF-UP')
 
         if uom_linea.compare(demanda, hecho) > 0:
-            self.quantity = max(0, min(del_quant, demanda - hecho))
+            self.quantity = max(0, min(of_quant, demanda - hecho))
         else:
-            self.quantity = max(0, del_quant)
+            self.quantity = max(0, of_quant)
 
     def _compute_quantity_product_uom(self):
         """≙ ``_compute_quantity_product_uom`` (``odoo19c: :173-176``)."""

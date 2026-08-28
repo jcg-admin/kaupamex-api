@@ -95,8 +95,8 @@ def test_itertools_groupby_would_give_a_different_answer():
     Sin este caso, el porte parecería redundante con el stdlib — y quien lo
     leyera en seis meses tendría razón en dudarlo.
     """
-    del_stdlib = [(k, list(g)) for k, g in itertools.groupby([1, 2, 1, 2])]
-    assert len(del_stdlib) == 4                     # corta en cada cambio
+    of_stdlib = [(k, list(g)) for k, g in itertools.groupby([1, 2, 1, 2])]
+    assert len(of_stdlib) == 4                     # corta en cada cambio
     assert len(list(groupby([1, 2, 1, 2]))) == 2    # agrupa por clave
 
 

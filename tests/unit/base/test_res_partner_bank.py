@@ -58,7 +58,7 @@ class TestUnicidad:
         assert ResPartnerBank.objects.count() == 2
 
 
-class TestTipoDeCuenta:
+class TestTypeOfAccount:
 
     def test_el_nucleo_infiere_bank(self, titular):
         cuenta = ResPartnerBank.objects.create(acc_number='0018 0001', partner=titular)

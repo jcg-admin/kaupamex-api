@@ -70,7 +70,7 @@ class TestLosCuatroEjemplosDelHelp:
         assert r['total_included'] == Decimal('200.00')
 
 
-class TestLote:
+class TestBatch:
     """Por qué el motor agrupa en vez de recorrer impuesto a impuesto."""
 
     def test_dos_porcentuales_incluidos_se_extraen_juntos(self, company):

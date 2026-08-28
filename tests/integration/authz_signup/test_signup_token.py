@@ -79,7 +79,7 @@ class TestSignupToken:
 class TestSignupFlow:
     """≙ ``signup`` (res_users.py:37-85)."""
 
-    def test_set_password_con_token(self, seeded, api_client, db):
+    def test_set_password_with_token(self, seeded, api_client, db):
         partner = ResPartner.objects.create(
             name='Nuevo', email='nuevo@kaupamex.mx')
         pp.signup_prepare(partner)
@@ -94,7 +94,7 @@ class TestSignupFlow:
         # el token quedó consumido (SignupRequest borrado)
         assert not SignupRequest.objects.filter(partner=partner).exists()
 
-    def test_signup_info_del_token(self, seeded, api_client, db):
+    def test_signup_info_of_token(self, seeded, api_client, db):
         partner = ResPartner.objects.create(
             name='Info', email='info@kaupamex.mx')
         pp.signup_prepare(partner)

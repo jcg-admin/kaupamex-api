@@ -140,7 +140,7 @@ def test_interval_type_invalido_rechazado_por_full_clean():
 
 # --- _compute_next(): avance por interval_number x interval_type -----------
 
-def test_compute_next_avanza_minutes():
+def test_compute_next_advances_minutes():
     cron = IrCron(
         interval_number=15, interval_type='minutes',
         nextcall=datetime(2026, 1, 1, 10, 0, 0, tzinfo=dt_timezone.utc),
@@ -148,7 +148,7 @@ def test_compute_next_avanza_minutes():
     assert cron._compute_next() == datetime(2026, 1, 1, 10, 15, 0, tzinfo=dt_timezone.utc)
 
 
-def test_compute_next_avanza_days():
+def test_compute_next_advances_days():
     cron = IrCron(
         interval_number=3, interval_type='days',
         nextcall=datetime(2026, 1, 30, 0, 0, 0, tzinfo=dt_timezone.utc),
@@ -167,7 +167,7 @@ def test_compute_next_avanza_months_con_overflow_de_dia():
     assert cron._compute_next() == datetime(2026, 2, 28, 9, 0, 0, tzinfo=dt_timezone.utc)
 
 
-def test_compute_next_avanza_weeks():
+def test_compute_next_advances_weeks():
     cron = IrCron(
         interval_number=2, interval_type='weeks',
         nextcall=datetime(2026, 1, 1, 0, 0, 0, tzinfo=dt_timezone.utc),

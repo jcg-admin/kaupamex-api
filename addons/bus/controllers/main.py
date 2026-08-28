@@ -58,8 +58,8 @@ def bus_poll(request):
             status=400,
         )
 
-    notificaciones = BusMessage.poll(channels_for_user(request.user), last=last)
+    notifications = BusMessage.poll(channels_for_user(request.user), last=last)
     # El cliente avanza su cursor con el último id devuelto; si no hubo nada,
     # conserva el que traía y no vuelve a leer la ventana desde cero.
-    ultimo = notificaciones[-1]['id'] if notificaciones else last
-    return Response({'last': ultimo, 'notifications': notificaciones})
+    ultimo = notifications[-1]['id'] if notifications else last
+    return Response({'last': ultimo, 'notifications': notifications})

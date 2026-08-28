@@ -538,10 +538,10 @@ class StockWarehouseOrderpoint(TimeStampedModel):
             return 0.0, 0.0
         contexto = self._get_product_context()
         producto = self.product
-        existencia = producto._quantity_for('qty_available', **contexto)
+        stock = producto._quantity_for('qty_available', **contexto)
         pronostico = producto._quantity_for('virtual_available', **contexto)
         en_progreso = type(self)._quantity_in_progress([self]).get(self.pk, 0.0)
-        return existencia, pronostico + en_progreso
+        return stock, pronostico + en_progreso
 
     @property
     def qty_to_order(self):
@@ -719,10 +719,10 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         for orderpoint in por_calcular:
             por_empresa[orderpoint.company].append(orderpoint)
 
-        for empresa, del_grupo in por_empresa.items():
+        for empresa, of_group in por_empresa.items():
             horizonte = _today() + timedelta(
-                days=int(cls.get_horizon_days(del_grupo)))
-            productos = [o.product for o in del_grupo if o.product is not None]
+                days=int(cls.get_horizon_days(of_group)))
+            productos = [o.product for o in of_group if o.product is not None]
             _q_quant, q_entra, q_sale = product_model._get_domain_locations()
 
             entradas = (move_model.objects
@@ -750,14 +750,14 @@ class StockWarehouseOrderpoint(TimeStampedModel):
                 por_producto_ubicacion[clave][fila['date__date']] -= float(
                     fila['total'] or 0)
 
-            for orderpoint in del_grupo:
-                existencia = orderpoint.qty_on_hand
+            for orderpoint in of_group:
+                stock = orderpoint.qty_on_hand
                 tentativa = horizonte
                 movimientos = por_producto_ubicacion.get(
                     (orderpoint.product_id, orderpoint.location_id), {})
                 for fecha, cantidad in sorted(movimientos.items()):
-                    existencia += cantidad
-                    if existencia < orderpoint.product_min_qty:
+                    stock += cantidad
+                    if stock < orderpoint.product_min_qty:
                         tentativa = fecha - timedelta(days=orderpoint.lead_days)
                         break
                 orderpoint.deadline_date = (
@@ -801,15 +801,15 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         caliente. La fuente lo verifica en los dos métodos; aquí, en el único
         punto por el que pasan ambos.
         """
-        creando = self.pk is None
+        creating = self.pk is None
         if self.snoozed_until and self.trigger == 'auto':
             raise UserError(_(
                 'You can only snooze manual orderpoints. You should rather '
                 "archive 'auto-trigger' orderpoints if you do not want them to "
-                'be triggered.') if not creando else _(
+                'be triggered.') if not creating else _(
                 'You can not create a snoozed orderpoint that is not manually '
                 'triggered.'))
-        if not creando:
+        if not creating:
             anterior = type(self).objects.filter(pk=self.pk).values(
                 'company_id').first()
             if anterior and anterior['company_id'] != self.company_id:
@@ -900,7 +900,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         cls._procure_orderpoint_confirm(
             orderpoints, company_id=get_current_company())
 
-        notificacion = (orderpoints[0]._get_replenishment_order_notification()
+        notification = (orderpoints[0]._get_replenishment_order_notification()
                         if len(orderpoints) == 1 else False)
         cls.action_remove_manual_qty_to_order(orderpoints)
         cls._compute_qty_to_order_computed(orderpoints)
@@ -908,7 +908,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
                     if o.qty_to_order <= 0.0 and o.trigger == 'manual']
         if a_borrar:
             cls.objects.filter(pk__in=a_borrar).delete()
-        return notificacion
+        return notification
 
     @classmethod
     def action_replenish_auto(cls, orderpoints):
@@ -1338,7 +1338,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         orderpoints = list(orderpoints)
         for lote_ids in split_every(1000, [o.pk for o in orderpoints]):
             lote = [o for o in orderpoints if o.pk in set(lote_ids)]
-            excepciones = []
+            exceptions = []
             while lote:
                 procurements = []
                 for orderpoint in lote:
@@ -1360,7 +1360,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
                                    raise_user_error=raise_user_error)
                 except ProcurementException as error:
                     fallidos = _failed_orderpoints(error)
-                    excepciones += fallidos
+                    exceptions += fallidos
                     culpables = {o.pk for o, _msg in fallidos if o is not None}
                     if not culpables:
                         break
@@ -1371,7 +1371,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
 
             # La fuente registra una actividad de aviso sobre la plantilla del
             # producto por cada regla que falló, sin duplicar el mismo mensaje.
-            for orderpoint, mensaje in excepciones:
+            for orderpoint, mensaje in exceptions:
                 if orderpoint is None or orderpoint.product is None:
                     continue
                 plantilla = orderpoint.product.product_tmpl

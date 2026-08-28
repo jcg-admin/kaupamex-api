@@ -52,7 +52,7 @@ def metodo():
         name='Estándar E4', cost=Decimal('99.00'), estimated_days=3)
 
 
-def _orden(producto, **line_kwargs):
+def _order(producto, **line_kwargs):
     order = SaleOrder.objects.create(
         state=SaleOrder.STATE_DRAFT, cart_token=uuid4())
     defaults = {'product_uom_qty': 1, 'price_unit': Decimal('100.00'),
@@ -73,40 +73,40 @@ class TestLaColumnaSeRecalculaAlCambiarLineas:
         assert order.amount_tax == Decimal('0.00')
 
     def test_crear_una_linea_recalcula_el_total(self, producto):
-        order = _orden(producto)
+        order = _order(producto)
         assert order.amount_total == Decimal('100.00')
 
     def test_con_cantidad_y_descuento_de_linea(self, producto):
-        order = _orden(producto, product_uom_qty=3, discount=Decimal('10.00'))
+        order = _order(producto, product_uom_qty=3, discount=Decimal('10.00'))
         assert order.amount_total == Decimal('270.00')
 
     def test_editar_la_cantidad_recalcula_el_total(self, producto):
-        order = _orden(producto)
+        order = _order(producto)
         linea = order.order_line.get()
         linea.product_uom_qty = 3
         linea.save(update_fields=['product_uom_qty', 'updated_at'])
         assert order.amount_total == Decimal('300.00')
 
     def test_borrar_la_linea_recalcula_a_cero(self, producto):
-        order = _orden(producto)
+        order = _order(producto)
         assert order.amount_total == Decimal('100.00')
         order.order_line.get().delete()
         assert order.amount_total == Decimal('0.00')
 
     def test_persiste_en_bd_no_solo_en_memoria(self, producto):
-        order = _orden(producto)
+        order = _order(producto)
         recargada = SaleOrder.objects.get(pk=order.pk)
         assert recargada.amount_total == Decimal('100.00')
 
-    def test_con_linea_de_envio(self, producto, metodo):
-        order = _orden(producto)
+    def test_with_line_of_shipping(self, producto, metodo):
+        order = _order(producto)
         order.carrier = metodo
         order.save(update_fields=['carrier', 'updated_at'])
         set_delivery_line(order, Decimal('99.00'))
         assert order.amount_total == Decimal('199.00')
 
     def test_con_linea_de_recompensa_negativa(self, producto):
-        order = _orden(producto)
+        order = _order(producto)
         SaleOrderLine.objects.create(
             order=order, product=producto, name='Descuento',
             product_uom_qty=1, price_unit=Decimal('-20.00'), is_reward=True)
@@ -136,12 +136,12 @@ class TestSinFanOut:
     """``Sum`` directo sobre la columna: una fila por orden, sin subquery."""
 
     def test_count_cuenta_ordenes_no_lineas(self, producto):
-        o1 = _orden(producto)
+        o1 = _order(producto)
         for _ in range(4):
             SaleOrderLine.objects.create(
                 order=o1, product=producto, name='Prod E4',
                 product_uom_qty=1, price_unit=Decimal('10.00'))
-        o2 = _orden(producto)
+        o2 = _order(producto)
 
         agg = SaleOrder.objects.filter(pk__in=[o1.pk, o2.pk]).aggregate(
             revenue=Sum('amount_total'), order_count=Count('id'))
@@ -163,7 +163,7 @@ class TestDesgloseContribuidoPorCadaAddon:
 
     def test_cada_addon_anota_su_importe_y_suman_al_total(
             self, producto, metodo):
-        order = _orden(producto)
+        order = _order(producto)
         order.carrier = metodo
         order.save(update_fields=['carrier', 'updated_at'])
         set_delivery_line(order, Decimal('99.00'))
@@ -181,7 +181,7 @@ class TestDesgloseContribuidoPorCadaAddon:
         assert row.amount_total == order.amount_total
 
     def test_sin_lineas_marcadas_los_desgloses_dan_cero(self, producto):
-        order = _orden(producto)
+        order = _order(producto)
         qs = with_reward_amount(with_delivery_amount(
             SaleOrder.objects.filter(pk=order.pk)))
         row = qs.first()
@@ -201,16 +201,16 @@ class TestBackfillDeOrdenesPreexistentes:
 
     def test_recalculo_manual_coincide_con_la_orden_ya_computada(
             self, producto):
-        con_compute = _orden(producto, product_uom_qty=2,
+        with_compute = _order(producto, product_uom_qty=2,
                               discount=Decimal('10.00'))
         # Fuerza la columna a un valor "stale" sin pasar por el compute —
         # reproduce el estado de una fila pre-existente antes del backfill.
-        SaleOrder.objects.filter(pk=con_compute.pk).update(
+        SaleOrder.objects.filter(pk=with_compute.pk).update(
             amount_total=Decimal('0.00'), amount_untaxed=Decimal('0.00'),
             amount_tax=Decimal('0.00'))
-        con_compute.refresh_from_db()
-        assert con_compute.amount_total == Decimal('0.00')
+        with_compute.refresh_from_db()
+        assert with_compute.amount_total == Decimal('0.00')
 
         # El backfill hace exactamente esto: recorrer la orden y recalcular.
-        con_compute._compute_amounts()
-        assert con_compute.amount_total == Decimal('180.00')
+        with_compute._compute_amounts()
+        assert with_compute.amount_total == Decimal('180.00')

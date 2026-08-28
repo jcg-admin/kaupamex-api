@@ -542,12 +542,12 @@ class TestPlantillaSembrada:
         ignora lo que no dibuja, así que el subconjunto del builder es el
         contrato.
         """
-        del_builder = report_catalog.get(
+        of_builder = report_catalog.get(
             'sale.report_saleorder').builder(orden_con_lineas)
         de_la_vista = reporte_orden._descriptor_from_view(
             orden_con_lineas, {})
         assert de_la_vista is not None
-        for clave, valor in del_builder.items():
+        for clave, valor in of_builder.items():
             if clave == 'date':
                 # Mismo instante con distinto traje: el filtro ``date:'c'``
                 # escribe en zona local y con microsegundos; ``isoformat``

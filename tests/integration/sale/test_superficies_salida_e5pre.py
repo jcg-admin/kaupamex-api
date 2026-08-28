@@ -140,7 +140,7 @@ class TestElIvaIncluyeElEnvioEnSuBase:
         assert order_amounts(draft)['tax'] == draft.amount_tax
 
 
-class TestDegradacion:
+class TestDegradation:
 
     def test_sin_venta_que_renderizar_devuelve_ceros(self):
         a = order_amounts(None)

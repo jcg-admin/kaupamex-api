@@ -180,13 +180,13 @@ class PortalAddressListView(APIView):
         partner = current_partner(request.user)
         if partner is None:
             return Response([])
-        direcciones = ResPartner.objects.filter(
+        addresses = ResPartner.objects.filter(
             parent=partner, active=True,
             type__in=[ResPartner.TYPE_INVOICE, ResPartner.TYPE_DELIVERY,
                       ResPartner.TYPE_OTHER],
         ).select_related('state', 'country').order_by('id')
         datos = [PortalAddressSerializer(partner).data]
-        datos += PortalAddressSerializer(direcciones, many=True).data
+        datos += PortalAddressSerializer(addresses, many=True).data
         return Response(datos)
 
 

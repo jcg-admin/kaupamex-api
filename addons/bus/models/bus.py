@@ -147,11 +147,11 @@ class BusMessage(TimeStampedModel):
 
         :return: número de filas borradas.
         """
-        retencion = int(
+        withholding = int(
             SystemParameter.get_param(
                 GC_RETENTION_PARAM, default=DEFAULT_GC_RETENTION_SECONDS,
             )
         )
-        corte = timezone.now() - datetime.timedelta(seconds=retencion)
+        corte = timezone.now() - datetime.timedelta(seconds=withholding)
         borradas, _ = cls.objects.filter(created_at__lt=corte).delete()
         return borradas

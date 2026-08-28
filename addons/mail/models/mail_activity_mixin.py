@@ -257,19 +257,19 @@ class MailActivityMixin(models.Model):
         Devuelve ``(decoración, icono)`` del tipo de actividad más grave.
         ``danger`` corta el barrido; ``warning`` se queda como candidato.
         """
-        excepcion = None
+        exception = None
         for actividad in self._activity_queryset():
             tipo = actividad.activity_type
             if tipo is None:
                 continue
             if tipo.decoration_type == DECORATION_DANGER:
-                excepcion = tipo
+                exception = tipo
                 break
             if tipo.decoration_type == DECORATION_WARNING:
-                excepcion = tipo
-        if excepcion is None:
+                exception = tipo
+        if exception is None:
             return None, None
-        return excepcion.decoration_type, excepcion.icon
+        return exception.decoration_type, exception.icon
 
     @property
     def activity_exception_decoration(self):
@@ -326,21 +326,21 @@ class MailActivityMixin(models.Model):
             STATE_TODAY: Q(date_deadline=hoy),
             STATE_PLANNED: Q(date_deadline__gt=hoy),
         }
-        condicion = Q()
+        condition = Q()
         for estado in buscados:
             if estado in por_estado:
-                condicion |= por_estado[estado]
-        if not condicion:
+                condition |= por_estado[estado]
+        if not condition:
             return cls.objects.none() if not invertir else cls.objects.all()
 
         ids = cls._con_actividad().model.objects.filter(
-            res_model=cls._activity_res_model()).filter(condicion).values_list(
+            res_model=cls._activity_res_model()).filter(condition).values_list(
                 'res_id', flat=True)
         return cls.objects.exclude(pk__in=ids) if invertir \
             else cls.objects.filter(pk__in=ids)
 
     @classmethod
-    def _search_activity_date_deadline(cls, operador, valor):
+    def _search_activity_date_deadline(cls, operator, valor):
         """≙ ``_search_activity_date_deadline`` (``odoo19c: :197-203``).
 
         Con ``valor`` nulo la referencia devuelve los que **no tienen**
@@ -349,7 +349,7 @@ class MailActivityMixin(models.Model):
         if valor is None:
             return cls.objects.exclude(pk__in=cls._con_actividad())
         return cls.objects.filter(
-            pk__in=cls._con_actividad(**{f'date_deadline__{operador}': valor}))
+            pk__in=cls._con_actividad(**{f'date_deadline__{operator}': valor}))
 
     @classmethod
     def _search_activity_user(cls, user):
@@ -363,16 +363,16 @@ class MailActivityMixin(models.Model):
             pk__in=cls._con_actividad(activity_type=activity_type))
 
     @classmethod
-    def _search_activity_summary(cls, operador, valor):
+    def _search_activity_summary(cls, operator, valor):
         """≙ ``_search_activity_summary`` (``odoo19c: :230-235``)."""
         return cls.objects.filter(
-            pk__in=cls._con_actividad(**{f'summary__{operador}': valor}))
+            pk__in=cls._con_actividad(**{f'summary__{operator}': valor}))
 
     @classmethod
-    def _search_my_activity_date_deadline(cls, user, operador, valor):
+    def _search_my_activity_date_deadline(cls, user, operator, valor):
         """≙ ``_search_my_activity_date_deadline`` (``odoo19c: :245-253``) — D-4."""
         return cls.objects.filter(pk__in=cls._con_actividad(
-            user=user, **{f'date_deadline__{operador}': valor}))
+            user=user, **{f'date_deadline__{operator}': valor}))
 
     @classmethod
     def _read_group_groupby(cls, queryset=None):
@@ -386,11 +386,11 @@ class MailActivityMixin(models.Model):
         plazos = MailActivity.objects.filter(
             res_model=cls._activity_res_model(),
         ).values('res_id').annotate(proximo=Min('date_deadline'))
-        por_id = {p['res_id']: p['proximo'] for p in plazos}
+        by_id = {p['res_id']: p['proximo'] for p in plazos}
         hoy = datetime.date.today()
 
         def estado(pk):
-            plazo = por_id.get(pk)
+            plazo = by_id.get(pk)
             if plazo is None:
                 return None
             if plazo < hoy:

@@ -329,12 +329,12 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         efecto difiere sólo cuando la empresa del producto es ancestro de la
         activa sin estar ella misma activada.
         """
-        del_producto = getattr(self.product, 'company', None)
+        of_product = getattr(self.product, 'company', None)
         activas = get_current_companies()
-        if del_producto is not None and del_producto.pk not in {c.pk for c in activas}:
+        if of_product is not None and of_product.pk not in {c.pk for c in activas}:
             self.company = get_current_company()
         else:
-            self.company = del_producto
+            self.company = of_product
 
     def _compute_single_location(self):
         """≙ ``_compute_single_location`` (``odoo19c: :169-173``).
@@ -668,15 +668,15 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         )
         por_lote = quants.values('lot').annotate(total=Sum('quantity'))
 
-        con_quants, cumplen = [], []
+        with_quants, cumplen = [], []
         for fila in por_lote:
-            con_quants.append(fila['lot'])
+            with_quants.append(fila['lot'])
             if op(float(fila['total'] or 0), value):
                 cumplen.append(fila['lot'])
 
         if op(0.0, value):
             # El cero cumple: los lotes sin quants entran también.
-            return Q(pk__in=cumplen) | ~Q(pk__in=con_quants)
+            return Q(pk__in=cumplen) | ~Q(pk__in=with_quants)
         return Q(pk__in=cumplen)
 
     @classmethod
@@ -776,7 +776,7 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         consulta la puede usar.
         """
         rel = apps.get_model('stock', 'StockMoveLineConsumeRel')
-        en_produccion = set(
+        in_production = set(
             rel.objects.values_list('produce_line_id', flat=True)
         ) | set(
             rel.objects.values_list('consume_line_id', flat=True)
@@ -784,7 +784,7 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         return (
             Q(picking__picking_type__code='outgoing')
             | Q(move__picking_type__code='outgoing')
-            | Q(pk__in=en_produccion)
+            | Q(pk__in=in_production)
         )
 
     def _find_delivery_ids_by_lot(self, lot_path=None, delivery_by_lot=None):

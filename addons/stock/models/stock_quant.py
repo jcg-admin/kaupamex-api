@@ -1667,7 +1667,7 @@ class StockQuant(TimeStampedModel):
     def _onchange_serial_number(self):
         """≙ ``_onchange_serial_number`` (``odoo19c: :972-979``)."""
         if self.lot is not None and self.tracking == 'serial':
-            mensaje, _ubicacion = self._check_serial_number(
+            mensaje, _location = self._check_serial_number(
                 self.product, self.lot, self.company)
             if mensaje:
                 return {'warning': {'title': _('Advertencia'), 'message': mensaje}}

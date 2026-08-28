@@ -154,5 +154,5 @@ class TestOauthProviders:
             user_id=user.pk, session_key='',
             defaults={'started_at': timezone.now(),
                       'expires_at': timezone.now() + timedelta(seconds=900)})
-        resp_con = api_client.get(ADMIN_URL)
-        assert resp_con.status_code == 200, resp_con.data
+        resp_with = api_client.get(ADMIN_URL)
+        assert resp_with.status_code == 200, resp_with.data

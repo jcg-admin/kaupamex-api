@@ -168,7 +168,7 @@ def _canonical_paid_manual(user, prod):
 # UC-ORD-02 — Detalle de orden
 # =============================================================================
 
-class TestDetalleOrden:
+class TestDetailOrder:
 
     def test_detalle_propio_retorna_200(self, auth_client, user, prod_ord, db):
         order = _create_full_order(user, prod_ord)

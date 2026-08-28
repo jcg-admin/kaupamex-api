@@ -315,10 +315,10 @@ def create_missing_scrap_location(cls):
 def create_missing_scrap_sequence(cls):
     """≙ ``create_missing_scrap_sequence`` (``odoo19c: :157-161``)."""
     sequence_model = apps.get_model('base', 'IrSequence')
-    con_secuencia = set(sequence_model.objects.filter(code='stock.scrap')
+    with_sequence = set(sequence_model.objects.filter(code='stock.scrap')
                         .exclude(company__isnull=True)
                         .values_list('company_id', flat=True))
-    for empresa in ResCompany.objects.exclude(pk__in=con_secuencia):
+    for empresa in ResCompany.objects.exclude(pk__in=with_sequence):
         _create_scrap_sequence(empresa)
 
 

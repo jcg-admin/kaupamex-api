@@ -44,8 +44,8 @@ _CORTE = ('Recibelo:', 'Valoraciones', 'Información adicional')
 def _truncar(text):
     if not text:
         return ''
-    for marcador in _CORTE:
-        idx = text.find(marcador)
+    for marker in _CORTE:
+        idx = text.find(marker)
         if idx != -1:
             text = text[:idx]
     return text.strip()

@@ -102,7 +102,7 @@ class TestPartnerFrontendRules:
         return ResGroups.objects.create(
             name='Público', user_type=ResGroups.USER_TYPE_PUBLIC)
 
-    def test_current_partner_de_publico_es_none(self, publicos):
+    def test_current_partner_of_public_is_none(self, publicos):
         u = User.objects.create_user(login='anon@kaupamex.mx')
         publicos.user_ids.add(u)
         assert pp.current_partner(u) is None

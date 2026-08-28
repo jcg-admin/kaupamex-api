@@ -33,7 +33,7 @@ from tests.factories.product_factory import make_category, make_product
 pytestmark = pytest.mark.django_db
 
 
-def _tracking_de(order, field):
+def _tracking_of(order, field):
     """Los tracking values de ``field`` registrados en el hilo de ``order``."""
     return MailTrackingValue.objects.filter(
         message__model=order._mail_thread_res_model(),
@@ -79,7 +79,7 @@ class TestLasTransicionesDejanRastro:
     def test_confirmar_registra_draft_a_sale(self, orden):
         orden.action_confirm()
 
-        tracks = _tracking_de(orden, 'state')
+        tracks = _tracking_of(orden, 'state')
         assert tracks.count() == 1
         track = tracks.first()
         assert track.get_old_value() == SaleOrder.STATE_DRAFT
@@ -89,7 +89,7 @@ class TestLasTransicionesDejanRastro:
         orden.action_confirm()
         orden.action_cancel()
 
-        tracks = list(_tracking_de(orden, 'state'))
+        tracks = list(_tracking_of(orden, 'state'))
         assert len(tracks) == 2
         assert tracks[-1].get_old_value() == SaleOrder.STATE_SALE
         assert tracks[-1].get_new_value() == SaleOrder.STATE_CANCEL
@@ -99,7 +99,7 @@ class TestLasTransicionesDejanRastro:
         orden.action_cancel()
         orden.action_draft()
 
-        tracks = list(_tracking_de(orden, 'state'))
+        tracks = list(_tracking_of(orden, 'state'))
         assert len(tracks) == 3
         assert tracks[-1].get_old_value() == SaleOrder.STATE_CANCEL
         assert tracks[-1].get_new_value() == SaleOrder.STATE_DRAFT
@@ -108,9 +108,9 @@ class TestLasTransicionesDejanRastro:
         orden.action_confirm()
         orden.action_lock()
 
-        assert _tracking_de(orden, 'locked').count() == 1
+        assert _tracking_of(orden, 'locked').count() == 1
         # confirmar dejó 1 rastro de state; bloquear no añade otro
-        assert _tracking_de(orden, 'state').count() == 1
+        assert _tracking_of(orden, 'state').count() == 1
 
 
 class TestNoSeEnsuciaElHilo:
@@ -118,22 +118,22 @@ class TestNoSeEnsuciaElHilo:
     def test_una_transicion_que_no_cambia_nada_no_registra(self, orden):
         """``action_draft`` sobre una orden ya en draft es no-op."""
         orden.action_draft()
-        assert _tracking_de(orden, 'state').count() == 0
+        assert _tracking_of(orden, 'state').count() == 0
 
     def test_confirmar_una_orden_cancelada_falla_sin_dejar_rastro(self, orden):
         orden.action_cancel()
-        antes = _tracking_de(orden, 'state').count()
+        antes = _tracking_of(orden, 'state').count()
 
         with pytest.raises(Exception):
             orden.action_confirm()
 
-        assert _tracking_de(orden, 'state').count() == antes
+        assert _tracking_of(orden, 'state').count() == antes
 
     def test_desbloquear_rastrea_el_regreso(self, orden):
         orden.action_lock()
         orden.action_unlock()
 
-        tracks = list(_tracking_de(orden, 'locked'))
+        tracks = list(_tracking_of(orden, 'locked'))
         assert len(tracks) == 2
         # Un ``field_type='boolean'`` se persiste en la columna entera, fiel a
         # ``mail.tracking.value`` de Odoo (no hay columna booleana propia).

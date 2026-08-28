@@ -894,9 +894,9 @@ def _filter_to_unlink(cls, products):
     """
     StockLot = apps.get_model('stock', 'StockLot')
     products = list(products)
-    con_lote = set(StockLot.objects.filter(product__in=products)
+    with_lot = set(StockLot.objects.filter(product__in=products)
                    .values_list('product_id', flat=True))
-    return [p for p in products if p.pk not in con_lote]
+    return [p for p in products if p.pk not in with_lot]
 
 
 def _count_returned_sn_products(cls, sn_lot, or_domains=()):
