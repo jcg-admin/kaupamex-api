@@ -168,8 +168,17 @@ class TestPropertyExpression:
             definition._field_to_sql(TABLE, 'properties_definition.color')
 
 
+@pytest.mark.django_db
 class TestFieldAccess:
-    """``_has_field_access`` / ``_check_field_access`` — ≙ ``:3370`` y ``:3384``."""
+    """``_has_field_access`` / ``_check_field_access`` — ≙ ``:3370`` y ``:3384``.
+
+    Marcados ``django_db`` desde que :meth:`_check_field_access` compone el
+    mensaje entero de la fuente: la descripción del modelo sale de
+    ``ir.model`` (``self.env['ir.model']._get(self._name).name``, ``:3398``) y
+    los grupos permitidos de ``ir.model.data`` + ``res.groups`` (``:3415``).
+    Un caso que afirme sobre ese mensaje sin base de datos estaría afirmando
+    sobre un mensaje que la fuente no produce.
+    """
 
     def test_a_field_without_groups_is_accessible(self, definition):
         assert definition._has_field_access(

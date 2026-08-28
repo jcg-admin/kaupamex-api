@@ -166,7 +166,7 @@ del método invocado devuelve el ``user`` del cron, que es lo que consumen
 ``bus/ir_attachment.py``, ``bus/bus_listener_mixin.py`` y
 ``digest/digest.py``.
 
-**Lo que esto NO alcanza todavía:** ``IrRule.eval_context`` (``ir_rule.py:161``)
+**Lo que esto NO alcanza todavía:** ``IrRule._eval_context`` (``ir_rule.py:161``)
 recibe ``user`` como parámetro explícito y **no** cae a ``get_current_user()``
 cuando el llamador no lo pasa. Así que un cron con ``user`` puesto tiene el
 usuario disponible en el contexto, pero las record rules evaluadas dentro no

@@ -79,25 +79,6 @@ def _acting_user(user):
     return get_current_user() if user is None else user
 
 
-def _rule_access_error(operation, forbidden):
-    """El error del rechazo POR REGLA — sustituto acotado de ``_make_access_error``.
-
-    ``ir_rule.py`` declara desde su porte que el ``_make_access_error`` de la
-    fuente (68 líneas: compone el mensaje leyendo ``ir.model.data`` y la capa de
-    vistas para sugerir a quién pedir acceso) **no se porta**, y sólo se porta
-    ``_get_failing``, que responde *qué* filas fallan.
-
-    El resolvedor compuesto necesita **una** fábrica de excepción para esa
-    mitad, así que aquí hay la mínima que dice la verdad: qué operación, sobre
-    qué modelo, y cuántas filas. El mensaje rico sigue sin portarse — tarea
-    **#97**; lo que NO se hace es dejar la mitad de reglas sin error y que un
-    rechazo por fila se lea igual que un permiso concedido.
-    """
-    return AccessError(
-        f'Las reglas de registro no permiten «{operation}» sobre '
-        f'{forbidden.count()} registro(s) de {forbidden.model._meta.label}.')
-
-
 class AccessQuerySet(QuerySet):
     """Un recordset que sabe resolver su propio permiso.
 
@@ -131,12 +112,12 @@ class AccessQuerySet(QuerySet):
 
         Rule = apps.get_model('base', 'IrRule')
         group_ids = list(actor._get_group_ids()) if actor is not None else []
-        forbidden = Rule.get_failing(
-            self, mode=operation, group_ids=group_ids,
-            eval_context=Rule.eval_context(user=actor))
+        forbidden = Rule._get_failing(
+            self, mode=operation, group_ids=tuple(group_ids), user=actor)
         if forbidden.exists():
             return forbidden, functools.partial(
-                _rule_access_error, operation, forbidden)
+                Rule._make_access_error, operation, forbidden,
+                group_ids=tuple(group_ids), user=actor)
         return None
 
     def check_access(self, operation, user=None):
@@ -169,6 +150,54 @@ class AccessQuerySet(QuerySet):
             return self.exclude(pk__in=result[0].values_list('pk', flat=True))
         return self
 
+
+    def _get_redirect_suggested_company(self, user=None):
+        """La empresa que sugerir al redirigir a estos registros — ``:5825-5839``.
+
+        La fuente lo declara en ``BaseModel`` y lo usa
+        ``ir.rule._make_access_error`` para distinguir *"no tienes permiso"* de
+        *"tienes permiso pero con otra empresa activa"*, que es la diferencia
+        entre un 403 opaco y uno accionable. Su cuerpo es un ``if`` de tres
+        ramas sobre qué campo declara el modelo:
+
+        .. code-block:: python
+
+           if 'company_id' in self:      return self.company_id
+           elif 'company_ids' in self:   return (self.company_ids & self.env.user.company_ids)[:1]
+           return False
+
+        Aquí vive en el queryset, que es lo que en este árbol hace de
+        recordset. La fuente devuelve un recordset —vacío, de uno, o la unión
+        de las empresas de varias filas— y aquí una **lista**: ``company_ids``
+        es un M2M inverso y su intersección con las del usuario no es un
+        queryset de la misma tabla.
+
+        ``'company_id' in self`` pregunta por el **campo**, no por el valor.
+        Aquí se pregunta por los dos nombres —``company`` y su ``attname``
+        ``company_id``— porque este árbol declara la FK con el nombre corto
+        (:ref:`h-api-874` midió la misma distinción en ``_add_missing_default_values``).
+        """
+        nombres = {f.name for f in self.model._meta.get_fields()}
+        nombres |= {f.attname for f in self.model._meta.fields}
+        if 'company_id' in nombres:
+            field_name = 'company' if 'company' in nombres else 'company_id'
+            companies = []
+            for record in self:
+                company = getattr(record, field_name, None)
+                if company is not None and company not in companies:
+                    companies.append(company)
+            return companies
+        if 'company_ids' in nombres:
+            actor = _acting_user(user)
+            if actor is None:
+                return []
+            suyas = set(actor.company_ids.values_list('pk', flat=True))
+            for record in self:
+                for company in record.company_ids.all():
+                    if company.pk in suyas:
+                        return [company]
+            return []
+        return []
 
     def filtered_domain(self, domain):
         """Las filas de ``self`` que cumplen el dominio, en el mismo orden.
@@ -886,12 +915,16 @@ class FieldSqlMixin:
     def _check_field_access(self, field, operation) -> None:
         """Levanta ``AccessError`` si el usuario no puede — ≙ ``:3384-3424``.
 
-        La fuente compone un mensaje rico que nombra el campo, la descripción
-        del modelo y los grupos permitidos, y para el último tramo consulta
-        ``ir.model`` y ``res.groups``. Aquí se emiten las tres primeras piezas
-        —campo, modelo, operación—; el tramo de grupos permitidos depende de
-        ``_make_access_error``, que es la tarea **#97**, y hasta entonces el
-        error dice qué se denegó sin decir a quién sí se permitiría.
+        Cuatro piezas, como la fuente: campo, descripción del modelo, operación
+        y —sólo para quien pueda verlo— **qué grupos lo abrirían**. Esa cuarta
+        es la que convierte un 403 opaco en accionable, y va condicionada a
+        ``base.group_no_one`` igual que allá: el nombre de un grupo que
+        concede acceso a un campo es en sí mismo información.
+
+        Las tres ramas del tramo de grupos son las de la fuente (``:3411-3418``)
+        y no son intercambiables: ``NO_ACCESS`` significa *prohibido siempre* y
+        no *«pide el grupo»*; un campo sin ``groups`` que aun así se denegó
+        sólo puede deberse a una regla a medida.
         """
         if self._has_field_access(field, operation):
             return
@@ -900,12 +933,57 @@ class FieldSqlMixin:
             'Access Denied by ACLs for operation: %s, uid: %s, model: %s, field: %s',
             operation, get_current_uid(), self._meta.label, field.name)
 
-        raise AccessError(
+        description = self._model_description()
+        message = (
             f'No tiene permisos suficientes para acceder al campo '
-            f'"{field.name}" en {self._meta.verbose_name} '
+            f'"{field.name}" en {description} '
             f'({self._meta.label}). Contacte a su administrador.'
             f'\n\nOperación: {operation}'
         )
+        user = get_current_user()
+        if user is not None and user.has_group('base.group_no_one'):
+            message += (f'\nUsuario: {get_current_uid()}'
+                        f'\nGrupos: {self._allowed_groups_message(field)}')
+        raise AccessError(message)
+
+    def _model_description(self):
+        """El nombre informal del modelo — ≙ ``self.env['ir.model']._get(name).name``.
+
+        La fuente lo lee de ``ir.model`` y cae al nombre técnico si no hay
+        fila; aquí igual, con el ``verbose_name`` de Django como último
+        respaldo — que es lo que este árbol declara siempre y ``ir.model`` no
+        necesariamente tiene sembrado.
+        """
+        IrModel = apps.get_model('base', 'IrModel')
+        return (IrModel.objects.filter(model=self._meta.label)
+                .values_list('name', flat=True).first()
+                or self._meta.verbose_name or self._meta.label)
+
+    @staticmethod
+    def _allowed_groups_message(field):
+        """El tramo *"Groups: …"* del error de campo — ≙ ``:3411-3418``."""
+        groups = getattr(field, 'groups', None)
+        if groups == NO_ACCESS:
+            return 'prohibido siempre'
+        if not groups:
+            return 'reglas de acceso de campo a medida'
+        # ≙ ``[self.env.ref(g) for g in field.groups.split(',')]`` ordenado
+        # por id: el identificador externo se resuelve por ``ir.model.data``,
+        # que es el mismo canal que ``has_group``. Un xmlid que no resuelve se
+        # deja verbatim en vez de desaparecer — si el campo lo declara, quien
+        # lea el error necesita verlo aunque el grupo no esté sembrado.
+        IrModelData = apps.get_model('base', 'IrModelData')
+        ResGroups = apps.get_model('base', 'ResGroups')
+        resueltos = []
+        for xmlid in (g.strip() for g in groups.split(',')):
+            group = IrModelData.ref(xmlid, raise_if_not_found=False)
+            if isinstance(group, ResGroups):
+                resueltos.append((group.pk, str(group)))
+            else:
+                resueltos.append((None, xmlid))
+        resueltos.sort(key=lambda par: (par[0] is None, par[0]))
+        return 'permitido a los grupos %s' % ', '.join(
+            repr(name) for _pk, name in resueltos)
 
     def _traverse_related_sql(self, alias, field, query):
         """Recorre el campo delegado y añade a ``query`` los JOIN que hagan falta.
