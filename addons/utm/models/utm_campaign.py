@@ -63,6 +63,7 @@ class UtmCampaign(TimeStampedModel):
         'base.ResUsers', null=True, on_delete=models.PROTECT,
         related_name='utm_campaign_ids', verbose_name='Responsable',
         help_text='Persona responsable de la campaña.',
+        db_column='user_id',
     )
     # ≙ ``stage_id`` (requerido, ``ondelete=restrict``, ``copy=False``,
     # ``group_expand=_group_expand_stage_ids``).
@@ -70,6 +71,7 @@ class UtmCampaign(TimeStampedModel):
         'utm.UtmStage', on_delete=models.PROTECT, related_name='campaign_ids',
         verbose_name='Etapa',
         help_text='Etapa en la que se encuentra la campaña.',
+        db_column='stage_id',
     )
     # ≙ ``tag_ids`` (M2M sobre la tabla ``utm_tag_rel``).
     tag_ids = fields.Many2many(

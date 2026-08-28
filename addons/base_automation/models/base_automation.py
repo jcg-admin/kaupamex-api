@@ -346,6 +346,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         IrModel, on_delete=models.CASCADE, db_index=True,
         related_name='base_automations', verbose_name='Modelo',
         help_text='Modelo objetivo (Odoo model_id, domain abstract=False).',
+        db_column='model_id',
     )
     # Odoo model_name (related="model_id.model", inverse="_inverse_model_name",
     # store implícito). Columna real sincronizada en save() — mismo criterio
@@ -396,6 +397,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         IrModelFields, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='+', verbose_name='Campo de fecha disparador',
         help_text='Cuándo evaluar la condición (Odoo trg_date_id).',
+        db_column='trg_date_id',
     )
     trg_date_range = fields.Integer(null=True, blank=True, verbose_name='Retraso')
     trg_date_range_mode = fields.Selection(

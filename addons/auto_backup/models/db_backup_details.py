@@ -125,6 +125,7 @@ class DbBackupDetails(TimeStampedModel):
         null=True, blank=True, related_name='backup_details_ids',
         verbose_name='Database Backup',
         help_text='Configuración que produjo esta corrida (Odoo db_backup_id).',
+        db_column='db_backup_id',
     )
 
     # --- Campos propios: el historial que UC-ADM-05 lista ---

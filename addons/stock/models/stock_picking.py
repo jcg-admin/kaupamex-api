@@ -247,6 +247,7 @@ class StockPickingType(TimeStampedModel):
         'base.IrSequence', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='picking_types',
         help_text='Secuencia de referencia (Odoo sequence_id).',
+        db_column='sequence_id',
     )
     sequence_code            = fields.Char(
         'Sequence Prefix', max_length=32, required=True,
