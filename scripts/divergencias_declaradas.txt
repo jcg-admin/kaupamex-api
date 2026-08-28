@@ -1103,16 +1103,12 @@ base/models/res_users.py::ResUsers::_has_field_access
 # `orm.environments`.
 base/models/res_users.py::ResUsers::context_get
 #
-# ---- 5. Su cifrador de contrasenas. DIVERGENCIA DE STACK -----------------
+# ---- 5. Su cifrador de contrasenas: PORTADO, ya no se declara ------------
 #
-# `CryptContext` entera es su envoltura de `passlib`, que no esta en este arbol
-# (medido: 0 en `pyproject.toml`). El equivalente son los `PASSWORD_HASHERS` de
-# Django, que `set_password`/`check_password` ya consumen — incluido el rehash
-# que su `verify_and_update` hace a mano. Clave de CLASE: son los ocho metodos
-# de la envoltura, no una seleccion de ellos.
-base/models/res_users.py::CryptContext
-# El accesor que devuelve esa envoltura configurada.
-base/models/res_users.py::ResUsers::_crypt_context
+# `CryptContext` y `_crypt_context` se portaron con su motor: `passlib` es
+# ahora dependencia declarada de este arbol. Las dos lineas que estaban aqui
+# dejaron de ser ciertas y se retiran — un registro que absuelve lo ya portado
+# miente sobre la deuda.
 #
 # ---- 6. La memorizacion del token de sesion. DIVERGENCIA DE STACK --------
 #

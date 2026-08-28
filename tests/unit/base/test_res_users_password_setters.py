@@ -37,7 +37,6 @@ fuente.
 """
 
 import pytest
-from django.contrib.auth import hashers
 
 from addons.base.models.res_partner import ResPartner
 from addons.base.models.res_users import ResUsers
@@ -55,11 +54,16 @@ def _make_user(login):
     return user
 
 
+# El hash de prueba se construye con ``_crypt_context()``, no con el registro
+# global de Django: la guarda del metodo pregunta ``identify(pw) != 'plaintext'``
+# contra ESE contexto, asi que un hash de otro cifrador es, para el, texto
+# plano — y lo rechaza, que es la conducta de la fuente.
+
 # --- _set_encrypted_password ----------------------------------------------
 
 def test_an_already_hashed_password_is_stored_verbatim(db):
     user = _make_user('hash@ejemplo.mx')
-    cifrada = hashers.make_password('la-nueva')
+    cifrada = ResUsers._crypt_context().hash('la-nueva')
     ResUsers._set_encrypted_password(user.pk, cifrada)
     user.refresh_from_db()
     assert user.password == cifrada
@@ -67,7 +71,7 @@ def test_an_already_hashed_password_is_stored_verbatim(db):
 
 def test_the_stored_hash_still_validates_its_plaintext(db):
     user = _make_user('valida@ejemplo.mx')
-    ResUsers._set_encrypted_password(user.pk, hashers.make_password('la-nueva'))
+    ResUsers._set_encrypted_password(user.pk, ResUsers._crypt_context().hash('la-nueva'))
     user.refresh_from_db()
     assert user.check_password('la-nueva')
 
@@ -84,7 +88,7 @@ def test_a_plaintext_password_is_refused(db):
 def test_only_the_named_user_is_touched(db):
     uno = _make_user('uno@ejemplo.mx')
     dos = _make_user('dos@ejemplo.mx')
-    ResUsers._set_encrypted_password(uno.pk, hashers.make_password('otra'))
+    ResUsers._set_encrypted_password(uno.pk, ResUsers._crypt_context().hash('otra'))
     dos.refresh_from_db()
     assert dos.check_password('la-de-antes')
 

@@ -87,6 +87,7 @@ from django.db.models.signals import m2m_changed, post_delete, post_save, pre_de
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
+from passlib.context import CryptContext as _CryptContext
 
 from addons.base.models import signals
 from addons.base.models.ir_http import get_current_request
@@ -102,6 +103,64 @@ from orm.utils import SUPERUSER_ID
 #: lo usan el bloque de claves de API, el enfriamiento de acceso Y el cambio de
 #: contraseña. El nombre acotado sugería que cada bloque traía el suyo.
 _logger = logging.getLogger(__name__)
+
+
+class CryptContext:
+    """≙ ``CryptContext`` (``odoo19c: res_users.py:33-76``).
+
+    La envoltura que la fuente pone delante de ``passlib`` para poder copiar
+    un contexto con la misma configuración. Se porta con su archivo, su
+    clase, sus métodos y sus firmas — y con su motor: ``passlib`` es una
+    dependencia declarada de este árbol (``pyproject.toml``), igual que en la
+    fuente, así que aquí no hay nada que sustituir.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.__obj__ = _CryptContext(*args, **kwargs)
+
+    def copy(self):
+        """Un contexto nuevo con la configuración del original.
+
+        Su docstring de la fuente, verbatim: *"The copy method must create a
+        new instance of the ``CryptContext`` wrapper with the same
+        configuration as the original (``__obj__``). There are no need to
+        manage the case where kwargs are passed to the ``copy`` method. It is
+        necessary to load the original ``CryptContext`` in the new instance of
+        the original ``CryptContext`` with ``load`` to get the same
+        configuration."*
+        """
+        other_wrapper = CryptContext(_autoload=False)
+        other_wrapper.__obj__.load(self.__obj__)
+        return other_wrapper
+
+    @property
+    def hash(self):
+        return self.__obj__.hash
+
+    @property
+    def identify(self):
+        return self.__obj__.identify
+
+    @property
+    def verify(self):
+        return self.__obj__.verify
+
+    @property
+    def verify_and_update(self):
+        return self.__obj__.verify_and_update
+
+    def schemes(self):
+        return self.__obj__.schemes()
+
+    def update(self, **kwargs):
+        if kwargs.get("schemes"):
+            assert isinstance(kwargs["schemes"], str) or all(isinstance(s, str) for s in kwargs["schemes"])
+        return self.__obj__.update(**kwargs)
+
+
+#: ≙ ``MIN_ROUNDS`` (``odoo19c: res_users.py:79``). Piso del factor de trabajo
+#: del cifrador: la configuración puede subirlo, nunca bajarlo.
+MIN_ROUNDS = 600_000
 
 #: Prefijo de la clave con que se memoriza la clausura de grupos de un usuario.
 #:
@@ -448,7 +507,7 @@ class ResUsers(TimeStampedModel):
     — verificado con ``pg_constraint``. No hace falta un ``Meta.constraints``
     para renombrarlo.
 
-    Los 73 símbolos que este porte NO trae, y su desenlace
+    Los 64 símbolos que este porte NO trae, y su desenlace
     -------------------------------------------------------
 
     Medido con ``check_porte_completo`` contra
@@ -520,13 +579,31 @@ class ResUsers(TimeStampedModel):
     de sesión de su ORM, que este árbol no tiene: el equivalente es
     ``request.user`` más ``orm.environments``.
 
-    **5. Su cifrador de contraseñas — 9 símbolos.** DIVERGENCIA DE STACK.
-    ``CryptContext`` entera —``__init__``, ``copy``, ``hash``, ``identify``,
-    ``verify``, ``verify_and_update``, ``schemes``, ``update``— más
-    ``_crypt_context``. Es su envoltura
-    de ``passlib``; aquí el equivalente son los ``PASSWORD_HASHERS`` de Django,
-    que ``set_password``/``check_password`` ya consumen — incluido el rehash
-    automático que su ``verify_and_update`` hace a mano.
+    **5. Su cifrador de contraseñas — PORTADO (9 símbolos).** Este bloque
+    decía *"DIVERGENCIA DE STACK"* y ofrecía los ``PASSWORD_HASHERS`` de
+    Django como equivalente. Era el camino barato: la envoltura
+    ``CryptContext`` —``__init__``, ``copy``, ``hash``, ``identify``,
+    ``verify``, ``verify_and_update``, ``schemes``, ``update``— y su accesor
+    ``_crypt_context`` **se portan**, con su archivo, su clase, sus métodos y
+    sus firmas, y con su motor: ``passlib`` es ahora una dependencia declarada
+    de este árbol.
+
+    Con ellos se porta lo que cuelga: :data:`MIN_ROUNDS`,
+    :data:`KEY_CRYPT_CONTEXT` y las dos mitades de ``_check_credentials`` que
+    lo consumen —``verify_and_update`` y el reemplazo por
+    :meth:`_set_encrypted_password`—, hoy en :meth:`check_password`.
+
+    Dos consecuencias medidas, y las dos son del porte, no accidentes:
+
+    - la columna ``password`` deja de llevar ``max_length=128``. Ese tope no
+      venía de la fuente —que declara ``fields.Char`` sin tamaño— sino de
+      ``AbstractBaseUser``, y no cabe el MCF de ``pbkdf2_sha512``
+      (migración ``0055``).
+    - un hash escrito por **otro** cifrador ya no entra por
+      :meth:`_set_encrypted_password`: la guarda pregunta
+      ``identify(pw) != 'plaintext'`` contra ESTE contexto, que es lo que la
+      fuente afirma. No hay corpus heredado que convertir — la contraseña se
+      escribe siempre por :meth:`set_password`, que usa el mismo contexto.
 
     **6. La caché de autorización — 3 símbolos.**
     ``_get_invalidation_fields`` está **portado** (tarea #58), y con él
@@ -625,7 +702,13 @@ class ResUsers(TimeStampedModel):
         max_length=254, unique=True, db_index=True,
         help_text='Identificador de acceso (Odoo login). Aquí es el email.',
     )
-    password      = fields.Char(max_length=128, verbose_name='Contraseña')
+    #: ≙ ``password`` (``odoo19c: res_users.py:217-219``), que se declara
+    #: ``fields.Char`` **sin tamaño** — ``varchar`` sin límite. El
+    #: ``max_length=128`` que había aquí no venía de la fuente: era el de
+    #: ``AbstractBaseUser``, y no cabe el MCF de ``pbkdf2_sha512`` que
+    #: :meth:`_crypt_context` produce (medido: 133 caracteres con la sal de
+    #: 16 bytes que passlib usa por defecto).
+    password      = fields.Char(verbose_name='Contraseña')
     active        = fields.Boolean(
         default=True, db_index=True,
         help_text='Cuenta operativa (Odoo active).',
@@ -711,17 +794,47 @@ class ResUsers(TimeStampedModel):
         return (self.get_username(),)
 
     def set_password(self, raw_password):
-        self.password = hashers.make_password(raw_password)
+        """Cifra con el contexto del modelo — ≙ ``_set_password`` (``:359-362``).
+
+        La fuente lo hace en el *inverse* de su campo ``password``:
+        ``ctx = self._crypt_context(); ... ctx.hash(user.password)``. Aquí la
+        columna es de Django y el cifrado es explícito, pero **el cifrador es
+        el mismo**: :meth:`_crypt_context`, no el registro global
+        ``PASSWORD_HASHERS``. Es lo que hace que
+        :meth:`_set_encrypted_password` pueda afirmar su precondición con
+        ``identify`` — un hash escrito por otro cifrador no sería reconocible
+        por este contexto, y su guarda lo rechazaría.
+        """
+        if raw_password is None:
+            # ≙ el ``help`` del campo en la fuente: *"Keep empty if you don't
+            # want the user to be able to connect on the system."* Un contexto
+            # no cifra ``None``; la forma de «sin credencial» en este stack es
+            # el prefijo ``!`` que ningún esquema reconoce.
+            self.set_unusable_password()
+            self._password = None
+            return
+        self.password = self._crypt_context().hash(raw_password)
         self._password = raw_password
 
     def check_password(self, raw_password):
-        """Verifica el password y re-hashea si el hasher quedó obsoleto."""
-        def setter(raw):
-            self.set_password(raw)
-            # Evita disparar la señal de cambio en el re-hash.
+        """Verifica y re-cifra si el esquema quedó obsoleto.
+
+        ≙ la mitad de credencial de ``_check_credentials``
+        (``odoo19c: res_users.py:368-372``): ``valid, replacement =
+        self._crypt_context().verify_and_update(...)`` y, si hay reemplazo,
+        ``self._set_encrypted_password(...)``. Las dos mitades se portan
+        verbatim; lo que cambia es de dónde sale el hash guardado —de la
+        columna del modelo, no de un ``SELECT`` crudo.
+        """
+        context = self._crypt_context()
+        valid, replacement = context.verify_and_update(
+            raw_password, self.password or '')
+        if valid and replacement is not None:
+            self._set_encrypted_password(self.pk, replacement)
+            self.password = replacement
+            # Evita disparar la señal de cambio en el re-cifrado.
             self._password = None
-            self.save(update_fields=['password'])
-        return hashers.check_password(raw_password, self.password, setter)
+        return valid
 
     def set_unusable_password(self):
         self.password = hashers.make_password(None)
@@ -893,7 +1006,7 @@ class ResUsers(TimeStampedModel):
 
         DIVERGENCIA DE MECANISMO, declarada: la fuente asigna
         ``self.password = new_passwd`` y su ORM cifra en el ``write``. Aquí el
-        cifrado es explícito —``set_password`` llama a ``hashers.make_password``—
+        cifrado es explícito —``set_password`` llama a ``_crypt_context().hash``—
         y hay que **persistir**: el modelo de la fuente escribe en la asignación
         y el de Django no.
         """
@@ -934,20 +1047,18 @@ class ResUsers(TimeStampedModel):
         'plaintext'``. Aquí es un ``UserError``, no un ``assert`` — un ``assert``
         desaparece con ``python -O`` y éste guarda una credencial: con la
         aserción compilada fuera, un texto plano entraría a la columna de
-        contraseña y **validaría contra nada**. Quién identifica el hash
-        también cambia: allá es su ``passlib``, aquí
-        ``hashers.identify_hasher``, que es el registro de ``PASSWORD_HASHERS``
-        de la instalación.
+        contraseña y **validaría contra nada**. Quién identifica el hash es el
+        mismo de la fuente: ``_crypt_context().identify``, que reconoce los
+        esquemas que ese contexto declara y llama ``plaintext`` a todo lo
+        demás.
 
         :raises UserError: si ``pw`` no es un hash que la instalación reconozca.
         """
-        try:
-            hashers.identify_hasher(pw)
-        except (ValueError, TypeError):
+        if cls._crypt_context().identify(pw) == 'plaintext':
             raise UserError(
                 'Sólo se admite una contraseña ya cifrada por esta vía: el '
-                'valor recibido no lo reconoce ningún hasher de la '
-                'instalación. Para una contraseña en claro va set_password.')
+                'valor recibido no lo reconoce el cifrador del modelo. Para '
+                'una contraseña en claro va set_password.')
         cls.objects.filter(pk=uid).update(password=pw)
 
     def _set_new_password(self, new_password):
@@ -1685,6 +1796,48 @@ class ResUsers(TimeStampedModel):
         company = get_current_company()
         return getattr(getattr(company, 'currency', None), 'pk', None)
 
+    @classmethod
+    def _crypt_context(cls):
+        """≙ ``_crypt_context`` (``odoo19c: res_users.py:1193-1212``).
+
+        Su docstring de la fuente, verbatim: *"Passlib CryptContext instance
+        used to encrypt and verify passwords. Can be overridden if technical,
+        legal or political matters require different kdfs than the provided
+        default. The work factor of the default KDF can be configured using
+        the ``password.hashing.rounds`` ICP."*
+
+        Los tres argumentos son los de la fuente, con sus comentarios:
+        la lista de kdf que el contexto sabe verificar —el primero es el que
+        cifra—, ``deprecated=['auto']`` para que *"deprecated algorithms are
+        still verified as usual, but ``needs_update`` will indicate that the
+        stored hash should be replaced by a more recent algorithm"*, y el
+        número de rondas, que nunca baja de :data:`MIN_ROUNDS`.
+
+        DIVERGENCIA DE ENLACE, y es la única: la fuente lo declara método de
+        recordset (``def _crypt_context(self)``) porque allá todo cuelga de
+        uno. Aquí es ``classmethod`` porque su consumidor
+        :meth:`_set_encrypted_password` también lo es —escribe por ``uid``,
+        sin instancia—. La forma de la llamada no cambia: ``self._crypt_context()``
+        sigue resolviendo desde una instancia, así que los sitios que la
+        fuente escribe con ``self`` se portan verbatim.
+
+        La memorización (``@tools.ormcache(cache='stable')``) no se replica:
+        el objeto lleva un hasher vivo, y pasarlo por el backend de caché
+        —que serializa— costaría más que la única lectura indexada de
+        ``ir.config_parameter`` que este método hace.
+        """
+        config = apps.get_model('base', 'SystemParameter')  # ≙ ir.config_parameter
+        return CryptContext(
+            # kdf que el contexto sabe verificar. El primero de la lista es
+            # el que cifra.
+            ['pbkdf2_sha512', 'plaintext'],
+            # los algoritmos obsoletos se siguen verificando; lo que cambia
+            # es que verify_and_update devuelve un reemplazo.
+            deprecated=['auto'],
+            pbkdf2_sha512__rounds=max(
+                MIN_ROUNDS, int(config.get_param('password.hashing.rounds', 0))),
+        )
+
     @property
     def share(self):
         """≙ ``_compute_share`` (res_users.py:460-464): compartido = NO
@@ -2213,37 +2366,37 @@ def index_name_for(table):
             table.encode()).hexdigest()[:8]
     return name
 
-#: ≙ ``KEY_CRYPT_CONTEXT`` (``:1521-1526``).
+#: ≙ ``KEY_CRYPT_CONTEXT`` (``odoo19c: res_users.py:1510-1515``).
 #:
-#: La referencia usa ``passlib.CryptContext(['pbkdf2_sha512'],
-#: pbkdf2_sha512__rounds=6000)`` y explica la elección: *"default is 29000
-#: rounds which is 25~50ms, which is probably unnecessary given in this case
-#: all the keys are completely random data: dictionary attacks on API keys
-#: isn't much of a concern"*.
+#: Los comentarios son los de la fuente, verbatim: *"default is 29000 rounds
+#: which is 25~50ms, which is probably unnecessary given in this case all the
+#: keys are completely random data: dictionary attacks on API keys isn't much
+#: of a concern"*.
 #:
-#: ``passlib`` no está en este árbol (medido: 0 en ``pyproject.toml``); el
-#: mecanismo equivalente son los *hashers* de Django, que este archivo ya usa
-#: para la contraseña. Se instancia la clase directamente en vez de
-#: registrarla en ``PASSWORD_HASHERS``: así el número de rondas queda atado a
-#: **este** uso y no cambia el coste de verificar una contraseña.
-#:
-#: La familia cambia de ``sha512`` a ``sha256`` porque es la que Django trae;
-#: el argumento de la referencia —entropía completa, no hay ataque de
-#: diccionario— no distingue entre las dos.
-KEY_HASHER = hashers.PBKDF2PasswordHasher()
-KEY_HASHER_ITERATIONS = 6000
+#: Es un contexto **aparte** del de la contraseña, con su propio coste. Por eso
+#: el cifrador vive en la instancia y no en el registro global
+#: ``PASSWORD_HASHERS``: dos costes distintos no caben en un registro único.
+KEY_CRYPT_CONTEXT = CryptContext(
+    # default is 29000 rounds which is 25~50ms, which is probably unnecessary
+    # given in this case all the keys are completely random data: dictionary
+    # attacks on API keys isn't much of a concern
+    ['pbkdf2_sha512'], pbkdf2_sha512__rounds=6000,
+)
 
 
 def _hash_api_key(key):
-    """Codifica una clave con :data:`KEY_HASHER` — ≙ ``KEY_CRYPT_CONTEXT.hash``."""
-    hasher = hashers.PBKDF2PasswordHasher()
-    hasher.iterations = KEY_HASHER_ITERATIONS
-    return hasher.encode(key, hasher.salt())
+    """≙ ``KEY_CRYPT_CONTEXT.hash(k)`` (``odoo19c: res_users.py:1600``).
+
+    La fuente lo llama en línea dentro de ``_generate``; aquí es una función
+    con nombre porque la escritura de la clave pasa por tres sitios y el
+    nombre los ata al mismo contexto.
+    """
+    return KEY_CRYPT_CONTEXT.hash(key)
 
 
 def _verify_api_key(key, encoded):
-    """≙ ``KEY_CRYPT_CONTEXT.verify`` — comparación en tiempo constante."""
-    return hashers.check_password(key, encoded)
+    """≙ ``KEY_CRYPT_CONTEXT.verify(key, ...)`` (``odoo19c: res_users.py:1628``)."""
+    return KEY_CRYPT_CONTEXT.verify(key, encoded)
 
 
 class _ResUsersApikeysBase(TimeStampedModel):
