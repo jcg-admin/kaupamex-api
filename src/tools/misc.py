@@ -19,7 +19,9 @@ from itertools import islice, repeat
 
 import datetime
 
+from django.apps import apps
 from django.utils import formats as django_formats
+from django.utils import translation as django_translation
 from django.utils.crypto import salted_hmac
 from django.utils.html import escape as django_html_escape
 from lxml import etree
@@ -352,3 +354,89 @@ def parse_date(value, lang_code=None):
         except (ValueError, TypeError):
             continue
     return value
+
+
+def get_lang(lang_code=None):
+    """≙ ``get_lang`` (``odoo19c: odoo/tools/misc.py:1308-1326``).
+
+    El ``res.lang`` que rige el formateo, resolviendo en el orden de la fuente:
+    el código pedido, luego el del contexto, luego el de la empresa, y si
+    ninguno está instalado, ``en_US`` o el primero que haya.
+
+    Aquí «el del contexto» es ``django.utils.translation.get_language()``, que
+    es el mismo dato por la vía del stack: lo fija el middleware de idioma en
+    cada petición. El de la empresa queda para cuando ``ResCompany`` declare su
+    idioma — hoy no lo tiene, y **eso es lo que el orden de la fuente cubre**:
+    cae al siguiente escalón sin romperse.
+
+    :param lang_code: código de idioma pedido (``es_MX``), o ``None``.
+    :return: el registro ``ResLang``, o ``None`` si no hay ninguno instalado.
+    """
+    res_lang = apps.get_model('base', 'ResLang')
+    installed = res_lang.objects.filter(active=True)
+    if lang_code:
+        chosen = installed.filter(code=lang_code).first()
+        if chosen is not None:
+            return chosen
+    context_lang = django_translation.get_language()
+    if context_lang:
+        # Django usa ``es-mx``; ``res.lang`` guarda ``es_MX``. Es la misma
+        # información con otra convención, no dos datos distintos.
+        chosen = installed.filter(
+            code__iexact=context_lang.replace('-', '_')).first()
+        if chosen is not None:
+            return chosen
+    return (installed.filter(code='en_US').first()
+            or installed.order_by('pk').first())
+
+
+# Los dos espacios que ``format_amount`` inserta, por su nombre Unicode.
+# Como constantes y no como escape ``\N{...}`` dentro de la f-string: ahí la
+# llave doble que Python exige colisiona con la sintaxis de la propia f-string.
+NO_BREAK_SPACE = '\u00a0'
+ZERO_WIDTH_NO_BREAK_SPACE = '\ufeff'
+
+
+def format_amount(amount, currency, lang_code=None, trailing_zeroes=True):
+    """≙ ``format_amount`` (``odoo19c: odoo/tools/misc.py:1635-1651``).
+
+    El importe con su símbolo, redondeado a los decimales de la moneda,
+    agrupado según la localización y con el símbolo del lado que la moneda
+    declara.
+
+    Los dos reemplazos de espacio **no son cosmética**: el espacio duro impide
+    que un salto de línea separe la cifra de su símbolo, y el
+    ``ZERO WIDTH NO-BREAK SPACE`` tras el signo menos impide que un guion al
+    final de línea se lea como partición de palabra. Se portan verbatim.
+
+    :param amount: el importe.
+    :param currency: el ``ResCurrency`` que fija redondeo, símbolo y posición.
+    :param lang_code: idioma a usar; ``None`` resuelve con ``get_lang``.
+    :param trailing_zeroes: si se conservan los ceros finales.
+    :return: la cadena formateada.
+    """
+    fmt = f'%.{currency.decimal_places}f'
+    lang = get_lang(lang_code)
+    rounded = currency.round(amount)
+
+    if lang is None:
+        # Sin ``res.lang`` sembrado, la localización activa de Django tiene la
+        # misma información. Es el escalón que la fuente no necesita porque
+        # allá ``res.lang`` siempre tiene al menos ``en_US``.
+        formatted = django_formats.number_format(
+            rounded, decimal_pos=currency.decimal_places, force_grouping=True)
+        decimal_point = django_formats.get_format('DECIMAL_SEPARATOR')
+    else:
+        formatted = lang.format(fmt, rounded, grouping=True)
+        decimal_point = lang.decimal_point or '.'
+
+    formatted = (formatted.replace(' ', NO_BREAK_SPACE)
+                 .replace('-', '-' + ZERO_WIDTH_NO_BREAK_SPACE))
+
+    if not trailing_zeroes:
+        formatted = re.sub(rf'{re.escape(decimal_point)}?0+$', '', formatted)
+
+    symbol = currency.symbol or ''
+    if currency.position == 'before':
+        return symbol + NO_BREAK_SPACE + formatted
+    return formatted + NO_BREAK_SPACE + symbol

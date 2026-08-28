@@ -7,20 +7,27 @@ licencia preservados, DEC-KX-03) — la referencia consume
 ``check_amount_in_words``) y espera que ese método viva en la clase base de
 ``res.currency``.
 
-Primer consumidor real de un método declarado NO portado
-==============================================================
+La capa de localización sobre el genérico de ``base``
+======================================================
 
-``base/models/res_currency.py`` declara ``amount_to_text`` explícitamente
-NO portado: *"presentación (formato de importe, monto en palabras) — sin
-consumidor de UI en este core de backend"* (medido:
-``grep -n "amount_to_text" base/models/res_currency.py`` → **0 hits** de
-definición, sólo la mención en la lista de lo no portado [PROVEN]).
-``account_check_printing`` es su primer consumidor real — no se puede
-declarar NO PORTADO otra vez sin violar ``porte-completo-no-parcial.md``
-("si el ORM no tiene un mecanismo, se construye"). Se construye AQUÍ y se
-cuelga vía ``chain_method`` desde ``AppConfig.ready()`` — nunca existió
-antes, así que la instalación es directa (ver ``orm/method_chain.py``), y no
-se toca ``base/models/res_currency.py``.
+Este bloque decía que ``base/models/res_currency.py`` declaraba
+``amount_to_text`` **NO portado** y que por eso se construía aquí — con la
+medición de entonces: ``grep`` → 0 hits de definición en ``base``.
+
+**Ya no es cierto, y la estratificación resultante es la de la referencia.**
+``base`` porta ahora su ``amount_to_text`` genérico (``odoo19c:
+res_currency.py:175-210``), con el ``num2words`` opcional y la degradación
+que la fuente declara. Este archivo pasa de ser *el único* a ser **la capa
+de localización** encima — que es exactamente cómo la referencia se
+organiza: el genérico en ``base``, la forma legal de cada país en su addon.
+
+Consecuencia mecánica que conviene tener presente: ``chain_method`` pasó de
+**instalación directa** —no había previa— a **encadenado**. En modo relevo
+la previa sólo se invoca si la nueva devuelve ``None``, y ésta siempre
+devuelve, así que la mexicana gana. Lo mide
+``tests/integration/base/test_res_currency_engine.py::TestAmountToText``, en
+los dos sentidos: que la localizada gana, y que el genérico sigue alcanzable
+como eslabón previo.
 
 Divergencia declarada — español, no inglés; "PESOS", no el nombre de la
 moneda

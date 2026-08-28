@@ -40,24 +40,49 @@ corrige en el mismo pase, no se respeta por ser previo. «Sin consumidor»
 tampoco era uno de los tres desenlaces válidos de
 ``porte-completo-no-parcial.md``; era un cuarto, inventado.
 
-Lo que sigue sin portar, y por qué
-===================================
+Lo que hubo que construir, y por qué no estaba bloqueado
+=========================================================
 
-- ``format`` — **bloqueado, medido**. Es una línea que delega en
-  ``tools.format_amount`` (``odoo19c: odoo/tools/misc.py:1635``), que a su vez
-  necesita ``ResLang.format`` para el agrupamiento de miles según la
-  configuración regional. Medido: ``src/tools/`` no declara ``format_amount``
-  (0 hits) y ``ResLang`` tiene los campos —``grouping``, ``decimal_point``,
-  ``thousands_sep``— pero **no** el método. Los dos son símbolos de otros
-  archivos, no de éste. Sucesor: **tarea #120**.
-- ``_get_view`` / ``_get_view_cache_key`` — **divergencia de mecanismo
-  declarada**. Reescriben las etiquetas de una vista XML según la moneda de la
-  empresa y cachean la vista por ella; este stack no tiene vistas
-  declarativas. Registrados en ``scripts/divergencias_declaradas.txt``.
-- ``create`` / ``unlink`` / ``write`` — **se quedan contados**, como en toda la
-  familia. Aquí son ``save()`` y ``delete()``, y su conducta —disparar el
-  toggle del grupo multi-divisa e invalidar el caché de
-  ``get_all_currencies``— sí está portada, en esos dos puntos de entrada.
+``format`` es una línea que delega en ``tools.format_amount``, que delega en
+``ResLang.format``. Ninguno de los dos existía, y la primera redacción de este
+docstring los declaró **bloqueo con sucesor**. Medido, no lo eran: los tres
+eslabones se construyeron en este mismo pase, y ninguno pasa de cuarenta
+líneas.
+
+===========================  ==========================================
+Símbolo construido           Dónde, y sobre qué mecanismo
+===========================  ==========================================
+``split`` / ``intersperse``  ``res_lang.py`` — el hogar de la fuente
+``ResLang.format``           ``res_lang.py`` — sobre esos dos
+``tools.get_lang``           ``tools/misc.py``, con
+                             ``django.utils.translation``
+``tools.format_amount``      ``tools/misc.py``, sobre ``ResLang.format``
+``tools.parse_date``         ``tools/misc.py``, sobre
+                             ``django.utils.formats``
+===========================  ==========================================
+
+**El agrupamiento no es un ``f'{x:,.2f}'``**, y por eso se porta el algoritmo
+de la fuente en vez de resolverlo con la biblioteca estándar: el separador de
+miles no siempre reparte de tres en tres. ``[3, 2, 0]`` es el sistema indio y
+da ``12,34,567``. Verificado contra los ejemplos de la fuente, los cinco casos
+coinciden.
+
+``num2words``, que ``amount_to_text`` necesita para escribir el importe en
+palabras, **no está instalado** — y no se añade: la fuente lo declara opcional
+y degrada con un aviso, así que portar esa degradación **es** el porte fiel.
+El método existe, avisa y devuelve ``''``; el día que la biblioteca esté, el
+mismo código escribe el importe sin tocarse.
+
+``_get_view`` / ``_get_view_cache_key`` — mismo criterio que en
+``res_currency_rate.py``: lo que **hacen** es calcular etiquetas desde la
+moneda de la empresa y hacer que la representación cacheada varíe con ella. Lo
+que diverge es el destino —el mapa lo consume el serializer, no un xpath sobre
+un árbol XML—, y eso se declara en cada método.
+
+``create`` / ``unlink`` / ``write`` se portan con su nombre. Su conducta
+—disparar el toggle del grupo multi-divisa e invalidar el caché de
+``get_all_currencies``— vive además en ``save()`` y ``delete()``, para que una
+escritura directa tampoco la esquive.
 La restricción ``rounding>0`` **SÍ está portada** (corregido en este pase)
 =========================================================================
 
@@ -78,11 +103,34 @@ método: su hogar aquí es ``Meta.constraints``, con el nombre conservado
 división por cero de ``round()``/``is_zero()`` sigue donde estaba: cubre el
 método, y la restricción cubre la fila — son dos capas, no una alternativa.
 """
+import datetime
+import logging
 import math
 from decimal import ROUND_HALF_UP, Decimal
 
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.db import connection
+from django.db.models import F
+
 import fields
 import models
+from orm.environments import get_context, get_current_company
+from tools.misc import format_amount, get_lang
+
+_logger = logging.getLogger(__name__)
+
+try:
+    from num2words import num2words
+except ImportError:
+    # ≙ el mismo try/except del módulo de la fuente
+    # (``odoo19c: res_currency.py:13-17``). La biblioteca es opcional allá y
+    # aquí no está instalada; ``amount_to_text`` degrada con aviso, que es
+    # exactamente lo que la fuente hace.
+    _logger.warning(
+        'La biblioteca num2words no está instalada; el importe en palabras '
+        'no estará disponible.')
+    num2words = None
 
 
 class ResCurrency(models.Model):
@@ -138,6 +186,15 @@ class ResCurrency(models.Model):
         max_length=32, blank=True, default='',
         help_text='Etiqueta de la unidad (Odoo currency_unit_label).',
     )
+    currency_subunit_label = fields.Char(
+        max_length=32, blank=True, default='',
+        help_text='Etiqueta de la subunidad (Odoo currency_subunit_label). '
+                  'La consume amount_to_text para la parte fraccionaria.',
+    )
+    iso_numeric         = fields.Integer(
+        null=True, blank=True,
+        help_text='Código numérico ISO 4217 (Odoo iso_numeric).',
+    )
 
     class Meta:
         db_table = 'res_currency'
@@ -169,18 +226,501 @@ class ResCurrency(models.Model):
     def __str__(self) -> str:
         return self.name
 
-    def save(self, *args, **kwargs):
-        """Computa ``decimal_places`` desde ``rounding`` (Odoo _compute_decimal_places).
+    # === Puntos de entrada del ORM ========================================
 
-        o18:163-168 / o19:163-168: si ``0 < rounding <= 1`` →
-        ``ceil(log10(1/rounding))``; en otro caso 0.
+    def save(self, *args, **kwargs):
+        """El punto único de escritura: computa, valida y propaga.
+
+        ``create`` y ``write`` de la referencia son los nombres públicos y
+        pasan por aquí; la conducta vive en este sitio para que una escritura
+        directa —``objects.create``, ``instance.save()``— tampoco la esquive.
+        """
+        self._compute_decimal_places()
+        self._check_company_currency_stays_active()
+        res = super().save(*args, **kwargs)
+        type(self)._toggle_group_multi_currency()
+        type(self)._invalidate_all_currencies_cache()
+        return res
+
+    def delete(self, *args, **kwargs):
+        """≙ ``unlink`` (``odoo19c: res_currency.py:65-70``)."""
+        res = super().delete(*args, **kwargs)
+        type(self)._toggle_group_multi_currency()
+        type(self)._invalidate_all_currencies_cache()
+        return res
+
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: res_currency.py:65-70``).
+
+        El nombre público del borrado en la referencia. Aquí delega en
+        ``delete()``, que es donde Django engancha — y donde vive la conducta,
+        para que un borrado directo tampoco se salte el toggle ni la
+        invalidación del caché.
+        """
+        return self.delete()
+
+    @classmethod
+    def create(cls, **vals):
+        """≙ ``create`` (``odoo19c: res_currency.py:57-63``).
+
+        Su cuerpo llama a ``super().create``, dispara el toggle del grupo
+        multi-divisa e invalida el caché de ``get_all_currencies``. Las tres
+        cosas ocurren aquí, por la vía de ``save()``.
+        """
+        return cls.objects.create(**vals)
+
+    def write(self, vals):
+        """≙ ``write`` (``odoo19c: res_currency.py:72-81``).
+
+        La fuente invalida el caché sólo cuando el cambio toca uno de los cinco
+        campos que ``get_all_currencies`` publica, y dispara el toggle sólo
+        cuando toca ``active``. Aquí ``save()`` hace las dos incondicionalmente
+        — es más caro y no puede quedarse corto, que en un caché es el error
+        que importa.
+        """
+        for field, value in vals.items():
+            setattr(self, field, value)
+        self.save()
+        return True
+
+    # === Derivados =========================================================
+
+    def _compute_decimal_places(self):
+        """≙ ``_compute_decimal_places`` (``odoo19c: res_currency.py:162-168``).
+
+        ``ceil(log10(1/rounding))`` cuando ``0 < rounding < 1``; 0 si no. Es lo
+        que hace que un ``rounding`` de ``0.01`` publique dos decimales y uno
+        de ``0.05`` también dos — el número de decimales no es el del factor,
+        es el de su magnitud.
         """
         r = float(self.rounding or 0)
         if 0 < r <= 1:
             self.decimal_places = int(math.ceil(math.log10(1 / r)))
         else:
             self.decimal_places = 0
-        return super().save(*args, **kwargs)
+        return self.decimal_places
+
+    @property
+    def rate_ids(self):
+        """Las tasas de esta moneda — el ``rate_ids`` One2many de la fuente.
+
+        Sale ordenado por el ``_order`` de ``res.currency.rate``
+        (``name desc, id``), así que ``rate_ids[:1]`` es la **más reciente**,
+        que es lo que ``_compute_date`` asume.
+        """
+        return self.rates.all()
+
+    def _compute_date(self):
+        """≙ ``_compute_date`` (``odoo19c: res_currency.py:170-173``).
+
+        La fecha de la última tasa, o ``None``. La consume la property
+        ``date``.
+        """
+        latest = self.rate_ids.first()
+        return latest.name if latest is not None else None
+
+    @property
+    def date(self):
+        """La fecha de la última tasa — ≙ ``_compute_date``."""
+        return self._compute_date()
+
+    def _compute_is_current_company_currency(self):
+        """≙ ``_compute_is_current_company_currency`` (``odoo19c: :142-145``).
+
+        La consume la property ``is_current_company_currency``.
+        """
+        company_id = get_current_company()
+        if company_id is None:
+            return False
+        company = self.companies.model.objects.filter(pk=company_id).first()
+        return company is not None and company.currency_id == self.pk
+
+    @property
+    def is_current_company_currency(self):
+        """≙ ``_compute_is_current_company_currency``."""
+        return self._compute_is_current_company_currency()
+
+    # === Motor de tipos de cambio =========================================
+
+    @classmethod
+    def _get_rates(cls, currencies, company, date):
+        """≙ ``_get_rates`` (``odoo19c: res_currency.py:117-138``).
+
+        ``{currency_id: tasa}`` a la fecha dada, con el mismo triple respaldo
+        de la fuente, en su orden: la última tasa **anterior o igual** a
+        ``date``; si no hay, la **más antigua** que exista; si tampoco,
+        ``1.0``.
+
+        El segundo escalón parece raro y no lo es: una moneda cuya primera tasa
+        es posterior a la fecha pedida se convierte con esa primera en vez de
+        tratarse como si valiera uno. Sin él, un asiento retroactivo saldría
+        sin convertir.
+
+        El orden por empresa es ``company_id`` ascendente con los nulos al
+        final, que en PostgreSQL es el default del ``ASC``: la tasa **propia de
+        la empresa gana** a la global, y sólo si no hay propia entra la global.
+
+        Las tasas viven siempre en la empresa raíz (``_check_company_id`` de
+        ``res.currency.rate``), así que se resuelve contra ``root_id``.
+        """
+        currencies = list(currencies)
+        if not currencies:
+            return {}
+        rate_model = cls.rates.rel.related_model
+        root = company.root_id if company is not None else None
+        company_filter = models.Q(company__isnull=True)
+        if root is not None:
+            company_filter = company_filter | models.Q(company=root)
+
+        rates = {}
+        for currency in currencies:
+            base = rate_model.objects.filter(company_filter, currency=currency,
+                                             rate__gt=0)
+            found = base.filter(name__lte=date).order_by(
+                F('company_id').asc(nulls_last=True), '-name').first()
+            if found is None:
+                found = base.order_by(
+                    F('company_id').asc(nulls_last=True), 'name').first()
+            rates[currency.pk] = (found.rate if found is not None
+                                  else Decimal('1.0'))
+        return rates
+
+    def _compute_current_rate(self, to_currency=None, company=None, date=None):
+        """≙ ``_compute_current_rate`` (``odoo19c: res_currency.py:145-159``).
+
+        Devuelve ``(rate, inverse_rate, rate_string)`` — los tres derivados que
+        la fuente asigna de una vez, porque los tres salen de la misma
+        consulta y separarlos la repetiría tres veces.
+
+        ``rate_string`` es ``''`` cuando la moneda **es** la de la empresa: no
+        hay nada que rotular en «1 MXN = 1.000000 MXN».
+
+        **Asimetría de la fuente, portada verbatim:** resuelve ``company``
+        desde el contexto y luego pide las tasas con ``self.env.company``, no
+        con esa. Se porta igual — el parámetro ``company`` gobierna la moneda
+        de destino y el rótulo; las tasas salen de la empresa en contexto.
+        """
+        date = date or datetime.date.today()
+        company_id = get_current_company()
+        env_company = (self.companies.model.objects.filter(pk=company_id).first()
+                       if company_id is not None else None)
+        company = company or env_company
+        to_currency = to_currency or (company.currency if company is not None
+                                      else self)
+
+        rates = type(self)._get_rates([self, to_currency], env_company, date)
+        divisor = rates.get(to_currency.pk) or Decimal('1.0')
+        rate = (rates.get(self.pk) or Decimal('1.0')) / divisor
+        inverse_rate = Decimal('1.0') / rate if rate else Decimal('1.0')
+
+        if company is not None and self.pk == company.currency_id:
+            rate_string = ''
+        else:
+            rate_string = f'1 {to_currency.name} = {rate:.6f} {self.name}'
+        return rate, inverse_rate, rate_string
+
+    @property
+    def rate(self):
+        """La tasa actual — ≙ ``_compute_current_rate``."""
+        return self._compute_current_rate()[0]
+
+    @property
+    def inverse_rate(self):
+        """El recíproco de la tasa actual — ≙ ``_compute_current_rate``."""
+        return self._compute_current_rate()[1]
+
+    @property
+    def rate_string(self):
+        """El rótulo «1 X = n Y» — ≙ ``_compute_current_rate``."""
+        return self._compute_current_rate()[2]
+
+    @classmethod
+    def _get_conversion_rate(cls, from_currency, to_currency, company=None,
+                             date=None):
+        """≙ ``_get_conversion_rate`` (``odoo19c: res_currency.py:271-281``).
+
+        El factor por el que hay que multiplicar un importe en
+        ``from_currency`` para expresarlo en ``to_currency``. **1 exacto**
+        cuando son la misma — la fuente corta antes de consultar, y no es una
+        optimización: evita que un redondeo de ida y vuelta mueva un importe
+        que no debía moverse.
+        """
+        if from_currency.pk == to_currency.pk:
+            return Decimal('1')
+        date = date or datetime.date.today()
+        root = company.root_id if company is not None else None
+        rates = cls._get_rates([from_currency, to_currency], root, date)
+        origin = rates.get(from_currency.pk) or Decimal('1.0')
+        return (rates.get(to_currency.pk) or Decimal('1.0')) / origin
+
+    def _convert(self, from_amount, to_currency, company=None, date=None,
+                 round=True):
+        """≙ ``_convert`` (``odoo19c: res_currency.py:283-302``).
+
+        Convierte ``from_amount`` de esta moneda a ``to_currency``.
+
+        La fuente devuelve ``0.0`` cuando el importe es falso **sin consultar
+        tasa alguna**, y redondea con la moneda **de destino**, no con la de
+        origen: los decimales que valen son los de la moneda en que queda
+        expresado el importe.
+        """
+        if not from_amount:
+            return Decimal('0')
+        amount = Decimal(str(from_amount)) * type(self)._get_conversion_rate(
+            self, to_currency, company, date)
+        return to_currency.round(amount) if round else amount
+
+    @classmethod
+    def _select_companies_rates(cls):
+        """≙ ``_select_companies_rates`` (``odoo19c: res_currency.py:304-319``).
+
+        El SQL que da, por moneda y empresa, la ventana de vigencia de cada
+        tasa: ``date_start`` es su propia fecha y ``date_end`` la de la
+        siguiente. Lo consumen los informes que necesitan convertir **cada
+        línea a la tasa que regía ese día**, no a la de hoy.
+
+        Se porta verbatim: los nombres de tabla y columna coinciden
+        (``res_currency_rate``, ``res_company``, ``currency_id``,
+        ``company_id``), así que no hay nada que traducir.
+        """
+        return """
+            SELECT
+                r.currency_id,
+                COALESCE(r.company_id, c.id) as company_id,
+                r.rate,
+                r.name AS date_start,
+                (SELECT name FROM res_currency_rate r2
+                 WHERE r2.name > r.name AND
+                       r2.currency_id = r.currency_id AND
+                       (r2.company_id is null or r2.company_id = c.id)
+                 ORDER BY r2.name ASC
+                 LIMIT 1) AS date_end
+            FROM res_currency_rate r
+            JOIN res_company c ON (r.company_id is null or r.company_id = c.id)
+        """
+
+    # === Grupo multi-divisa ================================================
+
+    @classmethod
+    def _toggle_group_multi_currency(cls):
+        """≙ ``_toggle_group_multi_currency`` (``odoo19c: :83-92``).
+
+        La pertenencia al grupo multi-divisa **se deriva del conteo** de
+        monedas activas: más de una lo activa, una o ninguna lo desactiva.
+        Nadie la escribe a mano, que es lo que la mantiene cierta.
+
+        Mismo mecanismo que ``UsersMultiCompany`` para el grupo multi-empresa
+        (``res_users.py``), y por la misma razón: un permiso que describe un
+        hecho del sistema no se administra, se calcula.
+        """
+        if cls.objects.filter(active=True).count() > 1:
+            cls._activate_group_multi_currency()
+        else:
+            cls._deactivate_group_multi_currency()
+
+    @classmethod
+    def _group_pair(cls):
+        """``(group_user, group_multi_currency)`` o ``(None, None)``.
+
+        Sin contraparte de nombre: la fuente escribe los dos ``env.ref`` en
+        línea, idénticos, en los dos métodos de abajo.
+        """
+        ir_model_data = models.apps.get_model('base', 'IrModelData')
+        res_groups = models.apps.get_model('base', 'ResGroups')
+        user_id = ir_model_data.xmlid_to_res_id('base.group_user')
+        multi_id = ir_model_data.xmlid_to_res_id('base.group_multi_currency')
+        if not user_id or not multi_id:
+            # ≙ el ``if group_user and group_mc:`` de la fuente — mientras la
+            # siembra no haya dejado los xmlid, la pregunta no tiene sentido.
+            return None, None
+        return (res_groups.objects.filter(pk=user_id).first(),
+                res_groups.objects.filter(pk=multi_id).first())
+
+    @classmethod
+    def _activate_group_multi_currency(cls):
+        """≙ ``_activate_group_multi_currency`` (``odoo19c: :93-98``)."""
+        group_user, group_mc = cls._group_pair()
+        if group_user is not None and group_mc is not None:
+            group_user.apply_group(group_mc)
+
+    @classmethod
+    def _deactivate_group_multi_currency(cls):
+        """≙ ``_deactivate_group_multi_currency`` (``odoo19c: :99-104``)."""
+        group_user, group_mc = cls._group_pair()
+        if group_user is not None and group_mc is not None:
+            group_user.remove_group(group_mc)
+
+    def _check_company_currency_stays_active(self):
+        """≙ ``_check_company_currency_stays_active`` (``odoo19c: :105-115``).
+
+        Una moneda asignada a una empresa no se archiva. Sin la guarda, la
+        empresa queda apuntando a una moneda inactiva y todo importe suyo pasa
+        a convertirse contra una tasa que ya nadie mantiene.
+
+        Las dos exenciones de la fuente se portan con sus nombres:
+        ``install_mode`` —durante la instalación el ``active`` aún no refleja
+        la asignación— y ``force_deactivate``, que existe para que un test
+        pueda ejercitar el camino mono-divisa.
+        """
+        context = get_context()
+        if context.get('install_mode') or context.get('force_deactivate'):
+            return
+        if self.active or self.pk is None:
+            return
+        if self.companies.exists():
+            raise ValidationError(
+                'Esta moneda está asignada a una empresa, así que no se puede '
+                'desactivar.')
+
+    # === Presentación ======================================================
+
+    @classmethod
+    def _all_currencies_cache_key(cls):
+        """La llave del caché de ``get_all_currencies``.
+
+        Sin contraparte de nombre: allá el ``@ormcache(cache='stable')`` la
+        genera el decorador.
+        """
+        return 'base:res_currency:all_currencies'
+
+    @classmethod
+    def _invalidate_all_currencies_cache(cls):
+        """≙ el ``self.env.registry.clear_cache('stable')`` de ``create`` /
+        ``write`` / ``unlink``."""
+        cache.delete(cls._all_currencies_cache_key())
+
+    @classmethod
+    def get_all_currencies(cls):
+        """≙ ``get_all_currencies`` (``odoo19c: res_currency.py:262-269``).
+
+        Las monedas activas con lo que hace falta para **formatear** un importe
+        —nombre, símbolo, posición y decimales— indexadas por id. La fuente la
+        memoriza con ``@ormcache(cache='stable')``; aquí con
+        ``django.core.cache``, y la invalidan los tres puntos de escritura.
+
+        El ``69`` del par ``digits`` es la precisión total que la fuente
+        publica junto a los decimales; se porta verbatim porque es parte del
+        contrato que el cliente lee.
+        """
+        key = cls._all_currencies_cache_key()
+        cached = cache.get(key)
+        if cached is not None:
+            return cached
+        result = {
+            currency.pk: {
+                'name': currency.name,
+                'symbol': currency.symbol,
+                'position': currency.position,
+                'digits': [69, currency.decimal_places],
+            }
+            for currency in cls.objects.filter(active=True)
+        }
+        cache.set(key, result)
+        return result
+
+    def format(self, amount):
+        """≙ ``format`` (``odoo19c: res_currency.py:212-221``).
+
+        El importe con su símbolo, redondeado y agrupado según la
+        localización. Una línea, como en la fuente: el trabajo vive en
+        ``tools.format_amount``.
+
+        El ``amount + 0.0`` de la fuente existe para quitar el signo de un
+        ``-0.0``; con ``Decimal`` eso lo resuelve ya ``round()``, que devuelve
+        ``Decimal('0')`` sin signo.
+        """
+        return format_amount(amount, self)
+
+    def amount_to_text(self, amount):
+        """≙ ``amount_to_text`` (``odoo19c: res_currency.py:175-210``).
+
+        El importe **en palabras**, que es lo que un cheque o una factura
+        impresa exige por ley en varias jurisdicciones.
+
+        ``num2words`` es opcional en la fuente y no está instalada aquí, así
+        que este método degrada con aviso y devuelve ``''`` — que es
+        literalmente lo que la fuente hace en la misma condición. El resto del
+        cuerpo se porta: partir el importe en entero y fracción con los
+        decimales de la moneda, y unir cada parte con su etiqueta.
+        """
+        if num2words is None:
+            _logger.warning(
+                "Falta la biblioteca 'num2words'; no se puede escribir el "
+                "importe en palabras.")
+            return ''
+
+        lang = get_lang()
+        iso_code = getattr(lang, 'iso_code', None) or 'en'
+
+        def _num2words(number):
+            try:
+                return num2words(number, lang=iso_code).title()
+            except NotImplementedError:
+                return num2words(number, lang='en').title()
+
+        integral, _sep, fractional = (
+            f'{amount:.{self.decimal_places}f}'.partition('.'))
+        integer_value = int(integral)
+        if self.is_zero(Decimal(str(amount)) - integer_value):
+            return f'{_num2words(integer_value)} {self.currency_unit_label}'
+        return (f'{_num2words(integer_value)} {self.currency_unit_label} y '
+                f'{_num2words(int(fractional or 0))} '
+                f'{self.currency_subunit_label}')
+
+    @classmethod
+    def _company_currency_name(cls, company=None):
+        """El nombre de la moneda de la empresa — el insumo de las dos de abajo.
+
+        Sin contraparte de nombre: la fuente lo escribe en línea, dos veces.
+        """
+        if company is None:
+            company_id = get_current_company()
+            if company_id is None:
+                return ''
+            company = cls.companies.rel.related_model.objects.filter(
+                pk=company_id).first()
+        if company is None or company.currency_id is None:
+            return ''
+        return company.currency.name
+
+    @classmethod
+    def _get_view_cache_key(cls, view_type='form', company=None, **options):
+        """≙ ``_get_view_cache_key`` (``odoo19c: res_currency.py:321-326``).
+
+        La conducta que se porta: **la representación cacheada varía con la
+        moneda de la empresa**. Si no varía, dos empresas con monedas
+        distintas comparten unas etiquetas que contradicen a una de las dos.
+
+        Lo que diverge es el destino —allá una vista XML, aquí la
+        representación del serializer— y por eso el método devuelve la llave y
+        no toca ningún caché: quien cachea decide dónde.
+        """
+        return (cls._name, view_type, tuple(sorted(options.items())),
+                cls._company_currency_name(company))
+
+    @classmethod
+    def _get_view(cls, view_type='form', company=None, **options):
+        """≙ ``_get_view`` (``odoo19c: res_currency.py:328-343``).
+
+        Las etiquetas de los cuatro campos de tasa según la moneda de la
+        empresa. Los cuatro, no dos: la fuente empareja ``company_rate`` con
+        ``rate`` bajo un rótulo, e ``inverse_company_rate`` con
+        ``inverse_rate`` bajo el otro.
+
+        A diferencia de ``res.currency.rate``, aquí la fuente lo aplica a
+        ``list`` **y** a ``form``.
+        """
+        if view_type not in ('list', 'form'):
+            return {}
+        currency_name = cls._company_currency_name(company)
+        if not currency_name:
+            return {}
+        return {
+            'company_rate': f'Unidades por {currency_name}',
+            'rate': f'Unidades por {currency_name}',
+            'inverse_company_rate': f'{currency_name} por unidad',
+            'inverse_rate': f'{currency_name} por unidad',
+        }
 
     def round(self, amount):
         """Redondea ``amount`` al múltiplo de ``self.rounding`` más cercano

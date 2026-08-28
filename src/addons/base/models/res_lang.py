@@ -5,6 +5,11 @@ locale, formatos de fecha/hora, separadores y agrupamiento numérico. Es config
 de dominio (no framework-UI): da el control de localización que tiene Odoo
 (``lang.grouping``, ``decimal_point``, ``week_start``), sobre Django.
 """
+import ast
+import re
+
+from django.core.exceptions import ValidationError
+
 import fields
 import models
 
@@ -68,3 +73,101 @@ class ResLang(models.Model):
 
     def __str__(self) -> str:
         return f'{self.name} ({self.code})'
+
+    def format(self, percent, value, grouping=False):
+        """≙ ``format`` (``odoo19c: res_lang.py:418-446``).
+
+        Aplica el especificador ``percent`` al valor y luego **localiza** el
+        resultado: el separador decimal de este idioma, y —si ``grouping``— la
+        agrupación de miles que ``grouping`` declara.
+
+        Es lo que separa ``1234567.89`` de ``1,234,567.89``, y el agrupamiento
+        no es universal: ``[3, 0]`` reparte de tres en tres, pero hay
+        localizaciones que declaran ``[3, 2, 0]`` (el sistema indio:
+        ``12,34,567``). Por eso la agrupación se lee del **registro**, no de
+        una constante.
+
+        :param percent: un único especificador ``%`` (``'%.2f'``).
+        :param value: el valor a formatear.
+        :param grouping: si se agrupan los miles.
+        :return: la cadena localizada.
+        """
+        if not percent or percent[0] != '%':
+            raise ValidationError(
+                'format() necesita exactamente un especificador %char.')
+
+        formatted = percent % value
+        decimal_point = self.decimal_point or '.'
+
+        if grouping:
+            thousands_sep = self.thousands_sep or ''
+            lang_grouping = ast.literal_eval(self.grouping or '[]')
+            if percent[-1] in 'eEfFgG':
+                parts = formatted.split('.')
+                parts[0] = intersperse(parts[0], lang_grouping,
+                                       thousands_sep)[0]
+                formatted = decimal_point.join(parts)
+            elif percent[-1] in 'diu':
+                formatted = intersperse(formatted, lang_grouping,
+                                        thousands_sep)[0]
+        elif percent[-1] in 'eEfFgG' and '.' in formatted:
+            formatted = formatted.replace('.', decimal_point)
+
+        return formatted
+
+
+def split(sequence, counts):
+    """≙ ``split`` (``odoo19c: res_lang.py:465-499``).
+
+    Parte ``sequence`` en tramos de los tamaños que ``counts`` enumera, con dos
+    marcas especiales que el agrupamiento numérico necesita: ``0`` significa
+    *«sigue repitiendo el último tamaño hasta agotar»* —que es lo que hace que
+    ``[3, 0]`` agrupe de tres en tres sin declarar cuántos grupos hay— y ``-1``
+    significa *«para aquí»*, es decir, no agrupes el resto.
+
+    >>> split('hello world', [2, 3])
+    ['he', 'llo', ' world']
+    >>> split('hello world', [2, -1, 3])
+    ['he', 'llo world']
+    """
+    res = []
+    saved_count = len(sequence)   # el tamaño a repetir cuando llegue un cero
+    for count in counts:
+        if not sequence:
+            break
+        if count == -1:
+            break
+        if count == 0:
+            while sequence:
+                res.append(sequence[:saved_count])
+                sequence = sequence[saved_count:]
+            break
+        res.append(sequence[:count])
+        sequence = sequence[count:]
+        saved_count = count
+    if sequence:
+        res.append(sequence)
+    return res
+
+
+INTERSPERSE_PAT = re.compile('([^0-9]*)([^ ]*)(.*)')
+
+
+def intersperse(string, counts, separator=''):
+    """≙ ``intersperse`` (``odoo19c: res_lang.py:503-513``).
+
+    Inserta ``separator`` entre los tramos que ``counts`` define, **contando
+    desde la derecha** — que es la única forma correcta para un número: los
+    miles se agrupan desde el punto decimal hacia atrás, no desde el principio.
+    De ahí las tres inversiones del cuerpo.
+
+    El patrón separa la cadena en tres: lo que va antes del primer dígito (un
+    signo, un símbolo de moneda), los dígitos, y el resto. Sólo se agrupa el
+    tramo del medio.
+
+    Devuelve ``(cadena, número_de_separadores_insertados)``, como la fuente.
+    """
+    left, rest, right = INTERSPERSE_PAT.match(string).groups()
+    splits = split(rest[::-1], counts)
+    res = separator.join(s[::-1] for s in reversed(splits))
+    return left + res + right, max(len(splits) - 1, 0)
