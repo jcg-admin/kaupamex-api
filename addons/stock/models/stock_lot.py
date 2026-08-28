@@ -725,13 +725,13 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
             ])
         criterio = to_q(condition) & cls._get_outgoing_domain()
 
-        modelo_linea = apps.get_model('stock', 'StockMoveLine')
-        ids_lote = set(
-            modelo_linea.objects.filter(criterio).values_list('lot_id', flat=True))
+        line_model = apps.get_model('stock', 'StockMoveLine')
+        lot_ids = set(
+            line_model.objects.filter(criterio).values_list('lot_id', flat=True))
 
         if es_sin_contacto:
-            return ~Q(pk__in=ids_lote)
-        return Q(pk__in=ids_lote)
+            return ~Q(pk__in=lot_ids)
+        return Q(pk__in=lot_ids)
 
     @classmethod
     def ids_matching_partner_ids(cls, operator, value):
@@ -841,10 +841,10 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         esteriles = defaultdict(set)
         padres = defaultdict(set)
 
-        modelo_linea = apps.get_model('stock', 'StockMoveLine')
+        line_model = apps.get_model('stock', 'StockMoveLine')
         cola = [self.pk]
         while cola:
-            lineas = modelo_linea.objects.filter(
+            lineas = line_model.objects.filter(
                 self._get_outgoing_domain(), lot__in=cola, state='done').distinct()
             cola = []
             for linea in lineas:
@@ -867,7 +867,7 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
             if not ids:
                 continue
             delivery_by_lot[lote_id].update(
-                modelo_linea.objects.filter(pk__in=ids, picking__isnull=False)
+                line_model.objects.filter(pk__in=ids, picking__isnull=False)
                 .values_list('picking_id', flat=True))
             por_propagar.add(lote_id)
 

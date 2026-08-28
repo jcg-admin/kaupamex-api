@@ -188,17 +188,17 @@ class AccountTaxQuerySet(models.QuerySet):
             return (tax.sequence, tax.pk or 0)
 
         ordenados = []
-        grupo_por_impuesto = {}
+        group_by_tax = {}
         for tax in sorted(self, key=clave):
             if tax.amount_type == 'group':
                 hijos = sorted(tax.children.all(), key=clave)
                 for hijo in hijos:
                     if hijo not in ordenados:
                         ordenados.append(hijo)
-                    grupo_por_impuesto[hijo.pk] = tax
+                    group_by_tax[hijo.pk] = tax
             elif tax not in ordenados:
                 ordenados.append(tax)
-        return ordenados, grupo_por_impuesto
+        return ordenados, group_by_tax
 
     def _batch_for_taxes_computation(self, special_mode=False,
                                      filter_tax_function=None):
@@ -209,7 +209,7 @@ class AccountTaxQuerySet(models.QuerySet):
         si el impuesto *siguiente* acepta ser afectado (``is_base_affected``),
         y eso sólo se sabe viniendo desde el final.
         """
-        ordenados, grupo_por_impuesto = self._flatten_taxes_and_sort_them()
+        ordenados, group_by_tax = self._flatten_taxes_and_sort_them()
         if filter_tax_function:
             ordenados = [t for t in ordenados if filter_tax_function(t)]
 
@@ -218,7 +218,7 @@ class AccountTaxQuerySet(models.QuerySet):
         base_afectada = False
         for tax in reversed(ordenados):
             if lote:
-                mismo_lote = (
+                same_batch = (
                     tax.amount_type == lote[0].amount_type
                     and (special_mode
                          or tax.price_include == lote[0].price_include)
@@ -226,7 +226,7 @@ class AccountTaxQuerySet(models.QuerySet):
                     and ((tax.include_base_amount and not base_afectada)
                          or not tax.include_base_amount)
                 )
-                if not mismo_lote:
+                if not same_batch:
                     for miembro in lote:
                         lote_por_impuesto[miembro.pk] = lote
                     lote = []
@@ -238,7 +238,7 @@ class AccountTaxQuerySet(models.QuerySet):
 
         return {
             'batch_per_tax': lote_por_impuesto,
-            'group_per_tax': grupo_por_impuesto,
+            'group_per_tax': group_by_tax,
             'sorted_taxes': ordenados,
         }
 
@@ -379,14 +379,14 @@ class AccountTaxQuerySet(models.QuerySet):
             datos = taxes_data[tax.pk]
             if 'tax_amount' not in datos:
                 continue
-            total_lote = sum(
+            total_batch = sum(
                 (taxes_data[otro.pk].get('tax_amount', Decimal('0'))
                  for otro in datos['batch']),
                 Decimal('0'),
             )
             base = raw_base + datos['extra_base_for_base']
             if datos['price_include'] and special_mode in (False, 'total_included'):
-                base -= total_lote
+                base -= total_batch
             datos['base'] = base
             datos['taxes'] = list(posteriores) if tax.include_base_amount else []
             if tax.is_base_affected:

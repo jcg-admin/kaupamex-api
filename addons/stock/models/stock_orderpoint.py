@@ -738,22 +738,22 @@ class StockWarehouseOrderpoint(TimeStampedModel):
                        .values('product', 'location', 'date__date')
                        .annotate(total=Sum('product_qty')))
 
-            por_producto_ubicacion = {}
+            by_product_location = {}
             for fila in entradas:
                 clave = (fila['product'], fila['location_dest'])
-                por_producto_ubicacion.setdefault(clave, defaultdict(float))
-                por_producto_ubicacion[clave][fila['date__date']] += float(
+                by_product_location.setdefault(clave, defaultdict(float))
+                by_product_location[clave][fila['date__date']] += float(
                     fila['total'] or 0)
             for fila in salidas:
                 clave = (fila['product'], fila['location'])
-                por_producto_ubicacion.setdefault(clave, defaultdict(float))
-                por_producto_ubicacion[clave][fila['date__date']] -= float(
+                by_product_location.setdefault(clave, defaultdict(float))
+                by_product_location[clave][fila['date__date']] -= float(
                     fila['total'] or 0)
 
             for orderpoint in of_group:
                 stock = orderpoint.qty_on_hand
                 tentativa = horizonte
-                movimientos = por_producto_ubicacion.get(
+                movimientos = by_product_location.get(
                     (orderpoint.product_id, orderpoint.location_id), {})
                 for fecha, cantidad in sorted(movimientos.items()):
                     stock += cantidad
@@ -1160,8 +1160,8 @@ class StockWarehouseOrderpoint(TimeStampedModel):
 
         # Se recalcula el pronóstico con el plazo de cada grupo.
         hoy = timezone.now().replace(hour=23, minute=59, second=59)
-        for (dias, ubicacion_id), producto_ids in por_plazo.items():
-            for producto in product_model.objects.filter(pk__in=producto_ids):
+        for (dias, ubicacion_id), product_ids in por_plazo.items():
+            for producto in product_model.objects.filter(pk__in=product_ids):
                 pronostico = producto._quantity_for(
                     'virtual_available', location=ubicacion_id,
                     to_date=hoy + timedelta(days=dias))
@@ -1172,13 +1172,13 @@ class StockWarehouseOrderpoint(TimeStampedModel):
 
         # Se descuenta lo que ya viene por otra vía (una orden de compra, p.ej.)
         # y lo que otras reglas de la misma ubicación ya piden.
-        producto_ids = sorted({p for p, _u in a_reponer})
+        product_ids = sorted({p for p, _u in a_reponer})
         ubicacion_ids = sorted({u for _p, u in a_reponer})
-        en_progreso = product_model.objects.filter(pk__in=producto_ids).first()
+        en_progreso = product_model.objects.filter(pk__in=product_ids).first()
         en_progreso = (en_progreso._get_quantity_in_progress(
             location_ids=ubicacion_ids)[0] if en_progreso is not None else {})
         ya_pedido = defaultdict(float)
-        for orderpoint in orderpoints.filter(product__in=producto_ids):
+        for orderpoint in orderpoints.filter(product__in=product_ids):
             ya_pedido[(orderpoint.product_id, orderpoint.location_id)] += (
                 orderpoint.qty_to_order)
         for clave, cantidad in list(a_reponer.items()):
@@ -1188,7 +1188,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         a_reponer = {k: v for k, v in a_reponer.items() if v < 0.0}
 
         existentes = {(o.product_id, o.location_id)
-                      for o in orderpoints.filter(product__in=producto_ids)}
+                      for o in orderpoints.filter(product__in=product_ids)}
         nuevas = []
         for (producto_id, ubicacion_id), cantidad in a_reponer.items():
             if (producto_id, ubicacion_id) in existentes:
@@ -1336,8 +1336,8 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         rule_model = apps.get_model('stock', 'StockRule')
 
         orderpoints = list(orderpoints)
-        for lote_ids in split_every(1000, [o.pk for o in orderpoints]):
-            lote = [o for o in orderpoints if o.pk in set(lote_ids)]
+        for lot_ids in split_every(1000, [o.pk for o in orderpoints]):
+            lote = [o for o in orderpoints if o.pk in set(lot_ids)]
             exceptions = []
             while lote:
                 procurements = []

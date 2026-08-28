@@ -893,7 +893,7 @@ class StockWarehouse(TimeStampedModel):
         libres = [c for c in range(0, 12) if c not in usados]
         color = libres[0] if libres else 0
 
-        datos_secuencia = self._get_sequence_values()
+        sequence_data = self._get_sequence_values()
         max_sequence = (picking_type_model.objects.exclude(sequence=None)
                         .order_by('-sequence').values_list('sequence', flat=True)
                         .first() or 0)
@@ -910,7 +910,7 @@ class StockWarehouse(TimeStampedModel):
                 existente.save()
                 continue
             valores = dict(valores, **crear[campo])
-            secuencia = sequence_model.objects.create(**datos_secuencia[campo])
+            secuencia = sequence_model.objects.create(**sequence_data[campo])
             valores.update(warehouse=self, color=color, sequence_id=secuencia.pk)
             resultado[campo] = picking_type_model.objects.create(**valores).pk
 

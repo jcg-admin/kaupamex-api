@@ -316,24 +316,24 @@ class PartnerMerge:
         objetivos = list(GENERIC_REFERENCE_MODELS)
         objetivos += list(additional_update_records or ())
 
-        for app_label, clase, campo_modelo, campo_id in objetivos:
+        for app_label, clase, campo_modelo, field_id in objetivos:
             modelo = _resolve(app_label, clase)
             if modelo is None:
                 continue                 # ≙ ``if Model is None: return`` (:196)
             for registro in src_records:
                 filas = modelo.objects.filter(**{
                     campo_modelo: referenced_model,
-                    campo_id: registro.pk,
+                    field_id: registro.pk,
                 })
                 if not filas.exists():
                     continue
                 tabla = modelo._meta.db_table
-                if not cls._has_check_or_unique_constraint(tabla, campo_id):
-                    filas.update(**{campo_id: dst_record.pk})
+                if not cls._has_check_or_unique_constraint(tabla, field_id):
+                    filas.update(**{field_id: dst_record.pk})
                     continue
                 try:
                     with transaction.atomic():
-                        filas.update(**{campo_id: dst_record.pk})
+                        filas.update(**{field_id: dst_record.pk})
                 except IntegrityError:
                     filas.delete()
 

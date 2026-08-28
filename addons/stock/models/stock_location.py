@@ -850,7 +850,7 @@ class StockLocation(TimeStampedModel):
         """
         if self.usage not in STOCKED_USAGES:
             return None
-        fecha_empresa = None
+        date_company = None
         empresa = self.company
         mes = getattr(empresa, 'annual_inventory_month', None) if empresa else None
         if mes:
@@ -858,15 +858,15 @@ class StockLocation(TimeStampedModel):
             mes = int(mes)
             dia = max(getattr(empresa, 'annual_inventory_day', 1) or 1, 1)
             dia = min(dia, calendar.monthrange(hoy.year, mes)[1])
-            fecha_empresa = hoy.replace(month=mes, day=dia)
-            if fecha_empresa <= hoy:
+            date_company = hoy.replace(month=mes, day=dia)
+            if date_company <= hoy:
                 dia = min(dia, calendar.monthrange(hoy.year + 1, mes)[1])
-                fecha_empresa = fecha_empresa.replace(day=dia, year=hoy.year + 1)
+                date_company = date_company.replace(day=dia, year=hoy.year + 1)
         if self.next_inventory_date:
-            if fecha_empresa:
-                return min(self.next_inventory_date, fecha_empresa)
+            if date_company:
+                return min(self.next_inventory_date, date_company)
             return self.next_inventory_date
-        return fecha_empresa
+        return date_company
 
     def should_bypass_reservation(self) -> bool:
         """≙ ``should_bypass_reservation`` (``odoo19c: :408-410``).

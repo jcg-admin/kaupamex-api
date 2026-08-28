@@ -2108,12 +2108,12 @@ class StockMove(TimeStampedModel):
 
         for negativo in negativos:
             for positivo in por_clave_limitada.get(clave_limitada(negativo), []):
-                valor_total = (positivo.product_qty * positivo.price_unit
+                total_value = (positivo.product_qty * positivo.price_unit
                                + negativo.product_qty * negativo.price_unit)
                 if positivo.product_uom_qty >= abs(negativo.product_uom_qty):
                     positivo.product_uom_qty += negativo.product_uom_qty
                     positivo.price_unit = (
-                        float_round(valor_total / positivo.product_qty,
+                        float_round(total_value / positivo.product_qty,
                                     precision_digits=of_price)
                         if positivo.product_qty else Decimal('0'))
                     positivo.move_dest_ids.add(*[
@@ -2131,7 +2131,7 @@ class StockMove(TimeStampedModel):
                     break
                 negativo.product_uom_qty += positivo.product_uom_qty
                 negativo.price_unit = float_round(
-                    valor_total / negativo.product_qty, precision_digits=of_price)
+                    total_value / negativo.product_qty, precision_digits=of_price)
                 negativo.save(update_fields=['product_uom_qty', 'price_unit',
                                              'updated_at'])
                 positivo.product_uom_qty = Decimal('0')
@@ -2518,10 +2518,10 @@ class StockMove(TimeStampedModel):
         sin_reserva = self._should_bypass_reservation()
         # Una línea por lote: la reserva base es 1 y lo que sobre se reparte.
         extra_uom_qty = free_uom_qty - len({lot.pk for lot in lots} - asignados)
-        quants_por_lote = {}
+        quants_by_lot = {}
         if not sin_reserva:
             for quant in StockQuant._gather(product, self.location):
-                quants_por_lote.setdefault(quant.lot_id, []).append(quant)
+                quants_by_lot.setdefault(quant.lot_id, []).append(quant)
 
         for lote in lots:
             if lote.pk in asignados:
@@ -2550,7 +2550,7 @@ class StockMove(TimeStampedModel):
                     ordenes.append(('create', None, vals))
             else:
                 reservado = False
-                for quant in quants_por_lote.get(lote.pk, []):
+                for quant in quants_by_lot.get(lote.pk, []):
                     if reservado and product.uom.compare(extra_uom_qty, 0.0) <= 0:
                         break
                     disponible = float(quant.available_quantity or 0)
