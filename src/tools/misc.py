@@ -17,6 +17,9 @@ from collections.abc import Callable, Iterable, MutableSet
 from functools import reduce
 from itertools import islice, repeat
 
+import datetime
+
+from django.utils import formats as django_formats
 from django.utils.crypto import salted_hmac
 from django.utils.html import escape as django_html_escape
 from lxml import etree
@@ -311,3 +314,41 @@ def street_split(street):
         'street_number': results[1].strip(),
         'street_number2': results[2],
     }
+
+
+def parse_date(value, lang_code=None):
+    """≙ ``parse_date`` (``odoo19c: odoo/tools/misc.py:1455-1472``).
+
+    Convierte la fecha que un usuario **teclea** al ``date`` que el ORM
+    entiende, y **devuelve la cadena original si no parsea** — que es el
+    contrato de la fuente, no un descuido: quien busca «BBVA» en un campo de
+    fecha tiene que llegar al buscador de texto, no a un error.
+
+    La fuente usa ``babel.dates.parse_date`` con el *locale* de
+    ``res.lang``. Aquí el mecanismo nativo es
+    ``django.utils.formats.get_format('DATE_INPUT_FORMATS')``, que es la MISMA
+    capacidad por la vía del stack: la lista de formatos de entrada de la
+    localización activa. Medido con ``LANGUAGE_CODE = 'es-mx'``:
+    ``['%d/%m/%Y', '%d/%m/%y', '%Y%m%d', '%Y-%m-%d']`` — el día antes del mes,
+    que es lo que distingue una localización de otra y lo único que babel
+    aportaría.
+
+    No se añade ``babel`` como dependencia: medido, no está instalado, y el
+    stack ya trae la capacidad.
+
+    :param value: la cadena tecleada.
+    :param lang_code: código de idioma; ``None`` usa el activo.
+    :return: ``datetime.date`` si alguno de los formatos casa; si no, ``value``
+        sin tocar.
+    """
+    if isinstance(value, (datetime.date, datetime.datetime)):
+        return value
+    if not isinstance(value, str):
+        return value
+    for formato in django_formats.get_format('DATE_INPUT_FORMATS',
+                                             lang=lang_code):
+        try:
+            return datetime.datetime.strptime(value, formato).date()
+        except (ValueError, TypeError):
+            continue
+    return value

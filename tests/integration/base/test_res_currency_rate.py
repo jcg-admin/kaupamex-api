@@ -509,3 +509,211 @@ class TestSanitizeVals:
         original = {'rate': 2, 'company_rate': 3}
         ResCurrencyRate._sanitize_vals(original)
         assert original == {'rate': 2, 'company_rate': 3}
+
+
+class TestSearchDisplayName:
+    """≙ ``_search_display_name`` (``odoo19c: res_currency.py:479-485``)."""
+
+    def test_a_typed_localized_date_finds_the_rate(self, currency, company):
+        """Qué haría fallar al control: quitar el paso por ``parse_date``.
+
+        ``15/03/2026`` es el formato de entrada de ``es-mx`` (día primero).
+        Sin el parseo, la cadena no casa con ningún ``DateField`` y el
+        buscador devuelve vacío sin decir por qué.
+        """
+        ResCurrencyRate.objects.create(currency=currency, company=company,
+                                       name=date(2026, 3, 15),
+                                       rate=Decimal('4'))
+        found = ResCurrencyRate._search_display_name('ilike', '15/03/2026')
+        assert [r.name for r in found] == [date(2026, 3, 15)]
+
+    def test_the_day_comes_before_the_month(self, currency, company):
+        """El caso que distingue una localización de other_company, y el único que
+        justifica no usar ``fromisoformat`` a secas.
+
+        Qué haría fallar al control: parsear con ``%m/%d/%Y``. Con esa lectura
+        ``15/03/2026`` sería el mes 15, que no existe, y el caso anterior
+        pasaría igual devolviendo vacío... por eso este caso siembra el
+        **3 de marzo** y busca ``03/03``: ambigua para el formato, no para la
+        fecha.
+        """
+        ResCurrencyRate.objects.create(currency=currency, company=company,
+                                       name=date(2026, 4, 5), rate=Decimal('4'))
+        found = ResCurrencyRate._search_display_name('ilike', '05/04/2026')
+        assert [r.name for r in found] == [date(2026, 4, 5)]
+
+    def test_an_iso_date_also_parses(self, currency, company):
+        ResCurrencyRate.objects.create(currency=currency, company=company,
+                                       name=date(2026, 3, 15),
+                                       rate=Decimal('4'))
+        found = ResCurrencyRate._search_display_name('ilike', '2026-03-15')
+        assert [r.name for r in found] == [date(2026, 3, 15)]
+
+    def test_a_number_searches_the_rate(self, currency, company):
+        """``_rec_names_search`` declara ``['name', 'rate']``: los dos.
+
+        Qué haría fallar al control: buscar sólo por fecha. Sin esta rama la
+        mitad de ``_rec_names_search`` no tiene consumidor.
+        """
+        ResCurrencyRate.objects.create(currency=currency, company=company,
+                                       name=date(2026, 3, 15),
+                                       rate=Decimal('4'))
+        found = ResCurrencyRate._search_display_name('ilike', '4')
+        assert [r.rate for r in found] == [Decimal('4.000000000000')]
+
+    def test_a_value_that_is_neither_finds_nothing(self, currency, company):
+        """El control negativo. ``parse_date`` devuelve la cadena intacta y la
+        búsqueda no revienta — que es el contrato de la fuente."""
+        ResCurrencyRate.objects.create(currency=currency, company=company,
+                                       name=date(2026, 3, 15),
+                                       rate=Decimal('4'))
+        assert not ResCurrencyRate._search_display_name('ilike', 'BBVA').exists()
+
+    def test_the_negated_operator_excludes(self, currency, company):
+        """Qué haría fallar al control: ignorar el operador y filtrar siempre."""
+        ResCurrencyRate.objects.create(currency=currency, company=company,
+                                       name=date(2026, 3, 15),
+                                       rate=Decimal('4'))
+        ResCurrencyRate.objects.create(currency=currency, company=company,
+                                       name=date(2026, 3, 16),
+                                       rate=Decimal('5'))
+        excluded = ResCurrencyRate._search_display_name('not ilike', '2026-03-15')
+        assert [r.name for r in excluded] == [date(2026, 3, 16)]
+
+
+class TestCreateAndWrite:
+    """≙ ``create`` (``:399-402``) y ``write`` (``:394-397``).
+
+    Su valor no es envolver a ``objects.create``: es que ``_sanitize_vals`` y
+    los dos ``_inverse_*`` tengan **llamador**. Sin estos dos métodos los tres
+    eran código muerto que el gate contaba como portado.
+    """
+
+    def test_create_resolves_company_rate_into_the_stored_rate(
+            self, currency, other_currency, company):
+        """Qué haría fallar al control: guardar ``company_rate`` tal cual, o
+        ignorarlo.
+
+        El divisor es 2, así que ``company_rate = 4`` tiene que aterrizar como
+        ``rate = 8``. Los dos valores son distintos: el caso discrimina.
+        """
+        ResCurrencyRate.objects.create(currency=currency, company=company,
+                                       name=date(2026, 1, 1),
+                                       rate=Decimal('2'))
+        row = ResCurrencyRate.create(
+            currency=other_currency, company=company,
+            name=date(2026, 3, 1), company_rate=Decimal('4'))
+        row.refresh_from_db()
+        assert row.rate == Decimal('8')
+
+    def test_create_resolves_the_inverse_too(
+            self, currency, other_currency, company):
+        ResCurrencyRate.objects.create(currency=currency, company=company,
+                                       name=date(2026, 1, 1),
+                                       rate=Decimal('2'))
+        row = ResCurrencyRate.create(
+            currency=other_currency, company=company,
+            name=date(2026, 3, 1), inverse_company_rate=Decimal('0.25'))
+        row.refresh_from_db()
+        assert row.rate == Decimal('8')
+
+    def test_rate_wins_when_two_arrive_together(
+            self, currency, other_currency, company):
+        """El caso que hace observable a ``_sanitize_vals``.
+
+        Qué haría fallar al control: no llamarlo. Llegan ``rate = 3`` y
+        ``company_rate = 4``; con el divisor en 2, resolver ``company_rate``
+        daría 8 y respetar ``rate`` da 3. Los dos caminos difieren.
+        """
+        ResCurrencyRate.objects.create(currency=currency, company=company,
+                                       name=date(2026, 1, 1),
+                                       rate=Decimal('2'))
+        row = ResCurrencyRate.create(
+            currency=other_currency, company=company, name=date(2026, 3, 1),
+            rate=Decimal('3'), company_rate=Decimal('4'))
+        row.refresh_from_db()
+        assert row.rate == Decimal('3')
+
+    def test_write_resolves_company_rate_on_an_existing_row(
+            self, currency, other_currency, company):
+        ResCurrencyRate.objects.create(currency=currency, company=company,
+                                       name=date(2026, 1, 1),
+                                       rate=Decimal('2'))
+        row = ResCurrencyRate.objects.create(
+            currency=other_currency, company=company, name=date(2026, 3, 1),
+            rate=Decimal('1'))
+        row.write({'company_rate': Decimal('4')})
+        row.refresh_from_db()
+        assert row.rate == Decimal('8')
+
+    def test_write_still_runs_the_company_guard(self, currency, company):
+        """``write`` pasa por ``save()``, así que la guarda de sucursal sigue.
+
+        Qué haría fallar al control: que ``write`` escribiera con
+        ``queryset.update()``, que no dispara ``save()``.
+        """
+        branch = ResCompany.objects.create(code='rate-b3', name='Branch Three',
+                                           currency=currency, parent=company)
+        row = ResCurrencyRate.objects.create(
+            currency=currency, company=company, name=date(2026, 3, 1),
+            rate=Decimal('2'))
+        with pytest.raises(ValidationError):
+            row.write({'company': branch})
+
+
+class TestViewLabels:
+    """≙ ``_get_view`` (``:493-506``) y ``_get_view_cache_key`` (``:487-491``)."""
+
+    def test_the_labels_name_the_company_currency(self, currency, company):
+        """Qué haría fallar al control: rotular «Tasa» sin la moneda.
+
+        Una columna llamada «Tasa» no dice en qué dirección va, que es
+        exactamente la pregunta que un tipo de cambio plantea.
+        """
+        with company_scope(company.pk):
+            labels = ResCurrencyRate._get_view()
+        assert labels == {
+            'company_rate': f'Unidades por {currency.name}',
+            'inverse_company_rate': f'{currency.name} por unidad',
+        }
+
+    def test_the_two_labels_point_in_opposite_directions(
+            self, currency, company):
+        """El control que separa las dos labels.
+
+        Qué haría fallar al control: devolver la misma cadena para las dos.
+        Ese es el defecto que la fuente evita con dos mapas distintos, y el
+        que hace inútil rotular.
+        """
+        with company_scope(company.pk):
+            labels = ResCurrencyRate._get_view()
+        assert labels['company_rate'] != labels['inverse_company_rate']
+
+    def test_a_view_type_that_is_not_a_list_gets_no_labels(self, company):
+        """La fuente sólo toca ``view_type == 'list'``."""
+        with company_scope(company.pk):
+            assert ResCurrencyRate._get_view(view_type='form') == {}
+
+    def test_the_cache_key_varies_with_the_company_currency(
+            self, currency, other_currency, company):
+        """Qué haría fallar al control: una llave que ignore la moneda.
+
+        Ése es el defecto entero que ``_get_view_cache_key`` existe para
+        evitar: dos empresas con monedas distintas compartiendo unas
+        labels que contradicen a una de las dos.
+        """
+        other_company = ResCompany.objects.create(code='rate-co2', name='Rate Co Two',
+                                         currency=other_currency)
+        with company_scope(company.pk):
+            k1 = ResCurrencyRate._get_view_cache_key()
+        with company_scope(other_company.pk):
+            k2 = ResCurrencyRate._get_view_cache_key()
+        assert k1 != k2
+        assert currency.name in k1 and other_currency.name in k2
+
+    def test_the_same_company_gives_the_same_key(self, company):
+        """El control positivo: sin él, una llave con un valor aleatorio
+        también pasaría el caso anterior y no cachearía nada."""
+        with company_scope(company.pk):
+            assert (ResCurrencyRate._get_view_cache_key()
+                    == ResCurrencyRate._get_view_cache_key())

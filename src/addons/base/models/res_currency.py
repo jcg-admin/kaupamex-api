@@ -21,21 +21,43 @@ vuelta. Es el mismo algoritmo que ``AccountCashRounding.round()``
 escala a ``decimal_places`` (la división Decimal no preserva por sí sola el
 número de decimales visibles, aunque el valor numérico ya sea exacto).
 
-No portado de la clase de la referencia, declarado (fuera del alcance de
-H-API-325 — centralizar el redondeo, no portar ``res.currency`` entera):
+El motor de tipos de cambio SÍ está portado (corregido en este pase)
+=================================================================
 
-- ``rate``/``inverse_rate``/``rate_string``/``rate_ids``/``_compute_current_rate``/
-  ``_get_rates``/``_get_conversion_rate``/``_convert``: motor de tipos de cambio
-  multi-divisa. Sin consumidor — este núcleo aún no tiene una segunda divisa
-  activa (tarea #114, :ref:`h-api-324`).
-- ``format``/``amount_to_text``: presentación (formato de importe, monto en
-  palabras) — sin consumidor de UI en este core de backend.
-- ``get_all_currencies``: caché de listado para el selector de divisa del
-  formulario Odoo — sin análogo de formulario aquí.
-- ``create``/``unlink``/``write`` (toggle de ``group_multi_currency``),
-  ``_get_view``/``_get_view_cache_key``: infraestructura de vistas/grupos de
-  Odoo — sin análogo en este ORM (Django, sin vistas XML ni grupos de acceso
-  por *record rule*).
+Esta sección declaraba **ocho** símbolos del motor multi-divisa —``rate``,
+``inverse_rate``, ``rate_string``, ``rate_ids``, ``_compute_current_rate``,
+``_get_rates``, ``_get_conversion_rate``, ``_convert``— como no portados «sin
+consumidor: este núcleo aún no tiene una segunda divisa activa».
+
+**La premisa era cierta y dejó de serlo.** ``res.currency.rate`` se portó
+entero en ``api@43f91c31`` (:ref:`h-api-851`): sus diez métodos existen, con la
+restricción ``rate > 0`` y la unicidad por día. El consumidor que faltaba es
+exactamente esa clase, y ahora está.
+
+Por eso el motor se porta aquí, no se difiere: ``principio-rector-rup-arquitectura.md``
+Cláusula 2 — estado heredado que el análisis actual muestra incorrecto se
+corrige en el mismo pase, no se respeta por ser previo. «Sin consumidor»
+tampoco era uno de los tres desenlaces válidos de
+``porte-completo-no-parcial.md``; era un cuarto, inventado.
+
+Lo que sigue sin portar, y por qué
+===================================
+
+- ``format`` — **bloqueado, medido**. Es una línea que delega en
+  ``tools.format_amount`` (``odoo19c: odoo/tools/misc.py:1635``), que a su vez
+  necesita ``ResLang.format`` para el agrupamiento de miles según la
+  configuración regional. Medido: ``src/tools/`` no declara ``format_amount``
+  (0 hits) y ``ResLang`` tiene los campos —``grouping``, ``decimal_point``,
+  ``thousands_sep``— pero **no** el método. Los dos son símbolos de otros
+  archivos, no de éste. Sucesor: **tarea #120**.
+- ``_get_view`` / ``_get_view_cache_key`` — **divergencia de mecanismo
+  declarada**. Reescriben las etiquetas de una vista XML según la moneda de la
+  empresa y cachean la vista por ella; este stack no tiene vistas
+  declarativas. Registrados en ``scripts/divergencias_declaradas.txt``.
+- ``create`` / ``unlink`` / ``write`` — **se quedan contados**, como en toda la
+  familia. Aquí son ``save()`` y ``delete()``, y su conducta —disparar el
+  toggle del grupo multi-divisa e invalidar el caché de
+  ``get_all_currencies``— sí está portada, en esos dos puntos de entrada.
 La restricción ``rounding>0`` **SÍ está portada** (corregido en este pase)
 =========================================================================
 
