@@ -982,3 +982,22 @@ base/models/ir_qweb.py::QwebStackFrame
 #   QwebJSON -> el serializador JSON que sabe volcar un QwebContent; sin
 #     QwebContent no hay caso que tratar de forma especial.
 base/models/ir_qweb.py::QwebJSON
+
+# --- base/models/res_currency.py :: ResCurrencyRate ------------------------
+#
+# Las tres que siguen NO son trabajo pendiente: son simbolos cuya conducta este
+# stack no tiene donde replicar. `create` y `write` de la misma clase se quedan
+# CONTADOS, por la clausula de arriba — son un `save()` aqui y aliasarlos
+# convertiria una pregunta abierta en una absolucion silenciosa.
+#
+# Infraestructura de vistas XML: la fuente reescribe las etiquetas de los campos
+# de tasa segun la moneda de la empresa, y cachea la vista por esa moneda. Este
+# stack no tiene vistas declarativas — el contrato lo publica drf-spectacular
+# desde el serializer, que no se cachea por empresa.
+base/models/res_currency.py::ResCurrencyRate::_get_view
+# Idem — la llave de cache de esa vista.
+base/models/res_currency.py::ResCurrencyRate::_get_view_cache_key
+# Su trabajo es parsear la fecha que el usuario teclea en el buscador
+# (`parse_date`) antes de delegar en super(). El parseo de entrada de usuario
+# pertenece aqui a la capa DRF; el modelo recibe un `DateField` ya tipado.
+base/models/res_currency.py::ResCurrencyRate::_search_display_name
