@@ -77,6 +77,8 @@ Django trae el acoplamiento tardío en ``Apps.lazy_model_operation``
 adaptador que lo vuelve seguro; el porqué está medido en ``H-API-577`` y sus
 pruebas en ``tests/unit/orm/test_extension_tardia_por_nombre.py``.
 """
+import importlib
+
 from django.db.models import Model
 from django.db.models.base import ModelBase
 from django.db.models.signals import class_prepared
@@ -91,6 +93,7 @@ __all__ = [
     'ModelBase', 'is_model_class', 'is_model_definition',
     'extend_model', 'extend_property', 'add_field_if_absent', 'model_key',
     'resolve_rec_name', 'ensure_rec_names',
+    'adopt_access_manager', 'ensure_access_managers',
 ]
 
 
@@ -168,6 +171,96 @@ def resolve_rec_name(model_cls):
     if not hasattr(model_cls, '_rec_names_search'):
         model_cls._rec_names_search = None
     return None
+
+
+#: Los prefijos de módulo que NO son nuestros. El discriminador es el módulo y
+#: no la etiqueta de app: ``auth``, ``sessions`` o ``token_blacklist`` son
+#: nombres cortos que un addon nuestro podría reusar, mientras que el módulo
+#: de origen no se puede confundir.
+THIRD_PARTY_MODULE_PREFIXES = ('django.', 'rest_framework')
+
+
+def adopt_access_manager(model_cls):
+    """Le da al modelo las cuatro formas de permiso, si no las tiene ya.
+
+    ≙ que ``check_access``, ``has_access``, ``_check_access`` y
+    ``_filtered_access`` cuelguen de ``BaseModel``
+    (``odoo19c: odoo/orm/models.py:4100-4135``): allá **todo** modelo las
+    tiene, sin declarar nada.
+
+    Aquí las lleva un ``Manager``, y la universalidad se recupera en el
+    momento en que Django termina de construir la clase. El discriminador de
+    *"no declaró manager propio"* es de Django, no nuestro:
+    ``manager.auto_created`` lo marca el propio ``ModelBase._prepare`` cuando
+    pone el ``objects`` por defecto (``django/db/models/base.py:434-441``).
+    Un modelo que sí declara el suyo se respeta — los siete del árbol derivan
+    de ``AccessManager``, que es lo que ``RuleScopedManager`` ya hacía desde la
+    tarea #93.
+
+    Por qué una señal y no 90 declaraciones a mano: la alternativa se olvida
+    en la primera, y **el olvido no falla** — deja el modelo sin las cuatro
+    formas y nada lo delata hasta que alguien las llama.
+
+    :returns: ``True`` si se lo puso; ``False`` si ya lo tenía, es de terceros
+        o es abstracto — para que el llamador pueda medir en vez de suponer.
+
+    .. note:: ``orm.models`` se resuelve con ``importlib``, no con un ``import``
+       al top, y es la **excepción #4** de ``no-lazy-imports.md`` aplicada a su
+       causa hermana. Aquel módulo importa ``orm.environments``, que toca el
+       registro de apps; importarlo desde aquí al cargar da
+       ``AppRegistryNotReady``, medido. La resolución sancionada es una
+       **llamada**, no un statement ``import``: el gate AST da exit 0 y el
+       arranque se preserva.
+    """
+    # Las guardas van ANTES de resolver ``orm.models``, y el orden importa: la
+    # señal dispara mientras ``contenttypes`` se está importando, y resolver
+    # ``orm.models`` ahí lo arrastra de vuelta —``orm/fields_reference`` pide
+    # ``ContentType``— con un ``ImportError`` de módulo parcialmente
+    # inicializado. Medido. Descartar al ajeno primero cierra el ciclo.
+    if model_cls._meta.abstract or model_cls._meta.proxy:
+        return False
+    if model_cls.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES):
+        return False
+    manager = model_cls._meta.managers_map.get('objects')
+    if manager is None or not getattr(manager, 'auto_created', False):
+        return False
+
+    orm_models = importlib.import_module('orm.models')
+    AccessManager = orm_models.AccessManager
+    AccessQuerySet = orm_models.AccessQuerySet
+    if isinstance(manager.get_queryset(), AccessQuerySet):
+        return False
+    # Retirar el viejo ANTES de colgar el nuevo, y no es opcional:
+    # ``Options.managers`` recorre ``local_managers`` en orden de inserción y
+    # se queda con el **primero** de cada nombre (``seen_managers``). Sin esta
+    # línea el ``objects`` auto-creado sigue ganando y ``add_to_class`` no
+    # cambia nada — medido: 159 adopciones reportadas y 0 efectivas.
+    model_cls._meta.local_managers = [
+        m for m in model_cls._meta.local_managers if m.name != 'objects']
+    model_cls._meta._expire_cache()
+    nuevo = AccessManager()
+    nuevo.auto_created = True
+    model_cls.add_to_class('objects', nuevo)
+    return True
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.adopt_access_manager')
+def _adopt_access_manager_on_prepared(sender, **kwargs):
+    """Adopta el manager de permisos en cuanto la clase queda construida."""
+    adopt_access_manager(sender)
+
+
+def ensure_access_managers():
+    """Barre el registro por si la señal llegó tarde.
+
+    Dos vías por la misma razón de ``H-API-577``, igual que
+    :func:`ensure_rec_names`: la señal cubre lo que llega después de importar
+    este módulo; el barrido, lo que ya estaba.
+
+    :returns: cuántos modelos lo adoptaron en el barrido.
+    """
+    return sum(1 for model in apps.get_models(include_auto_created=True)
+               if adopt_access_manager(model))
 
 
 @receiver(class_prepared, dispatch_uid='orm.model_classes.resolve_rec_name')

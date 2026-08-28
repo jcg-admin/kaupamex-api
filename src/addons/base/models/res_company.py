@@ -126,7 +126,7 @@ LAYOUT_BACKGROUND_CHOICES = [
 ]
 
 
-class ResCompanyManager(models.Manager):
+class ResCompanyManager(models.AccessManager):
     """El ``create`` de la fuente: la compañía nace CON su partner.
 
     ``odoo19c: res_company.py:296-300`` fabrica el ``res.partner``

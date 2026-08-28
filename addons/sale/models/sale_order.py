@@ -252,7 +252,7 @@ class SaleOrder(MailThread, TimeStampedModel):
     #: ``save()`` no puede saber si ``company`` cambió.
     _loaded_company_id = _EMPRESA_NO_CARGADA
 
-    objects = models.Manager()               # cross-company (L0 admin)
+    objects = models.AccessManager()         # cross-company (L0 admin)
     scoped = RuleScopedManager()             # L3: record rules (ir_rule)
 
     class Meta:

@@ -272,7 +272,7 @@ GROUP_ERP_MANAGER_XMLID = 'base.group_erp_manager'
 _SYSTEM_LOGINS = frozenset({'admin', 'public', '__system__'})
 
 
-class ResUsersQuerySet(models.QuerySet):
+class ResUsersQuerySet(models.AccessQuerySet):
     """El **recordset** de la credencial.
 
     La referencia declara sobre el recordset los métodos que actúan sobre un
@@ -366,7 +366,7 @@ class ResUsersQuerySet(models.QuerySet):
                 user=user, user_int=user.pk, state=deletion.STATE_TODO)
 
 
-class ResUsersManager(models.Manager):
+class ResUsersManager(models.AccessManager):
     """Manager de la credencial. Replica lo que el framework consume.
 
     No hereda ``BaseUserManager`` por la misma razón que el modelo no hereda

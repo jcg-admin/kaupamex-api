@@ -63,7 +63,7 @@ class CompanySetting(TimeStampedModel):
     key = fields.Char(max_length=255, verbose_name='Clave')
     value = fields.Text(verbose_name='Valor')
 
-    objects = models.Manager()               # cross-company (L0 admin)
+    objects = models.AccessManager()         # cross-company (L0 admin)
     scoped = RuleScopedManager()             # L3: record rules (ir_rule)
 
     class Meta:

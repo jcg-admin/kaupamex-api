@@ -64,6 +64,8 @@ la del ítem. Así lo siembra ``seed_menu``.
 from django.core.cache import cache
 from django.db import models
 
+from orm.models import AccessManager
+
 from addons.base.models.timestamped_mixin import TimeStampedModel
 
 _MENU_CACHE_PREFIX = 'ir_ui_menu:visible'
@@ -95,7 +97,7 @@ def _bump_menu_epoch():
         cache.set(_MENU_CACHE_EPOCH_KEY, 1, None)
 
 
-class CapabilityPrunedMenuManager(models.Manager):
+class CapabilityPrunedMenuManager(AccessManager):
     """Manager con el mecanismo de podado — el equivalente de los métodos de
     ``ir.ui.menu`` en la referencia.
 

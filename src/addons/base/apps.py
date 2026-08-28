@@ -23,7 +23,7 @@ globales de la instancia, no per-empresa (eso es L3 = ``Company``/
 from django.apps import AppConfig, apps
 
 from orm.inherits import apply_inherits
-from orm.model_classes import ensure_rec_names
+from orm.model_classes import ensure_access_managers, ensure_rec_names
 from orm.registry import MODELS_BY_NAME
 
 
@@ -60,8 +60,13 @@ class BaseConfig(AppConfig):
         (``odoo19c: odoo/orm/model_classes.py:433-441``). La señal
         ``class_prepared`` cubre lo que llega después; este barrido cubre lo
         que ya estaba, que es la misma pareja de vías que ``H-API-577``.
+
+        Y con él ``ensure_access_managers()``, que da las cuatro formas de
+        permiso de la fuente a todo modelo nuestro que no declare manager
+        propio (tarea #96). Misma pareja de vías, mismo motivo.
         """
         ensure_rec_names()
+        ensure_access_managers()
         users = apps.get_model('base', 'ResUsers')
         for model_name, fk_name in users._inherits.items():
             apply_inherits(

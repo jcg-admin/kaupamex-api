@@ -46,6 +46,25 @@ class TimeStampedModel(RecordLoaderMixin, models.Model):
     No incluye db_index en created_at — los modelos que requieren
     índice por volumen (inventario, órdenes) lo declaran directamente.
     """
+    #: Las cuatro formas de permiso NO se declaran aquí — y el intento está
+    #: medido. ``check_access``, ``has_access``, ``_check_access`` y
+    #: ``_filtered_access`` cuelgan de ``BaseModel``
+    #: (``odoo19c: odoo/orm/models.py:4100-4135``), así que allá **todo**
+    #: modelo las tiene. Recuperar esa universalidad colgando aquí un
+    #: ``objects = AccessManager()`` parece el sitio natural y **rompe el
+    #: árbol**: ``Options.managers`` recorre el MRO por profundidad y se queda
+    #: con el **primer** manager de cada nombre
+    #: (``django/db/models/options.py``, ``seen_managers``), así que este
+    #: ``objects`` eclipsaba al de toda base declarada más abajo. Medido:
+    #: ``ContactMessage`` resolvía ``ManagerFromAccessQuerySet`` en vez de
+    #: ``SoftDeleteManager``, y una fila borrada seguía visible — 8 casos de
+    #: integración en rojo.
+    #:
+    #: La universalidad la da ``adopt_access_manager``
+    #: (``orm/model_classes.py``), que sólo sustituye el manager que Django
+    #: auto-creó: un modelo sin manager propio lo recibe, y uno que declara el
+    #: suyo lo conserva. Ver :ref:`h-api-876`.
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )

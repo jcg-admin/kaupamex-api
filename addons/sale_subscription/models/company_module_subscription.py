@@ -51,7 +51,7 @@ class CompanyModuleSubscription(TimeStampedModel):
         verbose_name='Precio',
     )
 
-    objects = models.Manager()               # default: cross-company (L0)
+    objects = models.AccessManager()         # default: cross-company (L0)
     scoped = RuleScopedManager()             # L3: record rules (ir_rule)
 
     class Meta:
