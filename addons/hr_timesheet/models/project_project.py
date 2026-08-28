@@ -139,7 +139,8 @@ def apply_hr_timesheet_project_project_extensions():
     ))
     _add_if_absent(Project, 'allocated_hours', fields.Float(
         default=0.0,
-        help_text='Odoo allocated_hours. tracking=True BLOQUEADO — ver '
+        help_text='Odoo allocated_hours. BLOQUEADO por ``el motor de '
+                  'tracking`` — tracking=True lo exige; ver '
                   'docstring del módulo.',
     ))
     for name, function in (

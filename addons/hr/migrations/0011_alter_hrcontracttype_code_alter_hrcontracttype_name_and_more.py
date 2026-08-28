@@ -323,7 +323,7 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 default="",
-                help_text="Odoo job_title (compute+inverse+store). BLOQUEADO el auto-sync desde job.name — familia (a); se asigna directo.",
+                help_text="Odoo job_title (compute+inverse+store). BLOQUEADO por ``el motor de compute+inverse+store`` — el auto-sync desde job.name lo exige; se asigna directo. Familia (a).",
                 verbose_name="Título del puesto",
             ),
         ),

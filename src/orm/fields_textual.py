@@ -46,6 +46,7 @@ antes; la clase sólo aporta el tipo.
 """
 from django.db import models
 
+from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import NonStored
 
 __all__ = ['Char', 'Text', 'Html']
@@ -74,7 +75,8 @@ class Html(models.TextField):
         return name, 'django.db.models.TextField', args, kwargs
 
 
-def Char(*args, store=True, required=None, translate=None, help=None, **kwargs):
+def Char(*args, store=True, required=None, translate=None, help=None,
+         company_dependent=False, **kwargs):
     """``fields.Char`` — ≙ el de la referencia, con y sin columna.
 
     ``store=True`` (el defecto, y el de los 432 usos del árbol) devuelve un
@@ -120,12 +122,45 @@ def Char(*args, store=True, required=None, translate=None, help=None, **kwargs):
        esperan traducción. Con la anota, el barrido es un ``grep``.
 
        Almacenamiento ``jsonb`` + resolución por idioma: tarea **#333**.
+
+    ``company_dependent=True`` — una fila, un valor por empresa
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Tercera rama del despachador, con la firma de la fuente::
+
+        barcode = fields.Char(company_dependent=True, max_length=64)
+
+    Devuelve un :class:`~orm.fields_company_dependent.CompanyDependent`: la
+    columna es ``jsonb`` con ``{empresa: valor}`` y leer el atributo da el
+    valor de la empresa activa, o el default de ``ir.default``. Es lo que la
+    referencia hace con el atributo homónimo de ``Field``
+    (``odoo19c: odoo/orm/fields.py:291``, ``:783``).
+
+    ``store=False`` y ``company_dependent=True`` son excluyentes, y la fuente
+    también: un campo sin columna no tiene ``jsonb`` donde repartir el valor.
     """
     if required is not None:
         kwargs.setdefault('blank', not required)
     if help is not None:
         kwargs.setdefault('help_text', help)
 
-    campo = models.CharField(*args, **kwargs) if store else NonStored(*args, **kwargs)
+    if company_dependent:
+        if not store:
+            raise ValueError(
+                'store=False y company_dependent=True son excluyentes: un '
+                'campo sin columna no tiene jsonb donde repartir el valor.')
+        if translate:
+            raise ValueError('company_dependent field cannot be translated')
+        # La guarda de ``required`` va AQUI y no en ``CompanyDependent``: para
+        # cuando el campo se construye, ``required`` ya se tradujo a ``blank``
+        # arriba y el parametro no llega. Lo destapo su propio test —el
+        # constructor tenia la comprobacion y nunca disparaba—.
+        if required:
+            raise ValueError('company_dependent field cannot be required')
+        campo = CompanyDependent(*args, base_type='char', **kwargs)
+    elif store:
+        campo = models.CharField(*args, **kwargs)
+    else:
+        campo = NonStored(*args, **kwargs)
     campo.odoo_translate = bool(translate)
     return campo

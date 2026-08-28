@@ -45,6 +45,7 @@ def apply_hr_recruitment_digest_extensions():
             help_text='Odoo kpi_hr_recruitment_new_colleagues ("New '
                       'Employees"). Su valor calculado '
                       '(kpi_hr_recruitment_new_colleagues_value) queda '
-                      'BLOQUEADO — ver docstring del módulo.',
+                      'BLOQUEADO por ``el motor de compute`` — ver docstring '
+                      'del módulo.',
         ),
     })

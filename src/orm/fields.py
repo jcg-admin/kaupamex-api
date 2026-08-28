@@ -49,6 +49,7 @@ from decimal import Decimal
 
 from django.db import models
 
+from orm.environments import get_current_company
 from tools.sql import SQL
 
 from orm.fields_binary import Binary, Image                    # noqa: F401
@@ -369,13 +370,31 @@ def _field_to_sql_expression(self, model, alias):
     —cuyo nombre de columna lleva el sufijo ``_id``— los separan. Lo que va en
     SQL es la **columna**, así que es ``self.column`` lo que se entrecomilla.
 
-    La rama ``company_dependent`` de la fuente no tiene contraparte todavía:
-    ese mecanismo es la tarea **#111**, y hasta que exista no hay campo que
-    entre por ella.
+    La rama ``company_dependent`` (``odoo19c: :1217-1237``) **sí** tiene
+    contraparte desde la tarea #111: la columna es ``jsonb`` con
+    ``{empresa: valor}``, así que el SQL extrae la entrada de la empresa
+    activa y cae al default de ``ir.default`` cuando no la hay. Es el
+    ``COALESCE(col->empresa, to_jsonb(fallback::tipo))`` de la fuente.
     """
     if not getattr(self, 'concrete', False) or not getattr(self, 'column', None):
         raise ValueError(f"Cannot convert {self} to SQL because it is not stored")
-    return SQL.identifier(alias, self.column, to_flush=self)
+
+    sql_field = SQL.identifier(alias, self.column, to_flush=self)
+    if not getattr(self, 'company_dependent', False):
+        return sql_field
+
+    # ≙ ``:1218-1237``. El `->>` devuelve texto y el CAST lo lleva al tipo del
+    # campo base; la fuente hace lo mismo y explica por qué no basta `->`: un
+    # `'null'::jsonb` castea a la cadena 'null' en vez de a NULL.
+    company_id = get_current_company()
+    fallback = self.get_company_dependent_fallback_sql(model)
+    return SQL(
+        "COALESCE((%(column)s->>%(company_id)s)::%(cast)s, %(fallback)s)",
+        column=sql_field,
+        company_id=str(company_id) if company_id is not None else None,
+        cast=SQL(self.sql_cast_type),
+        fallback=fallback,
+    )
 
 
 def _field_property_to_sql(self, field_sql, property_name, model, alias, query):

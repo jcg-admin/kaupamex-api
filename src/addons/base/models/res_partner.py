@@ -40,13 +40,14 @@ from addons.base.models.res_country import (ADDRESS_FORMAT_KEYS,
                                             DEFAULT_ADDRESS_FORMAT)
 from addons.base.models.res_lang import ResLang
 from exceptions import RedirectWarning, ValidationError
-from orm.environments import (get_context, get_current_company,
-                              get_current_user)
+from orm.environments import (company_scope, execute_query, get_context,
+                              get_current_company, get_current_user)
 from orm.utils import SUPERUSER_ID
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from tools.mail import (email_normalize_all, formataddr,
                         parse_contact_from_email)
 from tools.misc import OrderedSet, street_split
+from tools.sql import SQL
 from tools.translate import _
 
 
@@ -208,14 +209,17 @@ class ResPartner(AvatarMixin, TimeStampedModel):
       ``AvatarMixin`` (``avatar_mixin.py``), que es donde la referencia los
       declara. Aquí no llevan ``store``, igual que allá.
 
+    **Desbloqueado en la tarea #111.** ``_check_barcode_unicity`` (``:647``)
+    estuvo detenido por ``barcode``, que la fuente declara
+    ``company_dependent=True``. El mecanismo se construyó
+    (``orm/fields_company_dependent.py``) y hoy el campo y su guarda están
+    portados con su firma.
+
     **Detenidos, cada uno por un símbolo que se nombra.**
 
     - ``_check_partner_company`` (``:551``) y ``_onchange_company_id``
       (``:596``): BLOQUEADO por ``company_id`` — el campo no existe en este
       puerto, así que no hay contra qué comparar. Tarea **#110**.
-    - ``_check_barcode_unicity`` (``:647``): BLOQUEADO por ``barcode`` — la
-      fuente lo declara ``company_dependent=True`` y ese mecanismo de campo no
-      existe aquí. Tarea **#111**.
     - ``copy_data`` (``:565``): BLOQUEADO por ``copy`` — el del ORM, medido en
       0 definiciones bajo ``src/orm``. Sin llamador, portar su cuerpo sería
       escribir código muerto; el sufijo ``(copy)`` que añade es su única
@@ -369,6 +373,26 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         help_text='Razón social escrita a mano cuando el contacto NO cuelga '
                   'de una empresa (Odoo ``company_name``, '
                   '``odoo19c: res_partner.py:308``).',
+    )
+    # ``barcode`` — el primer campo DEPENDIENTE DE EMPRESA del arbol.
+    #
+    # La fuente lo declara ``company_dependent=True``
+    # (``odoo19c: res_partner.py:309``), y eso no es un adorno: el mismo
+    # contacto lleva un codigo de barras distinto en cada empresa del grupo, y
+    # ninguna ve el de la otra. Con una columna escalar eso no se expresa — o
+    # se duplica el contacto por empresa, o las empresas se pisan el valor.
+    #
+    # El mecanismo se construyo en ``orm/fields_company_dependent.py`` (tarea
+    # **#111**): la columna es ``jsonb`` con la forma ``{empresa: valor}`` y el
+    # descriptor devuelve el valor de la empresa activa al leer. El sitio de
+    # declaracion queda identico al de la fuente, incluido su ``help``.
+    #
+    # ``copy=False`` de la fuente NO se transcribe: el propio campo lo fija
+    # —el valor es de la empresa, no del registro— igual que allá lo fija
+    # ``_setup_attrs`` (``odoo19c: odoo/orm/fields.py:473``).
+    barcode     = fields.Char(
+        company_dependent=True,
+        help_text='Use a barcode to identify this contact.',
     )
     employee    = fields.Boolean(
         default=False,
@@ -860,18 +884,28 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     def _company_dependent_commercial_fields(cls):
         """≙ ``_company_dependent_commercial_fields`` (``odoo19c: :720-724``).
 
-        **Devuelve siempre la lista vacía en este árbol, y es divergencia
-        declarada, no olvido.** La fuente filtra por
-        ``self._fields[fname].company_dependent`` — un atributo de campo que
-        aquí **no existe**: medido, 0 apariciones de ``company_dependent`` en
-        ``src/fields.py`` y en ``src/orm/``. Sin el atributo no hay a qué
-        preguntar, así que el filtro no puede seleccionar nada.
+        El filtro de la fuente, verbatim: los campos comerciales que además son
+        dependientes de empresa. Su ``self._fields[fname].company_dependent``
+        se lee aquí del propio campo de Django — el atributo existe desde que
+        se construyó el mecanismo (``orm/fields_company_dependent.py``, tarea
+        **#111**) y ``CompanyDependent`` lo declara ``True`` como la fuente
+        (``odoo19c: odoo/orm/fields.py:291``).
 
-        Se porta igual —y no se omite— porque es el punto de extensión: el día
-        que se construya el mecanismo de campo por empresa, esta lista y su
-        sincronizador ya tienen su sitio y su llamador.
+        > Hasta ``#111`` este método devolvía la lista vacía con una
+        > divergencia declarada — *"el atributo no existe: 0 apariciones de
+        > ``company_dependent`` en ``src/orm/``"*—. La divergencia se retira
+        > con el mecanismo, no se actualiza: era estado heredado correcto en su
+        > momento y falso hoy (Clausula 2 del principio rector).
+
+        Devuelve vacío **por dato, no por construcción**: hoy ningún campo de
+        :meth:`_commercial_fields` es dependiente de empresa. El día que uno lo
+        sea, entra solo.
         """
-        return []
+        fields_by_name = {f.name: f for f in cls._meta.get_fields()}
+        return [
+            fname for fname in cls._commercial_fields()
+            if getattr(fields_by_name.get(fname), 'company_dependent', False)
+        ]
 
     def _commercial_sync_from_company(self):
         """≙ ``_commercial_sync_from_company`` (``odoo19c: :726-735``).
@@ -902,16 +936,44 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         commercial fields to other commpanies."* (la errata *"commpanies"* es
         de la fuente).
 
-        **No-op mientras :meth:`_company_dependent_commercial_fields` sea
-        vacía**, que es hoy siempre — ver la divergencia declarada allí. El
-        cuerpo conserva la guarda temprana de la fuente para que el día que la
-        lista se pueble, el recorrido por empresas sea lo único que falte.
+        Qué hace, y por qué hace falta: ``_commercial_sync_from_company`` baja
+        los valores comerciales **de la empresa activa**. Un campo dependiente
+        de empresa tiene un valor por cada una, así que ese único paso deja a
+        las demás sin sincronizar. Este método recorre el resto y baja el valor
+        que a cada una le corresponde.
+
+        > Hasta la tarea **#111** este cuerpo levantaba ``NotImplementedError``
+        > tras la guarda temprana, porque el mecanismo de campo por empresa no
+        > existía. Hoy existe y el recorrido se porta entero: la guarda sigue
+        > siendo la de la fuente, y lo que había debajo deja de ser una excusa.
+
+        Las dos divergencias de mecanismo, ambas de nombre: la fuente cambia de
+        empresa con ``with_company`` —que devuelve otro *recordset* atado a
+        ella—; aquí la empresa activa vive en un ``ContextVar`` y se cambia con
+        ``company_scope``, que es la misma idea con el estado en otro sitio. Y
+        su ``sudo().search([])`` es ``objects.all()``: el recorrido de empresas
+        no se filtra por permisos porque el sincronizador es del sistema.
         """
-        if not self._company_dependent_commercial_fields():
+        if not (fields_to_sync := self._company_dependent_commercial_fields()):
             return
-        raise NotImplementedError(
-            'El campo por empresa no existe en este stack; cuando exista, '
-            'aquí va el recorrido de res.company que hace la fuente')
+
+        ResCompany = apps.get_model('base', 'ResCompany')
+        active_company_id = get_current_company()
+        for company_id in ResCompany.objects.values_list('pk', flat=True):
+            if company_id == active_company_id:
+                continue      # ≙ *"already handled by _commercial_sync_from_company"*
+            with company_scope(company_id):
+                # La entidad comercial se resuelve DENTRO del alcance: sus
+                # valores dependientes de empresa son los de esta empresa, no
+                # los de la activa de fuera.
+                sync_vals = (self.commercial_partner
+                             ._convert_fields_to_values(fields_to_sync))
+                for key, value in sync_vals.items():
+                    setattr(self, key, value)
+                type(self).objects.filter(pk=self.pk).update(
+                    **{fname: type(self)._meta.get_field(fname)
+                       .raw_company_values(self)
+                       for fname in sync_vals})
 
     def _commercial_sync_to_descendants(self, fields_to_sync=None):
         """≙ ``_commercial_sync_to_descendants`` (``odoo19c: :751-768``).
@@ -957,7 +1019,10 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     # estado de otro pais no es imposible —se persiste sin error—, sólo es
     # falso: por eso hace falta el segundo.
     #
-    # TRES de los siete simbolos de este bloque no se portan, y su motivo:
+    # DOS de los siete simbolos de este bloque no se portan, y su motivo. El
+    # tercero, ``_check_barcode_unicity`` (``:647-651``), quedo portado en la
+    # tarea **#111**: su bloqueo era ``barcode``, y el mecanismo
+    # ``company_dependent`` ya existe (``orm/fields_company_dependent.py``).
     #
     # - ``_check_partner_company`` (``:551-561``) —
     #   BLOQUEADO por ``company_id`` — el campo ``res.partner.company_id``
@@ -966,13 +1031,6 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     # - ``_onchange_company_id`` (``:596-599``) —
     #   BLOQUEADO por ``company_id`` — mismo campo ausente.
     #   Los dos se desbloquean juntos; sucesor: tarea **#110**.
-    # - ``_check_barcode_unicity`` (``:647-651``) —
-    #   BLOQUEADO por ``barcode`` — la fuente lo declara
-    #   ``company_dependent=True`` (``odoo19c: :309``), y ese mecanismo de ORM
-    #   no existe aqui: es el mismo bloqueo ya declarado en
-    #   :meth:`_company_dependent_commercial_fields`. Portarlo como ``Char``
-    #   pelado seria una divergencia silenciosa en el eje que importa —una
-    #   empresa veria el codigo de otra—. Sucesor: tarea **#111**.
     # ------------------------------------------------------------------
     def _check_parent_id(self):
         """≙ ``_check_parent_id`` (``odoo19c: res_partner.py:546-549``).
@@ -998,6 +1056,50 @@ class ResPartner(AvatarMixin, TimeStampedModel):
                     'No se pueden crear jerarquias recursivas de contactos.')
             seen.add(current.pk)
             current = current.parent
+
+    def _check_barcode_unicity(self):
+        """≙ ``_check_barcode_unicity`` (``odoo19c: res_partner.py:647-651``).
+
+        Mensaje de la fuente, verbatim: *"Another partner already has this
+        barcode"*.
+
+        Estuvo BLOQUEADO por ``barcode`` hasta la tarea **#111**: la fuente lo
+        declara ``company_dependent=True`` y ese mecanismo de campo no existia
+        aqui. Hoy existe (``orm/fields_company_dependent.py``), y con el la
+        guarda se porta con su firma y su mensaje.
+
+        **La unicidad es POR EMPRESA, y ahi esta el punto.** El ``search_count``
+        de la fuente corre bajo la empresa activa, asi que dos contactos con el
+        mismo codigo en empresas distintas **no** colisionan — es exactamente
+        lo que ``company_dependent`` compra. Aqui la lectura del atributo ya
+        resuelve por la empresa activa (el descriptor), asi que comparar el
+        valor leido reproduce ese alcance sin nombrarlo dos veces.
+
+        La comparacion la emite ``Field.to_sql`` (``orm/fields.py``), que para
+        un campo dependiente de empresa devuelve
+        ``COALESCE((columna->>empresa)::varchar, fallback)`` — el mismo
+        fragmento que el ``search_count`` de la fuente compila por dentro. Por
+        eso la guarda no filtra con el ORM de Django: ``get_prep_value``
+        rechaza un escalar a proposito (la columna guarda el mapa), y filtrar
+        por el mapa entero mediria otra cosa.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente cuenta con
+        ``search_count(...) > 1`` porque su ``self`` ya esta persistido cuando
+        el constrain corre. Aqui la guarda tambien se llama antes de insertar,
+        asi que se excluye la propia fila por ``pk`` en vez de contar hasta dos
+        — con ``pk`` nulo el ``exclude`` es un no-op y la cuenta es la misma.
+        """
+        barcode = self.barcode
+        if not barcode:
+            return
+        table = type(self)._meta.db_table
+        column = type(self)._meta.get_field('barcode').to_sql(self, table)
+        rows = execute_query(SQL(
+            "SELECT id FROM %s WHERE %s = %s AND id IS DISTINCT FROM %s LIMIT 1",
+            SQL.identifier(table), column, barcode, self.pk,
+        ), using=self._state.db or None)
+        if rows:
+            raise ValidationError('Another partner already has this barcode')
 
     def onchange_parent_id(self):
         """≙ ``onchange_parent_id`` (``odoo19c: res_partner.py:571-583``).
@@ -1310,6 +1412,11 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         # sin condicion de parada, asi que el rechazo tiene que llegar
         # primero.
         self._check_parent_id()
+        # ``@api.constrains('barcode')`` de la fuente (``:646-651``). Va aqui
+        # y no en ``clean``: la unicidad es POR EMPRESA y su lectura depende de
+        # la empresa activa, asi que tiene que correr en el mismo camino que
+        # persiste el valor.
+        self._check_barcode_unicity()
         if self.website:
             self.website = self._clean_website(self.website)
         if self.parent_id:

@@ -261,20 +261,22 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
     )
     job_title = fields.Char(
         blank=True, default='', verbose_name='Título del puesto',
-        help_text='Odoo job_title (compute+inverse+store). BLOQUEADO el '
-                  'auto-sync desde job.name — familia (a); se asigna directo.',
+        help_text='Odoo job_title (compute+inverse+store). BLOQUEADO por '
+                  '``el motor de compute+inverse+store`` — el auto-sync desde '
+                  'job.name lo exige; se asigna directo. Familia (a).',
     )
     is_custom_job_title = fields.Boolean(
         default=False, verbose_name='Título de puesto personalizado',
-        help_text='Odoo is_custom_job_title (compute+store). BLOQUEADO el '
-                  'auto-sync — familia (a).',
+        help_text='Odoo is_custom_job_title (compute+store). BLOQUEADO por '
+                  '``el motor de compute+store`` — el auto-sync lo exige. '
+                  'Familia (a).',
     )
     address = fields.Many2one(
         'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='hr_versions_work_address', verbose_name='Dirección de trabajo',
         help_text='Odoo address_id. DIVERGENCIA: sin default (la referencia '
                   'usa self.env.company.partner_id.address_get([\'default\']) '
-                  '— sesión, familia b, ver _get_default_address_id BLOQUEADO).',
+                  '— sesión, familia b, ver _get_default_address_id, BLOQUEADO por ``la sesión de la referencia`` — su default lee self.env.company).',
     )
     work_location = fields.Many2one(
         'hr.HrWorkLocation', on_delete=models.SET_NULL, null=True, blank=True,
@@ -291,8 +293,10 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
         'resource.ResourceCalendar', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='hr_versions', verbose_name='Horario de trabajo',
         help_text='Odoo resource_calendar_id (inverse=_inverse_resource_calendar_id). '
-                  'BLOQUEADO el inverse (sincroniza employee.resource.calendar '
-                  'cuando esta versión es la vigente) — familia (a).',
+                  'BLOQUEADO por ``el motor de inverse`` — '
+                  '_inverse_resource_calendar_id sincroniza '
+                  'employee.resource.calendar cuando esta versión es la '
+                  'vigente. Familia (a).',
     )
 
     # --- contrato -------------------------------------------------------
@@ -310,8 +314,9 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
         help_text='Odoo structure_type_id (compute+store, default='
                   '_default_salary_structure). DIVERGENCIA: sin default de '
                   'campo — se porta _default_salary_structure_for_company como '
-                  'helper explícito (ver métodos); BLOQUEADO el auto-sync '
-                  '(_compute_structure_type_id) — familia (a).',
+                  'helper explícito (ver métodos); BLOQUEADO por ``el motor '
+                  'de compute+store`` — _compute_structure_type_id lo exige. '
+                  'Familia (a).',
     )
     wage = fields.Monetary(
         max_digits=14, decimal_places=2, default=Decimal('0.00'),

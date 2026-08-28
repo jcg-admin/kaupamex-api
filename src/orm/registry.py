@@ -59,6 +59,7 @@ __all__ = [
     'MODELS_BY_NAME', 'name_of', 'model_by_name',
     'resolve_model_key', 'check_table_matches_name',
     'clear_cache', 'clear_all_caches', 'cache_of', 'cache_invalidated',
+    'many2one_company_dependents',
 ]
 
 
@@ -275,3 +276,40 @@ def check_table_matches_name(models_found=None):
             divergences.append((model._meta.label, name, expected, actual))
     return divergences
 
+
+
+def many2one_company_dependents(model_label):
+    """Los ``Many2one`` dependientes de empresa que apuntan a este modelo.
+
+    ≙ ``Registry.many2one_company_dependents``
+    (``odoo19c: odoo/orm/registry.py``), el mapa que la fuente indexa por
+    ``_name`` del modelo apuntado. Lo consume ``base_partner_merge``: al
+    fusionar dos contactos hay que repuntar también los valores por empresa
+    que guardan su id dentro de un ``jsonb``, y una FK del catálogo no los ve.
+
+    DIVERGENCIA DE MECANISMO, declarada: allá es un atributo memorizado del
+    ``Registry``, que se puebla al cargar el registro; aquí se deriva de
+    ``apps.get_models()`` en la llamada. El coste es el recorrido de los
+    modelos instalados, que su único llamador paga una vez por fusión — no un
+    bucle caliente. Memorizarlo exigiría invalidarlo, y no hay evento que lo
+    dispare: el conjunto de campos no cambia en caliente.
+
+    **Devuelve vacío por dato, no por construcción.** Hoy ningún ``Many2one``
+    se declara ``company_dependent`` porque su despachador todavía no lo
+    cablea (tarea **#129**); el día que uno lo haga, aparece aquí solo.
+
+    :param model_label: la etiqueta del modelo apuntado (``app.Modelo``).
+    :returns: lista de ``(modelo, campo)`` — el par que el llamador necesita
+        para nombrar tabla y columna.
+    """
+    encontrados = []
+    for model in apps.get_models():
+        for field in model._meta.get_fields():
+            if not getattr(field, 'company_dependent', False):
+                continue
+            if getattr(field, 'base_type', None) != 'many2one':
+                continue
+            related = getattr(field, 'company_dependent_comodel', None)
+            if related == model_label:
+                encontrados.append((model, field))
+    return encontrados
