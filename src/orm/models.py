@@ -50,6 +50,7 @@ fuente los pone y no por casualidad:
 La forma es la misma que ``service/model.py`` ya usa para ``service/retry.py``.
 Ver :ref:`h-api-855` para el veredicto por archivo de las raíces espejadas.
 """
+import collections
 import functools
 import logging
 
@@ -64,7 +65,7 @@ from django.db import DEFAULT_DB_ALIAS
 
 from exceptions import AccessError, UserError
 from orm.environments import (
-    get_context, get_current_uid, get_current_user, is_su,
+    get_context, get_current_company, get_current_uid, get_current_user, is_su,
 )
 from orm.domains import Domain
 from orm.fields_properties import Properties
@@ -260,6 +261,329 @@ class OriginMixin:
         if self.pk is None:
             return self
         return type(self)._base_manager.using(self._state.db).get(pk=self.pk)
+
+
+class DefaultGetMixin:
+    """``default_get`` — los valores por defecto de un alta.
+
+    ≙ ``BaseModel.default_get`` (``odoo19c: odoo/orm/models.py:1271-1338``).
+    Responde, para los campos que se le piden, el valor con que un alta
+    debería empezar. Su consumidor natural es el formulario, y aquí el
+    serializer o el comando que crea el registro.
+
+    **La divergencia de forma es la de siempre en este archivo** (ver la
+    sección de permisos y ``OriginMixin``): allá cuelga de ``BaseModel`` y
+    todo modelo lo tiene; aquí ``models.Model`` es el de Django y no es
+    nuestro, así que es un mixin que el modelo adopta.
+
+    Por qué hacía falta la base, habiendo ya overrides
+    ==================================================
+
+    ``IrCron`` e ``IrSequenceDateRange`` ya declaraban su ``default_get``, y
+    los dos **no podían llamar a ``super()``** porque no había base a la que
+    llamar. Allá los dos empiezan por ``super().default_get(fields)`` y
+    encima ponen lo suyo: sin la base, cada override era la respuesta
+    completa, y los cuatro primeros orígenes de valor —contexto,
+    ``ir.default``, el ``default`` del campo, el respaldo por empresa— no los
+    veía nadie.
+    """
+
+    #: Los cinco orígenes, en el orden de la fuente, más el paso de
+    #: normalización y la delegación al padre. El orden **es** el contrato:
+    #: el contexto gana sobre ``ir.default``, y el ``default`` del campo gana
+    #: sobre el respaldo por empresa pero no sobre el default de usuario.
+    #: Reordenarlos cambia qué valor ve el alta.
+    @classmethod
+    def default_get(cls, fields):
+        """Los valores por defecto de los campos pedidos.
+
+        :param fields: nombres de los campos cuyo default se quiere.
+        :returns: dict ``campo -> valor``, sólo con los que tengan uno.
+
+        Un campo que no esté en ``fields`` no se considera — la nota de la
+        fuente, verbatim: *"Unrequested defaults won't be considered"*.
+        """
+        IrDefault = apps.get_model('base', 'IrDefault')
+        defaults = {}
+        parent_fields = collections.defaultdict(list)
+        context = get_context()
+        ir_defaults = IrDefault._get_model_defaults(
+            cls._meta.label, company_id=get_current_company())
+
+        for name in fields:
+            # 1. el contexto manda sobre todo lo demás
+            key = 'default_' + name
+            if key in context:
+                defaults[name] = context[key]
+                continue
+
+            try:
+                field = cls._meta.get_field(name)
+            except FieldDoesNotExist:
+                continue
+
+            company_dependent = getattr(field, 'company_dependent', False)
+
+            # 2. el default de usuario/empresa, para el campo normal
+            if not company_dependent and name in ir_defaults:
+                defaults[name] = ir_defaults[name]
+                continue
+
+            # 3. el ``default`` declarado en el campo
+            #
+            # Allá ``field.default`` es un invocable que recibe el recordset;
+            # aquí Django distingue tener default de calcularlo, y su
+            # ``get_default()`` ya resuelve el invocable. ``has_default()`` es
+            # el discriminador correcto: un ``default=False`` o ``default=0``
+            # es un default declarado, y un ``if field.default:`` lo perdería.
+            if field.has_default() and not _is_plumbing_default(field):
+                defaults[name] = field.get_default()
+                continue
+
+            # 4. el respaldo, para el campo dependiente de empresa
+            if company_dependent and name in ir_defaults:
+                defaults[name] = ir_defaults[name]
+                continue
+
+            # 5. delegar en el modelo padre, para el campo heredado
+            delegated = _delegated_origin(cls, name)
+            if delegated is not None:
+                parent_model, parent_name = delegated
+                parent_fields[parent_model].append(parent_name)
+
+        # 6. normalizar el valor pasandolo por el campo
+        #
+        # La fuente lo hace para TODO campo: ``convert_to_cache`` y luego
+        # ``convert_to_write``, con el comentario de que el paso existe para
+        # que un x2many salga como ``[(SET, 0, [2, 3])]`` y no como una lista
+        # de ``LINK``. Aqui el par de conversion lo declaran los campos que lo
+        # necesitan —``Properties`` y ``PropertiesDefinition``
+        # (``orm/fields_properties.py``)—, y el motivo x2many no se puede dar:
+        # nuestro ``Command`` es **ejecutivo**, escribe al llamarlo en vez de
+        # devolver una tupla, asi que un default de x2many nunca es una lista
+        # de comandos. Esa divergencia es de la clase entera y ya tiene su
+        # registro (:ref:`h-api-589`, tarea **#345**), no se abre aqui.
+        instance = cls()
+        for name, value in list(defaults.items()):
+            try:
+                field = cls._meta.get_field(name)
+            except FieldDoesNotExist:
+                continue
+            if not (hasattr(field, 'convert_to_cache')
+                    and hasattr(field, 'convert_to_write')):
+                continue
+            cached = field.convert_to_cache(value, instance, validate=False)
+            defaults[name] = field.convert_to_write(cached, instance)
+
+        # 7. los defaults del padre, por el mismo camino
+        for parent_model, names in parent_fields.items():
+            if hasattr(parent_model, 'default_get'):
+                defaults.update(parent_model.default_get(names))
+
+        return defaults
+
+    @classmethod
+    def _add_missing_default_values(cls, values):
+        """Completa ``values`` con el default de los campos que no trae.
+
+        ≙ ``_add_missing_default_values``
+        (``odoo19c: odoo/orm/models.py:1546-1596``). Es el consumidor real de
+        :meth:`default_get`: sin él, ``default_get`` responde bien y nadie le
+        pregunta — que es exactamente el estado en que estaba el árbol antes
+        de la tarea **#113**.
+
+        Los valores dados **siempre** ganan al default; el comentario de la
+        fuente lo dice verbatim: *"override defaults with the provided
+        values, never allow the other way around"*.
+
+        :param values: el dict del alta, tal como llega.
+        :returns: un dict nuevo con los defaults que faltaban ya puestos.
+        """
+        avoid_models = set()
+
+        def collect_models_to_avoid(model):
+            """No pisar el valor heredado cuando el padre ya viene puesto.
+
+            El conjunto guarda **la clase**, no el nombre punteado que la
+            fuente usa como llave de ``_inherits``: aquí quien responde
+            :func:`_delegated_origin` es la clase, y comparar la llave contra
+            ``_meta.label`` no casa nunca — ``'res.partner'`` frente a
+            ``'base.ResPartner'``. Medido: el filtro no excluía nada.
+
+            Y el FK se busca por sus **dos** nombres. ``ResUsers`` declara
+            ``partner = fields.Many2one(...)``, así que ``_inherits`` dice
+            ``'partner'`` y Django le pone ``attname='partner_id'``; un alta
+            puede traer cualquiera de los dos y las dos formas nombran al
+            mismo padre.
+            """
+            for _parent_name, fk_name in getattr(model, '_inherits', {}).items():
+                parent = _inherits_parent(model, fk_name)
+                if parent is None:
+                    continue
+                try:
+                    fk_field = model._meta.get_field(fk_name)
+                except FieldDoesNotExist:
+                    continue
+                if fk_field.name in values or fk_field.attname in values:
+                    avoid_models.add(parent)
+                else:
+                    collect_models_to_avoid(parent)
+
+        collect_models_to_avoid(cls)
+
+        def avoid(name):
+            """¿El campo llega heredado de un padre que ya viene puesto?"""
+            if not avoid_models:
+                return False
+            delegated = _delegated_origin(cls, name)
+            if delegated is None:
+                return False
+            parent_model, _ = delegated
+            return parent_model in avoid_models
+
+        missing_defaults = [
+            name
+            for name in _field_names(cls)
+            if name not in values
+            if not avoid(name)
+        ]
+
+        if missing_defaults:
+            defaults = cls.default_get(missing_defaults)
+            defaults.update(values)
+        else:
+            defaults = dict(values)
+
+        # Delegar el default de las propiedades en el propio campo.
+        for field in cls._meta.get_fields():
+            if hasattr(field, '_add_default_values'):
+                defaults[field.name] = field._add_default_values(defaults)
+
+        return defaults
+
+    @classmethod
+    def create(cls, **values):
+        """Alta que aplica los defaults que faltan, como la fuente.
+
+        ≙ la llamada ``vals = self._add_missing_default_values(vals)`` que
+        ``BaseModel.create`` hace en ``odoo19c: odoo/orm/models.py:4796``.
+
+        **La divergencia de forma, declarada:** allá ``create`` recibe una
+        lista de dicts y devuelve un recordset; aquí recibe kwargs y devuelve
+        una instancia, que es la firma que ya usan los seis ``create`` de
+        clase del árbol (``ir_config_parameter``, ``res_currency``,
+        ``ir_default``, …). Lo que se porta es **el paso**, no la firma.
+
+        El **muchos-a-muchos se asigna después del alta**, no dentro: Django
+        exige la fila antes de poblar la tabla intermedia. Allá el mismo caso
+        se resuelve convirtiendo la lista de ids en ``[Command.set(value)]``
+        (``:1580-1581``); aquí el equivalente es ``manager.set(...)``, porque
+        nuestro ``Command`` es ejecutivo (:ref:`h-api-589`, tarea **#345**).
+        """
+        values = cls._add_missing_default_values(values)
+        deferred = {}
+        for field in cls._meta.many_to_many:
+            if field.name in values:
+                deferred[field.name] = values.pop(field.name)
+        record = cls.objects.create(**values)
+        for name, value in deferred.items():
+            getattr(record, name).set(value)
+        return record
+
+
+def _is_plumbing_default(field):
+    """¿El ``default`` del campo es fontanería de columna y no un default real?
+
+    NO tiene contraparte: allá ``field.default`` es lo que el desarrollador
+    escribió y nada más, así que ``if field.default:`` distingue solo. Aquí un
+    ``CompanyDependent`` guarda un ``jsonb`` y su constructor pone
+    ``kwargs.setdefault('default', dict)``
+    (``orm/fields_company_dependent.py:286``) para que la columna arranque con
+    el mapa vacío — eso **no** es un valor por defecto del campo.
+
+    Sin este discriminador el paso 3 se comería al 4 en **todo** campo
+    dependiente de empresa: ``default_get`` respondía ``{}`` y el respaldo de
+    ``ir.default`` no se veía nunca. Medido con ``barcode`` de ``res.partner``.
+
+    El ``setdefault`` es lo que hace posible distinguirlos: un default que el
+    desarrollador sí escribió sobrevive y no es ``dict``.
+    """
+    return (getattr(field, 'company_dependent', False)
+            and field.default is dict)
+
+
+def _inherits_parent(model, fk_name):
+    """El modelo al que apunta el FK de delegación ``fk_name``, o ``None``.
+
+    NO tiene contraparte con este nombre: allá el padre se resuelve con
+    ``self.env[parent_mname]``, porque el nombre del modelo **es** la llave
+    del registro. Aquí la llave es la clase, así que se llega por el FK.
+    """
+    try:
+        fk_field = model._meta.get_field(fk_name)
+    except FieldDoesNotExist:
+        return None
+    return getattr(fk_field, 'related_model', None)
+
+
+def _field_names(model):
+    """Los nombres de campo que un alta puede recibir, incluidos los del padre.
+
+    ≙ el recorrido de ``self._fields`` de la fuente
+    (``odoo19c: odoo/orm/models.py:1571-1575``). Allá ``_fields`` ya trae los
+    campos que ``_inherits`` refleja en el hijo; aquí ``_meta`` sólo conoce los
+    propios, así que los del padre se añaden por el mapa de delegación —el
+    mismo camino que :func:`_delegated_origin` recorre en sentido inverso.
+
+    Se excluyen las relaciones inversas: no son valores que un alta reciba.
+    """
+    names = []
+    seen = set()
+    for field in [*model._meta.concrete_fields, *model._meta.many_to_many]:
+        if field.name not in seen:
+            seen.add(field.name)
+            names.append(field.name)
+    for parent_name, fk_name in getattr(model, '_inherits', {}).items():
+        parent = _inherits_parent(model, fk_name)
+        if parent is None:
+            continue
+        for field in [*parent._meta.concrete_fields, *parent._meta.many_to_many]:
+            if field.name not in seen:
+                seen.add(field.name)
+                names.append(field.name)
+    return names
+
+
+def _delegated_origin(model, name):
+    """El ``(modelo padre, campo)`` del que ``name`` se hereda, o ``None``.
+
+    NO tiene contraparte con este nombre: allá el campo heredado lo declara
+    él mismo (``field.inherited`` y ``field.related_field``), porque el ORM
+    construye un campo espejo en el hijo. Aquí ``_inherits`` cuelga los
+    campos del padre por ``property`` (``orm/inherits.py``), así que la
+    pregunta se responde mirando el mapa de delegación.
+
+    La fuente además exige ``_has_field_access(field, 'write')`` antes de
+    delegar. Aquí ese check vive en ``FieldSqlMixin``, que no todo modelo
+    adopta todavía (tarea **#96**); cuando el modelo lo tenga, se aplica.
+    """
+    for parent_name, fk_name in getattr(model, '_inherits', {}).items():
+        try:
+            fk_field = model._meta.get_field(fk_name)
+        except FieldDoesNotExist:
+            continue
+        parent_model = fk_field.related_model
+        if parent_model is None:
+            continue
+        try:
+            parent_model._meta.get_field(name)
+        except FieldDoesNotExist:
+            continue
+        if hasattr(model, '_has_field_access'):
+            if not model()._has_field_access(fk_field, 'write'):
+                continue
+        return parent_model, name
+    return None
 
 
 #: ≙ ``NO_ACCESS`` (``odoo19c: odoo/orm/models.py:122``). Valor sentinela de

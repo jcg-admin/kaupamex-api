@@ -150,7 +150,13 @@ MODELS_BY_NAME = {}
 
 
 def _register(model):
-    """Anota el modelo bajo su ``_name``, rechazando el nombre duplicado."""
+    """Anota el modelo bajo su ``_name``, rechazando el nombre duplicado.
+
+    El paso hermano —resolver ``_rec_name``— vive en ``orm/model_classes.py``,
+    que es donde la fuente lo declara, y **no** se llama desde aquí: este
+    módulo es el que ``model_classes`` importa, así que la llamada inversa
+    cerraría el ciclo. Cada uno cuelga de la señal por su lado.
+    """
     name = model.__dict__.get('_name')
     if not name:
         return

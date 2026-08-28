@@ -79,6 +79,8 @@ pruebas en ``tests/unit/orm/test_extension_tardia_por_nombre.py``.
 """
 from django.db.models import Model
 from django.db.models.base import ModelBase
+from django.db.models.signals import class_prepared
+from django.dispatch import receiver
 
 from django.apps import apps
 
@@ -88,6 +90,7 @@ from orm.registry import resolve_model_key
 __all__ = [
     'ModelBase', 'is_model_class', 'is_model_definition',
     'extend_model', 'extend_property', 'add_field_if_absent', 'model_key',
+    'resolve_rec_name', 'ensure_rec_names',
 ]
 
 
@@ -101,6 +104,100 @@ def is_model_definition(cls) -> bool:
     """``True`` si ``cls`` es una definición concreta (no abstracta). Equivale a
     ``odoo.orm.model_classes.is_model_definition`` — sobre ``Model._meta``."""
     return is_model_class(cls) and not cls._meta.abstract
+
+
+def resolve_rec_name(model_cls):
+    """Fija ``_rec_name`` cuando el modelo no lo declara y tiene ``name``.
+
+    ≙ el paso 5 de ``_init_model_class_attributes``
+    (``odoo19c: odoo/orm/model_classes.py:433-441``), verbatim en su lógica:
+    si el modelo declara ``_rec_name`` se valida que sea un campo suyo; si no
+    lo declara y tiene un campo ``name``, ``_rec_name`` pasa a ser ``'name'``.
+
+    Por qué hace falta resolverlo y no basta con leerlo: la referencia declara
+    ``_rec_name`` **sólo cuando difiere del default**, y por eso
+    ``ResPartner`` no lo declara y aun así ``name_create`` escribe
+    ``{self._rec_name: ...}`` (``odoo19c: res_partner.py:1088``). Sin este
+    paso ese acceso revienta con ``AttributeError`` — y declararlo a mano en
+    cada modelo sería inventar un atributo que la fuente no tiene, que es lo
+    que ``atributos-de-clase-de-modelo.md`` prohíbe.
+
+    La rama ``_custom`` con ``x_name`` de la fuente **no se porta**: los
+    modelos a medida en tiempo de ejecución son su mecanismo de estudio, y
+    aquí un modelo es una clase Python. Es divergencia de mecanismo, no un
+    hueco: sin modelos a medida no hay campo ``x_name`` que resolver.
+
+    :returns: el ``_rec_name`` resuelto, o ``None`` si el modelo no tiene
+        campo que lo respalde.
+    """
+    declared = model_cls.__dict__.get('_rec_name')
+    # ``fields`` y ``many_to_many``, NO ``get_fields()``: este ultimo trae las
+    # inversas, y para eso recorre el grafo de relaciones, que exige el
+    # registro de apps poblado. Esta funcion corre desde ``class_prepared``,
+    # cuando aun no lo esta — medido: revienta con ``AppRegistryNotReady`` en
+    # el primer modelo de ``contenttypes``. La fuente tampoco las mira:
+    # ``_fields`` son los campos del modelo, no lo que apunta a el.
+    campos = [*model_cls._meta.fields, *model_cls._meta.many_to_many]
+    # El nombre Y el ``attname``. La fuente compara contra ``_fields``, donde
+    # una Many2one se llama ``user_id``; aqui esa misma relacion se declara
+    # ``user = fields.Many2one(...)`` y Django le pone ``attname='user_id'``.
+    # Un ``_rec_name = 'user_id'`` portado verbatim —``ir.ui.view.custom`` lo
+    # trae asi— nombra el mismo campo por su otra cara, y ``getattr`` responde
+    # con las dos. Aceptar solo ``name`` convertiria el porte fiel en un error.
+    field_names = {f.name for f in campos} | {f.attname for f in campos}
+    if declared:
+        if declared not in field_names:
+            raise ValueError(
+                f'Invalid _rec_name={declared!r} for model '
+                f'{model_cls._meta.label}'
+            )
+        return declared
+    if getattr(model_cls, '_rec_name', None):
+        return model_cls._rec_name
+    if 'name' in field_names:
+        model_cls._rec_name = 'name'
+        return 'name'
+    # El default de la fuente, explicito: ``BaseModel`` los declara
+    # ``_rec_name: str | None = None`` y ``_rec_names_search = None``
+    # (``odoo19c: odoo/orm/models.py:431-433``), asi que **todo** modelo los
+    # tiene y ``cls._rec_name`` nunca revienta. Aqui la base es la de Django y
+    # no es nuestra, asi que el default se pone al resolver. Sin esto,
+    # ``IrCron`` —que llama a su campo ``cron_name``— daba ``AttributeError``.
+    if '_rec_name' not in model_cls.__dict__:
+        model_cls._rec_name = None
+    if not hasattr(model_cls, '_rec_names_search'):
+        model_cls._rec_names_search = None
+    return None
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.resolve_rec_name')
+def _resolve_rec_name_on_prepared(sender, **kwargs):
+    """Resuelve el ``_rec_name`` del modelo recién construido.
+
+    ``class_prepared`` dispara al final de ``ModelBase.__new__``, así que
+    ``_meta`` ya está poblado y los campos se pueden enumerar.
+    """
+    resolve_rec_name(sender)
+
+
+def ensure_rec_names():
+    """Barre el registro de Django por si la señal llegó tarde.
+
+    **Dos vías y ninguna sobra**, por la misma razón que ``H-API-577`` dejó
+    escrita para ``MODELS_BY_NAME``: la señal sólo cubre los modelos
+    preparados **después** de importar este módulo. Si algo lo importa tras
+    ``django.setup()``, los que ya estaban se quedan sin resolver y el
+    ``_rec_name`` no existe, **sin error que lo delate** hasta que alguien lo
+    lea.
+
+    :returns: cuántos modelos quedaron con ``_rec_name`` resuelto — para que
+        el llamador pueda medir en vez de suponer.
+    """
+    resueltos = 0
+    for model in apps.get_models(include_auto_created=True):
+        if resolve_rec_name(model):
+            resueltos += 1
+    return resueltos
 
 
 def model_key(app_label, model_name):

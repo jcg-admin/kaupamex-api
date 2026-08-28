@@ -23,6 +23,7 @@ globales de la instancia, no per-empresa (eso es L3 = ``Company``/
 from django.apps import AppConfig, apps
 
 from orm.inherits import apply_inherits
+from orm.model_classes import ensure_rec_names
 from orm.registry import MODELS_BY_NAME
 
 
@@ -52,7 +53,15 @@ class BaseConfig(AppConfig):
         ``ResUsers._inherits``, que es donde la referencia lo declara. Así el
         cableado no puede divergir de la cabecera: cambiar el atributo cambia
         la delegación.
+
+        Antes de eso corre ``ensure_rec_names()``, el barrido que resuelve el
+        ``_rec_name`` de todo modelo ya cargado — el paso 5 de
+        ``_init_model_class_attributes`` de la fuente
+        (``odoo19c: odoo/orm/model_classes.py:433-441``). La señal
+        ``class_prepared`` cubre lo que llega después; este barrido cubre lo
+        que ya estaba, que es la misma pareja de vías que ``H-API-577``.
         """
+        ensure_rec_names()
         users = apps.get_model('base', 'ResUsers')
         for model_name, fk_name in users._inherits.items():
             apply_inherits(

@@ -122,7 +122,8 @@ def _default_tz():
     return get_context().get('tz') or ''
 
 
-class ResPartner(AvatarMixin, models.OriginMixin, TimeStampedModel):
+class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
+                 TimeStampedModel):
     """``res.partner`` — persona, empresa o dirección.
 
     Fiel a ``odoo19c: odoo/addons/base/models/res_partner.py:213-309``. Se
@@ -226,10 +227,12 @@ class ResPartner(AvatarMixin, models.OriginMixin, TimeStampedModel):
       0 definiciones bajo ``src/orm``. Sin llamador, portar su cuerpo sería
       escribir código muerto; el sufijo ``(copy)`` que añade es su única
       conducta y no tiene quién la dispare. Tarea **#114**.
-    - ``default_get`` (``:1130``): BLOQUEADO por ``company_id`` — su cuerpo
-      escribe ``values['company_id']``, así que arrastra el mismo bloqueo de
-      **#110**; y es lo que haría observable la guarda del correo de
-      :meth:`name_create` (**#113**).
+    - ``default_get`` (``:201``): **portado en su mitad viable** (tarea #113).
+      El saneo del ``type`` que se cuela del contexto está escrito; la herencia
+      del padre sigue BLOQUEADO por ``company_id`` — el campo no existe en
+      este puerto. Tarea **#110**. La base —``models.DefaultGetMixin``— ya
+      está portada, y con ella la guarda del correo de :meth:`name_create` es
+      observable.
 
     **Divergencia de mecanismo, ya declarada en su sitio.**
 
@@ -290,6 +293,37 @@ class ResPartner(AvatarMixin, models.OriginMixin, TimeStampedModel):
     # ORM (categoría 3, ``atributos-de-clase-de-modelo.md``) — se porta aunque
     # su consumidor (compute de ``complete_name``) no esté construido aquí.
     _complete_name_displayed_types = ('invoice', 'delivery', 'other')
+
+    @classmethod
+    def default_get(cls, fields):
+        """≙ ``default_get`` (``odoo19c: res_partner.py:201-211``).
+
+        Docstring de la fuente, verbatim: *"Add the company of the parent as
+        default if we are creating a child partner."*
+
+        La fuente hace **dos** cosas, y aquí sólo una está detenida:
+
+        1. Heredar el ``company_id`` del padre. **BLOQUEADO por ``company_id``**
+           — el campo no existe en este puerto, así que no hay valor que
+           heredar ni columna donde ponerlo. Tarea **#110**; cuando el campo
+           llegue, esta mitad se escribe y su caso con él.
+        2. Sanear un ``type`` inválido que se cuele del contexto de una acción
+           de menú. Su comentario lo dice: *"protection for ``default_type``
+           values leaking from menu action context"*. Esta mitad **no** está
+           bloqueada: el vocabulario está portado (:attr:`TYPES`), así que el
+           saneo se hace contra las mismas cuatro opciones.
+
+        Por qué el saneo hace falta aunque el campo tenga ``choices``: el
+        contexto entra por el paso 1 de la base, **antes** de que ninguna
+        validación mire el valor. Sin este filtro, un ``default_type`` basura
+        llega a ``create`` y revienta en el ``full_clean``, lejos de su causa
+        — o peor, se escribe si el alta no valida.
+        """
+        values = super().default_get(fields)
+        if 'type' in fields and values.get('type'):
+            if values['type'] not in {code for code, _label in cls.TYPES}:
+                values['type'] = None
+        return values
 
     # ``type`` — un partner hijo es una dirección; el padre es el titular.
     TYPE_CONTACT  = 'contact'
@@ -1609,13 +1643,15 @@ class ResPartner(AvatarMixin, models.OriginMixin, TimeStampedModel):
         La asimetria que importa: el nombre cae al correo cuando no hay
         nombre — una fila sin nada legible no sirve en ninguna lista.
 
-        **La guarda ``if email_normalized`` se porta y hoy es neutra**, y eso
-        se declara en vez de callarse. Alla decide si gana el ``default_email``
-        del contexto —su comentario lo dice: *"keep default_email in
-        context"*—; aqui el campo es ``blank=True, default=''``, asi que no
-        escribir la clave y escribir la cadena vacia dan el mismo valor. Se
-        conserva por fidelidad y se vuelve observable cuando ``default_get``
-        se porte. Sucesor: tarea **#113**.
+        **La guarda ``if email_normalized`` ya es observable** (tarea #113).
+        Su comentario en la fuente lo dice: *"keep default_email in
+        context"*. Cuando el nombre no trae correo, la clave no se escribe, y
+        entonces el ``default_email`` del contexto llega a la fila por
+        ``default_get`` — que es lo que hace :meth:`create` de
+        ``DefaultGetMixin``, el mismo paso que la fuente da en
+        ``odoo19c: odoo/orm/models.py:4796``. Antes de #113 no habia base a
+        la que preguntar, asi que la guarda se conservaba por fidelidad y no
+        cambiaba nada.
 
         **Divergencia de mecanismo, declarada:** la fuente empieza limpiando
         un ``default_type`` invalido del contexto
@@ -1630,10 +1666,10 @@ class ResPartner(AvatarMixin, models.OriginMixin, TimeStampedModel):
             raise ValidationError(
                 'No se puede crear un contacto sin direccion de correo.')
 
-        create_values = {'name': name or email_normalized}
-        if email_normalized:
+        create_values = {cls._rec_name: name or email_normalized}
+        if email_normalized:   # keep default_email in context
             create_values['email'] = email_normalized
-        partner = cls.objects.create(**create_values)
+        partner = cls.create(**create_values)
         return partner.pk, partner.display_name
 
     @classmethod
@@ -2220,15 +2256,19 @@ class ResPartner(AvatarMixin, models.OriginMixin, TimeStampedModel):
         japonesa recibe su correspondencia en japones aunque alguien le
         hubiera puesto otro idioma a mano.
 
-        **Divergencia de mecanismo, declarada:** la fuente cae a
-        ``partner.default_get(['lang']).get('lang') or partner.env.lang``.
-        ``default_get`` no esta portado (sigue entre los ausentes de este
-        archivo) y ``env.lang`` es el idioma activo de la peticion, que aqui
-        lo lleva Django: ``get_language()`` con el ``LANGUAGE_CODE`` de
-        ``settings`` de respaldo. Es la misma cascada con las dos piezas que
-        este arbol si tiene.
+        La cascada de respaldo de la fuente es
+        ``partner.default_get(['lang']).get('lang') or partner.env.lang``, y
+        **se porta entera** desde la tarea #113: ``default_get`` ya existe
+        (``models.DefaultGetMixin``). La unica pieza adaptada es ``env.lang``,
+        que alla es el idioma activo de la peticion; aqui lo lleva Django, con
+        ``get_language()`` y el ``LANGUAGE_CODE`` de ``settings`` de respaldo.
+
+        > **Actualizado (tarea #113).** Este parrafo decia que ``default_get``
+        > *"no esta portado (sigue entre los ausentes de este archivo)"*, y
+        > por eso el cuerpo se saltaba el primer escalon de la cascada.
         """
-        fallback = get_language() or settings.LANGUAGE_CODE
+        fallback = (type(self).default_get(['lang']).get('lang')
+                    or get_language() or settings.LANGUAGE_CODE)
         if self.parent_id:
             return self.parent.lang or fallback
         return self.lang or fallback

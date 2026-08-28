@@ -464,7 +464,7 @@ def _partner_model():
     return apps.get_model('base', 'ResPartner')
 
 
-class ResUsers(TimeStampedModel):
+class ResUsers(models.DefaultGetMixin, TimeStampedModel):
     """``res.users`` — credencial de acceso, delegando identidad al partner.
 
     Fiel a ``odoo19c: odoo/addons/base/models/res_users.py:163-257`` en lo
