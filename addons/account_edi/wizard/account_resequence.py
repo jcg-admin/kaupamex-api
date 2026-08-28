@@ -46,9 +46,9 @@ def _frozen_edi_documents(moves):
     ya llega como parámetro en ``resequence``).
     """
     docs = AccountEdiDocument.objects.filter(
-        move__in=list(moves), state='sent',
-    ).select_related('edi_format', 'move')
-    return [d for d in docs if d.edi_format._needs_web_services()]
+        move_id__in=list(moves), state='sent',
+    ).select_related('edi_format_id', 'move_id')
+    return [d for d in docs if d.edi_format_id._needs_web_services()]
 
 
 def _resequence_edi_guard(cls, moves, first_name, ordering='keep'):
@@ -61,7 +61,7 @@ def _resequence_edi_guard(cls, moves, first_name, ordering='keep'):
     moves = list(moves)
     frozen = _frozen_edi_documents(moves)
     if frozen:
-        names = sorted({d.move.name for d in frozen})
+        names = sorted({d.move_id.name for d in frozen})
         raise UserError(_(
             'The following documents have already been sent and cannot be '
             'resequenced: %s') % ', '.join(names))

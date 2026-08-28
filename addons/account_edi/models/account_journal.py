@@ -108,7 +108,7 @@ def compute_edi_format_ids(journal):
 
     protected_ids = set(
         AccountEdiDocument.objects.filter(
-            move__journal=journal, state__in=('to_cancel', 'to_send'),
+            move_id__journal=journal, state__in=('to_cancel', 'to_send'),
         ).values_list('edi_format_id', flat=True)
     )
     protected = journal.edi_format_ids.filter(pk__in=protected_ids)
@@ -141,13 +141,13 @@ def _guard_edi_format_removal(sender, instance, action, reverse, pk_set, **kwarg
         edi_format_ids = pk_set
 
     documents = AccountEdiDocument.objects.filter(
-        move__journal_id__in=journal_ids,
+        move_id__journal_id__in=journal_ids,
         edi_format_id__in=edi_format_ids,
         state__in=('to_cancel', 'to_send'),
-    ).select_related('edi_format')
-    blocking = [d for d in documents if d.edi_format._needs_web_services()]
+    ).select_related('edi_format_id')
+    blocking = [d for d in documents if d.edi_format_id._needs_web_services()]
     if blocking:
-        names = ', '.join(sorted({d.edi_format.name or d.edi_format.code for d in blocking}))
+        names = ', '.join(sorted({d.edi_format_id.name or d.edi_format_id.code for d in blocking}))
         raise UserError(_(
             'Cannot deactivate (%s) on this journal because not all '
             'documents are synchronized') % names)

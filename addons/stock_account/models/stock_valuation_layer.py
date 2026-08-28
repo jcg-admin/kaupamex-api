@@ -19,9 +19,10 @@ from addons.base.models import TimeStampedModel
 class StockValuationLayer(TimeStampedModel):
     """``stock.valuation.layer`` — una capa de valoración de inventario."""
 
-    product         = fields.Many2one(
+    product_id      = fields.Many2one(
         'product.ProductProduct', on_delete=models.CASCADE, related_name='valuation_layers',
         help_text='Producto (Odoo product_id).',
+        db_column='product_id',
     )
     quantity        = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
@@ -43,9 +44,10 @@ class StockValuationLayer(TimeStampedModel):
         max_digits=14, decimal_places=2, default=Decimal('0.00'),
         help_text='Valor del saldo FIFO (Odoo remaining_value).',
     )
-    stock_move      = fields.Many2one(
+    stock_move_id   = fields.Many2one(
         'stock.StockMove', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='valuation_layers', help_text='Movimiento (Odoo stock_move_id).',
+        db_column='stock_move_id',
     )
     description     = fields.Char(
         max_length=255, blank=True, default='',
@@ -59,4 +61,4 @@ class StockValuationLayer(TimeStampedModel):
         verbose_name_plural = 'Capas de valoración de inventario'
 
     def __str__(self) -> str:
-        return f'{self.product} {self.quantity}@{self.unit_cost} = {self.value}'
+        return f'{self.product_id} {self.quantity}@{self.unit_cost} = {self.value}'

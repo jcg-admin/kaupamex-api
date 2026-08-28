@@ -336,7 +336,7 @@ class AccountEdiProxyUser(models.Model):
 
     def _decrypt_data(self, data, symmetric_key):
         """≙ ``_decrypt_data`` (``odoo19c: :208-215``)."""
-        decrypted_key = self.private_key_id_id._decrypt(base64.b64decode(symmetric_key))
+        decrypted_key = self.private_key_id._decrypt(base64.b64decode(symmetric_key))
         return CertificateKey._account_edi_fernet_decrypt(
             decrypted_key, base64.b64decode(data))
 

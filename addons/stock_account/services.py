@@ -46,8 +46,8 @@ def receive(product, quantity, unit_cost, move=None, cost_method=None):
     value = _q2(unit_cost * quantity)
 
     layer = StockValuationLayer.objects.create(
-        product=product, quantity=quantity, unit_cost=unit_cost, value=value,
-        remaining_qty=quantity, remaining_value=value, stock_move=move,
+        product_id=product, quantity=quantity, unit_cost=unit_cost, value=value,
+        remaining_qty=quantity, remaining_value=value, stock_move_id=move,
         description='Entrada valuada',
     )
 
@@ -81,9 +81,9 @@ def deliver(product, quantity, move=None, cost_method=None):
         total_value = _q2(unit_cost * quantity)
 
     layer = StockValuationLayer.objects.create(
-        product=product, quantity=-quantity, unit_cost=unit_cost,
+        product_id=product, quantity=-quantity, unit_cost=unit_cost,
         value=-total_value, remaining_qty=Decimal('0.00'),
-        remaining_value=Decimal('0.00'), stock_move=move,
+        remaining_value=Decimal('0.00'), stock_move_id=move,
         description='Salida valuada',
     )
     return layer
@@ -98,7 +98,7 @@ def _run_fifo(product, quantity):
     qty_to_take = Decimal(quantity)
     tmp_value = Decimal('0.00')
     candidates = StockValuationLayer.objects.filter(
-        product=product, remaining_qty__gt=0,
+        product_id=product, remaining_qty__gt=0,
     ).order_by('id')
     last_unit_cost = Decimal('0.0000')
     for candidate in candidates:
@@ -148,7 +148,7 @@ def value_move(move, unit_cost=None, cost_method=None):
 
 def _product_qty_svl(product) -> Decimal:
     """Cantidad total valuada a la mano (Odoo quantity_svl)."""
-    total = StockValuationLayer.objects.filter(product=product).aggregate(
+    total = StockValuationLayer.objects.filter(product_id=product).aggregate(
         s=Sum('quantity'),
     )['s']
     return total or Decimal('0.00')
@@ -156,7 +156,7 @@ def _product_qty_svl(product) -> Decimal:
 
 def _product_value_svl(product) -> Decimal:
     """Valor total valuado a la mano (Odoo value_svl)."""
-    total = StockValuationLayer.objects.filter(product=product).aggregate(
+    total = StockValuationLayer.objects.filter(product_id=product).aggregate(
         s=Sum('value'),
     )['s']
     return total or Decimal('0.00')

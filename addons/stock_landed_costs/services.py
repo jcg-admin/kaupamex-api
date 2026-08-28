@@ -24,7 +24,7 @@ def _q2(value) -> Decimal:
 def _former_cost(move) -> Decimal:
     """Costo de la recepción de ese movimiento (SVL de entrada)."""
     total = Decimal('0.00')
-    for svl in StockValuationLayer.objects.filter(stock_move=move, quantity__gt=0):
+    for svl in StockValuationLayer.objects.filter(stock_move_id=move, quantity__gt=0):
         total += svl.value
     return total
 
@@ -109,11 +109,11 @@ def validate(cost):
         if adj.additional_landed_cost == 0:
             continue
         StockValuationLayer.objects.create(
-            product=adj.product, quantity=Decimal('0.00'),
+            product_id=adj.product, quantity=Decimal('0.00'),
             unit_cost=Decimal('0.0000'), value=_q2(adj.additional_landed_cost),
             remaining_qty=Decimal('0.00'),
             remaining_value=_q2(adj.additional_landed_cost),
-            stock_move=adj.move,
+            stock_move_id=adj.move,
             description=f'Coste en destino: {cost.name or cost.pk}',
         )
         _bump_avco(adj.product)
