@@ -77,7 +77,7 @@ def check_file(path: pathlib.Path) -> list[str]:
 # 0 archivos y el script imprimía "OK" sobre el conjunto vacío. Un gate que no
 # encuentra su árbol no falla: publica un cero. Ver H-API-335.
 # "addons" es la segunda raiz del namespace (ver scripts/addons_roots.py).
-RAICES = ("src/addons", "addons", "src/orm", "src/service", "src/config", "tests")
+RAICES = ("src", "addons", "tests")
 
 
 def iter_targets(argv: list[str]) -> list[pathlib.Path]:

@@ -2,9 +2,9 @@
 """
 check_no_lazy_imports — gate de zero-tolerance para imports lazy.
 
-Verifica que ningun .py de ``src/addons/**`` (excluyendo
-``migrations/``) contenga ``Import`` o ``ImportFrom`` dentro de un
-``FunctionDef`` / ``AsyncFunctionDef``.
+Verifica que ningun .py de ``src/**``, ``addons/**`` y ``tests/**``
+(excluyendo ``migrations/``) contenga ``Import`` o ``ImportFrom`` dentro
+de un ``FunctionDef`` / ``AsyncFunctionDef``.
 
 Uso:
 
@@ -35,8 +35,13 @@ from pathlib import Path
 # devolvía 0 archivos y el script salía 0 **sin imprimir nada** — un cero que se
 # lee como limpieza. Ver H-API-336; mismo defecto que H-API-335 en
 # ``check_silent_oks.py``, del que se copia el manejo.
-# Las DOS raices de addons (ver scripts/addons_roots.py) mas los tests.
-DEFAULT_ROOTS = ('src/addons', 'addons', 'tests')
+# ``src`` ENTERO, no ``src/addons``: la regla dice "TODO .py en api/", y el
+# recorte anterior dejaba fuera ``src/orm``, ``src/tools``, ``src/modules`` y
+# los módulos sueltos de la raíz. Cuatro imports dentro de función en
+# ``src/tools/convert.py`` pasaron sin que el gate los viera (tarea #115): su
+# verde no distinguía "no hay lazy" de "no miro ahí" — sub-patrón D de
+# ``metrica-decide-la-conclusion.md``.
+DEFAULT_ROOTS = ('src', 'addons', 'tests')
 
 
 def find_lazy_imports(tree: ast.AST):
@@ -118,7 +123,7 @@ def main(argv: list[str]) -> int:
         )
         print('', file=sys.stderr)
         print(
-            'Lazy imports estan PROHIBIDOS en src/addons/** y tests/**.',
+            'Lazy imports estan PROHIBIDOS en src/**, addons/** y tests/**.',
             file=sys.stderr,
         )
         print(
