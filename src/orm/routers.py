@@ -25,6 +25,27 @@ Adaptación fiel (``analisis-adaptacion-odoo-multidb``):
   mantiene como decisión de ruteo pura.
 
 Ver diseño: ``at-aislamiento-multi-db-per-company`` (D-091-1..5).
+
+Este archivo NO existe en la referencia, y ``src/orm`` es una raíz espejada
+==========================================================================
+
+Medido contra ``odoo19c: odoo/orm/`` — ``find`` por nombre y ``grep`` por
+símbolo, los dos a **0**. La referencia no lo necesita: su capa multi-DB vive en el ``Registry`` y en el cursor, no en un enrutador. Este mecanismo existe porque la selección de base en Django es un ``DATABASE_ROUTERS``.
+
+Eso lo hace legítimo como **mecanismo construido**
+(``porte-completo-no-parcial.md``: *si el stack no trae el mecanismo, se
+construye*) y a la vez lo deja **fuera de sitio**: ``src/orm`` es la raíz
+espejada de ``odoo/orm``, y ``atributos-de-clase-de-modelo.md`` §2 manda listar
+la raíz de la referencia antes de crear un archivo ahí.
+
+``check_porte_completo`` **no puede verlo**: compara símbolos dentro de un par
+de archivos, y un archivo que la referencia no tiene no entra en ninguna
+comparación. Cinco archivos de ``src/orm`` están en esta situación —
+``checks``, ``fields_nonstored``, ``inherits``, ``method_chain``, ``routers``—
+y hasta este pase sólo ``checks`` lo declaraba.
+
+El veredicto por archivo —quedarse aquí con la divergencia declarada, o mudarse
+a una raíz propia como ``src/core``— es la tarea **#121**.
 """
 import re
 

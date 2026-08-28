@@ -34,6 +34,27 @@ El ``default`` puede ser un valor o un invocable. Si es invocable se llama con
 la instancia cuando acepta un argumento, y sin argumentos cuando no — así
 sirven tanto un cómputo que mira sólo la sesión (``env.companies`` en la
 referencia) como uno que mira el registro (``record.company_id or …``).
+
+Este archivo NO existe en la referencia, y ``src/orm`` es una raíz espejada
+==========================================================================
+
+Medido contra ``odoo19c: odoo/orm/`` — ``find`` por nombre y ``grep`` por
+símbolo, los dos a **0**. La referencia no lo necesita: su ``fields.Char(store=False, ...)`` ya declara un campo sin columna. Este mecanismo existe porque en Django todo ``models.Field`` **es** una columna.
+
+Eso lo hace legítimo como **mecanismo construido**
+(``porte-completo-no-parcial.md``: *si el stack no trae el mecanismo, se
+construye*) y a la vez lo deja **fuera de sitio**: ``src/orm`` es la raíz
+espejada de ``odoo/orm``, y ``atributos-de-clase-de-modelo.md`` §2 manda listar
+la raíz de la referencia antes de crear un archivo ahí.
+
+``check_porte_completo`` **no puede verlo**: compara símbolos dentro de un par
+de archivos, y un archivo que la referencia no tiene no entra en ninguna
+comparación. Cinco archivos de ``src/orm`` están en esta situación —
+``checks``, ``fields_nonstored``, ``inherits``, ``method_chain``, ``routers``—
+y hasta este pase sólo ``checks`` lo declaraba.
+
+El veredicto por archivo —quedarse aquí con la divergencia declarada, o mudarse
+a una raíz propia como ``src/core``— es la tarea **#121**.
 """
 import inspect
 

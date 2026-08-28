@@ -44,6 +44,27 @@ delegante (Odoo la hace en ``create()``; aquí cada modelo ya resuelve su alta
 —p. ej. ``ResUsers._create_user``—, y unificarlo es un cambio de contrato que
 merece su propia decisión), ni la propagación de ``_inherits`` a través de
 varios niveles.
+
+Este archivo NO existe en la referencia, y ``src/orm`` es una raíz espejada
+==========================================================================
+
+Medido contra ``odoo19c: odoo/orm/`` — ``find`` por nombre y ``grep`` por
+símbolo, los dos a **0**. La referencia declara ``_inherits`` dentro de ``odoo/orm/models.py``, no en un archivo propio. Aquí vive aparte porque el mecanismo se construye sobre descriptores de Django en vez de sobre su registro.
+
+Eso lo hace legítimo como **mecanismo construido**
+(``porte-completo-no-parcial.md``: *si el stack no trae el mecanismo, se
+construye*) y a la vez lo deja **fuera de sitio**: ``src/orm`` es la raíz
+espejada de ``odoo/orm``, y ``atributos-de-clase-de-modelo.md`` §2 manda listar
+la raíz de la referencia antes de crear un archivo ahí.
+
+``check_porte_completo`` **no puede verlo**: compara símbolos dentro de un par
+de archivos, y un archivo que la referencia no tiene no entra en ninguna
+comparación. Cinco archivos de ``src/orm`` están en esta situación —
+``checks``, ``fields_nonstored``, ``inherits``, ``method_chain``, ``routers``—
+y hasta este pase sólo ``checks`` lo declaraba.
+
+El veredicto por archivo —quedarse aquí con la divergencia declarada, o mudarse
+a una raíz propia como ``src/core``— es la tarea **#121**.
 """
 from django.db import transaction
 
