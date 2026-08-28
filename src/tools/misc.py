@@ -13,16 +13,20 @@ import enum
 import hmac as hmac_lib
 import os
 import re
+import sys
+import tempfile
 import typing
 import unicodedata
 from collections import defaultdict
 from collections.abc import Callable, Iterable, MutableSet
+from contextlib import contextmanager
 from functools import reduce
 from itertools import islice, repeat, starmap
 
 import datetime
 
 from django.apps import apps
+from django.db import connections
 from django.utils import formats as django_formats
 from django.utils import translation as django_translation
 from django.utils.crypto import salted_hmac
@@ -30,6 +34,7 @@ from django.utils.html import escape as django_html_escape
 from lxml import etree
 
 from modules.module import ADDONS_PATHS
+from tools import config
 
 # Variables de tipo de la referencia (``odoo19c: odoo/tools/misc.py:70-72``),
 # que las declara para los genéricos de esta misma familia de colecciones.
@@ -129,19 +134,50 @@ SKIPPED_ELEMENT_TYPES = (
 def _addons_paths():
     """Las raíces bajo las que :func:`file_path` admite abrir.
 
-    ≙ el ``odoo.addons.__path__`` + ``config.root_path`` de la fuente. Aquí las
-    declara ``modules.module.ADDONS_PATHS``, que es donde este árbol las fija
-    una sola vez; leerlas de ahí en vez de recomponerlas evita la segunda
-    fuente de verdad que ``calibration-verified-numbers.md`` prohíbe.
+    ≙ el ``[*odoo.addons.__path__, config.root_path]`` de la fuente
+    (``odoo19c: odoo/tools/misc.py:224``). Las dos raíces de addons las declara
+    ``modules.module.ADDONS_PATHS``, que es donde este árbol las fija una sola
+    vez; leerlas de ahí en vez de recomponerlas evita la segunda fuente de
+    verdad que ``calibration-verified-numbers.md`` prohíbe. La tercera es
+    ``config.root_path()`` — allá el paquete ``odoo/``, aquí ``src/``, la misma
+    relación que ``tools.config.root_path`` ya declara.
 
     El import es de módulo hermano y NO cierra ciclo: ``modules/module.py``
     importa ``ast``, ``importlib``, ``os``, ``typing``, ``pathlib`` y
-    ``release`` — nada de ``tools`` (medido).
+    ``release``; ``tools/config.py`` importa ``pathlib`` y las settings de
+    Django — ninguno importa ``tools.misc`` (medido).
     """
-    return [str(path) for path in ADDONS_PATHS]
+    return [str(path) for path in ADDONS_PATHS] + [config.root_path()]
 
 
-def file_path(file_path, filter_ext=('',), *, check_exists=True):
+def _file_open_tmp_paths(env):
+    """Las raíces temporales registradas en la transacción de ``env``.
+
+    ≙ ``env.transaction._Transaction__file_open_tmp_paths``
+    (``odoo19c: odoo/tools/misc.py:225`` y ``:311``).
+
+    DIVERGENCIA DE MECANISMO, no de contrato: la fuente cuelga la lista de su
+    objeto ``Transaction``, que este ORM no tiene —``orm/environments.py`` es
+    un ``ContextVar`` sin clase ``Environment`` ni ``Transaction``—. Su
+    equivalente fiel es el objeto ``connections[alias]`` de Django: es quien
+    **posee la transacción** (``atomic`` opera sobre él), y es ``local`` al
+    hilo, así que la raíz temporal no se filtra a otra transacción en curso.
+    Por eso el parámetro conserva el nombre ``env`` de la fuente y lleva el
+    alias de conexión.
+
+    La lista se crea al primer uso: una conexión que nunca instaló un módulo
+    desde un zip no tiene por qué llevar el atributo.
+    """
+    connection = connections[env]
+    try:
+        return connection._file_open_tmp_paths
+    except AttributeError:
+        paths = []
+        connection._file_open_tmp_paths = paths
+        return paths
+
+
+def file_path(file_path, filter_ext=('',), env=None, *, check_exists=True):
     """≙ ``file_path`` (``odoo19c: odoo/tools/misc.py:196-250``).
 
     «Verify that a file exists under a known ``addons_path`` directory and
@@ -154,21 +190,24 @@ def file_path(file_path, filter_ext=('',), *, check_exists=True):
     acepta si el resultado sigue empezando por esa raíz** — que es lo que
     ``..`` no puede burlar después de ``normpath``.
 
+    Dos conjuntos de raíces, como en la fuente, y el primero **excluye** al
+    segundo:
+
+    - Si la ruta es relativa y su primera componente nombra un addon **ya
+      importado**, las raíces son las de ese addon y ninguna más. Dos árboles
+      con un addon homónimo no se pisan: gana el que el proceso cargó, y una
+      raíz temporal no puede suplantarlo.
+    - Si no, son las raíces fijas más las temporales que
+      :func:`file_open_temporary_directory` haya registrado en ``env``.
+
     :param file_path: ruta absoluta, o relativa a cualquier raíz de addons.
     :param filter_ext: extensiones admitidas (minúscula, con punto).
+    :param env: alias de conexión cuya transacción puede tener raíces
+        temporales; sin él, no se consultan (ver :func:`_file_open_tmp_paths`).
     :param check_exists: comprobar que el archivo existe (por defecto sí).
     :raise FileNotFoundError: si no está bajo ninguna raíz conocida.
     :raise ValueError: si su extensión no está en ``filter_ext``.
-
-    DIVERGENCIA DE ORIGEN de las raíces, declarada: la fuente compone
-    ``odoo.addons.__path__`` + ``config.root_path`` + los temporales que
-    ``file_open_temporary_directory`` registra por transacción. Aquí las raíces
-    son ``modules.module.ADDONS_PATHS``, que es el mismo dato declarado una
-    sola vez (ver su comentario). Los **temporales por transacción** no se
-    portan en este tramo: su mecanismo es la instalación de un módulo desde un
-    zip subido, que este árbol no tiene todavía — tarea **#131**.
     """
-    addons_paths = _addons_paths()
     is_abs = os.path.isabs(file_path)
     normalized_path = os.path.normpath(os.path.normcase(file_path))
 
@@ -178,6 +217,13 @@ def file_path(file_path, filter_ext=('',), *, check_exists=True):
     # ignore leading 'addons/' if present, it's the final component of
     # root_path, but may sometimes be included in relative paths
     normalized_path = normalized_path.removeprefix('addons' + os.sep)
+    file_path_split = normalized_path.split(os.path.sep)
+
+    if not is_abs and (module := sys.modules.get(f'addons.{file_path_split[0]}')):
+        addons_paths = list(map(os.path.dirname, module.__path__))
+    else:
+        temporary_paths = _file_open_tmp_paths(env) if env else []
+        addons_paths = [*_addons_paths(), *temporary_paths]
 
     for addons_dir in addons_paths:
         # final path sep required to avoid partial match
@@ -198,14 +244,15 @@ def file_path(file_path, filter_ext=('',), *, check_exists=True):
     raise FileNotFoundError('File not found: ' + file_path)
 
 
-def file_open(name, mode='r', filter_ext=()):
+def file_open(name, mode='r', filter_ext=(), env=None):
     """≙ ``file_open`` (``odoo19c: odoo/tools/misc.py:253-286``).
 
     «Open a file from within the ``addons_path`` directories, as an absolute or
     relative path.»
 
     Abre **sólo** lo que :func:`file_path` acepta, así que hereda su
-    confinamiento. Las dos precauciones de la fuente se portan enteras:
+    confinamiento —``env`` incluido: sin él, una raíz temporal registrada no se
+    consulta—. Las dos precauciones de la fuente se portan enteras:
 
     - En modo texto fuerza ``utf-8``, con su motivo verbatim: *"system locale
       could affect default encoding, even with the latest Python 3 versions"*.
@@ -214,7 +261,7 @@ def file_open(name, mode='r', filter_ext=()):
       una cosa; uno que puede sembrar archivos nuevos bajo el árbol de addons
       es otra.
     """
-    path = file_path(name, filter_ext=filter_ext, check_exists=False)
+    path = file_path(name, filter_ext=filter_ext, env=env, check_exists=False)
     encoding = None
     if 'b' not in mode:
         # Force encoding for text mode, as system locale could affect default
@@ -224,6 +271,35 @@ def file_open(name, mode='r', filter_ext=()):
         # Don't let create new files
         raise FileNotFoundError(f'Not a file: {path}')
     return open(path, mode, encoding=encoding)
+
+
+@contextmanager
+def file_open_temporary_directory(env):
+    """≙ ``file_open_temporary_directory`` (``odoo19c: odoo/tools/misc.py:305-313``).
+
+    «Create and return a temporary directory added to the directories
+    ``file_open`` is allowed to read from.»
+
+    Sirve a la instalación de un módulo desde un zip subido: lo que se acaba de
+    extraer tiene que ser legible por ``file_open`` **sin** abrir el árbol
+    entero ni por más tiempo del que dure la operación. De ahí la forma exacta
+    de la fuente, que se porta verbatim:
+
+    - el directorio lo crea y lo borra ``tempfile.TemporaryDirectory``;
+    - el registro se retira en un ``finally``, así que una excepción en el
+      cuerpo no deja la raíz abierta para el resto del proceso — el fallo
+      silencioso que este ``finally`` existe para impedir.
+
+    :param env: alias de conexión cuya transacción registra la raíz.
+    :return: la ruta del directorio temporal.
+    """
+    with tempfile.TemporaryDirectory() as module_dir:
+        paths = _file_open_tmp_paths(env)
+        try:
+            paths.append(module_dir)
+            yield module_dir
+        finally:
+            paths.remove(module_dir)
 
 
 # ``html_escape`` — escape HTML para mensajes construidos a mano.
