@@ -53,11 +53,10 @@ son los mismos.
 Qué NO se porta en este tramo, medido y con sucesor
 ===================================================
 
-- ``convert_csv_import`` — BLOQUEADO por ``BaseModel.load`` — el importador de
-  filas de la fuente (``odoo19c: odoo/models.py``) no está portado aquí
-  (medido: ``grep -rn "def load(" src/orm/models.py`` → 0). El símbolo se
-  declara y levanta con el motivo; su cuerpo se porta cuando exista ``load``.
-  Tarea **#132**.
+> ``convert_csv_import`` **ya no está en esta lista**: su cuerpo se portó en la
+> tarea **#132**, junto con ``orm.models.RecordLoaderMixin.load``, que era el
+> bloqueo declarado.
+
 - ``jingtrang`` — la validación RelaxNG "bonita" de la fuente es un
   **fallback de mensajes**, no de validación: si el paquete está, corre
   ``pyjing`` para dar un error más legible. No se declara como dependencia
@@ -75,6 +74,7 @@ interpretarla es lo que convierte un archivo mal formado en un error con línea
 en vez de en un registro a medias.
 """
 import base64
+import csv
 import io
 import logging
 import os.path
@@ -855,10 +855,10 @@ class XmlImport:
         record.append(Field(name, name='name'))
 
         # E.g. <bundle directive="prepend">web.assets_frontend</bundle>
-        bundle_el = el.find('bundle')
-        record.append(Field(bundle_el.text, name='bundle'))
-        if 'directive' in bundle_el.attrib:
-            record.append(Field(bundle_el.get('directive'), name='directive'))
+        bundle_element = el.find('bundle')
+        record.append(Field(bundle_element.text, name='bundle'))
+        if 'directive' in bundle_element.attrib:
+            record.append(Field(bundle_element.get('directive'), name='directive'))
 
         # E.g. <path>website/static/src/snippets/s_share/000.scss</path>
         record.append(Field(el.find('path').text, name='path'))
@@ -1008,20 +1008,71 @@ def convert_sql_import(fp, using=DEFAULT_DB_ALIAS):
 
 def convert_csv_import(module, fname, csvcontent, idref=None, mode='init',
                        noupdate=False, using=DEFAULT_DB_ALIAS):
-    """≙ ``convert_csv_import`` (``:703-758``).
+    """≙ ``convert_csv_import`` (``odoo19c: odoo/tools/convert.py:704-759``).
 
-    Porte BLOQUEADO — 0 de 1 símbolos. BLOQUEADO por ``BaseModel.load`` — el
-    importador de filas de la fuente, que es quien recibe ``(fields, datas)``
-    y aplica la misma resolución de identificadores que el XML pero por
-    columnas. Medido: ``grep -rn "def load(" src/orm/models.py`` → **0**.
+    «Import csv file: quote ``"``, delimiter ``,``, encoding utf-8.»
 
-    El símbolo se declara con su nombre y su firma para que el despachador de
-    :func:`convert_file` no tenga un hueco silencioso, y levanta nombrando el
-    bloqueo. Su cuerpo se porta con ``load``; tarea **#132**.
+    El nombre del archivo **nombra el modelo**: ``res.country-extra.csv`` carga
+    ``res.country``. Es la convención de la fuente y no un detalle — el CSV no
+    tiene dónde declararlo.
+
+    Las tres decisiones de la fuente se portan enteras:
+
+    - **Sin la columna ``id`` sólo se admite el modo ``init``.** Actualizar sin
+      identificador externo no tiene a qué fila referirse, así que se registra
+      el error y se abandona el archivo en vez de crear duplicados.
+    - **Las columnas con ``@`` se retiran**: son traducciones, que tienen su
+      propio camino de importación.
+    - **Las filas vacías se descartan** tras retirarlas — una fila que sólo
+      tenía columnas de traducción no es una fila.
+
+    Si ``load`` devuelve **algún** error, se levanta: un módulo que no puede
+    cargar sus datos no se instala a medias.
+
+    Cuerpo portado en la tarea **#132**; hasta entonces el símbolo existía con
+    su firma y levantaba nombrando el bloqueo (``BaseModel.load``, que ya está).
     """
-    raise NotImplementedError(
-        'convert_csv_import necesita BaseModel.load, que aún no está portado '
-        '(tarea #132). Los datos en CSV se cargan hoy por migración.')
+    filename, _ext = os.path.splitext(os.path.basename(fname))
+    model_name = filename.split('-')[0]
+    model = _model_of(model_name)
+
+    reader = csv.reader(io.StringIO(csvcontent.decode()), quotechar='"',
+                        delimiter=',')
+    fields = next(reader)
+
+    if not (mode == 'init' or 'id' in fields):
+        _logger.error("Import specification does not contain 'id' and we are "
+                      'in init mode, Cannot continue.')
+        return
+
+    translate_indexes = {i for i, field in enumerate(fields) if '@' in field}
+
+    def remove_translations(row):
+        return [cell for i, cell in enumerate(row) if i not in translate_indexes]
+
+    fields = remove_translations(fields)
+    if not fields:
+        return
+
+    # clean the data from translations (treated during translation import),
+    # then filter out empty lines (any([]) == False) and lines containing only
+    # empty cells
+    datas = [
+        data_line for line in reader
+        if any(data_line := remove_translations(line))
+    ]
+
+    with context_scope(mode=mode, module=module, install_mode=True,
+                       install_module=module, install_filename=fname,
+                       noupdate=noupdate):
+        result = model.load(fields, datas, using=using)
+
+    if any(msg['type'] == 'error' for msg in result['messages']):
+        # Report failed import and abort module install
+        warning_msg = '\n'.join(msg['message'] for msg in result['messages'])
+        raise Exception(
+            'Falló la carga del módulo %s: el archivo %s no se pudo procesar:'
+            '\n%s' % (module, fname, warning_msg))
 
 
 def convert_xml_import(module, xmlfile, idref=None, mode='init',

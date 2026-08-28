@@ -284,10 +284,23 @@ class TestLoadFromXml:
         assert IrUiMenu.objects.get(pk=rows['cv_s2']).sequence == 10
 
 
-class TestCsvIsBlocked:
-    """El camino CSV declara su bloqueo en vez de callarlo."""
+class TestCsvIsNoLongerBlocked:
+    """El camino CSV ya no declara bloqueo: su cuerpo está portado (#132).
 
-    def test_it_raises_naming_the_missing_mechanism(self):
-        with pytest.raises(NotImplementedError) as excinfo:
-            convert.convert_csv_import('base', 'x.csv', b'id,name\n')
-        assert 'BaseModel.load' in str(excinfo.value)
+    Este caso afirmaba que ``convert_csv_import`` levantaba
+    ``NotImplementedError`` nombrando ``BaseModel.load``. Esa premisa se cerró
+    al portar ``load``, así que el caso mide lo contrario — que **no** queda
+    bloqueo declarado—. Lo que el cargador hace de verdad lo mide
+    ``tests/unit/tools/test_convert_csv.py``, contra la base.
+    """
+
+    def test_it_no_longer_declares_a_block(self):
+        with pytest.raises(ValueError, match='no.existe'):
+            convert.convert_csv_import('base', 'no.existe.csv', b'name\nx\n')
+
+    def test_it_no_longer_raises_not_implemented(self):
+        """El control que discrimina: antes esto era ``NotImplementedError``."""
+        with pytest.raises(Exception) as excinfo:
+            convert.convert_csv_import('base', 'no.existe.csv', b'name\nx\n')
+
+        assert not isinstance(excinfo.value, NotImplementedError)

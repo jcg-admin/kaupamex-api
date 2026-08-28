@@ -162,12 +162,32 @@ def _register(model):
         return
     previous = MODELS_BY_NAME.get(name)
     if previous is not None and previous is not model:
+        label = lambda cls: getattr(getattr(cls, '_meta', None), 'label',
+                                    cls.__name__)
         raise ValueError(
             f'Dos modelos declaran _name={name!r}: '
-            f'{previous._meta.label} y {model._meta.label}. '
+            f'{label(previous)} y {label(model)}. '
             f'El nombre punteado identifica un modelo, no una familia.'
         )
     MODELS_BY_NAME[name] = model
+
+
+def register_abstract(cls):
+    """Anota bajo su ``_name`` una clase que **no** es modelo de Django.
+
+    ≙ lo que la referencia obtiene gratis: allá ``ir.fields.converter`` es un
+    ``AbstractModel``, así que su registro lo conoce y ``env['ir.fields.converter']``
+    lo devuelve. Aquí una clase sin columnas no pasa por ``ModelBase``, así que
+    la señal ``class_prepared`` nunca dispara para ella y hay que anotarla a
+    mano — es la misma tabla y el mismo nombre punteado, sólo que por la puerta
+    que este stack deja abierta.
+
+    Se usa donde la referencia usa ``env[...]`` sobre un modelo abstracto: un
+    consumidor que no puede importar la clase (porque cerraría ciclo) la
+    resuelve por nombre, igual que allá.
+    """
+    _register(cls)
+    return cls
 
 
 @receiver(class_prepared, dispatch_uid='orm.registry.register_name')

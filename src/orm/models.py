@@ -52,7 +52,10 @@ Ver :ref:`h-api-855` para el veredicto por archivo de las raíces espejadas.
 """
 import collections
 import functools
+import itertools
 import logging
+import re
+from operator import itemgetter
 
 from django.apps import apps
 from django.db.models import *          # noqa: F401,F403  (re-export ORM completo)
@@ -61,19 +64,99 @@ from django.db.models import (  # noqa: F401
 )
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
-from django.db import DEFAULT_DB_ALIAS
+from django.db import DatabaseError
+from django.db import DEFAULT_DB_ALIAS, connections
 
 from exceptions import AccessError, UserError
 from orm.environments import (
-    get_context, get_current_company, get_current_uid, get_current_user, is_su,
+    context_scope, get_context, get_current_company, get_current_uid,
+    get_current_user, is_su,
 )
+from orm.commands import ManyToManyLink, ManyToManySet, One2manyChild
+from orm import registry
 from orm.domains import Domain
 from orm.fields import convert_to_display_name
 from orm.fields_nonstored import NonStored
 from orm.fields_properties import Properties
 from orm.utils import parse_field_expr
+from service.db import Savepoint
 
 _logger = logging.getLogger(__name__)
+
+
+#: Las tres claves que **referencian** a un registro en vez de nombrar un
+#: campo — ≙ ``REFERENCING_FIELDS`` de ``odoo19c:
+#: addons/base/models/ir_fields.py:16``. Se declaran aquí además de allá
+#: porque ``_extract_records`` las necesita para validar la cabecera del
+#: archivo, y este módulo no puede importar ``ir_fields`` sin cerrar ciclo.
+REFERENCING_FIELD_NAMES = frozenset({None, 'id', '.id'})
+
+
+def fix_import_export_id_paths(fieldname):
+    """≙ ``fix_import_export_id_paths`` (``odoo19c: odoo/orm/models.py:145-156``).
+
+    «Fixes the id fields in import and exports, and splits field paths on
+    ``/``.»
+
+    Las dos sustituciones no son cosmética: la cabecera de un CSV escribe
+    ``partner_id/.id`` o ``partner_id:id`` según de dónde venga, y ambas
+    significan lo mismo — el subcampo que referencia. Se normalizan a la forma
+    con barra antes de partir, así que el resto del cargador ve una sola forma.
+    """
+    fixed_db_id = re.sub(r'([^/])\.id', r'\1/.id', fieldname)
+    fixed_external_id = re.sub(r'([^/]):id', r'\1/id', fixed_db_id)
+    return fixed_external_id.split('/')
+
+
+def itemgetter_tuple(items):
+    """≙ ``itemgetter_tuple`` (``odoo19c: odoo/orm/models.py:7097-7105``).
+
+    «Fixes itemgetter inconsistency (useful in some cases) of not returning a
+    tuple if ``len(items) == 1``: always returns an n-tuple where
+    ``n = len(items)``.»
+    """
+    if len(items) == 0:
+        return lambda a: ()
+    if len(items) == 1:
+        return lambda gettable: (gettable[items[0]],)
+    return itemgetter(*items)
+
+
+def get_columns_from_sql_diagnostics(connection, diagnostics, *,
+                                     check_registry=False):
+    """≙ ``get_columns_from_sql_diagnostics`` (``odoo19c: :7108-7130``).
+
+    «Given the diagnostics of an error, return the affected column names by the
+    constraint. Return an empty list if we cannot determine the columns.»
+
+    Sirve para atribuir un error de restricción a **su** columna en el informe
+    de importación. Cuando el diagnóstico no la nombra, la saca del catálogo de
+    PostgreSQL —``pg_constraint`` cruzado con ``pg_attribute``—, que es donde
+    vive la lista de columnas de una restricción compuesta.
+
+    :param connection: la conexión sobre la que consultar el catálogo; ≙ el
+        ``cr`` de la fuente.
+    """
+    if column := diagnostics.column_name:
+        return [column]
+    if not check_registry:
+        return []
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                ARRAY(
+                    SELECT attname FROM pg_attribute
+                    WHERE attrelid = conrelid
+                    AND attnum = ANY(conkey)
+                ) as "columns"
+            FROM pg_constraint
+            JOIN pg_class t ON t.oid = conrelid
+            WHERE conname = %s
+                AND t.relname = %s
+                AND t.relnamespace = current_schema::regnamespace
+        """, [diagnostics.constraint_name, diagnostics.table_name])
+        columns = cursor.fetchone()
+    return columns[0] if columns else []
 
 
 def _acting_user(user):
@@ -1281,11 +1364,66 @@ class RecordLoaderMixin(FieldSqlMixin):
                   if fname not in (pk_name, 'id')}
         if not values:
             return self
+        values, relational = self._load_records_split_relational(values)
         values = self._load_records_coerce_vals(values)
-        for fname, value in values.items():
-            setattr(self, fname, value)
-        self.save(update_fields=list(values))
+        if values:
+            for fname, value in values.items():
+                setattr(self, fname, value)
+            self.save(update_fields=list(values))
+        if relational:
+            self._load_records_apply_relational(relational)
         return self
+
+    @classmethod
+    def _load_records_split_relational(cls, values):
+        """Separa lo que se escribe en la fila de lo que se escribe **después**.
+
+        Es la contraparte de la divergencia que ``ir_fields`` declara: la
+        fuente devuelve ``Command`` diferidos y su ``write`` los interpreta; el
+        ``Command`` de este árbol es ejecutivo (:ref:`h-api-589`, tarea
+        **#345**), así que el valor viaja en
+        :class:`~orm.commands.ManyToManySet`,
+        :class:`~orm.commands.ManyToManyLink` y
+        :class:`~orm.commands.One2manyChild`, y es aquí donde se aparta.
+
+        El aparte no es una comodidad: Django **exige** que la fila exista
+        antes de tocar una relación de muchos (``Direct assignment to the
+        forward side of a many-to-many set is prohibited``). Lo mismo vale para
+        el hijo de un ``One2many``, que necesita la clave del padre.
+        """
+        scalar, relational = {}, {}
+        for fname, value in values.items():
+            if isinstance(value, (ManyToManySet, ManyToManyLink)):
+                relational[fname] = value
+            elif (isinstance(value, list) and value
+                    and all(isinstance(item, One2manyChild) for item in value)):
+                relational[fname] = value
+            else:
+                scalar[fname] = value
+        return scalar, relational
+
+    def _load_records_apply_relational(self, relational):
+        """Aplica lo que la fila ya existente admite: el conjunto y los hijos.
+
+        Los tres verbos son los de ``Command`` en la fuente, con el del ORM de
+        este lado: ``set`` reemplaza el conjunto, ``add`` lo amplía, y un hijo
+        con id se **actualiza** mientras que uno sin id se **crea** apuntando al
+        padre.
+        """
+        for fname, value in relational.items():
+            manager = getattr(self, fname)
+            if isinstance(value, ManyToManySet):
+                manager.set([id for id in value if id])
+            elif isinstance(value, ManyToManyLink):
+                manager.add(*[id for id in value if id])
+            else:
+                for child in value:
+                    if child.id:
+                        existing = manager.get(pk=child.id)
+                        existing.write(child.values)
+                    else:
+                        manager.create(**manager.model._load_records_coerce_vals(
+                            child.values))
 
     @classmethod
     def _load_records_create(cls, vals_list, using=DEFAULT_DB_ALIAS):
@@ -1300,13 +1438,402 @@ class RecordLoaderMixin(FieldSqlMixin):
         (``odoo19c: res_partner.py:988``): el enganche que el cargador ofrece
         para que un modelo intervenga en la creación desde datos.
         """
-        records = [cls.objects.using(using).create(
-            **cls._load_records_coerce_vals(vals)) for vals in vals_list]
+        records = []
+        for vals in vals_list:
+            scalar, relational = cls._load_records_split_relational(vals)
+            record = cls.objects.using(using).create(
+                **cls._load_records_coerce_vals(scalar))
+            if relational:
+                record._load_records_apply_relational(relational)
+            records.append(record)
         if any(isinstance(field, Properties)
                for field in cls._meta.get_fields()):
             for record in records:
                 record._clean_properties()
         return records
+
+    # -- El cargador de archivos ---------------------------------------------
+
+    @classmethod
+    def _sql_error_to_message(cls, exc):
+        """≙ ``_sql_error_to_message`` (``odoo19c: :3270-3285``).
+
+        «Convert a database exception to a user error message depending on the
+        model.»
+
+        La restricción violada tiene un mensaje declarado en
+        ``ir.model.constraint``; si lo hay, ése es el que ve quien importa, y
+        no el texto de PostgreSQL. Sin él, se cae al mensaje genérico.
+        """
+        IrModelConstraint = apps.get_model('base', 'IrModelConstraint')
+        constraint_name = getattr(getattr(exc, 'diag', None),
+                                  'constraint_name', None)
+        if constraint_name:
+            row = IrModelConstraint.objects.filter(
+                name=constraint_name).values_list('message', flat=True).first()
+            if row:
+                return row
+        return str(exc)
+
+    @classmethod
+    def _extract_records(cls, field_paths, data, log=lambda a: None,
+                         limit=float('inf')):
+        """≙ ``_extract_records`` (``odoo19c: :1075-1195``).
+
+        «Generates record dicts from the data sequence.»
+
+        Recorre la matriz **por filas** y devuelve un dict por registro. Lo que
+        hace no trivial este método es que un registro puede ocupar **varias
+        filas**: las que siguen a la suya con valores sólo en columnas
+        ``One2many`` le pertenecen. Esa es la regla que ``only_o2m_values``
+        codifica y por la que el avance del índice es ``len(record_span)`` y no
+        uno.
+
+        Las tres claves especiales de la fuente se conservan: ``None`` es la
+        etiqueta visible del registro, ``id`` su identificador externo y
+        ``.id`` su id de base.
+        """
+        fields = {field.name: field for field in cls._meta.get_fields()
+                  if hasattr(field, 'name')}
+
+        def is_one2many(fname):
+            field = fields.get(fname)
+            return field is not None and getattr(field, 'one_to_many', False)
+
+        get_o2m_values = itemgetter_tuple([
+            index
+            for index, fnames in enumerate(field_paths)
+            if is_one2many(fnames[0])
+        ])
+        get_nono2m_values = itemgetter_tuple([
+            index
+            for index, fnames in enumerate(field_paths)
+            if not is_one2many(fnames[0])
+        ])
+
+        # Checks if the provided row has any non-empty one2many fields
+        def only_o2m_values(row):
+            return any(get_o2m_values(row)) and not any(get_nono2m_values(row))
+
+        for fname, *__ in field_paths:
+            if not fname or '.' in fname:
+                continue
+            if fname not in fields and fname not in REFERENCING_FIELD_NAMES:
+                raise ValueError(f'Invalid field name {fname!r}')
+
+        # m2o fields can't be on multiple lines so don't take it in account
+        # for only_o2m_values rows filter, but special-case it later on to
+        # be handled with relational fields (as it can have subfields).
+        def is_relational(fname):
+            field = fields.get(fname)
+            return field is not None and field.is_relation
+
+        index = 0
+        while index < len(data) and index < limit:
+            row = data[index]
+
+            # copy non-relational fields to record dict
+            record = {
+                fnames[0]: value
+                for fnames, value in zip(field_paths, row)
+                if not is_relational(fnames[0])
+            }
+
+            # Get all following rows which have relational values attached to
+            # the current record (no non-relational values)
+            record_span = itertools.takewhile(
+                only_o2m_values,
+                (data[j] for j in range(index + 1, len(data))),
+            )
+            # stitch record row back on for relational fields
+            record_span = list(itertools.chain([row], record_span))
+
+            for relfield, *__ in field_paths:
+                if not is_relational(relfield):
+                    continue
+
+                comodel = fields[relfield].related_model
+
+                # get only cells for this sub-field, should be strictly
+                # non-empty, field path [None] is for display_name field
+                indices, subfields = zip(*(
+                    (position, fnames[1:] or [None])
+                    for position, fnames in enumerate(field_paths)
+                    if fnames[0] == relfield))
+
+                # return all rows which have at least one value for the
+                # subfields of relfield
+                relfield_data = [it for it
+                                 in map(itemgetter_tuple(indices), record_span)
+                                 if any(it)]
+                record[relfield] = [
+                    subrecord
+                    for subrecord, _subinfo
+                    in comodel._extract_records(subfields, relfield_data,
+                                                log=log)
+                ]
+
+            yield record, {'rows': {
+                'from': index,
+                'to': index + len(record_span) - 1,
+            }}
+            index += len(record_span)
+
+    @classmethod
+    def _convert_records(cls, records, *, log=lambda a: None, savepoint):
+        """≙ ``_convert_records`` (``odoo19c: :1198-1251``).
+
+        «Converts records from the source iterable (recursive dicts of strings)
+        into forms which can be written to the database.»
+
+        :returns: una tupla ``(dbid, xid, convertido, info)`` por registro.
+
+        El ``.id`` se valida **contra la base** antes de aceptarlo: la fuente
+        registra un error y lo descarta si el registro no existe, en vez de
+        dejar que el fallo salga como violación de clave ajena tres pasos más
+        tarde.
+        """
+        converter_cls = registry.model_by_name('ir.fields.converter')
+        field_names = {field.name: str(getattr(field, 'verbose_name', field.name))
+                       for field in cls._meta.get_fields()
+                       if hasattr(field, 'name')}
+
+        convert = converter_cls.for_model(cls, savepoint=savepoint)
+
+        def _log(base, record, field, exception):
+            type = 'warning' if isinstance(exception, Warning) else 'error'
+            # logs the logical (not human-readable) field name for automated
+            # processing of response, but injects human readable in message
+            field_name = field_names.get(field, field)
+            exc_vals = dict(base, record=record, field=field_name)
+            record = dict(base, type=type, record=record, field=field,
+                          message=str(exception.args[0]) % exc_vals)
+            if len(exception.args) > 1:
+                info = {}
+                if exception.args[1] and isinstance(exception.args[1], dict):
+                    info = exception.args[1]
+                # ensure field_name is added to the exception. Used in import to
+                # concatenate multiple errors in the same block
+                info['field_name'] = field_name
+                record.update(info)
+            log(record)
+
+        for stream_index, (record, extras) in enumerate(records):
+            # xid
+            xid = record.get('id', False)
+            # dbid
+            dbid = False
+            if record.get('.id'):
+                try:
+                    dbid = int(record['.id'])
+                except ValueError:
+                    # in case of overridden id column
+                    dbid = record['.id']
+                if not cls.objects.filter(pk=dbid).exists():
+                    log(dict(extras,
+                             type='error',
+                             record=stream_index,
+                             field='.id',
+                             message="Identificador de base desconocido '%s'"
+                                     % dbid))
+                    dbid = False
+
+            converted = convert(record,
+                                functools.partial(_log, extras, stream_index))
+
+            yield dbid, xid, converted, dict(extras, record=stream_index)
+
+    @classmethod
+    def load(cls, fields, data, using=DEFAULT_DB_ALIAS):
+        """≙ ``load`` (``odoo19c: :895-1073``).
+
+        «Attempts to load the data matrix, and returns a list of ids (or
+        ``False`` if there was an error and no id could be generated) and a
+        list of messages.»
+
+        :param fields: los campos a importar, en el orden de las columnas.
+        :param data: la matriz de datos, por filas.
+        :returns: ``{'ids': [...] | False, 'messages': [...], 'nextrow': int}``.
+
+        Las tres decisiones de la fuente que definen su comportamiento:
+
+        - **Se intenta en lote y, si falla, uno por uno.** El lote es el camino
+          rápido; el recorrido fila a fila es el que puede decir *cuál* falló.
+          El error del lote se guarda y se antepone al informe si el segundo
+          intento tampoco crea nada, porque a veces sólo el conjunto es
+          inválido.
+        - **Cada fallo vuelve al punto de retorno.** Sin eso la transacción
+          queda abortada en PostgreSQL y el resto del archivo ya no se puede
+          importar — es lo que :class:`service.db.Savepoint` existe para dar.
+        - **El recorrido se corta a los diez errores** si además hay más de uno
+          por cada diez filas, con el aviso de la fuente: un archivo con el
+          formato equivocado produciría un informe ilegible.
+
+        Si hubo **algún** error, se deshace todo y ``ids`` es ``False``: una
+        importación es completa o no es.
+        """
+        converter_cls = registry.model_by_name('ir.fields.converter')
+        converter_cls._selection_translation_cache.clear()
+
+        context = get_context()
+        # determine values of mode, current_module and noupdate
+        mode = context.get('mode', 'init')
+        current_module = context.get('module', '__import__')
+        noupdate = context.get('noupdate', False)
+
+        connection = connections[using]
+        savepoint = Savepoint(connection)
+
+        fields = [fix_import_export_id_paths(f) for f in fields]
+
+        ids = []
+        messages = []
+
+        # list of (xid, vals, info) for records to be created in batch
+        batch = []
+        batch_xml_ids = set()
+        # models in which we may have created / modified data, therefore might
+        # require flushing in order to name_search: the root model and any o2m
+        creatable_models = {cls}
+        for field_path in fields:
+            if field_path[0] in (None, 'id', '.id'):
+                continue
+            model = cls
+            for field_name in field_path:
+                if field_name in (None, 'id', '.id'):
+                    break
+                try:
+                    field = model._meta.get_field(field_name)
+                except (FieldDoesNotExist, AttributeError):
+                    break
+                if getattr(field, 'one_to_many', False):
+                    model = field.related_model
+                    creatable_models.add(model)
+
+        def flush(*, xml_id=None, model=None):
+            if not batch:
+                return
+
+            assert not (xml_id and model), \
+                'flush can specify *either* an external id or a model, not both'
+
+            if model and model not in creatable_models:
+                return
+
+            data_list = [
+                dict(xml_id=xid, values=vals, info=info, noupdate=noupdate)
+                for xid, vals, info in batch
+            ]
+            batch.clear()
+            batch_xml_ids.clear()
+
+            # try to create in batch
+            global_error_message = None
+            try:
+                with Savepoint(connection):
+                    recs = cls._load_records(data_list, mode == 'update',
+                                              using=using)
+                    ids.extend(record.pk for record in recs)
+                return
+            except UserError as exc:
+                global_error_message = dict(data_list[0]['info'], type='error',
+                                            message=str(exc))
+            except Exception:  # noqa: BLE001
+                # silent OK because el lote es el camino rápido y su fallo NO
+                # es el resultado: el recorrido fila a fila de abajo vuelve a
+                # intentarlo y es el que puede decir CUÁL falló. Tragarlo aquí
+                # es lo que la fuente hace, y por eso mismo
+                # (``odoo19c: odoo/orm/models.py:980-981``).
+                pass
+
+            errors = 0
+            # try again, this time record by record
+            for i, rec_data in enumerate(data_list, 1):
+                try:
+                    [rec] = cls._load_records([rec_data], mode == 'update',
+                                               using=using)
+                    ids.append(rec.pk)
+                except DatabaseError as exc:
+                    savepoint.rollback()
+                    info = rec_data['info']
+                    pg_error_info = {'message': cls._sql_error_to_message(exc)}
+                    diag = getattr(exc.__cause__, 'diag', None)
+                    if diag is not None and diag.table_name == cls._meta.db_table:
+                        e_fields = get_columns_from_sql_diagnostics(
+                            connection, diag, check_registry=True)
+                        if len(e_fields) == 1:
+                            pg_error_info['field'] = e_fields[0]
+                    messages.append(dict(info, type='error', **pg_error_info))
+                    # Failed to write, log to messages, rollback savepoint (to
+                    # avoid broken transaction) and keep going
+                    errors += 1
+                except UserError as exc:
+                    savepoint.rollback()
+                    messages.append(dict(rec_data['info'], type='error',
+                                         message=str(exc)))
+                    errors += 1
+                except Exception as exc:  # noqa: BLE001
+                    savepoint.rollback()
+                    _logger.debug('Error while loading record', exc_info=True)
+                    messages.append(dict(
+                        rec_data['info'], type='error',
+                        message='Error desconocido durante la importación: '
+                                '%s: %s' % (exc.__class__, exc),
+                        moreinfo='Resuelve los otros errores primero'))
+                    # Failed for some reason, perhaps due to invalid data
+                    # supplied, rollback savepoint and keep going
+                    errors += 1
+                if errors >= 10 and (errors >= i / 10):
+                    messages.append({
+                        'type': 'warning',
+                        'message': 'Más de 10 errores y más de uno por cada 10 '
+                                   'registros: se interrumpe para no mostrar '
+                                   'demasiados errores.',
+                    })
+                    break
+            if errors > 0 and global_error_message \
+                    and global_error_message not in messages:
+                # If we cannot create the records 1 by 1, we display the error
+                # raised when we created the records simultaneously
+                messages.insert(0, global_error_message)
+
+        # make 'flush' available to the methods below, in the case where XMLID
+        # resolution fails, for instance
+        limit = context.get('_import_limit')
+        if limit is None:
+            limit = float('inf')
+
+        with context_scope(_import_current_module=current_module,
+                           import_flush=flush, import_cache={}):
+            extracted = cls._extract_records(fields, data,
+                                              log=messages.append, limit=limit)
+            converted = list(cls._convert_records(
+                extracted, log=messages.append, savepoint=savepoint))
+
+            info = {'rows': {'to': -1}}
+            for id, xid, record, info in converted:
+                if xid:
+                    xid = xid if '.' in xid else '%s.%s' % (current_module, xid)
+                    batch_xml_ids.add(xid)
+                elif id:
+                    record['id'] = id
+                batch.append((xid, record, info))
+
+            flush()
+
+        if any(message['type'] == 'error' for message in messages):
+            savepoint.rollback()
+            ids = False
+        savepoint.close(rollback=False)
+
+        nextrow = info['rows']['to'] + 1
+        if nextrow < limit:
+            nextrow = 0
+        return {
+            'ids': ids,
+            'messages': messages,
+            'nextrow': nextrow,
+        }
 
     # -- El cargador ---------------------------------------------------------
 
@@ -1522,8 +2049,8 @@ class DisplayNameMixin:
         """
         rec_name = getattr(type(self), '_rec_name', None)
         if not rec_name:
-            nombre = getattr(type(self), '_name', None) or self._meta.label
-            return f'{nombre},{self.pk}'
+            name = getattr(type(self), '_name', None) or self._meta.label
+            return f'{name},{self.pk}'
         try:
             field = self._meta.get_field(rec_name)
         except FieldDoesNotExist:
@@ -1534,8 +2061,8 @@ class DisplayNameMixin:
         # que es lo que la fuente da cuando NO hay ``_rec_name`` en absoluto, y
         # el único texto que identifica al registro sin inventar nada.
         if not etiqueta:
-            nombre = getattr(type(self), '_name', None) or self._meta.label
-            return f'{nombre},{self.pk}'
+            name = getattr(type(self), '_name', None) or self._meta.label
+            return f'{name},{self.pk}'
         return etiqueta
 
     @classmethod
@@ -1573,10 +2100,10 @@ class DisplayNameMixin:
         lookup = 'iexact' if operator in ('=', '!=', '<>') else 'icontains'
         emparejado = None
         for field_expr in search_fnames:
-            ruta = field_expr.replace('.', '__')
-            condicion = Q(**{f'{ruta}__{lookup}': value})
-            emparejado = condicion if emparejado is None else (
-                emparejado & condicion if negativo else emparejado | condicion)
+            path = field_expr.replace('.', '__')
+            condition = Q(**{f'{path}__{lookup}': value})
+            emparejado = condition if emparejado is None else (
+                emparejado & condition if negativo else emparejado | condition)
         if negativo:
             return cls.objects.exclude(emparejado)
         return cls.objects.filter(emparejado)
