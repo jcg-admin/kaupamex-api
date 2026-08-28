@@ -50,6 +50,7 @@ import re
 from decimal import Decimal
 
 from django.db import models
+from django.utils.timezone import localtime
 
 from orm.environments import get_current_company
 from tools.misc import remove_accents
@@ -223,6 +224,70 @@ NEGATIVE_CONDITION_OPERATORS = frozenset([
 #: no una relectura. Cuando #98 instale la extensión, esto y ``SqlILike`` se
 #: encienden juntos: son una decisión, no dos.
 UNACCENT_ENABLED = False
+
+
+def convert_to_display_name(field, value, record):
+    """El valor de un campo, como etiqueta — ≙ ``Field.convert_to_display_name``.
+
+    ≙ ``odoo19c: odoo/orm/fields.py:1080`` y sus cinco sobrecargas
+    (``fields_reference.py:55``, ``fields_relational.py:397`` y ``:715``,
+    ``fields_temporal.py:187`` y ``:291``). Es lo que ``_compute_display_name``
+    aplica al campo que ``_rec_name`` nombra.
+
+    **Divergencia de forma, declarada y heredada:** allá es un método de la
+    clase del campo; aquí es una **función sobre el campo de Django**, por la
+    misma razón que ``falsy_value`` y ``condition_to_q``, que ya viven en este
+    archivo — nuestros campos son alias de los de Django
+    (``Integer = models.IntegerField``), así que no hay clase propia donde
+    colgar el método sin subclasar los veinte campos de Django. El **sitio** sí
+    es el de la fuente.
+
+    Las cinco sobrecargas se portan como despacho por clase:
+
+    - **relacional a uno** (``Many2one``, ``Reference``) → el ``display_name``
+      del registro apuntado. La fuente lo escribe igual en las dos.
+    - **relacional a muchos** (``Many2many``, ``One2many``) → la fuente lanza
+      ``NotImplementedError`` (``fields_relational.py:715``), y se porta
+      verbatim: un ``_rec_name`` que nombre una colección no tiene etiqueta
+      única, y devolver algo inventado ahí escondería el error de declaración.
+    - **fecha y fecha-hora** → su representación en texto. La fuente pasa la
+      fecha-hora a la zona del registro
+      (``Datetime.context_timestamp``); aquí lo hace ``localtime``, que lee la
+      zona activa del hilo — el mismo mecanismo que el resto del árbol usa.
+    - **el resto** → ``str(value) if value else False``, el default de la
+      fuente, con su ``False`` y no ``None``: es el valor que la fuente
+      devuelve para un campo vacío, y ``_compute_display_name`` lo distingue.
+    """
+    if field is None:
+        return str(value) if value else False
+    if isinstance(field, (models.ManyToManyField, models.ManyToOneRel,
+                          models.ManyToManyRel)):
+        raise NotImplementedError(
+            f'convert_to_display_name no aplica a {field!r}: una colección no '
+            f'tiene etiqueta única')
+    if isinstance(field, (models.ForeignKey, models.OneToOneField)):
+        return display_name_of(value) if value else False
+    if isinstance(field, models.DateTimeField):
+        return localtime(value).strftime('%Y-%m-%d %H:%M:%S') if value else False
+    if isinstance(field, models.DateField):
+        return value.strftime('%Y-%m-%d') if value else False
+    return str(value) if value else False
+
+
+def display_name_of(record):
+    """La etiqueta de un registro — ≙ ``record.display_name``.
+
+    Existe para que :func:`convert_to_display_name` no tenga que importar
+    ``orm.models``: ese módulo importa ``orm.environments``, que toca el
+    registro de apps, y este archivo se carga al definir los campos. Es la
+    misma causa que documenta ``adopt_access_manager``.
+
+    Un modelo que aún no adoptó el ``display_name`` universal —los de terceros
+    lo son por decisión— cae a ``str(record)``, que es el ``__str__`` de
+    Django.
+    """
+    etiqueta = getattr(record, 'display_name', None)
+    return etiqueta if etiqueta else str(record)
 
 _INEQUALITY_LOOKUP = {'<': 'lt', '>': 'gt', '<=': 'lte', '>=': 'gte'}
 

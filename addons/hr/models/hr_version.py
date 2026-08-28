@@ -365,8 +365,7 @@ class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
     # ``ResourceCalendar`` ya hace en este árbol)
     # ------------------------------------------------------------------
 
-    @property
-    def display_name(self):
+    def _compute_display_name(self):
         """≙ ``_compute_display_name`` (``:389-391``).
 
         DIVERGENCIA: la referencia formatea ``date_version`` con el locale

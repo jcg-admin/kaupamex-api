@@ -1131,8 +1131,7 @@ class StockQuant(TimeStampedModel):
     def __str__(self) -> str:
         return self.display_name
 
-    @property
-    def display_name(self) -> str:
+    def _compute_display_name(self) -> str:
         """≙ ``_compute_display_name`` (``odoo19c: :558-580``).
 
         Docstring de la referencia: *"name that will be displayed in the

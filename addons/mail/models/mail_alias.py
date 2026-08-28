@@ -242,8 +242,7 @@ class MailAlias(TimeStampedModel):
         """
         return self.alias_domain.name if self.alias_domain_id else None
 
-    @property
-    def display_name(self):
+    def _compute_display_name(self):
         """Odoo ``_compute_display_name`` (líneas 229-240 de la referencia).
 
         Devuelve ``jobs@mail.example.com``, o ``jobs`` si no hay dominio, o

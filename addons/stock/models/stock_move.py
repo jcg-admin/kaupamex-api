@@ -1363,8 +1363,7 @@ class StockMove(TimeStampedModel):
         if not self.reference_ids.exists() and self.picking_id:
             self.reference_ids.set(self.picking.reference_ids)
 
-    @property
-    def display_name(self):
+    def _compute_display_name(self):
         """≙ ``display_name`` / ``_compute_display_name`` (``odoo19c: :786-792``).
 
         ``origen/código: ubicación>destino``, con los dos primeros tramos

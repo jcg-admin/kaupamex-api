@@ -68,6 +68,8 @@ from orm.environments import (
     get_context, get_current_company, get_current_uid, get_current_user, is_su,
 )
 from orm.domains import Domain
+from orm.fields import convert_to_display_name
+from orm.fields_nonstored import NonStored
 from orm.fields_properties import Properties
 from orm.utils import parse_field_expr
 
@@ -1437,3 +1439,193 @@ class RecordLoaderMixin(FieldSqlMixin):
 
         return [data['record'] for data in data_list]
 
+
+
+def _display_name_default(record):
+    """El ``default`` del descriptor: delega en ``_compute_display_name``."""
+    return record._compute_display_name()
+
+
+class DisplayNameMixin:
+    """``display_name`` y su bloque — la etiqueta de un registro, universal.
+
+    ≙ el bloque que ``BaseModel`` declara bajo el comentario
+    *"display_name, name_create, name_search"* (``odoo19c:
+    odoo/orm/models.py:1421-1543``): el campo ``display_name`` (``:473``), su
+    ``_compute_display_name`` (``:1425``), su ``_search_display_name``
+    (``:1442``), ``name_create`` (``:1493``) y ``name_search`` (``:1512``).
+
+    **La divergencia es de VÍA, no de alcance**, y es la misma que
+    :class:`RecordLoaderMixin` declara: allá cuelgan de ``BaseModel``, así que
+    **todo** modelo los tiene sin declarar nada; aquí ``models.Model`` es el de
+    Django y no es nuestro. La universalidad se recupera por dos caminos, que
+    son los de ``H-API-577``:
+
+    - este mixin lo adopta ``TimeStampedModel``, la base común del proyecto —
+      **284 de los 374 modelos concretos nuestros** lo heredan (medido);
+    - los **90** restantes lo reciben de :func:`orm.model_classes.adopt_display_name`,
+      que corre en ``class_prepared`` y en un barrido, igual que el manager de
+      permisos.
+
+    Por qué no basta con la base común: 90 modelos no la heredan, y **el olvido
+    no falla** — un modelo sin ``display_name`` cae al ``__str__`` de Django y
+    nada lo delata. Es la misma clase de defecto silencioso que ``H-API-876``
+    registró para el manager.
+
+    Tres divergencias de FORMA, todas heredadas del árbol y ninguna nueva
+    ======================================================================
+
+    Las tres ya las ejercían los cinco modelos que declaraban su
+    ``_compute_display_name`` antes de esta tarea (``res_bank``, ``res_partner``,
+    ``ir_model``, ``properties_base_definition``, ``res_currency``), así que
+    cambiarlas ahora rompería lo que ya funciona:
+
+    1. **``_compute_display_name`` DEVUELVE la etiqueta**; la fuente la
+       **asigna** (``record.display_name = convert(...)``). Aquí el campo no es
+       un campo del ORM con cache de cómputo, así que el valor tiene que
+       volver al descriptor por el retorno.
+    2. **``_search_display_name`` devuelve un ``QuerySet``**, no un ``Domain``.
+       Es lo que ``res_bank`` y ``res_currency`` ya devuelven, y lo que el
+       llamador de este árbol sabe consumir.
+    3. **``name_create`` y ``name_search`` son ``classmethod``**: allá son
+       ``@api.model``, es decir métodos sobre un recordset vacío que sólo
+       aporta el modelo. Ese papel lo cumple la clase.
+
+    Lo que NO es divergencia: la asignación sigue permitida
+    ======================================================
+
+    ``display_name`` es un :class:`orm.fields_nonstored.NonStored`, no una
+    ``property``, y la diferencia es deliberada: la fuente declara un campo, y
+    un campo de la fuente **se puede escribir en memoria** aunque no tenga
+    columna. ``record.display_name = 'X'`` gana sobre el cómputo hasta que se
+    borre, igual que allá.
+    """
+
+    #: ≙ ``display_name = Char(string='Display Name', compute=..., search=...)``
+    #: (``odoo19c: odoo/orm/models.py:473``). El ``compute`` y el ``search`` de
+    #: la fuente son los dos métodos de abajo; aquí el primero lo cablea el
+    #: ``default`` del descriptor y el segundo lo llama ``name_search``.
+    display_name = NonStored(default=_display_name_default,
+                             help_text='Display Name')
+
+    def _compute_display_name(self):
+        """La etiqueta del registro — ≙ ``_compute_display_name`` (``:1425``).
+
+        Con ``_rec_name`` resuelto, el valor de ese campo pasado por
+        :func:`orm.fields.convert_to_display_name`; sin él, ``modelo,id``,
+        verbatim el ``f"{record._name},{record.id}"`` de la fuente.
+
+        El ``@api.depends(lambda self: (self._rec_name,) ...)`` de la fuente no
+        se porta: declara de qué depende el cómputo para invalidar su cache, y
+        aquí no hay cache que invalidar — el descriptor computa en cada
+        lectura. Es divergencia de mecanismo, no un hueco.
+        """
+        rec_name = getattr(type(self), '_rec_name', None)
+        if not rec_name:
+            nombre = getattr(type(self), '_name', None) or self._meta.label
+            return f'{nombre},{self.pk}'
+        try:
+            field = self._meta.get_field(rec_name)
+        except FieldDoesNotExist:
+            field = None
+        etiqueta = convert_to_display_name(field, getattr(self, rec_name), self)
+        # El ``False`` del default de la fuente para un campo vacío: aquí la
+        # etiqueta tiene que ser texto, así que se cae al par ``modelo,id`` —
+        # que es lo que la fuente da cuando NO hay ``_rec_name`` en absoluto, y
+        # el único texto que identifica al registro sin inventar nada.
+        if not etiqueta:
+            nombre = getattr(type(self), '_name', None) or self._meta.label
+            return f'{nombre},{self.pk}'
+        return etiqueta
+
+    @classmethod
+    def _search_display_name(cls, operator, value):
+        """Los registros cuya etiqueta coincide — ≙ ``:1442``.
+
+        Busca sobre ``_rec_names_search`` o, en su defecto, sobre
+        ``_rec_name``: la misma preferencia y el mismo orden de la fuente.
+        Sin ninguno de los dos **avisa y no restringe** — ``Domain.TRUE`` allá,
+        ``objects.all()`` aquí—, que es la conducta de la fuente y no un
+        atajo: restringir a cero sería inventar una negativa que la fuente no
+        da.
+
+        ``_rec_names_search`` admite rutas con punto (``partner_id.name``); se
+        traducen al ``__`` de Django, que es el mismo recorrido de relación.
+        Un campo relacional busca sobre el ``display_name`` del otro lado en la
+        fuente; aquí sobre su ``_rec_name``, que es de donde ese
+        ``display_name`` sale.
+
+        El corto-circuito del ``like ''`` de la fuente se porta: con valor
+        vacío y operador positivo devuelve todo, y con uno negativo, nada.
+        """
+        search_fnames = (getattr(cls, '_rec_names_search', None)
+                         or ([cls._rec_name] if getattr(cls, '_rec_name', None)
+                             else []))
+        if not search_fnames:
+            _logger.warning(
+                'No se puede buscar por display_name: %s no declara _rec_name '
+                'ni _rec_names_search', cls._meta.label)
+            return cls.objects.all()
+        negativo = operator in NEGATIVE_DISPLAY_NAME_OPERATORS
+        if operator.endswith('like') and not value and '=' not in operator:
+            return cls.objects.none() if negativo else cls.objects.all()
+
+        lookup = 'iexact' if operator in ('=', '!=', '<>') else 'icontains'
+        emparejado = None
+        for field_expr in search_fnames:
+            ruta = field_expr.replace('.', '__')
+            condicion = Q(**{f'{ruta}__{lookup}': value})
+            emparejado = condicion if emparejado is None else (
+                emparejado & condicion if negativo else emparejado | condicion)
+        if negativo:
+            return cls.objects.exclude(emparejado)
+        return cls.objects.filter(emparejado)
+
+    @classmethod
+    def name_create(cls, name):
+        """Crea el registro a partir de su sola etiqueta — ≙ ``:1493``.
+
+        Escribe ``name`` en el campo que ``_rec_name`` nombra y devuelve el par
+        ``(id, display_name)``. Sin ``_rec_name`` avisa y devuelve ``False``,
+        verbatim — con su ``TODO`` incluido: la fuente misma anota que debería
+        lanzar un error en vez de devolver un falso.
+        """
+        rec_name = getattr(cls, '_rec_name', None)
+        if not rec_name:
+            _logger.warning(
+                'No se puede ejecutar name_create: %s no declara _rec_name',
+                cls._meta.label)
+            return False
+        record = cls.objects.create(**{rec_name: name})
+        return record.pk, record.display_name
+
+    @classmethod
+    def name_search(cls, name='', domain=None, operator='ilike', limit=100):
+        """Los pares ``(id, etiqueta)`` que coinciden — ≙ ``:1512``.
+
+        Es :meth:`_search_display_name` acotado por el ``domain`` extra y por
+        ``limit``. El ``domain`` se recibe como ``Q`` de Django o ``None``,
+        que es la forma que ``website_rewrite.name_search`` ya usaba en este
+        árbol.
+
+        El ``.sudo()`` del final de la fuente no se porta: allá levanta el
+        permiso para poder leer la etiqueta de lo que la búsqueda ya
+        seleccionó. Aquí la selección la hace un ``QuerySet`` de Django, que no
+        filtra por permiso — el acotamiento por fila lo aplica
+        ``AccessQuerySet`` cuando el llamador lo pide, y elevarlo aquí sería
+        conceder un permiso que nadie otorgó.
+        """
+        queryset = cls._search_display_name(operator, name)
+        if domain is not None:
+            queryset = queryset.filter(domain)
+        return [(record.pk, record.display_name) for record in queryset[:limit]]
+
+
+#: Los operadores de semántica negativa que :meth:`_search_display_name`
+#: atiende — ≙ el ``Domain.NEGATIVE_OPERATORS`` que la fuente consulta
+#: (``odoo19c: odoo/orm/models.py:1462``). Es la tercera copia del mismo
+#: conjunto en este árbol; unificar las tres en un hogar compartido es la
+#: tarea **#380**, que ``orm/fields.py`` ya declara para las suyas.
+NEGATIVE_DISPLAY_NAME_OPERATORS = frozenset([
+    'not like', 'not ilike', 'not =like', 'not =ilike', '!=', '<>',
+])

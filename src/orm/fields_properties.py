@@ -82,12 +82,18 @@ def _model_of(model_name):
 def _display_name_of(record):
     """La etiqueta de un registro — ≙ ``record.display_name``.
 
-    DIVERGENCIA MEDIDA: la fuente lo declara en ``BaseModel``, así que **todo**
-    modelo lo tiene. Aquí lo declaran **13 de los modelos del árbol** (medido:
-    ``grep -rln "def display_name" src/ addons/``), así que se cae al
-    ``__str__`` de Django, que es el equivalente natural y el que las vistas ya
-    usan. Construir el ``display_name`` universal con su ``_compute_display_name``
-    es la tarea **#134**.
+    La divergencia que este ayudante declaraba **quedó cerrada** por la tarea
+    #134: ``display_name`` ya cuelga de la base común
+    (``orm.models.DisplayNameMixin``) y de ``orm.model_classes.adopt_display_name``
+    para los modelos que no la heredan, así que **todo** modelo nuestro lo
+    tiene — igual que en la fuente, donde cuelga de ``BaseModel``
+    (``odoo19c: odoo/orm/models.py:473``).
+
+    El ``or str(record)`` se conserva para un modelo de terceros (Django,
+    ``django.contrib.*``), al que el adoptador no toca por diseño.
+
+    No se importa el ``display_name_of`` de ``orm.fields``: ese módulo importa
+    a éste (``orm/fields.py:62``), así que el import inverso sería un ciclo.
     """
     return getattr(record, 'display_name', None) or str(record)
 

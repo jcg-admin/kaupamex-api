@@ -1935,19 +1935,6 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         name = re.sub(r'\s+\n', '\n', name)
         return name.strip()
 
-    @property
-    def display_name(self):
-        """El campo publico; el computo privado es ``_compute_display_name``.
-
-        La fuente declara ``display_name`` como campo y ``_compute_display_name``
-        como su computo — la frontera del guion bajo que
-        ``porte-completo-no-parcial.md`` exige conservar. Aqui el campo es una
-        ``property`` porque no lleva columna, pero la particion es la misma:
-        quien lo lee usa ``display_name``; quien lo extiende sobreescribe
-        ``_compute_display_name``.
-        """
-        return self._compute_display_name()
-
     # ------------------------------------------------------------------
     # El avatar y su relleno por tipo de direccion
     # ≙ ``odoo19c: odoo/addons/base/models/res_partner.py:334-377``
@@ -2821,8 +2808,7 @@ class ResPartnerCategory(TimeStampedModel):
             return f'{self.pk}/'
         return f'{self.parent.parent_path}{self.pk}/'
 
-    @property
-    def display_name(self):
+    def _compute_display_name(self):
         """≙ ``_compute_display_name`` (``:162-172``).
 
         Docstring de la fuente: *"Return the categories' display name,

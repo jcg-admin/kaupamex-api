@@ -254,8 +254,7 @@ class HrWorkEntry(TimeStampedModel):
             return self.employee.company.country
         return None
 
-    @property
-    def display_name(self):
+    def _compute_display_name(self):
         """≙ ``_compute_display_name`` (``:61-65``)."""
         duration = str(timedelta(hours=self.duration or 0)).split(':')
         type_name = self.work_entry_type.name if self.work_entry_type_id else ''

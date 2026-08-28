@@ -296,15 +296,9 @@ class WebsiteRewrite(TimeStampedModel):
                 raise ValidationError(
                     _('"URL to" cannot be set to an existing page.'))
 
-    @property
-    def display_name(self):
+    def _compute_display_name(self):
         """≙ ``_compute_display_name`` (``@api.depends('redirect_type')``, ``odoo19c: website_rewrite.py:132-135``)."""
         return f"{self.redirect_type} - {self.name}"
-
-    def _compute_display_name(self):
-        """≙ ``_compute_display_name`` — la forma método, para el porte por
-        nombre; devuelve el valor (patrón de los computes de este árbol)."""
-        return self.display_name
 
     def save(self, *args, **kwargs):
         """≙ ``create`` (``@api.model_create_multi``, ``:137-142``) +

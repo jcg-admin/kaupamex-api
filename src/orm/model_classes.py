@@ -263,6 +263,78 @@ def ensure_access_managers():
                if adopt_access_manager(model))
 
 
+#: Los cinco símbolos del bloque ``display_name`` de la fuente
+#: (``odoo19c: odoo/orm/models.py:473,1425,1442,1493,1512``). Se enumeran aquí
+#: y no se derivan del ``__dict__`` del mixin: un ayudante privado que se
+#: añadiera allá entraría al barrido sin que nadie lo decidiera.
+DISPLAY_NAME_SYMBOLS = (
+    'display_name', '_compute_display_name', '_search_display_name',
+    'name_create', 'name_search',
+)
+
+
+def adopt_display_name(model_cls):
+    """Le da al modelo su etiqueta y su búsqueda por etiqueta, si no las tiene.
+
+    ≙ que ``display_name``, ``_compute_display_name``,
+    ``_search_display_name``, ``name_create`` y ``name_search`` cuelguen de
+    ``BaseModel`` (``odoo19c: odoo/orm/models.py:473,1421-1543``): allá **todo**
+    modelo los tiene sin declarar nada.
+
+    Aquí los lleva :class:`orm.models.DisplayNameMixin`, que ``TimeStampedModel``
+    adopta — **284 de los 374 modelos concretos nuestros** lo heredan (medido).
+    Esta función cubre a los **90** que no: los que declaran su propia base,
+    como toda la familia ``account``.
+
+    Un símbolo que el modelo ya resuelve **no se toca**, y el discriminador es
+    ``getattr`` sobre el MRO, no ``__dict__``: un modelo que hereda su
+    ``_compute_display_name`` de una base propia lo tiene tan resuelto como el
+    que lo declara. Los doce que declaran ``display_name`` como ``property``
+    siguen ganando por MRO, que es lo que la fuente hace con un ``compute``
+    sobreescrito.
+
+    :returns: cuántos de los cinco símbolos se instalaron — 0 si ya los tenía,
+        es de terceros o es abstracto, para que el llamador pueda medir en vez
+        de suponer.
+
+    .. note:: ``orm.models`` se resuelve con ``importlib`` por la misma causa
+       que :func:`adopt_access_manager` documenta: importarlo al top arrastra
+       ``orm.environments`` y da ``AppRegistryNotReady``.
+    """
+    if model_cls._meta.abstract or model_cls._meta.proxy:
+        return 0
+    if model_cls.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES):
+        return 0
+
+    faltantes = [nombre for nombre in DISPLAY_NAME_SYMBOLS
+                 if getattr(model_cls, nombre, None) is None]
+    if not faltantes:
+        return 0
+
+    mixin = importlib.import_module('orm.models').DisplayNameMixin
+    for nombre in faltantes:
+        setattr(model_cls, nombre, mixin.__dict__[nombre])
+    return len(faltantes)
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.adopt_display_name')
+def _adopt_display_name_on_prepared(sender, **kwargs):
+    """Adopta el bloque de etiqueta en cuanto la clase queda construida."""
+    adopt_display_name(sender)
+
+
+def ensure_display_names():
+    """Barre el registro por si la señal llegó tarde.
+
+    Dos vías por la razón de ``H-API-577``, igual que :func:`ensure_rec_names`
+    y :func:`ensure_access_managers`.
+
+    :returns: cuántos modelos adoptaron al menos un símbolo en el barrido.
+    """
+    return sum(1 for model in apps.get_models(include_auto_created=True)
+               if adopt_display_name(model))
+
+
 @receiver(class_prepared, dispatch_uid='orm.model_classes.resolve_rec_name')
 def _resolve_rec_name_on_prepared(sender, **kwargs):
     """Resuelve el ``_rec_name`` del modelo recién construido.

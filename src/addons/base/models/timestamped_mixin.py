@@ -26,6 +26,14 @@ modelos concretos". Sin esa adopción el cargador de datos XML
 mano, y un archivo de datos de la referencia nombra veinticuatro modelos
 distintos sólo en ``base``.
 
+``DisplayNameMixin`` (``orm/models.py``) viaja por la misma vía y por la misma
+razón: la fuente declara ``display_name`` y su bloque en ``BaseModel``
+(``odoo19c: odoo/orm/models.py:473,1421-1543``), así que allá **todo** modelo
+tiene etiqueta sin declarar nada. Aquí la base común cubre 284 de los 374
+modelos concretos nuestros; los 90 que no la heredan la reciben de
+``orm.model_classes.adopt_display_name``, en ``class_prepared``. Dos vías, la
+misma razón que ``H-API-577``.
+
 ``RecordLoaderMixin`` extiende ``FieldSqlMixin``, así que una clase que ya
 declaraba ``FieldSqlMixin`` **antes** de ``TimeStampedModel`` en sus bases
 rompe el MRO (precedencia local contradictoria). Esas declaraciones se
@@ -33,10 +41,10 @@ retiran: la heredan por aquí.
 """
 from django.db import models
 
-from orm.models import RecordLoaderMixin
+from orm.models import DisplayNameMixin, RecordLoaderMixin
 
 
-class TimeStampedModel(RecordLoaderMixin, models.Model):
+class TimeStampedModel(RecordLoaderMixin, DisplayNameMixin, models.Model):
     """
     Clase base abstracta que provee created_at y updated_at a todos
     los modelos que hereden de ella.

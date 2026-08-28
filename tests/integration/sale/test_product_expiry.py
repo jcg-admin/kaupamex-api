@@ -170,9 +170,11 @@ def test_display_name_carries_the_expiration_and_relays_without_it(db):
         name='L9', product=producto,
         expiration_date=timezone.now() + datetime.timedelta(days=5))
     fecha = caduca.expiration_date.date()
-    assert caduca.display_name() == f'L9\t--{fecha}--'
-    # Sin caducidad, la función devuelve None y `chain_method` releva a la base.
-    assert StockLot.objects.create(name='L10', product=producto).display_name() == 'L10'
+    assert caduca.display_name == f'L9\t--{fecha}--'
+    # Sin caducidad el override devuelve None y `chain_method` releva a la base
+    # del núcleo (`orm.models.DisplayNameMixin`), que resuelve por `_rec_name`.
+    sin_fecha = StockLot.objects.create(name='L10', product=producto)
+    assert sin_fecha.display_name == 'L10'
 
 
 # -- FEFO y disponibilidad ---------------------------------------------------
