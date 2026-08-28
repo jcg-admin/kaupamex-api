@@ -7,6 +7,19 @@ entrada (positiva) o salida (negativa) valuada, con su ``unit_cost``/``value``
 y — para FIFO — el saldo ``remaining_qty``/``remaining_value`` que las salidas
 consumen. Es la fuente del **costo unitario real de entrega**: cada salida
 graba el ``unit_cost`` con el que se valuó ese movimiento.
+
+.. warning::
+
+   **19 retiró este modelo, y 19 gobierna.** Este archivo se portó de
+   ``odoo18c``; ``odoo19c`` no lo declara —0 apariciones de
+   ``stock.valuation.layer`` en su árbol— porque el saldo FIFO pasó a vivir
+   en ``stock.move``. El addon SÍ existe en 19c, con 16 archivos que aquí
+   faltan, así que su ausencia no es un hueco de la referencia: es la forma
+   que 19 eligió. Se conserva mientras el porte de esos 16 no lo reemplace.
+
+   Su hermano ``product_costing.py`` es peor: no existe en **ninguna** de las
+   cuatro raíces medidas — es invención nuestra. Ver :ref:`h-api-889`
+   (decisión del ejecutor: 19 gobierna) y la tarea #151.
 """
 from decimal import Decimal
 
