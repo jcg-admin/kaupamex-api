@@ -240,8 +240,11 @@ class OriginMixin:
     el eje que distingue "en formulario" de "guardado" no es el tipo del id
     sino el estado de la instancia: los atributos en memoria frente a la fila.
 
-    Qué modelos lo adoptan, y en qué orden, es el mismo trabajo abierto que la
-    adopción de ``AccessManager``.
+    Quién lo adopta, medido 2026-08-28: ``ResPartner`` —el consumidor que
+    registró la tarea #112, y que hasta entonces hacía la lectura a mano— y
+    ``DecimalPrecision``. Quedan **ocho** sitios más con la misma lectura
+    escrita a mano; decidir uno a uno cuál de ellos ES ``_origin`` y cuál es
+    otra cosa es la tarea **#136**.
     """
 
     @property

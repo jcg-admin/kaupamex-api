@@ -122,7 +122,7 @@ def _default_tz():
     return get_context().get('tz') or ''
 
 
-class ResPartner(AvatarMixin, TimeStampedModel):
+class ResPartner(AvatarMixin, models.OriginMixin, TimeStampedModel):
     """``res.partner`` — persona, empresa o dirección.
 
     Fiel a ``odoo19c: odoo/addons/base/models/res_partner.py:213-309``. Se
@@ -1106,29 +1106,26 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         at least one value is set in the address: otherwise, keep the one from
         the contact)"*.
 
-        **``self._origin``, y por que se traduce en vez de construirse.** La
-        fuente lee el tipo **guardado**, no el del formulario:
-        ``(partner.type or self.type)`` con ``partner = self._origin``. Un
-        contacto que esta en la base como ``invoice`` y al que el formulario
-        acaba de cambiar el tipo NO toma la direccion del padre hasta que se
-        guarde.
+        **``self._origin``** — la fuente lee el tipo **guardado**, no el del
+        formulario: ``(partner.type or self.type)`` con
+        ``partner = self._origin``. Un contacto que esta en la base como
+        ``invoice`` y al que el formulario acaba de cambiar el tipo NO toma la
+        direccion del padre hasta que se guarde.
 
-        ``_origin`` es un concepto del ORM entero —42 usos en
-        ``odoo19c: odoo/``— y su hogar es ``src/orm``, no este archivo
-        (segunda clausula de ``atributos-de-clase-de-modelo.md``); construirlo
-        aqui seria fabricarlo en el sitio equivocado, la clase de
-        ``H-API-578``. Lo que se porta es su **significado** en este metodo:
-        el valor almacenado de un campo, que es una lectura acotada. El
-        ``_origin`` general queda como sucesor: tarea **#112**.
+        > **Actualizado (tarea #112).** Este metodo hacia la lectura a mano
+        > —``objects.filter(pk=self.pk).values_list('type')``— porque
+        > ``_origin`` no existia todavia, y el docstring lo declaraba con su
+        > sucesor. Ya existe: ``models.OriginMixin`` en ``src/orm/models.py``,
+        > que es su hogar (segunda clausula de
+        > ``atributos-de-clase-de-modelo.md``). El cuerpo se lee ahora como el
+        > de la fuente, y la lectura a mano —que era la misma consulta con
+        > otro nombre— desaparece.
         """
         if not self.parent_id:
             return
         result = {}
-        stored_type = None
-        if self.pk:
-            stored_type = type(self).objects.filter(pk=self.pk).values_list(
-                'type', flat=True).first()
-        if (stored_type or self.type) == self.TYPE_CONTACT:
+        partner = self._origin
+        if (partner.type or self.type) == self.TYPE_CONTACT:
             address_values = self.parent._get_address_values()
             if address_values:
                 result['value'] = address_values
