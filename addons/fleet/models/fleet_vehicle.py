@@ -260,6 +260,7 @@ class FleetVehicle(MailThread, TimeStampedModel):
     frame_size = fields.Float(null=True, blank=True, help_text='Odoo frame_size.')
     vehicle_properties = fields.Properties(
         null=True, blank=True,
+        definition='model.vehicle_properties_definition',
         help_text='Propiedades dinámicas del vehículo (Odoo vehicle_properties). '
                    'Sin validación de esquema contra model.vehicle_properties_'
                    'definition (deferido).',

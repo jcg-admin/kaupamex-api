@@ -499,6 +499,30 @@ class RecordLoaderMixin(FieldSqlMixin):
         if changed:
             self.save(update_fields=changed)
 
+    # -- Enganches de extensión de la definición de propiedades --------------
+    #
+    # ≙ los cuatro que ``BaseModel`` declara junto a ``_clean_properties``
+    # (``odoo19c: odoo/orm/models.py:5070-5084``). Los cuatro cuerpos son los
+    # de la fuente: existen para que un addon los sobreescriba, no para hacer
+    # nada por sí mismos. Su llamador es ``PropertiesDefinition`` en
+    # ``orm/fields_properties.py``, que allá los pide a ``env["base"]`` y aquí
+    # al registro — ver su docstring.
+
+    def _validate_properties_definition(self, properties_definition, field):
+        """Allow to validate additional properties attributes."""
+
+    def _additional_allowed_keys_properties_definition(self):
+        """Allow to add more allowed key for properties."""
+        return ()
+
+    def _convert_to_cache_properties_definition(self, value):
+        """Allow to patch `convert_to_cache` of the properties definition."""
+        return value
+
+    def _convert_to_column_properties_definition(self, value):
+        """Allow to patch `convert_to_column` of the properties definition."""
+        return value
+
     # -- Escritura y creación ------------------------------------------------
 
     @classmethod

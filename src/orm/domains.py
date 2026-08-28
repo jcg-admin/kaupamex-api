@@ -88,6 +88,8 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Q
 
 from orm.fields import condition_to_q, falsy_value
+from orm.fields_properties import Properties
+from orm.utils import parse_field_expr
 from tools.func import classproperty
 
 __all__ = [
@@ -786,6 +788,16 @@ class DomainCondition(Domain):
         current, field = model, None
         for part in self.field_expr.split('.'):
             if current is None:
+                if isinstance(field, Properties):
+                    # ``props.color`` NO es una travesía de relación: lo que
+                    # sigue al punto es el nombre de una **propiedad** dentro
+                    # del JSON, y el campo que gobierna la condición es el
+                    # ``Properties`` mismo. La fuente lo separa antes con
+                    # ``parse_field_expr`` y despacha a
+                    # ``Properties.condition_to_sql`` (``odoo19c:
+                    # fields_properties.py:678``); aquí el corte ocurre en la
+                    # resolución y el compilador de hoja recibe el campo.
+                    break
                 self._raise('Ruta que atraviesa un campo no relacional')
             try:
                 field = current._meta.get_field(part)
@@ -842,8 +854,17 @@ class DomainCondition(Domain):
         if operator not in STANDARD_CONDITION_OPERATORS:
             self._raise('Operador no soportado al compilar')
 
+        field = self._field(model)
+        if isinstance(field, Properties) and parse_field_expr(field_expr)[1]:
+            # ≙ el despacho por tipo de campo de la fuente: su
+            # ``Field.condition_to_sql`` lo sobreescribe ``Properties``
+            # (``odoo19c: fields_properties.py:678``) porque una clave de JSON
+            # necesita la contención ``@>``/``<@`` además de la igualdad — el
+            # valor guardado puede ser una lista. Ver su docstring.
+            return field.condition_to_q(field_expr, operator, value, model)
+
         return condition_to_q(
-            _django_path(field_expr), operator, value, self._field(model))
+            _django_path(field_expr), operator, value, field)
 
 
 # ==========================================================================

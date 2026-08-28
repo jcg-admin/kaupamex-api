@@ -100,6 +100,7 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
 
     properties = fields.Properties(
         default=dict, blank=True, verbose_name='Propiedades',
+        definition='properties_base_definition_id.properties_definition',
         help_text='Pares clave/valor definidos por el usuario. Su esquema vive '
                   'en properties.base.definition, resuelto por (modelo, '
                   'campo) — no por registro.',

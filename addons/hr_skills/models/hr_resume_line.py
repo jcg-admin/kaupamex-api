@@ -111,6 +111,7 @@ class HrResumeLine(TimeStampedModel):
     )
     resume_line_properties = fields.Properties(
         null=True, blank=True, verbose_name='Propiedades',
+        definition='line_type.resume_line_type_properties_definition',
         help_text='Odoo resume_line_properties — esquema definido por '
                   'line_type_id.resume_line_type_properties_definition '
                   '(JSON en este árbol).',

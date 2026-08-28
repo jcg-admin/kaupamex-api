@@ -13,13 +13,25 @@ import pytest
 from django.db import models as django_models
 
 from addons.base.models import PropertiesBaseDefinition
+from addons.fleet.models.fleet_vehicle import FleetVehicle
+from addons.fleet.models.fleet_vehicle_model import FleetVehicleModel
+from addons.fleet.models.fleet_vehicle_model_brand import (
+    FleetVehicleModelBrand)
 from addons.base.models.ir_model import IrModel, IrModelFields
 from exceptions import AccessError
+from orm.fields_properties import Properties
 from orm.models import NO_ACCESS, FieldSqlMixin
 from tools.query import Query
 from tools.sql import SQL
 
 TABLE = PropertiesBaseDefinition._meta.db_table
+VEHICLE_TABLE = FleetVehicle._meta.db_table
+
+
+@pytest.fixture
+def vehicle():
+    """El sujeto de las expresiones de propiedad: un campo ``Properties``."""
+    return FleetVehicle()
 
 
 @pytest.fixture
@@ -44,11 +56,20 @@ class TestPortedSurface:
         assert hasattr(django_models.Field, 'to_sql')
         assert hasattr(django_models.Field, 'property_to_sql')
 
-    def test_the_json_field_overrides_property_to_sql(self):
-        # odoo19c: fields_properties.py:674 — sólo quien contiene sub-campos
-        # sabe extraer uno.
-        assert (django_models.JSONField.property_to_sql
+    def test_only_the_properties_field_overrides_property_to_sql(self):
+        """odoo19c: fields_properties.py:674 — sólo quien contiene sub-campos
+        sabe extraer uno, y ese quien es ``Properties``, no ``JSONField``.
+
+        Hasta la tarea #130 el método se adjuntaba a ``models.JSONField``
+        porque ``Properties`` era un **alias** de esa clase, y el propio
+        docstring lo declaraba como ensanchamiento: un ``fields.Json`` o un
+        ``PropertiesDefinition`` respondían también. Con ``Properties`` ya
+        convertida en clase, el despacho vuelve a ser el de la fuente.
+        """
+        assert (Properties.property_to_sql
                 is not django_models.Field.property_to_sql)
+        assert (django_models.JSONField.property_to_sql
+                is django_models.Field.property_to_sql)
 
     def test_the_foreign_key_carries_join(self):
         # odoo19c: fields_relational.py:466 — el salto de un camino relacional.
@@ -95,39 +116,56 @@ class TestFieldToSql:
 
 
 class TestPropertyExpression:
-    """``campo.propiedad`` — el segundo tramo, vía ``property_to_sql``."""
+    """``campo.propiedad`` — el segundo tramo, vía ``property_to_sql``.
 
-    def test_a_property_becomes_the_json_arrow_operator(self, definition):
-        sql = definition._field_to_sql(TABLE, 'properties_definition.color')
-        assert sql.code == \
-            '("properties_base_definition"."properties_definition" -> %s)'
+    El sujeto de esta clase es ``FleetVehicle.vehicle_properties``, un campo
+    ``Properties``. Hasta la tarea #130 lo era ``properties_definition``, que
+    es un ``PropertiesDefinition``: valía porque el método estaba adjuntado a
+    ``models.JSONField``. Con el despacho ya restaurado al de la fuente, el
+    campo que extrae una propiedad es el que la contiene — ver
+    ``test_a_definition_field_does_not_extract_a_property`` abajo.
+    """
 
-    def test_the_property_name_travels_as_a_parameter_not_interpolated(self, definition):
+    def test_a_property_becomes_the_json_arrow_operator(self, vehicle):
+        sql = vehicle._field_to_sql(VEHICLE_TABLE, 'vehicle_properties.color')
+        assert sql.code == '("fleet_vehicle"."vehicle_properties" -> %s)'
+
+    def test_the_property_name_travels_as_a_parameter_not_interpolated(self, vehicle):
         # Es lo que impide que el nombre entre en el SQL como texto. Si se
         # interpolara, `check_property_field_value_name` sería la única
         # defensa; así hay dos.
-        sql = definition._field_to_sql(TABLE, 'properties_definition.color')
+        sql = vehicle._field_to_sql(VEHICLE_TABLE, 'vehicle_properties.color')
         assert sql.params == ['color']
 
     @pytest.mark.parametrize('bad', ['MAL', 'con-guion', 'con espacio',
                                      'punto.punto', 'x' * 513])
-    def test_a_malformed_property_name_is_refused(self, definition, bad):
+    def test_a_malformed_property_name_is_refused(self, vehicle, bad):
         with pytest.raises(ValueError, match='Wrong property field value name'):
-            definition._field_to_sql(TABLE, f'properties_definition.{bad}')
+            vehicle._field_to_sql(VEHICLE_TABLE, f'vehicle_properties.{bad}')
 
-    def test_an_empty_property_name_is_not_a_property_expression(self, definition):
+    def test_an_empty_property_name_is_not_a_property_expression(self, vehicle):
         # `parse_field_expr('campo.')` devuelve ('campo', ''), y `if
         # property_name:` descarta la cadena vacía — así que no llega a
         # `property_to_sql` y no hay nada que validar. Es la conducta de la
         # fuente, no una laxitud de este puerto.
-        assert definition._field_to_sql(TABLE, 'properties_definition.').code == \
-            '"properties_base_definition"."properties_definition"'
+        assert vehicle._field_to_sql(VEHICLE_TABLE, 'vehicle_properties.').code == \
+            '"fleet_vehicle"."vehicle_properties"'
 
     def test_a_property_on_a_field_that_has_none_is_refused(self, definition):
         # El caso base de `Field.property_to_sql`: sólo un campo con
         # sub-campos sabe extraer uno.
         with pytest.raises(ValueError, match='Invalid field property'):
             definition._field_to_sql(TABLE, 'created_at.algo')
+
+    def test_a_definition_field_does_not_extract_a_property(self, definition):
+        """El contenedor guarda el esquema; no tiene propiedades que extraer.
+
+        Es la conducta de la fuente: ``PropertiesDefinition`` hereda el
+        ``Field.property_to_sql`` que rechaza. Antes de la tarea #130 este
+        caso **pasaba**, porque el método vivía en ``models.JSONField``.
+        """
+        with pytest.raises(ValueError, match='Invalid field property'):
+            definition._field_to_sql(TABLE, 'properties_definition.color')
 
 
 class TestFieldAccess:
@@ -266,16 +304,31 @@ class TestAgainstTheRealSchema:
         query.add_where(SQL("%s = %s", SQL.identifier(coalias, 'id'), field_row.pk))
         assert query.get_result_ids() == (row.pk,)
 
-    def test_the_json_arrow_returns_the_property(self, field_row):
-        PropertiesBaseDefinition.objects.create(
-            properties_field=field_row,
-            properties_definition={'color': 'azul'})
-        definition = PropertiesBaseDefinition()
-        query = Query(None, TABLE)
-        query.add_where(SQL("%s = %s", SQL.identifier(TABLE, 'properties_field_id'),
-                            field_row.pk))
+    def test_the_json_arrow_returns_the_property(self):
+        """El ``->`` corrido de verdad, sobre un campo ``Properties``.
+
+        El sujeto es ``FleetVehicle.vehicle_properties`` desde la tarea #130:
+        antes lo era ``properties_definition``, y sólo valía porque
+        ``property_to_sql`` estaba adjuntado a ``models.JSONField``. Con el
+        despacho ya restaurado al de la fuente, el campo que extrae una
+        propiedad es el que la contiene.
+        """
+        brand = FleetVehicleModelBrand.objects.create(name='Marca')
+        # El contenedor declara el esquema: sin él, ``Properties._compute``
+        # vacía el valor al guardar, que es la conducta de la fuente —una
+        # propiedad sin definición en el contenedor no significa nada.
+        model = FleetVehicleModel.objects.create(
+            name='Modelo', brand=brand,
+            vehicle_properties_definition=[
+                {'name': 'color', 'type': 'char', 'string': 'Color'}])
+        row = FleetVehicle.objects.create(
+            model=model, vehicle_properties={'color': 'azul'})
+        vehicle = FleetVehicle()
+        query = Query(None, VEHICLE_TABLE)
+        query.add_where(SQL("%s = %s",
+                            SQL.identifier(VEHICLE_TABLE, 'id'), row.pk))
         rows = query._execute_query(query.select(
-            definition._field_to_sql(TABLE, 'properties_definition.color')))
+            vehicle._field_to_sql(VEHICLE_TABLE, 'vehicle_properties.color')))
         # `->` devuelve **jsonb**, así que una cadena vuelve con sus
         # comillas. Es lo que la fuente emite —usa `->`, no `->>`— y por
         # eso la aserción las lleva: quitarlas sería portar otro operador.
