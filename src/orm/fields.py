@@ -49,6 +49,8 @@ from decimal import Decimal
 
 from django.db import models
 
+from tools.sql import SQL
+
 from orm.fields_binary import Binary, Image                    # noqa: F401
 from orm.fields_misc import Boolean, Json                      # noqa: F401
 from orm.fields_numeric import Float, Integer, Monetary        # noqa: F401
@@ -324,3 +326,68 @@ def condition_to_q(field_expr, operator, value, field=None):
 
     raise NotImplementedError(
         f'Operador de dominio no soportado: {(field_expr, operator, value)!r}')
+
+
+# --- Generación de SQL — ≙ "SQL generation methods" de la fuente ------------
+#
+# ``odoo19c: odoo/orm/fields.py:1205-1247`` agrupa bajo ese encabezado los dos
+# métodos con que un campo se convierte en fragmento ``SQL``. Los consume
+# ``BaseModel._field_to_sql`` (``orm/models.py``), la puerta del motor de
+# consultas: ``sql = field.to_sql(self, alias)``.
+#
+# LA DIVERGENCIA, Y ES DE FORMA — la misma que ``orm/models.py`` ya declara
+# dos veces (permisos y ``_origin``): allá cuelgan de la clase ``Field``, que
+# es de la referencia; aquí la clase base de todo campo es
+# ``django.db.models.Field``, que **no es nuestra para declararla**. Se le
+# adjuntan al importar este módulo, que es el equivalente exacto de declarar
+# el método en la clase: todo campo los tiene, como allá, y el sitio de la
+# llamada queda **idéntico al de la fuente**.
+#
+# La alternativa era una función suelta ``to_sql(field, model, alias)``, que
+# obliga a reescribir cada llamada y rompe el despacho por tipo de campo —
+# ``Properties`` sobreescribe ``property_to_sql``, y una función no se
+# sobreescribe.
+#
+# Medido antes de adjuntar: ``to_sql`` y ``property_to_sql`` dan ``False`` en
+# ``hasattr(models.Field, ...)``, así que no pisan nada de Django.
+
+
+def _field_to_sql_expression(self, model, alias):
+    """``to_sql`` — el valor de este campo desde el alias de tabla dado.
+
+    ≙ ``Field.to_sql`` (``odoo19c: odoo/orm/fields.py:1209-1238``).
+
+    Un campo sin columna no se puede convertir, y la fuente lo dice con el
+    mismo error: ``store``/``column_type`` allá, ``concrete``/``column`` aquí
+    —un ``models.Field`` es concreto cuando tiene columna propia, y las
+    relaciones inversas y los ``ManyToMany`` no la tienen—. El ``NonStored``
+    de ``orm/fields_nonstored.py`` ni siquiera llega: no es un campo de
+    Django, así que ``_field_to_sql`` lo descarta antes.
+
+    La fuente entrecomilla ``self.name`` porque allá el nombre del campo **es**
+    el de la columna. Aquí no siempre: un ``db_column`` explícito o una FK
+    —cuyo nombre de columna lleva el sufijo ``_id``— los separan. Lo que va en
+    SQL es la **columna**, así que es ``self.column`` lo que se entrecomilla.
+
+    La rama ``company_dependent`` de la fuente no tiene contraparte todavía:
+    ese mecanismo es la tarea **#111**, y hasta que exista no hay campo que
+    entre por ella.
+    """
+    if not getattr(self, 'concrete', False) or not getattr(self, 'column', None):
+        raise ValueError(f"Cannot convert {self} to SQL because it is not stored")
+    return SQL.identifier(alias, self.column, to_flush=self)
+
+
+def _field_property_to_sql(self, field_sql, property_name, model, alias, query):
+    """``property_to_sql`` — el valor de una propiedad dentro del campo.
+
+    ≙ ``Field.property_to_sql`` (``odoo19c: odoo/orm/fields.py:1241-1247``).
+    El caso base **rechaza**: sólo un campo que contenga sub-campos sabe
+    extraer uno, y quien lo sabe lo sobreescribe — ``Properties`` en
+    ``orm/fields_properties.py``, igual que allá.
+    """
+    raise ValueError(f"Invalid field property {property_name!r} on {self}")
+
+
+models.Field.to_sql = _field_to_sql_expression
+models.Field.property_to_sql = _field_property_to_sql

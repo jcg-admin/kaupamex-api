@@ -37,6 +37,22 @@ Dos invariantes que se conservan y por qué
    registros que usan la definición vieja apuntando a un esquema que ya
    describe otra cosa. Se porta como error, no como aviso.
 
+Primer adoptante de ``FieldSqlMixin``
+=====================================
+
+``orm.models.FieldSqlMixin`` porta ``_field_to_sql`` y sus tres dependencias
+(tarea #127). Allá cuelgan de ``BaseModel``, así que **todo** modelo los tiene;
+aquí ``models.Model`` es el de Django y el mecanismo se adopta, como
+``objects = AccessManager()`` y ``OriginMixin`` — la divergencia que
+``orm/models.py`` declara.
+
+Este modelo es el primero que lo adopta, y no por casualidad: su mixin hermano
+``properties_base_definition_mixin.py`` es quien llama a
+``super()._field_to_sql``, y este modelo tiene las dos formas que el mecanismo
+resuelve — una FK real (``properties_field``) y un campo JSON
+(``properties_definition``) del que se extrae una propiedad con ``->``. Qué
+modelos más lo adoptan es la tarea **#96**.
+
 Los cinco símbolos y su enganche de Django
 ==========================================
 
@@ -96,6 +112,7 @@ from django.db import DEFAULT_DB_ALIAS
 from addons.base.models.ir_model import IrModelFields
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from orm import registry
+from orm.models import FieldSqlMixin
 from tools.cache import ormcache
 
 _logger = logging.getLogger(__name__)
@@ -104,7 +121,7 @@ _logger = logging.getLogger(__name__)
 PROPERTIES_TTYPE = 'properties'
 
 
-class PropertiesBaseDefinition(TimeStampedModel):
+class PropertiesBaseDefinition(FieldSqlMixin, TimeStampedModel):
     """``properties.base.definition`` — la definición de un campo ``Properties``."""
 
     _name = 'properties.base.definition'

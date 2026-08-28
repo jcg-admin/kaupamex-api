@@ -222,18 +222,16 @@ class TestMixinContract:
                 ._search_properties_base_definition_id('=', 1)
                 is NotImplemented)
 
-    def test_field_to_sql_delegation_names_its_blocking_task(self):
-        # Tarea #127: BaseModel._field_to_sql no existe todavía en src/orm.
-        # El bloqueo se declara levantando, no callando: un `return None`
-        # aquí sería un verde que no discrimina.
-        # El mixin es abstracto: se ejercita la función sin ligar, que es la
-        # que porta el cuerpo. La rama de delegación no toca `self`.
-        with pytest.raises(NotImplementedError, match='#127'):
-            PropertiesBaseDefinitionMixin._field_to_sql(
-                None, 'alias', 'another_field')
+    def test_the_mixin_adopts_the_ported_sql_surface(self):
+        # El bloqueo de la tarea #127 se cerró: la clase adopta FieldSqlMixin,
+        # así que el `super()._field_to_sql` de la fuente tiene a quién llamar.
+        assert orm_models.FieldSqlMixin in PropertiesBaseDefinitionMixin.__mro__
 
-    def test_the_base_orm_still_lacks_field_to_sql(self):
-        # La premisa del bloqueo, medida y no leída: si esto empieza a fallar,
-        # la tarea #127 está hecha y el `raise` de arriba sobra.
-        assert not hasattr(orm_models, '_field_to_sql')
-        assert mixin_module is not None and SQL is not None
+    def test_its_own_branch_emits_the_definition_id_as_a_constant(self):
+        # La mitad propia: el campo no tiene columna, así que el motor de
+        # consultas necesita un literal en su lugar.
+        sql = PropertiesBaseDefinition()._field_to_sql(
+            PropertiesBaseDefinition._meta.db_table, 'properties_definition')
+        assert sql.code == \
+            '"properties_base_definition"."properties_definition"'
+        assert SQL is not None and mixin_module is not None

@@ -51,13 +51,19 @@ La forma es la misma que ``service/model.py`` ya usa para ``service/retry.py``.
 Ver :ref:`h-api-855` para el veredicto por archivo de las raíces espejadas.
 """
 import functools
+import logging
 
 from django.apps import apps
 from django.db.models import *          # noqa: F401,F403  (re-export ORM completo)
-from django.db.models import Manager, Model, QuerySet  # noqa: F401
+from django.db.models import (  # noqa: F401
+    ForeignKey, Manager, Model, QuerySet,
+)
 
 from exceptions import AccessError
-from orm.environments import get_current_user, is_su
+from orm.environments import get_current_uid, get_current_user, is_su
+from orm.utils import parse_field_expr
+
+_logger = logging.getLogger(__name__)
 
 
 def _acting_user(user):
@@ -196,3 +202,176 @@ class OriginMixin:
         if self.pk is None:
             return self
         return type(self)._base_manager.using(self._state.db).get(pk=self.pk)
+
+
+#: ≙ ``NO_ACCESS`` (``odoo19c: odoo/orm/models.py:122``). Valor sentinela de
+#: ``field.groups`` que prohíbe el campo a todo el mundo, elevación aparte.
+NO_ACCESS = '.'
+
+
+class FieldSqlMixin:
+    """``_field_to_sql`` y su cadena — la puerta del motor de consultas.
+
+    ≙ los cuatro métodos que ``BaseModel`` declara en ``odoo19c:
+    odoo/orm/models.py``: ``_field_to_sql`` (``:2910``),
+    ``_traverse_related_sql`` (``:2889``), ``_check_field_access`` (``:3384``)
+    y ``_has_field_access`` (``:3370``). Los cuatro van juntos porque el
+    primero llama a los otros tres.
+
+    **La divergencia, y es la que este archivo ya declara dos veces** (la
+    sección de permisos y ``OriginMixin``): allá cuelgan de ``BaseModel``, así
+    que todo modelo los tiene; aquí ``models.Model`` es el de Django y no es
+    nuestro para colgarle nada, así que el mecanismo es un mixin que el modelo
+    adopta. Qué modelos lo adoptan, y en qué orden, es el mismo trabajo
+    abierto que la adopción de ``AccessManager`` — tarea **#96**.
+
+    Por qué no se adjunta a ``models.Model`` como ``to_sql`` a ``Field``
+    ===================================================================
+
+    ``orm/fields.py`` sí adjunta a la clase de Django, y aquí no: la asimetría
+    es deliberada. Un ``Field`` es una pieza interna del ORM que nadie hereda;
+    ``models.Model`` es la base que **toda** la aplicación hereda, incluidos
+    los modelos de Django (``auth``, ``contenttypes``, ``sessions``) y los de
+    cualquier paquete de terceros. Colgarle cuatro métodos con guion bajo
+    cambia la superficie de clases que no son del proyecto — que es
+    exactamente la colisión que la tarea **#98** barre. El mixin da lo mismo
+    donde se pide y nada donde no.
+
+    Qué resuelve, en una línea
+    ==========================
+
+    Una expresión de campo —``'name'`` o ``'properties.color'``— contra un
+    alias de tabla, devuelta como ``SQL`` y con la lectura del campo
+    comprobada. Es el punto por el que pasa todo lo que compone SQL crudo: el
+    ORDER BY de un ``_order_field_to_sql``, la condición de un dominio, la
+    exportación de un campo sin columna.
+    """
+
+    @property
+    def _fields(self):
+        """Los campos del modelo por nombre — ≙ ``BaseModel._fields``.
+
+        Allá es el registro que el ORM construye al cargar la clase; aquí lo
+        provee ``_meta``, que es el registro equivalente de Django. Sólo entran
+        los **concretos**: son los que tienen columna, y los únicos que
+        ``to_sql`` sabe convertir. Una relación inversa o un ``ManyToMany`` no
+        la tiene y allá tampoco es un campo almacenado.
+
+        *Métrica:* ``_meta.get_fields()`` filtrado por ``concrete``.
+        *Ciega a:* el ``NonStored`` de ``orm/fields_nonstored.py``, que no es
+        un campo de Django y por diseño no aparece en ``_meta`` — es el
+        ``store=False`` de la fuente, y ``_field_to_sql`` lo rechaza por la
+        misma razón que allá: no tiene columna que nombrar.
+        """
+        return {
+            field.name: field
+            for field in self._meta.get_fields()
+            if getattr(field, 'concrete', False)
+        }
+
+    def _has_field_access(self, field, operation) -> bool:
+        """Si el usuario puede leer o escribir este campo.
+
+        ≙ ``_has_field_access`` (``odoo19c: odoo/orm/models.py:3370-3382``).
+        Un campo sin ``groups`` es accesible; bajo elevación, también.
+        ``NO_ACCESS`` lo prohíbe siempre.
+
+        ``field.groups`` se lee con ``getattr``: los campos de Django no lo
+        declaran, así que hoy la respuesta es ``True`` para todos salvo que
+        alguien lo asigne. No es una laxitud inventada — es el mismo
+        ``if not field.groups`` de la fuente, que allá también deja pasar todo
+        campo que no declare grupos.
+        """
+        groups = getattr(field, 'groups', None)
+        if not groups or is_su():
+            return True
+        if groups == NO_ACCESS:
+            return False
+        user = get_current_user()
+        return user is not None and user.has_groups(groups)
+
+    def _check_field_access(self, field, operation) -> None:
+        """Levanta ``AccessError`` si el usuario no puede — ≙ ``:3384-3424``.
+
+        La fuente compone un mensaje rico que nombra el campo, la descripción
+        del modelo y los grupos permitidos, y para el último tramo consulta
+        ``ir.model`` y ``res.groups``. Aquí se emiten las tres primeras piezas
+        —campo, modelo, operación—; el tramo de grupos permitidos depende de
+        ``_make_access_error``, que es la tarea **#97**, y hasta entonces el
+        error dice qué se denegó sin decir a quién sí se permitiría.
+        """
+        if self._has_field_access(field, operation):
+            return
+
+        _logger.info(
+            'Access Denied by ACLs for operation: %s, uid: %s, model: %s, field: %s',
+            operation, get_current_uid(), self._meta.label, field.name)
+
+        raise AccessError(
+            f'No tiene permisos suficientes para acceder al campo '
+            f'"{field.name}" en {self._meta.verbose_name} '
+            f'({self._meta.label}). Contacte a su administrador.'
+            f'\n\nOperación: {operation}'
+        )
+
+    def _traverse_related_sql(self, alias, field, query):
+        """Recorre el campo delegado y añade a ``query`` los JOIN que hagan falta.
+
+        ≙ ``_traverse_related_sql`` (``odoo19c: odoo/orm/models.py:2889-2908``).
+
+        :returns: la terna ``(model, field, alias)``, donde ``field`` es el
+            último campo de la secuencia, ``model`` el modelo de ese campo y
+            ``alias`` el alias de su tabla.
+
+        El ``related`` de la fuente es una ruta con puntos —``partner_id.name``—
+        y aquí el mecanismo equivalente es ``orm/inherits.py``: ``_inherits``
+        instala la delegación y el camino es un solo salto, el de su FK. Por
+        eso el bucle recorre ``field.related.split('.')`` igual que allá: la
+        ruta de un salto es el caso que hoy existe, y la de varios funciona sin
+        tocar nada el día que un campo la declare.
+        """
+        # `related`/`store` se leen con `getattr`: son atributos de la clase
+        # `Field` de la referencia, y un campo de Django no los declara. Sin
+        # el `getattr` la aserción no rechaza — revienta con AttributeError,
+        # que no es lo mismo y esconde el motivo.
+        assert (getattr(field, 'related', None)
+                and not getattr(field, 'store', True))
+        *path_fnames, last_fname = field.related.split('.')
+        model = type(self)
+        for path_fname in path_fnames:
+            path_field = model._fields[path_fname]
+            if not isinstance(path_field, ForeignKey):
+                raise ValueError(
+                    f'Cannot convert {field} (related={field.related}) to SQL '
+                    f'because {path_fname} is not a Many2one')
+            model, alias = path_field.join(model, alias, query)
+
+        return model, model._fields[last_fname], alias
+
+    def _field_to_sql(self, alias, field_expr, query=None):
+        """El valor del campo dado desde el alias dado, como ``SQL``.
+
+        ≙ ``_field_to_sql`` (``odoo19c: odoo/orm/models.py:2910-2932``).
+        Comprueba además que el campo sea legible.
+
+        El objeto ``query`` es necesario para los campos delegados y los
+        Many2one: es donde se añaden los JOIN.
+        """
+        fname, property_name = parse_field_expr(field_expr)
+        field = self._fields.get(fname)
+        if not field:
+            raise ValueError(
+                f"Invalid field {fname!r} on model {self._meta.label!r}")
+
+        if getattr(field, 'related', None) and not getattr(field, 'store', True):
+            model, field, alias = self._traverse_related_sql(alias, field, query)
+            related_expr = (field.name if not property_name
+                            else f"{field.name}.{property_name}")
+            return model._field_to_sql(alias, related_expr, query)
+
+        self._check_field_access(field, 'read')
+
+        sql = field.to_sql(self, alias)
+        if property_name:
+            sql = field.property_to_sql(sql, property_name, self, alias, query)
+        return sql

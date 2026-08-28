@@ -53,23 +53,20 @@ Los cuatro métodos de la referencia se portan **con su nombre y su firma**:
    * - ``_field_to_sql``
      - portado; su rama propia emite el id como constante ``SQL``
 
-``_field_to_sql`` — su mitad propia portada, su base ausente
-============================================================
-
-BLOQUEADO por ``BaseModel._field_to_sql`` — la puerta del motor de consultas
-(``odoo19c: odoo/orm/models.py:2910-2933``) no existe en ``src/orm``; depende
-a su vez de ``_traverse_related_sql``, ``_check_field_access``,
-``field.to_sql`` y ``field.property_to_sql``. Sucesor: **#127**.
+``_field_to_sql`` — entero, con su base ya portada
+=================================================
 
 La rama propia —emitir el id de la definición como constante para que la
-exportación funcione— se porta entera con ``tools.sql.SQL``. Lo que falta es
-el ``super()`` al que delega la otra.
+exportación funcione— se porta con ``tools.sql.SQL``; la otra delega en
+``super()``, igual que la fuente.
 
-Medido: ``grep -rn "def _field_to_sql" src/orm/`` → **0** [PROVEN]. No es una
-divergencia: el método está aquí, con su nombre y su firma, y su mitad propia
-funciona. La otra levanta ``NotImplementedError`` con la tarea citada en el
-mensaje, que es lo que un bloqueo medido debe hacer en vez de fallar en
-silencio.
+Ese ``super()`` estuvo bloqueado: hasta la tarea **#127**
+``BaseModel._field_to_sql`` no existía en ``src/orm`` —medido entonces:
+``grep -rn "def _field_to_sql" src/orm/`` → 0— y la mitad de delegación
+levantaba ``NotImplementedError`` citando la tarea. Hoy existe como
+``orm.models.FieldSqlMixin``, que esta clase adopta, y con él llegaron sus
+tres dependencias: ``_traverse_related_sql``, ``_check_field_access`` y el par
+``field.to_sql``/``field.property_to_sql`` de ``orm/fields.py``.
 """
 import logging
 
@@ -81,6 +78,7 @@ from addons.base.models.properties_base_definition import (
     PropertiesBaseDefinition,
 )
 from orm.domains import Domain
+from orm.models import FieldSqlMixin
 
 _logger = logging.getLogger(__name__)
 
@@ -94,7 +92,7 @@ def _definition_default(record):
     return record._compute_properties_base_definition_id()
 
 
-class PropertiesBaseDefinitionMixin(models.Model):
+class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
     """Mixin que añade propiedades **sin padre** a un modelo."""
 
     _name = 'properties.base.definition.mixin'
@@ -196,10 +194,10 @@ class PropertiesBaseDefinitionMixin(models.Model):
         la exportación funcione: el campo no tiene columna, así que el motor
         de consultas necesita un valor literal en su lugar.
 
-        El ``super()`` de la fuente es ``BaseModel._field_to_sql``
-        (``odoo19c: odoo/orm/models.py:2910-2933``), que aquí **no existe**
-        todavía — medido: ``grep -rn "def _field_to_sql" src/orm/`` → 0.
-        Bloqueo nombrado, sucesor **#127**; ver el docstring del módulo.
+        El ``super()`` es ``FieldSqlMixin._field_to_sql`` (``orm/models.py``),
+        el porte de ``BaseModel._field_to_sql`` de la fuente (``odoo19c:
+        odoo/orm/models.py:2910-2932``). Estuvo bloqueado hasta la tarea #127;
+        desde entonces la delegación es la de la fuente, palabra por palabra.
         """
         if fname == 'properties_base_definition_id':
             parent = (
@@ -208,6 +206,4 @@ class PropertiesBaseDefinitionMixin(models.Model):
                     PROPERTIES_FIELD_NAME))
             return SQL("%s", parent)
 
-        raise NotImplementedError(
-            f'_field_to_sql({fname!r}) delega en BaseModel._field_to_sql, que '
-            f'aún no está portado en src/orm/models.py — tarea #127.')
+        return super()._field_to_sql(alias, fname, query)
