@@ -94,17 +94,20 @@ Alcance de esta portación — deliberadamente NO se porta
   registro (ver arriba) no hay de dónde introspectar el tipo declarado; una
   validación equivalente usando ``apps.get_model(model)._meta.get_field(field)``
   es posible pero excede este slice — candidato H-BASE-NN.
-- **``_get_model_defaults`` (dict batch por modelo + ``@tools.ormcache``)**:
-  Odoo devuelve TODOS los defaults de un modelo en una sola consulta cacheada
-  (18/19 líneas 156-189/170-203). Este slice sólo pide el lookup singular
-  (``get_default``/``set_default`` por campo) — el batch + cache queda
-  diferido, candidato H-BASE-NN si el volumen de llamadas lo justifica.
+- **``_get_model_defaults``** — **PORTADO** el 2026-08-28 (tarea #111). Su
+  omisión se justificaba por dos razones que ya no valen: el batch *«queda
+  diferido»* y ``@tools.ormcache`` no existía. El decorador existe desde
+  ``api@c636e68c`` y el consumidor llegó — ``get_company_dependent_fallback``
+  lo llama por su nombre, así que el volumen dejó de ser hipotético: una
+  lectura por campo dependiente de empresa y por registro.
 - **``discard_records``/``discard_values``/``_get_field_column_fallbacks``/
-  ``_evaluate_condition_with_fallback``**: mecanismos atados a conceptos de
-  Odoo sin equivalente en este monolito — *company-dependent fields* con
-  valor de fallback computado (``get_company_dependent_fallback``,
-  ``convert_to_column``) y el tipo ``Many2oneReference``/dominio de Odoo. No
-  aplican sin esos conceptos.
+  ``_evaluate_condition_with_fallback``**: siguen sin portar, pero **la razón
+  cambió**. Decía *«no aplican sin esos conceptos»* nombrando los
+  *company-dependent fields*; ese concepto **se construyó** en la tarea #111
+  (``orm/fields.py``, ``CompanyDependent``). Lo que queda es trabajo, no
+  ausencia de premisa: ``discard_records``/``discard_values`` limpian
+  defaults que apuntan a registros borrados y dependen del tipo
+  ``Many2oneReference``. Sucesor: tarea **#128**.
 - **Invalidación de caché ORM** (``env.invalidate_all()``,
   ``env.registry.clear_cache()``, ``@tools.ormcache`` en ``create``/``write``/
   ``unlink``): mecanismo de caché de campo por-registro de Odoo, sin
@@ -137,9 +140,12 @@ default para todos los usuarios). ``company`` → ``company.Company`` (Odoo
 import json
 
 from django.conf import settings
+from django.db import DEFAULT_DB_ALIAS
 
 import fields
 import models
+from orm import registry
+from tools.cache import ormcache
 
 
 class IrDefault(models.Model):
@@ -147,6 +153,16 @@ class IrDefault(models.Model):
     empresa/condición. Ver docstring del módulo para el drift respecto a
     Odoo (``field_id`` FK dropeada → ``model``/``field`` Char; precedencia
     resuelta en Python, no por ``ORDER BY`` SQL)."""
+
+    # Los cuatro atributos de clase que la referencia declara
+    # (``atributos-de-clase-de-modelo.md``; medidos con el recorrido AST que
+    # esa regla fija). ``_rec_name`` diverge: allá apunta a ``field_id``, la FK
+    # que este puerto no tiene — aquí es el ``field`` Char que la sustituye, el
+    # mismo drift que el docstring del módulo ya declara.
+    _name = 'ir.default'
+    _description = 'Default Values'
+    _rec_name = 'field'
+    _allow_sudo_commands = False
 
     model = fields.Char(
         max_length=128,
@@ -224,7 +240,58 @@ class IrDefault(models.Model):
             model=model, field=field, user=user, company=company, condition=condition,
             defaults={'json_value': json_value},
         )
+        # Escribir un default invalida lo memorizado por
+        # ``_get_model_defaults``. La fuente lo hace con
+        # ``self.env.registry.clear_cache()`` en ``create``/``write``/
+        # ``unlink`` (``odoo19c: ir_default.py``); aquí se vacía la familia
+        # ``default``, que es la que ese método usa. Sin esto una lectura
+        # previa devolvería el valor viejo, y el defecto sería invisible: el
+        # dict se ve bien formado, sólo está caduco.
+        registry.clear_cache('default')
         return default
+
+    @classmethod
+    @ormcache('model_name', 'condition', 'user_id', 'company_id', 'using',
+              cache='default')
+    def _get_model_defaults(cls, model_name, condition=False, user_id=None,
+                            company_id=None, using=DEFAULT_DB_ALIAS):
+        """Todos los defaults de un modelo, como dict ``campo -> valor``.
+
+        ≙ ``_get_model_defaults`` (``odoo19c: ir_default.py:170-203``). La
+        fuente hace **una** consulta y se queda con el default de mayor
+        prioridad por campo; aquí igual, y la prioridad es la misma que
+        ``get_default`` resuelve en Python — usuario+empresa > usuario >
+        empresa > global.
+
+        **Por qué en Python y no con ``ORDER BY d.user_id, d.company_id``:**
+        es la misma nota de precedencia que el docstring del módulo declara
+        para ``get_default``. La fuente confía en que ``NULL`` ordene primero;
+        aquí la prioridad se calcula por fila y no depende de esa garantía.
+
+        La clave del ``ormcache`` nombra ``using`` además de los cuatro ejes
+        de la fuente — la divergencia de clave que ``tools/cache.py`` declara:
+        allá el ``Registry`` es por base y esa dimensión va implícita en él.
+        """
+        condition = condition or ''
+        rows = cls.objects.using(using).filter(
+            model=model_name, condition=condition,
+        ).filter(
+            models.Q(user__isnull=True) | models.Q(user_id=user_id),
+        ).filter(
+            models.Q(company__isnull=True) | models.Q(company_id=company_id),
+        ).values_list('field', 'json_value', 'user_id', 'company_id', 'id')
+
+        def priority(row):
+            """Más específico primero — el orden que la fuente pide al motor."""
+            _field, _value, row_user, row_company, row_id = row
+            return (row_user is None, row_company is None, row_id)
+
+        result = {}
+        for field_name, json_value, _u, _c, _i in sorted(rows, key=priority):
+            # Se queda con el de mayor prioridad de cada campo, como la fuente.
+            if field_name not in result:
+                result[field_name] = json.loads(json_value)
+        return result
 
     @classmethod
     def get_default(cls, model, field, user=None, company=None, condition=''):
