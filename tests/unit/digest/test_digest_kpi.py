@@ -46,7 +46,7 @@ def user_b(company_b):
 @pytest.fixture
 def digest(company_a):
     return DigestDigest.objects.create(
-        name='Digest KPI', company=company_a,
+        name='Digest KPI', company_id=company_a,
         kpi_res_users_connected=True, kpi_mail_message_total=True,
     )
 
@@ -76,13 +76,13 @@ class TestGetMarginValue:
 class TestAvailableFields:
     def test_lists_only_active_kpis(self, company_a):
         digest = DigestDigest.objects.create(
-            name='Sólo un KPI', company=company_a,
+            name='Sólo un KPI', company_id=company_a,
             kpi_res_users_connected=True, kpi_mail_message_total=False,
         )
         assert digest.available_fields == 'kpi_res_users_connected_value'
 
     def test_empty_when_no_kpi_active(self, company_a):
-        digest = DigestDigest.objects.create(name='Sin KPIs', company=company_a)
+        digest = DigestDigest.objects.create(name='Sin KPIs', company_id=company_a)
         assert digest.available_fields == ''
 
 
@@ -144,5 +144,5 @@ class TestComputeKpis:
         assert connected['kpi_col1']['col_subtitle'] == 'Últimas 24 horas'
 
     def test_no_kpis_when_none_active(self, company_a):
-        digest = DigestDigest.objects.create(name='Sin KPIs', company=company_a)
+        digest = DigestDigest.objects.create(name='Sin KPIs', company_id=company_a)
         assert digest.compute_kpis() == []

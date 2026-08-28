@@ -21,7 +21,7 @@ def company():
 
 @pytest.fixture
 def digest(company):
-    return DigestDigest.objects.create(name='Digest por defecto', company=company)
+    return DigestDigest.objects.create(name='Digest por defecto', company_id=company)
 
 
 @pytest.fixture
