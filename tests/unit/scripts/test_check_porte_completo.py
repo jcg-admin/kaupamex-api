@@ -11,7 +11,9 @@ El positivo conocido es ``base_sparse_field``: instala cuatro símbolos sobre
 reportaba como clase ausente.
 """
 import ast
+import contextlib
 import importlib.util
+import io
 import pathlib
 
 import pytest
@@ -140,3 +142,55 @@ def test_write_is_not_aliased_to_save():
     """
     assert gate.normaliza('write') != gate.normaliza('save')
     assert 'write' not in gate.PORTE_ALIAS
+
+
+# --- el informe de entradas muertas declara su denominador (H-API-849) -----
+#
+# El positivo conocido del repo: `--addon base` reportaba **70 MUERTAS**,
+# todas de `authz_*`, y dos de las tres verificadas a mano seguían siendo
+# divergencias legítimas con su símbolo ausente. Sin `--addon`, 248 de 248
+# vivas. Actuar sobre ese informe habría retirado setenta declaraciones
+# válidas en silencio.
+
+
+def _correr(*argv):
+    """Corre el gate capturando su salida, sin tocar el proceso."""
+    salida = io.StringIO()
+    with contextlib.redirect_stdout(salida):
+        gate.main(list(argv))
+    return salida.getvalue()
+
+
+def test_a_scoped_run_names_no_entry_as_dead():
+    """El recorrido acotado no puede saber qué entrada está muerta.
+
+    Lo que se mide es que **no nombre ninguna clave del registro**, no que la
+    palabra falte: el propio mensaje explica por qué no las calcula, y buscar
+    la palabra confundiría la explicación con el defecto. Lo que se consumiría
+    al actuar sobre el informe es la lista, y ésa es la que no debe existir.
+
+    Qué haría fallar a este control: devolver el cálculo global al recorrido
+    acotado. Entonces la línea nombra entradas de otros addons y el caso cae.
+    """
+    salida = _correr('--addon', 'base')
+    registro = [l for l in salida.splitlines()
+                if l.startswith('divergencias declaradas:')]
+    assert len(registro) == 1, salida
+    claves = gate.load_divergences()
+    assert claves, 'el registro está vacío: el caso no mediría nada'
+    nombradas = [clave for clave in claves if clave in registro[0]]
+    assert nombradas == [], nombradas
+
+
+def test_a_scoped_run_names_the_scope_of_its_count():
+    """El conteo no se calla el alcance: lo dice en la misma línea.
+
+    Sin esto, `178 de 248 entrada(s) vivas` se lee como setenta muertas — que
+    es exactamente el defecto, con o sin la lista.
+    """
+    salida = _correr('--addon', 'base')
+    registro = next(l for l in salida.splitlines()
+                    if l.startswith('divergencias declaradas:'))
+    assert 'tocadas por el recorrido' in registro, registro
+    assert '--addon base' in registro, registro
+    assert 'de 248 entrada(s) vivas' not in registro, registro

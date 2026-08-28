@@ -875,7 +875,11 @@ def compara(addon):
     return pares, hallazgos, no_resolubles, absolutions
 
 
-def main():
+def main(argv=None):
+    """``argv`` explícito para que un test pueda medir el gate sin subproceso.
+
+    ``None`` lee ``sys.argv``, que es lo que hace el intérprete al invocarlo.
+    """
     p = argparse.ArgumentParser()
     p.add_argument('--addon', help='medir sólo este addon')
     p.add_argument('--mapa', action='store_true',
@@ -886,7 +890,7 @@ def main():
                    help='listar el registro de divergencias declaradas con su '
                         'estado (viva si sigue cubriendo un hallazgo, MUERTA '
                         'si ya no cubre nada)')
-    args = p.parse_args()
+    args = p.parse_args(argv)
 
     if not ODOO19C.is_dir():
         print(f'AVISO: no está el árbol de referencia en {ODOO19C}; '
@@ -910,7 +914,22 @@ def main():
     # el defecto que la poda del baseline de vocabulario cerro (H-DOCS-441).
     declared_keys = load_divergences()
     todos, declared, used = split_declared(todos, declared_keys)
-    dead = sorted(declared_keys - used)
+    # Una entrada "muerta" es la que el registro declara y el recorrido no
+    # tocó. Ese cálculo sólo tiene sentido cuando el recorrido cubre el
+    # registro entero: con `--addon X`, TODA entrada de otro addon sale muerta
+    # sin serlo.
+    #
+    # Medido: `--addon base` reportaba **70 MUERTAS**, todas de `authz_*`, y
+    # dos de las tres que se verificaron a mano seguían siendo divergencias
+    # legítimas con su símbolo ausente. Sin `--addon`, **248 de 248 vivas**.
+    # Actuar sobre ese informe —borrar las 70— habría retirado en silencio
+    # setenta declaraciones válidas.
+    #
+    # Es el defecto que `metrica-decide-la-conclusion.md` llama denominador
+    # oculto: el conteo se computa sobre el alcance del recorrido y el texto lo
+    # presenta como el universo del registro. Se resuelve declarando cuál es.
+    scoped = bool(args.addon)
+    dead = [] if scoped else sorted(declared_keys - used)
     declared_symbols = sum(len(h[4]) for h in declared)
 
     if args.divergencias:
@@ -972,9 +991,14 @@ def main():
         # El registro va en su propio renglon y con su propio conteo: lo
         # declarado NO se suma a la deuda ni se calla. Y una entrada muerta se
         # nombra aqui aunque nadie pida `--divergencias`.
+        alcance_registro = (
+            f'{len(used)} entrada(s) tocadas por el recorrido de '
+            f'`--addon {args.addon}`; las MUERTAS no se calculan en un '
+            f'recorrido acotado'
+            if scoped else
+            f'{len(used)} de {len(declared_keys)} entrada(s) vivas')
         print(f'divergencias declaradas: {len(declared)} hallazgo(s), '
-              f'{declared_symbols} simbolo(s), '
-              f'{len(used)} de {len(declared_keys)} entrada(s) vivas'
+              f'{declared_symbols} simbolo(s), {alcance_registro}'
               + (f' — MUERTAS: {", ".join(dead)}' if dead else ''))
     return 1 if (args.strict and todos) else 0
 
