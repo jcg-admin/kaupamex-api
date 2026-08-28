@@ -262,13 +262,14 @@ class WebsiteSaleSettings(TimeStampedModel):
         related_name='website_sale_settings',
         help_text='Sitio al que aplica esta política (Odoo _inherit website).',
     )
-    cart_recovery_mail_template = fields.Many2one(
+    cart_recovery_mail_template_id = fields.Many2one(
         MailTemplate, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='+',
         verbose_name='Correo de recuperación de carrito',
         help_text='Plantilla que se envía al carrito abandonado (Odoo '
                   'cart_recovery_mail_template_id). Vacío = la plantilla por '
                   'defecto del addon.',
+        db_column='cart_recovery_mail_template_id',
     )
     cart_abandoned_delay = fields.Float(
         default=10.0,
@@ -297,13 +298,14 @@ class WebsiteSaleSettings(TimeStampedModel):
     #: - ``index='btree_not_null'`` (``:66``)  → el índice parcial de ``Meta``
     #: - ``ondelete='set null'`` (``:67``)     → ``on_delete=models.SET_NULL``
     #: - ``default=_default_salesteam_id`` (``:68``) → ídem, ver la función
-    salesteam = fields.Many2one(
+    salesteam_id = fields.Many2one(
         'sales_team.CrmTeam', null=True, blank=True,
         on_delete=models.SET_NULL, related_name='websites',
         default=_default_salesteam_id,
         verbose_name='Equipo de venta',
         help_text='Equipo de venta al que se atribuyen los pedidos de este '
                   'sitio (Odoo website.salesteam_id).',
+        db_column='salesteam_id',
     )
 
     class Meta:
@@ -318,8 +320,8 @@ class WebsiteSaleSettings(TimeStampedModel):
             # todas esas filas nulas. ``db_index=True`` daría un btree entero
             # —otro índice, no éste—, así que se declara con su condición.
             models.Index(
-                fields=['salesteam'],
-                condition=models.Q(salesteam__isnull=False),
+                fields=['salesteam_id'],
+                condition=models.Q(salesteam_id__isnull=False),
                 name='website_sale_salesteam_nn',
             ),
         ]
@@ -401,7 +403,7 @@ class WebsiteSaleSettings(TimeStampedModel):
             all_abandoned_carts = sale_order_model._search_abandoned_cart(
                 'in', [True],
             ).filter(
-                website_sale_info__website=settings.website_id,
+                website_sale_info__website_id=settings.website_id,
                 website_sale_info__cart_recovery_email_sent=False,
                 date_order__gte=activation,
             )
