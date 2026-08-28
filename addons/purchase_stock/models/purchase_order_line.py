@@ -137,7 +137,7 @@ from orm.model_classes import extend_model
 
 def is_storable(self):
     """≙ ``is_storable`` (``odoo19c: :34``) — D-1 del docstring."""
-    return bool(self.product.is_storable) if self.product_id else False
+    return bool(self.product_id.is_storable) if self.product_id else False
 
 
 def _get_po_line_moves(self):
@@ -152,7 +152,7 @@ def _get_po_line_moves(self):
     devengos de ``account`` (``accrued_orders.py``), que no invoca a este
     método en este árbol. Sin llamador, el filtro no tiene con qué acotarse.
     """
-    return self.move_ids.filter(product=self.product)
+    return self.move_ids.filter(product=self.product_id)
 
 
 def _update_move_date_deadline(self, new_date):
@@ -180,7 +180,7 @@ def _check_orderpoint_picking_type(self):
 
     D-3: ``ValidationError`` en vez de ``UserError``.
     """
-    picking_type = self.order.picking_type if self.order_id else None
+    picking_type = self.order_id.picking_type if self.order_id else None
     warehouse = picking_type.warehouse if picking_type is not None else None
     warehouse_loc = warehouse.view_location if warehouse is not None else None
 
@@ -196,7 +196,7 @@ def _check_orderpoint_picking_type(self):
             f'El almacén del tipo de operación ({picking_type}) es '
             f'incoherente con la ubicación ({dest_loc}) de la regla de '
             f'reabastecimiento ({self.orderpoint}) para el producto '
-            f'{self.product}. Cambia el tipo de operación o cancela la '
+            f'{self.product_id}. Cambia el tipo de operación o cancela la '
             f'solicitud de cotización.')
 
 

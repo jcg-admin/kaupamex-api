@@ -25,11 +25,11 @@ def _vendor():
 
 def test_purchase_order_confirm_state_machine(db):
     product = make_product(name='Insumo', price=Decimal('58.00'))
-    po = PurchaseOrder.objects.create(partner=_vendor())
+    po = PurchaseOrder.objects.create(partner_id=_vendor())
     # No se puede confirmar sin líneas.
     with pytest.raises(ValidationError):
         po.button_confirm()
-    PurchaseOrderLine.objects.create(order=po, product=product, price_unit=Decimal('58.00'))
+    PurchaseOrderLine.objects.create(order_id=po, product_id=product, price_unit=Decimal('58.00'))
     po.button_confirm()
     assert po.state == PurchaseOrder.STATE_PURCHASE
     assert po.name.startswith('P-')
@@ -38,9 +38,9 @@ def test_purchase_order_confirm_state_machine(db):
 
 def test_purchase_line_tax_breakdown(db):
     product = make_product(name='Insumo', price=Decimal('116.00'))
-    po = PurchaseOrder.objects.create(partner=_vendor())
+    po = PurchaseOrder.objects.create(partner_id=_vendor())
     line = PurchaseOrderLine.objects.create(
-        order=po, product=product, price_unit=Decimal('116.00'), product_qty=2,
+        order_id=po, product_id=product, price_unit=Decimal('116.00'), product_qty=2,
     )
     # IVA 16% incluido: total 232.00 → tax 32.00 → subtotal 200.00.
     assert line.price_total() == Decimal('232.00')
@@ -59,10 +59,10 @@ def test_generate_purchase_from_sale_line(db):
     )
     vendor = _vendor()
     link = SaleLinePurchaseLink.generate_purchase(sale_line, vendor)
-    assert link.purchase_line.product == product
+    assert link.purchase_line.product_id == product
     assert link.purchase_line.product_qty == 3
     assert link.purchase_line.price_unit == Decimal('300.00')
-    assert link.purchase_line.order.partner == vendor
+    assert link.purchase_line.order_id.partner_id == vendor
     # Trazabilidad venta→compra (Odoo sale_line_id / purchase_line_ids).
     assert sale_line.purchase_links.count() == 1
     assert SaleLinePurchaseLink.purchase_line_count(sale_line) == 1

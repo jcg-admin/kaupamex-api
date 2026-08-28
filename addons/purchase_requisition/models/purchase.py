@@ -311,7 +311,7 @@ def action_clear_quantities(self):
     quien limpie varias líneas itera. El aviso de «algunas no se limpiaron» lo
     devuelve la línea que no se pudo limpiar, que es la información útil.
     """
-    order = self.order
+    order = self.order_id
     if order is not None and order.state in (type(order).STATE_CANCEL,
                                              type(order).STATE_PURCHASE):
         return {

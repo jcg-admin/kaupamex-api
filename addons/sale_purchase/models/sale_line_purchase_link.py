@@ -49,9 +49,9 @@ class SaleLinePurchaseLink(TimeStampedModel):
         con una ``purchase.order.line`` que espeja producto/cantidad/precio de la
         venta, y persiste el vínculo venta→compra. Devuelve el enlace.
         """
-        po = PurchaseOrder.objects.create(partner=vendor)
+        po = PurchaseOrder.objects.create(partner_id=vendor)
         pol = PurchaseOrderLine.objects.create(
-            order=po, product=sale_line.product,
+            order_id=po, product_id=sale_line.product,
             name=(sale_line.name or str(sale_line.product)),
             product_qty=sale_line.product_uom_qty,
             price_unit=sale_line.price_unit,
