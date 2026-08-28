@@ -36,15 +36,25 @@ H-API-325 — centralizar el redondeo, no portar ``res.currency`` entera):
   ``_get_view``/``_get_view_cache_key``: infraestructura de vistas/grupos de
   Odoo — sin análogo en este ORM (Django, sin vistas XML ni grupos de acceso
   por *record rule*).
-- Constraint ``rounding>0`` (``odoo19c: :53-56``, ``_rounding_gt_zero``): no
-  portada — el guard de división por cero en ``round()``/``is_zero()`` cubre
-  la ausencia a nivel de método (``not self.rounding`` corta antes de
-  dividir), pero no impide un ``write`` que deje ``rounding<=0`` en la fila.
-  Requiere una migración de ``CheckConstraint``. **DESCONOCIDO declarado, sin
-  tarea propia todavía** (no se fabrica un ID de tracking desde este pase —
-  ver ``porte-completo-no-parcial.md``); condición de cierre: se registra
-  cuando exista un endpoint de escritura de ``rounding`` que lo amerite. Ver
-  la entrega de la tarea #115 para el registro formal de este pendiente.
+La restricción ``rounding>0`` **SÍ está portada** (corregido en este pase)
+=========================================================================
+
+Esta sección la declaraba DESCONOCIDO con esta razón: *«requiere una migración
+de CheckConstraint»*, y su condición de cierre era *«cuando exista un endpoint
+de escritura de ``rounding`` que lo amerite»*.
+
+Las dos partes estaban mal. Una migración es el **costo** de portar una
+restricción, no un impedimento — ``porte-completo-no-parcial.md`` lo llama por
+su nombre: *«este ORM no tiene ese constructor» describe el punto de partida,
+no cierra nada*. Y esperar a que exista un escritor invierte el orden: una
+restricción de tabla existe para que el escritor **no pueda** dejar la fila
+inconsistente; llegar después del escritor es llegar tarde.
+
+``_rounding_gt_zero`` es además un **objeto de tabla** de la referencia, no un
+método: su hogar aquí es ``Meta.constraints``, con el nombre conservado
+(``atributos-de-clase-de-modelo.md``). Vive ahí desde este pase. La guarda de
+división por cero de ``round()``/``is_zero()`` sigue donde estaba: cubre el
+método, y la restricción cubre la fila — son dos capas, no una alternativa.
 """
 import math
 from decimal import ROUND_HALF_UP, Decimal
@@ -69,6 +79,11 @@ class ResCurrency(models.Model):
         (POSITION_AFTER, 'Después del importe'),
         (POSITION_BEFORE, 'Antes del importe'),
     ]
+
+    _name = 'res.currency'
+    _description = "Currency"
+    _rec_names_search = ['name', 'full_name']
+    _order = 'active desc, name'
 
     name                = fields.Char(
         max_length=3, unique=True,
@@ -104,9 +119,30 @@ class ResCurrency(models.Model):
 
     class Meta:
         db_table = 'res_currency'
-        ordering = ['name']
+        # Derivado de ``_order``: ``active desc, name``. El orden importa y no
+        # es cosmético — una divisa archivada no debe encabezar un selector por
+        # tener un nombre que empieza por A. El nuestro decía sólo ``['name']``.
+        ordering = ['-active', 'name']
         verbose_name = 'Moneda'
         verbose_name_plural = 'Monedas'
+        constraints = [
+            # ≙ ``_rounding_gt_zero`` (``odoo19c: res_currency.py:52-55``), un
+            # objeto de tabla de la referencia. Su hogar aquí es
+            # ``Meta.constraints`` con el nombre conservado
+            # (``atributos-de-clase-de-modelo.md``).
+            #
+            # El docstring del módulo lo declaraba DESCONOCIDO porque «requiere
+            # una migración de CheckConstraint». Eso es un **costo**, no un
+            # bloqueo: la guarda de división por cero de ``round()`` corta antes
+            # de dividir, pero no impide que una escritura deje la fila con
+            # ``rounding <= 0``, que es justo lo que la restricción existe para
+            # impedir.
+            models.CheckConstraint(
+                condition=models.Q(rounding__gt=0),
+                name='res_currency_rounding_gt_zero',
+                violation_error_message='El factor de redondeo debe ser mayor que 0.',
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.name
