@@ -202,7 +202,7 @@ def test_changing_the_uom_with_moves_in_another_unit_is_blocked(db):
     """≙ la guarda de ``_update_uom`` (``odoo19c: :770-794``)."""
     unit = Uom.objects.create(name='Unidad', relative_factor=1.0)
     dozen = Uom.objects.create(
-        name='Docena', relative_factor=12.0, relative_uom=unit)
+        name='Docena', relative_factor=12.0, relative_uom_id=unit)
     product = make_product(name='Already moved')
     source = _location('Vendors', StockLocation.USAGE_SUPPLIER)
     dest = _location('WH/Stock')

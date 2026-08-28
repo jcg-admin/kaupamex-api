@@ -372,10 +372,16 @@ def save_guarding_factor(self, *args, **kwargs):
     """
     if self.pk is None:
         return None
+    # Los dos lados de la comparación tienen que estar en el MISMO eje.
+    # ``values('relative_uom_id')`` devuelve la clave ajena en crudo; el
+    # atributo homónimo, desde ADR-029, es el **registro**. El eje crudo del
+    # símbolo ``relative_uom_id`` es su ``attname``, que Django construye
+    # añadiendo otro ``_id``. Comparar el crudo contra el registro da siempre
+    # distinto y dispara la guarda en cada repropagación (H-API-882).
     previous = type(self).objects.filter(pk=self.pk).values(
         'relative_factor', 'relative_uom_id').first()
     if previous and (previous['relative_factor'] != self.relative_factor
-                     or previous['relative_uom_id'] != self.relative_uom_id):
+                     or previous['relative_uom_id'] != self.relative_uom_id_id):
         self.check_factor_not_in_use()
     return None
 

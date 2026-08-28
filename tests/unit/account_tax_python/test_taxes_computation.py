@@ -147,7 +147,7 @@ class TestInvocacionDirectaConProductoYUom:
         formula_record = tax.formula_record
         base = Uom.objects.create(name='Base', relative_factor=1.0)
         unidad = Uom.objects.create(
-            name='Prueba', relative_factor=42.0, relative_uom=base)
+            name='Prueba', relative_factor=42.0, relative_uom_id=base)
         ctx = AccountTaxFormula.build_evaluation_context(
             price_unit=100.0, quantity=1.0, product_uom=unidad,
             uom_fields=formula_record.formula_decoded_info['product_uom_fields'],

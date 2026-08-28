@@ -159,7 +159,7 @@ def test_changing_the_factor_with_an_open_move_fails(db):
     """
     unit_base = Uom.objects.create(name='Unidad', relative_factor=1.0)
     unit = Uom.objects.create(
-        name='Caja', relative_factor=12.0, relative_uom=unit_base)
+        name='Caja', relative_factor=12.0, relative_uom_id=unit_base)
     product = make_product(name='En tránsito')
     source = StockLocation.objects.create(
         name='Vendors', usage=StockLocation.USAGE_SUPPLIER)
@@ -179,7 +179,7 @@ def test_changing_the_factor_without_moves_passes(db):
     """Sin consumidores abiertos la guarda no se interpone."""
     unit_base = Uom.objects.create(name='Unidad', relative_factor=1.0)
     unit = Uom.objects.create(
-        name='Libre', relative_factor=2.0, relative_uom=unit_base)
+        name='Libre', relative_factor=2.0, relative_uom_id=unit_base)
     unit.relative_factor = 3.0
     unit.save()
     unit.refresh_from_db()
@@ -195,9 +195,9 @@ def test_the_guard_does_not_fire_when_repropagating_to_children(db):
     por ``write``.
     """
     root = Uom.objects.create(name='Unidad', relative_factor=1.0)
-    parent = Uom.objects.create(name='Par', relative_factor=2.0, relative_uom=root)
+    parent = Uom.objects.create(name='Par', relative_factor=2.0, relative_uom_id=root)
     child = Uom.objects.create(
-        name='Docena', relative_factor=12.0, relative_uom=parent)
+        name='Docena', relative_factor=12.0, relative_uom_id=parent)
     product = make_product(name='Con hijo en uso')
     source = StockLocation.objects.create(
         name='Vendors', usage=StockLocation.USAGE_SUPPLIER)
@@ -219,7 +219,7 @@ def test_adjust_uom_quantities_converts_to_the_quant_unit(db):
     """≙ ``_adjust_uom_quantities`` (``odoo19c: :1375-1393``), sin propagación."""
     unit = Uom.objects.create(name='Unidad', relative_factor=1.0)
     dozen = Uom.objects.create(
-        name='Docena', relative_factor=12.0, relative_uom=unit)
+        name='Docena', relative_factor=12.0, relative_uom_id=unit)
 
     qty, dest = dozen._adjust_uom_quantities(2, unit)
     assert dest == unit
@@ -231,7 +231,7 @@ def test_adjust_uom_quantities_propagates_when_the_parameter_asks(db):
     SystemParameter.objects.create(key='stock.propagate_uom', value='1')
     unit = Uom.objects.create(name='Unidad', relative_factor=1.0)
     dozen = Uom.objects.create(
-        name='Docena', relative_factor=12.0, relative_uom=unit)
+        name='Docena', relative_factor=12.0, relative_uom_id=unit)
 
     qty, dest = dozen._adjust_uom_quantities(2, unit)
     assert dest == dozen
