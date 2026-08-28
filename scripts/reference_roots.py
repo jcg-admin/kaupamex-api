@@ -56,15 +56,36 @@ def tree(alias='odoo19c'):
     return pathlib.Path(os.environ.get(_ENV[alias], str(TREE_ROOTS[alias])))
 
 
+#: Los alias de Community declaran DOS raíces de addon; los de Enterprise, una.
+#: No es simetría estética: en Community, ``odoo/addons`` es donde vive
+#: ``base`` —el addon del que depende todo el porte— más los ``test_*`` del
+#: propio framework. Solapamiento con ``addons/``: **0** en los dos.
+#:
+#: 18c declaraba UNA sola hasta 2026-08-28, y por eso ``base`` de 18 fue
+#: invisible en toda medición de ese alias. No fue una decisión: 19c ya tenía
+#: las dos y a 18c se le olvidó la segunda. Medido al corregirlo: 18c pasa de
+#: 621 a 649 addons; los 28 que entran son ``base`` y 27 ``test_*``.
+_DOS_RAICES = ('odoo19c', 'odoo18c')
+
+
 def addons_de(alias='odoo19c'):
-    """Las raíces de addon del alias. 19c aporta dos; el resto, una.
+    """Las raíces de addon del alias. Community aporta dos; Enterprise, una.
 
     Los empaquetados sin alias de Enterprise 18 quedan fuera a propósito: son
     la misma población que ``odoo18e:`` y contarlos dos veces infla el universo
     (:ref:`h-api-76`).
+
+    Y ``19.x/odoo19-enterprise-main/odoo19pro-main/`` tampoco es un alias, por
+    la misma razón y con la medición hecha: comparte **715** addons con
+    ``odoo19e`` sobre 716 propios, así que sumarlos casi duplica el universo.
+    No son el mismo árbol empaquetado distinto —39 de 40 addons comunes
+    difieren en contenido— sino dos cortes, y ``odoo19e`` es el posterior: en
+    esos 40 hay **102** archivos que sólo están en él contra **7** que sólo
+    están en ``pro``, y aporta 20 addons enteros de más (``hr_recruitment_ai``,
+    ``l10n_br_edi_fiscal_reform``…) contra 1.
     """
     raiz = tree(alias)
-    if alias == 'odoo19c':
+    if alias in _DOS_RAICES:
         return [raiz / 'addons', raiz / 'odoo' / 'addons']
     return [raiz / 'addons'] if (raiz / 'addons').is_dir() else [raiz]
 
