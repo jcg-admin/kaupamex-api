@@ -87,10 +87,16 @@ import operator as operator_module
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Q
 
-from orm.fields import condition_to_q, falsy_value
+from orm.fields import (
+    NEGATIVE_CONDITION_OPERATORS as _FIELDS_NEGATIVE_OPERATORS,
+    condition_to_q,
+    falsy_value,
+)
 from orm.fields_properties import Properties
 from orm.utils import parse_field_expr
 from tools.func import classproperty
+from tools.query import Query
+from tools.sql import SQL
 
 __all__ = [
     'Domain', 'DomainBool', 'DomainNot', 'DomainNary', 'DomainAnd', 'DomainOr',
@@ -407,6 +413,27 @@ class Domain:
         """El filtro ``Q`` de este dominio — ≙ ``_to_sql`` (``:470``)."""
         raise NotImplementedError
 
+    def _as_predicate(self, model=None):
+        """Este dominio como función ``(registro) -> bool`` — ≙ ``:409``.
+
+        El gemelo en memoria de :meth:`_to_q`: aquélla compila el dominio a un
+        ``Q`` para que lo resuelva PostgreSQL, ésta lo compila a una función de
+        Python para evaluarlo sobre registros que ya están en mano.
+
+        **Para qué hace falta si el motor ya sabe filtrar.** Hay valores que no
+        están en ninguna fila: el de respaldo de un campo dependiente de
+        empresa es el que el campo responde *cuando la empresa no tiene el
+        suyo*, así que preguntarle al ``WHERE`` si lo satisface no tiene
+        sentido — no hay fila que devolver. Su consumidor es
+        ``ir.default._evaluate_condition_with_fallback``.
+
+        La divergencia de firma, declarada: allá recibe ``records`` (un
+        recordset, del que saca modelo y entorno); aquí recibe el **modelo**,
+        igual que :meth:`_to_q`, porque en este stack el entorno no viaja con
+        el recordset.
+        """
+        raise NotImplementedError
+
 
 class DomainBool(Domain):
     """Constante ``True``/``False`` — ≙ ``:475``.
@@ -459,6 +486,11 @@ class DomainBool(Domain):
         entero. Es el defecto que :ref:`h-api-606` registró.
         """
         return Q() if self.value else Q(pk__in=[])
+
+    def _as_predicate(self, model=None):
+        """La constante, sin mirar el registro — ≙ ``:519``."""
+        value = self.value
+        return lambda record: value
 
 
 # singletons, accesibles por Domain.TRUE y Domain.FALSE
@@ -521,6 +553,11 @@ class DomainNot(Domain):
         sobre ruta con punto o un ``DomainCustom``.
         """
         return ~self.child._to_q(model)
+
+    def _as_predicate(self, model=None):
+        """La negación del predicado del hijo — ≙ ``:567``."""
+        predicate = self.child._as_predicate(model)
+        return lambda record: not predicate(record)
 
 
 class DomainNary(Domain):
@@ -612,6 +649,23 @@ class DomainNary(Domain):
         parts = [child._to_q(model) for child in self.children]
         return functools.reduce(self.Q_OPERATOR, parts)
 
+    def _as_predicate(self, model=None):
+        """Combina los predicados de los hijos con ``all``/``any``.
+
+        ≙ ``DomainAnd._as_predicate`` (``:695``) y ``DomainOr`` (``:725``).
+        La fuente escribe los dos por separado; aquí uno solo, con
+        :attr:`PREDICATE_COMBINE` como la clase lo declara — el mismo patrón
+        que :attr:`Q_OPERATOR` ya usa para la compilación a ``Q``.
+
+        Los predicados se construyen **una vez** y la combinación se evalúa
+        por registro, igual que allá: el generador de la fuente es perezoso en
+        la construcción, no en la evaluación.
+        """
+        predicates = [child._as_predicate(model) for child in self.children]
+        combine = self.PREDICATE_COMBINE
+        return lambda record: combine(
+            predicate(record) for predicate in predicates)
+
 
 class DomainAnd(DomainNary):
     """AND con varios hijos — ≙ ``:678``."""
@@ -619,6 +673,7 @@ class DomainAnd(DomainNary):
     __slots__ = ()
     OPERATOR = '&'
     Q_OPERATOR = operator_module.and_
+    PREDICATE_COMBINE = all
     ZERO = _TRUE_DOMAIN
 
     @classproperty
@@ -637,6 +692,7 @@ class DomainOr(DomainNary):
     __slots__ = ()
     OPERATOR = '|'
     Q_OPERATOR = operator_module.or_
+    PREDICATE_COMBINE = any
     ZERO = _FALSE_DOMAIN
 
     @classproperty
@@ -676,6 +732,21 @@ class DomainCustom(Domain):
 
     def _to_q(self, model=None):
         return self._q(model)
+
+    def _as_predicate(self, model=None):
+        """El predicado que se le pasó al construirlo — ≙ ``:763``.
+
+        Hasta hoy ``Domain.custom`` aceptaba ``predicate=`` *"para que la firma
+        se lea contra la de la fuente"* y lo guardaba sin consumidor. Ya lo
+        tiene: ``filtered_domain`` llega hasta aquí. Sin él el dominio a medida
+        no se puede evaluar en memoria, y decirlo es más útil que devolver un
+        predicado inventado.
+        """
+        if self._filtered is None:
+            raise ValueError(
+                'este Domain.custom no declaró predicate=; sin él no se puede '
+                'evaluar en memoria (sólo compilar a Q)')
+        return self._filtered
 
 
 class DomainCondition(Domain):
@@ -817,6 +888,92 @@ class DomainCondition(Domain):
         """
         return self
 
+    def _normalized(self):
+        """La condición reducida a lo que un compilador de hoja admite.
+
+        Devuelve ``(field_expr, operator, value, constant)``. Cuando
+        ``constant`` no es ``None`` la condición colapsó a ``TRUE``/``FALSE``
+        y las otras tres no valen.
+
+        Existe porque **dos** compiladores la necesitan igual —:meth:`_to_q`
+        para PostgreSQL y :meth:`_as_predicate` para memoria— y en la fuente
+        ese trabajo lo hacen los optimizadores registrados, antes de que
+        ninguno de los dos corra. Aquí esa capa no está portada (tarea
+        **#373**), así que la normalización ocurre en la compilación; tenerla
+        una vez es lo que impide que los dos compiladores diverjan sobre el
+        mismo dominio.
+        """
+        field_expr, operator, value = self.field_expr, self.operator, self.value
+
+        if operator in ('==', '<>'):
+            operator = '=' if operator == '==' else '!='
+        if operator in ('=', '!='):
+            operator = 'in' if operator == '=' else 'not in'
+            if isinstance(value, _COLLECTION_TYPES):
+                # una colección vacía compara contra «no establecido»
+                value = tuple(value) or (False,)
+            else:
+                value = (value,)
+
+        if (operator in ('in', 'not in')
+                and isinstance(value, _COLLECTION_TYPES) and not value):
+            constant = _FALSE_DOMAIN if operator == 'in' else _TRUE_DOMAIN
+            return field_expr, operator, value, constant
+
+        if operator not in STANDARD_CONDITION_OPERATORS:
+            self._raise('Operador no soportado al compilar')
+
+        return field_expr, operator, value, None
+
+    def _as_predicate(self, model=None):
+        """La condición como función ``(registro) -> bool`` — ≙ ``:1037``.
+
+        La fuente delega en ``Field.filter_function`` tras reducir el operador
+        a su forma positiva, y aquí igual: la negación se aplica encima, para
+        no duplicar cada rama en el compilador de hoja.
+
+        **Lo que NO admite**, y son los tres casos que la fuente resuelve y
+        aquí no tienen con qué:
+
+        - ``any``/``any!`` sobre una relación — su predicado exige recorrer los
+          corregistros y volver a filtrar, que es ``Many2one.filter_function``
+          (``odoo19c: odoo/orm/fields_relational.py:174``). Sin él la travesía
+          no se puede evaluar en memoria.
+        - un ``value`` que sea ``Query`` o ``SQL`` — la fuente lo resuelve
+          yendo al motor a materializar los ids; eso es ir a la base, que es
+          justo lo que este camino evita.
+        Los dos **levantan**, no devuelven un predicado silenciosamente
+        permisivo: un ``lambda _: True`` ahí sería el verde que no discrimina.
+
+        ``child_of``/``parent_of`` **no aparecen** en esta lista, y no por
+        olvido: no están en ``CONDITION_OPERATORS`` de este árbol, así que
+        ``checked()`` los rechaza antes de llegar aquí. Una rama para ellos
+        sería código que ningún test puede alcanzar. Su porte es la tarea
+        **#373**, con el resto del optimizador.
+        """
+        field_expr, operator, value, constant = self._normalized()
+        if constant is not None:
+            return constant._as_predicate(model)
+
+        positive_operator = NEGATIVE_CONDITION_OPERATORS.get(operator, operator)
+        if positive_operator in ('any', 'any!'):
+            self._raise('La travesía de relación no se evalúa en memoria '
+                        '(tarea #373)', error=NotImplementedError)
+        if isinstance(value, (Domain, Query, SQL)):
+            self._raise('Un valor de tipo consulta exige ir al motor',
+                        error=NotImplementedError)
+
+        field = self._field(model)
+        if field is None:
+            self._raise('Sin modelo no se puede resolver el campo del predicado',
+                        error=ValueError)
+
+        function = field.filter_function(model, field_expr, positive_operator,
+                                         value)
+        if positive_operator == operator:
+            return function
+        return lambda record: not function(record)
+
     def _to_q(self, model=None):
         """El filtro ``Q`` de la condición — ≙ ``_to_sql`` (``:1087``).
 
@@ -836,23 +993,9 @@ class DomainCondition(Domain):
            ``a__b``). Es lo que :ref:`h-api-614` registró: el mapa anterior la
            pasaba tal cual y Django no resuelve el punto.
         """
-        field_expr, operator, value = self.field_expr, self.operator, self.value
-
-        if operator in ('==', '<>'):
-            operator = '=' if operator == '==' else '!='
-        if operator in ('=', '!='):
-            operator = 'in' if operator == '=' else 'not in'
-            if isinstance(value, _COLLECTION_TYPES):
-                # una colección vacía compara contra «no establecido»
-                value = tuple(value) or (False,)
-            else:
-                value = (value,)
-
-        if operator in ('in', 'not in') and isinstance(value, _COLLECTION_TYPES) and not value:
-            return (_FALSE_DOMAIN if operator == 'in' else _TRUE_DOMAIN)._to_q(model)
-
-        if operator not in STANDARD_CONDITION_OPERATORS:
-            self._raise('Operador no soportado al compilar')
+        field_expr, operator, value, constant = self._normalized()
+        if constant is not None:
+            return constant._to_q(model)
 
         field = self._field(model)
         if isinstance(field, Properties) and parse_field_expr(field_expr)[1]:

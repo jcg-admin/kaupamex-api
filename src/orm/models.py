@@ -66,6 +66,7 @@ from exceptions import AccessError, UserError
 from orm.environments import (
     get_context, get_current_uid, get_current_user, is_su,
 )
+from orm.domains import Domain
 from orm.fields_properties import Properties
 from orm.utils import parse_field_expr
 
@@ -168,10 +169,58 @@ class AccessQuerySet(QuerySet):
         return self
 
 
+    def filtered_domain(self, domain):
+        """Las filas de ``self`` que cumplen el dominio, en el mismo orden.
+
+        ≙ ``BaseModel.filtered_domain``
+        (``odoo19c: odoo/orm/models.py:6252-6260``). Evalúa **en memoria**: no
+        emite ``WHERE``, recorre los registros que ya están en mano. Es la
+        contraparte de ``filter()``, que compila el dominio a ``Q`` y deja que
+        lo resuelva PostgreSQL.
+
+        Devuelve una **lista**, no un ``QuerySet``: filtrar en Python rompe la
+        pereza por construcción, y devolver algo que parece un ``QuerySet``
+        invitaría a encadenarle un ``.filter()`` que volvería al motor con el
+        conjunto entero. La fuente devuelve un recordset porque allá el
+        recordset ya es una lista de ids en memoria.
+        """
+        return filtered_domain(self, domain)
+
+
 #: Manager que expone las cuatro formas. Un modelo las adopta con
 #: ``objects = AccessManager()``; ``RuleScopedManager`` hereda de él, así que
 #: los modelos que ya declaran ``scoped`` las tienen sin cambiar nada.
 AccessManager = Manager.from_queryset(AccessQuerySet)
+
+
+def filtered_domain(records, domain):
+    """Los registros que cumplen el dominio, en el mismo orden.
+
+    ≙ ``BaseModel.filtered_domain``
+    (``odoo19c: odoo/orm/models.py:6252-6260``), como **función de módulo**
+    además de método de ``AccessQuerySet``.
+
+    **Por qué las dos superficies y no sólo el método.** Allá ``self`` es un
+    recordset y un registro suelto ya es un recordset de uno, así que un solo
+    método cubre los dos casos. Aquí no: un registro **sin guardar**
+    —``Model(**valores)``, que es lo que ``model.new()`` construye allá— no es
+    un ``QuerySet`` y no lo puede ser. Y ese caso no es marginal: es
+    exactamente el de ``ir.default._evaluate_condition_with_fallback``, que
+    pregunta si el valor de respaldo de un campo dependiente de empresa cumple
+    una condición. Ese valor **no está en ninguna fila**, así que no hay
+    ``QuerySet`` del que partir.
+
+    La función es el mecanismo; el método de ``AccessQuerySet`` delega en ella.
+
+    :param records: iterable de instancias del **mismo** modelo.
+    :param domain: un dominio (``Domain`` o su forma de lista).
+    """
+    records = list(records)
+    if not records or not domain:
+        return records
+    model = type(records[0])
+    predicate = Domain(domain)._as_predicate(model)
+    return [record for record in records if predicate(record)]
 
 
 class OriginMixin:

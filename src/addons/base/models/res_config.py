@@ -294,7 +294,7 @@ class ResConfigSettings(ResConfig):
         values = {}
 
         for name, model, field in classified['default']:
-            stored = IrDefault.get_default(model, field)
+            stored = IrDefault._get(model, field)
             if stored is not None:
                 values[name] = stored
 
@@ -359,7 +359,7 @@ class ResConfigSettings(ResConfig):
         for name, model, field in classified['default']:
             value = getattr(self, name)
             if current.get(name) != value:
-                IrDefault.set_default(model, field, value)
+                IrDefault.set(model, field, value)
 
         # Ordenar por el valor, como la fuente: aplicar antes de quitar deja
         # el conjunto de grupos en el mismo estado con independencia del

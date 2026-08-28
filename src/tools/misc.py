@@ -14,6 +14,7 @@ import hmac as hmac_lib
 import os
 import re
 import typing
+import unicodedata
 from collections import defaultdict
 from collections.abc import Callable, Iterable, MutableSet
 from functools import reduce
@@ -589,3 +590,21 @@ def format_amount(amount, currency, lang_code=None, trailing_zeroes=True):
     if currency.position == 'before':
         return symbol + NO_BREAK_SPACE + formatted
     return formatted + NO_BREAK_SPACE + symbol
+
+
+def remove_accents(input_str: str) -> str:
+    """Sustituye las latinas acentuadas por su equivalente ASCII.
+
+    ≙ ``remove_accents`` (``odoo19c: odoo/tools/misc.py:713-720``), verbatim
+    en mecanismo: descomponer en NFKD y descartar los caracteres
+    combinantes. Cambia el significado del texto y sólo sirve para algunos
+    casos — la fuente lo dice de sí misma, y es cierto: es la aproximación
+    barata al ``unaccent`` de PostgreSQL, no su equivalente exacto.
+
+    Su consumidor es el ``ilike`` en memoria de ``Field.filter_function``,
+    que compara igual que el lookup ``sql_ilike`` pide al motor.
+    """
+    if not input_str:
+        return input_str
+    nkfd_form = unicodedata.normalize('NFKD', input_str)
+    return ''.join(c for c in nkfd_form if not unicodedata.combining(c))

@@ -45,11 +45,14 @@ arriba: este módulo **agrega**, no define. No se re-exporta desde este
 agregador porque no es una clase de campo de Django y no puede aparecer en
 ``_meta.get_fields()``; se importa por su nombre. Ver :ref:`h-api-855`.
 """
+import operator as operator_module
+import re
 from decimal import Decimal
 
 from django.db import models
 
 from orm.environments import get_current_company
+from tools.misc import remove_accents
 from tools.sql import SQL
 
 from orm.fields_binary import Binary, Image                    # noqa: F401
@@ -191,6 +194,35 @@ def falsy_value(field):
 _NEGATIVE_LIKE_OPERATORS = frozenset([
     'not like', 'not ilike', 'not =like', 'not =ilike',
 ])
+
+#: Los nueve operadores de semántica negativa — ≙ ``NEGATIVE_CONDITION_OPERATORS``
+#: (``odoo19c: odoo/orm/domains.py``). Es la misma segunda copia que
+#: ``_NEGATIVE_LIKE_OPERATORS`` declara arriba y por el mismo motivo: el hogar
+#: de la fuente es ``domains``, que ya importa de aquí, y un import dentro de
+#: la función está prohibido. Unificar los dos en un hogar compartido es la
+#: tarea **#380**; hasta entonces la copia se prueba contra la original en
+#: ``tests/unit/orm/test_domains.py`` para que no puedan divergir en silencio.
+NEGATIVE_CONDITION_OPERATORS = frozenset([
+    'not any', 'not any!', 'not in',
+    'not like', 'not ilike', 'not =like', 'not =ilike',
+    '!=', '<>',
+])
+
+#: ¿El ``ilike`` ignora los acentos? — ≙ ``Registry.unaccent_python``
+#: (``odoo19c: odoo/orm/registry.py:290``), que es ``remove_accents`` cuando la
+#: extensión ``unaccent`` está instalada y la identidad cuando no.
+#:
+#: **Aquí es falso, y es una medición, no una preferencia.** El lookup
+#: ``sql_ilike`` emite un ``ILIKE`` pelado (ver su docstring: el ``unaccent``
+#: real es la tarea **#98**), y la extensión no está instalada — medido sobre
+#: ``pg_extension``: ``pg_trgm`` y ``plpgsql``, nada más.
+#:
+#: La bandera existe para que las **dos** vías de compilación decidan lo mismo.
+#: Sin ella el predicado en memoria encontraría «Ácme» buscando «acme» y el
+#: motor no, sobre el mismo dominio — y eso lo destapó el test que las contrasta,
+#: no una relectura. Cuando #98 instale la extensión, esto y ``SqlILike`` se
+#: encienden juntos: son una decisión, no dos.
+UNACCENT_ENABLED = False
 
 _INEQUALITY_LOOKUP = {'<': 'lt', '>': 'gt', '<=': 'lte', '>=': 'gte'}
 
@@ -410,3 +442,157 @@ def _field_property_to_sql(self, field_sql, property_name, model, alias, query):
 
 models.Field.to_sql = _field_to_sql_expression
 models.Field.property_to_sql = _field_property_to_sql
+
+
+# === expression_getter / filter_function ====================================
+#
+# El par que evalúa un dominio **en memoria**, sin ir al motor. La fuente los
+# declara como métodos de ``Field``
+# (``odoo19c: odoo/orm/fields.py:1384-1477``); aquí se cuelgan de
+# ``models.Field`` al final del módulo, igual que ``to_sql`` y
+# ``property_to_sql`` — un campo de Django no es nuestro para subclasificar,
+# pero el nombre y la firma se conservan.
+#
+# Su consumidor es ``BaseModel.filtered_domain``, y quien lo necesita es
+# ``ir.default._evaluate_condition_with_fallback``: preguntar si el valor de
+# respaldo de un campo dependiente de empresa satisface una condición no se
+# puede resolver en SQL, porque ese valor **no está en ninguna fila** — es el
+# que responde el campo cuando la empresa no tiene el suyo.
+
+#: Los cuatro operadores de desigualdad, a su función de Python.
+_PYTHON_INEQUALITY_OPERATOR = {
+    '<': operator_module.lt,
+    '>': operator_module.gt,
+    '<=': operator_module.le,
+    '>=': operator_module.ge,
+}
+
+
+def _expression_getter(self, field_expr):
+    """Un ``field_expr`` de dominio a la función que lo lee de un registro.
+
+    ≙ ``Field.expression_getter`` (``odoo19c: odoo/orm/fields.py:1384-1394``).
+    El caso base sólo sabe leer **el campo entero**; cualquier otra expresión
+    la resuelve quien la entienda, sobreescribiendo este método.
+
+    La divergencia de forma: allá el getter es ``self.__get__`` —el descriptor
+    del campo—; aquí un campo de Django no es descriptor de lectura, así que
+    es ``getattr(record, self.name)``. Mismo contrato: dado un registro,
+    devuelve el valor.
+    """
+    if field_expr == self.name:
+        return lambda record: getattr(record, self.name)
+    raise ValueError(f'Expression not supported on {self}: {field_expr!r}')
+
+
+def _filter_function(self, records, field_expr, operator, value):
+    """Un ``(campo, operador, valor)`` a un predicado de un registro.
+
+    ≙ ``Field.filter_function`` (``odoo19c: odoo/orm/fields.py:1396-1477``).
+    Es el gemelo en memoria de :func:`condition_to_q`: aquella compila la
+    condición a ``Q`` para que la resuelva PostgreSQL, ésta la compila a una
+    función de Python para resolverla sobre registros que ya están en mano.
+
+    **Sólo operadores positivos** — la negación la aplica quien llama, igual
+    que allá, para no duplicar cada rama.
+    """
+    if operator in NEGATIVE_CONDITION_OPERATORS:
+        raise ValueError(
+            f'filter_function espera un operador positivo, no {operator!r}')
+    getter = self.expression_getter(field_expr)
+
+    # --- in (igualdad) ------------------------------------------------------
+    if operator == 'in':
+        if not isinstance(value, _COLLECTION_TYPES) or not value:
+            raise ValueError(
+                f"filter_function con 'in' espera una colección no vacía, "
+                f'no {type(value)}')
+        values = value if isinstance(value, (set, frozenset)) else set(value)
+        if False in values or falsy_value(self) in values:
+            # Un campo sin valor cuenta como que lo tiene, si el conjunto
+            # incluye el valor *falsy* — la misma regla que ``condition_to_q``
+            # aplica al lado SQL.
+            if len(values) == 1:
+                return lambda record: not getter(record)
+            return lambda record: (
+                (val := getter(record)) in values or not val)
+        return lambda record: getter(record) in values
+
+    # --- familia like -------------------------------------------------------
+    if operator.endswith('like'):
+        if operator.endswith('ilike'):
+            def normalize(x):
+                # ``ilike`` compara en minúsculas, y **sin quitar acentos**
+                # mientras ``UNACCENT_ENABLED`` sea falso. Ver su declaración:
+                # tiene que decidir lo mismo que el lookup ``sql_ilike``, y ése
+                # emite un ``ILIKE`` pelado.
+                if not x:
+                    return ''
+                text = str(x).lower()
+                return remove_accents(text) if UNACCENT_ENABLED else text
+        else:
+            def normalize(x):
+                return str(x) if x else ''
+
+        pattern = re.compile(
+            ''.join(_like_regex_parts(normalize(value), '=' in operator)),
+            flags=re.DOTALL)
+        return lambda record: bool(pattern.match(normalize(getter(record))))
+
+    # --- desigualdades ------------------------------------------------------
+    if python_operator := _PYTHON_INEQUALITY_OPERATOR.get(operator):
+        can_be_null = False
+        if (null_value := falsy_value(self)) is not None:
+            value = value or null_value
+            can_be_null = (
+                null_value < value if operator == '<' else
+                null_value > value if operator == '>' else
+                null_value <= value if operator == '<=' else
+                null_value >= value)
+
+        def check_inequality(record):
+            record_value = getter(record)
+            try:
+                if record_value is False or record_value is None:
+                    return can_be_null
+                return python_operator(record_value, value)
+            except (ValueError, TypeError):
+                # Tipos que no se comparan: la fila no entra, no revienta.
+                return False
+
+        return check_inequality
+
+    raise NotImplementedError(f'Operador simple inválido {operator!r}')
+
+
+def _like_regex_parts(value, exact):
+    """El patrón SQL ``LIKE`` a expresión regular, trozo a trozo.
+
+    ≙ el ``build_like_regex`` anidado de la fuente
+    (``odoo19c: odoo/orm/fields.py:1428-1445``). Se saca a función de módulo
+    porque aquí ``filter_function`` no es un método de clase propia y anidarla
+    la reconstruiría en cada llamada.
+
+    ``%`` es ``.*``, ``_`` es un carácter, y ``\\`` escapa al siguiente — las
+    tres reglas del ``LIKE`` de SQL.
+    """
+    yield '^' if exact else '.*'
+    escaped = False
+    for char in value:
+        if escaped:
+            escaped = False
+            yield re.escape(char)
+        elif char == '\\':
+            escaped = True
+        elif char == '%':
+            yield '.*'
+        elif char == '_':
+            yield '.'
+        else:
+            yield re.escape(char)
+    if exact:
+        yield '$'
+
+
+models.Field.expression_getter = _expression_getter
+models.Field.filter_function = _filter_function
