@@ -154,7 +154,16 @@ class IrFieldsConverter:
 
     En la referencia es un ``AbstractModel``; aquí es una clase de métodos de
     clase por la misma razón que ``ir_binary``: no tiene columnas.
+
+    Los dos atributos de clase son los que la fuente declara. ``_name`` no es
+    decoración: es la clave con la que el cargador la resuelve —
+    ``registry.model_by_name('ir.fields.converter')``, ≙ el
+    ``env['ir.fields.converter']`` de allá — sin importarla, que cerraría
+    ciclo (``orm.models`` → ``ir_fields`` → ``ir_model`` → ``models``).
     """
+
+    _name = 'ir.fields.converter'
+    _description = 'Fields Converter'
 
     #: Memoria de las etiquetas traducidas de una opción — ≙ el
     #: ``env.cr.cache`` que la fuente usa para lo mismo. La vacía el cargador
@@ -992,3 +1001,8 @@ class IrFieldsConverter:
 
     #: El campo de este árbol que porta un ``Properties``.
     _str_to_properties_field = _str_to_properties
+
+
+# Anotado bajo su ``_name`` para que ``orm.models.RecordLoaderMixin`` lo
+# resuelva por nombre — ver el docstring de la clase.
+registry.register_abstract(IrFieldsConverter)
