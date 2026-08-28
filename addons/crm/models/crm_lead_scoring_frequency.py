@@ -15,6 +15,23 @@ from addons.base.models.ir_model import IrModelFields
 from addons.sales_team.models import CrmTeam
 
 
+def _get_default_color():
+    """≙ ``CrmLeadScoringFrequencyField._get_default_color`` (crm_lead_scoring_frequency.py:22-23).
+
+    DIVERGENCIA DE MECANISMO declarada, no un descuido de sitio. La fuente lo
+    declara **dentro** de la clase y lo pasa como ``default=`` del campo. Aquí
+    no puede ir ahí: Django serializa un ``default`` callable **por su ruta de
+    import** al escribir la migración, y una función del cuerpo de una clase no
+    tiene ninguna. Medido: al moverlo dentro, la migración ya escrita deja de
+    resolverlo y el árbol entero cae con ``AttributeError`` — 435 errores.
+
+    Queda a nivel de módulo, sin ``self`` porque el ``default`` de Django
+    resuelve sin instancia. Mismo rango, 1 a 11 inclusive. Registrada en
+    ``scripts/divergencias_declaradas.txt``.
+    """
+    return randint(1, 11)
+
+
 class CrmLeadScoringFrequency(TimeStampedModel):
     """``crm.lead.scoring.frequency`` — una fila por (variable, valor, equipo)."""
 
@@ -60,16 +77,6 @@ class CrmLeadScoringFrequencyField(TimeStampedModel):
 
     _name = 'crm.lead.scoring.frequency.field'
     _description = 'Fields that can be used for predictive lead scoring computation'
-
-    def _get_default_color():
-        """≙ ``_get_default_color`` (crm_lead_scoring_frequency.py:22-23).
-
-        Se declara DENTRO de la clase, donde la fuente lo declara. Sin ``self``:
-        el ``default`` de Django resuelve sin instancia, y en el cuerpo de la
-        clase el nombre todavía es una función suelta cuando el campo lo toma.
-        Mismo rango, 1 a 11 inclusive.
-        """
-        return randint(1, 11)
 
     # Odoo name (crm_lead_scoring_frequency.py:26, related="field_id.field_description").
     #

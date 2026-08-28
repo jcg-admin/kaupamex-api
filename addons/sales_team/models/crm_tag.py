@@ -15,9 +15,16 @@ from addons.base.models import TimeStampedModel
 def _get_default_color():
     """≙ ``CrmTag._get_default_color`` (crm_tag.py:11-12).
 
-    La referencia lo declara como método de instancia y lo pasa como
-    ``default=`` del campo; aquí es una función de módulo porque el ``default``
-    de Django se resuelve sin instancia. Mismo rango, 1 a 11 inclusive.
+    DIVERGENCIA DE MECANISMO declarada, no un descuido de sitio. La fuente lo
+    declara **dentro** de la clase y lo pasa como ``default=`` del campo. Aquí
+    no puede ir ahí: Django serializa un ``default`` callable **por su ruta de
+    import** al escribir la migración, y una función del cuerpo de una clase no
+    tiene ninguna. Medido: al moverlo dentro, la migración ya escrita deja de
+    resolverlo y el árbol entero cae con ``AttributeError`` — 435 errores.
+
+    Queda a nivel de módulo, sin ``self`` porque el ``default`` de Django
+    resuelve sin instancia. Mismo rango, 1 a 11 inclusive. Registrada en
+    ``scripts/divergencias_declaradas.txt``.
     """
     return randint(1, 11)
 
@@ -27,16 +34,6 @@ class CrmTag(TimeStampedModel):
 
     _name = 'crm.tag'
     _description = "CRM Tag"
-
-    def _get_default_color():
-        """≙ ``_get_default_color`` (crm_tag.py:11-12).
-
-        Se declara DENTRO de la clase, donde la fuente lo declara. Sin ``self``:
-        el ``default`` de Django resuelve sin instancia, y en el cuerpo de la
-        clase el nombre todavía es una función suelta cuando el campo lo toma.
-        Mismo rango, 1 a 11 inclusive.
-        """
-        return randint(1, 11)
 
     # Odoo crm.tag.name (crm_tag.py:15, required, translate, unique).
     name  = fields.Char(
