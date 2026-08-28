@@ -82,14 +82,21 @@ def apply_l10n_mx_extensions():
     Se llama desde ``L10nMxConfig.ready()``, no al importar: en tiempo de
     import el registro de modelos aún no está poblado.
     """
+    # Ninguno de los dos lleva tope: la referencia los declara ``fields.Char()``
+    # pelados (``odoo19c: l10n_mx/models/res_bank.py:13`` y ``:26``). Los
+    # nuestros llevaban 3 y 18 —el largo nominal de un código ABM y de una
+    # CLABE—, que es precisamente lo que hace peligroso el tope: parece
+    # justificado por el dominio y no lo impone la fuente. Mismo defecto que
+    # :ref:`h-api-750` en ``ir_module.py``; el largo se valida donde se valida
+    # un dato, no en la anchura de la columna.
     _add_if_absent(ResBank, 'l10n_mx_edi_code', fields.Char(
-        max_length=3, blank=True, default='',
+        blank=True, default='',
         help_text='Número de tres dígitos que la ABM asigna a las '
                   'instituciones bancarias (Odoo l10n_mx_edi_code; ABM = '
                   'Asociación de Bancos de México).',
     ))
     _add_if_absent(ResPartnerBank, 'l10n_mx_edi_clabe', fields.Char(
-        max_length=18, blank=True, default='',
+        blank=True, default='',
         help_text='CLABE — cifra bancaria estandarizada de México (Odoo '
                   'l10n_mx_edi_clabe).',
     ))
