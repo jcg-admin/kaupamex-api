@@ -51,9 +51,10 @@ class CrmLead(MailThread, MailActivityMixin, TimeStampedModel):
     description      = fields.Text(
         blank=True, default='', help_text='Notas (Odoo description).',
     )
-    stage            = fields.Many2one(
+    stage_id         = fields.Many2one(
         'crm.CrmStage', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='leads', help_text='Etapa del pipeline (Odoo stage_id).',
+        db_column='stage_id',
     )
     expected_revenue = fields.Monetary(
         max_digits=14, decimal_places=2, default=Decimal('0.00'),
@@ -63,9 +64,10 @@ class CrmLead(MailThread, MailActivityMixin, TimeStampedModel):
         max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text='Probabilidad % (Odoo probability).',
     )
-    partner          = fields.Many2one(
+    partner_id       = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='crm_leads', help_text='Cliente asociado (Odoo partner_id).',
+        db_column='partner_id',
     )
     contact_name     = fields.Char(
         max_length=150, blank=True, default='',
@@ -77,13 +79,15 @@ class CrmLead(MailThread, MailActivityMixin, TimeStampedModel):
     phone            = fields.Char(
         max_length=30, blank=True, default='', help_text='Teléfono (Odoo phone).',
     )
-    user             = fields.Many2one(
+    user_id          = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='crm_leads_owned', help_text='Vendedor (Odoo user_id).',
+        db_column='user_id',
     )
-    team             = fields.Many2one(
+    team_id          = fields.Many2one(
         'sales_team.CrmTeam', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='crm_leads', help_text='Equipo de venta (Odoo team_id).',
+        db_column='team_id',
     )
 
     class Meta:
