@@ -27,7 +27,7 @@ scrub/redact/mask sobre texto de log en ``odoo/tools/*.py`` y en
 (``odoo19c: odoo/tools/mail.py:891``), que anonimiza un correo para envio, no
 redacta un secreto de un traceback. El scrubber es mecanismo **propio**
 —lo exige DEC-LOG-03, no la referencia—; su sitio lo elegimos nosotros.
-Ver :ref:`h-api-854`.
+Ver :ref:`h-api-855`.
 """
 import re
 

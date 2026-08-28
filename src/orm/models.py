@@ -48,7 +48,7 @@ fuente los pone y no por casualidad:
   una MRO real y cada override llama a ``super()``.
 
 La forma es la misma que ``service/model.py`` ya usa para ``service/retry.py``.
-Ver :ref:`h-api-854` para el veredicto por archivo de las raíces espejadas.
+Ver :ref:`h-api-855` para el veredicto por archivo de las raíces espejadas.
 """
 import functools
 

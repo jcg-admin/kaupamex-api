@@ -15,7 +15,7 @@ midio. Medido 2026-08-28: **0** ``ContextVar`` en el camino de logging de la
 referencia (``odoo/netsvc.py``, ``odoo/logging.py``, ``odoo/http.py``). El
 correlation_id por request es mecanismo **propio** de esta plataforma, no un
 porte — su sitio lo elegimos nosotros, y ``tools/`` es una eleccion valida
-mientras se declare como tal. Ver :ref:`h-api-854`.
+mientras se declare como tal. Ver :ref:`h-api-855`.
 
 **El error de la request ya no se sella aqui (DEC-AF-11).** Este modulo
 declaraba ademas ``set_request_error``/``get_request_error``: el

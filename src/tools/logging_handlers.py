@@ -24,7 +24,7 @@ contra raiz— es estructuralmente ciego a este par: nuestro archivo figura
 *sin contraparte* cuando si la tiene. El veredicto sobre si se mueve a un
 ``src/netsvc.py`` es decision del ejecutor (tiene costo de imports); la
 divergencia queda declarada aqui y en ``scripts/mirrored_roots_baseline.txt``.
-Ver :ref:`h-api-854`.
+Ver :ref:`h-api-855`.
 
 Garantias:
 

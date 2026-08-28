@@ -43,7 +43,7 @@ allá **dentro de este mismo archivo**, sin archivo propio.
 Aquí es un archivo aparte por la misma razón que las nueve categorías de
 arriba: este módulo **agrega**, no define. No se re-exporta desde este
 agregador porque no es una clase de campo de Django y no puede aparecer en
-``_meta.get_fields()``; se importa por su nombre. Ver :ref:`h-api-854`.
+``_meta.get_fields()``; se importa por su nombre. Ver :ref:`h-api-855`.
 """
 from decimal import Decimal
 

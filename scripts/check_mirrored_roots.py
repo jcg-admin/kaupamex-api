@@ -34,7 +34,7 @@ más una familia dinámica, una por addon que ya tenemos portado)::
 compara raíz contra raíz, así que un archivo nuestro cuyo homólogo vive en un
 módulo **top-level** de la referencia figura como *sin contraparte* aunque la
 tenga. Caso medido: ``src/tools/logging_handlers.py`` ≙
-``odoo19c: odoo/netsvc.py:47`` (``PostgreSQLHandler``). Ver :ref:`h-api-854`.
+``odoo19c: odoo/netsvc.py:47`` (``PostgreSQLHandler``). Ver :ref:`h-api-855`.
 
 Un addon **enteramente propio** del L0 (``authz``, ``helpdesk``,
 ``authz_audit``, …) no tiene par en la referencia — no es una raíz
@@ -120,7 +120,7 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 #: addons tengamos hoy.
 #:
 #: **Eran tres, y eso dejaba siete raíces sin medir** (corregido 2026-08-28,
-#: :ref:`h-api-854`). El criterio de esta tupla es *"un directorio de ``src/``
+#: :ref:`h-api-855`). El criterio de esta tupla es *"un directorio de ``src/``
 #: cuyo homónimo existe bajo ``odoo/``"*, y el barrido da **diez**: ``api``,
 #: ``cli``, ``fields``, ``models``, ``modules``, ``orm``, ``osv``, ``service``,
 #: ``tools`` y ``addons``. Con sólo ``orm``, ``tools`` y ``addons/base``
