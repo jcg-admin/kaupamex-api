@@ -250,6 +250,10 @@ def _normalize_email(email_address):
     try:
         local_part.encode('ascii')
     except UnicodeEncodeError:
+        # silent OK because la excepción ES el discriminador, no un fallo: que
+        # la parte local no sea ASCII es precisamente el caso en que hay que
+        # dejarla intacta. La referencia lo escribe igual
+        # (odoo19c: odoo/tools/mail.py:882-887).
         pass
     else:
         local_part = local_part.lower()
