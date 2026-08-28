@@ -13,15 +13,28 @@ listando el directorio de la referencia, no un gate.
 Las raíces espejadas
 =====================
 
-Cuatro pares, ``nuestra raíz`` ↔ ``raíz de la referencia`` (``FIXED_MIRRORED_ROOTS``
+Diez pares, ``nuestra raíz`` ↔ ``raíz de la referencia`` (``FIXED_MIRRORED_ROOTS``
 más una familia dinámica, una por addon que ya tenemos portado)::
 
+    src/api            ↔  odoo/api
+    src/cli            ↔  odoo/cli
+    src/fields         ↔  odoo/fields
+    src/models         ↔  odoo/models
+    src/modules        ↔  odoo/modules
     src/orm            ↔  odoo/orm
+    src/osv            ↔  odoo/osv
+    src/service        ↔  odoo/service
     src/tools          ↔  odoo/tools
     src/addons/base    ↔  odoo/addons/base
     addons/<x>         ↔  addons/<x>          (una por cada <x> que TENEMOS
                                                  y que la referencia también
                                                  declara)
+
+**Lo que este gate NO puede ver, y hay que saberlo antes de leer un cero:**
+compara raíz contra raíz, así que un archivo nuestro cuyo homólogo vive en un
+módulo **top-level** de la referencia figura como *sin contraparte* aunque la
+tenga. Caso medido: ``src/tools/logging_handlers.py`` ≙
+``odoo19c: odoo/netsvc.py:47`` (``PostgreSQLHandler``). Ver :ref:`h-api-854`.
 
 Un addon **enteramente propio** del L0 (``authz``, ``helpdesk``,
 ``authz_audit``, …) no tiene par en la referencia — no es una raíz
@@ -102,11 +115,33 @@ REFERENCE_ROOT = pathlib.Path(
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
-#: Los tres pares fijos. La cuarta raíz (``addons/<x>``) es una familia — se
-#: expande en tiempo de ejecución con ``addon_roots()``, porque su lista
-#: depende de qué addons tengamos hoy.
+#: Los pares fijos. La última raíz (``addons/<x>``) es una familia — se expande
+#: en tiempo de ejecución con ``addon_roots()``, porque su lista depende de qué
+#: addons tengamos hoy.
+#:
+#: **Eran tres, y eso dejaba siete raíces sin medir** (corregido 2026-08-28,
+#: :ref:`h-api-854`). El criterio de esta tupla es *"un directorio de ``src/``
+#: cuyo homónimo existe bajo ``odoo/``"*, y el barrido da **diez**: ``api``,
+#: ``cli``, ``fields``, ``models``, ``modules``, ``orm``, ``osv``, ``service``,
+#: ``tools`` y ``addons``. Con sólo ``orm``, ``tools`` y ``addons/base``
+#: declaradas, un archivo inventado en ``src/service`` o ``src/cli`` no
+#: aparecía como *sin contraparte* — no es que el gate lo aprobara, es que no
+#: lo miraba. Lo destapó ``src/service/retry.py``, que llevaba meses fuera del
+#: alcance sin que su ausencia del reporte significara nada.
+#:
+#: El comando que la reproduce, para cuando la referencia gane un directorio:
+#:
+#:     for d in $(ls -d src/*/ | sed 's|src/||;s|/$||'); do
+#:         [ -d "$ODOO19C/odoo/$d" ] && echo "$d"; done
 FIXED_MIRRORED_ROOTS = (
+    ('src/api', REPO / 'src' / 'api', REFERENCE_ROOT / 'odoo' / 'api'),
+    ('src/cli', REPO / 'src' / 'cli', REFERENCE_ROOT / 'odoo' / 'cli'),
+    ('src/fields', REPO / 'src' / 'fields', REFERENCE_ROOT / 'odoo' / 'fields'),
+    ('src/models', REPO / 'src' / 'models', REFERENCE_ROOT / 'odoo' / 'models'),
+    ('src/modules', REPO / 'src' / 'modules', REFERENCE_ROOT / 'odoo' / 'modules'),
     ('src/orm', REPO / 'src' / 'orm', REFERENCE_ROOT / 'odoo' / 'orm'),
+    ('src/osv', REPO / 'src' / 'osv', REFERENCE_ROOT / 'odoo' / 'osv'),
+    ('src/service', REPO / 'src' / 'service', REFERENCE_ROOT / 'odoo' / 'service'),
     ('src/tools', REPO / 'src' / 'tools', REFERENCE_ROOT / 'odoo' / 'tools'),
     ('src/addons/base', REPO / 'src' / 'addons' / 'base',
      REFERENCE_ROOT / 'odoo' / 'addons' / 'base'),

@@ -31,6 +31,19 @@ migraciones que ninguna necesidad de hoy justifica.
 El **sitio** sí es el de la fuente: los dos símbolos viven donde la referencia
 los declara, que es lo que ``atributos-de-clase-de-modelo.md`` exige en su
 segunda cláusula.
+
+El campo no persistido es otra categoría del mismo split
+========================================================
+
+``orm/fields_nonstored.py`` construye el ``store=False`` de la referencia: un
+campo que se calcula al leerlo y nunca escribe columna. Medido: **66**
+ocurrencias de ``store`` en ``odoo19c: odoo/orm/fields.py`` — el mecanismo vive
+allá **dentro de este mismo archivo**, sin archivo propio.
+
+Aquí es un archivo aparte por la misma razón que las nueve categorías de
+arriba: este módulo **agrega**, no define. No se re-exporta desde este
+agregador porque no es una clase de campo de Django y no puede aparecer en
+``_meta.get_fields()``; se importa por su nombre. Ver :ref:`h-api-854`.
 """
 from decimal import Decimal
 

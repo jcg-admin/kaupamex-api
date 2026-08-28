@@ -8,8 +8,23 @@ patron de django-db-logger 0.1.13 (MIT) sobre un modelo propio PII-safe
 (DEC-LOG-06); no se instala el paquete.
 
 Movido desde ``core.logging_handlers`` en el slice 5 de
-``adoptar-arquitectura-server-service-odoo`` (DEC-10): utilidad de logging sin
-modelo Django propio, fiel a Odoo la ubica en ``tools/``.
+``adoptar-arquitectura-server-service-odoo`` (DEC-10).
+
+**Corregido: el sitio NO es el de la referencia, y su contraparte existe.**
+Esta linea decia *"fiel a Odoo la ubica en ``tools/``"*. Medido 2026-08-28:
+la referencia declara este mismo mecanismo —un ``logging.Handler`` que
+persiste el ``LogRecord`` en la base— como ``PostgreSQLHandler`` en
+``odoo19c: odoo/netsvc.py:47``, con el docstring *"PostgreSQL Logging Handler
+will store logs in the database"*. ``odoo/tools/`` no tiene ningun handler de
+logging.
+
+``netsvc.py`` es un modulo **top-level** de la referencia, no un archivo de
+``odoo/tools/``, asi que el gate ``check_mirrored_roots.py`` —que compara raiz
+contra raiz— es estructuralmente ciego a este par: nuestro archivo figura
+*sin contraparte* cuando si la tiene. El veredicto sobre si se mueve a un
+``src/netsvc.py`` es decision del ejecutor (tiene costo de imports); la
+divergencia queda declarada aqui y en ``scripts/mirrored_roots_baseline.txt``.
+Ver :ref:`h-api-854`.
 
 Garantias:
 

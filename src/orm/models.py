@@ -29,6 +29,26 @@ y un modelo los adopta declarando ``objects = AccessManager()``.
 Consecuencia que conviene saber: en la fuente **todo** modelo los tiene; aquí
 sólo los que adopten el manager. Qué modelos lo adoptan, y en qué orden, es
 trabajo aparte — tarea **#96**.
+
+Dos mecanismos de este archivo viven en un módulo hermano
+==========================================================
+
+La referencia declara los dos **aquí dentro**; aquí se extrajeron a su propio
+archivo y este hogar los apunta, para que se lleguen navegando desde donde la
+fuente los pone y no por casualidad:
+
+- ``orm/inherits.py`` — ``_inherits``, la delegación por Many2one nombrado.
+  Medido en la referencia: **8** ocurrencias en ``odoo19c: odoo/orm/models.py``
+  y presencia en otros cuatro módulos de ``odoo/orm/`` (``fields.py``,
+  ``fields_relational.py``, ``model_classes.py``, ``registry.py``). Es decir:
+  el mecanismo **sí** existe allá y **no** tiene archivo propio.
+- ``orm/method_chain.py`` — ``chain_method``, el relevo entre overrides que
+  cuelgan por ``setattr`` desde ``AppConfig.ready()``. Éste **no** tiene
+  contraparte: la referencia no lo necesita porque ``_inherit`` le construye
+  una MRO real y cada override llama a ``super()``.
+
+La forma es la misma que ``service/model.py`` ya usa para ``service/retry.py``.
+Ver :ref:`h-api-854` para el veredicto por archivo de las raíces espejadas.
 """
 import functools
 
