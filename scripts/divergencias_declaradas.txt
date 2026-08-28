@@ -985,19 +985,21 @@ base/models/ir_qweb.py::QwebJSON
 
 # --- base/models/res_currency.py :: ResCurrencyRate ------------------------
 #
-# Las tres que siguen NO son trabajo pendiente: son simbolos cuya conducta este
-# stack no tiene donde replicar. `create` y `write` de la misma clase se quedan
-# CONTADOS, por la clausula de arriba — son un `save()` aqui y aliasarlos
-# convertiria una pregunta abierta en una absolucion silenciosa.
+# NINGUNA. Este bloque declaraba tres divergencias y las tres eran falsas; se
+# retiran en el mismo pase que las corrige.
 #
-# Infraestructura de vistas XML: la fuente reescribe las etiquetas de los campos
-# de tasa segun la moneda de la empresa, y cachea la vista por esa moneda. Este
-# stack no tiene vistas declarativas — el contrato lo publica drf-spectacular
-# desde el serializer, que no se cachea por empresa.
-base/models/res_currency.py::ResCurrencyRate::_get_view
-# Idem — la llave de cache de esa vista.
-base/models/res_currency.py::ResCurrencyRate::_get_view_cache_key
-# Su trabajo es parsear la fecha que el usuario teclea en el buscador
-# (`parse_date`) antes de delegar en super(). El parseo de entrada de usuario
-# pertenece aqui a la capa DRF; el modelo recibe un `DateField` ya tipado.
-base/models/res_currency.py::ResCurrencyRate::_search_display_name
+# `_get_view` / `_get_view_cache_key` decian «este stack no tiene vistas
+# declarativas», que describe el MECANISMO de la referencia y no nuestra
+# diferencia. La CONDUCTA —calcular dos etiquetas desde la moneda de la empresa,
+# y hacer que la representacion cacheada varie con ella— si existe aqui, y se
+# porto. Lo que diverge es el destino: un mapa que consume el serializer en vez
+# de un xpath sobre un arbol XML, y eso va en el docstring del metodo.
+#
+# `_search_display_name` decia «pertenece a la capa DRF». El propio arbol lo
+# desmiente: `res_bank.py:102` y `res_partner.py:2521` lo portan como metodo del
+# modelo. Su insumo, `parse_date`, no existia en `src/tools` y se construyo
+# sobre `django.utils.formats` — que es la misma capacidad que la fuente saca de
+# babel, por la via del stack.
+#
+# `create` / `write` de esta clase siguen CONTADOS, y ahora porque estan
+# PORTADOS con su nombre (ver el modelo), no por la clausula de `write`.

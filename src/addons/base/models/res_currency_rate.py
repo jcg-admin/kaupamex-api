@@ -42,18 +42,44 @@ dos derivadas son métodos (leer) más su inverso (escribir), no columnas: una
 columna almacenada podría divergir de ``rate``, que es justo lo que el
 ``compute``/``inverse`` de la fuente evita.
 
-Qué NO se porta, con su medición
-=================================
+Los quince símbolos se portan — corregido en este pase
+======================================================
 
-- **``_get_view`` / ``_get_view_cache_key``** — infraestructura de vistas XML de
-  Odoo. Sin análogo: este stack no tiene vistas declarativas.
-- **``_search_display_name``** — su trabajo es parsear la fecha que el usuario
-  teclea en el buscador (``parse_date``) antes de delegar. El parseo de entrada
-  de usuario pertenece a la capa DRF, no al modelo; aquí un ``DateField`` recibe
-  la fecha ya tipada. Divergencia de capa, declarada.
-- **``create``/``write``** son un ``save()`` aquí; ``_sanitize_vals`` sí se
-  porta, porque su lógica —qué campo gana cuando llegan dos de las tres tasas—
-  es del dominio y no del ORM.
+Una versión anterior de este docstring declaraba **cinco** sin portar. Las tres
+razones que daba eran, las tres, descripciones de la referencia en vez de
+nuestra diferencia — el anti-patrón que ``porte-completo-no-parcial.md`` nombra
+literalmente: *«este ORM no tiene ese constructor» describe el punto de
+partida, no cierra nada*. La pregunta correcta no es *«¿por qué la referencia
+lo hace así?»* sino **«¿qué me impide hacerlo igual?»**, y la respuesta tiene
+que ser una medición.
+
+Medidas, ninguna se sostuvo:
+
+- *«``_search_display_name`` pertenece a la capa DRF»* — **falso, y contra el
+  propio árbol**: ``res_bank.py:102`` y ``res_partner.py:2521`` lo portan como
+  método del modelo. Su insumo, ``parse_date``, no existía en ``src/tools`` y
+  **se construyó** sobre ``django.utils.formats`` (ver ``tools/misc.py``).
+- *«``create``/``write`` son un ``save()`` aquí»* — **falso**: el árbol los
+  porta como métodos reales en ``stock_picking.py:485``, ``stock_move.py:1297``
+  y otros ocho sitios. Y no portarlos dejaba ``_sanitize_vals`` y los dos
+  ``_inverse_*`` **sin un solo llamador** — código muerto que el gate cuenta
+  como portado.
+- *«sin análogo: este stack no tiene vistas declarativas»* — describe el
+  mecanismo, no la conducta. Lo que ``_get_view`` **hace** es calcular dos
+  etiquetas a partir de la moneda de la empresa, y lo que
+  ``_get_view_cache_key`` **hace** es que la representación cacheada varíe con
+  ella. Las dos conductas existen aquí y se portan; lo que diverge es el
+  destino —un serializer DRF en vez de un árbol XML—, y eso se declara.
+
+Lo único que **no** se porta, con su medición
+----------------------------------------------
+
+``write`` de la fuente empieza con
+``self.env['res.currency'].invalidate_model(['inverse_rate'])``. Aquí no hay
+qué invalidar, y es un hecho de nuestro lado, no de la suya: ``inverse_rate``
+es una derivada que se recalcula **en cada acceso** —no se materializa en
+columna ni en caché—, así que no existe valor viejo que retirar. La línea se
+omite y ``write`` porta lo demás.
 
 Dos divergencias medidas dentro de métodos que SÍ se portan
 ============================================================
@@ -81,13 +107,15 @@ Y una del ORM, sin efecto: la fuente indexa el diccionario de
 El único consumidor es ``_divisor_for``, que usa la misma llave para escribir y
 para leer.
 """
-from decimal import Decimal
+from datetime import date
+from decimal import Decimal, InvalidOperation
 
 import fields
 import models
 from django.core.exceptions import ValidationError
 
 from orm.environments import get_current_company
+from tools.misc import parse_date
 
 
 class ResCurrencyRate(models.Model):
@@ -301,9 +329,181 @@ class ResCurrencyRate(models.Model):
         return vals
 
     def save(self, *args, **kwargs):
-        """``create`` y ``write`` de la fuente, que aquí son la misma entrada."""
+        """El punto único de escritura del ORM: valida antes de tocar la fila.
+
+        ``create`` y ``write`` de abajo son los puntos de entrada de la
+        referencia y pasan por aquí; la guarda vive en este sitio para que una
+        escritura directa —``objects.create``, ``instance.save()``— tampoco la
+        esquive.
+        """
         self._check_company_id()
         return super().save(*args, **kwargs)
+
+    @classmethod
+    def _rate_from_vals(cls, vals, base=None):
+        """El valor de ``rate`` que resulta de las tres formas de escribirlo.
+
+        Sin contraparte de nombre en la fuente: allá esta resolución la hace su
+        ORM al disparar los ``inverse`` de los dos campos computados. Aquí no
+        hay quien los dispare, así que el paso es explícito — y es lo que da
+        llamador a ``_sanitize_vals`` y a los dos ``_inverse_*``, que sin él
+        eran código muerto.
+
+        ``base`` es la fila que se está escribiendo, o ``None`` al crear. **No
+        es opcional en la práctica**: el divisor sale de la empresa y la moneda
+        de la fila, y en un ``write`` esos dos valores viven en la fila, no en
+        ``vals``. Medido: sin ``base``, ``row.write({'company_rate': 4})`` con
+        un divisor de 2 guardaba **4** en vez de 8 — la resolución corría contra
+        una instancia vacía cuyo divisor caía a 1.
+
+        Devuelve ``(vals_limpios, rate_o_None)``.
+        """
+        vals = cls._sanitize_vals(vals)
+        derived = ('company_rate', 'inverse_company_rate')
+        if not any(key in vals for key in derived):
+            return vals, vals.get('rate')
+
+        context = {key: value for key, value in vals.items()
+                   if key not in derived and key != 'rate'}
+        if base is not None:
+            probe = base
+            for key, value in context.items():
+                setattr(probe, key, value)
+        else:
+            probe = cls(**context)
+
+        if 'company_rate' in vals:
+            rate = probe._inverse_company_rate(vals.pop('company_rate'))
+        else:
+            rate = probe._inverse_inverse_company_rate(
+                vals.pop('inverse_company_rate'))
+        vals['rate'] = rate
+        return vals, rate
+
+    @classmethod
+    def create(cls, **vals):
+        """≙ ``create`` (``odoo19c: res_currency.py:399-402``).
+
+        Su cuerpo es ``super().create([self._sanitize_vals(v) for v in
+        vals_list])``, precedido de la invalidación que aquí no aplica (ver el
+        docstring del módulo). El lote de la fuente —``vals_list``— es su forma
+        de amortizar el viaje a la base; aquí ``objects.bulk_create`` cubre ese
+        caso y no cambia la resolución de las tres tasas, que es lo que este
+        método porta.
+        """
+        vals, _rate = cls._rate_from_vals(vals)
+        return cls.objects.create(**vals)
+
+    def write(self, vals):
+        """≙ ``write`` (``odoo19c: res_currency.py:394-397``).
+
+        Escribe ``vals`` sobre esta fila resolviendo antes cuál de las tres
+        tasas gana. Es el punto donde ``_sanitize_vals`` importa: sin él, una
+        petición que trae ``rate`` **y** ``company_rate`` deja que gane el
+        último que el diccionario recorra.
+        """
+        vals, _rate = self._rate_from_vals(vals, base=self)
+        for field, value in vals.items():
+            setattr(self, field, value)
+        self.save()
+        return True
+
+    @classmethod
+    def _search_display_name(cls, operator, value):
+        """≙ ``_search_display_name`` (``odoo19c: res_currency.py:479-485``).
+
+        Lo que la fuente hace es **una** cosa: pasar el valor por ``parse_date``
+        antes de delegar en la búsqueda por ``_rec_names_search``. Sin ese
+        paso, teclear ``15/03/2026`` en el buscador de un campo ``Date`` no
+        encuentra nada — y el que busca no se entera de por qué.
+
+        ``parse_date`` no existía en ``src/tools`` y se construyó ahí, sobre
+        ``django.utils.formats``, que es el mecanismo nativo equivalente al
+        *locale* de babel que usa la fuente.
+
+        La delegación de la fuente va a ``super()``, que busca sobre
+        ``_rec_names_search = ['name', 'rate']``. Aquí eso es un ``Q`` sobre los
+        dos: la fecha si parseó, el número si el valor es numérico.
+        """
+        if isinstance(value, (list, tuple, set)):
+            value = [parse_date(v) for v in value]
+            matched = models.Q(name__in=[v for v in value
+                                         if isinstance(v, date)])
+        else:
+            value = parse_date(value)
+            matched = models.Q(pk__in=[])
+            if isinstance(value, date):
+                matched = models.Q(name=value)
+            else:
+                try:
+                    matched = models.Q(rate=Decimal(str(value)))
+                except (InvalidOperation, ValueError, TypeError):
+                    matched = models.Q(pk__in=[])
+        if operator in ('not ilike', 'not in', '!='):
+            return cls.objects.exclude(matched)
+        return cls.objects.filter(matched)
+
+    @classmethod
+    def _company_currency_name(cls, company=None):
+        """El nombre de la moneda de la empresa — el insumo de las dos de abajo.
+
+        Sin contraparte de nombre: la fuente lo escribe en línea, dos veces,
+        como ``(browse(context['company_id']) or env.company).currency_id.name``.
+        """
+        if company is None:
+            company_id = get_current_company()
+            if company_id is None:
+                return ''
+            company = cls.company.field.related_model.objects.filter(
+                pk=company_id).first()
+        if company is None or company.currency_id is None:
+            return ''
+        return company.currency.name
+
+    @classmethod
+    def _get_view_cache_key(cls, view_type='list', company=None, **options):
+        """≙ ``_get_view_cache_key`` (``odoo19c: res_currency.py:487-491``).
+
+        La conducta —lo único que hay que portar— es que **la representación
+        cacheada varíe con la moneda de la empresa**. Si no varía, dos empresas
+        con monedas distintas comparten unas etiquetas que las contradicen a
+        una de las dos.
+
+        Lo que diverge es el destino: allá la representación es una vista XML
+        cacheada por el servidor de vistas; aquí es la del serializer DRF, y el
+        caché es ``django.core.cache``. Por eso el método devuelve la **llave**
+        y no toca ningún caché — quien cachea decide dónde.
+        """
+        return (cls._name, view_type, tuple(sorted(options.items())),
+                cls._company_currency_name(company))
+
+    @classmethod
+    def _get_view(cls, view_type='list', company=None, **options):
+        """≙ ``_get_view`` (``odoo19c: res_currency.py:493-506``).
+
+        La conducta es calcular **dos etiquetas** a partir de la moneda de la
+        empresa: ``company_rate`` se lee «unidades por PESO» e
+        ``inverse_company_rate`` «PESO por unidad». Sin ellas, una columna
+        rotulada «Tasa» no dice en qué dirección va, que es exactamente la
+        pregunta que un tipo de cambio plantea.
+
+        La fuente las inyecta con un ``xpath`` sobre el árbol de la vista y
+        sólo en ``view_type == 'list'``. Aquí se devuelven como mapa
+        ``campo → etiqueta`` para que las consuma el serializer (o el
+        ``@extend_schema`` que publica el contrato); el recorrido del XML es el
+        mecanismo, y ése sí diverge.
+
+        ``{}`` cuando el tipo de vista no es de lista, igual que la fuente.
+        """
+        if view_type != 'list':
+            return {}
+        currency_name = cls._company_currency_name(company)
+        if not currency_name:
+            return {}
+        return {
+            'company_rate': f'Unidades por {currency_name}',
+            'inverse_company_rate': f'{currency_name} por unidad',
+        }
 
     # --- ayudantes de este porte, sin contraparte de nombre en la fuente ---
 
