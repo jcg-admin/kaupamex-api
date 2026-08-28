@@ -215,8 +215,8 @@ from .res_users import ResUsers, ResUsersLog
 from .res_device import ResDeviceLog
 from .res_users_deletion import ResUsersDeletion
 from .res_users_settings import ResUsersSettings
-from .res_currency import ResCurrency
-from .res_currency_rate import ResCurrencyRate
+from .res_currency import ResCurrency, ResCurrencyRate
+
 from .res_lang import ResLang
 
 __all__ = [

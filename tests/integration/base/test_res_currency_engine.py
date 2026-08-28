@@ -19,7 +19,7 @@ from django.db import connection
 
 from addons.base.models import (IrModelData, ResCompany, ResCurrency,
                                 ResGroups, res_currency)
-from addons.base.models.res_currency_rate import ResCurrencyRate
+from addons.base.models.res_currency import ResCurrencyRate
 from orm.environments import company_scope, context_scope
 
 pytestmark = pytest.mark.integration

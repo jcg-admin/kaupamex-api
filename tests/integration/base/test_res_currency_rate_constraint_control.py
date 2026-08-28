@@ -14,7 +14,7 @@ import pytest
 from django.db import IntegrityError, connection, transaction
 
 from addons.base.models import ResCurrency
-from addons.base.models.res_currency_rate import ResCurrencyRate
+from addons.base.models.res_currency import ResCurrencyRate
 
 pytestmark = pytest.mark.integration
 
