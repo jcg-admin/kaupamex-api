@@ -11,7 +11,7 @@ Las funciones de módulo no tocan la base de datos; los métodos colgados sobre
 import pytest
 
 from addons.base.models.res_partner import ResPartner
-from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.base.models.res_bank import ResPartnerBank
 from addons.base_iban.models.res_partner_bank import (
     check_iban,
     get_bban_from_iban,

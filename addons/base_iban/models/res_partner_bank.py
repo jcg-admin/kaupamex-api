@@ -50,7 +50,7 @@ validación y el formato canónico al guardar.
 """
 import re
 
-from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.base.models.res_bank import ResPartnerBank
 from exceptions import UserError, ValidationError
 from orm.method_chain import chain_method, extend_list
 from tools.translate import _

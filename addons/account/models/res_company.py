@@ -130,7 +130,7 @@ from addons.base.models.res_bank import ResBank
 from addons.base.models.res_country import ResCountry
 from addons.base.models.res_currency import ResCurrency
 from addons.base.models.res_partner import ResPartner
-from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.base.models.res_bank import ResPartnerBank
 from addons.product.models.product_template import ProductTemplate
 from addons.uom.models.uom_uom import Uom
 from exceptions import UserError, ValidationError

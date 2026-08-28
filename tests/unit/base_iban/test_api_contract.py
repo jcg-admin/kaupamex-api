@@ -27,7 +27,7 @@ dos paquetes instaladas y la medición que las respalda, está en
 import pytest
 from rest_framework import serializers
 
-from addons.base.models.res_partner_bank import (
+from addons.base.models.res_bank import (
     ResPartnerBank,
     _supported_account_types,
 )

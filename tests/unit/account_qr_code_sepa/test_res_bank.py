@@ -36,7 +36,7 @@ from addons.account_qr_code_sepa.models.res_bank import (
     apply_account_qr_code_sepa_extensions,
 )
 from addons.base.models import ResBank, ResCurrency, ResPartner
-from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.base.models.res_bank import ResPartnerBank
 
 pytestmark = pytest.mark.django_db
 
