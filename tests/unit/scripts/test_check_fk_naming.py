@@ -115,3 +115,36 @@ class TestTheBaselineAbsorbsTheInheritedDebtAndOnlyThat:
         salida = capsys.readouterr().out
         assert 'alcance medido:' in salida
         assert 'formas:' in salida
+
+
+class TestItSeesTheAnnotatedFormOfTheReference:
+    """La referencia 19 declara el campo con anotación de tipo.
+
+    Positivo real, no fabricado: la línea es verbatim de
+    ``odoo19c: odoo/addons/base/models/res_partner.py:215``. Un recorrido que
+    sólo mire ``ast.Assign`` deja de ver la declaración en cuanto el porte
+    adopta esa forma — y su 0 no distingue *"no hay deuda"* de *"el
+    instrumento no la puede ver"*.
+
+    Qué haría fallar a este caso
+    ============================
+
+    Revertir la rama ``ast.AnnAssign`` de ``declarations``: el archivo pasa a
+    reportar 0 declaraciones y el conteo cae en silencio.
+    """
+
+    def test_an_annotated_declaration_is_measured(self, tmp_path):
+        path = tmp_path / 'res_partner.py'
+        path.write_text(
+            'from django.db import models\n'
+            'import fields\n'
+            '\n'
+            'class ResPartner(models.Model):\n'
+            "    parent_id: 'ResPartner' = fields.Many2one("
+            "'res.partner', string='Related Company', index=True)\n"
+            "    company = fields.Many2one('res.company')\n"
+        )
+
+        forms = {name: form for _k, name, form in gate.declarations(path)}
+
+        assert forms == {'parent_id': 'B', 'company': 'A'}

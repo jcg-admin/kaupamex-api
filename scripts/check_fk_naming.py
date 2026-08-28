@@ -82,7 +82,19 @@ def declarations(path):
         return
     for klass in [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]:
         for node in klass.body:
-            if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Call):
+            # La referencia 19 declara el campo CON anotación de tipo —
+            # ``parent_id: ResPartner = fields.Many2one(...)`` es un
+            # ``ast.AnnAssign``. Un recorrido que sólo mire ``ast.Assign`` deja
+            # de ver la declaración en cuanto el porte adopta esa forma, y
+            # publica un 0 que no distingue «no hay deuda» de «no puedo verla»
+            # (sub-patrón D de ``metrica-decide-la-conclusion.md``).
+            if isinstance(node, ast.Assign):
+                targets = node.targets
+            elif isinstance(node, ast.AnnAssign):
+                targets = [node.target]
+            else:
+                continue
+            if not isinstance(node.value, ast.Call):
                 continue
             func = node.value.func
             ctor = func.attr if isinstance(func, ast.Attribute) else getattr(func, 'id', '')
@@ -91,7 +103,7 @@ def declarations(path):
             store = _keyword(node.value, 'store')
             stored = not (isinstance(store, ast.Constant) and store.value is False)
             has_column = _keyword(node.value, 'db_column') is not None
-            for target in node.targets:
+            for target in targets:
                 if isinstance(target, ast.Name):
                     yield klass.name, target.id, classify(target.id, has_column, stored)
 
