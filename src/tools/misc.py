@@ -9,6 +9,7 @@ del símbolo — no se porta por completitud.
 Adaptado de Odoo Community ``odoo/tools/misc.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
+import enum
 import hmac as hmac_lib
 import re
 import typing
@@ -30,6 +31,21 @@ from lxml import etree
 # que las declara para los genéricos de esta misma familia de colecciones.
 K = typing.TypeVar('K')
 T = typing.TypeVar('T')
+
+# ``Sentinel``/``SENTINEL`` — el centinela de "parámetro no dado", verbatim de
+# la referencia (``odoo19c: odoo/tools/misc.py:131-136``). Se porta porque
+# ``tools.lru.LRU`` lo consume para distinguir "no hay default" de ``None``,
+# igual que allá: ``None`` es un valor legítimo de caché y no puede servir de
+# marca de ausencia.
+
+
+class Sentinel(enum.Enum):
+    """Clase para tipar parámetros cuyo default es un centinela."""
+    SENTINEL = -1
+
+
+SENTINEL = Sentinel.SENTINEL
+
 
 # ``consteq`` — comparación en tiempo constante.
 #

@@ -160,3 +160,39 @@ class AccessQuerySet(QuerySet):
 #: ``objects = AccessManager()``; ``RuleScopedManager`` hereda de él, así que
 #: los modelos que ya declaran ``scoped`` las tienen sin cambiar nada.
 AccessManager = Manager.from_queryset(AccessQuerySet)
+
+
+class OriginMixin:
+    """``_origin`` — el registro **guardado** del que este proviene.
+
+    ≙ ``BaseModel._origin`` (``odoo19c: odoo/orm/models.py:6462-6469``). Allá un
+    registro en formulario lleva un ``NewId`` cuyo ``.origin`` apunta a la fila
+    persistida; sobre registros ya reales el atributo devuelve ``self`` ("already
+    real records"). Es lo que permite a un ``@api.onchange`` comparar el valor
+    que el usuario acaba de teclear con el que hay en base.
+
+    **La divergencia, y es de forma** —la misma que declara la sección de
+    permisos de este archivo—: allá ``self`` es un recordset y el atributo
+    cuelga de ``BaseModel``, así que todo modelo lo tiene. Aquí ``models.Model``
+    es el de Django y no es nuestro para colgarle nada, así que el mecanismo es
+    un mixin que el modelo adopta —igual que ``objects = AccessManager()``— y
+    el eje que distingue "en formulario" de "guardado" no es el tipo del id
+    sino el estado de la instancia: los atributos en memoria frente a la fila.
+
+    Qué modelos lo adoptan, y en qué orden, es el mismo trabajo abierto que la
+    adopción de ``AccessManager``.
+    """
+
+    @property
+    def _origin(self):
+        """El registro tal como está en base, o ``self`` si no hay fila.
+
+        Sin ``pk`` no hay origen que traer —es el caso "already real records"
+        invertido: la fuente devuelve ``self`` cuando no hay nada que resolver,
+        y aquí tampoco lo hay—. Con ``pk``, la lectura va a la base y **no** se
+        memoriza: el sentido del atributo es justamente ver lo guardado, no lo
+        que esta instancia recuerda.
+        """
+        if self.pk is None:
+            return self
+        return type(self)._base_manager.using(self._state.db).get(pk=self.pk)

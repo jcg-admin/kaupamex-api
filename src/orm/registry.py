@@ -43,16 +43,97 @@ esto"*, sobre un modelo que declara ``_name`` y ``_description``. Vive en
 archivo propio**: tenerlo sería la divergencia de forma que :ref:`h-api-568`
 registra.
 """
+import logging
+
 from django.apps import apps
 from django.db import connections
 from django.db.models.signals import class_prepared
 from django.dispatch import receiver
 
+from tools.lru import LRU
+
+_logger = logging.getLogger('kaupamex.registry')
+
 __all__ = [
     'apps', 'connections',
     'MODELS_BY_NAME', 'name_of', 'model_by_name',
     'resolve_model_key', 'check_table_matches_name',
+    'clear_cache', 'clear_all_caches', 'cache_of', 'cache_invalidated',
 ]
+
+
+#: Tamaño de cada caché de método de modelo, verbatim de la referencia
+#: (``odoo19c: odoo/orm/registry.py:51-59``).
+_REGISTRY_CACHES = {
+    'default': 8192,
+    'assets': 512,
+    'stable': 1024,
+    'templates': 1024,
+    'routing': 1024,  # 2 entradas por sitio web
+    'routing.rewrites': 8192,  # entradas de url_rewrite
+    'templates.cached_values': 2048,  # arbitrario
+    'groups': 64,  # ver res.groups
+}
+
+#: Dependencias de invalidación, tal cual la referencia (``:64-71``):
+#: ``{ 'clave': ('contenedor_1', 'contenedor_3', ...) }``
+_CACHES_BY_KEY = {
+    'default': ('default', 'templates.cached_values'),
+    'assets': ('assets', 'templates.cached_values'),
+    'stable': ('stable', 'default', 'templates.cached_values'),
+    'templates': ('templates', 'templates.cached_values'),
+    'routing': ('routing', 'routing.rewrites', 'templates.cached_values'),
+    # el procesamiento de grupos se guarda en la vista
+    'groups': ('groups', 'templates', 'templates.cached_values'),
+}
+
+#: Los contenedores vivos. La referencia los cuelga de la instancia de
+#: ``Registry`` (``self.__caches``, ``:233``) porque allá hay un registry por
+#: base de datos; aquí el registry es el módulo —la dimensión por-DB la cubre
+#: el router de ``orm/routers.py``, como declara el encabezado— así que los
+#: contenedores son estado de módulo. Es la misma estructura, en el único
+#: singleton que este árbol tiene.
+_CACHES = {name: LRU(size) for name, size in _REGISTRY_CACHES.items()}
+
+#: Nombres de caché vaciados desde el último ciclo, ≙ ``Registry.cache_invalidated``
+#: (``odoo19c: odoo/orm/registry.py:238``). Lo consume la señal entre procesos.
+cache_invalidated = set()
+
+
+def cache_of(cache_name):
+    """El contenedor vivo de ``cache_name`` ≙ ``Registry.__caches[name]``."""
+    return _CACHES[cache_name]
+
+
+def clear_cache(*cache_names):
+    """Vacía las cachés de los métodos decorados con ``tools.ormcache`` cuyo
+    nombre esté en ``cache_names`` ≙ ``Registry.clear_cache``
+    (``odoo19c: odoo/orm/registry.py:971-987``).
+    """
+    cache_names = cache_names or ('default',)
+    assert not any('.' in cache_name for cache_name in cache_names)
+    for cache_name in cache_names:
+        for cache in _CACHES_BY_KEY[cache_name]:
+            _CACHES[cache].clear()
+        cache_invalidated.add(cache_name)
+
+    # información sobre la causa de la invalidación
+    if _logger.isEnabledFor(logging.DEBUG):
+        # podría interesar en info, pero antes hay que minimizar la
+        # invalidación, sobre todo en setup de tests y crons
+        _logger.debug('Invalidating %s model caches', ','.join(cache_names))
+
+
+def clear_all_caches():
+    """Vacía todas las cachés de los métodos decorados con ``tools.ormcache``
+    ≙ ``Registry.clear_all_caches`` (``odoo19c: odoo/orm/registry.py:989-1001``).
+    """
+    for cache_name, caches in _CACHES_BY_KEY.items():
+        for cache in caches:
+            _CACHES[cache].clear()
+        cache_invalidated.add(cache_name)
+
+    _logger.debug('Invalidating all model caches')
 
 
 #: ``'product.removal' -> <class ProductRemoval>``. Ver :func:`_ensure_seeded`
