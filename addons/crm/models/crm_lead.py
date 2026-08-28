@@ -572,8 +572,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             return
         user = self.user_id
         if self.team_id and (
-            self.team_id.members.filter(pk=user.pk).exists()
-            or self.team_id.leader_id == user.pk
+            self.team_id.member_ids.filter(pk=user.pk).exists()
+            or self.team_id.user_id_id == user.pk
         ):
             return
         field_name = 'use_leads' if self.type == self.TYPE_LEAD else 'use_opportunities'
@@ -1347,7 +1347,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """
         team_ids = set()
         if show_user_team_stages and user is not None:
-            team_ids |= set(CrmTeam.objects.filter(members=user).values_list('pk', flat=True))
+            team_ids |= set(CrmTeam.objects.filter(member_ids=user).values_list('pk', flat=True))
         if team_id:
             team_ids.add(team_id)
         presentes = Q(pk__in=[s.pk for s in stages])
@@ -1676,15 +1676,15 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             return
         userless = [lead for lead in leads if not lead.user_id_id and lead.team_id_id]
         for team, team_stages in groupby(userless, lambda lead: lead.team_id):
-            if not team or not team.leader_id:
+            if not team or not team.user_id_id:
                 continue
             for lead in team_stages:
-                lead.user_id_id = team.leader_id
+                lead.user_id_id = team.user_id_id
                 lead.save(update_fields=['user_id'])
                 lead.message_post(body=_(
                     'This new lead created by %(creation_source)s was automatically '
                     'assigned to team leader %(user_name)s'
-                ) % {'user_name': team.leader.name, 'creation_source': creation_source})
+                ) % {'user_name': team.user_id.name, 'creation_source': creation_source})
 
     def log_meeting(self, meeting):
         """≙ ``log_meeting`` (:1454-1477).

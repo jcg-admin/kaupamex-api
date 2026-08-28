@@ -1185,4 +1185,8 @@ base/models/res_users.py::ResUsersApikeys::init
 # Mismo rango que la fuente (1 a 11 inclusive) y mismo nombre; lo unico que
 # cambia es el sitio, y el sitio lo impone el serializador de migraciones.
 crm/models/crm_lead_scoring_frequency.py::CrmLeadScoringFrequencyField::_get_default_color
+#
+# Segunda entrada de la misma divergencia: `crm.tag` la comparte palabra por
+# palabra —mismo simbolo, mismo rango 1..11, mismo `default=` en el campo de
+# color— y por tanto el mismo impedimento del serializador de migraciones.
 sales_team/models/crm_tag.py::CrmTag::_get_default_color

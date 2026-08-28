@@ -148,3 +148,54 @@ class TestItSeesTheAnnotatedFormOfTheReference:
         forms = {name: form for _k, name, form in gate.declarations(path)}
 
         assert forms == {'parent_id': 'B', 'company': 'A'}
+
+
+class TestTheReferenceDecidesTheSymbolNotTheSuffix:
+    """El sufijo ``_id`` es el proxy; el criterio es lo que la fuente declara.
+
+    Positivo real del árbol, no fabricado:
+    ``addons/crm/models/crm_lead.py::CrmLead.recurring_plan``. La referencia lo
+    declara **sin** sufijo (``odoo19c: addons/crm/models/crm_lead.py:144``), así
+    que el porte fiel es el símbolo sin sufijo — y el proxy lo marcaba como
+    incumplidor, pidiendo apartarse de la referencia.
+
+    No es un caso suelto: medido sobre ``odoo19c``, **128 de 2692** ``Many2one``
+    (4.75 %) no llevan sufijo.
+
+    Qué haría fallar a estos casos
+    ==============================
+
+    Retirar la consulta a la contraparte de ``declarations``: ``recurring_plan``
+    vuelve a la forma D y reaparece como incumplidor nuevo. Es el control que
+    se corrió al cerrar #141 — sin la consulta, las formas medidas pasan de
+    ``A=637 B=13 C=99 D=5`` a ``A=650 B=0 C=98 D=6``.
+    """
+
+    def test_a_symbol_the_reference_declares_without_the_suffix_is_faithful(self):
+        assert gate.classify('recurring_plan', True,
+                             reference_names=frozenset({'recurring_plan'})) == 'C'
+
+    def test_the_same_symbol_without_the_reference_falls_back_to_the_suffix(self):
+        assert gate.classify('recurring_plan', True) == 'D'
+
+    def test_a_divergent_symbol_is_not_absolved_by_the_counterpart(self):
+        """``partner`` no está en la contraparte de ``crm_lead``; sigue siendo A."""
+        fieles = gate.reference_many2one(
+            pathlib.Path('addons/crm/models/crm_lead.py'))
+        assert 'recurring_plan' in fieles and 'partner' not in fieles
+        assert gate.classify('partner', False, reference_names=fieles) == 'A'
+
+    def test_the_real_declaration_is_measured_as_faithful(self):
+        path = REPO / 'addons' / 'crm' / 'models' / 'crm_lead.py'
+        forms = {name: form for _k, name, form in gate.declarations(path)}
+
+        assert forms['recurring_plan'] == 'C'
+
+    def test_a_faithful_symbol_without_db_column_is_still_an_offender(self):
+        """La consulta arregla el eje del símbolo, no absuelve el de la columna.
+
+        ``country_of_birth`` de ``hr.employee`` es de los 128: símbolo fiel,
+        pero sin ``db_column`` su columna sale ``country_of_birth_id``.
+        """
+        assert gate.classify('country_of_birth', False,
+                             reference_names=frozenset({'country_of_birth'})) == 'B'
