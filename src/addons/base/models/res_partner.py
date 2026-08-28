@@ -27,7 +27,7 @@ from base64 import b64encode
 from collections import defaultdict
 from random import randint
 from urllib.parse import urlsplit, urlunsplit
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 import fields
 import models
@@ -48,6 +48,75 @@ from tools.mail import (email_normalize_all, formataddr,
                         parse_contact_from_email)
 from tools.misc import OrderedSet, street_split
 from tools.translate import _
+
+
+# put POSIX 'Etc/*' entries at the end to avoid confusing users - see bug 1086728
+#
+# El comentario va verbatim de ``odoo19c: odoo/addons/base/models/res_partner.py:39``:
+# es el contrato del orden, no una nota de color. La lista y su invocable son
+# los dos simbolos que la fuente declara (``:40-42``), y ``_tz_get`` NO es
+# adorno — medido sobre ``odoo19c``, lo consumen 14 archivos / 30 referencias
+# (``lunch``, ``hr_holidays``, ``event``, ``resource``, ``mail``, ``website``,
+# ``calendar``, mas ``base``): es API compartida del arbol.
+#
+# DIVERGENCIA DE STACK, declarada: la fuente puebla la lista con
+# ``pytz.all_timezones`` y ``pytz`` NO esta instalado aqui (medido:
+# ``ModuleNotFoundError``). La poblacion sale de
+# ``zoneinfo.available_timezones()`` de la biblioteca estandar — 498 zonas en
+# este contenedor, 35 de ellas ``Etc/*``. Es la misma divergencia que
+# ``_compute_tz_offset`` ya declaraba para leer el desfase; aqui se aplica a
+# escribirlo, que es la mitad que faltaba.
+#
+# ``localtime`` se descarta, y NO es capricho. ``available_timezones()``
+# recorre ``TZPATH`` y admite todo archivo que empiece con la firma ``TZif``;
+# su propio codigo retira ``posixrules``, ``right/`` y ``posix/`` — y NO
+# ``localtime``, que en Debian es el enlace de la maquina
+# (``/usr/share/zoneinfo/localtime -> /etc/localtime -> Etc/UTC``, medido).
+# ``pytz.all_timezones`` no lo tiene: es una lista curada, no un barrido del
+# disco. Ofrecerlo en la Selection publicaria «la zona de este servidor», que
+# cambia de significado entre maquinas.
+_LOCAL_LINK = 'localtime'
+
+# La CLAVE del orden diverge de la fuente, y el motivo es medible. La fuente
+# ordena con ``tz if not tz.startswith('Etc/') else '_'``: todas las ``Etc/*``
+# colapsan a la misma clave, asi que su posicion RELATIVA la decide el orden de
+# entrada. Alli eso es determinista —``pytz.all_timezones`` es una LISTA con
+# orden fijo—; aqui ``available_timezones()`` devuelve un ``set``, cuyo
+# recorrido cambia entre procesos por la aleatorizacion del hash de cadenas.
+#
+# Medido: con la clave literal de la fuente, dos ``makemigrations`` seguidos
+# producen bloques ``Etc/*`` distintos (``Etc/GMT-4, Etc/GMT+6, Etc/GMT+1`` vs
+# ``Etc/GMT-12, Etc/GMT+3, Etc/GMT+5``), asi que ``makemigrations --check``
+# JAMAS quedaria limpio y CI pediria una migracion nueva en cada corrida.
+#
+# La clave de tupla conserva el contrato observable —todas las ``Etc/*`` al
+# final, que es lo que el comentario de la fuente fija— y ademas las ordena
+# entre si. Es un superconjunto de la garantia, no una divergencia de conducta.
+_tzs = [(tz, tz) for tz in sorted(available_timezones() - {_LOCAL_LINK},
+                                  key=lambda tz: (tz.startswith('Etc/'), tz))]
+
+
+def _tz_get(self):
+    """La poblacion de zonas — ≙ ``_tz_get`` (``odoo19c: res_partner.py:41-42``).
+
+    Recibe ``self`` y lo ignora, como la fuente: alli es un metodo suelto que
+    el ``Selection`` invoca con el recordset. Se conserva la firma porque los
+    14 archivos que lo importan lo llaman asi.
+    """
+    return _tzs
+
+
+def _default_tz():
+    """El ``default`` del campo ``tz`` — ≙ ``lambda self: self.env.context.get('tz')``.
+
+    Funcion con nombre y NO un ``lambda``: el serializador de migraciones de
+    Django rehusa con ``ValueError: Cannot serialize function: lambda``
+    (``django/db/migrations/serializer.py:192``), asi que un invocable anonimo
+    aqui deja el modelo sin migracion posible. Medido al intentarlo.
+
+    Cae a ``''`` y no a ``None`` porque la columna es NOT NULL en este arbol.
+    """
+    return get_context().get('tz') or ''
 
 
 class ResPartner(AvatarMixin, TimeStampedModel):
@@ -337,9 +406,29 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         max_length=16, blank=True, default='',
         help_text='Idioma preferido (Odoo lang).',
     )
+    # ≙ ``tz = fields.Selection(_tzs, string='Timezone', ...)``
+    # (``odoo19c: res_partner.py:223``). El ``help`` va verbatim de la fuente.
+    #
+    # ``default`` — la fuente usa ``lambda self: self.env.context.get('tz')``;
+    # aqui el mecanismo equivalente ya existe (``orm.environments.get_context``),
+    # asi que se porta en vez de dejarlo en blanco. Cae a ``''`` y no a ``None``
+    # porque la columna es NOT NULL en este arbol.
+    #
+    # LO QUE ESTO NO CIERRA: ``choices`` en Django es **validacion, no DDL** —
+    # el mismo hecho que desbloqueo la tarea #118. PostgreSQL no recibe ningun
+    # ``CHECK``, asi que un ``objects.create(tz='No/Existe')`` sigue escribiendo
+    # la fila y solo ``full_clean()`` la rechaza. Por eso el respaldo a GMT de
+    # ``_compute_tz_offset`` se queda: cubre el dato viejo y la escritura que
+    # esquiva la validacion.
     tz          = fields.Char(
-        max_length=64, blank=True, default='',
-        help_text='Zona horaria (Odoo tz).',
+        max_length=64, blank=True, choices=_tzs,
+        default=_default_tz,
+        verbose_name='Timezone',
+        help_text='When printing documents and exporting/importing data, time '
+                  'values are computed according to this timezone. If the '
+                  'timezone is not set, UTC (Coordinated Universal Time) is '
+                  'used. Anywhere else, time values are computed according to '
+                  'the time offset of your web client (Odoo tz).',
     )
     comment     = fields.Text(blank=True, default='')
 
@@ -1788,18 +1877,19 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         ``ModuleNotFoundError``). Se usa ``zoneinfo`` de la biblioteca
         estandar, que da el mismo ``%z``.
 
-        DIVERGENCIA DE ESQUEMA, y esta si cambia la conducta: la fuente
-        declara ``tz`` como **Selection** acotada a ``pytz.all_timezones``
-        (``:223``), asi que una zona invalida es imposible por construccion y
-        ``pytz.timezone`` nunca recibe basura. Aqui ``tz`` es un
-        ``fields.Char`` libre, asi que SI puede llegar basura de un dato
-        viejo — y ``ZoneInfo`` levantaria ``ZoneInfoNotFoundError`` al LEER
-        el partner, no al escribirlo.
+        El respaldo a GMT se queda, y ahora por una razon MAS ESTRECHA que
+        antes. La tarea **#107** ya acoto ``tz`` a la Selection de la fuente
+        (``choices=_tzs``), pero eso **no** hace imposible la basura: en
+        Django ``choices`` es **validacion, no DDL** —el mismo hecho que
+        desbloqueo la tarea #118—, asi que PostgreSQL no recibe ningun
+        ``CHECK`` y un ``objects.create(tz='No/Existe')`` escribe la fila.
+        Solo ``full_clean()`` la rechaza.
 
-        Por eso se cae a GMT en vez de propagar: no es inventar una conducta
-        que la fuente no tiene, es cubrir un caso que su esquema hace
-        imposible y el nuestro no. Cerrar la divergencia —acotar ``tz`` a una
-        Selection como la fuente— es la tarea **#107**.
+        Quedan por tanto dos vias por las que una zona invalida llega hasta
+        aqui: un dato anterior al acotamiento, y una escritura que no pase por
+        ``full_clean()``. Cualquiera de las dos levantaria
+        ``ZoneInfoNotFoundError`` al **LEER** el partner, no al escribirlo —
+        que es el peor sitio donde puede reventar.
         """
         try:
             zona = ZoneInfo(self.tz or 'GMT')
