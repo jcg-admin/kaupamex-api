@@ -43,10 +43,20 @@ da ``False`` en ``hasattr(models.ForeignKey, 'join')``.
 ``Many2many`` **no** lleva el despachador: ``grep -rn "Many2many(" ``
 sobre ``odoo19c:`` no arroja ninguna declarada ``store=False`` con ``compute``
 sin almacenar en la familia ``base``, así que dárselo sería construir para un
-caso que no existe.
+caso que no existe. Tampoco lleva ``company_dependent``: ``many2many`` no está
+en la lista cerrada de tipos que la fuente admite
+(``odoo19c: odoo/orm/fields.py:42-44``) — un ``jsonb`` guarda un valor por
+empresa, no una tabla intermedia.
+
+``company_dependent`` — el destino que cambia con la empresa (tarea #129)
+=========================================================================
+
+``Many2one`` sí lo lleva, y es el tipo que más lo usa en la referencia: **35**
+de las 54 declaraciones de producto. Ver la rama en :func:`Many2one`.
 """
 from django.db import models
 
+from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import NonStored
 from tools.sql import SQL
 
@@ -56,8 +66,25 @@ One2many = None                       # reverso de FK (related_name)
 Many2many = models.ManyToManyField
 
 
-def Many2one(*args, store=True, **kwargs):
-    """``fields.Many2one`` — ≙ el de la referencia, con y sin columna.
+def _comodel_label(to):
+    """La etiqueta ``app.Modelo`` del destino de una FK, venga como venga.
+
+    ``registry.many2one_company_dependents`` indexa por ``_meta.label``, así
+    que el comodelo hay que guardarlo con esa forma. Django admite el destino
+    como cadena (``'base.ResPartner'``), como clase, o como
+    ``'self'``; los tres se normalizan aquí para que el catálogo no tenga que
+    saber cuál se usó en la declaración.
+
+    ``'self'`` se conserva verbatim: en el momento de construir el campo la
+    clase todavía no existe, y quien lo resuelve es la carga del modelo.
+    """
+    if to is None or isinstance(to, str):
+        return to
+    return to._meta.label
+
+
+def Many2one(*args, store=True, company_dependent=False, **kwargs):
+    """``fields.Many2one`` — ≙ el de la referencia: con columna, sin ella o por empresa.
 
     ``store=True`` (el defecto, y el de todos los usos previos del árbol)
     devuelve un ``models.ForeignKey`` con la firma de Django, exactamente como
@@ -68,7 +95,54 @@ def Many2one(*args, store=True, **kwargs):
     lo que la referencia promete con un ``compute`` sin ``store``. El primer
     argumento posicional —el modelo apuntado— se acepta y se descarta, igual
     que ``NonStored`` descarta el resto de la firma de Django.
+
+    ``company_dependent=True`` — el destino depende de la empresa
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Tercera rama, con la firma de la fuente::
+
+        property_account_payable_id = fields.Many2one(
+            'account.account', company_dependent=True)
+
+    Es **el tipo más usado** de la referencia con esa palabra clave: 35 de las
+    54 declaraciones de producto (``odoo19c``, medido por AST). Devuelve un
+    :class:`~orm.fields_company_dependent.CompanyDependent` de
+    ``base_type='many2one'``, cuya columna guarda ``{empresa: id}``.
+
+    **Deja de haber FK real, y eso es del mecanismo, no de la adaptación.**
+    Allá pasa igual: el valor vive dentro del ``jsonb``, así que el catálogo de
+    claves foráneas de PostgreSQL no ve la referencia y nadie la protege con
+    ``ON DELETE``. Por eso la fuente lleva un índice propio —
+    ``Registry.many2one_company_dependents``, portado en
+    ``orm/registry.py``— y por eso el comodelo se guarda en el campo: es lo
+    único que queda para responder *"¿quién apunta a este modelo?"*.
+
+    Los argumentos que sólo tienen sentido en una FK real —``on_delete``,
+    ``related_name``— se descartan aquí: sin FK no hay nada que cascadear ni
+    accesor inverso que nombrar. Descartarlos en silencio sería el defecto que
+    ``porte-completo-no-parcial.md`` prohíbe, así que quedan declarados.
     """
+    if company_dependent:
+        if not store:
+            raise ValueError(
+                'store=False y company_dependent=True son excluyentes: un '
+                'campo sin columna no tiene jsonb donde repartir el valor.')
+        to = args[0] if args else kwargs.pop('to', None)
+        resto = args[1:]                       # el ``on_delete`` posicional
+        if to is None:
+            raise ValueError(
+                'un Many2one dependiente de empresa necesita su modelo '
+                'destino: es lo único que queda para indexarlo, porque el '
+                'jsonb no deja FK que el catálogo pueda seguir.')
+        for solo_fk in ('on_delete', 'related_name', 'limit_choices_to',
+                        'to_field', 'db_constraint'):
+            kwargs.pop(solo_fk, None)
+        if resto:
+            # ``Many2one('x', models.CASCADE)`` — el segundo posicional es el
+            # ``on_delete`` de Django, que aquí tampoco tiene destinatario.
+            resto = ()
+        return CompanyDependent(*resto, base_type='many2one',
+                                comodel=_comodel_label(to), **kwargs)
     if store:
         return models.ForeignKey(*args, **kwargs)
     return NonStored(*args, **kwargs)

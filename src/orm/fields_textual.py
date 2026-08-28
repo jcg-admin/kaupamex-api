@@ -17,11 +17,19 @@ devuelve un :class:`~orm.fields_nonstored.NonStored`. El sitio de declaración
 queda **idéntico al de la fuente**, que es el punto — la alternativa era
 repartir en el cableado de cada addon lo que la referencia declara en la clase.
 
-``Text`` sigue siendo alias directo y ``Html`` es una **subclase** con identidad
-propia (H-API-700); ninguno lleva el despachador de ``store``: ``grep -rn
+``Text`` y ``Html`` **no** llevan el despachador de ``store``: ``grep -rn
 "Text(store=False\\|Html(store=False)"`` sobre ``odoo19c:`` da **0** — la
-referencia no declara ninguno sin almacenar, así que darles el despachador
-sería construir para un caso que no existe.
+referencia no declara ninguno sin almacenar, así que darles esa rama sería
+construir para un caso que no existe.
+
+``company_dependent`` — los tres lo llevan (tarea #129)
+========================================================
+
+Los tres tipos textuales están en ``COMPANY_DEPENDENT_FIELDS``, así que los
+tres despachan: ``Char`` con su rama propia (tiene además ``store`` y
+``translate``), ``Text`` con :func:`~orm.fields_company_dependent.make_dispatcher`
+y ``Html`` con un ``__new__`` — no puede ser una función porque
+``tools/convert.py`` la usa en un ``isinstance`` (H-API-700).
 
 ``Html`` — identidad de clase sin cambiar la columna (H-API-700)
 =================================================================
@@ -46,12 +54,12 @@ antes; la clase sólo aporta el tipo.
 """
 from django.db import models
 
-from orm.fields_company_dependent import CompanyDependent
+from orm.fields_company_dependent import CompanyDependent, make_dispatcher
 from orm.fields_nonstored import NonStored
 
 __all__ = ['Char', 'Text', 'Html']
 
-Text = models.TextField
+Text = make_dispatcher('Text', 'text', models.TextField)
 
 
 class Html(models.TextField):
@@ -62,6 +70,25 @@ class Html(models.TextField):
     campo HTML de un ``Text`` en runtime. Sin saneo (capa UI) y sin columna
     propia (sigue ``TEXT``).
     """
+
+    def __new__(cls, *args, company_dependent=False, **kwargs):
+        """Despacha a ``CompanyDependent`` sin dejar de ser una clase.
+
+        ``Html`` no puede ser una función como los otros ocho despachadores:
+        ``tools/convert.py:969`` hace ``isinstance(campo, Html)`` para
+        distinguir un campo HTML de un ``Text`` en runtime (H-API-700), y una
+        función no es un tipo. La bifurcación va en ``__new__``, que sí la
+        admite: cuando devuelve una instancia que **no** es de ``cls``, Python
+        no llama a ``__init__`` — así el ``CompanyDependent`` queda construido
+        por su propio constructor y no por el de ``TextField``.
+        """
+        if company_dependent:
+            return CompanyDependent(*args, base_type='html', **kwargs)
+        return super().__new__(cls)
+
+    def __init__(self, *args, company_dependent=False, **kwargs):
+        """Traga la palabra clave — la rama ya la resolvió :meth:`__new__`."""
+        super().__init__(*args, **kwargs)
 
     def deconstruct(self):
         """Deconstruye como ``django.db.models.TextField``.

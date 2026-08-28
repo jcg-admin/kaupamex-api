@@ -64,21 +64,58 @@ excluye**: ``COMPANY_DEPENDENT_FIELDS`` de la referencia
 ``html`` — ninguno es un dict. No es una heurística sobre datos arbitrarios:
 es una partición sobre una lista cerrada que la fuente declara.
 
-Alcance: la clase es genérica, el despachador todavía no
+Alcance: los diez tipos, con su despachador (tarea #129)
 ========================================================
 
 La clase acepta cualquiera de los diez tipos —recibe el campo base y de él
-saca el tipo de columna para el ``CAST``—. Lo que **no** está cableado son
-nueve de los diez despachadores: hoy sólo ``Char`` lo es, que es el que tiene
-consumidor (``res.partner.barcode``). Los otros nueve —``Text``, ``Integer``,
-``Float``, ``Boolean``, ``Date``, ``Datetime``, ``Selection``, ``Html``,
-``Many2one``— son alias pelados de Django (``Text = models.TextField``), y
-convertirlos en funciones es un cambio ancho sin ningún campo que lo pida.
+saca el tipo de columna para el ``CAST``—, y **los diez despachadores están
+cableados**: ``Char``, ``Text``, ``Html``, ``Integer``, ``Float``,
+``Boolean``, ``Date``, ``Datetime``, ``Selection`` y ``Many2one``.
 
-No es una divergencia declarada: es **trabajo con sucesor registrado**,
-tarea **#129**. Se paga cuando un campo de esos tipos se declare
-``company_dependent``, que es el mismo criterio prospectivo de
-``atributos-de-clase-de-modelo.md``.
+Hasta la tarea #129 sólo lo estaba ``Char``, y el argumento escrito aquí era
+que los otros nueve *"no tienen ningún campo que lo pida"*. Eso describía
+**nuestro** árbol, no la referencia — que es exactamente la inversión que
+``referencia-odoo-gobierna-las-decisiones.md`` prohíbe. Medido por AST sobre
+``odoo19c``, excluyendo los archivos de prueba: **54** declaraciones
+``company_dependent=True`` en código de producto, repartidas así:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Tipo
+     - Declaraciones
+     - Ejemplo de la fuente
+   * - ``Many2one``
+     - 35
+     - ``account/models/partner.py:543`` — ``property_account_payable_id``
+   * - ``Selection``
+     - 7
+     - ``analytic/models/analytic_plan.py:77`` — ``default_applicability``
+   * - ``Boolean``
+     - 4
+     - ``account/models/partner.py:573`` — ``ignore_abnormal_invoice_date``
+   * - ``Char``
+     - 3
+     - ``base/models/res_partner.py:309`` — ``barcode``
+   * - ``Float``
+     - 3
+     - ``product/models/product_product.py:62`` — ``standard_price``
+   * - ``Integer``
+     - 1
+     - ``purchase/models/res_partner.py:43`` — ``reminder_date_before_receipt``
+
+*Métrica:* llamadas con la palabra clave ``company_dependent`` halladas por
+``ast.walk`` sobre los ``.py`` de ``odoo19c`` cuya ruta no contiene ``test``.
+La fila ``?`` del conteo —una— es ``odoo/orm/model_classes.py:410``, donde la
+fuente construye el campo por reflexión y no lo declara; por eso 35+7+4+3+3+1
+suman 53 y el total es 54.
+*Ciega a:* las declaraciones que llegan por herencia sin repetir la palabra
+clave, y a ``Text``, ``Date``, ``Datetime`` y ``Html``, que la fuente sólo
+declara en sus addons de prueba (``odoo/addons/test_orm``) — ésos van con
+despachador igual: la lista cerrada de tipos es de la fuente, no del uso.
+
+El cableado de cada uno de esos **54 campos** en su addon es trabajo de su
+porte, con su migración: tarea **#135**.
 
 Este archivo NO existe en la referencia
 =======================================
@@ -102,7 +139,8 @@ from django.db.models.query_utils import DeferredAttribute
 from orm.environments import get_current_company
 from tools.sql import SQL
 
-__all__ = ['COMPANY_DEPENDENT_FIELDS', 'CompanyDependent']
+__all__ = ['COMPANY_DEPENDENT_FIELDS', 'CompanyDependent',
+           'make_dispatcher']
 
 #: ≙ ``COMPANY_DEPENDENT_FIELDS`` (``odoo19c: odoo/orm/fields.py:42-44``). Los
 #: diez tipos que la fuente admite; declararlo en otro tipo es un aviso allá.
@@ -366,3 +404,56 @@ class CompanyDependent(models.JSONField):
                 f'{type(value).__name__}. Asigne por el atributo para escribir '
                 f'el valor de la empresa activa.')
         return value
+
+
+def make_dispatcher(name, base_type, plain, extra_doc=''):
+    """Construye el despachador de ``company_dependent`` de un tipo escalar.
+
+    Los nueve tipos que no son ``Char`` eran alias pelados de Django
+    (``Text = models.TextField``): pasarles ``company_dependent=True`` daba un
+    ``TypeError`` del constructor de Django, así que el sitio de declaración
+    de la fuente **no se podía copiar**. El despachador lo cierra: con la
+    palabra clave devuelve un :class:`CompanyDependent` del ``base_type``
+    correspondiente, y sin ella devuelve exactamente el campo de Django de
+    antes.
+
+    Se fabrica en vez de escribirse nueve veces porque los nueve cuerpos son
+    idénticos salvo el par ``(base_type, plain)``: nueve copias serían nueve
+    sitios donde una corrección puede quedarse a medias. ``Char`` y
+    ``Many2one`` **no** lo usan — tienen ramas propias (``store``,
+    ``translate``, el comodelo) que no son de este molde.
+
+    :param name: el nombre público, para que el ``repr`` y el traceback digan
+        ``Integer`` y no ``dispatcher``.
+    :param base_type: uno de :data:`COMPANY_DEPENDENT_FIELDS`.
+    :param plain: la clase de Django que se devuelve sin la palabra clave.
+    :param extra_doc: párrafo propio del tipo, que se añade al docstring.
+    """
+    if base_type not in COMPANY_DEPENDENT_FIELDS:
+        raise ValueError(
+            f'{base_type!r} no es uno de {COMPANY_DEPENDENT_FIELDS}')
+
+    def dispatcher(*args, company_dependent=False, **kwargs):
+        if company_dependent:
+            return CompanyDependent(*args, base_type=base_type, **kwargs)
+        return plain(*args, **kwargs)
+
+    dispatcher.__name__ = name
+    dispatcher.__qualname__ = name
+    dispatcher.__doc__ = (
+        f'``fields.{name}`` — ≙ el de la referencia, escalar o por empresa.\n'
+        f'\n'
+        f'Sin ``company_dependent`` devuelve un ``{plain.__module__}.'
+        f'{plain.__name__}``, exactamente como el alias que reemplaza. Con\n'
+        f'``company_dependent=True`` devuelve un\n'
+        f':class:`~orm.fields_company_dependent.CompanyDependent` de\n'
+        f'``base_type={base_type!r}``: columna ``jsonb`` con\n'
+        f'``{{empresa: valor}}`` y lectura por la empresa activa.\n'
+        f'{extra_doc}')
+    #: El tipo base que este despachador construye — lo lee el gate de porte
+    #: y el test, para no depender de leer el cuerpo.
+    dispatcher.company_dependent_base_type = base_type
+    #: La clase de Django que devuelve sin la palabra clave; hace medible que
+    #: el alias no cambió.
+    dispatcher.plain_field_class = plain
+    return dispatcher

@@ -175,5 +175,7 @@ class TestRegistryContainer:
             registry.many2one_company_dependents('base.ResPartner'), list)
 
     def test_no_many2one_is_company_dependent_yet(self):
-        # Tarea #129: los nueve despachadores restantes.
+        # El despachador de Many2one existe desde #129; el vacio es de
+        # dato: ningun campo de ``base`` lo declara todavia. Los 54 de la
+        # referencia se cablean en la tarea #135.
         assert registry.many2one_company_dependents('base.ResPartner') == []

@@ -13,6 +13,8 @@ Cinco bloques:
 3. **El descriptor** — la indirección de lectura y de escritura por empresa.
 4. **``to_sql``** — el ``COALESCE`` con el ``CAST``, y su control anulado.
 5. **El fallback de ``ir.default``** — la empresa sin valor propio.
+6. **Los diez despachadores** (tarea #129) — uno por cada tipo de la lista
+   cerrada, con el control que delata si el alias de Django cambió.
 """
 import pytest
 from django.db import models
@@ -21,8 +23,9 @@ import fields
 from addons.base.models import ResCompany, ResPartner
 from orm.environments import company_scope, get_current_company
 from orm.fields_company_dependent import (COMPANY_DEPENDENT_FIELDS,
-                                          CompanyDependent)
+                                          CompanyDependent, make_dispatcher)
 from orm.fields_nonstored import NonStored
+from orm.fields_textual import Html
 
 
 class TestDispatcher:
@@ -190,3 +193,117 @@ class TestPerCompanyIndirection:
             assert recovered.barcode == 'PERSISTE'
         with company_scope(second.pk):
             assert recovered.barcode is None
+
+
+class TestTenDispatchers:
+    """Los diez tipos de la lista cerrada despachan — tarea #129.
+
+    Hasta esta tarea sólo ``Char`` lo hacía; los otros nueve eran alias pelados
+    de Django y ``fields.Integer(company_dependent=True)`` moría con un
+    ``TypeError`` del constructor de Django. La lista de tipos es de la fuente
+    (``odoo19c: odoo/orm/fields.py:42-44``), así que el despachador va en los
+    diez y no en los que hoy tienen consumidor.
+    """
+
+    #: ``(nombre en fields, base_type, clase de Django sin la palabra clave)``.
+    DISPATCHERS = [
+        ('Char', 'char', models.CharField),
+        ('Text', 'text', models.TextField),
+        ('Html', 'html', models.TextField),
+        ('Integer', 'integer', models.IntegerField),
+        ('Float', 'float', models.FloatField),
+        ('Boolean', 'boolean', models.BooleanField),
+        ('Date', 'date', models.DateField),
+        ('Datetime', 'datetime', models.DateTimeField),
+        ('Selection', 'selection', models.CharField),
+    ]
+
+    @pytest.mark.parametrize('name,base_type,_plain', DISPATCHERS)
+    def test_the_keyword_returns_a_company_dependent(self, name, base_type,
+                                                     _plain):
+        field = getattr(fields, name)(company_dependent=True)
+        assert isinstance(field, CompanyDependent)
+
+    @pytest.mark.parametrize('name,base_type,_plain', DISPATCHERS)
+    def test_the_base_type_is_the_one_of_the_declared_field(self, name,
+                                                            base_type, _plain):
+        assert getattr(fields, name)(
+            company_dependent=True).base_type == base_type
+
+    @pytest.mark.parametrize('name,_base_type,plain', DISPATCHERS)
+    def test_without_the_keyword_the_field_is_the_django_one_of_before(
+            self, name, _base_type, plain):
+        # CONTROL que puede fallar: es el que delata que el despachador cambió
+        # el alias. Sin él, envolver ``Integer`` en una función y devolver otra
+        # cosa pasaría inadvertido hasta la primera migración.
+        field = getattr(fields, name)()
+        assert type(field) is plain or isinstance(field, plain)
+
+    def test_the_ten_cover_the_closed_list_of_the_reference(self):
+        cubiertos = {b for _n, b, _p in self.DISPATCHERS}
+        cubiertos.add('many2one')                  # rama propia, ver abajo
+        assert cubiertos == set(COMPANY_DEPENDENT_FIELDS)
+
+    def test_html_keeps_its_type_identity(self):
+        # H-API-700: ``tools/convert.py`` hace ``isinstance(field_obj, Html)``, así
+        # que ``Html`` no puede ser una función. Su rama va en ``__new__``.
+        assert isinstance(fields.Html(), Html)
+
+    def test_a_company_dependent_html_is_no_longer_an_html_instance(self):
+        # Y no debe serlo: la columna ya no es ``TEXT`` sino ``jsonb``.
+        assert not isinstance(fields.Html(company_dependent=True), Html)
+
+    def test_the_factory_rejects_a_type_outside_the_closed_list(self):
+        with pytest.raises(ValueError, match='no es uno de'):
+            make_dispatcher('Binary', 'binary', models.BinaryField)
+
+    def test_the_dispatcher_keeps_its_public_name(self):
+        # El ``repr`` y el traceback dicen ``Integer``, no ``dispatcher``.
+        assert fields.Integer.__name__ == 'Integer'
+
+
+class TestMany2oneDispatcher:
+    """``Many2one`` tiene rama propia: el comodelo hay que guardarlo."""
+
+    def test_the_keyword_returns_a_company_dependent(self):
+        field = fields.Many2one('base.ResPartner', company_dependent=True)
+        assert isinstance(field, CompanyDependent)
+        assert field.base_type == 'many2one'
+
+    def test_the_comodel_is_kept_from_a_string(self):
+        field = fields.Many2one('base.ResPartner', company_dependent=True)
+        assert field.company_dependent_comodel == 'base.ResPartner'
+
+    def test_the_comodel_is_kept_from_a_class(self):
+        field = fields.Many2one(ResPartner, company_dependent=True)
+        assert field.company_dependent_comodel == 'base.ResPartner'
+
+    def test_without_a_target_it_refuses(self):
+        # Sin FK real el comodelo es lo único que queda para indexarlo; sin él
+        # ``many2one_company_dependents`` no puede responder.
+        with pytest.raises(ValueError, match='modelo \\ndestino|modelo destino'):
+            fields.Many2one(company_dependent=True)
+
+    def test_the_foreign_key_only_arguments_are_dropped(self):
+        # ``on_delete`` no tiene destinatario: el jsonb no deja FK que
+        # cascadear. Se descarta declarado, no en silencio.
+        field = fields.Many2one(
+            'base.ResPartner', on_delete=models.CASCADE,
+            related_name='irrelevante', company_dependent=True)
+        assert isinstance(field, CompanyDependent)
+
+    def test_the_positional_on_delete_is_dropped_too(self):
+        field = fields.Many2one(
+            'base.ResPartner', models.CASCADE, company_dependent=True)
+        assert isinstance(field, CompanyDependent)
+        assert field.company_dependent_comodel == 'base.ResPartner'
+
+    def test_store_false_and_company_dependent_are_exclusive(self):
+        with pytest.raises(ValueError, match='excluyentes'):
+            fields.Many2one(
+                'base.ResPartner', store=False, company_dependent=True)
+
+    def test_without_the_keyword_it_is_still_a_foreign_key(self):
+        field = fields.Many2one(
+            'base.ResPartner', on_delete=models.CASCADE)
+        assert isinstance(field, models.ForeignKey)
