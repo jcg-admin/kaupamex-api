@@ -679,23 +679,135 @@ class IrActionsServer(IrActionsBase):
             'res_id': cron.pk,
         }
 
+    @classmethod
+    def _warning_depends(cls):
+        """≙ ``_warning_depends`` (``odoo19c: ir_actions.py:744-757``).
+
+        Los nombres de los que ``warning`` depende. Se declaran **con los
+        nombres de la fuente**, incluidos los de campos que este árbol aún no
+        tiene: la lista es el contrato de dependencia, y recortarla escondería
+        qué falta. Los que no existen aquí no se recalculan porque no hay quien
+        los escriba, no porque la lista los omita.
+        """
+        return [
+            'state',
+            'model_id',
+            'group_ids',
+            'parent_id',
+            'child_ids.warning',
+            'child_ids.model_id',
+            'child_ids.group_ids',
+            'update_path',
+            'update_field_type',
+            'evaluation_type',
+            'webhook_field_ids',
+        ]
+
+    def _get_warning_messages(self, seen=None):
+        """≙ ``_get_warning_messages`` (``odoo19c: ir_actions.py:761-799``).
+
+        Los motivos por los que esta acción está mal configurada, uno por
+        mensaje. La fuente tiene **seis** ramas; aquí se portan las dos que
+        tienen receptor, y las otras cuatro están medidas abajo con su
+        desenlace — ninguna se omite en silencio.
+
+        Portadas
+        ========
+
+        1. **El modelo de una hija no coincide** con el del padre. Aquí la
+           comparación es sobre ``model_name`` (``Char``) en vez de sobre la FK
+           ``model_id``; la conversión a FK es la tarea **#139** y no cambia
+           esta rama, sólo el tipo del lado que compara.
+        2. **Alguna hija trae aviso.** Es la rama recursiva —``recursive=True``
+           en el campo de la fuente— y es la que ``_check_children`` consume.
+
+        Con desenlace declarado
+        =======================
+
+        3. ``group_ids`` — **divergencia de mecanismo, no bloqueo**: aquí la
+           autorización efectiva es por CAPACIDAD (DEC-11, ``HasCapability``,
+           fail-closed), no una lista de grupos colgada del registro. Es la
+           misma divergencia que ``ir.model.access`` declara. Portar la columna
+           no cambiaría quién decide, así que la rama no tiene qué comparar.
+        4. ``update_path`` con campo ``Json`` — BLOQUEADO por ``update_path``,
+           que es campo del modo ``object_write``. Sucesor: tarea **#117**.
+        5. ``evaluation_type == 'sequence'`` — BLOQUEADO por
+           ``evaluation_type``. Sucesor: tarea **#117**.
+        6. ``webhook_field_ids`` con campo restringido por grupo — BLOQUEADO
+           por ``webhook_field_ids``. Sucesor: tarea **#117**.
+
+        :param seen: los ids ya visitados, para que la recursión de la rama 2
+            no se cuelgue si alguien dejó un ciclo en la base. La fuente no lo
+            necesita porque su ``recursive=True`` lo resuelve el ORM; aquí el
+            recorrido es nuestro y la parada también.
+        """
+        seen = set() if seen is None else seen
+        if self.pk in seen:
+            return []
+        seen = seen | {self.pk}
+
+        warnings = []
+        children = list(self.child_ids.all()) if self.pk else []
+
+        if self.model_name:
+            children_with_different_model = [
+                child for child in children
+                if child.model_name != self.model_name]
+            if children_with_different_model:
+                warnings.append(
+                    'Las siguientes acciones hijas deberían tener el mismo '
+                    'modelo (%s): %s'
+                    % (self.model_name,
+                       ', '.join(child.name
+                                 for child in children_with_different_model)))
+
+        children_with_warnings = [
+            child for child in children
+            if child._get_warning_messages(seen)]
+        if children_with_warnings:
+            warnings.append(
+                'Las siguientes acciones hijas tienen avisos: %s'
+                % ', '.join(child.name for child in children_with_warnings))
+
+        return warnings
+
+    def _compute_warning(self):
+        """≙ ``_compute_warning`` (``odoo19c: ir_actions.py:804-810``).
+
+        Une los motivos con línea en blanco, o deja el campo en falso. El
+        ``False`` —y no la cadena vacía— es de la fuente y es lo que hace que
+        ``child_ids.filtered('warning')`` seleccione sólo a las que avisan.
+        """
+        warnings = self._get_warning_messages()
+        return '\n\n'.join(warnings) if warnings else False
+
+    #: ≙ ``warning`` (``odoo19c: ir_actions.py:639``):
+    #: ``fields.Text(compute='_compute_warning', recursive=True)``.
+    #:
+    #: Es **no persistido**, como allá: se calcula al leerlo y no tiene
+    #: columna. El mecanismo es ``orm.fields_nonstored.NonStored``, que este
+    #: árbol construyó para el ``store=False`` de la referencia. Se declara
+    #: con ``fields.NonStored`` y no con ``fields.Text(store=False, …)``
+    #: porque ``Text`` no acepta ese parámetro en este árbol —sólo ``Char`` lo
+    #: despacha—; el efecto es el mismo y el sitio, el de la fuente.
+    warning = fields.NonStored(
+        default=lambda action: action._compute_warning(),
+        help_text='Odoo warning. Por qué esta acción está mal configurada.',
+    )
+
     def _check_children(self):
-        """≙ ``_check_children`` (``odoo19c: ir_actions.py:968-973``), su
-        mitad portable.
+        """≙ ``_check_children`` (``odoo19c: ir_actions.py:967-973``), entero.
 
-        Mensaje de la fuente, verbatim: *"Recursion found in child server
-        actions"*. El modo ``multi`` existe **para** encadenar, asi que la
-        guarda tiene que distinguir una cadena legitima de un ciclo: recorre
-        hacia arriba y para cuando se repite.
+        Las **dos** mitades de la fuente, con sus mensajes:
 
-        Sin ella, ``_run_action_multi`` —que itera ``child_ids`` y llama
-        ``run()`` en cada hija— no tendria condicion de parada.
-
-        **La segunda mitad NO se porta:** BLOQUEADO por ``warning`` — el
-        computado que avisa de una hija mal configurada. Cuelga de
-        ``_compute_warning`` y de los campos del CRUD, que son el motor
-        declarado divergente en el docstring del modulo. Sucesor: tarea
-        **#116**.
+        - *"Recursion found in child server actions"* — el modo ``multi``
+          existe **para** encadenar, así que la guarda tiene que distinguir una
+          cadena legítima de un ciclo: recorre hacia arriba y para cuando se
+          repite. Sin ella, ``_run_action_multi`` —que itera ``child_ids`` y
+          llama ``run()`` en cada hija— no tendría condición de parada.
+        - *"Following child actions have warnings"* — una acción no se guarda
+          si alguna de sus hijas está mal configurada. Estuvo declarada
+          bloqueada por ``warning``, que ahora existe (tarea **#116**).
         """
         seen = set()
         current = self.parent
@@ -705,6 +817,14 @@ class IrActionsServer(IrActionsBase):
                     'Recursión encontrada en las acciones de servidor hijas.')
             seen.add(current.pk)
             current = current.parent
+
+        children_with_warnings = [
+            child for child in (self.child_ids.all() if self.pk else [])
+            if child.warning]
+        if children_with_warnings:
+            raise ValidationError(
+                'Las siguientes acciones hijas tienen avisos: %s'
+                % ', '.join(child.name for child in children_with_warnings))
 
     def save(self, *args, **kwargs):
         """``@api.constrains('parent_id', 'child_ids')`` de la fuente."""
