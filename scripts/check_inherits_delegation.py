@@ -30,9 +30,11 @@ import sys
 
 # Raíz de la referencia. La convención la fija
 # docs: source/normativa/.../convencion-cita-referencia-odoo.rst (alias odoo19c:).
-DEFAULT_ODOO19C = (
-    '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0'
-)
+import sys as _s, os.path as _op
+_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+from reference_roots import addons_de as _addons_de, tree as _tree
+
+DEFAULT_ODOO19C = str(_tree('odoo19c'))
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from addons_roots import py_files

@@ -134,14 +134,15 @@ import os
 import pathlib
 import sys
 
+import sys as _s, os.path as _op
+_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+from reference_roots import tree as _tree
+
 #: Raíz del árbol que gobierna (``odoo19c``). Ver
 #: ``referencia-odoo-gobierna-las-decisiones.md``: 19 desempata, y las rutas de
 #: una versión NO son válidas en la otra.
 ODOO19C = pathlib.Path(
-    os.environ.get(
-        'ODOO19C',
-        '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0',
-    )
+    _tree('odoo19c')
 )
 
 import sys as _sys, os as _os

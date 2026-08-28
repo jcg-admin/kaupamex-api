@@ -92,12 +92,10 @@ from addons_roots import ADDONS_PATHS, addon_dirs, addon_path  # noqa: E402, F40
 
 #: Raíz del árbol que gobierna (``odoo19c``). Ver
 #: ``referencia-odoo-gobierna-las-decisiones.md``: 19 desempata.
-ODOO19C = pathlib.Path(
-    os.environ.get(
-        'ODOO19C',
-        '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0',
-    )
-)
+import sys as _s, os.path as _op
+_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+from reference_roots import tree as _tree
+ODOO19C = _tree('odoo19c')
 
 BASELINE = pathlib.Path(__file__).with_name('model_class_attributes_baseline.txt')
 

@@ -37,7 +37,10 @@ import json
 import os
 import sys
 
-ODOO19C = ('/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons')
+import sys as _s, os.path as _op
+_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+from reference_roots import tree as _tree
+ODOO19C = str(_tree('odoo19c') / 'addons')
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from addons_roots import addon_path

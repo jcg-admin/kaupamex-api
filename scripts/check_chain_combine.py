@@ -56,8 +56,10 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 #: Raiz del arbol que gobierna. Ver
 #: ``referencia-odoo-gobierna-las-decisiones.md``.
-ODOO19C = pathlib.Path(os.environ.get(
-    'ODOO19C', '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0'))
+import sys as _s, os.path as _op
+_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+from reference_roots import tree as _tree
+ODOO19C = _tree('odoo19c')
 
 BASELINE = REPO_ROOT / 'scripts' / 'chain_combine_baseline.txt'
 

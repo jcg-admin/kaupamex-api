@@ -53,8 +53,12 @@ from addons_roots import addon_dirs, addon_names, addon_path, py_files
 
 # La raiz sale del alias de convencion-cita-referencia-odoo.rst, no de memoria.
 # El arbol esta triplicado en el repo (artefacto de empaquetado, no diseno).
-ODOO19C = '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons'
-ODOO_TOOLS = '/home/user/odoo-tools'
+import sys as _s, os.path as _op
+_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+from reference_roots import TOOLS_ROOT as _TOOLS_ROOT, tree as _tree
+
+ODOO19C = str(_tree('odoo19c') / 'addons')
+ODOO_TOOLS = str(_TOOLS_ROOT)
 
 # SOSPECHA de absorción con otro nombre. **NO se descuenta del conteo de
 # huecos** — la absorción es un VEREDICTO que se emite con evidencia, no una

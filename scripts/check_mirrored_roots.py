@@ -103,14 +103,15 @@ import os
 import pathlib
 import sys
 
+import sys as _s, os.path as _op
+_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+from reference_roots import tree as _tree
+
 #: Raíz del árbol que gobierna. Mismo nombre de variable de entorno que
 #: ``check_porte_completo.py`` y ``check_symbol_home.py`` — es el contrato ya
 #: establecido con quien clona el árbol de referencia aparte.
 REFERENCE_ROOT = pathlib.Path(
-    os.environ.get(
-        'ODOO19C',
-        '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0',
-    )
+    _tree('odoo19c')
 )
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
