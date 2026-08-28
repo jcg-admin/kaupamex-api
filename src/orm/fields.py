@@ -596,3 +596,56 @@ def _like_regex_parts(value, exact):
 
 models.Field.expression_getter = _expression_getter
 models.Field.filter_function = _filter_function
+
+
+# --- El atributo ``copy`` — quién viaja en un duplicado ----------------------
+#
+# ≙ ``copy: bool = True`` (``odoo19c: odoo/orm/fields.py:281``), con su
+# docstring verbatim: *"whether the field is copied over by BaseModel.copy()"*.
+# Es el discriminador que ``copy_data`` consulta campo a campo (``:5438``), así
+# que sin él el duplicado no puede decidir nada y lo copia todo.
+#
+# Va aquí y no en cada envoltorio de ``orm/fields_*`` por la misma razón que
+# ``to_sql`` y ``expression_getter``: un ``Field`` es una pieza interna del ORM
+# que nadie hereda, y los envoltorios son **veinte**. Ponerlo en la clase lo da
+# a los veinte de una vez, con la ortografía de la fuente.
+
+#: El default de la fuente: un campo se copia salvo que diga lo contrario.
+models.Field.copy = True
+
+_DJANGO_FIELD_INIT = models.Field.__init__
+
+
+def _field_init_with_copy(self, *args, copy=True, **kwargs):
+    """Acepta ``copy=`` en la declaración y lo anota en el campo.
+
+    Django no conoce la bandera, así que pasársela a su ``__init__`` sería un
+    ``TypeError``. Se saca de los kwargs y se guarda en la instancia; la
+    columna no cambia — ``copy`` no es una propiedad del almacenamiento sino
+    del duplicado, igual que allá.
+    """
+    _DJANGO_FIELD_INIT(self, *args, **kwargs)
+    self.copy = copy
+
+
+models.Field.__init__ = _field_init_with_copy
+
+_DJANGO_FIELD_DECONSTRUCT = models.Field.deconstruct
+
+
+def _field_deconstruct_without_copy(self):
+    """``copy`` NO viaja a la migración, y es deliberado.
+
+    El estado de la migración describe la **columna**; ``copy`` describe la
+    conducta del duplicado. Emitirlo cambiaría el estado de todos los campos
+    del árbol y ``makemigrations --check`` dejaría de estar limpio, sin que
+    ninguna columna hubiera cambiado. Mismo criterio que ``Html.deconstruct``,
+    que devuelve la ruta de ``TextField`` para no mover las migraciones ya
+    generadas.
+    """
+    name, path, args, kwargs = _DJANGO_FIELD_DECONSTRUCT(self)
+    kwargs.pop('copy', None)
+    return name, path, args, kwargs
+
+
+models.Field.deconstruct = _field_deconstruct_without_copy

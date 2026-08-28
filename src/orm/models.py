@@ -491,6 +491,217 @@ class DefaultGetMixin:
         return record
 
 
+#: ≙ ``LOG_ACCESS_COLUMNS`` (``odoo19c: odoo/orm/models.py:296``). Allá son
+#: ``create_uid``, ``create_date``, ``write_uid`` y ``write_date``; aquí el
+#: mecanismo es ``TimeStampedModel``, que declara dos —``created_at`` y
+#: ``updated_at``, ambas ``auto_now``— y ninguna de autoría. La divergencia es
+#: del mixin, no de este archivo: quién escribió la fila no se guarda.
+LOG_ACCESS_COLUMNS = ['created_at', 'updated_at']
+
+#: ≙ ``MAGIC_COLUMNS`` (``odoo19c: odoo/orm/models.py:297``).
+MAGIC_COLUMNS = ['id'] + LOG_ACCESS_COLUMNS
+
+
+class CopyMixin:
+    """``copy`` y su cadena — duplicar un registro con sus hijos.
+
+    ≙ los tres métodos que ``BaseModel`` declara seguidos:
+    ``copy_data`` (``odoo19c: odoo/orm/models.py:5406``),
+    ``copy_translations`` (``:5465``) y ``copy`` (``:5530``). Van juntos
+    porque el último llama a los otros dos.
+
+    **La divergencia de forma es la de siempre en este archivo** (ver
+    ``OriginMixin``, ``FieldSqlMixin`` y ``DefaultGetMixin``): allá cuelgan de
+    ``BaseModel`` y todo modelo los tiene; aquí ``models.Model`` es el de
+    Django y no es nuestro, así que es un mixin que el modelo adopta.
+
+    Qué decide qué se copia
+    =======================
+
+    El discriminador es ``field.copy``, que este árbol acaba de construir en
+    ``orm/fields.py`` con la ortografía de la fuente. Sobre él van las dos
+    listas de la fuente: la **negra** —:data:`MAGIC_COLUMNS` más
+    ``parent_path`` y los FK de delegación— y la **blanca**, que son los
+    campos propios frente a los que llegan heredados.
+    """
+
+    @classmethod
+    def _copy_blacklist(cls, default):
+        """Los campos que un duplicado NO lleva, con su razón.
+
+        ≙ el bloque ``blacklist``/``whitelist``/``blacklist_given_fields``
+        (``odoo19c: odoo/orm/models.py:5419-5434``). Se saca a un método
+        propio porque :meth:`copy_data` lo usa una vez y el test lo mide
+        aparte — allá es una clausura y no se puede interrogar.
+        """
+        blacklist = set(MAGIC_COLUMNS) | {'parent_path'}
+        whitelist = {name for name in _field_names(cls)
+                     if _delegated_origin(cls, name) is None}
+
+        def blacklist_given_fields(model):
+            """Lo que llega por delegación lo pone el padre, no la copia."""
+            for _parent_name, fk_name in getattr(model, '_inherits', {}).items():
+                parent = _inherits_parent(model, fk_name)
+                if parent is None:
+                    continue
+                try:
+                    fk_field = model._meta.get_field(fk_name)
+                except FieldDoesNotExist:
+                    continue
+                blacklist.add(fk_field.name)
+                blacklist.add(fk_field.attname)
+                if fk_field.name in default or fk_field.attname in default:
+                    # El registro trae el padre entero: todos sus campos los
+                    # da él, salvo los que el hijo redefina.
+                    blacklist.update(set(_field_names(parent)) - whitelist)
+                else:
+                    blacklist_given_fields(parent)
+
+        blacklist_given_fields(cls)
+        return blacklist
+
+    def copy_data(self, default=None, seen=None):
+        """Los valores con que se daría de alta un duplicado de este registro.
+
+        ≙ ``copy_data`` (``odoo19c: odoo/orm/models.py:5406-5462``).
+
+        Docstring de la fuente, verbatim: *"Copy given record's data with all
+        its fields values"*.
+
+        :param default: valores que pisan a los del original.
+        :param seen: los ya visitados, por modelo — la guarda contra la
+            recursión de una relación circular. Allá viaja en el contexto
+            (``__copy_data_seen``); aquí es un parámetro, porque el contexto
+            de este árbol es de **sólo lectura** por diseño
+            (``orm/environments.py``) y un ``defaultdict`` que se muta dentro
+            no cabe en él. Es la misma guarda con otro vehículo.
+        :returns: el dict de valores, o ``None`` si el registro ya se visitó.
+
+        **Devuelve un dict, no una lista.** Allá ``self`` es un recordset y el
+        método responde uno por registro; aquí es una instancia. La forma
+        plural la recupera quien la necesite iterando, que es lo que
+        :meth:`copy` hace.
+        """
+        cls = type(self)
+        default = dict(default or {})
+        seen = collections.defaultdict(set) if seen is None else seen
+
+        if self.pk in seen[cls._meta.label]:
+            return None
+        seen[cls._meta.label].add(self.pk)
+
+        blacklist = cls._copy_blacklist(default)
+        values = default.copy()
+
+        for field in cls._meta.concrete_fields:
+            if not getattr(field, 'copy', True):
+                continue
+            if field.name in default or field.name in blacklist:
+                continue
+            if field.attname in default or field.attname in blacklist:
+                continue
+            if field.is_relation:
+                # El id, no la instancia: es lo que ``objects.create`` toma, y
+                # evita releer la fila apuntada.
+                values[field.attname] = getattr(self, field.attname)
+            else:
+                values[field.name] = getattr(self, field.name)
+
+        return values
+
+    def copy_children(self, new, seen=None):
+        """Duplica los hijos ``one2many`` del original bajo el nuevo registro.
+
+        ≙ la rama ``if field.type == 'one2many'`` de ``copy_data``
+        (``odoo19c: :5450-5455``), que allá vive **dentro** del mismo método
+        porque su ``Command.create`` es una tupla que el ORM aplica después.
+
+        Aquí no puede vivir dentro: nuestro ``Command`` es **ejecutivo**
+        —escribe al llamarlo (:ref:`h-api-589`, tarea **#345**)— y Django
+        exige la fila del padre antes de poder colgarle un hijo. Así que el
+        paso se separa y corre **después** del alta, con el padre ya con ``pk``.
+        El efecto es el mismo que el de la fuente: los hijos se duplican *"using
+        the wrong (old) parent, but then are reassigned to the correct one"*.
+
+        El orden **por id** no es cosmético; el comentario de la fuente lo dice:
+        *"duplicate following the order of the ids because we'll rely on it
+        later for copying translations"*.
+        """
+        cls = type(self)
+        seen = collections.defaultdict(set) if seen is None else seen
+        for relation in cls._meta.related_objects:
+            if not relation.one_to_many:
+                continue
+            accessor = relation.get_accessor_name()
+            if accessor is None or not hasattr(self, accessor):
+                continue
+            child_model = relation.related_model
+            if not issubclass(child_model, CopyMixin):
+                continue
+            fk_name = relation.field.name
+            for child in getattr(self, accessor).order_by('id'):
+                child_values = child.copy_data({fk_name: new}, seen=seen)
+                if child_values is None:
+                    continue
+                child_values.pop(relation.field.attname, None)
+                child_values[fk_name] = new
+                nuevo_hijo = child_model.create(**child_values)
+                child.copy_children(nuevo_hijo, seen=seen)
+
+    def copy_translations(self, new, excluded=()):
+        """BLOQUEADO por ``translate`` — el almacenamiento por idioma.
+
+        ≙ ``copy_translations`` (``odoo19c: odoo/orm/models.py:5465-5528``).
+
+        No es una divergencia de mecanismo ni una omisión: **no hay
+        traducciones que copiar**. La referencia guarda el campo traducible
+        como columna ``jsonb`` ``{lang: valor}``; aquí ``translate=True`` se
+        **anota** en el campo (``field.odoo_translate``, ``orm/fields_textual``)
+        y la columna sigue siendo ``varchar`` con un solo idioma. Los tres
+        símbolos que el cuerpo consume —``_get_stored_translations``,
+        ``update_field_translations``, ``get_translation_dictionary``— están
+        medidos en **0** definiciones bajo ``src/``.
+
+        El método existe con su firma para que :meth:`copy` lo llame donde la
+        fuente lo llama: cuando #333 construya el almacenamiento, el cuerpo se
+        escribe aquí y ``copy`` no cambia. Sucesor: tarea **#333**.
+        """
+        return None
+
+    def copy(self, default=None):
+        """Duplica el registro, con sus hijos, aplicando ``default``.
+
+        ≙ ``copy`` (``odoo19c: odoo/orm/models.py:5530-5542``).
+
+        Docstring de la fuente, verbatim: *"Duplicate record ``self`` updating
+        it with default values."*
+
+        :param default: valores que pisan a los del original.
+        :returns: el registro nuevo.
+
+        Los tres pasos de la fuente, en su orden: ``copy_data``, el alta, y
+        ``copy_translations``. El alta va por :meth:`DefaultGetMixin.create`
+        cuando el modelo lo adopta —así el duplicado recibe los defaults que
+        un alta normal recibiría, como allá— y por ``objects.create`` si no.
+
+        El ``with_context(active_test=False)`` de la fuente **no** tiene
+        contraparte: ese filtro implícito por ``active`` es de su ORM, y aquí
+        un ``QuerySet`` no lo lleva. Sin filtro que desactivar, no hay
+        contexto que poner.
+        """
+        cls = type(self)
+        seen = collections.defaultdict(set)
+        values = self.copy_data(default, seen=seen)
+        if values is None:
+            return None
+        alta = cls.create if hasattr(cls, '_add_missing_default_values') \
+            else cls.objects.create
+        new = alta(**values)
+        self.copy_children(new, seen=seen)
+        self.copy_translations(new, excluded=default or ())
+        return new
+
+
 def _is_plumbing_default(field):
     """¿El ``default`` del campo es fontanería de columna y no un default real?
 

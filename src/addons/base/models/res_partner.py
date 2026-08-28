@@ -123,7 +123,7 @@ def _default_tz():
 
 
 class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
-                 TimeStampedModel):
+                 models.CopyMixin, TimeStampedModel):
     """``res.partner`` — persona, empresa o dirección.
 
     Fiel a ``odoo19c: odoo/addons/base/models/res_partner.py:213-309``. Se
@@ -223,10 +223,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     - ``_check_partner_company`` (``:551``) y ``_onchange_company_id``
       (``:596``): BLOQUEADO por ``company_id`` — el campo no existe en este
       puerto, así que no hay contra qué comparar. Tarea **#110**.
-    - ``copy_data`` (``:565``): BLOQUEADO por ``copy`` — el del ORM, medido en
-      0 definiciones bajo ``src/orm``. Sin llamador, portar su cuerpo sería
-      escribir código muerto; el sufijo ``(copy)`` que añade es su única
-      conducta y no tiene quién la dispare. Tarea **#114**.
+    - ``copy_data`` (``:565``): **portado** (tarea #114). El ORM ya tiene su
+      ``copy``/``copy_data`` (``models.CopyMixin``), así que el sufijo
+      ``(copy)`` que este override añade tiene por fin quién lo dispare.
     - ``default_get`` (``:201``): **portado en su mitad viable** (tarea #113).
       El saneo del ``type`` que se cuela del contexto está escrito; la herencia
       del padre sigue BLOQUEADO por ``company_id`` — el campo no existe en
@@ -293,6 +292,20 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     # ORM (categoría 3, ``atributos-de-clase-de-modelo.md``) — se porta aunque
     # su consumidor (compute de ``complete_name``) no esté construido aquí.
     _complete_name_displayed_types = ('invoice', 'delivery', 'other')
+
+    def copy_data(self, default=None, seen=None):
+        """≙ ``copy_data`` (``odoo19c: res_partner.py:564-569``).
+
+        Añade el sufijo ``(copy)`` al nombre, **salvo** que el llamador traiga
+        uno propio. El ``if default.get('name')`` de la fuente es esa guarda, y
+        no es cosmética: sin ella un duplicado con nombre dado saldría como
+        ``"Nombre nuevo (copy)"``.
+        """
+        default = dict(default or {})
+        values = super().copy_data(default, seen=seen)
+        if values is None or default.get('name'):
+            return values
+        return dict(values, name=_('%s (copy)') % self.name)
 
     @classmethod
     def default_get(cls, fields):

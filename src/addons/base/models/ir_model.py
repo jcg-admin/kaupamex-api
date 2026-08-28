@@ -1103,7 +1103,7 @@ class IrModelAccess(TimeStampedModel):
         ).exists()
 
 
-class IrModelData(TimeStampedModel):
+class IrModelData(models.CopyMixin, TimeStampedModel):
     """``ir.model.data`` — identificador externo de un registro.
 
     Sirve para dos cosas, según la fuente: integrar datos con sistemas de
@@ -1341,18 +1341,23 @@ class IrModelData(TimeStampedModel):
                 f'"{module}.{xml_id}"')
         return model_label, False
 
-    def copy_data(self, default=None):
-        """≙ ``copy_data`` (``odoo19c: :2307-2312``).
+    def copy_data(self, default=None, seen=None):
+        """≙ ``copy_data`` (``odoo19c: ir_model.py:2313-2318``).
 
         El identificador externo es único por ``(module, name)``, así que una
         copia no puede llevar el mismo: la fuente le añade cuatro dígitos
         hexadecimales aleatorios y aquí se hace igual.
+
+        > **Actualizado (tarea #114).** El cuerpo copiaba a mano cuatro campos
+        > —``module``, ``model``, ``res_id``, ``noupdate``— porque **no había
+        > base a la que llamar**: el ``copy_data`` del ORM no estaba portado.
+        > La fuente sólo llama a ``super()`` y parchea ``name``, y eso es lo
+        > que hace ahora. La lista escrita a mano además envejecía sola: un
+        > campo nuevo en el modelo no entraba en la copia y nada lo delataba.
         """
-        values = dict(default or {})
-        values.setdefault('module', self.module)
-        values.setdefault('model', self.model)
-        values.setdefault('res_id', self.res_id)
-        values.setdefault('noupdate', self.noupdate)
+        values = super().copy_data(default, seen=seen)
+        if values is None:
+            return None
         values['name'] = '%s_%04x' % (self.name, random.getrandbits(16))
         return values
 

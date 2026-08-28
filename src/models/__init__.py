@@ -10,3 +10,4 @@ from orm.models import *             # noqa: F401,F403  (re-export de orm/models
 from orm.models import Model         # noqa: F401  (explícito: base de modelo)
 from orm.models import OriginMixin   # noqa: F401  (explícito: el _origin de la fuente)
 from orm.models import DefaultGetMixin  # noqa: F401  (explícito: el default_get de la fuente)
+from orm.models import CopyMixin      # noqa: F401  (explícito: el copy de la fuente)
