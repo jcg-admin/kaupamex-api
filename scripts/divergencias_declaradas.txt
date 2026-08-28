@@ -1003,3 +1003,173 @@ base/models/ir_qweb.py::QwebJSON
 #
 # `create` / `write` de esta clase siguen CONTADOS, y ahora porque estan
 # PORTADOS con su nombre (ver el modelo), no por la clausula de `write`.
+
+# --- base/models/res_users.py ----------------------------------------------
+#
+# Los simbolos de este archivo ya estaban triados UNO POR UNO en su propio
+# docstring (seccion «Los 73 simbolos que este porte NO trae, y su desenlace»,
+# tareas #35/#51/#59). El triaje vivia en prosa, asi que el gate no podia
+# verlo y lo contaba entero como deuda. Aqui se lleva a la forma que el
+# instrumento recorre: no se absuelve nada nuevo — se hace legible lo decidido.
+#
+# `write` NO entra, aunque el docstring lo agrupe con los ganchos del ciclo de
+# vida: la clausula anti-abuso del registro lo prohibe, y con razon — sale
+# ausente 90 veces en el arbol y declararlo aqui convertiria noventa preguntas
+# abiertas en noventa absoluciones. Sigue contado.
+#
+# ---- 1. La capa de vista de su cliente OWL. DIVERGENCIA DE STACK ----------
+#
+# El despacho de `@api.onchange` de su ORM: recalcula un formulario abierto.
+base/models/res_users.py::ResUsers::onchange
+# El onchange del campo `login`; aqui lo valida el serializer al escribir.
+base/models/res_users.py::ResUsers::on_change_login
+# El onchange del partner delegado; misma via, el serializer.
+base/models/res_users.py::ResUsers::onchange_parent_id
+# El onchange del rol; el rol se asigna por el CRUD de authz, no por formulario.
+base/models/res_users.py::ResUsers::_onchange_role
+# Describe los campos para pintar el formulario; aqui lo hace drf-spectacular.
+base/models/res_users.py::ResUsers::fields_get
+# Post-procesa el arbol XML de la vista; este arbol no tiene vistas XML.
+base/models/res_users.py::ResUsers::_get_view_postprocessed
+# El default del selector de jerarquia de grupos, que es un widget suyo.
+base/models/res_users.py::ResUsers::_default_view_group_hierarchy
+# El constructor de diccionarios «abre esta vista» del que cuelgan las action_*.
+base/models/res_users.py::ResUsers::_action_show
+# Abre la vista de grupos; aqui el frontend ya conoce su URL.
+base/models/res_users.py::ResUsers::action_show_groups
+# Abre la vista de accesos; idem.
+base/models/res_users.py::ResUsers::action_show_accesses
+# Abre la vista de reglas de registro; idem.
+base/models/res_users.py::ResUsers::action_show_rules
+# Devuelve la accion de ventana del propio usuario; idem.
+base/models/res_users.py::ResUsers::action_get
+# Abre el asistente de cambio de contrasena; aqui es un endpoint DRF (#30).
+base/models/res_users.py::ResUsers::action_change_password_wizard
+# Abre el asistente de clave de API; aqui es el endpoint de `res.users.apikeys`.
+base/models/res_users.py::ResUsers::api_key_wizard
+# Guarda las preferencias desde su formulario de perfil.
+base/models/res_users.py::ResUsers::preference_save
+# Lanza el cambio de contrasena desde ese mismo formulario.
+base/models/res_users.py::ResUsers::preference_change_password
+# Calcula el texto de ayuda del dominio de correo, que es adorno de formulario.
+base/models/res_users.py::ResUsers::_compute_email_domain_placeholder
+# Compone la firma HTML por defecto para su editor de correo.
+base/models/res_users.py::ResUsers::_compute_signature
+# Deriva el rol mostrado en el formulario a partir de los grupos.
+base/models/res_users.py::ResUsers::_compute_role
+# Prepara los valores del duplicado que su cliente abre en un formulario nuevo.
+base/models/res_users.py::ResUsers::copy_data
+# El default del M2M de grupos que su formulario necesita al abrir en blanco.
+base/models/res_users.py::ResUsers::_default_groups
+#
+# ---- 2. Ganchos del ciclo de vida de su ORM. DIVERGENCIA DE MECANISMO -----
+#
+# Su gancho de alta; en Django es `save()` con `_state.adding`.
+base/models/res_users.py::ResUsers::create
+# Su lectura por lista de campos; en Django es el queryset con `only()`.
+base/models/res_users.py::ResUsers::read
+# Crea indices al cargar el modulo; en Django eso son las migraciones.
+base/models/res_users.py::ResUsers::init
+# Engancha al arranque del registro; en Django es `AppConfig.ready()`.
+base/models/res_users.py::ResUsers::_register_hook
+# La busqueda por nombre de su widget many2one; aqui la resuelve el endpoint.
+base/models/res_users.py::ResUsers::name_search
+# El lado de busqueda del campo calculado `display_name`; aqui un `annotate()`.
+base/models/res_users.py::ResUsers::_search_display_name
+# El lado de busqueda de `all_group_ids`; aqui un `annotate()` sobre el M2M.
+base/models/res_users.py::ResUsers::_search_all_group_ids
+# El lado de busqueda de los ajustes de usuario; aqui una FK inversa normal.
+base/models/res_users.py::ResUsers::_search_res_users_settings_id
+# El calculo perezoso de esa misma FK; aqui la relacion se navega directo.
+base/models/res_users.py::ResUsers::_compute_res_users_settings_id
+#
+# ---- 3. Contabilidad de su vista de ajustes. DIVERGENCIA DE MECANISMO -----
+#
+# Cuenta empresas para un badge de su formulario; aqui lo cuenta el serializer.
+base/models/res_users.py::ResUsers::_compute_companies_count
+# Cuenta accesos para el mismo badge; idem.
+base/models/res_users.py::ResUsers::_compute_accesses_count
+# Formatea el desfase horario para mostrarlo; el endpoint entrega `tz` cruda.
+base/models/res_users.py::ResUsers::_compute_tz_offset
+# Valida el campo *home action*, que este arbol no declara: nada que validar.
+base/models/res_users.py::ResUsers::_check_action_id
+#
+# ---- 4. La superficie de cuenta propia. DIVERGENCIA DE MECANISMO ---------
+#
+# El enganche del control de acceso POR CAMPO de su ORM; aqui ese control lo
+# ejerce el serializer con su `Meta.fields` explicito mas `HasCapability`.
+base/models/res_users.py::ResUsers::_has_field_access
+# Compone el contexto de sesion de su ORM; aqui es `request.user` mas
+# `orm.environments`.
+base/models/res_users.py::ResUsers::context_get
+#
+# ---- 5. Su cifrador de contrasenas. DIVERGENCIA DE STACK -----------------
+#
+# `CryptContext` entera es su envoltura de `passlib`, que no esta en este arbol
+# (medido: 0 en `pyproject.toml`). El equivalente son los `PASSWORD_HASHERS` de
+# Django, que `set_password`/`check_password` ya consumen — incluido el rehash
+# que su `verify_and_update` hace a mano. Clave de CLASE: son los ocho metodos
+# de la envoltura, no una seleccion de ellos.
+base/models/res_users.py::CryptContext
+# El accesor que devuelve esa envoltura configurada.
+base/models/res_users.py::ResUsers::_crypt_context
+#
+# ---- 6. La memorizacion del token de sesion. DIVERGENCIA DE STACK --------
+#
+# Memoriza el token; aqui lo calcula Django (ver `_get_session_token_fields`).
+base/models/res_users.py::ResUsers::_compute_session_token
+# El SQL crudo con que ese calculo lee sus columnas; aqui es el ORM.
+base/models/res_users.py::ResUsers::_get_session_token_query_params
+#
+# ---- 7. Tres del triaje uno-por-uno (tarea #59) --------------------------
+#
+# Existe alla porque su `password` es un campo compute/inverse que nunca guarda
+# lo que se le asigna; aqui es la columna de Django y el cifrado es explicito
+# (`set_password`), asi que no hay inverse que colgar ni valor que blanquear.
+base/models/res_users.py::ResUsers::_compute_password
+# Migra un token del formato viejo DENTRO de su propio almacen de sesiones; aqui
+# las sesiones son de Django y no hay corpus heredado que convertir.
+base/models/res_users.py::ResUsers::_legacy_session_token_hash_compute
+# SI esta portado — como `delete`, porque el gancho equivalente de Django es
+# sobrescribir ese metodo y no un `@api.ondelete`. El gate lo cuenta ausente
+# por literal, no por conducta.
+base/models/res_users.py::ResUsers::_unlink_except_master_data
+#
+# ---- 8. Los asistentes de contrasena y el control de identidad -----------
+#
+# DIVERGENCIA DE STACK, con su desenlace ya escrito en h-api-801: son
+# formularios transitorios de su cliente OWL. La conducta la ejerce aqui el
+# endpoint DRF de cambio de contrasena, que delega en `_change_password`
+# (tarea #30), mas la re-autenticacion de DEC-12.
+#
+# El control de identidad previo a una accion sensible.
+base/models/res_users.py::ResUsersIdentitycheck
+# El asistente que un administrador abre para varios usuarios.
+base/models/res_users.py::ChangePasswordWizard
+# Cada linea de ese asistente.
+base/models/res_users.py::ChangePasswordUser
+# El asistente con que un usuario cambia la suya.
+base/models/res_users.py::ChangePasswordOwn
+#
+# ---- 9. `UsersMultiCompany` — PORTADO bajo otra forma (tarea #68) --------
+#
+# Sus tres simbolos (`create`, `write`, `new`) son el MISMO cuerpo colgado de
+# tres ganchos de su ORM. Aqui es un receptor de `m2m_changed`
+# (`_sync_multi_company_group`), porque en Django el M2M nunca se escribe en el
+# `save()`: va siempre por su propio camino, que es justo la condicion que su
+# `write` comprueba a mano con `if 'company_ids' not in vals`.
+base/models/res_users.py::UsersMultiCompany
+#
+# ---- 10. `ResUsersApikeysDescription` -----------------------------------
+#
+# Su desenlace esta declarado en el docstring de `_ResUsersApikeysBase`, punto
+# 5, con sucesor #490: la mitad de presentacion diverge por stack (es un
+# asistente OWL) y la que no lo es quedo medida aparte.
+base/models/res_users.py::ResUsersApikeysDescription
+#
+# ---- 11. `ResUsersApikeys::init` — DIVERGENCIA DE MECANISMO -------------
+#
+# `init` es el gancho con que su ORM crea indices al cargar el modulo; aqui eso
+# son las migraciones de Django, y el indice equivalente vive en `Meta.indexes`
+# (mismo criterio que la tarea #70 aplico a `res_device_log`).
+base/models/res_users.py::ResUsersApikeys::init
