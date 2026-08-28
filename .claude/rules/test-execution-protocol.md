@@ -60,23 +60,21 @@ sigue siendo precondición de cualquier pytest (`pg_isready`; si no responde,
 `pg_ctlcluster 16 main start`) y **nunca SQLite**. Un fallo pre-existente se
 cita, no se silencia.
 
-Baseline vigente de api: **5 274 passed, 21 skipped, 0 failed** contra
-PostgreSQL 16.13 (medido 2026-08-28T00:09:41, cierre del porte de
-``ResPartner``, ``api@07ccc097``; 265.97 s con ``-n 4`` y bases calientes).
+Baseline vigente de api: **5 371 passed, 21 skipped, 0 failed** contra
+PostgreSQL 16.13 (medido 2026-08-28T01:28:51, cierre del barrido de ``base``,
+``api@c4405068``; 293.84 s con ``-n 4`` y bases calientes).
 
-Sube de **5 182** (medida anterior, ``api@53e6c368``, en serie y 865.38 s).
-Los cuatro bloques que cierran ``res_partner.py`` aportan **60** casos —14
-restricciones y onchange, 17 vendedor/usuario principal/idioma, 23 alta desde
-texto libre y borrado, 6 acciones de vista—; los **32** restantes aterrizaron
-entre ambas medidas y **no se desglosan aquí porque no se midieron commit a
-commit**. Lo que sí es medida: 0 failed y la cifra sube.
+Sube de **5 274** (``api@07ccc097``, 265.97 s, mismo modo). Los **97** casos
+nuevos salen de seis bloques medidos uno a uno: 22 restricciones de la familia
+``ir.actions``, 20 metadata de manifest de ``ir.module.module``, 25 grafo de
+dependencias y exclusión, 17 ``res.bank``, 9 restricciones de ``res.currency``
+y 2 del control de restricción; más 2 del gate de porte en ``tests/unit``.
 
 *Métrica:* ``uv run pytest -n 4 -q --reuse-db`` sobre las cuatro bases de
 worker ya calientes.
-*Ciega a:* la diferencia entre las dos ejecuciones no es sólo de población —la
-anterior corrió en serie—, así que el **3.25×** de reloj no es comparable con
-el 2.54× pareado de H-API-804: aquél midió la misma población en los dos
-modos y éste no.
+*Ciega a:* el desglose no se verificó sumando —los seis bloques dan 95 y la
+cifra sube 97—, así que dos casos de esa serie no están atribuidos. Lo que sí
+es medida: 0 failed y la cifra sube.
 
 El build de docs es **opcional**, no parte del DoD.
 
