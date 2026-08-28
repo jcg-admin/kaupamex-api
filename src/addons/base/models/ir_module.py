@@ -62,6 +62,7 @@ import models
 from django.core.exceptions import ValidationError
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from modules.module import adapt_version, load_manifest
 
 
 class IrModuleCategory(TimeStampedModel):
@@ -231,6 +232,41 @@ class IrModule(TimeStampedModel):
         help_text='Nombre legible del manifest (Odoo shortdesc ← manifest name).',
     )
     summary      = fields.Char(blank=True, default='')
+    description  = fields.Text(
+        blank=True, default='',
+        help_text='Descripción larga del manifest (Odoo description).',
+    )
+    author       = fields.Char(
+        blank=True, default='',
+        help_text='Odoo author. NO cae a "Unknown": modules.module ya rellena '
+                  'el autor del proyecto cuando el manifest calla, así que '
+                  'ese literal guardaría un dato falso para un addon propio.',
+    )
+    maintainer   = fields.Char(blank=True, default='')
+    contributors = fields.Text(
+        blank=True, default='',
+        help_text='Odoo contributors. La fuente la declara Text porque la '
+                  'lista se aplana a una cadena separada por comas.',
+    )
+    website      = fields.Char(blank=True, default='')
+    url          = fields.Char(
+        blank=True, default='',
+        help_text='Odoo url, con respaldo a live_test_url del manifest.',
+    )
+    icon         = fields.Char(
+        blank=True, default='',
+        help_text='Odoo icon: la RUTA del icono, no el binario. El binario es '
+                  'icon_image, computado, y ése no se porta (ver el docstring).',
+    )
+    to_buy       = fields.Boolean(
+        default=False,
+        help_text='Odoo to_buy. Siempre False aquí: marca un módulo del '
+                  'catálogo comercial de la fuente, que este árbol no consulta.',
+    )
+    demo         = fields.Boolean(
+        default=False,
+        help_text='Odoo demo: el addon tiene datos de demostración cargados.',
+    )
     # ``category`` NO pierde su tope: no tiene contraparte de esta forma en la
     # referencia, que declara ``category_id`` como FK a ``ir.module.category``.
     # Es un desnormalizado nuestro y provisional — su reestructuración es #452.
@@ -269,6 +305,69 @@ class IrModule(TimeStampedModel):
         devolver una cadena vacía.
         """
         return getattr(self, self._rec_name, '') or self.name
+
+    @classmethod
+    def get_module_info(cls, name):
+        """≙ ``get_module_info`` (``odoo19c: ir_module.py:165-173``).
+
+        La fuente admite tres formas de ``name``: una cadena, un ``Manifest``
+        ya resuelto, o cualquier otra cosa (que devuelve ``{}``). Se portan las
+        tres.
+
+        **Divergencia de mecanismo:** allá el resolutor es
+        ``modules.Manifest.for_addon``; aquí es ``modules.module.load_manifest``,
+        que es la pieza equivalente de este árbol y ya evalúa el archivo con
+        ``ast.literal_eval`` en vez de importarlo. El contrato —dict, o ``{}``
+        si el addon no existe o no declara manifest— es el mismo.
+        """
+        if isinstance(name, str):
+            # Igual que la fuente: la ausencia de manifest es "no es un
+            # módulo", no un error. Un addon importado no se encuentra por
+            # esta vía, y eso allá también es así.
+            return load_manifest(name) or {}
+        if isinstance(name, dict):
+            return name
+        return {}
+
+    def _get_latest_version(self):
+        """≙ ``_get_latest_version`` (``odoo19c: ir_module.py:211-215``).
+
+        Devuelve la versión que el manifest declara **en disco**, que puede
+        diferir de la que el catálogo guardó la última vez que se sembró. Ésa es
+        toda su razón de ser: distinguir lo instalado de lo publicado.
+
+        La fuente escribe ``installed_version``, uno de los tres campos de
+        versión que aquí colapsan en ``version`` (declarado en el docstring de
+        la clase). Por eso aquí **devuelve** el valor en vez de asignarlo: sin
+        los tres campos separados no hay dónde escribir la distinción.
+        """
+        return self.get_module_info(self.name).get(
+            'version', adapt_version('1.0'))
+
+    @classmethod
+    def _get_id(cls, name):
+        """≙ ``_get_id`` (``odoo19c: ir_module.py:906-909``).
+
+        La fuente lo resuelve con SQL crudo para saltarse la caché del ORM.
+        Aquí basta ``values_list``: la razón de aquel SQL es el ``flush_model``
+        previo, que es un mecanismo de su ORM y no del nuestro.
+        """
+        return cls.objects.filter(name=name).values_list('pk', flat=True).first()
+
+    @classmethod
+    def _get(cls, name):
+        """≙ ``_get`` (``odoo19c: ir_module.py:898-903``).
+
+        Devuelve ``None`` cuando el módulo no existe, que es lo que aquí
+        significa el *recordset vacío* de la fuente.
+
+        El ``.sudo()`` de la fuente **no se porta**: aquí la autorización
+        efectiva es por capacidad (DEC-11, ``HasCapability``, fail-closed), no
+        un escalado de privilegio colgado del propio registro.
+        """
+        if not name:
+            return None
+        return cls.objects.filter(name=name).first()
 
 
 class IrModuleDependency(TimeStampedModel):

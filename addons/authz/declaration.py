@@ -86,6 +86,7 @@ Uso desde un addon::
 import ast
 import importlib
 import os
+from textwrap import dedent
 
 from django.apps import apps
 
@@ -183,20 +184,54 @@ def values_from_manifest(manifest):
     """Mapea el dict de un ``__manifest__.py`` a los valores del catálogo.
 
     Es el análogo de ``ir.module.module.get_values_from_terp``
-    (odoo19c: odoo/addons/base/models/ir_module.py:752-768) — una función
+    (``odoo19c: odoo/addons/base/models/ir_module.py:752-768``) — una función
     **pura**, sin DB ni Django, para que el gate estático la use igual que el
     seed.
 
     Se portan los mismos defaults de la referencia, incluido
     ``license='LGPL-3'``: en Odoo un addon sin licencia declarada es LGPL-3, no
     "sin licencia".
+
+    Cobertura, declarada: 14 de 14 claves de la fuente
+    ===================================================
+
+    La versión anterior devolvía **9** claves y su docstring decía *"se portan
+    los mismos defaults de la referencia"* — cierto de las nueve presentes y
+    silencioso sobre las **ocho** ausentes (``description``, ``author``,
+    ``maintainer``, ``contributors``, ``website``, ``icon``, ``url``,
+    ``to_buy``). Es la forma de :ref:`h-api-845`: una cobertura parcial
+    declarada como completa. Ahora están las catorce.
+
+    **Tres claves nuestras que la fuente no tiene**, y por qué:
+
+    - ``category`` — la fuente la resuelve como FK (``category_id``) en
+      ``_update_category``, no en esta función. Aquí es un desnormalizado
+      provisional; su reestructuración a FK sigue pendiente.
+    - ``installable`` y ``depends`` — el ``state`` y el grafo se derivan de
+      ellas, y el seed las consume y descarta. En la fuente ese trabajo lo
+      hacen ``_update_from_terp`` y ``_update_dependencies``, que pertenecen al
+      instalador.
+
+    **``author`` no cae a ``'Unknown'``.** La fuente lo hace porque su corpus
+    tiene addons de terceros sin autor declarado. Aquí ``modules.module``
+    ya rellena el autor del proyecto cuando el manifest no lo declara, así que
+    escribir ``'Unknown'`` aquí guardaría un dato falso para un addon propio.
+    Se cae a cadena vacía, que es lo que ``blank=True, default=''`` expresa.
     """
     return {
         'shortdesc':      manifest.get('name', ''),
         'summary':        manifest.get('summary', ''),
+        'description':    dedent(manifest.get('description', '')),
         'category':       manifest.get('category', 'Uncategorized'),
         'version':        manifest.get('version', '1.0'),
         'license':        manifest.get('license', DEFAULT_LICENSE),
+        'author':         manifest.get('author', ''),
+        'maintainer':     manifest.get('maintainer', ''),
+        'contributors':   ', '.join(manifest.get('contributors', ())),
+        'website':        manifest.get('website', ''),
+        'url':            manifest.get('url') or manifest.get('live_test_url', ''),
+        'icon':           manifest.get('icon') or '',
+        'to_buy':         False,
         'application':    manifest.get('application', False),
         'auto_install':   manifest.get('auto_install', False) is not False,
         'installable':    manifest.get('installable', True),
