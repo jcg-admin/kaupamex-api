@@ -102,8 +102,6 @@ from .properties_base_definition_mixin import PropertiesBaseDefinitionMixin
 from .decimal_precision import DecimalPrecision
 from .ir_config_parameter import (
     _DEFAULT_PARAMETERS,
-    _PARAM_CACHE,
-    _clear_cache,
     SystemParameter,
 )
 from .assetsbundle import (
@@ -227,8 +225,6 @@ __all__ = [
     'SoftDeleteManager',
     'AllObjectsManager',
     '_DEFAULT_PARAMETERS',
-    '_PARAM_CACHE',
-    '_clear_cache',
     'SystemParameter',
     'IrLogging',
     'IrAttachment',

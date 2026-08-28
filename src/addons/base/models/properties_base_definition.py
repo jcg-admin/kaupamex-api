@@ -40,11 +40,13 @@ Dos invariantes que se conservan y por qué
 Qué NO se porta, con su medición
 ================================
 
-- **``ormcache``** sobre ``_get_definition_id_for_property_field``: es el
-  decorador de caché del ORM de Odoo. Aquí se usa un diccionario de módulo con
-  su función de limpieza, mismo patrón que ``ir_config_parameter.py`` ya
-  aplica con ``_PARAM_CACHE`` / ``_clear_cache`` — así el mecanismo de caché
-  del árbol es uno solo y no dos.
+- **``ormcache``** sobre ``_get_definition_id_for_property_field``: aquí se
+  usa un diccionario de módulo con su función de limpieza. **La razón que esto
+  declaraba caducó** — decía «mismo patrón que ``ir_config_parameter.py``», y
+  ese archivo ya adoptó el decorador real: ``tools/cache.py`` y los
+  contenedores de ``orm/registry.py`` existen desde ``api@c636e68c``
+  (H-API-864). Este archivo debe adoptarlo igual, junto con los cinco símbolos
+  que el gate le reporta ausentes. Registrado como tarea **#126**.
 - **``_compute_display_name``**: compone ``"<Descripción> Properties"``
   leyendo la descripción del modelo apuntado. Se porta como ``__str__``, con
   el ``verbose_name`` del modelo Django en el papel del ``_description``.
@@ -64,8 +66,9 @@ _logger = logging.getLogger(__name__)
 PROPERTIES_TTYPE = 'properties'
 
 #: Caché ``(modelo, campo) → id de definición``. Sustituye al ``ormcache`` de
-#: la referencia; mismo patrón que ``_PARAM_CACHE`` en
-#: ``ir_config_parameter.py``.
+#: la referencia (``@ormcache("model_name", "field_name", cache='stable')``,
+#: ``odoo19c: properties_base_definition.py:51``). Pendiente de adoptarlo —
+#: tarea **#126**; el mecanismo ya existe.
 _DEFINITION_CACHE = {}
 
 

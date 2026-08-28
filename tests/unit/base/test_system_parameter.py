@@ -16,9 +16,9 @@ from django.db import IntegrityError
 
 from addons.base.models import (
     _DEFAULT_PARAMETERS,
-    _PARAM_CACHE,
     SystemParameter,
 )
+from orm import registry
 
 pytestmark = pytest.mark.django_db
 
@@ -36,11 +36,11 @@ def _seed_defaults(db):
 
 @pytest.fixture(autouse=True)
 def _clear_param_cache():
-    """La caché es módulo-nivel (per-proceso, como ``ormcache`` de Odoo); se
-    limpia entre tests para aislarlos."""
-    _PARAM_CACHE.clear()
+    """La memorización es de proceso (``ormcache``, familia ``stable``); se
+    vacía entre tests para aislarlos."""
+    registry.clear_cache('stable')
     yield
-    _PARAM_CACHE.clear()
+    registry.clear_cache('stable')
 
 
 class TestGetSetParam:
@@ -91,10 +91,13 @@ class TestGetSetParam:
 class TestCache:
     def test_get_param_populates_cache(self):
         SystemParameter.set_param('k', 'v')
-        _PARAM_CACHE.clear()
-        assert ('default', 'k') not in _PARAM_CACHE
+        registry.clear_cache('stable')
+        key = ('ir.config_parameter',
+               SystemParameter._get_param.__func__.__cache__.method,
+               'k', 'default')
+        assert key not in registry.cache_of('stable').snapshot
         SystemParameter.get_param('k')
-        assert _PARAM_CACHE[('default', 'k')] == 'v'
+        assert registry.cache_of('stable')[key] == 'v'
 
     def test_cache_hit_avoids_query(self, django_assert_num_queries):
         SystemParameter.set_param('k', 'v')
@@ -159,14 +162,14 @@ class TestSeed:
     def test_seed_is_idempotent(self):
         SystemParameter.seed()
         uuid_before = SystemParameter.get_param('database.uuid')
-        _PARAM_CACHE.clear()
+        registry.clear_cache('stable')
         SystemParameter.seed()  # segunda pasada no sobreescribe
         assert SystemParameter.get_param('database.uuid') == uuid_before
 
     def test_seed_force_overrides(self):
         SystemParameter.seed()
         before = SystemParameter.get_param('database.uuid')
-        _PARAM_CACHE.clear()
+        registry.clear_cache('stable')
         SystemParameter.seed(force=True)
         assert SystemParameter.get_param('database.uuid') != before
 
@@ -201,7 +204,7 @@ class TestBusinessKeysL2:
     def test_seed_of_business_keys_is_idempotent(self):
         ttl_before = SystemParameter.get_param('authz.reauth_ttl')
         email_before = SystemParameter.get_param('backup.alert_email')
-        _PARAM_CACHE.clear()
+        registry.clear_cache('stable')
         SystemParameter.seed()  # sin force: no debe sobreescribir lo existente
         assert SystemParameter.get_param('authz.reauth_ttl') == ttl_before
         assert SystemParameter.get_param('backup.alert_email') == email_before

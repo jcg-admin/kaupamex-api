@@ -21,7 +21,8 @@ from unittest.mock import patch
 
 import pytest
 
-from addons.base.models import ResPartner, SystemParameter, _PARAM_CACHE
+from addons.base.models import ResPartner, SystemParameter
+from orm.registry import clear_cache
 from addons.base_geolocalize.models import (
     Geocoder,
     GeoProvider,
@@ -38,9 +39,9 @@ def _clear_param_cache():
     # Mismo patrón que tests/unit/base/test_system_parameter.py: la caché de
     # SystemParameter es módulo-nivel (per-proceso), se limpia entre tests
     # para que no sobreviva al rollback de la transacción de cada test.
-    _PARAM_CACHE.clear()
+    clear_cache('stable')
     yield
-    _PARAM_CACHE.clear()
+    clear_cache('stable')
 
 
 def _make_partner(**overrides):
