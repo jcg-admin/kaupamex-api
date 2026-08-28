@@ -123,6 +123,56 @@ class ResPartner(AvatarMixin, TimeStampedModel):
       exige tocar el ORM espejado — mecanismo transversal que usan **21
       clases** de la referencia, no sólo ``res.partner``.
 
+    Cobertura del porte — los símbolos que NO llevan contraparte por nombre
+    =======================================================================
+
+    Medido con el gate de porte sobre ``odoo19c: res_partner.py``: **89
+    símbolos en la referencia**. Los que el gate reporta ausentes se reparten
+    en cuatro desenlaces, y ninguno queda en silencio:
+
+    **Portados con otro nombre — divergencia de stack.**
+
+    - ``create`` (``:926``) y ``write`` (``:856``) → :meth:`save`. Django
+      unifica los dos caminos en un solo enganche y el propio docstring de
+      ``save`` los cita; ``_state.adding`` distingue el alta de la escritura.
+    - los cinco ``_compute_avatar_<n>`` → las cinco ``property`` de
+      ``AvatarMixin`` (``avatar_mixin.py``), que es donde la referencia los
+      declara. Aquí no llevan ``store``, igual que allá.
+
+    **Detenidos, cada uno por un símbolo que se nombra.**
+
+    - ``_check_partner_company`` (``:551``) y ``_onchange_company_id``
+      (``:596``): BLOQUEADO por ``company_id`` — el campo no existe en este
+      puerto, así que no hay contra qué comparar. Tarea **#110**.
+    - ``_check_barcode_unicity`` (``:647``): BLOQUEADO por ``barcode`` — la
+      fuente lo declara ``company_dependent=True`` y ese mecanismo de campo no
+      existe aquí. Tarea **#111**.
+    - ``copy_data`` (``:565``): BLOQUEADO por ``copy`` — el del ORM, medido en
+      0 definiciones bajo ``src/orm``. Sin llamador, portar su cuerpo sería
+      escribir código muerto; el sufijo ``(copy)`` que añade es su única
+      conducta y no tiene quién la dispare. Tarea **#114**.
+    - ``default_get`` (``:1130``): BLOQUEADO por ``company_id`` — su cuerpo
+      escribe ``values['company_id']``, así que arrastra el mismo bloqueo de
+      **#110**; y es lo que haría observable la guarda del correo de
+      :meth:`name_create` (**#113**).
+    - ``_load_records_create`` (``:988``): BLOQUEADO por ``el cargador de data
+      XML`` — no existe aquí; los datos iniciales los siembran las migraciones
+      y los comandos de ``kaupamex-bin``. Su cuerpo agrupa la sincronización
+      en lote para el alta masiva; el escape que usa
+      —``_partners_skip_fields_sync``— **sí** está portado en :meth:`save`.
+      Tarea **#115**.
+
+    **Divergencia de mecanismo, ya declarada en su sitio.**
+
+    - ``_get_view``, ``_get_view_cache_key`` y ``_view_get_address`` — mutan
+      el arch XML de una vista Odoo con XPath. Razón medida en
+      :class:`FormatAddressMixin` y :class:`FormatVatLabelMixin`, más abajo:
+      el **dato** está (``vat_label``, ``address_format``) y el árbol XML no.
+    - ``get_import_templates`` y ``_check_import_consistency`` — el asistente
+      de importación CSV, con su razón medida junto a
+      ``_extract_fields_from_address``. Desenlace: decisión del ejecutor,
+      tarea **#103**.
+
     Los tres enganches que Enterprise usa sobre este modelo
     ========================================================
 
@@ -1233,6 +1283,53 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     # Django **es** un registro, asi que la comprobacion no tiene sobre que
     # fallar.
     # ------------------------------------------------------------------
+    def open_commercial_entity(self):
+        """≙ ``open_commercial_entity`` (``odoo19c: res_partner.py:1023-1031``).
+
+        Docstring de la fuente, verbatim: *"Utility method used to add an
+        "Open Company" button in partner views"*.
+
+        Devuelve el **descriptor** de la ventana, no la abre: es un dato, y
+        por eso se porta verbatim aunque la interfaz sea otra. La forma
+        —``ir.actions.act_window`` con modelo, vista, registro y destino— ya
+        vive en este arbol (``base/wizard/wizard_ir_model_menu_create.py:58``),
+        asi que no se inventa nada.
+        """
+        return {'type': 'ir.actions.act_window',
+                'res_model': 'res.partner',
+                'view_mode': 'form',
+                'res_id': self.commercial_partner.pk,
+                'target': 'current',
+                }
+
+    @classmethod
+    def view_header_get(cls, view_id, view_type):
+        """≙ ``view_header_get`` (``odoo19c: res_partner.py:1204-1210``).
+
+        El titulo de la lista cuando esta filtrada por etiqueta. Sin clave en
+        contexto no hay cabecera: una lista sin filtro con titulo de filtro
+        promete un recorte que no existe.
+
+        **Divergencia de stack, declarada:** la fuente cae a
+        ``super().view_header_get(...)``, definido en su ``models.Model``. Ese
+        metodo **no existe** en ``src/orm`` (medido: 0 definiciones de
+        ``def view_header_get``), y su cuerpo alla devuelve ``False``. Aqui el
+        equivalente es ``None``, que es lo que el llamador distingue.
+
+        **Y una divergencia de conducta, tambien declarada:** la fuente hace
+        ``browse(id).name`` sobre un id que puede no existir, y su recordset
+        vacio devuelve ``False`` sin reventar. Un ``get`` de Django levantaria
+        ``DoesNotExist``. La cabecera es decoracion: que un id muerto en el
+        contexto tumbe la lista seria peor que no ponerla.
+        """
+        category_id = get_context().get('category_id')
+        if not category_id:
+            return None
+        category = ResPartnerCategory.objects.filter(pk=category_id).first()
+        if category is None:
+            return None
+        return f'Contactos: {category.name}'
+
     @classmethod
     def name_create(cls, name):
         """≙ ``name_create`` (``odoo19c: res_partner.py:1072-1093``).
