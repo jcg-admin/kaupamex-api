@@ -45,9 +45,16 @@ arriba: este módulo **agrega**, no define. No se re-exporta desde este
 agregador porque no es una clase de campo de Django y no puede aparecer en
 ``_meta.get_fields()``; se importa por su nombre. Ver :ref:`h-api-855`.
 """
+import operator as operator_module
+import re
 from decimal import Decimal
 
 from django.db import models
+from django.utils.timezone import localtime
+
+from orm.environments import get_current_company
+from tools.misc import remove_accents
+from tools.sql import SQL
 
 from orm.fields_binary import Binary, Image                    # noqa: F401
 from orm.fields_misc import Boolean, Json                      # noqa: F401
@@ -189,6 +196,99 @@ _NEGATIVE_LIKE_OPERATORS = frozenset([
     'not like', 'not ilike', 'not =like', 'not =ilike',
 ])
 
+#: Los nueve operadores de semántica negativa — ≙ ``NEGATIVE_CONDITION_OPERATORS``
+#: (``odoo19c: odoo/orm/domains.py``). Es la misma segunda copia que
+#: ``_NEGATIVE_LIKE_OPERATORS`` declara arriba y por el mismo motivo: el hogar
+#: de la fuente es ``domains``, que ya importa de aquí, y un import dentro de
+#: la función está prohibido. Unificar los dos en un hogar compartido es la
+#: tarea **#380**; hasta entonces la copia se prueba contra la original en
+#: ``tests/unit/orm/test_domains.py`` para que no puedan divergir en silencio.
+NEGATIVE_CONDITION_OPERATORS = frozenset([
+    'not any', 'not any!', 'not in',
+    'not like', 'not ilike', 'not =like', 'not =ilike',
+    '!=', '<>',
+])
+
+#: ¿El ``ilike`` ignora los acentos? — ≙ ``Registry.unaccent_python``
+#: (``odoo19c: odoo/orm/registry.py:290``), que es ``remove_accents`` cuando la
+#: extensión ``unaccent`` está instalada y la identidad cuando no.
+#:
+#: **Aquí es falso, y es una medición, no una preferencia.** El lookup
+#: ``sql_ilike`` emite un ``ILIKE`` pelado (ver su docstring: el ``unaccent``
+#: real es la tarea **#98**), y la extensión no está instalada — medido sobre
+#: ``pg_extension``: ``pg_trgm`` y ``plpgsql``, nada más.
+#:
+#: La bandera existe para que las **dos** vías de compilación decidan lo mismo.
+#: Sin ella el predicado en memoria encontraría «Ácme» buscando «acme» y el
+#: motor no, sobre el mismo dominio — y eso lo destapó el test que las contrasta,
+#: no una relectura. Cuando #98 instale la extensión, esto y ``SqlILike`` se
+#: encienden juntos: son una decisión, no dos.
+UNACCENT_ENABLED = False
+
+
+def convert_to_display_name(field, value, record):
+    """El valor de un campo, como etiqueta — ≙ ``Field.convert_to_display_name``.
+
+    ≙ ``odoo19c: odoo/orm/fields.py:1080`` y sus cinco sobrecargas
+    (``fields_reference.py:55``, ``fields_relational.py:397`` y ``:715``,
+    ``fields_temporal.py:187`` y ``:291``). Es lo que ``_compute_display_name``
+    aplica al campo que ``_rec_name`` nombra.
+
+    **Divergencia de forma, declarada y heredada:** allá es un método de la
+    clase del campo; aquí es una **función sobre el campo de Django**, por la
+    misma razón que ``falsy_value`` y ``condition_to_q``, que ya viven en este
+    archivo — nuestros campos son alias de los de Django
+    (``Integer = models.IntegerField``), así que no hay clase propia donde
+    colgar el método sin subclasar los veinte campos de Django. El **sitio** sí
+    es el de la fuente.
+
+    Las cinco sobrecargas se portan como despacho por clase:
+
+    - **relacional a uno** (``Many2one``, ``Reference``) → el ``display_name``
+      del registro apuntado. La fuente lo escribe igual en las dos.
+    - **relacional a muchos** (``Many2many``, ``One2many``) → la fuente lanza
+      ``NotImplementedError`` (``fields_relational.py:715``), y se porta
+      verbatim: un ``_rec_name`` que nombre una colección no tiene etiqueta
+      única, y devolver algo inventado ahí escondería el error de declaración.
+    - **fecha y fecha-hora** → su representación en texto. La fuente pasa la
+      fecha-hora a la zona del registro
+      (``Datetime.context_timestamp``); aquí lo hace ``localtime``, que lee la
+      zona activa del hilo — el mismo mecanismo que el resto del árbol usa.
+    - **el resto** → ``str(value) if value else False``, el default de la
+      fuente, con su ``False`` y no ``None``: es el valor que la fuente
+      devuelve para un campo vacío, y ``_compute_display_name`` lo distingue.
+    """
+    if field is None:
+        return str(value) if value else False
+    if isinstance(field, (models.ManyToManyField, models.ManyToOneRel,
+                          models.ManyToManyRel)):
+        raise NotImplementedError(
+            f'convert_to_display_name no aplica a {field!r}: una colección no '
+            f'tiene etiqueta única')
+    if isinstance(field, (models.ForeignKey, models.OneToOneField)):
+        return display_name_of(value) if value else False
+    if isinstance(field, models.DateTimeField):
+        return localtime(value).strftime('%Y-%m-%d %H:%M:%S') if value else False
+    if isinstance(field, models.DateField):
+        return value.strftime('%Y-%m-%d') if value else False
+    return str(value) if value else False
+
+
+def display_name_of(record):
+    """La etiqueta de un registro — ≙ ``record.display_name``.
+
+    Existe para que :func:`convert_to_display_name` no tenga que importar
+    ``orm.models``: ese módulo importa ``orm.environments``, que toca el
+    registro de apps, y este archivo se carga al definir los campos. Es la
+    misma causa que documenta ``adopt_access_manager``.
+
+    Un modelo que aún no adoptó el ``display_name`` universal —los de terceros
+    lo son por decisión— cae a ``str(record)``, que es el ``__str__`` de
+    Django.
+    """
+    etiqueta = getattr(record, 'display_name', None)
+    return etiqueta if etiqueta else str(record)
+
 _INEQUALITY_LOOKUP = {'<': 'lt', '>': 'gt', '<=': 'lte', '>=': 'gte'}
 
 _COLLECTION_TYPES = (list, tuple, set, frozenset)
@@ -324,3 +424,293 @@ def condition_to_q(field_expr, operator, value, field=None):
 
     raise NotImplementedError(
         f'Operador de dominio no soportado: {(field_expr, operator, value)!r}')
+
+
+# --- Generación de SQL — ≙ "SQL generation methods" de la fuente ------------
+#
+# ``odoo19c: odoo/orm/fields.py:1205-1247`` agrupa bajo ese encabezado los dos
+# métodos con que un campo se convierte en fragmento ``SQL``. Los consume
+# ``BaseModel._field_to_sql`` (``orm/models.py``), la puerta del motor de
+# consultas: ``sql = field.to_sql(self, alias)``.
+#
+# LA DIVERGENCIA, Y ES DE FORMA — la misma que ``orm/models.py`` ya declara
+# dos veces (permisos y ``_origin``): allá cuelgan de la clase ``Field``, que
+# es de la referencia; aquí la clase base de todo campo es
+# ``django.db.models.Field``, que **no es nuestra para declararla**. Se le
+# adjuntan al importar este módulo, que es el equivalente exacto de declarar
+# el método en la clase: todo campo los tiene, como allá, y el sitio de la
+# llamada queda **idéntico al de la fuente**.
+#
+# La alternativa era una función suelta ``to_sql(field, model, alias)``, que
+# obliga a reescribir cada llamada y rompe el despacho por tipo de campo —
+# ``Properties`` sobreescribe ``property_to_sql``, y una función no se
+# sobreescribe.
+#
+# Medido antes de adjuntar: ``to_sql`` y ``property_to_sql`` dan ``False`` en
+# ``hasattr(models.Field, ...)``, así que no pisan nada de Django.
+
+
+def _field_to_sql_expression(self, model, alias):
+    """``to_sql`` — el valor de este campo desde el alias de tabla dado.
+
+    ≙ ``Field.to_sql`` (``odoo19c: odoo/orm/fields.py:1209-1238``).
+
+    Un campo sin columna no se puede convertir, y la fuente lo dice con el
+    mismo error: ``store``/``column_type`` allá, ``concrete``/``column`` aquí
+    —un ``models.Field`` es concreto cuando tiene columna propia, y las
+    relaciones inversas y los ``ManyToMany`` no la tienen—. El ``NonStored``
+    de ``orm/fields_nonstored.py`` ni siquiera llega: no es un campo de
+    Django, así que ``_field_to_sql`` lo descarta antes.
+
+    La fuente entrecomilla ``self.name`` porque allá el nombre del campo **es**
+    el de la columna. Aquí no siempre: un ``db_column`` explícito o una FK
+    —cuyo nombre de columna lleva el sufijo ``_id``— los separan. Lo que va en
+    SQL es la **columna**, así que es ``self.column`` lo que se entrecomilla.
+
+    La rama ``company_dependent`` (``odoo19c: :1217-1237``) **sí** tiene
+    contraparte desde la tarea #111: la columna es ``jsonb`` con
+    ``{empresa: valor}``, así que el SQL extrae la entrada de la empresa
+    activa y cae al default de ``ir.default`` cuando no la hay. Es el
+    ``COALESCE(col->empresa, to_jsonb(fallback::tipo))`` de la fuente.
+    """
+    if not getattr(self, 'concrete', False) or not getattr(self, 'column', None):
+        raise ValueError(f"Cannot convert {self} to SQL because it is not stored")
+
+    sql_field = SQL.identifier(alias, self.column, to_flush=self)
+    if not getattr(self, 'company_dependent', False):
+        return sql_field
+
+    # ≙ ``:1218-1237``. El `->>` devuelve texto y el CAST lo lleva al tipo del
+    # campo base; la fuente hace lo mismo y explica por qué no basta `->`: un
+    # `'null'::jsonb` castea a la cadena 'null' en vez de a NULL.
+    company_id = get_current_company()
+    fallback = self.get_company_dependent_fallback_sql(model)
+    return SQL(
+        "COALESCE((%(column)s->>%(company_id)s)::%(cast)s, %(fallback)s)",
+        column=sql_field,
+        company_id=str(company_id) if company_id is not None else None,
+        cast=SQL(self.sql_cast_type),
+        fallback=fallback,
+    )
+
+
+def _field_property_to_sql(self, field_sql, property_name, model, alias, query):
+    """``property_to_sql`` — el valor de una propiedad dentro del campo.
+
+    ≙ ``Field.property_to_sql`` (``odoo19c: odoo/orm/fields.py:1241-1247``).
+    El caso base **rechaza**: sólo un campo que contenga sub-campos sabe
+    extraer uno, y quien lo sabe lo sobreescribe — ``Properties`` en
+    ``orm/fields_properties.py``, igual que allá.
+    """
+    raise ValueError(f"Invalid field property {property_name!r} on {self}")
+
+
+models.Field.to_sql = _field_to_sql_expression
+models.Field.property_to_sql = _field_property_to_sql
+
+
+# === expression_getter / filter_function ====================================
+#
+# El par que evalúa un dominio **en memoria**, sin ir al motor. La fuente los
+# declara como métodos de ``Field``
+# (``odoo19c: odoo/orm/fields.py:1384-1477``); aquí se cuelgan de
+# ``models.Field`` al final del módulo, igual que ``to_sql`` y
+# ``property_to_sql`` — un campo de Django no es nuestro para subclasificar,
+# pero el nombre y la firma se conservan.
+#
+# Su consumidor es ``BaseModel.filtered_domain``, y quien lo necesita es
+# ``ir.default._evaluate_condition_with_fallback``: preguntar si el valor de
+# respaldo de un campo dependiente de empresa satisface una condición no se
+# puede resolver en SQL, porque ese valor **no está en ninguna fila** — es el
+# que responde el campo cuando la empresa no tiene el suyo.
+
+#: Los cuatro operadores de desigualdad, a su función de Python.
+_PYTHON_INEQUALITY_OPERATOR = {
+    '<': operator_module.lt,
+    '>': operator_module.gt,
+    '<=': operator_module.le,
+    '>=': operator_module.ge,
+}
+
+
+def _expression_getter(self, field_expr):
+    """Un ``field_expr`` de dominio a la función que lo lee de un registro.
+
+    ≙ ``Field.expression_getter`` (``odoo19c: odoo/orm/fields.py:1384-1394``).
+    El caso base sólo sabe leer **el campo entero**; cualquier otra expresión
+    la resuelve quien la entienda, sobreescribiendo este método.
+
+    La divergencia de forma: allá el getter es ``self.__get__`` —el descriptor
+    del campo—; aquí un campo de Django no es descriptor de lectura, así que
+    es ``getattr(record, self.name)``. Mismo contrato: dado un registro,
+    devuelve el valor.
+    """
+    if field_expr == self.name:
+        return lambda record: getattr(record, self.name)
+    raise ValueError(f'Expression not supported on {self}: {field_expr!r}')
+
+
+def _filter_function(self, records, field_expr, operator, value):
+    """Un ``(campo, operador, valor)`` a un predicado de un registro.
+
+    ≙ ``Field.filter_function`` (``odoo19c: odoo/orm/fields.py:1396-1477``).
+    Es el gemelo en memoria de :func:`condition_to_q`: aquella compila la
+    condición a ``Q`` para que la resuelva PostgreSQL, ésta la compila a una
+    función de Python para resolverla sobre registros que ya están en mano.
+
+    **Sólo operadores positivos** — la negación la aplica quien llama, igual
+    que allá, para no duplicar cada rama.
+    """
+    if operator in NEGATIVE_CONDITION_OPERATORS:
+        raise ValueError(
+            f'filter_function espera un operador positivo, no {operator!r}')
+    getter = self.expression_getter(field_expr)
+
+    # --- in (igualdad) ------------------------------------------------------
+    if operator == 'in':
+        if not isinstance(value, _COLLECTION_TYPES) or not value:
+            raise ValueError(
+                f"filter_function con 'in' espera una colección no vacía, "
+                f'no {type(value)}')
+        values = value if isinstance(value, (set, frozenset)) else set(value)
+        if False in values or falsy_value(self) in values:
+            # Un campo sin valor cuenta como que lo tiene, si el conjunto
+            # incluye el valor *falsy* — la misma regla que ``condition_to_q``
+            # aplica al lado SQL.
+            if len(values) == 1:
+                return lambda record: not getter(record)
+            return lambda record: (
+                (val := getter(record)) in values or not val)
+        return lambda record: getter(record) in values
+
+    # --- familia like -------------------------------------------------------
+    if operator.endswith('like'):
+        if operator.endswith('ilike'):
+            def normalize(x):
+                # ``ilike`` compara en minúsculas, y **sin quitar acentos**
+                # mientras ``UNACCENT_ENABLED`` sea falso. Ver su declaración:
+                # tiene que decidir lo mismo que el lookup ``sql_ilike``, y ése
+                # emite un ``ILIKE`` pelado.
+                if not x:
+                    return ''
+                text = str(x).lower()
+                return remove_accents(text) if UNACCENT_ENABLED else text
+        else:
+            def normalize(x):
+                return str(x) if x else ''
+
+        pattern = re.compile(
+            ''.join(_like_regex_parts(normalize(value), '=' in operator)),
+            flags=re.DOTALL)
+        return lambda record: bool(pattern.match(normalize(getter(record))))
+
+    # --- desigualdades ------------------------------------------------------
+    if python_operator := _PYTHON_INEQUALITY_OPERATOR.get(operator):
+        can_be_null = False
+        if (null_value := falsy_value(self)) is not None:
+            value = value or null_value
+            can_be_null = (
+                null_value < value if operator == '<' else
+                null_value > value if operator == '>' else
+                null_value <= value if operator == '<=' else
+                null_value >= value)
+
+        def check_inequality(record):
+            record_value = getter(record)
+            try:
+                if record_value is False or record_value is None:
+                    return can_be_null
+                return python_operator(record_value, value)
+            except (ValueError, TypeError):
+                # Tipos que no se comparan: la fila no entra, no revienta.
+                return False
+
+        return check_inequality
+
+    raise NotImplementedError(f'Operador simple inválido {operator!r}')
+
+
+def _like_regex_parts(value, exact):
+    """El patrón SQL ``LIKE`` a expresión regular, trozo a trozo.
+
+    ≙ el ``build_like_regex`` anidado de la fuente
+    (``odoo19c: odoo/orm/fields.py:1428-1445``). Se saca a función de módulo
+    porque aquí ``filter_function`` no es un método de clase propia y anidarla
+    la reconstruiría en cada llamada.
+
+    ``%`` es ``.*``, ``_`` es un carácter, y ``\\`` escapa al siguiente — las
+    tres reglas del ``LIKE`` de SQL.
+    """
+    yield '^' if exact else '.*'
+    escaped = False
+    for char in value:
+        if escaped:
+            escaped = False
+            yield re.escape(char)
+        elif char == '\\':
+            escaped = True
+        elif char == '%':
+            yield '.*'
+        elif char == '_':
+            yield '.'
+        else:
+            yield re.escape(char)
+    if exact:
+        yield '$'
+
+
+models.Field.expression_getter = _expression_getter
+models.Field.filter_function = _filter_function
+
+
+# --- El atributo ``copy`` — quién viaja en un duplicado ----------------------
+#
+# ≙ ``copy: bool = True`` (``odoo19c: odoo/orm/fields.py:281``), con su
+# docstring verbatim: *"whether the field is copied over by BaseModel.copy()"*.
+# Es el discriminador que ``copy_data`` consulta campo a campo (``:5438``), así
+# que sin él el duplicado no puede decidir nada y lo copia todo.
+#
+# Va aquí y no en cada envoltorio de ``orm/fields_*`` por la misma razón que
+# ``to_sql`` y ``expression_getter``: un ``Field`` es una pieza interna del ORM
+# que nadie hereda, y los envoltorios son **veinte**. Ponerlo en la clase lo da
+# a los veinte de una vez, con la ortografía de la fuente.
+
+#: El default de la fuente: un campo se copia salvo que diga lo contrario.
+models.Field.copy = True
+
+_DJANGO_FIELD_INIT = models.Field.__init__
+
+
+def _field_init_with_copy(self, *args, copy=True, **kwargs):
+    """Acepta ``copy=`` en la declaración y lo anota en el campo.
+
+    Django no conoce la bandera, así que pasársela a su ``__init__`` sería un
+    ``TypeError``. Se saca de los kwargs y se guarda en la instancia; la
+    columna no cambia — ``copy`` no es una propiedad del almacenamiento sino
+    del duplicado, igual que allá.
+    """
+    _DJANGO_FIELD_INIT(self, *args, **kwargs)
+    self.copy = copy
+
+
+models.Field.__init__ = _field_init_with_copy
+
+_DJANGO_FIELD_DECONSTRUCT = models.Field.deconstruct
+
+
+def _field_deconstruct_without_copy(self):
+    """``copy`` NO viaja a la migración, y es deliberado.
+
+    El estado de la migración describe la **columna**; ``copy`` describe la
+    conducta del duplicado. Emitirlo cambiaría el estado de todos los campos
+    del árbol y ``makemigrations --check`` dejaría de estar limpio, sin que
+    ninguna columna hubiera cambiado. Mismo criterio que ``Html.deconstruct``,
+    que devuelve la ruta de ``TextField`` para no mover las migraciones ya
+    generadas.
+    """
+    name, path, args, kwargs = _DJANGO_FIELD_DECONSTRUCT(self)
+    kwargs.pop('copy', None)
+    return name, path, args, kwargs
+
+
+models.Field.deconstruct = _field_deconstruct_without_copy

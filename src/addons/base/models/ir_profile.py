@@ -92,7 +92,7 @@ _TRACE_FIELDS = (
 )
 
 
-class IrProfileManager(models.Manager):
+class IrProfileManager(models.AccessManager):
     """Manager por defecto: difiere las trazas pesadas (``prefetch=False``)."""
 
     def get_queryset(self):

@@ -138,6 +138,7 @@ class UtmSourceMixin(models.Model):
         'utm.UtmSource', on_delete=models.PROTECT, related_name='+',
         verbose_name='Fuente',
         help_text='Fuente UTM asociada a este registro.',
+        db_column='source_id',
     )
 
     class Meta:

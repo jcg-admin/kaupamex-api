@@ -63,7 +63,7 @@ class TestSubscribe:
 
         assert MailingSubscription.objects.filter(
             mailing_list=mm.newsletter_list(),
-            contact__email='nuevo@example.com',
+            contact_id__email='nuevo@example.com',
         ).count() == 1
 
     def test_invalid_email_rejected(self, api_client, db):

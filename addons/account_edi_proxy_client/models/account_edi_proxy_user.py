@@ -130,23 +130,25 @@ class AccountEdiProxyUser(models.Model):
         max_length=255,
         help_text='Identificador asignado por el proxy (Odoo id_client, requerido).',
     )
-    company = fields.Many2one(
+    company_id = fields.Many2one(
         'base.ResCompany', on_delete=models.CASCADE, db_index=True,
         related_name='account_edi_proxy_client_ids',
         help_text='Empresa (Odoo company_id, requerido). related_name da a '
                   'res.company el O2M inverso sin tocar su archivo.',
+        db_column='company_id',
     )
     edi_identification = fields.Char(
         max_length=255,
         help_text='Identificador único del usuario (típicamente el RFC/VAT), '
                   'requerido.',
     )
-    private_key = fields.Many2one(
+    private_key_id = fields.Many2one(
         'certificate.CertificateKey', on_delete=models.PROTECT,
         related_name='edi_proxy_users',
         help_text='Llave para cifrar los datos del usuario (Odoo '
                   'private_key_id, requerido; domain público=False en la '
                   'referencia, no reforzado a nivel de campo aquí).',
+        db_column='private_key_id',
     )
     refresh_token = fields.Char(max_length=255, blank=True, default='')
     is_token_out_of_sync = fields.Boolean(
@@ -172,7 +174,7 @@ class AccountEdiProxyUser(models.Model):
             # ≙ ``_unique_active_company_proxy`` (``odoo19c: :65-68``) —
             # UniqueIndex parcial: sólo entre filas activas.
             models.UniqueConstraint(
-                fields=['company', 'proxy_type', 'edi_mode'],
+                fields=['company_id', 'proxy_type', 'edi_mode'],
                 condition=models.Q(active=True),
                 name='uniq_edi_proxy_active_company',
             ),
@@ -312,11 +314,11 @@ class AccountEdiProxyUser(models.Model):
 
         return AccountEdiProxyUser.objects.create(
             id_client=response['id_client'],
-            company=company,
+            company_id=company,
             proxy_type=proxy_type,
             edi_mode=edi_mode,
             edi_identification=edi_identification,
-            private_key=private_key,
+            private_key_id=private_key,
             refresh_token=response['refresh_token'],
         )
 
@@ -334,7 +336,7 @@ class AccountEdiProxyUser(models.Model):
 
     def _decrypt_data(self, data, symmetric_key):
         """≙ ``_decrypt_data`` (``odoo19c: :208-215``)."""
-        decrypted_key = self.private_key._decrypt(base64.b64decode(symmetric_key))
+        decrypted_key = self.private_key_id._decrypt(base64.b64decode(symmetric_key))
         return CertificateKey._account_edi_fernet_decrypt(
             decrypted_key, base64.b64decode(data))
 

@@ -281,8 +281,7 @@ class ProductProduct(TimeStampedModel):
             self.product_template_attribute_values.all())
         return self.combination_indices
 
-    @property
-    def display_name(self):
+    def _compute_display_name(self):
         """≙ ``display_name`` / ``_compute_display_name`` (``:813-872``), que
         delega en ``_get_combination_name`` — nombre de la ficha más su
         combinación.

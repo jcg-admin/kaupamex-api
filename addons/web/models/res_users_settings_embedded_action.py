@@ -53,9 +53,11 @@ Divergencias de mecanismo declaradas
   ajustes — el llamador
   (``res_users_settings.py::get_embedded_actions_settings``) pasa
   ``self.embedded_actions_config_ids.all()``. La clave del diccionario usa
-  ``setting.action_id`` (el entero crudo de la FK que Django expone sin
-  golpear la base), que es exactamente el mismo valor que
-  ``setting.action_id.id`` calcula en la referencia con una consulta extra.
+  ``setting.action_id_id`` — el *attname* que la forma C deja tras el simbolo
+  ``action_id``: el entero crudo de la FK, que Django expone sin golpear la
+  base y que es exactamente el mismo valor que ``setting.action_id.id``
+  calcula en la referencia. Interpolar el **simbolo** daria el nombre de
+  pantalla del registro, no su id.
 """
 import api
 from django.core.exceptions import ValidationError
@@ -74,7 +76,7 @@ class ResUsersSettingsEmbeddedAction(models.Model):
     web/models/res_users_settings_embedded_action.py:5-20``.
     """
 
-    user_setting = fields.Many2one(
+    user_setting_id = fields.Many2one(
         ResUsersSettings, on_delete=models.CASCADE, db_index=True,
         related_name='embedded_actions_config_ids',
         verbose_name='Preferencias del usuario',
@@ -82,14 +84,16 @@ class ResUsersSettingsEmbeddedAction(models.Model):
             'Preferencias del usuario dueño de este ajuste (Odoo '
             'user_setting_id, requerido, ondelete=cascade).'
         ),
+        db_column='user_setting_id',
     )
-    action = fields.Many2one(
+    action_id = fields.Many2one(
         IrActionsActWindow, on_delete=models.CASCADE, db_index=True,
         related_name='embedded_user_settings', verbose_name='Acción',
         help_text=(
             'Acción embebida a la que aplica el ajuste (Odoo action_id, '
             'requerido, ondelete=cascade).'
         ),
+        db_column='action_id',
     )
     res_model = fields.Char(
         max_length=120, verbose_name='Modelo del registro',
@@ -129,13 +133,13 @@ class ResUsersSettingsEmbeddedAction(models.Model):
         # puede tener dos ajustes para la misma acción en el mismo registro.
         constraints = [
             models.UniqueConstraint(
-                fields=['user_setting', 'action', 'res_id'],
+                fields=['user_setting_id', 'action_id', 'res_id'],
                 name='res_users_settings_embedded_action_unique',
             ),
         ]
 
     def __str__(self) -> str:
-        return f'ajuste embebido {self.action_id} de {self.user_setting_id}'
+        return f'ajuste embebido {self.action_id_id} de {self.user_setting_id_id}'
 
     def clean(self):
         super().clean()
@@ -195,7 +199,7 @@ class ResUsersSettingsEmbeddedAction(models.Model):
         ``"{action_id}+{res_id}" -> {...}`` que la referencia.
         """
         return {
-            f'{setting.action_id}+{setting.res_id or ""}': {
+            f'{setting.action_id_id}+{setting.res_id or ""}': {
                 'embedded_actions_order': [
                     False if action_id == 'false' else int(action_id)
                     for action_id in setting.embedded_actions_order.split(',')

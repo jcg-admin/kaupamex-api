@@ -13,7 +13,7 @@ from addons.account.models.account_fiscal_position import AccountFiscalPosition
 from addons.account.models.account_payment_term import AccountPaymentTerm
 from addons.account.models.res_company import get_fiscal_country_codes
 from addons.base.models import ResBank, ResCompany, ResCountry, ResCurrency
-from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.base.models.res_bank import ResPartnerBank
 from orm.environments import set_current_company
 
 pytestmark = pytest.mark.django_db

@@ -416,7 +416,7 @@ class ResDeviceLog(_ResDeviceFields):
             offset -= len(to_revoke)
 
 
-class ResDeviceQuerySet(models.QuerySet):
+class ResDeviceQuerySet(models.AccessQuerySet):
     """El **recordset** de ``res.device``.
 
     ``_revoke`` actúa sobre un conjunto en la referencia —``for device in

@@ -18,7 +18,7 @@ class TestMailingListAndContacts:
     def test_subscription_links_contact_and_list(self, db):
         lst = MailingList.objects.create(name='Ofertas')
         contact = MailingContact.objects.create(email='a@x.com', name='Ana')
-        sub = MailingSubscription.objects.create(contact=contact, mailing_list=lst)
+        sub = MailingSubscription.objects.create(contact_id=contact, mailing_list=lst)
         assert sub.opt_out is False
         # reversos por related_name
         assert lst.subscription_ids.filter(pk=sub.pk).exists()
@@ -27,17 +27,17 @@ class TestMailingListAndContacts:
     def test_subscription_unique_per_list(self, db):
         lst = MailingList.objects.create(name='L')
         c = MailingContact.objects.create(email='a@x.com')
-        MailingSubscription.objects.create(contact=c, mailing_list=lst)
+        MailingSubscription.objects.create(contact_id=c, mailing_list=lst)
         with pytest.raises(IntegrityError):
             with transaction.atomic():
-                MailingSubscription.objects.create(contact=c, mailing_list=lst)
+                MailingSubscription.objects.create(contact_id=c, mailing_list=lst)
 
     def test_optout_is_per_list_not_global(self, db):
         c = MailingContact.objects.create(email='a@x.com')
         l1 = MailingList.objects.create(name='L1')
         l2 = MailingList.objects.create(name='L2')
-        s1 = MailingSubscription.objects.create(contact=c, mailing_list=l1, opt_out=True)
-        s2 = MailingSubscription.objects.create(contact=c, mailing_list=l2)
+        s1 = MailingSubscription.objects.create(contact_id=c, mailing_list=l1, opt_out=True)
+        s2 = MailingSubscription.objects.create(contact_id=c, mailing_list=l2)
         # el contacto salio de L1 pero sigue en L2 (fiel a Odoo)
         assert s1.opt_out is True and s2.opt_out is False
 
@@ -91,7 +91,7 @@ class TestSubscriptionOptInLifecycle:
     def _sub(self):
         c = MailingContact.objects.create(email='a@x.com')
         l = MailingList.objects.create(name='News')
-        return MailingSubscription.objects.create(contact=c, mailing_list=l)
+        return MailingSubscription.objects.create(contact_id=c, mailing_list=l)
 
     def test_new_subscription_is_pending(self, db):
         s = self._sub()
@@ -120,7 +120,7 @@ class TestSubscriptionOptInLifecycle:
     def test_unsubscribe_tokens_unique(self, db):
         s1 = self._sub()
         c2 = MailingContact.objects.create(email='b@x.com')
-        s2 = MailingSubscription.objects.create(contact=c2, mailing_list=s1.mailing_list)
+        s2 = MailingSubscription.objects.create(contact_id=c2, mailing_list=s1.mailing_list)
         assert s1.unsubscribe_token != s2.unsubscribe_token
 
 

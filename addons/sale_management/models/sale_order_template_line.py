@@ -34,10 +34,11 @@ class SaleOrderTemplateLine(TimeStampedModel):
     sequence        = fields.Integer(
         default=10, help_text='Orden dentro de la plantilla (Odoo sequence).',
     )
-    product         = fields.Many2one(
+    product_id      = fields.Many2one(
         'product.ProductProduct', null=True, blank=True, on_delete=models.PROTECT,
         related_name='sale_template_lines',
         help_text='Producto (Odoo product_id); NULL en sección/nota.',
+        db_column='product_id',
     )
     name            = fields.Text(
         blank=True, default='',
@@ -59,4 +60,4 @@ class SaleOrderTemplateLine(TimeStampedModel):
         verbose_name_plural = 'Líneas de plantilla de cotización'
 
     def __str__(self) -> str:
-        return self.name or (str(self.product) if self.product_id else self.display_type)
+        return self.name or (str(self.product_id) if self.product_id_id else self.display_type)

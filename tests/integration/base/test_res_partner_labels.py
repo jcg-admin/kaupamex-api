@@ -311,12 +311,16 @@ class TestTzOffset:
 
         La fuente NO cae a GMT: ``pytz.timezone('No/Existe')`` levanta. Puede
         permitírselo porque su ``tz`` es una ``Selection`` acotada a las zonas
-        válidas (``:223``) y la basura no entra. Aquí ``tz`` es un ``Char``
-        libre (``res_partner.py:267``), así que sí entra — y sin este respaldo
-        un dato viejo reventaría al **leer** el partner, no al escribirlo.
+        válidas (``:223``) y la basura no entra.
 
-        Cerrar la divergencia (acotar ``tz``) es la tarea **#107**; entonces
-        este caso deja de poder fallar y se retira.
+        **Corregido al cerrar #107.** Este docstring anunciaba que acotar
+        ``tz`` retiraría el caso. Es falso, y la razón es medible: ``tz`` ya
+        es una Selection (``choices=_tzs``), pero en Django ``choices`` es
+        **validación, no DDL** —lo mismo que desbloqueó #118—, así que
+        ``objects.create(tz='No/Existe')`` sigue escribiendo la fila y sólo
+        ``full_clean()`` la rechaza. El caso se queda porque sigue siendo
+        alcanzable: por un dato anterior al acotamiento, y por cualquier
+        escritura que no pase por ``full_clean()``.
         """
         who = ResPartner.objects.create(name='Ana', tz='No/Existe')
         assert who.tz_offset == '+0000'

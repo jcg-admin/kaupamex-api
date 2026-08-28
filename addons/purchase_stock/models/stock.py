@@ -278,7 +278,7 @@ def picking_purchase(self):
     aquí se hace explícito con ``.first()``.
     """
     move = self.move_ids.exclude(purchase_line__isnull=True).first()
-    return move.purchase_line.order if move is not None else None
+    return move.purchase_line.order_id if move is not None else None
 
 
 def _compute_effective_date(self):
@@ -334,10 +334,10 @@ def _search_delay_pass(cls, operator, value):
     """≙ ``_search_delay_pass`` (``odoo19c: :36-38``) — verbatim.
 
     ``purchase_id.date_order`` de la fuente es aquí
-    ``move_ids.purchase_line.order.date_order``: el camino completo, porque
+    ``move_ids.purchase_line.order_id.date_order``: el camino completo, porque
     ``purchase`` es una ``property`` y no una relación navegable.
     """
-    return [('move_ids.purchase_line.order.date_order', operator, value)]
+    return [('move_ids.purchase_line.order_id.date_order', operator, value)]
 
 
 # =========================================================================
@@ -663,7 +663,7 @@ def _get_replenishment_order_notification(self):
     line = queryset.first()
     if line is None:
         return None
-    order = line.order
+    order = line.order_id
     return {
         'type': 'ir.actions.client',
         'tag': 'display_notification',

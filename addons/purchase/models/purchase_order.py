@@ -40,9 +40,10 @@ class PurchaseOrder(TimeStampedModel):
         help_text='Referencia de la orden (Odoo purchase.order.name).',
     )
     # Odoo purchase.order.partner_id — proveedor (res.partner). Aquí AUTH_USER.
-    partner    = fields.Many2one(
+    partner_id = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='purchase_orders', help_text='Proveedor (Odoo partner_id).',
+        db_column='partner_id',
     )
     # Odoo purchase.order.date_order.
     date_order = fields.Datetime(

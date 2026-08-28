@@ -113,7 +113,7 @@ from tools.translate import _
 def _edi_state(self):
     """≙ ``_compute_edi_state`` (``odoo19c: :41-53``)."""
     docs_ws = [d for d in self.edi_document_ids.all()
-               if d.edi_format._needs_web_services()]
+               if d.edi_format_id._needs_web_services()]
     all_states = {d.state for d in docs_ws}
     if all_states == {'sent'}:
         return 'sent'
@@ -167,16 +167,16 @@ def _edi_web_services_to_process(self):
         d for d in self.edi_document_ids.all()
         if d.state in ('to_send', 'to_cancel') and d.blocking_level != 'error'
     ]
-    names = sorted({d.edi_format.name for d in to_process
-                    if d.edi_format._needs_web_services()})
+    names = sorted({d.edi_format_id.name for d in to_process
+                    if d.edi_format_id._needs_web_services()})
     return ', '.join(names)
 
 
 def _check_edi_documents_for_reset_to_draft(self):
     """≙ ``_check_edi_documents_for_reset_to_draft`` (``odoo19c: :98-105``)."""
     for doc in self.edi_document_ids.all():
-        applicability = doc.edi_format._get_move_applicability(self)
-        if (doc.edi_format._needs_web_services()
+        applicability = doc.edi_format_id._get_move_applicability(self)
+        if (doc.edi_format_id._needs_web_services()
                 and doc.state in ('sent', 'to_cancel')
                 and applicability and applicability.get('cancel')):
             return False
@@ -188,8 +188,8 @@ def _edi_show_cancel_button(self):
     if self.state != 'posted':
         return False
     for doc in self.edi_document_ids.all():
-        applicability = doc.edi_format._get_move_applicability(self)
-        if (doc.edi_format._needs_web_services() and doc.state == 'sent'
+        applicability = doc.edi_format_id._get_move_applicability(self)
+        if (doc.edi_format_id._needs_web_services() and doc.state == 'sent'
                 and applicability and applicability.get('cancel')):
             return True
     return False
@@ -200,8 +200,8 @@ def _edi_show_abandon_cancel_button(self):
     ``move.sudo().edi_document_ids`` → directo (sin ACL de campo, mismo
     criterio del resto de este dominio)."""
     for doc in self.edi_document_ids.all():
-        applicability = doc.edi_format._get_move_applicability(self)
-        if (doc.edi_format._needs_web_services() and doc.state == 'to_cancel'
+        applicability = doc.edi_format_id._get_move_applicability(self)
+        if (doc.edi_format_id._needs_web_services() and doc.state == 'to_cancel'
                 and applicability and applicability.get('cancel')):
             return True
     return False
@@ -254,14 +254,14 @@ def _create_edi_documents_after_post(self):
             raise UserError(_('Invalid invoice configuration:\n\n%s') % '\n'.join(errors))
 
         existing = AccountEdiDocument.objects.filter(
-            move=self, edi_format=edi_format).first()
+            move_id=self, edi_format_id=edi_format).first()
         if existing is not None:
             existing.state = 'to_send'
-            existing.attachment = None
-            existing.save(update_fields=['state', 'attachment'])
+            existing.attachment_id = None
+            existing.save(update_fields=['state', 'attachment_id'])
         else:
             AccountEdiDocument.objects.create(
-                edi_format=edi_format, move=self, state='to_send')
+                edi_format_id=edi_format, move_id=self, state='to_send')
 
     new_documents = list(self.edi_document_ids.all())
     AccountEdiDocument._process_documents_no_web_services(new_documents)
@@ -310,7 +310,7 @@ def button_force_cancel(self):
     to_cancel = [d for d in self.edi_document_ids.all() if d.state == 'to_cancel']
     post = getattr(self, 'message_post', None)
     if post is not None and to_cancel:
-        names = ', '.join(d.edi_format.name for d in to_cancel)
+        names = ', '.join(d.edi_format_id.name for d in to_cancel)
         post(body=_(
             'This invoice was canceled while the EDIs %s still had a '
             'pending cancellation request.') % names)
@@ -350,8 +350,8 @@ def button_cancel_posted_moves(self):
     to_cancel = []
     is_marked = False
     for doc in self.edi_document_ids.all():
-        applicability = doc.edi_format._get_move_applicability(self)
-        if (doc.edi_format._needs_web_services() and doc.state == 'sent'
+        applicability = doc.edi_format_id._get_move_applicability(self)
+        if (doc.edi_format_id._needs_web_services() and doc.state == 'sent'
                 and applicability and applicability.get('cancel')):
             to_cancel.append(doc)
             is_marked = True
@@ -371,7 +371,7 @@ def button_abandon_cancel_posted_posted_moves(self):
     documents = []
     is_marked = False
     for doc in self.edi_document_ids.all():
-        applicability = doc.edi_format._get_move_applicability(self)
+        applicability = doc.edi_format_id._get_move_applicability(self)
         if doc.state == 'to_cancel' and applicability and applicability.get('cancel'):
             documents.append(doc)
             is_marked = True
@@ -388,13 +388,13 @@ def button_abandon_cancel_posted_posted_moves(self):
 
 def _get_edi_document(self, edi_format):
     """≙ ``_get_edi_document`` (``odoo19c: :313-314``)."""
-    return AccountEdiDocument.objects.filter(move=self, edi_format=edi_format).first()
+    return AccountEdiDocument.objects.filter(move_id=self, edi_format_id=edi_format).first()
 
 
 def _get_edi_attachment(self, edi_format):
     """≙ ``_get_edi_attachment`` (``odoo19c: :316-317``)."""
     doc = self._get_edi_document(edi_format)
-    return doc.attachment if doc is not None else None
+    return doc.attachment_id if doc is not None else None
 
 
 def button_process_edi_web_services(self):

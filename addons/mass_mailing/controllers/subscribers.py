@@ -71,7 +71,7 @@ class AdminSubscriberExportCSVView(_AdminOnly, APIView):
         writer.writerow(['email', 'estado', 'fecha_suscripcion'])
         for sub in qs.iterator():
             writer.writerow([
-                sub.contact.email, mm.status_of(sub), sub.created_at.isoformat(),
+                sub.contact_id.email, mm.status_of(sub), sub.created_at.isoformat(),
             ])
 
         response = HttpResponse(buf.getvalue(), content_type='text/csv')

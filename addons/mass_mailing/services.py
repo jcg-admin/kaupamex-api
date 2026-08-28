@@ -65,7 +65,7 @@ def serialize_item(sub) -> dict:
     """
     return {
         'id': sub.pk,
-        'email': sub.contact.email,
+        'email': sub.contact_id.email,
         'status': status_of(sub),
         'confirmed_at': sub.confirmed_at,
         'unsubscribed_at': sub.opt_out_datetime,
@@ -77,8 +77,8 @@ def find_by_email(email):
     """Suscripción a la lista Newsletter por email del contacto, o ``None``."""
     return (
         MailingSubscription.objects
-        .filter(mailing_list=newsletter_list(), contact__email=email)
-        .select_related('contact')
+        .filter(mailing_list=newsletter_list(), contact_id__email=email)
+        .select_related('contact_id')
         .first()
     )
 
@@ -93,7 +93,7 @@ def create_pending(email, confirmation_token):
         email=email, defaults={'name': ''},
     )
     return MailingSubscription.objects.create(
-        contact=contact,
+        contact_id=contact,
         mailing_list=newsletter_list(),
         confirmation_token=confirmation_token,
         unsubscribe_token=signing.dumps(
@@ -127,10 +127,10 @@ def find_by_confirmation_token(email, token):
         MailingSubscription.objects
         .filter(
             mailing_list=newsletter_list(),
-            contact__email=email,
+            contact_id__email=email,
             confirmation_token=token,
         )
-        .select_related('contact')
+        .select_related('contact_id')
         .first()
     )
 
@@ -140,7 +140,7 @@ def find_by_unsubscribe_token(token):
     return (
         MailingSubscription.objects
         .filter(unsubscribe_token=token)
-        .select_related('contact')
+        .select_related('contact_id')
         .first()
     )
 
@@ -167,7 +167,7 @@ def list_subscriptions(status=None):
     qs = (
         MailingSubscription.objects
         .filter(mailing_list=newsletter_list())
-        .select_related('contact')
+        .select_related('contact_id')
         .order_by('-created_at', '-id')
     )
     if status:
@@ -181,9 +181,9 @@ def recipients_for(status):
         _status_filter(
             MailingSubscription.objects
             .filter(mailing_list=newsletter_list())
-            .select_related('contact'),
+            .select_related('contact_id'),
             status,
-        ).values_list('contact__email', flat=True)
+        ).values_list('contact_id__email', flat=True)
     )
 
 

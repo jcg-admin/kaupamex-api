@@ -19,13 +19,15 @@ from addons.base.models import TimeStampedModel
 class PurchaseOrderLine(TimeStampedModel):
     """``purchase.order.line`` — una línea de la orden de compra."""
 
-    order       = fields.Many2one(
+    order_id    = fields.Many2one(
         'purchase.PurchaseOrder', on_delete=models.CASCADE, related_name='order_line',
         help_text='Odoo order_id.',
+        db_column='order_id',
     )
-    product     = fields.Many2one(
+    product_id  = fields.Many2one(
         'product.ProductProduct', on_delete=models.PROTECT,
         related_name='purchase_order_lines', help_text='Odoo product_id.',
+        db_column='product_id',
     )
     name        = fields.Char(
         max_length=255, blank=True, default='',
@@ -49,7 +51,7 @@ class PurchaseOrderLine(TimeStampedModel):
         verbose_name_plural = 'Líneas de orden de compra'
 
     def __str__(self) -> str:
-        return f'{self.name or self.product} ×{self.product_qty}'
+        return f'{self.name or self.product_id} ×{self.product_qty}'
 
     # Desglose por línea — espeja sale.order.line (Odoo _compute_amount).
     def price_total(self) -> Decimal:

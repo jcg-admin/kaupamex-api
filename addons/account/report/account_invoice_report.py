@@ -131,34 +131,42 @@ class AccountInvoiceReport(models.Model):
     # ==== Campos de la factura ====
     move_id = fields.Many2one(
         'account.AccountMove', on_delete=models.DO_NOTHING,
+        db_column='move_id',
         null=True, blank=True, related_name='+')
     journal_id = fields.Many2one(
         'account.AccountJournal', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='journal_id',
         help_text='Diario (Odoo journal_id).')
     company_id = fields.Many2one(
         'base.ResCompany', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='company_id',
         help_text='Compania (Odoo company_id).')
     company_currency_id = fields.Many2one(
         'base.ResCurrency', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='company_currency_id',
         help_text='Moneda de la compania (Odoo company_currency_id).')
     partner_id = fields.Many2one(
         'base.ResPartner', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='partner_id',
         help_text='Contacto (Odoo partner_id).')
     commercial_partner_id = fields.Many2one(
         'base.ResPartner', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='commercial_partner_id',
         help_text='Contacto principal (Odoo commercial_partner_id).')
     country_id = fields.Many2one(
         'base.ResCountry', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='country_id',
         help_text='Pais (Odoo country_id).')
     invoice_user_id = fields.Many2one(
         'base.ResUsers', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='invoice_user_id',
         help_text='Comercial (Odoo invoice_user_id).')
     move_type = fields.Selection(
         max_length=16, choices=MOVE_TYPE_CHOICES, null=True, blank=True,
@@ -173,6 +181,7 @@ class AccountInvoiceReport(models.Model):
     fiscal_position_id = fields.Many2one(
         'account.AccountFiscalPosition', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='fiscal_position_id',
         help_text='Posicion fiscal (Odoo fiscal_position_id).')
     invoice_date = fields.Date(
         null=True, blank=True, help_text='Fecha de factura (Odoo invoice_date).')
@@ -184,14 +193,17 @@ class AccountInvoiceReport(models.Model):
     product_id = fields.Many2one(
         'product.ProductProduct', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='product_id',
         help_text='Producto (Odoo product_id).')
     product_uom_id = fields.Many2one(
         'uom.Uom', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='product_uom_id',
         help_text='Unidad (Odoo product_uom_id).')
     product_categ_id = fields.Many2one(
         'product.ProductCategory', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='product_categ_id',
         help_text='Categoria de producto (Odoo product_categ_id).')
     invoice_date_due = fields.Date(
         null=True, blank=True,
@@ -199,6 +211,7 @@ class AccountInvoiceReport(models.Model):
     account_id = fields.Many2one(
         'account.AccountAccount', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='account_id',
         help_text='Cuenta de ingreso/gasto (Odoo account_id).')
     price_subtotal_currency = fields.Float(
         null=True, blank=True,
@@ -226,6 +239,7 @@ class AccountInvoiceReport(models.Model):
     currency_id = fields.Many2one(
         'base.ResCurrency', on_delete=models.DO_NOTHING,
         null=True, blank=True, related_name='+',
+        db_column='currency_id',
         help_text='Moneda del documento (Odoo currency_id).')
 
     #: Verbatim contra la fuente (``odoo19c: :58-71``) -- documenta de que

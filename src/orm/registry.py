@@ -43,16 +43,105 @@ esto"*, sobre un modelo que declara ``_name`` y ``_description``. Vive en
 archivo propio**: tenerlo sería la divergencia de forma que :ref:`h-api-568`
 registra.
 """
+import logging
+
 from django.apps import apps
 from django.db import connections
 from django.db.models.signals import class_prepared
 from django.dispatch import receiver
 
+from tools.lru import LRU
+
+_logger = logging.getLogger('kaupamex.registry')
+
 __all__ = [
     'apps', 'connections',
     'MODELS_BY_NAME', 'name_of', 'model_by_name',
     'resolve_model_key', 'check_table_matches_name',
+    'clear_cache', 'clear_all_caches', 'cache_of', 'cache_invalidated',
+    'many2one_company_dependents', 'loaded_xmlids',
 ]
+
+#: ≙ ``Registry.loaded_xmlids`` — los identificadores externos que el cargador
+#: de data ha visto en esta carga. Lo puebla ``IrModelData._update_xmlids`` y
+#: lo consume ``_process_end``, que borra lo que la data ya no declara: una
+#: fila con módulo, sin ``noupdate`` y **ausente** de este conjunto es un
+#: registro que su módulo dejó de declarar.
+loaded_xmlids = set()
+
+
+#: Tamaño de cada caché de método de modelo, verbatim de la referencia
+#: (``odoo19c: odoo/orm/registry.py:51-59``).
+_REGISTRY_CACHES = {
+    'default': 8192,
+    'assets': 512,
+    'stable': 1024,
+    'templates': 1024,
+    'routing': 1024,  # 2 entradas por sitio web
+    'routing.rewrites': 8192,  # entradas de url_rewrite
+    'templates.cached_values': 2048,  # arbitrario
+    'groups': 64,  # ver res.groups
+}
+
+#: Dependencias de invalidación, tal cual la referencia (``:64-71``):
+#: ``{ 'clave': ('contenedor_1', 'contenedor_3', ...) }``
+_CACHES_BY_KEY = {
+    'default': ('default', 'templates.cached_values'),
+    'assets': ('assets', 'templates.cached_values'),
+    'stable': ('stable', 'default', 'templates.cached_values'),
+    'templates': ('templates', 'templates.cached_values'),
+    'routing': ('routing', 'routing.rewrites', 'templates.cached_values'),
+    # el procesamiento de grupos se guarda en la vista
+    'groups': ('groups', 'templates', 'templates.cached_values'),
+}
+
+#: Los contenedores vivos. La referencia los cuelga de la instancia de
+#: ``Registry`` (``self.__caches``, ``:233``) porque allá hay un registry por
+#: base de datos; aquí el registry es el módulo —la dimensión por-DB la cubre
+#: el router de ``orm/routers.py``, como declara el encabezado— así que los
+#: contenedores son estado de módulo. Es la misma estructura, en el único
+#: singleton que este árbol tiene.
+_CACHES = {name: LRU(size) for name, size in _REGISTRY_CACHES.items()}
+
+#: Nombres de caché vaciados desde el último ciclo, ≙ ``Registry.cache_invalidated``
+#: (``odoo19c: odoo/orm/registry.py:238``). Lo consume la señal entre procesos.
+cache_invalidated = set()
+
+
+def cache_of(cache_name):
+    """El contenedor vivo de ``cache_name`` ≙ ``Registry.__caches[name]``."""
+    return _CACHES[cache_name]
+
+
+def clear_cache(*cache_names):
+    """Vacía las cachés de los métodos decorados con ``tools.ormcache`` cuyo
+    nombre esté en ``cache_names`` ≙ ``Registry.clear_cache``
+    (``odoo19c: odoo/orm/registry.py:971-987``).
+    """
+    cache_names = cache_names or ('default',)
+    assert not any('.' in cache_name for cache_name in cache_names)
+    for cache_name in cache_names:
+        for cache in _CACHES_BY_KEY[cache_name]:
+            _CACHES[cache].clear()
+        cache_invalidated.add(cache_name)
+
+    # información sobre la causa de la invalidación
+    if _logger.isEnabledFor(logging.DEBUG):
+        # podría interesar en info, pero antes hay que minimizar la
+        # invalidación, sobre todo en setup de tests y crons
+        _logger.debug('Invalidating %s model caches', ','.join(cache_names))
+
+
+def clear_all_caches():
+    """Vacía todas las cachés de los métodos decorados con ``tools.ormcache``
+    ≙ ``Registry.clear_all_caches`` (``odoo19c: odoo/orm/registry.py:989-1001``).
+    """
+    for cache_name, caches in _CACHES_BY_KEY.items():
+        for cache in caches:
+            _CACHES[cache].clear()
+        cache_invalidated.add(cache_name)
+
+    _logger.debug('Invalidating all model caches')
 
 
 #: ``'product.removal' -> <class ProductRemoval>``. Ver :func:`_ensure_seeded`
@@ -61,18 +150,44 @@ MODELS_BY_NAME = {}
 
 
 def _register(model):
-    """Anota el modelo bajo su ``_name``, rechazando el nombre duplicado."""
+    """Anota el modelo bajo su ``_name``, rechazando el nombre duplicado.
+
+    El paso hermano —resolver ``_rec_name``— vive en ``orm/model_classes.py``,
+    que es donde la fuente lo declara, y **no** se llama desde aquí: este
+    módulo es el que ``model_classes`` importa, así que la llamada inversa
+    cerraría el ciclo. Cada uno cuelga de la señal por su lado.
+    """
     name = model.__dict__.get('_name')
     if not name:
         return
     previous = MODELS_BY_NAME.get(name)
     if previous is not None and previous is not model:
+        label = lambda cls: getattr(getattr(cls, '_meta', None), 'label',
+                                    cls.__name__)
         raise ValueError(
             f'Dos modelos declaran _name={name!r}: '
-            f'{previous._meta.label} y {model._meta.label}. '
+            f'{label(previous)} y {label(model)}. '
             f'El nombre punteado identifica un modelo, no una familia.'
         )
     MODELS_BY_NAME[name] = model
+
+
+def register_abstract(cls):
+    """Anota bajo su ``_name`` una clase que **no** es modelo de Django.
+
+    ≙ lo que la referencia obtiene gratis: allá ``ir.fields.converter`` es un
+    ``AbstractModel``, así que su registro lo conoce y ``env['ir.fields.converter']``
+    lo devuelve. Aquí una clase sin columnas no pasa por ``ModelBase``, así que
+    la señal ``class_prepared`` nunca dispara para ella y hay que anotarla a
+    mano — es la misma tabla y el mismo nombre punteado, sólo que por la puerta
+    que este stack deja abierta.
+
+    Se usa donde la referencia usa ``env[...]`` sobre un modelo abstracto: un
+    consumidor que no puede importar la clase (porque cerraría ciclo) la
+    resuelve por nombre, igual que allá.
+    """
+    _register(cls)
+    return cls
 
 
 @receiver(class_prepared, dispatch_uid='orm.registry.register_name')
@@ -179,6 +294,14 @@ def check_table_matches_name(models_found=None):
     Sólo mira los modelos que declaran ``_name``: el resto no tiene con qué
     comparar, y contarlos como divergencia sería medir su ausencia, no su
     forma.
+
+    **``_table`` gana sobre la sustitución**, como en la fuente: allá
+    ``model_cls._table = model_cls._name.replace('.', '_')``
+    (``odoo19c: odoo/orm/model_classes.py:266``) es sólo el **default**, y una
+    clase que declara ``_table`` lo sobreescribe. Nueve de los diez modelos de
+    ``ir_actions.py`` lo hacen (``ir.actions.act_window`` → ``ir_act_window``),
+    así que sin honrarlo este check reportaría como divergencia la forma que la
+    referencia declara a propósito.
     """
     if models_found is None:
         _ensure_seeded()
@@ -188,9 +311,46 @@ def check_table_matches_name(models_found=None):
         name = name_of(model)
         if not name:
             continue
-        expected = name.replace('.', '_')
+        expected = model.__dict__.get('_table') or name.replace('.', '_')
         actual = model._meta.db_table
         if expected != actual:
             divergences.append((model._meta.label, name, expected, actual))
     return divergences
 
+
+
+def many2one_company_dependents(model_label):
+    """Los ``Many2one`` dependientes de empresa que apuntan a este modelo.
+
+    ≙ ``Registry.many2one_company_dependents``
+    (``odoo19c: odoo/orm/registry.py``), el mapa que la fuente indexa por
+    ``_name`` del modelo apuntado. Lo consume ``base_partner_merge``: al
+    fusionar dos contactos hay que repuntar también los valores por empresa
+    que guardan su id dentro de un ``jsonb``, y una FK del catálogo no los ve.
+
+    DIVERGENCIA DE MECANISMO, declarada: allá es un atributo memorizado del
+    ``Registry``, que se puebla al cargar el registro; aquí se deriva de
+    ``apps.get_models()`` en la llamada. El coste es el recorrido de los
+    modelos instalados, que su único llamador paga una vez por fusión — no un
+    bucle caliente. Memorizarlo exigiría invalidarlo, y no hay evento que lo
+    dispare: el conjunto de campos no cambia en caliente.
+
+    **Devuelve vacío por dato, no por construcción.** Hoy ningún ``Many2one``
+    se declara ``company_dependent`` porque su despachador todavía no lo
+    cablea (tarea **#129**); el día que uno lo haga, aparece aquí solo.
+
+    :param model_label: la etiqueta del modelo apuntado (``app.Modelo``).
+    :returns: lista de ``(modelo, campo)`` — el par que el llamador necesita
+        para nombrar tabla y columna.
+    """
+    encontrados = []
+    for model in apps.get_models():
+        for field in model._meta.get_fields():
+            if not getattr(field, 'company_dependent', False):
+                continue
+            if getattr(field, 'base_type', None) != 'many2one':
+                continue
+            related = getattr(field, 'company_dependent_comodel', None)
+            if related == model_label:
+                encontrados.append((model, field))
+    return encontrados

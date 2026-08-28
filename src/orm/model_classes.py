@@ -77,8 +77,12 @@ Django trae el acoplamiento tardío en ``Apps.lazy_model_operation``
 adaptador que lo vuelve seguro; el porqué está medido en ``H-API-577`` y sus
 pruebas en ``tests/unit/orm/test_extension_tardia_por_nombre.py``.
 """
+import importlib
+
 from django.db.models import Model
 from django.db.models.base import ModelBase
+from django.db.models.signals import class_prepared
+from django.dispatch import receiver
 
 from django.apps import apps
 
@@ -88,6 +92,8 @@ from orm.registry import resolve_model_key
 __all__ = [
     'ModelBase', 'is_model_class', 'is_model_definition',
     'extend_model', 'extend_property', 'add_field_if_absent', 'model_key',
+    'resolve_rec_name', 'ensure_rec_names',
+    'adopt_access_manager', 'ensure_access_managers',
 ]
 
 
@@ -101,6 +107,262 @@ def is_model_definition(cls) -> bool:
     """``True`` si ``cls`` es una definición concreta (no abstracta). Equivale a
     ``odoo.orm.model_classes.is_model_definition`` — sobre ``Model._meta``."""
     return is_model_class(cls) and not cls._meta.abstract
+
+
+def resolve_rec_name(model_cls):
+    """Fija ``_rec_name`` cuando el modelo no lo declara y tiene ``name``.
+
+    ≙ el paso 5 de ``_init_model_class_attributes``
+    (``odoo19c: odoo/orm/model_classes.py:433-441``), verbatim en su lógica:
+    si el modelo declara ``_rec_name`` se valida que sea un campo suyo; si no
+    lo declara y tiene un campo ``name``, ``_rec_name`` pasa a ser ``'name'``.
+
+    Por qué hace falta resolverlo y no basta con leerlo: la referencia declara
+    ``_rec_name`` **sólo cuando difiere del default**, y por eso
+    ``ResPartner`` no lo declara y aun así ``name_create`` escribe
+    ``{self._rec_name: ...}`` (``odoo19c: res_partner.py:1088``). Sin este
+    paso ese acceso revienta con ``AttributeError`` — y declararlo a mano en
+    cada modelo sería inventar un atributo que la fuente no tiene, que es lo
+    que ``atributos-de-clase-de-modelo.md`` prohíbe.
+
+    La rama ``_custom`` con ``x_name`` de la fuente **no se porta**: los
+    modelos a medida en tiempo de ejecución son su mecanismo de estudio, y
+    aquí un modelo es una clase Python. Es divergencia de mecanismo, no un
+    hueco: sin modelos a medida no hay campo ``x_name`` que resolver.
+
+    :returns: el ``_rec_name`` resuelto, o ``None`` si el modelo no tiene
+        campo que lo respalde.
+    """
+    declared = model_cls.__dict__.get('_rec_name')
+    # ``fields`` y ``many_to_many``, NO ``get_fields()``: este ultimo trae las
+    # inversas, y para eso recorre el grafo de relaciones, que exige el
+    # registro de apps poblado. Esta funcion corre desde ``class_prepared``,
+    # cuando aun no lo esta — medido: revienta con ``AppRegistryNotReady`` en
+    # el primer modelo de ``contenttypes``. La fuente tampoco las mira:
+    # ``_fields`` son los campos del modelo, no lo que apunta a el.
+    campos = [*model_cls._meta.fields, *model_cls._meta.many_to_many]
+    # El nombre Y el ``attname``. La fuente compara contra ``_fields``, donde
+    # una Many2one se llama ``user_id``; aqui esa misma relacion se declara
+    # ``user = fields.Many2one(...)`` y Django le pone ``attname='user_id'``.
+    # Un ``_rec_name = 'user_id'`` portado verbatim —``ir.ui.view.custom`` lo
+    # trae asi— nombra el mismo campo por su otra cara, y ``getattr`` responde
+    # con las dos. Aceptar solo ``name`` convertiria el porte fiel en un error.
+    field_names = {f.name for f in campos} | {f.attname for f in campos}
+    if declared:
+        if declared not in field_names:
+            raise ValueError(
+                f'Invalid _rec_name={declared!r} for model '
+                f'{model_cls._meta.label}'
+            )
+        return declared
+    if getattr(model_cls, '_rec_name', None):
+        return model_cls._rec_name
+    if 'name' in field_names:
+        model_cls._rec_name = 'name'
+        return 'name'
+    # El default de la fuente, explicito: ``BaseModel`` los declara
+    # ``_rec_name: str | None = None`` y ``_rec_names_search = None``
+    # (``odoo19c: odoo/orm/models.py:431-433``), asi que **todo** modelo los
+    # tiene y ``cls._rec_name`` nunca revienta. Aqui la base es la de Django y
+    # no es nuestra, asi que el default se pone al resolver. Sin esto,
+    # ``IrCron`` —que llama a su campo ``cron_name``— daba ``AttributeError``.
+    if '_rec_name' not in model_cls.__dict__:
+        model_cls._rec_name = None
+    if not hasattr(model_cls, '_rec_names_search'):
+        model_cls._rec_names_search = None
+    return None
+
+
+#: Los prefijos de módulo que NO son nuestros. El discriminador es el módulo y
+#: no la etiqueta de app: ``auth``, ``sessions`` o ``token_blacklist`` son
+#: nombres cortos que un addon nuestro podría reusar, mientras que el módulo
+#: de origen no se puede confundir.
+THIRD_PARTY_MODULE_PREFIXES = ('django.', 'rest_framework')
+
+
+def adopt_access_manager(model_cls):
+    """Le da al modelo las cuatro formas de permiso, si no las tiene ya.
+
+    ≙ que ``check_access``, ``has_access``, ``_check_access`` y
+    ``_filtered_access`` cuelguen de ``BaseModel``
+    (``odoo19c: odoo/orm/models.py:4100-4135``): allá **todo** modelo las
+    tiene, sin declarar nada.
+
+    Aquí las lleva un ``Manager``, y la universalidad se recupera en el
+    momento en que Django termina de construir la clase. El discriminador de
+    *"no declaró manager propio"* es de Django, no nuestro:
+    ``manager.auto_created`` lo marca el propio ``ModelBase._prepare`` cuando
+    pone el ``objects`` por defecto (``django/db/models/base.py:434-441``).
+    Un modelo que sí declara el suyo se respeta — los siete del árbol derivan
+    de ``AccessManager``, que es lo que ``RuleScopedManager`` ya hacía desde la
+    tarea #93.
+
+    Por qué una señal y no 90 declaraciones a mano: la alternativa se olvida
+    en la primera, y **el olvido no falla** — deja el modelo sin las cuatro
+    formas y nada lo delata hasta que alguien las llama.
+
+    :returns: ``True`` si se lo puso; ``False`` si ya lo tenía, es de terceros
+        o es abstracto — para que el llamador pueda medir en vez de suponer.
+
+    .. note:: ``orm.models`` se resuelve con ``importlib``, no con un ``import``
+       al top, y es la **excepción #4** de ``no-lazy-imports.md`` aplicada a su
+       causa hermana. Aquel módulo importa ``orm.environments``, que toca el
+       registro de apps; importarlo desde aquí al cargar da
+       ``AppRegistryNotReady``, medido. La resolución sancionada es una
+       **llamada**, no un statement ``import``: el gate AST da exit 0 y el
+       arranque se preserva.
+    """
+    # Las guardas van ANTES de resolver ``orm.models``, y el orden importa: la
+    # señal dispara mientras ``contenttypes`` se está importando, y resolver
+    # ``orm.models`` ahí lo arrastra de vuelta —``orm/fields_reference`` pide
+    # ``ContentType``— con un ``ImportError`` de módulo parcialmente
+    # inicializado. Medido. Descartar al ajeno primero cierra el ciclo.
+    if model_cls._meta.abstract or model_cls._meta.proxy:
+        return False
+    if model_cls.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES):
+        return False
+    manager = model_cls._meta.managers_map.get('objects')
+    if manager is None or not getattr(manager, 'auto_created', False):
+        return False
+
+    orm_models = importlib.import_module('orm.models')
+    AccessManager = orm_models.AccessManager
+    AccessQuerySet = orm_models.AccessQuerySet
+    if isinstance(manager.get_queryset(), AccessQuerySet):
+        return False
+    # Retirar el viejo ANTES de colgar el nuevo, y no es opcional:
+    # ``Options.managers`` recorre ``local_managers`` en orden de inserción y
+    # se queda con el **primero** de cada nombre (``seen_managers``). Sin esta
+    # línea el ``objects`` auto-creado sigue ganando y ``add_to_class`` no
+    # cambia nada — medido: 159 adopciones reportadas y 0 efectivas.
+    model_cls._meta.local_managers = [
+        m for m in model_cls._meta.local_managers if m.name != 'objects']
+    model_cls._meta._expire_cache()
+    nuevo = AccessManager()
+    nuevo.auto_created = True
+    model_cls.add_to_class('objects', nuevo)
+    return True
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.adopt_access_manager')
+def _adopt_access_manager_on_prepared(sender, **kwargs):
+    """Adopta el manager de permisos en cuanto la clase queda construida."""
+    adopt_access_manager(sender)
+
+
+def ensure_access_managers():
+    """Barre el registro por si la señal llegó tarde.
+
+    Dos vías por la misma razón de ``H-API-577``, igual que
+    :func:`ensure_rec_names`: la señal cubre lo que llega después de importar
+    este módulo; el barrido, lo que ya estaba.
+
+    :returns: cuántos modelos lo adoptaron en el barrido.
+    """
+    return sum(1 for model in apps.get_models(include_auto_created=True)
+               if adopt_access_manager(model))
+
+
+#: Los cinco símbolos del bloque ``display_name`` de la fuente
+#: (``odoo19c: odoo/orm/models.py:473,1425,1442,1493,1512``). Se enumeran aquí
+#: y no se derivan del ``__dict__`` del mixin: un ayudante privado que se
+#: añadiera allá entraría al barrido sin que nadie lo decidiera.
+DISPLAY_NAME_SYMBOLS = (
+    'display_name', '_compute_display_name', '_search_display_name',
+    'name_create', 'name_search',
+)
+
+
+def adopt_display_name(model_cls):
+    """Le da al modelo su etiqueta y su búsqueda por etiqueta, si no las tiene.
+
+    ≙ que ``display_name``, ``_compute_display_name``,
+    ``_search_display_name``, ``name_create`` y ``name_search`` cuelguen de
+    ``BaseModel`` (``odoo19c: odoo/orm/models.py:473,1421-1543``): allá **todo**
+    modelo los tiene sin declarar nada.
+
+    Aquí los lleva :class:`orm.models.DisplayNameMixin`, que ``TimeStampedModel``
+    adopta — **284 de los 374 modelos concretos nuestros** lo heredan (medido).
+    Esta función cubre a los **90** que no: los que declaran su propia base,
+    como toda la familia ``account``.
+
+    Un símbolo que el modelo ya resuelve **no se toca**, y el discriminador es
+    ``getattr`` sobre el MRO, no ``__dict__``: un modelo que hereda su
+    ``_compute_display_name`` de una base propia lo tiene tan resuelto como el
+    que lo declara. Los doce que declaran ``display_name`` como ``property``
+    siguen ganando por MRO, que es lo que la fuente hace con un ``compute``
+    sobreescrito.
+
+    :returns: cuántos de los cinco símbolos se instalaron — 0 si ya los tenía,
+        es de terceros o es abstracto, para que el llamador pueda medir en vez
+        de suponer.
+
+    .. note:: ``orm.models`` se resuelve con ``importlib`` por la misma causa
+       que :func:`adopt_access_manager` documenta: importarlo al top arrastra
+       ``orm.environments`` y da ``AppRegistryNotReady``.
+    """
+    if model_cls._meta.abstract or model_cls._meta.proxy:
+        return 0
+    if model_cls.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES):
+        return 0
+
+    faltantes = [nombre for nombre in DISPLAY_NAME_SYMBOLS
+                 if getattr(model_cls, nombre, None) is None]
+    if not faltantes:
+        return 0
+
+    mixin = importlib.import_module('orm.models').DisplayNameMixin
+    for nombre in faltantes:
+        setattr(model_cls, nombre, mixin.__dict__[nombre])
+    return len(faltantes)
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.adopt_display_name')
+def _adopt_display_name_on_prepared(sender, **kwargs):
+    """Adopta el bloque de etiqueta en cuanto la clase queda construida."""
+    adopt_display_name(sender)
+
+
+def ensure_display_names():
+    """Barre el registro por si la señal llegó tarde.
+
+    Dos vías por la razón de ``H-API-577``, igual que :func:`ensure_rec_names`
+    y :func:`ensure_access_managers`.
+
+    :returns: cuántos modelos adoptaron al menos un símbolo en el barrido.
+    """
+    return sum(1 for model in apps.get_models(include_auto_created=True)
+               if adopt_display_name(model))
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.resolve_rec_name')
+def _resolve_rec_name_on_prepared(sender, **kwargs):
+    """Resuelve el ``_rec_name`` del modelo recién construido.
+
+    ``class_prepared`` dispara al final de ``ModelBase.__new__``, así que
+    ``_meta`` ya está poblado y los campos se pueden enumerar.
+    """
+    resolve_rec_name(sender)
+
+
+def ensure_rec_names():
+    """Barre el registro de Django por si la señal llegó tarde.
+
+    **Dos vías y ninguna sobra**, por la misma razón que ``H-API-577`` dejó
+    escrita para ``MODELS_BY_NAME``: la señal sólo cubre los modelos
+    preparados **después** de importar este módulo. Si algo lo importa tras
+    ``django.setup()``, los que ya estaban se quedan sin resolver y el
+    ``_rec_name`` no existe, **sin error que lo delate** hasta que alguien lo
+    lea.
+
+    :returns: cuántos modelos quedaron con ``_rec_name`` resuelto — para que
+        el llamador pueda medir en vez de suponer.
+    """
+    resueltos = 0
+    for model in apps.get_models(include_auto_created=True):
+        if resolve_rec_name(model):
+            resueltos += 1
+    return resueltos
 
 
 def model_key(app_label, model_name):

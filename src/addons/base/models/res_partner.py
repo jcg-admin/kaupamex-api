@@ -27,7 +27,7 @@ from base64 import b64encode
 from collections import defaultdict
 from random import randint
 from urllib.parse import urlsplit, urlunsplit
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 import fields
 import models
@@ -40,17 +40,90 @@ from addons.base.models.res_country import (ADDRESS_FORMAT_KEYS,
                                             DEFAULT_ADDRESS_FORMAT)
 from addons.base.models.res_lang import ResLang
 from exceptions import RedirectWarning, ValidationError
-from orm.environments import (get_context, get_current_company,
-                              get_current_user)
+from django.db import DEFAULT_DB_ALIAS
+from orm.environments import (company_scope, context_scope, execute_query,
+                              get_context, get_current_company,
+                              get_current_user, sudo)
 from orm.utils import SUPERUSER_ID
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from tools.mail import (email_normalize_all, formataddr,
                         parse_contact_from_email)
 from tools.misc import OrderedSet, street_split
+from tools.sql import SQL
 from tools.translate import _
 
 
-class ResPartner(AvatarMixin, TimeStampedModel):
+# put POSIX 'Etc/*' entries at the end to avoid confusing users - see bug 1086728
+#
+# El comentario va verbatim de ``odoo19c: odoo/addons/base/models/res_partner.py:39``:
+# es el contrato del orden, no una nota de color. La lista y su invocable son
+# los dos simbolos que la fuente declara (``:40-42``), y ``_tz_get`` NO es
+# adorno — medido sobre ``odoo19c``, lo consumen 14 archivos / 30 referencias
+# (``lunch``, ``hr_holidays``, ``event``, ``resource``, ``mail``, ``website``,
+# ``calendar``, mas ``base``): es API compartida del arbol.
+#
+# DIVERGENCIA DE STACK, declarada: la fuente puebla la lista con
+# ``pytz.all_timezones`` y ``pytz`` NO esta instalado aqui (medido:
+# ``ModuleNotFoundError``). La poblacion sale de
+# ``zoneinfo.available_timezones()`` de la biblioteca estandar — 498 zonas en
+# este contenedor, 35 de ellas ``Etc/*``. Es la misma divergencia que
+# ``_compute_tz_offset`` ya declaraba para leer el desfase; aqui se aplica a
+# escribirlo, que es la mitad que faltaba.
+#
+# ``localtime`` se descarta, y NO es capricho. ``available_timezones()``
+# recorre ``TZPATH`` y admite todo archivo que empiece con la firma ``TZif``;
+# su propio codigo retira ``posixrules``, ``right/`` y ``posix/`` — y NO
+# ``localtime``, que en Debian es el enlace de la maquina
+# (``/usr/share/zoneinfo/localtime -> /etc/localtime -> Etc/UTC``, medido).
+# ``pytz.all_timezones`` no lo tiene: es una lista curada, no un barrido del
+# disco. Ofrecerlo en la Selection publicaria «la zona de este servidor», que
+# cambia de significado entre maquinas.
+_LOCAL_LINK = 'localtime'
+
+# La CLAVE del orden diverge de la fuente, y el motivo es medible. La fuente
+# ordena con ``tz if not tz.startswith('Etc/') else '_'``: todas las ``Etc/*``
+# colapsan a la misma clave, asi que su posicion RELATIVA la decide el orden de
+# entrada. Alli eso es determinista —``pytz.all_timezones`` es una LISTA con
+# orden fijo—; aqui ``available_timezones()`` devuelve un ``set``, cuyo
+# recorrido cambia entre procesos por la aleatorizacion del hash de cadenas.
+#
+# Medido: con la clave literal de la fuente, dos ``makemigrations`` seguidos
+# producen bloques ``Etc/*`` distintos (``Etc/GMT-4, Etc/GMT+6, Etc/GMT+1`` vs
+# ``Etc/GMT-12, Etc/GMT+3, Etc/GMT+5``), asi que ``makemigrations --check``
+# JAMAS quedaria limpio y CI pediria una migracion nueva en cada corrida.
+#
+# La clave de tupla conserva el contrato observable —todas las ``Etc/*`` al
+# final, que es lo que el comentario de la fuente fija— y ademas las ordena
+# entre si. Es un superconjunto de la garantia, no una divergencia de conducta.
+_tzs = [(tz, tz) for tz in sorted(available_timezones() - {_LOCAL_LINK},
+                                  key=lambda tz: (tz.startswith('Etc/'), tz))]
+
+
+def _tz_get(self):
+    """La poblacion de zonas — ≙ ``_tz_get`` (``odoo19c: res_partner.py:41-42``).
+
+    Recibe ``self`` y lo ignora, como la fuente: alli es un metodo suelto que
+    el ``Selection`` invoca con el recordset. Se conserva la firma porque los
+    14 archivos que lo importan lo llaman asi.
+    """
+    return _tzs
+
+
+def _default_tz():
+    """El ``default`` del campo ``tz`` — ≙ ``lambda self: self.env.context.get('tz')``.
+
+    Funcion con nombre y NO un ``lambda``: el serializador de migraciones de
+    Django rehusa con ``ValueError: Cannot serialize function: lambda``
+    (``django/db/migrations/serializer.py:192``), asi que un invocable anonimo
+    aqui deja el modelo sin migracion posible. Medido al intentarlo.
+
+    Cae a ``''`` y no a ``None`` porque la columna es NOT NULL en este arbol.
+    """
+    return get_context().get('tz') or ''
+
+
+class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
+                 models.CopyMixin, TimeStampedModel):
     """``res.partner`` — persona, empresa o dirección.
 
     Fiel a ``odoo19c: odoo/addons/base/models/res_partner.py:213-309``. Se
@@ -139,28 +212,26 @@ class ResPartner(AvatarMixin, TimeStampedModel):
       ``AvatarMixin`` (``avatar_mixin.py``), que es donde la referencia los
       declara. Aquí no llevan ``store``, igual que allá.
 
+    **Desbloqueado en la tarea #111.** ``_check_barcode_unicity`` (``:647``)
+    estuvo detenido por ``barcode``, que la fuente declara
+    ``company_dependent=True``. El mecanismo se construyó
+    (``orm/fields_company_dependent.py``) y hoy el campo y su guarda están
+    portados con su firma.
+
     **Detenidos, cada uno por un símbolo que se nombra.**
 
     - ``_check_partner_company`` (``:551``) y ``_onchange_company_id``
       (``:596``): BLOQUEADO por ``company_id`` — el campo no existe en este
       puerto, así que no hay contra qué comparar. Tarea **#110**.
-    - ``_check_barcode_unicity`` (``:647``): BLOQUEADO por ``barcode`` — la
-      fuente lo declara ``company_dependent=True`` y ese mecanismo de campo no
-      existe aquí. Tarea **#111**.
-    - ``copy_data`` (``:565``): BLOQUEADO por ``copy`` — el del ORM, medido en
-      0 definiciones bajo ``src/orm``. Sin llamador, portar su cuerpo sería
-      escribir código muerto; el sufijo ``(copy)`` que añade es su única
-      conducta y no tiene quién la dispare. Tarea **#114**.
-    - ``default_get`` (``:1130``): BLOQUEADO por ``company_id`` — su cuerpo
-      escribe ``values['company_id']``, así que arrastra el mismo bloqueo de
-      **#110**; y es lo que haría observable la guarda del correo de
-      :meth:`name_create` (**#113**).
-    - ``_load_records_create`` (``:988``): BLOQUEADO por ``el cargador de data
-      XML`` — no existe aquí; los datos iniciales los siembran las migraciones
-      y los comandos de ``kaupamex-bin``. Su cuerpo agrupa la sincronización
-      en lote para el alta masiva; el escape que usa
-      —``_partners_skip_fields_sync``— **sí** está portado en :meth:`save`.
-      Tarea **#115**.
+    - ``copy_data`` (``:565``): **portado** (tarea #114). El ORM ya tiene su
+      ``copy``/``copy_data`` (``models.CopyMixin``), así que el sufijo
+      ``(copy)`` que este override añade tiene por fin quién lo dispare.
+    - ``default_get`` (``:201``): **portado en su mitad viable** (tarea #113).
+      El saneo del ``type`` que se cuela del contexto está escrito; la herencia
+      del padre sigue BLOQUEADO por ``company_id`` — el campo no existe en
+      este puerto. Tarea **#110**. La base —``models.DefaultGetMixin``— ya
+      está portada, y con ella la guarda del correo de :meth:`name_create` es
+      observable.
 
     **Divergencia de mecanismo, ya declarada en su sitio.**
 
@@ -221,6 +292,51 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     # ORM (categoría 3, ``atributos-de-clase-de-modelo.md``) — se porta aunque
     # su consumidor (compute de ``complete_name``) no esté construido aquí.
     _complete_name_displayed_types = ('invoice', 'delivery', 'other')
+
+    def copy_data(self, default=None, seen=None):
+        """≙ ``copy_data`` (``odoo19c: res_partner.py:564-569``).
+
+        Añade el sufijo ``(copy)`` al nombre, **salvo** que el llamador traiga
+        uno propio. El ``if default.get('name')`` de la fuente es esa guarda, y
+        no es cosmética: sin ella un duplicado con nombre dado saldría como
+        ``"Nombre nuevo (copy)"``.
+        """
+        default = dict(default or {})
+        values = super().copy_data(default, seen=seen)
+        if values is None or default.get('name'):
+            return values
+        return dict(values, name=_('%s (copy)') % self.name)
+
+    @classmethod
+    def default_get(cls, fields):
+        """≙ ``default_get`` (``odoo19c: res_partner.py:201-211``).
+
+        Docstring de la fuente, verbatim: *"Add the company of the parent as
+        default if we are creating a child partner."*
+
+        La fuente hace **dos** cosas, y aquí sólo una está detenida:
+
+        1. Heredar el ``company_id`` del padre. **BLOQUEADO por ``company_id``**
+           — el campo no existe en este puerto, así que no hay valor que
+           heredar ni columna donde ponerlo. Tarea **#110**; cuando el campo
+           llegue, esta mitad se escribe y su caso con él.
+        2. Sanear un ``type`` inválido que se cuele del contexto de una acción
+           de menú. Su comentario lo dice: *"protection for ``default_type``
+           values leaking from menu action context"*. Esta mitad **no** está
+           bloqueada: el vocabulario está portado (:attr:`TYPES`), así que el
+           saneo se hace contra las mismas cuatro opciones.
+
+        Por qué el saneo hace falta aunque el campo tenga ``choices``: el
+        contexto entra por el paso 1 de la base, **antes** de que ninguna
+        validación mire el valor. Sin este filtro, un ``default_type`` basura
+        llega a ``create`` y revienta en el ``full_clean``, lejos de su causa
+        — o peor, se escribe si el alta no valida.
+        """
+        values = super().default_get(fields)
+        if 'type' in fields and values.get('type'):
+            if values['type'] not in {code for code, _label in cls.TYPES}:
+                values['type'] = None
+        return values
 
     # ``type`` — un partner hijo es una dirección; el padre es el titular.
     TYPE_CONTACT  = 'contact'
@@ -301,6 +417,26 @@ class ResPartner(AvatarMixin, TimeStampedModel):
                   'de una empresa (Odoo ``company_name``, '
                   '``odoo19c: res_partner.py:308``).',
     )
+    # ``barcode`` — el primer campo DEPENDIENTE DE EMPRESA del arbol.
+    #
+    # La fuente lo declara ``company_dependent=True``
+    # (``odoo19c: res_partner.py:309``), y eso no es un adorno: el mismo
+    # contacto lleva un codigo de barras distinto en cada empresa del grupo, y
+    # ninguna ve el de la otra. Con una columna escalar eso no se expresa — o
+    # se duplica el contacto por empresa, o las empresas se pisan el valor.
+    #
+    # El mecanismo se construyo en ``orm/fields_company_dependent.py`` (tarea
+    # **#111**): la columna es ``jsonb`` con la forma ``{empresa: valor}`` y el
+    # descriptor devuelve el valor de la empresa activa al leer. El sitio de
+    # declaracion queda identico al de la fuente, incluido su ``help``.
+    #
+    # ``copy=False`` de la fuente NO se transcribe: el propio campo lo fija
+    # —el valor es de la empresa, no del registro— igual que allá lo fija
+    # ``_setup_attrs`` (``odoo19c: odoo/orm/fields.py:473``).
+    barcode     = fields.Char(
+        company_dependent=True,
+        help_text='Use a barcode to identify this contact.',
+    )
     employee    = fields.Boolean(
         default=False,
         help_text='Marca de contacto empleado (Odoo employee).',
@@ -337,9 +473,29 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         max_length=16, blank=True, default='',
         help_text='Idioma preferido (Odoo lang).',
     )
+    # ≙ ``tz = fields.Selection(_tzs, string='Timezone', ...)``
+    # (``odoo19c: res_partner.py:223``). El ``help`` va verbatim de la fuente.
+    #
+    # ``default`` — la fuente usa ``lambda self: self.env.context.get('tz')``;
+    # aqui el mecanismo equivalente ya existe (``orm.environments.get_context``),
+    # asi que se porta en vez de dejarlo en blanco. Cae a ``''`` y no a ``None``
+    # porque la columna es NOT NULL en este arbol.
+    #
+    # LO QUE ESTO NO CIERRA: ``choices`` en Django es **validacion, no DDL** —
+    # el mismo hecho que desbloqueo la tarea #118. PostgreSQL no recibe ningun
+    # ``CHECK``, asi que un ``objects.create(tz='No/Existe')`` sigue escribiendo
+    # la fila y solo ``full_clean()`` la rechaza. Por eso el respaldo a GMT de
+    # ``_compute_tz_offset`` se queda: cubre el dato viejo y la escritura que
+    # esquiva la validacion.
     tz          = fields.Char(
-        max_length=64, blank=True, default='',
-        help_text='Zona horaria (Odoo tz).',
+        max_length=64, blank=True, choices=_tzs,
+        default=_default_tz,
+        verbose_name='Timezone',
+        help_text='When printing documents and exporting/importing data, time '
+                  'values are computed according to this timezone. If the '
+                  'timezone is not set, UTC (Coordinated Universal Time) is '
+                  'used. Anywhere else, time values are computed according to '
+                  'the time offset of your web client (Odoo tz).',
     )
     comment     = fields.Text(blank=True, default='')
 
@@ -771,18 +927,28 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     def _company_dependent_commercial_fields(cls):
         """≙ ``_company_dependent_commercial_fields`` (``odoo19c: :720-724``).
 
-        **Devuelve siempre la lista vacía en este árbol, y es divergencia
-        declarada, no olvido.** La fuente filtra por
-        ``self._fields[fname].company_dependent`` — un atributo de campo que
-        aquí **no existe**: medido, 0 apariciones de ``company_dependent`` en
-        ``src/fields.py`` y en ``src/orm/``. Sin el atributo no hay a qué
-        preguntar, así que el filtro no puede seleccionar nada.
+        El filtro de la fuente, verbatim: los campos comerciales que además son
+        dependientes de empresa. Su ``self._fields[fname].company_dependent``
+        se lee aquí del propio campo de Django — el atributo existe desde que
+        se construyó el mecanismo (``orm/fields_company_dependent.py``, tarea
+        **#111**) y ``CompanyDependent`` lo declara ``True`` como la fuente
+        (``odoo19c: odoo/orm/fields.py:291``).
 
-        Se porta igual —y no se omite— porque es el punto de extensión: el día
-        que se construya el mecanismo de campo por empresa, esta lista y su
-        sincronizador ya tienen su sitio y su llamador.
+        > Hasta ``#111`` este método devolvía la lista vacía con una
+        > divergencia declarada — *"el atributo no existe: 0 apariciones de
+        > ``company_dependent`` en ``src/orm/``"*—. La divergencia se retira
+        > con el mecanismo, no se actualiza: era estado heredado correcto en su
+        > momento y falso hoy (Clausula 2 del principio rector).
+
+        Devuelve vacío **por dato, no por construcción**: hoy ningún campo de
+        :meth:`_commercial_fields` es dependiente de empresa. El día que uno lo
+        sea, entra solo.
         """
-        return []
+        fields_by_name = {f.name: f for f in cls._meta.get_fields()}
+        return [
+            fname for fname in cls._commercial_fields()
+            if getattr(fields_by_name.get(fname), 'company_dependent', False)
+        ]
 
     def _commercial_sync_from_company(self):
         """≙ ``_commercial_sync_from_company`` (``odoo19c: :726-735``).
@@ -813,16 +979,44 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         commercial fields to other commpanies."* (la errata *"commpanies"* es
         de la fuente).
 
-        **No-op mientras :meth:`_company_dependent_commercial_fields` sea
-        vacía**, que es hoy siempre — ver la divergencia declarada allí. El
-        cuerpo conserva la guarda temprana de la fuente para que el día que la
-        lista se pueble, el recorrido por empresas sea lo único que falte.
+        Qué hace, y por qué hace falta: ``_commercial_sync_from_company`` baja
+        los valores comerciales **de la empresa activa**. Un campo dependiente
+        de empresa tiene un valor por cada una, así que ese único paso deja a
+        las demás sin sincronizar. Este método recorre el resto y baja el valor
+        que a cada una le corresponde.
+
+        > Hasta la tarea **#111** este cuerpo levantaba ``NotImplementedError``
+        > tras la guarda temprana, porque el mecanismo de campo por empresa no
+        > existía. Hoy existe y el recorrido se porta entero: la guarda sigue
+        > siendo la de la fuente, y lo que había debajo deja de ser una excusa.
+
+        Las dos divergencias de mecanismo, ambas de nombre: la fuente cambia de
+        empresa con ``with_company`` —que devuelve otro *recordset* atado a
+        ella—; aquí la empresa activa vive en un ``ContextVar`` y se cambia con
+        ``company_scope``, que es la misma idea con el estado en otro sitio. Y
+        su ``sudo().search([])`` es ``objects.all()``: el recorrido de empresas
+        no se filtra por permisos porque el sincronizador es del sistema.
         """
-        if not self._company_dependent_commercial_fields():
+        if not (fields_to_sync := self._company_dependent_commercial_fields()):
             return
-        raise NotImplementedError(
-            'El campo por empresa no existe en este stack; cuando exista, '
-            'aquí va el recorrido de res.company que hace la fuente')
+
+        ResCompany = apps.get_model('base', 'ResCompany')
+        active_company_id = get_current_company()
+        for company_id in ResCompany.objects.values_list('pk', flat=True):
+            if company_id == active_company_id:
+                continue      # ≙ *"already handled by _commercial_sync_from_company"*
+            with company_scope(company_id):
+                # La entidad comercial se resuelve DENTRO del alcance: sus
+                # valores dependientes de empresa son los de esta empresa, no
+                # los de la activa de fuera.
+                sync_vals = (self.commercial_partner
+                             ._convert_fields_to_values(fields_to_sync))
+                for key, value in sync_vals.items():
+                    setattr(self, key, value)
+                type(self).objects.filter(pk=self.pk).update(
+                    **{fname: type(self)._meta.get_field(fname)
+                       .raw_company_values(self)
+                       for fname in sync_vals})
 
     def _commercial_sync_to_descendants(self, fields_to_sync=None):
         """≙ ``_commercial_sync_to_descendants`` (``odoo19c: :751-768``).
@@ -868,7 +1062,10 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     # estado de otro pais no es imposible —se persiste sin error—, sólo es
     # falso: por eso hace falta el segundo.
     #
-    # TRES de los siete simbolos de este bloque no se portan, y su motivo:
+    # DOS de los siete simbolos de este bloque no se portan, y su motivo. El
+    # tercero, ``_check_barcode_unicity`` (``:647-651``), quedo portado en la
+    # tarea **#111**: su bloqueo era ``barcode``, y el mecanismo
+    # ``company_dependent`` ya existe (``orm/fields_company_dependent.py``).
     #
     # - ``_check_partner_company`` (``:551-561``) —
     #   BLOQUEADO por ``company_id`` — el campo ``res.partner.company_id``
@@ -877,13 +1074,6 @@ class ResPartner(AvatarMixin, TimeStampedModel):
     # - ``_onchange_company_id`` (``:596-599``) —
     #   BLOQUEADO por ``company_id`` — mismo campo ausente.
     #   Los dos se desbloquean juntos; sucesor: tarea **#110**.
-    # - ``_check_barcode_unicity`` (``:647-651``) —
-    #   BLOQUEADO por ``barcode`` — la fuente lo declara
-    #   ``company_dependent=True`` (``odoo19c: :309``), y ese mecanismo de ORM
-    #   no existe aqui: es el mismo bloqueo ya declarado en
-    #   :meth:`_company_dependent_commercial_fields`. Portarlo como ``Char``
-    #   pelado seria una divergencia silenciosa en el eje que importa —una
-    #   empresa veria el codigo de otra—. Sucesor: tarea **#111**.
     # ------------------------------------------------------------------
     def _check_parent_id(self):
         """≙ ``_check_parent_id`` (``odoo19c: res_partner.py:546-549``).
@@ -910,6 +1100,50 @@ class ResPartner(AvatarMixin, TimeStampedModel):
             seen.add(current.pk)
             current = current.parent
 
+    def _check_barcode_unicity(self):
+        """≙ ``_check_barcode_unicity`` (``odoo19c: res_partner.py:647-651``).
+
+        Mensaje de la fuente, verbatim: *"Another partner already has this
+        barcode"*.
+
+        Estuvo BLOQUEADO por ``barcode`` hasta la tarea **#111**: la fuente lo
+        declara ``company_dependent=True`` y ese mecanismo de campo no existia
+        aqui. Hoy existe (``orm/fields_company_dependent.py``), y con el la
+        guarda se porta con su firma y su mensaje.
+
+        **La unicidad es POR EMPRESA, y ahi esta el punto.** El ``search_count``
+        de la fuente corre bajo la empresa activa, asi que dos contactos con el
+        mismo codigo en empresas distintas **no** colisionan — es exactamente
+        lo que ``company_dependent`` compra. Aqui la lectura del atributo ya
+        resuelve por la empresa activa (el descriptor), asi que comparar el
+        valor leido reproduce ese alcance sin nombrarlo dos veces.
+
+        La comparacion la emite ``Field.to_sql`` (``orm/fields.py``), que para
+        un campo dependiente de empresa devuelve
+        ``COALESCE((columna->>empresa)::varchar, fallback)`` — el mismo
+        fragmento que el ``search_count`` de la fuente compila por dentro. Por
+        eso la guarda no filtra con el ORM de Django: ``get_prep_value``
+        rechaza un escalar a proposito (la columna guarda el mapa), y filtrar
+        por el mapa entero mediria otra cosa.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente cuenta con
+        ``search_count(...) > 1`` porque su ``self`` ya esta persistido cuando
+        el constrain corre. Aqui la guarda tambien se llama antes de insertar,
+        asi que se excluye la propia fila por ``pk`` en vez de contar hasta dos
+        — con ``pk`` nulo el ``exclude`` es un no-op y la cuenta es la misma.
+        """
+        barcode = self.barcode
+        if not barcode:
+            return
+        table = type(self)._meta.db_table
+        column = type(self)._meta.get_field('barcode').to_sql(self, table)
+        rows = execute_query(SQL(
+            "SELECT id FROM %s WHERE %s = %s AND id IS DISTINCT FROM %s LIMIT 1",
+            SQL.identifier(table), column, barcode, self.pk,
+        ), using=self._state.db or None)
+        if rows:
+            raise ValidationError('Another partner already has this barcode')
+
     def onchange_parent_id(self):
         """≙ ``onchange_parent_id`` (``odoo19c: res_partner.py:571-583``).
 
@@ -919,29 +1153,26 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         at least one value is set in the address: otherwise, keep the one from
         the contact)"*.
 
-        **``self._origin``, y por que se traduce en vez de construirse.** La
-        fuente lee el tipo **guardado**, no el del formulario:
-        ``(partner.type or self.type)`` con ``partner = self._origin``. Un
-        contacto que esta en la base como ``invoice`` y al que el formulario
-        acaba de cambiar el tipo NO toma la direccion del padre hasta que se
-        guarde.
+        **``self._origin``** — la fuente lee el tipo **guardado**, no el del
+        formulario: ``(partner.type or self.type)`` con
+        ``partner = self._origin``. Un contacto que esta en la base como
+        ``invoice`` y al que el formulario acaba de cambiar el tipo NO toma la
+        direccion del padre hasta que se guarde.
 
-        ``_origin`` es un concepto del ORM entero —42 usos en
-        ``odoo19c: odoo/``— y su hogar es ``src/orm``, no este archivo
-        (segunda clausula de ``atributos-de-clase-de-modelo.md``); construirlo
-        aqui seria fabricarlo en el sitio equivocado, la clase de
-        ``H-API-578``. Lo que se porta es su **significado** en este metodo:
-        el valor almacenado de un campo, que es una lectura acotada. El
-        ``_origin`` general queda como sucesor: tarea **#112**.
+        > **Actualizado (tarea #112).** Este metodo hacia la lectura a mano
+        > —``objects.filter(pk=self.pk).values_list('type')``— porque
+        > ``_origin`` no existia todavia, y el docstring lo declaraba con su
+        > sucesor. Ya existe: ``models.OriginMixin`` en ``src/orm/models.py``,
+        > que es su hogar (segunda clausula de
+        > ``atributos-de-clase-de-modelo.md``). El cuerpo se lee ahora como el
+        > de la fuente, y la lectura a mano —que era la misma consulta con
+        > otro nombre— desaparece.
         """
         if not self.parent_id:
             return
         result = {}
-        stored_type = None
-        if self.pk:
-            stored_type = type(self).objects.filter(pk=self.pk).values_list(
-                'type', flat=True).first()
-        if (stored_type or self.type) == self.TYPE_CONTACT:
+        partner = self._origin
+        if (partner.type or self.type) == self.TYPE_CONTACT:
             address_values = self.parent._get_address_values()
             if address_values:
                 result['value'] = address_values
@@ -1093,6 +1324,82 @@ class ResPartner(AvatarMixin, TimeStampedModel):
             parent._update_address(
                 self._convert_fields_to_values(address_fields))
 
+    @classmethod
+    def _load_records_create(cls, vals_list, using=DEFAULT_DB_ALIAS):
+        """≙ ``_load_records_create`` (``odoo19c: res_partner.py:966-1001``).
+
+        El enganche del cargador de datos para el alta **masiva**: crea los
+        partners con la sincronización de campos **apagada** y luego la hace en
+        lote, agrupando por la pareja ``(entidad comercial, padre de
+        dirección)``. Sin él, sembrar cien contactos de una empresa dispararía
+        cien sincronizaciones idénticas hacia los mismos hijos.
+
+        Estuvo BLOQUEADO por ``el cargador de data XML`` — no existía aquí —
+        hasta la tarea **#115**, que construyó ``orm.models.RecordLoaderMixin``
+        y cerró la arista. El
+        escape que usa —el contexto ``_partners_skip_fields_sync``— ya estaba
+        portado en :meth:`save` desde antes; lo que faltaba era quien lo
+        activara.
+
+        Los tres pasos de la fuente, en su orden:
+
+        1. ``super()._load_records_create`` bajo el contexto que salta la
+           sincronización por registro.
+        2. La **primera mitad** de ``_fields_sync`` en lote: los campos
+           comerciales del partner comercial y los de dirección del padre, cada
+           grupo escrito de una vez sobre sus hijos comunes.
+        3. La **segunda mitad** por registro —``_children_sync`` y
+           ``_handle_first_contact_creation``—, que la fuente hace *"the
+           'normal' way"* porque dependen del estado ya escrito.
+
+        Los nombres de campo son los de este árbol (``parent`` / ``children`` /
+        ``commercial_partner`` en vez de ``parent_id`` / ``child_ids`` /
+        ``commercial_partner_id``), que es la traducción ya declarada arriba en
+        este mismo archivo.
+        """
+        with context_scope(_partners_skip_fields_sync=True):
+            partners = super()._load_records_create(vals_list, using=using)
+
+        # batch up first part of _fields_sync
+        # group partners by commercial_partner (if not self) and parent (if
+        # type == contact)
+        groups = defaultdict(list)
+        for partner, vals in zip(partners, vals_list):
+            cp_id = None
+            if vals.get('parent') and partner.commercial_partner.pk != partner.pk:
+                cp_id = partner.commercial_partner.pk
+
+            add_id = None
+            if partner.parent_id and partner.type == cls.TYPE_CONTACT:
+                add_id = partner.parent_id
+            groups[(cp_id, add_id)].append(partner.pk)
+
+        for (cp_id, add_id), children in groups.items():
+            # values from parents (commercial, regular) written to their common
+            # children
+            to_write = {}
+            # commercial fields from commercial partner
+            if cp_id:
+                to_write = cls.objects.using(using).get(
+                    pk=cp_id)._convert_fields_to_values(cls._commercial_fields())
+            # address fields from parent
+            if add_id:
+                parent = cls.objects.using(using).get(pk=add_id)
+                for fname in cls._address_fields():
+                    value = getattr(parent, fname)
+                    if value:
+                        to_write[fname] = value
+            if to_write:
+                with sudo():
+                    cls.objects.using(using).filter(
+                        pk__in=children).update(**to_write)
+
+        # do the second half of _fields_sync the "normal" way
+        for partner, vals in zip(partners, vals_list):
+            partner._children_sync(vals)
+            partner._handle_first_contact_creation()
+        return partners
+
     @property
     def commercial_partner(self):
         """El partner que representa la **entidad comercial** del contacto.
@@ -1221,6 +1528,11 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         # sin condicion de parada, asi que el rechazo tiene que llegar
         # primero.
         self._check_parent_id()
+        # ``@api.constrains('barcode')`` de la fuente (``:646-651``). Va aqui
+        # y no en ``clean``: la unicidad es POR EMPRESA y su lectura depende de
+        # la empresa activa, asi que tiene que correr en el mismo camino que
+        # persiste el valor.
+        self._check_barcode_unicity()
         if self.website:
             self.website = self._clean_website(self.website)
         if self.parent_id:
@@ -1344,13 +1656,15 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         La asimetria que importa: el nombre cae al correo cuando no hay
         nombre — una fila sin nada legible no sirve en ninguna lista.
 
-        **La guarda ``if email_normalized`` se porta y hoy es neutra**, y eso
-        se declara en vez de callarse. Alla decide si gana el ``default_email``
-        del contexto —su comentario lo dice: *"keep default_email in
-        context"*—; aqui el campo es ``blank=True, default=''``, asi que no
-        escribir la clave y escribir la cadena vacia dan el mismo valor. Se
-        conserva por fidelidad y se vuelve observable cuando ``default_get``
-        se porte. Sucesor: tarea **#113**.
+        **La guarda ``if email_normalized`` ya es observable** (tarea #113).
+        Su comentario en la fuente lo dice: *"keep default_email in
+        context"*. Cuando el nombre no trae correo, la clave no se escribe, y
+        entonces el ``default_email`` del contexto llega a la fila por
+        ``default_get`` — que es lo que hace :meth:`create` de
+        ``DefaultGetMixin``, el mismo paso que la fuente da en
+        ``odoo19c: odoo/orm/models.py:4796``. Antes de #113 no habia base a
+        la que preguntar, asi que la guarda se conservaba por fidelidad y no
+        cambiaba nada.
 
         **Divergencia de mecanismo, declarada:** la fuente empieza limpiando
         un ``default_type`` invalido del contexto
@@ -1365,10 +1679,10 @@ class ResPartner(AvatarMixin, TimeStampedModel):
             raise ValidationError(
                 'No se puede crear un contacto sin direccion de correo.')
 
-        create_values = {'name': name or email_normalized}
-        if email_normalized:
+        create_values = {cls._rec_name: name or email_normalized}
+        if email_normalized:   # keep default_email in context
             create_values['email'] = email_normalized
-        partner = cls.objects.create(**create_values)
+        partner = cls.create(**create_values)
         return partner.pk, partner.display_name
 
     @classmethod
@@ -1621,19 +1935,6 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         name = re.sub(r'\s+\n', '\n', name)
         return name.strip()
 
-    @property
-    def display_name(self):
-        """El campo publico; el computo privado es ``_compute_display_name``.
-
-        La fuente declara ``display_name`` como campo y ``_compute_display_name``
-        como su computo — la frontera del guion bajo que
-        ``porte-completo-no-parcial.md`` exige conservar. Aqui el campo es una
-        ``property`` porque no lleva columna, pero la particion es la misma:
-        quien lo lee usa ``display_name``; quien lo extiende sobreescribe
-        ``_compute_display_name``.
-        """
-        return self._compute_display_name()
-
     # ------------------------------------------------------------------
     # El avatar y su relleno por tipo de direccion
     # ≙ ``odoo19c: odoo/addons/base/models/res_partner.py:334-377``
@@ -1788,18 +2089,19 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         ``ModuleNotFoundError``). Se usa ``zoneinfo`` de la biblioteca
         estandar, que da el mismo ``%z``.
 
-        DIVERGENCIA DE ESQUEMA, y esta si cambia la conducta: la fuente
-        declara ``tz`` como **Selection** acotada a ``pytz.all_timezones``
-        (``:223``), asi que una zona invalida es imposible por construccion y
-        ``pytz.timezone`` nunca recibe basura. Aqui ``tz`` es un
-        ``fields.Char`` libre, asi que SI puede llegar basura de un dato
-        viejo — y ``ZoneInfo`` levantaria ``ZoneInfoNotFoundError`` al LEER
-        el partner, no al escribirlo.
+        El respaldo a GMT se queda, y ahora por una razon MAS ESTRECHA que
+        antes. La tarea **#107** ya acoto ``tz`` a la Selection de la fuente
+        (``choices=_tzs``), pero eso **no** hace imposible la basura: en
+        Django ``choices`` es **validacion, no DDL** —el mismo hecho que
+        desbloqueo la tarea #118—, asi que PostgreSQL no recibe ningun
+        ``CHECK`` y un ``objects.create(tz='No/Existe')`` escribe la fila.
+        Solo ``full_clean()`` la rechaza.
 
-        Por eso se cae a GMT en vez de propagar: no es inventar una conducta
-        que la fuente no tiene, es cubrir un caso que su esquema hace
-        imposible y el nuestro no. Cerrar la divergencia —acotar ``tz`` a una
-        Selection como la fuente— es la tarea **#107**.
+        Quedan por tanto dos vias por las que una zona invalida llega hasta
+        aqui: un dato anterior al acotamiento, y una escritura que no pase por
+        ``full_clean()``. Cualquiera de las dos levantaria
+        ``ZoneInfoNotFoundError`` al **LEER** el partner, no al escribirlo —
+        que es el peor sitio donde puede reventar.
         """
         try:
             zona = ZoneInfo(self.tz or 'GMT')
@@ -1954,15 +2256,19 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         japonesa recibe su correspondencia en japones aunque alguien le
         hubiera puesto otro idioma a mano.
 
-        **Divergencia de mecanismo, declarada:** la fuente cae a
-        ``partner.default_get(['lang']).get('lang') or partner.env.lang``.
-        ``default_get`` no esta portado (sigue entre los ausentes de este
-        archivo) y ``env.lang`` es el idioma activo de la peticion, que aqui
-        lo lleva Django: ``get_language()`` con el ``LANGUAGE_CODE`` de
-        ``settings`` de respaldo. Es la misma cascada con las dos piezas que
-        este arbol si tiene.
+        La cascada de respaldo de la fuente es
+        ``partner.default_get(['lang']).get('lang') or partner.env.lang``, y
+        **se porta entera** desde la tarea #113: ``default_get`` ya existe
+        (``models.DefaultGetMixin``). La unica pieza adaptada es ``env.lang``,
+        que alla es el idioma activo de la peticion; aqui lo lleva Django, con
+        ``get_language()`` y el ``LANGUAGE_CODE`` de ``settings`` de respaldo.
+
+        > **Actualizado (tarea #113).** Este parrafo decia que ``default_get``
+        > *"no esta portado (sigue entre los ausentes de este archivo)"*, y
+        > por eso el cuerpo se saltaba el primer escalon de la cascada.
         """
-        fallback = get_language() or settings.LANGUAGE_CODE
+        fallback = (type(self).default_get(['lang']).get('lang')
+                    or get_language() or settings.LANGUAGE_CODE)
         if self.parent_id:
             return self.parent.lang or fallback
         return self.lang or fallback
@@ -2502,8 +2808,7 @@ class ResPartnerCategory(TimeStampedModel):
             return f'{self.pk}/'
         return f'{self.parent.parent_path}{self.pk}/'
 
-    @property
-    def display_name(self):
+    def _compute_display_name(self):
         """≙ ``_compute_display_name`` (``:162-172``).
 
         Docstring de la fuente: *"Return the categories' display name,

@@ -397,18 +397,21 @@ def _union_routes(new, previous):
 
 # --- product.supplierinfo --------------------------------------------------
 
-def display_name(self):
+def _compute_display_name(self):
     """≙ ``_compute_display_name`` (``odoo19c: :290-298``).
 
     ``Proveedor (min_qty unidad - precio)``. Con
     ``use_simplified_supplier_name`` en el contexto, la fuente cede al
-    ``super()`` y muestra sólo el nombre del contacto; esa rama se conserva.
+    ``super()._compute_display_name()``; aquí se devuelve ``None``, que es el
+    **relevo** de ``chain_method`` — su equivalente exacto. Devolver
+    ``self.partner.display_name`` sería adivinar qué hace la base: la base es
+    ``orm.models.DisplayNameMixin``, que resuelve por ``_rec_name``.
 
     D-2 del docstring: ``formatLang`` no existe aquí, así que el precio se
     formatea con f-string más el símbolo de la moneda.
     """
     if get_context().get('use_simplified_supplier_name'):
-        return self.partner.display_name if self.partner_id else ''
+        return None
     currency = getattr(self.currency, 'symbol', '') if self.currency_id else ''
     uom = self.product_uom.name if self.product_uom_id else ''
     return (f'{self.partner.display_name if self.partner_id else ""} '
@@ -446,8 +449,12 @@ def apply_purchase_stock_product_extensions():
     """
     if not hasattr(ProductTemplate, '_onchange_buy_route'):
         ProductTemplate._onchange_buy_route = _onchange_buy_route
-    if not hasattr(ProductSupplierinfo, 'display_name'):
-        ProductSupplierinfo.display_name = property(display_name)
+    # Se ENCADENA, no se instala con guarda: el `if not hasattr` es correcto
+    # para campos y catastrófico para overrides (:ref:`h-api-364`), y desde que
+    # `DisplayNameMixin` es universal la guarda daría siempre falso — el
+    # override no se instalaría nunca y nadie lo notaría.
+    chain_method(ProductSupplierinfo, '_compute_display_name',
+                 _compute_display_name)
     if not hasattr(ProductSupplierinfo, 'show_set_supplier_button'):
         ProductSupplierinfo.show_set_supplier_button = property(
             show_set_supplier_button)

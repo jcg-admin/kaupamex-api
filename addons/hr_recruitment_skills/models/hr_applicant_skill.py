@@ -53,9 +53,10 @@ class HrApplicantSkill(HrIndividualSkillMixin):
     _rec_name = 'skill_id'
     _order = 'skill_type_id, skill_level_id desc'
 
-    applicant = fields.Many2one(
+    applicant_id = fields.Many2one(
         HrApplicant, on_delete=models.CASCADE, db_index=True,
         related_name='applicant_skill_ids', verbose_name='Candidato',
+        db_column='applicant_id',
     )
 
     class Meta:
@@ -65,8 +66,14 @@ class HrApplicantSkill(HrIndividualSkillMixin):
         verbose_name_plural = 'Habilidades de candidato'
 
     def _linked_field_name(self):
-        """≙ ``_linked_field_name`` (``:21-22``)."""
-        return 'applicant'
+        """≙ ``_linked_field_name`` (``:21-22``).
+
+        Devuelve el **simbolo**, no la columna: el mixin deriva el attname con
+        ``getattr(self, f'{field_name}_id')``
+        (``hr_skills: hr_individual_skill_mixin.py:253``), asi que la
+        convencion se sostiene igual en forma A y en forma C.
+        """
+        return 'applicant_id'
 
     @classmethod
     def _get_current_skills_by_applicant(cls, applicant_skills):

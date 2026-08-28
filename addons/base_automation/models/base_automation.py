@@ -346,6 +346,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         IrModel, on_delete=models.CASCADE, db_index=True,
         related_name='base_automations', verbose_name='Modelo',
         help_text='Modelo objetivo (Odoo model_id, domain abstract=False).',
+        db_column='model_id',
     )
     # Odoo model_name (related="model_id.model", inverse="_inverse_model_name",
     # store implícito). Columna real sincronizada en save() — mismo criterio
@@ -380,9 +381,10 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         max_length=32, choices=TRIGGER_CHOICES, blank=True, default='',
         verbose_name='Disparador',
     )
-    trg_selection_field = fields.Many2one(
+    trg_selection_field_id = fields.Many2one(
         IrModelFieldsSelection, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='base_automations', verbose_name='Campo de selección disparador',
+        db_column='trg_selection_field_id',
     )
     trg_field_ref_model_name = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Modelo de referencia',
@@ -396,6 +398,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         IrModelFields, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='+', verbose_name='Campo de fecha disparador',
         help_text='Cuándo evaluar la condición (Odoo trg_date_id).',
+        db_column='trg_date_id',
     )
     trg_date_range = fields.Integer(null=True, blank=True, verbose_name='Retraso')
     trg_date_range_mode = fields.Selection(
@@ -406,11 +409,12 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         max_length=8, choices=RANGE_TYPE_CHOICES, blank=True, default='',
         verbose_name='Unidad del retraso',
     )
-    trg_date_calendar = fields.Many2one(
+    trg_date_calendar_id = fields.Many2one(
         ResourceCalendar, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='base_automations', verbose_name='Calendario laboral',
         help_text='GAP — ResourceCalendar.plan_days no está portado; ver '
                   'docstring del módulo.',
+        db_column='trg_date_calendar_id',
     )
     filter_pre_domain = fields.Char(
         max_length=2048, blank=True, default='', verbose_name='Dominio antes',
@@ -567,7 +571,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         """≙ ``_compute_trg_date_calendar_id``."""
         if (self.trigger not in TIME_TRIGGERS or not self.trg_date_id
                 or self.trg_date_range_type != 'day'):
-            self.trg_date_calendar = None
+            self.trg_date_calendar_id = None
 
     def _compute_trg_selection_field_id(self):
         """≙ ``_compute_trg_selection_field_id`` — ver nota de la sección:
@@ -610,8 +614,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         if not field_row:
             return
         if self.trigger in ('on_state_set', 'on_priority_set'):
-            value = (self.trg_selection_field.value
-                     if self.trg_selection_field else None)
+            value = (self.trg_selection_field_id.value
+                     if self.trg_selection_field_id else None)
             self.filter_domain = repr([(field_row.name, '=', value)]) if value else ''
         elif self.trigger == 'on_stage_set':
             value = self.trg_field_ref
@@ -1131,7 +1135,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         ``record`` con calendario propio que priorizar (esa variante
         tampoco está portada — ver ``ResourceCalendar.plan_days`` en el
         docstring del módulo)."""
-        return self.trg_date_calendar
+        return self.trg_date_calendar_id
 
     def _search_time_based_automation_records(self, model_cls, until):
         """≙ ``_search_time_based_automation_records``.
@@ -1140,7 +1144,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         ``trg_date_range_type == 'day'``) DEGRADADA — ``ResourceCalendar.
         plan_days`` no está portado (ver docstring del módulo): cae al
         cálculo de fecha simple sin ajuste por días laborables."""
-        if self.trg_date_calendar_id is not None and self.trg_date_range_type == 'day':
+        if self.trg_date_calendar_id_id is not None and self.trg_date_range_type == 'day':
             _logger.warning(
                 'base.automation %s: trg_date_calendar_id fijado pero '
                 'ResourceCalendar.plan_days no está portado; usando '

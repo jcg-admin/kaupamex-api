@@ -19,7 +19,7 @@ from django.db import connection
 
 from addons.base.models import (IrModelData, ResCompany, ResCurrency,
                                 ResGroups, res_currency)
-from addons.base.models.res_currency_rate import ResCurrencyRate
+from addons.base.models.res_currency import ResCurrencyRate
 from orm.environments import company_scope, context_scope
 
 pytestmark = pytest.mark.integration
@@ -288,8 +288,8 @@ class TestMultiCurrencyGroup:
 
         Qué haría fallar al control: no llamar al toggle desde ``save()``.
         """
-        multi_id = IrModelData.xmlid_to_res_id('base.group_multi_currency')
-        user_id = IrModelData.xmlid_to_res_id('base.group_user')
+        multi_id = IrModelData._xmlid_to_res_id('base.group_multi_currency')
+        user_id = IrModelData._xmlid_to_res_id('base.group_user')
         if not multi_id or not user_id:
             pytest.skip('la siembra no dejó los dos xmlid')
         group_user = ResGroups.objects.get(pk=user_id)
@@ -301,8 +301,8 @@ class TestMultiCurrencyGroup:
         Qué haría fallar al control: no llamar nunca a
         ``_deactivate_group_multi_currency``.
         """
-        multi_id = IrModelData.xmlid_to_res_id('base.group_multi_currency')
-        user_id = IrModelData.xmlid_to_res_id('base.group_user')
+        multi_id = IrModelData._xmlid_to_res_id('base.group_multi_currency')
+        user_id = IrModelData._xmlid_to_res_id('base.group_user')
         if not multi_id or not user_id:
             pytest.skip('la siembra no dejó los dos xmlid')
         ResCurrency.objects.update(active=False)

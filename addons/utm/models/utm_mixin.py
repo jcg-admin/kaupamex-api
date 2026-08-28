@@ -80,6 +80,7 @@ class UtmMixin(models.Model):
         db_index=True, related_name='+', verbose_name='Campaña',
         help_text='Nombre con el que se distingue cada esfuerzo de campaña, '
                   'p. ej. Fall_Drive, Christmas_Special.',
+        db_column='campaign_id',
     )
     # ≙ ``source_id``.
     source_id = fields.Many2one(
@@ -87,12 +88,14 @@ class UtmMixin(models.Model):
         db_index=True, related_name='+', verbose_name='Fuente',
         help_text='Origen del enlace: un buscador, otro dominio, o el nombre '
                   'de una lista de correo.',
+        db_column='source_id',
     )
     # ≙ ``medium_id``.
     medium_id = fields.Many2one(
         'utm.UtmMedium', null=True, blank=True, on_delete=models.SET_NULL,
         db_index=True, related_name='+', verbose_name='Medio',
         help_text='Método de entrega: postal, correo, banner.',
+        db_column='medium_id',
     )
 
     class Meta:

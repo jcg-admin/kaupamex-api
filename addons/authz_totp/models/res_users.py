@@ -287,12 +287,12 @@ def _totp_rate_limit(self, limit_type, ip=''):
     limit, interval = TOTP_RATE_LIMITS[limit_type]
     desde = timezone.now() - timedelta(seconds=interval)
     count = AuthTotpRateLimitLog.objects.filter(
-        user_id=self.pk, limit_type=limit_type, created_at__gte=desde,
+        user_id_id=self.pk, limit_type=limit_type, created_at__gte=desde,
     ).count()
     if count >= limit:
         raise AccessDenied(RATE_LIMIT_DESCRIPTIONS[limit_type])
     AuthTotpRateLimitLog.objects.create(
-        user_id=self.pk, ip=ip or '', limit_type=limit_type)
+        user_id_id=self.pk, ip=ip or '', limit_type=limit_type)
 
 
 def _totp_rate_limit_purge(self, limit_type):
@@ -303,7 +303,7 @@ def _totp_rate_limit_purge(self, limit_type):
     a la quinta no arrastra el castigo al login siguiente.
     """
     AuthTotpRateLimitLog.objects.filter(
-        user_id=self.pk, limit_type=limit_type).delete()
+        user_id_id=self.pk, limit_type=limit_type).delete()
 
 
 def _rpc_api_keys_only(self):

@@ -9,27 +9,53 @@ del símbolo — no se porta por completitud.
 Adaptado de Odoo Community ``odoo/tools/misc.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
+import enum
 import hmac as hmac_lib
+import os
 import re
+import sys
+import tempfile
 import typing
+import unicodedata
 from collections import defaultdict
 from collections.abc import Callable, Iterable, MutableSet
+from contextlib import contextmanager
+from difflib import HtmlDiff
 from functools import reduce
-from itertools import islice, repeat
+from itertools import islice, repeat, starmap
 
 import datetime
 
 from django.apps import apps
+from django.db import connections
 from django.utils import formats as django_formats
 from django.utils import translation as django_translation
 from django.utils.crypto import salted_hmac
 from django.utils.html import escape as django_html_escape
 from lxml import etree
 
+from modules.module import ADDONS_PATHS
+from tools import config
+
 # Variables de tipo de la referencia (``odoo19c: odoo/tools/misc.py:70-72``),
 # que las declara para los genéricos de esta misma familia de colecciones.
 K = typing.TypeVar('K')
 T = typing.TypeVar('T')
+
+# ``Sentinel``/``SENTINEL`` — el centinela de "parámetro no dado", verbatim de
+# la referencia (``odoo19c: odoo/tools/misc.py:131-136``). Se porta porque
+# ``tools.lru.LRU`` lo consume para distinguir "no hay default" de ``None``,
+# igual que allá: ``None`` es un valor legítimo de caché y no puede servir de
+# marca de ausencia.
+
+
+class Sentinel(enum.Enum):
+    """Clase para tipar parámetros cuyo default es un centinela."""
+    SENTINEL = -1
+
+
+SENTINEL = Sentinel.SENTINEL
+
 
 # ``consteq`` — comparación en tiempo constante.
 #
@@ -106,6 +132,177 @@ SKIPPED_ELEMENT_TYPES = (
     etree.CommentBase, etree.PIBase, etree._Entity,
 )
 
+def _addons_paths():
+    """Las raíces bajo las que :func:`file_path` admite abrir.
+
+    ≙ el ``[*odoo.addons.__path__, config.root_path]`` de la fuente
+    (``odoo19c: odoo/tools/misc.py:224``). Las dos raíces de addons las declara
+    ``modules.module.ADDONS_PATHS``, que es donde este árbol las fija una sola
+    vez; leerlas de ahí en vez de recomponerlas evita la segunda fuente de
+    verdad que ``calibration-verified-numbers.md`` prohíbe. La tercera es
+    ``config.root_path()`` — allá el paquete ``odoo/``, aquí ``src/``, la misma
+    relación que ``tools.config.root_path`` ya declara.
+
+    El import es de módulo hermano y NO cierra ciclo: ``modules/module.py``
+    importa ``ast``, ``importlib``, ``os``, ``typing``, ``pathlib`` y
+    ``release``; ``tools/config.py`` importa ``pathlib`` y las settings de
+    Django — ninguno importa ``tools.misc`` (medido).
+    """
+    return [str(path) for path in ADDONS_PATHS] + [config.root_path()]
+
+
+def _file_open_tmp_paths(env):
+    """Las raíces temporales registradas en la transacción de ``env``.
+
+    ≙ ``env.transaction._Transaction__file_open_tmp_paths``
+    (``odoo19c: odoo/tools/misc.py:225`` y ``:311``).
+
+    DIVERGENCIA DE MECANISMO, no de contrato: la fuente cuelga la lista de su
+    objeto ``Transaction``, que este ORM no tiene —``orm/environments.py`` es
+    un ``ContextVar`` sin clase ``Environment`` ni ``Transaction``—. Su
+    equivalente fiel es el objeto ``connections[alias]`` de Django: es quien
+    **posee la transacción** (``atomic`` opera sobre él), y es ``local`` al
+    hilo, así que la raíz temporal no se filtra a otra transacción en curso.
+    Por eso el parámetro conserva el nombre ``env`` de la fuente y lleva el
+    alias de conexión.
+
+    La lista se crea al primer uso: una conexión que nunca instaló un módulo
+    desde un zip no tiene por qué llevar el atributo.
+    """
+    connection = connections[env]
+    try:
+        return connection._file_open_tmp_paths
+    except AttributeError:
+        paths = []
+        connection._file_open_tmp_paths = paths
+        return paths
+
+
+def file_path(file_path, filter_ext=('',), env=None, *, check_exists=True):
+    """≙ ``file_path`` (``odoo19c: odoo/tools/misc.py:196-250``).
+
+    «Verify that a file exists under a known ``addons_path`` directory and
+    return its full path.»
+
+    Es una **guarda de confinamiento**, no una comodidad: el cargador de datos
+    abre rutas que vienen del manifiesto de un addon, y sin ella un
+    ``'../../etc/passwd'`` saldría del árbol. La comprobación es la de la
+    fuente: se normaliza la ruta, se compone contra cada raíz, y **sólo se
+    acepta si el resultado sigue empezando por esa raíz** — que es lo que
+    ``..`` no puede burlar después de ``normpath``.
+
+    Dos conjuntos de raíces, como en la fuente, y el primero **excluye** al
+    segundo:
+
+    - Si la ruta es relativa y su primera componente nombra un addon **ya
+      importado**, las raíces son las de ese addon y ninguna más. Dos árboles
+      con un addon homónimo no se pisan: gana el que el proceso cargó, y una
+      raíz temporal no puede suplantarlo.
+    - Si no, son las raíces fijas más las temporales que
+      :func:`file_open_temporary_directory` haya registrado en ``env``.
+
+    :param file_path: ruta absoluta, o relativa a cualquier raíz de addons.
+    :param filter_ext: extensiones admitidas (minúscula, con punto).
+    :param env: alias de conexión cuya transacción puede tener raíces
+        temporales; sin él, no se consultan (ver :func:`_file_open_tmp_paths`).
+    :param check_exists: comprobar que el archivo existe (por defecto sí).
+    :raise FileNotFoundError: si no está bajo ninguna raíz conocida.
+    :raise ValueError: si su extensión no está en ``filter_ext``.
+    """
+    is_abs = os.path.isabs(file_path)
+    normalized_path = os.path.normpath(os.path.normcase(file_path))
+
+    if filter_ext and not normalized_path.lower().endswith(filter_ext):
+        raise ValueError('Unsupported file: ' + file_path)
+
+    # ignore leading 'addons/' if present, it's the final component of
+    # root_path, but may sometimes be included in relative paths
+    normalized_path = normalized_path.removeprefix('addons' + os.sep)
+    file_path_split = normalized_path.split(os.path.sep)
+
+    if not is_abs and (module := sys.modules.get(f'addons.{file_path_split[0]}')):
+        addons_paths = list(map(os.path.dirname, module.__path__))
+    else:
+        temporary_paths = _file_open_tmp_paths(env) if env else []
+        addons_paths = [*_addons_paths(), *temporary_paths]
+
+    for addons_dir in addons_paths:
+        # final path sep required to avoid partial match
+        parent_path = os.path.normpath(os.path.normcase(addons_dir)) + os.sep
+        if is_abs:
+            candidate = normalized_path
+        else:
+            candidate = os.path.normpath(
+                os.path.join(parent_path, normalized_path))
+        if candidate.startswith(parent_path) and (
+            # we check existence when asked or we have multiple paths to check
+            # (there is one possibility for absolute paths)
+            (not check_exists and (is_abs or len(addons_paths) == 1))
+            or os.path.exists(candidate)
+        ):
+            return candidate
+
+    raise FileNotFoundError('File not found: ' + file_path)
+
+
+def file_open(name, mode='r', filter_ext=(), env=None):
+    """≙ ``file_open`` (``odoo19c: odoo/tools/misc.py:253-286``).
+
+    «Open a file from within the ``addons_path`` directories, as an absolute or
+    relative path.»
+
+    Abre **sólo** lo que :func:`file_path` acepta, así que hereda su
+    confinamiento —``env`` incluido: sin él, una raíz temporal registrada no se
+    consulta—. Las dos precauciones de la fuente se portan enteras:
+
+    - En modo texto fuerza ``utf-8``, con su motivo verbatim: *"system locale
+      could affect default encoding, even with the latest Python 3 versions"*.
+    - En modo de escritura **rechaza crear archivos nuevos** (*"Don't let
+      create new files"*): un cargador que puede escribir donde ya hay algo es
+      una cosa; uno que puede sembrar archivos nuevos bajo el árbol de addons
+      es otra.
+    """
+    path = file_path(name, filter_ext=filter_ext, env=env, check_exists=False)
+    encoding = None
+    if 'b' not in mode:
+        # Force encoding for text mode, as system locale could affect default
+        # encoding, even with the latest Python 3 versions.
+        encoding = 'utf-8'
+    if any(m in mode for m in ('w', 'x', 'a')) and not os.path.isfile(path):
+        # Don't let create new files
+        raise FileNotFoundError(f'Not a file: {path}')
+    return open(path, mode, encoding=encoding)
+
+
+@contextmanager
+def file_open_temporary_directory(env):
+    """≙ ``file_open_temporary_directory`` (``odoo19c: odoo/tools/misc.py:305-313``).
+
+    «Create and return a temporary directory added to the directories
+    ``file_open`` is allowed to read from.»
+
+    Sirve a la instalación de un módulo desde un zip subido: lo que se acaba de
+    extraer tiene que ser legible por ``file_open`` **sin** abrir el árbol
+    entero ni por más tiempo del que dure la operación. De ahí la forma exacta
+    de la fuente, que se porta verbatim:
+
+    - el directorio lo crea y lo borra ``tempfile.TemporaryDirectory``;
+    - el registro se retira en un ``finally``, así que una excepción en el
+      cuerpo no deja la raíz abierta para el resto del proceso — el fallo
+      silencioso que este ``finally`` existe para impedir.
+
+    :param env: alias de conexión cuya transacción registra la raíz.
+    :return: la ruta del directorio temporal.
+    """
+    with tempfile.TemporaryDirectory() as module_dir:
+        paths = _file_open_tmp_paths(env)
+        try:
+            paths.append(module_dir)
+            yield module_dir
+        finally:
+            paths.remove(module_dir)
+
+
 # ``html_escape`` — escape HTML para mensajes construidos a mano.
 #
 # La referencia lo define como alias de ``markupsafe.escape``
@@ -144,6 +341,36 @@ def split_every(n, iterable, piece_maker=tuple):
     while piece:
         yield piece
         piece = piece_maker(islice(iterator, n))
+
+
+def is_list_of(values, type_):
+    """≙ ``is_list_of`` (``odoo19c: odoo/tools/misc.py:1924-1930``).
+
+    «Return True if the given values is a list / tuple of the given type.»
+
+    Se porta en vez de escribirse en línea porque es el guardián de forma de
+    ``Properties._list_to_dict``: distingue *"una lista de definiciones"* de
+    cualquier otra cosa que llegue del cargador, y ese predicado se cita en el
+    mensaje de error.
+    """
+    return isinstance(values, (list, tuple)) and all(
+        isinstance(item, type_) for item in values)
+
+
+def has_list_types(values, types):
+    """≙ ``has_list_types`` (``odoo19c: odoo/tools/misc.py:1933-1943``).
+
+    «Return True if the given values have the same types as the one given in
+    argument, in the same order.»
+
+    Es lo que deja a ``_remove_display_name`` distinguir un ``many2one`` ya
+    reducido (``35``) de la pareja que manda el cliente (``(35, 'Bob')``) sin
+    adivinar por longitud.
+    """
+    return (
+        isinstance(values, (list, tuple)) and len(values) == len(types)
+        and all(starmap(isinstance, zip(values, types)))
+    )
 
 
 def clean_context(context: dict) -> dict:
@@ -390,6 +617,86 @@ def get_lang(lang_code=None):
             or installed.order_by('pk').first())
 
 
+#: Los cuatro colores que ``get_diff`` pinta sobre la tabla de ``HtmlDiff``:
+#: quitado y añadido, y su fondo de celda. El primer par es el esquema oscuro
+#: y el segundo el claro, en el orden en que la fuente los declara
+#: (``odoo19c: odoo/tools/misc.py:1746-1747``).
+DIFF_COLORS_DARK = ('#7f2d2f', '#406a2d', '#51232f', '#3f483b')
+DIFF_COLORS_LIGHT = ('#ffc1c0', '#abf2bc', '#ffebe9', '#e6ffec')
+
+#: La hoja de estilo que la fuente inyecta cuando quien llama no trae la suya
+#: (``:1748-1767``). Va como constante y no dentro de la función porque lleva
+#: cuatro marcadores ``%s`` y anidarla en el cuerpo la hacía ilegible.
+DIFF_DEFAULT_STYLE = """
+            <style>
+                .modal-dialog.modal-lg:has(table.diff) {
+                    max-width: 1600px;
+                    padding-left: 1.75rem;
+                    padding-right: 1.75rem;
+                }
+                table.diff { width: 100%%; }
+                table.diff th.diff_header { width: 50%%; }
+                table.diff td.diff_header { white-space: nowrap; }
+                table.diff td.diff_header + td { width: 50%%; }
+                table.diff td { word-break: break-all; vertical-align: top; }
+                table.diff .diff_chg, table.diff .diff_sub, table.diff .diff_add {
+                    display: inline-block;
+                    color: inherit;
+                }
+                table.diff .diff_sub, table.diff td:nth-child(3) > .diff_chg { background-color: %s }
+                table.diff .diff_add, table.diff td:nth-child(6) > .diff_chg { background-color: %s }
+                table.diff td:nth-child(3):has(>.diff_chg, .diff_sub) { background-color: %s }
+                table.diff td:nth-child(6):has(>.diff_chg, .diff_add) { background-color: %s }
+            </style>
+        """
+
+
+def get_diff(data_from, data_to, custom_style=False, dark_color_scheme=False):
+    """≙ ``get_diff`` (``odoo19c: odoo/tools/misc.py:1722-1778``).
+
+    La diferencia entre dos textos, como tabla HTML. El motor es
+    ``difflib.HtmlDiff`` de la biblioteca estándar — el mismo que usa la
+    fuente— con sus mismos parámetros: ``tabsize=2``, ``context=True`` (sólo
+    las líneas que cambian, no el archivo entero) y ``numlines=3``.
+
+    Lo consume ``ServerActionHistoryWizard._compute_code_diff``, que compara
+    el código vigente de una acción con el de una revisión guardada.
+
+    :param data_from: par ``(texto, encabezado)`` del lado izquierdo.
+    :param data_to: par ``(texto, encabezado)`` del lado derecho.
+    :param custom_style: hoja de estilo propia, con su etiqueta ``<style>``.
+    :param dark_color_scheme: si el lector usa el esquema oscuro.
+    :return: la tabla HTML, con su estilo adjunto.
+    """
+    def handle_style(html_diff, custom_style, dark_color_scheme):
+        """Añade a las clases de ``HtmlDiff`` las de Bootstrap 4.
+
+        La biblioteca marca el DOM con clases propias (``diff_header``,
+        ``diff_next``); la fuente les apenda las suyas en vez de reescribir
+        el generador, y aquí igual.
+        """
+        to_append = {
+            'diff_header': 'bg-600 text-light text-center align-top px-2',
+            'diff_next': 'd-none',
+        }
+        for old, new in to_append.items():
+            html_diff = html_diff.replace(old, '%s %s' % (old, new))
+        html_diff = html_diff.replace('nowrap', '')
+        colors = DIFF_COLORS_DARK if dark_color_scheme else DIFF_COLORS_LIGHT
+        html_diff += custom_style or DIFF_DEFAULT_STYLE % colors
+        return html_diff
+
+    diff = HtmlDiff(tabsize=2).make_table(
+        data_from[0].splitlines(),
+        data_to[0].splitlines(),
+        data_from[1],
+        data_to[1],
+        context=True,  # sólo las líneas de la diferencia, no todo el código
+        numlines=3,
+    )
+    return handle_style(diff, custom_style, dark_color_scheme)
+
+
 # Los dos espacios que ``format_amount`` inserta, por su nombre Unicode.
 # Como constantes y no como escape ``\N{...}`` dentro de la f-string: ahí la
 # llave doble que Python exige colisiona con la sintaxis de la propia f-string.
@@ -440,3 +747,49 @@ def format_amount(amount, currency, lang_code=None, trailing_zeroes=True):
     if currency.position == 'before':
         return symbol + NO_BREAK_SPACE + formatted
     return formatted + NO_BREAK_SPACE + symbol
+
+
+def remove_accents(input_str: str) -> str:
+    """Sustituye las latinas acentuadas por su equivalente ASCII.
+
+    ≙ ``remove_accents`` (``odoo19c: odoo/tools/misc.py:713-720``), verbatim
+    en mecanismo: descomponer en NFKD y descartar los caracteres
+    combinantes. Cambia el significado del texto y sólo sirve para algunos
+    casos — la fuente lo dice de sí misma, y es cierto: es la aproximación
+    barata al ``unaccent`` de PostgreSQL, no su equivalente exacto.
+
+    Su consumidor es el ``ilike`` en memoria de ``Field.filter_function``,
+    que compara igual que el lookup ``sql_ilike`` pide al motor.
+    """
+    if not input_str:
+        return input_str
+    nkfd_form = unicodedata.normalize('NFKD', input_str)
+    return ''.join(c for c in nkfd_form if not unicodedata.combining(c))
+
+
+class unquote(str):
+    """Cadena cuyo ``repr()`` sale sin comillas ni escapes — ≙ ``unquote``
+    (``odoo19c: odoo/tools/misc.py:723-743``), verbatim.
+
+    El nombre viene del ``unquote`` de Lisp. Sirve para dejar el nombre
+    desnudo de una variable dentro del ``repr()`` de un dict que después se
+    evalúa: sin ella, ``{'test': 'active_id'}`` fija la cadena literal; con
+    ella, ``{'test': active_id}`` deja la referencia por resolver.
+
+    Aquí lo consume ``IrActionsServer._get_children_domain``, que declara el
+    dominio de las hijas con ``model_id`` e ``id`` como nombres a resolver en
+    el contexto del cliente, no como valores del registro actual.
+
+    Úsese con cuidado: ``repr()`` deja de ser reversible, que es justo lo que
+    esta clase busca.
+
+        >>> unquote('active_id')
+        active_id
+        >>> {'test': unquote('active_id')}
+        {'test': active_id}
+    """
+
+    __slots__ = ()
+
+    def __repr__(self):
+        return self

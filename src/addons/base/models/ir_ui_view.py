@@ -111,7 +111,7 @@ Qué NO se porta, con su medición
   su archivo fuente y una extensión XPath. Ambos son del combinador.
 - **``xml_id`` / ``model_data_id``**: dependen de ``ir.model.data``. ``key``
   **sí** se porta: es el identificador estable de una vista QWeb y no pasa por
-  esa tabla. (La tabla ya tiene resolutor — ``IrModelData.xmlid_lookup`` y
+  esa tabla. (La tabla ya tiene resolutor — ``IrModelData._xmlid_lookup`` y
   hermanos, :ref:`h-api-347` — y la resolución de plantillas de abajo lo usa
   como segundo escalón, igual que la fuente.)
 

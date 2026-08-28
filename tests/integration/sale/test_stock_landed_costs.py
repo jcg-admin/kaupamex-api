@@ -127,7 +127,7 @@ def test_landed_cost_validate_raises_avco_cost(db):
     landed.validate(lc)
     assert lc.state == StockLandedCost.STATE_DONE
     # Revaluación: SVL de valor 200 (cantidad 0) ligada al movimiento.
-    reval = StockValuationLayer.objects.filter(stock_move=move, quantity=0).first()
+    reval = StockValuationLayer.objects.filter(stock_move_id=move, quantity=0).first()
     assert reval.value == Decimal('200.00')
     # AVCO sube: (1000 + 200) / 10 = 120.
     costing.refresh_from_db()

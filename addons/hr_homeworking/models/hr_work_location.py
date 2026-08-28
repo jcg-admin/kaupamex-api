@@ -40,7 +40,7 @@ def _unlink_except_used_by_employee(self):
         raise UserError(
             _('You cannot delete locations that are being used by your employees'),
         )
-    HrEmployeeLocation.objects.filter(work_location=self).delete()
+    HrEmployeeLocation.objects.filter(work_location_id=self).delete()
 
 
 def apply_hr_homeworking_hr_work_location_extensions():

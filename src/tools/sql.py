@@ -37,13 +37,16 @@ referencia declara y aquí no existen: ``existing_tables``, ``table_kind`` (+
 ``create_index``, ``add_index``, ``create_unique_index``, ``drop_index``,
 ``drop_view_if_exists``, ``pg_varchar``, ``reverse_order``,
 ``increment_fields_skiplock``, ``value_to_translated_trigram_pattern``,
-``pattern_to_translated_trigram_pattern``, ``make_identifier``,
+``pattern_to_translated_trigram_pattern``,
 ``make_index_name``; y ``__all__``, ``_schema``, ``_CONFDELTYPES``,
 ``SQL_ORDER_BY_TYPE``. Todas sirven al DDL del registro de modelos de la
 referencia; aquí ese DDL lo emiten las migraciones de Django. Se portan
 cuando un consumidor las exija — el alcance de #549 es la clase ``SQL``;
 esta declaración medida es el registro de esa cobertura (regla
-``porte-completo-no-parcial``).
+``porte-completo-no-parcial``). ``make_identifier`` **salió de esa lista**
+el 2026-08-28: ``tools/query.py`` lo exige para acotar el alias de un JOIN
+al límite de identificador de PostgreSQL, que es el consumidor que la
+política anunciaba.
 
 ``named_to_positional_printf`` y ``_PrintfArgs`` viven en
 ``src/tools/misc.py`` — su hogar espejado (``odoo19c: odoo/tools/misc.py:1959``
@@ -80,6 +83,7 @@ el filtro por tabla que nuestra firma ya exponía.
 """
 import re
 import warnings
+from zlib import crc32
 
 from django.db.models.expressions import RawSQL
 
@@ -279,6 +283,25 @@ class SQL:
         """
         raw = RawSQL(self.__code, self.__params, output_field=self.__output_field)
         return raw.resolve_expression(*args, **kwargs)
+
+
+def make_identifier(identifier: str) -> str:
+    """≙ ``make_identifier`` (``odoo19c: odoo/tools/sql.py:604-612``).
+
+    Devuelve ``identifier`` acotado al límite de PostgreSQL —**63 caracteres**—
+    y, si hay que truncar, con un ``crc32`` pegado detrás para que siga siendo
+    casi único. El caso que lo exige es el alias de un JOIN encadenado:
+    ``Query.make_alias`` compone ``tabla__campo__campo`` y una cadena de tres
+    saltos ya se pasa del límite. Sin este recorte PostgreSQL trunca por su
+    cuenta y **dos alias distintos colapsan en uno**, que es un JOIN silencioso
+    contra la tabla equivocada.
+    """
+    # si la longitud excede el límite de 63 caracteres de PostgreSQL.
+    if len(identifier) > 63:
+        # Hay que meter un hash crc32 y un guion bajo en 63 caracteres. El
+        # espacio restante se usa como prefijo legible.
+        return f"{identifier[:54]}_{crc32(identifier.encode()):08x}"
+    return identifier
 
 
 def escape_psql(to_escape):

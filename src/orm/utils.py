@@ -65,6 +65,11 @@ def check_pg_name(name):
         raise ValidationError("Table name %r is too long" % name)
 
 
+#: ≙ ``regex_alphanumeric`` (``odoo19c: odoo/orm/utils.py:10``). Acota el
+#: nombre de una propiedad, que va interpolado en el SQL.
+regex_alphanumeric = re.compile(r'^[a-z0-9_]+$')
+
+
 def parse_field_expr(field_expr: str) -> tuple[str, str | None]:
     """Separa ``field.property`` en ``(field, property|None)``. Fiel a Odoo 19."""
     if (property_index := field_expr.find(".")) >= 0:

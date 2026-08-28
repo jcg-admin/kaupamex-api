@@ -50,7 +50,27 @@ dependencies = [
     # odoo19c: setup/odoo-wsgi.example.py (odoo-tools@622ddc2a).
     "gunicorn>=23.0.0",
     "lxml>=6.1.1",
+    # Aritmetica de calendario para el cargador de datos XML: el contexto de
+    # evaluacion de `tools/convert.py` expone `relativedelta` a las expresiones
+    # de un archivo de datos, tal cual la referencia
+    # (odoo19c: odoo/tools/convert.py:20). Ni stdlib ni Django lo traen —
+    # `timedelta` no sabe de meses ni de anios.
+    "python-dateutil>=2.9.0",
     "paramiko>=3.4.0",
+    "passlib>=1.7.4",
+    # Formateo de fecha/hora sensible a la localizacion. Lo importa la
+    # referencia y lo consume `ir.actions.server.history._compute_display_name`
+    # (odoo19c: odoo/addons/base/models/ir_actions.py:519-524), que etiqueta
+    # cada revision con la fecha en el idioma del lector. Ni stdlib ni Django
+    # dan `format_datetime(locale=...)`: `django.utils.formats` formatea con el
+    # idioma ACTIVO del proceso, no con uno pedido por argumento.
+    "babel>=2.14.0",
+    # Escapado seguro de HTML. Lo importa la referencia en
+    # `odoo/tools/json.py:8` para que `scriptsafe.dumps` devuelva una cadena
+    # que sabe escaparse al incrustarse en una plantilla (`__html__`). Es la
+    # dependencia de Jinja2/Flask, no de Werkzeug: no entra en la exclusion
+    # del stack (usamos gunicorn, no Werkzeug).
+    "markupsafe>=2.1.0",
 ]
 
 [project.optional-dependencies]

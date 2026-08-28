@@ -510,7 +510,7 @@ class IrSequence(TimeStampedModel):
         return secuencia._next(sequence_date=sequence_date)
 
 
-class IrSequenceDateRange(TimeStampedModel):
+class IrSequenceDateRange(models.DefaultGetMixin, TimeStampedModel):
     """``ir.sequence.date_range`` — ≙ ``IrSequenceDate_Range`` (``:295-376``).
 
     La subsecuencia por rango: lo que hace que un folio reinicie al cambiar el
@@ -574,8 +574,13 @@ class IrSequenceDateRange(TimeStampedModel):
         Aquí no hay formulario de ORM, así que el método existe para que el
         serializer o el comando que cree un rango tenga de dónde leer el mismo
         default sin volver a inventarlo.
+
+        > **Actualizado (tarea #113).** No llamaba a ``super()`` porque la
+        > base —``BaseModel.default_get``— no estaba portada. Ya lo está, y el
+        > cuerpo recupera la forma de la fuente: ``result = super()...`` y
+        > encima lo propio.
         """
-        resultado = {}
+        resultado = super().default_get(campos)
         if 'number_next_actual' in campos:
             resultado['number_next_actual'] = 1
         return resultado

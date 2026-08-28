@@ -116,7 +116,7 @@ from addons.account_qr_code_sepa.tools import (
     is_valid_structured_reference,
     sanitize_structured_reference,
 )
-from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.base.models.res_bank import ResPartnerBank
 from orm.method_chain import chain_method, extend_list
 from tools.translate import _
 

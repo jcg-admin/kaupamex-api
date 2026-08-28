@@ -166,7 +166,7 @@ del método invocado devuelve el ``user`` del cron, que es lo que consumen
 ``bus/ir_attachment.py``, ``bus/bus_listener_mixin.py`` y
 ``digest/digest.py``.
 
-**Lo que esto NO alcanza todavía:** ``IrRule.eval_context`` (``ir_rule.py:161``)
+**Lo que esto NO alcanza todavía:** ``IrRule._eval_context`` (``ir_rule.py:161``)
 recibe ``user`` como parámetro explícito y **no** cae a ``get_current_user()``
 cuando el llamador no lo pasa. Así que un cron con ``user`` puesto tiene el
 usuario disponible en el contexto, pero las record rules evaluadas dentro no
@@ -382,7 +382,7 @@ def _add_interval(dt, number, interval_type):
     return avanzar(dt, number)
 
 
-class IrCron(models.Model):
+class IrCron(models.DefaultGetMixin, models.Model):
     """``ir.cron`` — registro de horario de una tarea programada + runner.
 
     El registro de horario (qué ejecutar + cada cuánto + próxima corrida)
@@ -550,21 +550,28 @@ class IrCron(models.Model):
     def default_get(cls, fields_wanted=None):
         """≙ ``default_get`` (``odoo19c: ir_cron.py:142-148``).
 
-        La fuente fuerza ``default_state='code'`` porque en Odoo un cron solo
-        admite ese modo de accion servidor. Aqui el equivalente del ``code``
-        es ``method_name`` (ver ``ir_actions.py``), asi que el default que se
-        siembra es el ``usage`` que ``save()`` fija, y el estado no aplica.
+        El cuerpo de la fuente es de dos lineas y hace una sola cosa: mete
+        ``default_state='code'`` en el contexto si el llamador no trajo uno, y
+        delega. Su comentario lo explica: *"only 'code' state is supported for
+        cron job so set it as default"*.
 
-        DIVERGENCIA DE MECANISMO, declarada: Django no tiene ``default_get``
-        —los defaults viven en el campo— asi que este metodo no lo llama el
-        framework. Se porta porque un addon adaptado puede invocarlo, y
-        porque su ausencia dejaba el simbolo declarado ausente sin razon.
+        Ese modo **si** existe aqui: ``'code'`` es una de las seis
+        ``IrActionsServer.STATE_CHOICES`` (``ir_actions.py:565``), y ``state``
+        llega a ``ir.cron`` por el mismo ``_inherits`` que alla. Asi que se
+        porta tal cual, sin adaptacion.
+
+        > **Actualizado (tarea #113).** Este cuerpo declaraba cuatro defaults
+        > propios —``interval_number``, ``interval_type``, ``priority``,
+        > ``active``— y **no llamaba a ``super()``**, porque no habia base a
+        > la que llamar. Los cuatro ya los declara su campo con ``default=``,
+        > que es donde la fuente tambien los pone, asi que la base los
+        > responde sola; el dict duplicado ademas **pisaba al contexto**, que
+        > es justo lo contrario del orden que la fuente fija. Y el docstring
+        > decia que el estado *"no aplica"*: era falso, el modo esta portado.
         """
-        defaults = {'interval_number': 1, 'interval_type': 'months',
-                    'priority': 5, 'active': True}
-        if fields_wanted is None:
-            return defaults
-        return {k: v for k, v in defaults.items() if k in fields_wanted}
+        with context_scope(**({} if get_context().get('default_state')
+                              else {'default_state': 'code'})):
+            return super().default_get(fields_wanted or [])
 
     @classmethod
     def _get_ready_sql_condition(cls):

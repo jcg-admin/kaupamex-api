@@ -12,17 +12,34 @@ devuelve el ``DecimalField`` de siempre; con ``store=False`` devuelve un
 ``account/models/account_analytic_distribution_model.py``, campo
 ``prefix_placeholder``). Primer consumidor Monetary:
 ``account/models/digest.py`` (los KPI ``kpi_account_*_value``, que en la
-fuente son ``compute`` no almacenados). ``Integer`` y ``Float`` siguen siendo
-alias pelados: 0 usos con ``store=False`` en el árbol al escribir esto.
+fuente son ``compute`` no almacenados). ``Integer`` y ``Float`` **no** llevan
+la rama de ``store``: 0 usos con ``store=False`` en el árbol al escribir esto.
+
+``company_dependent`` — ``Integer`` y ``Float`` sí lo llevan (tarea #129)
+=========================================================================
+
+Los dos están en ``COMPANY_DEPENDENT_FIELDS``, y los dos tienen consumidor en
+la referencia: ``purchase/models/res_partner.py:43``
+(``reminder_date_before_receipt``, ``Integer``) y
+``product/models/product_product.py:62`` (``standard_price``, ``Float``). Por
+eso dejan de ser alias pelados y pasan a ser despachadores fabricados con
+:func:`~orm.fields_company_dependent.make_dispatcher`.
+
+``Monetary`` **no** lo lleva, y no por olvido: ``monetary`` no está en la lista
+cerrada de tipos que la fuente admite
+(``odoo19c: odoo/orm/fields.py:42-44``). El ``standard_price`` que aquí es
+``Monetary`` y allá es ``Float`` company_dependent es una decisión propia —
+tarea **#135**.
 """
 from django.db import models
 
+from orm.fields_company_dependent import make_dispatcher
 from orm.fields_nonstored import NonStored
 
 __all__ = ['Integer', 'Float', 'Monetary']
 
-Integer = models.IntegerField
-Float = models.FloatField
+Integer = make_dispatcher('Integer', 'integer', models.IntegerField)
+Float = make_dispatcher('Float', 'float', models.FloatField)
 
 
 def Monetary(*args, store=True, help=None, **kwargs):

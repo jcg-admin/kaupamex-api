@@ -4,8 +4,14 @@ En la referencia los permisos de un addon son **dato**: un CSV por módulo que
 el instalador carga en ``ir_model_access``
 (``odoo19c: odoo/addons/base/security/ir.model.access.csv``, 146 filas). Este
 puerto no tiene ese cargador, así que lo que allá instala el módulo aquí lo
-siembra un ``seed()`` idempotente — el mismo patrón que ``base_security.py`` ya
-usa para las record rules, registrado en ``tests/conftest.py`` (``_SEEDERS``).
+siembra una **migración de datos** — el camino que este árbol ya usa para lo
+que la referencia instala con el módulo (``0017`` países, ``0026`` idiomas,
+``0027`` grupos).
+
+**Dos entradas, un solo cuerpo**, como ``res_groups_data``: :func:`seed` sobre
+los modelos vivos —la que ``tests/conftest.py`` re-aplica tras un ``flush``
+transaccional (:ref:`h-api-337`)— y :func:`seed_base_acl` sobre los históricos,
+que es la de la migración.
 
 Qué se siembra, y por qué esas y no más
 ========================================
@@ -47,11 +53,13 @@ Lo que NO se porta, con su razón
   (``res_groups_data.py``); replicar la plomería donde no hay quien la consulte
   sería carga sin lector.
 """
-from django.apps import apps
+from django.apps import apps as _live_apps
 from django.db import DEFAULT_DB_ALIAS
 
-from addons.base.models.ir_model import IrModel, IrModelAccess, IrModelData
-from addons.base.models.res_groups import ResGroups
+from addons.base.models.ir_model import (IrModel as _IrModel,
+                                         IrModelAccess as _IrModelAccess,
+                                         IrModelData as _IrModelData)
+from addons.base.models.res_groups import ResGroups as _ResGroups
 
 #: ``(nombre, label del modelo, identificador del grupo o None, permisos)``.
 #: Los permisos son ``(read, write, create, unlink)``, copiados del CSV de la
@@ -97,7 +105,7 @@ _ACCESS = (
 )
 
 
-def _group_by_xmlid(xmlid, using):
+def _group_by_xmlid(xmlid, using, IrModelData, ResGroups):
     """El grupo de ese identificador externo, o ``None`` si no está sembrado.
 
     Devolver ``None`` en vez de reventar es deliberado y **fail-closed**: una
@@ -111,16 +119,24 @@ def _group_by_xmlid(xmlid, using):
     return ResGroups.objects.using(using).filter(pk=data.res_id).first()
 
 
-def seed(using=DEFAULT_DB_ALIAS):
-    """Siembra la ACL de ``base`` — idempotente por el nombre de la fila."""
+def _seed(registry, IrModel, IrModelAccess, IrModelData, ResGroups, using):
+    """El cuerpo, sobre los modelos que le den — idempotente por ``name``.
+
+    ``registry`` es de dónde sale la clase del modelo al que la fila da
+    permiso: el registro **vivo** para :func:`seed` y el **histórico** de la
+    migración para :func:`seed_base_acl`. Es el único sitio donde las dos
+    entradas difieren en algo más que la clase del modelo a escribir, y por eso
+    entra como parámetro en vez de resolverse dentro.
+    """
     for name, label, group_xmlid, perms in _ACCESS:
         try:
-            model_class = apps.get_model(label)
+            model_class = registry.get_model(label)
         except LookupError:
             continue
         group = None
         if group_xmlid is not None:
-            group = _group_by_xmlid(group_xmlid, using)
+            group = _group_by_xmlid(group_xmlid, using,
+                                    IrModelData, ResGroups)
             if group is None:
                 continue
         model_row, _ = IrModel.objects.using(using).get_or_create(
@@ -139,3 +155,19 @@ def seed(using=DEFAULT_DB_ALIAS):
                 'perm_unlink': bool(unlink),
             },
         )
+
+
+def seed(using=DEFAULT_DB_ALIAS):
+    """Sobre los modelos vivos — entrada del catálogo de tests."""
+    return _seed(_live_apps, _IrModel, _IrModelAccess, _IrModelData,
+                 _ResGroups, using)
+
+
+def seed_base_acl(apps, alias):
+    """Sobre los modelos históricos — entrada de la migración."""
+    return _seed(apps,
+                 apps.get_model('base', 'IrModel'),
+                 apps.get_model('base', 'IrModelAccess'),
+                 apps.get_model('base', 'IrModelData'),
+                 apps.get_model('base', 'ResGroups'),
+                 alias)

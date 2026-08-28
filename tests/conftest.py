@@ -50,7 +50,7 @@ from addons.website_sale.models.website import CRON_SEND_ABANDONED_CART_EMAIL
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 
 import pytest
-from addons.base.models.ir_config_parameter import _clear_cache as _clear_param_cache
+from orm.registry import clear_cache
 from pytest_django.plugin import blocking_manager_key
 
 # ─── PostgreSQL keepalive (ADR-028) ──────────────────────────────────────────
@@ -286,7 +286,7 @@ def clear_rate_limit_cache():
 def _reset_system_parameter_cache():
     """Aísla la caché de parámetros entre tests.
 
-    ``SystemParameter`` cachea a nivel de módulo (``_PARAM_CACHE``, el
+    ``SystemParameter`` memoriza con ``ormcache`` en la familia ``stable`` (el
     equivalente del ``ormcache`` de Odoo). La caché es per-proceso: el
     rollback de la transacción del test revierte la FILA, pero no el valor
     ya cacheado, así que un test que escribe un parámetro se lo filtra a
@@ -297,9 +297,9 @@ def _reset_system_parameter_cache():
     seis tests de ``sale`` calculaban su IVA con ese valor. Sin el reset,
     ``sale/`` da 8 fallos tras ``config/`` y 2 en solitario.
     """
-    _clear_param_cache()
+    clear_cache('stable')
     yield
-    _clear_param_cache()
+    clear_cache('stable')
 
 
 # ─── Catálogo de semillas restauradas (H-API-22) ─────────────────────────────

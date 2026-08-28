@@ -20,7 +20,7 @@ Símbolo de la referencia (línea)           Dónde queda en este puerto
 ``alert_date`` (23-25)                     campo homónimo (``add_to_class``)
 ``product_expiry_reminded`` (27)           campo homónimo (``add_to_class``)
 ``product_expiry_alert`` (26, compute)     property ``product_expiry_alert``
-``_compute_display_name`` (29-38)          ``chain_method`` sobre ``display_name``
+``_compute_display_name`` (26-38)          ``chain_method`` sobre el homónimo
 ``_compute_product_expiry_alert`` (40-45)  ≡ la property ``product_expiry_alert``
 ``_compute_expiration_date`` (47-56)       ``compute_expiration_date``
 ``_compute_dates`` (58-77)                 ``compute_dates``
@@ -113,8 +113,8 @@ def product_expiry_alert(self):
     return self.expiration_date <= timezone.now()
 
 
-def display_name(self):
-    """≙ ``_compute_display_name`` (``odoo19c: production_lot.py:29-38``).
+def _compute_display_name(self):
+    """≙ ``_compute_display_name`` (``odoo19c: production_lot.py:26-38``).
 
     La referencia antepone la fecha de caducidad al nombre::
 
@@ -138,24 +138,6 @@ def display_name(self):
     if self.expiration_date:
         return f'{self.name}\t--{self.expiration_date.date()}--'
     return None
-
-
-def _display_name_base(self):
-    """Shim del ``display_name`` que el núcleo del ORM aún no porta.
-
-    La referencia lo hereda de ``models.Model._compute_display_name``; medido
-    aquí, **no existe**::
-
-        grep -rn "display_name" src/orm/*.py  → 0
-
-    Sin una base, el relevo de ``display_name`` no tendría a quién delegar y un
-    lote sin caducidad devolvería ``None``. Este shim entrega lo que la base de
-    la referencia entrega (``rec.name``), y se instala **sólo si falta**: el día
-    que el núcleo lo porte, esta función deja de instalarse y el relevo pasa a
-    delegar en la real. Sucesor registrado: tarea **#291** (medir ``src/orm``
-    contra ``odoo/orm``), que es donde vive ese símbolo.
-    """
-    return self.name
 
 
 # -- el cálculo de las fechas (≙ los dos computes de escritura) --
@@ -286,15 +268,13 @@ def apply_product_expiry_extensions():
     if not hasattr(StockLot, 'alert_date_exceeded'):
         StockLot.alert_date_exceeded = classmethod(alert_date_exceeded)
 
-    # La base primero (shim del núcleo ausente), el override después: así el
-    # relevo de `chain_method` tiene a quién delegar cuando el lote no caduca.
-    if not hasattr(StockLot, 'display_name'):
-        StockLot.display_name = _display_name_base
-    # `display_name` se ENCADENA, no se instala con guarda: su propósito es
-    # añadirse a lo que ya hay. Es exactamente el defecto que :ref:`h-api-364`
-    # registra — la guarda `if not hasattr` es correcta para campos y
-    # catastrófica para overrides.
-    chain_method(StockLot, 'display_name', display_name)
+    # `_compute_display_name` se ENCADENA, no se instala con guarda: su
+    # propósito es añadirse a lo que ya hay. Es exactamente el defecto que
+    # :ref:`h-api-364` registra — la guarda `if not hasattr` es correcta para
+    # campos y catastrófica para overrides. La base a la que delega el relevo
+    # es la del núcleo (`orm.models.DisplayNameMixin`), como en la referencia,
+    # que llama a `super()._compute_display_name()`.
+    chain_method(StockLot, '_compute_display_name', _compute_display_name)
 
 
 __all__ = [
@@ -302,7 +282,7 @@ __all__ = [
     'apply_product_expiry_extensions',
     'compute_dates',
     'compute_expiration_date',
-    'display_name',
+    '_compute_display_name',
     'product_expiry_alert',
     'use_expiration_date',
 ]

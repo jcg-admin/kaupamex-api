@@ -39,7 +39,7 @@ class TestIdaYVuelta:
         consultaba con ``_meta.label``.
         """
         IrModelData.set_xmlid(company, 'l10n_mx.company_acme')
-        assert IrModelData.xmlid_to_res_model_res_id('l10n_mx.company_acme') == (
+        assert IrModelData._xmlid_to_res_model_res_id('l10n_mx.company_acme') == (
             'base.ResCompany', company.pk)
 
     def test_el_nombre_puede_llevar_puntos(self, company):
@@ -61,7 +61,7 @@ class TestIdaYVuelta:
 class TestCuandoNoEsta:
     def test_desconocido_es_None_por_defecto(self, db):
         assert IrModelData.ref('l10n_mx.no_existe', raise_if_not_found=False) is None
-        assert IrModelData.xmlid_to_res_id('l10n_mx.no_existe') is None
+        assert IrModelData._xmlid_to_res_id('l10n_mx.no_existe') is None
 
     def test_desconocido_levanta_si_se_pide(self, db):
         with pytest.raises(ValueError):
@@ -74,7 +74,7 @@ class TestCuandoNoEsta:
         siembra, el otro se escribe bien.
         """
         with pytest.raises(ValueError):
-            IrModelData.xmlid_lookup('tax12')
+            IrModelData._xmlid_lookup('tax12')
 
     def test_un_identificador_puede_sobrevivir_a_su_registro(self, company):
         """La fila no se borra en cascada — la referencia también lo contempla.

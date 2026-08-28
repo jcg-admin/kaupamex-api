@@ -24,7 +24,8 @@ import pytest
 
 from addons.auto_backup.models import DbBackup, DbBackupDetails
 from addons.auto_backup.models import db_backup as db_backup_model
-from addons.base.models import _PARAM_CACHE, SystemParameter
+from addons.base.models import SystemParameter
+from orm.registry import clear_cache
 from addons.base.models.ir_cron import IrCron
 
 pytestmark = pytest.mark.integration
@@ -50,9 +51,9 @@ def _clear_param_cache():
     caché es módulo-nivel (per-proceso), no per-transacción — se limpia entre
     tests para que el rollback de la transacción de pytest-django se refleje
     también en las lecturas cacheadas."""
-    _PARAM_CACHE.clear()
+    clear_cache('stable')
     yield
-    _PARAM_CACHE.clear()
+    clear_cache('stable')
 
 
 @pytest.fixture

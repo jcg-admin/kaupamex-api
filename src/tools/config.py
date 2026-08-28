@@ -6,6 +6,8 @@ settings ``MULTIDB_*`` de Django, centralizadas en accesores tipados para no
 esparcir ``getattr(settings, ...)`` por el código (== ``odoo.tools.config`` como
 punto único de acceso a la configuración).
 """
+from pathlib import Path
+
 from django.conf import settings
 
 # Encoding y plantilla canónicos del proyecto (== ``config['db_template']`` de
@@ -59,3 +61,14 @@ def db_template():
     ``template1`` PostgreSQL los hereda y rechaza el override.
     """
     return getattr(settings, 'MULTIDB_DB_TEMPLATE', _DEFAULT_TEMPLATE)
+
+
+def root_path():
+    """Raíz del paquete del producto — ≙ ``config.root_path`` de la referencia.
+
+    Allá es el directorio del paquete ``odoo/``; aquí es ``src/``, que es la
+    misma relación (ver el comentario de ``modules.module.ADDONS_PATHS``, donde
+    esa correspondencia ya se declara). La consume el cargador de datos para
+    localizar ``import_xml.rng``, igual que ``convert_xml_import`` allá.
+    """
+    return str(Path(__file__).resolve().parent.parent)

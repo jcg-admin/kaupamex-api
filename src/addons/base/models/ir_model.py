@@ -189,7 +189,9 @@ declara y este archivo no.
 y *"aquí no existe"* — ésa la resolvió la lectura, no el conteo.
 """
 import logging
+import random
 import re
+from collections import defaultdict
 
 import fields
 import models
@@ -200,10 +202,18 @@ from addons.base.models.ir_module import IrModule
 from addons.base.models.ir_ui_view import IrUiView
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from django.db import DEFAULT_DB_ALIAS, connections, transaction
 from exceptions import AccessError
 from orm import registry
-from orm.environments import get_current_user, is_su
+from orm.environments import get_current_user, is_su, is_system
 from orm.fields import __all__ as _FIELD_NAMES
+from tools.cache import ormcache
+from tools.misc import OrderedSet, split_every
+
+#: Tope de elementos por sentencia, ≙ ``cr.IN_MAX`` de la fuente. Acota
+#: el número de marcadores de un ``INSERT`` en lote: PostgreSQL admite
+#: 65535 parámetros por sentencia y cada fila gasta cinco.
+_IN_MAX = 1000
 
 _logger = logging.getLogger(__name__)
 
@@ -1093,12 +1103,32 @@ class IrModelAccess(TimeStampedModel):
         ).exists()
 
 
-class IrModelData(TimeStampedModel):
+class IrModelData(models.CopyMixin, TimeStampedModel):
     """``ir.model.data`` — identificador externo de un registro.
 
     Sirve para dos cosas, según la fuente: integrar datos con sistemas de
     terceros identificando registros de forma estable, y rastrear el origen de
     lo que instaló un módulo para poder actualizarlo después.
+
+    Los veinte símbolos de la fuente
+    ================================
+
+    **17 portados con su nombre.** Los tres restantes son la divergencia de
+    stack que este árbol ya tiene declarada en todas partes: ``create`` y
+    ``write`` colapsan en :meth:`save` —Django unifica los dos caminos y
+    ``_state.adding`` los distingue— y ``unlink`` es :meth:`delete`. Las dos
+    invalidaciones de caché que la fuente reparte entre los tres van con ellos.
+
+    **El bloque escritor es nuevo desde la tarea #115.** Hasta entonces esta
+    clase tenía el resolutor (leer un identificador) y un ``set_xmlid``
+    nuestro, pero no el cargador: ``_update_xmlids`` con su ``INSERT ... ON
+    CONFLICT``, ``_lookup_xmlids``, ``_load_xmlid`` y ``_process_end``. Sin
+    ellos la tabla se poblaba fila a fila y nadie retiraba lo que un módulo
+    dejaba de declarar.
+
+    **De ``_module_data_uninstall`` se porta la mitad de datos, no la de DDL**
+    — ver la divergencia declarada en la cabecera del módulo: aquí el esquema
+    lo gobiernan las migraciones de Django.
 
     ``res_id`` es un ``Many2oneReference`` allá: el par (``model`` Char,
     ``res_id`` entero). Nuestro alias ``fields.Many2oneReference`` es
@@ -1107,6 +1137,11 @@ class IrModelData(TimeStampedModel):
     porta el par tal como está en la fuente — mismo criterio que
     ``ir_attachment.res_id`` ya usa en este árbol.
     """
+
+    _name = 'ir.model.data'
+    _description = 'Model Data'
+    _order = 'module, model, name'
+    _allow_sudo_commands = False
 
     name = fields.Char(
         max_length=255, verbose_name='Identificador externo',
@@ -1142,18 +1177,50 @@ class IrModelData(TimeStampedModel):
             models.Index(fields=['model', 'res_id'], name='ir_model_data_model_res'),
         ]
 
+    def _compute_complete_name(self):
+        """≙ ``_compute_complete_name`` (``odoo19c: ir_model.py:2248-2251``).
+
+        ``modulo.nombre``, sin punto colgante cuando el módulo está vacío.
+        """
+        return '.'.join(part for part in (self.module, self.name) if part)
+
+    def _compute_reference(self):
+        """≙ ``_compute_reference`` (``odoo19c: :2253-2256``) — ``"modelo,id"``."""
+        return f'{self.model},{self.res_id}'
+
+    def _compute_display_name(self):
+        """≙ ``_compute_display_name`` (``odoo19c: :2258-2267``).
+
+        El nombre del registro apuntado si se puede leer; el completo si el
+        modelo no está en el registro, el ``res_id`` es vacío, o leerlo levanta
+        — la fuente traga la excepción por la misma razón: un identificador
+        externo puede sobrevivir al registro que nombraba.
+        """
+        complete_name = self._compute_complete_name()
+        if not self.res_id or not self.model:
+            return complete_name
+        model_cls = type(self)._model_class(self.model)
+        if model_cls is None:
+            return complete_name
+        try:
+            target = model_cls.objects.filter(pk=self.res_id).first()
+            return (target and str(target)) or complete_name
+        except Exception:                    # noqa: BLE001 — verbatim de la fuente
+            return complete_name
+
     def __str__(self):
-        return self.complete_name
+        """Enganche de Django — delega en ``_compute_display_name``."""
+        return self._compute_display_name()
 
     @property
     def complete_name(self):
-        """``_compute_complete_name`` — ``modulo.nombre``, sin punto colgante."""
-        return '.'.join(part for part in (self.module, self.name) if part)
+        """Superficie de lectura del campo; el cómputo es el de la fuente."""
+        return self._compute_complete_name()
 
     @property
     def reference(self):
-        """``_compute_reference`` — ``"modelo,id"``."""
-        return f'{self.model},{self.res_id}'
+        """Superficie de lectura del campo; el cómputo es el de la fuente."""
+        return self._compute_reference()
 
     # -- resolución de identificadores externos -----------------------------
     #
@@ -1171,8 +1238,21 @@ class IrModelData(TimeStampedModel):
     # formato — de modo que la ida y la vuelta usan la misma llave.
 
     @classmethod
-    def xmlid_lookup(cls, xmlid):
+    @ormcache('xmlid', 'using', cache='default')
+    def _xmlid_lookup(cls, xmlid, using=DEFAULT_DB_ALIAS):
         """``_xmlid_lookup`` — ``(model, res_id)`` o ``ValueError``.
+
+        Memorizado como en la fuente (``odoo19c: :2270-2280``, ``@ormcache
+        ('xmlid')``). Lo vacían :meth:`write` y :meth:`delete`, y
+        :meth:`_update_xmlids` **siembra** el valor correcto en vez de vaciar
+        — durante una instalación se crean cientos de identificadores y vaciar
+        en cada uno tira el resto de la caché, que es lo que su comentario
+        dice: *"small optimisation … set the correct value in the cache to
+        avoid a bunch of query"*.
+
+        DIVERGENCIA DE CLAVE, la misma que ``ir_config_parameter.py`` y
+        ``properties_base_definition.py`` declaran: ``using`` entra en la clave
+        porque aquí el registry es el módulo y no hay uno por base.
 
         El identificador es ``modulo.nombre``; el ``split`` es por el **primer**
         punto porque el nombre puede llevar más (``l10n_mx.tax12`` frente a
@@ -1182,32 +1262,35 @@ class IrModelData(TimeStampedModel):
         if not name:
             raise ValueError(
                 'Identificador externo mal formado (falta el módulo): %s' % xmlid)
-        fila = cls.objects.filter(module=module, name=name).first()
-        if fila is None or not fila.res_id:
+        row = cls.objects.using(using).filter(module=module, name=name).first()
+        if row is None or not row.res_id:
             raise ValueError('Identificador externo no encontrado: %s' % xmlid)
-        return fila.model, fila.res_id
+        return row.model, row.res_id
 
     @classmethod
-    def xmlid_to_res_model_res_id(cls, xmlid, raise_if_not_found=False):
+    def _xmlid_to_res_model_res_id(cls, xmlid, raise_if_not_found=False,
+                                   using=DEFAULT_DB_ALIAS):
         """``_xmlid_to_res_model_res_id`` — la pareja, o ``(None, None)``.
 
         La referencia devuelve ``(False, False)`` porque en su ORM el falso es
         el vacío de cualquier tipo; aquí el vacío es ``None``.
         """
         try:
-            return cls.xmlid_lookup(xmlid)
+            return cls._xmlid_lookup(xmlid, using=using)
         except ValueError:
             if raise_if_not_found:
                 raise
             return None, None
 
     @classmethod
-    def xmlid_to_res_id(cls, xmlid, raise_if_not_found=False):
+    def _xmlid_to_res_id(cls, xmlid, raise_if_not_found=False,
+                         using=DEFAULT_DB_ALIAS):
         """``_xmlid_to_res_id`` — sólo el id."""
-        return cls.xmlid_to_res_model_res_id(xmlid, raise_if_not_found)[1]
+        return cls._xmlid_to_res_model_res_id(
+            xmlid, raise_if_not_found, using=using)[1]
 
     @classmethod
-    def ref(cls, xmlid, raise_if_not_found=True):
+    def ref(cls, xmlid, raise_if_not_found=True, using=DEFAULT_DB_ALIAS):
         """El registro que designa el identificador — ≙ ``env.ref``.
 
         Vive aquí y no en un ``env`` porque este proyecto no tiene ese objeto:
@@ -1219,16 +1302,465 @@ class IrModelData(TimeStampedModel):
         hace lo mismo con su ``record.exists()``: un identificador externo
         puede sobrevivir al registro que nombraba.
         """
-        model_label, res_id = cls.xmlid_to_res_model_res_id(
-            xmlid, raise_if_not_found=raise_if_not_found)
+        model_label, res_id = cls._xmlid_to_res_model_res_id(
+            xmlid, raise_if_not_found=raise_if_not_found, using=using)
         if not model_label or not res_id:
             return None
-        record = apps.get_model(model_label).objects.filter(pk=res_id).first()
+        record = (apps.get_model(model_label).objects.using(using)
+                  .filter(pk=res_id).first())
         if record is None and raise_if_not_found:
             raise ValueError(
                 'El identificador externo %s apunta a un registro que ya no '
                 'existe (%s,%s)' % (xmlid, model_label, res_id))
         return record
+
+    @classmethod
+    def check_object_reference(cls, module, xml_id, raise_on_access_error=False,
+                               using=DEFAULT_DB_ALIAS):
+        """≙ ``check_object_reference`` (``odoo19c: ir_model.py:2296-2305``).
+
+        Docstring de la fuente, verbatim: *"Returns (model, res_id)
+        corresponding to a given module and xml_id (cached), if and only if the
+        user has the necessary access rights to see that object, otherwise
+        raise a ValueError if raise_on_access_error is True or returns a tuple
+        (model found, False)"*.
+
+        La comprobación de lectura la hace el manager: ``AccessManager`` acota
+        por fila, así que un ``filter(pk=res_id)`` vacío **es** el rechazo de
+        acceso — el mismo mecanismo que la fuente usa con su ``search``.
+        """
+        model_label, res_id = cls._xmlid_lookup(f'{module}.{xml_id}', using=using)
+        model_cls = cls._model_class(model_label)
+        if model_cls is None:
+            raise ValueError(f'Model {model_label!r} is not loaded')
+        if model_cls.objects.using(using).filter(pk=res_id).exists():
+            return model_label, res_id
+        if raise_on_access_error:
+            raise AccessError(
+                'Not enough access rights on the external ID '
+                f'"{module}.{xml_id}"')
+        return model_label, False
+
+    def copy_data(self, default=None, seen=None):
+        """≙ ``copy_data`` (``odoo19c: ir_model.py:2313-2318``).
+
+        El identificador externo es único por ``(module, name)``, así que una
+        copia no puede llevar el mismo: la fuente le añade cuatro dígitos
+        hexadecimales aleatorios y aquí se hace igual.
+
+        > **Actualizado (tarea #114).** El cuerpo copiaba a mano cuatro campos
+        > —``module``, ``model``, ``res_id``, ``noupdate``— porque **no había
+        > base a la que llamar**: el ``copy_data`` del ORM no estaba portado.
+        > La fuente sólo llama a ``super()`` y parchea ``name``, y eso es lo
+        > que hace ahora. La lista escrita a mano además envejecía sola: un
+        > campo nuevo en el modelo no entraba en la copia y nada lo delataba.
+        """
+        values = super().copy_data(default, seen=seen)
+        if values is None:
+            return None
+        values['name'] = '%s_%04x' % (self.name, random.getrandbits(16))
+        return values
+
+    def save(self, *args, **kwargs):
+        """Enganche de Django — ≙ ``create`` (``:2314-2319``) y ``write`` (``:2321-2326``).
+
+        Los dos caminos de la fuente colapsan en ``save``, y sus dos
+        invalidaciones se conservan: la familia ``default`` porque
+        :meth:`_xmlid_lookup` vive ahí, y ``groups`` cuando la fila apunta a un
+        grupo — su pertenencia se memoriza aparte.
+
+        La fuente sólo vacía en ``write`` (en ``create`` no hace falta: la
+        entrada no existía). Aquí ``save`` no distingue por sí solo, así que lo
+        decide ``_state.adding``, igual que el resto del árbol.
+        """
+        creating = self._state.adding
+        result = super().save(*args, **kwargs)
+        if not creating:
+            registry.clear_cache('default')
+        if self.model == 'base.ResGroups':
+            registry.clear_cache('groups')
+        return result
+
+    def delete(self, *args, **kwargs):
+        """Enganche de Django — ≙ ``unlink`` (``odoo19c: :2328-2334``).
+
+        Docstring de la fuente, verbatim: *"Regular unlink method, but make
+        sure to clear the caches."*
+        """
+        was_group = self.model == 'base.ResGroups'
+        registry.clear_cache('default')
+        if was_group:
+            registry.clear_cache('groups')
+        return super().delete(*args, **kwargs)
+
+    @classmethod
+    def _lookup_xmlids(cls, xml_ids, model, using=DEFAULT_DB_ALIAS):
+        """≙ ``_lookup_xmlids`` (``odoo19c: :2336-2360``).
+
+        Docstring de la fuente, verbatim: *"Look up the given XML ids of the
+        given model."*
+
+        Devuelve, por cada identificador que exista, la fila de
+        ``ir_model_data`` **más** el id del registro apuntado si sigue vivo —
+        el ``LEFT JOIN`` es lo que distingue "no hay identificador" de "hay
+        identificador y su registro se borró", y el cargador necesita las dos
+        respuestas por separado.
+
+        Agrupa por módulo porque la clave única es ``(module, name)``: una
+        consulta por prefijo con ``name = ANY(...)`` toca el índice; una por
+        identificador haría N viajes.
+
+        **NO filtra por ``d.model``, y es deliberado.** La fuente tampoco
+        (``:2355-2358``: sólo ``d.module`` y ``d.name``), y esa ausencia es lo
+        que hace alcanzable la guarda de ``_load_records``: una fila de OTRO
+        modelo vuelve, y el cargador la rechaza nombrando los dos modelos. Con
+        el filtro puesto la fila no volvería, el identificador se leería como
+        libre, y se crearía un registro nuevo bajo un ``xml_id`` que ya apunta
+        a otra tabla — el conflicto se descubriría al chocar con la clave
+        única, sin decir cuál era el otro modelo.
+
+        Fue un defecto real de este porte: el filtro estaba, y con él la guarda
+        no podía disparar nunca (el sub-patrón D de
+        ``metrica-decide-la-conclusion.md``). Lo destapó su propio test.
+
+        La columna ``d.model`` **sí** se devuelve — es la que el cargador
+        compara.
+        """
+        if not xml_ids:
+            return []
+
+        by_module = defaultdict(set)
+        for xml_id in xml_ids:
+            prefix, _, suffix = xml_id.partition('.')
+            by_module[prefix].add(suffix)
+
+        table = model._meta.db_table
+        result = []
+        with connections[using].cursor() as cursor:
+            for prefix, suffixes in by_module.items():
+                query = (
+                    'SELECT d.id, d.module, d.name, d.model, d.res_id, '
+                    'd.noupdate, r.id '
+                    f'FROM ir_model_data d LEFT JOIN "{table}" r ON d.res_id = r.id '
+                    'WHERE d.module = %s AND d.name = ANY(%s)'
+                )
+                for piece in split_every(_IN_MAX, suffixes, piece_maker=list):
+                    cursor.execute(query, [prefix, piece])
+                    result.extend(cursor.fetchall())
+        return result
+
+    @classmethod
+    def _update_xmlids(cls, data_list, update=False, using=DEFAULT_DB_ALIAS):
+        """≙ ``_update_xmlids`` (``odoo19c: :2362-2412``).
+
+        Docstring de la fuente, verbatim: *"Create or update the given XML
+        ids."* — ``data_list`` son diccionarios con ``xml_id`` (el que se
+        asigna), ``noupdate`` (su bandera) y ``record`` (el registro destino);
+        ``update`` va a ``True`` al actualizar un módulo.
+
+        Es el **lado escritor** del cargador, y su forma importa: un solo
+        ``INSERT ... ON CONFLICT DO UPDATE`` por lote, no una fila a la vez.
+        La cláusula ``WHERE`` sólo reescribe si el destino cambió — así una
+        recarga que no mueve nada no toca ``write_date``, y el ``RETURNING``
+        distingue lo que cambió de lo que no.
+
+        ``AND NOT ir_model_data.noupdate`` sólo se añade cuando ``update``:
+        durante una actualización, una fila marcada como no actualizable
+        **protege** al registro que el usuario tocó a mano.
+        """
+        if not data_list:
+            return
+
+        rows = OrderedSet()
+        for data in data_list:
+            prefix, _, suffix = data['xml_id'].partition('.')
+            record = data['record']
+            rows.add((prefix, suffix, type(record)._meta.label, record.pk,
+                      bool(data.get('noupdate'))))
+
+        for sub_rows in split_every(_IN_MAX, rows, piece_maker=list):
+            query = cls._build_update_xmlids_query(sub_rows, update)
+            params = [arg for row in sub_rows for arg in row]
+            try:
+                with connections[using].cursor() as cursor:
+                    cursor.execute(query, params)
+                    returned = cursor.fetchall()
+            except Exception:
+                _logger.error('Failed to insert ir_model_data\n%s',
+                              '\n'.join(str(row) for row in sub_rows))
+                raise
+            for module, name, model, res_id, created, written in returned:
+                # Sembrar en vez de vaciar — ver :meth:`_xmlid_lookup`.
+                cls._xmlid_lookup.__func__.__cache__.add_value(
+                    cls, f'{module}.{name}', using,
+                    cache_value=(model, res_id))
+                if created != written:
+                    registry.cache_invalidated.add('default')
+
+        registry.loaded_xmlids.update(f'{row[0]}.{row[1]}' for row in rows)
+
+        if any(row[2] == 'base.ResGroups' for row in rows):
+            registry.clear_cache('groups')
+
+    @classmethod
+    def _build_insert_xmlids_values(cls):
+        """≙ ``_build_insert_xmlids_values`` (``odoo19c: :2414-2424``).
+
+        Comentario de la fuente sobre por qué es un método y no una constante,
+        verbatim: *"this method is overriden in web_studio; if you need to make
+        another override, make sure it is compatible with the one that is
+        there."* — es el punto de extensión de las columnas del ``INSERT``.
+        """
+        return {
+            'module': '%s',
+            'name': '%s',
+            'model': '%s',
+            'res_id': '%s',
+            'noupdate': '%s',
+            # Las dos columnas de auditoría, y por qué van AQUÍ: el ``INSERT``
+            # en bruto esquiva a Django, que es quien las rellena con
+            # ``auto_now_add``/``auto_now``. Allá las pone su propio ORM por
+            # ``_log_access``, así que la fuente no las nombra. Son literales,
+            # no marcadores: no consumen parámetro y el conteo por fila sigue
+            # siendo cinco.
+            'created_at': "now() at time zone 'UTC'",
+            'updated_at': "now() at time zone 'UTC'",
+        }
+
+    @classmethod
+    def _build_update_xmlids_query(cls, sub_rows, update):
+        """≙ ``_build_update_xmlids_query`` (``odoo19c: :2426-2442``)."""
+        rows = cls._build_insert_xmlids_values()
+        row_names = f"({','.join(rows.keys())})"
+        row_placeholders = f"({','.join(rows.values())})"
+        row_placeholders = ', '.join([row_placeholders] * len(sub_rows))
+        and_where = 'AND NOT ir_model_data.noupdate' if update else ''
+        return f"""
+            INSERT INTO ir_model_data {row_names}
+            VALUES {row_placeholders}
+            ON CONFLICT (module, name)
+            DO UPDATE SET (model, res_id, updated_at) =
+                (EXCLUDED.model, EXCLUDED.res_id, now() at time zone 'UTC')
+                WHERE (ir_model_data.res_id != EXCLUDED.res_id
+                       OR ir_model_data.model != EXCLUDED.model) {and_where}
+            RETURNING module, name, model, res_id, created_at, updated_at
+        """
+
+    @classmethod
+    def _load_xmlid(cls, xml_id, using=DEFAULT_DB_ALIAS):
+        """≙ ``_load_xmlid`` (``odoo19c: :2444-2452``).
+
+        Docstring de la fuente, verbatim: *"Simply mark the given XML id as
+        being loaded, and return the corresponding record."*
+
+        Marcarlo es lo que evita que :meth:`_process_end` lo borre: un
+        identificador que el módulo sigue declarando tiene que estar en el
+        conjunto de esta carga.
+        """
+        record = cls.ref(xml_id, raise_if_not_found=False, using=using)
+        if record is not None:
+            registry.loaded_xmlids.add(xml_id)
+        return record
+
+    @staticmethod
+    def _model_class(model_label):
+        """≙ ``self.env[model]`` — la clase de ese nombre, o ``None``.
+
+        La fuente indexa el entorno, que conoce todos los modelos por su
+        ``_name``. Aquí se consulta el registro por nombre de la referencia
+        (``orm.registry``) con respaldo en el de Django, porque un modelo
+        propio del L0 no declara ``_name`` y sólo se alcanza por su etiqueta
+        ``app.Modelo``. Devuelve ``None`` en vez de levantar: los cinco sitios
+        que lo consumen difieren en qué hacer con un modelo desaparecido —uno
+        sigue, otro registra, otro devuelve— y esa decisión es de cada uno.
+        """
+        model_cls = registry.MODELS_BY_NAME.get(model_label)
+        if model_cls is not None:
+            return model_cls
+        try:
+            return apps.get_model(model_label)
+        except (LookupError, ValueError):
+            return None
+
+    @classmethod
+    def toggle_noupdate(cls, model, res_id, using=DEFAULT_DB_ALIAS):
+        """≙ ``toggle_noupdate`` (``odoo19c: ir_model.py:2713-2717``).
+
+        Invierte la bandera del identificador externo de un registro concreto.
+        Es lo que el usuario acciona para **proteger** un dato que tocó a mano:
+        con ``noupdate``, la siguiente actualización del módulo no lo pisa.
+
+        La guarda es la de la fuente —``self.env[model].browse(res_id)
+        .check_access('write')``—: quien puede **escribir** el registro puede
+        proteger su identificador. No es una guarda de administrador; leerla
+        así restringiría la acción a un actor que la fuente no exige.
+
+        El recordset se construye con ``AccessQuerySet`` **explícitamente**, no
+        a través del manager del modelo apuntado, y es deliberado: allá las
+        cuatro formas cuelgan de ``BaseModel``, así que **todo** modelo las
+        tiene; aquí cuelgan de ese queryset y hoy ningún ``objects`` lo adopta
+        (la adopción modelo a modelo es la tarea #96). Leerlas del manager
+        dejaría la guarda inerte en todos los modelos — un control que no puede
+        fallar, que es el sub-patrón D de ``metrica-decide-la-conclusion.md``.
+        Nombrando la clase, la comprobación corre siempre, como en la fuente.
+
+        Invierte **todas** las filas que nombren el registro, como la fuente:
+        un mismo registro puede llevar identificador de más de un módulo.
+        """
+        target = cls._model_class(model)
+        if target is not None:
+            models.AccessQuerySet(model=target, using=using).filter(
+                pk=res_id).check_access('write')
+        for xid in cls.objects.using(using).filter(model=model, res_id=res_id):
+            xid.noupdate = not xid.noupdate
+            xid.save(using=using)
+
+    @classmethod
+    def _process_end_unlink_record(cls, record):
+        """≙ ``_process_end_unlink_record`` (``odoo19c: ir_model.py:2455-2457``).
+
+        Una línea en la fuente, y aun así un método: es el **punto de
+        extensión** que un addon sobreescribe para no borrar de verdad —
+        ``mail`` lo usa para archivar en vez de eliminar. Portarlo como llamada
+        en línea cerraría esa puerta.
+        """
+        record.delete()
+
+    @classmethod
+    def _process_end(cls, modules, using=DEFAULT_DB_ALIAS):
+        """≙ ``_process_end`` (``odoo19c: :2459-2527``).
+
+        Docstring de la fuente, verbatim: *"Clear records removed from updated
+        module data. This method is called at the end of the module loading
+        process. It is meant to removed records that are no longer present in
+        the updated data. Such records are recognised as the one with an xml id
+        and a module in ir_model_data and noupdate set to false, but not
+        present in self.pool.loaded_xmlids."*
+
+        Es la mitad que hace que actualizar un módulo **retire** lo que dejó de
+        declarar. Sin ella, quitar un registro del archivo de data no lo quita
+        de la base: queda huérfano, sin nadie que lo declare y sin nadie que lo
+        borre.
+
+        El orden descendente por ``id`` no es cosmético — la fuente lo pide
+        explícitamente (``ORDER BY id DESC``): los registros creados después
+        suelen depender de los creados antes, así que borrarlos al revés evita
+        que una FK con ``PROTECT`` detenga el barrido a medias.
+        """
+        if not modules:
+            return True
+
+        stale_ids = []
+        query = (
+            "SELECT id, module || '.' || name, model, res_id FROM ir_model_data "
+            'WHERE module = ANY(%s) AND res_id IS NOT NULL '
+            'AND COALESCE(noupdate, false) != %s ORDER BY id DESC'
+        )
+        with connections[using].cursor() as cursor:
+            cursor.execute(query, [list(modules), True])
+            rows = cursor.fetchall()
+
+        for row_id, xmlid, model_label, res_id in rows:
+            if xmlid in registry.loaded_xmlids:
+                continue
+            model_cls = cls._model_class(model_label)
+            if model_cls is None:
+                continue
+            record = model_cls.objects.using(using).filter(pk=res_id).first()
+            if record is None:
+                # El registro ya no está; la fila que lo nombraba sobra.
+                stale_ids.append(row_id)
+                continue
+            _logger.info('Deleting %s@%s (%s)', res_id, model_label, xmlid)
+            cls._process_end_unlink_record(record)
+            stale_ids.append(row_id)
+
+        if stale_ids:
+            cls.objects.using(using).filter(pk__in=stale_ids).delete()
+            registry.clear_cache('default')
+        return True
+
+    @classmethod
+    def _module_data_uninstall(cls, modules_to_remove, using=DEFAULT_DB_ALIAS):
+        """≙ ``_module_data_uninstall`` (``odoo19c: :2454-2528``), su mitad de datos.
+
+        Docstring de la fuente, verbatim: *"Deletes all the records referenced
+        by the ir.model.data entries ``ids`` along with their corresponding
+        database backed … as long as there is no other ir.model.data entry
+        holding a reference to them (which indicates that they are still owned
+        by another module)."*
+
+        Esa condición es el corazón del método y se porta entera: un registro
+        que **otro** módulo también declara no se borra al desinstalar éste.
+
+        DIVERGENCIA DE MECANISMO, ya declarada en la cabecera de este módulo y
+        no ampliada aquí: la fuente además emite ``DROP TABLE`` y ``ALTER TABLE
+        ... DROP CONSTRAINT`` sobre el esquema vivo, y aquí el esquema lo
+        gobiernan las migraciones de Django — DDL fuera de ellas deja
+        ``django_migrations`` mintiendo. La mitad de DDL no se porta; la de
+        datos, que es la que da la trazabilidad, sí.
+
+        La bisección de la fuente al fallar un borrado también se porta: si el
+        lote entero no se puede eliminar, se parte en dos y se reintenta, y
+        sólo cuando queda un registro suelto se le declara indelegable.
+        """
+        if not is_system():
+            raise AccessError(
+                'Administrator access is required to uninstall a module')
+
+        module_data = list(cls.objects.using(using).filter(
+            module__in=list(modules_to_remove)).order_by('-id'))
+        if not module_data:
+            return []
+
+        ids_by_model = defaultdict(list)
+        for data in module_data:
+            ids_by_model[data.model].append(data.res_id)
+
+        own_data_ids = {data.pk for data in module_data}
+        undeletable_ids = []
+
+        def delete(model_cls, ids):
+            """≙ la clausura ``delete`` de la fuente (``:2521-2571``)."""
+            if not ids:
+                return
+            # *"do not delete records that have other external ids (and thus do
+            # not belong to the modules being installed)"*
+            foreign = set(cls.objects.using(using).filter(
+                model=model_cls._meta.label, res_id__in=ids,
+            ).exclude(pk__in=own_data_ids).values_list('res_id', flat=True))
+            ids = [i for i in ids if i not in foreign]
+            if not ids:
+                return
+            try:
+                with transaction.atomic(using=using):
+                    model_cls.objects.using(using).filter(pk__in=ids).delete()
+            except Exception:                # noqa: BLE001 — verbatim de la fuente
+                if len(ids) <= 1:
+                    undeletable_ids.extend(ids)
+                else:
+                    half = len(ids) // 2
+                    delete(model_cls, ids[:half])
+                    delete(model_cls, ids[half:])
+
+        for model_label, ids in ids_by_model.items():
+            model_cls = cls._model_class(model_label)
+            if model_cls is None:
+                _logger.info(
+                    "Orphan ir.model.data records %s refer to unavailable "
+                    "model '%s'", ids, model_label)
+                continue
+            delete(model_cls, ids)
+
+        if undeletable_ids:
+            _logger.info(
+                'ir.model.data could not be deleted (%s)', undeletable_ids)
+
+        spent_ids = [d.pk for d in module_data
+                     if d.res_id not in undeletable_ids]
+        cls.objects.using(using).filter(pk__in=spent_ids).delete()
+        registry.clear_cache('default')
+        return undeletable_ids
 
     @classmethod
     def set_xmlid(cls, record, xmlid, noupdate=False):
@@ -1246,12 +1778,11 @@ class IrModelData(TimeStampedModel):
         if not name:
             raise ValueError(
                 'Identificador externo mal formado (falta el módulo): %s' % xmlid)
-        fila, _creada = cls.objects.update_or_create(
-            module=module, name=name,
-            defaults={
-                'model': type(record)._meta.label,
-                'res_id': record.pk,
-                'noupdate': noupdate,
-            },
-        )
-        return fila
+        # Delega en el escritor de la fuente: un solo camino de escritura, con
+        # su INSERT ... ON CONFLICT, su siembra de caché y su registro en
+        # ``loaded_xmlids``. Antes duplicaba esa lógica con un
+        # ``update_or_create``, que no hacía ni lo segundo ni lo tercero.
+        cls._update_xmlids([{
+            'xml_id': xmlid, 'record': record, 'noupdate': noupdate,
+        }])
+        return cls.objects.get(module=module, name=name)

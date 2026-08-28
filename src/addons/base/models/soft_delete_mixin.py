@@ -19,10 +19,12 @@ vive en ``ir_ui_menu.py``, y con el que la referencia pone los métodos de
 un modelo en el archivo del modelo.
 """
 from django.db import models
+
+from orm.models import AccessManager, AccessQuerySet
 from django.utils import timezone
 
 
-class SoftDeleteQuerySet(models.QuerySet):
+class SoftDeleteQuerySet(AccessQuerySet):
     """
     QuerySet con metodo ``delete`` que aplica soft delete:
     marca todas las filas con ``is_deleted=True`` y ``deleted_at=now()``
@@ -45,7 +47,7 @@ class SoftDeleteQuerySet(models.QuerySet):
         return self.filter(is_deleted=True)
 
 
-class SoftDeleteManager(models.Manager):
+class SoftDeleteManager(AccessManager):
     """
     Manager por defecto: filtra ``is_deleted=False`` automaticamente
     en todas las consultas. Las filas marcadas como borradas son
@@ -58,7 +60,7 @@ class SoftDeleteManager(models.Manager):
         )
 
 
-class AllObjectsManager(models.Manager):
+class AllObjectsManager(AccessManager):
     """
     Manager auxiliar que no filtra. Uso: admin, auditoria, exportes
     historicos y tests de contrato soft-delete.

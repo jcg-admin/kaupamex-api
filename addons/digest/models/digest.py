@@ -8,11 +8,11 @@ Divergencias declaradas
 ========================
 
 1. **``currency_id``/``company_id`` no son ``related=``/``default=lambda
-   self: ...`` resueltos en tiempo de lectura por el ORM.** ``company`` es
+   self: ...`` resueltos en tiempo de lectura por el ORM.** ``company_id`` es
    una columna real con ``default=get_current_company`` (el análogo de
    ``env.company.id`` — ``orm.environments``, mismo mecanismo ya usado por
    ``CompanySetting``); ``currency`` se expone como ``@property`` de sólo
-   lectura que delega a ``self.company.currency`` — mismo patrón de
+   lectura que delega a ``self.company_id.currency`` — mismo patrón de
    passthrough usado en ``fleet_vehicle_log_services.py`` (``self.vehicle.
    model.brand``, sin denormalizar).
 
@@ -33,7 +33,7 @@ Divergencias declaradas
    declara su propia migración con una columna ``kpi_<nombre>`` y esta
    introspección la recoge sin tocar este archivo.
 
-4. **Los dos KPIs base escalan por compañía vía ``company.user_ids``/
+4. **Los dos KPIs base escalan por compañía vía ``company_id.user_ids``/
    ``author__in``, no por el ``_calculate_company_based_kpi`` genérico de la
    referencia** (que combina el conjunto de compañías visibles del usuario
    con ``env.company`` cuando el digest no tiene compañía). Ninguno de los
@@ -150,11 +150,12 @@ class DigestDigest(TimeStampedModel):
         null=True, blank=True, verbose_name='Próximo envío',
         help_text='Se calcula en save() si no se da explícitamente (Odoo create()).',
     )
-    company = fields.Many2one(
+    company_id = fields.Many2one(
         'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='digests', default=get_current_company,
         verbose_name='Compañía',
         help_text='Odoo company_id (default=env.company.id → get_current_company()).',
+        db_column='company_id',
     )
     state = fields.Selection(
         max_length=12, choices=DigestState.choices,
@@ -182,8 +183,8 @@ class DigestDigest(TimeStampedModel):
     def currency(self):
         """≙ ``currency_id`` (``related="company_id.currency_id"``,
         ``digest.py:34``). Divergencia 1: propiedad de sólo lectura, sin
-        columna — passthrough a ``self.company.currency``."""
-        return self.company.currency if self.company_id else None
+        columna — passthrough a ``self.company_id.currency``."""
+        return self.company_id.currency if self.company_id else None
 
     def save(self, *args, **kwargs):
         """Calcula ``next_run_date`` al crear si no se dio explícitamente —
@@ -338,10 +339,10 @@ class DigestDigest(TimeStampedModel):
         """≙ ``_compute_kpi_res_users_connected_value`` (``digest.py:71-76``,
         delega en ``_calculate_company_based_kpi`` con ``date_field=
         'login_date'``). Divergencia 4: ``ResUsersLog`` no tiene FK a
-        compañía — se filtra por ``user__in company.user_ids``."""
+        compañía — se filtra por ``user__in company_id.user_ids``."""
         qs = ResUsersLog.objects.filter(created_at__gte=start, created_at__lt=end)
         if self.company_id:
-            qs = qs.filter(user__in=self.company.user_ids.all())
+            qs = qs.filter(user__in=self.company_id.user_ids.all())
         return qs.count()
 
     def _compute_kpi_mail_message_total_value(self, start, end):
@@ -352,7 +353,7 @@ class DigestDigest(TimeStampedModel):
         acotado por compañía vía el autor."""
         qs = MailMessage.objects.filter(created_at__gte=start, created_at__lt=end)
         if self.company_id:
-            qs = qs.filter(author__in=self.company.user_ids.all())
+            qs = qs.filter(author__in=self.company_id.user_ids.all())
         return qs.count()
 
     def compute_kpi_value(self, field_name, start, end):

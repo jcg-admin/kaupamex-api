@@ -94,16 +94,11 @@ from .soft_delete_mixin import (
 )
 from .image_mixin import ImageMixin
 from .avatar_mixin import AvatarMixin
-from .properties_base_definition import (
-    PropertiesBaseDefinition,
-    _clear_definition_cache,
-)
+from .properties_base_definition import PropertiesBaseDefinition
 from .properties_base_definition_mixin import PropertiesBaseDefinitionMixin
 from .decimal_precision import DecimalPrecision
 from .ir_config_parameter import (
     _DEFAULT_PARAMETERS,
-    _PARAM_CACHE,
-    _clear_cache,
     SystemParameter,
 )
 from .assetsbundle import (
@@ -206,8 +201,7 @@ from .company_setting import CompanySetting
 from .res_company import ResCompany
 from .ir_sequence import IrSequence
 from .report_export_job import ExportJob
-from .res_bank import ResBank
-from .res_partner_bank import ResPartnerBank, sanitize_account_number
+from .res_bank import ResBank, ResPartnerBank, sanitize_account_number
 from .res_country import ResCountry, ResCountryState
 from .res_country_group import ResCountryGroup
 from .res_partner import ResPartner
@@ -215,8 +209,8 @@ from .res_users import ResUsers, ResUsersLog
 from .res_device import ResDeviceLog
 from .res_users_deletion import ResUsersDeletion
 from .res_users_settings import ResUsersSettings
-from .res_currency import ResCurrency
-from .res_currency_rate import ResCurrencyRate
+from .res_currency import ResCurrency, ResCurrencyRate
+
 from .res_lang import ResLang
 
 __all__ = [
@@ -228,8 +222,6 @@ __all__ = [
     'SoftDeleteManager',
     'AllObjectsManager',
     '_DEFAULT_PARAMETERS',
-    '_PARAM_CACHE',
-    '_clear_cache',
     'SystemParameter',
     'IrLogging',
     'IrAttachment',
@@ -297,7 +289,6 @@ __all__ = [
     'EXTENSION_TO_WEB_MIMETYPES',
     'PropertiesBaseDefinition',
     'PropertiesBaseDefinitionMixin',
-    '_clear_definition_cache',
     'ANY_UNIQUE',
     'AssetError',
     'AssetNotFound',

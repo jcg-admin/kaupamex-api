@@ -60,7 +60,7 @@ restricción ajena en vez de la conducta.
 import fields
 
 from addons.base.models.res_bank import ResBank
-from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.base.models.res_bank import ResPartnerBank
 
 
 def _add_if_absent(model, name, field):

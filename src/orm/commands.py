@@ -63,3 +63,47 @@ class Command:
     def clear(manager):
         """``Command.clear`` (5): desenlaza todos (m2m)."""
         manager.clear()
+
+
+# === Los tres valores diferidos del cargador de datos ======================
+#
+# ≙ lo que ``Command.set`` / ``Command.link`` / ``Command.create`` devuelven en
+# la referencia cuando el converter de importación los produce
+# (``odoo19c: addons/base/models/ir_fields.py:657-740``).
+#
+# DIVERGENCIA DE FORMA, declarada: allá ``Command`` es a la vez el verbo
+# **ejecutivo** y el **valor diferido** que ``create``/``write`` interpretan.
+# El ``Command`` de arriba es sólo lo primero —escribe al llamarlo,
+# :ref:`h-api-589`, tarea **#345**—, así que el valor diferido necesita un
+# portador propio. Estos tres son ese portador, y nada más: no escriben; los
+# aplica ``orm.models.RecordLoaderMixin`` cuando el registro ya existe, que es
+# el momento en que Django admite tocar una relación de muchos.
+
+class ManyToManySet(list):
+    """El conjunto queda **exactamente** en estos ids — ≙ ``Command.set``."""
+
+
+class ManyToManyLink(list):
+    """Estos ids se **añaden** a los que ya hubiera — ≙ ``Command.link``."""
+
+
+class One2manyChild:
+    """Un hijo a crear o a actualizar — ≙ ``Command.create`` / ``update``.
+
+    Con ``id``, el hijo ya existe: se enlaza y se le escriben los valores
+    encima. Sin él, se crea. Es la misma partición que la fuente expresa con
+    dos comandos seguidos (``link`` + ``update``) frente a uno (``create``).
+    """
+
+    __slots__ = ('id', 'values')
+
+    def __init__(self, id, values):
+        self.id = id
+        self.values = values
+
+    def __eq__(self, other):
+        return (isinstance(other, One2manyChild)
+                and (self.id, self.values) == (other.id, other.values))
+
+    def __repr__(self):
+        return 'One2manyChild(%r, %r)' % (self.id, self.values)

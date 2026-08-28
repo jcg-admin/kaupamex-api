@@ -35,7 +35,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 
 from django.apps import apps
-from django.db import connection, connections
+from django.db import DEFAULT_DB_ALIAS, connection, connections
 
 from exceptions import AccessError
 
@@ -125,6 +125,32 @@ def user_scope(uid):
 def is_su():
     """¿El contexto actual está elevado? — el ``env.su`` de la referencia."""
     return _su.get()
+
+
+def is_system():
+    """¿Elevado, o el actor pertenece al grupo de administración?
+
+    ≙ ``Environment.is_system`` (``odoo19c: odoo/orm/environments.py:187-190``),
+    verbatim: *"Return whether the current user has group 'Settings', or is in
+    superuser mode"* — ``return self.su or self.user._is_system()``.
+
+    Es la guarda de las acciones que tocan la **instalación** del producto, no
+    su dato: desinstalar un módulo, reescribir el reflejo del registro. Se
+    distingue de ``is_su()``, que es sólo el canal de elevación, y de una
+    comprobación de permiso por modelo, que acota el dato y no la plataforma.
+
+    El actor se consulta por conducta y no por tipo (``getattr`` sobre
+    ``_is_system``): este módulo lo importa ``base``, así que nombrar aquí a
+    ``ResUsers`` cerraría el ciclo. Un actor sin ese método —ninguno hoy en el
+    árbol— no es del sistema, que es el desenlace conservador.
+    """
+    if is_su():
+        return True
+    user = get_current_user()
+    if user is None:
+        return False
+    checker = getattr(user, '_is_system', None)
+    return bool(checker and checker())
 
 
 @contextmanager
@@ -240,8 +266,31 @@ def context_scope(**values):
         _context.reset(token)
 
 
+def execute_query(query, using=None):
+    """≙ ``Environment.execute_query`` (``odoo19c: odoo/orm/environments.py:527``).
+
+    Ejecuta el ``SQL`` recibido y devuelve sus filas como lista de tuplas, o
+    la lista vacía cuando la sentencia no devuelve tabla. Es la única pieza
+    del ``Environment`` que ``tools/query.py`` necesita: un ``Query`` compone
+    su SELECT y alguien tiene que correrlo.
+
+    **La divergencia, y es la que este archivo ya declara arriba:** allá es un
+    método del ``Environment``, que ata cursor, usuario y contexto en un solo
+    objeto; aquí el cursor es ``connections[alias]`` y el parámetro que lo
+    nombra es ``using``, el de Django. El ``flush_query`` de la fuente no tiene
+    contraparte porque el ORM de Django no difiere escrituras a un caché
+    propio: lo que se escribió ya está en la transacción cuando esta función
+    corre.
+    """
+    with connections[using or DEFAULT_DB_ALIAS].cursor() as cursor:
+        cursor.execute(query.code, query.params)
+        if cursor.description is None:
+            return []
+        return cursor.fetchall()
+
+
 __all__ = [
-    'apps', 'connection', 'connections',
+    'apps', 'connection', 'connections', 'execute_query',
     'get_current_company', 'get_current_companies', 'set_current_company',
     'activate_companies', 'company_scope', 'sudo', 'is_su',
     'get_current_uid', 'get_current_user', 'set_current_uid', 'user_scope',

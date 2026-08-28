@@ -16,7 +16,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
 from addons.base.models import ResCompany, ResCurrency
-from addons.base.models.res_currency_rate import ResCurrencyRate
+from addons.base.models.res_currency import ResCurrencyRate
 from orm.environments import company_scope
 
 pytestmark = pytest.mark.integration

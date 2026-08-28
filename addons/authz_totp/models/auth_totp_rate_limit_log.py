@@ -87,7 +87,7 @@ class AuthTotpRateLimitLog(TimeStampedModel):
     _name = 'auth.totp.rate.limit.log'
     _description = 'TOTP rate limit logs'
 
-    user = fields.Many2one(
+    user_id = fields.Many2one(
         'base.ResUsers', on_delete=models.CASCADE, db_index=True,
         related_name='totp_rate_limit_logs', verbose_name='Usuario',
         help_text=(
@@ -95,6 +95,7 @@ class AuthTotpRateLimitLog(TimeStampedModel):
             'se cuenta. El readonly de la fuente es de su capa de vista y no '
             'tiene receptor en el modelo Django.'
         ),
+        db_column='user_id',
     )
     ip = fields.Char(
         max_length=45, blank=True, default='', verbose_name='IP',
@@ -120,12 +121,12 @@ class AuthTotpRateLimitLog(TimeStampedModel):
             # ≙ ``_user_id_limit_type_create_date_idx`` (``:8``). Mismas tres
             # columnas y mismo orden; el nombre se acorta por el límite de
             # Django (ver la cabecera del módulo).
-            models.Index(fields=['user', 'limit_type', 'created_at'],
+            models.Index(fields=['user_id', 'limit_type', 'created_at'],
                          name='authz_totp_rate_limit_idx'),
         ]
 
     def __str__(self):
-        return f'RateLimitLog[{self.user_id}] {self.limit_type}'
+        return f'RateLimitLog[{self.user_id_id}] {self.limit_type}'
 
     @classmethod
     @api.autovacuum

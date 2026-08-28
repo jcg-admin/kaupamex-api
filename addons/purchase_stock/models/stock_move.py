@@ -266,7 +266,7 @@ def _get_source_document(self):
     línea de compra cede el turno al método previo — el mismo ``or res``.
     """
     if self.purchase_line_id:
-        return self.purchase_line.order
+        return self.purchase_line.order_id
     return None
 
 

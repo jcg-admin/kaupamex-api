@@ -156,7 +156,7 @@ def _d(valor):
     return Decimal(str(valor))
 
 
-class AccountTaxQuerySet(models.QuerySet):
+class AccountTaxQuerySet(models.AccessQuerySet):
     """El motor. ≙ los métodos de recordset de ``odoo19c: account.tax``.
 
     Un ``QuerySet`` es el análogo exacto del recordset sobre el que la

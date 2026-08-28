@@ -121,10 +121,11 @@ class Uom(TimeStampedModel):
         default=True,
         help_text='Desmarcar para deshabilitar la unidad sin borrarla (Odoo active).',
     )
-    relative_uom    = fields.Many2one(
+    relative_uom_id = fields.Many2one(
         'self', on_delete=models.CASCADE, null=True, blank=True,
         related_name='related_uoms', db_index=True,
         help_text='Unidad de referencia de la que cuelga (Odoo relative_uom_id).',
+        db_column='relative_uom_id',
     )
     factor          = fields.Float(
         default=1.0,
@@ -138,7 +139,7 @@ class Uom(TimeStampedModel):
 
     class Meta:
         db_table = 'uom_uom'
-        ordering = ['sequence', 'relative_uom_id', 'id']
+        ordering = ['sequence', 'relative_uom_id_id', 'id']
         verbose_name = 'Unidad de medida'
         verbose_name_plural = 'Unidades de medida'
         constraints = [
@@ -196,13 +197,13 @@ class Uom(TimeStampedModel):
             # Odoo `_compute_sequence` (:54-58): sólo antes de existir el registro.
             self.sequence = min(int(self.relative_factor * 100.0), 1000)
         self.factor = (
-            self.relative_factor * self.relative_uom.factor
+            self.relative_factor * self.relative_uom_id.factor
             if self.relative_uom_id else self.relative_factor
         )
         super().save(*args, **kwargs)
 
         parent_path = (
-            f'{self.relative_uom.parent_path}{self.pk}/'
+            f'{self.relative_uom_id.parent_path}{self.pk}/'
             if self.relative_uom_id else f'{self.pk}/'
         )
         if self.parent_path != parent_path:

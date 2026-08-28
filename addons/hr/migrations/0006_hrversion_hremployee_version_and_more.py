@@ -204,7 +204,7 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        help_text="Odoo job_title (compute+inverse+store). BLOQUEADO el auto-sync desde job.name — familia (a); se asigna directo.",
+                        help_text="Odoo job_title (compute+inverse+store). BLOQUEADO por ``el motor de compute+inverse+store`` — el auto-sync desde job.name lo exige; se asigna directo. Familia (a).",
                         max_length=150,
                         verbose_name="Título del puesto",
                     ),
@@ -213,7 +213,7 @@ class Migration(migrations.Migration):
                     "is_custom_job_title",
                     models.BooleanField(
                         default=False,
-                        help_text="Odoo is_custom_job_title (compute+store). BLOQUEADO el auto-sync — familia (a).",
+                        help_text="Odoo is_custom_job_title (compute+store). BLOQUEADO por ``el motor de compute+store`` — el auto-sync lo exige. Familia (a).",
                         verbose_name="Título de puesto personalizado",
                     ),
                 ),
@@ -269,7 +269,7 @@ class Migration(migrations.Migration):
                     "address",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo address_id. DIVERGENCIA: sin default (la referencia usa self.env.company.partner_id.address_get(['default']) — sesión, familia b, ver _get_default_address_id BLOQUEADO).",
+                        help_text="Odoo address_id. DIVERGENCIA: sin default (la referencia usa self.env.company.partner_id.address_get(['default']) — sesión, familia b, ver _get_default_address_id, BLOQUEADO por ``la sesión de la referencia`` — su default lee self.env.company).",
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="hr_versions_work_address",
@@ -281,7 +281,7 @@ class Migration(migrations.Migration):
                     "company",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo company_id (compute+store, default=env.company). BLOQUEADO el auto-sync desde employee.company — familia (a).",
+                        help_text="Odoo company_id (compute+store, default=env.company). BLOQUEADO por ``el motor de compute+store`` — el auto-sync desde employee.company lo exige. Familia (a).",
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="hr_versions",
@@ -419,7 +419,7 @@ class Migration(migrations.Migration):
                     "resource_calendar",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo resource_calendar_id (inverse=_inverse_resource_calendar_id). BLOQUEADO el inverse (sincroniza employee.resource.calendar cuando esta versión es la vigente) — familia (a).",
+                        help_text="Odoo resource_calendar_id (inverse=_inverse_resource_calendar_id). BLOQUEADO por ``el motor de inverse`` — _inverse_resource_calendar_id sincroniza employee.resource.calendar cuando esta versión es la vigente. Familia (a).",
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="hr_versions",
@@ -431,7 +431,7 @@ class Migration(migrations.Migration):
                     "structure_type",
                     models.ForeignKey(
                         blank=True,
-                        help_text="Odoo structure_type_id (compute+store, default=_default_salary_structure). DIVERGENCIA: sin default de campo — se porta _default_salary_structure_for_company como helper explícito (ver métodos); BLOQUEADO el auto-sync (_compute_structure_type_id) — familia (a).",
+                        help_text="Odoo structure_type_id (compute+store, default=_default_salary_structure). DIVERGENCIA: sin default de campo — se porta _default_salary_structure_for_company como helper explícito (ver métodos); BLOQUEADO por ``el motor de compute+store`` — _compute_structure_type_id lo exige. Familia (a).",
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         related_name="hr_versions",

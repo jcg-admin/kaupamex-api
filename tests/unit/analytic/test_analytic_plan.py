@@ -1,17 +1,20 @@
 """Contrato de ``AccountAnalyticPlan`` / ``AccountAnalyticApplicability``.
 
-**Por qué estos tests NO usan ``pytest.mark.django_db``.** El addon
-``analytic`` no está en ``INSTALLED_APPS`` ni tiene migración (instrucción
-explícita de esta tarea de porte: no editar ``config/settings/base.py`` ni
-generar migraciones). Sin tabla, cualquier ``.save()``/query real fallaría
-con "table doesn't exist". Los modelos SÍ son importables (``app_label``
-explícito en cada ``Meta``, mismo precedente que ``addons.onboarding``), así
-que se construyen árboles **en memoria** (instancias sin persistir, con
-``pk`` explícito donde la jerarquía lo necesita) para ejercer la lógica
-Python pura: cycle-detection, ``complete_name``/``root`` y
-``_get_score``. Cuando el addon se integre (INSTALLED_APPS + migración),
-estos tests siguen siendo válidos y se pueden complementar con los
-DB-backed (creación real, ``account_count``, etc.).
+**Por qué la mayoría de estos tests NO usan ``pytest.mark.django_db``.**
+No es que falte la tabla —``analytic`` entra en ``LOCAL_APPS`` por el grafo
+de addons y tiene sus cinco migraciones aplicadas—, sino que la lógica que
+ejercen es **Python pura**: cycle-detection, ``complete_name``/``root`` y
+``_get_score`` no tocan la base. Construir árboles en memoria (instancias
+sin persistir, con ``pk`` explícito donde la jerarquía lo necesita) los mide
+igual y sin el costo de la transacción por test.
+
+> **Corregido:** este docstring afirmaba que el addon *"no está en
+> ``INSTALLED_APPS`` ni tiene migración"* y que *"sin tabla, cualquier
+> ``.save()``/query real fallaría"*. Las tres afirmaciones son falsas contra
+> el árbol: ``LOCAL_APPS`` se **deriva** de ``modules.module_graph``, y
+> ``account_analytic_plan`` existe en la base. Era estado heredado que
+> desalentaba escribir aquí un test con base, que es justo lo que el control
+> de la migración 0005 necesita.
 """
 import pytest
 from django.core.exceptions import ValidationError
