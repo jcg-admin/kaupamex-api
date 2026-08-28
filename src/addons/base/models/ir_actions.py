@@ -157,6 +157,7 @@ from django.core.exceptions import ValidationError
 
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from orm.registry import MODELS_BY_NAME
 
 _logger = logging.getLogger(__name__)
 
@@ -175,6 +176,11 @@ PATH_PATTERN = re.compile(r'[a-z][a-z0-9_-]*')
 
 #: Prefijos que la referencia reserva para el cliente.
 RESERVED_PATH_PREFIXES = ('m-', 'action-')
+
+#: Palabra que la referencia reserva **entera**, no como prefijo
+#: (``odoo19c: ir_actions.py:93-94``). Va aparte de los prefijos porque el
+#: chequeo es por igualdad: ``newsletter`` es una ruta valida.
+RESERVED_PATH_WORD = 'new'
 
 BINDING_TYPE_CHOICES = [
     ('action', 'Acción'),
@@ -225,7 +231,19 @@ class IrActionsBase(TimeStampedModel):
         return self.name
 
     def clean(self):
-        """``_check_path`` — patrón **y** los dos prefijos reservados."""
+        """≙ ``_check_path`` (``odoo19c: ir_actions.py:82-96``) — sus CUATRO
+        chequeos.
+
+        Son cuatro y no tres, que es lo que este puerto tenia. El cuarto —
+        ``path == "new"``— **no lo cubre ninguno de los otros**: ``new`` cumple
+        el patron y no empieza por ninguno de los dos prefijos reservados, asi
+        que pasaba entero. La fuente lo separa a proposito y su mensaje lo
+        dice: *"'new' is reserved, and can not be used as path."*
+
+        Y compara por **igualdad**, no por prefijo: ``newsletter`` es una ruta
+        legitima. Escribirlo con ``startswith`` prohibiria rutas que la fuente
+        admite.
+        """
         super().clean()
         if not self.path:
             return
@@ -237,6 +255,10 @@ class IrActionsBase(TimeStampedModel):
         for prefix in RESERVED_PATH_PREFIXES:
             if self.path.startswith(prefix):
                 raise ValidationError("'%s' es un prefijo reservado." % prefix)
+        if self.path == RESERVED_PATH_WORD:
+            raise ValidationError(
+                "'%s' está reservada y no se puede usar como ruta."
+                % RESERVED_PATH_WORD)
 
 
 class IrActionsActions(IrActionsBase):
@@ -354,6 +376,44 @@ class IrActionsActWindow(IrActionsBase):
             result.append((reference.pk, reference_type))
         result.extend((None, mode) for mode in missing)
         return result
+
+    def clean(self):
+        """≙ ``_check_model`` (``:270-276``) y ``_check_view_mode``
+        (``:300-307``), ademas del ``_check_path`` que hereda.
+
+        **El modelo.** La fuente comprueba ``res_model`` **y**
+        ``binding_model_id`` contra su ``env``, que es el registro de modelos
+        cargados. El equivalente aqui es ``orm.registry.MODELS_BY_NAME``, que
+        indexa por el nombre punteado que declara ``_name`` — el mismo espacio
+        de nombres que la fuente consulta.
+
+        Sin esta guarda el error sale **al abrir la accion**, lejos de donde se
+        escribio, y quien la escribio ya no esta mirando.
+
+        **El modo de vista.** Dos comprobaciones, y la segunda sorprende:
+        ``'list, form'`` parece correcto y no lo es. La fuente parte por coma
+        **sin recortar**, asi que el segundo modo queda como ``' form'`` y no
+        resuelve contra ningun tipo de vista. Rechazar el espacio es mas util
+        que aceptarlo y fallar despues.
+
+        **Divergencia de nombre, declarada:** el ``binding_model_id`` de la
+        fuente es aqui ``binding_model_name`` (``Char``), la misma conversion
+        diferida a FK que ``model_name`` — ver el docstring del modulo.
+        """
+        super().clean()
+        for fname in ('res_model', 'binding_model_name'):
+            model_name = getattr(self, fname, '')
+            if model_name and model_name not in MODELS_BY_NAME:
+                raise ValidationError(
+                    'Nombre de modelo inválido “%s” en la definición de la '
+                    'acción.' % model_name)
+        modes = (self.view_mode or '').split(',')
+        if len(modes) != len(set(modes)):
+            raise ValidationError(
+                'Los modos de view_mode no se pueden repetir: %s' % modes)
+        if any(' ' in mode for mode in modes):
+            raise ValidationError(
+                'No se admiten espacios en view_mode: “%s”' % self.view_mode)
 
     def resolve_mobile_view_mode(self):
         """``mobile_view_mode`` con su respaldo al modo de pantalla ancha."""
@@ -582,6 +642,38 @@ class IrActionsServer(IrActionsBase):
             'res_model': 'ir.cron',
             'res_id': cron.pk,
         }
+
+    def _check_children(self):
+        """≙ ``_check_children`` (``odoo19c: ir_actions.py:968-973``), su
+        mitad portable.
+
+        Mensaje de la fuente, verbatim: *"Recursion found in child server
+        actions"*. El modo ``multi`` existe **para** encadenar, asi que la
+        guarda tiene que distinguir una cadena legitima de un ciclo: recorre
+        hacia arriba y para cuando se repite.
+
+        Sin ella, ``_run_action_multi`` —que itera ``child_ids`` y llama
+        ``run()`` en cada hija— no tendria condicion de parada.
+
+        **La segunda mitad NO se porta:** BLOQUEADO por ``warning`` — el
+        computado que avisa de una hija mal configurada. Cuelga de
+        ``_compute_warning`` y de los campos del CRUD, que son el motor
+        declarado divergente en el docstring del modulo. Sucesor: tarea
+        **#116**.
+        """
+        seen = set()
+        current = self.parent
+        while current is not None:
+            if current.pk == self.pk or current.pk in seen:
+                raise ValidationError(
+                    'Recursión encontrada en las acciones de servidor hijas.')
+            seen.add(current.pk)
+            current = current.parent
+
+    def save(self, *args, **kwargs):
+        """``@api.constrains('parent_id', 'child_ids')`` de la fuente."""
+        self._check_children()
+        return super().save(*args, **kwargs)
 
     def run(self):
         """Punto de extensión del motor de ejecución.

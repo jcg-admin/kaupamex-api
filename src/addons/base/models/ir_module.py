@@ -59,6 +59,7 @@ modelo, y a Enterprise 18 — que no se midió en este pase.
 """
 import fields
 import models
+from django.core.exceptions import ValidationError
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
 
@@ -101,6 +102,31 @@ class IrModuleCategory(TimeStampedModel):
         ordering = ['sequence', 'name', 'id']   # derivado de _order
         verbose_name = 'Aplicación'
         verbose_name_plural = 'Aplicaciones'
+
+    def _check_parent_not_circular(self):
+        """≙ ``_check_parent_not_circular`` (``odoo19c: ir_module.py:102-105``).
+
+        Mensaje de la fuente, verbatim: *"You cannot create recursive
+        categories."* Las categorias anidan —una aplicacion tiene
+        sub-aplicaciones—, asi que la guarda distingue profundidad de ciclo
+        recorriendo hacia arriba, no prohibiendo el padre.
+
+        Con un ciclo persistido, cualquier recorrido del arbol de categorias
+        —el que el instalador presenta agrupado— no termina.
+        """
+        seen = set()
+        current = self.parent
+        while current is not None:
+            if current.pk == self.pk or current.pk in seen:
+                raise ValidationError(
+                    'No se pueden crear categorías recursivas.')
+            seen.add(current.pk)
+            current = current.parent
+
+    def save(self, *args, **kwargs):
+        """``@api.constrains('parent_id')`` de la fuente."""
+        self._check_parent_not_circular()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
