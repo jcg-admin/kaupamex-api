@@ -235,8 +235,15 @@ La referencia usa            Espejo del proyecto             Respaldo real
 ===========================  ==============================  =====================
 ``Domain`` / ``Domain.AND``  ``osv.expression`` (AND/OR/NOT) ``django.db.models.Q``
 ``SQL("…")``                 ``tools.sql.SQL``               ``RawSQL``
-``Query``                    ``tools.query.Query``           ``QuerySet``
+``Query``                    ``QuerySet`` (ver abajo)        ``QuerySet``
 ===========================  ==============================  =====================
+
+``Query`` es la fila que NO usa su espejo, y es deliberado: el parámetro de
+``_run_least_packages_removal_strategy_astar`` recibe el agregado de
+``values(...).annotate(...)``, que **es** un ``QuerySet``. ``tools.query.Query``
+existe desde ``api`` #127 como la clase propia de la fuente —el constructor
+de SELECT crudo con ``make_alias``/``add_join``— y anotarlo aquí sería
+nombrar un tipo que este método nunca recibe.
 
 ``Q`` **no es un puente por fuera del ORM**: es el tipo de llegada del espejo —
 ``src/orm/domains.py`` convierte un dominio de Odoo a ``Q`` con ``to_q``, y
@@ -326,13 +333,14 @@ import fields
 import models
 from django.apps import apps
 from django.db import connection
-from django.db.models import Case, F, IntegerField, Q, Sum, Value, When
+from django.db.models import (
+    Case, F, IntegerField, Q, QuerySet, Sum, Value, When,
+)
 from django.utils import timezone
 
 from addons.base.models import TimeStampedModel
 from exceptions import UserError, ValidationError
 from osv import expression
-from tools.query import Query
 from tools.sql import SQL
 from tools.translate import _
 
@@ -1226,7 +1234,7 @@ class StockQuant(TimeStampedModel):
         return 'fifo'
 
     @classmethod
-    def _run_least_packages_removal_strategy_astar(cls, queryset: Query, qty):
+    def _run_least_packages_removal_strategy_astar(cls, queryset: QuerySet, qty):
         """≙ ``_run_least_packages_removal_strategy_astar`` (``odoo19c: :630-739``).
 
         Elige el **menor número de paquetes** que cubre ``qty``, con una
