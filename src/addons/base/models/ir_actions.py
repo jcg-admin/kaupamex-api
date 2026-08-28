@@ -69,11 +69,47 @@ Qué NO se porta, con su medición
   (``object_write``, ``object_create``, ``object_copy``, ``code``,
   ``webhook``, ``multi``) se portan como **vocabulario**, porque son el dato
   que clasifica la acción. Lo que no se porta es el ``_run_action_*`` de cada
-  uno: el modo ``code`` evalúa Python almacenado con ``safe_eval``. Es la
-  misma decisión que ``ir_rule.domain_force`` (``api@020e965``) y por la misma
-  razón: montar un evaluador sobre entrada almacenada es superficie de
-  ejecución de código y exige decidir explícitamente el evaluador y su
-  contexto. ``run()`` deja el punto de extensión declarado y levanta.
+  uno. ``run()`` deja el punto de extensión declarado y levanta.
+
+  **La razón NO es la misma para los seis, y decir que sí lo era era falso.**
+  Medido por AST sobre la clase ``IrActionsServer`` de la referencia,
+  buscando ``safe_eval`` en el cuerpo de cada corredor:
+
+  ===============================  ==========  ============
+  corredor                         líneas      ``safe_eval``
+  ===============================  ==========  ============
+  ``_run_action_code_multi``                5  **sí**
+  ``_run_action_multi``                     5  no
+  ``_run_action_object_write``             14  no
+  ``_run_action_object_copy``              12  no
+  ``_run_action_object_create``            13  no
+  ``_run_action_webhook``                  43  no
+  ===============================  ==========  ============
+
+  **Uno de seis.** Y dentro de ``_eval_value`` —el ayudante que
+  ``object_write`` consume— es **una de ocho** ramas: sólo
+  ``evaluation_type == 'equation'`` evalúa; las otras siete resuelven una
+  secuencia, una operación de M2M, un booleano, un entero, un flotante, un
+  ``html`` o la cadena tal cual.
+
+  Así que la divergencia por **superficie de ejecución de código** —la misma
+  decisión que ``ir_rule.domain_force`` (``api@020e965``): montar un evaluador
+  sobre entrada almacenada exige decidir explícitamente el evaluador y su
+  contexto— cubre ``code`` y la rama ``equation``, y **sólo** esas dos.
+
+  Los otros cuatro modos están detenidos por **otra** razón, que es la de la
+  viñeta de ``model_id`` más abajo: sus insumos —``crud_model_id``,
+  ``link_field_id``, ``update_field_id``, ``resource_ref``— cuelgan de
+  ``ir.model.fields`` como FK, y ``model_name`` sigue siendo ``Char`` por una
+  conversión diferida a su propio pase. Es un bloqueo **heredado**, no
+  intrínseco: el día que esa conversión ocurra, los cuatro se portan sin tocar
+  el evaluador. Registrado como **#117**.
+
+  *Métrica:* presencia del literal ``safe_eval`` en el segmento de fuente de
+  cada método ``_run_action*`` declarado en el cuerpo de la clase.
+  *Ciega a:* una evaluación que llegue por una llamada indirecta sin nombrar
+  el símbolo — por eso se leyeron además los cuatro cuerpos, y ninguno la
+  tiene.
 
   **La superficie de configuración que ese motor consume tampoco se porta, y
   es la mayor parte de la clase.** Medido sobre ``odoo19c:
