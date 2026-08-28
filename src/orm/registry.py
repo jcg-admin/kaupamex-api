@@ -59,8 +59,15 @@ __all__ = [
     'MODELS_BY_NAME', 'name_of', 'model_by_name',
     'resolve_model_key', 'check_table_matches_name',
     'clear_cache', 'clear_all_caches', 'cache_of', 'cache_invalidated',
-    'many2one_company_dependents',
+    'many2one_company_dependents', 'loaded_xmlids',
 ]
+
+#: ≙ ``Registry.loaded_xmlids`` — los identificadores externos que el cargador
+#: de data ha visto en esta carga. Lo puebla ``IrModelData._update_xmlids`` y
+#: lo consume ``_process_end``, que borra lo que la data ya no declara: una
+#: fila con módulo, sin ``noupdate`` y **ausente** de este conjunto es un
+#: registro que su módulo dejó de declarar.
+loaded_xmlids = set()
 
 
 #: Tamaño de cada caché de método de modelo, verbatim de la referencia

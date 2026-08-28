@@ -185,7 +185,7 @@ class MailActivityMixin(models.Model):
         """
         if isinstance(act_type_xmlids, str):
             act_type_xmlids = [act_type_xmlids] if act_type_xmlids else []
-        ids = (IrModelData.xmlid_to_res_id(xmlid, raise_if_not_found=False)
+        ids = (IrModelData._xmlid_to_res_id(xmlid, raise_if_not_found=False)
                for xmlid in act_type_xmlids)
         return [type_id for type_id in ids if type_id]
 

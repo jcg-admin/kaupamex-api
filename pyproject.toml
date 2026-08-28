@@ -50,6 +50,12 @@ dependencies = [
     # odoo19c: setup/odoo-wsgi.example.py (odoo-tools@622ddc2a).
     "gunicorn>=23.0.0",
     "lxml>=6.1.1",
+    # Aritmetica de calendario para el cargador de datos XML: el contexto de
+    # evaluacion de `tools/convert.py` expone `relativedelta` a las expresiones
+    # de un archivo de datos, tal cual la referencia
+    # (odoo19c: odoo/tools/convert.py:20). Ni stdlib ni Django lo traen —
+    # `timedelta` no sabe de meses ni de anios.
+    "python-dateutil>=2.9.0",
     "paramiko>=3.4.0",
     "passlib>=1.7.4",
 ]

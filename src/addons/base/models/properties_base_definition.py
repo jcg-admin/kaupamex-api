@@ -53,6 +53,12 @@ resuelve — una FK real (``properties_field``) y un campo JSON
 (``properties_definition``) del que se extrae una propiedad con ``->``. Qué
 modelos más lo adoptan es la tarea **#96**.
 
+**Ya no lo declara en sus bases, y lo sigue teniendo** (tarea #115):
+``TimeStampedModel`` adopta ``RecordLoaderMixin``, que extiende
+``FieldSqlMixin``. Declararlo además **antes** de ``TimeStampedModel`` rompía
+el MRO — la precedencia local exigía ``FieldSqlMixin`` primero y la herencia
+exigía lo contrario. La adopción sigue siendo real; cambió su vía.
+
 Los cinco símbolos y su enganche de Django
 ==========================================
 
@@ -112,7 +118,6 @@ from django.db import DEFAULT_DB_ALIAS
 from addons.base.models.ir_model import IrModelFields
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from orm import registry
-from orm.models import FieldSqlMixin
 from tools.cache import ormcache
 
 _logger = logging.getLogger(__name__)
@@ -121,7 +126,7 @@ _logger = logging.getLogger(__name__)
 PROPERTIES_TTYPE = 'properties'
 
 
-class PropertiesBaseDefinition(FieldSqlMixin, TimeStampedModel):
+class PropertiesBaseDefinition(TimeStampedModel):
     """``properties.base.definition`` — la definición de un campo ``Properties``."""
 
     _name = 'properties.base.definition'

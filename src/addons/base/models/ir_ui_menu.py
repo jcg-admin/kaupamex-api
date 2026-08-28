@@ -313,7 +313,18 @@ class IrUiMenu(TimeStampedModel):
     El podado **no es cosmético**: un menú que se dibuja y luego se oculta en
     el cliente filtra la existencia de la funcionalidad; uno que no se envía,
     no.
+
+    Los atributos de clase son los cinco de la fuente
+    (``odoo19c: ir_ui_menu.py`` — ``atributos-de-clase-de-modelo.md``).
+    ``_parent_store`` declara el árbol materializado, cuyo ``parent_path`` aquí
+    lo mantiene ``save()``; ``_order`` convive con ``Meta.ordering``.
     """
+
+    _name = 'ir.ui.menu'
+    _description = 'Menu'
+    _order = 'sequence,id'
+    _parent_store = True
+    _allow_sudo_commands = False
 
     name = models.CharField(max_length=80, verbose_name='Menú')
     active = models.BooleanField(default=True, verbose_name='Activa')

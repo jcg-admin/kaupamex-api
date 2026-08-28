@@ -59,8 +59,14 @@ from django.db.models import (  # noqa: F401
     ForeignKey, Manager, Model, QuerySet,
 )
 
-from exceptions import AccessError
-from orm.environments import get_current_uid, get_current_user, is_su
+from django.core.exceptions import FieldDoesNotExist, ValidationError
+from django.db import DEFAULT_DB_ALIAS
+
+from exceptions import AccessError, UserError
+from orm.environments import (
+    get_context, get_current_uid, get_current_user, is_su,
+)
+from orm.fields_properties import Properties
 from orm.utils import parse_field_expr
 
 _logger = logging.getLogger(__name__)
@@ -375,3 +381,370 @@ class FieldSqlMixin:
         if property_name:
             sql = field.property_to_sql(sql, property_name, self, alias, query)
         return sql
+
+
+class RecordLoaderMixin(FieldSqlMixin):
+    """``_load_records`` y su cadena — el lado ORM del cargador de datos.
+
+    ≙ los cuatro métodos que ``BaseModel`` declara en ``odoo19c:
+    odoo/orm/models.py``: ``_clean_properties`` (``:5054``),
+    ``_load_records_write`` (``:5085``), ``_load_records_create`` (``:5102``) y
+    ``_load_records`` (``:5108``). Van juntos porque el último llama a los
+    otros tres.
+
+    **La divergencia es de VÍA, no de alcance.** Allá cuelgan de ``BaseModel``,
+    así que todo modelo los tiene; aquí ``models.Model`` es el de Django y no
+    es nuestro para colgarle nada. La universalidad se recupera adoptando este
+    mixin en ``addons.base.models.timestamped_mixin.TimeStampedModel``, que es
+    la base común del proyecto ("usar en TODOS los modelos concretos", dice su
+    propio docstring) — así todo modelo concreto tiene ``_load_records`` sin
+    declararlo, igual que en la fuente.
+
+    No es lo mismo que ``FieldSqlMixin`` ni que ``AccessManager``, que siguen
+    adoptándose modelo a modelo (tarea **#96**): aquéllos cambian **cómo se
+    consulta** un modelo concreto, y el cargador de datos no admite esa
+    gradualidad — un archivo de datos de la referencia nombra veinticuatro
+    modelos distintos sólo en ``base``, y el cargador falla con
+    ``AttributeError`` en el primero que no lo declare.
+
+    Qué resuelve, en una línea
+    ==========================
+
+    Un archivo de datos declara registros con su identificador externo; este
+    mixin decide, por cada uno, si **crear**, **actualizar** o **saltar**, y
+    deja el identificador asignado. Es lo que ``tools/convert.py`` llama al
+    leer un ``<record>``, y por tanto lo que estaba bloqueando a
+    ``ResPartner._load_records_create``.
+
+    Las tres decisiones, y de dónde salen
+    =====================================
+
+    La partición de la fuente se porta entera y en su orden:
+
+    - **Sin ``xml_id``**: con ``values['id']`` se actualiza ese registro; sin
+      él, se crea — salvo que sea una actualización de módulo, donde no hay
+      forma de saber a qué registro se refiere y se rechaza.
+    - **Con ``xml_id`` sin fila**: se crea.
+    - **Con ``xml_id`` y fila viva** (``r_id``): se actualiza, salvo que sea
+      actualización de módulo **y** la fila lleve ``noupdate`` — la bandera que
+      protege el dato que alguien tocó a mano.
+    - **Con ``xml_id`` y fila huérfana** (el registro ya no está): la fila se
+      borra y el registro se crea de nuevo.
+
+    El modelo de la fila tiene que coincidir con el de este mixin; si no, se
+    rechaza con el mensaje de la fuente. Es la guarda que impide que un
+    ``xml_id`` reutilizado entre módulos apunte a la tabla equivocada.
+
+    DIVERGENCIA DE FORMA, declarada: la fuente es método de recordset y aquí de
+    clase
+    =====================================================================
+
+    ``_load_records`` y ``_load_records_create`` son **classmethods**: allá
+    ``self`` es un recordset vacío que sólo aporta el modelo (``self.browse()``
+    en la primera línea), y aquí ese papel lo cumple la clase. ``self.create``
+    pasa a ser ``cls.objects.create``, ``self.browse(id)`` a un ``filter(pk=)``,
+    y el ``original_self.concat(...)`` del final a la lista de registros en el
+    orden de ``data_list``, que es lo que la fuente promete devolver.
+
+    ``_load_records_write`` y ``_clean_properties`` sí son de instancia: la
+    fuente empieza con ``self.ensure_one()``, es decir, opera sobre **un**
+    registro.
+
+    Por qué hereda de ``FieldSqlMixin``
+    ===================================
+
+    Los dos métodos de instancia recorren ``self._fields``, que allá es un
+    atributo de ``BaseModel`` y aquí lo porta ``FieldSqlMixin``. Heredarlo
+    reproduce el hecho de la fuente —los ocho símbolos cuelgan del **mismo**
+    objeto— en vez de pedirle al modelo que adopte dos mixins y recuerde el
+    orden. Un modelo que adopte éste obtiene los dos, que es lo que allá
+    obtiene por herencia de ``BaseModel``.
+    """
+
+    # -- Propiedades ---------------------------------------------------------
+
+    def _clean_properties(self):
+        """≙ ``_clean_properties`` (``odoo19c: odoo/orm/models.py:5054-5068``).
+
+        «Remove all properties of ``self`` that are no longer in the related
+        definition.»
+
+        El discriminador de tipo es ``isinstance(field, Properties)`` y no
+        ``field.type != 'properties'`` — la forma que este árbol fijó para el
+        mismo problema en ``fields_textual.Html`` (H-API-700); ver el docstring
+        de ``orm/fields_properties.Properties``.
+
+        La fuente itera ``for record in self`` porque su ``self`` es un
+        recordset; aquí es un registro, así que el bucle exterior desaparece y
+        queda el cuerpo. Escribe con ``save(update_fields=...)`` para no tocar
+        columnas que no cambiaron.
+        """
+        changed = []
+        for fname, field in self._fields.items():
+            if not isinstance(field, Properties):
+                continue
+            old_value = getattr(self, fname, None)
+            if not old_value:
+                continue
+
+            definitions = field._get_properties_definition(self)
+            if not definitions:
+                continue
+            all_names = {definition['name'] for definition in definitions}
+            new_values = {name: value for name, value in old_value.items()
+                          if name in all_names}
+            if len(new_values) != len(old_value):
+                setattr(self, fname, new_values)
+                changed.append(fname)
+        if changed:
+            self.save(update_fields=changed)
+
+    # -- Escritura y creación ------------------------------------------------
+
+    @classmethod
+    def _load_records_coerce_vals(cls, values):
+        """El id de un ``Many2one`` entra por su columna, no por el atributo.
+
+        **Divergencia de stack, no de mecanismo.** En la referencia un
+        ``Many2one`` se escribe con el id y ya: ``{'parent_id': 42}`` es lo que
+        el archivo de datos produce y lo que ``create``/``write`` aceptan.
+        Django separa las dos caras de una FK — ``parent`` quiere la
+        **instancia** y ``parent_id`` (su ``attname``) quiere la **clave**—, y
+        asignar un entero al primero levanta ``ValueError: Cannot assign
+        "42": "ResPartner.parent" must be a "ResPartner" instance``.
+
+        Aquí se traduce el nombre del campo a su ``attname`` cuando el valor no
+        es ya una instancia. El sitio es el mixin del cargador y no
+        ``tools/convert.py`` porque el que decide es el ORM: es la frontera
+        ``create``/``write``, la misma que en la fuente acepta el id.
+
+        Un nombre que el modelo no declara se deja pasar tal cual — quien
+        levante el error es Django, con su mensaje, y no un ``KeyError`` de
+        aquí que oculte cuál era el campo.
+        """
+        coerced = {}
+        for fname, value in values.items():
+            try:
+                field = cls._meta.get_field(fname)
+            except FieldDoesNotExist:
+                coerced[fname] = value
+                continue
+            attname = getattr(field, 'attname', None)
+            if (field.is_relation and field.many_to_one and attname
+                    and attname != fname and not isinstance(value, Model)):
+                coerced[attname] = value
+            else:
+                coerced[fname] = value
+        return coerced
+
+    def _load_records_write(self, values):
+        """≙ ``_load_records_write`` (``odoo19c: :5085-5100``).
+
+        Escribe los valores de un registro que ya existe. Los campos de
+        propiedades se **difieren**: se sacan del lote, se escribe el resto, y
+        sólo entonces se escriben mezclados con lo que ya había. El comentario
+        de la fuente dice por qué —*"Deferred the write to avoid using the old
+        definition if it changed"*—: si en el mismo lote viene una definición
+        nueva, mezclar antes usaría la vieja.
+
+        Tras escribirlos se limpia, con la razón de la fuente verbatim:
+        *"Because we don't know which properties was linked to which
+        definition, we can know clean properties"*.
+        """
+        to_write = {}  # Deferred the write to avoid using the old definition if it changed
+        for fname in list(values):
+            field = self._fields.get(fname)
+            if not isinstance(field, Properties):
+                continue
+            field_converter = field.convert_to_cache
+            to_write[fname] = dict(
+                getattr(self, fname, None) or {},
+                **(field_converter(values.pop(fname), self, validate=False) or {}))
+
+        self.write(values)
+        if to_write:
+            self.write(to_write)
+            # Because we don't know which properties was linked to which
+            # definition, we can know clean properties (note that it is not
+            # mandatory, we can wait that client change the record in a Form
+            # view)
+            self._clean_properties()
+
+    def write(self, values):
+        """Escribe los valores y guarda — el ``write`` que la fuente supone.
+
+        La referencia lo tiene en ``BaseModel``; aquí ``models.Model`` es el de
+        Django, así que el mixin lo aporta para el modelo que lo adopte. Un
+        modelo que ya declare su propio ``write`` —``ir_config_parameter``,
+        ``properties_base_definition``— gana el suyo por MRO y éste no
+        interfiere.
+
+        La clave primaria se **descarta**, y es lo que la fuente hace de hecho:
+        ``_load_records`` le pasa ``data['values']`` entero, ``'id'`` incluido,
+        porque ese ``id`` es lo que acaba de **seleccionar** el registro.
+        Reescribirlo es un no-op allá y aquí un ``ValueError`` de Django, así
+        que se filtra en un solo sitio en vez de en cada llamador.
+        """
+        pk_name = self._meta.pk.name
+        values = {fname: value for fname, value in values.items()
+                  if fname not in (pk_name, 'id')}
+        if not values:
+            return self
+        values = self._load_records_coerce_vals(values)
+        for fname, value in values.items():
+            setattr(self, fname, value)
+        self.save(update_fields=list(values))
+        return self
+
+    @classmethod
+    def _load_records_create(cls, vals_list, using=DEFAULT_DB_ALIAS):
+        """≙ ``_load_records_create`` (``odoo19c: :5102-5106``).
+
+        Crea los registros y, si el modelo tiene algún campo de propiedades,
+        los limpia. La guarda ``any(...)`` de la fuente se conserva: recorrer
+        los campos una vez es más barato que llamar a ``_clean_properties`` por
+        registro cuando el modelo no tiene ninguno.
+
+        Es el símbolo que ``ResPartner._load_records_create`` sobreescribe
+        (``odoo19c: res_partner.py:988``): el enganche que el cargador ofrece
+        para que un modelo intervenga en la creación desde datos.
+        """
+        records = [cls.objects.using(using).create(
+            **cls._load_records_coerce_vals(vals)) for vals in vals_list]
+        if any(isinstance(field, Properties)
+               for field in cls._meta.get_fields()):
+            for record in records:
+                record._clean_properties()
+        return records
+
+    # -- El cargador ---------------------------------------------------------
+
+    @classmethod
+    def _load_records(cls, data_list, update=False, using=DEFAULT_DB_ALIAS):
+        """≙ ``_load_records`` (``odoo19c: :5108-5213``).
+
+        Docstring de la fuente, verbatim: *"Create or update records of this
+        model, and assign XMLIDs."*
+
+        :param data_list: lista de dicts con ``xml_id`` (el identificador a
+            asignar), ``noupdate`` (su bandera) y ``values`` (los valores).
+        :param update: ``True`` al **actualizar** un módulo.
+        :return: los registros correspondientes a ``data_list``.
+
+        Los dos avisos de contexto de la fuente se portan y siguen leyendo del
+        contexto, que aquí es ``tools.misc``/``orm.environments`` en vez del
+        ``env.context``: ``install_module`` (avisa de un ``xml_id`` de otro
+        módulo) e ``import_file`` (rechaza un prefijo que coincida con un
+        módulo instalado, porque la próxima actualización borraría el
+        registro).
+        """
+        IrModelData = apps.get_model('base', 'IrModelData')
+
+        # determine existing xml_ids
+        xml_ids = [data['xml_id'] for data in data_list if data.get('xml_id')]
+        existing = {
+            ('%s.%s' % row[1:3]): row
+            for row in IrModelData._lookup_xmlids(xml_ids, cls, using=using)
+        }
+
+        # determine which records to create and update
+        to_create = []                  # list of data
+        to_update = []                  # list of data
+        imd_data_list = []              # list of data for _update_xmlids()
+
+        for data in data_list:
+            xml_id = data.get('xml_id')
+            if not xml_id:
+                vals = data['values']
+                if vals.get('id'):
+                    data['record'] = cls.objects.using(using).get(pk=vals['id'])
+                    to_update.append(data)
+                elif not update:
+                    to_create.append(data)
+                else:
+                    raise ValidationError(
+                        'Cannot update a record without specifying its id or '
+                        'xml_id')
+                continue
+            row = existing.get(xml_id)
+            if not row:
+                to_create.append(data)
+                continue
+            d_id, _d_module, _d_name, d_model, d_res_id, d_noupdate, r_id = row
+            if cls._meta.label != d_model:
+                raise ValidationError(
+                    f'For external id {xml_id} '
+                    f'when trying to create/update a record of model '
+                    f'{cls._meta.label} '
+                    f'found record of different model {d_model} ({d_id})')
+            if r_id:
+                data['record'] = cls.objects.using(using).get(pk=d_res_id)
+                imd_data_list.append(data)
+                if not (update and d_noupdate):
+                    to_update.append(data)
+            else:
+                IrModelData.objects.using(using).filter(pk=d_id).delete()
+                to_create.append(data)
+
+        # update existing records
+        for data in to_update:
+            data['record']._load_records_write(data['values'])
+
+        # check for records to create with an XMLID from another module
+        context = get_context()
+        module = context.get('install_module')
+        if module:
+            prefix = module + '.'
+            for data in to_create:
+                if (data.get('xml_id') and not data['xml_id'].startswith(prefix)
+                        and not context.get('foreign_record_to_create')):
+                    _logger.warning('Creating record %s in module %s.',
+                                    data['xml_id'], module)
+
+        if context.get('import_file'):
+            IrModule = apps.get_model('base', 'IrModule')
+            existing_modules = set(IrModule.objects.using(using).values_list(
+                'name', flat=True))
+            for data in to_create:
+                xml_id = data.get('xml_id')
+                if xml_id and not data.get('noupdate'):
+                    module_name, sep, record_id = xml_id.partition('.')
+                    if sep and module_name in existing_modules:
+                        raise UserError(
+                            f'The record {xml_id} has the module prefix '
+                            f'{module_name}. This is the part before the "." '
+                            f'in the external id. Because the prefix refers to '
+                            f'an existing module, the record would be deleted '
+                            f'when the module is upgraded. Use either no '
+                            f'prefix and no dot or a prefix that is not an '
+                            f'existing module. For example, __import__, '
+                            f'resulting in the external id '
+                            f'__import__.{record_id}.')
+
+        # create records
+        if to_create:
+            records = cls._load_records_create(
+                [data['values'] for data in to_create], using=using)
+            for data, record in zip(to_create, records):
+                data['record'] = record
+                if data.get('xml_id'):
+                    # add XML ids for parent records that have just been created
+                    # ``_inherits`` se lee del atributo de clase, que es donde
+                    # la referencia lo declara y donde este árbol lo porta
+                    # verbatim (tarea #385).
+                    for parent_model, parent_field in getattr(
+                            cls, '_inherits', {}).items():
+                        if not data['values'].get(parent_field):
+                            imd_data_list.append({
+                                'xml_id': f"{data['xml_id']}_"
+                                          f"{parent_model.replace('.', '_')}",
+                                'record': getattr(record, parent_field),
+                                'noupdate': data.get('noupdate', False),
+                            })
+                    imd_data_list.append(data)
+
+        # create or update XMLIDs
+        IrModelData._update_xmlids(imd_data_list, update, using=using)
+
+        return [data['record'] for data in data_list]
+

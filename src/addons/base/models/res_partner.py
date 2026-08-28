@@ -40,8 +40,10 @@ from addons.base.models.res_country import (ADDRESS_FORMAT_KEYS,
                                             DEFAULT_ADDRESS_FORMAT)
 from addons.base.models.res_lang import ResLang
 from exceptions import RedirectWarning, ValidationError
-from orm.environments import (company_scope, execute_query, get_context,
-                              get_current_company, get_current_user)
+from django.db import DEFAULT_DB_ALIAS
+from orm.environments import (company_scope, context_scope, execute_query,
+                              get_context, get_current_company,
+                              get_current_user, sudo)
 from orm.utils import SUPERUSER_ID
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from tools.mail import (email_normalize_all, formataddr,
@@ -228,12 +230,6 @@ class ResPartner(AvatarMixin, TimeStampedModel):
       escribe ``values['company_id']``, así que arrastra el mismo bloqueo de
       **#110**; y es lo que haría observable la guarda del correo de
       :meth:`name_create` (**#113**).
-    - ``_load_records_create`` (``:988``): BLOQUEADO por ``el cargador de data
-      XML`` — no existe aquí; los datos iniciales los siembran las migraciones
-      y los comandos de ``kaupamex-bin``. Su cuerpo agrupa la sincronización
-      en lote para el alta masiva; el escape que usa
-      —``_partners_skip_fields_sync``— **sí** está portado en :meth:`save`.
-      Tarea **#115**.
 
     **Divergencia de mecanismo, ya declarada en su sitio.**
 
@@ -1283,6 +1279,82 @@ class ResPartner(AvatarMixin, TimeStampedModel):
         ):
             parent._update_address(
                 self._convert_fields_to_values(address_fields))
+
+    @classmethod
+    def _load_records_create(cls, vals_list, using=DEFAULT_DB_ALIAS):
+        """≙ ``_load_records_create`` (``odoo19c: res_partner.py:966-1001``).
+
+        El enganche del cargador de datos para el alta **masiva**: crea los
+        partners con la sincronización de campos **apagada** y luego la hace en
+        lote, agrupando por la pareja ``(entidad comercial, padre de
+        dirección)``. Sin él, sembrar cien contactos de una empresa dispararía
+        cien sincronizaciones idénticas hacia los mismos hijos.
+
+        Estuvo BLOQUEADO por ``el cargador de data XML`` — no existía aquí —
+        hasta la tarea **#115**, que construyó ``orm.models.RecordLoaderMixin``
+        y cerró la arista. El
+        escape que usa —el contexto ``_partners_skip_fields_sync``— ya estaba
+        portado en :meth:`save` desde antes; lo que faltaba era quien lo
+        activara.
+
+        Los tres pasos de la fuente, en su orden:
+
+        1. ``super()._load_records_create`` bajo el contexto que salta la
+           sincronización por registro.
+        2. La **primera mitad** de ``_fields_sync`` en lote: los campos
+           comerciales del partner comercial y los de dirección del padre, cada
+           grupo escrito de una vez sobre sus hijos comunes.
+        3. La **segunda mitad** por registro —``_children_sync`` y
+           ``_handle_first_contact_creation``—, que la fuente hace *"the
+           'normal' way"* porque dependen del estado ya escrito.
+
+        Los nombres de campo son los de este árbol (``parent`` / ``children`` /
+        ``commercial_partner`` en vez de ``parent_id`` / ``child_ids`` /
+        ``commercial_partner_id``), que es la traducción ya declarada arriba en
+        este mismo archivo.
+        """
+        with context_scope(_partners_skip_fields_sync=True):
+            partners = super()._load_records_create(vals_list, using=using)
+
+        # batch up first part of _fields_sync
+        # group partners by commercial_partner (if not self) and parent (if
+        # type == contact)
+        groups = defaultdict(list)
+        for partner, vals in zip(partners, vals_list):
+            cp_id = None
+            if vals.get('parent') and partner.commercial_partner.pk != partner.pk:
+                cp_id = partner.commercial_partner.pk
+
+            add_id = None
+            if partner.parent_id and partner.type == cls.TYPE_CONTACT:
+                add_id = partner.parent_id
+            groups[(cp_id, add_id)].append(partner.pk)
+
+        for (cp_id, add_id), children in groups.items():
+            # values from parents (commercial, regular) written to their common
+            # children
+            to_write = {}
+            # commercial fields from commercial partner
+            if cp_id:
+                to_write = cls.objects.using(using).get(
+                    pk=cp_id)._convert_fields_to_values(cls._commercial_fields())
+            # address fields from parent
+            if add_id:
+                parent = cls.objects.using(using).get(pk=add_id)
+                for fname in cls._address_fields():
+                    value = getattr(parent, fname)
+                    if value:
+                        to_write[fname] = value
+            if to_write:
+                with sudo():
+                    cls.objects.using(using).filter(
+                        pk__in=children).update(**to_write)
+
+        # do the second half of _fields_sync the "normal" way
+        for partner, vals in zip(partners, vals_list):
+            partner._children_sync(vals)
+            partner._handle_first_contact_creation()
+        return partners
 
     @property
     def commercial_partner(self):

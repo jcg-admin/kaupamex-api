@@ -123,8 +123,37 @@ class TestBlockedSurface:
     """Lo bloqueado no aparece como stub — si apareciera, la arista miente."""
 
     def test_the_blocked_methods_are_absent(self):
-        stubbed = [name for name in BLOCKED_METHODS
-                   if hasattr(IrUiView, name)]
+        """Ausentes **como símbolo de la fuente**, no como nombre.
+
+        El control era ``hasattr`` y dejó de discriminar cuando
+        ``TimeStampedModel`` adoptó ``orm.models.RecordLoaderMixin`` (tarea
+        #115): desde entonces todo modelo hereda un ``write`` genérico —el que
+        el cargador de datos necesita— y ``hasattr(IrUiView, 'write')`` pasó a
+        ser cierto sin que nadie hubiera stubbeado el ``write`` de COW de la
+        fuente (``odoo19c: website/models/ir_ui_view.py``). Un verde de
+        ``hasattr`` ya no distinguía "no hay stub" de "lo hereda del
+        framework": sub-patrón D de ``metrica-decide-la-conclusion.md``.
+
+        El discriminador es **quién declara** el nombre. Si lo declara una
+        clase de ``orm.`` es un mecanismo del framework, que allá vive en
+        ``BaseModel`` y aquí viaja por mixin — no es el símbolo de
+        ``website``. Si lo declara una clase de ``addons.``, es un stub y el
+        caso cae, nombrando dónde.
+
+        *Métrica:* la primera clase del MRO que declara el nombre en su
+        ``__dict__``.
+        *Ciega a:* un stub instalado en tiempo de ejecución sobre una clase de
+        ``orm.`` — que sería, además, un defecto peor y de otro instrumento.
+        """
+        stubbed = []
+        for name in BLOCKED_METHODS:
+            if not hasattr(IrUiView, name):
+                continue
+            owner = next(klass for klass in IrUiView.__mro__
+                         if name in vars(klass))
+            if not owner.__module__.startswith('orm.'):
+                stubbed.append('%s (declarado en %s.%s)' % (
+                    name, owner.__module__, owner.__name__))
         assert stubbed == []
 
     def test_the_count_matches_the_measured_contract(self):

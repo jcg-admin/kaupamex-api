@@ -549,8 +549,8 @@ class ResCurrency(models.Model):
         """
         ir_model_data = models.apps.get_model('base', 'IrModelData')
         res_groups = models.apps.get_model('base', 'ResGroups')
-        user_id = ir_model_data.xmlid_to_res_id('base.group_user')
-        multi_id = ir_model_data.xmlid_to_res_id('base.group_multi_currency')
+        user_id = ir_model_data._xmlid_to_res_id('base.group_user')
+        multi_id = ir_model_data._xmlid_to_res_id('base.group_multi_currency')
         if not user_id or not multi_id:
             # ≙ el ``if group_user and group_mc:`` de la fuente — mientras la
             # siembra no haya dejado los xmlid, la pregunta no tiene sentido.

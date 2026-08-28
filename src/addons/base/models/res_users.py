@@ -3179,7 +3179,7 @@ def _sync_multi_company_group(sender, instance, action, reverse, pk_set,
     if action not in ('post_add', 'post_remove', 'post_clear'):
         return
 
-    group_id = apps.get_model('base', 'IrModelData').xmlid_to_res_id(
+    group_id = apps.get_model('base', 'IrModelData')._xmlid_to_res_id(
         'base.group_multi_company', raise_if_not_found=False)
     if not group_id:
         # ≙ el ``if group_multi_company_id:`` de la fuente — mientras la

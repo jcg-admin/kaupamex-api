@@ -231,7 +231,16 @@ def apply_directive(asset_paths, bundle, directive, paths, target_paths=None,
 
 
 class IrAsset(models.Model):
-    """Una directiva declarativa sobre un bundle (``ir.asset``)."""
+    """Una directiva declarativa sobre un bundle (``ir.asset``).
+
+    Los cuatro atributos de clase son los de la fuente
+    (``odoo19c: ir_asset.py`` — ``atributos-de-clase-de-modelo.md``).
+    """
+
+    _name = 'ir.asset'
+    _description = 'Asset'
+    _order = 'sequence, id'
+    _allow_sudo_commands = False
 
     DIRECTIVE_CHOICES = [
         (APPEND_DIRECTIVE, 'Añadir al final'),

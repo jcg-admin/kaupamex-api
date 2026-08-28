@@ -11,12 +11,13 @@ aviso de licencia preservados (DEC-KX-03).
 """
 import enum
 import hmac as hmac_lib
+import os
 import re
 import typing
 from collections import defaultdict
 from collections.abc import Callable, Iterable, MutableSet
 from functools import reduce
-from itertools import islice, repeat
+from itertools import islice, repeat, starmap
 
 import datetime
 
@@ -26,6 +27,8 @@ from django.utils import translation as django_translation
 from django.utils.crypto import salted_hmac
 from django.utils.html import escape as django_html_escape
 from lxml import etree
+
+from modules.module import ADDONS_PATHS
 
 # Variables de tipo de la referencia (``odoo19c: odoo/tools/misc.py:70-72``),
 # que las declara para los genéricos de esta misma familia de colecciones.
@@ -122,6 +125,106 @@ SKIPPED_ELEMENT_TYPES = (
     etree.CommentBase, etree.PIBase, etree._Entity,
 )
 
+def _addons_paths():
+    """Las raíces bajo las que :func:`file_path` admite abrir.
+
+    ≙ el ``odoo.addons.__path__`` + ``config.root_path`` de la fuente. Aquí las
+    declara ``modules.module.ADDONS_PATHS``, que es donde este árbol las fija
+    una sola vez; leerlas de ahí en vez de recomponerlas evita la segunda
+    fuente de verdad que ``calibration-verified-numbers.md`` prohíbe.
+
+    El import es de módulo hermano y NO cierra ciclo: ``modules/module.py``
+    importa ``ast``, ``importlib``, ``os``, ``typing``, ``pathlib`` y
+    ``release`` — nada de ``tools`` (medido).
+    """
+    return [str(path) for path in ADDONS_PATHS]
+
+
+def file_path(file_path, filter_ext=('',), *, check_exists=True):
+    """≙ ``file_path`` (``odoo19c: odoo/tools/misc.py:196-250``).
+
+    «Verify that a file exists under a known ``addons_path`` directory and
+    return its full path.»
+
+    Es una **guarda de confinamiento**, no una comodidad: el cargador de datos
+    abre rutas que vienen del manifiesto de un addon, y sin ella un
+    ``'../../etc/passwd'`` saldría del árbol. La comprobación es la de la
+    fuente: se normaliza la ruta, se compone contra cada raíz, y **sólo se
+    acepta si el resultado sigue empezando por esa raíz** — que es lo que
+    ``..`` no puede burlar después de ``normpath``.
+
+    :param file_path: ruta absoluta, o relativa a cualquier raíz de addons.
+    :param filter_ext: extensiones admitidas (minúscula, con punto).
+    :param check_exists: comprobar que el archivo existe (por defecto sí).
+    :raise FileNotFoundError: si no está bajo ninguna raíz conocida.
+    :raise ValueError: si su extensión no está en ``filter_ext``.
+
+    DIVERGENCIA DE ORIGEN de las raíces, declarada: la fuente compone
+    ``odoo.addons.__path__`` + ``config.root_path`` + los temporales que
+    ``file_open_temporary_directory`` registra por transacción. Aquí las raíces
+    son ``modules.module.ADDONS_PATHS``, que es el mismo dato declarado una
+    sola vez (ver su comentario). Los **temporales por transacción** no se
+    portan en este tramo: su mecanismo es la instalación de un módulo desde un
+    zip subido, que este árbol no tiene todavía — tarea **#131**.
+    """
+    addons_paths = _addons_paths()
+    is_abs = os.path.isabs(file_path)
+    normalized_path = os.path.normpath(os.path.normcase(file_path))
+
+    if filter_ext and not normalized_path.lower().endswith(filter_ext):
+        raise ValueError('Unsupported file: ' + file_path)
+
+    # ignore leading 'addons/' if present, it's the final component of
+    # root_path, but may sometimes be included in relative paths
+    normalized_path = normalized_path.removeprefix('addons' + os.sep)
+
+    for addons_dir in addons_paths:
+        # final path sep required to avoid partial match
+        parent_path = os.path.normpath(os.path.normcase(addons_dir)) + os.sep
+        if is_abs:
+            candidate = normalized_path
+        else:
+            candidate = os.path.normpath(
+                os.path.join(parent_path, normalized_path))
+        if candidate.startswith(parent_path) and (
+            # we check existence when asked or we have multiple paths to check
+            # (there is one possibility for absolute paths)
+            (not check_exists and (is_abs or len(addons_paths) == 1))
+            or os.path.exists(candidate)
+        ):
+            return candidate
+
+    raise FileNotFoundError('File not found: ' + file_path)
+
+
+def file_open(name, mode='r', filter_ext=()):
+    """≙ ``file_open`` (``odoo19c: odoo/tools/misc.py:253-286``).
+
+    «Open a file from within the ``addons_path`` directories, as an absolute or
+    relative path.»
+
+    Abre **sólo** lo que :func:`file_path` acepta, así que hereda su
+    confinamiento. Las dos precauciones de la fuente se portan enteras:
+
+    - En modo texto fuerza ``utf-8``, con su motivo verbatim: *"system locale
+      could affect default encoding, even with the latest Python 3 versions"*.
+    - En modo de escritura **rechaza crear archivos nuevos** (*"Don't let
+      create new files"*): un cargador que puede escribir donde ya hay algo es
+      una cosa; uno que puede sembrar archivos nuevos bajo el árbol de addons
+      es otra.
+    """
+    path = file_path(name, filter_ext=filter_ext, check_exists=False)
+    encoding = None
+    if 'b' not in mode:
+        # Force encoding for text mode, as system locale could affect default
+        # encoding, even with the latest Python 3 versions.
+        encoding = 'utf-8'
+    if any(m in mode for m in ('w', 'x', 'a')) and not os.path.isfile(path):
+        # Don't let create new files
+        raise FileNotFoundError(f'Not a file: {path}')
+    return open(path, mode, encoding=encoding)
+
+
 # ``html_escape`` — escape HTML para mensajes construidos a mano.
 #
 # La referencia lo define como alias de ``markupsafe.escape``
@@ -160,6 +263,36 @@ def split_every(n, iterable, piece_maker=tuple):
     while piece:
         yield piece
         piece = piece_maker(islice(iterator, n))
+
+
+def is_list_of(values, type_):
+    """≙ ``is_list_of`` (``odoo19c: odoo/tools/misc.py:1924-1930``).
+
+    «Return True if the given values is a list / tuple of the given type.»
+
+    Se porta en vez de escribirse en línea porque es el guardián de forma de
+    ``Properties._list_to_dict``: distingue *"una lista de definiciones"* de
+    cualquier otra cosa que llegue del cargador, y ese predicado se cita en el
+    mensaje de error.
+    """
+    return isinstance(values, (list, tuple)) and all(
+        isinstance(item, type_) for item in values)
+
+
+def has_list_types(values, types):
+    """≙ ``has_list_types`` (``odoo19c: odoo/tools/misc.py:1933-1943``).
+
+    «Return True if the given values have the same types as the one given in
+    argument, in the same order.»
+
+    Es lo que deja a ``_remove_display_name`` distinguir un ``many2one`` ya
+    reducido (``35``) de la pareja que manda el cliente (``(35, 'Bob')``) sin
+    adivinar por longitud.
+    """
+    return (
+        isinstance(values, (list, tuple)) and len(values) == len(types)
+        and all(starmap(isinstance, zip(values, types)))
+    )
 
 
 def clean_context(context: dict) -> dict:
