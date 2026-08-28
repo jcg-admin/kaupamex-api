@@ -369,6 +369,84 @@ class IrModule(TimeStampedModel):
             return None
         return cls.objects.filter(name=name).first()
 
+    def downstream_dependencies(self,
+                                exclude_states=(STATE_UNINSTALLED,
+                                                STATE_UNINSTALLABLE)):
+        """≙ ``downstream_dependencies`` (``odoo19c: ir_module.py:531-555``).
+
+        Quién depende de mí, directa o indirectamente. Es la pregunta que la
+        fuente hace antes de desinstalar; aquí no hay desinstalador, pero la
+        pregunta sigue siendo la que responde *"si retiro este addon, qué se
+        rompe"*, y hoy no la responde nada.
+
+        **La lista de estados a excluir diverge, y su razón está medida.** La
+        fuente excluye ``('uninstalled', 'uninstallable', 'to remove')``; aquí
+        el tercero no existe —es una transición de su instalador, declarada
+        fuera del porte en el docstring del módulo—, así que enumerarlo sería
+        declarar un estado inalcanzable.
+
+        **El parámetro ``known_deps`` de la fuente no se porta, y es
+        deliberado.** Allá es el acumulador de una recursión: cada nivel lo
+        pasa al siguiente para no revisitar. Aquí el recorrido es por oleadas
+        con marca de visitado interna, así que un parámetro para acumular no
+        tiene receptor — declararlo sería una superficie que ningún llamador
+        puede usar. Ver ``_walk_dependencies``.
+        """
+        return self._walk_dependencies(forward=False,
+                                       exclude_states=exclude_states)
+
+    def upstream_dependencies(self,
+                              exclude_states=(STATE_INSTALLED,
+                                              STATE_UNINSTALLABLE)):
+        """≙ ``upstream_dependencies`` (``odoo19c: ir_module.py:556-580``).
+
+        De quién dependo, directa o indirectamente. La fuente la usa antes de
+        instalar; el default de estados a excluir es el simétrico del anterior
+        —lo ya instalado no hace falta traerlo—, y por eso los dos defaults
+        difieren en un solo valor.
+        """
+        return self._walk_dependencies(forward=True,
+                                       exclude_states=exclude_states)
+
+    def _walk_dependencies(self, forward, exclude_states):
+        """El recorrido que comparten los dos sentidos.
+
+        La fuente los escribe como dos métodos recursivos con dos consultas SQL
+        casi idénticas —difieren en qué columna cruza con cuál—. Aquí el
+        recorrido es uno y el sentido es un parámetro: la duplicación de allá no
+        expresa nada que aquí no exprese el booleano, y dos copias divergen.
+
+        Se recorre por oleadas y con marca de visitado, no por recursión: el
+        grafo admite ciclos —dos addons pueden declararse mutuamente— y una
+        recursión ingenua no terminaría. Es la misma razón que en
+        ``IrModuleDependency.all_dependencies``.
+        """
+        seen = set()
+        frontier = {self.name} if forward else {self.pk}
+
+        while frontier:
+            if forward:
+                names = list(IrModuleDependency.objects.filter(
+                    module__name__in=frontier).values_list('name', flat=True))
+                found = type(self).objects.filter(name__in=names)
+            else:
+                names = list(type(self).objects.filter(
+                    pk__in=frontier).values_list('name', flat=True))
+                found = type(self).objects.filter(
+                    dependencies__name__in=names)
+
+            found = found.exclude(state__in=exclude_states).exclude(
+                pk__in=seen | {self.pk})
+            fresh = {module.pk for module in found}
+            if not fresh:
+                break
+            seen |= fresh
+            frontier = ({module.name for module in
+                         type(self).objects.filter(pk__in=fresh)}
+                        if forward else fresh)
+
+        return type(self).objects.filter(pk__in=seen)
+
 
 class IrModuleDependency(TimeStampedModel):
     """Una arista ``depends`` declarada por el manifest de un addon.
@@ -401,6 +479,18 @@ class IrModuleDependency(TimeStampedModel):
         help_text='Nombre técnico del addon del que depende.',
     )
 
+    #: ≙ ``DEP_STATES`` (``odoo19c: ir_module.py:995``): los estados del módulo
+    #: más ``unknown``, que es lo que vale una dependencia cuya contraparte no
+    #: está en el catálogo. Se construye igual que allá —desde ``STATES``— para
+    #: que añadir un estado al módulo no deje esta lista atrás.
+    DEP_STATES = IrModule.STATES + [('unknown', 'Desconocido')]
+
+    auto_install_required = fields.Boolean(
+        default=True,
+        help_text='Odoo auto_install_required: si esta dependencia bloquea la '
+                  'instalación automática del addon que la declara.',
+    )
+
     class Meta:
         db_table            = 'ir_module_module_dependency'
         unique_together     = [('module', 'name')]
@@ -410,3 +500,153 @@ class IrModuleDependency(TimeStampedModel):
 
     def __str__(self):
         return f'{self.module.name} → {self.name}'
+    def _compute_depend(self):
+        """≙ ``_compute_depend`` (``odoo19c: ir_module.py:1021-1030``).
+
+        Resuelve el nombre de la dependencia contra el catálogo. Devuelve
+        ``None`` cuando el addon nombrado no está en él — que es el caso que
+        justifica que esta tabla guarde un nombre y no una FK: la arista existe
+        aunque su destino todavía no.
+
+        **Divergencia de mecanismo, declarada:** la fuente lo declara campo
+        computado (``depend_id``) y aquí es un método. Un campo computado no
+        almacenado necesita ``fields.NonStored``, y ése resuelve **por
+        registro**; la fuente resuelve **el lote entero con una consulta** e
+        indexa por nombre, que es justo lo que evita el N+1. Se conserva la
+        forma de la fuente: el lote se resuelve con ``_compute_depend_batch``,
+        y este método es su caso de un elemento.
+        """
+        return type(self)._compute_depend_batch([self])[self.pk]
+
+    @classmethod
+    def _compute_depend_batch(cls, dependencies):
+        """El lote de ``_compute_depend``, con una sola consulta.
+
+        Es la forma de la fuente —``search`` de todos los nombres, índice por
+        nombre, asignación en bucle— y la razón de portarla es medible: sin
+        ella, resolver N aristas cuesta N consultas.
+        """
+        names = {dependency.name for dependency in dependencies}
+        by_name = {module.name: module
+                   for module in IrModule.objects.filter(name__in=names)}
+        return {dependency.pk: by_name.get(dependency.name)
+                for dependency in dependencies}
+
+    @classmethod
+    def _search_depend(cls, value):
+        """≙ ``_search_depend`` (``odoo19c: ir_module.py:1032-1037``).
+
+        Traduce una búsqueda por módulo destino a una búsqueda por nombre, que
+        es la columna que esta tabla sí tiene.
+
+        La fuente recibe además un ``operator`` y devuelve ``NotImplemented``
+        para todo lo que no sea ``in``/``any``. Aquí el operador no es
+        parámetro: el único que este stack construye es la pertenencia, y
+        aceptar uno para rechazarlo declararía una superficie que no existe.
+        """
+        names = list(IrModule.objects.filter(
+            pk__in=[getattr(module, 'pk', module) for module in value]
+        ).values_list('name', flat=True))
+        return cls.objects.filter(name__in=names)
+
+    def _compute_state(self):
+        """≙ ``_compute_state`` (``odoo19c: ir_module.py:1038-1041``).
+
+        El estado de la dependencia **es** el del módulo al que apunta; si no
+        apunta a ninguno, es ``unknown``. Sin esta caída, una arista huérfana
+        heredaría el default del campo y se leería como "no instalado", que es
+        un estado distinto de "no sé si existe".
+        """
+        depend = self._compute_depend()
+        return depend.state if depend is not None else 'unknown'
+
+    @classmethod
+    def all_dependencies(cls, module_names):
+        """≙ ``all_dependencies`` (``odoo19c: ir_module.py:1043-1060``).
+
+        Cierre transitivo hacia abajo: ``{addon: [sus dependencias directas]}``
+        para los nombres dados **y** para todo lo que alcancen. La fuente lo
+        resuelve por oleadas —resolver las directas, encolar las nuevas,
+        repetir— y esa forma se conserva: el grafo puede tener ciclos, y una
+        recursión ingenua no terminaría.
+
+        **Divergencia de mecanismo:** la fuente consulta con
+        ``web_search_read``, que es su superficie RPC. Aquí es una consulta del
+        ORM: el dato es el mismo y el canal no aporta nada al cálculo.
+        """
+        to_search = dict.fromkeys(module_names, True)
+        result = {}
+
+        while to_search:
+            searching = list(to_search)
+            edges = cls.objects.filter(
+                module__name__in=searching
+            ).values_list('module__name', 'name')
+            to_search.clear()
+            for module_name, dependency_name in edges:
+                if (dependency_name not in result
+                        and dependency_name not in to_search
+                        and dependency_name not in searching):
+                    to_search[dependency_name] = True
+                result.setdefault(module_name, []).append(dependency_name)
+
+        return result
+
+
+class IrModuleExclusion(TimeStampedModel):
+    """Una arista ``excludes`` — el addon que este otro no admite al lado.
+
+    ≙ ``ir.module.module.exclusion`` (``odoo19c: ir_module.py:1065-1102``).
+    Tabla aparte por la misma razón que la dependencia: la exclusión se declara
+    por **nombre**, y el nombre puede apuntar a un addon ausente del catálogo.
+
+    **Su lector existe aunque el instalador no.** Que aquí no se pueda instalar
+    en caliente no borra el hecho que la tabla registra: que dos addons del
+    árbol se declaran incompatibles. Ese hecho hoy no vive en ninguna parte —
+    es la misma medición que fundó este archivo, aplicada a la otra arista.
+    """
+
+    _name = 'ir.module.module.exclusion'
+    _description = "Module exclusion"
+    _allow_sudo_commands = False
+
+    module    = fields.Many2one(
+        IrModule, on_delete=models.CASCADE, related_name='exclusions',
+        help_text='El addon que declara la exclusión.',
+    )
+    name      = fields.Char(
+        db_index=True,
+        help_text='Nombre técnico del addon excluido.',
+    )
+
+    class Meta:
+        db_table            = 'ir_module_module_exclusion'
+        unique_together     = [('module', 'name')]
+        ordering            = ['name']
+        verbose_name        = 'Exclusión de módulo'
+        verbose_name_plural = 'Exclusiones de módulo'
+
+    def _compute_exclusion(self):
+        """≙ ``_compute_exclusion`` (``odoo19c: ir_module.py:1082-1090``).
+
+        Misma forma que ``_compute_depend`` de la dependencia, sobre la otra
+        arista. La fuente las declara por separado y no las factoriza; se
+        conserva esa separación en vez de inventar un mixin que allá no existe.
+        """
+        return IrModule.objects.filter(name=self.name).first()
+
+    @classmethod
+    def _search_exclusion(cls, value):
+        """≙ ``_search_exclusion`` (``odoo19c: ir_module.py:1092-1096``)."""
+        names = list(IrModule.objects.filter(
+            pk__in=[getattr(module, 'pk', module) for module in value]
+        ).values_list('name', flat=True))
+        return cls.objects.filter(name__in=names)
+
+    def _compute_state(self):
+        """≙ ``_compute_state`` (``odoo19c: ir_module.py:1098-1102``)."""
+        excluded = self._compute_exclusion()
+        return excluded.state if excluded is not None else 'unknown'
+
+    def __str__(self):
+        return f'{self.module.name} ⊥ {self.name}'

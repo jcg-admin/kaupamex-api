@@ -195,7 +195,8 @@ from .ir_mail_server import (
     is_ascii,
 )
 from .ir_exports import IrExports, IrExportsLine
-from .ir_module import IrModule, IrModuleCategory, IrModuleDependency
+from .ir_module import (IrModule, IrModuleCategory, IrModuleDependency,
+                        IrModuleExclusion)
 from .ir_ui_menu import IrUiMenu
 from .report_layout import ReportLayout
 from .report_paperformat import ReportPaperformat, PAPER_SIZES
@@ -253,6 +254,7 @@ __all__ = [
     'DecimalPrecision',
     'IrModule',
     'IrModuleDependency',
+    'IrModuleExclusion',
     'AvatarMixin',
     'ImageMixin',
     'IrExports',
