@@ -20,6 +20,7 @@ import unicodedata
 from collections import defaultdict
 from collections.abc import Callable, Iterable, MutableSet
 from contextlib import contextmanager
+from difflib import HtmlDiff
 from functools import reduce
 from itertools import islice, repeat, starmap
 
@@ -616,6 +617,86 @@ def get_lang(lang_code=None):
             or installed.order_by('pk').first())
 
 
+#: Los cuatro colores que ``get_diff`` pinta sobre la tabla de ``HtmlDiff``:
+#: quitado y añadido, y su fondo de celda. El primer par es el esquema oscuro
+#: y el segundo el claro, en el orden en que la fuente los declara
+#: (``odoo19c: odoo/tools/misc.py:1746-1747``).
+DIFF_COLORS_DARK = ('#7f2d2f', '#406a2d', '#51232f', '#3f483b')
+DIFF_COLORS_LIGHT = ('#ffc1c0', '#abf2bc', '#ffebe9', '#e6ffec')
+
+#: La hoja de estilo que la fuente inyecta cuando quien llama no trae la suya
+#: (``:1748-1767``). Va como constante y no dentro de la función porque lleva
+#: cuatro marcadores ``%s`` y anidarla en el cuerpo la hacía ilegible.
+DIFF_DEFAULT_STYLE = """
+            <style>
+                .modal-dialog.modal-lg:has(table.diff) {
+                    max-width: 1600px;
+                    padding-left: 1.75rem;
+                    padding-right: 1.75rem;
+                }
+                table.diff { width: 100%%; }
+                table.diff th.diff_header { width: 50%%; }
+                table.diff td.diff_header { white-space: nowrap; }
+                table.diff td.diff_header + td { width: 50%%; }
+                table.diff td { word-break: break-all; vertical-align: top; }
+                table.diff .diff_chg, table.diff .diff_sub, table.diff .diff_add {
+                    display: inline-block;
+                    color: inherit;
+                }
+                table.diff .diff_sub, table.diff td:nth-child(3) > .diff_chg { background-color: %s }
+                table.diff .diff_add, table.diff td:nth-child(6) > .diff_chg { background-color: %s }
+                table.diff td:nth-child(3):has(>.diff_chg, .diff_sub) { background-color: %s }
+                table.diff td:nth-child(6):has(>.diff_chg, .diff_add) { background-color: %s }
+            </style>
+        """
+
+
+def get_diff(data_from, data_to, custom_style=False, dark_color_scheme=False):
+    """≙ ``get_diff`` (``odoo19c: odoo/tools/misc.py:1722-1778``).
+
+    La diferencia entre dos textos, como tabla HTML. El motor es
+    ``difflib.HtmlDiff`` de la biblioteca estándar — el mismo que usa la
+    fuente— con sus mismos parámetros: ``tabsize=2``, ``context=True`` (sólo
+    las líneas que cambian, no el archivo entero) y ``numlines=3``.
+
+    Lo consume ``ServerActionHistoryWizard._compute_code_diff``, que compara
+    el código vigente de una acción con el de una revisión guardada.
+
+    :param data_from: par ``(texto, encabezado)`` del lado izquierdo.
+    :param data_to: par ``(texto, encabezado)`` del lado derecho.
+    :param custom_style: hoja de estilo propia, con su etiqueta ``<style>``.
+    :param dark_color_scheme: si el lector usa el esquema oscuro.
+    :return: la tabla HTML, con su estilo adjunto.
+    """
+    def handle_style(html_diff, custom_style, dark_color_scheme):
+        """Añade a las clases de ``HtmlDiff`` las de Bootstrap 4.
+
+        La biblioteca marca el DOM con clases propias (``diff_header``,
+        ``diff_next``); la fuente les apenda las suyas en vez de reescribir
+        el generador, y aquí igual.
+        """
+        to_append = {
+            'diff_header': 'bg-600 text-light text-center align-top px-2',
+            'diff_next': 'd-none',
+        }
+        for old, new in to_append.items():
+            html_diff = html_diff.replace(old, '%s %s' % (old, new))
+        html_diff = html_diff.replace('nowrap', '')
+        colors = DIFF_COLORS_DARK if dark_color_scheme else DIFF_COLORS_LIGHT
+        html_diff += custom_style or DIFF_DEFAULT_STYLE % colors
+        return html_diff
+
+    diff = HtmlDiff(tabsize=2).make_table(
+        data_from[0].splitlines(),
+        data_to[0].splitlines(),
+        data_from[1],
+        data_to[1],
+        context=True,  # sólo las líneas de la diferencia, no todo el código
+        numlines=3,
+    )
+    return handle_style(diff, custom_style, dark_color_scheme)
+
+
 # Los dos espacios que ``format_amount`` inserta, por su nombre Unicode.
 # Como constantes y no como escape ``\N{...}`` dentro de la f-string: ahí la
 # llave doble que Python exige colisiona con la sintaxis de la propia f-string.
@@ -684,3 +765,31 @@ def remove_accents(input_str: str) -> str:
         return input_str
     nkfd_form = unicodedata.normalize('NFKD', input_str)
     return ''.join(c for c in nkfd_form if not unicodedata.combining(c))
+
+
+class unquote(str):
+    """Cadena cuyo ``repr()`` sale sin comillas ni escapes — ≙ ``unquote``
+    (``odoo19c: odoo/tools/misc.py:723-743``), verbatim.
+
+    El nombre viene del ``unquote`` de Lisp. Sirve para dejar el nombre
+    desnudo de una variable dentro del ``repr()`` de un dict que después se
+    evalúa: sin ella, ``{'test': 'active_id'}`` fija la cadena literal; con
+    ella, ``{'test': active_id}`` deja la referencia por resolver.
+
+    Aquí lo consume ``IrActionsServer._get_children_domain``, que declara el
+    dominio de las hijas con ``model_id`` e ``id`` como nombres a resolver en
+    el contexto del cliente, no como valores del registro actual.
+
+    Úsese con cuidado: ``repr()`` deja de ser reversible, que es justo lo que
+    esta clase busca.
+
+        >>> unquote('active_id')
+        active_id
+        >>> {'test': unquote('active_id')}
+        {'test': active_id}
+    """
+
+    __slots__ = ()
+
+    def __repr__(self):
+        return self

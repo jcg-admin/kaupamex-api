@@ -294,6 +294,14 @@ def check_table_matches_name(models_found=None):
     Sólo mira los modelos que declaran ``_name``: el resto no tiene con qué
     comparar, y contarlos como divergencia sería medir su ausencia, no su
     forma.
+
+    **``_table`` gana sobre la sustitución**, como en la fuente: allá
+    ``model_cls._table = model_cls._name.replace('.', '_')``
+    (``odoo19c: odoo/orm/model_classes.py:266``) es sólo el **default**, y una
+    clase que declara ``_table`` lo sobreescribe. Nueve de los diez modelos de
+    ``ir_actions.py`` lo hacen (``ir.actions.act_window`` → ``ir_act_window``),
+    así que sin honrarlo este check reportaría como divergencia la forma que la
+    referencia declara a propósito.
     """
     if models_found is None:
         _ensure_seeded()
@@ -303,7 +311,7 @@ def check_table_matches_name(models_found=None):
         name = name_of(model)
         if not name:
             continue
-        expected = name.replace('.', '_')
+        expected = model.__dict__.get('_table') or name.replace('.', '_')
         actual = model._meta.db_table
         if expected != actual:
             divergences.append((model._meta.label, name, expected, actual))
