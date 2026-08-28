@@ -21,14 +21,16 @@ class ResCity(models.Model):
         max_length=16, blank=True, default='',
         help_text='Código postal (Odoo zipcode).',
     )
-    country = fields.Many2one(
+    country_id = fields.Many2one(
         'base.ResCountry', on_delete=models.CASCADE, related_name='cities',
         help_text='País (Odoo country_id, requerido).',
+        db_column='country_id',
     )
-    state   = fields.Many2one(
+    state_id   = fields.Many2one(
         'base.ResCountryState', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='cities',
         help_text='Estado/provincia (Odoo state_id, dominio country_id).',
+        db_column='state_id',
     )
 
     class Meta:

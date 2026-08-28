@@ -32,10 +32,11 @@ class AddressStructured(models.Model):
         'base.ResPartner', on_delete=models.CASCADE, related_name='structured',
         help_text='Partner al que pertenece (Odoo _inherit res.partner).',
     )
-    city          = fields.Many2one(
+    city_id       = fields.Many2one(
         'base_address_extended.ResCity', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='addresses',
         help_text='Ciudad del catálogo (Odoo city_id → res.city).',
+        db_column='city_id',
     )
     street_name    = fields.Char(
         max_length=200, blank=True, default='',
@@ -91,5 +92,5 @@ class AddressStructured(models.Model):
         de la ciudad enlazada. ``False`` si no hay ciudad o país sin política."""
         if self.city_id is None:
             return False
-        policy = getattr(self.city.country, 'address_policy', None)
+        policy = getattr(self.city_id.country_id, 'address_policy', None)
         return bool(policy and policy.enforce_cities)
