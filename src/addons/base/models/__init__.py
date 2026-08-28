@@ -94,10 +94,7 @@ from .soft_delete_mixin import (
 )
 from .image_mixin import ImageMixin
 from .avatar_mixin import AvatarMixin
-from .properties_base_definition import (
-    PropertiesBaseDefinition,
-    _clear_definition_cache,
-)
+from .properties_base_definition import PropertiesBaseDefinition
 from .properties_base_definition_mixin import PropertiesBaseDefinitionMixin
 from .decimal_precision import DecimalPrecision
 from .ir_config_parameter import (
@@ -292,7 +289,6 @@ __all__ = [
     'EXTENSION_TO_WEB_MIMETYPES',
     'PropertiesBaseDefinition',
     'PropertiesBaseDefinitionMixin',
-    '_clear_definition_cache',
     'ANY_UNIQUE',
     'AssetError',
     'AssetNotFound',

@@ -8,7 +8,7 @@ Qué problema resuelve
 
 Un campo ``Properties`` guarda pares clave/valor **definidos por el usuario**
 sobre un registro. Su esquema —qué propiedades existen, de qué tipo, con qué
-valores— normalmente vive en el **padre** del registro: en Odoo, las
+valores— normalmente vive en el **padre** del registro: en la referencia, las
 propiedades de una tarea las define su proyecto.
 
 Este modelo cubre el caso en que **no hay padre**: guarda una única fila con
@@ -37,48 +37,78 @@ Dos invariantes que se conservan y por qué
    registros que usan la definición vieja apuntando a un esquema que ya
    describe otra cosa. Se porta como error, no como aviso.
 
-Qué NO se porta, con su medición
-================================
+Los cinco símbolos y su enganche de Django
+==========================================
 
-- **``ormcache``** sobre ``_get_definition_id_for_property_field``: aquí se
-  usa un diccionario de módulo con su función de limpieza. **La razón que esto
-  declaraba caducó** — decía «mismo patrón que ``ir_config_parameter.py``», y
-  ese archivo ya adoptó el decorador real: ``tools/cache.py`` y los
-  contenedores de ``orm/registry.py`` existen desde ``api@c636e68c``
-  (H-API-864). Este archivo debe adoptarlo igual, junto con los cinco símbolos
-  que el gate le reporta ausentes. Registrado como tarea **#126**.
-- **``_compute_display_name``**: compone ``"<Descripción> Properties"``
-  leyendo la descripción del modelo apuntado. Se porta como ``__str__``, con
-  el ``verbose_name`` del modelo Django en el papel del ``_description``.
+Los cinco métodos de la referencia se portan **con su nombre y su firma**, y
+los enganches de Django delegan en ellos — el mismo patrón que
+``ir_config_parameter.py``: así la guarda protege también a quien escriba por
+la vía del ORM de Django.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Referencia
+     - Aquí
+     - Enganche que delega
+   * - ``_compute_display_name``
+     - ``_compute_display_name``
+     - ``__str__``
+   * - ``_check_properties_field_id``
+     - ``_check_properties_field_id``
+     - ``clean``
+   * - ``write``
+     - ``write``
+     - ``save``
+   * - ``_get_definition_for_property_field``
+     - ídem
+     - —
+   * - ``_get_definition_id_for_property_field``
+     - ídem, con ``@ormcache``
+     - —
+
+``ormcache`` adoptado — la razón anterior caducó
+================================================
+
+Hasta ``api@c3e6396a`` este archivo construía un ``_DEFINITION_CACHE`` de
+módulo con su ``_clear_definition_cache()``, y lo justificaba citando a
+``ir_config_parameter.py``. Esa cita ya no vale: aquel archivo adoptó el
+decorador real (H-API-865), y el mecanismo —``tools/cache.py``,
+``tools/lru.py`` y los contenedores de ``orm/registry.py``— existe desde
+``api@c636e68c`` (H-API-864). Se adopta
+``@ormcache("model_name", "field_name", cache='stable')`` y la invalidación
+deja de ser global para ser la de la familia ``stable``.
+
+DIVERGENCIA DE CLAVE, declarada (la misma que ``ir_config_parameter.py``): la
+referencia no nombra la base porque su ``Registry`` es por base de datos y esa
+dimensión va implícita en él. Aquí el registry es el módulo —divergencia de
+enlace declarada en ``tools/cache.py``—, así que el alias entra en la clave:
+``@ormcache('model_name', 'field_name', 'using', ...)``. Sin él dos bases
+compartirían entrada, que es un defecto que la fuente no tiene.
 """
 import logging
 
 import fields
 import models
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models.ir_model import IrModelFields
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from orm import registry
+from tools.cache import ormcache
 
 _logger = logging.getLogger(__name__)
 
 #: ``ttype`` que un campo debe tener para admitir una definición.
 PROPERTIES_TTYPE = 'properties'
 
-#: Caché ``(modelo, campo) → id de definición``. Sustituye al ``ormcache`` de
-#: la referencia (``@ormcache("model_name", "field_name", cache='stable')``,
-#: ``odoo19c: properties_base_definition.py:51``). Pendiente de adoptarlo —
-#: tarea **#126**; el mecanismo ya existe.
-_DEFINITION_CACHE = {}
-
-
-def _clear_definition_cache():
-    """Vacía la caché de definiciones. Llamar tras crear o borrar una fila."""
-    _DEFINITION_CACHE.clear()
-
 
 class PropertiesBaseDefinition(TimeStampedModel):
     """``properties.base.definition`` — la definición de un campo ``Properties``."""
+
+    _name = 'properties.base.definition'
+    _description = 'Properties Base Definition'
 
     properties_field = fields.Many2one(
         IrModelFields, on_delete=models.CASCADE, unique=True,
@@ -104,14 +134,37 @@ class PropertiesBaseDefinition(TimeStampedModel):
                 name='properties_base_definition_unique_field'),
         ]
 
-    def __str__(self):
-        """``_compute_display_name`` — ``"<Modelo> Properties"``."""
-        model_name = getattr(self.properties_field, 'model', '')
-        return f'{model_name} Properties' if model_name else 'Properties'
+    # -- Presentación --------------------------------------------------------
 
-    def clean(self):
-        """``_check_properties_field_id`` — el campo apuntado es ``properties``."""
-        super().clean()
+    def _compute_display_name(self):
+        """``_compute_display_name`` — ``"<Descripción del modelo> Properties"``.
+
+        ≙ ``odoo19c: properties_base_definition.py:25-34``. La fuente lee el
+        ``_description`` del modelo apuntado; aquí se lee el ``_description``
+        portado si el modelo está en el registro por nombre, y si no el
+        propio nombre técnico. Sin modelo apuntado devuelve ``False``, igual
+        que la fuente.
+        """
+        if not self.properties_field_id:
+            return False
+        model_name = getattr(self.properties_field, 'model', '')
+        if not model_name:
+            return False
+        model_cls = registry.MODELS_BY_NAME.get(model_name)
+        description = getattr(model_cls, '_description', None) or model_name
+        return f'{description} Properties'
+
+    def __str__(self):
+        """Enganche de Django — delega en ``_compute_display_name``."""
+        return self._compute_display_name() or 'Properties'
+
+    # -- Validación ----------------------------------------------------------
+
+    def _check_properties_field_id(self):
+        """``_check_properties_field_id`` — el campo apuntado es ``properties``.
+
+        ≙ ``odoo19c: properties_base_definition.py:36-41``.
+        """
         field = self.properties_field
         if field is not None and field.ttype != PROPERTIES_TTYPE:
             raise ValidationError(
@@ -119,39 +172,82 @@ class PropertiesBaseDefinition(TimeStampedModel):
                 f'{field.name!r} es de tipo {field.ttype!r}.'
             )
 
-    def save(self, *args, **kwargs):
+    def clean(self):
+        """Enganche de Django — delega en ``_check_properties_field_id``."""
+        super().clean()
+        self._check_properties_field_id()
+
+    # -- Escritura -----------------------------------------------------------
+
+    def write(self, vals, using=None):
         """``write`` — el campo apuntado no se cambia después de crear.
 
-        Reapuntar la fila dejaría a todos los registros que usan la definición
-        vieja describiendo otra cosa. Ver el docstring del módulo.
+        ≙ ``odoo19c: properties_base_definition.py:43-46``. Reapuntar la fila
+        dejaría a todos los registros que usan la definición vieja
+        describiendo otra cosa. La fuente levanta ``AccessError``; aquí el
+        equivalente del stack es ``PermissionDenied`` — no es una violación de
+        forma del dato sino de permiso sobre el campo.
         """
+        using = using or self._state.db or DEFAULT_DB_ALIAS
+        if 'properties_field' in vals or 'properties_field_id' in vals:
+            raise PermissionDenied(
+                'No se puede cambiar el campo de una definición base.')
+        for field_name, value in vals.items():
+            setattr(self, field_name, value)
+        # ``save`` es quien vacía la familia; no se duplica aquí ni se bypassa
+        # el enganche, para que un mixin futuro siga entrando en la cadena.
+        return self.save(using=using)
+
+    def save(self, *args, **kwargs):
+        """Enganche de Django — corre la guarda de ``write`` y vacía la familia."""
         if self.pk is not None:
             stored = type(self).objects.filter(pk=self.pk).values_list(
                 'properties_field_id', flat=True).first()
             if stored is not None and stored != self.properties_field_id:
-                raise ValidationError(
+                raise PermissionDenied(
                     'No se puede cambiar el campo de una definición base.')
         super().save(*args, **kwargs)
-        _clear_definition_cache()
+        registry.clear_cache('stable')
+
+    def delete(self, *args, **kwargs):
+        """Enganche de Django — vacía la familia tras borrar."""
+        result = super().delete(*args, **kwargs)
+        registry.clear_cache('stable')
+        return result
+
+    # -- Lectura memorizada --------------------------------------------------
 
     @classmethod
-    def definition_id_for(cls, model_name, field_name):
+    def _get_definition_for_property_field(cls, model_name, field_name,
+                                           using=DEFAULT_DB_ALIAS):
+        """``_get_definition_for_property_field`` — la fila, no el id.
+
+        ≙ ``odoo19c: properties_base_definition.py:48-49``.
+        """
+        return cls.objects.using(using).get(
+            pk=cls._get_definition_id_for_property_field(
+                model_name, field_name, using=using))
+
+    @classmethod
+    @ormcache('model_name', 'field_name', 'using', cache='stable')
+    def _get_definition_id_for_property_field(cls, model_name, field_name,
+                                              using=DEFAULT_DB_ALIAS):
         """``_get_definition_id_for_property_field`` — id de la definición.
 
-        La crea si no existe, igual que la fuente: pedir la definición de un
-        campo de propiedades **siempre** debe devolver una, o el campo no se
-        puede editar. Cacheada por ``(modelo, campo)``.
-        """
-        key = (model_name, field_name)
-        if key in _DEFINITION_CACHE:
-            return _DEFINITION_CACHE[key]
+        ≙ ``odoo19c: properties_base_definition.py:51-67``. La crea si no
+        existe, igual que la fuente: pedir la definición de un campo de
+        propiedades **siempre** debe devolver una, o el campo no se puede
+        editar.
 
-        row = cls.objects.filter(
+        El decorador nombra ``using`` además de los dos de la fuente — ver la
+        divergencia de clave declarada en la cabecera del módulo.
+        """
+        row = cls.objects.using(using).filter(
             properties_field__model=model_name,
             properties_field__name=field_name,
         ).first()
         if row is None:
-            field = IrModelFields.objects.filter(
+            field = IrModelFields.objects.using(using).filter(
                 model=model_name, name=field_name).first()
             if field is None:
                 raise ValidationError(
@@ -159,11 +255,5 @@ class PropertiesBaseDefinition(TimeStampedModel):
                     f'{model_name!r}; refleje el modelo antes de pedir su '
                     f'definición de propiedades.'
                 )
-            row = cls.objects.create(properties_field=field)
-        _DEFINITION_CACHE[key] = row.pk
+            row = cls.objects.using(using).create(properties_field=field)
         return row.pk
-
-    @classmethod
-    def definition_for(cls, model_name, field_name):
-        """``_get_definition_for_property_field`` — la fila, no el id."""
-        return cls.objects.get(pk=cls.definition_id_for(model_name, field_name))
