@@ -37,10 +37,11 @@ class MailingSubscription(TimeStampedModel):
     global del ``NewsletterSubscriber`` — en Odoo la suscripcion es por lista.
     """
 
-    contact = fields.Many2one(
+    contact_id = fields.Many2one(
         MailingContact, on_delete=models.CASCADE,
         related_name='subscription_ids',
         help_text='Contacto (Odoo contact_id).',
+        db_column='contact_id',
     )
     mailing_list = fields.Many2one(
         MailingList, on_delete=models.CASCADE,
@@ -76,13 +77,13 @@ class MailingSubscription(TimeStampedModel):
         verbose_name_plural = 'Suscripciones a listas de correo'
         constraints = [
             models.UniqueConstraint(
-                fields=['contact', 'mailing_list'],
+                fields=['contact_id', 'mailing_list'],
                 name='unique_mailing_subscription',
             ),
         ]
 
     def __str__(self) -> str:
-        return f'{self.contact_id}→{self.mailing_list_id} (opt_out={self.opt_out})'
+        return f'{self.contact_id_id}→{self.mailing_list_id} (opt_out={self.opt_out})'
 
     @property
     def is_pending(self) -> bool:
