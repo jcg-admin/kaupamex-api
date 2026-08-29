@@ -1,5 +1,5 @@
 /*
- * pdf_receipt.c — PracticaYoruba PDF receipt generator (UC-PAY-10).
+ * pdf_receipt.c — PDF receipt generator
  *
  * Reads a JSON receipt descriptor from stdin and writes a PDF document to
  * stdout, generated with libharu (libhpdf 2.3.0). See ADR-017

@@ -1,5 +1,5 @@
 /*
- * pdf_report.c — PracticaYoruba PDF report table generator (UC-RPT-04 / UC-REP-05).
+ * pdf_report.c — PDF report table generator
  *
  * Reads a JSON report descriptor from stdin and writes a PDF document to
  * stdout, generated with libharu (libhpdf 2.3.0). Sibling of pdf_receipt.c;
