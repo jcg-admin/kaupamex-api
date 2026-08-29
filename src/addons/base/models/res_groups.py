@@ -102,6 +102,7 @@ from django.core.exceptions import ValidationError
 from addons.base.models.res_groups_privilege import ResGroupsPrivilege
 from addons.base.models.res_users import ResUsers
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from orm.utils import SUPERUSER_ID
 
 _logger = logging.getLogger(__name__)
 
@@ -202,6 +203,42 @@ class ResGroups(TimeStampedModel):
             seen.add(group.pk)
             queue.extend(edge(group))
         return seen
+
+    # === Bandera de funcionalidad =========================================
+
+    @classmethod
+    def _is_feature_enabled(cls, group_reference):
+        """¿Está activa la funcionalidad que ese grupo representa?
+
+        ≙ ``_is_feature_enabled`` (``odoo19c: base/models/res_groups.py:378-380``),
+        que es ``self.env['res.users'].sudo().browse(api.SUPERUSER_ID)._has_group(...)``.
+
+        La pregunta NO es "¿puede el usuario actual?" sino "¿está encendida la
+        funcionalidad en esta instalación?". Por eso interroga al superusuario
+        y no al que hace la petición: un grupo de configuración —p. ej.
+        ``sale.group_discount_per_so_line``— actúa como interruptor, y su
+        estado no depende de quién mire. Un usuario sin el grupo vería la
+        funcionalidad apagada, que es la lectura contraria.
+
+        ``group_reference`` es el identificador externo totalmente calificado
+        (``modulo.ext_id``), igual que en la fuente.
+
+        Devuelve ``False`` cuando el superusuario no existe todavía —una base
+        recién migrada antes de la siembra—. Ahí la funcionalidad tampoco
+        está encendida, así que el valor es el correcto y no un rodeo: lo que
+        se evita es reventar durante el arranque.
+
+        Es ``classmethod`` porque no interroga a ningún grupo concreto: la
+        fuente lo declara ``@api.model``, que es su equivalente exacto — un
+        método del modelo, no del registro.
+
+        ``ResUsers`` se importa al top de este módulo (``:103``), así que aquí
+        no hace falta resolverlo por el registro de apps.
+        """
+        superuser = ResUsers.objects.filter(pk=SUPERUSER_ID).first()
+        if superuser is None:
+            return False
+        return superuser.has_group(group_reference)
 
     @property
     def all_implied_ids(self):

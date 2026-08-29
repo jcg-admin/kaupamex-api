@@ -392,8 +392,73 @@ def add_field_if_absent(model, name, field):
     return True
 
 
+def add_meta_index(model, index):
+    """Cuelga un ``models.Index`` del ``Meta`` de un model ajeno.
+
+    Es lo que ``extend_model(campos=…)`` no alcanza: ``add_to_class`` instala
+    la columna y no toca ``_meta.indexes``. La referencia sí lo alcanza, porque
+    allá el índice es un atributo del propio campo (``index='btree_not_null'``),
+    y aquí es una entrada del ``Meta`` del model — que pertenece a otro addon.
+
+    **Las DOS escrituras son necesarias, y la segunda no es opcional.**
+    ``ModelState.from_model`` sólo lee ``model._meta.indexes`` si el nombre
+    ``indexes`` figura en ``model._meta.original_attrs``
+    (``django/db/migrations/state.py:839``), que es el registro de qué opciones
+    declaró el ``class Meta`` del model. Un model cuyo ``Meta`` nunca declaró
+    ``indexes`` no lo tiene, así que el autodetector leería una lista vacía y
+    **propondría borrar el índice en cada `makemigrations`** — un rojo perpetuo
+    que además no cuesta nada evitar. Declararlo en ``original_attrs`` es
+    exactamente lo que habría hecho escribir ``indexes = [...]`` en el ``Meta``.
+
+    Idempotente por nombre: ``ready()`` puede correr más de una vez en tests que
+    recargan el registro de apps, y un índice repetido saldría dos veces en la
+    migración propuesta.
+
+    Devuelve ``True`` si lo añadió — para que el llamador pueda medir.
+    """
+    if any(i.name == index.name for i in model._meta.indexes):
+        return False
+    model._meta.indexes = list(model._meta.indexes) + [index]
+    model._meta.original_attrs['indexes'] = model._meta.indexes
+    return True
+
+
+def extend_selection_choices(model, field_name, extra):
+    """Amplia en sitio los ``choices`` de un campo ya declarado — ≙ ``selection_add``.
+
+    ``extra`` es la lista de pares ``(valor, etiqueta)`` que el addon suma al
+    vocabulario que otro ya declaró. Es exactamente lo que la referencia
+    expresa redeclarando el campo con ``selection_add=``: **amplia**, no
+    sustituye, y por eso preserva los valores del declarante original.
+
+    No genera migracion. ``choices`` no es DDL: PostgreSQL guarda el valor en
+    la misma columna de texto, y ``Field.validate()`` consulta la lista viva en
+    cada llamada, asi que la ampliacion es efectiva desde el momento en que
+    corre. Lo unico que puede necesitar migracion es el ``max_length`` del
+    campo, si el valor nuevo no cupiera — quien amplie lo comprueba.
+
+    Idempotente por pertenencia: ``ready()`` puede correr mas de una vez en
+    tests que recargan el registro de apps, y un valor repetido en ``choices``
+    sale duplicado en todo selector que lo lea.
+
+    Devuelve los valores realmente agregados, para que el llamador pueda medir
+    en vez de suponer.
+    """
+    field = model._meta.get_field(field_name)
+    present = {value for value, _label in field.choices}
+    added = []
+    for value, label in extra:
+        if value in present:
+            continue
+        field.choices = list(field.choices) + [(value, label)]
+        present.add(value)
+        added.append(value)
+    return added
+
+
 def extend_model(*destino, campos=None, metodos=None,
-                 propiedades=None, luego=None):
+                 propiedades=None, selection_add=None, indexes=None,
+                 luego=None):
     """Extiende un modelo cuando exista — ≙ ``_inherit``.
 
     El destino se nombra de una de las dos formas, y la primera es la de la
@@ -418,9 +483,18 @@ def extend_model(*destino, campos=None, metodos=None,
     ``propiedades``
         ``{nombre: función}`` — instaladas como ``property``, para los
         ``compute`` sin ``store`` de la referencia. No pisa una existente.
+    ``selection_add``
+        ``{nombre_campo: [(valor, etiqueta), …]}`` — ≙ el ``selection_add=``
+        de la referencia, vía :func:`extend_selection_choices`. Amplía el
+        vocabulario de un ``fields.Selection`` ya declarado sin redeclararlo,
+        que es lo que preserva los valores de quien lo declaró primero.
+    ``indexes``
+        ``[models.Index(…), …]`` — ≙ el ``index=`` que la referencia declara
+        como atributo del campo, vía :func:`add_meta_index`. Es lo que hay que
+        usar cuando el addon aporta la columna y el ``Meta`` es de otro addon.
     ``luego``
-        ``f(modelo)`` — escotilla para lo que no cae en los tres anteriores
-        (índices, constraints, receptores de señal).
+        ``f(modelo)`` — escotilla para lo que no cae en los cuatro anteriores
+        (constraints, receptores de señal).
 
     **No devuelve el modelo**: en el caso interesante todavía no existe. Quien
     necesite la clase la pide dentro de ``luego``, que la recibe como argumento.
@@ -433,6 +507,10 @@ def extend_model(*destino, campos=None, metodos=None,
         for nombre, funcion in (propiedades or {}).items():
             if not hasattr(modelo, nombre):
                 setattr(modelo, nombre, property(funcion))
+        for nombre, extra in (selection_add or {}).items():
+            extend_selection_choices(modelo, nombre, extra)
+        for indice in (indexes or ()):
+            add_meta_index(modelo, indice)
         if luego is not None:
             luego(modelo)
 

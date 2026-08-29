@@ -231,8 +231,10 @@ class AccountAnalyticApplicability(models.Model):
         choices=[('general', 'Miscelánea')],
         verbose_name='Dominio de negocio',
         help_text=(
-            'Odoo business_domain; único valor en la referencia base '
-            '(otros addons de Odoo extienden la selección — no aplica aquí).'
+            'Odoo business_domain; único valor que declara la raíz '
+            'analytic. Otros addons amplían el vocabulario con '
+            'extend_model(selection_add=…) ≙ selection_add: account suma '
+            'invoice y bill, sale suma sale_order.'
         ),
     )
     applicability = fields.Selection(

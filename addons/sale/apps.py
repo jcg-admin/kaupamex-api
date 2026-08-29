@@ -16,6 +16,15 @@ class SaleConfig(AppConfig):
         # excepción #4 sancionada para ``ready()``.
         importlib.import_module(f'{self.name}.models.res_company') \
             .apply_sale_extensions()
+        # Lo que ``sale`` cuelga sobre la familia analitica: el ``so_line``
+        # de ``account.analytic.line`` y el ``selection_add`` de
+        # ``business_domain`` — ≙ ``sale/models/analytic.py`` de la fuente.
+        importlib.import_module(f'{self.name}.models.analytic') \
+            .apply_sale_analytic_extensions()
+        # La bandera de descuento por linea de pedido: dos metodos sobre
+        # ``product.pricelist.item`` — ≙ ``sale/models/product_pricelist_item.py``.
+        importlib.import_module(f'{self.name}.models.product_pricelist_item') \
+            .apply_sale_pricelist_item_extensions()
         # Inscribe el resolutor de audiencia "compradores de un producto" en
         # el registro de ``mail`` (T-035).
         importlib.import_module(f'{self.name}.audience')
