@@ -69,9 +69,17 @@ def _resolve_path(path, context):
     # ``in="order.order_line.all"`` — la resolución de variables de DTL, la
     # misma que un ``{{ }}`` usa por dentro (llama callables sin argumentos,
     # p. ej. managers .all).
+    #
+    # ``AttributeError`` entra en la guarda a propósito, y no es defensa
+    # genérica: DTL degrada a ``string_if_invalid`` en dos ramas —el callable
+    # que exige argumentos (``django/template/base.py:1009-1011``) y el que
+    # lleva ``alters_data`` (``:996-997``)— y ese valor vive en el motor, que
+    # un ``Context`` suelto no tiene. Sin la guarda, las dos ramas escapan
+    # como ``AttributeError: 'NoneType' object has no attribute 'engine'``,
+    # que no dice nada del descriptor que lo causó.
     try:
         return Variable(path).resolve(context)
-    except VariableDoesNotExist as e:
+    except (VariableDoesNotExist, AttributeError) as e:
         raise InvalidReportTemplate(
             _("Cannot resolve list path %r in report template") % path
         ) from e

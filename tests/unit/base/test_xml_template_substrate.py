@@ -170,3 +170,58 @@ class TestOurInterpreterIsXmlAndExtensible:
         source = Path('src/tools/template_inheritance.py').read_text()
         assert 'xpath' in source.lower()
         assert 'from lxml import etree' in source
+
+
+class TestTheListPathDegradesWithoutAnEngine:
+    """Las dos ramas de DTL que exigen un motor, y aquí no hay ninguno.
+
+    ``_resolve_path`` usa el resolutor de DTL suelto —``Variable(path).resolve``
+    sobre un ``Context`` sin plantilla— porque el descriptor no es una
+    plantilla de texto. En dos ramas DTL no devuelve un valor sino que degrada
+    a ``string_if_invalid``, y ése vive en ``context.template.engine``: sin
+    plantilla ligada, las dos revientan con un ``AttributeError`` que no
+    nombra al descriptor culpable.
+
+    *Métrica:* la excepción que sale de ``interpret_descriptor`` para un
+    ``in=`` que apunta a un callable de esas dos clases.
+    *Ciega a:* cualquier otra rama de ``_resolve_lookup`` que también toque el
+    motor y que estos dos casos no ejerciten.
+    """
+
+    def _arch(self, path):
+        return etree.fromstring(
+            '<descriptor><list name="rows" in="%s">'
+            '<field name="x">y</field></list></descriptor>' % path)
+
+    def test_a_callable_that_needs_an_argument_is_a_template_error(self):
+        with pytest.raises(InvalidReportTemplate, match='needs_arg'):
+            report_template.interpret_descriptor(
+                self._arch('needs_arg'), {'needs_arg': (lambda x: [x])})
+
+    def test_a_callable_marked_alters_data_is_too(self):
+        """El más incómodo: la guarda de DTL *sí* dispara, y luego se cae.
+
+        ``alters_data`` es el mecanismo con que DTL se niega a llamar a un
+        método que escribe. Se niega correctamente y acto seguido busca el
+        motor para degradar — así que la protección funcionaba y el fallo
+        llegaba como un error opaco en vez de como un descriptor inválido.
+        """
+        def deletes_rows():
+            return 'no deberia ejecutarse'
+        deletes_rows.alters_data = True
+
+        with pytest.raises(InvalidReportTemplate, match='deletes_rows'):
+            report_template.interpret_descriptor(
+                self._arch('deletes_rows'), {'deletes_rows': deletes_rows})
+
+    def test_a_callable_without_arguments_still_resolves(self):
+        """Control positivo: la guarda nueva no se come el camino que sí anda.
+
+        Es la rama que el intérprete usa de verdad —``in="order.lines.all"``
+        es un manager sin argumentos—, así que si esta cae, la guarda está
+        atrapando de más.
+        """
+        output = report_template.interpret_descriptor(
+            self._arch('rows.all'),
+            {'rows': type('M', (), {'all': staticmethod(lambda: [1, 2])})()})
+        assert len(output['rows']) == 2
