@@ -198,6 +198,94 @@ def chain_method(cls, name, func, combine=None):
     setattr(cls, name, wrapper(chained) if wrapper else chained)
 
 
+
+def wrap_method(cls, name, func):
+    """Instala ``func`` con la implementación previa EN LA MANO — ≙ ``super()``.
+
+    Es la tercera semántica de este módulo, y la que las otras dos no pueden
+    expresar. :func:`chain_method` decide **por el resultado** cuándo invocar
+    la previa: relevo perezoso si la nueva devolvió ``None``, o ``combine`` que
+    invoca las dos y funde. En los dos casos el orden lo fija el mecanismo, y
+    la nueva corre **primero**.
+
+    La referencia tiene una familia entera donde eso no sirve, porque el
+    override necesita el resultado de ``super()`` **como insumo**::
+
+        # odoo19c: sale/models/ir_config_parameter.py:12-15
+        def create(self, vals_list):
+            configs = super().create(vals_list)
+            configs._sale_sync_linked_crons()
+            return configs
+
+    Aquí ``super()`` va primero y lo que sigue opera sobre lo que devolvió. Y
+    tres líneas más abajo, en el mismo archivo, el orden es el contrario::
+
+        # odoo19c: sale/models/ir_config_parameter.py:22-24
+        def unlink(self):
+            self._sale_sync_linked_crons(unlink=True)
+            return super().unlink()
+
+    Dos órdenes distintos en dos métodos del mismo override: ningún mecanismo
+    que fije el orden puede replicar los dos. Lo único que los cubre es
+    entregarle a ``func`` la previa y dejar que la llame donde su fuente llama
+    a ``super()``.
+
+    **La firma de ``func`` lleva ``previous`` justo después del primer
+    argumento**, y llega ya ligada al receptor: el cuerpo la invoca con los
+    mismos argumentos que la fuente le pasa a ``super()``, sin repetir ``self``::
+
+        def create(cls, previous, vals_list, using=DEFAULT_DB_ALIAS):
+            configs = previous(vals_list, using=using)   # ≙ super().create(…)
+            ...
+
+    Para un ``@staticmethod`` no hay receptor y ``previous`` es el primer
+    argumento.
+
+    Es idempotente por el mismo recorrido de marcas que :func:`chain_method`, y
+    preserva el descriptor previo igual que él.
+
+    :raises TypeError: si no hay implementación previa. ``super()`` sobre un
+        método que la base no declara es un error en la fuente también; callarlo
+        dejaría a ``func`` con una ``previous`` que revienta al invocarse, y el
+        fallo aparecería lejos de su causa.
+    """
+    new_wrapper = None
+    if isinstance(func, (classmethod, staticmethod)):
+        new_wrapper = type(func)
+        func = func.__func__
+
+    previous, wrapper = _previous_of(cls, name)
+    if _already_in_chain(previous, func):
+        return
+    if previous is None:
+        raise TypeError(
+            f'{cls.__name__}.{name} no tiene implementación previa: '
+            f'wrap_method entrega un super() y aquí no hay a quién entregar. '
+            f'Si el método es nuevo, va por chain_method.')
+    if new_wrapper is not None and new_wrapper is not wrapper:
+        raise TypeError(
+            f'{cls.__name__}.{name} está declarado como '
+            f'{wrapper.__name__ if wrapper else "método de instancia"} y func '
+            f'llega como {new_wrapper.__name__}: la firma no coincidiría.')
+
+    if wrapper is staticmethod:
+        @functools.wraps(func)
+        def wrapped(*args, **kwargs):
+            return func(previous, *args, **kwargs)
+    else:
+        # ``first`` es ``self`` o ``cls`` según el descriptor; ``previous``
+        # llega ligada a él para que el cuerpo escriba ``previous(args)`` allí
+        # donde la fuente escribe ``super().metodo(args)``.
+        @functools.wraps(func)
+        def wrapped(first, *args, **kwargs):
+            return func(first, functools.partial(previous, first),
+                        *args, **kwargs)
+
+    setattr(wrapped, _ORIGIN, func)
+    setattr(wrapped, _PREVIOUS, previous)
+    setattr(cls, name, wrapper(wrapped) if wrapper else wrapped)
+
+
 def extend_list(new, previous):
     """``combine`` para hooks que acumulan — ≙ ``super()[...] + [propio]``.
 

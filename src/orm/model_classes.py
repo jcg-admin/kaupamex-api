@@ -86,7 +86,7 @@ from django.dispatch import receiver
 
 from django.apps import apps
 
-from orm.method_chain import chain_method
+from orm.method_chain import chain_method, wrap_method
 from orm.registry import resolve_model_key
 
 __all__ = [
@@ -456,7 +456,7 @@ def extend_selection_choices(model, field_name, extra):
     return added
 
 
-def extend_model(*destino, campos=None, metodos=None,
+def extend_model(*destino, campos=None, metodos=None, overrides=None,
                  propiedades=None, selection_add=None, indexes=None,
                  luego=None):
     """Extiende un modelo cuando exista — ≙ ``_inherit``.
@@ -478,8 +478,23 @@ def extend_model(*destino, campos=None, metodos=None,
     ``campos``
         ``{nombre: field}`` — vía :func:`add_field_if_absent`.
     ``metodos``
-        ``{nombre: función}`` — vía ``chain_method``, que preserva la
-        implementación previa (el ``super()`` que este idioma no tiene).
+        ``{nombre: función}`` — vía ``chain_method``: el mecanismo decide
+        cuándo invocar la previa (relevo por ``None``, o ``combine``), y la
+        nueva corre primero.
+    ``overrides``
+        ``{nombre: función}`` — vía :func:`~orm.method_chain.wrap_method`: la
+        previa llega **en la mano**, ligada al receptor, como segundo
+        argumento de ``func``. Es la forma del override que necesita el
+        resultado de ``super()`` como insumo, o que hace su trabajo **antes**
+        de delegar. La referencia usa las dos en el mismo archivo
+        (``odoo19c: sale/models/ir_config_parameter.py`` — ``create`` delega
+        primero, ``unlink`` delega último), así que ningún mecanismo que fije
+        el orden las cubre.
+
+        Su nombre va en inglés porque es un identificador nuevo
+        (``identificadores-en-ingles.md``). Los cinco hermanos están en
+        español como deuda heredada congelada: renombrarlos toca 135 sitios de
+        llamada y es el barrido de la tarea **#147**, no un pago al tocar.
     ``propiedades``
         ``{nombre: función}`` — instaladas como ``property``, para los
         ``compute`` sin ``store`` de la referencia. No pisa una existente.
@@ -504,6 +519,8 @@ def extend_model(*destino, campos=None, metodos=None,
             add_field_if_absent(modelo, nombre, field)
         for nombre, funcion in (metodos or {}).items():
             chain_method(modelo, nombre, funcion)
+        for nombre, funcion in (overrides or {}).items():
+            wrap_method(modelo, nombre, funcion)
         for nombre, funcion in (propiedades or {}).items():
             if not hasattr(modelo, nombre):
                 setattr(modelo, nombre, property(funcion))
