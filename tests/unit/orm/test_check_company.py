@@ -203,7 +203,7 @@ class TestTheHookFromSave:
     recalcula su empresa desde el equipo, ``certificate.certificate``
     recalcula el campo marcado desde el contenido, ``res.partner`` no declara
     empresa, y los cuatro asistentes de ``account`` no declaran ningún campo—.
-    Eso es un hallazgo del porte, no de este mecanismo: ver H-API-893.
+    Eso es un hallazgo del porte, no de este mecanismo: ver H-API-897.
 
     Lo que sí se afirma es lo que hay que afirmar de un enganche: que corre,
     con qué argumento, y sólo cuando el interruptor está encendido.

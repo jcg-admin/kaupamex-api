@@ -41,6 +41,21 @@ DESTINO = debian/kaupamex-api/opt/kaupamex/api
 # instalacion: control de versiones, cache de Python, pruebas y el entorno
 # virtual de desarrollo (el del paquete se construye en postinst, contra el
 # interprete de la maquina destino).
+#
+# `src/.env` se excluye por SEGURIDAD, y es la exclusion mas importante de la
+# lista. No esta versionado —lo produce cada maquina— pero rsync no mira el
+# .gitignore: lee el disco. Medido antes de esta linea: el .env de la maquina
+# de construccion viajaba dentro del paquete con SECRET_KEY, DB_PASSWORD y
+# ADMIN_PASSWORD en claro, legibles con `dpkg-deb -c`.
+#
+# Y ademas rompia el mecanismo de configuracion: `postinst` enlaza
+# src/.env -> /etc/kaupamex/kaupamex.conf sólo `if [ ! -e ]`, asi que con el
+# archivo ya presente el enlace NUNCA se creaba y la instalacion arrancaba
+# leyendo la configuracion de OTRA maquina. Los dos defectos se refuerzan: el
+# segundo esconde al primero, porque el producto arranca y parece sano.
+#
+# `.env.example` y `.env.example.dev` SI viajan: son plantillas, no secretos.
+# Ver H-API-898.
 override_dh_auto_install:
 	mkdir -p $(DESTINO)
 	rsync -a \
@@ -48,6 +63,7 @@ override_dh_auto_install:
 	    --exclude='tests' --exclude='debian' --exclude='.github' \
 	    --exclude='src/tools/pdf/build' \
 	    --exclude='.claude' --exclude='.gitignore' --exclude='.gitattributes' \
+	    --exclude='src/.env' \
 	    --exclude='.githooks' \
 	    ./ $(DESTINO)/
 	chmod 0755 $(DESTINO)/kaupamex-bin
