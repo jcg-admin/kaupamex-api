@@ -19,8 +19,10 @@ referencia misma, y el porte respeta esa diferencia:
   precedente "formulario, no tabla" ya fijado en este arbol para
   ``AbstractModel``).
 
-Cobertura del porte -- 45 de 45 simbolos (forma), 3 BLOQUEADOS (comportamiento)
-=================================================================================
+Cobertura del porte -- Porte BLOQUEADO — 44 de 45 símbolos
+===========================================================
+
+Los 45 simbolos estan en forma; uno solo no corre.
 
 .. list-table::
    :header-rows: 1
@@ -30,8 +32,8 @@ Cobertura del porte -- 45 de 45 simbolos (forma), 3 BLOQUEADOS (comportamiento)
      - Estado
    * - ``AccountInvoiceReport``
      - 33 atributos (6 de clase de modelo + 27 campos) + 5 metodos
-     - forma completa; ``_table_query``/``_select``/``_from``/``_where``/
-       ``_read_group_select`` **BLOQUEADOS** en tiempo de ejecucion
+     - portado; ``_read_group_select`` BLOQUEADO por ``read_group`` — el
+       override no tiene despachador base al que engancharse.
    * - ``ReportAccountReportInvoice``
      - 3 de la fuente (``_name``, ``_description``, 1 metodo) -> 2 aqui
        (``REPORT_NAME`` colapsa los dos primeros + 1 metodo)
@@ -52,51 +54,61 @@ mangled de su fuente ``ReportBaseReport_Irmodulereference``) -- el gate no
 las empareja por eso, y esta bien: no son modelos Django, su cabecera de
 ORM no aplica.
 
-**Por que ``AccountInvoiceReport`` esta BLOQUEADO -- con las citas exactas.**
-El nucleo de ``_select``/``_from`` depende de
-``ResCurrency._get_simple_currency_table(companies)``
-(``odoo19c: addons/account/models/res_currency.py:42-50``), que a su vez
-llama ``_create_currency_table`` (``:74-``): una tabla temporal con
-tasas de cambio por periodo, ventanas de fecha y CTAS. Es un mecanismo de
-varias decenas de lineas que vive en ``addons/account/models/res_currency.py``
--- explicitamente fuera de mi alcance de escritura en la tarea #398 (todo
-``addons/account/models/**``). Inventar aqui un atajo de conversion de
-moneda para una vista de reporte financiero seria fabricar comportamiento
-no verificado contra la referencia, exactamente lo que
-``referencia-odoo-gobierna-las-decisiones.md`` prohibe.
+**Los cuatro productores de SQL estan PORTADOS (2026-08-29).** El bloqueo
+que este docstring declaraba -- ``ResCurrency._get_simple_currency_table``
+ausente -- se cerro con la tarea #511: los ocho metodos de la tabla de
+divisas viven en ``addons/account/models/res_currency.py`` y
+``_from()`` los invoca. ``_table_query``, ``_select``, ``_from`` y
+``_where`` son hoy el porte verbatim de la fuente.
 
-Ademas, ``_read_group_select`` depende de
-``self._field_to_sql(self._table, 'quantity', query)`` -- un metodo del ORM
-BASE de Odoo (``odoo/orm/models.py``), sin analogo en el ORM de Django (que
-no tiene mecanismo de override de agregacion por campo). Ese hueco es del
-ORM espejado (``src/orm`` vs ``odoo/orm``), no de este addon -- tarea
-**#291**, ya referenciada en otras partes de este arbol para el mismo tipo
-de brecha.
+**Lo que sigue sin correr, y su dueno cambio.** ``_read_group_select`` esta
+BLOQUEADO por ``read_group`` — la fuente
+llama ``super()._read_group_select(...)`` para todo agregado que no sea
+``price_average``. Medido: **0 declaraciones** de ``read_group`` en
+``src/orm``. Lo que NO lo bloquea es ``_field_to_sql`` -- ese si existe
+(``src/orm/models.py:1388``, misma firma que la fuente), asi que la cita a
+la tarea #291 que este docstring hacia era falsa. Sucesor correcto: tarea
+**#473**.
 
-El bloqueo es ruidoso, no vacio: los cinco metodos levantan
-``NotImplementedError`` citando exactamente que falta, en vez de devolver
-SQL vacio o una vista que arranca pero miente sobre los numeros -- que en
-un reporte financiero es peor que no arrancar.
+**La MIGRACION de la vista sigue pendiente, y su bloqueo esta medido.** El
+SQL portado lee 14 columnas que las dos tablas de asiento todavia no
+declaran -- medido contra el esquema vivo:
+
+- ``account_move_line`` (6 de 14 presentes): faltan ``product_id``,
+  ``journal_id``, ``company_id``, ``company_currency_id``, ``partner_id``,
+  ``price_subtotal``, ``price_total``, ``product_uom_id``.
+- ``account_move`` (4 de 10 presentes): faltan ``invoice_user_id``,
+  ``fiscal_position_id``, ``invoice_date``, ``invoice_date_due``,
+  ``invoice_currency_rate``, ``commercial_partner_id``.
+
+Las otras cinco tablas que el ``FROM`` toca estan completas para este SQL:
+``res_partner.country_id``, ``product_product.{product_tmpl_id,
+standard_price}``, ``product_template.{categ_id, uom_id}``,
+``uom_uom.factor`` y ``account_account.account_type`` -- 8 de 8.
+
+Sin esas 14 columnas, ``CREATE OR REPLACE VIEW`` fallaria en el
+``migrate``, y una vista que arranca a medias en un reporte financiero es
+peor que una vista ausente. El ``RunSQL`` se emite cuando existan; el
+precedente de forma es ``src/addons/base/migrations/0004_resdevice.py``.
+Sucesor registrado: tarea **#989**.
+
+*Metrica:* columnas de la sentencia ``_select``/``_from`` cruzadas contra
+``Model._meta.get_fields()`` del esquema vivo (``django.setup()``).
+*Ciega a:* el tipo y la nulabilidad de la columna -- comprueba que el
+nombre resuelva, no que su forma coincida con la de la fuente.
 
 **Que SI se porta, completo.** Los 27 campos y los 6 atributos de clase de
 modelo (``_name``, ``_description``, ``_auto``, ``_rec_name``, ``_order``,
-``_depends``) son forma pura -- no dependen de ninguna pieza bloqueada, y
-describen el contrato completo de la vista para cuando el bloqueo se
-resuelva. Sin migracion todavia: crear la tabla ``account_invoice_report``
-sin poder llenarla con la conversion de moneda correcta produciria una
-vista vacia o rota en silencio; no se emite hasta que ``_select``/``_from``
-dejen de estar bloqueados.
-
-Sucesor registrado: tarea **#511** (portar
-``ResCurrency._get_simple_currency_table`` en
-``addons/account/models/res_currency.py``, y con eso completar
-``_select``/``_from``/``_where`` + la migracion ``RunSQL`` de la vista;
-depende a su vez de la tarea #291 para ``_read_group_select``).
+``_depends``) son forma pura y describen el contrato completo de la vista.
 """
 import fields
 import models
 
 from addons.account.models.account_move import AccountMove
+from addons.base.models.res_company import ResCompany
+from addons.base.models.res_currency import ResCurrency
+from orm.environments import get_current_companies
+from tools.sql import SQL
 
 #: Subconjunto de ``AccountMove.MOVE_TYPES`` que aplica a este reporte --
 #: solo los cuatro tipos de documento de factura/nota de credito
@@ -278,76 +290,135 @@ class AccountInvoiceReport(models.Model):
 
     @property
     def _table_query(self):
-        """>= ``_table_query`` (``odoo19c: :78-80``): la vista completa.
+        """≙ ``_table_query`` (``odoo19c: :78-80``): la vista completa.
 
-        BLOQUEADO -- ver el docstring del modulo. La fuente compone
-        ``_select() + _from() + _where()``; aqui la composicion en si no
-        es el problema (una simple concatenacion de strings basta, ver el
-        precedente de ``src/addons/base/migrations/0004_resdevice.py``) --
-        el problema es que ``_from()`` no puede completarse sin
-        ``ResCurrency._get_simple_currency_table``.
+        La fuente compone ``_select() + _from() + _where()`` con un ``SQL`` de
+        tres marcadores. Aquí igual: la clase ``SQL`` de ``tools.sql`` es el
+        porte fiel de la de la referencia y compone anidando.
         """
-        raise NotImplementedError(
-            'AccountInvoiceReport._table_query esta BLOQUEADO: depende de '
-            '_from(), que depende de ResCurrency._get_simple_currency_table '
-            '(addons/account/models/res_currency.py, fuera de mi alcance de '
-            'escritura en la tarea #398). Ver hallazgo H-API-682, sucesor: '
-            'tarea #511.'
-        )
+        return SQL('%s %s %s', self._select(), self._from(), self._where())
 
     @classmethod
     def _select(cls):
-        """>= ``_select`` (``odoo19c: :81-``). BLOQUEADO -- depende de
-        ``account_currency_table.rate``, que produce ``_from()``.
+        """≙ ``_select`` (``odoo19c: :81-127``).
+
+        Verbatim de la fuente. Las columnas monetarias se multiplican por
+        ``account_currency_table.rate``, la tasa que produce ``_from()``: sin
+        ella un reporte multi-empresa sumaría importes de divisas distintas
+        como si fueran la misma.
         """
-        raise NotImplementedError(
-            'AccountInvoiceReport._select esta BLOQUEADO: casi todas sus '
-            'columnas (price_subtotal, price_average, price_margin, '
-            'inventory_value...) leen account_currency_table.rate, que solo '
-            'existe si _from() resuelve la tabla de moneda. Ver _from() y '
-            'el docstring del modulo. Sucesor: tarea #511.'
+        return SQL(
+            '''
+            SELECT
+                line.id,
+                line.move_id,
+                line.product_id,
+                line.account_id,
+                line.journal_id,
+                line.company_id,
+                line.company_currency_id,
+                line.partner_id AS commercial_partner_id,
+                account.account_type AS user_type,
+                move.state,
+                move.move_type,
+                move.partner_id,
+                move.invoice_user_id,
+                move.fiscal_position_id,
+                move.payment_state,
+                move.invoice_date,
+                move.invoice_date_due,
+                uom_template.id                                             AS product_uom_id,
+                template.categ_id                                           AS product_categ_id,
+                line.quantity * COALESCE(uom_line.factor, 1) / NULLIF(COALESCE(uom_template.factor, 1), 0.0) * (CASE WHEN move.move_type IN ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1 END)
+                                                                            AS quantity,
+                line.price_subtotal * (CASE WHEN move.move_type IN ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1 END)
+                                                                            AS price_subtotal_currency,
+                -line.balance * account_currency_table.rate                         AS price_subtotal,
+                line.price_total * (CASE WHEN move.move_type IN ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1 END)
+                / move.invoice_currency_rate
+                                                                            AS price_total,
+                line.price_total * (CASE WHEN move.move_type IN ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1 END)
+                                                                            AS price_total_currency,
+                -COALESCE(
+                   -- Average line price
+                   (line.balance / NULLIF(line.quantity, 0.0)) * (CASE WHEN move.move_type IN ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1 END)
+                   -- convert to template uom
+                   / NULLIF(COALESCE(uom_line.factor, 1), 0.0) * COALESCE(uom_template.factor, 1),
+                   0.0) * account_currency_table.rate                               AS price_average,
+                CASE
+                    WHEN move.move_type NOT IN ('out_invoice', 'out_receipt', 'out_refund') THEN 0.0
+                    WHEN move.move_type = 'out_refund' THEN account_currency_table.rate * (-line.balance + (line.quantity * COALESCE(uom_line.factor, 1) / NULLIF(COALESCE(uom_template.factor, 1), 0.0)) * COALESCE(product.standard_price -> line.company_id::text, to_jsonb(0.0))::float)
+                    ELSE account_currency_table.rate * (-line.balance - (line.quantity * COALESCE(uom_line.factor, 1) / NULLIF(COALESCE(uom_template.factor, 1), 0.0)) * COALESCE(product.standard_price -> line.company_id::text, to_jsonb(0.0))::float)
+                END
+                                                                            AS price_margin,
+                account_currency_table.rate * line.quantity * COALESCE(uom_line.factor, 1) / NULLIF(COALESCE(uom_template.factor, 1), 0.0) * (CASE WHEN move.move_type IN ('out_invoice','in_refund','out_receipt') THEN -1 ELSE 1 END)
+                    * COALESCE(product.standard_price -> line.company_id::text, to_jsonb(0.0))::float                    AS inventory_value,
+                COALESCE(partner.country_id, commercial_partner.country_id) AS country_id,
+                line.currency_id                                            AS currency_id
+            ''',
         )
 
     @classmethod
     def _from(cls):
-        """>= ``_from`` (``odoo19c: :128-``). BLOQUEADO -- ver el
-        docstring del modulo: requiere
-        ``ResCurrency._get_simple_currency_table(companies)``.
+        """≙ ``_from`` (``odoo19c: :128-141``).
+
+        El JOIN con la tabla de divisas es lo que convierte cada importe a la
+        moneda de la empresa que lee. Lo produce
+        ``ResCurrency._get_simple_currency_table`` sobre las empresas
+        ACTIVADAS.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente pasa ``self.env.companies``,
+        que es un recordset; aquí las empresas activadas son PKs
+        (``get_current_companies()``) y se materializan con el gestor de
+        Django. El conjunto es el mismo — cambia cómo se nombra.
         """
-        raise NotImplementedError(
-            'AccountInvoiceReport._from esta BLOQUEADO: requiere '
-            'ResCurrency._get_simple_currency_table (odoo19c: '
-            'addons/account/models/res_currency.py:42-50, que a su vez '
-            'llama _create_currency_table, :74-), fuera de mi alcance de '
-            'escritura en la tarea #398. Ver hallazgo H-API-682, sucesor: '
-            'tarea #511.'
+        companies = list(ResCompany.objects.filter(pk__in=get_current_companies()))
+        return SQL(
+            '''
+            FROM account_move_line line
+                LEFT JOIN res_partner partner ON partner.id = line.partner_id
+                LEFT JOIN product_product product ON product.id = line.product_id
+                LEFT JOIN account_account account ON account.id = line.account_id
+                LEFT JOIN product_template template ON template.id = product.product_tmpl_id
+                LEFT JOIN uom_uom uom_line ON uom_line.id = line.product_uom_id
+                LEFT JOIN uom_uom uom_template ON uom_template.id = template.uom_id
+                INNER JOIN account_move move ON move.id = line.move_id
+                LEFT JOIN res_partner commercial_partner ON commercial_partner.id = move.commercial_partner_id
+                JOIN %(currency_table)s ON account_currency_table.company_id = line.company_id
+            ''',
+            currency_table=ResCurrency._get_simple_currency_table(companies),
         )
 
     @classmethod
     def _where(cls):
-        """>= ``_where`` (``odoo19c: :142-``). Portable por si sola --
-        no depende de la tabla de moneda -- pero inerte sin ``_select``/
-        ``_from``: no se expone hasta que el resto de la vista lo este.
-        """
-        raise NotImplementedError(
-            'AccountInvoiceReport._where no esta bloqueado por si mismo '
-            '(no usa account_currency_table), pero se mantiene inerte '
-            'junto con _select/_from hasta que esos dejen de estarlo -- '
-            'una vista con WHERE pero sin SELECT/FROM no tiene sentido. '
-            'Ver el docstring del modulo. Sucesor: tarea #511.'
+        """≙ ``_where`` (``odoo19c: :142-148``). Verbatim de la fuente."""
+        return SQL(
+            '''
+            WHERE move.move_type IN ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')
+                AND line.account_id IS NOT NULL
+                AND line.display_type = 'product'
+            ''',
         )
 
     def _read_group_select(self, aggregate_spec, query):
-        """>= ``_read_group_select`` (``odoo19c: :149-156``). BLOQUEADO --
-        depende de ``self._field_to_sql``, un metodo del ORM base de Odoo
-        sin analogo en ``src/orm`` (tarea #291).
+        """≙ ``_read_group_select`` (``odoo19c: :149-156``).
+
+        BLOQUEADO por ``read_group`` — el bloqueo cambió de dueño.
+        ``_field_to_sql`` **sí**
+        existe aquí (``src/orm/models.py:1388``, misma firma que la fuente),
+        así que la cita anterior a la tarea #291 era falsa. Lo que falta es el
+        método al que este override se engancha: ``read_group`` no existe en
+        ``src/orm`` — medido, 0 declaraciones. Sin el despachador base, la
+        rama ``super()._read_group_select(...)`` de la fuente no tiene a
+        quién llamar y el override no tiene quién lo invoque.
+
+        Sucesor: tarea **#473** (completar la superficie ``read_group``).
         """
         raise NotImplementedError(
-            'AccountInvoiceReport._read_group_select esta BLOQUEADO: '
-            'depende de self._field_to_sql(self._table, campo, query), '
-            'mecanismo del ORM base de Odoo (odoo/orm/models.py) sin '
-            'analogo en src/orm (tarea #291). Ver hallazgo H-API-682, '
-            'sucesor: tarea #511 (que depende de la #291).'
+            'AccountInvoiceReport._read_group_select esta BLOQUEADO por '
+            '``read_group`` — el override necesita ese despachador base, y '
+            'src/orm no lo declara (medido: 0 def read_group). _field_to_sql '
+            'si existe (src/orm/models.py:1388). Sucesor: tarea #473.'
         )
 
 

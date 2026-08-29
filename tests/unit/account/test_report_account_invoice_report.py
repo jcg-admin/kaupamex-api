@@ -1,17 +1,25 @@
-"""``account.invoice.report`` -- cabecera de la vista y su bloqueo.
+"""``account.invoice.report`` -- cabecera de la vista y su bloqueo restante.
 
-Cubre ``addons/account/report/account_invoice_report.py`` (tarea #398,
-hallazgo H-API-682). Ver el docstring del modulo bajo prueba para la
-cadena completa de bloqueo (``ResCurrency._get_simple_currency_table`` y
-``_field_to_sql``, ambos fuera de mi alcance de escritura en esta tarea).
+Cubre ``addons/account/report/account_invoice_report.py`` (tareas #398 y
+#511, hallazgo H-API-682).
 
-Ninguna de estas pruebas toca la base de datos: el modelo no esta
-registrado en ``models/__init__.py`` (bloqueo documentado en
-``addons/account/__init__.py``), asi que no hay tabla que consultar --
-todo lo que se prueba aqui es forma (atributos de clase, ``Meta``, campos)
-y el comportamiento RUIDOSO de los metodos bloqueados.
+**Actualizado con el porte de #511.** El docstring decia que la cadena de
+bloqueo eran ``ResCurrency._get_simple_currency_table`` y ``_field_to_sql``:
+las dos piezas existen hoy, asi que la afirmacion es falsa. El unico metodo
+que sigue bloqueado es ``_read_group_select``, y por el ``read_group`` base
+que ``src/orm`` no declara (tarea #473).
+
+La forma del SQL que los cuatro productores emiten se mide en
+``test_account_invoice_report_sql.py``; aqui se cubre la forma del modelo
+(atributos de clase, ``Meta``, campos) y que el bloqueo restante siga siendo
+ruidoso.
 """
 import pytest
+
+from addons.base.models.res_company import ResCompany
+from addons.base.models.res_currency import ResCurrency
+from orm.environments import company_scope
+from tools.sql import SQL
 
 from addons.account.models.account_move import AccountMove
 from addons.account.report.account_invoice_report import (
@@ -116,36 +124,43 @@ class TestStateAndPaymentStateReuseAccountMove:
 
 
 class TestBlockedQueryMethods:
-    """Los cinco metodos que arman la vista SQL estan BLOQUEADOS -- el
-    bloqueo es ruidoso: cada uno levanta ``NotImplementedError`` con la
-    pieza exacta que falta, nunca devuelve SQL vacio o incompleto.
+    """Cuatro de los cinco dejaron de estar bloqueados (api@HEAD, tarea #511).
+
+    Estos casos eran correctos cuando la tabla de divisas no existía: cada
+    método levantaba ``NotImplementedError`` con la pieza que le faltaba. Con
+    ``ResCurrency._get_simple_currency_table`` portado, ``_select``/``_from``/
+    ``_where``/``_table_query`` emiten el SQL de la fuente y afirmar que
+    revientan mediría un estado que ya no existe.
+
+    La forma del SQL la miden los casos de
+    ``test_account_invoice_report_sql.py``; aquí sólo queda la comprobación de
+    que ya **no** revientan, y el único que sigue bloqueado.
     """
 
-    def test_table_query_property_raises(self):
-        instance = AccountInvoiceReport()
-        with pytest.raises(NotImplementedError) as excinfo:
-            instance._table_query  # noqa: B018 (acceso deliberado a la property)
-        assert '_get_simple_currency_table' in str(excinfo.value)
+    def test_the_four_sql_producers_no_longer_raise(self, db):
+        company = ResCompany.objects.create(
+            code='air-desbloqueo', name='Desbloqueo',
+            currency=ResCurrency.objects.get_or_create(
+                name='MXN', defaults={'symbol': '$'})[0])
+        with company_scope(company.pk):
+            report = AccountInvoiceReport()
+            for produced in (AccountInvoiceReport._select(),
+                             AccountInvoiceReport._from(),
+                             AccountInvoiceReport._where(),
+                             report._table_query):
+                assert isinstance(produced, SQL)
+                assert produced.code.strip()
 
-    def test_select_raises(self):
-        with pytest.raises(NotImplementedError) as excinfo:
-            AccountInvoiceReport._select()
-        assert 'account_currency_table' in str(excinfo.value)
-
-    def test_from_raises_citing_the_blocked_currency_method(self):
-        with pytest.raises(NotImplementedError) as excinfo:
-            AccountInvoiceReport._from()
-        assert '_get_simple_currency_table' in str(excinfo.value)
-
-    def test_where_raises(self):
-        with pytest.raises(NotImplementedError):
-            AccountInvoiceReport._where()
-
-    def test_read_group_select_raises_citing_field_to_sql(self):
+    def test_read_group_select_raises_citing_read_group_not_field_to_sql(self):
         instance = AccountInvoiceReport()
         with pytest.raises(NotImplementedError) as excinfo:
             instance._read_group_select('price_average:avg', query=None)
-        assert '_field_to_sql' in str(excinfo.value)
+        mensaje = str(excinfo.value)
+        # El bloqueo cambió de dueño: _field_to_sql SÍ existe
+        # (src/orm/models.py:1388); lo que falta es el read_group base.
+        assert 'read_group' in mensaje
+        assert '_field_to_sql si existe' in mensaje
+
 
 
 class TestReportAccountReportInvoice:
