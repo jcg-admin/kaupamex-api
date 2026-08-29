@@ -16,4 +16,8 @@ aviso de licencia preservados (DEC-KX-03). Porte completo — 1 de 1 símbolo.
        ``hr_applicant.py`` de este addon)
 """
 
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
+
+
 __all__ = []

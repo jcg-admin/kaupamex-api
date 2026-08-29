@@ -72,6 +72,9 @@ from tools.translate import _
 
 from addons.base.models.res_partner import ResPartner
 
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
+
 #: El identificador externo que la fuente consulta, verbatim.
 GROUP_SALE_SALESMAN = 'sales_team.group_sale_salesman'
 
@@ -194,7 +197,7 @@ def action_view_opportunity(self):
 def apply_crm_extensions():
     """Cuelga los dos campos y los métodos. La llama ``CrmConfig.ready()``."""
     extend_model(
-        'res.partner',
+        _inherit,
         propiedades={
             'opportunity_ids': _opportunity_ids,
             'opportunity_count': _compute_opportunity_count,

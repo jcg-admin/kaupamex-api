@@ -83,6 +83,10 @@ import models
 from addons.base.models import ResPartner
 
 
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
+
+
 def _add_if_absent(model, name, field):
     """Cuelga el campo sólo si el modelo no lo tiene ya.
 

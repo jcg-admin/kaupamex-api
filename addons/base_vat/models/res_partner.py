@@ -10,6 +10,9 @@ validador al campo del modelo del núcleo al importarse — mismo alcance que
 from addons.base.models import ResPartner
 from addons.base_vat.validators import validate_rfc
 
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
+
 _vat_field = ResPartner._meta.get_field('vat')
 if validate_rfc not in _vat_field.validators:
     _vat_field.validators.append(validate_rfc)

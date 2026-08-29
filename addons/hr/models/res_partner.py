@@ -55,8 +55,16 @@ Porte símbolo por símbolo — 10 símbolos: 6 portados, 1 ya existente, 3 BLOQ
        infraestructura de discuss no está portada (ver
        ``discuss_channel.py`` de este pase)
 
-``_inherit`` lo expresa ``extend_model``; par de Django porque el destino no
-declara ``_name``.
+La cabecera ``_inherit = 'res.partner'`` que la fuente declara en su clase se
+declara aquí a nivel de módulo (la extensión no es clase), y es la que consume
+``extend_model`` — un solo sitio donde vive el destino.
+
+Hasta este pase la llamada nombraba el destino con el **par de Django**
+(``'base', 'ResPartner'``) y lo justificaba con *"el destino no declara
+``_name``"*. Eso dejó de ser cierto: ``src/addons/base/models/res_partner.py:280``
+declara ``_name = 'res.partner'`` con espaciado alineado, así que un grep de
+``_name = 'res.partner'`` no lo ve. Medido en runtime,
+``resolve_model_key('res.partner')`` devuelve ``('base', 'respartner')``.
 
 Divergencias declaradas
 ========================
@@ -75,6 +83,10 @@ from exceptions import UserError
 from orm.environments import get_current_companies
 from orm.model_classes import extend_model
 from tools.translate import _
+
+
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
 
 
 def _current_company_employees(partner):
@@ -158,7 +170,7 @@ def _unlink_contact_rel_employee(self):
 def apply_hr_res_partner_extensions():
     """Cuelga sobre ``res.partner`` lo que ``hr`` le añade — ≙ ``_inherit``."""
     extend_model(
-        'base', 'ResPartner',
+        _inherit,
         metodos={
             '_compute_employees_count': _compute_employees_count,
             '_compute_employee': _compute_employee,

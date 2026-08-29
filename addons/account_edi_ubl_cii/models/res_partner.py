@@ -149,6 +149,9 @@ from .account_edi_xml_ubl_nlcius import AccountEdiXmlUbl_Nl
 from .account_edi_xml_ubl_sg import AccountEdiXmlUbl_Sg
 from .account_edi_xml_ubl_xrechnung import AccountEdiXmlUbl_De
 
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
+
 #: ≙ ``odoo19c: addons/account/models/company.py:34-38`` — vendorizada; su
 #: hogar correcto es ``addons/account``, fuera del write-set de este pase.
 PEPPOL_DEFAULT_COUNTRIES = [

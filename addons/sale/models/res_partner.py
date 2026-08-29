@@ -164,6 +164,9 @@ from addons.base.models.res_partner import ResPartner
 
 from .sale_order import SaleOrder
 
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
+
 #: El identificador externo que la fuente consulta, verbatim.
 GROUP_SALE_SALESMAN = 'sales_team.group_sale_salesman'
 
@@ -371,7 +374,7 @@ def sale_order_count(partner) -> int:
 def apply_sale_partner_extensions():
     """Cuelga los cuatro campos y los cinco métodos. La llama ``SaleConfig.ready()``."""
     extend_model(
-        'res.partner',
+        _inherit,
         campos={
             'sale_warn_msg': fields.Text(
                 null=True, blank=True,

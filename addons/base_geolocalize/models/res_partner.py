@@ -46,6 +46,7 @@ class PartnerGeolocation(models.Model):
     """``date_localization`` + ``partner_latitude``/``partner_longitude``
     (Odoo 19:10 + ``base`` core 270-271) para un ``res.partner``.
     """
+    _inherit = 'res.partner'
 
     partner = models.OneToOneField(
         'base.ResPartner', on_delete=models.CASCADE, related_name='geolocation',

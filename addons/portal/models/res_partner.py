@@ -54,6 +54,10 @@ la entidad comercial allá y no aquí. Se retira el ayudante y se consulta la
 from orm.model_classes import extend_model
 
 
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
+
+
 def frontend_writable_fields():
     """≙ ``_get_frontend_writable_fields`` (res_partner.py:10-19)."""
     return {
@@ -128,7 +132,7 @@ def apply_portal_partner_extensions():
     instala tal cual cuando no encuentra una anterior.
     """
     extend_model(
-        'res.partner',
+        _inherit,
         metodos={
             '_can_edit_country': _can_edit_country,
             'can_edit_vat': can_edit_vat,

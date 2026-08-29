@@ -60,6 +60,9 @@ from addons.authz_signup.models.token import (
 )
 from addons.base.models import SystemParameter
 
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
+
 # ≙ ir.config_parameter de validez (res_partner.py:186-188), renombrados al
 # namespace del addon nuestro. Default idéntico: signup 144h, reset 4h.
 PARAM_SIGNUP_VALIDITY_HOURS = 'authz_signup.signup_validity_hours'

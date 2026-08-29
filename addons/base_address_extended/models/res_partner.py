@@ -27,6 +27,7 @@ class AddressStructured(models.Model):
     """Descomposición estructurada de la calle de un ``res.partner`` (Odoo
     ``street_name``/``street_number``/``street_number2`` + ``city_id``).
     """
+    _inherit = 'res.partner'
 
     partner        = models.OneToOneField(
         'base.ResPartner', on_delete=models.CASCADE, related_name='structured',

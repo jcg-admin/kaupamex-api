@@ -104,6 +104,9 @@ from orm.model_classes import extend_model
 
 import fields
 
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
+
 #: ≙ ``group_rfq`` (``odoo19c: :21-28``) — cuándo se juntan varias necesidades
 #: de reabastecimiento en una sola solicitud de cotización.
 GROUP_RFQ_CHOICES = [
@@ -128,9 +131,9 @@ GROUP_ON_CHOICES = [
 
 
 def apply_purchase_stock_res_partner_extensions():
-    """Cuelga sobre ``base.ResPartner`` los 5 campos portables — ≙ ``_inherit``."""
+    """Cuelga sobre ``res.partner`` los 5 campos portables — ≙ ``_inherit``."""
     extend_model(
-        'base', 'ResPartner',
+        _inherit,
         campos={
             'suggest_based_on': fields.Char(
                 max_length=32, default='30_days', blank=True,

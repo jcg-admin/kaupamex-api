@@ -22,6 +22,10 @@ tarea #21, encadenado sobre el ``_compute_im_status`` que esa familia
 traiga.
 """
 
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
+
+
 
 def apply_hr_homeworking_res_partner_extensions():
     """No-op declarado — el ``im_status`` destino no existe (ver docstring;
