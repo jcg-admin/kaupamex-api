@@ -151,11 +151,42 @@ class TestPropertyExpression:
         assert vehicle._field_to_sql(VEHICLE_TABLE, 'vehicle_properties.').code == \
             '"fleet_vehicle"."vehicle_properties"'
 
-    def test_a_property_on_a_field_that_has_none_is_refused(self, definition):
-        # El caso base de `Field.property_to_sql`: sólo un campo con
-        # sub-campos sabe extraer uno.
-        with pytest.raises(ValueError, match='Invalid field property'):
+    def test_a_date_field_extracts_the_granularity(self, definition):
+        """Un campo de fecha SÍ resuelve la granularidad — ≙ ``BaseDate``.
+
+        ``BaseDate.property_to_sql``
+        (``odoo19c: odoo/orm/fields_temporal.py:80-95``) sobreescribe el
+        rechazo del caso base: una fecha sí tiene sub-expresiones, y
+        ``read_group`` las agrupa con ``date_part``.
+
+        Este caso **cambió de veredicto** al portar ``fields_temporal`` — antes
+        afirmaba ``Invalid field property``, que era el rechazo heredado de
+        ``Field.property_to_sql`` porque ``BaseDate`` no estaba portado. Lo que
+        medía era nuestro hueco, no la conducta de la fuente.
+        """
+        sql = definition._field_to_sql(TABLE, 'created_at.month_number')
+        assert sql.code == 'date_part(%%s, "%s"."created_at")' % TABLE
+        assert sql.params == ['month']
+
+    def test_a_date_field_refuses_an_unknown_granularity(self, definition):
+        """La granularidad que no está en el catálogo se rechaza — ≙ ``:89-92``.
+
+        Con su propio mensaje, no con el del caso base: quien rechaza aquí es
+        ``BaseDate``, que sí sabe de granularidades y no reconoce ésta.
+        """
+        with pytest.raises(ValueError, match='granularity algo is not'):
             definition._field_to_sql(TABLE, 'created_at.algo')
+
+    def test_a_plain_field_still_refuses_any_property(self, definition):
+        """El control del caso base — ≙ ``Field.property_to_sql`` (``:1241``).
+
+        Una FK no tiene sub-campos que extraer, así que sigue rechazando con
+        el mensaje del caso base. Es lo que hace que los dos casos de arriba
+        midan la sobreescritura de ``BaseDate`` y no la desaparición del
+        rechazo.
+        """
+        with pytest.raises(ValueError, match='Invalid field property'):
+            definition._field_to_sql(TABLE, 'properties_field.algo')
 
     def test_a_definition_field_does_not_extract_a_property(self, definition):
         """El contenedor guarda el esquema; no tiene propiedades que extraer.

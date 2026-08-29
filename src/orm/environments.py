@@ -31,13 +31,18 @@ azúcar de acceso (p. ej. un helper ``env(request)`` que exponga ``user`` +
 ``lang`` + ``company``), se añade aquí como conveniencia sobre las piezas
 nativas, sin reintroducir el motor.
 """
+import logging
 from contextlib import contextmanager
 from contextvars import ContextVar
+from datetime import timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.apps import apps
 from django.db import DEFAULT_DB_ALIAS, connection, connections
 
 from exceptions import AccessError
+
+_logger = logging.getLogger(__name__)
 
 # === Los DOS canales del entorno (DEC-AISL-04) =============================
 # Réplica de la separación de la referencia, verificada idéntica en las dos
@@ -266,6 +271,35 @@ def context_scope(**values):
         _context.reset(token)
 
 
+def get_current_tz():
+    """Zona horaria en curso — el ``env.tz`` de la referencia.
+
+    ≙ ``Environment.tz`` (``odoo19c: odoo/orm/environments.py:285-294``):
+    manda la clave ``tz`` del contexto y, si no está, la del usuario que
+    actúa; ante una zona inválida se registra en depuración y se devuelve UTC,
+    igual que la fuente.
+
+    DIVERGENCIA DE MECANISMO, declarada: la fuente resuelve con ``pytz``, que
+    **no está instalado** aquí —medido—; el equivalente de la biblioteca
+    estándar es ``zoneinfo``, que lee la misma base de datos IANA. Es la misma
+    adaptación que ``res_users._set_tz_from_request`` ya declara para
+    ``available_timezones()``.
+
+    La ausencia de usuario no es un error: fuera de una petición no hay quien
+    fije zona, y la fuente también cae a UTC.
+    """
+    tz_name = get_context().get('tz')
+    if not tz_name:
+        user = get_current_user()
+        tz_name = getattr(user, 'tz', None) if user is not None else None
+    if tz_name:
+        try:
+            return ZoneInfo(tz_name)
+        except (ZoneInfoNotFoundError, ValueError):
+            _logger.debug("Zona horaria inválida %r", tz_name, exc_info=True)
+    return timezone.utc
+
+
 def execute_query(query, using=None):
     """≙ ``Environment.execute_query`` (``odoo19c: odoo/orm/environments.py:527``).
 
@@ -294,5 +328,5 @@ __all__ = [
     'get_current_company', 'get_current_companies', 'set_current_company',
     'activate_companies', 'company_scope', 'sudo', 'is_su',
     'get_current_uid', 'get_current_user', 'set_current_uid', 'user_scope',
-    'get_context', 'context_scope',
+    'get_context', 'context_scope', 'get_current_tz',
 ]
