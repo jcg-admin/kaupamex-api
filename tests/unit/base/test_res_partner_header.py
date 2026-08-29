@@ -109,16 +109,26 @@ class TestCheckNameConstraint:
         }
 
 
-class TestCheckCompanyDomainBlocked:
-    """``_check_company_domain`` — el único de los nueve que NO se porta.
+class TestCheckCompanyDomain:
+    """``_check_company_domain`` — construido, y sin discriminador aquí.
 
-    Bloqueo de alcance de escritura de la tarea #504 (sólo
-    ``res_partner.py``, sus migraciones y sus tests — no ``src/orm/**``,
-    donde vive el hogar correcto de ``check_company_domain_parent_of``
-    por raíz espejada). Ver ``hallazgo-H-API-675`` para la condición de
-    cierre: DESCONOCIDO hasta que una tarea con alcance en ``src/orm/``
-    construya el símbolo y su consumidor en ``save()``.
+    .. note:: **Corregido.** Esta clase se llamaba
+       ``TestCheckCompanyDomainBlocked`` y afirmaba
+       ``not hasattr(ResPartner, '_check_company_domain')``, con la condición
+       de cierre escrita en ``hallazgo-H-API-675``: *"DESCONOCIDO hasta que
+       una tarea con alcance en ``src/orm/`` construya el símbolo y su
+       consumidor en ``save()``"*. La tarea **#168** hizo las dos cosas
+       (``orm.models.CheckCompanyMixin``), así que la condición se cumplió y
+       la afirmación pasó a ser falsa.
+
+       Lo que **sigue abierto** no es el mecanismo sino el campo: ``res.partner``
+       no declara empresa en este árbol, así que su predicado no tiene con qué
+       discriminar y devuelve ``None``. Eso es la tarea **#110**, y este caso
+       lo fija para que se note el día que el campo aterrice.
     """
 
-    def test_the_attribute_is_not_yet_declared(self):
-        assert not hasattr(ResPartner, '_check_company_domain')
+    def test_the_symbol_exists_now(self):
+        assert hasattr(ResPartner, '_check_company_domain')
+
+    def test_without_a_company_field_it_has_no_discriminator(self):
+        assert ResPartner._check_company_domain(None) is None

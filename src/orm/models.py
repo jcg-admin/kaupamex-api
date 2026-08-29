@@ -616,6 +616,287 @@ LOG_ACCESS_COLUMNS = ['created_at', 'updated_at']
 MAGIC_COLUMNS = ['id'] + LOG_ACCESS_COLUMNS
 
 
+#: ≙ el nombre que la referencia usa para la empresa de un registro. Aquí la
+#: convención renombró la FK: ``company`` en 76 declaraciones y ``company_id``
+#: en 6 (medido sobre ``addons/`` y ``src/``), así que la búsqueda mira las
+#: dos formas antes de rendirse. El orden es el de frecuencia, no el de gusto.
+COMPANY_FIELD_NAMES = ('company', 'company_id')
+
+#: Su hermano plural — ≙ ``company_ids`` de la fuente. ``ResUsers`` ya lo
+#: consume en su ``_check_company_domain`` propio (``res_users.py:1387``).
+COMPANIES_FIELD_NAMES = ('companies', 'company_ids')
+
+
+def _first_field_name(model, candidates):
+    """El primero de ``candidates`` que el modelo declara, o ``None``.
+
+    Ni la referencia ni Django ofrecen esto: allá la pregunta es
+    ``'company_id' in self``, que sobre un recordset consulta ``_fields``.
+    Aquí el equivalente es ``_meta.get_field``, y hace falta el bucle porque
+    el nombre no es uno solo (ver :data:`COMPANY_FIELD_NAMES`).
+    """
+    for name in candidates:
+        try:
+            model._meta.get_field(name)
+        except FieldDoesNotExist:
+            continue
+        return name
+    return None
+
+
+class CheckCompanyMixin:
+    """Coherencia de empresa entre un registro y aquello a lo que apunta.
+
+    ≙ ``BaseModel._check_company_auto`` / ``_check_company_domain`` /
+    ``_check_company`` (``odoo19c: odoo/orm/models.py:451, 3997, 4009``), más
+    sus dos llamadas desde ``write`` (``:4516``) y ``create`` (``:4744``).
+
+    **El problema que cierra.** ``check_company=True`` marca un campo
+    relacional para que el ORM verifique que el registro apuntado pertenece a
+    la misma empresa que el registro que apunta —o a ninguna, que en este
+    modelo significa «compartido»—. Sin el mecanismo, la palabra clave es
+    decoración: se declara y nadie la lee. Medido en la referencia sobre los
+    addons que este árbol ya tiene: **282** ``Many2one``, **19** ``Many2many``
+    y **5** ``One2many`` la llevan, y seis archivos nuestros la declaraban
+    como bloqueo explícito (``account/models/res_company.py:47``,
+    ``hr/models/hr_work_location.py:20``,
+    ``certificate/models/certificate.py:218``, …).
+
+    **La divergencia de forma es la de siempre en este archivo**: allá cuelga
+    de ``BaseModel`` y todo modelo lo tiene con ``_check_company_auto = False``;
+    aquí ``models.Model`` es el de Django y no es nuestro, así que viaja por
+    ``TimeStampedModel`` —la base común del proyecto— con el mismo valor por
+    defecto. Un modelo lo enciende declarando ``_check_company_auto = True``,
+    exactamente como la fuente.
+
+    **Qué NO se porta, y no es olvido.** ``_description_domain``
+    (``odoo19c: odoo/orm/fields_relational.py:131-157``) usa la misma marca
+    para acotar el *selector* del widget: construye una cadena de dominio que
+    consume ``fields_get`` y la interpreta el cliente web. Este stack no tiene
+    esa capa (DEC-FW-01: API DRF + UI propia, sin vistas XML), así que no hay
+    destinatario para esa cadena. El acotamiento del selector, donde importa,
+    se declara con ``limit_choices_to`` en el campo — que es el constructor de
+    Django para el mismo papel y ya se usa así en el árbol.
+
+    ``check_company`` sobre un ``One2many`` (5 en la referencia) tampoco tiene
+    sitio de declaración: aquí un One2many es el reverso de una FK
+    (``related_name``) y no un campo propio, así que la marca vive en la FK
+    del otro lado, que es donde el registro apuntado guarda su empresa.
+    """
+
+    #: ≙ ``_check_company_auto: bool = False`` (``odoo19c: models.py:451``).
+    #: Al guardar, ``save()`` llama a ``_check_company`` sólo si está en
+    #: ``True``. El defecto es ``False`` allá y aquí: encenderlo es una
+    #: decisión por modelo, y la fuente la toma en 76 clases.
+    _check_company_auto = False
+
+    @classmethod
+    def _check_company_domain(cls, companies):
+        """El predicado con que ESTE modelo se valida contra unas empresas.
+
+        ≙ ``_check_company_domain`` (``odoo19c: models.py:3997-4007``). La
+        fuente devuelve ``Domain('company_id','in', ids + [False])``: el
+        registro vale si es de alguna de esas empresas **o si no es de
+        ninguna**, que es como se expresa «compartido entre todas».
+
+        Se devuelve un ``Q`` en vez de un ``Domain`` porque el consumidor es
+        un ``QuerySet``. ``ResUsers`` ya redefine este método con esa misma
+        firma (``src/addons/base/models/res_users.py:1369``), que es el
+        precedente de forma; allá lo redefine por el mismo motivo — para un
+        usuario la pregunta correcta es por sus empresas permitidas, no por
+        su empresa por defecto.
+
+        Un modelo sin campo de empresa no tiene con qué discriminar: devuelve
+        ``None``, y quien llama lo lee como «este comodelo no participa».
+        """
+        name = _first_field_name(cls, COMPANY_FIELD_NAMES)
+        if name is None:
+            return None
+        ids = _company_ids(companies)
+        if not ids:
+            return Q(**{f'{name}__isnull': True})
+        return Q(**{f'{name}__in': ids}) | Q(**{f'{name}__isnull': True})
+
+    def _check_company(self, fnames=None):
+        """Verifica la empresa de lo que apuntan los campos marcados.
+
+        ≙ ``_check_company`` (``odoo19c: models.py:4009-4090``). Recorre los
+        campos relacionales con ``check_company`` y, para cada valor apuntado,
+        exige que su empresa sea la del registro o ninguna. Acumula las
+        incoherencias y lanza **una** ``UserError`` con hasta cinco, como la
+        fuente — no una por campo: quien corrige un formulario quiere ver
+        todo lo que está mal de una vez.
+
+        ``fnames`` acota el recorrido a los campos escritos. Igual que allá,
+        si entre ellos va el propio campo de empresa se revisan **todos**: al
+        cambiar de empresa, un valor que antes era coherente puede dejar de
+        serlo aunque nadie lo haya tocado.
+
+        La segunda mitad de la fuente —los campos ``company_dependent``, que
+        se validan contra la empresa del entorno y no contra la del
+        registro— se porta con :func:`~orm.environments.get_current_company`,
+        que es el equivalente de ``self.env.company``.
+        """
+        regular, dependent = self._check_company_fields(fnames)
+        if not regular and not dependent:
+            return
+
+        inconsistencies = []
+        own_name = _first_field_name(type(self), COMPANY_FIELD_NAMES)
+        many_name = _first_field_name(type(self), COMPANIES_FIELD_NAMES)
+
+        if regular:
+            if type(self)._meta.label_lower == 'base.rescompany':
+                # ≙ ``if self._name == 'res.company': companies = record``
+                # (:4051). La empresa de una empresa es ella misma.
+                companies = [self]
+            elif own_name is not None:
+                companies = [getattr(self, own_name, None)]
+            elif many_name is not None:
+                companies = list(getattr(self, many_name).all())
+            else:
+                _logger.warning(
+                    'Se omite la verificación de empresa de %s: sus campos %s '
+                    'están marcados check_company pero el modelo no declara '
+                    'ni %s ni %s.',
+                    type(self)._meta.label, sorted(regular),
+                    ' / '.join(COMPANY_FIELD_NAMES),
+                    ' / '.join(COMPANIES_FIELD_NAMES),
+                )
+                companies = None
+            if companies is not None:
+                companies = [c for c in companies if c is not None]
+                inconsistencies += self._company_inconsistencies(regular, companies)
+
+        if dependent:
+            inconsistencies += self._company_inconsistencies(
+                dependent, [c for c in [get_current_company()] if c is not None])
+
+        if inconsistencies:
+            raise UserError(self._company_inconsistency_message(inconsistencies))
+
+    @classmethod
+    def _check_company_fields(cls, fnames=None):
+        """Los nombres de campo marcados, partidos en regulares y por empresa.
+
+        ≙ el primer bloque de ``_check_company`` (``odoo19c: models.py:4029-
+        4040``), extraído a su propio método porque aquí lo consumen dos
+        sitios: la verificación y su prueba, que necesita poder preguntar qué
+        va a mirar sin escribir nada.
+        """
+        campos = {f.name: f for f in cls._meta.get_fields()
+                  if getattr(f, 'check_company', False)}
+        if fnames is not None and not (set(COMPANY_FIELD_NAMES) |
+                                       set(COMPANIES_FIELD_NAMES)) & set(fnames):
+            campos = {n: f for n, f in campos.items() if n in set(fnames)}
+        regular, dependent = [], []
+        for name, field in campos.items():
+            (dependent if getattr(field, 'company_dependent', False)
+             else regular).append(name)
+        return regular, dependent
+
+    def _company_inconsistencies(self, fnames, companies):
+        """Las ternas ``(registro, campo, apuntado)`` que no cuadran.
+
+        ≙ el bucle interior de ``_check_company`` (``:4055-4078``). Un campo
+        vacío no se mira; uno cuyo comodelo no tiene empresa tampoco, porque
+        su ``_check_company_domain`` devuelve ``None`` y no hay con qué
+        discriminar.
+        """
+        fuera = []
+        for name in fnames:
+            corecords = _corecords(self, name)
+            if not corecords:
+                continue
+            comodel = type(corecords[0])
+            domain = comodel._check_company_domain(companies)
+            if domain is None:
+                continue
+            validos = set(comodel._base_manager.filter(
+                domain, pk__in=[c.pk for c in corecords],
+            ).values_list('pk', flat=True))
+            if any(c.pk not in validos for c in corecords):
+                fuera.append((self, name, corecords))
+        return fuera
+
+    @staticmethod
+    def _company_inconsistency_message(inconsistencies):
+        """El texto del rechazo — ≙ ``:4080-4090``, con sus cinco primeras.
+
+        La fuente distingue tres redacciones (empresa, registro, empresa
+        raíz); aquí se conserva la del registro, que es la que aplica a los
+        casos medidos. Sin ``_()``: este archivo no importa ``tools.translate``
+        —medido, 0 usos— y su única ``UserError`` (``:1931``) también escribe
+        el texto directo.
+        """
+        lines = ['Hay incoherencias de empresa:']
+        for record, name, corecords in inconsistencies[:5]:
+            values = ', '.join(str(c) for c in corecords)
+            lines.append(
+                f'- «{record}» pertenece a una empresa y «{name}» '
+                f'({values}) pertenece a otra.'
+            )
+        return '\n'.join(lines)
+
+    def save(self, *args, **kwargs):
+        """≙ las dos llamadas de la fuente, que van **después** del escribir.
+
+        ``write`` (``odoo19c: models.py:4516``) y ``create`` (``:4744``)
+        llaman a ``_check_company`` una vez completada la escritura, no antes:
+        la verificación mira el estado final del registro, incluido lo que
+        hayan puesto los ``compute`` y los inversos. Aquí pasa lo mismo con
+        ``save()``, y por eso la excepción llega con la fila ya escrita — como
+        allá, donde la transacción es la que deshace.
+
+        ``update_fields`` hace de ``list(vals)``: acota el recorrido a lo que
+        se escribió. Sin él se revisan todos los campos marcados, que es lo
+        que la fuente hace en ``create``.
+        """
+        super().save(*args, **kwargs)
+        if self._check_company_auto:
+            update_fields = kwargs.get('update_fields')
+            self._check_company(
+                None if update_fields is None else list(update_fields))
+
+
+def _company_ids(companies):
+    """Las claves primarias de ``companies``, venga como venga.
+
+    ≙ ``to_record_ids`` (``odoo19c: odoo/orm/models.py:159-166``), que acepta
+    un recordset, un entero o una lista. Aquí lo que llega es una instancia,
+    un ``QuerySet``, una lista de instancias o una lista de enteros; los
+    cuatro se normalizan a una lista de ``pk``, y los falsos se descartan
+    igual que allá.
+    """
+    if companies is None:
+        return []
+    if hasattr(companies, 'values_list'):
+        return [pk for pk in companies.values_list('pk', flat=True) if pk]
+    if not isinstance(companies, (list, tuple, set)):
+        companies = [companies]
+    ids = []
+    for c in companies:
+        pk = getattr(c, 'pk', c)
+        if pk:
+            ids.append(pk)
+    return ids
+
+
+def _corecords(record, name):
+    """Los registros que ``record.<name>`` apunta, siempre como lista.
+
+    Un Many2one da uno o ninguno; un Many2many, los que haya. La fuente no
+    necesita distinguirlos porque allá todo es recordset; aquí sí, y la
+    distinción se hace por el descriptor, no por el nombre del campo.
+    """
+    value = getattr(record, name, None)
+    if value is None:
+        return []
+    if hasattr(value, 'all'):
+        return list(value.all())
+    return [value]
+
+
 class CopyMixin:
     """``copy`` y su cadena — duplicar un registro con sus hijos.
 

@@ -208,13 +208,15 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     user_id = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
         db_index=True, related_name='crm_leads_owned', verbose_name='Salesperson',
-        db_column='user_id', help_text='Vendedor asignado (Odoo user_id).',
+        db_column='user_id', check_company=True,
+        help_text='Vendedor asignado (Odoo user_id).',
     )
     # ≙ team_id (:111-113): ondelete="set null", compute + store + precompute.
     team_id = fields.Many2one(
         CrmTeam, null=True, blank=True, on_delete=models.SET_NULL,
         db_index=True, related_name='crm_leads', verbose_name='Sales Team',
-        db_column='team_id', help_text='Equipo de venta (Odoo team_id).',
+        db_column='team_id', check_company=True,
+        help_text='Equipo de venta (Odoo team_id).',
     )
     # ≙ lead_properties (:114-116): definition='team_id.lead_properties_definition'.
     lead_properties = fields.Properties(
@@ -358,7 +360,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     partner_id = fields.Many2one(
         ResPartner, null=True, blank=True, on_delete=models.SET_NULL,
         db_index=True, related_name='crm_leads', verbose_name='Contact',
-        db_column='partner_id',
+        db_column='partner_id', check_company=True,
         help_text='Contacto vinculado (opcional). Normalmente se crea al '
                   'convertir la iniciativa.',
     )

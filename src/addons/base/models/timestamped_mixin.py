@@ -38,13 +38,27 @@ misma razón que ``H-API-577``.
 declaraba ``FieldSqlMixin`` **antes** de ``TimeStampedModel`` en sus bases
 rompe el MRO (precedencia local contradictoria). Esas declaraciones se
 retiran: la heredan por aquí.
+
+``CheckCompanyMixin`` (``orm/models.py``) viaja por la misma vía y por la misma
+razón que los dos anteriores: la fuente declara ``_check_company_auto``,
+``_check_company_domain`` y ``_check_company`` en ``BaseModel``
+(``odoo19c: odoo/orm/models.py:451, 3997, 4009``), así que allá **todo** modelo
+los tiene, con el interruptor apagado por defecto. Aquí también: el mixin
+declara ``_check_company_auto = False`` y su ``save()`` sólo verifica cuando
+el modelo lo enciende, que es lo que la fuente hace en ``write`` (``:4516``) y
+``create`` (``:4744``).
+
+**No cuesta nada al que no lo enciende** — una lectura de atributo por
+guardado— y **no genera migración**: el mixin no declara ningún campo, igual
+que ``DefaultGetMixin``.
 """
 from django.db import models
 
-from orm.models import DisplayNameMixin, RecordLoaderMixin
+from orm.models import CheckCompanyMixin, DisplayNameMixin, RecordLoaderMixin
 
 
-class TimeStampedModel(RecordLoaderMixin, DisplayNameMixin, models.Model):
+class TimeStampedModel(RecordLoaderMixin, DisplayNameMixin,
+                       CheckCompanyMixin, models.Model):
     """
     Clase base abstracta que provee created_at y updated_at a todos
     los modelos que hereden de ella.

@@ -40,13 +40,21 @@ misma razón de forma que ``orm/fields.py`` declara para ``to_sql``: la clase es
 de Django y no es nuestra para declararla. Medido antes de adjuntar: ``join``
 da ``False`` en ``hasattr(models.ForeignKey, 'join')``.
 
-``Many2many`` **no** lleva el despachador: ``grep -rn "Many2many(" ``
+``Many2many`` no lleva **esas dos** ramas: ``grep -rn "Many2many(" ``
 sobre ``odoo19c:`` no arroja ninguna declarada ``store=False`` con ``compute``
 sin almacenar en la familia ``base``, así que dárselo sería construir para un
 caso que no existe. Tampoco lleva ``company_dependent``: ``many2many`` no está
 en la lista cerrada de tipos que la fuente admite
 (``odoo19c: odoo/orm/fields.py:42-44``) — un ``jsonb`` guarda un valor por
 empresa, no una tabla intermedia.
+
+.. note:: **Corregido.** Esta línea decía *"``Many2many`` **no** lleva el
+   despachador"*, y hoy sí lo lleva: es una función, no el alias pelado
+   ``Many2many = models.ManyToManyField``. Lo que sigue siendo cierto es la
+   razón que el párrafo daba — ninguna de esas **dos** ramas aplica—; lo que
+   cambió es que apareció una tercera palabra clave que sí, ``check_company``,
+   medida en **19** declaraciones de la referencia dentro de los addons que
+   este árbol ya tiene.
 
 ``company_dependent`` — el destino que cambia con la empresa (tarea #129)
 =========================================================================
@@ -63,7 +71,39 @@ from tools.sql import SQL
 __all__ = ['Many2one', 'One2many', 'Many2many']
 
 One2many = None                       # reverso de FK (related_name)
-Many2many = models.ManyToManyField
+
+
+def _mark_check_company(field, check_company):
+    """Marca el campo para que ``BaseModel._check_company`` lo mire.
+
+    ≙ ``_Relational.check_company`` (``odoo19c:
+    odoo/orm/fields_relational.py:40``), que allá es un atributo de clase con
+    ``False`` por defecto y aquí es un atributo de instancia por la misma
+    razón de forma que ``join``: la clase del campo es de Django y no es
+    nuestra para declararla.
+
+    El valor **no** llega al constructor de Django — ``ForeignKey`` no lo
+    conoce y reventaría—; se cuelga del campo ya construido, que es donde
+    ``_check_company`` lo lee al recorrer ``_meta.get_fields()``.
+    """
+    field.check_company = bool(check_company)
+    return field
+
+
+def Many2many(*args, check_company=False, **kwargs):
+    """``fields.Many2many`` — el ``ManyToManyField`` de Django, marcable.
+
+    Era un alias pelado (``Many2many = models.ManyToManyField``) y pasa a ser
+    despachador por un solo motivo medido: **19** declaraciones de la
+    referencia en los addons que este árbol ya tiene la marcan
+    ``check_company=True`` (contra 282 ``Many2one`` y 5 ``One2many``), y el
+    alias no tenía dónde recibir la palabra clave.
+
+    No lleva ``store=False`` ni ``company_dependent`` — ver el bloque del
+    docstring del módulo, que mide por qué ninguno de los dos aplica aquí.
+    """
+    return _mark_check_company(models.ManyToManyField(*args, **kwargs),
+                               check_company)
 
 
 def _comodel_label(to):
@@ -83,7 +123,8 @@ def _comodel_label(to):
     return to._meta.label
 
 
-def Many2one(*args, store=True, company_dependent=False, **kwargs):
+def Many2one(*args, store=True, company_dependent=False,
+             check_company=False, **kwargs):
     """``fields.Many2one`` — ≙ el de la referencia: con columna, sin ella o por empresa.
 
     ``store=True`` (el defecto, y el de todos los usos previos del árbol)
@@ -141,11 +182,14 @@ def Many2one(*args, store=True, company_dependent=False, **kwargs):
             # ``Many2one('x', models.CASCADE)`` — el segundo posicional es el
             # ``on_delete`` de Django, que aquí tampoco tiene destinatario.
             resto = ()
-        return CompanyDependent(*resto, base_type='many2one',
-                                comodel=_comodel_label(to), **kwargs)
+        return _mark_check_company(
+            CompanyDependent(*resto, base_type='many2one',
+                             comodel=_comodel_label(to), **kwargs),
+            check_company)
     if store:
-        return models.ForeignKey(*args, **kwargs)
-    return NonStored(*args, **kwargs)
+        return _mark_check_company(models.ForeignKey(*args, **kwargs),
+                                   check_company)
+    return _mark_check_company(NonStored(*args, **kwargs), check_company)
 
 
 def _many2one_join(self, model, alias, query):

@@ -111,6 +111,14 @@ class CertificateCertificate(TimeStampedModel):
     sin columna, recalculados en cada lectura (fiel a esa falta de store).
     """
 
+    #: Los cuatro atributos de clase de la fuente, verbatim
+    #: (``odoo19c: certificate/models/certificate.py:21-24``). El cuarto es
+    #: el interruptor que ``orm.models.CheckCompanyMixin`` lee al guardar.
+    _name = 'certificate.certificate'
+    _description = 'Certificate'
+    _order = 'date_end DESC'
+    _check_company_auto = True
+
     name = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Nombre',
     )
@@ -122,14 +130,14 @@ class CertificateCertificate(TimeStampedModel):
     )
     private_key = fields.Many2one(
         CertificateKey, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='certificates_as_private_key',
+        related_name='certificates_as_private_key', check_company=True,
         verbose_name='Llave privada',
         help_text='Computado: se detecta o crea automáticamente al cargar '
                   'el certificado.',
     )
     public_key = fields.Many2one(
         CertificateKey, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='certificates_as_public_key',
+        related_name='certificates_as_public_key', check_company=True,
         verbose_name='Llave pública',
         help_text='Usar cuando la llave pública autocontenida en el '
                   'certificado es errónea.',
@@ -215,16 +223,26 @@ class CertificateCertificate(TimeStampedModel):
                 type(self).objects.create(**ca_vals)
 
     def clean(self):
-        """``check_company=True`` de ``private_key_id``/``public_key_id``
-        (certificate.py:29-46): la referencia lo declara como atributo de
-        campo; Django no tiene ese mecanismo, así que la invariante —la
-        llave y el certificado son de la misma empresa— es explícita aquí.
+        """Sin cuerpo propio: la invariante de empresa la hace cumplir el ORM.
+
+        .. note:: **Corregido.** Este método llevaba a mano la invariante de
+           ``check_company=True`` de ``private_key_id``/``public_key_id``
+           (``odoo19c: certificate/models/certificate.py:32,41``) con esta
+           razón: *"Django no tiene ese mecanismo"*. **Ya lo tiene** —
+           ``orm.models.CheckCompanyMixin`` (tarea #168) — así que los dos
+           campos llevan la marca, la clase declara
+           ``_check_company_auto = True`` como la fuente, y la verificación
+           corre donde la fuente la corre: al escribir, sobre **todos** los
+           campos marcados, con el mensaje que nombra cuál falla.
+
+           No es un cambio cosmético: el cuerpo retirado sólo miraba estos
+           dos campos y sólo en ``full_clean()``. El mecanismo mira cualquier
+           campo marcado y corre en cada guardado, que es el contrato de la
+           fuente. El código de error propio
+           ``CERTIFICATE_KEY_COMPANY_MISMATCH`` tenía **0 consumidores**
+           medidos fuera de estas dos líneas.
         """
         super().clean()
-        if self.private_key_id and self.private_key.company_id != self.company_id:
-            raise ValidationError({'private_key': 'CERTIFICATE_KEY_COMPANY_MISMATCH'})
-        if self.public_key_id and self.public_key.company_id != self.company_id:
-            raise ValidationError({'public_key': 'CERTIFICATE_KEY_COMPANY_MISMATCH'})
 
     @property
     def is_valid(self):
