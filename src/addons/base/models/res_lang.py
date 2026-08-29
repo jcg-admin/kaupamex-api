@@ -12,10 +12,22 @@ from django.core.exceptions import ValidationError
 
 import fields
 import models
+from tools.misc import DATETIME_FORMATS_MAP
 
 
 class ResLang(models.Model):
     """``res.lang`` — idioma/locale con sus formatos de presentación."""
+
+    _name = 'res.lang'
+    _description = "Languages"
+    _order = "active desc,name"
+    _allow_sudo_commands = False
+
+    #: Las directivas que ``strftime`` no sabe devolver a ``strptime``, y que
+    #: por eso no pueden aparecer en un formato de ``res.lang``
+    #: (≙ ``odoo19c: res_lang.py:55``). Es la lista de claves del mapa, no sus
+    #: valores: lo que se prohíbe es la directiva de entrada.
+    _disallowed_datetime_patterns = list(DATETIME_FORMATS_MAP)
 
     DIRECTIONS = [('ltr', 'Left-to-Right'), ('rtl', 'Right-to-Left')]
     TIME_FORMATS = [('%H:%M:%S', '13:00:00'), ('%I:%M:%S %p', ' 1:00:00 PM')]
@@ -27,7 +39,9 @@ class ResLang(models.Model):
 
     name         = fields.Char(max_length=64, help_text='Nombre del idioma (Odoo name).')
     code         = fields.Char(
-        max_length=16, unique=True,
+        # La unicidad la declara ``_code_uniq`` en ``Meta.constraints``, como
+        # la fuente: es un objeto de tabla, no un atributo del campo.
+        max_length=16,
         help_text='Locale code (Odoo code, p. ej. es_MX). Único.',
     )
     iso_code     = fields.Char(
@@ -70,6 +84,22 @@ class ResLang(models.Model):
         ordering = ['-active', 'name']
         verbose_name = 'Idioma'
         verbose_name_plural = 'Idiomas'
+        constraints = [
+            # Los tres ``models.Constraint`` de la fuente
+            # (``odoo19c: res_lang.py:110-121``), con su nombre conservado.
+            models.UniqueConstraint(
+                fields=['name'], name='res_lang_name_uniq',
+                violation_error_message='The name of the language must be unique!',
+            ),
+            models.UniqueConstraint(
+                fields=['code'], name='res_lang_code_uniq',
+                violation_error_message='The code of the language must be unique!',
+            ),
+            models.UniqueConstraint(
+                fields=['url_code'], name='res_lang_url_code_uniq',
+                violation_error_message='The URL code of the language must be unique!',
+            ),
+        ]
 
     def __str__(self) -> str:
         return f'{self.name} ({self.code})'

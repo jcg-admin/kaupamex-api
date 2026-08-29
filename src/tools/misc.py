@@ -37,6 +37,66 @@ from lxml import etree
 from modules.module import ADDONS_PATHS
 from tools import config
 
+# Formatos de fecha del servidor — verbatim de la referencia
+# (``odoo19c: odoo/tools/misc.py:535-542``). Son el formato en que la fuente
+# serializa una fecha o un instante hacia el cliente y hacia el fichero de
+# datos, y con el que ``fields.Date.to_date``/``to_string`` convierten.
+#
+# Se portan aunque PostgreSQL guarde ``date``/``timestamp`` nativos: el
+# formato no gobierna la columna, gobierna la **cadena** — el valor que llega
+# en un CSV de localización o en un XML de datos viene con esta forma, y sin
+# la constante cada consumidor la escribiría a mano.
+DEFAULT_SERVER_DATE_FORMAT = "%Y-%m-%d"
+DEFAULT_SERVER_TIME_FORMAT = "%H:%M:%S"
+DEFAULT_SERVER_DATETIME_FORMAT = "%s %s" % (
+    DEFAULT_SERVER_DATE_FORMAT,
+    DEFAULT_SERVER_TIME_FORMAT)
+
+# ``DATE_LENGTH`` — el recorte que ``to_date`` aplica antes de ``strptime``
+# (``odoo19c: odoo/tools/misc.py:544``). Se calcula, no se escribe: la
+# referencia lo deriva del propio formato para que los dos no puedan divergir.
+DATE_LENGTH = len(datetime.date.today().strftime(DEFAULT_SERVER_DATE_FORMAT))
+
+# ``DATETIME_FORMATS_MAP`` — verbatim de la referencia
+# (``odoo19c: odoo/tools/misc.py:544-586``). El ``strftime`` de Python sólo
+# admite las directivas que la ``libc`` de la plataforma provee; el mapa las
+# reduce a las del C89, disponibles en toda implementación. Lo consume
+# ``res.lang`` para rechazar el formato que no sobreviviría al viaje de ida y
+# vuelta (``_disallowed_datetime_patterns``).
+DATETIME_FORMATS_MAP = {
+    '%C': '',                      # siglo
+    '%D': '%m/%d/%Y',              # modificado %y->%Y
+    '%e': '%d',
+    '%E': '',                      # modificador especial
+    '%F': '%Y-%m-%d',
+    '%g': '%Y',                    # modificado %y->%Y
+    '%G': '%Y',
+    '%h': '%b',
+    '%k': '%H',
+    '%l': '%I',
+    '%n': '\n',
+    '%O': '',                      # modificador especial
+    '%P': '%p',
+    '%R': '%H:%M',
+    '%r': '%I:%M:%S %p',
+    '%s': '',                      # segundos desde la época
+    '%T': '%H:%M:%S',
+    '%t': ' ',                     # tabulador
+    '%u': ' %w',
+    '%V': '%W',
+    '%y': '%Y',                    # %y funciona pero es ambiguo; se usa %Y
+    '%+': '%Y-%m-%d %H:%M:%S',
+
+    # ``%Z`` causa al menos dos problemas, y por eso se retira entero:
+    #  - los nombres de huso que se usan no siempre los reconoce ``strptime``,
+    #    así que la conversión no es reversible en ambos sentidos;
+    #  - ``strftime`` lo sustituye por cadena vacía cuando el ``datetime`` no
+    #    trae ``tzinfo``, y la cadena resultante ya no parsea contra el mismo
+    #    formato.
+    '%z': '',
+    '%Z': '',
+}
+
 # Variables de tipo de la referencia (``odoo19c: odoo/tools/misc.py:70-72``),
 # que las declara para los genéricos de esta misma familia de colecciones.
 K = typing.TypeVar('K')

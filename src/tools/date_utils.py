@@ -93,7 +93,8 @@ from dateutil.relativedelta import relativedelta, weekdays
 
 from .float_utils import float_round
 
-from addons.base.models.res_lang import ResLang
+from django.apps import apps
+
 from orm.environments import get_current_user
 
 if typing.TYPE_CHECKING:
@@ -235,7 +236,8 @@ def _current_week_start() -> int:
     user = get_current_user()
     code = getattr(getattr(user, 'partner', None), 'lang', None) if user else None
     if code:
-        lang = ResLang.objects.filter(code=code).first()
+        res_lang = apps.get_model('base', 'ResLang')
+        lang = res_lang.objects.filter(code=code).first()
         if lang is not None and lang.week_start:
             return int(lang.week_start)
     return 1
