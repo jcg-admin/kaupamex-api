@@ -108,8 +108,11 @@ from addons.base import report_catalog, report_template
 from addons.base.models.ir_actions import IrActionsBase
 from addons.base.models.ir_ui_view import IrUiView
 from addons.base.models.ir_attachment import IrAttachment
+from addons.base.models.ir_model import IrModel
 from addons.base.models.report_paperformat import ReportPaperformat
 from addons.base.models.res_groups import ResGroups
+from orm.domains import Domain, to_q
+from orm.environments import sudo
 
 _logger = logging.getLogger(__name__)
 
@@ -318,10 +321,28 @@ class IrActionsReport(IrActionsBase):
     resto de la familia en ``ir_actions.py``.
     """
 
+    #: Los seis atributos de clase que la fuente declara
+    #: (``odoo19c: ir_actions_report.py:158-163``), verbatim. Conviven con su
+    #: forma Django en ``Meta``: ``_table`` con ``db_table``, ``_order`` con
+    #: ``ordering``, ``_description`` con ``verbose_name``. No se sustituyen
+    #: entre sí — ``atributos-de-clase-de-modelo.md``.
+    _name = 'ir.actions.report'
+    _description = 'Report Action'
+    _inherit = ['ir.actions.actions']
+    _table = 'ir_act_report_xml'
+    _order = 'name, id'
+    _allow_sudo_commands = False
+
     model = fields.Char(
         max_length=255, db_index=True, verbose_name='Nombre del modelo',
         help_text='Modelo técnico sobre el que imprime. Char plano, mismo '
                   'criterio que ir_rule.model_name e ir_filters.model_id.',
+    )
+    model_id = fields.Many2one(
+        IrModel, store=False,
+        default=lambda record: record._compute_model_id(),
+        help_text='La fila de ir.model que corresponde a "model". Derivada, '
+                  'sin columna: la fuente la declara con compute y sin store.',
     )
     report_type = fields.Selection(
         max_length=16, choices=REPORT_TYPE_CHOICES, default=REPORT_TYPE_PDF,
@@ -336,23 +357,23 @@ class IrActionsReport(IrActionsBase):
         help_text='Ruta al archivo principal, o vacío si el contenido vive en '
                   'otro campo.',
     )
-    groups = fields.Many2many(
+    group_ids = fields.Many2many(
         ResGroups, blank=True, db_table='res_groups_report_rel',
         related_name='report_ids', verbose_name='Grupos',
-        help_text='Odoo group_ids. Vacío = sin restricción por grupo. La '
-                  'autorización efectiva sigue siendo por capacidad (DEC-11).',
+        help_text='Vacío = sin restricción por grupo. La autorización '
+                  'efectiva sigue siendo por capacidad (DEC-11).',
     )
     multi = fields.Boolean(
         default=False, verbose_name='Sobre varios documentos',
         help_text='Marcado, la acción NO aparece en la barra lateral de un '
                   'formulario — es de lote.',
     )
-    paperformat = fields.Many2one(
+    paperformat_id = fields.Many2one(
         ReportPaperformat, on_delete=models.SET_NULL, null=True, blank=True,
-        db_index=True, related_name='report_ids',
+        db_index=True, db_column='paperformat_id', related_name='report_ids',
         verbose_name='Formato de papel',
-        help_text='Odoo paperformat_id. Este related_name es el One2many que '
-                  'report_paperformat.py dejó anotado como pendiente.',
+        help_text='Este related_name es el One2many que report_paperformat.py '
+                  'dejó anotado como pendiente.',
     )
     print_report_name = fields.Char(
         max_length=255, blank=True, default='',
@@ -400,6 +421,93 @@ class IrActionsReport(IrActionsBase):
 
     # --- Anclaje contextual ---------------------------------------------
 
+    def _compute_model_id(self):
+        """La fila de ``ir.model`` que corresponde a ``model``.
+
+        ≙ ``_compute_model_id`` (``odoo19c: ir_actions_report.py:194-197``),
+        que allá lleva ``@api.depends('model')`` y **asigna** el valor a cada
+        registro del conjunto. Aquí devuelve el valor de UNA fila, que es la
+        forma que el campo sin columna consume: su ``default`` invocable lo
+        llama con el registro y guarda lo que devuelve. Es la misma
+        divergencia de enlace ya declarada en
+        ``properties_base_definition_mixin._compute_properties_base_definition_id``.
+        """
+        return IrModel._get(self.model)
+
+    @classmethod
+    def _search_model_id(cls, operator, value):
+        """Traduce una búsqueda por ``model_id`` a una por ``model``.
+
+        ≙ ``_search_model_id`` (``odoo19c: ir_actions_report.py:199-217``).
+        El campo no tiene columna, así que buscar por él exige resolver antes
+        qué filas de ``ir.model`` cumplen el criterio y luego filtrar por sus
+        nombres técnicos — que es exactamente lo que la fuente hace, con el
+        mismo reparto por operador:
+
+        - un operador negativo devuelve ``NotImplemented``, para que el motor
+          lo resuelva por la vía general en vez de por aquí;
+        - una cadena busca contra ``display_name``;
+        - un ``Domain`` se usa tal cual;
+        - ``any!`` salta las reglas de fila, igual que su ``sudo()``;
+        - ``any`` o un entero buscan por ``id``;
+        - ``in`` construye la disyunción, decidiendo por elemento si es ``id``
+          o ``display_name``.
+        """
+        if operator in Domain.NEGATIVE_OPERATORS:
+            return NotImplemented
+        rows = IrModel.objects.none()
+        if isinstance(value, str):
+            rows = cls._models_matching(Domain('display_name', operator, value))
+        elif isinstance(value, Domain):
+            rows = cls._models_matching(value)
+        elif operator == 'any!':
+            with sudo():
+                rows = cls._models_matching(Domain('id', operator, value))
+        elif operator == 'any' or isinstance(value, int):
+            rows = cls._models_matching(Domain('id', operator, value))
+        elif operator == 'in':
+            rows = cls._models_matching(Domain.OR(
+                Domain('id' if isinstance(item, int) else 'display_name',
+                       operator, item)
+                for item in value
+                if item
+            ))
+        return Domain('model', 'in', list(rows.values_list('model', flat=True)))
+
+    @staticmethod
+    def _models_matching(domain):
+        """Las filas de ``ir.model`` que cumplen el dominio.
+
+        La fuente escribe ``self.env['ir.model'].search(domain)``: allá el
+        modelo trae el buscador y el dominio es su lenguaje nativo. Aquí el
+        equivalente son dos piezas — ``domains.to_q`` compila el dominio a un
+        ``Q`` y el manager lo aplica—, y separarlas en un ayudante evita
+        repetir la traducción en las cinco ramas de arriba.
+        """
+        return IrModel.objects.filter(to_q(domain, IrModel))
+
+    def _get_readable_fields(self):
+        """Los campos que el cliente puede leer de esta acción.
+
+        ≙ ``_get_readable_fields`` (``odoo19c: ir_actions_report.py:219-229``),
+        con su unión verbatim y sus dos comentarios: *"these two are not real
+        fields of ir.actions.report but are expected in the route
+        /report/<converter>/<reportname> and must not be removed by
+        clean_action"* para ``context`` y ``data``, y *"and this one is used by
+        the frontend later on"* para ``close_on_report_download``.
+
+        La allowlist que gobierna la respuesta HTTP sigue siendo el
+        ``Meta.fields`` explícito del serializer DRF. Este método es el
+        enganche donde la fuente lo pone, y su salida es la misma unión — así
+        una extensión encuentra el punto que espera.
+        """
+        return super()._get_readable_fields() | {
+            'report_name', 'report_type', 'target',
+            'context', 'data',
+            'close_on_report_download',
+            'domain',
+        }
+
     def create_action(self):
         """``create_action`` — ancla el reporte al modelo sobre el que imprime.
 
@@ -427,7 +535,7 @@ class IrActionsReport(IrActionsBase):
         llamador, porque este archivo no conoce el contexto de la petición.
         """
         if self.paperformat_id:
-            return self.paperformat
+            return self.paperformat_id
         return getattr(company, 'paperformat', None) if company else None
 
     # --- Adjunto ----------------------------------------------------------
@@ -473,7 +581,7 @@ class IrActionsReport(IrActionsBase):
         applicable = []
         for report in cls.objects.filter(model=model_name).prefetch_related(
                 'groups'):
-            declared = set(report.groups.values_list('pk', flat=True))
+            declared = set(report.group_ids.values_list('pk', flat=True))
             if not declared or (declared & group_ids):
                 applicable.append(report)
         return applicable

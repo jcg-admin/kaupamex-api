@@ -595,7 +595,6 @@ src/addons/base/models/ir_actions.py::IrActionsServerHistory.action
 src/addons/base/models/ir_actions.py::IrActionsTodo.action
 src/addons/base/models/ir_actions.py::ServerActionHistoryWizard.action
 src/addons/base/models/ir_actions.py::ServerActionHistoryWizard.revision
-src/addons/base/models/ir_actions_report.py::IrActionsReport.paperformat
 src/addons/base/models/ir_attachment.py::IrAttachment.company
 src/addons/base/models/ir_cron.py::IrCron.ir_actions_server
 src/addons/base/models/ir_cron.py::IrCron.user

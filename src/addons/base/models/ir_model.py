@@ -317,6 +317,19 @@ class Unknown(models.Model):
 class IrModel(TimeStampedModel):
     """``ir.model`` — una fila por modelo declarado."""
 
+    #: Los cinco atributos de ORM que la fuente declara
+    #: (``odoo19c: ir_model.py:56-61``), verbatim. El sexto que declara ahí,
+    #: ``_obj_name_uniq``, es un **objeto de tabla** y no un atributo de ORM:
+    #: su restricción ya existe aquí como ``unique=True`` sobre ``model``.
+    #: Conservar además su nombre exige moverla a ``Meta.constraints`` con su
+    #: migración — registrado en la tarea #172, con el resto del porte de este
+    #: archivo.
+    _name = 'ir.model'
+    _description = 'Models'
+    _order = 'model'
+    _rec_names_search = ['name', 'model']
+    _allow_sudo_commands = False
+
     name = fields.Char(
         max_length=255, verbose_name='Descripción del modelo',
         help_text='Odoo name (traducible allá).',
@@ -433,6 +446,38 @@ class IrModel(TimeStampedModel):
                 'Los modelos personalizados deben tener un nombre que empiece '
                 'por "x_".'
             )
+
+    @classmethod
+    def _get(cls, name):
+        """La fila de ``ir.model`` con ese nombre técnico, o ``None``.
+
+        ≙ ``_get`` (``odoo19c: ir_model.py:312-317``). Su docstring verbatim:
+        *"Return the (sudoed) `ir.model` record with the given name. The result
+        may be an empty recordset if the model is not found."*
+
+        La fuente devuelve un conjunto vacío cuando no encuentra; aquí el
+        equivalente de "conjunto vacío" para una sola fila es ``None``, que es
+        lo que ``objects.filter(...).first()`` produce. El ``sudo()`` de allá
+        no tiene destinatario: este acceso no pasa por reglas de fila.
+        """
+        model_id = cls._get_id(name) if name else None
+        return cls.objects.filter(pk=model_id).first() if model_id else None
+
+    @classmethod
+    @ormcache('name', cache='stable')
+    def _get_id(cls, name):
+        """El ``id`` de la fila con ese nombre, memorizado.
+
+        ≙ ``_get_id`` (``odoo19c: ir_model.py:319-323``), con su mismo
+        ``@ormcache('name', cache='stable')``. La fuente va a SQL crudo para
+        saltarse el ORM en un camino caliente; aquí el ``values_list`` del ORM
+        emite el mismo ``SELECT id FROM ir_model WHERE model=%s`` y no hay
+        motivo para escribirlo a mano.
+
+        El caché es ``stable`` porque el registro de modelos sólo cambia al
+        instalar o desinstalar un módulo, no en el curso de una petición.
+        """
+        return cls.objects.filter(model=name).values_list('pk', flat=True).first()
 
     @classmethod
     def reflect_models(cls, app_labels=None):

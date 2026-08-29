@@ -281,6 +281,29 @@ class IrActionsBase(TimeStampedModel):
     class Meta:
         abstract = True
 
+    def _get_readable_fields(self):
+        """Los campos que es seguro leer desde el cliente.
+
+        ≙ ``_get_readable_fields`` (``odoo19c: ir_actions.py:246-259``), con
+        su docstring verbatim: *"return the list of fields that are safe to
+        read. Fetched via /web/action/load or _for_xml_id method. Only fields
+        used by the web client should included. Accessing content useful for
+        the server-side must be done manually with superuser"*.
+
+        La fuente lo declara en ``ir.actions.actions``, que allá es a la vez el
+        modelo concreto y el portador de los campos comunes. Aquí esos dos
+        papeles están repartidos —``IrActionsBase`` lleva los campos,
+        ``IrActionsActions`` es la fila— y el método vive en el portador,
+        porque es de quien heredan los subtipos: ``IrActionsServer`` y
+        ``IrActionsReport`` ya lo extendían con ``super()``, que hasta ahora no
+        tenía a quién llamar (:ref:`h-api-921`).
+        """
+        return {
+            'binding_model_id', 'binding_type', 'binding_view_types',
+            'display_name', 'help', 'id', 'name', 'type', 'xml_id',
+            'path',
+        }
+
     def __str__(self):
         return self.name
 
