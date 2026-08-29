@@ -141,6 +141,62 @@ class AccountMove(SequenceMixin, models.Model):
         help_text='Total del asiento (Odoo amount_total, computado de líneas).',
     )
 
+    # ------------------------------------------------------------------
+    # Las seis columnas que ``account.invoice.report`` lee de este asiento
+    # (tarea #989). Su forma sale de ``odoo19c: account/models/account_move.py``
+    # (LGPL-3: copia + adaptacion con atribucion). El nombre pierde el sufijo
+    # ``_id`` porque Django lo repone en la columna: ``invoice_user`` escribe
+    # ``invoice_user_id``, que es lo que la vista consulta.
+    # ------------------------------------------------------------------
+    invoice_date = fields.Date(
+        null=True, blank=True, db_index=True,
+        verbose_name='Fecha de factura',
+        help_text='Odoo invoice_date ("Invoice/Bill Date", account_move.py:374). '
+                  'Fecha del documento comercial, distinta de la fecha contable. '
+                  'El copy=False de la fuente no tiene analogo: este ORM no '
+                  'tiene copia de registro.',
+    )
+    invoice_date_due = fields.Date(
+        null=True, blank=True, db_index=True,
+        verbose_name='Fecha de vencimiento',
+        help_text='Odoo invoice_date_due ("Due Date", account_move.py:379). '
+                  'La calcula compute_invoice_date_due(), que save() invoca.',
+    )
+    invoice_user = fields.Many2one(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='invoiced_moves',
+        verbose_name='Vendedor',
+        help_text='Odoo invoice_user_id ("Salesperson", account_move.py:678). '
+                  'El tracking=True de la fuente no aplica: este asiento no es '
+                  'un hilo de mail.thread en este arbol.',
+    )
+    commercial_partner = fields.Many2one(
+        'base.ResPartner', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='commercial_moves',
+        verbose_name='Entidad comercial',
+        help_text='Odoo commercial_partner_id ("Commercial Entity", '
+                  'account_move.py:430). La entidad que factura de verdad '
+                  'cuando el contacto es una direccion de una matriz. La '
+                  'calcula compute_commercial_partner().',
+    )
+    fiscal_position = fields.Many2one(
+        'account.AccountFiscalPosition', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='moves',
+        verbose_name='Posicion fiscal',
+        help_text='Odoo fiscal_position_id ("Fiscal Position", '
+                  'account_move.py:456). Adapta impuestos y cuentas para un '
+                  'cliente o pedido concreto; su valor por omision viene del '
+                  'cliente.',
+    )
+    invoice_currency_rate = fields.Float(
+        default=0.0,
+        verbose_name='Tipo de cambio',
+        help_text='Odoo invoice_currency_rate ("Currency Rate", '
+                  'account_move.py:531). Tipo de cambio de la moneda de la '
+                  'empresa a la del documento. digits=0 en la fuente significa '
+                  'precision plena, que es lo que FloatField da aqui.',
+    )
+
     class Meta:
         db_table = 'account_move'
         ordering = ['-date', '-id']
@@ -398,3 +454,96 @@ class AccountMove(SequenceMixin, models.Model):
         self.state = 'cancel'
         self.save(update_fields=['state'])
         return True
+
+    # ------------------------------------------------------------------
+    # Los cinco compute que la fuente declara sobre las columnas de #989.
+    # Dos corren; tres estan bloqueados por un simbolo medido como ausente.
+    # ------------------------------------------------------------------
+
+    def _compute_commercial_partner_id(self):
+        """La entidad que factura de verdad -- ≙ ``odoo19c: :1008-1011``.
+
+        La fuente escribe ``move.partner_id.commercial_partner_id`` en un solo
+        salto porque su ``partner_id`` apunta a ``res.partner``. Aqui apunta al
+        modelo de usuario (``settings.AUTH_USER_MODEL``), asi que el mismo
+        recorrido pasa por la delegacion ``ResUsers.partner``. Medido:
+        ``ResUsers`` no expone ``commercial_partner`` por atributo, de modo que
+        el salto intermedio es explicito y no un descuido.
+
+        Ese desnivel es el eje que la tarea **#142** tiene abierto -- unificar
+        el eje partner de ``account``. Mientras dure, este metodo es el unico
+        sitio donde el rodeo esta escrito, y su correccion sera borrar un salto.
+        """
+        user = self.partner
+        party = getattr(user, 'partner', None) if user is not None else None
+        self.commercial_partner = getattr(party, 'commercial_partner', None) or party
+
+    def _compute_invoice_date_due(self):
+        """La fecha de vencimiento -- ≙ ``odoo19c: :1077-1084``.
+
+        La fuente toma el maximo ``date_maturity`` de ``needed_terms`` y, si no
+        hay ninguno, cae al valor ya escrito y de ahi a hoy. La rama del maximo
+        esta BLOQUEADO por ``needed_terms`` -- el reparto por plazo de pago no
+        existe en este arbol (medido: 0 declaraciones en
+        ``addons/account/models``), y su sucesor es la tarea **#116**.
+
+        La rama de respaldo si corre, y es la que la fuente ejecuta cuando el
+        documento no tiene plazos: ``move.invoice_date_due or today``.
+        """
+        self.invoice_date_due = self.invoice_date_due or fields.Date.context_today(self)
+
+    def _compute_invoice_default_sale_person(self):
+        """El vendedor por omision -- ≙ ``odoo19c: :803-817``.
+
+        BLOQUEADO por ``is_sale_document`` -- la fuente decide con ese
+        predicado si asigna vendedor o lo borra, y sin el las dos ramas
+        colapsan en una. Medido: 0 declaraciones en ``addons/account/models``.
+        Sucesor: tarea **#116**, que trae el bloque comercial del asiento.
+        """
+        raise NotImplementedError(
+            'AccountMove._compute_invoice_default_sale_person esta BLOQUEADO '
+            'por ``is_sale_document`` -- el predicado que elige entre asignar '
+            'vendedor y borrarlo no existe aqui (medido: 0 declaraciones). '
+            'Sucesor: tarea #116.')
+
+    def _compute_fiscal_position_id(self):
+        """La posicion fiscal -- ≙ ``odoo19c: :1022-1036``.
+
+        BLOQUEADO por ``_get_fiscal_position`` -- el resolutor que elige la
+        posicion a partir del contacto y su direccion de entrega. La fuente
+        ademas lee ``partner_shipping_id``, ``address_get`` y
+        ``account_purchase_receipt_fiscal_position_id``; ninguno existe aqui.
+        Sucesor: tarea **#142**, que unifica el eje partner del que cuelgan.
+        """
+        raise NotImplementedError(
+            'AccountMove._compute_fiscal_position_id esta BLOQUEADO por '
+            '``_get_fiscal_position`` -- el resolutor de posicion fiscal por '
+            'contacto y direccion de entrega no existe aqui. Sucesor: #142.')
+
+    def _compute_invoice_currency_rate(self):
+        """El tipo de cambio del documento -- ≙ ``odoo19c: :1137-1141``.
+
+        BLOQUEADO por ``expected_currency_rate`` -- la fuente copia ese campo
+        tal cual, y es quien resuelve la tasa contra la fecha del documento.
+        Medido: 0 declaraciones en ``addons/account/models``. Sucesor: tarea
+        **#114**, que cierra la conciliacion multi-divisa.
+        """
+        raise NotImplementedError(
+            'AccountMove._compute_invoice_currency_rate esta BLOQUEADO por '
+            '``expected_currency_rate`` -- la tasa esperada del documento no '
+            'se resuelve en este arbol. Sucesor: tarea #114.')
+
+    def save(self, *args, **kwargs):
+        """Corre los dos compute almacenados que si tienen sus insumos.
+
+        Este ORM no tiene motor de ``@api.depends`` (decision abierta en la
+        tarea **#191**), asi que un campo ``store=True`` se recalcula donde el
+        arbol ya lo hace: en ``save()``. Es el mecanismo que
+        ``porte-completo-no-parcial.md`` pide construir cuando el stack no lo
+        trae, no una divergencia declarada.
+
+        Los tres bloqueados NO se invocan aqui: levantarian en cada guardado.
+        """
+        self._compute_commercial_partner_id()
+        self._compute_invoice_date_due()
+        return super().save(*args, **kwargs)

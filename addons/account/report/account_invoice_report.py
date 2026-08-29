@@ -70,27 +70,26 @@ llama ``super()._read_group_select(...)`` para todo agregado que no sea
 la tarea #291 que este docstring hacia era falsa. Sucesor correcto: tarea
 **#473**.
 
-**La MIGRACION de la vista sigue pendiente, y su bloqueo esta medido.** El
-SQL portado lee 14 columnas que las dos tablas de asiento todavia no
-declaran -- medido contra el esquema vivo:
+**Las 14 columnas ESTAN PORTADAS (2026-08-29, tarea #989).** El bloqueo que
+este parrafo declaraba -- que el SQL leia 14 columnas que las dos tablas de
+asiento no declaraban -- se cerro: seis en ``account_move``
+(``invoice_user_id``, ``fiscal_position_id``, ``invoice_date``,
+``invoice_date_due``, ``invoice_currency_rate``, ``commercial_partner_id``) y
+ocho en ``account_move_line`` (``product_id``, ``journal_id``, ``company_id``,
+``company_currency_id``, ``partner_id``, ``price_subtotal``, ``price_total``,
+``product_uom_id``), con su migracion ``account/migrations/0022``.
 
-- ``account_move_line`` (6 de 14 presentes): faltan ``product_id``,
-  ``journal_id``, ``company_id``, ``company_currency_id``, ``partner_id``,
-  ``price_subtotal``, ``price_total``, ``product_uom_id``.
-- ``account_move`` (4 de 10 presentes): faltan ``invoice_user_id``,
-  ``fiscal_position_id``, ``invoice_date``, ``invoice_date_due``,
-  ``invoice_currency_rate``, ``commercial_partner_id``.
-
-Las otras cinco tablas que el ``FROM`` toca estan completas para este SQL:
+Las otras cinco tablas que el ``FROM`` toca ya estaban completas para este SQL:
 ``res_partner.country_id``, ``product_product.{product_tmpl_id,
-standard_price}``, ``product_template.{categ_id, uom_id}``,
-``uom_uom.factor`` y ``account_account.account_type`` -- 8 de 8.
+standard_price}``, ``product_template.{categ_id, uom_id}``, ``uom_uom.factor`` y
+``account_account.account_type`` -- 8 de 8.
 
-Sin esas 14 columnas, ``CREATE OR REPLACE VIEW`` fallaria en el
-``migrate``, y una vista que arranca a medias en un reporte financiero es
-peor que una vista ausente. El ``RunSQL`` se emite cuando existan; el
-precedente de forma es ``src/addons/base/migrations/0004_resdevice.py``.
-Sucesor registrado: tarea **#989**.
+**Lo que las columnas nuevas NO traen todavia, y esta declarado.** Dos de ellas
+nacen en cero porque su compute esta BLOQUEADO por ``tax_ids`` -- el apunte no
+declara sus impuestos, de modo que ``_compute_totals`` no tiene que repartir.
+El motor si existe (``AccountTax.compute_all``, ``account_tax.py:411``), asi que
+el bloqueo es del dato. Sucesor: tarea **#990**. La vista los leera como 0.00
+hasta entonces, que es un valor honesto y no una ausencia de columna.
 
 *Metrica:* columnas de la sentencia ``_select``/``_from`` cruzadas contra
 ``Model._meta.get_fields()`` del esquema vivo (``django.setup()``).

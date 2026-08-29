@@ -221,13 +221,21 @@ class TestWhatStaysBlockedBySecondOrderCause:
         names = {f.name for f in AccountAnalyticLine._meta.get_fields()}
         assert 'journal' not in names
 
-    def test_account_move_line_has_no_partner_nor_journal_field(self):
-        """Segundo orden: ``account.move.line`` (fuera de alcance) no
-        declara ``partner`` ni ``journal`` — bloquea ``_compute_partner_id``
-        y ``journal`` respectivamente."""
+    def test_account_move_line_now_declares_partner_and_journal(self):
+        """El bloqueo de segundo orden CAMBIÓ DE DUEÑO — tarea #989.
+
+        Este caso afirmaba lo contrario, y era correcto al escribirse: el
+        apunte no declaraba ``partner`` ni ``journal``, así que la línea
+        analítica quedaba bloqueada por ellos. Las dos columnas se portaron
+        con las otras doce que la vista ``account.invoice.report`` lee.
+
+        Lo que sigue bloqueando a ``journal`` de la línea analítica ya no es
+        el apunte: es que el ``related`` de la fuente no se ha tendido. El
+        caso hermano de arriba lo mide, y su sucesor sigue siendo el mismo.
+        """
         names = {f.name for f in AccountMoveLine._meta.get_fields()}
-        assert 'partner' not in names
-        assert 'journal' not in names
+        assert 'partner' in names
+        assert 'journal' in names
 
     def test_analytic_line_has_no_update_analytic_distribution_consumer(self, company, move_line):
         """``create``/``write``/``unlink`` (BLOQUEADO): el campo que
