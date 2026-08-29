@@ -65,6 +65,14 @@ dependencies = [
     # dan `format_datetime(locale=...)`: `django.utils.formats` formatea con el
     # idioma ACTIVO del proceso, no con uno pedido por argumento.
     "babel>=2.14.0",
+    # Zonas horarias con su base de datos propia. La referencia la importa en
+    # `odoo/tools/safe_eval.py:496` y la EXPONE al espacio de nombres de toda
+    # expresion almacenada (`pytz.timezone(...)`), asi que sin ella el porte de
+    # `safe_eval` no puede ofrecer el mismo contrato. No sustituye a `zoneinfo`
+    # —que es lo que usa el resto del arbol y lo que Django 6 espera—: convive
+    # con el, acotada al espacio de `safe_eval` y a los seis sitios que hoy
+    # declaran divergencia por su ausencia.
+    "pytz>=2024.1",
     # Escapado seguro de HTML. Lo importa la referencia en
     # `odoo/tools/json.py:8` para que `scriptsafe.dumps` devuelva una cadena
     # que sabe escaparse al incrustarse en una plantilla (`__html__`). Es la

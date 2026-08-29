@@ -81,7 +81,6 @@ import os.path
 import pprint
 import re
 import subprocess
-import time
 from contextlib import ExitStack
 from datetime import datetime, timedelta
 
@@ -109,7 +108,7 @@ from orm.fields_reference import Reference
 from orm.fields_textual import Html
 from tools import config
 from tools.misc import SKIPPED_ELEMENT_TYPES, file_open, file_path
-from tools.safe_eval import safe_eval
+from tools.safe_eval import safe_eval, pytz, time
 
 __all__ = [
     'convert_file', 'convert_sql_import',
@@ -170,7 +169,7 @@ def _get_eval_context(self, model_str):
         relativedelta=relativedelta,
         version=release.major_version,
         ref=self.id_get,
-        pytz=None,
+        pytz=pytz,
     )
     if model_str:
         model = _model_of(model_str)

@@ -132,15 +132,33 @@ class TestBuildDomain:
         Qué haría fallar al caso: que ``_build_domain`` dejara de validar
         confiando en que ``_check_domain`` ya lo hizo. Una fila escrita por SQL
         crudo —una migración, una siembra— no pasa por el ``save``.
+
+        La excepción es ``NameError``, no ``ValueError``: con el porte completo
+        de ``safe_eval`` (tarea #140) la guarda que para esta expresión es
+        ``assert_no_dunder_name`` —``__import__`` contiene ``__``—, que corre
+        antes que la de opcodes. Se afirma la que se mide, no la union de las
+        dos: la union no distinguiria cual de las dos guardas actua, que es
+        justo lo que este caso existe para comprobar.
         """
         rule = IrRule(name='mala', model_name=MODEL,
                       domain_force="__import__('os').system('id')")
-        with pytest.raises(ValueError):
+        with pytest.raises(NameError, match='forbidden name'):
             rule._build_domain({})
 
-    def test_safe_eval_bloquea_atributos_privados(self):
-        with pytest.raises(ValueError):
+    def test_the_evaluator_blocks_traversal_to_the_class(self):
+        with pytest.raises(NameError, match='forbidden name'):
             safe_eval("[('a', '=', user.__class__)]", {'user': object()})
+
+    def test_a_plain_domain_over_the_same_context_still_evaluates(self):
+        """Control positivo de los dos casos de arriba.
+
+        Sin el, un verde no distingue «la guarda rechaza lo prohibido» de «el
+        evaluador rechaza todo». Este dominio usa el MISMO nombre del contexto
+        y si tiene que evaluarse.
+        """
+        assert safe_eval("[('company_id', 'in', company_ids)]",
+                         {'company_ids': [1, 2]}) == [
+            ('company_id', 'in', [1, 2])]
 
 
 class TestRuleScopedManagerSemantica:
