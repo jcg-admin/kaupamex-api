@@ -6,6 +6,7 @@ Portación fiel de ``account_move.py`` (Odoo 18/19). Campos núcleo: ``name``,
 ``amount_total``. Se porta la invariante de doble entrada (Odoo
 ``_check_balanced``): al postear, la suma de debe == suma de haber.
 """
+from contextlib import contextmanager
 from decimal import Decimal
 
 import api
@@ -617,6 +618,96 @@ class AccountMove(SequenceMixin, models.Model):
     def _compute_direction_sign(self):
         """El multiplicador de direccion -- ≙ ``odoo19c: :1144-1149``."""
         self.direction_sign = 1 if (self.move_type == 'entry' or self.is_outbound()) else -1
+
+    # ------------------------------------------------------------------
+    # Los ganchos de envío, cancelación y anticipo -- ≙ ``odoo19c:
+    # account_move.py:1975-1978`` y ``:7220-7278``.
+    #
+    # Los siete viven aquí, y no en ``sale``, porque es donde la referencia los
+    # declara: son puntos de extensión que ``account`` abre para que otro addon
+    # los reemplace. Cuatro tienen cuerpo vacío o de una línea en la fuente --
+    # eso NO es un porte incompleto, es el cuerpo que la fuente les da.
+    #
+    # ``ensure_one()`` de la fuente se omite en los cinco que lo declaran: un
+    # recordset de Odoo puede traer N filas y aquí una instancia de Django es
+    # siempre una. La guarda no tiene receptor; su ausencia no relaja nada.
+    # ------------------------------------------------------------------
+
+    def _action_invoice_ready_to_be_sent(self):
+        """Gancho: la factura pasa a estar lista para enviarse al cliente.
+
+        ≙ ``:7223-7226``. Cuerpo **vacío en la fuente**, con su docstring como
+        único contenido: *"Hook allowing custom code when an invoice becomes
+        ready to be sent by mail to the customer. For example, when an EDI
+        document must be sent to the government and be signed by it."*
+
+        ``sale`` lo reemplaza para disparar el ``ir.cron`` de envío.
+        """
+
+    def _is_ready_to_be_sent(self):
+        """¿El asiento está listo para enviarse por correo? -- ≙ ``:7228-7234``.
+
+        La fuente devuelve ``True`` siempre; quien tenga una condición la
+        introduce reemplazando este método (el EDI, por ejemplo).
+        """
+        return True
+
+    def _can_force_cancel(self):
+        """¿Se puede cancelar sin esperar a que la solicitud prospere?
+
+        ≙ ``:7236-7241``. La fuente devuelve ``False``: por omisión hay que
+        esperar. Lo reemplaza quien sepa que su canal admite el corte.
+        """
+        return False
+
+    @classmethod
+    @contextmanager
+    def _send_only_when_ready(cls, moves):
+        """Avisa a los que pasaron a estar listos DENTRO del bloque.
+
+        ≙ ``:7242-7252``. Recuerda cuáles no estaban listos al entrar y, al
+        salir, dispara :meth:`_action_invoice_ready_to_be_sent` sobre los que
+        sí lo están ahora. El ``finally`` es de la fuente: el aviso sale aunque
+        el cuerpo levante.
+
+        **Divergencia de forma declarada:** allá es un método de instancia
+        porque ``self`` es un recordset de N filas; aquí una instancia es una
+        sola fila, así que la población entra por parámetro. Es la misma
+        adaptación que ``account_analytic_account.move_lines_for`` ya hizo.
+        """
+        no_listos = [m for m in moves if not m._is_ready_to_be_sent()]
+        try:
+            yield
+        finally:
+            for move in no_listos:
+                if move._is_ready_to_be_sent():
+                    move._action_invoice_ready_to_be_sent()
+
+    def _invoice_paid_hook(self):
+        """Gancho: la factura pasa al estado pagado -- ≙ ``:7254-7255``.
+
+        Cuerpo **vacío en la fuente**. ``sale`` lo reemplaza para anotar en el
+        pedido de venta que su factura se pagó.
+        """
+
+    def _is_downpayment(self):
+        """¿Esta factura es un anticipo? -- ≙ ``:7274-7278``.
+
+        La fuente devuelve ``False`` y dice por qué: *"Down-payments can be
+        created from a sale order. This method is overridden in the sale order
+        module."* Sin ``sale`` instalado no hay anticipos que reconocer.
+        """
+        return False
+
+    def _get_partner_credit_warning_exclude_amount(self):
+        """Importe que NO cuenta para el aviso de límite de crédito.
+
+        ≙ ``:1975-1978``. La fuente devuelve ``0`` y su comentario nombra al
+        único addon que lo reemplaza: *"to extend in module 'sale'; see there
+        for details"* — el importe ya comprometido por un pedido de venta no
+        debe sumar dos veces al crédito del cliente.
+        """
+        return 0
 
     def save(self, *args, **kwargs):
         """Corre los dos compute almacenados que si tienen sus insumos.

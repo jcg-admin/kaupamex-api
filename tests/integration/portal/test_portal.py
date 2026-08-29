@@ -116,8 +116,11 @@ class TestPartnerFrontendRules:
         hija = ResPartner.objects.create(
             name='Sucursal', parent=matriz,
             type=ResPartner.TYPE_INVOICE)
-        assert pp.can_edit_vat(matriz) is True
-        assert pp.can_edit_vat(hija) is False
+        # Métodos desde este pase, no funciones de módulo: ``sale`` los
+        # encadena con ``super()`` y eso exige un método (ver el docstring de
+        # ``portal/models/res_partner.py``).
+        assert matriz.can_edit_vat() is True
+        assert hija.can_edit_vat() is False
 
     def test_can_be_edited_by_propio_y_no_ajeno(self, db):
         u = User.objects.create_user(login='dueno@kaupamex.mx')

@@ -47,6 +47,14 @@ class SaleConfig(AppConfig):
         # y no en ``models/__init__.py`` porque importa de ``account``, que
         # en tiempo de import de modelos puede no estar poblado.
         importlib.import_module(f'{self.name}.models.chart_template')
+        # Lo que ``sale`` cuelga del cliente: el aviso de venta, el conteo de
+        # pedidos y las dos guardas de edicion que encadenan sobre ``portal``
+        # — ≙ ``sale/models/res_partner.py``. Va DESPUES de las anteriores
+        # porque su ``overrides=`` exige que ``portal`` ya haya instalado el
+        # eslabon base (``portal`` es la posicion 67 de ``LOCAL_APPS`` y
+        # ``sale`` la 93, asi que a esta altura ya corrio).
+        importlib.import_module(f'{self.name}.models.res_partner') \
+            .apply_sale_partner_extensions()
         # Inscribe el resolutor de audiencia "compradores de un producto" en
         # el registro de ``mail`` (T-035).
         importlib.import_module(f'{self.name}.audience')

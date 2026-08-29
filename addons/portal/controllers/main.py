@@ -75,8 +75,6 @@ from addons.portal.controllers.serializers import (
 )
 from addons.portal.models.res_partner import (
     can_be_edited_by,
-    can_edit_country,
-    can_edit_vat,
     current_partner,
 )
 
@@ -141,13 +139,13 @@ class PortalAccountView(APIView):
                                              partial=True)
         serializer.is_valid(raise_exception=True)
         datos = serializer.validated_data
-        if 'vat' in datos and not can_edit_vat(partner):
+        if 'vat' in datos and not partner.can_edit_vat():
             return Response(
                 {'codigo_error': 'VAT_NOT_EDITABLE',
                  'detail': 'Sólo la entidad comercial puede editar el RFC.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if 'country' in datos and not can_edit_country(partner):
+        if 'country' in datos and not partner._can_edit_country():
             return Response(
                 {'codigo_error': 'COUNTRY_NOT_EDITABLE',
                  'detail': 'No se puede cambiar el país de este contacto.'},
