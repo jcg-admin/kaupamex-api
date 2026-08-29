@@ -54,11 +54,12 @@ que ``DefaultGetMixin``.
 """
 from django.db import models
 
-from orm.models import CheckCompanyMixin, DisplayNameMixin, RecordLoaderMixin
+from orm.models import (BaseUrlMixin, CheckCompanyMixin, DisplayNameMixin,
+                        RecordLoaderMixin)
 
 
 class TimeStampedModel(RecordLoaderMixin, DisplayNameMixin,
-                       CheckCompanyMixin, models.Model):
+                       CheckCompanyMixin, BaseUrlMixin, models.Model):
     """
     Clase base abstracta que provee created_at y updated_at a todos
     los modelos que hereden de ella.

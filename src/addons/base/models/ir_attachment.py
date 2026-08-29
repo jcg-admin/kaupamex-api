@@ -63,6 +63,7 @@ from django.apps import apps
 import fields
 import models
 from exceptions import ValidationError
+from tools.translate import _
 
 
 class IrAttachment(models.Model):
@@ -314,3 +315,46 @@ class IrAttachment(models.Model):
         if self.datas and self.datas.name and self.store_fname != self.datas.name:
             self.store_fname = self.datas.name
             type(self).objects.filter(pk=self.pk).update(store_fname=self.store_fname)
+
+    # --- Origen remoto ----------------------------------------------------
+    #
+    # ≙ ``_is_remote_source`` / ``_migrate_remote_to_local``
+    # (``odoo19c: ir_attachment.py:961-963, 980-984``). Los consume
+    # ``ir.actions.report._prepare_local_attachments``, que baja a local lo
+    # que la plantilla vaya a incrustar antes de renderizar: un motor de PDF
+    # no puede resolver una URL externa a mitad del dibujado.
+
+    def _is_remote_source(self):
+        """¿El contenido de este adjunto vive fuera, tras una URL?
+
+        Las tres condiciones son de la fuente y las tres importan: hay
+        ``url``, el ``file_size`` es cero —o sea, no se ha bajado nada— y el
+        esquema es uno de los tres que se pueden ir a buscar.
+
+        La fuente abre con ``self.ensure_one()`` porque allá el receptor es un
+        conjunto de registros; aquí es una instancia y esa guarda no tiene
+        forma que tomar.
+        """
+        return bool(
+            self.url and not self.file_size
+            and self.url.startswith(('http://', 'https://', 'ftp://')))
+
+    def _migrate_remote_to_local(self):
+        """Baja a local el contenido de un adjunto remoto.
+
+        **Aquí es el enganche, y eso es fiel, no un porte a medias.** En la
+        fuente este método tiene cuatro líneas: sale si el adjunto ya es
+        binario y rehúsa si es de tipo ``url``. Quien hace el trabajo de
+        verdad es ``cloud_storage``, que lo extiende y llama a ``super()``
+        (``odoo19c: addons/cloud_storage/models/ir_attachment.py:50-52``) —
+        medido: son los dos únicos consumidores del símbolo en todo el árbol.
+
+        Ese addon no está portado. Cuando lo esté, extiende este método y el
+        cuerpo de la descarga vive allí, que es donde la referencia lo pone.
+        """
+        if self.type == 'binary':
+            return
+        if self.type == 'url':
+            raise ValidationError(
+                _('URL attachment (%s) shouldn\'t be migrated to local.')
+                % self.pk)

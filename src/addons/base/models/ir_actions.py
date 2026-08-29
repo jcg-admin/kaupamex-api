@@ -208,7 +208,9 @@ from addons.base.models.res_groups import ResGroups
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import UserError
 from orm.commands import Command
-from orm.environments import context_scope, get_context, get_current_user
+from addons.base.models.ir_model import IrModelData
+from orm.environments import (context_scope, get_context,
+                              get_current_user, sudo)
 from orm.models_transient import TransientModel
 from orm.registry import MODELS_BY_NAME
 from tools.misc import get_diff, get_lang
@@ -280,6 +282,47 @@ class IrActionsBase(TimeStampedModel):
 
     class Meta:
         abstract = True
+
+    def _for_xml_id(self, full_xml_id):
+        """Devuelve el contenido de la acción con ese identificador externo.
+
+        ≙ ``_for_xml_id`` (``odoo19c: ir_actions.py:225-234``).
+
+        :param full_xml_id: el id de la acción sin espacio de nombres (el
+            atributo ``@id`` del archivo XML)
+        :return: una vista de lectura de la ``ir.actions.action`` segura para
+            uso web
+
+        La fuente afirma con ``assert isinstance(...)`` que el registro
+        resuelto es del tipo del receptor; aquí la comprobación es
+        ``isinstance(record, type(self))``, que dice lo mismo sin pasar por el
+        registro de modelos.
+        """
+        record = IrModelData.ref(full_xml_id)
+        assert isinstance(record, type(self)), (
+            'Se esperaba una accion de tipo %s, llego %s'
+            % (type(self).__name__, type(record).__name__))
+        return record._get_action_dict()
+
+    def _get_action_dict(self):
+        """Devuelve el contenido de esta acción, acotado a lo legible.
+
+        ≙ ``_get_action_dict`` (``odoo19c: ir_actions.py:236-245``).
+
+        La fuente arma el diccionario con ``self.sudo().read()[0]`` y filtra
+        por :meth:`_get_readable_fields`. Aquí el ``read()`` de Odoo —que
+        devuelve los valores de los campos de un registro— es el recorrido de
+        ``_meta.fields`` del ORM, que es lo mismo con el constructor de este
+        stack. El ``sudo()`` de la fuente es el contexto homónimo de
+        ``orm.environments``, ya usado en este archivo.
+        """
+        readable_fields = self._get_readable_fields()
+        with sudo():
+            return {
+                field.name: getattr(self, field.name)
+                for field in self._meta.fields
+                if field.name in readable_fields
+            }
 
     def _get_readable_fields(self):
         """Los campos que es seguro leer desde el cliente.

@@ -23,8 +23,8 @@ globales de la instancia, no per-empresa (eso es L3 = ``Company``/
 from django.apps import AppConfig, apps
 
 from orm.inherits import apply_inherits
-from orm.model_classes import (ensure_access_managers, ensure_display_names,
-                               ensure_rec_names)
+from orm.model_classes import (ensure_access_managers, ensure_base_urls,
+                               ensure_display_names, ensure_rec_names)
 from orm.registry import MODELS_BY_NAME
 
 
@@ -71,10 +71,17 @@ class BaseConfig(AppConfig):
         ``BaseModel`` (``odoo19c: odoo/orm/models.py:473``), así que **todo**
         modelo la tiene; aquí la base común sólo cubre 285 de los 375 modelos
         concretos nuestros, y los 90 restantes la reciben por esta vía.
+
+        Y ``ensure_base_urls()``, que da ``get_base_url`` por la misma razón y
+        con el mismo mecanismo: en la fuente cuelga de ``BaseModel``
+        (``odoo19c: odoo/orm/models.py:3985``) y aquí ``TimeStampedModel``
+        sólo alcanza a 291 de los 389 modelos. Lo consume
+        ``ir.actions.report._get_report_url``.
         """
         ensure_rec_names()
         ensure_access_managers()
         ensure_display_names()
+        ensure_base_urls()
         users = apps.get_model('base', 'ResUsers')
         for model_name, fk_name in users._inherits.items():
             apply_inherits(

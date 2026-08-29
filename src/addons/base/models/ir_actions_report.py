@@ -62,37 +62,45 @@ no lo usa es **el reporte**: su documento es código (el ``builder`` del
 Qué NO se porta, con su medición
 ================================
 
+**Actualizado en el pase del bloque B (tarea #170).** Seis entradas de esta
+lista dejaron de ser ciertas: ``associated_view``, ``retrieve_attachment``
+completo, ``get_paperformat_by_xmlid``, ``_get_readable_fields``,
+``report_action`` y ``_action_configure_external_report_layout`` **están
+portados**, con el nombre y la firma de la fuente. Cada uno esperaba un
+mecanismo que este pase construyó en vez de declarar como divergencia:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Mecanismo que faltaba
+     - Dónde vive ahora
+   * - evaluador general de expresiones
+     - ``tools/safe_eval.py`` — porte completo con validación de opcodes
+       (tarea #140)
+   * - ``get_base_url``
+     - ``orm/models.py`` (``BaseUrlMixin``) más ``adopt_base_url``, que lo
+       universaliza como la fuente lo tiene en ``BaseModel``
+   * - ``_for_xml_id`` / ``_get_action_dict``
+     - ``IrActionsBase``, donde la fuente los declara
+   * - ``_is_remote_source`` / ``_migrate_remote_to_local``
+     - ``IrAttachment``, donde la fuente los declara
+
+Lo que sigue fuera, y por qué:
+
 - **Todo el motor**: ``_build_wkhtmltopdf_args``, ``_run_wkhtmltopdf``,
   ``_run_wkhtmltoimage``, ``_prepare_html``, ``_render_qweb_pdf``,
   ``_render_qweb_html``, ``_render_qweb_text``, ``_render_template``,
   ``_merge_pdfs``, ``_get_rendering_context``, ``barcode``,
-  ``get_available_barcode_masks``, ``get_wkhtmltopdf_state``. Ver arriba.
-- **``associated_view``** — busca la vista QWeb que usa el reporte.
-  **Actualizado** (porte de ``ir_ui_view.py``):
-  ``grep -rn "^class IrUiView\\b" src/`` → **1** clase. [PROVEN] Pero el
-  método sigue sin portarse por una razón **distinta** de la que tenía: no le
-  falta el modelo, le falta la **acción de ventana resuelta por ``xml_id``**
-  (``self.env.ref('base.action_ui_view')``) que devuelve para que el cliente
-  la abra — y eso depende de ``ir.model.data``, que existe pero nadie puebla.
-- **``_search_model_id``** — implementa la búsqueda por modelo con el
-  ``Domain`` de Odoo (``NEGATIVE_OPERATORS``, ``any!``, ``Domain.OR``). Es la
-  mecánica de su motor de dominios; en Django la búsqueda equivalente es un
-  ``filter`` del ORM y no necesita un método que la traduzca.
-- **``retrieve_attachment`` completo** — el nombre del adjunto sale de
-  ``safe_eval(self.attachment, {'object': record, 'time': time})``: una
-  expresión Python almacenada. Mismo criterio que ``ir_rule.domain_force``
-  (``api@020e965``) e ``ir_actions.server.code``: el campo se porta —es el
-  dato— y **este archivo no lo evalúa**. Lo que sí se porta es la **consulta**,
-  que es la otra mitad: ``find_attachment(record, attachment_name)`` recibe el
-  nombre ya resuelto y busca el adjunto. Partirlo así deja utilizable la mitad
-  que no depende del evaluador, en vez de perder las dos.
-- **``get_paperformat_by_xmlid``** — resuelve un ``xml_id`` contra
-  ``ir.model.data``, tabla que existe desde ``api@b618a6b`` pero que nadie
-  puebla todavía. ``get_paperformat()`` sin ``xml_id`` **sí** se porta entera.
-- **``_get_readable_fields``** — allowlist de campos que el cliente puede
-  leer; aquí eso lo declara el ``Meta.fields`` explícito del serializer DRF.
-- **``report_action`` / ``_action_configure_external_report_layout``** —
-  devuelven diccionarios de acción que consume el cliente web de Odoo.
+  ``get_available_barcode_masks``, ``get_wkhtmltopdf_state``. Ver arriba: el
+  motor es nuestro (helpers libharu, por decreto del ejecutor), no
+  wkhtmltopdf. Es el bloque D del porte.
+- **``_search_model_id``** — portado en el bloque A con el ``Domain`` de la
+  fuente; esta entrada quedó obsoleta y se retira.
+- **``external_report_layout_id`` de ``res.company``** — la FK no tiene
+  columna todavía. No es una divergencia de este archivo: está declarada
+  como pase propio en ``res_company.py``, porque añadirla migra esa tabla.
+  ``report_action`` la lee con ``getattr``, y sin ella toma la misma rama que
+  la fuente cuando la compañía no tiene plantilla configurada.
 """
 import json
 import logging
@@ -110,9 +118,17 @@ from addons.base.models.ir_ui_view import IrUiView
 from addons.base.models.ir_attachment import IrAttachment
 from addons.base.models.ir_model import IrModel
 from addons.base.models.report_paperformat import ReportPaperformat
+from addons.base.models.ir_config_parameter import SystemParameter
+from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_groups import ResGroups
+from exceptions import ValidationError
+from orm import registry
 from orm.domains import Domain, to_q
-from orm.environments import sudo
+from orm.environments import (get_context, get_current_company, is_system,
+                              sudo)
+from orm.models import filtered_domain
+from requests.exceptions import RequestException
+from tools.safe_eval import const_eval, safe_eval, time
 
 _logger = logging.getLogger(__name__)
 
@@ -526,30 +542,111 @@ class IrActionsReport(IrActionsBase):
         self.binding_model_name = ''
         self.save(update_fields=['binding_model_name', 'updated_at'])
 
+    def associated_view(self):
+        """La acción de ventana que lista las vistas de este reporte.
+
+        ≙ ``associated_view`` (``odoo19c: ir_actions_report.py:231-241``).
+        Se usa en el formulario de ``ir.actions.report`` para buscar de forma
+        ingenua la vista o vistas que intervienen en el dibujado.
+
+        Devuelve ``False`` si no hay acción resuelta o si el ``report_name``
+        no lleva punto — las dos guardas de la fuente, verbatim.
+        """
+        action_ref = IrModelData.ref('base.action_ui_view',
+                                     raise_if_not_found=False)
+        if not action_ref or len(self.report_name.split('.')) < 2:
+            return False
+        action_data = action_ref._get_action_dict()
+        action_data['domain'] = [
+            ('name', 'ilike', self.report_name.split('.')[1]),
+            ('type', '=', 'qweb'),
+        ]
+        return action_data
+
     # --- Formato de papel -------------------------------------------------
 
-    def get_paperformat(self, company=None):
-        """``get_paperformat`` — el del reporte, o el de la compañía.
+    def get_paperformat(self):
+        """El formato del reporte, o el de la compañía activa.
 
-        La referencia lee ``self.env.company``; aquí la compañía la aporta el
-        llamador, porque este archivo no conoce el contexto de la petición.
+        ≙ ``get_paperformat`` (``odoo19c: ir_actions_report.py:288-289``):
+        ``self.paperformat_id or self.env.company.paperformat_id``. El
+        ``env.company`` de la fuente es ``get_current_company()`` de
+        ``orm.environments``.
+
+        La firma llevaba un ``company=None`` nuestro, con la nota de que
+        «este archivo no conoce el contexto de la petición». Era falso —
+        ``get_current_company()`` existe desde antes— y por eso se retira: la
+        firma vuelve a la de la fuente.
         """
         if self.paperformat_id:
             return self.paperformat_id
-        return getattr(company, 'paperformat', None) if company else None
+        company = get_current_company()
+        return getattr(company, 'paperformat_id', None) if company else None
+
+    def get_paperformat_by_xmlid(self, xml_id):
+        """El formato del reporte que ese identificador externo nombra.
+
+        ≙ ``get_paperformat_by_xmlid`` (``:291-292``). Sin ``xml_id``, el de
+        la compañía activa — la misma rama que la fuente.
+        """
+        if not xml_id:
+            company = get_current_company()
+            return getattr(company, 'paperformat_id', None) if company else None
+        return IrModelData.ref(xml_id).get_paperformat()
+
+    # --- Plantilla y URL --------------------------------------------------
+
+    def _get_layout(self):
+        """La plantilla envolvente mínima, o ``None`` si no está sembrada.
+
+        ≙ ``_get_layout`` (``:294-295``):
+        ``self.env.ref('web.minimal_layout', raise_if_not_found=False)``.
+        """
+        return IrModelData.ref('web.minimal_layout',
+                               raise_if_not_found=False)
+
+    def _get_report_url(self, layout=None):
+        """La raíz desde la que el motor resuelve los recursos del documento.
+
+        ≙ ``_get_report_url`` (``:297-299``). El parámetro ``report.url``
+        gana; si no está, la URL base del envoltorio, o la de este registro.
+
+        La fuente encadena ``(layout or self._get_layout() or self)`` y le
+        pide ``get_base_url()`` — el método de ``BaseModel`` que este árbol
+        porta en ``orm.models.BaseUrlMixin``, así que los tres eslabones saben
+        responder. Ese mixin llega a **todo** modelo por
+        ``orm.model_classes.adopt_base_url``, no sólo a los que heredan de la
+        base común: sin esa universalidad el porte sería del método y no del
+        mecanismo.
+        """
+        report_url = SystemParameter.get_param('report.url')
+        return report_url or (
+            layout or self._get_layout() or self).get_base_url()
 
     # --- Adjunto ----------------------------------------------------------
 
-    def find_attachment(self, record, attachment_name):
-        """Mitad consultable de ``retrieve_attachment``.
+    def retrieve_attachment(self, record):
+        """Recupera el adjunto de un registro concreto.
 
-        La fuente calcula ``attachment_name`` evaluando la expresión guardada
-        en ``self.attachment``; ese evaluador **no se porta** (ver el docstring
-        del módulo). El nombre llega ya resuelto y aquí se hace la búsqueda,
-        que es la otra mitad y sí es portable.
+        ≙ ``retrieve_attachment`` (``:260-273``).
 
-        Devuelve el adjunto o ``None``.
+        :param record: el registro dueño del adjunto.
+        :return: el adjunto, o ``None``
+
+        El nombre sale de evaluar la expresión guardada en ``self.attachment``
+        contra ``{'object': record, 'time': time}``. Ese evaluador **ya no es
+        una divergencia**: ``tools.safe_eval`` porta la validación de opcodes
+        de la fuente desde la tarea #140, así que la expresión típica de este
+        campo —``'INV_%s.pdf' % object.name``— se evalúa aquí con las mismas
+        guardas que allá.
+
+        La fuente devuelve un conjunto de a lo sumo un registro
+        (``search(..., limit=1)``); aquí es la instancia o ``None``, que es la
+        forma que toma un ``limit=1`` con este ORM.
         """
+        attachment_name = safe_eval(
+            self.attachment, {'object': record, 'time': time}
+        ) if self.attachment else ''
         if not attachment_name:
             return None
         return IrAttachment.objects.filter(
@@ -558,24 +655,127 @@ class IrActionsReport(IrActionsBase):
             res_id=record.pk,
         ).first()
 
+    @classmethod
+    def _prepare_local_attachments(cls, attachments):
+        """Baja a local los adjuntos remotos y devuelve los que ya lo están.
+
+        ≙ ``_prepare_local_attachments`` (``:1209-1217``). Un motor de PDF no
+        puede ir a buscar una URL externa a mitad del dibujado, así que lo
+        remoto se migra antes; lo que no se pueda migrar se descarta, y el
+        fallo se registra sin detener el resto.
+
+        La fuente atrapa
+        ``(ValidationError, requests.exceptions.RequestException)``. Aquí la
+        segunda es la misma clase: ``requests`` está declarado en
+        ``pyproject.toml`` y es la biblioteca que la fuente usa.
+        """
+        for attachment in attachments:
+            if attachment._is_remote_source():
+                try:
+                    attachment._migrate_remote_to_local()
+                except (ValidationError, RequestException) as error:
+                    _logger.error(
+                        'Failed to migrate attachment %s to local: %s',
+                        attachment.pk, error)
+        return [a for a in attachments if not a._is_remote_source()]
+
     # --- Búsqueda ---------------------------------------------------------
 
     @classmethod
-    def get_report_from_name(cls, report_name):
-        """``_get_report_from_name`` — el reporte cuya plantilla se llama así."""
-        return cls.objects.filter(report_name=report_name).first()
+    def _get_report_from_name(cls, report_name):
+        """El reporte cuya plantilla se llama así.
+
+        ≙ ``_get_report_from_name`` (``:649-657``). El guion bajo es de la
+        fuente y vuelve en este pase: sin él el símbolo quedaba promovido a
+        API pública, que es un compromiso que la fuente nunca tomó.
+
+        La fuente encadena ``.with_context(...).sudo().search(..., limit=1)``;
+        aquí el ``sudo()`` es el contexto de ``orm.environments`` y el
+        ``limit=1`` es ``.first()``.
+        """
+        with sudo():
+            return cls.objects.filter(report_name=report_name).first()
+
+    @classmethod
+    def _get_report(cls, report_ref):
+        """El reporte que esa referencia nombra, leído con privilegio.
+
+        ≙ ``_get_report`` (``:659-685``). ``report_ref`` puede ser:
+
+        - el id de una ``ir.actions.report``
+        - un registro de ``ir.actions.report``
+        - una referencia de ``ir.model.data`` a una ``ir.actions.report``
+        - el ``report_name`` de una ``ir.actions.report``
+
+        Las cuatro ramas y sus dos ``ValueError`` son de la fuente, en su
+        orden. El ``ReportSudo`` de la fuente es el contexto ``sudo()``.
+        """
+        with sudo():
+            if isinstance(report_ref, int):
+                return cls.objects.filter(pk=report_ref).first()
+            if isinstance(report_ref, models.Model):
+                if not isinstance(report_ref, cls):
+                    raise ValueError(
+                        'Expected report of type %s, got %s'
+                        % (cls._name, type(report_ref).__name__))
+                return report_ref
+            report = cls.objects.filter(report_name=report_ref).first()
+            if report:
+                return report
+            report = IrModelData.ref(report_ref, raise_if_not_found=False)
+            if report:
+                if not isinstance(report, cls):
+                    raise ValueError(
+                        'Fetching report %r: type %s, expected %s'
+                        % (report_ref, type(report).__name__, cls._name))
+                return report
+            raise ValueError('Fetching report %r: report not found'
+                             % report_ref)
+
+    @classmethod
+    def get_valid_action_reports(cls, model, record_ids):
+        """Los reportes cuyo dominio satisface al menos uno de esos registros.
+
+        ≙ ``get_valid_action_reports`` (``:1195-1207``).
+
+        :param model: el modelo de los registros a validar
+        :param record_ids: ids de los registros a validar
+
+        Un reporte **sin** dominio siempre vale — la fuente los mete enteros
+        antes de recorrer los demás. Uno con dominio vale si algún registro lo
+        satisface, lo que se decide con ``filtered_domain``
+        (``orm/models.py:311``), que es el homónimo de la fuente.
+
+        La fuente lee el dominio con ``literal_eval``; aquí es ``const_eval``
+        de ``tools.safe_eval``, que **es** ``ast.literal_eval`` con el nombre
+        de la fuente.
+        """
+        model_cls = registry.model_by_name(model)
+        records = (list(model_cls.objects.filter(pk__in=record_ids))
+                   if model_cls else [])
+        reports = list(cls.objects.filter(model=model))
+        with_domain = [r for r in reports if r.domain]
+        valid_action_report_ids = [r.pk for r in reports if not r.domain]
+        for action in with_domain:
+            if filtered_domain(records, const_eval(action.domain)):
+                valid_action_report_ids.append(action.pk)
+        return valid_action_report_ids
 
     @classmethod
     def valid_reports_for(cls, model_name, groups=()):
-        """``get_valid_action_reports`` — reportes aplicables a un modelo.
+        """Los reportes de un modelo que esos grupos pueden ver. **Nuestro.**
+
+        **No es el porte de ``get_valid_action_reports``** — ése está arriba,
+        con su nombre y su firma. Este método hace otra cosa: filtra por el
+        campo ``group_ids``, y la fuente resuelve esa visibilidad por su ACL
+        sobre la acción, no con un método del modelo. Hasta este pase el
+        docstring lo presentaba como el porte de aquél, que es la fidelidad
+        declarada y no entregada que el gate de la tarea #75 vigila.
 
         Un reporte **sin** grupos vale para todos; uno con grupos vale sólo si
         el usuario tiene alguno. Es la misma asimetría que ``ir.rule`` y
-        ``ir.embedded.actions``: la lista vacía significa "sin restricción",
-        no "nadie".
-
-        No evalúa ``domain`` — filtrar por él es del llamador, que es quien
-        tiene los registros.
+        ``ir.embedded.actions``: la lista vacía significa «sin restricción»,
+        no «nadie».
         """
         group_ids = {getattr(group, 'pk', group) for group in groups}
         applicable = []
@@ -585,6 +785,75 @@ class IrActionsReport(IrActionsBase):
             if not declared or (declared & group_ids):
                 applicable.append(report)
         return applicable
+
+    # --- Acción para el cliente -------------------------------------------
+
+    def report_action(self, docids, data=None, config=True):
+        """Devuelve una acción de tipo ``ir.actions.report``.
+
+        ≙ ``report_action`` (``:1153-1185``).
+
+        :param docids: id, ids o registro de lo que se va a imprimir (si no se
+            usa, pasar una lista vacía)
+        :param data:
+        :param bool config:
+
+        El ``self.env.context`` de la fuente es ``get_context()``; su
+        ``env.is_admin()`` es ``is_system()``; su ``env.company`` es
+        ``get_current_company()``.
+
+        ``external_report_layout_id`` **no tiene columna todavía** — la FK
+        está declarada como pase propio en el docstring de ``res_company.py``,
+        porque añadirla migra esa tabla. Se lee con ``getattr(..., None)``, y
+        la rama que toma sin ella es exactamente la de la fuente cuando la
+        compañía no tiene plantilla configurada: ofrecer el configurador.
+        """
+        context = get_context()
+        if docids:
+            if isinstance(docids, models.Model):
+                active_ids = [docids.pk]
+            elif isinstance(docids, int):
+                active_ids = [docids]
+            elif isinstance(docids, list):
+                active_ids = docids
+            else:
+                active_ids = list(docids)
+            context = dict(context, active_ids=active_ids)
+
+        report_action = {
+            'context': context,
+            'data': data,
+            'type': 'ir.actions.report',
+            'report_name': self.report_name,
+            'report_type': self.report_type,
+            'report_file': self.report_file,
+            'name': self.name,
+        }
+
+        discard_logo_check = get_context().get('discard_logo_check')
+        company = get_current_company()
+        if (is_system()
+                and not getattr(company, 'external_report_layout_id', None)
+                and config and not discard_logo_check):
+            return self._action_configure_external_report_layout(report_action)
+
+        return report_action
+
+    def _action_configure_external_report_layout(
+            self, report_action,
+            xml_id='web.action_base_document_layout_configurator'):
+        """Envuelve la acción del reporte en la del configurador de plantilla.
+
+        ≙ ``_action_configure_external_report_layout`` (``:1187-1193``). La
+        acción devuelta lleva el reporte dentro de su contexto, para que el
+        cliente lo dispare cuando el usuario termine de configurar.
+        """
+        action = IrActionsBase._for_xml_id(self, xml_id)
+        py_ctx = json.loads(action.get('context') or '{}')
+        report_action['close_on_report_download'] = True
+        py_ctx['report_action'] = report_action
+        action['context'] = py_ctx
+        return action
 
     # --- Motor ------------------------------------------------------------
     #

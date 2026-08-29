@@ -317,6 +317,61 @@ def adopt_display_name(model_cls):
     return len(faltantes)
 
 
+def adopt_base_url(model_cls):
+    """Le da al modelo la URL raíz desde la que se sirve, si no la tiene.
+
+    ≙ que ``get_base_url`` cuelgue de ``BaseModel``
+    (``odoo19c: odoo/orm/models.py:3985``): allá **todo** modelo la tiene sin
+    declarar nada.
+
+    Aquí la lleva :class:`orm.models.BaseUrlMixin`, que ``TimeStampedModel``
+    adopta — **291 de los 389 modelos concretos** lo heredan (medido). Esta
+    función cubre a los **98** que no: los que declaran su propia base, como
+    ``IrAttachment``, más los de Django y los de terceros.
+
+    Lo destapó un test del bloque B de ``ir.actions.report`` que pedía la URL
+    a un modelo cualquiera, no al reporte: sin él, el porte habría sido del
+    **método** y no del **mecanismo**, que es la distinción que
+    :ref:`h-api-350` registró.
+
+    Un modelo que ya lo resuelve **no se toca**, y el discriminador es
+    ``getattr`` sobre el MRO, igual que en :func:`adopt_display_name`: un
+    modelo que sobreescriba ``get_base_url`` en una base propia gana, que es
+    lo que la fuente permite con cualquier método de ``BaseModel``.
+
+    :returns: 1 si se instaló, 0 si ya lo tenía, es de terceros o es
+        abstracto — para que el llamador pueda medir en vez de suponer.
+    """
+    if model_cls._meta.abstract or model_cls._meta.proxy:
+        return 0
+    if model_cls.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES):
+        return 0
+    if getattr(model_cls, 'get_base_url', None) is not None:
+        return 0
+
+    mixin = importlib.import_module('orm.models').BaseUrlMixin
+    model_cls.get_base_url = mixin.__dict__['get_base_url']
+    return 1
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.adopt_base_url')
+def _adopt_base_url_on_prepared(sender, **kwargs):
+    """Adopta la URL raíz en cuanto la clase queda construida."""
+    adopt_base_url(sender)
+
+
+def ensure_base_urls():
+    """Barre el registro por si la señal llegó tarde.
+
+    Dos vías por la razón de ``H-API-577``, igual que
+    :func:`ensure_display_names`.
+
+    :returns: cuántos modelos adoptaron el método en el barrido.
+    """
+    return sum(1 for model in apps.get_models(include_auto_created=True)
+               if adopt_base_url(model))
+
+
 @receiver(class_prepared, dispatch_uid='orm.model_classes.adopt_display_name')
 def _adopt_display_name_on_prepared(sender, **kwargs):
     """Adopta el bloque de etiqueta en cuanto la clase queda construida."""

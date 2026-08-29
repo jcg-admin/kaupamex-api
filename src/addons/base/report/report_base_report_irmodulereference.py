@@ -115,7 +115,7 @@ class ReportBaseReportIrmodulereference:
         recibirá el ``NotImplementedError`` con su motivo, que es mejor
         diagnóstico que una clave ausente a mitad del render.
         """
-        report = IrActionsReport.get_report_from_name(REPORT_NAME)
+        report = IrActionsReport._get_report_from_name(REPORT_NAME)
         selected_modules = IrModule.objects.filter(pk__in=list(docids))
         return {
             'doc_ids': docids,

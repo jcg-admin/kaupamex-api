@@ -644,6 +644,53 @@ def _first_field_name(model, candidates):
     return None
 
 
+class BaseUrlMixin:
+    """La URL raíz desde la que se sirve un registro.
+
+    ≙ ``BaseModel.get_base_url`` (``odoo19c: odoo/orm/models.py:3985-3995``),
+    que la fuente declara justo antes de ``_check_company_domain`` — de ahí
+    que aquí viva pegado a :class:`CheckCompanyMixin`, en el mismo archivo
+    espejado.
+
+    **Quién la consume.** ``ir.actions.report._get_report_url``, que arma la
+    URL con que el motor resuelve los recursos de una plantilla (hojas de
+    estilo, imágenes) mientras la renderiza. Sin ella el porte de ese método
+    no tiene de dónde sacar la raíz.
+
+    **La divergencia de forma es la de siempre en este archivo**: allá cuelga
+    de ``BaseModel`` y todo modelo la tiene; aquí ``models.Model`` es el de
+    Django, así que viaja por ``TimeStampedModel``, la base común del
+    proyecto. Es un mixin sin campos ni manager a propósito — uno con manager
+    eclipsaría el de toda base declarada más abajo, que es el defecto medido
+    en :ref:`h-api-876`.
+    """
+
+    def get_base_url(self):
+        """Devuelve la URL raíz de este registro.
+
+        Por defecto devuelve el parámetro ``web.base.url``, pero un modelo
+        puede sobreescribirla.
+
+        ≙ ``get_base_url`` (``odoo19c: models.py:3985``). Tres notas de
+        forma, ninguna recorta el contrato:
+
+        - La fuente valida ``len(self) > 1`` porque allá el receptor es un
+          conjunto de registros; aquí es una instancia y esa rama no tiene
+          forma que tomar.
+        - El ``sudo()`` de la fuente tampoco: ``get_param`` es un
+          ``classmethod`` que lee sin pasar por reglas de fila.
+        - El ``self.env['ir.config_parameter']`` de la fuente es una consulta
+          al registro, tardía a propósito; aquí es
+          ``registry.model_by_name('ir.config_parameter')``, que es como este
+          mismo archivo ya alcanza a ``ir.fields.converter``. Importarlo al
+          top invertiría la capa: ``orm`` no depende de ``addons``.
+
+        :return: la URL base de este registro
+        """
+        parameters = registry.model_by_name('ir.config_parameter')
+        return parameters.get_param('web.base.url') if parameters else None
+
+
 class CheckCompanyMixin:
     """Coherencia de empresa entre un registro y aquello a lo que apunta.
 
