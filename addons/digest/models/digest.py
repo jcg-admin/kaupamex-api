@@ -91,6 +91,7 @@ Divergencias declaradas
 """
 from datetime import timedelta
 
+from django.db.models import Sum
 from django.utils import timezone
 
 import fields
@@ -100,6 +101,7 @@ from exceptions import ValidationError
 from addons.base.models import ResUsersLog, TimeStampedModel
 from addons.base.models.ir_cron import _add_months
 from addons.mail.models import MailMessage
+from orm import registry
 from orm.environments import get_current_company, get_current_user
 
 
@@ -354,6 +356,60 @@ class DigestDigest(TimeStampedModel):
         qs = MailMessage.objects.filter(created_at__gte=start, created_at__lt=end)
         if self.company_id:
             qs = qs.filter(author__in=self.company_id.user_ids.all())
+        return qs.count()
+
+    def _get_company_field(self, model):
+        """≙ ``_get_company_field`` (``digest.py:437-438``).
+
+        Devuelve el nombre del campo por el que ese modelo se acota a empresa.
+        ``res.users`` usa el plural porque su pertenencia es múltiple; el resto,
+        el singular. Verbatim de la fuente, con el nombre de modelo de este
+        árbol (``_name``, no la etiqueta de Django).
+        """
+        return 'company_ids' if model in ['res.users'] else 'company_id'
+
+    def _calculate_company_based_kpi(self, model, start, end,
+                                     date_field='created_at',
+                                     additional_domain=None, sum_field=None):
+        """≙ ``_calculate_company_based_kpi`` (``digest.py:401-435``).
+
+        Cuenta (o suma ``sum_field``) los registros de ``model`` en la ventana,
+        acotados a la empresa del digest. Es el genérico que la referencia usa
+        para todo KPI cuyo modelo tenga campo de empresa.
+
+        Tres divergencias de FORMA, ninguna de alcance:
+
+        1. **Devuelve el valor**; la fuente lo escribe en ``digest[campo]``. Es
+           la forma que este archivo ya establece para sus dos KPIs base y que
+           ``compute_kpi_value`` espera.
+        2. **``start``/``end`` llegan por parámetro** en vez de salir de
+           ``_get_kpi_compute_parameters``: aquí la ventana la reparte
+           ``compute_kpis`` desde ``_compute_timeframes``, que es el mismo
+           dato calculado una vez para las tres columnas.
+        3. **``date_field`` por defecto es ``created_at``**, el nombre de la
+           columna de auditoría de este árbol (la fuente dice ``create_date``).
+        4. **``additional_domain`` es un dict de lookups de Django**, no una
+           lista de tuplas: el motor de dominios no interviene en un filtro que
+           se construye aquí mismo. El álgebra es la misma conjunción.
+
+        El modelo se resuelve por su ``_name``, no por su etiqueta de Django —
+        así el llamador escribe ``'crm.lead'`` como la fuente.
+        """
+        model_cls = registry.model_by_name(model)
+        if model_cls is None:
+            return 0
+        company_field = self._get_company_field(model)
+        filtros = {
+            f'{date_field}__gte': start,
+            f'{date_field}__lt': end,
+        }
+        if self.company_id:
+            filtros[f'{company_field}__in'] = [self.company_id.pk]
+        qs = model_cls.objects.filter(**filtros)
+        if additional_domain:
+            qs = qs.filter(**additional_domain)
+        if sum_field:
+            return qs.aggregate(total=Sum(sum_field))['total'] or 0
         return qs.count()
 
     def compute_kpi_value(self, field_name, start, end):

@@ -19,6 +19,29 @@ declaración; NO lleva el conteo del árbol —eso lo publica al correr, y el
 registro fechado vive en ``docs: source/gestion/pm/reportes/censo-convencion-fk-sufijo-id.rst``
 (``calibration-verified-numbers.md``, corolario de la cifra que vive en código).
 
+El sufijo ``_id`` es el PROXY; el criterio es la referencia
+===========================================================
+
+La primera versión decidía «símbolo fiel» con ``field_name.endswith('_id')``.
+Eso mide la **forma** del nombre y concluye sobre su **fidelidad**, que es el
+sub-patrón C de ``metrica-decide-la-conclusion.md``: el proxy acierta mientras
+la referencia use el sufijo, y **la referencia no siempre lo usa**.
+
+Medido sobre ``odoo19c`` (2026-08-28): de **2692** ``Many2one`` declarados,
+**128 (4.75 %)** no llevan sufijo — ``recurring_plan`` y ``company_currency``
+de ``crm.lead``, ``country_of_birth`` de ``hr.employee``, ``bank_state`` y
+``bank_country`` de ``res.partner.bank``, ``product_category`` de
+``account.analytic.line``… En esos 128 el porte fiel **es** el símbolo sin
+sufijo, y el proxy lo marcaba como incumplidor: el gate pedía apartarse de la
+referencia, que es exactamente lo que ADR-029 existe para impedir.
+
+Así que el gate **consulta la contraparte**: si la referencia declara un
+``Many2one`` con ese nombre verbatim, el símbolo es fiel. El sufijo queda como
+respaldo para lo que no tiene contraparte, que es donde no hay contra qué
+comparar. La resolución de la contraparte NO se copia aquí — la da
+``reference_roots.addon_root``, el mismo resolutor que usa
+``check_porte_completo``.
+
 Qué NO puede ver
 ================
 
@@ -28,14 +51,28 @@ divergente sea el correcto porque el modelo es propio del L0 y no adapta nada
 de la referencia. Ése es el motivo de que la forma A vaya a baseline en vez de
 bloquear: la forma sola no distingue un porte con símbolo divergente de un
 modelo nuestro que nunca tuvo contraparte.
+
+Y es ciego al **archivo** en que la contraparte declara el campo: consulta el
+archivo homónimo del addon, así que un campo que la referencia declare en otro
+archivo del mismo addon cae al respaldo del sufijo. Es la misma ceguera
+cross-archivo de :ref:`h-api-557`, y aquí sólo puede producir un falso
+incumplidor, nunca una absolución falsa.
 """
 import argparse
 import ast
+import functools
 import pathlib
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 BASELINE = REPO / 'scripts' / 'fk_naming_baseline.txt'
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from reference_roots import addon_root, tree as _tree  # noqa: E402
+
+#: La raíz del árbol que gobierna. Ver
+#: ``referencia-odoo-gobierna-las-decisiones.md``: 19 desempata.
+ODOO19C = _tree('odoo19c')
 
 #: Los constructores de UN solo valor relacional. ``fields.Many2one`` es
 #: nuestro despachador (``src/orm/fields_relational.py``): con ``store=True``
@@ -48,7 +85,7 @@ SINGLE_VALUED = ('Many2one', 'ForeignKey', 'OneToOneField')
 ROOTS = ('src', 'addons')
 
 
-def classify(field_name, has_db_column, stored=True):
+def classify(field_name, has_db_column, stored=True, reference_names=None):
     """La letra de la forma en que se declaró este campo.
 
     ``stored=False`` sale antes que las otras cuatro y no es una quinta forma:
@@ -57,13 +94,78 @@ def classify(field_name, has_db_column, stored=True):
     que preguntar si la suya es fiel no significa nada. Meterlo en el cubo B
     —«columna divergente»— rotularía como defecto un campo que no tiene el eje
     donde se mide: el sub-patrón A de ``metrica-decide-la-conclusion.md``.
+
+    ``reference_names`` son los ``Many2one`` que la contraparte declara. Con
+    ellos el símbolo se juzga contra la referencia; sin ellos —modelo propio
+    del L0, o archivo sin contraparte— cae al respaldo del sufijo, que es el
+    proxy correcto para el 95.25 % del árbol medido.
     """
     if not stored:
         return 'N'
-    faithful_symbol = field_name.endswith('_id')
+    if reference_names and field_name in reference_names:
+        # La referencia lo declara con ESTE nombre: el símbolo es fiel, lleve
+        # sufijo o no. Por aquí entran los 128 sin sufijo de ``odoo19c``.
+        faithful_symbol = True
+    else:
+        faithful_symbol = field_name.endswith('_id')
     if faithful_symbol:
         return 'C' if has_db_column else 'B'
     return 'D' if has_db_column else 'A'
+
+
+def _counterpart(relative):
+    """La ruta de la contraparte en la referencia, o ``None`` si no hay.
+
+    Dos mapeos, que son los dos que el árbol usa:
+
+    - ``addons/<x>/…`` y ``src/addons/<x>/…`` → el addon ``<x>`` de la
+      referencia, resuelto por ``reference_roots.addon_root`` (que conoce sus
+      DOS raíces y el mapa de renombre ``authz_* → auth_*``).
+    - ``src/<resto>`` → ``odoo/<resto>``, el núcleo espejado.
+    """
+    partes = relative.parts
+    if partes[:1] == ('addons',) and len(partes) > 2:
+        raiz, resto = addon_root(partes[1]), partes[2:]
+    elif partes[:2] == ('src', 'addons') and len(partes) > 3:
+        raiz, resto = addon_root(partes[2]), partes[3:]
+    elif partes[:1] == ('src',) and len(partes) > 1:
+        raiz, resto = ODOO19C / 'odoo', partes[1:]
+    else:
+        return None
+    return raiz.joinpath(*resto)
+
+
+@functools.lru_cache(maxsize=None)
+def reference_many2one(relative):
+    """Los ``Many2one`` que la contraparte declara, por su nombre verbatim.
+
+    Conjunto vacío cuando no hay contraparte — y el vacío es significativo:
+    ``classify`` cae entonces al respaldo del sufijo en vez de absolver.
+    """
+    contraparte = _counterpart(relative)
+    if contraparte is None or not contraparte.is_file():
+        return frozenset()
+    try:
+        arbol = ast.parse(contraparte.read_text(encoding='utf-8', errors='ignore'))
+    except SyntaxError:
+        return frozenset()
+    nombres = set()
+    for klass in [n for n in ast.walk(arbol) if isinstance(n, ast.ClassDef)]:
+        for nodo in klass.body:
+            if isinstance(nodo, ast.Assign):
+                objetivos = nodo.targets
+            elif isinstance(nodo, ast.AnnAssign):
+                objetivos = [nodo.target]
+            else:
+                continue
+            if not isinstance(nodo.value, ast.Call):
+                continue
+            f = nodo.value.func
+            ctor = f.attr if isinstance(f, ast.Attribute) else getattr(f, 'id', '')
+            if ctor not in SINGLE_VALUED:
+                continue
+            nombres.update(t.id for t in objetivos if isinstance(t, ast.Name))
+    return frozenset(nombres)
 
 
 def _keyword(call, name):
@@ -80,6 +182,14 @@ def declarations(path):
         tree = ast.parse(path.read_text(encoding='utf-8'))
     except (SyntaxError, UnicodeDecodeError):
         return
+    try:
+        relativa = path.relative_to(REPO)
+    except ValueError:
+        # Un archivo fuera del repo —el ``tmp_path`` de un test— no tiene
+        # contraparte que consultar. El conjunto vacío NO absuelve: manda a
+        # ``classify`` al respaldo del sufijo.
+        relativa = None
+    fieles = reference_many2one(relativa) if relativa else frozenset()
     for klass in [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]:
         for node in klass.body:
             # La referencia 19 declara el campo CON anotación de tipo —
@@ -105,7 +215,8 @@ def declarations(path):
             has_column = _keyword(node.value, 'db_column') is not None
             for target in targets:
                 if isinstance(target, ast.Name):
-                    yield klass.name, target.id, classify(target.id, has_column, stored)
+                    yield klass.name, target.id, classify(
+                        target.id, has_column, stored, fieles)
 
 
 def python_files():
@@ -165,7 +276,7 @@ def main():
 
     print(f'formas: ' + ' · '.join(f'{k}={v}' for k, v in sorted(counts.items()))
           + f'  (alcance medido: {measured} declaraciones relacionales '
-            f'de un solo valor en {"/".join(ROOTS)})')
+            f'de un solo valor en {" y ".join(ROOTS)}/)')
     print(f'no fieles: {len(offenders)}  ·  en baseline: {len(offenders) - len(fresh)}'
           f'  ·  nuevas: {len(fresh)}')
     for key in fresh:

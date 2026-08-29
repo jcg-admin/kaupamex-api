@@ -39,9 +39,25 @@ Divergencias declaradas frente a la referencia
 4. **``ensure_one()`` no aplica** — Django no tiene recordsets.
 
 5. **El batch de ``create``/``write`` (``vals_list``) se colapsa a una fila
-   por ``save()``.** La auto-creación de CAs faltantes de la cadena
-   (``_parse_chain_missing_ca_vals``) se porta como ``_create_missing_ca_certs``,
-   invocada una vez por instancia después de persistir.
+   por ``save()``.** La referencia declara los dos métodos porque su ORM los
+   separa (uno recibe el batch de altas, el otro la escritura); Django tiene
+   un solo punto de persistencia por fila. El **cuerpo** no se fusiona:
+   ``_parse_chain_missing_ca_vals`` sigue devolviendo los valores de las CAs
+   faltantes y quien crea es el llamador, igual que allá.
+
+   Sólo ``create`` se declara divergencia. ``write`` **no**: la cláusula
+   anti-abuso del registro lo prohíbe porque sale ausente noventa veces en el
+   árbol, y declararlo aquí convertiría noventa preguntas abiertas en
+   absoluciones silenciosas. Queda como deuda contada — que ``save()`` cubra
+   de hecho las dos ramas es justo el argumento que la cláusula rechaza.
+
+6. **Los campos calculados sin ``store=True`` son ``property``, y su método
+   ``_compute_*`` se conserva.** ``is_valid`` e ``issuer_cert_id`` se declaran
+   en la referencia con ``compute=`` y sin persistir; aquí la lectura pública
+   es la ``property`` (el campo) y el cálculo vive en ``_compute_is_valid`` /
+   ``_compute_issuer_cert_id``, con el nombre de la fuente. Es el caso (b) de
+   ``porte-completo-no-parcial.md``: el guion bajo marca lo interno porque el
+   público es el campo.
 """
 import re
 from contextlib import suppress
@@ -170,12 +186,33 @@ class CertificateCertificate(TimeStampedModel):
     # -------------------------------------------------------
 
     def save(self, *args, **kwargs):
+        """Fusión declarada de ``create`` + ``write`` (certificate.py:483-511).
+
+        La referencia declara **dos** métodos porque su ORM los separa: uno
+        recibe ``vals_list`` (batch de altas) y el otro ``vals`` (escritura
+        sobre un recordset). Django tiene **un solo** punto de persistencia
+        por fila, así que los dos aterrizan aquí; el batch se colapsa a una
+        fila (divergencia 5 del docstring del módulo).
+
+        Lo que **no** se fusiona es el cuerpo: la referencia delega en
+        ``_parse_chain_missing_ca_vals`` para obtener los valores de las CAs
+        faltantes y crea desde el llamador. Ese reparto se conserva verbatim.
+        """
         self._compute_pem_certificate()
         self._compute_private_key()
-        self._check_certificate_loaded()
-        self._check_certificate_key_compatibility()
+        self._constrains_certificate_loaded()
+        self._constrains_certificate_key_compatibility()
         super().save(*args, **kwargs)
-        self._create_missing_ca_certs()
+
+        # ≙ el bucle de ``create``/``write`` (certificate.py:485-491, 499-505):
+        # sólo cuando hay ``content`` que parsear y se cargó bien.
+        if self.content and not self.loading_error:
+            for ca_vals in self._parse_chain_missing_ca_vals({
+                'company': self.company,
+                'content': self.content,
+                'pkcs12_password': self.pkcs12_password,
+            }):
+                type(self).objects.create(**ca_vals)
 
     def clean(self):
         """``check_company=True`` de ``private_key_id``/``public_key_id``
@@ -191,12 +228,45 @@ class CertificateCertificate(TimeStampedModel):
 
     @property
     def is_valid(self):
-        """``compute='_compute_is_valid'`` (certificate.py:251-262), sin
-        ``store=True`` — property sin columna."""
+        """``is_valid = fields.Boolean(compute='_compute_is_valid',
+        search='_search_is_valid')`` (certificate.py:92), sin ``store=True``
+        — property sin columna. El cálculo vive en ``_compute_is_valid``."""
+        return self._compute_is_valid()
+
+    def _compute_is_valid(self):
+        """≙ ``_compute_is_valid`` (certificate.py:251-262).
+
+        La ventana de validez es cerrada por ambos extremos, y un certificado
+        que no cargó nunca es válido. La referencia compara contra
+        ``fields.Datetime.now()`` (naive-UTC); aquí contra ``timezone.now()``
+        (aware), por la divergencia 2 del docstring del módulo.
+        """
         if not self.date_start or not self.date_end or self.loading_error:
             return False
         now = timezone.now()
         return self.date_start <= now <= self.date_end
+
+    @classmethod
+    def _search_is_valid(cls, operator='in', value=True):
+        """≙ ``_search_is_valid`` (certificate.py:264-272).
+
+        La referencia devuelve el **dominio** que su ORM compila; aquí devuelve
+        el queryset ya filtrado, que es la forma que este árbol usa para un
+        ``search=`` (mismo reparto que ``_search_activity_state`` en
+        ``mail_activity_mixin.py``).
+
+        Conserva su guarda: sólo el operador ``in`` está soportado. La
+        referencia devuelve ``NotImplemented`` para el resto — aquí lo mismo,
+        porque un queryset vacío mentiría (diría *"no hay ninguno"* cuando lo
+        que pasa es que no se sabe buscar así).
+        """
+        if operator != 'in':
+            return NotImplemented
+        now = timezone.now()
+        # Los cuatro términos de la fuente, en el mismo orden.
+        return cls.objects.exclude(pem_certificate__isnull=True).filter(
+            date_start__lte=now, date_end__gte=now, loading_error='',
+        )
 
     @property
     def country_code(self):
@@ -205,10 +275,17 @@ class CertificateCertificate(TimeStampedModel):
 
     @property
     def issuer_cert(self):
-        """``compute='_compute_issuer_cert_id'`` (certificate.py:109-165),
-        sin ``store=True`` — recalculado en cada lectura. Ver divergencia 3
-        del docstring del módulo (una compañía por consulta, no el escaneo
-        multi-compañía de la referencia)."""
+        """``issuer_cert_id = fields.Many2one(compute='_compute_issuer_cert_id')``
+        (certificate.py:102-108), sin ``store=True`` — recalculado en cada
+        lectura. El cálculo vive en ``_compute_issuer_cert_id``."""
+        return self._compute_issuer_cert_id()
+
+    def _compute_issuer_cert_id(self):
+        """≙ ``_compute_issuer_cert_id`` (certificate.py:110-165).
+
+        Ver divergencia 3 del docstring del módulo: una compañía por consulta,
+        no el escaneo multi-compañía de la referencia.
+        """
         loaded = self._load_x509()
         if loaded is None:
             return None
@@ -260,7 +337,7 @@ class CertificateCertificate(TimeStampedModel):
             return x509.load_pem_x509_certificate(bytes(self.pem_certificate))
         return None
 
-    def _check_certificate_loaded(self):
+    def _constrains_certificate_loaded(self):
         """``@api.constrains('content', 'pem_certificate')`` (certificate.py
         :304-310): si hay ``content`` pero no se pudo cargar, rechazar."""
         if self.content and not self.pem_certificate:
@@ -268,7 +345,7 @@ class CertificateCertificate(TimeStampedModel):
                 'content': self.loading_error or 'CERTIFICATE_LOAD_FAILED',
             })
 
-    def _check_certificate_key_compatibility(self):
+    def _constrains_certificate_key_compatibility(self):
         """``@api.constrains('pem_certificate', 'private_key_id',
         'public_key_id')`` (certificate.py:275-303): la llave pública de
         ``private_key``/``public_key`` debe coincidir con la del certificado."""
@@ -558,23 +635,29 @@ class CertificateCertificate(TimeStampedModel):
     #             Auto-creación de CAs (create/write de la referencia)
     # -------------------------------------------------------
 
-    def _create_missing_ca_certs(self):
-        """Crea (si faltan) las CAs intermedias/raíz del ``content`` cargado.
+    def _parse_chain_missing_ca_vals(self, vals):
+        """≙ ``_parse_chain_missing_ca_vals`` (certificate.py:513-562).
 
-        Adaptación de ``_parse_chain_missing_ca_vals`` + su invocación desde
-        ``create``/``write`` (certificate.py:482-562): la referencia lo
-        dispara para TODA escritura de ``content``/``pkcs12_password`` en
-        batch (``vals_list``); aquí, una fila a la vez, desde ``save()``.
+        Extrae la cadena de CAs del ``content`` y devuelve **los diccionarios
+        de campos de las que faltan** en la base — no las crea. Quien crea es
+        el llamador, igual que en la referencia: allí son ``create``/``write``
+        (certificate.py:483-511), aquí es ``save()`` (divergencia 5 del
+        docstring del módulo: el batch por ``vals_list`` se colapsa a una fila).
+
+        :param vals: los valores de la escritura en curso. La referencia lee
+          ``company_id``/``pkcs12_password``/``content`` de ahí; se conserva
+          la firma para que el llamador siga siendo quien decide qué valores
+          se están escribiendo.
+        :return: lista de ``dict`` listos para ``objects.create()``.
         """
-        if not self.content or self.loading_error:
-            return
+        company = vals.get('company')
+        password = (vals['pkcs12_password'].encode('utf-8')
+                    if vals.get('pkcs12_password') else None)
+        content = bytes(vals.get('content') or b'')
 
-        password = (self.pkcs12_password.encode('utf-8')
-                    if self.pkcs12_password else None)
-        content = bytes(self.content)
         _leaf_pem, *ca_pems = self._extract_and_filter_chain(content, password)
         if not ca_pems:
-            return
+            return []
 
         ca_data_list = []
         for pem in ca_pems:
@@ -582,26 +665,30 @@ class CertificateCertificate(TimeStampedModel):
             serial = str(ca_cert.serial_number)
             subject = self._get_common_name(ca_cert) or serial
             ca_data_list.append({
-                'name': f'{subject} (CA)', 'serial_number': serial,
-                'subject_common_name': subject, 'content': pem,
+                'name': f'{subject} (CA)', 'company': company,
+                'serial_number': serial, 'subject_common_name': subject,
+                'content': pem, 'active': False,
             })
 
+        # Las ya existentes se descartan para no duplicar. La referencia usa
+        # ``with_context(active_test=False)`` porque una CA se siembra con
+        # ``active=False``; aquí no hay ``active_test``, así que el queryset
+        # ya ve las archivadas sin pedir nada.
         existing_keys = set(
             type(self).objects.filter(
-                company=self.company,
+                company=company,
                 serial_number__in=[d['serial_number'] for d in ca_data_list],
             ).values_list('serial_number', 'subject_common_name')
         )
 
+        missing = []
         for ca_data in ca_data_list:
             key = (ca_data['serial_number'], ca_data['subject_common_name'])
             if key in existing_keys:
                 continue
-            type(self).objects.create(
-                name=ca_data['name'], company=self.company,
-                content=ca_data['content'], active=False,
-            )
+            missing.append(ca_data)
             existing_keys.add(key)
+        return missing
 
     # -------------------------------------------------------
     #                   Métodos de negocio

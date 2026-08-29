@@ -90,6 +90,53 @@ def addons_de(alias='odoo19c'):
     return [raiz / 'addons'] if (raiz / 'addons').is_dir() else [raiz]
 
 
+#: Addons cuyo nombre AQUI no es el de la referencia. Sin este mapa un gate no
+#: encuentra la contraparte y publica ``0 pares``, que se lee igual que un porte
+#: completo — el sub-patron D de ``metrica-decide-la-conclusion.md``.
+#:
+#: Cada entrada se verifico por SOLAPE DE ARCHIVOS, no por parecido de nombre:
+#: un homonimo no es una contraparte. Comunes medidos: ldap 5 · oauth 6 ·
+#: passkey 7 · password_policy 2 · signup 7 · timeout 9 · totp 7 · totp_mail 5.
+#:
+#: NO estan aqui, y no por olvido: ``authz``, ``authz_audit`` y ``authz_reauth``
+#: no tienen contraparte de ningun nombre; ``helpdesk`` y ``sale_subscription``
+#: viven en Enterprise 19 (otra raiz, otra licencia); ``auto_backup`` adapta
+#: ``odoo18c: app_auto_backup``, que es otra version. Ninguno es un renombre:
+#: son fuentes distintas, y forzarlos aqui mediria otra poblacion. Condicion de
+#: cierre en la tarea #82.
+ADDON_ALIAS = {
+    'authz_ldap': 'auth_ldap',
+    'authz_oauth': 'auth_oauth',
+    'authz_passkey': 'auth_passkey',
+    'authz_password_policy': 'auth_password_policy',
+    'authz_signup': 'auth_signup',
+    'authz_timeout': 'auth_timeout',
+    'authz_totp': 'auth_totp',
+    'authz_totp_mail': 'auth_totp_mail',
+}
+
+
+def addon_root(addon, alias='odoo19c'):
+    """Raiz de un addon en la referencia, que NO tiene una sola forma.
+
+    Community reparte sus addons en DOS raices —``addons/`` y
+    ``odoo/addons/``— y ``base``, el addon del que depende el arranque, vive en
+    la segunda. Un gate que probara solo la primera dejaba ``base`` fuera del
+    alcance medido: 49 pares de archivo invisibles, todos con contraparte aqui,
+    y sin nada que lo delatara porque un addon sin pares emite ``0 hallazgos``.
+
+    Devuelve el candidato de la primera raiz aunque no exista, para que quien
+    llama pueda decidir con ``.is_dir()`` en vez de recibir ``None``.
+    """
+    name = ADDON_ALIAS.get(addon, addon)
+    raices = addons_de(alias)
+    for root in raices:
+        candidate = root / name
+        if candidate.is_dir():
+            return candidate
+    return raices[0] / name
+
+
 def require(alias='odoo19c'):
     """La raíz, o un error ruidoso. NUNCA devuelve una ruta que no existe.
 

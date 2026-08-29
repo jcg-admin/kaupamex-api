@@ -1169,3 +1169,39 @@ base/models/res_users.py::ResUsersApikeysDescription
 # son las migraciones de Django, y el indice equivalente vive en `Meta.indexes`
 # (mismo criterio que la tarea #70 aplico a `res_device_log`).
 base/models/res_users.py::ResUsersApikeys::init
+#
+# ---- 12. `_get_default_color` — DIVERGENCIA DE MECANISMO ----------------
+#
+# La fuente lo declara DENTRO de la clase y lo pasa como `default=` del campo
+# de color. Aqui no puede ir ahi, y no es preferencia: Django serializa un
+# `default` callable **por su ruta de import** al escribir la migracion, y una
+# funcion del cuerpo de una clase no tiene ninguna.
+#
+# Medido, no supuesto: al moverlo dentro de la clase, la migracion ya escrita
+# deja de resolverlo y el arbol entero cae —435 errores en el subconjunto
+# derivado— con `AttributeError: module ... has no attribute
+# _get_default_color`. Se devolvio a nivel de modulo por eso.
+#
+# Mismo rango que la fuente (1 a 11 inclusive) y mismo nombre; lo unico que
+# cambia es el sitio, y el sitio lo impone el serializador de migraciones.
+crm/models/crm_lead_scoring_frequency.py::CrmLeadScoringFrequencyField::_get_default_color
+#
+# Segunda entrada de la misma divergencia: `crm.tag` la comparte palabra por
+# palabra —mismo simbolo, mismo rango 1..11, mismo `default=` en el campo de
+# color— y por tanto el mismo impedimento del serializador de migraciones.
+sales_team/models/crm_tag.py::CrmTag::_get_default_color
+#
+# ---- 13. `create` de `certificate` — DIVERGENCIA DE MECANISMO -----------
+#
+# Su gancho de alta; en Django es `save()` con `_state.adding`. Mismo motivo,
+# palabra por palabra, que `base/models/res_users.py::ResUsers::create` en el
+# bloque 2 de arriba.
+#
+# `write` NO entra aqui, y no por descuido: la clausula anti-abuso lo prohibe
+# —lo vigila `test_the_anti_abuse_clause_is_honoured_in_the_registry`— porque
+# sale ausente 90 veces en el arbol y declararlo convertiria noventa preguntas
+# abiertas en noventa absoluciones silenciosas. El primer intento de esta
+# entrada SI lo colaba, con el argumento de que `save()` cubre las dos ramas;
+# ese argumento es exactamente el que la clausula existe para rechazar. En
+# `certificate` queda como deuda contada, igual que en los otros noventa.
+certificate/models/certificate.py::CertificateCertificate::create

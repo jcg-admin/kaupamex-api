@@ -111,7 +111,7 @@ def test_crm_team_and_membership(db, django_user_model):
     team = CrmTeam.objects.create(name='Ventas MX', sequence=5, color=3)
     u = django_user_model.objects.create_user(login='v1@practicayoruba.mx', password='x')
     CrmTeamMember.objects.create(crm_team_id=team, user_id=u)
-    assert team.members.count() == 1
+    assert team.member_ids.count() == 1
     assert list(CrmTeam.objects.all()) == [team]  # _order sequence
     # unique(crm_team, user)
     with pytest.raises(Exception):

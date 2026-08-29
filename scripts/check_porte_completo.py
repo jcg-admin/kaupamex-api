@@ -136,7 +136,7 @@ import sys
 
 import sys as _s, os.path as _op
 _s.path.insert(0, _op.dirname(_op.abspath(__file__)))
-from reference_roots import tree as _tree
+from reference_roots import ADDON_ALIAS, addon_root as reference_root, tree as _tree
 
 #: Raíz del árbol que gobierna (``odoo19c``). Ver
 #: ``referencia-odoo-gobierna-las-decisiones.md``: 19 desempata, y las rutas de
@@ -150,58 +150,11 @@ _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from addons_roots import addon_dirs, addon_path
 
 
-#: Addons cuyo nombre AQUI no es el de la referencia. Sin este mapa el gate
-#: no encuentra la contraparte y publica ``0 pares de archivo``, que se lee
-#: igual que un porte completo — el mismo sub-patron D que cerro la tarea #24
-#: al darle la segunda raiz. Lo destapo construir ``check_chain_combine``
-#: (tarea #80): ``--addon authz_totp`` medía cero.
-#:
-#: Cada entrada se verifico por SOLAPE DE ARCHIVOS, no por parecido de nombre:
-#: un homonimo no es una contraparte. Comunes medidos: ldap 5 · oauth 6 ·
-#: passkey 7 · password_policy 2 · signup 7 · timeout 9 · totp 7 · totp_mail 5.
-#:
-#: NO estan aqui, y no por olvido: ``authz``, ``authz_audit`` y ``authz_reauth``
-#: no tienen contraparte de ningun nombre (no existe ``auth``, ``auth_audit`` ni
-#: ``auth_reauth``); ``helpdesk`` y ``sale_subscription`` viven en Enterprise 19,
-#: que es OTRA raiz y otra licencia (OEEL-1, DEC-KX-03); ``auto_backup`` adapta
-#: ``odoo18c: app_auto_backup``, que es otra version. Ninguno de los cinco es un
-#: renombre: son fuentes distintas, y forzarlos aqui mediria otra poblacion.
-#: Contra que raiz se miden esos cuatro es DESCONOCIDO declarado, con su
-#: condicion de cierre en la tarea #82; el triaje de los 29 hallazgos que este
-#: mapa destapa, en la #81.
-ADDON_ALIAS = {
-    'authz_ldap': 'auth_ldap',
-    'authz_oauth': 'auth_oauth',
-    'authz_passkey': 'auth_passkey',
-    'authz_password_policy': 'auth_password_policy',
-    'authz_signup': 'auth_signup',
-    'authz_timeout': 'auth_timeout',
-    'authz_totp': 'auth_totp',
-    'authz_totp_mail': 'auth_totp_mail',
-}
-
-
-def reference_root(addon):
-    """Raiz de un addon en la referencia, que NO tiene una sola forma.
-
-    La referencia reparte sus addons en dos raices: ``addons/`` (629
-    directorios) y ``odoo/addons/`` (24), y ``base`` —el addon del que depende
-    el arranque— vive en la segunda. Una version anterior de este gate probaba
-    solo la primera, asi que ``base`` quedaba fuera del alcance medido: 49
-    pares de archivo invisibles, todos con contraparte aqui.
-
-    Y el gate no lo delataba, porque un addon sin pares emite ``0 hallazgos``,
-    que se lee igual que un porte completo. Es el sub-patron D de
-    ``metrica-decide-la-conclusion.md``: un verde que no discrimina entre
-    "no falta nada" y "no se miro". El denominador ya se publicaba
-    (``alcance medido: N pares``) y decia ``0`` — la cifra estaba a la vista.
-    """
-    name = ADDON_ALIAS.get(addon, addon)
-    for root in (ODOO19C / 'addons', ODOO19C / 'odoo' / 'addons'):
-        candidate = root / name
-        if candidate.is_dir():
-            return candidate
-    return ODOO19C / 'addons' / name
+#: ``ADDON_ALIAS`` y ``reference_root`` viven en ``reference_roots.py`` —
+#: el modulo que ya declara las raices de la referencia. Tenerlos aqui era
+#: la segunda fuente de verdad que ``calibration-verified-numbers.md``
+#: prohibe: ``check_fk_naming`` necesita la misma resolucion, y copiarla
+#: habria dejado dos mapas de alias que nadie sincroniza.
 
 #: Renombres declarados: ``nombre en la referencia -> nombre aquí``. Cada
 #: entrada es una decisión, no una conveniencia — si el nombre cambió sin
@@ -667,6 +620,58 @@ def addon_classes(raiz):
     return by_class
 
 
+#: Los despromovidos HEREDADOS, congelados. Uno listado no bloquea; uno nuevo
+#: si. Mismo criterio prospectivo que `identifier_language_baseline.txt` y que
+#: el grifo cerrado de los guiones: la deuda se paga al tocar el archivo, no en
+#: un barrido que compite con la implementacion.
+DESPROMOVIDOS_BASELINE_PATH = pathlib.Path(__file__).with_name(
+    'despromovidos_baseline.txt')
+
+
+def _cargar_despromovidos_baseline():
+    """Las lineas ``Clase::_metodo`` del baseline, o vacio si no existe."""
+    if not DESPROMOVIDOS_BASELINE_PATH.exists():
+        return set()
+    return {
+        line.strip() for line in
+        DESPROMOVIDOS_BASELINE_PATH.read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith('#')
+    }
+
+
+DESPROMOVIDOS_BASELINE = _cargar_despromovidos_baseline()
+
+
+def _despromovido(ref_name, ref_methods, our_methods):
+    """¿La referencia lo declara ``_foo`` y nosotros lo publicamos como ``foo``?
+
+    Quitar el guion bajo no renombra: **promueve el simbolo a API publica**.
+    PEP 8 lo fija — ``_nombre`` significa *"uso interno; no lo llames desde
+    fuera"*— y la referencia usa esa frontera a proposito, declarando
+    ``activity_schedule`` junto a ``_activity_schedule_with_view`` en el mismo
+    archivo. Ver `porte-completo-no-parcial.md` y :ref:`h-api-581`.
+
+    NO cuenta como despromovido, y por eso los dos descartes:
+
+    - que la referencia declare **ambos** (``action_done`` y ``_action_done``):
+      ahi tener solo el public_name es porte **parcial**, que el gate ya mide con
+      otro instrumento y contarlo dos veces inflaria el hallazgo;
+    - que nosotros declaremos **ambos**: entonces el privado esta portado y lo
+      public_name es un anadido nuestro, no una promocion.
+
+    *Metrica:* nombres de metodo declarados en una clase, por AST.
+    *Ciega a:* la despromocion que ademas cambia el sufijo
+    (``_search_activity_user_id`` -> ``search_activity_user``), que ningun
+    emparejamiento por nombre alcanza. Es una **cota inferior**.
+    """
+    if not ref_name.startswith('_'):
+        return False
+    public_name = ref_name.lstrip('_')
+    return (public_name not in ref_methods
+            and public_name in our_methods
+            and ref_name not in our_methods)
+
+
 def normaliza(name):
     """El nombre comparable: alias declarado, y sin guiones bajos de borde."""
     return PORTE_ALIAS.get(name, name).strip('_')
@@ -682,12 +687,22 @@ def class_key(name):
     Es una diferencia **formal y mecanica**, no un renombre: comparar el
     literal declaraba ausentes nueve clases que estan portadas, 96 simbolos.
 
-    Por eso NO se toca ``normaliza``: para un metodo el guion bajo es el
-    contrato —``_foo`` es interno y ``foo`` es publico, y despromoverlo es un
-    defecto propio (:ref:`h-api-581`)—, asi que aplanar guiones alli borraria
-    la distincion que otro gate vigila. Aqui no hay tal contrato: una clase
-    ``_Privada`` conserva su guion de borde, que es lo unico que ``strip``
-    quita.
+    Aqui no hay contrato de visibilidad: una clase ``_Privada`` conserva su
+    guion de borde, que es lo unico que ``strip`` quita.
+
+    .. note:: **Corregido.** Este parrafo decia *"por eso NO se toca
+       ``normaliza``: ... aplanar guiones alli borraria la distincion que otro
+       gate vigila"*, y afirmaba justo lo contrario de lo que el codigo hace:
+       ``normaliza`` **si** aplana los guiones de borde, asi que ``_foo`` y
+       ``foo`` colisionan en la misma llave. La consecuencia no era teorica —
+       medido sobre 1087 archivos con contraparte, el gate no veia **150**
+       metodos despromovidos en 47 archivos, y su propia documentacion decia
+       que si. Es el sub-patron D de `metrica-decide-la-conclusion.md`: un
+       control cuyo verde no discrimina, con un comentario que garantiza lo
+       que no cumple.
+
+       El aplanamiento se queda —hace falta para casar la clase— y la
+       distincion la mide ahora ``_despromovido`` como categoria propia.
 
     *Metrica:* colisiones de la llave dentro de cada arbol. Medido sobre el
     addon ``base``: **0** en 150 clases nuestras y **0** en 442 de la
@@ -851,10 +866,19 @@ def compara(addon):
                     (addon, ref_py.name, klass, 'CLASE FUERA DE SITIO',
                      [f'portada fuera de {ref_py.name}']))
             aqui_norm = {normaliza(m) for m in aqui}
-            faltan, out_of_place = [], []
+            faltan, out_of_place, despromovidos = [], [], []
             for m in sorted(metodos):
                 n = normaliza(m)
                 if n in aqui_norm:
+                    # El nombre esta, pero puede haber perdido su guion bajo:
+                    # `normaliza` los aplana, asi que `_foo` y `foo` colisionan
+                    # en la misma llave y el gate no distinguia uno de otro.
+                    if _despromovido(m, metodos, aqui):
+                        if f'{klass}::{m}' in DESPROMOVIDOS_BASELINE \
+                                or m in DESPROMOVIDOS_BASELINE:
+                            absolutions += 1
+                        else:
+                            despromovidos.append(f'{m} -> {m.lstrip("_")}')
                     continue
                 if n in absueltos:
                     absolutions += 1
@@ -873,6 +897,10 @@ def compara(addon):
                 hallazgos.append(
                     (addon, ref_py.name, klass, 'FUERA DE SITIO',
                      out_of_place))
+            if despromovidos:
+                hallazgos.append(
+                    (addon, ref_py.name, klass, 'DESPROMOVIDOS',
+                     despromovidos))
     return pares, hallazgos, no_resolubles, absolutions
 
 

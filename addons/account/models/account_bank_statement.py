@@ -28,7 +28,7 @@ portan ahora:
   implementa ``_compute_is_valid()`` de abajo. El camino de **búsqueda/lote**
   (``_search_is_valid``) sí usa la ventana (``LAG(balance_end_real) OVER
   (PARTITION BY journal_id ORDER BY first_line_index)``); se porta tal cual
-  vía SQL crudo en ``_get_invalid_statement_ids``/``search_is_valid``.
+  vía SQL crudo en ``_get_invalid_statement_ids``/``_search_is_valid``.
 
 **Portado (H-API-331, tarea #126).** ``date`` era un campo plano — la
 referencia lo deriva de la última línea posteada
@@ -253,7 +253,8 @@ class AccountBankStatement(models.Model):
     # -------------------------------------------------------------------
 
     @classmethod
-    def _get_invalid_statement_ids(cls, journal_ids=None, ids=None):
+    def _get_invalid_statement_ids(cls, all_statements=None,
+                                   journal_ids=None, ids=None):
         """Odoo ``_get_invalid_statement_ids``
         (``odoo19c: account_bank_statement.py:242-275``): identifica, con
         una sola query de ventana (``LAG`` sobre ``first_line_index``
@@ -261,9 +262,12 @@ class AccountBankStatement(models.Model):
         coincide —redondeado a los decimales de su moneda— con el
         ``balance_end_real`` del estado anterior del mismo diario.
 
-        ``journal_ids``/``ids`` acotan la búsqueda — equivalente al
-        ``all_statements=False`` de la referencia. Sin argumentos corre
-        sobre TODOS los estados; es el modo que usa ``search_is_valid``.
+        ``all_statements`` es el parámetro de la referencia y conserva su
+        sentido: con él, la query corre sobre TODOS los estados. Cuando es
+        falso, la referencia lee el diario y los ids **del propio recordset**
+        (``self.journal_id.ids`` / ``self.ids``); Django no tiene recordsets,
+        así que esos dos llegan por argumento — ``journal_ids``/``ids`` son el
+        sustituto declarado de ``self``, no parámetros inventados.
         Copiado tal cual (SQL crudo, no recorrido en Python): el ``LAG``
         compara contra el estado inmediatamente anterior en el
         ``PARTITION BY journal_id ORDER BY first_line_index`` real de
@@ -271,15 +275,18 @@ class AccountBankStatement(models.Model):
         """
         where = ["st.first_line_index != ''"]
         params = []
-        if journal_ids is not None:
-            where.append('st.journal_id = ANY(%s)')
-            params.append(list(journal_ids))
-        where_sql = ' AND '.join(where)
-
         having_sql = ''
-        if ids is not None:
-            having_sql = ' AND id = ANY(%s)'
-            params.append(list(ids))
+        # ≙ los dos `{"" if all_statements else ...}` de la referencia
+        # (:263, :268): la bandera decide si los dos acotamientos entran en
+        # el SQL, no si los argumentos vienen o no.
+        if not all_statements:
+            if journal_ids is not None:
+                where.append('st.journal_id = ANY(%s)')
+                params.append(list(journal_ids))
+            if ids is not None:
+                having_sql = ' AND id = ANY(%s)'
+                params.append(list(ids))
+        where_sql = ' AND '.join(where)
 
         query = f"""
             WITH statements AS (
@@ -310,15 +317,26 @@ class AccountBankStatement(models.Model):
             return [row[0] for row in cursor.fetchall()]
 
     @classmethod
-    def search_is_valid(cls, value=True):
-        """Odoo ``_search_is_valid``
-        (``odoo19c: account_bank_statement.py:219-223``): equivalente
-        buscable de ``is_valid`` sobre TODOS los estados, vía
-        ``_get_invalid_statement_ids`` (sin argumentos = modo
-        ``all_statements``). La referencia sólo acepta ``operator ==
-        'in'``; aquí un booleano simple, porque este puerto no tiene motor
-        de domain."""
-        invalid_ids = cls._get_invalid_statement_ids()
+    def _search_is_valid(cls, operator='in', value=True):
+        """≙ ``_search_is_valid``
+        (``odoo19c: account_bank_statement.py:219-223``): el equivalente
+        buscable de ``is_valid``, sobre TODOS los estados.
+
+        La guarda del operador se conserva verbatim: la referencia sólo sabe
+        resolver ``in`` y devuelve ``NotImplemented`` para el resto. **No** es
+        prescindible por no tener motor de domain — al revés: sin ella, un
+        operador que no sabemos honrar devolvería un queryset que parece una
+        respuesta y no lo es.
+
+        DIVERGENCIA declarada en el valor buscado: la referencia devuelve
+        siempre ``[('id', 'not in', invalid_ids)]``, sin mirar ``value``; aquí
+        se ramifica, porque sin motor de domain nadie niega el término por
+        fuera. Con ``value`` falso devuelve los inválidos, que es lo que
+        ``is_valid in [False]`` significa.
+        """
+        if operator != 'in':
+            return NotImplemented
+        invalid_ids = cls._get_invalid_statement_ids(all_statements=True)
         qs = cls.objects.all()
         if value:
             return qs.exclude(pk__in=invalid_ids)

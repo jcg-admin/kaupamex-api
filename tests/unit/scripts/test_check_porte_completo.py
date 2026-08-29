@@ -92,6 +92,67 @@ def test_the_underscore_of_the_reference_normalizes_away():
     assert gate.normaliza('_reflect_fields') == gate.normaliza('reflect_fields')
 
 
+# --- el eje del guion bajo: aplanar para casar, discriminar para medir ------
+
+
+class TestDespromovido:
+    """``_despromovido`` — el eje que ``normaliza`` no puede ver.
+
+    ``normaliza`` aplana los guiones de borde y eso hace falta para casar el
+    simbolo (el caso de arriba). El efecto colateral era que ``_foo`` y ``foo``
+    caian en la misma llave, asi que el gate daba por portado un metodo cuya
+    visibilidad habia cambiado — que es un defecto propio, no un renombre
+    (:ref:`h-api-581`).
+
+    Las dos piezas conviven: ``normaliza`` empareja, ``_despromovido``
+    discrimina.
+    """
+
+    def test_the_public_name_where_the_reference_declares_a_private_one(self):
+        assert gate._despromovido(
+            '_prepare_rendering_values',
+            {'_prepare_rendering_values'}, {'prepare_rendering_values'})
+
+    def test_a_public_symbol_of_the_reference_is_never_a_demotion(self):
+        """Sin guion bajo en la fuente no hay visibilidad que perder."""
+        assert not gate._despromovido('action_close', {'action_close'},
+                                      {'action_close'})
+
+    def test_a_reference_that_declares_both_is_a_partial_port_not_a_demotion(self):
+        """Cuando la fuente declara ``foo`` **y** ``_foo``, tener solo el
+        publico es porte PARCIAL — otro instrumento lo mide. Contarlo aqui
+        tambien inflaria el hallazgo con el mismo defecto dos veces."""
+        assert not gate._despromovido(
+            '_action_done', {'action_done', '_action_done'}, {'action_done'})
+
+    def test_declaring_both_here_means_the_private_one_is_ported(self):
+        """Si el privado esta, lo publico es un anadido nuestro, no una
+        promocion de lo reservado."""
+        assert not gate._despromovido(
+            '_post', {'_post'}, {'_post', 'post'})
+
+    def test_a_symbol_absent_here_is_a_gap_not_a_demotion(self):
+        """Ausente entero lo mide ``MÉTODOS AUSENTES``; aqui no cuenta."""
+        assert not gate._despromovido('_foo', {'_foo'}, set())
+
+
+def test_the_baseline_freezes_inherited_demotions_and_nothing_else():
+    """El baseline se lee, tiene contenido, y sus lineas son ``Clase::_metodo``.
+
+    Un baseline vacio absolveria por accidente todo lo que el gate empieza a
+    ver, que es el modo en que un congelado se vuelve una amnistia.
+    """
+    congelados = gate._cargar_despromovidos_baseline()
+    assert congelados, 'el baseline no se leyo o esta vacio'
+    for line in congelados:
+        klass, _, method = line.partition('::')
+        assert klass and method, f'line sin la forma Clase::_metodo: {line!r}'
+        assert method.startswith('_'), (
+            f'{line!r}: el baseline congela el nombre de la REFERENCIA, que '
+            'es el privado; si no empieza con guion bajo no es un despromovido'
+        )
+
+
 # --- el veredicto por clase ------------------------------------------------
 
 
