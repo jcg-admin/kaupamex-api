@@ -9,7 +9,9 @@ heredaba ``MailThread`` (``orders/models.py:22``); la canónica no.
 Lo que se fija aquí:
 
 1. ``SaleOrder`` es un hilo: ``message_post`` / seguidores funcionan sobre él,
-   con la identidad polimórfica correcta (``sale.SaleOrder``).
+   con la identidad de la referencia (``sale.order``): desde que
+   ``SaleOrder`` declara ``_name``, ``_mail_thread_res_model()`` resuelve
+   al nombre de la fuente y ya no al rótulo de Django.
 2. Cada transición de la máquina de estados **deja rastro**: ``action_confirm``,
    ``action_cancel`` y ``action_draft`` registran un ``mail.tracking.value``
    del campo ``state`` con su valor viejo y nuevo.
@@ -64,13 +66,13 @@ class TestElCanonicoEsUnHilo:
         assert hasattr(orden, 'message_subscribe')
 
     def test_la_identidad_polimorfica_es_la_del_canonico(self, orden):
-        """El hilo se ancla a ``sale.SaleOrder``, no al espejo."""
-        assert orden._mail_thread_res_model() == 'sale.SaleOrder'
+        """El hilo se ancla a ``sale.order``, no al espejo."""
+        assert orden._mail_thread_res_model() == 'sale.order'
 
     def test_publicar_en_el_hilo_crea_el_mensaje(self, orden):
         orden.message_post(body='nota interna')
         assert MailMessage.objects.filter(
-            model='sale.SaleOrder', res_id=orden.pk, body='nota interna',
+            model='sale.order', res_id=orden.pk, body='nota interna',
         ).exists()
 
 
