@@ -11,6 +11,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.validators import MinValueValidator
+import api
 import fields
 import models
 
@@ -178,10 +179,12 @@ class SaleOrderLine(AnalyticMixin, TimeStampedModel):
     # faltaban, y 27 no la llevan (``One2many`` inverso, ``store=False``
     # explícito, o ``compute``/``related`` sin ``store=True``).
     #
-    # De esos 33 entran aquí **30**. Los tres restantes —``price_subtotal``,
-    # ``price_tax`` y ``price_total``— hoy existen como MÉTODO en este archivo
-    # y su paso a campo almacenado arrastra sus llamadas: medido, 30 sitios en
-    # 14 archivos. Es el bloque siguiente, no una omisión.
+    # Los 33 entran completos. Los tres últimos —``price_subtotal``,
+    # ``price_tax`` y ``price_total``— existían como MÉTODO en este archivo, y
+    # su paso a campo almacenado arrastró sus llamadas: se corrigieron los
+    # sitios que consumen la línea de venta. La línea de compra
+    # (``purchase.order.line``) conserva sus métodos homónimos — es otro
+    # modelo, con su propio ``product_qty``, y su porte es aparte.
     #
     # Las FK nuevas van en **forma C** de ADR-029: símbolo verbatim de la
     # fuente —con su sufijo ``_id``— más ``db_column`` fijando la columna al
@@ -392,6 +395,40 @@ class SaleOrderLine(AnalyticMixin, TimeStampedModel):
                   'reporte y en el portal.',
     )
 
+    # -- el desglose por línea, ya como columnas ---------------------------
+    # ≙ ``odoo19c: sale/models/sale_order_line.py:190-200`` — los tres son
+    # ``compute='_compute_amount', store=True, precompute=True``. Aquí eran
+    # métodos Python, y por eso ``SaleOrder._sum_lines`` los invocaba con
+    # ``getattr(line, attr)()``: cada agregado de la orden recorría las líneas
+    # en Python. Como columnas, un ``Sum('price_total')`` agrega en el motor —
+    # la misma razón por la que ``amount_untaxed``/``amount_tax``/
+    # ``amount_total`` ya se materializaron en ``SaleOrder`` (H-API-30).
+    #
+    # **Divergencia declarada en ``price_tax``:** la fuente lo declara
+    # ``fields.Float`` (``:194``) y aquí es ``Monetary``. El valor es dinero —
+    # lo suma ``SaleOrder.amount_tax``, que sí es ``Monetary`` en los dos
+    # árboles— y este stack guarda dinero en ``DecimalField``: una columna de
+    # coma flotante reintroduciría el error de representación que el resto del
+    # modelo evita. Mismo dato, misma semántica, columna del tipo correcto.
+    price_subtotal = fields.Monetary(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        verbose_name='Subtotal',
+        help_text='Odoo price_subtotal ("Subtotal", compute+store, '
+                  'precompute). El importe de la línea sin impuestos.',
+    )
+    price_tax = fields.Monetary(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        verbose_name='Impuesto total',
+        help_text='Odoo price_tax ("Total Tax", compute+store, precompute). '
+                  'El impuesto de la línea.',
+    )
+    price_total = fields.Monetary(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        verbose_name='Total',
+        help_text='Odoo price_total ("Total", compute+store, precompute). El '
+                  'importe de la línea con impuestos.',
+    )
+
     class Meta:
         db_table     = 'sale_order_line'
         verbose_name = 'Línea de orden de venta'
@@ -431,7 +468,50 @@ class SaleOrderLine(AnalyticMixin, TimeStampedModel):
     # clear_draft_items``) llaman a ``order._compute_amounts()`` explícitamente
     # tras el borrado en bloque — ver el docstring de cada uno.
     # ------------------------------------------------------------------
+    #: Los operandos del desglose. Su valor se normaliza al tipo que su campo
+    #: declara ANTES de multiplicar, con el ``to_python`` del propio campo —el
+    #: mismo que emplean ``full_clean()`` y el backend—, no con una conversión
+    #: escrita a mano.
+    #:
+    #: La referencia no necesita este paso: sus descriptores convierten **al
+    #: asignar**, así que un campo tipado nunca guarda una cadena. Django
+    #: convierte **al persistir**, y el cómputo de ``save()`` corre antes de esa
+    #: conversión: ``linea.price_unit = '100.00'`` deja un ``str`` en el
+    #: atributo, y multiplicarlo por un ``Decimal`` levanta ``TypeError``.
+    #: Mientras el desglose era método —se invocaba después de leer de la base—
+    #: el defecto no existía; al pasar a columna computada en ``save()``, sí.
+    AMOUNT_OPERAND_FIELDS = ('price_unit', 'product_uom_qty', 'discount')
+
+    def _coerce_amount_operands(self):
+        """Normaliza los operandos del desglose al tipo de su campo."""
+        for name in self.AMOUNT_OPERAND_FIELDS:
+            value = getattr(self, name)
+            if value is not None:
+                setattr(self, name, self._meta.get_field(name).to_python(value))
+
+    # ------------------------------------------------------------------
+    #: Las cinco columnas que ``save()`` puebla antes de persistir. Se
+    #: declaran aquí y no dentro del método porque el ``update_fields`` de un
+    #: llamador tiene que ampliarse con ellas: si el llamador pide guardar
+    #: ``price_unit`` y la lista no las incluye, el cómputo se haría en
+    #: memoria y no llegaría a la columna.
+    COMPUTED_AMOUNT_FIELDS = (
+        'price_subtotal', 'price_tax', 'price_total',
+        'price_reduce_taxexcl', 'price_reduce_taxinc',
+    )
+
     def save(self, *args, **kwargs):
+        self._coerce_amount_operands()
+        self._compute_amount()
+        self._compute_price_reduce_taxexcl()
+        self._compute_price_reduce_taxinc()
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None:
+            kwargs['update_fields'] = [
+                *update_fields,
+                *(f for f in self.COMPUTED_AMOUNT_FIELDS
+                  if f not in update_fields),
+            ]
         super().save(*args, **kwargs)
         self.order._compute_amounts()
 
@@ -441,18 +521,57 @@ class SaleOrderLine(AnalyticMixin, TimeStampedModel):
         order._compute_amounts()
         return result
 
-    # Desglose por línea — de sale.order.line._compute_amount (sale_order_line.py:852).
-    def price_total(self) -> Decimal:
+    # ------------------------------------------------------------------
+    # Desglose por línea — ≙ ``_compute_amount`` (``odoo19c:
+    # sale/models/sale_order_line.py:852-861``).
+    #
+    # La fuente delega el cálculo en ``account.tax``: prepara la línea base,
+    # pide el detalle de impuestos y lee ``total_excluded_currency`` /
+    # ``total_included_currency``. Aquí el motor de impuestos todavía no está
+    # cableado a la línea —es la tarea #141— así que el cuerpo conserva la
+    # forma MX de precio IVA-incluido: el total es
+    # ``price_unit × qty × (1 − discount/100)`` y el impuesto se **extrae** de
+    # ese total con la tasa vigente. Los tres campos que la fuente asigna se
+    # asignan igual, en el mismo orden y con la misma relación
+    # (``price_tax = price_total − price_subtotal``).
+    #
+    # **Quién dispara el recálculo.** En la referencia lo hace el motor de
+    # dependencias al cambiar cualquiera de los campos del ``@api.depends``.
+    # Django no tiene ese motor: el decorador es documental
+    # (``orm/decorators.py``) y quien lo invoca es ``save()``, arriba — la
+    # misma adaptación que ``SaleOrder._compute_amounts`` ya documenta para el
+    # agregado de la orden.
+    #
+    # El redondeo es **por línea**, antes de sumar: ``SaleOrder._sum_lines``
+    # suma valores ya cuantizados a centavos. Sumar exacto y redondear al
+    # final divergiría un centavo en casos adversos (ver
+    # ``TestRedondeoPorLinea`` del test de paridad).
+    # ------------------------------------------------------------------
+    @api.depends('product_uom_qty', 'discount', 'price_unit', 'tax_ids')
+    def _compute_amount(self):
         gross = (self.price_unit * self.product_uom_qty
                  * (Decimal('1') - self.discount / Decimal('100')))
-        return gross.quantize(Decimal('0.01'))
-
-    def price_tax(self) -> Decimal:
+        self.price_total = gross.quantize(Decimal('0.01'))
         rate = get_setting('iva_rate')
-        return (self.price_total() * rate / (1 + rate)).quantize(Decimal('0.01'))
+        self.price_tax = (self.price_total * rate
+                          / (1 + rate)).quantize(Decimal('0.01'))
+        self.price_subtotal = self.price_total - self.price_tax
 
-    def price_subtotal(self) -> Decimal:
-        return self.price_total() - self.price_tax()
+    @api.depends('price_subtotal', 'product_uom_qty')
+    def _compute_price_reduce_taxexcl(self):
+        """≙ ``_compute_price_reduce_taxexcl`` (``odoo19c: :864-866``)."""
+        self.price_reduce_taxexcl = (
+            (self.price_subtotal / self.product_uom_qty).quantize(Decimal('0.01'))
+            if self.product_uom_qty else Decimal('0.00')
+        )
+
+    @api.depends('price_total', 'product_uom_qty')
+    def _compute_price_reduce_taxinc(self):
+        """≙ ``_compute_price_reduce_taxinc`` (``odoo19c: :869-871``)."""
+        self.price_reduce_taxinc = (
+            (self.price_total / self.product_uom_qty).quantize(Decimal('0.01'))
+            if self.product_uom_qty else Decimal('0.00')
+        )
 
     # ------------------------------------------------------------------
     # V2 unificación orders→sale: la línea del draft (carrito) necesita el

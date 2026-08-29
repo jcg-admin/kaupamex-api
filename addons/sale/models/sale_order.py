@@ -1047,9 +1047,15 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
 
     # amount_untaxed/tax/total — de sale.order._compute_amounts
     # (sale/models/sale_order.py:513): suma del desglose por línea ya redondeado.
+    #
+    # Los tres atributos son **columnas** de la línea desde que
+    # ``SaleOrderLine._compute_amount`` las puebla en su ``save()``; antes eran
+    # métodos y este ``getattr`` los invocaba. Hoy se leen, no se llaman — y
+    # por eso un ``Sum('price_total')`` puede agregar en el motor cuando haga
+    # falta, sin recorrer las líneas en Python.
     def _sum_lines(self, attr: str) -> Decimal:
         return sum(
-            (getattr(line, attr)() for line in self.order_line.all()),
+            (getattr(line, attr) for line in self.order_line.all()),
             Decimal('0.00'),
         )
 

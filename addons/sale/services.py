@@ -194,7 +194,7 @@ def get_draft_totals(order):
     free_remaining = (
         max(Decimal('0.00'), threshold - subtotal_net) if threshold else None
     )
-    amount_tax = sum((l.price_tax() for l in lines), Decimal('0.00'))
+    amount_tax = sum((l.price_tax for l in lines), Decimal('0.00'))
     return {
         'subtotal':                str(subtotal),
         'discount':                str(discount),

@@ -43,10 +43,10 @@ def test_line_amount_breakdown_iva_incluido(producto):
     line = SaleOrderLine.objects.create(
         order=so, product=producto, product_uom_qty=2, price_unit=Decimal('100.00'),
     )
-    assert line.price_total() == Decimal('200.00')
+    assert line.price_total == Decimal('200.00')
     # IVA MX 16% incluido: tax = total*rate/(1+rate) = 200*0.16/1.16 = 27.59
-    assert line.price_tax() == Decimal('27.59')
-    assert line.price_subtotal() == Decimal('172.41')
+    assert line.price_tax == Decimal('27.59')
+    assert line.price_subtotal == Decimal('172.41')
 
 
 def test_line_discount_percentage(producto):
@@ -56,7 +56,7 @@ def test_line_discount_percentage(producto):
         order=so, product=producto, product_uom_qty=1, price_unit=Decimal('100.00'),
         discount=Decimal('10.00'),
     )
-    assert line.price_total() == Decimal('90.00')
+    assert line.price_total == Decimal('90.00')
 
 
 def test_order_amounts_sum_lines(producto):
