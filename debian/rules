@@ -12,6 +12,19 @@
 # entorno virtual bajo /opt/kaupamex/api, que es la ruta que las dos unidades
 # systemd ya declaran (`setup/kaupamex.service:ExecStart`).
 #
+# El anclaje al lock se materializa AQUI, no en `postinst`. La referencia tiene
+# `setup.py` con `install_requires` y `setup.cfg`, y por eso su `rules` puede
+# construir con `pybuild`. Nosotros NO tenemos ninguno de los dos: el proyecto
+# se declara aplicacion, no distribuible (`pyproject.toml:121`,
+# `[tool.uv] package = false`). Sin metadata de empaquetado no hay backend que
+# invocar, asi que lo que viaja en el paquete es el arbol mas el grafo
+# resuelto, exportado del lock en tiempo de construccion.
+#
+# `uv` es requisito de la MAQUINA DE CONSTRUCCION y no figura en
+# `Build-Depends:` porque no existe como paquete de Debian (medido:
+# `apt-cache policy uv` no devuelve candidato en Ubuntu 24.04). Se declara
+# aqui, que es donde se consume.
+#
 # DIVERGENCIA DECLARADA — la referencia copia `addons/*` dentro de
 # `odoo/addons/` en tiempo de construccion (`override_dh_auto_build`). Aqui
 # `addons/` es hermano de `src/` y las apps se declaran en INSTALLED_APPS
@@ -35,13 +48,24 @@ override_dh_auto_install:
 	    --exclude='tests' --exclude='debian' --exclude='.github' \
 	    ./ $(DESTINO)/
 	chmod 0755 $(DESTINO)/kaupamex-bin
+	install -m 0644 debian/requirements.lock.txt $(DESTINO)/requirements.lock.txt
 
-# El arbol no se construye en tiempo de paquete: no hay extension C propia que
-# compilar aqui. El motor PDF vendorizado se construye en `postinst`, donde ya
-# existe el interprete y las cabeceras que `Depends:` garantiza.
+# No hay extension C propia que compilar aqui —el motor PDF vendorizado se
+# construye en `postinst`, donde ya existen el interprete y las cabeceras que
+# `Depends:` garantiza—, pero si hay UN artefacto que producir: el grafo de
+# dependencias resuelto.
+#
+# `--frozen` obliga a leer `uv.lock` sin re-resolver: si el lock no concuerda
+# con `pyproject.toml`, el comando falla y la construccion se detiene. Es lo
+# que convierte el anclaje en una condicion verificable en vez de una
+# intencion escrita en un comentario. `--no-emit-project` excluye al propio
+# proyecto, coherente con `package = false`.
 override_dh_auto_build:
+	uv export --frozen --no-dev --no-emit-project --format requirements-txt \
+	    -o debian/requirements.lock.txt
 
 override_dh_auto_test:
 
 override_dh_auto_clean:
 	rm -rf debian/kaupamex-api
+	rm -f debian/requirements.lock.txt

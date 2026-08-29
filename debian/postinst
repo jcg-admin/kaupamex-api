@@ -38,13 +38,34 @@ case "${1}" in
         # DIVERGENCIA DECLARADA — este bloque no existe en la referencia. Su
         # `Depends:` resuelve las 40 dependencias con paquetes del sistema, asi
         # que al terminar dpkg el interprete ya las ve. El nuestro envia el
-        # arbol y construye aqui su entorno virtual contra el lock, que es la
-        # contrapartida de la divergencia declarada en `rules`.
+        # arbol y construye aqui su entorno virtual contra el grafo que `rules`
+        # exporto del lock, que es la contrapartida de la divergencia
+        # declarada alli.
+        #
+        # Se instala desde `requirements.lock.txt`, NO con `pip install -e .`.
+        # Dos motivos, los dos medidos:
+        #
+        #   1. `-e .` resuelve desde el indice publico contra los rangos
+        #      abiertos de `pyproject.toml`, no contra el lock. Medido
+        #      2026-08-29 en este contenedor: Pillow 12.3.0 frente a 12.2.0 del
+        #      lock, gunicorn 26.2.0 frente a 26.0.0, cryptography 50.0.1
+        #      frente a 48.0.0, lxml 6.1.2 frente a 6.1.1. Es exactamente el
+        #      anclaje que `rules` argumenta que hay que preservar.
+        #   2. `-e .` instala el proyecto COMO distribuible, y el proyecto
+        #      declara que no lo es (`[tool.uv] package = false`). Tampoco hace
+        #      falta: la unidad invoca el arbol por ruta
+        #      (`ExecStart=.../.venv/bin/python /opt/kaupamex/api/kaupamex-bin`),
+        #      no lo importa como paquete instalado.
+        #
+        # `--no-deps` es correcto y no es un atajo: el export es el grafo
+        # COMPLETO ya resuelto, con `==` y `--hash` por linea. Dejar que pip
+        # re-resuelva reintroduciria la deriva del punto 1.
         if [ ! -x $KAUPAMEX_HOME/.venv/bin/python ]; then
             python3 -m venv $KAUPAMEX_HOME/.venv
         fi
         $KAUPAMEX_HOME/.venv/bin/python -m pip install --quiet --upgrade pip
-        $KAUPAMEX_HOME/.venv/bin/python -m pip install --quiet -e $KAUPAMEX_HOME
+        $KAUPAMEX_HOME/.venv/bin/python -m pip install --quiet --no-deps \
+            -r $KAUPAMEX_HOME/requirements.lock.txt
         chown -R $KAUPAMEX_USER:$KAUPAMEX_GROUP $KAUPAMEX_HOME/.venv
 
         # El archivo de entorno que las unidades declaran con

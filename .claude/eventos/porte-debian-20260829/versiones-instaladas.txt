@@ -1,0 +1,4 @@
+cryptography==48.0.0
+gunicorn==26.0.0
+lxml==6.1.1
+pillow==12.2.0
