@@ -25,6 +25,7 @@ from decimal import Decimal
 import api
 import fields
 import models
+from addons.product.models.product_supplierinfo import ProductSupplierinfo
 
 
 class AccountMoveLine(models.Model):
@@ -104,53 +105,59 @@ class AccountMoveLine(models.Model):
     # y ``partner`` de la tarea **#526**; ``analytic_distribution``, el tercer
     # campo que aquella pide, no lo lee la vista y sigue en su alcance.
     # ------------------------------------------------------------------
-    journal = fields.Many2one(
+    journal_id = fields.Many2one(
         'account.AccountJournal', on_delete=models.PROTECT,
         null=True, blank=True, related_name='lines', db_index=True,
         verbose_name='Diario',
+        db_column='journal_id',
         help_text='Odoo journal_id (account_move_line.py:42). La fuente lo '
                   'declara related a move_id.journal_id con store=True; aqui '
                   'es columna propia que save() copia del asiento, que es como '
                   'este arbol materializa un related almacenado.',
     )
-    company = fields.Many2one(
+    company_id = fields.Many2one(
         'base.ResCompany', on_delete=models.CASCADE,
         null=True, blank=True, related_name='move_lines', db_index=True,
         verbose_name='Empresa',
+        db_column='company_id',
         help_text='Odoo company_id (account_move_line.py:55). Related a '
                   'move_id.company_id, materializado en save().',
     )
-    company_currency = fields.Many2one(
+    company_currency_id = fields.Many2one(
         'base.ResCurrency', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='move_lines_as_company_currency',
         verbose_name='Moneda de la empresa',
+        db_column='company_currency_id',
         help_text='Odoo company_currency_id ("Company Currency", '
                   'account_move_line.py:59). Related a '
                   'move_id.company_currency_id, materializado en save().',
     )
-    partner = fields.Many2one(
+    partner_id = fields.Many2one(
         'base.ResPartner', on_delete=models.PROTECT,
         null=True, blank=True, related_name='move_lines',
         verbose_name='Contacto',
+        db_column='partner_id',
         help_text='Odoo partner_id ("Partner", account_move_line.py:152). '
                   'Apunta a res.partner igual que la fuente. El asiento padre '
                   'apunta al modelo de usuario -- ese desnivel es la tarea '
                   '#142, y este campo ya nace del lado correcto.',
     )
-    product = fields.Many2one(
+    product_id = fields.Many2one(
         'product.ProductProduct', on_delete=models.PROTECT,
         null=True, blank=True, related_name='move_lines', db_index=True,
         verbose_name='Producto',
+        db_column='product_id',
         help_text='Odoo product_id ("Product", account_move_line.py:363).',
     )
-    product_uom = fields.Many2one(
+    product_uom_id = fields.Many2one(
         'uom.Uom', on_delete=models.PROTECT,
         null=True, blank=True, related_name='move_lines',
         verbose_name='Unidad',
+        db_column='product_uom_id',
         help_text='Odoo product_uom_id ("Unit", account_move_line.py:372). '
                   'La calcula compute_product_uom_id(), que save() invoca. El '
                   'domain= de la fuente no tiene analogo declarativo en Django '
-                  'y se acota al elegir candidatos.',
+                  'y se acota al elegir filtered_sellers.',
     )
     price_subtotal = fields.Monetary(
         max_digits=16, decimal_places=2, default=Decimal('0.00'),
@@ -188,28 +195,40 @@ class AccountMoveLine(models.Model):
         el asiento ya calcula, asi que aqui se lee de ahi en vez de repetir el
         rodeo por la delegacion de usuario que la tarea **#142** tiene abierta.
         """
-        self.partner = self.move.commercial_partner if self.move_id else None
+        self.partner_id = self.move.commercial_partner_id if self.move_id else None
 
     def _compute_product_uom_id(self):
         """La unidad del producto -- ≙ ``odoo19c: :883-891``.
 
-        La fuente reparte en dos ramas segun el documento. La de compra esta
-        BLOQUEADO por ``is_purchase_document`` -- sin ese predicado no se puede
-        distinguir la factura de proveedor, y su rama ademas lee
-        ``seller_ids._get_filtered_supplier``, que tampoco existe (medido: 0
-        declaraciones en ``addons/account/models``). Sucesor: tarea **#116**.
+        Las DOS ramas de la fuente corren. La de compra pide al proveedor
+        filtrado su unidad de compra; la general toma la del propio producto.
 
-        La rama general si corre, y es la que la fuente ejecuta para toda
-        factura de venta: la unidad del propio producto.
+        Ninguna esta bloqueada, y la cita de bloqueo que este metodo llevaba
+        era falsa: ``filtered_suppliers`` existe
+        (``product_supplierinfo.py:302``, la equivalencia declarada de
+        ``_get_filtered_supplier``), y ``seller_ids`` es un gestor sobre
+        ``product.template``. Es la misma clase de defecto que
+        :ref:`h-api-910` y :ref:`h-api-911` -- una cita de bloqueo dirige el
+        trabajo de quien la lea, asi que se mide antes de escribirla.
 
         El ``filtered(lambda l: l.parent_state == 'draft')`` de la fuente se
         expresa contra el estado del asiento padre: ``parent_state`` es el
-        related que la fuente declara sobre ``move_id.state``, y aqui se lee
-        directo.
+        related que la fuente declara sobre ``move_id.state``.
         """
         if self.move_id and self.move.state != 'draft':
             return
-        self.product_uom = self.product.uom if self.product_id else None
+        if not self.product_id:
+            self.product_uom_id = None
+            return
+        product_uom = self.product_id.uom
+        if self.move_id and self.move.is_purchase_document():
+            sellers = list(self.product_id.product_tmpl.seller_ids.all())
+            filtered_sellers = ProductSupplierinfo.filtered_suppliers(
+                sellers, self.company_id, self.product_id)
+            first_seller = filtered_sellers[0] if filtered_sellers else None
+            self.product_uom_id = getattr(first_seller, 'product_uom', None) or product_uom
+            return
+        self.product_uom_id = product_uom
 
     def _compute_totals(self):
         """Base e impuestos del apunte -- ≙ ``odoo19c: :411-...``.
@@ -263,9 +282,9 @@ class AccountMoveLine(models.Model):
         """
         self._compute_balance()
         if self.move_id:
-            self.journal = self.move.journal
-            self.company = self.move.company
-            self.company_currency = getattr(self.move.company, 'currency', None)
+            self.journal_id = self.move.journal
+            self.company_id = self.move.company
+            self.company_currency_id = getattr(self.move.company, 'currency', None)
             self._compute_partner_id()
         self._compute_product_uom_id()
         return super().save(*args, **kwargs)

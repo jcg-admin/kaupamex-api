@@ -60,8 +60,8 @@ class TestTheColumnsTheViewReads:
     def test_the_move_fk_targets_are_the_ones_the_source_names(self):
         fk_fields = {f.name: f for f in AccountMove._meta.get_fields()
                   if getattr(f, 'concrete', False) and f.is_relation}
-        assert fk_fields['commercial_partner'].related_model is apps.get_model('base', 'ResPartner')
-        assert fk_fields['fiscal_position'].related_model is apps.get_model(
+        assert fk_fields['commercial_partner_id'].related_model is apps.get_model('base', 'ResPartner')
+        assert fk_fields['fiscal_position_id'].related_model is apps.get_model(
             'account', 'AccountFiscalPosition')
 
     def test_the_line_partner_points_at_res_partner_not_at_the_user(self):
@@ -70,7 +70,7 @@ class TestTheColumnsTheViewReads:
         El asiento padre apunta al modelo de usuario; el apunte no repite ese
         desnivel. Si alguien lo iguala "por consistencia", este caso cae.
         """
-        field = AccountMoveLine._meta.get_field('partner')
+        field = AccountMoveLine._meta.get_field('partner_id')
         assert field.related_model is apps.get_model('base', 'ResPartner')
 
 
@@ -92,18 +92,18 @@ class TestTheComputesThatRun:
     def test_the_commercial_partner_is_none_without_a_partner(self):
         move = AccountMove()
         move._compute_commercial_partner_id()
-        assert move.commercial_partner is None
+        assert move.commercial_partner_id is None
 
     def test_the_line_partner_copies_the_moves_commercial_entity(self):
         """≙ ``line.move_id.partner_id.commercial_partner_id`` (:533-535)."""
         line = AccountMoveLine()
         line._compute_partner_id()
-        assert line.partner is None
+        assert line.partner_id is None
 
     def test_the_uom_is_none_without_a_product(self):
         line = AccountMoveLine()
         line._compute_product_uom_id()
-        assert line.product_uom is None
+        assert line.product_uom_id is None
 
     def test_the_totals_default_to_zero_until_the_tax_axis_lands(self):
         """Consecuencia declarada del bloqueo de ``_compute_totals`` (#990)."""
@@ -118,12 +118,11 @@ class TestTheComputesThatAreBlocked:
     Cada caso exige que el mensaje NOMBRE la pieza ausente: sin eso, el
     ``NotImplementedError`` no distingue «esta bloqueado por X» de «no se
     escribio». Es el sub-patron D de ``metrica-decide-la-conclusion``.
-    """
 
-    def test_the_sale_person_compute_cites_is_sale_document(self):
-        with pytest.raises(NotImplementedError) as exc:
-            AccountMove()._compute_invoice_default_sale_person()
-        assert 'is_sale_document' in str(exc.value)
+    ``_compute_invoice_default_sale_person`` estuvo aqui y ya no: su bloqueo
+    cayo al portarse ``is_sale_document``. Su caso mide ahora el estado nuevo
+    en ``TestTheMoveTypePredicates``, reescrito y no ajustado.
+    """
 
     def test_the_fiscal_position_compute_cites_its_resolver(self):
         with pytest.raises(NotImplementedError) as exc:
@@ -148,3 +147,62 @@ class TestTheComputesThatAreBlocked:
             with pytest.raises(NotImplementedError) as exc:
                 getattr(AccountMoveLine(), method)()
             assert '_conditional_add_to_compute' in str(exc.value)
+
+
+class TestTheMoveTypePredicates:
+    """Los once de ``odoo19c: :6468-6506``, portados en el mismo pase.
+
+    Desbloquean ``_compute_invoice_default_sale_person`` y la rama de compra
+    de ``_compute_product_uom_id``. Cada caso ejercita la frontera del
+    predicado, no un valor cualquiera: lo que distingue venta de compra es
+    exactamente el conjunto de tipos que cada uno devuelve.
+    """
+
+    def test_the_sale_types_grow_with_receipts(self):
+        assert AccountMove.get_sale_types() == ['out_invoice', 'out_refund']
+        assert AccountMove.get_sale_types(True) == ['out_invoice', 'out_refund', 'out_receipt']
+
+    def test_the_purchase_types_grow_with_receipts(self):
+        assert AccountMove.get_purchase_types() == ['in_invoice', 'in_refund']
+        assert AccountMove.get_purchase_types(True) == ['in_invoice', 'in_refund', 'in_receipt']
+
+    def test_the_invoice_types_are_the_two_sets_joined(self):
+        assert (AccountMove.get_invoice_types(True)
+                == AccountMove.get_sale_types(True) + AccountMove.get_purchase_types(True))
+
+    def test_a_customer_invoice_is_a_sale_document_and_not_a_purchase_one(self):
+        move = AccountMove(move_type='out_invoice')
+        assert move.is_sale_document() is True
+        assert move.is_purchase_document() is False
+        assert move.is_invoice() is True
+        assert move.is_entry() is False
+
+    def test_a_receipt_only_counts_when_receipts_are_included(self):
+        move = AccountMove(move_type='out_receipt')
+        assert move.is_sale_document() is False
+        assert move.is_sale_document(include_receipts=True) is True
+
+    def test_the_move_type_argument_overrides_the_record(self):
+        """≙ ``(move_type or self.move_type)`` -- la fuente deja preguntar por otro."""
+        move = AccountMove(move_type='entry')
+        assert move.is_sale_document(move_type='out_invoice') is True
+
+    def test_inbound_and_outbound_split_the_four_invoice_types(self):
+        assert AccountMove(move_type='out_invoice').is_inbound() is True
+        assert AccountMove(move_type='out_invoice').is_outbound() is False
+        assert AccountMove(move_type='in_invoice').is_outbound() is True
+
+    def test_the_direction_sign_is_minus_one_for_a_customer_invoice(self):
+        """≙ ``:1144-1149`` -- entry y salientes valen 1; el resto, -1."""
+        move = AccountMove(move_type='out_invoice')
+        move._compute_direction_sign()
+        assert move.direction_sign == -1
+        entry = AccountMove(move_type='entry')
+        entry._compute_direction_sign()
+        assert entry.direction_sign == 1
+
+    def test_the_sale_person_compute_no_longer_raises_and_clears_on_a_non_sale(self):
+        """El bloqueo de ayer cayo: ``is_sale_document`` existe desde este pase."""
+        move = AccountMove(move_type='entry', invoice_user_id=None)
+        move._compute_invoice_default_sale_person()
+        assert move.invoice_user_id is None

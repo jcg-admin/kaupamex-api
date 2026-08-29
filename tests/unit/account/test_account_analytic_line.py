@@ -232,10 +232,14 @@ class TestWhatStaysBlockedBySecondOrderCause:
         Lo que sigue bloqueando a ``journal`` de la línea analítica ya no es
         el apunte: es que el ``related`` de la fuente no se ha tendido. El
         caso hermano de arriba lo mide, y su sucesor sigue siendo el mismo.
+
+        Los dos símbolos llevan el sufijo de la referencia porque ADR-029
+        gobierna la forma C: ``partner_id``/``journal_id`` con ``db_column``
+        del mismo nombre, no ``partner``/``journal``.
         """
         names = {f.name for f in AccountMoveLine._meta.get_fields()}
-        assert 'partner' in names
-        assert 'journal' in names
+        assert 'partner_id' in names
+        assert 'journal_id' in names
 
     def test_analytic_line_has_no_update_analytic_distribution_consumer(self, company, move_line):
         """``create``/``write``/``unlink`` (BLOQUEADO): el campo que

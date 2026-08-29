@@ -16,6 +16,7 @@ import models
 from addons.account.models.account_partial_reconcile import AccountPartialReconcile
 from addons.account.models.sequence_mixin import SequenceMixin
 from exceptions import UserError
+from orm.environments import get_current_user
 from tools.translate import _
 
 
@@ -162,27 +163,30 @@ class AccountMove(SequenceMixin, models.Model):
         help_text='Odoo invoice_date_due ("Due Date", account_move.py:379). '
                   'La calcula compute_invoice_date_due(), que save() invoca.',
     )
-    invoice_user = fields.Many2one(
+    invoice_user_id = fields.Many2one(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='invoiced_moves',
         verbose_name='Vendedor',
+        db_column='invoice_user_id',
         help_text='Odoo invoice_user_id ("Salesperson", account_move.py:678). '
                   'El tracking=True de la fuente no aplica: este asiento no es '
                   'un hilo de mail.thread en este arbol.',
     )
-    commercial_partner = fields.Many2one(
+    commercial_partner_id = fields.Many2one(
         'base.ResPartner', on_delete=models.PROTECT, null=True, blank=True,
         related_name='commercial_moves',
         verbose_name='Entidad comercial',
+        db_column='commercial_partner_id',
         help_text='Odoo commercial_partner_id ("Commercial Entity", '
                   'account_move.py:430). La entidad que factura de verdad '
                   'cuando el contacto es una direccion de una matriz. La '
                   'calcula compute_commercial_partner().',
     )
-    fiscal_position = fields.Many2one(
+    fiscal_position_id = fields.Many2one(
         'account.AccountFiscalPosition', on_delete=models.PROTECT,
         null=True, blank=True, related_name='moves',
         verbose_name='Posicion fiscal',
+        db_column='fiscal_position_id',
         help_text='Odoo fiscal_position_id ("Fiscal Position", '
                   'account_move.py:456). Adapta impuestos y cuentas para un '
                   'cliente o pedido concreto; su valor por omision viene del '
@@ -195,6 +199,14 @@ class AccountMove(SequenceMixin, models.Model):
                   'account_move.py:531). Tipo de cambio de la moneda de la '
                   'empresa a la del documento. digits=0 en la fuente significa '
                   'precision plena, que es lo que FloatField da aqui.',
+    )
+    direction_sign = fields.Integer(
+        default=1,
+        verbose_name='Signo de direccion',
+        help_text='Odoo direction_sign (account_move.py:541). Multiplicador '
+                  'segun el tipo de documento, para convertir un precio en un '
+                  'saldo. La calcula compute_direction_sign(), que save() '
+                  'invoca.',
     )
 
     class Meta:
@@ -476,7 +488,7 @@ class AccountMove(SequenceMixin, models.Model):
         """
         user = self.partner
         party = getattr(user, 'partner', None) if user is not None else None
-        self.commercial_partner = getattr(party, 'commercial_partner', None) or party
+        self.commercial_partner_id = getattr(party, 'commercial_partner', None) or party
 
     def _compute_invoice_date_due(self):
         """La fecha de vencimiento -- ≙ ``odoo19c: :1077-1084``.
@@ -495,16 +507,29 @@ class AccountMove(SequenceMixin, models.Model):
     def _compute_invoice_default_sale_person(self):
         """El vendedor por omision -- ≙ ``odoo19c: :803-817``.
 
-        BLOQUEADO por ``is_sale_document`` -- la fuente decide con ese
-        predicado si asigna vendedor o lo borra, y sin el las dos ramas
-        colapsan en una. Medido: 0 declaraciones en ``addons/account/models``.
-        Sucesor: tarea **#116**, que trae el bloque comercial del asiento.
+        DESBLOQUEADO por el porte de ``is_sale_document`` en este mismo pase.
+        El predicado que le faltaba ya esta declarado, asi que las dos ramas de
+        la fuente vuelven a distinguirse: un documento de venta hereda vendedor,
+        y uno que no lo es lo pierde.
+
+        El recorrido ``partner_id.user_id`` de la fuente pasa aqui por la
+        delegacion ``ResUsers.partner``, igual que en
+        ``_compute_commercial_partner_id`` -- es el eje que la tarea **#142**
+        tiene abierto, y su correccion sera borrar un salto.
         """
-        raise NotImplementedError(
-            'AccountMove._compute_invoice_default_sale_person esta BLOQUEADO '
-            'por ``is_sale_document`` -- el predicado que elige entre asignar '
-            'vendedor y borrarlo no existe aqui (medido: 0 declaraciones). '
-            'Sucesor: tarea #116.')
+        if not self.is_sale_document(include_receipts=True):
+            self.invoice_user_id = None
+            return
+        if self.partner_id is None:
+            return
+        party = getattr(self.partner, 'partner', None)
+        commercial_party = getattr(party, 'commercial_partner', None) if party else None
+        self.invoice_user_id = (
+            self.invoice_user_id
+            or getattr(party, 'user', None)
+            or getattr(commercial_party, 'user', None)
+            or get_current_user()
+        )
 
     def _compute_fiscal_position_id(self):
         """La posicion fiscal -- ≙ ``odoo19c: :1022-1036``.
@@ -533,6 +558,66 @@ class AccountMove(SequenceMixin, models.Model):
             '``expected_currency_rate`` -- la tasa esperada del documento no '
             'se resuelve en este arbol. Sucesor: tarea #114.')
 
+    # ------------------------------------------------------------------
+    # Los once predicados de ``move_type`` -- ≙ ``odoo19c: :6468-6506``.
+    # Son ``@api.model`` en la fuente los que devuelven la lista de tipos, y
+    # de instancia los que preguntan por el asiento. Aqui la distincion se
+    # conserva con ``classmethod`` para los primeros.
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def get_sale_types(cls, include_receipts=False):
+        """Los tipos de documento de venta -- ≙ ``:6481-6482``."""
+        return ['out_invoice', 'out_refund'] + (include_receipts and ['out_receipt'] or [])
+
+    @classmethod
+    def get_purchase_types(cls, include_receipts=False):
+        """Los tipos de documento de compra -- ≙ ``:6488-6489``."""
+        return ['in_invoice', 'in_refund'] + (include_receipts and ['in_receipt'] or [])
+
+    @classmethod
+    def get_invoice_types(cls, include_receipts=False):
+        """Venta mas compra -- ≙ ``:6468-6469``."""
+        return cls.get_sale_types(include_receipts) + cls.get_purchase_types(include_receipts)
+
+    @classmethod
+    def get_inbound_types(cls, include_receipts=True):
+        """Los que hacen entrar dinero -- ≙ ``:6495-6496``."""
+        return ['out_invoice', 'in_refund'] + (include_receipts and ['out_receipt'] or [])
+
+    @classmethod
+    def get_outbound_types(cls, include_receipts=True):
+        """Los que hacen salir dinero -- ≙ ``:6502-6503``."""
+        return ['in_invoice', 'out_refund'] + (include_receipts and ['in_receipt'] or [])
+
+    def is_sale_document(self, include_receipts=False, move_type=False):
+        """≙ ``:6484-6485``."""
+        return (move_type or self.move_type) in self.get_sale_types(include_receipts)
+
+    def is_purchase_document(self, include_receipts=False, move_type=False):
+        """≙ ``:6491-6492``."""
+        return (move_type or self.move_type) in self.get_purchase_types(include_receipts)
+
+    def is_invoice(self, include_receipts=False):
+        """≙ ``:6471-6472``."""
+        return self.is_sale_document(include_receipts) or self.is_purchase_document(include_receipts)
+
+    def is_entry(self):
+        """≙ ``:6474-6475``."""
+        return self.move_type == 'entry'
+
+    def is_inbound(self, include_receipts=True):
+        """≙ ``:6498-6499``."""
+        return self.move_type in self.get_inbound_types(include_receipts)
+
+    def is_outbound(self, include_receipts=True):
+        """≙ ``:6505-6506``."""
+        return self.move_type in self.get_outbound_types(include_receipts)
+
+    def _compute_direction_sign(self):
+        """El multiplicador de direccion -- ≙ ``odoo19c: :1144-1149``."""
+        self.direction_sign = 1 if (self.move_type == 'entry' or self.is_outbound()) else -1
+
     def save(self, *args, **kwargs):
         """Corre los dos compute almacenados que si tienen sus insumos.
 
@@ -546,4 +631,6 @@ class AccountMove(SequenceMixin, models.Model):
         """
         self._compute_commercial_partner_id()
         self._compute_invoice_date_due()
+        self._compute_direction_sign()
+        self._compute_invoice_default_sale_person()
         return super().save(*args, **kwargs)

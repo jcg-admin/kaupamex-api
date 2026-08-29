@@ -38,14 +38,23 @@ class TestTheNoOpIsSafe:
 
 
 class TestThePremiseOfTheBlockIsStillTrue:
-    """Si cualquiera de estas dos falla, el archivo bloqueado quedó obsoleto."""
+    """Un bloqueador cayó y el otro sigue: los dos casos lo miden por separado.
 
-    def test_account_move_has_no_get_sale_types_nor_get_purchase_types(self):
+    El archivo bloqueado citaba DOS piezas ausentes. Los predicados de tipo de
+    asiento se portaron (``account_move.py``, ≙ ``odoo19c: :6468-6506``), así
+    que ese caso mide ahora su PRESENCIA. El que sigue vivo es
+    ``analytic_distribution``, y es el que mantiene el bloqueo — tarea #526.
+    """
+
+    def test_the_move_type_predicates_are_no_longer_missing(self):
+        """Reescrito, no ajustado: antes exigía su ausencia."""
         names = {name for name, _ in inspect.getmembers(AccountMove)}
-        assert 'get_sale_types' not in names
-        assert 'get_purchase_types' not in names
+        assert 'get_sale_types' in names
+        assert 'get_purchase_types' in names
+        assert AccountMove.get_sale_types(True)[-1] == 'out_receipt'
 
     def test_account_move_line_has_no_analytic_distribution_field(self):
+        """El bloqueador que SIGUE en pie — el único de los dos."""
         names = {f.name for f in AccountMoveLine._meta.get_fields()}
         assert 'analytic_distribution' not in names
 
