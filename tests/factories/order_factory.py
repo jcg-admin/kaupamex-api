@@ -83,6 +83,12 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
     # Un state='sale' sin date_order es
     # un estado que el flujo real nunca produce (E2c lo filtra como "no
     # comprador"); el factory lo respeta para no fabricar estados imposibles.
+    # Un BORRADOR sí lleva fecha, y ésa es la corrección: la referencia declara
+    # la columna como *«Creation date of draft/sent orders, Confirmation date
+    # of confirmed orders»* — una sola columna con dos significados según el
+    # estado, no una fecha que aparece al confirmar. El porte de la cabecera
+    # la dejó NOT NULL con default ``timezone.now``, así que el ``None`` que
+    # este factory pasaba para el borrador reventaba contra la restricción.
     # I2: ``action_confirm`` asigna SIEMPRE ``name`` (referencia de la
     # secuencia ir.sequence 'sale.order'). Una venta ``state='sale'`` sin
     # ``name`` es un estado que el flujo real nunca produce — y desde I1 la
@@ -98,7 +104,7 @@ def make_order(status=STATUS_PENDING, courier=None, amount=None,
         state=estado,
         cart_token=uuid4(),
         name=name_kw or (None if status == STATUS_DRAFT else _next_sale_name()),
-        date_order=(None if status == STATUS_DRAFT else timezone.now()),
+        date_order=timezone.now(),
         partner=partner_kw,
         carrier=carrier_kw,
         **order_kwargs,
