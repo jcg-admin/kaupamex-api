@@ -76,6 +76,9 @@ from addons.product.models.product_template_attribute_line import (
 from addons.product.models.product_template_attribute_value import (
     ProductTemplateAttributeValue,
 )
+from addons.product.models.product_attribute_custom_value import (
+    ProductAttributeCustomValue,
+)
 
 __all__ = [
     'ProductAttribute',
@@ -94,4 +97,5 @@ __all__ = [
     'ProductAttributeValue',
     'ProductTemplateAttributeLine',
     'ProductTemplateAttributeValue',
+    'ProductAttributeCustomValue',
 ]
