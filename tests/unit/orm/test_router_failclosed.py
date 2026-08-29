@@ -29,9 +29,25 @@ DOMAIN = _Model('catalogue', 'product')
 SESSION = _Model('sessions', 'session')
 router = CompanyDatabaseRouter()
 
+#: Django avisa *"Overriding setting DATABASES can lead to unexpected
+#: behavior"* en cada ``override_settings`` de esta clave, y el aviso es cierto
+#: en general: cambiar ``DATABASES`` en caliente no rebobina las conexiones ya
+#: abiertas. Aquí no incurrimos en ese peligro — el router es lógica pura, sólo
+#: lee ``settings.DATABASES.keys()`` y nunca abre una conexión (los modelos son
+#: los falsos ``_Model`` de abajo, sin ORM detrás). Por eso el aviso se filtra
+#: en este módulo, acotado a su mensaje: deja de ser ruido que se aprende a
+#: ignorar y un aviso NUEVO vuelve a destacar.
+#:
+#: **Qué lo invalidaría:** que un caso de este módulo llegue a tocar la base
+#: —una consulta real, un ``django_db``—. Ahí el peligro que Django nombra sí
+#: aplica y el filtro estaría escondiendo un fallo, no un ruido.
+pytestmark = pytest.mark.filterwarnings(
+    'ignore:Overriding setting DATABASES:UserWarning')
+
+
 _N_GT_1 = {
-    'default': {'ENGINE': 'django.db.backends.mysql', 'NAME': 'kaupamex_core'},
-    'company_5_db': {'ENGINE': 'django.db.backends.mysql', 'NAME': 'company_5_db'},
+    'default': {'ENGINE': 'django.db.backends.postgresql', 'NAME': 'kaupamex_core'},
+    'company_5_db': {'ENGINE': 'django.db.backends.postgresql', 'NAME': 'company_5_db'},
 }
 
 

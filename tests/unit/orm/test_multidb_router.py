@@ -11,6 +11,7 @@ El plano de control (lo que vive en ``default``) es infraestructura de Django
 ninguna entidad. La lista de bases de empresa se descubre de
 ``information_schema`` (== ``list_dbs`` de Odoo), no de una tabla.
 """
+import pytest
 from django.test import override_settings
 
 from orm.environments import company_scope, set_current_company
@@ -22,8 +23,8 @@ from orm.routers import CompanyDatabaseRouter, company_db_alias
 # para no romper el row-scoping SOL-085 (H-API-091-06). Los tests que verifican
 # el ruteo a ``company_5_db`` configuran ese alias explícitamente.
 _WITH_COMPANY_5 = {
-    'default': {'ENGINE': 'django.db.backends.mysql', 'NAME': 'kaupamex_core'},
-    'company_5_db': {'ENGINE': 'django.db.backends.mysql', 'NAME': 'company_5_db'},
+    'default': {'ENGINE': 'django.db.backends.postgresql', 'NAME': 'kaupamex_core'},
+    'company_5_db': {'ENGINE': 'django.db.backends.postgresql', 'NAME': 'company_5_db'},
 }
 
 
@@ -45,6 +46,22 @@ SESSION = _Model('sessions', 'session')       # plano de control (infra Django)
 CONTENTTYPE = _Model('contenttypes', 'contenttype')
 
 router = CompanyDatabaseRouter()
+
+#: Django avisa *"Overriding setting DATABASES can lead to unexpected
+#: behavior"* en cada ``override_settings`` de esta clave, y el aviso es cierto
+#: en general: cambiar ``DATABASES`` en caliente no rebobina las conexiones ya
+#: abiertas. Aquí no incurrimos en ese peligro — el router es lógica pura, sólo
+#: lee ``settings.DATABASES.keys()`` y nunca abre una conexión (los modelos son
+#: los falsos ``_Model`` de abajo, sin ORM detrás). Por eso el aviso se filtra
+#: en este módulo, acotado a su mensaje: deja de ser ruido que se aprende a
+#: ignorar y un aviso NUEVO vuelve a destacar.
+#:
+#: **Qué lo invalidaría:** que un caso de este módulo llegue a tocar la base
+#: —una consulta real, un ``django_db``—. Ahí el peligro que Django nombra sí
+#: aplica y el filtro estaría escondiendo un fallo, no un ruido.
+pytestmark = pytest.mark.filterwarnings(
+    'ignore:Overriding setting DATABASES:UserWarning')
+
 
 
 def test_company_db_alias_maps_id_to_alias():

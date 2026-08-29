@@ -28,7 +28,9 @@ los hashes que se les pasan existen y están construidos por la propia clase.
 comprueba que el ajuste llegue al hash, no cuánto tarda.
 """
 
+import passlib.utils
 import pytest
+from passlib.registry import get_crypt_handler
 
 from addons.base.models.res_users import MIN_ROUNDS, CryptContext, ResUsers
 
@@ -109,3 +111,49 @@ def test_crypt_context_of_res_users_declares_the_two_schemes():
     context = ResUsers._crypt_context()
     assert context.schemes() == ('pbkdf2_sha512', 'plaintext')
     assert context.identify(context.hash('secreto')) == 'pbkdf2_sha512'
+
+
+class TestWithoutTheCryptOfTheOperatingSystem:
+    """El ``crypt`` del sistema no está en el camino de nuestras contraseñas.
+
+    ``passlib`` avisa al importarse —*"'crypt' is deprecated and slated for
+    removal in Python 3.13"*— porque intenta ``from crypt import crypt``. El
+    módulo salió de la biblioteca estándar en 3.13 y ``pyproject.toml`` declara
+    ``requires-python = ">=3.12,<3.15"``: la versión que lo retira **está
+    dentro** del rango soportado.
+
+    El aviso es de la dependencia y no se puede corregir en su fuente, así que
+    lo que sí se puede hacer es medir su consecuencia: ``passlib`` envuelve ese
+    import en ``try/except ImportError`` y degrada a ``has_crypt = False``
+    (``passlib/utils/__init__.py:853-861``). Los dos esquemas que declara
+    ``_crypt_context`` —``pbkdf2_sha512`` y ``plaintext``— son de Python puro:
+    medido, ninguno declara ``backends``, así que ninguno llega a ``safe_crypt``.
+
+    Estos casos son el control: con el ``crypt`` del sistema anulado, cifrar y
+    verificar siguen funcionando. Si algún día se adopta un esquema respaldado
+    por el ``crypt`` del sistema (``des_crypt``, ``sha512_crypt`` con backend
+    ``os_crypt``), estos casos se ponen en rojo y el árbol se entera **antes**
+    de que la versión de Python los retire por debajo.
+
+    *Métrica:* cifrado y verificación con ``passlib.utils.has_crypt`` en falso
+    y ``_crypt`` en ``None``.
+    *Ciega a:* un esquema que resuelva su backend en tiempo de import y ya haya
+    capturado el ``crypt`` real antes de que este caso lo anule — por eso el
+    segundo caso mide la declaración del handler, no sólo la conducta.
+    """
+
+    def test_hashing_and_verifying_survive_without_the_system_crypt(
+            self, context, monkeypatch):
+        monkeypatch.setattr(passlib.utils, '_crypt', None, raising=False)
+        monkeypatch.setattr(passlib.utils, 'has_crypt', False, raising=False)
+
+        cifrado = context.hash('secreto')
+        assert context.identify(cifrado) == 'pbkdf2_sha512'
+        assert context.verify('secreto', cifrado)
+        assert not context.verify('otro', cifrado)
+
+    def test_neither_scheme_declares_a_backend_to_resolve(self, context):
+        """Un esquema sin ``backends`` no tiene por dónde llegar a ``crypt``."""
+        for scheme in context.schemes():
+            handler = get_crypt_handler(scheme)
+            assert getattr(handler, 'backends', None) is None, scheme
