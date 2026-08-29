@@ -45,6 +45,12 @@ Divergencias declaradas frente a la referencia
    ``_parse_chain_missing_ca_vals`` sigue devolviendo los valores de las CAs
    faltantes y quien crea es el llamador, igual que allá.
 
+   Sólo ``create`` se declara divergencia. ``write`` **no**: la cláusula
+   anti-abuso del registro lo prohíbe porque sale ausente noventa veces en el
+   árbol, y declararlo aquí convertiría noventa preguntas abiertas en
+   absoluciones silenciosas. Queda como deuda contada — que ``save()`` cubra
+   de hecho las dos ramas es justo el argumento que la cláusula rechaza.
+
 6. **Los campos calculados sin ``store=True`` son ``property``, y su método
    ``_compute_*`` se conserva.** ``is_valid`` e ``issuer_cert_id`` se declaran
    en la referencia con ``compute=`` y sin persistir; aquí la lectura pública

@@ -620,6 +620,58 @@ def addon_classes(raiz):
     return by_class
 
 
+#: Los despromovidos HEREDADOS, congelados. Uno listado no bloquea; uno nuevo
+#: si. Mismo criterio prospectivo que `identifier_language_baseline.txt` y que
+#: el grifo cerrado de los guiones: la deuda se paga al tocar el archivo, no en
+#: un barrido que compite con la implementacion.
+DESPROMOVIDOS_BASELINE_PATH = pathlib.Path(__file__).with_name(
+    'despromovidos_baseline.txt')
+
+
+def _cargar_despromovidos_baseline():
+    """Las lineas ``Clase::_metodo`` del baseline, o vacio si no existe."""
+    if not DESPROMOVIDOS_BASELINE_PATH.exists():
+        return set()
+    return {
+        line.strip() for line in
+        DESPROMOVIDOS_BASELINE_PATH.read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith('#')
+    }
+
+
+DESPROMOVIDOS_BASELINE = _cargar_despromovidos_baseline()
+
+
+def _despromovido(ref_name, ref_methods, our_methods):
+    """¿La referencia lo declara ``_foo`` y nosotros lo publicamos como ``foo``?
+
+    Quitar el guion bajo no renombra: **promueve el simbolo a API publica**.
+    PEP 8 lo fija — ``_nombre`` significa *"uso interno; no lo llames desde
+    fuera"*— y la referencia usa esa frontera a proposito, declarando
+    ``activity_schedule`` junto a ``_activity_schedule_with_view`` en el mismo
+    archivo. Ver `porte-completo-no-parcial.md` y :ref:`h-api-581`.
+
+    NO cuenta como despromovido, y por eso los dos descartes:
+
+    - que la referencia declare **ambos** (``action_done`` y ``_action_done``):
+      ahi tener solo el public_name es porte **parcial**, que el gate ya mide con
+      otro instrumento y contarlo dos veces inflaria el hallazgo;
+    - que nosotros declaremos **ambos**: entonces el privado esta portado y lo
+      public_name es un anadido nuestro, no una promocion.
+
+    *Metrica:* nombres de metodo declarados en una clase, por AST.
+    *Ciega a:* la despromocion que ademas cambia el sufijo
+    (``_search_activity_user_id`` -> ``search_activity_user``), que ningun
+    emparejamiento por nombre alcanza. Es una **cota inferior**.
+    """
+    if not ref_name.startswith('_'):
+        return False
+    public_name = ref_name.lstrip('_')
+    return (public_name not in ref_methods
+            and public_name in our_methods
+            and ref_name not in our_methods)
+
+
 def normaliza(name):
     """El nombre comparable: alias declarado, y sin guiones bajos de borde."""
     return PORTE_ALIAS.get(name, name).strip('_')
@@ -635,12 +687,22 @@ def class_key(name):
     Es una diferencia **formal y mecanica**, no un renombre: comparar el
     literal declaraba ausentes nueve clases que estan portadas, 96 simbolos.
 
-    Por eso NO se toca ``normaliza``: para un metodo el guion bajo es el
-    contrato —``_foo`` es interno y ``foo`` es publico, y despromoverlo es un
-    defecto propio (:ref:`h-api-581`)—, asi que aplanar guiones alli borraria
-    la distincion que otro gate vigila. Aqui no hay tal contrato: una clase
-    ``_Privada`` conserva su guion de borde, que es lo unico que ``strip``
-    quita.
+    Aqui no hay contrato de visibilidad: una clase ``_Privada`` conserva su
+    guion de borde, que es lo unico que ``strip`` quita.
+
+    .. note:: **Corregido.** Este parrafo decia *"por eso NO se toca
+       ``normaliza``: ... aplanar guiones alli borraria la distincion que otro
+       gate vigila"*, y afirmaba justo lo contrario de lo que el codigo hace:
+       ``normaliza`` **si** aplana los guiones de borde, asi que ``_foo`` y
+       ``foo`` colisionan en la misma llave. La consecuencia no era teorica —
+       medido sobre 1087 archivos con contraparte, el gate no veia **150**
+       metodos despromovidos en 47 archivos, y su propia documentacion decia
+       que si. Es el sub-patron D de `metrica-decide-la-conclusion.md`: un
+       control cuyo verde no discrimina, con un comentario que garantiza lo
+       que no cumple.
+
+       El aplanamiento se queda —hace falta para casar la clase— y la
+       distincion la mide ahora ``_despromovido`` como categoria propia.
 
     *Metrica:* colisiones de la llave dentro de cada arbol. Medido sobre el
     addon ``base``: **0** en 150 clases nuestras y **0** en 442 de la
@@ -804,10 +866,19 @@ def compara(addon):
                     (addon, ref_py.name, klass, 'CLASE FUERA DE SITIO',
                      [f'portada fuera de {ref_py.name}']))
             aqui_norm = {normaliza(m) for m in aqui}
-            faltan, out_of_place = [], []
+            faltan, out_of_place, despromovidos = [], [], []
             for m in sorted(metodos):
                 n = normaliza(m)
                 if n in aqui_norm:
+                    # El nombre esta, pero puede haber perdido su guion bajo:
+                    # `normaliza` los aplana, asi que `_foo` y `foo` colisionan
+                    # en la misma llave y el gate no distinguia uno de otro.
+                    if _despromovido(m, metodos, aqui):
+                        if f'{klass}::{m}' in DESPROMOVIDOS_BASELINE \
+                                or m in DESPROMOVIDOS_BASELINE:
+                            absolutions += 1
+                        else:
+                            despromovidos.append(f'{m} -> {m.lstrip("_")}')
                     continue
                 if n in absueltos:
                     absolutions += 1
@@ -826,6 +897,10 @@ def compara(addon):
                 hallazgos.append(
                     (addon, ref_py.name, klass, 'FUERA DE SITIO',
                      out_of_place))
+            if despromovidos:
+                hallazgos.append(
+                    (addon, ref_py.name, klass, 'DESPROMOVIDOS',
+                     despromovidos))
     return pares, hallazgos, no_resolubles, absolutions
 
 

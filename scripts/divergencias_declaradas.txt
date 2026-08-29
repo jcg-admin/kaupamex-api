@@ -1191,17 +1191,17 @@ crm/models/crm_lead_scoring_frequency.py::CrmLeadScoringFrequencyField::_get_def
 # color— y por tanto el mismo impedimento del serializador de migraciones.
 sales_team/models/crm_tag.py::CrmTag::_get_default_color
 #
-# ---- 13. `create`/`write` de `certificate` — DIVERGENCIA DE MECANISMO ----
+# ---- 13. `create` de `certificate` — DIVERGENCIA DE MECANISMO -----------
 #
-# La referencia declara DOS metodos porque su ORM los separa: `create` recibe
-# `vals_list` (batch de altas) y `write` recibe `vals` (escritura sobre un
-# recordset). Django tiene UN solo punto de persistencia por fila, `save()`,
-# asi que los dos aterrizan ahi.
+# Su gancho de alta; en Django es `save()` con `_state.adding`. Mismo motivo,
+# palabra por palabra, que `base/models/res_users.py::ResUsers::create` en el
+# bloque 2 de arriba.
 #
-# Lo que NO se fusiona es el cuerpo, y por eso esto es divergencia de mecanismo
-# y no porte parcial: los dos metodos de la fuente hacen exactamente lo mismo
-# —llamar a `_parse_chain_missing_ca_vals` y crear las CAs que faltan— y ese
-# reparto se conserva verbatim. `_parse_chain_missing_ca_vals` sigue
-# devolviendo los valores, y quien crea es el llamador.
+# `write` NO entra aqui, y no por descuido: la clausula anti-abuso lo prohibe
+# —lo vigila `test_the_anti_abuse_clause_is_honoured_in_the_registry`— porque
+# sale ausente 90 veces en el arbol y declararlo convertiria noventa preguntas
+# abiertas en noventa absoluciones silenciosas. El primer intento de esta
+# entrada SI lo colaba, con el argumento de que `save()` cubre las dos ramas;
+# ese argumento es exactamente el que la clausula existe para rechazar. En
+# `certificate` queda como deuda contada, igual que en los otros noventa.
 certificate/models/certificate.py::CertificateCertificate::create
-certificate/models/certificate.py::CertificateCertificate::write
