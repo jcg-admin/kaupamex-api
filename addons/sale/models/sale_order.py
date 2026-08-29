@@ -193,7 +193,7 @@ def _compute_tax_country(order):
     posición fiscal no pasa por el gestor acotado por reglas de fila, así que
     no hay error de acceso que evitar: se lee la FK ya resuelta.
     """
-    position = order.fiscal_position
+    position = order.fiscal_position_id
     if position is not None and position.foreign_vat:
         return position.country
     return order.company.account_fiscal_country if order.company_id else None
@@ -547,8 +547,9 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         help_text='Odoo reference ("Payment Ref."). La comunicación de pago de '
                   'este pedido — lo que el cliente ve en su estado de cuenta.',
     )
-    pending_email_template = fields.Many2one(
+    pending_email_template_id = fields.Many2one(
         'mail.MailTemplate', null=True, blank=True,
+        db_column='pending_email_template_id',
         on_delete=models.SET_NULL, related_name='+',
         verbose_name='Plantilla del correo pendiente',
         help_text='Odoo pending_email_template_id ("Pending Email Template"). '
@@ -596,8 +597,9 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     )
 
     # -- contabilidad y condiciones ----------------------------------------
-    journal = fields.Many2one(
+    journal_id = fields.Many2one(
         'account.AccountJournal', null=True, blank=True,
+        db_column='journal_id',
         on_delete=models.SET_NULL, related_name='+', check_company=True,
         verbose_name='Diario de facturación',
         help_text='Odoo journal_id ("Invoicing Journal"). Si se fija, el pedido '
@@ -609,8 +611,9 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         help_text='Odoo note ("Terms and conditions"). Su valor inicial sale de '
                   'los términos de la empresa.',
     )
-    partner_invoice = fields.Many2one(
+    partner_invoice_id = fields.Many2one(
         'base.ResPartner', null=True, blank=True,
+        db_column='partner_invoice_id',
         on_delete=models.SET_NULL, related_name='+', check_company=True,
         db_index=True, verbose_name='Dirección de facturación',
         help_text='Odoo partner_invoice_id ("Invoice Address"). '
@@ -618,45 +621,51 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
                   'Django con la FK; el tramo parcial se declara en Meta.indexes '
                   'cuando el volumen lo justifique.',
     )
-    partner_shipping = fields.Many2one(
+    partner_shipping_id = fields.Many2one(
         'base.ResPartner', null=True, blank=True,
+        db_column='partner_shipping_id',
         on_delete=models.SET_NULL, related_name='+', check_company=True,
         db_index=True, verbose_name='Dirección de entrega',
         help_text='Odoo partner_shipping_id ("Delivery Address").',
     )
-    fiscal_position = fields.Many2one(
+    fiscal_position_id = fields.Many2one(
         'account.AccountFiscalPosition', null=True, blank=True,
+        db_column='fiscal_position_id',
         on_delete=models.SET_NULL, related_name='+', check_company=True,
         verbose_name='Posición fiscal',
         help_text='Odoo fiscal_position_id ("Fiscal Position"). Adapta impuestos '
                   'y cuentas para un cliente o pedido concreto; su valor por '
                   'omisión sale del cliente.',
     )
-    payment_term = fields.Many2one(
+    payment_term_id = fields.Many2one(
         'account.AccountPaymentTerm', null=True, blank=True,
+        db_column='payment_term_id',
         on_delete=models.SET_NULL, related_name='+', check_company=True,
         verbose_name='Condiciones de pago',
         help_text='Odoo payment_term_id ("Payment Terms"). Acotado por '
                   'PAYMENT_TERM_DOMAIN: los de la empresa del pedido o los '
                   'compartidos (company_id vacío).',
     )
-    preferred_payment_method_line = fields.Many2one(
+    preferred_payment_method_line_id = fields.Many2one(
         'account.AccountPaymentMethodLine', null=True, blank=True,
+        db_column='preferred_payment_method_line_id',
         on_delete=models.SET_NULL, related_name='+', check_company=True,
         verbose_name='Método de pago',
         help_text='Odoo preferred_payment_method_line_id ("Payment Method"). '
                   'Acotado por PREFERRED_PAYMENT_METHOD_DOMAIN: entrante y de '
                   'la empresa del pedido.',
     )
-    pricelist = fields.Many2one(
+    pricelist_id = fields.Many2one(
         'product.ProductPricelist', null=True, blank=True,
+        db_column='pricelist_id',
         on_delete=models.SET_NULL, related_name='+', check_company=True,
         verbose_name='Tarifa',
         help_text='Odoo pricelist_id ("Pricelist"). Cambiarla sólo afecta a las '
                   'líneas que se añadan después. Acotada por PRICELIST_DOMAIN.',
     )
-    currency = fields.Many2one(
+    currency_id = fields.Many2one(
         'base.ResCurrency', null=True, blank=True,
+        db_column='currency_id',
         on_delete=models.PROTECT, related_name='+',
         verbose_name='Divisa',
         help_text='Odoo currency_id (compute, store=True, precompute, '
@@ -669,8 +678,9 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
                   'declarado). Tasa aplicada al confirmar, congelada en el '
                   'pedido para que un cambio posterior no reescriba el importe.',
     )
-    user = fields.Many2one(
+    user_id = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True,
+        db_column='user_id',
         on_delete=models.SET_NULL, related_name='sale_orders_as_salesperson',
         db_index=True, verbose_name='Vendedor',
         help_text='Odoo user_id ("Salesperson"). NO es el cliente —ese es '
