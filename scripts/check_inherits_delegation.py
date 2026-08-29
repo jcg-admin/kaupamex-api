@@ -52,8 +52,7 @@ def pares_inherits(raiz):
     de su ``_name``; si la clase no lo declara, se usa el nombre del archivo.
     """
     fuera = []
-    for base in ('addons', 'odoo/addons'):
-        d = raiz / base
+    for d in _addons_de('odoo19c'):
         if d.is_dir():
             fuera.extend(d.glob('*/models/*.py'))
     pares = []

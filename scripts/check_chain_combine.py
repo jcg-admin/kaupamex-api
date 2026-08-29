@@ -58,7 +58,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 #: ``referencia-odoo-gobierna-las-decisiones.md``.
 import sys as _s, os.path as _op
 _s.path.insert(0, _op.dirname(_op.abspath(__file__)))
-from reference_roots import tree as _tree
+from reference_roots import addons_de as _addons_de, tree as _tree
 ODOO19C = _tree('odoo19c')
 
 BASELINE = REPO_ROOT / 'scripts' / 'chain_combine_baseline.txt'
@@ -186,7 +186,7 @@ def reference_file(rel):
     parts = pathlib.Path(rel).parts
     addon = ADDON_ALIAS.get(parts[1], parts[1])
     tail = pathlib.Path(*parts[2:])
-    for root in (ODOO19C / 'addons', ODOO19C / 'odoo' / 'addons'):
+    for root in _addons_de('odoo19c'):
         candidate = root / addon / tail
         if candidate.is_file():
             return candidate

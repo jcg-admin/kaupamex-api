@@ -39,8 +39,14 @@ import sys
 
 import sys as _s, os.path as _op
 _s.path.insert(0, _op.dirname(_op.abspath(__file__)))
-from reference_roots import tree as _tree
-ODOO19C = str(_tree('odoo19c') / 'addons')
+from reference_roots import addon_root as _addon_root, tree as _tree
+
+#: La raiz del arbol, para los mensajes. La raiz de UN addon NO se compone a
+#: mano: Community reparte sus addons en dos —``addons/`` y ``odoo/addons/``—
+#: y ``base``, del que depende todo el porte, vive en la segunda. Componer
+#: ``tree() / 'addons' / addon`` lo declaraba ausente con el mensaje *"no
+#: existe en la referencia"*, que es falso: describia donde se habia mirado.
+ODOO19C = str(_tree('odoo19c'))
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from addons_roots import addon_path
@@ -86,7 +92,7 @@ def archivos_de_produccion(raiz):
 
 def estado(addon):
     """Clasifica cada archivo de la referencia. Devuelve (pendientes, hechos)."""
-    ref_raiz = os.path.join(ODOO19C, addon)
+    ref_raiz = str(_addon_root(addon, 'odoo19c'))
     mio_raiz = str(addon_path(addon) or '')
     if not os.path.isdir(ref_raiz):
         sys.exit(f"'{addon}' no existe en la referencia ({ref_raiz})")

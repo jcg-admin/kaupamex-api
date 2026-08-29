@@ -105,7 +105,7 @@ import sys
 
 import sys as _s, os.path as _op
 _s.path.insert(0, _op.dirname(_op.abspath(__file__)))
-from reference_roots import tree as _tree
+from reference_roots import addon_root as _addon_root, tree as _tree
 
 #: Raíz del árbol que gobierna. Mismo nombre de variable de entorno que
 #: ``check_porte_completo.py`` y ``check_symbol_home.py`` — es el contrato ya
@@ -172,7 +172,11 @@ def addon_roots():
     for entry in sorted(addons_dir.iterdir()):
         if not entry.is_dir() or entry.name.startswith('.'):
             continue
-        reference_addon = REFERENCE_ROOT / 'addons' / entry.name
+        # NO se compone a mano: Community reparte sus addons en dos raíces
+        # y ``addon_root`` es quien sabe cuál. Con ``REFERENCE_ROOT/'addons'``
+        # a secas, todo addon nuestro cuya contraparte viva en
+        # ``odoo/addons/`` quedaba fuera del barrido sin dejar rastro.
+        reference_addon = _addon_root(entry.name, 'odoo19c')
         if reference_addon.is_dir():
             yield (f'addons/{entry.name}', entry, reference_addon)
 
