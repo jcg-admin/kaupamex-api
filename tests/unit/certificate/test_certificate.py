@@ -353,8 +353,24 @@ class TestCertificateKeyCompatibility:
             row.save()
 
 
-class TestCompanyMismatchClean:
-    def test_clean_rejects_public_key_from_a_different_company(self):
+class TestCompanyMismatch:
+    """La llave de otra empresa se rechaza — ahora por el ORM, no a mano.
+
+    .. note:: **Corregido.** Este caso llamaba a ``row.clean()`` y esperaba
+       una ``ValidationError``, porque la invariante de ``check_company=True``
+       (``odoo19c: certificate/models/certificate.py:32,41``) se llevaba a
+       mano en ``clean()`` a falta de mecanismo. La tarea **#168** lo
+       construyó (``orm.models.CheckCompanyMixin``), así que la clase declara
+       ``_check_company_auto = True`` como la fuente, los dos campos llevan la
+       marca, y el rechazo lo emite el ORM con ``UserError`` — que es la
+       excepción que la fuente levanta.
+
+       El caso se conserva, no se retira: la conducta que mide —una llave de
+       otra empresa no entra— es la misma; lo que cambió es quién la hace
+       cumplir y con qué excepción.
+    """
+
+    def test_a_public_key_from_a_different_company_is_rejected(self):
         acme = _company('acme-cert-clean-1')
         globex = _company('globex-cert-clean-1')
         priv = _rsa_key()
@@ -372,8 +388,28 @@ class TestCompanyMismatchClean:
             public_key=other_company_key,
         )
         row._compute_pem_certificate()
-        with pytest.raises(ValidationError):
-            row.clean()
+        with pytest.raises(UserError) as exc:
+            row._check_company()
+        assert 'public_key' in str(exc.value)
+
+    def test_a_public_key_from_the_same_company_passes(self):
+        acme = _company('acme-cert-clean-2')
+        priv = _rsa_key()
+        pub_pem = priv.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        own_key = CertificateKey.objects.create(
+            name='k', company=acme, content=pub_pem)
+
+        cert = _self_signed_cert(priv, 'clean-leaf-ok')
+        row = CertificateCertificate(
+            name='c', company=acme,
+            content=cert.public_bytes(serialization.Encoding.DER),
+            public_key=own_key,
+        )
+        row._compute_pem_certificate()
+        row._check_company()
 
 
 class TestBusinessMethods:
