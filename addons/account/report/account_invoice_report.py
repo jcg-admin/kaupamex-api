@@ -6,11 +6,28 @@ preservados, DEC-KX-03).
 La fuente declara TRES clases. Sus formas divergen entre si en la
 referencia misma, y el porte respeta esa diferencia:
 
-- ``AccountInvoiceReport`` (``models.Model``, ``_auto = False``) -- una
-  vista SQL real, consultable con el ORM. Aqui es un modelo Django con
-  ``Meta.managed = False``: **mismo patron** que ``ResDevice`` en
-  ``src/addons/base/models/res_device.py`` (ver su docstring, que cita el
-  precedente completo con su migracion ``RunSQL``).
+- ``AccountInvoiceReport`` (``models.Model``, ``_auto = False`` +
+  ``_table_query``) -- y **no** es una vista SQL. Medido
+  2026-08-29T10:54:55: ``odoo19c: odoo/orm/models.py:488-497`` envuelve el
+  ``_table_query`` en ``SQL("(%s)", table_query)`` y lo entrega como la
+  clausula FROM de cada consulta; ``odoo/orm/registry.py:954`` lo confirma
+  desde el otro lado, excluyendo del barrido de tablas ausentes a todo
+  modelo con ``_table_query``. Aqui es un modelo Django con
+  ``Meta.managed = False``.
+
+  **La referencia usa DOS mecanismos bajo ``_auto = False``, y este archivo
+  los confundia.** Su docstring citaba el precedente de ``ResDevice``
+  (``managed=False`` + ``RunSQL``) y declaraba pendiente emitir un
+  ``CREATE OR REPLACE VIEW``. ``ResDevice`` si crea vista -- lleva
+  ``_auto = False`` **y** ``def init(self)``
+  (``odoo19c: base/models/res_device.py:178,230``) -- pero este modelo lleva
+  la otra forma, y emitir el DDL seria inventar algo que la fuente no tiene.
+  Ademas congelaria en DDL un SQL que depende de ``get_current_companies()``
+  en tiempo de consulta. Censo: **12** archivos con ``_table_query`` frente a
+  **21** archivos de reporte con ``def init(self)``; las dos formas estan
+  pobladas. Lo que falta es el gestor que ponga la subconsulta en el FROM.
+  Sucesor: tarea **#991**.
+
 - ``ReportAccountReport_Invoice`` / ``..._With_Payments`` (ambas
   ``models.AbstractModel``) -- ensambladores de datos para una plantilla
   QWeb, sin tabla propia. Aqui son clases planas con ``classmethod`` --
