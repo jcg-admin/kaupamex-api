@@ -58,6 +58,7 @@ __all__ = [
     'apps', 'connections',
     'MODELS_BY_NAME', 'name_of', 'model_by_name',
     'resolve_model_key', 'check_table_matches_name',
+    'registrants_without_table',
     'clear_cache', 'clear_all_caches', 'cache_of', 'cache_invalidated',
     'many2one_company_dependents', 'loaded_xmlids',
 ]
@@ -295,6 +296,15 @@ def check_table_matches_name(models_found=None):
     comparar, y contarlos como divergencia sería medir su ausencia, no su
     forma.
 
+    **Un registrante sin tabla no es una divergencia — es otra población.**
+    El registro por nombre admite clases que no son modelos de Django: el
+    equivalente del ``AbstractModel`` de la fuente, que declara ``_name`` y no
+    tiene tabla (``IrFieldsConverter`` es uno). Preguntarle su ``db_table``
+    reventaba con ``AttributeError``, así que este check moría en vez de dar
+    veredicto. Ahora se apartan, **y se pueden contar** con
+    :func:`registrants_without_table` — un salto silencioso dejaría el verde
+    sin discriminar «no hay divergencias» de «no pude comparar».
+
     **``_table`` gana sobre la sustitución**, como en la fuente: allá
     ``model_cls._table = model_cls._name.replace('.', '_')``
     (``odoo19c: odoo/orm/model_classes.py:266``) es sólo el **default**, y una
@@ -311,11 +321,36 @@ def check_table_matches_name(models_found=None):
         name = name_of(model)
         if not name:
             continue
+        meta = getattr(model, '_meta', None)
+        if meta is None:
+            continue                      # sin tabla: lo cuenta el hermano
         expected = model.__dict__.get('_table') or name.replace('.', '_')
-        actual = model._meta.db_table
+        actual = meta.db_table
         if expected != actual:
-            divergences.append((model._meta.label, name, expected, actual))
+            divergences.append((meta.label, name, expected, actual))
     return divergences
+
+
+def registrants_without_table(models_found=None):
+    """Los registrantes por ``_name`` que NO tienen tabla que comparar.
+
+    Es el denominador que :func:`check_table_matches_name` aparta. Devuelve
+    ``(nombre_de_clase, _name)`` de cada clase que declara ``_name`` sin ser un
+    modelo de Django — el equivalente aquí del ``AbstractModel`` de la fuente,
+    que en el registro existe y en el catálogo de tablas no.
+
+    Se exporta para que el salto sea **medible** y no silencioso: sin esta
+    función, un cero de divergencias no distinguiría «todo cuadra» de «no había
+    nada que comparar».
+    """
+    if models_found is None:
+        _ensure_seeded()
+        models_found = list(MODELS_BY_NAME.values())
+    return [
+        (model.__name__, name_of(model))
+        for model in models_found
+        if name_of(model) and getattr(model, '_meta', None) is None
+    ]
 
 
 
