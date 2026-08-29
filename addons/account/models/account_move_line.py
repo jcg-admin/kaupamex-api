@@ -25,11 +25,19 @@ from decimal import Decimal
 import api
 import fields
 import models
+from addons.analytic.models.analytic_mixin import AnalyticMixin
 from addons.product.models.product_supplierinfo import ProductSupplierinfo
 
 
-class AccountMoveLine(models.Model):
+class AccountMoveLine(AnalyticMixin, models.Model):
     """``account.move.line`` — línea (apunte) de un asiento contable."""
+
+    _name = 'account.move.line'
+    _inherit = ["analytic.mixin"]
+    _description = "Journal Item"
+    _order = "date desc, move_name desc, id"
+    _check_company_auto = True
+    _rec_names_search = ['name', 'move_id', 'product_id']
 
     DISPLAY_TYPES = [
         ('product', 'Producto'),

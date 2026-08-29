@@ -28,52 +28,44 @@ Aquí ``__update__`` lleva **PKs de plan raíz** (``AccountAnalyticPlan.root``)
 en su lugar — mismo propósito (marcar qué planes se están redistribuyendo
 intencionalmente), mismo álgebra de razones, distinto identificador.
 
-Lo que NO se porta — **gap de alcance, NO de capacidad del motor**: ``init()``
-(índice GIN sobre ``jsonb_path_query_array``), ``_query_analytic_accounts``
-(``regexp_split_to_array``/``jsonb_path_query_array``),
-``_search_analytic_distribution``, ``_read_group_groupby``,
-``_read_group_select``, ``_get_count_id`` (agregación de "group by" del
-cliente web de Odoo sobre JSON, construida con SQL crudo de Postgres).
+Lo que SI se porta desde este pase (tarea **#526**) — el eje de BUSQUEDA:
+``analytic_precision``, ``_query_analytic_accounts``,
+``_compute_analytic_distribution``, ``_search_analytic_distribution``,
+``_search_distribution_analytic_account_ids`` y el indice GIN de ``init()``,
+que baja a una migracion del consumidor concreto
+(``analytic_distribution_gin_index_sql``).
 
-**Corrección 2026-08-06:** una redacción previa encabezaba esta lista con
-*"Postgres-only, no aplica a MariaDB"*. Es falso, pero la primera corrección
-—*"los cuatro constructos tienen equivalente exacto"*— también se pasó. La
-forma medida (MariaDB 11.8.8 en vivo + flags de Django 6.0.5) es:
+**Por que se portan ahora y no antes.** Su ausencia se declaraba "gap de
+alcance" citando limitaciones de MariaDB. Esa premisa es falsa desde ADR-028:
+el motor es PostgreSQL 16, que trae los cuatro constructos que la referencia
+usa —``jsonb_path_query_array``, ``regexp_split_to_array``, el operador ``&&``
+de solapamiento y el indice GIN funcional— sin rodeo alguno. El bloque que
+razonaba sobre ``JSON_KEYS``, ``JSON_OVERLAPS``, ``GeneratedField`` y
+``FULLTEXT`` se retira entero: describia un motor que este arbol ya no usa
+(Clausula 2 del principio rector — estado heredado incorrecto se corrige en el
+pase que lo encuentra, no se difiere).
 
-- ``jsonb_path_query_array`` → ``JSON_KEYS``: equivalente exacto.
-- ``regexp_split_to_array`` → ``REGEXP_REPLACE`` / ``JSON_TABLE``: equivalente
-  por composición.
-- ``&&`` (solapamiento) → ``JSON_OVERLAPS``: equivalente exacto.
-- **índice GIN funcional → NO tiene equivalente directo.** MariaDB rechaza
-  ambas sintaxis de índice de expresión (``ERROR 1064``) y Django declara
-  ``supports_expression_indexes = False`` en este backend. El rodeo es columna
-  generada (``GeneratedField``, ya idioma del árbol — ver
-  ``mail/models/mail_alias.py:128``) + índice ``FULLTEXT`` vía ``RunSQL``, que
-  sí da búsqueda invertida real (``EXPLAIN`` → ``type: fulltext``). Trae un
-  caveat operativo: ``innodb_ft_min_token_size`` = 3 deja los IDs de 1 a 99
-  fuera del índice.
+Lo que NO se porta — **divergencia de mecanismo declarada**:
+``_read_group_groupby``, ``_read_group_select`` y ``_get_count_id`` construyen
+el "group by" del cliente web de Odoo sobre el JSON; su consumidor es la vista
+de lista de ese cliente, que este arbol no sirve. ``filtered_domain`` opera
+sobre el framework de dominios en memoria del ORM fuente. Y
+``_validate_distribution`` depende de ``get_relevant_plans``, que a su vez
+depende del sistema de columna por plan de ``analytic_plan.py``.
 
-Un índice B-tree sobre la columna generada **no** sirve para esto: el
-``EXPLAIN`` del solapamiento da ``type: index`` / ``rows: 5000`` — barrido
-completo, aunque diga ``Using index`` (eso es cobertura, no búsqueda).
-
-Es gap de **alcance con ruta dibujada**, no incapacidad del motor: falta
-diseño, una decisión de configuración y un consumidor que lo exija. Detalle
-completo y comandos en ``docs: …/integrar-familia-account-completa/
-analisis-postgres-only-vs-mariadb.rst``.
-
-Tampoco se porta ``filtered_domain`` (framework de dominios Python del ORM de
-Odoo, sin análogo) ni ``_validate_distribution`` (depende de
-``get_relevant_plans``, ver ``analytic_plan.py``).
 """
 from collections import defaultdict
 
 from django.core.exceptions import ValidationError
+from django.contrib.postgres.fields import ArrayField
+from django.db.models import BooleanField, Q, TextField
+from django.db.models.expressions import RawSQL
 
 import fields
 import models
 
 from addons.base.models import DecimalPrecision
+from tools.sql import SQL
 
 from .analytic_account import AccountAnalyticAccount
 
@@ -89,6 +81,134 @@ class AnalyticMixin(models.Model):
 
     class Meta:
         abstract = True
+
+    @property
+    def analytic_precision(self):
+        """Los digitos con que se redondea el porcentaje -- ≙ ``:22-25``.
+
+        La fuente lo declara ``fields.Integer(store=False, default=lambda ...)``.
+        Un campo no persistido cuyo valor sale de otra tabla es una ``property``
+        aqui; el ``default`` invocable de la fuente se vuelve el cuerpo.
+        """
+        precision = DecimalPrecision.objects.filter(
+            name='Percentage Analytic',
+        ).first()
+        return precision.digits if precision else 2
+
+    # -- busqueda por cuenta analitica sobre el JSON --------------------------
+
+    @classmethod
+    def _query_analytic_accounts(cls, table=None):
+        """El arreglo de IDs de cuenta que la distribucion contiene -- ≙ ``:42-47``.
+
+        Verbatim de la fuente: ``jsonb_path_query_array`` extrae las claves del
+        objeto y ``regexp_split_to_array`` parte la clave compuesta
+        (``"3,7"``) por todo lo que no sea digito. El resultado es ``text[]``,
+        que es lo que el operador ``&&`` de solapamiento compara.
+        """
+        column = f'"{table or cls._meta.db_table}"."analytic_distribution"'
+        return SQL(
+            r"""regexp_split_to_array("""
+            rf"""jsonb_path_query_array({column}, '$.keyvalue()."key"')::text, '\D+')""",
+            output_field=ArrayField(TextField()),
+        )
+
+    @classmethod
+    def analytic_distribution_gin_index_sql(cls, table=None):
+        """El DDL del indice GIN -- ≙ ``init()`` (``:32-40``).
+
+        La fuente lo emite en ``init()``, el gancho que su ORM invoca al
+        instalar el modulo. Aqui el hogar de un DDL es una migracion, asi que
+        el mixin publica la sentencia y el modelo concreto la emite con
+        ``RunSQL``. El ``IF NOT EXISTS`` la deja idempotente, igual que alla.
+        """
+        name = table or cls._meta.db_table
+        return (
+            f'CREATE INDEX IF NOT EXISTS '
+            f'{name}_analytic_distribution_accounts_gin_index '
+            f'ON "{name}" USING gin(regexp_split_to_array('
+            f'jsonb_path_query_array("analytic_distribution", '
+            f"'$.keyvalue().\"key\"')::text, '\\D+'))"
+        )
+
+    def _compute_analytic_distribution(self):
+        """≙ ``_compute_analytic_distribution`` (``:77-78``) -- cuerpo vacio.
+
+        La fuente lo declara para que el campo sea ``compute=`` + ``store=True``
+        + ``readonly=False``: el compute no calcula nada, existe para que el ORM
+        acepte la escritura manual sobre un campo almacenado. Aqui el campo es
+        editable por construccion, asi que el simbolo se porta con el mismo
+        cuerpo que la fuente le da.
+        """
+
+    @classmethod
+    def _search_analytic_distribution(cls, operator, value, table=None):
+        """≙ ``_search_analytic_distribution`` (``:80-124``).
+
+        Traduce ``('analytic_distribution', <op>, <valor>)`` a un ``Q``
+        aplicable con ``filter()``. El valor admite IDs de cuenta o nombres:
+
+        - ``in`` / ``not in`` con enteros -> se usan tal cual;
+        - ``in`` / ``not in`` con cadenas -> se resuelven por nombre exacto;
+        - ``ilike`` / ``not ilike`` -> se resuelven por nombre parcial y el
+          operador colapsa a ``in``/``not in``, como en la fuente.
+
+        La rama negativa incluye ``OR analytic_distribution IS NULL`` porque el
+        solapamiento de un NULL no es falso sino nulo -- verbatim de ``:118-123``.
+        """
+        if operator in ('ilike', 'not ilike'):
+            ids = list(AccountAnalyticAccount.objects.filter(
+                name__icontains=value).values_list('pk', flat=True))
+            operator = 'not in' if operator.startswith('not') else 'in'
+        elif operator in ('in', 'not in'):
+            ids = []
+            for item in value:
+                if isinstance(item, str):
+                    ids.extend(AccountAnalyticAccount.objects.filter(
+                        name=item).values_list('pk', flat=True))
+                else:
+                    ids.append(item)
+        else:
+            raise ValueError(f'ANALYTIC_DISTRIBUTION_OPERATOR_NOT_SUPPORTED: {operator}')
+
+        if not ids:
+            # ≙ ``return Domain(operator == 'not in')`` (``:110-112``) -- la
+            # fuente optimiza a una constante; el equivalente es un Q que no
+            # filtra nada (verdadero) o que no admite nada (falso).
+            return Q() if operator == 'not in' else Q(pk__in=[])
+
+        keys = [str(account_id) for account_id in ids if account_id]
+        column = f'"{table or cls._meta.db_table}"."analytic_distribution"'
+        overlap = (
+            r"""regexp_split_to_array("""
+            rf"""jsonb_path_query_array({column}, '$.keyvalue()."key"')::text, '\D+')"""
+            """ && %s"""
+        )
+        if operator == 'in':
+            return Q(RawSQL(overlap, [keys], output_field=BooleanField()))
+        return Q(RawSQL(
+            f'(NOT {overlap} OR {column} IS NULL)',
+            [keys], output_field=BooleanField(),
+        ))
+
+    @classmethod
+    def _search_distribution_analytic_account_ids(cls, operator, value, table=None):
+        """≙ ``_search_distribution_analytic_account_ids`` (``:66-75``).
+
+        La fuente traduce los operadores de subconsulta (``any``/``not any``)
+        resolviendolos a IDs y delegando en el campo Json. Aqui el equivalente
+        de una subconsulta es un ``QuerySet``, y el de un dominio, un ``Q``.
+        """
+        if operator in ('any', 'not any'):
+            if isinstance(value, Q):
+                value = list(AccountAnalyticAccount.objects.filter(
+                    value).values_list('pk', flat=True))
+            elif isinstance(value, models.QuerySet):
+                value = list(value.values_list('pk', flat=True))
+            else:
+                return NotImplemented
+            operator = 'in' if operator == 'any' else 'not in'
+        return cls._search_analytic_distribution(operator, value, table=table)
 
     # -- lectura -------------------------------------------------------------
 

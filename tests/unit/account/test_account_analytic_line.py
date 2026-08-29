@@ -241,9 +241,17 @@ class TestWhatStaysBlockedBySecondOrderCause:
         assert 'partner_id' in names
         assert 'journal_id' in names
 
-    def test_analytic_line_has_no_update_analytic_distribution_consumer(self, company, move_line):
-        """``create``/``write``/``unlink`` (BLOQUEADO): el campo que
-        recibirían, ``analytic_distribution``, no existe en
-        ``account.move.line``."""
+    def test_the_analytic_distribution_consumer_is_no_longer_blocked(self, company, move_line):
+        """Reescrito, no ajustado: antes exigía la ausencia del campo.
+
+        ``create``/``write``/``unlink`` de la fuente actualizan el reparto
+        analítico del apunte. Su bloqueo era que el campo no existía; desde la
+        tarea #526 existe, y llega por herencia de ``analytic.mixin``.
+
+        Lo que este caso NO afirma es que los tres métodos estén portados: mide
+        que su bloqueador cayó, que es un hecho distinto. El porte de los tres
+        es la tarea #992.
+        """
         names = {f.name for f in AccountMoveLine._meta.get_fields()}
-        assert 'analytic_distribution' not in names
+        assert 'analytic_distribution' in names
+        assert move_line.analytic_distribution in (None, {})
