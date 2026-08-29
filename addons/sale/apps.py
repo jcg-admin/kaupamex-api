@@ -41,6 +41,12 @@ class SaleConfig(AppConfig):
         # bloqueos estan citados en el propio archivo; su sucesor es la #982.
         importlib.import_module(f'{self.name}.models.ir_actions_report') \
             .apply_sale_report_extensions()
+        # La cuenta de anticipo pertenece a la empresa: un renglón en el
+        # mapa de cuentas de propiedad del cargador del plan —
+        # ≙ ``sale/models/chart_template.py`` de la fuente. Va en ``ready()``
+        # y no en ``models/__init__.py`` porque importa de ``account``, que
+        # en tiempo de import de modelos puede no estar poblado.
+        importlib.import_module(f'{self.name}.models.chart_template')
         # Inscribe el resolutor de audiencia "compradores de un producto" en
         # el registro de ``mail`` (T-035).
         importlib.import_module(f'{self.name}.audience')

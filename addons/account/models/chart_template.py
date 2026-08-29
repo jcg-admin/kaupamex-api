@@ -89,8 +89,10 @@ from collections import defaultdict
 from django.apps import apps
 from django.db import transaction
 
+from addons.base.models.ir_default import IrDefault
 from addons.base.models.ir_model import IrModelData
 from exceptions import UserError
+from orm.registry import model_by_name
 from tools.translate import _
 
 #: Raíz de los CSV de plantilla, espejo de ``<addon>/data/template/``.
@@ -141,6 +143,31 @@ REPARTITION_FIELDS = (
 #: el dict en sitio, igual que el ``accounts_data.update(...)`` de la
 #: referencia.
 ACCOUNTS_DATA_OVERRIDES = []
+
+
+#: Cuentas de propiedad que aporta cada addon — ≙ el ``_inherit`` con el que la
+#: referencia sobreescribe ``_get_property_accounts``.
+#:
+#: Mismo mecanismo y misma razón que ``ACCOUNTS_DATA_OVERRIDES``: allá el
+#: override es un ``_inherit = 'account.chart.template'`` que se instala para
+#: **toda** carga, no uno atado a un código de plan. Medido sobre ``odoo19c``,
+#: el único addon que lo sobreescribe es ``sale``
+#: (``sale/models/chart_template.py:7``), que añade ``downpayment_account_id``.
+#:
+#: Cada función recibe el dict y lo muta en sitio, igual que el
+#: ``property_accounts['...'] = 'res.company'`` de la referencia.
+PROPERTY_ACCOUNTS_OVERRIDES = []
+
+
+def property_accounts_override(func):
+    """Registra las cuentas de propiedad que un addon aporta al plan.
+
+    Idempotente: registrar dos veces la misma función —lo que pasa cuando
+    ``ready()`` corre bajo el autoreloader— la deja una sola vez.
+    """
+    if func not in PROPERTY_ACCOUNTS_OVERRIDES:
+        PROPERTY_ACCOUNTS_OVERRIDES.append(func)
+    return func
 
 
 def accounts_data_override(func):
@@ -803,6 +830,7 @@ class ChartTemplate:
         resuelven ahora, cuando ya existen. Es el paso que deja a la empresa
         **configurada** y no sólo con registros sueltos.
         """
+        additional_properties = template_data.pop('additional_properties', {})
         company_values = {}
         for func in TEMPLATE_REGISTRY[template_code].get('res.company', []):
             company_values.update(func(cls, template_code))
@@ -830,12 +858,58 @@ class ChartTemplate:
                         to_write[key] = resolved
                 else:
                     to_write[key] = value
-        if not to_write:
-            return company
-        for key, value in to_write.items():
-            setattr(company, key, value)
-        company.save(update_fields=list(to_write))
+        if to_write:
+            for key, value in to_write.items():
+                setattr(company, key, value)
+            company.save(update_fields=list(to_write))
+        cls.set_property_account_defaults(
+            company, template_data, additional_properties)
         return company
+
+    @classmethod
+    def set_property_account_defaults(cls, company, template_data,
+                                      additional_properties):
+        """Siembra los ``ir.default`` que el plan declara — ≙ ``:766-783``.
+
+        Dos bloques, los dos de la fuente:
+
+        1. Una entrada por cada clave de ``_get_property_accounts`` que el plan
+           traiga con valor. La guarda ``field in self.env[model]._fields`` de
+           la referencia se conserva —aquí, contra ``_meta``—: una clave cuyo
+           modelo aún no declara el campo se salta en silencio, que es lo que
+           allá pasa cuando el addon que lo declara no está instalado.
+           ``property_stock_journal`` es hoy ese caso: lo declara
+           ``stock_account``, sin portar.
+        2. Las dos cuentas por omisión de la categoría de producto, que salen
+           de la empresa y no del plan (``:772-783``).
+
+        Sin este método ``_get_property_accounts`` sería un método correcto al
+        que nadie llama, que es la forma de :ref:`h-api-346`.
+        """
+        category = 'product.category'
+        for field_name, model_name in cls._get_property_accounts(
+                additional_properties).items():
+            xmlid = template_data.get(field_name)
+            if not xmlid:
+                continue
+            model_class = model_by_name(model_name)
+            if model_class is None:
+                continue
+            if field_name not in {f.name for f in model_class._meta.get_fields()}:
+                continue
+            account = cls.ref(xmlid, company, raise_if_not_found=False)
+            if account is not None:
+                IrDefault.set(model_name, field_name, account.pk,
+                              company=company)
+
+        for categ_field, company_field in (
+            ('property_account_income_categ', 'income_account_id'),
+            ('property_account_expense_categ', 'expense_account_id'),
+        ):
+            account = getattr(company, company_field, None)
+            if account is not None:
+                IrDefault.set(category, categ_field, account.pk,
+                              company=company)
 
     # -- cuentas de utilidad del banco --------------------------------------
 
@@ -1032,19 +1106,30 @@ class ChartTemplate:
                 bank_fees.line_ids.update(account=account)
 
     @classmethod
-    def get_property_accounts(cls, additional_properties):
+    def _get_property_accounts(cls, additional_properties):
         """Qué modelo consume cada cuenta de propiedad — ≙ ``_get_property_accounts``.
 
-        En la referencia estas claves se guardan como *properties* por modelo;
-        aquí son campos de la empresa, así que el mapa sirve para saber a quién
-        pertenece cada una, no para escribirla.
+        El mapa dice, para cada clave ``property_*`` que el plan declara, **de
+        qué modelo** es el valor por defecto. ``set_property_account_defaults``
+        lo recorre y siembra un ``ir.default`` por entrada, que es lo que la
+        referencia hace en ``chart_template.py:766-769``.
+
+        Los addons lo amplían registrándose con ``@property_accounts_override``
+        (ver ``PROPERTY_ACCOUNTS_OVERRIDES``): es el punto de extensión
+        equivalente al ``_inherit`` con el que la referencia lo sobreescribe.
+
+        El guion bajo es el contrato: la fuente lo declara ``_get_...``, o sea
+        de uso interno (``porte-completo-no-parcial.md``, H-API-581).
         """
-        return {
+        property_accounts = {
             **additional_properties,
             'property_account_receivable_id': 'res.partner',
             'property_account_payable_id': 'res.partner',
             'property_stock_journal': 'product.category',
         }
+        for override in PROPERTY_ACCOUNTS_OVERRIDES:
+            override(cls, property_accounts)
+        return property_accounts
 
     @classmethod
     def get_bank_fees_reco_account(cls, company):

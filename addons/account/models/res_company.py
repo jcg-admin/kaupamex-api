@@ -556,6 +556,33 @@ def apply_account_extensions():
         'account_purchase_tax_id, company.py:127).',
         'purchase',
     ))
+    # Las dos cuentas por omisión de producto — ≙ ``odoo19c:
+    # company.py:282-293``. La factura de cliente cae en ``income_account_id``
+    # y la de proveedor en ``expense_account_id`` cuando ni el producto ni su
+    # categoría declaran la suya. ``_post_load_data`` las siembra como
+    # ``ir.default`` de ``product.category`` al cargar el plan.
+    #
+    # Forma **C** (ADR-029): símbolo y columna llevan el nombre de la fuente.
+    # Los campos de cuenta de arriba son forma A y están congelados en
+    # ``scripts/fk_naming_baseline.txt`` (#143); uno nuevo no hereda esa deuda.
+    for account_id_name, account_id_help in (
+        ('income_account_id',
+         'Cuenta de ingreso usada al validar una factura de cliente cuando '
+         'ni el producto ni su categoría declaran la suya (Odoo '
+         'income_account_id).'),
+        ('expense_account_id',
+         'Cuenta de gasto reconocida al validar una factura de proveedor, '
+         'salvo en contabilidad anglosajona con valoración perpetua de '
+         'inventario, donde el gasto se reconoce al validar la factura de '
+         'cliente (Odoo expense_account_id).'),
+    ):
+        _add_if_absent(ResCompany, account_id_name, fields.Many2one(
+            'account.AccountAccount', on_delete=dj_models.SET_NULL,
+            null=True, blank=True, related_name='+',
+            db_column=account_id_name,
+            help_text=account_id_help,
+        ))
+
     _add_if_absent(ResCompany, 'chart_template', fields.Char(
         max_length=64, null=True, blank=True,
         help_text='Código del plan contable cargado en esta empresa (Odoo '
