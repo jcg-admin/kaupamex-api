@@ -331,7 +331,8 @@ from .hr_employee_category import HrEmployeeCategory
 from .hr_version import HrVersion
 
 
-class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin, TimeStampedModel):
+class HrEmployee(MailThread, MailActivityMixin, ResourceMixin, AvatarMixin,
+                 models.DefaultGetMixin, TimeStampedModel):
     """``hr.employee`` — un empleado.
 
     Con ``hr.version`` ya portado (#513) y su familia de métodos reconectada

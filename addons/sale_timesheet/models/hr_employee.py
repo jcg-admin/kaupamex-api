@@ -6,49 +6,104 @@ Adaptación de Odoo ``sale_timesheet/models/hr_employee.py``
 aviso de licencia preservados (DEC-KX-03).
 
 Medido por AST sobre la referencia: 1 clase (``HrEmployee``, ``_inherit``),
-**0 campos**, **1 método**. **No-op medido**, no un olvido.
+**0 campos**, **1 método**.
 
-Porte símbolo por símbolo — 0 de 1
+Porte símbolo por símbolo — 1 de 1
 =====================================
 
-``default_get`` (:9-15) — **BLOQUEADO por mecanismo ausente**.
+``default_get`` (:9-15) — **PORTADO**.
 
-Su cuerpo entero está condicionado a una clave de **contexto**::
+.. note:: **Corregido.** Este archivo declaraba el símbolo como bloqueado
+   *"por mecanismo ausente"* y se cerraba con ``Sucesor: ninguno``, sobre dos
+   premisas que **hoy son falsas**:
 
-    project_company_id = self.env.context.get('create_project_employee_mapping', False)
-    if project_company_id:
-        result['company_id'] = project_company_id
+   1. *"``default_get`` como tal tampoco tiene análogo"* — lo tiene:
+      ``src/orm/models.py:411`` lo declara con los cinco orígenes de valor de
+      la fuente, y diez modelos del árbol lo sobrescriben. Lo construyó la
+      tarea #113.
+   2. *"el canal es ``env.context``, que no existe en este árbol"* — existe:
+      ``src/orm/environments.py:243-266`` declara el ``ContextVar``,
+      ``get_context()`` y ``context_scope(**valores)``, que es el
+      ``with_context`` de la referencia.
 
-Es decir: *"cuando este empleado se está creando desde el formulario de
-tarifas de un proyecto, hereda la compañía de ese proyecto"*. El canal es
-``env.context``, que no existe en este árbol — no hay contexto ambiental que
-consultar, y ``default_get`` como tal tampoco tiene análogo (el default de un
-campo Django es del campo, no del alta).
+   Las dos eran ciertas cuando se escribieron y dejaron de serlo sin que nadie
+   volviera al archivo. Es estado incorrecto heredado (Clausula 2 del
+   principio rector): se corrige en el pase que lo encuentra, no se hereda.
 
-**Y no hace falta fabricarlo.** El llamador que crea el empleado desde
-``project.sale.line.employee.map`` ya tiene el proyecto en la mano, y por
-tanto su compañía: la asignación que la fuente hace por contexto aquí es un
-argumento explícito. Inventar un canal de contexto para replicar un default
-sería exactamente el mecanismo que este árbol evita a propósito — mismo
-criterio que ``AccountAnalyticLine.user`` (*"sin default a env.user: esta API
-no acopla el modelo al usuario ambiental"*, ``api: addons/analytic/models/
-analytic_line.py``) y que ``AccountAnalyticLineCalendarEmployee.user`` en
-``hr_timesheet``.
-
-Sucesor: **ninguno**. Es una divergencia de mecanismo cerrada, no deuda.
+   El argumento que acompañaba al bloqueo —*"el llamador ya tiene el proyecto
+   en la mano, así que la asignación por contexto es un argumento
+   explícito"*— describía la referencia en vez de nuestra diferencia, que es
+   el anti-patrón que ``porte-completo-no-parcial.md`` nombra. Y no se sostenía
+   por sí solo: el ``default_get`` de la fuente lo consume **el formulario**,
+   que no pasa por ningún llamador nuestro.
 """
+from orm.environments import get_context
+from orm.method_chain import chain_method
+from orm.model_classes import extend_model
+
+#: La clave de contexto que la fuente lee, verbatim
+#: (``odoo19c: sale_timesheet/models/hr_employee.py:12``). Su valor es el id
+#: de la compañía del proyecto desde cuyo formulario de tarifas se está
+#: creando el empleado.
+CREATE_PROJECT_EMPLOYEE_MAPPING = 'create_project_employee_mapping'
+
+
+def default_get(cls, fields):
+    """≙ ``default_get`` (:9-15) — la APORTACIÓN de este addon, no el total.
+
+    *"Add the company of the project as default when the employee is being
+    created from the project rate mapping."*
+
+    La fuente escribe ``result = super().default_get(fields)`` y luego pisa
+    una clave. Aquí el ``super()`` lo pone la cadena: esta función devuelve
+    **sólo su aportación** y ``_merge_defaults`` la funde sobre la del eslabón
+    previo. El nombre de la clave de contexto y su semántica son los de la
+    fuente — si trae un id de compañía, ese id gana.
+
+    :param fields: nombres de los campos cuyo default se pide, verbatim de la
+      firma de ``orm.models.BaseModel.default_get``.
+    """
+    project_company_id = get_context().get(CREATE_PROJECT_EMPLOYEE_MAPPING, False)
+    if project_company_id:
+        return {'company_id': project_company_id}
+    return {}
+
+
+def _merge_defaults(new, previous):
+    """``combine=`` de ``chain_method`` — ≙ ``result[...] = ...; return result``.
+
+    Va con ``combine`` y **no** con el relevo por ``None`` que
+    ``extend_model(metodos=)`` aplica: el relevo corre el eslabón previo sólo
+    cuando el nuevo devuelve ``None``, y aquí los dos tienen que correr
+    siempre. Con el relevo, un contexto sin la clave devolvería ``{}`` —que no
+    es ``None``— y **el default de la base entera se perdería**.
+
+    El orden de fusión sí importa, al revés que en
+    ``account_check_printing``: la clave de este addon es ``company_id``, que
+    la base también puede traer, y la fuente la pisa. Por eso ``new`` va
+    después.
+    """
+    merged = dict(previous or {})
+    merged.update(new or {})
+    return merged
+
+
+def _chain_hr_employee_default_get(model):
+    """El ``luego`` de ``extend_model``: ``default_get`` necesita ``combine=``,
+    y el bloque ``metodos=`` no lo expone — instala con relevo por ``None``.
+    """
+    chain_method(model, 'default_get', classmethod(default_get),
+                 combine=_merge_defaults)
 
 
 def apply_sale_timesheet_hr_employee_extensions():
-    """No-op declarado — el único símbolo de la referencia es una divergencia
-    de mecanismo cerrada. Ver el docstring del módulo.
+    """Cuelga ``default_get`` sobre ``hr.HrEmployee`` — ≙ ``_inherit =
+    'hr.employee'``.
 
-    Se conserva la función (y su entrada en
-    ``SaleTimesheetConfig._EXTENSIONES``) para que el archivo exista con el
-    nombre de la referencia: el SITIO se lee contra la fuente, y su ausencia
-    haría parecer que el símbolo se olvidó.
+    Sin bloque ``campos``: la referencia no declara ninguno en este archivo.
     """
-    return None
+    extend_model('hr', 'HrEmployee', luego=_chain_hr_employee_default_get)
 
 
-__all__ = ['apply_sale_timesheet_hr_employee_extensions']
+__all__ = ['apply_sale_timesheet_hr_employee_extensions', 'default_get',
+           'CREATE_PROJECT_EMPLOYEE_MAPPING']
