@@ -20,11 +20,12 @@ from django.core.exceptions import ValidationError
 import api
 import fields
 import models
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 
 from exceptions import UserError
 from orm.environments import get_context
+from tools.sql import SQL
 from tools.translate import _
 
 from addons.account.models.account_document_import_mixin import (
@@ -36,6 +37,7 @@ from addons.mail.models import MailThread
 from addons.mail.models.mail_activity_mixin import MailActivityMixin
 from addons.portal.models.portal_mixin import PortalMixin
 from addons.product.models.product_catalog_mixin import ProductCatalogMixin
+from addons.product.models.product_pricelist import ProductPricelist
 from addons.utm.models.utm_mixin import UtmMixin
 
 
@@ -135,6 +137,98 @@ def _compute_is_expired_default(order) -> bool:
         and order.validity_date
         and order.validity_date < timezone.now().date()
     )
+
+
+# --- los invocables de los campos no almacenados -------------------------
+# ``fields.NonStored`` toma su valor de un ``default=`` que puede ser un
+# invocable; ``NonStored.resolve_default`` le pasa la instancia cuando su firma
+# acepta un parámetro. Cada uno de los siguientes porta el cuerpo del
+# ``_compute_*`` homónimo de la referencia — mismo nombre, mismo cálculo.
+#
+# Viven a nivel de módulo y no como método porque el descriptor se declara en el
+# cuerpo de la clase y necesita el invocable ya definido. Es la misma forma que
+# ``_compute_is_expired_default`` estrenó arriba.
+
+
+def _compute_has_archived_products(order) -> bool:
+    """≙ ``_compute_has_archived_products`` (``odoo19c: sale_order.py:343-348``).
+
+    Cuerpo exacto: ``any(not product.active for product in
+    order.order_line.product_id)``. Aquí el recorrido va por el
+    ``related_name='order_line'`` de :class:`SaleOrderLine`, y el producto de
+    una línea puede ser nulo (línea de sección o de nota), así que se descarta
+    antes de leerle ``active`` — en la fuente ese caso no llega porque
+    ``order_line.product_id`` es un recordset que ya excluye los vacíos.
+    """
+    return any(
+        not line.product.active
+        for line in order.order_line.all()
+        if line.product_id is not None
+    )
+
+
+def _compute_has_active_pricelist(order) -> bool:
+    """≙ ``_compute_has_active_pricelist`` (``odoo19c: :468-473``).
+
+    Cuerpo exacto: existe alguna tarifa activa de la empresa del pedido o sin
+    empresa. El ``('company_id', 'in', (False, order.company_id.id))`` de la
+    fuente es aquí ``company__in=(None, order.company_id)``: en este ORM el
+    ``False`` de un Many2one vacío se escribe ``None``.
+    """
+    return ProductPricelist.objects.filter(
+        models.Q(company__isnull=True) | models.Q(company=order.company),
+        active=True,
+    ).exists()
+
+
+def _compute_tax_country(order):
+    """≙ ``_compute_tax_country_id`` (``odoo19c: :767-772``).
+
+    Cuerpo exacto: si la posición fiscal declara RFC propio en la región que
+    mapea, el país fiscal es el de esa posición; si no, el de la empresa.
+
+    La fuente lo marca ``compute_sudo=True`` con su razón escrita en el propio
+    campo — *«Avoid access error on fiscal position when reading a sale order
+    with company != user.company_ids»* (``:315``). Aquí la lectura de la
+    posición fiscal no pasa por el gestor acotado por reglas de fila, así que
+    no hay error de acceso que evitar: se lee la FK ya resuelta.
+    """
+    position = order.fiscal_position
+    if position is not None and position.foreign_vat:
+        return position.country
+    return order.company.account_fiscal_country if order.company_id else None
+
+
+def _compute_type_name(order) -> str:
+    """≙ ``_compute_type_name`` (``odoo19c: :815-820``).
+
+    Cuerpo exacto: ``draft``/``sent``/``cancel`` son una cotización; el resto,
+    una orden de venta. La fuente lo declara ``@api.depends_context('lang')``
+    porque el texto es traducible — aquí lo cubre ``_()``, que resuelve contra
+    el idioma activo en el momento de leerlo.
+    """
+    if order.state in (SaleOrder.STATE_DRAFT, SaleOrder.STATE_SENT,
+                       SaleOrder.STATE_CANCEL):
+        return _('Cotización')
+    return _('Orden de venta')
+
+
+def _compute_duplicated_orders(order):
+    """≙ ``_compute_duplicated_order_ids`` (``odoo19c: :692-697``).
+
+    Cuerpo fiel: sólo un pedido en borrador busca duplicados; los demás
+    devuelven vacío. La fuente lo resuelve sobre un recordset entero
+    (``draft_orders._fetch_duplicate_orders()``); aquí el descriptor se evalúa
+    por instancia, así que se consulta con esa sola.
+
+    Devuelve un ``QuerySet`` y no una lista de ids porque quien lo consuma
+    querrá el pedido, no su clave — es lo que la fuente entrega al declararlo
+    ``Many2many(comodel_name='sale.order')``.
+    """
+    if order.state != SaleOrder.STATE_DRAFT:
+        return SaleOrder.objects.none()
+    duplicados = SaleOrder.fetch_duplicate_orders([order])
+    return SaleOrder.objects.filter(pk__in=duplicados.get(order.pk, ()))
 
 
 class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
@@ -605,6 +699,130 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
                   'capacidad en la vista DRF (DEC-11), no en el campo.',
     )
 
+    # -- los campos NO almacenados de la referencia ------------------------
+    # ≙ ``odoo19c: sale/models/sale_order.py:235-327``. Ninguno tiene columna:
+    # ``fields.NonStored`` es el equivalente construido de su ``store=False``,
+    # y por eso no generan migración ni se pueden filtrar. La referencia declara
+    # 19 en este tramo; aquí van los 11 cuyo insumo ya existe en el árbol, y los
+    # 8 restantes se declaran abajo con su bloqueo medido y su sucesor.
+
+    # Los cuatro ``related=`` — la cadena se recorre en el invocable porque un
+    # ``NonStored`` no la resuelve por sí solo. Su destino son los cuatro campos
+    # que ``account`` acaba de colgarle a ``res.company``
+    # (``addons/account/models/res_company.py``): sin ellos el ``related`` no
+    # tendría a qué apuntar.
+    country_code = fields.NonStored(
+        default=lambda order: (
+            order.company.account_fiscal_country.code
+            if order.company_id and order.company.account_fiscal_country_id
+            else None),
+        help_text='Odoo country_code '
+                  '(related="company_id.account_fiscal_country_id.code"). '
+                  'Código del país fiscal de la empresa del pedido.',
+    )
+    company_price_include = fields.NonStored(
+        default=lambda order: (order.company.account_price_include
+                               if order.company_id else None),
+        help_text='Odoo company_price_include '
+                  '(related="company_id.account_price_include"). Si el precio '
+                  'de venta de la empresa incluye impuestos.',
+    )
+    tax_calculation_rounding_method = fields.NonStored(
+        default=lambda order: (order.company.tax_calculation_rounding_method
+                               if order.company_id else None),
+        help_text='Odoo tax_calculation_rounding_method '
+                  '(related="company_id.tax_calculation_rounding_method", '
+                  'depends=["company_id"]). Redondeo por impuesto o por línea.',
+    )
+    terms_type = fields.NonStored(
+        default=lambda order: (order.company.terms_type
+                               if order.company_id else None),
+        help_text='Odoo terms_type (related="company_id.terms_type"). Si los '
+                  'términos y condiciones van como nota o como enlace.',
+    )
+
+    # Los dos de interfaz que la fuente agrupa bajo *«Remaining ux fields (not
+    # computed, not stored)»* (``:321-327``). No tienen ``compute``: son
+    # banderas que la vista pone y lee dentro de la misma edición, y por eso
+    # nacen en ``False``.
+    show_update_fpos = fields.NonStored(
+        default=False,
+        help_text='Odoo show_update_fpos ("Has Fiscal Position Changed", '
+                  'store=False). Verdadero si la posición fiscal cambió y la '
+                  'vista debe ofrecer recalcular los impuestos.',
+    )
+    show_update_pricelist = fields.NonStored(
+        default=False,
+        help_text='Odoo show_update_pricelist ("Has Pricelist Changed", '
+                  'store=False). Verdadero si la tarifa cambió y la vista debe '
+                  'ofrecer recalcular los precios.',
+    )
+
+    # Los cinco ``compute`` cuyo cuerpo se porta entero — cada invocable vive a
+    # nivel de módulo, arriba, con la cita de su línea en la fuente.
+    has_archived_products = fields.NonStored(
+        default=_compute_has_archived_products,
+        help_text='Odoo has_archived_products (compute, store=False). Si '
+                  'alguna línea apunta a un producto archivado.',
+    )
+    has_active_pricelist = fields.NonStored(
+        default=_compute_has_active_pricelist,
+        help_text='Odoo has_active_pricelist (compute, store=False). Si existe '
+                  'alguna tarifa activa para la empresa del pedido.',
+    )
+    tax_country = fields.NonStored(
+        default=_compute_tax_country,
+        help_text='Odoo tax_country_id (compute, store=False, '
+                  'compute_sudo=True). País cuyo régimen fiscal acota los '
+                  'impuestos disponibles: el de la posición fiscal si declara '
+                  'RFC propio, si no el de la empresa.',
+    )
+    type_name = fields.NonStored(
+        default=_compute_type_name,
+        help_text='Odoo type_name ("Type Name", compute, store=False). '
+                  '"Cotización" mientras no se confirma; "Orden de venta" '
+                  'después.',
+    )
+    duplicated_orders = fields.NonStored(
+        default=_compute_duplicated_orders,
+        help_text='Odoo duplicated_order_ids (Many2many sale.order, compute, '
+                  'store=False). Pedidos del mismo cliente y empresa cuyo '
+                  'origen o referencia coincide con los de éste.',
+    )
+
+    # -- los 8 no almacenados que este árbol todavía no puede calcular ------
+    # Los ocho leen símbolos que aún no existen. Ninguno se omite: cada uno
+    # declara aquí su bloqueo con la forma fija y su sucesor, que es el bloque
+    # siguiente de esta misma tarea #976 — no una iniciativa futura.
+    #
+    # BLOQUEADO por ``sale.order.line`` — ``addons/sale/models/sale_order_line.py``
+    # tiene 164 líneas contra las 2036 de su contraparte, y ninguno de los
+    # campos que estos cómputos leen (``amount_to_invoice``, ``amount_invoiced``,
+    # ``invoice_lines``, ``customer_lead``, ``display_type``,
+    # ``sale_line_warn_msg``) está declarado. Sucesor: #976, bloque 3.
+    #
+    #   amount_to_invoice   (``:235``)  suma de ``order_line.amount_to_invoice``
+    #   amount_invoiced     (``:236``)  suma de ``order_line.amount_invoiced``
+    #   invoice_count       (``:238``)  ``_get_invoiced``, sobre ``invoice_lines``
+    #   expected_date       (``:301``)  ``_expected_date()`` de cada línea
+    #   sale_warning_text   (``:253``)  ``sale_line_warn_msg`` de cada línea
+    #
+    # BLOQUEADO por ``account.tax`` — su fachada de tubería de impuestos no
+    # está portada: ``_add_tax_details_in_base_line``,
+    # ``_add_tax_details_in_base_lines``, ``_round_base_lines_tax_details`` y
+    # ``_get_tax_totals_summary`` dan 0 declaraciones en
+    # ``addons/account/models/account_tax.py``. Sucesor: #143.
+    #
+    #   amount_undiscounted (``:295``)  base sin descuento, línea por línea
+    #   tax_totals          (``:316``)  resumen de impuestos para la vista
+    #
+    # BLOQUEADO por ``account.move`` — ``_build_credit_warning_message`` no
+    # existe en ``addons/account/models/account_move.py``. Su interruptor
+    # ``company.account_use_credit_limit`` sí quedó portado en este mismo pase.
+    # Sucesor: #116.
+    #
+    #   partner_credit_warning (``:306``)  aviso de límite de crédito
+
     # -- eje de pago: los cuatro campos que cuelgan de la pasarela ---------
     # Los cuatro campos de pago de la fuente (``:257-281``) cuelgan de
     # ``payment.transaction``, y el resto del archivo los consume desde
@@ -644,8 +862,8 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         indexes      = [
             # ≙ ``_date_order_id_idx = models.Index("(date_order desc, id desc)")``
             # (``odoo19c: sale/models/sale_order.py:329``). Sostiene el ``_order``
-            # de la cabecera; se declara aunque ``Meta.ordering`` todavía no lo
-            # derive (tarea #984), porque el índice sirve a toda consulta que
+            # de la cabecera, que ``Meta.ordering`` ya deriva término a término
+            # desde la tarea #984; el índice sirve además a toda consulta que
             # ordene por fecha, no sólo al orden por omisión.
             # ``fields=`` y no posicional: un ``Index`` con cadenas sueltas las
             # trata como **expresiones**, y ahí el prefijo ``-`` no es
@@ -691,6 +909,72 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
                     'confirmación.'),
             ),
         ]
+
+    @classmethod
+    def fetch_duplicate_orders(cls, orders):
+        """≙ ``_fetch_duplicate_orders`` (``odoo19c: sale_order.py:700-733``).
+
+        Devuelve, por cada pedido con referencia de cliente, el conjunto de
+        pedidos que lo duplican: misma empresa, mismo cliente, no cancelados, y
+        cuyo ``origin`` coincide con el ``name`` del otro **o** cuya referencia
+        de cliente es la misma.
+
+        El SQL se porta **verbatim** — mismo ``JOIN`` reflexivo, mismas cuatro
+        condiciones, mismo ``array_agg`` y mismo ``GROUP BY``. Es la conducta
+        que ``porte-completo-no-parcial.md`` prescribe para el SQL nativo: la
+        referencia lo escribió así porque el ORM no expresa un auto-join con
+        agregación de identificadores en una sola consulta, y aquí tampoco.
+
+        Lo que **no** se porta es su ``flush_model(...)``: allá el ORM difiere
+        las escrituras a un buffer y hay que vaciarlo antes de consultar por
+        SQL crudo. Django escribe en el ``save()``, así que la fila ya está en
+        la transacción cuando esta consulta corre — no hay buffer que vaciar.
+
+        **Divergencia de mecanismo declarada, en una línea:** la fuente escribe
+        ``id IN %(orders)s`` con una tupla, que es la forma de psycopg2. Con
+        psycopg3 una tupla en esa posición se adapta como literal de registro y
+        PostgreSQL la rechaza — medido:
+        ``syntax error at or near "'(100)'"`` sobre
+        ``WHERE sale_order.id IN '(100)'``. La forma nativa del driver que
+        corremos es ``= ANY(%s)`` con una **lista**, que se adapta a un arreglo
+        de PostgreSQL. Es el mismo predicado con la sintaxis del motor, no un
+        recorte: el resto del SQL va verbatim.
+
+        :param orders: iterable de :class:`SaleOrder` ya persistidos.
+        :return: ``{id_del_pedido: {ids_duplicados}}``; los pedidos sin
+                 referencia de cliente no aparecen, igual que en la fuente.
+        """
+        ids = [
+            order.pk for order in orders
+            if order.pk and order.client_order_ref
+        ]
+        if not ids:
+            return {}
+
+        consulta = SQL("""
+            SELECT
+                sale_order.id AS order_id,
+                array_agg(duplicate_order.id) AS duplicate_ids
+              FROM sale_order
+              JOIN sale_order AS duplicate_order
+                ON sale_order.company_id = duplicate_order.company_id
+                 AND sale_order.id != duplicate_order.id
+                 AND duplicate_order.state != 'cancel'
+                 AND sale_order.partner_id = duplicate_order.partner_id
+                 AND (
+                    sale_order.origin = duplicate_order.name
+                    OR sale_order.client_order_ref = duplicate_order.client_order_ref
+                )
+             WHERE sale_order.id = ANY(%(orders)s)
+             GROUP BY sale_order.id
+            """, orders=ids)
+
+        with connection.cursor() as cursor:
+            cursor.execute(consulta.code, consulta.params)
+            return {
+                order_id: set(duplicate_ids)
+                for order_id, duplicate_ids in cursor.fetchall()
+            }
 
     def __str__(self):
         return self.name or f'draft:{self.cart_token or self.pk}'

@@ -138,6 +138,27 @@ from orm.environments import get_current_companies
 from tools.translate import _
 
 
+#: ≙ el ``selection`` de ``tax_calculation_rounding_method`` (``odoo19c:
+#: account/models/company.py:129-132``). Los **valores** son los de la fuente;
+#: las etiquetas van en español por ``redaccion-tecnica-es.md``.
+TAX_CALCULATION_ROUNDING_METHODS = [
+    ('round_globally', 'Redondear por impuesto'),
+    ('round_per_line', 'Redondear por línea'),
+]
+
+#: ≙ el ``selection`` de ``terms_type`` (``odoo19c: company.py:172-173``).
+TERMS_TYPES = [
+    ('plain', 'Añadir una nota'),
+    ('html', 'Añadir un enlace a una página web'),
+]
+
+#: ≙ el ``selection`` de ``account_price_include`` (``odoo19c: :273``).
+ACCOUNT_PRICE_INCLUDES = [
+    ('tax_included', 'Impuesto incluido'),
+    ('tax_excluded', 'Impuesto excluido'),
+]
+
+
 def _default_tax(help_text, tax_use):
     """FK al impuesto por defecto de la empresa.
 
@@ -605,6 +626,47 @@ def apply_account_extensions():
             null=True, blank=True, verbose_name=lock_verbose,
             help_text=lock_help,
         ))
+
+    # Los cuatro campos que los ``related=`` de ``sale.order`` leen de la
+    # empresa — ≙ ``odoo19c: company.py:129-132,157-158,172-173,272-278``.
+    #
+    # Llegan aquí y no a ``sale`` porque la referencia los declara en
+    # ``account``: ``sale/models/sale_order.py:298-317`` los consume con
+    # ``related='company_id.<campo>'``, y un ``related`` no puede inventar su
+    # destino. Portarlos en ``sale`` los habría puesto en el addon equivocado
+    # — el defecto de sitio que :ref:`h-api-578` registra.
+    _add_if_absent(ResCompany, 'tax_calculation_rounding_method',
+                   fields.Selection(
+        max_length=20, choices=TAX_CALCULATION_ROUNDING_METHODS,
+        default='round_globally',
+        verbose_name='Método de redondeo del cálculo de impuestos',
+        help_text='Si el impuesto se redondea una vez por impuesto sobre la '
+                  'base agregada, o línea por línea (Odoo '
+                  'tax_calculation_rounding_method).',
+    ))
+    _add_if_absent(ResCompany, 'account_use_credit_limit', fields.Boolean(
+        default=False, verbose_name='Límite de crédito en ventas',
+        help_text='Habilita el uso del límite de crédito en los contactos '
+                  '(Odoo account_use_credit_limit). Es el interruptor que '
+                  'gobierna el aviso de crédito de la orden de venta.',
+    ))
+    _add_if_absent(ResCompany, 'terms_type', fields.Selection(
+        max_length=10, choices=TERMS_TYPES, default='plain',
+        verbose_name='Formato de los términos y condiciones',
+        help_text='Si los términos y condiciones se añaden como nota al pie '
+                  'del documento o como enlace a una página web (Odoo '
+                  'terms_type).',
+    ))
+    # ``required=True`` en la fuente (``:276``) y ``default=`` presente: la
+    # columna nace poblada en toda empresa, así que no admite NULL.
+    _add_if_absent(ResCompany, 'account_price_include', fields.Selection(
+        max_length=20, choices=ACCOUNT_PRICE_INCLUDES,
+        default='tax_excluded',
+        verbose_name='Precio de venta con impuesto incluido por omisión',
+        help_text='Si el precio de venta que se captura en el producto y en '
+                  'las facturas de esta empresa incluye sus impuestos (Odoo '
+                  'account_price_include).',
+    ))
 
     # El interruptor del rastro de auditoría restringido — ≙ ``odoo19c:
     # company.py:257-262``. Es lo que vuelve OPERABLE la guarda que
