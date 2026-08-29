@@ -1,0 +1,27 @@
+ new Debian package, version 2.0.
+ size 3479370 bytes: control archive=56448 bytes.
+      89 bytes,     3 lines      conffiles
+     922 bytes,    19 lines      control
+  217145 bytes,  2321 lines      md5sums
+    6039 bytes,   131 lines   *  postinst             #!/bin/sh
+    1464 bytes,    48 lines   *  postrm               #!/bin/sh
+     284 bytes,     7 lines   *  prerm                #!/bin/sh
+ Package: kaupamex-api
+ Version: 0.1.0-1
+ Architecture: amd64
+ Maintainer: Equipo Kaupamex <dev@kaupamex.com>
+ Installed-Size: 22594
+ Depends: libc6 (>= 2.34), libpng16-16t64 (>= 1.6.2), zlib1g (>= 1:1.1.4), adduser, python3 (>= 3.12), python3-venv, postgresql-client
+ Recommends: postgresql (>= 14)
+ Section: net
+ Priority: optional
+ Homepage: https://github.com/jcg-admin/kaupamex-api
+ Description: Kaupamex — plataforma L0 multi-empresa (API REST)
+  Kaupamex es el operador L0: un servicio multi-empresa que hospeda a empresas
+  cliente para gestionar su comercio electronico, su ERP y su CRM. El paquete
+  instala el producto completo —servidor de aplicacion, planificador y los
+  modulos de negocio— como una aplicacion autocontenida.
+  .
+  El servidor HTTP viaja DENTRO del producto (Gunicorn embebido, ADR-027): el
+  paquete no declara ni instala Apache, nginx ni uwsgi. Quien instala decide si
+  pone un proxy inverso delante.

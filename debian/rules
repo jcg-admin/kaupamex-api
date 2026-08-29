@@ -46,14 +46,30 @@ override_dh_auto_install:
 	rsync -a \
 	    --exclude='.git' --exclude='.venv' --exclude='__pycache__' \
 	    --exclude='tests' --exclude='debian' --exclude='.github' \
+	    --exclude='src/tools/pdf/build' \
+	    --exclude='.claude' --exclude='.gitignore' --exclude='.gitattributes' \
+	    --exclude='.githooks' \
 	    ./ $(DESTINO)/
 	chmod 0755 $(DESTINO)/kaupamex-bin
 	install -m 0644 debian/requirements.lock.txt $(DESTINO)/requirements.lock.txt
 
-# No hay extension C propia que compilar aqui —el motor PDF vendorizado se
-# construye en `postinst`, donde ya existen el interprete y las cabeceras que
-# `Depends:` garantiza—, pero si hay UN artefacto que producir: el grafo de
-# dependencias resuelto.
+# Dos artefactos que producir.
+#
+# 1. El MOTOR PDF. Va vendorizado (libharu 2.4.6, ADR-017) y produce dos
+#    ejecutables ELF, `pdf_report` y `pdf_receipt`, que las vistas invocan por
+#    subprocess. Se compilan AQUI y no en `postinst`: compilar en tiempo de
+#    instalacion obligaria a que las cabeceras de desarrollo —zlib1g-dev,
+#    libpng-dev, el compilador— fueran `Depends:` de tiempo de EJECUCION, que
+#    es justo lo que un paquete binario existe para evitar. Es tambien la razon
+#    de que `Architecture:` sea `any` y no `all`.
+#
+#    CORREGIDO — la version anterior de este comentario decia que el motor «se
+#    construye en postinst, donde ya existen el interprete y las cabeceras que
+#    Depends: garantiza». Las dos mitades eran falsas: `Depends:` declaraba
+#    zlib1g y libpng16-16, que son las de EJECUCION, no las cabeceras; y
+#    `Build-Depends:` no declaraba ninguna. Ver H-API-894.
+#
+# 2. El grafo de dependencias de Python resuelto.
 #
 # `--frozen` obliga a leer `uv.lock` sin re-resolver: si el lock no concuerda
 # con `pyproject.toml`, el comando falla y la construccion se detiene. Es lo
@@ -61,6 +77,7 @@ override_dh_auto_install:
 # intencion escrita en un comentario. `--no-emit-project` excluye al propio
 # proyecto, coherente con `package = false`.
 override_dh_auto_build:
+	$(MAKE) -C src/tools/pdf
 	uv export --frozen --no-dev --no-emit-project --format requirements-txt \
 	    -o debian/requirements.lock.txt
 
@@ -69,3 +86,4 @@ override_dh_auto_test:
 override_dh_auto_clean:
 	rm -rf debian/kaupamex-api
 	rm -f debian/requirements.lock.txt
+	$(MAKE) -C src/tools/pdf clean || true

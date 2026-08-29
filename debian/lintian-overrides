@@ -1,13 +1,13 @@
-# Sin excepciones declaradas.
-#
-# La referencia lleva 5860 bytes de excepciones —errores de ortografia en su
-# `copyright` y una veintena de `privacy-breach-generic` por enlaces a
-# `http://test.external.link/` dentro de sus propios archivos de prueba
-# (`odoo19c: debian/lintian-overrides`).
-#
-# Aqui el archivo esta VACIO A PROPOSITO, y no porque no haya nada que
-# declarar: es que nadie ha corrido lintian todavia. Un archivo ausente y uno
-# vacio se leen igual desde fuera, y no son lo mismo — por eso este comentario.
-#
-# Condicion de cierre: correr `lintian` sobre el .deb construido y poblar este
-# archivo con lo que reporte, o retirarlo si no reporta nada.
+# La politica de Debian reserva /opt para software NO empaquetado por la
+# distribucion (Policy 9.1.1, FHS 3.13). Este paquete no se distribuye por el
+# archivo de Debian: es el producto propio, y /opt/kaupamex/api es
+# precisamente el uso que el FHS reserva para «add-on application software
+# packages». La ruta ademas no es negociable — las dos unidades systemd ya la
+# declaran (setup/kaupamex.service:WorkingDirectory y ExecStart).
+kaupamex-api: dir-or-file-in-opt
+
+# Las fuentes Liberation viajan vendorizadas junto al motor PDF (ADR-017): el
+# helper en C las abre por ruta relativa a su propio arbol, no consulta
+# fontconfig. Depender de fonts-liberation haria que un recibo dejara de
+# emitirse si esa dependencia se retira de la maquina.
+kaupamex-api: duplicate-font-file

@@ -2,16 +2,37 @@ Source: kaupamex-api
 Section: net
 Priority: optional
 Maintainer: Equipo Kaupamex <dev@kaupamex.com>
-Build-Depends: debhelper-compat (= 13), python3 (>= 3.12), rsync
+Build-Depends:
+ debhelper-compat (= 13),
+ python3 (>= 3.12),
+ rsync,
+# El motor PDF va VENDORIZADO (libharu 2.4.6, ADR-017) y se compila en tiempo
+# de paquete. Las tres que su Makefile exige (src/tools/pdf/Makefile:16-19):
+# el compilador, y las cabeceras que sus fuentes incluyen —hpdf_image_png.c
+# hace #include <png.h>— mas lo que pide el enlace (-lpng -lz -lm). NO se
+# declara libhpdf-dev: el producto es autocontenido, misma premisa que llevo
+# a Gunicorn embebido.
+ build-essential,
+ zlib1g-dev,
+ libpng-dev,
 Standards-Version: 4.6.2
 Homepage: https://github.com/jcg-admin/kaupamex-api
 Vcs-Git: https://github.com/jcg-admin/kaupamex-api
 Vcs-Browser: https://github.com/jcg-admin/kaupamex-api
 
 Package: kaupamex-api
-Architecture: all
+# any, NO all. El paquete lleva DOS ejecutables ELF x86-64 —pdf_report y
+# pdf_receipt, compilados desde el libharu vendorizado— asi que su contenido
+# depende de la arquitectura. Declararlo `all` seria afirmar que el mismo
+# archivo sirve en arm64, y no sirve.
+Architecture: any
 Depends:
  ${misc:Depends},
+# Las bibliotecas compartidas que los DOS ejecutables del motor PDF enlazan,
+# calculadas por dh_shlibdeps a partir del ELF — no escritas a mano. Sin esta
+# variable lintian reporta `missing-dependency-on-libc`, y con razon: nada
+# garantizaba que la maquina destino trajera la libc contra la que se compilo.
+ ${shlibs:Depends},
  adduser,
  python3 (>= 3.12),
  python3-venv,
@@ -19,11 +40,14 @@ Depends:
 # pg_restore --list (db: scripts/backup_postgres.sh). El servidor de base NO
 # es dependencia dura: puede vivir en otra maquina.
  postgresql-client,
-# Cabeceras que exige compilar el motor PDF vendorizado en tiempo de
-# instalacion. Las mismas dos que instala el flujo de integracion continua
-# (.github/workflows/api-tests.yml:126).
- zlib1g,
- libpng16-16,
+# RETIRADAS — aqui iban `zlib1g` y `libpng16-16` escritas a mano. Las dos
+# estaban mal. Primero de forma: describian «cabeceras que exige compilar el
+# motor en tiempo de instalacion», y una cabecera es de construccion, no de
+# ejecucion. Y despues de fondo: `libpng16-16` NO EXISTE en Ubuntu 24.04
+# —`apt-cache policy` no le da candidato; el nombre real es `libpng16-16t64`
+# tras la transicion de time_t a 64 bits—, asi que el paquete habria fallado
+# al instalar con una dependencia insatisfacible. `${shlibs:Depends}` lo
+# deriva del ELF y acierta el nombre. Ver H-API-894.
 Pre-Depends: ${misc:Pre-Depends}
 Recommends:
  postgresql (>= 14),

@@ -25,6 +25,10 @@ License: LGPL-3+
  `LGPL-3` en su manifiesto. La adaptacion conserva esa licencia y su
  atribucion; cada archivo portado cita su origen en la referencia.
  .
+ El texto completo de la GNU Lesser General Public License version 3 se
+ encuentra en `/usr/share/common-licenses/LGPL-3` en los sistemas Debian.
+ No se transcribe aqui: la Policy 12.5 manda referenciar la copia comun.
+ .
  DIVERGENCIA DECLARADA DE ALCANCE — la referencia enumera archivo por
  archivo (36 601 bytes, decenas de bloques `Files:`). Este archivo enumera
  por RAIZ, no por archivo. Cerrar esa distancia exige un censo de licencia
