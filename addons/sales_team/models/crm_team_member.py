@@ -16,10 +16,19 @@ from addons.base.models import TimeStampedModel
 class CrmTeamMember(TimeStampedModel):
     """``crm.team.member`` — membresía usuario↔equipo."""
 
+    _name = 'crm.team.member'
+    _description = 'Sales Team Member'
+    _inherit = ['mail.thread']
+    _rec_name = 'user_id'
+    _order = 'create_date ASC, id'
+
     # Odoo crm_team_id (crm_team_member.py:14, required, ondelete cascade).
     crm_team_id = fields.Many2one(
         'sales_team.CrmTeam', on_delete=models.CASCADE,
-        related_name='member_links',
+        # ≙ ``crm_team_member_ids`` (odoo19c: sales_team/models/crm_team.py:107),
+        # el One2many con que el equipo nombra a sus membresías. El nombre lo
+        # fija la referencia; ``member_links`` era invención de este árbol.
+        related_name='crm_team_member_ids',
         help_text='Equipo (Odoo crm.team.member.crm_team_id).',
         db_column='crm_team_id',
     )

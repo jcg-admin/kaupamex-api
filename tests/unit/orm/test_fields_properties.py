@@ -101,7 +101,20 @@ class TestDefinitionWiring:
         assert field.definition_record_field == 'vehicle_properties_definition'
 
     def test_every_declaration_resolves_end_to_end(self):
-        checked = 0
+        """Toda declaración con ``definition=`` resuelve a un campo existente.
+
+        El conteo **se deriva, no se transcribe**: era ``== 4``, y al portar
+        ``CrmLead.lead_properties`` pasó a 5 — la cifra es propiedad de un
+        árbol que crece, así que fijarla convierte cada declaración nueva en un
+        rojo espurio (``calibration-verified-numbers.md``, corolario de la
+        cifra que vive en código).
+
+        Lo que sí se afirma es que hubo **al menos una**: sin esa cota, un
+        recorrido roto —que no encuentre ningún ``Properties``— publicaría un
+        verde que no distingue *"todas resuelven"* de *"no miré ninguna"*, que
+        es el sub-patrón D de ``metrica-decide-la-conclusion.md``.
+        """
+        resueltas = []
         for model in apps.get_models():
             for field in model._meta.get_fields():
                 if not isinstance(field, Properties) or not field.definition:
@@ -110,9 +123,10 @@ class TestDefinitionWiring:
                 # el campo de definición existe en el contenedor
                 container.related_model._meta.get_field(
                     field.definition_record_field)
-                checked += 1
-        assert checked == 4, (
-            'las cuatro declaraciones del árbol declaran definition=')
+                resueltas.append(f'{model._meta.label}.{field.name}')
+        assert resueltas, (
+            'ninguna declaración con definition= fue medida: el recorrido no '
+            've los campos Properties, y su cero no es evidencia')
 
     def test_a_malformed_definition_is_rejected(self):
         with pytest.raises(AssertionError):
