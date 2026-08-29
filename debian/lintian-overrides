@@ -1,0 +1,13 @@
+# Sin excepciones declaradas.
+#
+# La referencia lleva 5860 bytes de excepciones —errores de ortografia en su
+# `copyright` y una veintena de `privacy-breach-generic` por enlaces a
+# `http://test.external.link/` dentro de sus propios archivos de prueba
+# (`odoo19c: debian/lintian-overrides`).
+#
+# Aqui el archivo esta VACIO A PROPOSITO, y no porque no haya nada que
+# declarar: es que nadie ha corrido lintian todavia. Un archivo ausente y uno
+# vacio se leen igual desde fuera, y no son lo mismo — por eso este comentario.
+#
+# Condicion de cierre: correr `lintian` sobre el .deb construido y poblar este
+# archivo con lo que reporte, o retirarlo si no reporta nada.

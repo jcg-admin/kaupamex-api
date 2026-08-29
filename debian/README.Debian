@@ -1,0 +1,41 @@
+kaupamex-api para Debian/Ubuntu
+===============================
+
+Lo que el paquete NO trae, y es deliberado
+------------------------------------------
+
+**Servidor web de cara publica.** El servidor de aplicacion viaja dentro del
+producto: `kaupamex-bin server` delega en Gunicorn embebido (ADR-027). El
+paquete no declara ni instala Apache ni nginx. Quien instala decide si pone un
+proxy inverso delante y con que terminacion TLS. La referencia toma la misma
+postura: su `debian/control` tampoco nombra ningun servidor web.
+
+**Servidor de PostgreSQL.** `Depends:` pide `postgresql-client` —el respaldo lo
+consume— pero el servidor de base va en `Recommends:`, porque puede vivir en
+otra maquina. El minimo efectivo es **14**: es el mayor de los dos que atan al
+producto —la referencia declara 13 y avisa; Django 6 declara 14 y ABORTA la
+conexion (`django/db/backends/postgresql/features.py:10`)—.
+
+Dos unidades, no una
+--------------------
+
+La referencia lleva UNA unidad systemd. Aqui hay DOS:
+
+  kaupamex.service       servidor de aplicacion (Gunicorn)
+  kaupamex-cron.service  planificador (ir.cron)
+
+El motivo esta medido y escrito en la cabecera de `setup/kaupamex.service`: un
+proceso lateral forkeado desde los ganchos del maestro de Gunicorn SOBREVIVE al
+SIGTERM del maestro. systemd daria la unidad por detenida con el planificador
+todavia tocando la base.
+
+Tras instalar
+-------------
+
+El paquete no arranca el servicio solo. Habilitarlo explicitamente:
+
+    sudo systemctl enable --now kaupamex
+    sudo systemctl enable --now kaupamex-cron
+
+Antes, editar `/etc/kaupamex/kaupamex.conf` con los datos de la base. El
+archivo nace con permiso 0640 y dueno `kaupamex`.

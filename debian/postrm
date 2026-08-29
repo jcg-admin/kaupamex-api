@@ -1,0 +1,36 @@
+#!/bin/sh
+# Baja del usuario de servicio y purga del directorio de datos.
+#
+# Adaptacion de `odoo19c: debian/postrm` (odoo-tools@abe4040ec1), con su misma
+# particion de casos: `remove` da de baja usuario y grupo, `purge` borra el
+# directorio de datos, y los casos de actualizacion no hacen nada.
+
+set -e
+
+KAUPAMEX_LIB_DIR=/var/lib/kaupamex
+KAUPAMEX_USER="kaupamex"
+KAUPAMEX_GROUP="kaupamex"
+
+case "${1}" in
+    remove)
+        deluser --quiet --system $KAUPAMEX_USER || true
+        delgroup --quiet --system --only-if-empty $KAUPAMEX_GROUP || true
+        ;;
+
+    purge)
+        if [ -d "$KAUPAMEX_LIB_DIR" ]; then
+            rm -rf $KAUPAMEX_LIB_DIR
+        fi
+        # El rol de PostgreSQL NO se elimina: puede ser dueno de bases con
+        # datos de empresas. Borrarlo aqui dejaria bases huerfanas. La
+        # referencia toma la misma postura — su postrm tampoco toca el rol.
+        ;;
+
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        ;;
+
+esac
+
+#DEBHELPER#
+
+exit 0

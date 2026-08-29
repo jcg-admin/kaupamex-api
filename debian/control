@@ -1,0 +1,38 @@
+Source: kaupamex-api
+Section: net
+Priority: optional
+Maintainer: Equipo Kaupamex <dev@kaupamex.com>
+Build-Depends: debhelper-compat (= 13), python3 (>= 3.12), rsync
+Standards-Version: 4.6.2
+Homepage: https://github.com/jcg-admin/kaupamex-api
+Vcs-Git: https://github.com/jcg-admin/kaupamex-api
+Vcs-Browser: https://github.com/jcg-admin/kaupamex-api
+
+Package: kaupamex-api
+Architecture: all
+Depends:
+ ${misc:Depends},
+ adduser,
+ python3 (>= 3.12),
+ python3-venv,
+# El cliente de linea de comandos lo consume el respaldo: pg_dump -Fc y
+# pg_restore --list (db: scripts/backup_postgres.sh). El servidor de base NO
+# es dependencia dura: puede vivir en otra maquina.
+ postgresql-client,
+# Cabeceras que exige compilar el motor PDF vendorizado en tiempo de
+# instalacion. Las mismas dos que instala el flujo de integracion continua
+# (.github/workflows/api-tests.yml:126).
+ zlib1g,
+ libpng16-16,
+Pre-Depends: ${misc:Pre-Depends}
+Recommends:
+ postgresql (>= 14),
+Description: Kaupamex — plataforma L0 multi-empresa (API REST)
+ Kaupamex es el operador L0: un servicio multi-empresa que hospeda a empresas
+ cliente para gestionar su comercio electronico, su ERP y su CRM. El paquete
+ instala el producto completo —servidor de aplicacion, planificador y los
+ modulos de negocio— como una aplicacion autocontenida.
+ .
+ El servidor HTTP viaja DENTRO del producto (Gunicorn embebido, ADR-027): el
+ paquete no declara ni instala Apache, nginx ni uwsgi. Quien instala decide si
+ pone un proxy inverso delante.

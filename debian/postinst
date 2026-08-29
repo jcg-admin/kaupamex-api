@@ -1,0 +1,63 @@
+#!/bin/sh
+# Alta del usuario de servicio, permisos y entorno virtual.
+#
+# Adaptacion de `odoo19c: debian/postinst` (odoo-tools@abe4040ec1). Se conserva
+# su forma: `case "${1}" in configure)`, alta con `adduser --system --group`,
+# rol de PostgreSQL con atributo de creacion de base, permiso 0640 al archivo
+# de configuracion y 0750 al directorio de registro.
+
+set -e
+
+KAUPAMEX_CONFIGURATION_FILE=/etc/kaupamex/kaupamex.conf
+KAUPAMEX_GROUP="kaupamex"
+KAUPAMEX_DATA_DIR=/var/lib/kaupamex
+KAUPAMEX_LOG_DIR=/var/log/kaupamex
+KAUPAMEX_USER="kaupamex"
+KAUPAMEX_HOME=/opt/kaupamex/api
+
+case "${1}" in
+    configure)
+        if ! getent passwd | grep -q "^kaupamex:"; then
+            adduser --system --home $KAUPAMEX_DATA_DIR --quiet --group $KAUPAMEX_USER
+            chown $KAUPAMEX_USER:$KAUPAMEX_GROUP $KAUPAMEX_DATA_DIR
+        fi
+
+        # Rol de PostgreSQL con atributo de creacion de base. CREATEDB es
+        # GLOBAL del rol: no admite acotarse por patron de nombre, a
+        # diferencia del GRANT por prefijo que permitia MariaDB (H-DB-06). El
+        # producto lo necesita porque crea una base por empresa.
+        su - postgres -c "createuser -d -R -S $KAUPAMEX_USER" 2> /dev/null || true
+
+        chown $KAUPAMEX_USER:$KAUPAMEX_GROUP $KAUPAMEX_CONFIGURATION_FILE
+        chmod 0640 $KAUPAMEX_CONFIGURATION_FILE
+
+        mkdir -p $KAUPAMEX_LOG_DIR
+        chown $KAUPAMEX_USER:$KAUPAMEX_GROUP $KAUPAMEX_LOG_DIR
+        chmod 0750 $KAUPAMEX_LOG_DIR
+
+        # DIVERGENCIA DECLARADA — este bloque no existe en la referencia. Su
+        # `Depends:` resuelve las 40 dependencias con paquetes del sistema, asi
+        # que al terminar dpkg el interprete ya las ve. El nuestro envia el
+        # arbol y construye aqui su entorno virtual contra el lock, que es la
+        # contrapartida de la divergencia declarada en `rules`.
+        if [ ! -x $KAUPAMEX_HOME/.venv/bin/python ]; then
+            python3 -m venv $KAUPAMEX_HOME/.venv
+        fi
+        $KAUPAMEX_HOME/.venv/bin/python -m pip install --quiet --upgrade pip
+        $KAUPAMEX_HOME/.venv/bin/python -m pip install --quiet -e $KAUPAMEX_HOME
+        chown -R $KAUPAMEX_USER:$KAUPAMEX_GROUP $KAUPAMEX_HOME/.venv
+
+        # El archivo de entorno que las unidades declaran con
+        # `EnvironmentFile=` vive en src/.env (settings/base.py:281). Se
+        # enlaza al de /etc para que la configuracion tenga UN solo hogar.
+        if [ ! -e $KAUPAMEX_HOME/src/.env ]; then
+            ln -s $KAUPAMEX_CONFIGURATION_FILE $KAUPAMEX_HOME/src/.env
+        fi
+        ;;
+    *)
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

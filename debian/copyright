@@ -1,0 +1,31 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: kaupamex-api
+Upstream-Contact: Equipo Kaupamex <dev@kaupamex.com>
+Source: https://github.com/jcg-admin/kaupamex-api
+
+Files: *
+Copyright: 2026 Kaupamex
+License: Confidential
+ Todos los derechos reservados. La licencia declarada en `pyproject.toml`
+ es `Confidential`; el paquete no se distribuye publicamente.
+
+Files: src/tools/pdf/vendor/fonts/liberation-sans/*
+Copyright: 2012 Google Corporation
+License: OFL-1.1
+ Liberation Sans, vendorizada por decision declarada en
+ `src/tools/pdf/vendor/fonts/README.md`: el producto se distribuye a
+ servidores de terceros y asumir que la maquina destino trae la fuente es la
+ misma clase de suposicion que asumir que trae el servidor web configurado.
+ El texto completo de la licencia esta en el `LICENSE` de ese directorio.
+
+Files: addons/*
+Copyright: 2004-2026 Odoo S.A.; 2026 Kaupamex
+License: LGPL-3+
+ Los modulos de negocio son adaptacion de Odoo Community, que declara
+ `LGPL-3` en su manifiesto. La adaptacion conserva esa licencia y su
+ atribucion; cada archivo portado cita su origen en la referencia.
+ .
+ DIVERGENCIA DECLARADA DE ALCANCE — la referencia enumera archivo por
+ archivo (36 601 bytes, decenas de bloques `Files:`). Este archivo enumera
+ por RAIZ, no por archivo. Cerrar esa distancia exige un censo de licencia
+ por archivo portado, que es la tarea #426.
