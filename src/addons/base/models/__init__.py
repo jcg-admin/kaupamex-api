@@ -44,10 +44,10 @@ que los agrupe por naturaleza.
   ``django.core.mail`` vía ``addons/mail``).
 - ``res_config.py`` → ``ResConfig`` + ``ResConfigSettings`` (motor de
   configuración por convención de nombre de campo; abstractos, sin tabla).
-- ``ir_qweb.py`` → ``IrQweb`` + ``MALICIOUS_SCHEMES`` + ``keep_query``
+- ``ir_template_expressions.py`` → ``IrTemplateExpressions`` + ``MALICIOUS_SCHEMES`` + ``keep_query``
   (vocabulario y primitivas de QWeb; el compilador NO se porta — este árbol
   renderiza en el cliente).
-- ``ir_qweb_fields.py`` → los conversores ``ir.qweb.field.*`` (cómo se
+- ``ir_field_converters.py`` → los conversores ``ir.qweb.field.*`` (cómo se
   escribe un valor para que lo lea una persona; valen sin QWeb).
 - ``ir_ui_view.py`` → ``IrUiView`` + ``IrUiViewCustom`` + ``ResetViewArchWizard``
   (registro de vistas y reglas de herencia; el combinador de XML no se porta).
@@ -118,18 +118,18 @@ from .ir_fields import IrFieldsConverter
 from .ir_demo import IrDemo
 from .ir_demo_failure import IrDemoFailure, IrDemoFailureWizard
 from .ir_profile import IrProfile, BaseEnableProfilingWizard
-from .ir_qweb import (
-    IrQweb,
-    QWebError,
-    QWebErrorInfo,
+from .ir_template_expressions import (
+    IrTemplateExpressions,
+    TemplateError,
+    TemplateErrorInfo,
     MALICIOUS_SCHEMES,
     VOID_ELEMENTS,
     keep_query,
 )
-from .ir_qweb_fields import (
-    IrQwebField,
-    IrQwebFieldDuration,
-    IrQwebFieldFloat_Time,
+from .ir_field_converters import (
+    IrFieldConverter,
+    IrFieldConverterDuration,
+    IrFieldConverterFloat_Time,
     TIMEDELTA_UNITS,
     format_duration_digital,
     nl2br,
@@ -267,15 +267,15 @@ __all__ = [
     'IrActionsServer',
     'IrActionsTodo',
     'IrActionsReport',
-    'IrQweb',
-    'QWebError',
-    'QWebErrorInfo',
+    'IrTemplateExpressions',
+    'TemplateError',
+    'TemplateErrorInfo',
     'MALICIOUS_SCHEMES',
     'VOID_ELEMENTS',
     'keep_query',
-    'IrQwebField',
-    'IrQwebFieldDuration',
-    'IrQwebFieldFloat_Time',
+    'IrFieldConverter',
+    'IrFieldConverterDuration',
+    'IrFieldConverterFloat_Time',
     'TIMEDELTA_UNITS',
     'format_duration_digital',
     'nl2br',

@@ -97,7 +97,7 @@ from django.db import transaction
 # NO es dependencia de este árbol (0 hits en pyproject.toml/uv.lock). El
 # marcador de «HTML ya seguro» nativo del stack es
 # ``django.utils.safestring`` — misma sustitución que website.py:2290 e
-# ir_qweb_fields.py ya declaran. ``format_html`` escapa los interpolados,
+# field_converters.py ya declaran. ``format_html`` escapa los interpolados,
 # que es exactamente lo que hace ``Markup(...) % args`` en la referencia.
 # Medido contra los binarios instalados (2026-08-19): el resultado es
 # ``SafeString`` (subclase de ``str``); DRF lo serializa como string plano

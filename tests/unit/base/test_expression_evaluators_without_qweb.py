@@ -8,7 +8,7 @@ es propia del motor de plantillas:
 
 1. **contención de la expresión** — el allowlist de opcodes y el veto de
    ``__dunder__``. **No es de QWeb**: lo importa de ``tools.safe_eval``
-   (``ir_qweb.py:401``), que está portado entero y tiene 10 consumidores;
+   (``odoo19c: ir_qweb.py:401``), que está portado entero y tiene 10 consumidores;
 2. **resolución de nombres** — de dónde sale ``a`` al evaluar ``a + 1``;
 3. **compilación de la plantilla a código Python** — el ``_compile_node`` /
    ``_generate_code``. **Esto es lo que no se quiere**, y es justo lo que

@@ -122,7 +122,7 @@ no hay registros ``NewId`` fluyendo por este archivo — ``web_read`` y
 CSS por-compañía (``web.asset_styles_company_report``) desde
 ``primary_color``/``secondary_color`` vía ``ir.qweb._render``. Medido hoy:
 ``grep -rn "styles_company_report" src/addons/`` → **0** (no existe ese
-adjunto/vista); ``grep -n "_render" src/addons/*/models/ir_qweb.py`` → **0**
+adjunto/vista); ``grep -n "_render" src/addons/*/models/template_expressions.py`` → **0**
 (``ir.qweb`` no tiene método de render HTML). El pipeline de *assets* de
 este proyecto ya es una decisión tomada, no una laguna:
 ``base/models/assetsbundle.py`` documenta que Webpack (``ui``) reemplaza el

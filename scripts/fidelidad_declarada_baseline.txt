@@ -55,8 +55,8 @@ base/models/ir_filters.py  # 7
 base/models/ir_logging.py  # 1
 base/models/ir_module.py  # 53
 base/models/ir_profile.py  # 11
-base/models/ir_qweb.py  # 83
-base/models/ir_qweb_fields.py  # 14
+base/models/ir_template_expressions.py  # 83
+base/models/ir_field_converters.py  # 14
 base/models/ir_rule.py  # 9
 base/models/ir_sequence.py  # 6
 base/models/ir_ui_menu.py  # 13

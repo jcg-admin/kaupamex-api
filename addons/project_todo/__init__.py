@@ -24,7 +24,7 @@ La referencia trae ``models/``, ``wizard/``, ``data/``, ``security/``,
 - ``data/todo_template.xml`` — **no se porta**: plantilla QWeb del editor web
   (checklists, imágenes embebidas). El compilador de QWeb no existe en este
   árbol y lo declara él mismo
-  (``src/addons/base/models/ir_qweb.py:261`` levanta ``NotImplementedError``).
+  (``src/addons/base/models/ir_template_expressions.py:261`` levanta ``NotImplementedError``).
 - ``security/`` (``ir.model.access.csv`` + ``project_todo_security.xml``) —
   **no se porta**: la referencia sólo declara acceso a la tabla del asistente
   (que aquí no tiene tabla, ``managed = False``) y una regla de registro

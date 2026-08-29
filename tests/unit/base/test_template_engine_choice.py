@@ -6,7 +6,7 @@ pruebas"*.
 
 El :doc:`Flujo B <docs: analisis-flujo-b-el-documento-sin-navegador-en-odoo-tools>`
 midió que la referencia particiona su motor: el modo sin base de datos
-(``odoo19c: odoo/addons/base/models/ir_qweb.py:2975``) cierra las directivas de
+(``odoo19c: odoo/addons/base/models/ir_template_expressions.py:2975``) cierra las directivas de
 **formato** y deja en pie las de **estructura**. Ésa es la superficie que el
 descriptor de reportes necesita.
 
@@ -14,7 +14,7 @@ Con esa partición sobre la mesa quedan dos candidatos para evaluar el valor de
 un campo del descriptor, y la tarea **#181** es elegir:
 
 - **DTL** — ``django.template``, ya en uso en ``report_template._render_text``.
-- **El compilador de QWeb portado** — ``IrQweb._compile_expr`` (``api@c77bc566``),
+- **El compilador de QWeb portado** — ``IrTemplateExpressions._compile_expr`` (``api@c77bc566``),
   con su allowlist de opcodes.
 
 Esta sonda no elige: **mide**, caso por caso, para que la decisión se tome
@@ -22,7 +22,7 @@ sobre conducta observada y no sobre reputación. Cada caso ejercita los dos
 motores con la misma expresión.
 
 *Métrica:* la conducta de ``django.template.Engine(autoescape=False)`` y de
-``IrQweb._compile_expr`` sobre el mismo juego de expresiones.
+``IrTemplateExpressions._compile_expr`` sobre el mismo juego de expresiones.
 *Ciega a:* el coste de ejecución de cada motor, que no se mide aquí; y a la
 legibilidad de la plantilla resultante, que no es una propiedad medible por
 una prueba.
@@ -30,7 +30,7 @@ una prueba.
 import pytest
 from django.template import Context, Engine, TemplateSyntaxError
 
-from addons.base.models.ir_qweb import IrQweb
+from addons.base.models.ir_template_expressions import IrTemplateExpressions
 
 #: El motor del descriptor: autoescape apagado, como declara
 #: ``report_template._ENGINE`` — el texto va a un dict y ``json.dumps`` hace el
@@ -44,7 +44,7 @@ def render_with_dtl(source, context):
 
 @pytest.fixture
 def engine():
-    return IrQweb()
+    return IrTemplateExpressions()
 
 
 class TestDtlRefusesWhatItCannotParse:

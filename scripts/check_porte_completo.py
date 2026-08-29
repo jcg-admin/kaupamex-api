@@ -181,6 +181,37 @@ PORTE_ALIAS = {
     'IrModuleModule': 'IrModule',                   # _name = ir.module.module
     'IrModuleModuleDependency': 'IrModuleDependency',  # _name = ir.module.module.dependency
     'IrModuleModuleExclusion': 'IrModuleExclusion',    # _name = ir.module.module.exclusion
+    # La familia de QWeb: el archivo y las clases se renombraron por lo que
+    # SON aquí, no por el motor de la referencia — directiva del ejecutor
+    # 2026-08-29: *"tenemos que quitar el nombre, porque puedes estar tentado a
+    # seguir pensando que usamos QWeb"*. El ``_name`` se conserva (``ir.qweb``
+    # y ``ir.qweb.field.*``) y es la prueba de que son la misma entidad, igual
+    # que en ``SystemParameter``. El prefijo ``Ir`` se mantiene porque es la
+    # convención de ``base/models/``.
+    'IrQweb': 'IrTemplateExpressions',               # _name = ir.qweb
+    'IrQwebField': 'IrFieldConverter',               # _name = ir.qweb.field
+    'IrQwebFieldQweb': 'IrFieldConverterTemplate',   # _name = ir.qweb.field.qweb
+    'QWebError': 'TemplateError',
+    'QWebErrorInfo': 'TemplateErrorInfo',
+    'IrQwebFieldBarcode': 'IrFieldConverterBarcode',
+    'IrQwebFieldContact': 'IrFieldConverterContact',
+    'IrQwebFieldDate': 'IrFieldConverterDate',
+    'IrQwebFieldDatetime': 'IrFieldConverterDatetime',
+    'IrQwebFieldDuration': 'IrFieldConverterDuration',
+    'IrQwebFieldFloat': 'IrFieldConverterFloat',
+    'IrQwebFieldFloat_Time': 'IrFieldConverterFloat_Time',
+    'IrQwebFieldHtml': 'IrFieldConverterHtml',
+    'IrQwebFieldImage': 'IrFieldConverterImage',
+    'IrQwebFieldImage_Url': 'IrFieldConverterImage_Url',
+    'IrQwebFieldInteger': 'IrFieldConverterInteger',
+    'IrQwebFieldMany2many': 'IrFieldConverterMany2many',
+    'IrQwebFieldMany2one': 'IrFieldConverterMany2one',
+    'IrQwebFieldMonetary': 'IrFieldConverterMonetary',
+    'IrQwebFieldOne2many': 'IrFieldConverterOne2many',
+    'IrQwebFieldRelative': 'IrFieldConverterRelative',
+    'IrQwebFieldSelection': 'IrFieldConverterSelection',
+    'IrQwebFieldText': 'IrFieldConverterText',
+    'IrQwebFieldTime': 'IrFieldConverterTime',
     # La familia authz_*: el nombre de la clase suelta el prefijo del addon,
     # que aqui lo lleva el paquete. Los dos se verificaron simbolo a simbolo,
     # no por parecido — 9 de 9 en el primero, y el segundo no declara metodos

@@ -32,7 +32,7 @@ pase, no releyendo la prosa previa:
   los addons) y ``find src/addons -iname "*.xml" | wc -l`` → 0 (sin plantillas
   QWeb que renderizar). ``kaupamex-ui/package.json`` confirma
   ``jest: ^29.7.0`` como el runner de pruebas de UI real.
-- ``bundle`` — ``base/models/ir_qweb.py`` (releído) declara el motor de
+- ``bundle`` — ``base/models/ir_template_expressions.py`` (releído) declara el motor de
   plantillas sin implementación de compilación; ``base/models/ir_asset.py`` y
   ``base/models/assetsbundle.py`` (ambos releídos) declaran, respectivamente,
   que la resolución de rutas contra manifests y el empaquetado real viven en
@@ -86,7 +86,7 @@ cambio que sólo tocara uno de los dos. No se repite: se cruza.
 QWeb (``web.unit_tests_suite`` / ``web.qunit_suite``).** Misma causa raíz que
 ``home.py`` y ``webmanifest.py`` ya midieron para el resto del shell: **0**
 directorios ``static/`` en los 78 addons, **0** renderizado de página
-completa por plantilla en este árbol (``ir_qweb.py``: *"El HTML de este
+completa por plantilla en este árbol (``ir_template_expressions.py``: *"El HTML de este
 producto lo genera React en el cliente; el backend sirve JSON por DRF"*, con
 **0** archivos ``.xml`` de plantilla medidos). Un test runner JS
 server-side no tiene function en un backend API-only — las pruebas de UI de
@@ -95,7 +95,7 @@ este proyecto corren con Jest en ``kaupamex-ui`` (``package.json``:
 
 **6. ``bundle`` — depende del compilador de QWeb, declarado explícitamente
 no portado.** ``ir.qweb._get_asset_nodes`` requiere el compilador de
-plantillas que ``base/models/ir_qweb.py`` excluye por dos razones
+plantillas que ``base/models/ir_template_expressions.py`` excluye por dos razones
 independientes y medidas ("no hay plantillas que compilar" + "toma texto
 almacenado en la base y produce bytecode que se ejecuta", el mismo patrón ya
 rechazado en ``ir_rule.domain_force``/``ir_actions.server.code``/
@@ -136,7 +136,7 @@ Referencia                          Aquí
                                     de plantillas; pruebas de UI en Jest (``ui/``)
 ``test_suite``                      AUSENTE — misma causa que ``unit_tests_suite``
 ``bundle``                          AUSENTE — depende del compilador QWeb
-                                    (``ir_qweb.py``) y de la resolución de
+                                    (``ir_template_expressions.py``) y de la resolución de
                                     manifests (``ir_asset.py``); el empaquetado
                                     real es Webpack, en ``ui``
 =================================  ================================================

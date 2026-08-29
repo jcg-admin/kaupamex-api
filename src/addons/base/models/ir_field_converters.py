@@ -1,6 +1,6 @@
 """``ir.qweb.field.*`` — los conversores de valor de campo a texto presentable.
 
-Adaptación de ``odoo/addons/base/models/ir_qweb_fields.py``
+Adaptación de ``odoo/addons/base/models/ir_field_converters.py``
 (``odoo-tools@bf077302``, ``odoo19c:``, 913 líneas). Diecinueve clases, una
 por *widget* de ``t-field``: cómo se muestra un entero, un importe, una
 duración, una fecha relativa, un contacto.
@@ -8,7 +8,7 @@ duración, una fecha relativa, un contacto.
 Estos conversores **valen sin QWeb**. El motor decide *cuándo* llamarlos; lo
 que ellos saben es *cómo se escribe* un valor para que lo lea una persona, y
 eso no depende del motor. Por eso este archivo se porta aunque su hermano
-``ir_qweb.py`` dejara fuera el compilador.
+``ir_template_expressions.py`` dejara fuera el compilador.
 
 Dónde formatea este árbol — y qué implica
 =========================================
@@ -50,7 +50,7 @@ justo lo que una adaptación fiel evita.
 Qué NO se porta, con su medición
 ================================
 
-- **``IrQwebFieldBarcode``** — genera la imagen del código de barras como
+- **``IrFieldConverterBarcode``** — genera la imagen del código de barras como
   ``data:`` URI. Medido: ``grep -rn "barcode" pyproject.toml`` → **0**; no hay
   generador de códigos de barras en las dependencias. La clase se declara con
   su punto de extensión.
@@ -134,7 +134,7 @@ def format_duration_digital(hours):
     return f'{sign}{whole_hours:02d}:{minutes:02d}'
 
 
-class IrQwebField(models.Model):
+class IrFieldConverter(models.Model):
     """``ir.qweb.field`` — el conversor base.
 
     Abstracto en la referencia y abstracto aquí. ``value_to_html`` es el punto
@@ -167,7 +167,7 @@ class IrQwebField(models.Model):
         return '' if value is False else cls.value_to_html(value, options)
 
 
-class IrQwebFieldInteger(IrQwebField):
+class IrFieldConverterInteger(IrFieldConverter):
     """``integer`` — entero con separador de miles."""
 
     class Meta:
@@ -182,7 +182,7 @@ class IrQwebFieldInteger(IrQwebField):
         return f'{int(value):,}'.replace('-', '-\N{ZERO WIDTH NO-BREAK SPACE}')
 
 
-class IrQwebFieldFloat(IrQwebField):
+class IrFieldConverterFloat(IrFieldConverter):
     """``float`` — decimal con precisión declarada."""
 
     class Meta:
@@ -196,7 +196,7 @@ class IrQwebFieldFloat(IrQwebField):
         return f'{Decimal(str(value)):,.{digits}f}'
 
 
-class IrQwebFieldDate(IrQwebField):
+class IrFieldConverterDate(IrFieldConverter):
     """``date`` — fecha en ISO 8601.
 
     La fuente formatea con la locale del usuario (``babel.dates``). Aquí sale
@@ -215,7 +215,7 @@ class IrQwebFieldDate(IrQwebField):
         return escape(value.isoformat())
 
 
-class IrQwebFieldDatetime(IrQwebFieldDate):
+class IrFieldConverterDatetime(IrFieldConverterDate):
     """``datetime`` — fecha y hora en ISO 8601.
 
     Mismo criterio que ``date``. La fuente además convierte a la zona horaria
@@ -227,7 +227,7 @@ class IrQwebFieldDatetime(IrQwebFieldDate):
         abstract = True
 
 
-class IrQwebFieldText(IrQwebField):
+class IrFieldConverterText(IrFieldConverter):
     """``text`` — texto con los saltos de línea preservados."""
 
     class Meta:
@@ -238,7 +238,7 @@ class IrQwebFieldText(IrQwebField):
         return nl2br(value) if value else ''
 
 
-class IrQwebFieldSelection(IrQwebField):
+class IrFieldConverterSelection(IrFieldConverter):
     """``selection`` — la **etiqueta** del valor, no el valor."""
 
     class Meta:
@@ -263,7 +263,7 @@ class IrQwebFieldSelection(IrQwebField):
         return super().record_to_html(record, field_name, options)
 
 
-class IrQwebFieldMany2one(IrQwebField):
+class IrFieldConverterMany2one(IrFieldConverter):
     """``many2one`` — el nombre visible del registro apuntado."""
 
     class Meta:
@@ -274,7 +274,7 @@ class IrQwebFieldMany2one(IrQwebField):
         return escape(str(value)) if value else ''
 
 
-class IrQwebFieldMany2many(IrQwebField):
+class IrFieldConverterMany2many(IrFieldConverter):
     """``many2many`` — los nombres, separados por coma."""
 
     class Meta:
@@ -287,14 +287,14 @@ class IrQwebFieldMany2many(IrQwebField):
         return escape(', '.join(str(item) for item in value))
 
 
-class IrQwebFieldOne2many(IrQwebFieldMany2many):
+class IrFieldConverterOne2many(IrFieldConverterMany2many):
     """``one2many`` — igual que ``many2many`` en la fuente."""
 
     class Meta:
         abstract = True
 
 
-class IrQwebFieldHtml(IrQwebField):
+class IrFieldConverterHtml(IrFieldConverter):
     """``html`` — contenido HTML **ya saneado**.
 
     La fuente lo devuelve como ``Markup``: sin escapar. Aquí igual, con el
@@ -311,7 +311,7 @@ class IrQwebFieldHtml(IrQwebField):
         return mark_safe(value) if value else ''
 
 
-class IrQwebFieldImage(IrQwebField):
+class IrFieldConverterImage(IrFieldConverter):
     """``image`` — imagen embebida como ``data:`` URI."""
 
     class Meta:
@@ -324,7 +324,7 @@ class IrQwebFieldImage(IrQwebField):
             'embebida como data: URI. Ver el docstring del módulo.')
 
 
-class IrQwebFieldImage_Url(IrQwebField):
+class IrFieldConverterImage_Url(IrFieldConverter):
     """``image_url`` — imagen por URL."""
 
     class Meta:
@@ -337,7 +337,7 @@ class IrQwebFieldImage_Url(IrQwebField):
         return mark_safe(f'<img src="{escape(value)}">')
 
 
-class IrQwebFieldMonetary(IrQwebField):
+class IrFieldConverterMonetary(IrFieldConverter):
     """``monetary`` — importe con su moneda.
 
     El **punto de extensión declarado**: el símbolo de la moneda y su posición
@@ -356,7 +356,7 @@ class IrQwebFieldMonetary(IrQwebField):
             '(ui/src/lib/intl.js). El API devuelve el decimal crudo.')
 
 
-class IrQwebFieldFloat_Time(IrQwebField):
+class IrFieldConverterFloat_Time(IrFieldConverter):
     """``float_time`` — horas fraccionarias como ``HH:MM`` (``1.5`` → ``01:30``)."""
 
     class Meta:
@@ -369,7 +369,7 @@ class IrQwebFieldFloat_Time(IrQwebField):
         return format_duration_digital(value)
 
 
-class IrQwebFieldTime(IrQwebField):
+class IrFieldConverterTime(IrFieldConverter):
     """``time`` — horas fraccionarias como hora del día (``1.5`` → ``1:30``).
 
     La unidad del valor son **horas** y la fuente exige ``0 <= value < 24``.
@@ -392,7 +392,7 @@ class IrQwebFieldTime(IrQwebField):
         return f'{hours}:{minutes:02d}'
 
 
-class IrQwebFieldDuration(IrQwebField):
+class IrFieldConverterDuration(IrFieldConverter):
     """``duration`` — un número como lapso legible (``1.5`` → ``1 hora 30 minutos``).
 
     Opciones de la fuente que se conservan:
@@ -451,7 +451,7 @@ class IrQwebFieldDuration(IrQwebField):
         return ' '.join(sections)
 
 
-class IrQwebFieldRelative(IrQwebField):
+class IrFieldConverterRelative(IrFieldConverter):
     """``relative`` — "hace 3 días" respecto de una fecha de referencia.
 
     Punto de extensión declarado: la frase depende del idioma
@@ -478,7 +478,7 @@ class IrQwebFieldRelative(IrQwebField):
             'Use delta_seconds() para el cálculo.')
 
 
-class IrQwebFieldBarcode(IrQwebField):
+class IrFieldConverterBarcode(IrFieldConverter):
     """``barcode`` — imagen del código de barras.
 
     No portado: medido ``grep -n "barcode" pyproject.toml`` → **0**; no hay
@@ -496,7 +496,7 @@ class IrQwebFieldBarcode(IrQwebField):
             'este árbol.')
 
 
-class IrQwebFieldContact(IrQwebField):
+class IrFieldConverterContact(IrFieldConverter):
     """``contact`` — la ficha de un contacto compuesta desde sus campos.
 
     Se porta la **composición de la dirección**, que es lógica de datos: el
@@ -529,10 +529,10 @@ class IrQwebFieldContact(IrQwebField):
         return escape(' — '.join(cls.address_lines(value)) or str(value))
 
 
-class IrQwebFieldQweb(IrQwebField):
+class IrFieldConverterTemplate(IrFieldConverter):
     """``qweb`` — renderiza una plantilla dentro del campo.
 
-    No portado: depende del compilador, que ``ir_qweb.py`` deja fuera con su
+    No portado: depende del compilador, que ``ir_template_expressions.py`` deja fuera con su
     razón medida.
     """
 
@@ -542,4 +542,4 @@ class IrQwebFieldQweb(IrQwebField):
     @classmethod
     def value_to_html(cls, value, options=None):
         raise NotImplementedError(
-            'Requiere el compilador de QWeb, no portado (ver ir_qweb.py).')
+            'Requiere el compilador de QWeb, no portado (ver ir_template_expressions.py).')

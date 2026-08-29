@@ -152,7 +152,7 @@ from math import ceil
 from django.utils.html import strip_tags
 from PIL import Image, ImageOps
 
-from addons.base.models.ir_qweb_fields import nl2br
+from addons.base.models.ir_field_converters import nl2br
 from addons.base.models.res_country import DEFAULT_ADDRESS_FORMAT
 from orm.models_transient import TransientModel
 

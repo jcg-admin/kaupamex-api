@@ -2838,7 +2838,7 @@ class Website(TimeStampedModel):
 
         Divergencias declaradas: (1) el chequeo sobre la **definición de
         plantilla** del snippet exige el compilador QWeb
-        (``ir.qweb._render``); ``ir_qweb.py`` es portador de vocabulario sin
+        (``ir.qweb._render``); ``ir_template_expressions.py`` es portador de vocabulario sin
         compilador, así que esa rama llega con el marco de cliente (#488) —
         consecuencia conservadora: un snippet cuyo único uso sea su propia
         plantilla se reporta como no usado, y su asset se apaga. (2) el SQL

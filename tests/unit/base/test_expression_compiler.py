@@ -1,4 +1,4 @@
-r"""``IrQweb`` — el compilador de expresiones (bloque A de la tarea #181).
+r"""``IrTemplateExpressions`` — el compilador de expresiones (bloque A de la tarea #181).
 
 Mide el comportamiento, no la forma: cada caso compila una expresión de QWeb
 y comprueba el código generado **y** su evaluación contra un contexto real.
@@ -15,13 +15,13 @@ El contrato que fija, y que la fuente declara en el docstring de
 """
 import pytest
 
-from addons.base.models.ir_qweb import IrQweb
+from addons.base.models.ir_template_expressions import IrTemplateExpressions
 
 
 @pytest.fixture
 def engine():
     """El motor. Abstracto y sin fila: el compilador no toca la base."""
-    return IrQweb()
+    return IrTemplateExpressions()
 
 
 class TestNamesGetTheValuesNamespace:

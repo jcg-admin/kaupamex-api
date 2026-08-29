@@ -2035,7 +2035,7 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         """≙ ``get_empty_list_help`` (``odoo19c: :1079-1084``).
 
         **Divergencia declarada:** sin motor QWeb (``ir.ui.view.
-        _render_template`` no existe en este stack — ver ``ir_qweb.py``), el
+        _render_template`` no existe en este stack — ver ``ir_template_expressions.py``), el
         mensaje se arma como texto plano equivalente por tipo de operación.
         """
         if help_message:
@@ -2195,7 +2195,7 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
 
         **Divergencia declarada:** el render QWeb de la referencia
         (plantilla ``stock.exception_on_picking``) no existe en este stack
-        (sin compilador QWeb activo — ver ``ir_qweb.py``); la nota se arma
+        (sin compilador QWeb activo — ver ``ir_template_expressions.py``); la nota se arma
         como texto plano equivalente.
         """
         def keys_in_groupby(move):

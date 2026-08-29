@@ -89,8 +89,8 @@ IrModel::_reflect_models
 IrModel::_view_ids
 IrModelFields::_reflect_fields
 IrModelInherit::_reflect_inherits
-IrQweb::_directives_eval_order
-IrQweb::_render
+IrTemplateExpressions::_directives_eval_order
+IrTemplateExpressions::_render
 IrSequenceDate_Range::_alter_sequence
 MailAlias::_sanitize_alias_name
 MailAliasDomain::_find_aliases

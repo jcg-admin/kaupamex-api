@@ -46,7 +46,7 @@ __all__ = ['FORMAT_REGEX', '_']
 #: Expresión de sustitución de una cadena de formato, en sus dos estilos:
 #: ``#{expr}`` (ruby) y ``{{expr}}`` (jinja) — verbatim de la fuente
 #: (``odoo19c: odoo/tools/translate.py:127``). La consume
-#: ``IrQweb._compile_format``, que es quien la nombra al importarla.
+#: ``IrTemplateExpressions._compile_format``, que es quien la nombra al importarla.
 FORMAT_REGEX = re.compile(r'(?:#\{(.+?)\})|(?:\{\{(.+?)\}\})')
 
 

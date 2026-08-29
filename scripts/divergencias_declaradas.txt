@@ -842,7 +842,6 @@ base/models/ir_qweb.py::IrQweb::_append_text
 #   _compile -> etapa del compilador de plantillas.
 base/models/ir_qweb.py::IrQweb::_compile
 #   _compile_bool -> etapa del compilador de plantillas.
-base/models/ir_qweb.py::IrQweb::_compile_bool
 #   _compile_directive -> etapa del compilador de plantillas.
 base/models/ir_qweb.py::IrQweb::_compile_directive
 #   _compile_directive_as -> compila la directiva `t-as` a codigo Python.
@@ -894,17 +893,13 @@ base/models/ir_qweb.py::IrQweb::_compile_directive_valuef
 #   _compile_directives -> etapa del compilador de plantillas.
 base/models/ir_qweb.py::IrQweb::_compile_directives
 #   _compile_expr -> etapa del compilador de plantillas.
-base/models/ir_qweb.py::IrQweb::_compile_expr
 #   _compile_expr_tokens -> etapa del compilador de plantillas.
-base/models/ir_qweb.py::IrQweb::_compile_expr_tokens
 #   _compile_format -> etapa del compilador de plantillas.
-base/models/ir_qweb.py::IrQweb::_compile_format
 #   _compile_node -> etapa del compilador de plantillas.
 base/models/ir_qweb.py::IrQweb::_compile_node
 #   _compile_static_node -> etapa del compilador de plantillas.
 base/models/ir_qweb.py::IrQweb::_compile_static_node
 #   _compile_to_str -> etapa del compilador de plantillas.
-base/models/ir_qweb.py::IrQweb::_compile_to_str
 #   _debug_trace -> ata el error del compilador al nodo XML que lo produjo.
 base/models/ir_qweb.py::IrQweb::_debug_trace
 #   _flush_text -> acumula el texto que el compilador emite entre directivas.
@@ -952,7 +947,6 @@ base/models/ir_qweb.py::IrQweb::_get_template_info
 #   _get_widget -> primitiva interna del compilador.
 base/models/ir_qweb.py::IrQweb::_get_widget
 #   _is_static_node -> primitiva interna del compilador.
-base/models/ir_qweb.py::IrQweb::_is_static_node
 #   _link_to_node -> ata el error del compilador al nodo XML que lo produjo.
 base/models/ir_qweb.py::IrQweb::_link_to_node
 #   _links_to_nodes -> ata el error del compilador al nodo XML que lo produjo.

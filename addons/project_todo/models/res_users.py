@@ -61,7 +61,7 @@ Crea el to-do de bienvenida de cada usuario renderizando la plantilla
 ``project_todo.todo_user_onboarding``. Tres bloqueadores, los tres medidos:
 
 1. **El compilador de QWeb no está portado, y lo dice él mismo.**
-   ``IrQweb.render`` (``src/addons/base/models/ir_qweb.py:261``) levanta
+   ``IrTemplateExpressions.render`` (``src/addons/base/models/ir_template_expressions.py:261``) levanta
    ``NotImplementedError`` a propósito: *"este árbol renderiza en el cliente
    (React) y no compila plantillas almacenadas"*. Sin ``_render`` no hay
    cuerpo del to-do, y la referencia hace ``continue`` cuando el cuerpo sale

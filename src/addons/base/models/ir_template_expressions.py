@@ -1,6 +1,6 @@
 """``ir.qweb`` — el motor de plantillas de la referencia.
 
-Adaptación de ``odoo/addons/base/models/ir_qweb.py``
+Adaptación de ``odoo/addons/base/models/ir_template_expressions.py``
 (``odoo-tools@bf077302``, ``odoo19c:``, 3058 líneas). QWeb es un lenguaje de
 plantillas **en XML**: los atributos ``t-*`` de un elemento son directivas
 (``t-if``, ``t-foreach``, ``t-out``, ``t-call``…) y el motor las **compila a
@@ -134,7 +134,7 @@ Qué se conserva del porte anterior
 - **``keep_query``** — con la firma cambiada, por el mismo motivo de siempre:
   la fuente lee el ``request`` global de Werkzeug; aquí los parámetros entran
   por argumento.
-- **``QWebError`` / ``QWebErrorInfo``** — el error con su contexto.
+- **``TemplateError`` / ``TemplateErrorInfo``** — el error con su contexto.
 """
 import fnmatch
 import io
@@ -261,8 +261,8 @@ _SAFE_QWEB_OPCODES = _EXPR_OPCODES.union(to_opcodes([
 ])) - _BLACKLIST
 
 
-class QWebErrorInfo:
-    """Contexto de un error de plantilla — ``QWebErrorInfo`` de la fuente.
+class TemplateErrorInfo:
+    """Contexto de un error de plantilla — ``TemplateErrorInfo`` de la fuente.
 
     Lleva dónde falló (plantilla, línea, elemento) además del error, porque
     un fallo de plantilla sin esa localización es casi inútil para quien la
@@ -288,12 +288,12 @@ class QWebErrorInfo:
         return f'{self.message} [{location}]' if location else self.message
 
 
-class QWebError(Exception):
-    """Error de plantilla con su contexto (``QWebError`` de la fuente)."""
+class TemplateError(Exception):
+    """Error de plantilla con su contexto (``TemplateError`` de la fuente)."""
 
     def __init__(self, info):
-        self.info = info if isinstance(info, QWebErrorInfo) \
-            else QWebErrorInfo(str(info))
+        self.info = info if isinstance(info, TemplateErrorInfo) \
+            else TemplateErrorInfo(str(info))
         super().__init__(str(self.info))
 
 
@@ -327,8 +327,22 @@ def keep_query(current_params=None, *keep_params, **additional_params):
     return urlencode(params, doseq=True)
 
 
-class IrQweb:
-    """``ir.qweb`` — el motor de plantillas.
+class IrTemplateExpressions:
+    """El compilador de expresiones y el catálogo de directivas — **no** el motor.
+
+    El nombre de la clase dice lo que hay, no lo que hay en la referencia:
+    aquí ``render`` levanta (ver abajo), así que llamarla «motor de
+    plantillas» inducía a creer que este árbol renderiza QWeb. Ese era el
+    motivo del renombre — directiva del ejecutor 2026-08-29: *"tenemos que
+    quitar el nombre, porque puedes estar tentado a seguir pensando que
+    usamos QWeb"*.
+
+    ``_name`` y ``_description`` **sí** se conservan verbatim: son la
+    identidad de la entidad en el porte, y es el mismo trato que
+    ``SystemParameter`` recibe con su ``_name = ir.config_parameter``
+    (``scripts/check_porte_completo.py``, ``PORTE_ALIAS``). La clase se llama
+    por lo que es aquí; el ``_name`` prueba que es la misma entidad y no un
+    homónimo.
 
     En la referencia es ``models.AbstractModel``; aquí es una **clase llana**,
     por el mismo camino que ``IrFieldsConverter`` (``ir_fields.py:152``): un
@@ -708,4 +722,4 @@ class IrQweb:
 
 # Anotado bajo su ``_name`` para que un consumidor lo resuelva por nombre sin
 # importar la clase — ≙ el ``env['ir.qweb']`` de la fuente. Ver el docstring.
-registry.register_abstract(IrQweb)
+registry.register_abstract(IrTemplateExpressions)
