@@ -29,8 +29,9 @@ from addons.base.report_template import InvalidReportTemplate
 from addons.base.report_catalog import ReportSpec, UnknownHelper
 from addons.base.models.ir_actions_report import (
     HELPER_DIR,
-    RENDERER_BY_TYPE,
+    RENDERER_PREFIX,
     REPORT_TYPE_CHOICES,
+    REPORT_TYPE_PDF,
     HelperFailed,
     HelperNotBuilt,
     IrActionsReport,
@@ -62,7 +63,7 @@ def texto_impreso(pdf: bytes) -> str:
     corrompido — que es exactamente cómo H-API-290 sobrevivió al primer
     test de esta suite.
     """
-    salida = []
+    output = []
     for bloque in re.finditer(rb'stream\r?\n(.*?)endstream', pdf, re.S):
         crudo = bloque.group(1)
         try:
@@ -82,7 +83,7 @@ def texto_impreso(pdf: bytes) -> str:
         # salto-de-línea-y-muestra que ``HPDF_Page_TextRect`` emite por cada
         # línea envuelta (T-004, medido en el stream).
         for hexado in re.findall(rb"<([0-9A-Fa-f]+)>\s*(?:Tj|')", crudo):
-            salida.append(
+            output.append(
                 bytes.fromhex(hexado.decode()).decode('utf-16-be', 'replace'))
         # Rama de la base-14 (WinAnsi), viva mientras algún texto no pase por
         # la fuente embebida. Si deja de haber literales, esto queda inerte —
@@ -90,8 +91,8 @@ def texto_impreso(pdf: bytes) -> str:
         for literal in re.findall(rb"\((.*?)\)\s*(?:Tj|')", crudo):
             byteado = _OCTAL.sub(
                 lambda m: bytes([int(m.group(1), 8)]), literal)
-            salida.append(byteado.decode('cp1252', errors='replace'))
-    return '\n'.join(salida)
+            output.append(byteado.decode('cp1252', errors='replace'))
+    return '\n'.join(output)
 
 
 def operadores(pdf: bytes) -> bytes:
@@ -156,7 +157,7 @@ def reporte_orden():
         name='Orden de venta',
         report_name='sale.report_saleorder',
         model='sale.SaleOrder',
-        report_type='pdf',
+        report_type=REPORT_TYPE_PDF,
     )
 
 
@@ -170,7 +171,7 @@ class TestCatalogo:
     def test_la_declaracion_apunta_a_su_modelo_y_helper(self):
         spec = report_catalog.get('sale.report_saleorder')
         assert spec.model == 'sale.SaleOrder'
-        assert spec.report_type == 'pdf'
+        assert spec.report_type == REPORT_TYPE_PDF
         assert spec.helper == 'pdf_receipt'
 
     def test_report_name_no_declarado_no_se_inventa(self):
@@ -201,8 +202,8 @@ class TestDescriptor:
         for item in descriptor['items']:
             assert isinstance(item['unit_price'], str)
             assert item['unit_price'].count('.') == 1
-        for valor in descriptor['totals'].values():
-            assert isinstance(valor, str)
+        for value in descriptor['totals'].values():
+            assert isinstance(value, str)
 
     def test_es_json_serializable(self, orden_con_lineas):
         """Si no lo es, el fallo aparecería recién dentro del subprocess."""
@@ -220,30 +221,62 @@ class TestDespacho:
 
     def test_report_name_sin_declarante_levanta(self, reporte_orden):
         reporte_orden.report_name = 'sale.report_fantasma'
+        reporte_orden.save()
         with pytest.raises(UnknownReport):
-            reporte_orden.render(None)
+            IrActionsReport._render(reporte_orden, [])
 
-    def test_tipo_sin_renderizador_devuelve_none(self, reporte_orden,
-                                                 orden_con_lineas):
+    def test_every_enum_value_reaches_its_renderer(self):
+        """La derivación de la fuente, medida sobre lo que el enum ofrece.
+
+        ``_render`` deriva el método del propio ``report_type`` en vez de
+        consultar un mapa. Aquí había un ``RENDERER_BY_TYPE`` explícito que la
+        sustituía; se retiró con el porte del bloque C, así que lo que este
+        caso mide es que la derivación **llega**: cada valor ofrecido nombra
+        un método que existe.
+
+        Es la invariante que aquel mapa protegía con
+        ``{v for v, _ in CHOICES} == set(RENDERER_BY_TYPE)``, ahora sobre el
+        mecanismo de la fuente. Qué lo haría fallar: añadir un valor al enum
+        sin su renderizador — el defecto que :ref:`h-api-291` cerró.
+        """
+        for value, _label in REPORT_TYPE_CHOICES:
+            method = RENDERER_PREFIX + value.lower().replace('-', '_')
+            assert hasattr(IrActionsReport, method), (value, method)
+
+    def test_ported_renderers_are_not_offered_without_a_declarer(self):
+        """El porte trae los tres métodos; el enum ofrece uno solo.
+
+        ``_render_qweb_html`` y ``_render_qweb_text`` están portados —el
+        archivo se porta entero— y **no** están en el enum: su condición de
+        reingreso (:ref:`h-api-291`) pide además declarante y test, y hoy hay
+        0 de cada uno. Este caso fija esa frontera para que nadie amplíe el
+        enum «porque el método ya existe», que es exactamente el razonamiento
+        que aquel hallazgo rechazó.
+        """
+        offered = {v for v, _ in REPORT_TYPE_CHOICES}
+        assert offered == {'pdf'}
+        for ported in ('_render_qweb_html', '_render_qweb_text'):
+            assert hasattr(IrActionsReport, ported), ported
+
+    def test_a_type_without_a_renderer_returns_none(self, reporte_orden):
         """Contrato de ausencia de la referencia (``:1150``): ``None``, no error.
 
-        Se usa ``text`` a propósito, y no un string inventado: es el caso
-        **real** desde H-API-291 — el valor salió del enum por no tener quien
-        lo declarara, y una fila vieja podría traerlo. Así el test mide el
-        escenario que puede ocurrir, no uno imaginado.
-        """
-        reporte_orden.report_type = 'text'
-        assert reporte_orden.render(orden_con_lineas) is None
+        El caso es **real**, no un string inventado: ``qweb-pdf`` es el valor
+        que la migración 0005 convirtió a ``pdf``, y su conversión defensiva
+        existe precisamente para la fila que se le escape. La derivación
+        antepone :data:`RENDERER_PREFIX`, así que esa fila buscaría
+        ``_render_qweb_qweb_pdf`` — que no existe.
 
-    def test_el_enum_solo_declara_lo_que_hay_como_renderizador(self):
-        """Ningún formato ofrecido sin quien lo rinda — la invariante de H-API-291.
-
-        El defecto que cierra no es que ``text``/``html`` fueran erróneos: es
-        que se ofrecían como opción por venir del catálogo de la referencia,
-        sin nada aquí que los emitiera. Este caso lo vuelve mecánico.
+        **No sirve ``text`` ni ``html`` para medir esto**, y la razón importa:
+        sus renderizadores SÍ están portados, así que la derivación los
+        alcanza. Un caso de ausencia sólo discrimina si apunta a algo que de
+        verdad falta; con un valor que despacha, este test pasaría en verde sin
+        medir el contrato — el sub-patrón D de
+        ``metrica-decide-la-conclusion.md``.
         """
-        ofrecidos = {valor for valor, _label in REPORT_TYPE_CHOICES}
-        assert ofrecidos == set(RENDERER_BY_TYPE)
+        reporte_orden.report_type = 'qweb-pdf'
+        reporte_orden.save()
+        assert IrActionsReport._render(reporte_orden, []) is None
 
 
 @helpers_built
@@ -252,7 +285,8 @@ class TestConversion:
 
     def test_la_cadena_completa_produce_un_pdf(self, reporte_orden,
                                                orden_con_lineas):
-        contenido, extension = reporte_orden.render(orden_con_lineas)
+        contenido, extension = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         assert extension == 'pdf'
         assert contenido.startswith(b'%PDF')
         # Un PDF de una página con dos líneas no baja de 1 KB; por debajo de
@@ -281,7 +315,8 @@ class TestConversion:
         linea.name = acentuado
         linea.save(update_fields=['name'])
 
-        contenido, _ = reporte_orden.render(orden_con_lineas)
+        contenido, _ = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         assert acentuado in texto_impreso(contenido)
 
     def test_la_columna_recorta_por_ancho_no_por_bytes(self, reporte_orden,
@@ -303,7 +338,8 @@ class TestConversion:
         for letra in ('i', 'W'):
             linea.name = letra * 90
             linea.save(update_fields=['name'])
-            contenido, _ = reporte_orden.render(orden_con_lineas)
+            contenido, _ = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
             fila = next(t for t in texto_impreso(contenido).splitlines()
                         if t.startswith(letra * 3))
             dibujadas[letra] = len(fila)
@@ -335,12 +371,12 @@ class TestConversion:
             'items': [], 'totals': {'total': '0.00'},
         })
         impreso = texto_impreso(contenido)
-        lineas = impreso.splitlines()
+        lines = impreso.splitlines()
         # Nada se perdió: el final de la dirección llegó al papel...
         assert '14060' in impreso
         # ...y ninguna línea la contiene entera — se envolvió de verdad.
-        assert not any(direccion in linea for linea in lineas)
-        assert sum('Insurgentes' in l or '14060' in l for l in lineas) >= 2
+        assert not any(direccion in linea for linea in lines)
+        assert sum('Insurgentes' in l or '14060' in l for l in lines) >= 2
 
     def test_el_encabezado_lleva_banda_sombreada_sin_mover_el_texto(self):
         """T-005 — ``Rectangle`` + ``Fill`` sombrean el encabezado de tabla.
@@ -467,7 +503,8 @@ class TestPlantillaEnBD:
     def test_la_vista_redefine_el_documento(self, reporte_orden,
                                             orden_con_lineas):
         self.make_template_view()
-        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         impreso = texto_impreso(contenido)
         # El emisor sale de la plantilla en BD, no del builder — y con acento,
         # porque el camino UTF-8 de T-002 también cubre esta vía.
@@ -484,7 +521,8 @@ class TestPlantillaEnBD:
         # restaura.
         IrUiView.objects.filter(inherit_id__isnull=False).delete()
         IrUiView.objects.filter(key='sale.report_saleorder').delete()
-        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         assert contenido.startswith(b'%PDF')
 
     def test_una_extension_xpath_agrega_su_campo(self, reporte_orden,
@@ -502,14 +540,15 @@ class TestPlantillaEnBD:
                      '<field name="phone">Incoterm EXW</field>'
                      '</xpath>'),
         )
-        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         assert 'Incoterm EXW' in texto_impreso(contenido)
 
     def test_arch_fuera_de_vocabulario_levanta(self, reporte_orden,
                                                orden_con_lineas):
         self.make_template_view(arch='<html><body/></html>')
         with pytest.raises(InvalidReportTemplate):
-            reporte_orden.render(orden_con_lineas)
+            IrActionsReport._render(reporte_orden, [orden_con_lineas.pk])
 
 
 @helpers_built
@@ -544,10 +583,11 @@ class TestPlantillaSembrada:
         """
         of_builder = report_catalog.get(
             'sale.report_saleorder').builder(orden_con_lineas)
-        de_la_vista = reporte_orden._descriptor_from_view(
-            orden_con_lineas, {})
-        assert de_la_vista is not None
-        for clave, valor in of_builder.items():
+        intermedio = reporte_orden._render_template(
+            reporte_orden.report_name, {'docs': [orden_con_lineas]})
+        assert intermedio['html_ids'] == [orden_con_lineas.pk]
+        de_la_vista = intermedio['bodies'][0]
+        for clave, value in of_builder.items():
             if clave == 'date':
                 # Mismo instante con distinto traje: el filtro ``date:'c'``
                 # escribe en zona local y con microsegundos; ``isoformat``
@@ -555,18 +595,20 @@ class TestPlantillaSembrada:
                 # parseados y sin microsegundos.
                 assert (datetime.fromisoformat(
                             de_la_vista[clave]).replace(microsecond=0)
-                        == datetime.fromisoformat(valor))
+                        == datetime.fromisoformat(value))
             else:
-                assert de_la_vista[clave] == valor, clave
+                assert de_la_vista[clave] == value, clave
 
     def test_incoterm_de_sale_stock_llega_al_papel(self, reporte_orden,
                                                    orden_con_lineas):
         SaleOrderDelivery.objects.create(
             order=orden_con_lineas, incoterm_location='FOB Veracruz')
-        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         assert 'Incoterm: FOB Veracruz' in texto_impreso(contenido)
 
     def test_sin_incoterm_la_nota_no_se_dibuja(self, reporte_orden,
                                                orden_con_lineas):
-        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         assert 'Incoterm' not in texto_impreso(contenido)

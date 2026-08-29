@@ -47,10 +47,14 @@ que todo lo que ``Datetime`` redefine se adjunta explícitamente a las dos:
 dejar una sola heredaría el valor de fecha, que es el defecto contrario.
 
 DIVERGENCIA DE MECANISMO, declarada: la fuente resuelve zonas horarias con
-``pytz``, que **no está instalado** aquí —medido—; el equivalente de la
-biblioteca estándar es ``zoneinfo``, que lee la misma base de datos IANA. Es
-la misma adaptación que ``res_users._set_tz_from_request`` y
-``orm.environments.get_current_tz`` ya declaran.
+``pytz``; aquí con ``zoneinfo``. Es la misma adaptación que
+``res_users._set_tz_from_request`` y ``orm.environments.get_current_tz``
+declaran.
+
+**Corregido 2026-08-29.** Esta declaración decía *«``pytz``, que no está
+instalado aquí —medido—»*, y esa medición caducó en el mismo pase que la
+invalidó: ``pytz`` **sí** está instalado desde el porte de ``tools/safe_eval`` —la fuente lo expone a toda expresión almacenada (``safe_eval.py:498``) y sin él ese porte no cierra—, pero **no** es el mecanismo de husos de este árbol: Django 6 lo abandonó y su propio ``django.utils.timezone`` resuelve por ``zoneinfo``, que lee la misma base de datos IANA. La decisión no cambia; su razón sí, y una razón
+falsa se cita como si fuera medida.
 """
 import logging
 from datetime import date, datetime, time, timezone

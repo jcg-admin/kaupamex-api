@@ -279,11 +279,12 @@ def get_current_tz():
     actúa; ante una zona inválida se registra en depuración y se devuelve UTC,
     igual que la fuente.
 
-    DIVERGENCIA DE MECANISMO, declarada: la fuente resuelve con ``pytz``, que
-    **no está instalado** aquí —medido—; el equivalente de la biblioteca
-    estándar es ``zoneinfo``, que lee la misma base de datos IANA. Es la misma
-    adaptación que ``res_users._set_tz_from_request`` ya declara para
-    ``available_timezones()``.
+    DIVERGENCIA DE MECANISMO, declarada: la fuente resuelve con ``pytz``;
+    aquí con ``zoneinfo``. Es la misma adaptación que
+    ``res_users._set_tz_from_request`` declara para ``available_timezones()``.
+
+    Corregido 2026-08-29 — decía *«``pytz``, que no está instalado aquí»*.
+    ``pytz`` **sí** está instalado desde el porte de ``tools/safe_eval`` —la fuente lo expone a toda expresión almacenada (``safe_eval.py:498``) y sin él ese porte no cierra—, pero **no** es el mecanismo de husos de este árbol: Django 6 lo abandonó y su propio ``django.utils.timezone`` resuelve por ``zoneinfo``, que lee la misma base de datos IANA.
 
     La ausencia de usuario no es un error: fuera de una petición no hay quien
     fije zona, y la fuente también cae a UTC.

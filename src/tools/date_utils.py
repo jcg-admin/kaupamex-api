@@ -30,15 +30,25 @@ Divergencias de mecanismo declaradas — dos
 
 La fuente construye sus husos con ``pytz`` (``odoo19c: :9,20``). Aquí se usan
 :class:`~zoneinfo.ZoneInfo` y ``datetime.timezone.utc`` de la biblioteca
-estándar, porque **``pytz`` no está instalado ni declarado** en este árbol y
-Django 6 lo abandonó: su propio ``django.utils.timezone`` resuelve por
-``zoneinfo``. Los cuatro archivos de ``src/addons/base/models/`` que ya tocan
+estándar, porque **Django 6 abandonó ``pytz``**: su propio
+``django.utils.timezone`` resuelve por ``zoneinfo``, que lee la misma base de
+datos IANA. Los cuatro archivos de ``src/addons/base/models/`` que ya tocan
 husos —``ir_actions``, ``ir_cron``, ``res_users``, ``res_partner``— importan
 ``ZoneInfo``, así que la sustitución sigue la convención del árbol, no la
 inventa.
 
-*Métrica:* ``grep -rn "import pytz\\|from zoneinfo" src/ addons/`` — 0 hits de
-``pytz``, 4 archivos con ``zoneinfo``; ``pyproject.toml`` no declara ``pytz``.
+**Corregido 2026-08-29.** Esta razón decía *«porque ``pytz`` no está instalado
+ni declarado en este árbol»*, y dejó de ser cierta en el porte de
+``tools/safe_eval``: la fuente expone ``pytz`` a toda expresión almacenada
+(``safe_eval.py:498``), así que sin la dependencia ese porte no cierra, y
+``pyproject.toml`` la declara. **La decisión no cambia** —los husos siguen
+resolviéndose con ``zoneinfo``— pero su razón sí: no es que la biblioteca
+falte, es que no es el mecanismo de este stack. Una razón caducada se lee como
+medida y bloquea a quien la relea.
+
+*Métrica:* ``grep -rn "import pytz\\|from zoneinfo" src/ addons/`` — el único
+consumidor de ``pytz`` es ``tools/safe_eval``, que lo envuelve para las
+expresiones; 4 archivos con ``zoneinfo``.
 *Ciega a:* un consumidor futuro que importe ``date_utils.utc`` esperando la
 interfaz de ``pytz`` (``localize``/``normalize``/``zone``). Los tres puntos
 donde la fuente la usa están adaptados y anotados; un quinto uso nuevo tendría

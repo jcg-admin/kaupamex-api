@@ -2154,9 +2154,10 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         ``orm/inherits.py``. Dejarlo en línea escondería esa indirección.
 
         DIVERGENCIA DE STACK, declarada: la fuente valida contra
-        ``pytz.all_timezones``; ``pytz`` no está instalado —medido— y el
-        equivalente de la biblioteca estándar es
+        ``pytz.all_timezones``; aquí contra
         ``zoneinfo.available_timezones()``, que lee la misma base de datos IANA.
+        Corregido 2026-08-29 — decía *«``pytz`` no está instalado —medido—»*.
+        ``pytz`` **sí** está instalado desde el porte de ``tools/safe_eval`` —la fuente lo expone a toda expresión almacenada (``safe_eval.py:498``) y sin él ese porte no cierra—, pero **no** es el mecanismo de husos de este árbol: Django 6 lo abandonó y su propio ``django.utils.timezone`` resuelve por ``zoneinfo``, que lee la misma base de datos IANA.
 
         Y ``not user.login_date`` de la fuente se lee aquí sobre
         ``res.users.log``: allá ``login_date`` es un campo **relacionado** a la

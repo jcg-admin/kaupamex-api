@@ -102,6 +102,7 @@ Lo que sigue fuera, y por qué:
   ``report_action`` la lee con ``getattr``, y sin ella toma la misma rama que
   la fuente cuando la compañía no tiene plantilla configurada.
 """
+import io
 import json
 import logging
 import subprocess
@@ -118,119 +119,69 @@ from addons.base.models.ir_ui_view import IrUiView
 from addons.base.models.ir_attachment import IrAttachment
 from addons.base.models.ir_model import IrModel
 from addons.base.models.report_paperformat import ReportPaperformat
+from contextlib import contextmanager
+from collections import OrderedDict
+
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_groups import ResGroups
-from exceptions import ValidationError
+from exceptions import AccessError, UserError, ValidationError
 from orm import registry
 from orm.domains import Domain, to_q
-from orm.environments import (get_context, get_current_company, is_system,
-                              sudo)
+from orm.environments import (get_context, get_current_company,
+                              get_current_user, is_system, sudo)
+from orm.fields_temporal import Datetime
 from orm.models import filtered_domain
 from requests.exceptions import RequestException
+from tools.mail import is_html_empty
+from tools.pdf import PdfFileReader, PdfFileWriter, PdfReadError
 from tools.safe_eval import const_eval, safe_eval, time
 
 _logger = logging.getLogger(__name__)
 
-#: ``report_type`` — **formato de salida** del documento.
+#: Formato que un reporte puede emitir. **Un solo valor**, y el prefijo
+#: ``qweb-`` de la fuente NO se copia — las dos cosas están medidas y
+#: decididas, no son omisión de este pase.
 #:
-#: Dos decisiones distintas, ambas contra la referencia:
+#: **El prefijo.** En ``qweb-pdf`` el par es (intérprete, formato):
+#: ``qweb`` nombra el lenguaje de plantillas y su intérprete —``ir.qweb``, con
+#: 23 métodos ``_compile_directive_*``—, ``pdf`` el formato de salida. Aquí el
+#: intérprete no es QWeb: es el motor de plantillas de Django sobre nuestro
+#: vocabulario ``<descriptor>`` (``report_template.interpret_descriptor``).
+#: Escribir ``qweb-pdf`` afirmaría un sustrato que este árbol no tiene.
+#: Medición y las cinco preguntas del ejecutor que la produjeron:
+#: ``docs: pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/
+#: analisis-que-nombra-qweb-en-report-type.rst`` (v3.0.0) y :ref:`h-api-289`.
 #:
-#: **1. Sin prefijo, porque el eje que nombra no existe aquí.** ``qweb-pdf``
-#: es un par: **lenguaje de plantillas** (``qweb``) + formato (``pdf``). El
-#: prefijo identifica *qué intérprete lee la definición del documento*.
-#:
-#: El mapeo real de las piezas, para no confundirlas:
-#:
-#: =========================  =======================================
-#: Referencia                 Aquí
-#: =========================  =======================================
-#: plantilla QWeb (XML, dato) ``builder`` (función Python, código)
-#: motor QWeb que la lee      — ninguno **en esta cadena** (ver abajo)
-#: intermedio: HTML           intermedio: descriptor JSON
-#: conversor: wkhtmltopdf     conversor: helper en C (libharu)
-#: =========================  =======================================
-#:
-#: JSON es nuestro **intermedio** —el análogo del HTML—, no el análogo de
-#: QWeb. Así que ``json-pdf`` sería un nombre equivocado: pondría el formato
-#: del intermedio donde va el intérprete.
-#:
-#: **La segunda fila dice "en esta cadena", no "en el árbol", y la distinción
-#: importa.** El árbol tiene lenguaje de plantillas —el de Django,
-#: ``config/settings/base.py:165``— y tiene el patrón completo de plantilla
-#: como dato: ``mail.template.body_html`` guarda el cuerpo con placeholders
-#: ``{{ object.campo }}`` y ``MailTemplate.render`` lo interpreta
-#: (``mail/models/mail_template.py:100``), con la misma sintaxis que el
-#: ``inline_template`` de la referencia. El reporte **no lo usa**: su documento
-#: es código. Es una elección de esta cadena, no una carencia del árbol.
-#:
-#: Para el nombre del valor da igual —no hay intérprete **que este campo
-#: discrimine**, así que el eje del prefijo no aplica y queda sólo el
-#: formato—, pero para la deuda no da igual, y por eso se dice aquí.
-#:
-#: **La divergencia que esto implica, dicha en voz alta:** la referencia hace
-#: del documento un dato a propósito — una plantilla se edita sin tocar
-#: Python, y un addon puede extender la de otro por XPath sin bifurcarla.
-#: Nuestro builder no da ninguna de las dos cosas: cambiar un documento es
-#: cambiar código, y extenderlo desde otro addon exige envolver la función.
-#: Es el costo de **no haber conectado** el reporte al motor que el árbol ya
-#: tiene — reversible, no estructural.
-#:
-#: **2. Un solo valor, porque es lo único que este árbol sabe emitir.** El
-#: enum lista formatos con renderizador **y con quien los declare**, no el
-#: catálogo de la referencia. Medido antes de recortarlo: ``text`` tenía 0
-#: addons declarándolo y 0 tests ejercitando su renderizador, y peor —
-#: ``ReportSpec`` traía **un** slot ``builder`` con **dos** contratos
-#: incompatibles según el tipo (``dict`` para pdf, ``str`` para text) sin
-#: nada que lo hiciera cumplir. ``html`` nunca tuvo renderizador siquiera.
-#: Los dos estaban por copiar el catálogo ajeno — el mismo defecto que el
-#: prefijo, un nivel más abajo (H-API-291).
-#:
-#: Ninguno de los dos se pierde. Medido en ``odoo19c:`` sobre declaraciones
-#: reales —``<field name="report_type">…</field>`` de un registro, no
-#: menciones— con ``odoo-tools@622ddc2a``: ``qweb-text`` en **7** reportes
-#: (6 ``stock`` + 1 ``mrp``, etiquetas ZPL) y ``qweb-html`` en **1**
-#: (``stock``). *Ciega a:* declaraciones en Python en vez de XML, que este
-#: patrón no ve; los 6 hits de ``web`` que un grep amplio devuelve son el
-#: despachador del framework y tests JS, no declaraciones.
-#:
-#: El día que se porten, el valor entra **con** su renderizador, su
-#: declarante y su test, y el contrato del ``builder`` se separa entonces —
-#: que es cuando se sabrá qué forma necesita. Mientras tanto, una fila con
-#: ``text`` cae en el contrato de ausencia y devuelve ``None``.
-#:
-#: Precedente del proyecto para la misma clase de llamada: ``Company`` y no
-#: ``Tenant`` (``terminologia-l0-company.md``).
-#:
-#: Correspondencia para quien compare las dos tablas: ``pdf`` ≙ ``qweb-pdf``.
-#: ``qweb-text`` y ``qweb-html`` no tienen análogo **todavía** — no porque
-#: sean intraducibles, sino porque nada aquí los emite.
+#: **Los otros dos valores.** ``html`` y ``text`` salieron del enum en
+#: :ref:`h-api-291` con una condición de reingreso escrita: *el valor entra con
+#: su renderizador, su declarante y su test; para ``text``, además, separando
+#: el contrato del ``builder``*. El bloque C aporta la **primera** —
+#: ``_render_qweb_html`` y ``_render_qweb_text`` existen— y ninguna de las
+#: otras: medido en este pase, **0** addons declaran ``html`` o ``text`` y
+#: **0** tests ejercitan sus renderizadores. Un enum que oferta lo que nadie
+#: emite es el defecto que aquel hallazgo cerró; portar el método no obliga a
+#: ofrecer el valor.
 REPORT_TYPE_PDF = 'pdf'
 REPORT_TYPE_CHOICES = [
     (REPORT_TYPE_PDF, 'PDF'),
 ]
+
+#: El prefijo que ``_render`` antepone al derivar el nombre del renderizador.
+#: La fuente deriva ``'_render_' + report_type`` porque su valor ya trae el
+#: prefijo dentro; aquí el valor no lo trae —ver arriba— y el **método** sí,
+#: porque el nombre de un símbolo es el contrato de extensión y cuatro addons
+#: de la referencia enganchan ``_render_qweb_pdf_prepare_streams`` por ese
+#: nombre. La derivación es la de la fuente; lo que cambia es de dónde sale el
+#: prefijo: de una constante en vez de del dato. Con un solo intérprete la
+#: constante no pierde nada — no hay segundo par que discriminar.
+RENDERER_PREFIX = '_render_qweb_'
 
 #: ``type`` por defecto de esta acción.
 ACTION_TYPE = 'ir.actions.report'
 #: ``binding_type`` por defecto — aparece como "Imprimir", no como "Acción".
 BINDING_TYPE_REPORT = 'report'
 
-#: Despacho del paso 4: ``report_type`` → método que lo rinde.
-#:
-#: La referencia lo **deriva** del propio valor
-#: (``getattr(self, '_render_' + report_type)``, ``:1148``). Aquí el mapeo es
-#: explícito: con los valores ya nombrados por formato (ver
-#: ``REPORT_TYPE_CHOICES``) la derivación daría ``_render_pdf`` y funcionaría,
-#: pero un mapa explícito deja ver de un vistazo **qué formatos se rinden** y
-#: cuáles no — que es justamente la información que aquí no es obvia.
-#:
-#: Hoy el mapa tiene una sola entrada, y esa es la información: **este árbol
-#: emite PDF y nada más**. Cualquier otro valor —``text`` de una fila vieja,
-#: ``html`` de un addon que lo declare antes de tiempo— cae en el contrato de
-#: ausencia y devuelve ``None``, no un error; mismo contrato que ``:1150``.
-RENDERER_BY_TYPE = {
-    REPORT_TYPE_PDF: '_render_pdf',
-}
 
 #: Directorio de los helpers compilados. ``BASE_DIR`` es ``src/``
 #: (``config/settings/base.py:6``), así que los binarios que produce
@@ -363,8 +314,8 @@ class IrActionsReport(IrActionsBase):
     report_type = fields.Selection(
         max_length=16, choices=REPORT_TYPE_CHOICES, default=REPORT_TYPE_PDF,
         verbose_name='Tipo de reporte',
-        help_text='Formato de salida. Sin el prefijo qweb- de la referencia: '
-                  'aquí no hay QWeb, el render es libharu (ADR-017).',
+        help_text='Formato de salida. Los tres de la fuente; el valor '
+                  'gobierna el despacho de _render.',
     )
     report_name = fields.Char(
         max_length=255, verbose_name='Nombre de la plantilla')
@@ -855,81 +806,650 @@ class IrActionsReport(IrActionsBase):
         action['context'] = py_ctx
         return action
 
-    # --- Motor ------------------------------------------------------------
-    #
-    # Pasos 3-5 de la cadena (ver ``report_catalog.py``). Viven aquí, en el
-    # modelo, porque es donde la referencia los pone: su motor entero está en
-    # ``ir_actions_report.py`` (1217 líneas, medido) y su punto de entrada es
-    # ``report._render(...)`` — un método del registro, no un módulo hermano.
-    #
-    # Lo que NO está: el paso 6 (fusionar, estampar). Opera sobre el PDF ya
-    # hecho, no tiene consumidor todavía, y en la referencia parte vive fuera
-    # del modelo (``add_banner`` en ``odoo/tools/pdf/``). Cuando llegue, ese
-    # es su lugar.
+    # --- Composición: contexto y plantilla ---------------------------------
 
-    def render(self, records, **ctx):
-        """Genera este reporte sobre ``records``.
+    def _render_template(self, template, values=None):
+        """Compone el documento desde su plantilla, del lado del servidor.
 
-        Paso 4 — despacho por ``report_type``. Espeja ``_render`` (``:1145``)
-        incluido su contrato de ausencia: un tipo sin renderizador devuelve
-        ``None``, no levanta (``:1150``).
+        ≙ ``_render_template`` (``odoo19c: ir_actions_report.py:769-789``).
 
-        :returns: tupla ``(contenido, extensión)`` — hoy siempre ``bytes`` y
-            ``'pdf'``, porque es el único formato con renderizador. Misma
-            forma que la referencia (``:1110``), que devuelve ``str`` cuando
-            el tipo es de texto.
-        :raises UnknownReport: si nadie declara este ``report_name``.
+        :param template: la clave de la plantilla — el ``report_name``.
+        :param values: métodos y variables adicionales del dibujado.
+        :returns: el **intermedio** que el paso de conversión consume.
+
+        **Qué es el intermedio aquí, y por qué eso no lo cambia de sitio.** La
+        fuente devuelve la representación HTML que produce
+        ``ir.ui.view._render_template``; aquí ese papel lo cumple el
+        **descriptor**, que ``report_template.interpret_descriptor`` obtiene
+        del mismo sitio: una vista ``type='qweb'`` resuelta por su clave, con
+        el arch ya combinado. Cambia la forma del intermedio, no el paso: sigue
+        siendo composición separada de la conversión, que es la razón por la
+        que la fuente tiene un motor y N documentos.
+
+        **Un cuerpo por registro, con su id al lado.** La fuente compone los N
+        registros en un solo HTML —``t-foreach="docs"`` escribe un ``div`` con
+        ``data-oe-id`` por cada uno— y ``_prepare_html`` lo parte después. Aquí
+        el arch se interpreta **una vez por registro**, con ``docs`` ligado a
+        ese registro, y el intermedio es ``{'bodies': [...], 'html_ids': [...]}``:
+        la misma pareja que ``_prepare_html`` devuelve, obtenida antes en la
+        cadena. El vocabulario de nuestras plantillas nombra ``docs`` en
+        singular (``{{ docs.order_number }}``, no un bucle), así que la
+        iteración vive donde la fuente tiene el ``t-foreach``: en el paso de
+        composición, no dentro del documento.
+
+        Las cinco variables que la fuente inyecta se inyectan aquí, con el
+        mismo nombre — son el contrato de lo que una plantilla puede nombrar:
+        ``time``, ``context_timestamp``, ``user``, ``res_company`` y
+        ``web_base_url``. ``time`` es el módulo envuelto de ``tools.safe_eval``,
+        el mismo que la fuente expone.
         """
-        spec = report_catalog.get(self.report_name)
+        if values is None:
+            values = {}
+
+        user = get_current_user()
+        company = get_current_company()
+        values.update(
+            time=time,
+            context_timestamp=lambda moment: Datetime.context_timestamp(
+                self, moment),
+            user=user,
+            res_company=company,
+            web_base_url=SystemParameter.get_param('web.base.url', default=''),
+        )
+        # Respaldo: el ``builder`` del catálogo (directiva del ejecutor
+        # 2026-08-05 — *"queremos usar también self.env['ir.ui.view']"*, con la
+        # vista como fuente primaria y el código como respaldo). Vivía en el
+        # ``_render_pdf`` nuestro, que este pase retira; su sitio es aquí,
+        # porque resolver la plantilla es lo que este método hace.
+        #
+        # Con las dos fuentes el catálogo queda abierto a extensión —una vista
+        # nueva en BD redefine el documento— y cerrado a modificación: ningún
+        # ``builder`` existente cambia por ello.
+        view = IrUiView.objects.filter(
+            key=template, type='qweb', active=True, mode='primary',
+        ).order_by('priority', 'id').first()
+        spec = report_catalog.get(template)
+        if view is None and spec is None:
+            raise UnknownReport(
+                f'{template!r} no tiene plantilla: ninguna vista qweb '
+                f'primaria activa declara esa clave, y ningún addon '
+                f'instalado lo declara en su catálogo')
+
+        docs = values.get('docs')
+        if isinstance(docs, (list, tuple)):
+            records = list(docs)
+        elif docs is None:
+            records = []
+        else:
+            records = [docs]
+
+        arch = view._get_combined_arch() if view is not None else None
+        bodies, html_ids = [], []
+        for record in records or [None]:
+            context = dict(values, docs=record, report=self)
+            if arch is not None:
+                bodies.append(
+                    report_template.interpret_descriptor(arch, context))
+            else:
+                bodies.append(spec.builder(record, **context))
+            html_ids.append(getattr(record, 'pk', None))
+        return {'bodies': bodies, 'html_ids': html_ids}
+
+    @classmethod
+    def _get_rendering_context_model(cls, report):
+        """El modelo que dibuja este reporte a medida, o ``None``.
+
+        ≙ ``_get_rendering_context_model`` (``:1121-1123``):
+        ``self.env.get('report.%s' % report.report_name)``. El ``env.get`` de
+        la fuente —que devuelve ``None`` si el modelo no está— es aquí
+        ``IrModelData._model_class``, con el mismo contrato de ausencia y con
+        las **dos** vías de resolución que este árbol necesita: el ``_name`` de
+        la referencia y, como respaldo, la etiqueta ``app.Modelo`` de Django.
+        La segunda no es adorno — ``ir.actions.report.model`` guarda hoy la
+        etiqueta (``'sale.SaleOrder'``), no el ``_name``, y sin ese respaldo el
+        contexto de dibujado salía con ``docs`` vacío y el PDF sin páginas.
+        """
+        return IrModelData._model_class('report.%s' % report.report_name)
+
+    @classmethod
+    def _get_rendering_context(cls, report, docids, data):
+        """El espacio de nombres con que se compone el documento.
+
+        ≙ ``_get_rendering_context`` (``:1125-1142``). Si el reporte declara un
+        modelo propio para dibujarse, manda ése; si no, se cae al genérico, que
+        expone ``doc_ids``, ``doc_model`` y ``docs``.
+        """
+        report_model = cls._get_rendering_context_model(report)
+
+        data = data and dict(data) or {}
+
+        if report_model is not None:
+            data.update(report_model._get_report_values(docids, data=data))
+        else:
+            model_cls = IrModelData._model_class(report.model)
+            docs = (list(model_cls.objects.filter(pk__in=docids or []))
+                    if model_cls else [])
+            data.update({
+                'doc_ids': docids,
+                'doc_model': report.model,
+                'docs': docs,
+            })
+        data['is_html_empty'] = is_html_empty
+        return data
+
+    # --- Despacho por formato ---------------------------------------------
+
+    def _render_qweb_text(self, report_ref, docids, data=None):
+        """El documento en texto plano.
+
+        ≙ ``_render_qweb_text`` (``:1103-1110``).
+        """
+        if not data:
+            data = {}
+        data.setdefault('report_type', 'text')
+        report = self._get_report(report_ref)
+        data = self._get_rendering_context(report, docids, data)
+        return report._render_template(report.report_name, data), 'text'
+
+    def _render_qweb_html(self, report_ref, docids, data=None):
+        """El documento sin convertir — el intermedio del pipeline.
+
+        ≙ ``_render_qweb_html`` (``:1112-1119``).
+
+        Es el paso que la fuente reutiliza desde ``_render_qweb_pdf``
+        (``:879``), y la prueba de que composición y conversión son pasos
+        distintos: los tres formatos comparten plantilla y contexto, y sólo
+        difieren en qué se hace con lo que sale de aquí.
+        """
+        if not data:
+            data = {}
+        data.setdefault('report_type', 'html')
+        report = self._get_report(report_ref)
+        data = self._get_rendering_context(report, docids, data)
+        return report._render_template(report.report_name, data), 'html'
+
+    @classmethod
+    def _render(cls, report_ref, res_ids, data=None):
+        """Despacha al renderizador del formato que el reporte declara.
+
+        ≙ ``_render`` (``:1144-1151``), incluida su **derivación**: el nombre
+        del método sale del propio ``report_type``, no de un mapa.
+
+        Aquí había un ``RENDERER_BY_TYPE`` explícito, con el argumento de que
+        «deja ver de un vistazo qué formatos se rinden». Se retira: era un
+        mecanismo distinto del de la fuente para el mismo trabajo, y existía
+        sólo porque los renderizadores se llamaban ``_render_pdf``. Con los
+        nombres de la fuente —``_render_qweb_pdf``— y el prefijo en
+        :data:`RENDERER_PREFIX`, la derivación vuelve a alcanzarlos y el mapa
+        sobra. La invariante que el mapa protegía —todo valor ofrecido tiene
+        renderizador— la mide ahora un test sobre el propio enum.
+
+        Conserva el contrato de ausencia de la fuente (``:1150``): un formato
+        sin renderizador devuelve ``None``, no levanta.
+        """
+        report = cls._get_report(report_ref)
+        report_type = report.report_type.lower().replace('-', '_')
+        # El ``self`` de la fuente es el modelo, y los renderizadores son
+        # métodos de instancia suyos; aquí el receptor es el **registro** del
+        # reporte, que es lo que ``_get_report`` devuelve. ``getattr`` sobre él
+        # entrega el método ya ligado, igual que allá.
+        render_func = getattr(report, RENDERER_PREFIX + report_type, None)
+        if not render_func:
+            return None
+        return render_func(report_ref, res_ids, data=data)
+
+    # --- El motor: estado, argumentos y conversión -------------------------
+
+    @classmethod
+    def get_wkhtmltopdf_state(cls):
+        """El estado del conversor: ``install``, ``ok``, ``upgrade``,
+        ``workers`` o ``broken``.
+
+        ≙ ``get_wkhtmltopdf_state`` (``:275-287``), con los cinco estados de la
+        fuente y su significado:
+
+        - ``install``: estado de partida — el conversor no está.
+        - ``upgrade``: el binario es de una versión anterior a la mínima.
+        - ``ok``: hay binario y sirve.
+        - ``workers``: no hay suficientes trabajadores para el dibujado.
+        - ``broken``: hay binario y no responde.
+
+        **El conversor aquí son nuestros helpers de libharu** (ADR-017), no
+        wkhtmltopdf. El nombre y los cinco estados son los de la fuente porque
+        el contrato es el mismo —quien pregunta quiere saber si puede pedir un
+        PDF—; lo que cambia es qué se inspecciona para responder.
+
+        De los cinco, dos no tienen forma que tomar en este sustrato y se
+        declara por qué, no se omiten: ``upgrade`` exige una versión que
+        comparar y los helpers se compilan del árbol, así que su versión es la
+        del árbol; ``workers`` exige un pool de procesos, y aquí cada
+        conversión es un ``subprocess`` propio (ADR-017), sin pool que quedarse
+        corto.
+        """
+        faltantes = [h for h in report_catalog.HELPERS
+                     if not (HELPER_DIR / h).exists()]
+        if len(faltantes) == len(report_catalog.HELPERS):
+            return 'install'
+        if faltantes:
+            return 'broken'
+        return 'ok'
+
+    def _prepare_html(self, html, report_model=False):
+        """Parte el intermedio en cuerpos por registro, con su cabecera y pie.
+
+        ≙ ``_prepare_html`` (``:383-463``).
+
+        :returns: la tupla de cinco de la fuente —``bodies``, ``html_ids``,
+            ``header``, ``footer``, ``specific_paperformat_args``.
+
+        La fuente recorre el árbol HTML con ``lxml`` buscando el ``div`` con
+        clase ``article``, y saca de cada uno sus atributos ``data-oe-model`` y
+        ``data-oe-id`` — así sabe qué registro dibuja cada tramo, que es lo que
+        luego permite guardar un adjunto por registro. **Ese par de atributos
+        es el contrato**, y aquí lo cumple el descriptor: el intérprete escribe
+        un tramo por registro con su ``res_id``.
+
+        ``specific_paperformat_args`` son los ajustes de papel que el propio
+        documento declara —márgenes, orientación— y que ganan sobre el formato
+        del reporte. La fuente los lee de atributos ``data-report-*``; aquí,
+        de la clave ``paperformat`` del descriptor.
+        """
+        if isinstance(html, dict):
+            bodies = html.get('bodies') or [html]
+            html_ids = html.get('html_ids') or [
+                body.get('res_id') for body in bodies]
+            header = html.get('header')
+            footer = html.get('footer')
+            specific_paperformat_args = html.get('paperformat') or {}
+        else:
+            bodies, html_ids = [html], [None]
+            header = footer = None
+            specific_paperformat_args = {}
+        return bodies, html_ids, header, footer, specific_paperformat_args
+
+    def _run_wkhtmltopdf(self, bodies, report_ref=False, header=None,
+                         footer=None, landscape=False,
+                         specific_paperformat_args=None,
+                         set_viewport_size=False):
+        """Convierte los cuerpos ya compuestos en un PDF.
+
+        ≙ ``_run_wkhtmltopdf`` (``:513-647``), con su firma completa.
+
+        **El cuerpo maneja NUESTRO motor**: los helpers de ``tools/pdf/``
+        basados en libharu (ADR-017), no wkhtmltopdf. Cada cuerpo es un
+        descriptor; el helper lo dibuja en un ``subprocess`` propio, que es el
+        aislamiento que aquel ADR pide.
+
+        Los argumentos de papel de la fuente —``landscape``,
+        ``specific_paperformat_args``, ``set_viewport_size``— se resuelven
+        contra el formato del reporte y viajan al descriptor bajo la clave
+        ``paperformat``, que es donde el helper los lee.
+        """
+        report = self._get_report(report_ref) if report_ref else self
+        paperformat = report.get_paperformat()
+        args = dict(specific_paperformat_args or {})
+        if landscape:
+            args['orientation'] = 'landscape'
+        elif paperformat is not None:
+            args.setdefault('orientation',
+                            getattr(paperformat, 'orientation', None))
+        if set_viewport_size:
+            args['viewport_size'] = set_viewport_size
+
+        spec = report_catalog.get(report.report_name)
         if spec is None:
             raise UnknownReport(
-                f'{self.report_name!r} no está declarado por ningún addon '
+                f'{report.report_name!r} no está declarado por ningún addon '
                 f'instalado')
-        method = RENDERER_BY_TYPE.get(self.report_type)
-        render_func = getattr(self, method, None) if method else None
-        if render_func is None:
-            return None
-        return render_func(spec, records, ctx)
 
-    def _render_pdf(self, spec, records, ctx):
-        """Composición + conversión: descriptor JSON → helper en C → PDF.
+        pieces = []
+        for body in bodies:
+            descriptor = dict(body) if isinstance(body, dict) else {'body': body}
+            if header is not None:
+                descriptor.setdefault('header', header)
+            if footer is not None:
+                descriptor.setdefault('footer', footer)
+            if args:
+                descriptor.setdefault('paperformat', args)
+            pieces.append(run_helper(spec.helper, descriptor))
+        if len(pieces) == 1:
+            return pieces[0]
+        with self._merge_pdfs([io.BytesIO(piece) for piece in pieces]) as merged:
+            return merged.getvalue()
 
-        La composición tiene DOS fuentes, en este orden (directiva del
-        ejecutor 2026-08-05 — *"queremos usar también self.env['ir.ui.view']"*):
+    # --- Fusión de PDF ------------------------------------------------------
 
-        1. **Plantilla en BD** — una vista ``type='qweb'`` cuya ``key`` es el
-           ``report_name``. Es el camino de la referencia
-           (``:769-781`` resuelve ``ir.ui.view``): el arch combinado —con las
-           extensiones XPath de otros addons ya aplicadas— se **interpreta**
-           hacia el descriptor (``report_template.interpret_descriptor``).
-        2. **Builder en código** — el ``callable`` del catálogo, que queda
-           como respaldo. Así el catálogo sigue abierto a extensión (una
-           vista nueva en BD redefine el documento) y cerrado a modificación
-           (ningún builder existente cambia por ello).
+    def _handle_merge_pdfs_error(self, error=None, error_stream=None):
+        """Qué hacer cuando un flujo no se deja fusionar.
+
+        ≙ ``_handle_merge_pdfs_error`` (``:791-792``). Es un enganche: quien
+        quiera reunir los flujos rotos en vez de abortar pasa su propio
+        manejador a :meth:`_merge_pdfs`, que es lo que ``_render_qweb_pdf``
+        hace para poder señalar los registros culpables.
         """
-        descriptor = self._descriptor_from_view(records, ctx)
-        if descriptor is None:
-            descriptor = spec.builder(records, **ctx)
-        return run_helper(spec.helper, descriptor), 'pdf'
+        raise UserError('Unable to merge the generated PDFs.')
 
-    def _descriptor_from_view(self, records, ctx):
-        """El descriptor desde la plantilla en BD, o ``None`` si no la hay.
+    @classmethod
+    @contextmanager
+    def _merge_pdfs(cls, streams, handle_error=None):
+        """Fusiona varios flujos de PDF en uno solo.
 
-        La resolución por ``key`` espeja ``_get_template_view`` de la fuente:
-        la vista QWeb se identifica por su clave estable, no por id. Sólo se
-        consideran vistas **primarias activas** — una extensión no es un
-        documento, es un parche, y entra vía ``get_combined_arch`` de su
-        primaria.
+        ≙ ``_merge_pdfs`` (``:794-812``), con su firma y su contrato: un flujo
+        que no se deja leer va al manejador —el de la clase si no se pasa
+        otro— y los demás siguen.
+
+        **El mecanismo se construyó**: la fuente lo apoya en ``pypdf``, que
+        está excluido del stack porque el proyecto tiene motor propio
+        (ADR-017). El lector y el escritor viven en ``tools/pdf``, la raíz que
+        la referencia también usa para esto, y entienden el PDF que nuestro
+        motor emite. Su alcance y su ceguera están declarados en el docstring
+        de ese módulo.
+
+        La fuente devuelve el flujo y lo añade a ``streams`` para que el
+        llamador lo cierre; aquí es un gestor de contexto, que es la forma con
+        la que el llamador de la fuente ya lo usa (``:1071``:
+        ``with self._merge_pdfs(...) as pdf_merged_stream``).
         """
-        view = IrUiView.objects.filter(
-            key=self.report_name, type='qweb', active=True,
-            mode='primary',
-        ).order_by('priority', 'id').first()
-        if view is None:
-            return None
-        context = dict(ctx, docs=records, report=self)
-        return report_template.interpret_descriptor(
-            view._get_combined_arch(), context)
+        writer = PdfFileWriter()
+        for stream in streams:
+            try:
+                stream.seek(0)
+                writer.appendPagesFromReader(PdfFileReader(stream))
+            except (PdfReadError, TypeError, NotImplementedError,
+                    ValueError) as error:
+                if handle_error is None:
+                    cls._handle_merge_pdfs_error(cls, error=error,
+                                                 error_stream=stream)
+                else:
+                    handle_error(error=error, error_stream=stream)
+        result_stream = io.BytesIO()
+        try:
+            writer.write(result_stream)
+        except PdfReadError:
+            raise UserError('Unable to merge the generated PDFs.')
+        result_stream.seek(0)
+        try:
+            yield result_stream
+        finally:
+            result_stream.close()
+
+    # --- Flujos por registro ------------------------------------------------
+
+    def _render_qweb_pdf_prepare_streams(self, report_ref, data, res_ids=None):
+        """Un flujo de PDF por registro, reusando el adjunto que ya exista.
+
+        ≙ ``_render_qweb_pdf_prepare_streams`` (``:814-978``).
+
+        Tres tramos, en el orden de la fuente:
+
+        1. **Recoger lo que ya está.** Para cada registro, si el reporte
+           declara ``attachment`` y el contexto no lo desactiva, se busca el
+           adjunto; si además declara ``attachment_use``, su contenido **es**
+           el flujo y no se vuelve a dibujar.
+        2. **Dibujar lo que falta.** Se compone el intermedio con
+           ``_render_qweb_html`` —el mismo paso que sirve al formato HTML— se
+           parte con ``_prepare_html`` y se convierte con ``_run_wkhtmltopdf``.
+        3. **Repartir el resultado.** Un solo registro se lleva el PDF entero;
+           varios lo reparten por sus tramos.
+
+        **Divergencia de forma en el reparto, declarada.** La fuente parte el
+        PDF ya hecho leyendo sus páginas y sus marcadores con ``pypdf``. Esa
+        biblioteca está **excluida del stack por decisión del ejecutor**
+        —tenemos motor propio—, así que aquí el reparto se hace **antes**: se
+        convierte un descriptor por registro, y cada conversión produce el
+        flujo de ese registro. Es el mismo resultado por otra vía, y no
+        depende de heurísticas de marcadores.
+        """
+        if not data:
+            data = {}
+        data.setdefault('report_type', 'pdf')
+
+        report_sudo = self._get_report(report_ref)
+        has_duplicated_ids = res_ids and len(res_ids) != len(set(res_ids))
+
+        collected_streams = OrderedDict()
+
+        no_attachment = get_context().get('report_pdf_no_attachment')
+        if res_ids:
+            model_cls = IrModelData._model_class(report_sudo.model)
+            records = (list(model_cls.objects.filter(pk__in=res_ids))
+                       if model_cls else [])
+            for record in records:
+                res_id = record.pk
+                if res_id in collected_streams:
+                    continue
+
+                stream = None
+                attachment = None
+                if (not has_duplicated_ids and report_sudo.attachment
+                        and not no_attachment):
+                    attachment = report_sudo.retrieve_attachment(record)
+
+                    if attachment and report_sudo.attachment_use:
+                        stream = io.BytesIO(attachment.datas.read())
+
+                collected_streams[res_id] = {
+                    'stream': stream,
+                    'attachment': attachment,
+                }
+
+        res_ids_wo_stream = [res_id
+                             for res_id, stream_data in collected_streams.items()
+                             if not stream_data['stream']]
+        all_res_ids_wo_stream = (res_ids if has_duplicated_ids
+                                 else res_ids_wo_stream)
+        is_conversion_needed = not res_ids or res_ids_wo_stream
+
+        if is_conversion_needed:
+            if self.get_wkhtmltopdf_state() == 'install':
+                raise UserError(
+                    'Unable to find the PDF helpers on this system. '
+                    'The PDF can not be created.')
+
+            data.setdefault('debug', False)
+
+            html = self._render_qweb_html(
+                report_ref, all_res_ids_wo_stream, data=data)[0]
+
+            (bodies, html_ids, header, footer,
+             specific_paperformat_args) = report_sudo._prepare_html(
+                html, report_model=report_sudo.model)
+
+            if (not has_duplicated_ids and report_sudo.attachment
+                    and set(res_ids_wo_stream) != set(html_ids)):
+                raise UserError(
+                    'Report template “%s” has an issue, please contact your '
+                    'administrator. \n\nCannot separate file to save as '
+                    'attachment because the report\'s template does not '
+                    'identify each record.' % report_sudo.name)
+
+            if has_duplicated_ids or not res_ids:
+                pdf_content = report_sudo._run_wkhtmltopdf(
+                    bodies, report_ref=report_ref, header=header,
+                    footer=footer, landscape=get_context().get('landscape'),
+                    specific_paperformat_args=specific_paperformat_args,
+                    set_viewport_size=get_context().get('set_viewport_size'))
+                return {
+                    False: {
+                        'stream': io.BytesIO(pdf_content),
+                        'attachment': None,
+                    }
+                }
+
+            for body, html_id in zip(bodies, html_ids):
+                pdf_content = report_sudo._run_wkhtmltopdf(
+                    [body], report_ref=report_ref, header=header,
+                    footer=footer, landscape=get_context().get('landscape'),
+                    specific_paperformat_args=specific_paperformat_args,
+                    set_viewport_size=get_context().get('set_viewport_size'))
+                if html_id in collected_streams:
+                    collected_streams[html_id]['stream'] = io.BytesIO(
+                        pdf_content)
+                else:
+                    collected_streams[False] = {
+                        'stream': io.BytesIO(pdf_content),
+                        'attachment': None,
+                    }
+
+        return collected_streams
+
+    def _prepare_pdf_report_attachment_vals_list(self, report, streams):
+        """Los valores con que se crean los adjuntos del PDF recién hecho.
+
+        ≙ ``_prepare_pdf_report_attachment_vals_list`` (``:981-1017``). Es un
+        enganche: un addon que necesite guardar algo más lo extiende.
+
+        :param report: el reporte, leído con privilegio, de la referencia dada.
+        :param streams: el diccionario de flujos por registro, con su adjunto
+            existente si lo hubiera.
+        :return: la lista de valores para crear los adjuntos.
+        """
+        attachment_vals_list = []
+        for res_id, stream_data in streams.items():
+            if stream_data['attachment']:
+                continue
+
+            if not res_id or not stream_data['stream']:
+                _logger.warning(
+                    'These documents were not saved as an attachment because '
+                    "the template of %s doesn't identify each record. If you "
+                    'want it saved, please print the documents separately',
+                    report.report_name)
+                continue
+            model_cls = IrModelData._model_class(report.model)
+            record = (model_cls.objects.filter(pk=res_id).first()
+                      if model_cls else None)
+            if record is None:
+                continue
+            attachment_name = safe_eval(
+                report.attachment, {'object': record, 'time': time})
+
+            if not attachment_name:
+                continue
+
+            attachment_vals_list.append({
+                'name': attachment_name,
+                'raw': stream_data['stream'].getvalue(),
+                'res_model': report.model,
+                'res_id': record.pk,
+                'type': 'binary',
+            })
+        return attachment_vals_list
+
+    def _pre_render_qweb_pdf(self, report_ref, res_ids=None, data=None):
+        """Los flujos, antes de fusionarlos y de guardar sus adjuntos.
+
+        ≙ ``_pre_render_qweb_pdf`` (``:1019-1031``).
+
+        La fuente cae a ``_render_qweb_html`` cuando corre bajo prueba sin
+        suficientes trabajadores para llamar al conversor. Aquí el conversor es
+        un ``subprocess`` por documento y no depende de un pool, así que la
+        caída sólo aplica cuando los helpers no están compilados: ese es el
+        mismo hecho —no se puede convertir— medido sobre nuestro sustrato.
+        """
+        if not data:
+            data = {}
+        if isinstance(res_ids, int):
+            res_ids = [res_ids]
+        data.setdefault('report_type', 'pdf')
+        if (self.get_wkhtmltopdf_state() != 'ok'
+                and not get_context().get('force_report_rendering')):
+            return self._render_qweb_html(report_ref, res_ids, data=data)
+
+        return (self._render_qweb_pdf_prepare_streams(
+            report_ref, data, res_ids=res_ids), 'pdf')
+
+    def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
+        """El documento en PDF, con sus adjuntos guardados.
+
+        ≙ ``_render_qweb_pdf`` (``:1033-1101``). Tres tramos: pedir los flujos,
+        guardar los adjuntos que falten, y fusionar lo que quede en un solo
+        PDF.
+
+        El ``AccessError`` al crear adjuntos se registra y no se propaga —el
+        PDF se entrega igual—, que es el contrato de la fuente (``:1057``): no
+        poder archivar no es no poder imprimir.
+        """
+        if not data:
+            data = {}
+        if isinstance(res_ids, int):
+            res_ids = [res_ids]
+        data.setdefault('report_type', 'pdf')
+
+        collected_streams, report_type = self._pre_render_qweb_pdf(
+            report_ref, res_ids=res_ids, data=data)
+        if report_type != 'pdf':
+            return collected_streams, report_type
+
+        has_duplicated_ids = res_ids and len(res_ids) != len(set(res_ids))
+
+        report_sudo = self._get_report(report_ref)
+
+        if (not has_duplicated_ids and report_sudo.attachment
+                and not get_context().get('report_pdf_no_attachment')):
+            attachment_vals_list = self._prepare_pdf_report_attachment_vals_list(
+                report_sudo, collected_streams)
+            if attachment_vals_list:
+                attachment_names = ', '.join(
+                    x['name'] for x in attachment_vals_list)
+                try:
+                    for vals in attachment_vals_list:
+                        IrAttachment.objects.create(**vals)
+                except AccessError:
+                    _logger.info(
+                        'Cannot save PDF report %r attachments for user %r',
+                        attachment_names, get_current_user())
+                else:
+                    _logger.info(
+                        'The PDF documents %r are now saved in the database',
+                        attachment_names)
+
+        stream_to_ids = {id(v['stream']): k
+                         for k, v in collected_streams.items() if v['stream']}
+        streams_to_merge = [v['stream'] for v in collected_streams.values()
+                            if v['stream']]
+        error_record_ids = []
+
+        def custom_handle_merge_pdfs_error(error, error_stream):
+            error_record_ids.append(stream_to_ids[id(error_stream)])
+
+        if len(streams_to_merge) == 1:
+            pdf_content = streams_to_merge[0].getvalue()
+        else:
+            with self._merge_pdfs(
+                    streams_to_merge,
+                    custom_handle_merge_pdfs_error) as pdf_merged_stream:
+                pdf_content = pdf_merged_stream.getvalue()
+
+        if error_record_ids:
+            action = {
+                'type': 'ir.actions.act_window',
+                'name': 'Problematic record(s)',
+                'res_model': report_sudo.model,
+                'domain': [('id', 'in', error_record_ids)],
+                'views': [(False, 'list'), (False, 'form')],
+            }
+            num_errors = len(error_record_ids)
+            if num_errors == 1:
+                action.update({
+                    'views': [(False, 'form')],
+                    'res_id': error_record_ids[0],
+                })
+            raise RedirectWarning(
+                'Unable to merge the generated PDFs because of %s corrupted '
+                'file(s)' % num_errors,
+                action,
+                'View Problematic Record(s)')
+
+        for stream in streams_to_merge:
+            stream.close()
+
+        if res_ids:
+            _logger.info(
+                'The PDF report has been generated for model: %s, records %s.',
+                report_sudo.model, str(res_ids))
+
+        return pdf_content, 'pdf'
 
     # Aquí vivía ``_render_text``, retirado en H-API-291 por no tener quien lo
     # declarara ni quien lo probara. Su vuelta tiene destinatario concreto —
