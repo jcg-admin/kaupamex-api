@@ -40,7 +40,7 @@ La única pieza con lógica de negocio real — extraída, no perdida
 ``action_open_step_chart_of_accounts`` valida el paso
 (``action_validate_step``) ANTES de construir el ``act_window`` bloqueado —
 esa validación sí tiene análogo portable
-(``OnboardingOnboardingStep.action_validate_step_by_id``, ya en el base).
+(``OnboardingOnboardingStep.action_validate_step``, ya en el base).
 Se ejecuta aquí, y sólo la construcción de la acción de navegación queda
 bloqueada.
 """
@@ -131,11 +131,11 @@ def action_open_step_chart_of_accounts(self):
 
     Ejecuta la validación real (portable) antes de bloquear la navegación —
     ver "La única pieza con lógica de negocio real" en el docstring del
-    módulo. ``action_validate_step_by_id`` es ``@classmethod`` en el base
+    módulo. ``action_validate_step`` es ``@classmethod`` en el base
     (recibe el ``pk`` en vez del xmlid, mismo criterio GAP ya documentado
     allá).
     """
-    type(self).action_validate_step_by_id(self.pk)
+    type(self).action_validate_step(self.pk)
     _blocked('action_open_step_chart_of_accounts',
              "la lista de 'account.account' filtrada por empresa")
 

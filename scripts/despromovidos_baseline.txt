@@ -95,8 +95,6 @@ IrSequenceDate_Range::_alter_sequence
 MailAlias::_sanitize_alias_name
 MailAliasDomain::_find_aliases
 MailAliasDomain::_sanitize_configuration
-OnboardingOnboarding::_prepare_rendering_values
-OnboardingOnboarding::_search_or_create_progress
 OnboardingProgress::_get_and_update_onboarding_state
 OnboardingProgress::_recompute_progress_step_ids
 ProductTemplate::_get_length_uom_id_from_ir_config_parameter

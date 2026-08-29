@@ -234,6 +234,14 @@ class IrBinary:
         """
         file = cls._field_file(record, field_name)
         if file is None:
+            # ≙ ``odoo19c: odoo/addons/base/models/ir_binary.py:212-213``: sin
+            # marcador explicito, se le pregunta AL REGISTRO por el suyo. Es el
+            # despacho que hace util a ``_get_placeholder_filename`` — sin el,
+            # un modelo podia declararlo y nadie lo leia nunca.
+            if not placeholder:
+                obtener = getattr(record, '_get_placeholder_filename', None)
+                if obtener is not None:
+                    placeholder = obtener(field_name)
             data = cls.placeholder(placeholder)
             response = FileResponse(
                 iter([data]), as_attachment=False,
