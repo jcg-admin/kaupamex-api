@@ -16,6 +16,7 @@ import pytest
 
 from addons.base.models.ir_actions_report import IrActionsReport
 from addons.base.models.ir_model import IrModel
+from addons.base.models.res_groups import ResGroups
 from orm.domains import Domain
 
 pytestmark = pytest.mark.django_db
@@ -115,3 +116,41 @@ class TestTheTwoRelationalSymbols:
     def test_the_join_table_of_the_groups_did_not_move(self):
         field = IrActionsReport._meta.get_field('group_ids')
         assert field.remote_field.through._meta.db_table == 'res_groups_report_rel'
+
+
+class TestTheReportsApplicableToAModel:
+    """``valid_reports_for`` — el camino que nombraba el símbolo viejo.
+
+    El renombre de ``groups`` a ``group_ids`` dejó atrás un
+    ``prefetch_related('groups')`` y **la suite siguió verde**: ningún caso
+    ejercía este método, así que el nombre muerto no tenía quien lo delatara.
+    Es el sub-patrón D de ``metrica-decide-la-conclusion.md`` — un verde que no
+    discrimina *"el código funciona"* de *"nadie lo llama"*.
+
+    Estos casos son el control que faltaba, y se midieron con el nombre viejo
+    puesto de vuelta: **2 failed, 17 passed**. Caen los dos que llegan a la
+    consulta; sobrevive ``test_another_model_does_not_bring_it``, porque su
+    filtro por modelo devuelve vacío antes de tocar el ``prefetch_related``.
+    Ese tercero mide otra cosa —que un reporte ajeno no se cuele— y está bien
+    que la mida; lo que no valdría es no saberlo.
+    """
+
+    def test_a_report_without_groups_is_applicable_to_everyone(self):
+        IrActionsReport.objects.create(
+            name='Libre', model='x_applicable', report_name='libre')
+        assert len(IrActionsReport.valid_reports_for('x_applicable')) == 1
+
+    def test_a_report_with_groups_needs_one_of_them(self):
+        group = ResGroups.objects.create(name='Impresores')
+        report = IrActionsReport.objects.create(
+            name='Restringido', model='x_restricted', report_name='restringido')
+        report.group_ids.add(group)
+
+        assert IrActionsReport.valid_reports_for('x_restricted') == []
+        assert len(IrActionsReport.valid_reports_for(
+            'x_restricted', groups=[group])) == 1
+
+    def test_another_model_does_not_bring_it(self):
+        IrActionsReport.objects.create(
+            name='Ajeno', model='x_other', report_name='ajeno')
+        assert IrActionsReport.valid_reports_for('x_applicable') == []

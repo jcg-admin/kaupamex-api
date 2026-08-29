@@ -580,7 +580,7 @@ class IrActionsReport(IrActionsBase):
         group_ids = {getattr(group, 'pk', group) for group in groups}
         applicable = []
         for report in cls.objects.filter(model=model_name).prefetch_related(
-                'groups'):
+                'group_ids'):
             declared = set(report.group_ids.values_list('pk', flat=True))
             if not declared or (declared & group_ids):
                 applicable.append(report)
