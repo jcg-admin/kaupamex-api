@@ -1190,3 +1190,18 @@ crm/models/crm_lead_scoring_frequency.py::CrmLeadScoringFrequencyField::_get_def
 # palabra —mismo simbolo, mismo rango 1..11, mismo `default=` en el campo de
 # color— y por tanto el mismo impedimento del serializador de migraciones.
 sales_team/models/crm_tag.py::CrmTag::_get_default_color
+#
+# ---- 13. `create`/`write` de `certificate` — DIVERGENCIA DE MECANISMO ----
+#
+# La referencia declara DOS metodos porque su ORM los separa: `create` recibe
+# `vals_list` (batch de altas) y `write` recibe `vals` (escritura sobre un
+# recordset). Django tiene UN solo punto de persistencia por fila, `save()`,
+# asi que los dos aterrizan ahi.
+#
+# Lo que NO se fusiona es el cuerpo, y por eso esto es divergencia de mecanismo
+# y no porte parcial: los dos metodos de la fuente hacen exactamente lo mismo
+# —llamar a `_parse_chain_missing_ca_vals` y crear las CAs que faltan— y ese
+# reparto se conserva verbatim. `_parse_chain_missing_ca_vals` sigue
+# devolviendo los valores, y quien crea es el llamador.
+certificate/models/certificate.py::CertificateCertificate::create
+certificate/models/certificate.py::CertificateCertificate::write

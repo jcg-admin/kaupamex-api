@@ -17,6 +17,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.oid import NameOID
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 from addons.base.models import ResCompany
 from addons.certificate.models.certificate import CertificateCertificate
@@ -454,3 +455,157 @@ class TestMeta:
             content=cert.public_bytes(serialization.Encoding.DER),
         )
         assert row.country_code == acme.country_code
+
+
+class TestSearchIsValid:
+    """``_search_is_valid`` (``odoo19c: certificate.py:264-272``).
+
+    Es el ``search=`` que la referencia declara junto al ``compute=`` en el
+    campo ``is_valid``: sin él, un campo calculado no persistido no es
+    buscable. Los cuatro términos de la fuente —``pem_certificate`` presente,
+    la ventana de fechas abierta, y ``loading_error`` vacío— se ejercitan aquí
+    contra filas reales, no contra el código.
+
+    **Medido con la guarda anulada**, término por término: retirando cualquiera
+    de los cuatro del filtro —o la guarda del operador— cae al menos un caso.
+
+    ==========================  ===========================
+    término retirado            resultado del subconjunto
+    ==========================  ===========================
+    ``pem_certificate``         1 failed, 5 passed
+    ``date_start <= now``       1 failed, 5 passed
+    ``date_end >= now``         2 failed, 4 passed
+    ``loading_error == \'\'``     1 failed, 5 passed
+    guarda ``operator != in``   1 failed, 5 passed
+    ==========================  ===========================
+
+    Las dos primeras filas NO discriminaban en la primera versión de esta
+    clase: el caso de contenido basura se caía por el primer término, así que
+    ni el de ``loading_error`` ni el de la ventana llegaban a medirse.
+    Cada término tiene ahora su caso con los otros tres cumpliéndose.
+    Restaurada la guarda, el archivo vuelve byte a byte a su versión.
+    """
+
+    def test_only_currently_valid_certificates_come_back(self):
+        acme = _company('acme-cert-search-1')
+        priv = _rsa_key()
+        vigente = CertificateCertificate.objects.create(
+            name='vigente', company=acme,
+            content=_self_signed_cert(priv, 'search-vigente').public_bytes(
+                serialization.Encoding.DER),
+        )
+        CertificateCertificate.objects.create(
+            name='vencido', company=acme,
+            content=_self_signed_cert(
+                priv, 'search-vencido', days_valid=-1,
+                not_before_delta=-30).public_bytes(serialization.Encoding.DER),
+        )
+
+        encontrados = CertificateCertificate._search_is_valid().filter(
+            company=acme)
+        assert list(encontrados) == [vigente]
+
+    def test_a_certificate_with_a_loading_error_is_excluded(self):
+        """El cuarto término (``loading_error = \'\'``), aislado.
+
+        El estado se construye a mano y eso es deliberado: por el camino real
+        es inalcanzable, porque ``_compute_pem_certificate`` pone
+        ``loading_error = \'\'`` justo antes de asignar ``pem_certificate``
+        (``certificate.py:401-402``). Una fila con contenido basura tampoco
+        sirve como caso — se cae por el PRIMER término
+        (``pem_certificate`` nulo) y el cuarto nunca se ejercita.
+
+        Medido: con el término retirado del filtro, este caso pasa de fallar a
+        pasar, así que es él quien lo mide y no otro.
+        """
+        acme = _company('acme-cert-search-2')
+        priv = _rsa_key()
+        fila = CertificateCertificate.objects.create(
+            name='con-error', company=acme,
+            content=_self_signed_cert(priv, 'search-con-error').public_bytes(
+                serialization.Encoding.DER),
+        )
+        # Los otros tres términos se cumplen: entra en la búsqueda.
+        assert fila in CertificateCertificate._search_is_valid()
+
+        CertificateCertificate.objects.filter(pk=fila.pk).update(
+            loading_error='no se pudo cargar')
+        assert fila not in CertificateCertificate._search_is_valid()
+
+    def test_a_certificate_not_yet_in_force_is_excluded(self):
+        """El segundo término (``date_start <= now``), aislado.
+
+        Un certificado cuya ventana **aún no abre** cumple los otros tres
+        —tiene ``pem_certificate``, su ``date_end`` es futuro y no hubo error
+        de carga— así que sólo este término lo deja fuera. Sin este caso, el
+        término se podía retirar del filtro y la suite seguía verde.
+        """
+        acme = _company('acme-cert-search-4')
+        priv = _rsa_key()
+        futuro = CertificateCertificate.objects.create(
+            name='aun-no-vigente', company=acme,
+            content=_self_signed_cert(
+                priv, 'search-futuro', days_valid=365,
+                not_before_delta=10).public_bytes(serialization.Encoding.DER),
+        )
+        assert futuro.date_start > timezone.now()
+        assert futuro.date_end > timezone.now()
+        assert futuro.pem_certificate
+        assert not futuro.loading_error
+        assert futuro not in CertificateCertificate._search_is_valid()
+
+    def test_a_row_without_pem_certificate_is_excluded(self):
+        """El primer término (``pem_certificate`` presente), aislado.
+
+        Los otros tres se fuerzan a cumplirse —ventana abierta, sin error de
+        carga— para que sólo la ausencia del PEM decida. Ese estado no se
+        alcanza por ``save()``, que rechaza el contenido que no cargó
+        (``_constrains_certificate_loaded``); se construye con ``update()``
+        por la misma razón que el caso de ``loading_error``.
+        """
+        acme = _company('acme-cert-search-5')
+        priv = _rsa_key()
+        fila = CertificateCertificate.objects.create(
+            name='sin-pem', company=acme,
+            content=_self_signed_cert(priv, 'search-sin-pem').public_bytes(
+                serialization.Encoding.DER),
+        )
+        assert fila in CertificateCertificate._search_is_valid()
+
+        CertificateCertificate.objects.filter(pk=fila.pk).update(
+            pem_certificate=None)
+        assert fila not in CertificateCertificate._search_is_valid()
+
+    def test_an_unsupported_operator_returns_not_implemented(self):
+        """La guarda de la fuente: sólo ``in``.
+
+        Devolver un queryset vacío mentiría — diría *"no hay ninguno"* cuando
+        lo que ocurre es que no se sabe buscar así. La referencia devuelve
+        ``NotImplemented`` y aquí igual.
+        """
+        assert CertificateCertificate._search_is_valid('=') is NotImplemented
+
+    def test_the_search_agrees_with_the_compute_row_by_row(self):
+        """El control que liga los dos símbolos: lo que ``_search_is_valid``
+        devuelve es exactamente el conjunto de filas cuyo ``_compute_is_valid``
+        da verdadero. Si divergieran, el campo ``is_valid`` mostraría una cosa
+        y el filtro devolvería otra."""
+        acme = _company('acme-cert-search-3')
+        priv = _rsa_key()
+        for label, days in (('uno', 365), ('dos', -1), ('tres', 30)):
+            CertificateCertificate.objects.create(
+                name=label, company=acme,
+                content=_self_signed_cert(
+                    priv, f'search-{label}', days_valid=days,
+                    not_before_delta=-30).public_bytes(
+                        serialization.Encoding.DER),
+            )
+        del priv
+
+        todas = CertificateCertificate.objects.filter(company=acme)
+        by_compute = {r.pk for r in todas if r._compute_is_valid()}
+        by_search = set(
+            CertificateCertificate._search_is_valid()
+            .filter(company=acme).values_list('pk', flat=True))
+        assert by_compute == by_search
+        assert by_compute  # el conjunto no es vacío: el acuerdo no es trivial
