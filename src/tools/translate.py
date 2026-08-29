@@ -36,10 +36,18 @@ Lo que **no** se porta de la referencia, y por qué:
   ninguno presente. El ``assert not (args and kwargs)`` de la fuente (``:610``)
   sí se conserva: es lo que impide mezclar las dos formas de sustitución.
 """
+import re
+
 from django.utils.functional import lazy
 from django.utils.translation import gettext
 
-__all__ = ['_']
+__all__ = ['FORMAT_REGEX', '_']
+
+#: Expresión de sustitución de una cadena de formato, en sus dos estilos:
+#: ``#{expr}`` (ruby) y ``{{expr}}`` (jinja) — verbatim de la fuente
+#: (``odoo19c: odoo/tools/translate.py:127``). La consume
+#: ``IrQweb._compile_format``, que es quien la nombra al importarla.
+FORMAT_REGEX = re.compile(r'(?:#\{(.+?)\})|(?:\{\{(.+?)\}\})')
 
 
 def _translate_and_format(source, args, kwargs):

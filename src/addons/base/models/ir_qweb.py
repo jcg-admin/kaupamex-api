@@ -6,91 +6,153 @@ plantillas **en XML**: los atributos ``t-*`` de un elemento son directivas
 (``t-if``, ``t-foreach``, ``t-out``, ``t-call``…) y el motor las **compila a
 código Python**, que luego se ejecuta con una lista blanca de opcodes.
 
-Este archivo porta el **vocabulario y las primitivas**; no el compilador. La
-razón está medida abajo, y no es "falta tiempo".
+De QWeb se porta el **mecanismo abstracto**, no su misión: ver la sección
+«Qué se porta de QWeb, y qué NO» — el HTML aquí lo emite React.
 
 Cubre de paso los **2 enganches** que Enterprise 19 usa aquí
 —``_prepare_environment`` y ``_get_template_cache_keys``—, los dos del
 compilador. Tarea #78, :ref:`h-api-819`.
 
-Por qué el compilador no se porta
-=================================
+Qué se porta de QWeb, y qué NO — corregido por el ejecutor 2026-08-29
+=====================================================================
 
-Dos motivos independientes, y cada uno bastaría.
+**Este bloque se escribió primero con un error de análisis, y el ejecutor lo
+corrigió en el mismo pase.** Se conserva la corrección porque el error es la
+parte instructiva.
 
-**1. No hay plantillas que compilar.** Medido en este árbol:
-``find src -name '*.xml'`` → **0** archivos; plantillas con directivas
-``t-*`` → **0**. [PROVEN] El HTML de este producto lo genera **React** en el
-cliente (``ui``, Webpack); el backend sirve JSON por DRF. Django trae su
-propio motor de plantillas configurado (``DjangoTemplates`` con
-``APP_DIRS=True``, ``config/settings/base.py:133-135``) y ni siquiera ése se
-usa para vistas: ``grep -rn "from django.shortcuts import" src/`` con
-``render`` → **0**. [PROVEN] Un tercer motor de plantillas, sin plantillas,
-sería una pieza muerta.
+La directiva fue: *"queremos implementar el comportamiento de QWeb en nuestro
+stack tecnológico ... para que cuando se usen plantillas en xml, nosotros
+también las usemos y las consideremos en nuestro stack de django rest
+framework, considerando que se publicarán como API"*. Se leyó como *"portar el
+compilador entero"*, y la corrección fue inmediata:
 
-**2. Es el caso máximo de lo que este árbol ya rechazó tres veces.** El
-compilador toma **texto almacenado en la base** y produce **bytecode que se
-ejecuta**. Es la misma operación que se rechazó en ``ir_rule.domain_force``
-(``api@020e965``), en ``ir_actions.server.code`` (``api@bdef44a``) y en
-``ir_actions_report.attachment`` (``api@bacee17``) — sólo que aquí en lugar
-de una expresión es un lenguaje entero, con su lista blanca de opcodes
-(``_SAFE_QWEB_OPCODES``) precisamente porque la superficie es enorme.
+    *"creo que tu solicitud anterior está mal, no es portar el compilador
+    QWeb entero porque nuestra web usa React y no analizaste eso, nosotros
+    solo construimos api, para que sean consumidos por ui que es react"*.
 
-Conectarlo exigiría decidir, explícitamente y con su propio análisis, quién
-puede escribir plantillas y con qué garantías. Eso no se decide de rebote al
-portar un archivo.
+**Dónde falló el análisis.** El docstring anterior daba dos razones para no
+portar el compilador, y se descartaron las dos como si fueran del mismo tipo.
+No lo son:
 
-Qué SÍ se porta, y por qué vale por sí solo
-==========================================
+===============================================  ==========================
+Razón del docstring anterior                     Qué clase de premisa es
+===============================================  ==========================
+"no hay plantillas que compilar" — 0 ``.xml``    **de estado**: el ejecutor
+                                                 decide que sí las habrá
+"el HTML lo genera React; el backend sirve       **de arquitectura**: no
+JSON por DRF"                                    cambia porque se añada un
+                                                 archivo XML
+===============================================  ==========================
+
+Sólo la primera es revocable por directiva. La segunda **decide el alcance**,
+y se leyó como parte de la primera. QWeb existe para **emitir HTML a un
+cliente web renderizado en servidor**; aquí ese cliente es React y el
+backend entrega datos. Portar sus 23 directivas —``t-att``, ``t-tag-open``,
+``t-call-assets``, ``t-field`` con sus 18 conversores— sería construir un
+emisor de HTML que nadie consume.
+
+Lo que SÍ se porta: el mecanismo abstracto
+------------------------------------------
+
+Lo que sobrevive a esa distinción, y es lo que la directiva pide de verdad,
+es el **mecanismo**, no su misión: un lenguaje de plantillas **en XML**,
+interpretado en servidor, **extensible por XPath**, cuya salida alimenta al
+API. Eso ya existe aquí —``addons/base/report_template.py`` interpreta un
+``<descriptor>`` XML hacia un ``dict``— y lo que le faltaba es la pieza que
+lo hace potente sin hacerlo peligroso:
+
+**el compilador de expresiones** (``_compile_expr`` y su familia). Convierte
+``5 + a + b.c`` en ``5 + values.get('a') + values['b'].c`` y **valida el
+resultado contra una lista blanca de opcodes** antes de que exista. Es
+independiente de si la salida es HTML o JSON: sirve igual a un descriptor de
+reporte que a cualquier plantilla futura.
+
+Su guarda es lo que hace admisible compilar texto almacenado, que es lo que
+``ir_rule``, ``ir.actions.server`` e ``ir_actions_report`` rechazaron cuando
+no había con qué acotarlo. Hoy sí lo hay: ``src/tools/safe_eval.py`` porta la
+maquinaria entera (tarea #140) y los cinco símbolos que el compilador
+necesita están medidos presentes — ``assert_valid_codeobj``, ``_BUILTINS``,
+``to_opcodes``, ``_EXPR_OPCODES`` y ``_BLACKLIST``.
+
+No hace falta instalar nada
+===========================
+
+Medido en el ``venv`` de este árbol. Las tres dependencias de terceros del
+compilador ya están declaradas en ``pyproject.toml``:
+
+===============  =========  ==================================================
+Paquete          Versión    Para qué lo usa el compilador
+===============  =========  ==================================================
+``lxml``         6.1.1      el árbol XML de la plantilla es su insumo
+``markupsafe``   3.0.3      ``Markup``/``escape`` — el contrato de escapado
+``dateutil``     2.9.0      ``relativedelta`` en el contexto de la plantilla
+===============  =========  ==================================================
+
+Y las dos que **no** se adoptan, con su sustituto exacto:
+
+- ``werkzeug`` está **prohibido** en este árbol (usamos gunicorn) y la fuente
+  lo usa en **dos** sitios: ``werkzeug.urls.url_encode`` (``:526``) y
+  ``werkzeug.urls.url_quote_plus`` (``:1314``). Los dos tienen equivalente
+  literal en ``urllib.parse`` — ``urlencode`` y ``quote_plus``—, y la propia
+  fuente ya importa ``unquote_plus`` de ahí (``:394``).
+- ``psycopg2`` → **psycopg 3**, que declara los dos errores que el compilador
+  atrapa: ``SerializationFailure`` (el ``TransactionRollbackError`` de
+  psycopg2) y ``ReadOnlySqlTransaction``.
+
+Lo que este archivo NO porta, y por qué
+=======================================
+
+**El compilador de nodos y las 23 directivas** — ``_compile_node``,
+``_compile_directives``, ``_compile_directive_*``, ``_render``,
+``_render_iterall`` y las cuatro estructuras ``Qweb*`` que la máquina de pila
+usa. Todos existen para **emitir HTML**, y aquí el HTML lo emite React.
+
+**``t-call-assets`` y los ~12 ``_get_asset_*``** — dependen de
+``AssetsBundle``, el empaquetador de assets del cliente web. Aquí eso vive en
+``ui/`` con Webpack.
+
+Lo que queda **abierto y con sucesor**: hoy ``report_template.py`` evalúa sus
+expresiones con el motor de plantillas de Django (DTL, ``{{ }}``) y este
+archivo aporta un segundo evaluador. Dos motores para el mismo trabajo es una
+decisión, no una derivación — tarea **#181**.
+
+Qué se conserva del porte anterior
+==================================
 
 - **``MALICIOUS_SCHEMES``** — el detector de ``javascript:`` en una URL, con
   su excepción exacta: se permite si va seguido **sólo** de
-  ``[window.]history.back()``. Es una **primitiva de seguridad**, es verbatim,
-  y es útil con o sin QWeb: cualquier sitio que acepte una URL de un usuario
-  la necesita. Portarla es lo contrario de código muerto.
-- **``VOID_ELEMENTS``** — los 16 elementos HTML sin cierre. Hecho del formato,
-  no del motor.
+  ``[window.]history.back()``. Primitiva de seguridad, verbatim.
+- **``VOID_ELEMENTS``** — los 16 elementos HTML sin cierre.
 - **``ALLOWED_KEYWORD``**, ``SPECIAL_DIRECTIVES``, ``T_CALL_SLOT`` y las cinco
-  expresiones regulares de recorte: el **vocabulario** de QWeb. Se conserva
-  para que el día que alguien lea una plantilla de la referencia tenga aquí el
-  glosario, y para que ``directives_eval_order`` signifique algo.
-- **``directives_eval_order``** — el orden de evaluación de las 18 directivas.
-  Es la pieza con más conocimiento acumulado del archivo y la que peor se
-  reconstruye desde cero: dice, por ejemplo, que en
+  expresiones regulares de recorte: el vocabulario de QWeb.
+- **``_directives_eval_order``** — el orden de evaluación de las directivas.
+  Es la pieza con más conocimiento acumulado del archivo: dice que en
   ``<el t-foreach="foo" t-as="bar" t-if="bar">`` el ``foreach`` corre **antes**
   que el ``if``, y que ``elif``/``else`` van primeros porque los compila el
-  ``if`` anterior. Invertir dos entradas de esa lista da un motor que compila
-  y produce resultados equivocados en silencio.
-- **``keep_query``** — compone una cadena de consulta preservando parámetros
-  actuales, con comodines. Se porta **con la firma cambiada**: la referencia
-  lee el ``request`` global de Werkzeug; aquí los parámetros entran por
-  argumento. La lógica —qué se conserva, qué gana el adicional, cómo se
-  fusionan los multivalor— es la misma y es lo que aporta.
-- **``QWebError`` / ``QWebErrorInfo``** — el error con su contexto de
-  plantilla y línea.
-
-Qué NO se porta, con su medición
-================================
-
-- **El compilador entero**: ``_compile_node``, ``_compile_directive*`` (una
-  por directiva), ``_compile_expr``, ``_compile_format``, el caché de
-  plantillas compiladas y ``_SAFE_QWEB_OPCODES``. Ver arriba.
-- **``QwebContent`` / ``QwebJSON`` / ``QwebStackFrame`` /
-  ``QwebCallParameters``**: estructuras internas del compilador; sin él no
-  tienen consumidor.
-- **``render(template_name, values, load, **options)``** (línea 2975): el
-  punto de entrada del motor.
-- **``_id_or_xmlid``**: convierte una referencia a ``int`` o la deja como
-  ``xml_id``. Depende de ``ir.model.data``, tabla que existe desde
-  ``api@b618a6b`` pero que nadie puebla; y su única razón de ser es alimentar
-  al compilador.
+  ``if`` anterior. Invertir dos entradas da un motor que compila y produce
+  resultados equivocados en silencio.
+- **``keep_query``** — con la firma cambiada, por el mismo motivo de siempre:
+  la fuente lee el ``request`` global de Werkzeug; aquí los parámetros entran
+  por argumento.
+- **``QWebError`` / ``QWebErrorInfo``** — el error con su contexto.
 """
 import fnmatch
+import io
 import logging
 import re
+import token
+import tokenize
 from urllib.parse import urlencode
 
-import models
+from orm import registry
+from tools.safe_eval import (
+    _BLACKLIST,
+    _BUILTINS,
+    _EXPR_OPCODES,
+    assert_valid_codeobj,
+    to_opcodes,
+)
+from tools.translate import FORMAT_REGEX
 
 _logger = logging.getLogger(__name__)
 
@@ -101,13 +163,17 @@ VOID_ELEMENTS = frozenset([
 ])
 
 #: Palabras clave admitidas al compilar una expresión, además de los objetos
-#: disponibles. Verbatim de la fuente **menos** ``_BUILTINS``, que allá es la
-#: lista de builtins de su ``safe_eval`` — un módulo distinto que este árbol
-#: no porta. Se conserva la mitad que es vocabulario del lenguaje.
+#: disponibles — verbatim de la fuente, ``_BUILTINS`` incluido.
+#:
+#: La versión anterior excluía ``_BUILTINS`` diciendo que ``safe_eval`` era
+#: *"un módulo distinto que este árbol no porta"*. Eso dejó de ser cierto con
+#: la tarea #140: ``src/tools/safe_eval.py`` lo porta entero. Sin los builtins
+#: una expresión tan corriente como ``t-if="len(docs) > 1"`` compilaría a
+#: ``values.get('len')`` y evaluaría a ``None``.
 ALLOWED_KEYWORD = frozenset([
     'False', 'None', 'True', 'and', 'as', 'elif', 'else', 'for', 'if', 'in',
     'is', 'not', 'or',
-])
+]) | set(_BUILTINS)
 
 #: Atributos usados fuera del contexto de QWeb.
 SPECIAL_DIRECTIVES = frozenset({'t-translation', 't-ignore', 't-title'})
@@ -131,6 +197,68 @@ WHITESPACE_REGEX = re.compile(r'[\s\x00-\x08\x0B\x0C\x0E-\x19]+')
 #: primitiva vale con o sin QWeb.
 MALICIOUS_SCHEMES = re.compile(
     r'javascript:(?!((window\.)?)history\.back\(\)$)', re.I).findall
+
+#: Tipo de token propio del compilador — verbatim de la fuente (``:418-419``).
+#: ``_compile_expr_tokens`` colapsa cada nivel de paréntesis ya compilado en un
+#: único token de este tipo, y el siguiente nivel lo trata como opaco. Sin un
+#: tipo propio ese token pasaría por ``NAME`` y se le volvería a aplicar el
+#: espacio de nombres.
+token.QWEB = token.NT_OFFSET - 1
+token.tok_name[token.QWEB] = 'QWEB'
+
+#: Los opcodes que el código generado por el compilador puede contener —
+#: verbatim de la fuente (``:420-462``), sobre los ``_EXPR_OPCODES`` de
+#: ``safe_eval`` y menos su ``_BLACKLIST``.
+#:
+#: **Es la guarda que hace portable al compilador.** Una plantilla es texto de
+#: la base que acaba siendo bytecode; lo que acota esa ejecución no es la
+#: gramática de QWeb sino esta lista, y por eso se porta entera y no
+#: "adaptada". Los nombres cubren varias versiones de CPython a propósito: un
+#: opcode que no existe en la versión en curso lo descarta ``to_opcodes``, así
+#: que sobra pero no estorba; uno que falte **bloquea una plantilla legítima**.
+_SAFE_QWEB_OPCODES = _EXPR_OPCODES.union(to_opcodes([
+    'MAKE_FUNCTION', 'CALL_FUNCTION', 'CALL_FUNCTION_KW', 'CALL_FUNCTION_EX',
+    'CALL_METHOD', 'LOAD_METHOD',
+
+    'GET_ITER', 'FOR_ITER', 'YIELD_VALUE',
+    'JUMP_FORWARD', 'JUMP_ABSOLUTE', 'JUMP_BACKWARD',
+    'JUMP_IF_FALSE_OR_POP', 'JUMP_IF_TRUE_OR_POP',
+    'POP_JUMP_IF_FALSE', 'POP_JUMP_IF_TRUE',
+
+    'LOAD_NAME', 'LOAD_ATTR',
+    'LOAD_FAST', 'STORE_FAST', 'UNPACK_SEQUENCE',
+    'STORE_SUBSCR',
+    'LOAD_GLOBAL',
+    'EXTENDED_ARG',
+    # Añadidos en 3.11
+    'RESUME',
+    'CALL',
+    'PRECALL',
+    'PUSH_NULL',
+    'KW_NAMES',
+    'FORMAT_VALUE', 'BUILD_STRING',
+    'RETURN_GENERATOR',
+    'SWAP',
+    'POP_JUMP_FORWARD_IF_FALSE', 'POP_JUMP_FORWARD_IF_TRUE',
+    'POP_JUMP_BACKWARD_IF_FALSE', 'POP_JUMP_BACKWARD_IF_TRUE',
+    'POP_JUMP_FORWARD_IF_NONE', 'POP_JUMP_FORWARD_IF_NOT_NONE',
+    'POP_JUMP_BACKWARD_IF_NONE', 'POP_JUMP_BACKWARD_IF_NOT_NONE',
+    # Añadidos en 3.12
+    'END_FOR',
+    'LOAD_FAST_AND_CLEAR',
+    'POP_JUMP_IF_NOT_NONE', 'POP_JUMP_IF_NONE',
+    'RERAISE',
+    'CALL_INTRINSIC_1',
+    'STORE_SLICE',
+    # Añadidos en 3.13
+    'CALL_KW', 'LOAD_FAST_LOAD_FAST',
+    'STORE_FAST_STORE_FAST', 'STORE_FAST_LOAD_FAST',
+    'CONVERT_VALUE', 'FORMAT_SIMPLE', 'FORMAT_WITH_SPEC',
+    'SET_FUNCTION_ATTRIBUTE',
+    # Añadidos en 3.14
+    'LOAD_FAST_BORROW', 'LOAD_FAST_BORROW_LOAD_FAST_BORROW',
+    'POP_ITER', 'LOAD_COMMON_CONSTANT', 'NOT_TAKEN',
+])) - _BLACKLIST
 
 
 class QWebErrorInfo:
@@ -199,21 +327,320 @@ def keep_query(current_params=None, *keep_params, **additional_params):
     return urlencode(params, doseq=True)
 
 
-class IrQweb(models.Model):
+class IrQweb:
     """``ir.qweb`` — el motor de plantillas.
 
-    Abstracto en la referencia (``AbstractModel``) y abstracto aquí. Sin el
-    compilador queda como **portador del vocabulario**: el orden de
-    evaluación de directivas y el conjunto de las que existen. Ver el
-    docstring del módulo.
+    En la referencia es ``models.AbstractModel``; aquí es una **clase llana**,
+    por el mismo camino que ``IrFieldsConverter`` (``ir_fields.py:152``): un
+    modelo sin columnas no necesita pasar por ``ModelBase``, y hacerlo tiene
+    un coste que aquí importa.
+
+    **Por qué llana y no ``Meta.abstract = True``.** Django prohíbe
+    instanciar un modelo abstracto (``"Abstract models cannot be
+    instantiated"``), y los métodos de la fuente reciben ``self`` — allá un
+    *recordset* vacío, que es exactamente lo que aquí es una instancia sin
+    fila. Con ``Meta.abstract`` habría que degradarlos a ``classmethod``, y
+    eso **cambia la firma de 85 métodos**: el guion bajo se porta y la firma
+    también (``porte-completo-no-parcial.md``). Una clase llana conserva las
+    dos.
+
+    Los dos atributos de clase son los que la fuente declara (``:691-692``),
+    medidos con el recorrido AST de ``atributos-de-clase-de-modelo.md``: no
+    hay un tercero que omitir. ``_name`` es la clave con la que
+    ``registry.model_by_name('ir.qweb')`` la resuelve — ≙ el
+    ``env['ir.qweb']`` de allá, que es como la nombran los cuatro addons que
+    esperan por el motor.
     """
 
-    class Meta:
-        abstract = True
+    _name = 'ir.qweb'
+    _description = 'Qweb'
 
-    @staticmethod
-    def directives_eval_order():
-        """``_directives_eval_order`` — orden de evaluación, verbatim.
+    # ------------------------------------------------------------------ #
+    #  Compilación de expresiones y de cadenas de formato                 #
+    #  (fuente ``:1388-1627``) — el bloque A de la tarea #181.            #
+    # ------------------------------------------------------------------ #
+
+    def _is_static_node(self, el, compile_context):
+        """≙ ``_is_static_node`` (``odoo19c: :1388``).
+
+        Un nodo es estático cuando no lleva ningún atributo ``t-*`` y por
+        tanto sus atributos no necesitan render dinámico. ``t-tag-open`` y
+        ``t-inner-content`` se excluyen porque son directivas **técnicas**
+        que el propio compilador añade, no del autor de la plantilla.
+        """
+        return el.tag != 't' and 'groups' not in el.attrib and not any(
+            att.startswith('t-')
+            and att not in ('t-tag-open', 't-inner-content')
+            for att in el.attrib
+        )
+
+    def _compile_format(self, expr):
+        """≙ ``_compile_format`` (``odoo19c: :1400``).
+
+        Compila una cadena de formato a **una sola** expresión con ``%``, que
+        es más rápido que concatenar. Los dos estilos que
+        :data:`~tools.translate.FORMAT_REGEX` reconoce::
+
+            <t t-setf-name="Hello #{world} %s !"/>
+            → values['name'] = 'Hello %s %%s !' % (values['world'],)
+
+        El ``%`` literal del texto se duplica **antes** de sustituir, si no el
+        formateo final lo consumiría como marcador.
+        """
+        values = [
+            f'self._compile_to_str('
+            f'{self._compile_expr(m.group(1) or m.group(2))})'
+            for m in FORMAT_REGEX.finditer(expr)
+        ]
+        if not values:
+            return repr(expr)
+        code = repr(FORMAT_REGEX.sub('%s', expr.replace('%', '%%')))
+        code += f' % ({", ".join(values)},)'
+        return code
+
+    def _compile_expr_tokens(self, tokens, allowed_keys, argument_names=None,
+                             raise_on_missing=False):
+        """≙ ``_compile_expr_tokens`` (``odoo19c: :1419``).
+
+        Convierte la lista de tokens en una instrucción de Python en forma de
+        texto, añadiendo el espacio de nombres de los valores dinámicos::
+
+            5 + a + b.c   →   5 + values.get('a') + values['b'].c
+
+        Un valor desconocido vale ``None``; pero cuando de él se pide un
+        atributo o un índice se emite ``values['b']`` en vez de
+        ``values.get('b')`` — así el error es ``KeyError: 'b'``, que dice qué
+        falta, y no ``AttributeError: 'NoneType' object has no attribute 'c'``,
+        que no.
+
+        **Los ámbitos anidados se resuelven por recursión sobre los
+        paréntesis.** Las variables locales de una ``lambda`` o de una
+        comprensión NO llevan espacio de nombres —son locales— mientras que
+        las libres sí::
+
+            lambda a: a + b        →  lambda _arg_a__: _arg_a__ + values['b']
+            [a + b for a in c]     →  [_arg_a__ + values.get('b')
+                                       for _arg_a__ in values.get('c')]
+
+        Cada nivel de paréntesis se procesa por separado y se colapsa en un
+        token :data:`token.QWEB`, para que no haya confusión entre lambdas o
+        comprensiones anidadas.
+        """
+        bracket_depth = 0
+
+        argument_name = '_arg_%s__'
+        argument_names = argument_names or []
+
+        # Primera pasada: recolectar los nombres locales que este nivel de
+        # paréntesis introduce (parámetros de lambda, variables de bucle).
+        for index, t in enumerate(tokens):
+            if t.exact_type in (token.LPAR, token.LSQB, token.LBRACE):
+                bracket_depth += 1
+            elif t.exact_type in (token.RPAR, token.RSQB, token.RBRACE):
+                bracket_depth -= 1
+            elif bracket_depth == 0 and t.exact_type == token.NAME:
+                string = t.string
+                if string == 'lambda':
+                    for i in range(index + 1, len(tokens)):
+                        t = tokens[i]
+                        if t.exact_type == token.NAME:
+                            argument_names.append(t.string)
+                        elif t.exact_type == token.COMMA:
+                            pass
+                        elif t.exact_type == token.COLON:
+                            break
+                        elif t.exact_type == token.EQUAL:
+                            raise NotImplementedError(
+                                'Lambda default values are not supported')
+                        else:
+                            raise NotImplementedError(
+                                'This lambda code style is not implemented.')
+                elif string == 'for':
+                    for i in range(index + 1, len(tokens)):
+                        t = tokens[i]
+                        if t.exact_type == token.NAME:
+                            if t.string == 'in':
+                                break
+                            argument_names.append(t.string)
+                        elif t.exact_type in (token.COMMA, token.LPAR,
+                                              token.RPAR):
+                            pass
+                        else:
+                            raise NotImplementedError(
+                                'This loop code style is not implemented.')
+
+        # Segunda pasada: compilar recursivamente cada sub-ámbito y colapsarlo
+        # en un token QWEB, con los nombres locales ya recogidos arriba.
+        index = 0
+        open_bracket_index = -1
+        bracket_depth = 0
+
+        while index < len(tokens):
+            t = tokens[index]
+
+            if t.exact_type in (token.LPAR, token.LSQB, token.LBRACE):
+                if bracket_depth == 0:
+                    open_bracket_index = index
+                bracket_depth += 1
+            elif t.exact_type in (token.RPAR, token.RSQB, token.RBRACE):
+                bracket_depth -= 1
+                if bracket_depth == 0:
+                    code = self._compile_expr_tokens(
+                        tokens[open_bracket_index + 1:index],
+                        list(allowed_keys),
+                        list(argument_names),
+                        raise_on_missing,
+                    )
+                    code = tokens[open_bracket_index].string + code + t.string
+                    tokens[open_bracket_index:index + 1] = [
+                        tokenize.TokenInfo(
+                            token.QWEB, code,
+                            tokens[open_bracket_index].start, t.end, '')]
+                    index = open_bracket_index
+
+            index += 1
+
+        # Tercera pasada: emitir el texto, poniendo el espacio de nombres a
+        # cada nombre que no sea local ni palabra clave permitida.
+        code = []
+        index = 0
+        pos = tokens and tokens[0].start   # conserva el nivel en multilínea
+        while index < len(tokens):
+            t = tokens[index]
+            string = t.string
+
+            if t.start[0] != pos[0]:
+                pos = (t.start[0], 0)
+            space = t.start[1] - pos[1]
+            if space:
+                code.append(' ' * space)
+            pos = t.start
+
+            if t.exact_type == token.NAME:
+                if '__' in string:
+                    raise SyntaxError(
+                        "Using variable names with '__' is not allowed: "
+                        f'{string!r}')
+                if string == 'lambda':
+                    code.append('lambda ')
+                    index += 1
+                    while index < len(tokens):
+                        t = tokens[index]
+                        if (t.exact_type == token.NAME
+                                and t.string in argument_names):
+                            code.append(argument_name % t.string)
+                        if t.exact_type in (token.COMMA, token.COLON):
+                            code.append(t.string)
+                        if t.exact_type == token.COLON:
+                            break
+                        index += 1
+                    if t.end[0] != pos[0]:
+                        pos = (t.end[0], 0)
+                    else:
+                        pos = t.end
+                elif string in argument_names:
+                    code.append(argument_name % t.string)
+                elif string in allowed_keys:
+                    code.append(string)
+                elif (index + 1 < len(tokens)
+                        and tokens[index + 1].exact_type == token.EQUAL):
+                    code.append(string)          # argumento por nombre
+                elif (index > 0 and tokens[index - 1]
+                        and tokens[index - 1].exact_type == token.DOT):
+                    code.append(string)          # atributo tras un punto
+                elif raise_on_missing or (
+                        index + 1 < len(tokens)
+                        and tokens[index + 1].exact_type in (
+                            token.DOT, token.LPAR, token.LSQB, token.QWEB)):
+                    # ``values['product'].price`` para que el error nombre el
+                    # valor que falta, no el atributo del ``None``.
+                    code.append(f'values[{string!r}]')
+                else:
+                    # sólo lectura: no se admite asignación
+                    code.append(f'values.get({string!r})')
+            elif t.type not in (tokenize.ENCODING, token.ENDMARKER,
+                                token.DEDENT):
+                code.append(string)
+
+            if t.end[0] != pos[0]:
+                pos = (t.end[0], 0)
+            else:
+                pos = t.end
+
+            index += 1
+
+        return ''.join(code)
+
+    def _compile_expr(self, expr, raise_on_missing=False):
+        """≙ ``_compile_expr`` (``odoo19c: :1576``).
+
+        Tokeniza la expresión y delega en :meth:`_compile_expr_tokens`. Los
+        paréntesis que envuelven al texto no son cosmética: permiten compilar
+        expresiones **multilínea**, que existen en plantillas reales.
+
+        :param raise_on_missing: emite ``values['product'].price`` en vez de
+            ``values.get('product').price``, para que el fallo nombre el valor
+            ausente y no el atributo de un ``None``.
+
+        El resultado se valida contra :data:`_SAFE_QWEB_OPCODES` **antes** de
+        devolverse. Ésa es la guarda que hace admisible compilar texto
+        almacenado: sin ella el porte del compilador no sería defendible.
+        """
+        readable = io.BytesIO(f"({expr or ''})".encode('utf-8'))
+        try:
+            tokens = list(tokenize.tokenize(readable.readline))
+        except tokenize.TokenError:
+            raise ValueError(f'Can not compile expression: {expr}')
+
+        expression = self._compile_expr_tokens(
+            tokens, ALLOWED_KEYWORD, raise_on_missing=raise_on_missing)
+
+        assert_valid_codeobj(
+            _SAFE_QWEB_OPCODES, compile(expression, '<>', 'eval'), expr)
+
+        return f'({expression})'
+
+    def _compile_bool(self, attr, default=False):
+        """≙ ``_compile_bool`` (``odoo19c: :1603``) — el atributo como booleano.
+
+        El vocabulario es el de un atributo XML, no el de Python: ``'false'`` y
+        ``'0'`` son falsos, ``'true'`` y ``'1'`` verdaderos, y cualquier otra
+        cadena cae al ``default``. ``bool('false')`` de Python daría ``True``,
+        que es justo el error que este método existe para no cometer.
+        """
+        if attr:
+            if attr is True:
+                return True
+            attr = attr.lower()
+            if attr in ('false', '0'):
+                return False
+            elif attr in ('true', '1'):
+                return True
+        return bool(default)
+
+    def _compile_to_str(self, expr):
+        """≙ ``_compile_to_str`` (``odoo19c: :1615``) — texto de cualquier valor.
+
+        ``None`` y ``False`` dan cadena vacía; ``bytes`` se decodifica; el
+        resto pasa por ``str``. La distinción de ``False`` es deliberada: un
+        campo booleano vacío no debe imprimir ``"False"`` en el documento.
+        """
+        if expr is None or expr is False:
+            return ''
+
+        if isinstance(expr, str):
+            return expr
+        elif isinstance(expr, bytes):
+            return expr.decode()
+        else:
+            return str(expr)
+
+    # ------------------------------------------------------------------ #
+    #  Orden de evaluación de directivas                                  #
+    # ------------------------------------------------------------------ #
+
+    def _directives_eval_order(self):
+        """≙ ``_directives_eval_order`` (``odoo19c: :1629``) — verbatim.
 
         Es una **lista ordenada, no un conjunto**: intercambiar dos entradas
         produce un motor que compila igual y da resultados distintos sin
@@ -244,14 +671,16 @@ class IrQweb(models.Model):
             'tag-close',
         ]
 
-    @classmethod
-    def directive_attribute_names(cls):
+    def directive_attribute_names(self):
         """Los atributos ``t-*`` que corresponden al orden de evaluación.
 
-        Utilidad de lectura: convierte la lista de directivas en los nombres
-        tal como aparecen en una plantilla, que es como los ve quien la lee.
+        **Forma propia**, declarada como tal: la fuente no la tiene. Es azúcar
+        de lectura — convierte la lista de directivas en los nombres tal como
+        aparecen en una plantilla, que es como los ve quien la escribe. Sin
+        guion bajo porque es API nuestra, no un símbolo reservado de la
+        fuente.
         """
-        return [f't-{name}' for name in cls.directives_eval_order()]
+        return [f't-{name}' for name in self._directives_eval_order()]
 
     @staticmethod
     def has_malicious_scheme(value):
@@ -275,3 +704,8 @@ class IrQweb(models.Model):
             'el cliente (React) y no compila plantillas almacenadas. Ver el '
             'docstring del módulo.'
         )
+
+
+# Anotado bajo su ``_name`` para que un consumidor lo resuelva por nombre sin
+# importar la clase — ≙ el ``env['ir.qweb']`` de la fuente. Ver el docstring.
+registry.register_abstract(IrQweb)
