@@ -27,8 +27,27 @@ contenedor de CI y ``certificate verify failed`` contra un PostgreSQL local.
 Un toggle opcional no rompe el import cuando falta, pero sí decide a qué base
 y con qué TLS se conecta: el criterio correcto es "qué configura al proceso",
 no "qué falta si no está".
+
+**Y la base del hijo NO es la del archivo: es la que Django resolvió.** Con
+``pytest-xdist`` cada worker corre contra ``<base>_gwN`` —``pytest_django``
+sufija ``TEST.NAME`` con el ``workerid`` (``fixtures.py:77-83``)— mientras
+``DB_QA_NAME`` sigue diciendo la base pelada. Un hijo que lea el archivo se
+conecta a una base que en ese momento puede no existir.
+
+Pasaba inadvertido porque ``--reuse-db`` deja la base pelada en pie de una
+corrida en serie anterior: el hijo la encontraba migrada y el caso salía
+verde. Ese verde no distinguía *"el subcomando funciona"* de *"quedó una base
+de otra corrida"* — sub-patrón D de ``metrica-decide-la-conclusion.md``. Lo
+destapó la primera corrida con ``--create-db`` sobre una base nueva: dos casos
+de ``test_ir_cron_runner.py`` murieron con ``FATAL: database
+"kaupamex_core_qa2" does not exist``. Ver :ref:`h-api-919`.
+
+Por eso el nombre sale de ``connection.settings_dict['NAME']`` en el momento
+de la llamada, que es el único sitio donde vive el valor **efectivo**.
 """
 import os
+
+from django.db import connection
 
 from config.settings.options import env_names
 
@@ -45,8 +64,16 @@ def subprocess_env(**extra):
     En un entorno con ``src/.env`` el filtro no aporta nada (decouple lee el
     archivo) y en CI aporta las que el runner exporta. Las dos rutas quedan
     cubiertas sin heredar el entorno entero.
+
+    ``DB_QA_NAME`` se sobrescribe con la base **efectiva** de la conexión, que
+    bajo ``pytest-xdist`` lleva el sufijo del worker. Ver el docstring del
+    módulo: sin esto el hijo se conecta a la base pelada, que con
+    ``--create-db`` no existe.
+
+    Un ``extra`` explícito gana sobre las dos fuentes: quien llama sabe más.
     """
     env = dict(BASE_ENV)
     env.update({k: os.environ[k] for k in env_names() if k in os.environ})
+    env['DB_QA_NAME'] = connection.settings_dict['NAME']
     env.update(extra)
     return env
