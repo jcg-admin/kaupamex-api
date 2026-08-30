@@ -203,10 +203,12 @@ from addons.base.models.ir_ui_view import IrUiView
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
-from exceptions import AccessError
+from exceptions import AccessError, UserError
 from orm import registry
 from orm.environments import get_current_user, is_su, is_system
 from orm.fields import __all__ as _FIELD_NAMES
+from orm.models import MAGIC_COLUMNS
+from orm.utils import check_object_name
 from tools.cache import ormcache
 from tools.misc import OrderedSet, split_every
 
@@ -261,6 +263,11 @@ DJANGO_TYPE_TO_TTYPE = {
     'URLField': 'char',
     'UUIDField': 'char',
 }
+
+#: ≙ ``RE_ORDER_FIELDS`` (``odoo19c: ir_model.py:37``), verbatim. Saca el
+#: nombre de cada campo de una cláusula de orden ya validada, para comprobar
+#: uno por uno que existan y estén almacenados.
+RE_ORDER_FIELDS = re.compile(r'"?(\w+)"?\s*(?:asc|desc)?', flags=re.I)
 
 STATE_MANUAL = 'manual'
 STATE_BASE = 'base'
@@ -320,8 +327,13 @@ class Unknown(models.Model):
         abstract = True
 
 
-class IrModel(TimeStampedModel):
-    """``ir.model`` — una fila por modelo declarado."""
+class IrModel(models.OriginMixin, TimeStampedModel):
+    """``ir.model`` — una fila por modelo declarado.
+
+    ``models.OriginMixin`` entra por :meth:`save`: la guarda de los cuatro
+    campos inmodificables compara el valor entrante contra el guardado, y
+    ``_origin`` es el mecanismo que da ese valor (tarea #112).
+    """
 
     #: Los cinco atributos de ORM que la fuente declara
     #: (``odoo19c: ir_model.py:56-61``), verbatim. El sexto que declara ahí,
@@ -447,14 +459,218 @@ class IrModel(TimeStampedModel):
         model = self.django_model
         return model._meta.app_label if model is not None else ''
 
-    def clean(self):
-        """``_check_model_name`` — un modelo personalizado se nombra ``x_``."""
-        super().clean()
-        if self.state == STATE_MANUAL and not self.model.startswith('x_'):
+    @classmethod
+    def _is_manual_name(cls, name):
+        """¿Es el nombre de un objeto personalizado? — ``_is_manual_name``.
+
+        ≙ ``odoo19c: ir_model.py:495-497``. La fuente lo declara **dos
+        veces** —aquí y en ``IrModelFields`` (``:1357``)—, así que las dos
+        clases lo llevan. El prefijo ``x_`` es la marca: separa lo que declara
+        un módulo de lo que declara un usuario, y de esa distinción cuelgan
+        :meth:`_check_manual_name` y :meth:`_unlink_if_manual`.
+        """
+        return name.startswith('x_')
+
+    @classmethod
+    def _check_manual_name(cls, name):
+        """Rechaza un nombre personalizado sin el prefijo — ``_check_manual_name``.
+
+        ≙ ``odoo19c: ir_model.py:499-501``, con su mensaje: *"The model name
+        must start with 'x_'."*
+        """
+        if not cls._is_manual_name(name):
             raise ValidationError(
-                'Los modelos personalizados deben tener un nombre que empiece '
-                'por "x_".'
-            )
+                "El nombre del modelo debe empezar con 'x_'.")
+
+    def _check_model_name(self):
+        """El nombre del modelo — ``_check_model_name`` (``odoo19c: :270-275``).
+
+        Dos comprobaciones, las de la fuente y en su orden: si la fila es
+        personalizada, el prefijo; y siempre, que el nombre esté en el
+        alfabeto que ``check_object_name`` admite.
+        """
+        if self.state == STATE_MANUAL:
+            type(self)._check_manual_name(self.model)
+        if not check_object_name(self.model):
+            raise ValidationError(
+                'El nombre del modelo sólo puede llevar minúsculas, dígitos, '
+                'guiones bajos y puntos.')
+
+    def _check_order(self):
+        """La cláusula de orden — ``_check_order`` (``odoo19c: :277-302``).
+
+        Dos mitades, las dos de la fuente:
+
+        1. **Que sea una cláusula válida** — lo mide :meth:`_check_qorder`, que
+           la fuente cuelga de ``BaseModel`` y aquí llega por ``OrderMixin``.
+           Su ``UserError`` se reenvasa en ``ValidationError``, igual que allá.
+        2. **Que cada campo nombrado exista y esté almacenado** — la fuente
+           compone el conjunto con los campos de la fila más
+           ``MAGIC_COLUMNS``; aquí el conjunto sale del modelo de Django, que
+           es donde viven los campos, más las mismas columnas mágicas.
+
+        DIVERGENCIA DE ORIGEN, declarada: allá los campos candidatos salen de
+        ``field_id``, la ``One2many`` a ``ir.model.fields``, porque un modelo
+        personalizado se define en filas. Aquí un modelo se define en Python,
+        así que el conjunto autoritativo es ``_meta.get_fields()``. Cuando el
+        modelo aún no está en el registro —una fila que nombra algo no
+        cargado— se cae a las columnas mágicas, que es lo que la fuente hace
+        con su comentario *"in case 'model' has not been initialized yet"*.
+        """
+        try:
+            self._check_qorder(self.order)
+        except UserError as error:
+            raise ValidationError(str(error))
+
+        stored_fields = set(MAGIC_COLUMNS)
+        model_cls = self.django_model
+        if model_cls is not None:
+            stored_fields.update(
+                field.name for field in model_cls._meta.get_fields()
+                if getattr(field, 'concrete', False))
+            stored_fields.update(
+                field.attname for field in model_cls._meta.concrete_fields)
+
+        for field_name in RE_ORDER_FIELDS.findall(self.order):
+            if field_name not in stored_fields:
+                raise ValidationError(
+                    'No se puede ordenar por %s: los campos usados para '
+                    'ordenar deben existir en el modelo y estar almacenados.'
+                    % field_name)
+
+    def _check_fold_name(self):
+        """El campo de plegado — ``_check_fold_name`` (``odoo19c: :304-308``).
+
+        Nombra un campo del modelo o no vale. Mismo origen que
+        :meth:`_check_order`: los campos salen del modelo de Django.
+        """
+        if not self.fold_name:
+            return
+        model_cls = self.django_model
+        if model_cls is None:
+            return
+        names = {field.name for field in model_cls._meta.get_fields()}
+        if self.fold_name not in names:
+            raise ValidationError(
+                "El valor de 'Campo de plegado' debe ser el nombre de un "
+                'campo del modelo.')
+
+    def clean(self):
+        """Enganche de Django — corre las tres restricciones de la fuente.
+
+        La fuente las declara con ``@api.constrains``, que su ORM dispara al
+        escribir; aquí el disparador equivalente es ``clean()``, y por eso
+        delega en vez de llevar el cuerpo. Los nombres son los de la fuente
+        —``_check_model_name``, ``_check_order``, ``_check_fold_name``— para
+        que cada uno se pueda llamar y probar por separado, como allá.
+        """
+        super().clean()
+        self._check_model_name()
+        self._check_order()
+        self._check_fold_name()
+
+    def _unlink_if_manual(self):
+        """Un modelo de módulo no se borra a mano — ``_unlink_if_manual``.
+
+        ≙ ``odoo19c: ir_model.py:346-351``, con su comentario verbatim:
+        *"Prevent manual deletion of module tables"*. La fuente lo engancha con
+        ``@api.ondelete(at_uninstall=False)``: corre al borrar desde la
+        interfaz y **no** al desinstalar un módulo, que es cuando sí toca.
+        Aquí lo llama :meth:`delete`, con la misma excepción.
+        """
+        if self.state != STATE_MANUAL:
+            raise UserError(
+                'El modelo "%s" contiene datos de módulo y no se puede '
+                'eliminar.' % self.name)
+
+    @classmethod
+    def name_create(cls, name):
+        """Crea la fila infiriendo el modelo de la etiqueta — ``name_create``.
+
+        Docstring de la fuente, verbatim: *"Infer the model from the name.
+        E.g.: 'My New Model' should become 'x_my_new_model'"*
+        (``odoo19c: ir_model.py:415-422``).
+
+        Sobreescribe el ``name_create`` universal de ``DisplayNameMixin``, que
+        sólo escribe el ``_rec_name``: aquí hace falta además componer el
+        nombre técnico, porque ``model`` no admite vacío.
+        """
+        record = cls.objects.create(
+            name=name, model='x_' + '_'.join(name.lower().split(' ')))
+        return record.pk, record.display_name
+
+    def save(self, *args, **kwargs):
+        """Enganche de Django — ≙ ``create`` (``:400-413``) y ``write`` (``:483-497``).
+
+        De ``write`` se porta la guarda que importa: **cuatro campos no se
+        modifican** una vez escrita la fila —``model``, ``state``, ``abstract``
+        y ``transient``—, porque cambiarlos convertiría la fila en la
+        descripción de otro modelo sin tocar el modelo. La fuente compara
+        contra el valor guardado de cada registro; aquí ese valor lo da
+        ``_origin`` (``orm/models.py``, tarea #112), que es el mecanismo
+        equivalente y ya existe.
+
+        DIVERGENCIA DE MECANISMO, la de la cabecera del módulo y ya declarada:
+        las dos mitades de la fuente que **recargan el registro y actualizan el
+        esquema** —``_setup_models__`` e ``init_models``— no tienen receptor.
+        Django construye su registro al importar y lo congela, y el esquema lo
+        gobiernan las migraciones. Lo que queda de esas dos mitades es la
+        invalidación de ``_get_id``, que sí es nuestra y sí hay que hacer: sin
+        ella una fila nueva no se resuelve por nombre hasta reiniciar.
+
+        El filtro de la operación 4 sobre ``field_id`` tampoco tiene receptor:
+        es un arreglo para el cliente web de la fuente, que envía
+        ``(4, id, False)`` incluso para lo que no cambió.
+        """
+        if not self._state.adding:
+            previous = self._origin
+            if previous is not None:
+                for field_name in ('model', 'state', 'abstract', 'transient'):
+                    if getattr(self, field_name) != getattr(previous, field_name):
+                        raise UserError(
+                            'El campo %s no se puede modificar en un modelo.'
+                            % field_name)
+        result = super().save(*args, **kwargs)
+        registry.clear_cache('stable')
+        return result
+
+    def delete(self, *args, **kwargs):
+        """Enganche de Django — ≙ ``unlink`` (``:353-381``).
+
+        La fuente arrastra cuatro cosas antes de borrar la fila, y las cuatro
+        se portan: los campos cuyo modelo relacionado desaparece, los crons que
+        lo apuntan, los identificadores externos que lo nombran, y la guarda
+        :meth:`_unlink_if_manual`.
+
+        DIVERGENCIA DE MECANISMO, declarada en la cabecera del módulo: el
+        ``_drop_table`` de la fuente no se porta —el esquema lo gobiernan las
+        migraciones— ni la recarga del registro, que aquí no existe. La
+        invalidación de ``_get_id`` sí, por la misma razón que en
+        :meth:`save`.
+
+        ``_prepare_update`` de la fuente, que preserva los campos que dependen
+        de éstos, cae dentro de la maquinaria de campos manuales y no tiene
+        receptor: aquí un campo se declara en Python.
+        """
+        self._unlink_if_manual()
+        model_name = self.model
+        IrModelFields.objects.filter(relation=model_name).delete()
+        # El cron llega por ``apps.get_model`` y no por ``import``: ``ir_cron``
+        # importa ``ir_actions``, que importa este archivo. Es la vía de Django
+        # para un ciclo entre modelos, y una llamada —no un ``import`` dentro
+        # de una función—, así que el gate de imports perezosos la admite.
+        #
+        # Y apunta por ``model_name``, no por ``model_id``: aquí el cron nombra
+        # su modelo con la etiqueta en un ``Char`` que delega en
+        # ``ir.actions.server``, no con la FK a ``ir.model`` que la fuente usa.
+        # Convertir ese ``Char`` en FK es la tarea **#139**; hasta entonces el
+        # filtro es por etiqueta.
+        apps.get_model('base', 'IrCron').objects.filter(
+            ir_actions_server__model_name=model_name).delete()
+        IrModelData.objects.filter(model=model_name).delete()
+        result = super().delete(*args, **kwargs)
+        registry.clear_cache('stable')
+        return result
 
     @classmethod
     def _get(cls, name):

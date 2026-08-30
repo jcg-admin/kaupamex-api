@@ -615,6 +615,23 @@ LOG_ACCESS_COLUMNS = ['created_at', 'updated_at']
 #: ≙ ``MAGIC_COLUMNS`` (``odoo19c: odoo/orm/models.py:297``).
 MAGIC_COLUMNS = ['id'] + LOG_ACCESS_COLUMNS
 
+#: ≙ ``regex_order`` (``odoo19c: odoo/orm/models.py:93-104``), verbatim.
+#: Acota la cláusula ``_order`` entera: una lista de campos separados por coma,
+#: cada uno con su dirección y su tratamiento de nulos opcionales. Es lo que
+#: :meth:`BaseModel._check_qorder` mide antes de dejar pasar un orden.
+regex_order = re.compile(r"""
+    ^
+    (\s*
+        (?P<term>((?P<field>[a-z0-9_]+)(\.(?P<property>[a-z0-9_]+))?(:(?P<func>[a-z_]+))?))
+        (\s+(?P<direction>desc|asc))?
+        (\s+(?P<nulls>nulls\ first|nulls\ last))?
+        \s*
+        (,|$)
+    )+
+    (?<!,)
+    $
+""", re.IGNORECASE | re.VERBOSE)
+
 
 #: ≙ el nombre que la referencia usa para la empresa de un registro. Aquí la
 #: convención renombró la FK: ``company`` en 76 declaraciones y ``company_id``
@@ -2299,6 +2316,37 @@ class RecordLoaderMixin(FieldSqlMixin):
 def _display_name_default(record):
     """El ``default`` del descriptor: delega en ``_compute_display_name``."""
     return record._compute_display_name()
+
+
+class OrderMixin:
+    """``_check_qorder`` — la cláusula de orden se valida antes de usarse.
+
+    ≙ ``BaseModel._check_qorder`` (``odoo19c: odoo/orm/models.py:5215-5222``).
+    Su única razón de existir es que un ``_order`` llega como **texto** —de una
+    fila de ``ir.model``, de un contexto, de un parámetro— y acaba interpolado
+    en un ``ORDER BY``. La comprobación es lo que separa un nombre de campo de
+    una inyección.
+
+    **La divergencia es de VÍA, no de alcance**, y es la misma que
+    :class:`DisplayNameMixin` y :class:`FieldSqlMixin` ya declaran: allá cuelga
+    de ``BaseModel``, así que todo modelo lo tiene; aquí ``models.Model`` es el
+    de Django y no es nuestro para colgarle nada. Lo adopta
+    ``TimeStampedModel``, que es la base común del proyecto.
+    """
+
+    def _check_qorder(self, word):
+        """Levanta ``UserError`` si ``word`` no es una cláusula de orden válida.
+
+        Cuerpo verbatim de la fuente, con su mensaje: *"Invalid 'order'
+        specified (%s). A valid 'order' specification is a comma-separated list
+        of valid field names (optionally followed by asc/desc for the
+        direction)"*.
+        """
+        if not regex_order.match(word):
+            raise UserError(
+                'Orden inválido (%s). Un orden válido es una lista de nombres '
+                'de campo separados por coma, cada uno seguido opcionalmente '
+                'de asc o desc.' % word)
 
 
 class DisplayNameMixin:
