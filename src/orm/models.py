@@ -1355,22 +1355,35 @@ class FieldSqlMixin:
         """Los campos del modelo por nombre — ≙ ``BaseModel._fields``.
 
         Allá es el registro que el ORM construye al cargar la clase; aquí lo
-        provee ``_meta``, que es el registro equivalente de Django. Sólo entran
-        los **concretos**: son los que tienen columna, y los únicos que
-        ``to_sql`` sabe convertir. Una relación inversa o un ``ManyToMany`` no
-        la tiene y allá tampoco es un campo almacenado.
+        provee ``_meta``, que es el registro equivalente de Django. Entran
+        **todos**, como allá: el mapa es el registro del modelo, no el de sus
+        columnas.
 
-        *Métrica:* ``_meta.get_fields()`` filtrado por ``concrete``.
+        > **Ensanchado (tarea #215, H-API-953).** Hasta hoy filtraba por
+        > ``concrete``, y ese filtro era un contrato **más estrecho** que el de
+        > la fuente sin que nadie hubiera comparado los dos alcances. Lo
+        > destapó ``setup_related`` (``odoo19c: :604``), que recorre
+        > ``model._fields[name]`` por una cadena punteada que puede atravesar
+        > un ``One2many`` — que no es concreto. Con el mapa estrecho esa cadena
+        > no se puede recorrer.
+        >
+        > Medido sobre ``ResPartner``: **107** campos en total, **66**
+        > concretos, **41** no. El filtro escondía el 38 %.
+        >
+        > Los cinco consumidores se midieron uno a uno antes de ensanchar.
+        > Cuatro filtran por su cuenta —dos exigen ``ForeignKey``, dos exigen
+        > ``Properties``— así que el filtro no era suyo. El quinto,
+        > ``_field_to_sql``, SÍ lo usaba: un nombre no concreto quedaba fuera
+        > del mapa y producía su ``ValueError`` limpio. Ese rechazo se conserva
+        > **en su sitio**, que es donde pertenece — quien compone SQL es quien
+        > sabe qué puede convertir.
+
+        *Métrica:* ``_meta.get_fields()``, sin filtro.
         *Ciega a:* el ``NonStored`` de ``orm/fields_nonstored.py``, que no es
         un campo de Django y por diseño no aparece en ``_meta`` — es el
-        ``store=False`` de la fuente, y ``_field_to_sql`` lo rechaza por la
-        misma razón que allá: no tiene columna que nombrar.
+        ``store=False`` de la fuente.
         """
-        return {
-            field.name: field
-            for field in self._meta.get_fields()
-            if getattr(field, 'concrete', False)
-        }
+        return {field.name: field for field in self._meta.get_fields()}
 
     def _has_field_access(self, field, operation) -> bool:
         """Si el usuario puede leer o escribir este campo.
@@ -1511,7 +1524,12 @@ class FieldSqlMixin:
         """
         fname, property_name = parse_field_expr(field_expr)
         field = self._fields.get(fname)
-        if not field:
+        if not field or not getattr(field, 'concrete', False):
+            # El rechazo del campo sin columna vive AQUÍ y no en ``_fields``:
+            # quien compone SQL es quien sabe qué puede convertir. Antes lo
+            # hacía el mapa, filtrando por ``concrete``, y con eso el registro
+            # del modelo quedaba más estrecho que el de la fuente para todos
+            # sus consumidores — no sólo para éste (tarea #215).
             raise ValueError(
                 f"Invalid field {fname!r} on model {self._meta.label!r}")
 
