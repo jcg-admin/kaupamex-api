@@ -1013,16 +1013,26 @@ class IrActionsReport(IrActionsBase):
     # --- Despacho por formato ---------------------------------------------
 
     def _render_qweb_text(self, report_ref, docids, data=None):
-        """El documento en texto plano.
+        """El documento en texto plano, en ``bytes``.
 
-        ≙ ``_render_qweb_text`` (``:1103-1110``).
+        ≙ ``_render_qweb_text`` (``:1103-1110``), cuya firma promete ``bytes``
+        (``:774`` declara ``:rtype: bytes`` para el paso que comparten los tres
+        formatos).
+
+        **El paso de serialización es la divergencia declarada.** Allá
+        ``_render_template`` ya devuelve HTML, así que el renderizador sólo lo
+        codifica; aquí devuelve el **intermedio del descriptor** —el motor de
+        libharu dibuja descriptores, no HTML (ADR-017)—, así que hace falta un
+        serializador que lo lleve a la representación que la firma promete.
+        Lo aporta ``report_template.descriptor_to_text``.
         """
         if not data:
             data = {}
         data.setdefault('report_type', 'text')
         report = self._get_report(report_ref)
         data = self._get_rendering_context(report, docids, data)
-        return report._render_template(report.report_name, data), 'text'
+        rendered = report._render_template(report.report_name, data)
+        return report_template.descriptor_to_text(rendered), 'text'
 
     def _render_qweb_html(self, report_ref, docids, data=None):
         """El documento sin convertir — el intermedio del pipeline.
@@ -1033,13 +1043,23 @@ class IrActionsReport(IrActionsBase):
         (``:879``), y la prueba de que composición y conversión son pasos
         distintos: los tres formatos comparten plantilla y contexto, y sólo
         difieren en qué se hace con lo que sale de aquí.
+
+        **Devuelve ``bytes``, como la firma de la fuente promete.** El
+        intermedio de ``_render_template`` es aquí el descriptor y no el HTML
+        —ésa es la divergencia de ADR-017—, así que
+        ``report_template.descriptor_to_html`` hace la serialización que allá
+        no hace falta. El ``model`` viaja como ``data-oe-model`` del
+        ``div.article``, que es donde ``_prepare_html`` (``:383-463``) lo
+        busca.
         """
         if not data:
             data = {}
         data.setdefault('report_type', 'html')
         report = self._get_report(report_ref)
         data = self._get_rendering_context(report, docids, data)
-        return report._render_template(report.report_name, data), 'html'
+        rendered = report._render_template(report.report_name, data)
+        return (report_template.descriptor_to_html(rendered, model=report.model),
+                'html')
 
     @classmethod
     def _render(cls, report_ref, res_ids, data=None):
@@ -1321,12 +1341,22 @@ class IrActionsReport(IrActionsBase):
 
             data.setdefault('debug', False)
 
-            html = self._render_qweb_html(
-                report_ref, all_res_ids_wo_stream, data=data)[0]
+            # DIVERGENCIA DECLARADA — la fuente reutiliza aquí
+            # ``_render_qweb_html`` (``:879``) porque su intermedio ES el HTML:
+            # el ida y vuelta no le cuesta nada. El nuestro es el descriptor
+            # (ADR-017), así que serializarlo a HTML para que ``_prepare_html``
+            # lo vuelva a partir perdería la estructura que el motor dibuja.
+            # Se compone el intermedio directamente, que es el mismo paso que
+            # ``_render_qweb_html`` hace antes de serializar.
+            data.setdefault('report_type', 'pdf')
+            rendering_data = report_sudo._get_rendering_context(
+                report_sudo, all_res_ids_wo_stream, data)
+            rendered = report_sudo._render_template(
+                report_sudo.report_name, rendering_data)
 
             (bodies, html_ids, header, footer,
              specific_paperformat_args) = report_sudo._prepare_html(
-                html, report_model=report_sudo.model)
+                rendered, report_model=report_sudo.model)
 
             if (not has_duplicated_ids and report_sudo.attachment
                     and set(res_ids_wo_stream) != set(html_ids)):

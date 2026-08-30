@@ -85,6 +85,7 @@ dato llegaría al papel como ``&amp;`` (medido en
 ``analisis-motor-de-plantillas-django-y-el-descriptor-json``).
 """
 from django.template import Context, Engine, Variable, VariableDoesNotExist
+from django.utils.html import conditional_escape, escape
 
 from addons.base.models import ir_field_converters
 from tools.translate import _
@@ -366,3 +367,141 @@ def interpret_descriptor(arch, context, resolve_key=None, widget_options=None):
             _("Report template root must be <descriptor>, got <%s>") % arch.tag)
     return _interpret_children(arch, context, resolve_key,
                                widget_options=widget_options)
+
+
+# --- Serializadores del descriptor -----------------------------------------
+#
+# La fuente no los tiene, y la razón es que allá no hacen falta: su intermedio
+# YA es HTML —``ir.ui.view._render_template`` devuelve marcado y
+# ``_render_template`` lo codifica (``odoo19c: ir_actions_report.py:789``)—,
+# así que ``_render_qweb_html`` no serializa nada, sólo devuelve lo compuesto.
+# Aquí el intermedio es el descriptor, que es lo que el motor de libharu dibuja
+# (ADR-017), y por eso los dos formatos que no son papel necesitan un paso más.
+#
+# Es la categoría CONSTRUYE del criterio de las dos categorías: el stack trae
+# las primitivas —``conditional_escape`` para no re-escapar lo que un conversor
+# ya marcó seguro, y el propio recorrido del dict— y lo que falta es el mapeo
+# del vocabulario ``<descriptor>`` a etiquetas y a líneas, que es nuestro.
+
+
+def _bodies_and_ids(rendered):
+    """Los cuerpos y sus ids, venga el intermedio o un descriptor suelto.
+
+    Acepta las dos formas por la misma razón que ``_prepare_html``: el
+    intermedio de ``_render_template`` es ``{'bodies': …, 'html_ids': …}``, y
+    un llamador que interprete un arch por su cuenta tiene un dict pelado.
+    """
+    if isinstance(rendered, dict) and 'bodies' in rendered:
+        bodies = list(rendered['bodies'])
+        ids = list(rendered.get('html_ids') or [None] * len(bodies))
+        return bodies, ids
+    return [rendered], [None]
+
+
+def _html_block(body, level=1):
+    """Un bloque del descriptor como marcado, recursivo por su forma.
+
+    Las tres formas del descriptor tienen las tres su etiqueta, y el nombre
+    viaja en ``data-name`` en vez de en el texto: quien lea el HTML puede
+    volver al descriptor sin adivinar dónde acaba la etiqueta y empieza el
+    valor, que es la misma razón por la que la fuente marca ``data-oe-id``
+    en vez de escribir el id dentro del cuerpo.
+    """
+    indent = '  ' * level
+    parts = []
+    for name, value in body.items():
+        attribute = escape(name)
+        if isinstance(value, dict):
+            parts.append(f'{indent}<div class="section" data-name="{attribute}">')
+            parts.append(_html_block(value, level + 1))
+            parts.append(f'{indent}</div>')
+        elif isinstance(value, list):
+            parts.append(f'{indent}<div class="list" data-name="{attribute}">')
+            for item in value:
+                parts.append(f'{indent}  <div class="item">')
+                parts.append(_html_block(item, level + 2))
+                parts.append(f'{indent}  </div>')
+            parts.append(f'{indent}</div>')
+        else:
+            # ``conditional_escape`` y no ``escape``: el valor de un ``<field
+            # widget="…">`` sale del conversor ya marcado seguro —la familia
+            # ``ir.qweb.field.*`` usa ``mark_safe`` donde emite etiquetas— y
+            # volver a escaparlo publicaría ``&lt;img …&gt;`` en el papel. El
+            # de un ``<field>`` sin widget sale de DTL con ``autoescape=False``
+            # y sí hay que escaparlo.
+            parts.append(f'{indent}<div class="field" data-name="{attribute}">'
+                          f'{conditional_escape(value)}</div>')
+    return '\n'.join(parts)
+
+
+def descriptor_to_html(rendered, model=None):
+    """El descriptor como documento HTML — lo que ``report_type='html'`` promete.
+
+    :param rendered: el intermedio de ``_render_template``, o un descriptor.
+    :param model: el modelo del reporte, para ``data-oe-model``.
+    :returns: ``bytes``, como la fuente (``:774`` declara ``:rtype: bytes``).
+
+    **El par ``data-oe-model``/``data-oe-id`` es el contrato**, no adorno: es
+    lo que la fuente busca al partir el documento por registro
+    (``_prepare_html``, ``:383-463``) y lo que permite guardar un adjunto por
+    registro. Aquí el reparto ya viene hecho —un cuerpo por registro— y el par
+    se escribe igual, para que el HTML diga lo mismo que el descriptor.
+    """
+    bodies, ids = _bodies_and_ids(rendered)
+    model_attribute = f' data-oe-model="{escape(model)}"' if model else ''
+    parts = ['<html><body>']
+    for body, res_id in zip(bodies, ids):
+        id_attribute = '' if res_id is None else f' data-oe-id="{escape(res_id)}"'
+        parts.append(f'<div class="article"{model_attribute}{id_attribute}>')
+        bloque = _html_block(body)
+        if bloque:
+            parts.append(bloque)
+        parts.append('</div>')
+    parts.append('</body></html>')
+    return '\n'.join(parts).encode()
+
+
+def _text_block(body, level=0):
+    """Un bloque del descriptor como líneas indentadas."""
+    indent = '  ' * level
+    lines = []
+    for name, value in body.items():
+        if isinstance(value, dict):
+            lines.append(f'{indent}{name}:')
+            lines.extend(_text_block(value, level + 1))
+        elif isinstance(value, list):
+            lines.append(f'{indent}{name}:')
+            for item in value:
+                rows = _text_block(item, level + 2)
+                if rows:
+                    # El guion marca dónde empieza cada elemento; sin él, dos
+                    # elementos de dos campos se leen como uno de cuatro.
+                    rows[0] = f'{indent}  - {rows[0].lstrip()}'
+                lines.extend(rows)
+        else:
+            lines.append(f'{indent}{name}: {value}')
+    return lines
+
+
+def descriptor_to_text(rendered):
+    """El descriptor como texto plano — lo que ``report_type='text'`` promete.
+
+    :returns: ``bytes``, por el mismo contrato que :func:`descriptor_to_html`.
+
+    Cada registro abre con una regla que lleva su id, que es el equivalente en
+    texto del ``data-oe-id`` del marcado: sin ella, dos registros seguidos se
+    leen como un documento de campos repetidos.
+
+    *Ciega a:* el valor que un conversor marcó como seguro llega aquí con sus
+    etiquetas — ``ir.qweb.field.html`` devuelve marcado por contrato, y en
+    texto plano eso se lee tal cual. Despojarlo exige decidir qué se pierde
+    (un ``<br>`` es un salto de línea; un ``<img>`` no tiene equivalente), y esa
+    decisión es del declarante que pida el formato, no de este serializador.
+    """
+    bodies, ids = _bodies_and_ids(rendered)
+    lines = []
+    for body, res_id in zip(bodies, ids):
+        if res_id is not None:
+            lines.append(f'--- {res_id} ---')
+        lines.extend(_text_block(body))
+    return '\n'.join(lines).encode()

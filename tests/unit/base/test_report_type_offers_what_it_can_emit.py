@@ -73,31 +73,37 @@ class TestWhyTheOtherTwoAreNotOffered:
         for ported in ('_render_qweb_html', '_render_qweb_text'):
             assert hasattr(IrActionsReport, ported), ported
 
-    def test_but_their_body_returns_the_intermediate_of_the_descriptor(self):
-        # Los dos cuerpos son el de la fuente, verbatim: componen y devuelven
-        # ``_render_template(...)``. Allá eso es la representación HTML; aquí
-        # ``_render_template`` devuelve ``{'bodies': …, 'html_ids': …}`` —el
-        # intermedio que el helper de libharu consume—, así que el par que
-        # sale de estos dos métodos lleva un **dict** donde su nombre promete
-        # texto o marcado.
-        for ported in ('_render_qweb_html', '_render_qweb_text'):
-            body = inspect.getsource(getattr(IrActionsReport, ported))
-            assert '_render_template(' in body, ported
-
+    def test_and_their_body_now_serializes_the_intermediate_it_composes(self):
+        # ``_render_template`` sigue devolviendo ``{'bodies': …, 'html_ids': …}``
+        # —el intermedio que el helper de libharu consume—, y ésa es la
+        # divergencia de ADR-017 que no se retira. Lo que la tarea #196 añadió
+        # es el paso que faltaba: cada renderizador serializa ese intermedio a
+        # lo que su firma promete, en vez de devolver el dict crudo.
         source = inspect.getsource(IrActionsReport._render_template)
         assert "return {'bodies': bodies, 'html_ids': html_ids}" in source
 
-    def test_the_stack_would_have_to_build_the_two_serializers(self):
-        # El criterio de las dos categorías, aplicado: ninguno de los dos es
-        # TRAE. Lo que falta no es un símbolo instalado sino el recorrido que
-        # aplana el descriptor a líneas (``text``) o a marcado (``html``) —el
-        # mismo trabajo que ``tools/pdf`` ya hace para el papel. CONSTRUYE.
-        #
-        # El control que lo mide: no existe ningún serializador del descriptor
-        # fuera del camino del PDF.
-        exported = {n for n in dir(report_template) if not n.startswith('__')}
-        assert 'interpret_descriptor' in exported
-        assert not {n for n in exported if 'to_text' in n or 'to_html' in n}
+        # Conducta, no nombres: el mismo descriptor sale distinto por cada
+        # renderizador, y los dos salen en ``bytes`` como la fuente promete
+        # (``odoo19c: ir_actions_report.py:774`` declara ``:rtype: bytes``).
+        descriptor = {'bodies': [{'title': 'Factura'}], 'html_ids': [None]}
+        html = report_template.descriptor_to_html(descriptor)
+        text = report_template.descriptor_to_text(descriptor)
+        assert isinstance(html, bytes) and isinstance(text, bytes)
+        assert b'<div class="field" data-name="title">Factura</div>' in html
+        assert text == b'title: Factura'
+        assert html != text
+
+    def test_the_two_serializers_were_built_because_the_stack_had_no_symbol(self):
+        # El criterio de las dos categorías, cerrado: ninguno de los dos era
+        # TRAE. Lo que faltaba no era un símbolo instalado sino el recorrido
+        # que aplana el descriptor a líneas (``text``) o a marcado (``html``).
+        # CONSTRUYE — y ya está construido, con las primitivas del stack
+        # (``conditional_escape`` para no re-escapar lo que un conversor marcó
+        # seguro). Este control sustituye al que medía su ausencia por los
+        # nombres exportados: aquél era correcto mientras no existieran, y
+        # habría seguido verde si se hubieran escrito con otro nombre.
+        for serializer in ('descriptor_to_html', 'descriptor_to_text'):
+            assert hasattr(report_template, serializer), serializer
 
 
 @pytest.mark.django_db
