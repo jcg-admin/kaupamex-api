@@ -1,0 +1,12 @@
+# Control discriminante — exencion-vacia
+# fecha:    2026-08-30T17:34:10
+# archivo:  tests/unit/orm/test_fields_properties.py
+# anulado:  s/^PUBLIC_FORM_DECLARED_BY_THE_SOURCE = frozenset({'_compute'})$/PUBLIC_FORM_DECLARED_BY_THE_SOURCE = frozenset()/
+# tests:    tests/unit/orm/test_fields_properties.py
+
+## 1. Verde de partida (guarda presente)
+39 passed, 1 warning in 5.64s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_fields_properties.py::TestPortedSurface::test_the_underscore_prefix_is_preserved
+1 failed, 38 passed, 1 warning in 6.10s

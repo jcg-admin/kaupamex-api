@@ -52,6 +52,13 @@ PORTED_PROPERTIES = [
     'expression_getter', 'filter_function', 'condition_to_q',
 ]
 
+#: El único de los doce privados cuya forma pública la referencia declara —
+#: y la declara en OTRA clase y con OTRA naturaleza: ``Field.compute`` es el
+#: parámetro del campo (``odoo19c: odoo/orm/fields.py:285``), no un método de
+#: ``Properties``. Medido: los otros once no tienen forma pública ni en
+#: ``Field`` ni en ``Properties``.
+PUBLIC_FORM_DECLARED_BY_THE_SOURCE = frozenset({'_compute'})
+
 PORTED_DEFINITION = [
     'convert_to_column', 'convert_to_cache', 'convert_to_record',
     'convert_to_read', 'convert_to_write', '_validate_properties_definition',
@@ -71,12 +78,57 @@ class TestPortedSurface:
         assert missing == []
 
     def test_the_underscore_prefix_is_preserved(self):
-        # H-API-581: quitar el guion bajo publica lo que la fuente reservó.
+        """H-API-581: quitar el guion bajo publica lo que la fuente reservó.
+
+        **Corregido 2026-08-30.** Este caso pasaba por la razón equivocada.
+        Su instrumento es ``hasattr(Properties, nombre.lstrip('_'))``, y
+        ``hasattr`` no distingue un método de ``Properties`` de un atributo
+        de clase heredado de la base. Mientras la base no tuvo el contrato de
+        ``Field``, ningún nombre público existía y el caso salía verde — pero
+        lo que medía era *«aún no portamos los atributos de Field»*, no
+        *«conservamos el guion bajo»*. Es el sub-patrón D de
+        ``metrica-decide-la-conclusion``: un verde que no discrimina.
+
+        Al instalar el contrato de ``Field`` sobre ``models.Field``, el caso
+        cayó — y cayó bien, porque destapó que su premisa era demasiado
+        ancha. Medido contra la referencia, de los doce privados **uno solo**
+        tiene forma pública allá, y no es la que este caso teme:
+
+        - ``Properties._compute`` es un **método** de ``Properties``.
+        - ``Field.compute`` es el **parámetro** del campo
+          (``odoo19c: odoo/orm/fields.py:285`` — ``compute: str | Callable |
+          None = None``).
+
+        Son dos símbolos distintos que se diferencian por un guion bajo, y la
+        fuente declara los dos. ``porte-completo-no-parcial.md`` nombra ese
+        caso explícitamente como lo que **no** es este defecto.
+
+        *Métrica:* nombres públicos declarados en el cuerpo de ``Field`` y de
+        ``Properties`` en la referencia, contra los doce privados de
+        :data:`PORTED_PROPERTIES`.
+        *Ciega a:* un símbolo que la referencia declare público en una
+        tercera clase de la cadena; los once restantes se comprobaron contra
+        ``Field`` y ``Properties``, que son las dos que este porte toca.
+        """
         private = [n for n in PORTED_PROPERTIES if n.startswith('_')]
         assert len(private) == 12
         for name in private:
+            if name in PUBLIC_FORM_DECLARED_BY_THE_SOURCE:
+                continue
             assert not hasattr(Properties, name.lstrip('_')), (
                 'existe la forma pública de %s' % name)
+
+    def test_the_exempted_public_form_is_the_field_parameter(self):
+        """El control de la exención: ``compute`` existe, y es lo que debe ser.
+
+        Sin este caso la exención sería un agujero — bastaría con que alguien
+        publicara ``Properties.compute`` como método para que el caso de
+        arriba lo dejara pasar. Aquí se fija QUÉ es el símbolo exento: un
+        atributo de clase que viene de la base, no un método de ``Properties``.
+        """
+        assert hasattr(Properties, 'compute')
+        assert not callable(Properties.compute)
+        assert 'compute' not in vars(Properties)
 
     def test_the_definition_is_no_longer_an_alias(self):
         # Hasta este porte era ``PropertiesDefinition = models.JSONField``.

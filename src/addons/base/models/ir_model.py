@@ -3000,10 +3000,15 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
     def ref(cls, xmlid, raise_if_not_found=True, using=DEFAULT_DB_ALIAS):
         """El registro que designa el identificador — ≙ ``env.ref``.
 
-        Vive aquí y no en un ``env`` porque este proyecto no tiene ese objeto:
-        la referencia lo pone en ``odoo/orm/environments.py:158`` sólo para dar
-        el atajo, y su cuerpo no hace otra cosa que llamar a
-        ``_xmlid_to_res_model_res_id`` y traer el registro.
+        **Corregido 2026-08-30:** este párrafo decía *"vive aquí y no en un
+        ``env`` porque este proyecto no tiene ese objeto"*. El objeto ya
+        existe —``orm.environments.Environment``, construido cuando el
+        ejecutor preguntó si se podía tener el azúcar de la referencia— y
+        ``env.ref`` delega **aquí**, que sigue siendo el hogar del cuerpo:
+        allá (``odoo19c: odoo/orm/environments.py:158``) el método del entorno
+        tampoco hace otra cosa que llamar a ``_xmlid_to_res_model_res_id`` y
+        traer el registro. Lo que cambió es que ahora hay dos puertas a la
+        misma implementación, no dos implementaciones.
 
         Devuelve ``None`` si la fila apunta a algo ya borrado — la referencia
         hace lo mismo con su ``record.exists()``: un identificador externo

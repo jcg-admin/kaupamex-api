@@ -38,15 +38,16 @@ referencia declara y aquí no existen: ``existing_tables``, ``table_kind`` (+
 ``drop_view_if_exists``, ``pg_varchar``, ``reverse_order``,
 ``increment_fields_skiplock``, ``value_to_translated_trigram_pattern``,
 ``pattern_to_translated_trigram_pattern``,
-``make_index_name``; y ``__all__``, ``_schema``, ``_CONFDELTYPES``,
-``SQL_ORDER_BY_TYPE``. Todas sirven al DDL del registro de modelos de la
+``make_index_name``; y ``__all__``, ``_schema``, ``_CONFDELTYPES``.
+Todas sirven al DDL del registro de modelos de la
 referencia; aquí ese DDL lo emiten las migraciones de Django. Se portan
 cuando un consumidor las exija — el alcance de #549 es la clase ``SQL``;
 esta declaración medida es el registro de esa cobertura (regla
 ``porte-completo-no-parcial``). ``make_identifier`` **salió de esa lista**
 el 2026-08-28: ``tools/query.py`` lo exige para acotar el alias de un JOIN
 al límite de identificador de PostgreSQL, que es el consumidor que la
-política anunciaba.
+política anunciaba. ``SQL_ORDER_BY_TYPE`` salió el 2026-08-30 por la misma
+regla: ``Field.column_order`` (``orm/fields.py``) es su consumidor.
 
 ``named_to_positional_printf`` y ``_PrintfArgs`` viven en
 ``src/tools/misc.py`` — su hogar espejado (``odoo19c: odoo/tools/misc.py:1959``
@@ -92,6 +93,44 @@ from .misc import named_to_positional_printf
 # ≙ ``IDENT_RE`` (``odoo19c: odoo/tools/sql.py:35``) — el filtro de
 # ``SQL.identifier``: minúsculas, dígitos, ``_``, ``$`` y ``-``.
 IDENT_RE = re.compile(r'^[a-z0-9_][a-z0-9_$\-]*$', re.I)
+
+#: ≙ ``SQL_ORDER_BY_TYPE`` (``odoo19c: odoo/tools/sql.py:261-272``), verbatim.
+#:
+#: El orden prescrito de columnas dentro de una tabla, por tipo. Los valores
+#: se eligieron para minimizar el relleno de alineación de cada fila: primero
+#: lo alineado a 4 bytes, luego lo de 1 byte, luego lo de 8. Un tipo que no
+#: esté en el mapa va al final (16), que es lo que hace el ``defaultdict`` de
+#: la fuente y aquí el ``.get(clave, 16)`` de :func:`sql_order_by_type`.
+#:
+#: Es un `dict` llano y no un ``defaultdict`` a propósito: un ``defaultdict``
+#: consultado con una clave desconocida la **inserta**, así que una lectura
+#: silenciosa lo hace crecer. El default se aplica al leer, no al guardar.
+SQL_ORDER_BY_TYPE = {
+    'int4': 1,          # 4 bytes alineado a 4 bytes
+    'varchar': 2,       # variable alineado a 4 bytes
+    'date': 3,          # 4 bytes alineado a 4 bytes
+    'jsonb': 4,         # jsonb
+    'text': 5,          # variable alineado a 4 bytes
+    'numeric': 6,       # variable alineado a 4 bytes
+    'bool': 7,          # 1 byte alineado a 1 byte
+    'timestamp': 8,     # 8 bytes alineado a 8 bytes
+    'float8': 9,        # 8 bytes alineado a 8 bytes
+}
+
+#: El valor que la fuente da a un tipo desconocido — el ``lambda: 16`` de su
+#: ``defaultdict``. Se nombra para que el consumidor no lo teclee.
+SQL_ORDER_BY_TYPE_UNKNOWN = 16
+
+
+def sql_order_by_type(udt_name):
+    """El orden prescrito del tipo dado, o el de un tipo desconocido.
+
+    ≙ la lectura ``SQL_ORDER_BY_TYPE[udt]`` de la fuente, que su
+    ``defaultdict`` resuelve a 16. Aquí es una función porque el mapa es un
+    ``dict`` llano: el default se aplica al leer y no muta el mapa.
+    """
+    return SQL_ORDER_BY_TYPE.get(udt_name, SQL_ORDER_BY_TYPE_UNKNOWN)
+
 
 
 class SQL:

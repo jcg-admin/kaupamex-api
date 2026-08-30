@@ -1,0 +1,13 @@
+# Control discriminante — env-getitem-sin-registro
+# fecha:    2026-08-30T17:25:06
+# archivo:  src/orm/environments.py
+# anulado:  s/^        modelo = registry\.MODELS_BY_NAME\.get(model_name)$/        modelo = None/
+# tests:    tests/unit/orm/test_environments_transaction.py
+
+## 1. Verde de partida (guarda presente)
+36 passed, 1 warning in 5.61s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_environments_transaction.py::TestTheEnvironmentSugar::test_it_resolves_a_reference_name
+FAILED tests/unit/orm/test_environments_transaction.py::TestTheEnvironmentSugar::test_membership_and_length_read_the_registry
+2 failed, 34 passed, 1 warning in 6.04s

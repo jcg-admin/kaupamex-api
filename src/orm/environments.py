@@ -6,32 +6,79 @@ tres cosas a cada recordset: el **cursor** de la transacción (``env.cr``), el
 **contexto** (``env.context``, dict de solo lectura). Además indexa los modelos
 por nombre (``env['res.partner']``) y cachea registros dentro de la transacción.
 
-Mapeo a Django — **cada pieza del Environment ya existe en Django**, dispersa en
-distintos lugares en vez de un único objeto:
+Dónde vive cada pieza — medido, no supuesto
+============================================
 
-=====================  =========================================================
-Odoo ``env.*``         Equivalente Django
-=====================  =========================================================
-``env.cr`` (cursor)    ``django.db.connection`` / ``connections[alias]``;
-                       la transacción se maneja con ``transaction.atomic``
-``env.uid`` / ``.user``  ``request.user`` (autenticación DRF/Django)
-``env.su`` (sudo)      ``user.is_superuser`` / correr sin filtros de permiso
-``env.context``        ``request`` + ``get_language()`` (i18n) + kwargs de vista
-``env['model.name']``  ``apps.get_model(...)`` / import directo del modelo
-cache por transacción  el ORM de Django gestiona su propio caché de queries
-=====================  =========================================================
+Este archivo declaraba una tabla titulada «**cada pieza del Environment ya
+existe en Django**» y concluía que era «un stub delgado y documentado, no una
+reimplementación». Medido fila por fila el 2026-08-30: de las seis, **una**
+era cierta. Las otras cinco describían un diseño anterior a DEC-AISL-04 —el
+que este mismo archivo superó cuando construyó sus dos canales— o
+sencillamente no funcionaban.
 
-Por eso este archivo es un **stub delgado y documentado, no una
-reimplementación**: recrear ``Environment`` sobre Django duplicaría el registro
-de apps, el manejo de conexiones y la autenticación que Django ya provee. Un
-addon portado que en Odoo escribía ``self.env.user`` se adapta a
-``request.user``; ``self.env['res.partner']`` a ``apps.get_model('base',
-'ResPartner')`` o al import directo del modelo. Cuando un flujo concreto necesite
-azúcar de acceso (p. ej. un helper ``env(request)`` que exponga ``user`` +
-``lang`` + ``company``), se añade aquí como conveniencia sobre las piezas
-nativas, sin reintroducir el motor.
+=====================  ==========  ==============================================
+Odoo ``env.*``         Veredicto   Quién lo resuelve **aquí**
+=====================  ==========  ==============================================
+``env.cr`` (cursor)    cierto      ``django.db.connection`` / ``connections``;
+                                   la transacción del motor, ``atomic``
+``env.uid`` / ``.user``  stale     ``get_current_uid`` / ``get_current_user``
+                                   de este módulo — NO ``request.user``
+``env.su`` (sudo)      stale       ``is_su`` / ``sudo`` de este módulo — el
+                                   canal de elevación de DEC-AISL-04, que NO
+                                   es ``user.is_superuser``
+``env.context``        stale       ``get_context`` / ``context_scope``
+``env['model.name']``  **falso**   :class:`Environment`, construida aquí.
+                                   ``apps.get_model('res.partner')`` levanta
+                                   ``LookupError: No installed app with label
+                                   'res'`` — un nombre de la referencia no es
+                                   una etiqueta de app de Django
+cache por transacción  **falso**   :class:`Transaction`, construida aquí
+=====================  ==========  ==============================================
+
+*Métrica:* invocación real de cada símbolo contra el árbol instalado
+(``tests/unit/orm/test_environments_transaction.py``).
+*Ciega a:* si algún consumidor sigue leyendo ``request.user`` en vez del canal
+—eso lo mide el barrido de la tarea #124, no esta tabla.
+
+El azúcar SÍ se puede construir, y se construyó
+================================================
+
+La pregunta del ejecutor al leer la tabla fue exacta: *«ellos tienen esta
+azúcar sintáctica ``env['model.name']``, ¿nosotros podríamos crearla?»*. La
+respuesta medida es que sí, y sin ninguna dependencia de fuera: las ocho
+piezas del ``Environment`` ya vivían en este árbol, dispersas. Lo único que
+faltaba era el objeto que las ata, que es justo lo que la fuente aporta.
+
+Las tres filas ``stale`` de arriba dejan de serlo por la misma vía: ``env.uid``,
+``env.su`` y ``env.context`` son hoy propiedades de :class:`Environment` que
+leen el canal. El objeto **no** sustituye a los canales ni los duplica — es
+una vista sobre ellos, y ésa es la decisión de diseño que evita el segundo
+almacén.
+
+Las tres filas ``stale`` no eran mentira cuando se escribieron: describían el
+plan de delegar en Django. Lo que las volvió falsas fue construir los canales
+—y nadie volvió a leer la tabla. Es la clase de H-DOCS-148: dos referentes
+del mismo repo que dejan de coincidir sin que nada lo delate.
+
+La fila del caché es la que más costó
+======================================
+
+El caché de Django es de **consultas** —un ``QuerySet._result_cache``, atado
+al queryset y no a la transacción— y el de la referencia es de **campos**: un
+mapa ``{campo: {id: valor}}`` que vive lo que dura la transacción, que todos
+los recordsets comparten, y sobre el que se apoyan el cómputo diferido
+(``tocompute``), el volcado de escrituras (``field_dirty``) y la protección de
+campos durante un cómputo (``protected``). No cumplen la misma función:
+``Field._get_cache`` no tiene dónde apoyarse en el caché de un queryset.
+
+Por eso :class:`Transaction` se **construye** aquí (``odoo19c:
+odoo/orm/environments.py:552``). Las primitivas estaban todas: ``contextvars``
+para el alcance, ``defaultdict`` para los mapas, y ``OrderedSet`` /
+``StackMap`` de ``tools/misc.py`` para el orden de inserción y el apilado de
+alcances.
 """
 import logging
+from collections import defaultdict
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import timezone
@@ -41,6 +88,8 @@ from django.apps import apps
 from django.db import DEFAULT_DB_ALIAS, connection, connections
 
 from exceptions import AccessError
+from orm import registry
+from tools.misc import OrderedSet, StackMap
 
 _logger = logging.getLogger(__name__)
 
@@ -301,6 +350,535 @@ def get_current_tz():
     return timezone.utc
 
 
+class Transaction:
+    """≙ ``Transaction`` (``odoo19c: odoo/orm/environments.py:552``).
+
+    «A object holding ORM data structures for a transaction.»
+
+    Las cinco estructuras que se portan son las que tienen consumidor hoy:
+
+    ================== ==========================================================
+    Estructura         Quién la consume
+    ================== ==========================================================
+    ``field_data``     ``Field._get_cache`` — el mapa ``{campo: {id: valor}}``
+    ``field_dirty``    ``Field._update_cache`` — lo escrito en caché y no
+                       volcado aún a la base
+    ``field_data_patches`` los ids que un x2many suma a un valor que todavía no
+                       está en caché
+    ``protected``      ``Field.compute_value`` — los campos que un cómputo
+                       protege mientras corre, apilados por alcance
+    ``tocompute``      ``Field.recompute`` — los cómputos pendientes
+    ================== ==========================================================
+
+    De los ocho ``__slots__`` de la fuente quedan fuera tres, y por razón
+    medida, no por conveniencia:
+
+    - ``registry`` — aquí el registro es ``orm.registry``, un módulo, no un
+      objeto que la transacción tenga que sostener.
+    - ``envs`` / ``default_env`` — la fuente guarda un ``WeakSet`` de entornos
+      para volcarlos al hacer ``flush``. Aquí el entorno es este mismo módulo
+      de ``contextvars``: no hay N objetos que recorrer.
+    - ``cache`` — su propio comentario lo llama «backward-compatible view of
+      the cache»: es el nombre viejo de ``field_data``, conservado allá para
+      no romper addons. Aquí no hay historial que preservar.
+
+    El ``_Transaction__file_open_tmp_paths`` de la fuente **sí** existe en
+    este árbol, y con su nombre: vive en ``tools/misc.py``
+    (``file_open_temporary_directory``), donde se portó con la tarea #131.
+    """
+    __slots__ = ('field_data', 'field_data_patches', 'field_dirty',
+                 'protected', 'tocompute')
+
+    def __init__(self):
+        #: ``{campo: datos_gestionados_por_el_campo}``. Suele ser un mapa de
+        #: id a valor, pero cada campo lo usa como necesite — el
+        #: ``company_dependent``, por ejemplo, guarda un nivel más.
+        self.field_data = defaultdict(dict)
+        #: ``{campo: OrderedSet[id]}`` — lo cambiado en caché y aún no escrito.
+        self.field_dirty = defaultdict(OrderedSet)
+        #: ``{campo: {id: [ids]}}`` — ids que sumar al valor de un x2many que
+        #: todavía no está en caché.
+        self.field_data_patches = defaultdict(lambda: defaultdict(list))
+        #: ``{campo: OrderedSet[id]}`` apilado por alcance — los campos que un
+        #: cómputo protege mientras corre.
+        self.protected = StackMap()
+        #: ``{campo: OrderedSet[id]}`` — los cómputos pendientes.
+        self.tocompute = defaultdict(OrderedSet)
+
+    def invalidate_field_data(self, spec=None):
+        """Vacía el caché de campos, entero o el tramo que ``spec`` nombre.
+
+        ≙ ``Transaction.invalidate_field_data``. ``spec`` es un iterable de
+        ``(campo, ids)``; ``ids`` en ``None`` borra el campo entero.
+        """
+        if spec is None:
+            self.field_data.clear()
+            return
+        for field, ids in spec:
+            cache = self.field_data.get(field)
+            if not cache:
+                continue
+            if ids is None:
+                cache.clear()
+                continue
+            for record_id in ids:
+                cache.pop(record_id, None)
+
+    def clear(self):
+        """≙ ``Transaction.clear`` — vacía cachés y cómputos pendientes."""
+        self.invalidate_field_data()
+        self.field_data_patches.clear()
+        self.field_dirty.clear()
+        self.tocompute.clear()
+
+
+#: La transacción en curso. Un ``ContextVar`` y no un ``threading.local``
+#: por la misma razón que los otros canales de este módulo: una vista async
+#: y un ``Task`` de asyncio comparten hilo, y el ``local`` los mezclaría.
+_transaction = ContextVar('kaupamex_transaction', default=None)
+
+
+def get_transaction():
+    """La transacción en curso, creándola si aún no hay una.
+
+    ≙ ``env.transaction``. La fuente la ata al cursor; aquí al alcance de
+    ejecución, que es lo que este módulo ya gobierna para usuario, empresa y
+    contexto.
+    """
+    current = _transaction.get()
+    if current is None:
+        current = Transaction()
+        _transaction.set(current)
+    return current
+
+
+@contextmanager
+def transaction_scope():
+    """Abre una transacción del ORM y la cierra al salir.
+
+    Al salir **vacía** las estructuras: una entrada de caché que sobreviva a
+    su transacción es un valor que ya no describe ninguna fila. Es el
+    ``Transaction.clear()`` que la fuente llama al terminar.
+
+    No sustituye a ``django.db.transaction.atomic`` ni compite con él: aquél
+    gobierna el ``COMMIT``/``ROLLBACK`` del motor, éste el estado del ORM que
+    vive **encima**. Se anidan, y el orden natural es ``atomic`` por fuera.
+    """
+    previous = _transaction.get()
+    current = Transaction()
+    token = _transaction.set(current)
+    try:
+        yield current
+    finally:
+        current.clear()
+        _transaction.reset(token)
+        if previous is not None:
+            _transaction.set(previous)
+
+
+class Environment:
+    """≙ ``Environment`` (``odoo19c: odoo/orm/environments.py:40-549``).
+
+    El azúcar que la referencia usa en cada línea de cada addon::
+
+        self.env['res.partner']        # el modelo por su nombre
+        self.env.user                  # quién actúa
+        self.env.company               # sobre qué empresa
+        self.env.context.get('lang')   # con qué contexto
+        self.env.cr                    # el cursor de la transacción
+
+    **Construido, no delegado.** El docstring de este módulo declaraba que
+    ``env['model.name']`` lo cubría ``apps.get_model(...)``, y medido no lo
+    cubre: ``apps.get_model('res.partner')`` levanta ``LookupError: No
+    installed app with label 'res'`` — un nombre de la referencia tiene un
+    punto pero no es ``app_label.ModelName``. Las primitivas para construirlo
+    sí estaban todas, y ninguna es de fuera del stack:
+
+    ============================  ==============================================
+    Pieza del ``Environment``     Primitiva de este árbol
+    ============================  ==============================================
+    ``env['nombre']``             ``orm.registry.MODELS_BY_NAME``
+    ``env.cr``                    ``django.db.connections[alias]``
+    ``env.uid`` / ``env.user``    el canal del dato de este módulo
+    ``env.su``                    el canal de elevación de DEC-AISL-04
+    ``env.context``               el canal del contexto
+    ``env.company`` / ``companies``  el canal de empresa
+    ``env.transaction``           :class:`Transaction`, de este módulo
+    ``env.lang`` / ``env.tz``     ``django.utils.translation`` + ``get_current_tz``
+    ============================  ==============================================
+
+    **Es una vista, no un segundo almacén.** Cada lectura consulta el canal
+    ambiental en ese momento; el objeto no copia valores al construirse. Por
+    eso conviven sin discrepar con el código que ya lee ``get_current_uid()``
+    directamente: son la misma fuente vista de dos formas. Un objeto que
+    guardara copias sería un segundo almacén que hay que sincronizar, y
+    discreparía del canal en cuanto alguien abriera un ``user_scope``.
+
+    Los **overrides explícitos** (``env(user=…, context=…, su=…)``) sí se
+    guardan, y ganan sobre el canal para esa instancia. Al usarla como gestor
+    de contexto se **activan** sobre los canales, para que el código que lee
+    el canal directamente vea lo mismo::
+
+        with env(su=True) as elevado:
+            ...   # aquí ``is_su()`` también devuelve True
+
+    Sin ese activado el objeto sería decorativo: dos vistas del entorno que
+    no coinciden es peor que una sola.
+    """
+    __slots__ = ('_uid_override', '_context_override', '_su_override',
+                 '_using', '_tokens')
+
+    def __init__(self, cr=None, uid=None, context=None, su=None):
+        # La firma es la de la fuente —``Environment(cr, uid, context, su)``—
+        # y ``cr`` es aquí el **alias** de la conexión, que es lo que este
+        # stack usa para nombrarla; ``None`` significa la de por defecto.
+        self._using = cr
+        self._uid_override = uid
+        self._context_override = context
+        self._su_override = su
+        self._tokens = []
+
+    # --- el índice de modelos, que es el azúcar que motivó la clase --------
+
+    def __getitem__(self, model_name):
+        """``env['res.partner']`` → la clase del modelo.
+
+        ≙ ``Environment.__getitem__`` (``:105``). Resuelve por el nombre de la
+        referencia; como respaldo acepta la etiqueta ``app.Modelo`` de Django,
+        que es la única forma de alcanzar un modelo propio del L0 que no
+        declara ``_name``.
+        """
+        model = registry.MODELS_BY_NAME.get(model_name)
+        if model is not None:
+            return model
+        if '.' in model_name:
+            label, _, klass = model_name.partition('.')
+            try:
+                return apps.get_model(label, klass)
+            except LookupError:
+                # silent OK because el respaldo por etiqueta es el SEGUNDO
+                # intento: que Django no conozca esa etiqueta no es el
+                # desenlace, es que este camino no resolvió. El error que sí
+                # informa es el ``KeyError`` de abajo, que nombra lo que se
+                # pidió — igual que la fuente, que lanza su propio error tras
+                # agotar el registro.
+                pass
+        raise KeyError(model_name)
+
+    def __contains__(self, model_name):
+        """≙ ``Environment.__contains__`` (``:101``) — «test whether the given
+        model exists»."""
+        try:
+            self[model_name]
+        except KeyError:
+            return False
+        return True
+
+    def __iter__(self):
+        """≙ ``Environment.__iter__`` (``:109``) — los nombres de modelo."""
+        return iter(registry.MODELS_BY_NAME)
+
+    def __len__(self):
+        """≙ ``Environment.__len__`` (``:113``) — cuántos modelos hay."""
+        return len(registry.MODELS_BY_NAME)
+
+    # --- identidad del objeto ---------------------------------------------
+
+    def __eq__(self, other):
+        """≙ ``Environment.__eq__`` (``:117``) — dos entornos son el mismo si
+        coinciden sus tres ejes y su conexión."""
+        if not isinstance(other, Environment):
+            return NotImplemented
+        return (self.uid, self.su, self.context, self._using) == (
+            other.uid, other.su, other.context, other._using)
+
+    def __ne__(self, other):
+        result = self.__eq__(other)
+        return result if result is NotImplemented else not result
+
+    def __hash__(self):
+        """El contexto es un dict: se congela para poder hashear."""
+        return hash((self.uid, self.su, self._using,
+                     frozenset(self.context.items())))
+
+    def __repr__(self):
+        return (f'<Environment uid={self.uid} su={self.su} '
+                f'company={self.company_id}>')
+
+    # --- derivar otro entorno ---------------------------------------------
+
+    def __call__(self, cr=None, user=None, context=None, su=None):
+        """≙ ``Environment.__call__`` (``:126``) — un entorno derivado.
+
+        «Return an environment based on ``self``» — los ejes que no se nombran
+        se heredan. ``user`` admite el registro o su PK, igual que allá.
+        """
+        uid = self.uid if user is None else getattr(user, 'pk', user)
+        return Environment(
+            cr=self._using if cr is None else cr,
+            uid=uid,
+            context=self.context if context is None else context,
+            su=self.su if su is None else su,
+        )
+
+    def __enter__(self):
+        """Activa los overrides sobre los canales — ver el docstring."""
+        if self._uid_override is not None:
+            self._tokens.append((_uid, _uid.set(self._uid_override)))
+        if self._context_override is not None:
+            self._tokens.append((_context, _context.set(
+                dict(self._context_override))))
+        if self._su_override is not None:
+            self._tokens.append((_su, _su.set(bool(self._su_override))))
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        for channel, token in reversed(self._tokens):
+            channel.reset(token)
+        self._tokens.clear()
+        return False
+
+    # --- los tres ejes, leídos del canal salvo override --------------------
+
+    @property
+    def cr(self):
+        """≙ ``env.cr`` — la conexión, que es el cursor de este stack."""
+        return connections[self._using or DEFAULT_DB_ALIAS]
+
+    @property
+    def uid(self):
+        """≙ ``env.uid`` — la PK de quien actúa."""
+        return self._uid_override if self._uid_override is not None \
+            else get_current_uid()
+
+    @property
+    def su(self):
+        """≙ ``env.su`` — si el bloque está elevado."""
+        return bool(self._su_override) if self._su_override is not None \
+            else is_su()
+
+    @property
+    def context(self):
+        """≙ ``env.context`` — el contexto, de solo lectura como allá."""
+        values = self._context_override
+        return dict(values if values is not None else get_context())
+
+    @property
+    def user(self):
+        """≙ ``env.user`` (``:213``) — el registro de quien actúa."""
+        if self._uid_override is None:
+            return get_current_user()
+        model = registry.MODELS_BY_NAME.get('res.users')
+        if model is None:
+            return None
+        return model.objects.filter(pk=self._uid_override).first()
+
+    # --- empresa, idioma, zona --------------------------------------------
+
+    @property
+    def company_id(self):
+        """La PK de la empresa activa — el eje que la fuente resuelve en
+        ``env.company.id``. Se expone aparte porque aquí el canal guarda la
+        PK y materializar el registro cuesta una consulta."""
+        return get_current_company()
+
+    @property
+    def company(self):
+        """≙ ``env.company`` (``:236``) — el registro de la empresa activa."""
+        company_id = get_current_company()
+        if company_id is None:
+            return None
+        model = registry.MODELS_BY_NAME.get('res.company')
+        if model is None:
+            return None
+        return model.objects.filter(pk=company_id).first()
+
+    @property
+    def companies(self):
+        """≙ ``env.companies`` (``:262``) — las empresas activas."""
+        ids = get_current_companies()
+        model = registry.MODELS_BY_NAME.get('res.company')
+        if model is None or not ids:
+            return []
+        return list(model.objects.filter(pk__in=ids))
+
+    @property
+    def lang(self):
+        """≙ ``env.lang`` (``:294``) — el idioma del contexto, o ``None``.
+
+        La fuente devuelve ``None`` cuando el contexto no lo declara, y esa
+        distinción importa: ``_description_string`` sólo traduce si hay
+        idioma. Por eso NO cae al idioma activo de Django, que siempre tiene
+        uno.
+        """
+        value = self.context.get('lang')
+        return value or None
+
+    @property
+    def tz(self):
+        """≙ ``env.tz`` — la zona horaria efectiva."""
+        return get_current_tz()
+
+    # --- el registro y la transacción --------------------------------------
+
+    @property
+    def registry(self):
+        """≙ ``env.registry`` (``:172``) — aquí el registro es un módulo."""
+        return registry
+
+    @property
+    def transaction(self):
+        """≙ ``env.transaction`` — la transacción del ORM en curso."""
+        return get_transaction()
+
+    # --- las tres guardas de elevación -------------------------------------
+
+    def is_superuser(self):
+        """≙ ``Environment.is_superuser`` (``:178``)."""
+        return self.su
+
+    def is_admin(self):
+        """≙ ``Environment.is_admin`` (``:182``) — elevado, o del grupo de
+        administración de ajustes."""
+        return self.su or is_system()
+
+    def is_system(self):
+        """≙ ``Environment.is_system`` (``:187``)."""
+        return self.su or is_system()
+
+    # --- protección de campos durante un cómputo ---------------------------
+
+    def is_protected(self, field, record_id):
+        """≙ ``Environment.is_protected`` (``:392``)."""
+        try:
+            return record_id in self.transaction.protected[field]
+        except KeyError:
+            return False
+
+    def protected(self, field):
+        """≙ ``Environment.protected`` (``:398``) — los ids protegidos."""
+        try:
+            return self.transaction.protected[field]
+        except KeyError:
+            return OrderedSet()
+
+    @contextmanager
+    def protecting(self, fields, records=None):
+        """≙ ``Environment.protecting`` (``:403``).
+
+        Apila un alcance de protección y lo desapila al salir — que es la
+        razón por la que ``Transaction.protected`` es un ``StackMap`` y no un
+        dict: al salir tiene que reaparecer lo de abajo, no perderse.
+        """
+        transaction = self.transaction
+        ids = OrderedSet() if records is None else OrderedSet(records)
+        transaction.protected.pushmap({field: ids for field in fields})
+        try:
+            yield self
+        finally:
+            transaction.protected.popmap()
+
+    # --- cómputos pendientes ------------------------------------------------
+
+    def fields_to_compute(self):
+        """≙ ``Environment.fields_to_compute`` (``:435``)."""
+        return [field for field, ids in self.transaction.tocompute.items() if ids]
+
+    def records_to_compute(self, field):
+        """≙ ``Environment.records_to_compute`` (``:439``) — los ids pendientes."""
+        return self.transaction.tocompute.get(field) or OrderedSet()
+
+    def is_to_compute(self, field, record_id):
+        """≙ ``Environment.is_to_compute`` (``:444``)."""
+        return record_id in (self.transaction.tocompute.get(field) or ())
+
+    def not_to_compute(self, field, record_ids):
+        """≙ ``Environment.not_to_compute`` (``:448``) — los que NO lo están."""
+        pending = self.transaction.tocompute.get(field) or ()
+        return [i for i in record_ids if i not in pending]
+
+    def add_to_compute(self, field, record_ids):
+        """≙ ``Environment.add_to_compute`` (``:453``)."""
+        self.transaction.tocompute[field].update(record_ids)
+
+    def remove_to_compute(self, field, record_ids):
+        """≙ ``Environment.remove_to_compute`` (``:460``)."""
+        pending = self.transaction.tocompute.get(field)
+        if not pending:
+            return
+        for record_id in record_ids:
+            pending.discard(record_id)
+
+    # --- caché ---------------------------------------------------------------
+
+    def cache_key(self, field):
+        """≙ ``Environment.cache_key`` (``:471``) — la clave con que un campo
+        que depende del contexto separa sus valores.
+
+        La fuente compone la clave con cada entrada de ``_depends_context``.
+        Aquí lo mismo, leyendo el canal del contexto y los dos ejes que la
+        fuente trata aparte (``company`` y ``uid``).
+        """
+        keys = []
+        for name in (field._depends_context or ()):
+            if name == 'company':
+                keys.append(self.company_id)
+            elif name == 'uid':
+                keys.append(self.uid)
+            elif name == 'active_test':
+                keys.append(self.context.get('active_test', True))
+            else:
+                keys.append(self.context.get(name))
+        return tuple(keys)
+
+    def invalidate_all(self, flush=True):
+        """≙ ``Environment.invalidate_all`` (``:357``)."""
+        self.transaction.invalidate_field_data()
+
+    def clear(self):
+        """≙ ``Environment.clear`` (``:350``)."""
+        self.transaction.clear()
+
+    # --- consultas ------------------------------------------------------------
+
+    def execute_query(self, query):
+        """≙ ``Environment.execute_query`` (``:527``)."""
+        return execute_query(query, using=self._using)
+
+    def execute_query_dict(self, query):
+        """≙ ``Environment.execute_query_dict`` (``:537``) — filas como dicts."""
+        with self.cr.cursor() as cursor:
+            cursor.execute(query.code, query.params)
+            if cursor.description is None:
+                return []
+            columnas = [c[0] for c in cursor.description]
+            return [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
+
+    def ref(self, xml_id, raise_if_not_found=True):
+        """≙ ``Environment.ref`` (``:158``) — el registro de un XML id.
+
+        Delega en ``ir.model.data``, que es quien guarda el mapa. Devuelve
+        ``None`` en vez de levantar cuando ``raise_if_not_found`` es falso,
+        igual que allá.
+        """
+        model = registry.MODELS_BY_NAME.get('ir.model.data')
+        if model is None:
+            if raise_if_not_found:
+                raise ValueError(f'ir.model.data no está en el registro: {xml_id!r}')
+            return None
+        return model.ref(xml_id, raise_if_not_found=raise_if_not_found,
+                          using=self._using or DEFAULT_DB_ALIAS)
+
+
+def env():
+    """El entorno de este alcance — ≙ ``self.env`` de la referencia.
+
+    Se llama en vez de ser un singleton porque el entorno es una **vista** de
+    los canales: construirlo es barato y así nunca guarda una lectura vieja.
+    """
+    return Environment()
+
+
 def execute_query(query, using=None):
     """≙ ``Environment.execute_query`` (``odoo19c: odoo/orm/environments.py:527``).
 
@@ -330,4 +908,6 @@ __all__ = [
     'activate_companies', 'company_scope', 'sudo', 'is_su',
     'get_current_uid', 'get_current_user', 'set_current_uid', 'user_scope',
     'get_context', 'context_scope', 'get_current_tz',
+    'Transaction', 'get_transaction', 'transaction_scope',
+    'Environment', 'env',
 ]

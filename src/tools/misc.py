@@ -18,7 +18,8 @@ import tempfile
 import typing
 import unicodedata
 from collections import defaultdict
-from collections.abc import Callable, Iterable, MutableSet
+from collections.abc import (Callable, Iterable, Iterator,
+                             MutableMapping, MutableSet)
 from contextlib import contextmanager
 from difflib import HtmlDiff
 from functools import reduce
@@ -451,6 +452,57 @@ def clean_context(context: dict) -> dict:
     :returns: copia sin las claves ``default_*``.
     """
     return {k: v for k, v in context.items() if not k.startswith('default_')}
+
+
+class StackMap(MutableMapping[K, T], typing.Generic[K, T]):
+    """≙ ``StackMap`` (``odoo19c: odoo/tools/misc.py:1016-1054``).
+
+    «A stack of mappings behaving as a single mapping, and used to implement
+    nested scopes. The lookups search the stack from top to bottom, and
+    returns the first value found. Mutable operations modify the topmost
+    mapping only.»
+
+    Su consumidor es ``Transaction.protected`` (``orm/environments.py``): el
+    conjunto de campos que un cómputo está protegiendo se apila al entrar en
+    ``protecting()`` y se desapila al salir, y la lectura tiene que ver el
+    tope y, si no está ahí, lo de abajo. Un ``dict`` llano no lo expresa
+    —perdería lo de abajo al asignar— y un ``ChainMap`` de la biblioteca
+    estándar busca en el orden **inverso** al de la fuente: el suyo consulta
+    el primer mapa primero, y aquí el que manda es el último apilado.
+    """
+    __slots__ = ['_maps']
+
+    def __init__(self, m: MutableMapping[K, T] | None = None):
+        self._maps = [] if m is None else [m]
+
+    def __getitem__(self, key: K) -> T:
+        for mapping in reversed(self._maps):
+            if key in mapping:
+                return mapping[key]
+        raise KeyError(key)
+
+    def __setitem__(self, key: K, val: T):
+        self._maps[-1][key] = val
+
+    def __delitem__(self, key: K):
+        del self._maps[-1][key]
+
+    def __iter__(self) -> Iterator[K]:
+        return iter({key for mapping in self._maps for key in mapping})
+
+    def __len__(self) -> int:
+        return sum(1 for key in self)
+
+    def __str__(self) -> str:
+        return f"<StackMap {self._maps}>"
+
+    def pushmap(self, m: MutableMapping[K, T] | None = None):
+        """Apila un mapa nuevo — el que recibirá las escrituras."""
+        self._maps.append({} if m is None else m)
+
+    def popmap(self) -> MutableMapping[K, T]:
+        """Desapila el mapa del tope y lo devuelve."""
+        return self._maps.pop()
 
 
 class OrderedSet(MutableSet[T], typing.Generic[T]):

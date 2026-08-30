@@ -45,16 +45,22 @@ arriba: este módulo **agrega**, no define. No se re-exporta desde este
 agregador porque no es una clase de campo de Django y no puede aparecer en
 ``_meta.get_fields()``; se importa por su nombre. Ver :ref:`h-api-855`.
 """
+import collections
+import itertools
+import logging
 import operator as operator_module
 import re
+import warnings
 from decimal import Decimal
+from operator import attrgetter
+from typing import TypeVar
 
 from django.db import models
 from django.utils.timezone import localtime
 
-from orm.environments import get_current_company
-from tools.misc import remove_accents
-from tools.sql import SQL
+from orm.environments import get_current_company, get_transaction
+from tools.misc import OrderedSet, remove_accents
+from tools.sql import SQL, sql_order_by_type
 
 from orm.fields_binary import Binary, Image                    # noqa: F401
 from orm.fields_misc import Boolean, Json                      # noqa: F401
@@ -714,3 +720,358 @@ def _field_deconstruct_without_copy(self):
 
 
 models.Field.deconstruct = _field_deconstruct_without_copy
+
+
+# === Los seis del censo de ``odoo/orm/fields.py`` (tarea #209) ==============
+#
+# La referencia declara **9** símbolos de nivel superior; dos ya viven aquí en
+# otro archivo (``COMPANY_DEPENDENT_FIELDS`` en ``fields_company_dependent``,
+# ``_logger`` en ``environments``). Los seis restantes se portan **en este
+# archivo**, que es donde la fuente los declara — segunda cláusula de
+# ``atributos-de-clase-de-modelo.md``.
+#
+# Ninguno cae en EXCLUIDO: los seis son TRAE o CONSTRUYE. El veredicto por
+# símbolo, con su consumidor medido, está en
+# ``docs: …/analisis-censo-orm-referencia-trae-o-construye.rst``.
+
+#: ≙ ``T = typing.TypeVar("T")`` (``odoo19c: odoo/orm/fields.py:35``) — el
+#: parámetro del genérico ``Field[T]``. TRAE: biblioteca estándar.
+T = TypeVar('T')
+
+#: ≙ ``IR_MODELS`` (``:37``) — los siete modelos del registro que un
+#: ``Many2one`` NO puede proteger con ``on_delete=PROTECT``.
+#:
+#: Su consumidor en la fuente es ``fields_relational.py:289``:
+#: ``if self.ondelete == 'restrict' and self.comodel_name in IR_MODELS``. La
+#: razón es que el propio registro se desmonta al desinstalar un módulo, y una
+#: FK que lo proteja convierte esa operación en un error.
+IR_MODELS = (
+    'ir.model', 'ir.model.data', 'ir.model.fields', 'ir.model.fields.selection',
+    'ir.model.relation', 'ir.model.constraint', 'ir.module.module',
+)
+
+#: ≙ ``PYTHON_INEQUALITY_OPERATOR`` (``:45``) — la comparación **en memoria**.
+#:
+#: NO es lo mismo que ``_INEQUALITY_LOOKUP``, que traduce el mismo operador al
+#: nombre de lookup de Django para que la comparación la haga PostgreSQL. La
+#: fuente declara los dos porque tiene los dos caminos, y aquí igual: éste lo
+#: consume :func:`condition_matches_in_memory`, aquél :func:`condition_to_q`.
+PYTHON_INEQUALITY_OPERATOR = {
+    '<': operator_module.lt,
+    '>': operator_module.gt,
+    '<=': operator_module.le,
+    '>=': operator_module.ge,
+}
+
+#: ≙ ``_global_seq = itertools.count()`` (``:89``) — el orden de declaración.
+#:
+#: DIVERGENCIA DE MECANISMO, y es que el stack ya lo TRAE: Django numera cada
+#: campo al construirlo con ``models.Field.creation_counter``, con el mismo
+#: propósito —ordenar los campos por el orden en que se escribieron— y ya
+#: consumido por ``_meta.get_fields()``. Declarar un segundo contador daría dos
+#: numeraciones para una sola pregunta. El nombre se conserva como alias para
+#: que la lectura contra la fuente no exija traducir.
+def global_seq():
+    """El siguiente número de orden de declaración — ≙ ``next(_global_seq)``."""
+    value = models.Field.creation_counter
+    models.Field.creation_counter += 1
+    return value
+
+
+def resolve_mro(model, name, predicate):
+    """Los valores sucesivamente sobreescritos de ``name`` en el MRO.
+
+    Docstring de la fuente, verbatim: *"Return the list of successively
+    overridden values of attribute ``name`` in mro order on ``model`` that
+    satisfy ``predicate``. Model registry classes are ignored."*
+    (``odoo19c: odoo/orm/fields.py:50-64``).
+
+    CONSTRUYE: el ``__mro__`` de Python basta. La fuente recorre
+    ``model._model_classes__`` —su lista de clases de módulo, que excluye las
+    que su registro fabrica— y aquí el equivalente es el ``__mro__`` de la
+    clase saltando ``object``: Django no fabrica clases intermedias, así que
+    todo lo que hay en el MRO lo escribió alguien.
+
+    Se detiene en el primer valor que **no** cumple ``predicate``, no lo salta.
+    Esa diferencia es el contrato: la lista describe una cadena de
+    sobreescrituras contigua, y un eslabón de otra naturaleza la corta.
+
+    :param model: la clase (o instancia) cuyo MRO se recorre.
+    :param name: el atributo a buscar en cada clase de la cadena.
+    :param predicate: qué valores cuentan; el primero que falle corta.
+    :returns: los valores en orden de MRO — el más derivado primero.
+    """
+    cls = model if isinstance(model, type) else type(model)
+    result = []
+    for klass in cls.__mro__:
+        if klass is object:
+            continue
+        value = klass.__dict__.get(name, _MRO_SENTINEL)
+        if value is _MRO_SENTINEL:
+            continue
+        if not predicate(value):
+            break
+        result.append(value)
+    return result
+
+
+#: Centinela propio de :func:`resolve_mro`: distingue *"la clase no declara el
+#: atributo"* de *"lo declara con valor ``None``"*. La fuente usa su ``SENTINEL``
+#: de ``odoo.tools``.
+_MRO_SENTINEL = object()
+
+
+def determine(needle, records, *args):
+    """Llama un método dado como cadena o como invocable — ≙ ``determine``.
+
+    Docstring de la fuente, verbatim: *"Simple helper for calling a method
+    given as a string or a function."* (``odoo19c: odoo/orm/fields.py:66-87``).
+
+    CONSTRUYE: ``getattr`` y ``callable`` de la estándar.
+
+    DIVERGENCIA DE MECANISMO: la fuente exige que ``records`` sea un recordset
+    (``isinstance(records, BaseModel)``) porque allá todo método de modelo
+    opera sobre un conjunto. Aquí el sujeto es una **instancia de modelo o un
+    queryset**, y la comprobación se relaja a *"no es None"*: exigir una clase
+    concreta obligaría a importar ``models`` desde este archivo, que es su
+    dependiente.
+
+    :raises TypeError: si ``needle`` no es invocable ni nombra un método.
+    """
+    if records is None:
+        raise TypeError('La determinación necesita un sujeto sobre el que '
+                        'llamar; se recibió None.')
+    if isinstance(needle, str):
+        method = getattr(records, needle, None)
+        if method is None:
+            raise TypeError(
+                f'{type(records).__name__} no declara el método {needle!r}.')
+        return method(*args)
+    if callable(needle):
+        return needle(records, *args)
+    raise TypeError('La determinación necesita un invocable o el nombre de un '
+                    f'método; se recibió {needle!r}.')
+
+
+# === El registro de tipos de campo — ``Field._by_type__`` ===================
+#
+# La fuente lo puebla en ``__init_subclass__``: cada subclase de ``Field`` se
+# inscribe con su ``type`` (``odoo19c: odoo/orm/fields.py:312,327``). Aquí las
+# subclases son de Django y su ``__init_subclass__`` es de Django, así que el
+# registro se **deriva** de ``__all__`` — el mismo criterio con que
+# ``ir_model.FIELD_TYPES`` ya se derivaba de él.
+#
+# Vive aquí y no en ``ir_model.py`` porque aquí es donde la referencia lo
+# declara, y porque tenerlo en los dos sitios sería la segunda fuente de
+# verdad que ``calibration-verified-numbers.md`` prohíbe: ``ir_model`` lo
+# importa de este módulo.
+
+#: Separa el ``CamelCase`` del nombre exportado para reconstruir la clave del
+#: tipo: ``Many2oneReference`` → ``many2one_reference``.
+_CAMEL_BOUNDARY = re.compile(r'(?<=[a-z0-9])(?=[A-Z])')
+
+
+def _type_key(exported_name):
+    """Nombre de clase exportado → clave de tipo al estilo de la referencia."""
+    return _CAMEL_BOUNDARY.sub('_', exported_name).lower()
+
+
+#: ≙ ``Field._by_type__`` (``odoo19c: odoo/orm/fields.py:312``) — «mapping from
+#: type name to field type». Derivado de :data:`__all__`, no declarado: una
+#: lista escrita a mano se desincroniza con el módulo en el primer campo nuevo.
+_by_type__ = {_type_key(name): globals()[name] for name in __all__}
+
+#: Tipo interno de Django → clave de tipo de la referencia, para el recorrido
+#: **inverso**: dado un campo ya construido, qué ``type`` declara.
+#:
+#: Declarado y no derivado, y la razón es que el mapa de alias es
+#: muchos-a-uno: ``Char``, ``Text`` y ``Html`` comparten familia en Django, así
+#: que ``_by_type__`` no se puede invertir sin perder información. ``html``
+#: no se recupera nunca —colapsa en ``text``—; ``selection`` sí, porque
+#: ``choices`` lo delata.
+DJANGO_TYPE_TO_TTYPE = {
+    'AutoField': 'integer',
+    'BigAutoField': 'integer',
+    'BigIntegerField': 'integer',
+    'BinaryField': 'binary',
+    'BooleanField': 'boolean',
+    'CharField': 'char',
+    'DateField': 'date',
+    'DateTimeField': 'datetime',
+    'DecimalField': 'monetary',
+    'EmailField': 'char',
+    'FileField': 'binary',
+    'FloatField': 'float',
+    'ForeignKey': 'many2one',
+    'ImageField': 'image',
+    'IntegerField': 'integer',
+    'JSONField': 'json',
+    'ManyToManyField': 'many2many',
+    'OneToOneField': 'many2one',
+    'PositiveIntegerField': 'integer',
+    'PositiveSmallIntegerField': 'integer',
+    'SlugField': 'char',
+    'SmallIntegerField': 'integer',
+    'TextField': 'text',
+    'URLField': 'char',
+    'UUIDField': 'char',
+}
+
+
+def type_for(field):
+    """El ``type`` de la referencia que le corresponde a un campo de Django.
+
+    Es la función que puebla :attr:`Field.type`. ``ir.model.fields.ttype_for``
+    delega aquí desde el 2026-08-30: el mapa tenía dos dueños y el de la
+    referencia es éste.
+    """
+    internal = field.get_internal_type()
+    if internal == 'CharField' and getattr(field, 'choices', None):
+        return 'selection'
+    return DJANGO_TYPE_TO_TTYPE.get(internal, 'char')
+
+
+# ===========================================================================
+# ``Field`` — el contrato del campo, instalado sobre la base de Django
+# ===========================================================================
+#
+# ``odoo19c: odoo/orm/fields.py:92-1932`` declara ``Field`` como la clase base
+# de la que cuelga todo campo del ORM: 68 atributos de clase y 72 métodos.
+#
+# Aquí ``Field`` **es** ``django.db.models.Field``, y no una clase paralela.
+# Es la lectura fiel: allá ``Field`` es la base de la que hereda todo campo, y
+# aquí la base de la que hereda todo campo es la de Django —``Integer =
+# models.IntegerField``, ``fields_numeric.py``—. Un ``Field`` propio dejaría
+# ``isinstance(campo, Field)`` en falso para los veinte tipos del árbol, que es
+# exactamente lo contrario de lo que la fuente garantiza.
+#
+# Las cuatro mediciones que fijan la forma
+# =========================================
+#
+# Reproducibles con ``uv run python scripts/census_field_contract.py``:
+#
+# 1. **140 símbolos** declara la fuente (68 atributos + 72 métodos).
+# 2. **4 colisionan** con ``django.db.models.Field``: ``__init__``, ``__str__``,
+#    ``__repr__`` y ``__init_subclass__``. Los cuatro son de Django y se
+#    respetan — instalar los de la fuente encima rompería el ORM anfitrión.
+#    Los otros **136** se instalan sin pisar nada.
+# 3. **2 de 68** atributos los fija una instancia de Django en su ``__init__``
+#    (``default`` y ``name``), así que su default de clase nunca se consulta.
+#    Los otros **66** quedan vivos, que es lo que la fuente quiere.
+# 4. **13 nombres se ASIGNAN** en este árbol y **5 en Django**. Ésos no pueden
+#    portarse como ``property`` de solo lectura —la asignación levantaría
+#    ``AttributeError``—, así que van como atributo llano que la instancia
+#    pisa. Es la medición que decide, una por una, entre las dos formas.
+#
+# El veredicto por grupo — TRAE / CONSTRUYE
+# ==========================================
+#
+# ==================================  ==========  ============================
+# Mecanismo                           Veredicto   Con qué
+# ==================================  ==========  ============================
+# la base de todo campo               **TRAE**    ``models.Field``
+# etiqueta, ayuda y edición           **TRAE**    ``verbose_name``,
+#                                                 ``help_text``, ``editable``
+# la columna y si se almacena         **TRAE**    ``db_column``, ``db_type``,
+#                                                 ``concrete``
+# la relación y su modelo             **TRAE**    ``is_relation``,
+#                                                 ``related_model``
+# crear y alterar la columna          **TRAE**    ``SchemaEditor`` — el DDL
+#                                                 que las migraciones emiten
+# el orden de declaración             **TRAE**    ``creation_counter``
+# ligar el campo a su modelo          **TRAE**    ``contribute_to_class``,
+#                                                 el ``__set_name__`` de Django
+# la caché de campo por transacción   CONSTRUYE   ``orm.environments``
+#                                                 :class:`Transaction`
+# el orden de columna por tipo        CONSTRUYE   ``tools.sql``
+#                                                 ``sql_order_by_type``
+# la descripción del campo al cliente CONSTRUYE   los ``_description_*`` sobre
+#                                                 lo que ya se deriva
+# el campo relacionado (``related=``) CONSTRUYE   recorrido por ``getattr``
+# el cómputo diferido y su inversa    CONSTRUYE   :func:`determine` sobre
+#                                                 ``tocompute``
+# ==================================  ==========  ============================
+#
+# Ninguno queda EXCLUIDO: los 140 símbolos tienen su desenlace.
+
+_logger = logging.getLogger(__name__)
+
+#: ≙ ``Field`` (``odoo19c: odoo/orm/fields.py:92``). El nombre de la fuente,
+#: ligado a la base real de este árbol. ``isinstance(campo, Field)`` es cierto
+#: para los veinte tipos exportados, igual que allá.
+Field = models.Field
+
+
+#: Los 66 atributos de clase cuyo default de la fuente queda **vivo** aquí —
+#: los dos que faltan del total de 68 son ``default`` y ``name``, que toda
+#: instancia de Django fija en su ``__init__`` (medición 3 del censo).
+#:
+#: Se instalan como atributos llanos y no como ``property`` porque la medición
+#: 4 encontró que trece de ellos se asignan en este árbol; distinguir cuáles
+#: uno por uno partiría el grupo sin ganancia, y un atributo llano se
+#: comporta igual que el default de clase de la fuente: la instancia lo pisa
+#: cuando quiere, y cuando no, gobierna el de aquí.
+_FIELD_CLASS_ATTRIBUTES = {
+    # --- identidad y naturaleza del campo -------------------------------
+    'type': '',                     # el tipo del campo, en el vocabulario de
+                                    # la fuente; lo puebla ``type_for``
+    'relational': False,            # si es un campo relacional
+    'translate': False,             # si el campo se traduce
+    'is_text': False,               # si en la base es un tipo textual
+    'falsy_value': None,            # el valor que cuenta como no establecido
+    'write_sequence': 0,            # orden del campo dentro de un ``write()``
+    '_column_type': None,           # (ident, spec) de la columna
+    # --- procedencia y montaje ------------------------------------------
+    '_args__': None,                # los parámetros que recibió ``__init__``
+    '_module': None,                # el módulo que declara el campo
+    '_modules': (),                 # los módulos que lo definen
+    '_setup_done': True,            # si el montaje del campo terminó
+    '_base_fields__': (),           # los campos que definen a éste, en orden
+    '_extra_keys__': (),            # los parámetros desconocidos que recibió
+    '_direct': False,               # si se puede usar directamente (compartido)
+    '_toplevel': False,             # si está en la clase de registro del modelo
+    # --- herencia por delegación (``_inherits``) -------------------------
+    'inherited': False,             # si el campo es heredado
+    'inherited_field': None,        # el campo heredado correspondiente
+    # --- nombres ----------------------------------------------------------
+    'model_name': '',               # el modelo de este campo
+    'comodel_name': None,           # el modelo de los valores, si es relacional
+    # --- almacenamiento ---------------------------------------------------
+    'store': True,                  # si se almacena en la base
+    'index': None,                  # cómo se indexa en la base
+    'manual': False,                # si es un campo a medida
+    'copy': True,                   # si se copia al duplicar el registro
+    # --- cómputo, inversa y búsqueda --------------------------------------
+    '_depends': None,               # las dependencias declaradas
+    '_depends_context': None,       # las claves de contexto de las que depende
+    'recursive': False,             # si el campo depende de sí mismo
+    'compute': None,                # compute(recs) calcula el campo
+    'compute_sudo': False,          # si el cómputo corre elevado
+    'precompute': False,            # si se calcula antes de crear la fila
+    'inverse': None,                # inverse(recs) invierte el campo
+    'search': None,                 # search(recs, operador, valor)
+    'related': None,                # la ruta de campos, si es relacionado
+    'related_field': None,          # el campo relacionado correspondiente
+    'company_dependent': False,     # si el valor depende de la empresa activa
+    # --- presentación -----------------------------------------------------
+    'string': None,                 # la etiqueta del campo
+    'export_string_translation': True,  # si su etiqueta se exporta traducida
+    'help': None,                   # el texto de ayuda
+    'readonly': False,              # si es de solo lectura en la interfaz
+    'required': False,              # si el valor es obligatorio
+    'groups': None,                 # los grupos que pueden verlo
+    'change_default': False,        # si puede disparar un "user-onchange"
+    'aggregator': None,             # el operador con que se agrega
+    'group_expand': None,           # el método que expande los grupos
+    'falsy_value_label': None,      # qué mostrar cuando no está establecido
+    'prefetch': True,               # el grupo de prelectura
+    'default_export_compatible': False,  # si se exporta por defecto
+    'exportable': True,             # si el campo es exportable
+}
+
+for _name_attr, _default_value in _FIELD_CLASS_ATTRIBUTES.items():
+    if not hasattr(models.Field, _name_attr):
+        setattr(models.Field, _name_attr, _default_value)
+
+#: ≙ ``Field._by_type__`` colgado de la clase, como en la fuente.
+models.Field._by_type__ = _by_type__
