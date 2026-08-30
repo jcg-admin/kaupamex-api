@@ -65,108 +65,67 @@ Detalles conservados que un port ingenuo pierde
 Qué NO se porta, con su medición
 ================================
 
-- **El motor de ejecución de ``ir.actions.server``** — sus seis modos
-  (``object_write``, ``object_create``, ``object_copy``, ``code``,
-  ``webhook``, ``multi``) se portan como **vocabulario**, porque son el dato
-  que clasifica la acción. Lo que no se porta es el ``_run_action_*`` de cada
-  uno. ``run()`` deja el punto de extensión declarado y levanta.
+- **El motor de ejecución de ``ir.actions.server``** — **ya se porta.** Esta
+  viñeta declaraba que los seis modos entraban sólo como *vocabulario* y que
+  ``run()`` dejaba el punto de extensión declarado y levantaba. Medido hoy
+  (2026-08-30T04:12:53) eso es falso: ``_run_action_multi``,
+  ``_run_action_object_write``, ``_run_action_object_create``,
+  ``_run_action_object_copy`` y ``_run_action_webhook`` están escritos, y
+  ``run()`` los despacha por ``_action_runner``.
 
-  **La razón NO es la misma para los seis, y decir que sí lo era era falso.**
-  Medido por AST sobre la clase ``IrActionsServer`` de la referencia,
-  buscando ``safe_eval`` en el cuerpo de cada corredor:
+  Lo que **sí** sigue fuera es la **superficie de ejecución de código**, y son
+  dos sitios: el corredor ``_run_action_code_multi`` —con su ayudante
+  ``LoggerProxy``— y, dentro de ``_eval_value``, **una de sus ocho** ramas, la
+  de ``evaluation_type == 'equation'``. Es la misma decisión que
+  ``ir_rule.domain_force`` (``api@020e965``): montar un evaluador sobre entrada
+  almacenada exige decidir explícitamente el evaluador y su contexto.
 
-  ===============================  ==========  ============
-  corredor                         líneas      ``safe_eval``
-  ===============================  ==========  ============
-  ``_run_action_code_multi``                5  **sí**
-  ``_run_action_multi``                     5  no
-  ``_run_action_object_write``             14  no
-  ``_run_action_object_copy``              12  no
-  ``_run_action_object_create``            13  no
-  ``_run_action_webhook``                  43  no
-  ===============================  ==========  ============
+  El corredor está en ``scripts/divergencias_declaradas.txt``, que es donde el
+  gate lo lee. La rama **no** puede estarlo: el registro indexa por símbolo y
+  ``_eval_value`` sí existe, así que su divergencia vive en el ``raise`` con su
+  motivo —levanta en vez de escribir el texto del programa en el campo y
+  llamarlo éxito— y en esta nota.
 
-  **Uno de seis.** Y dentro de ``_eval_value`` —el ayudante que
-  ``object_write`` consume— es **una de ocho** ramas: sólo
-  ``evaluation_type == 'equation'`` evalúa; las otras siete resuelven una
-  secuencia, una operación de M2M, un booleano, un entero, un flotante, un
-  ``html`` o la cadena tal cual.
+  La medición que sostenía el bloqueo de los otros cuatro —sus insumos cuelgan
+  de ``ir.model.fields`` y ``model_name`` sigue ``Char``— resultó **no ser
+  bloqueante**: ``crud_model_id``, ``link_field_id`` y ``update_field_id`` son
+  hoy ``Many2one`` reales a ``IrModel``/``IrModelFields``, y ``resource_ref``
+  es una ``GenericForeignKey``. Lo único que ``model_name`` como ``Char``
+  impide es la FK de ``model_id``, que es otra cosa y sigue en **#139**.
 
-  Así que la divergencia por **superficie de ejecución de código** —la misma
-  decisión que ``ir_rule.domain_force`` (``api@020e965``): montar un evaluador
-  sobre entrada almacenada exige decidir explícitamente el evaluador y su
-  contexto— cubre ``code`` y la rama ``equation``, y **sólo** esas dos.
+- **Cobertura de ``IrActionsServer`` contra la fuente, medida.** Símbolos
+  declarados en el cuerpo de la clase, por AST, sumando lo que
+  ``IrActionsBase`` aporta:
 
-  Los otros cuatro modos están detenidos por **otra** razón, que es la de la
-  viñeta de ``model_id`` más abajo: sus insumos —``crud_model_id``,
-  ``link_field_id``, ``update_field_id``, ``resource_ref``— cuelgan de
-  ``ir.model.fields`` como FK, y ``model_name`` sigue siendo ``Char`` por una
-  conversión diferida a su propio pase. Es un bloqueo **heredado**, no
-  intrínseco: el día que esa conversión ocurra, los cuatro se portan sin tocar
-  el evaluador. Registrado como **#117**.
+  ==========  =========  =========  ==========
+  eje         referencia  aquí       ausentes
+  ==========  =========  =========  ==========
+  métodos            44         51           3
+  campos             42         54           4
+  ==========  =========  =========  ==========
 
-  *Métrica:* presencia del literal ``safe_eval`` en el segmento de fuente de
-  cada método ``_run_action*`` declarado en el cuerpo de la clase.
-  *Ciega a:* una evaluación que llegue por una llamada indirecta sin nombrar
-  el símbolo — por eso se leyeron además los cuatro cuerpos, y ninguno la
-  tiene.
+  Los **3 métodos**: ``_run_action_code_multi`` (la divergencia de arriba) y
+  ``create``/``write``, que aquí son un solo ``save()`` — deuda **contada**, no
+  divergencia, registrada en **#77**.
 
-  **La superficie de configuración que ese motor consume tampoco se porta, y
-  es la mayor parte de la clase.** Medido sobre ``odoo19c:
-  ir_actions.py``, clase ``IrActionsServer``: la referencia declara **36**
-  campos y **44** métodos; aquí hay **5** campos propios más ``name``/``type``
-  de ``IrActionsBase``, ``parent`` (que da ``child_ids`` por ``related_name``)
-  y ``crons`` (el reverso de la FK de ``IrCron``) — **26** campos genuinamente
-  ausentes y **41** métodos. Los 26 son de tres familias, ninguna separable
-  del motor:
+  Los **4 campos** son todos renombres o reversos, ninguno un hueco:
+  ``parent_id`` es ``parent``; ``child_ids`` e ``ir_cron_ids`` son los
+  ``related_name`` de ``parent`` y de la FK de ``IrCron`` (``crons``); y
+  ``model_id`` es ``model_name`` (``Char``) hasta que **#139** lo convierta.
 
-  - **el destino del CRUD** — ``crud_model_id``, ``crud_model_name``,
-    ``link_field_id``, ``update_field_id``, ``update_path``,
-    ``update_related_model_id``, ``update_field_type``,
-    ``update_m2m_operation``, ``update_boolean_value``, ``value``,
-    ``evaluation_type``, ``html_value``, ``sequence_id``, ``resource_ref``,
-    ``selection_value``, ``value_field_to_show``. Describen **qué campo de qué
-    modelo** escribe una acción ``object_write`` y **con qué valor**; sin
-    ``_run_action_object_write`` no hay quien los lea. Casi todos cuelgan
-    además de ``ir.model.fields`` como FK, que es la misma conversión diferida
-    que ``model_id`` (la viñeta de abajo).
-  - **el webhook** — ``webhook_url``, ``webhook_field_ids``,
-    ``webhook_sample_payload``: la carga que ``_run_action_webhook`` arma y
-    envía.
-  - **lo derivado de las dos anteriores** — ``allowed_states``, ``warning``,
-    ``automated_name``, ``available_model_ids``, ``show_code_history``: cinco
-    computados cuyos insumos son los campos de arriba.
+  *Métrica:* ``FunctionDef``/``AsyncFunctionDef`` y ``Assign``/``AnnAssign``
+  con destino ``Name`` en el cuerpo de la clase, en la referencia y aquí.
+  *Ciega a:* un símbolo que llegue por herencia sin línea propia en el cuerpo
+  —por eso ``IrActionsBase`` se suma a mano— y a un campo nuestro que cubra el
+  mismo papel con otro nombre sin nota; los cuatro que lo hacen se
+  descontaron uno a uno arriba.
 
-  **La excepción, que no es de motor:** ``group_ids`` —los grupos que pueden
-  ejecutar la acción— y su lector ``_can_execute_action_on_records``. Aquí la
-  autorización efectiva es **por capacidad** (DEC-11, ``HasCapability``,
-  fail-closed), no una lista de grupos colgada del registro. Es la misma
-  divergencia ya declarada para ``ir.model.access`` en ``ir_model.py``:
-  portar la columna no cambiaría quién decide.
-
-  **Los ocho enganches que Enterprise 19 extiende sobre este modelo caen todos
-  ahí dentro** — medido sobre ``19.x/odoo19-enterprise-main``, clases con
-  ``_inherit = 'ir.actions.server'``: ``_compute_allowed_states`` (2),
-  ``_generate_action_name`` (2), ``_run_action_object_write``,
-  ``evaluation_type``, ``update_field_type`` y
-  ``_can_execute_action_on_records``. No son ocho huecos independientes: son
-  ocho vistas del mismo hueco, y aparecen cuando entra el motor.
-
-  *Métrica:* símbolos declarados en el cuerpo de la clase, por AST, en la
-  referencia y aquí; cruzados con los nombres que declaran las clases de
-  Enterprise que heredan de este modelo.
-  *Ciega a:* un símbolo que Enterprise extienda por herencia sin nombrarlo, y
-  a un campo nuestro que cubra el mismo papel con otro nombre y sin nota — los
-  cuatro que sí lo hacen (``name``, ``type``, ``parent``, ``crons``) se
-  descontaron a mano.
-- **``model_id`` como FK a ``ir.model``.** **Actualizado** (porte de
-  ``ir_model.py``): ``grep -rn "^class IrModel\b" src/`` → **1** clase.
-  [PROVEN] La medición que justificaba el ``Char`` —**0** clases— dejó de ser
-  cierta; se corrige aquí en vez de dejarla envejecer. El campo **sigue**
-  siendo ``model_name`` (``Char``) en este pase: convertirlo a FK migra esta
-  tabla, y eso va en su propio pase, igual que se decidió con
-  ``ir_filters.action_id``. Mismo estado en ``ir_rule``, ``ir_filters`` e
-  ``ir_attachment``.
+- **``model_id`` como FK a ``ir.model``.** ``grep -rn "^class IrModel\b" src/``
+  → **1** clase. [PROVEN] La medición que justificaba el ``Char`` —**0**
+  clases— dejó de ser cierta. El campo **sigue** siendo ``model_name``
+  (``Char``): convertirlo a FK migra esta tabla, y eso va en su propio pase,
+  igual que se decidió con ``ir_filters.action_id``. Mismo estado en
+  ``ir_rule``, ``ir_filters`` e ``ir_attachment``. Registrado como **#139**.
 
   El **ancla de columna 0** no es cosmética: sin ella el grep cuenta también
   los docstrings que *citan* el comando —el de ``ir_rule.py`` ya lo hacía— y
@@ -174,11 +133,13 @@ Qué NO se porta, con su medición
   archivos distintos. Una definición de clase empieza en la columna 0; una
   cita dentro de un docstring va indentada. El patrón anclado distingue las
   dos sin depender de excluir archivos a mano.
-- **``ServerActionHistoryWizard`` e ``IrActionsServerHistory``** — registran
-  qué acción servidor corrió y con qué resultado. Sin motor de ejecución no
-  hay historial que registrar; entran con el motor, no antes.
-- **``LoggerProxy``** — envuelve el logger para exponerlo al código evaluado
-  del modo ``code``. Pertenece al evaluador que no se porta.
+
+- **``group_ids`` y ``_can_execute_action_on_records``** — los grupos que
+  pueden ejecutar la acción. Aquí la autorización efectiva es **por capacidad**
+  (DEC-11, ``HasCapability``, fail-closed), no una lista de grupos colgada del
+  registro. Es la misma divergencia ya declarada para ``ir.model.access`` en
+  ``ir_model.py``: portar la columna no cambiaría quién decide.
+
 - **``params``/``params_store`` de ``ir.actions.client``** — un ``Binary``
   computado con inverse que serializa argumentos arbitrarios. Se porta
   ``params_store`` como ``Json``, que es lo que de verdad guarda, en vez de un
