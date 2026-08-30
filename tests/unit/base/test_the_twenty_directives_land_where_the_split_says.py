@@ -28,8 +28,8 @@ from decimal import Decimal
 import pytest
 from lxml import etree
 
-import tools.pdf as pdf
 from addons.base import report_template
+from addons.base.models.res_currency import ResCurrency
 from addons.base.models.ir_template_expressions import IrTemplateExpressions
 from addons.base.report_template import InvalidReportTemplate, interpret_descriptor
 
@@ -175,23 +175,29 @@ class TestTheElevenThatDoNotLand:
         assert interpret_descriptor(doc, {'flag': False, 'vacio': True}) == {'no': 'B'}
 
 
-class TestWhereTheFieldValueStillArrivesUnformatted:
-    """``field`` aterriza en la pieza 4, y el camino del papel queda abierto."""
+class TestWhereTheFieldValueLandsOnThePaperPath:
+    """``field`` aterriza en la pieza 4 — y formatea sólo si declara ``widget``."""
 
-    def test_the_descriptor_delivers_the_canonical_value_not_a_formatted_one(self):
+    def test_a_field_without_widget_delivers_the_canonical_value(self):
         # Es el corte que la pieza 4 ratificó: el API entrega decimal crudo e
-        # ISO 8601, y ``ui: src/lib/intl.js`` presenta. El ``<field>`` del
-        # descriptor hace lo mismo — el valor sale por ``str()`` de DTL.
+        # ISO 8601, y ``ui: src/lib/intl.js`` presenta. Un ``<field>`` sin
+        # ``widget`` hace lo mismo — el valor sale por el ``str()`` de DTL.
         doc = arch('<descriptor><field name="m">{{ importe }}</field></descriptor>')
         assert interpret_descriptor(doc, {'importe': Decimal('1234.50')}) == {
             'm': '1234.50'}
 
-    def test_and_nothing_on_the_paper_path_formats_it_afterwards(self):
-        # Lo que el corte deja abierto: en el camino del papel no hay ``ui``.
-        # Medido — ninguno de los tres módulos del camino importa un
-        # formateador. Ver H-API-937 y su tarea; el control cae el día que
-        # alguno lo cablee, que es cuando hay que volver a leer la decisión.
-        for modulo in (report_template, pdf):
-            exportados = {n for n in dir(modulo) if not n.startswith('_')}
-            assert not {n for n in exportados
-                        if 'format' in n.lower() or 'localize' in n.lower()}, modulo
+    def test_and_with_a_widget_it_arrives_formatted_by_its_converter(self):
+        # El control que sustituye al anterior. Aquél afirmaba que en el camino
+        # del papel nadie formatea, y lo medía por los nombres exportados de dos
+        # módulos: cuando la tarea #197 cableó el conversor, siguió verde y su
+        # afirmación ya era falsa (:ref:`h-api-941`). Éste mide conducta — el
+        # mismo valor sale distinto según el ``widget``, así que cae si el
+        # cableado se rompe y cae si se ensancha al campo sin ``widget``.
+        currency = ResCurrency(name='MXN', symbol='$', position='before',
+                               rounding=Decimal('0.01'), decimal_places=2)
+        doc = arch('<descriptor><field name="m" value="importe" '
+                   'widget="monetary"/></descriptor>')
+        d = interpret_descriptor(
+            doc, {'importe': Decimal('1234.50')},
+            widget_options={'monetary': {'display_currency': currency}})
+        assert d['m'].replace('\N{NO-BREAK SPACE}', ' ') == '$ 1,234.50'
