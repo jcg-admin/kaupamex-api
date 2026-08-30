@@ -378,7 +378,7 @@ class IrFieldsConverter:
 
         model_name = registry.name_of(field.model) if hasattr(field, 'model') else None
         rows = IrModelFieldsSelection.objects.filter(
-            field__model=model_name, field__name=field.name, value=src,
+            field_id__model=model_name, field_id__name=field.name, value=src,
         ).values_list('name', flat=True)
         result = cls._selection_translation_cache[src] = list(OrderedSet(rows))
         return result

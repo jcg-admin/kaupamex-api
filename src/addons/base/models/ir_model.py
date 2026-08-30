@@ -963,7 +963,8 @@ class IrModelFields(TimeStampedModel):
         self.selection_ids.all().delete()
         IrModelFieldsSelection.objects.bulk_create([
             IrModelFieldsSelection(
-                field=self, value=value, name=label, sequence=(index + 1) * 10)
+                field_id=self, value=value, name=label,
+                sequence=(index + 1) * 10)
             for index, (value, label) in enumerate(pairs)
         ])
 
@@ -1124,17 +1125,22 @@ class IrModelInherit(models.Model):
         return registered
 
 
-class IrModelFieldsSelection(TimeStampedModel):
-    """``ir.model.fields.selection`` — un valor de un campo Selection."""
+class IrModelFieldsSelection(models.OriginMixin, TimeStampedModel):
+    """``ir.model.fields.selection`` — un valor de un campo Selection.
+
+    ``models.OriginMixin`` entra por :meth:`save`: el aviso de renombre compara
+    el valor entrante contra el guardado, y ``_origin`` es quien lo da.
+    """
 
     _name = 'ir.model.fields.selection'
     _order = 'sequence, id'
     _description = 'Fields Selection'
     _allow_sudo_commands = False
 
-    field = fields.Many2one(
+    field_id = fields.Many2one(
         IrModelFields, on_delete=models.CASCADE, db_index=True,
-        related_name='selection_ids', verbose_name='Campo')
+        related_name='selection_ids', verbose_name='Campo',
+        db_column='field_id')
     value = fields.Char(max_length=255, verbose_name='Valor')
     name = fields.Char(max_length=255, verbose_name='Etiqueta')
     sequence = fields.Integer(default=1000, verbose_name='Secuencia')
@@ -1147,19 +1153,234 @@ class IrModelFieldsSelection(TimeStampedModel):
         constraints = [
             # ``_selection_field_uniq``.
             models.UniqueConstraint(
-                fields=['field', 'value'],
+                fields=['field_id', 'value'],
                 name='ir_model_fields_selection_field_uniq'),
         ]
 
     def __str__(self):
         return f'{self.value} — {self.name}'
 
+    @classmethod
+    def _get_selection(cls, field_id, using=DEFAULT_DB_ALIAS):
+        """Los pares ``(valor, etiqueta)`` de un campo — ``_get_selection``.
 
-class IrModelConstraint(TimeStampedModel):
+        Docstring de la fuente, verbatim: *"Return the given field's selection
+        as a list of pairs (value, string)"* (``odoo19c: ir_model.py:1527-1530``).
+
+        El ``flush_model`` de la fuente vacía su caché de escrituras pendientes
+        antes de leer; aquí Django escribe al hacer ``save``, así que no hay
+        nada que vaciar.
+        """
+        return cls._get_selection_data(field_id, using=using)
+
+    @classmethod
+    def _get_selection_data(cls, field_id, using=DEFAULT_DB_ALIAS):
+        """≙ ``_get_selection_data`` (``odoo19c: :1532-1541``).
+
+        Comentario de la fuente, verbatim: *"return selection as expected on
+        registry (no translations)"*. El orden es el suyo —``sequence, id``— y
+        de él depende el orden en que la interfaz ofrece los valores.
+        """
+        return list(cls.objects.using(using).filter(
+            field_id=field_id).order_by('sequence', 'id')
+            .values_list('value', 'name'))
+
+    @classmethod
+    def _existing_selection_data(cls, model_name, field_name,
+                                 using=DEFAULT_DB_ALIAS):
+        """≙ ``_existing_selection_data`` (``odoo19c: :1652-1663``).
+
+        Docstring de la fuente, verbatim: *"Return the selection data of the
+        given model, by field and value, as a dict {field_name: {value:
+        row_values}}"*. Su propio cuerpo devuelve ``{value: row}`` para **un**
+        campo, no el diccionario de dos niveles que el docstring anuncia; se
+        porta el cuerpo, que es lo que sus llamadores consumen.
+        """
+        rows = cls.objects.using(using).filter(
+            field_id__model=model_name, field_id__name=field_name,
+        ).values('id', 'value', 'name', 'sequence')
+        return {row['value']: row for row in rows}
+
+    @classmethod
+    def _update_selection(cls, model_name, field_name, selection,
+                          using=DEFAULT_DB_ALIAS):
+        """Fija la lista de valores de un campo — ``_update_selection``.
+
+        Docstring de la fuente, verbatim: *"Set the selection of a field to the
+        given list, and return the row values of the given selection
+        records"* (``odoo19c: :1602-1650``).
+
+        Las tres decisiones de la fuente se conservan: el índice en la lista
+        **es** la secuencia, una fila que ya dice lo mismo no se toca, y quitar
+        un valor que la lista nueva no trae **avisa** antes de borrarlo —su
+        comentario lo dice: *"removing a selection in the new list, at your own
+        risks"*, porque las filas que guardaban ese valor quedan apuntando a
+        nada.
+
+        La fuente envuelve ``name`` en ``Json({'en_US': ...})`` porque su campo
+        es traducible; aquí es un ``Char`` y guarda el texto. El eje de
+        traducción del ORM es la tarea **#184**.
+        """
+        field_row = IrModelFields.objects.using(using).filter(
+            model=model_name, name=field_name).first()
+        if field_row is None:
+            raise ValueError(
+                'No se puede fijar la selección de %s.%s: el campo no está en '
+                'ir_model_fields' % (model_name, field_name))
+
+        current = cls._existing_selection_data(model_name, field_name,
+                                               using=using)
+        expected = {
+            value: {'value': value, 'name': label, 'sequence': index}
+            for index, (value, label) in enumerate(selection)
+        }
+
+        to_remove = []
+        for value in expected.keys() | current.keys():
+            new_row, cur_row = expected.get(value), current.get(value)
+            if new_row is None:
+                _logger.warning(
+                    'Se retira el valor de selección %s en %s.%s',
+                    cur_row['value'], model_name, field_name)
+                to_remove.append(cur_row['id'])
+            elif cur_row is None:
+                # ``bulk_create`` no llama a :meth:`save`, y esa es la
+                # equivalencia exacta: la fuente inserta aquí con
+                # ``query_insert`` —SQL crudo— precisamente para no pasar por
+                # la guarda de ``create``, que es del camino interactivo. El
+                # reflejo escribe la selección de un campo **base**, y por esa
+                # vía la guarda lo prohibiría.
+                [created] = cls.objects.using(using).bulk_create([
+                    cls(field_id=field_row, **new_row)])
+                current[value] = dict(new_row, id=created.pk)
+            elif any(new_row[key] != cur_row[key] for key in new_row):
+                cls.objects.using(using).filter(pk=cur_row['id']).update(**new_row)
+                current[value] = dict(new_row, id=cur_row['id'])
+
+        if to_remove:
+            cls.objects.using(using).filter(pk__in=to_remove).delete()
+            for value in list(current):
+                if value not in expected:
+                    del current[value]
+        return current
+
+    @classmethod
+    def _reflect_selections(cls, model_classes, using=DEFAULT_DB_ALIAS):
+        """Refleja las selecciones de los campos dados — ``_reflect_selections``.
+
+        Docstring de la fuente, verbatim: *"Reflect the selections of the
+        fields of the given models"* (``odoo19c: :1543-1600``).
+
+        Su validación se porta entera, y es la que importa: un par
+        ``(valor, etiqueta)`` con algo que no sea texto se rechaza **nombrando
+        los campos culpables**, en vez de dejar que reviente al escribir.
+
+        La fuente recorre ``model._fields`` buscando ``selection`` y
+        ``reference``; aquí el equivalente es un campo de Django con
+        ``choices``, que es la misma información en el mismo sitio.
+        """
+        offenders = OrderedSet()
+        pending = []
+        for model_cls in model_classes:
+            for field in model_cls._meta.get_fields():
+                choices = getattr(field, 'choices', None)
+                if not choices:
+                    continue
+                for value, label in choices:
+                    if not isinstance(value, str) or not isinstance(label, str):
+                        offenders.add(
+                            '%s.%s' % (model_cls._meta.label, field.name))
+                pending.append((model_cls._meta.label, field.name, choices))
+        if offenders:
+            raise ValidationError(
+                'Los campos %s tienen un valor o etiqueta que no es texto en '
+                'su selección' % ', '.join(offenders))
+        for model_name, field_name, choices in pending:
+            if IrModelFields.objects.using(using).filter(
+                    model=model_name, name=field_name).exists():
+                cls._update_selection(model_name, field_name, list(choices),
+                                      using=using)
+
+    def _get_records(self, using=DEFAULT_DB_ALIAS):
+        """Los registros que tienen este valor — ``_get_records``.
+
+        Docstring de la fuente, verbatim: *"Return the records having 'self' as
+        a value"* (``odoo19c: :1823-1846``).
+
+        La fuente lo escribe en SQL crudo y bifurca por ``company_dependent``,
+        que allá se guarda como ``jsonb`` por empresa. Aquí el eje
+        ``company_dependent`` ya está construido (tarea #129) y su lectura pasa
+        por el descriptor, así que el filtro es el del ORM y la bifurcación no
+        hace falta.
+        """
+        model_cls = type(self)._model_class(self.field_id.model)
+        if model_cls is None:
+            return None
+        return model_cls.objects.using(using).filter(
+            **{self.field_id.name: self.value})
+
+    def _unlink_if_manual(self):
+        """Un valor de un campo de módulo no se borra a mano — ``_unlink_if_manual``.
+
+        ≙ ``odoo19c: :1723-1731``, con su comentario verbatim: *"Prevent manual
+        deletion of module columns"*, y su mensaje. La fuente lo engancha con
+        ``@api.ondelete(at_uninstall=False)``; aquí lo llama :meth:`delete`,
+        con la misma excepción al desinstalar.
+        """
+        if self.field_id.state != STATE_MANUAL:
+            raise UserError(
+                'Las propiedades de un campo base no se alteran por esta vía. '
+                'Modifícalas en código Python, preferentemente en un addon '
+                'propio.')
+
+    def save(self, *args, **kwargs):
+        """Enganche de Django — ≙ ``create`` (``:1665-1687``) y ``write`` (``:1689-1721``).
+
+        De los dos caminos se porta la guarda común, que es su mitad
+        sustantiva: **la selección de un campo base no se toca por esta vía**.
+        La fuente la escribe dos veces con el mismo mensaje, en ``create``
+        sobre el campo destino y en ``write`` sobre cada fila.
+
+        DIVERGENCIA DE MECANISMO, la de la cabecera del módulo: las recargas
+        del registro (``_setup_models__``) no tienen receptor —Django congela
+        el suyo al importar— y el ``UPDATE`` que la fuente emite al renombrar
+        un valor recae sobre el esquema vivo, que aquí gobiernan las
+        migraciones. Lo que sí queda es el aviso: renombrar un valor deja las
+        filas que lo guardaban apuntando al viejo.
+        """
+        creating = self._state.adding
+        # La fuente reparte la guarda de forma asimétrica, y se conserva: en
+        # ``create`` rechaza **siempre** (``:1669-1673``); en ``write`` sólo si
+        # quien escribe no es administrador (``:1693-1698``).
+        if self.field_id.state != STATE_MANUAL and (creating or not is_system()):
+            raise UserError(
+                'Las propiedades de un campo base no se alteran por esta vía. '
+                'Modifícalas en código Python, preferentemente en un addon '
+                'propio.')
+        if not creating:
+            previous = self._origin
+            if previous is not None and previous.value != self.value:
+                _logger.warning(
+                    'El valor de selección %s.%s pasa de %s a %s; las filas '
+                    'que guardaban el viejo no se migran desde aquí.',
+                    self.field_id.model, self.field_id.name,
+                    previous.value, self.value)
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        """Enganche de Django — ≙ ``unlink`` (``:1733-1745``)."""
+        self._unlink_if_manual()
+        return super().delete(*args, **kwargs)
+
+
+class IrModelConstraint(models.CopyMixin, TimeStampedModel):
     """``ir.model.constraint`` — restricción o índice SQL rastreado.
 
     Registro, no ejecutor: ver el docstring del módulo sobre por qué no se
     porta el ``DROP CONSTRAINT`` de la desinstalación.
+
+    ``models.CopyMixin`` entra por :meth:`copy_data`, que la fuente declara
+    aquí para dar a la copia un nombre distinto.
     """
 
     _name = 'ir.model.constraint'
@@ -1197,6 +1418,177 @@ class IrModelConstraint(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    def copy_data(self, default=None, seen=None):
+        """≙ ``copy_data`` (``odoo19c: ir_model.py:1925-1927``).
+
+        El nombre es único por ``(name, module)``, así que una copia no puede
+        llevar el mismo: la fuente le añade el sufijo ``_copy`` y aquí se hace
+        igual.
+        """
+        values = super().copy_data(default, seen=seen)
+        if values is None:
+            return None
+        values['name'] = self.name + '_copy'
+        return values
+
+    @classmethod
+    def _reflect_constraint(cls, model_cls, conname, constraint_type,
+                            definition, module, message=None,
+                            using=DEFAULT_DB_ALIAS):
+        """Registra una restricción — ``_reflect_constraint``.
+
+        Docstring de la fuente, verbatim: *"Reflect the given constraint, and
+        return its corresponding record if a record is created or modified;
+        returns ``None`` otherwise. The reflection makes it possible to remove
+        a constraint when its corresponding module is uninstalled. ``type`` is
+        either 'f', 'i', or 'u' depending on the constraint being a foreign key
+        or not"* (``odoo19c: ir_model.py:1929-1985``).
+
+        Las tres decisiones de la fuente se conservan: sin módulo no se
+        registra nada —*"no need to save constraints for custom models as
+        they're not part of any module"*—; el tipo se acota a los tres valores;
+        y una fila que ya dice lo mismo **no se toca**, que es lo que hace
+        distinguible «cambió» de «ya estaba».
+
+        La fuente lo escribe en SQL crudo con ``INSERT``/``UPDATE``; aquí es el
+        ORM. El ``message`` de allá es un ``jsonb`` por idioma porque su campo
+        es traducible; aquí es un ``Char`` y guarda el texto — el eje de
+        traducción del ORM es la tarea **#184**.
+        """
+        if not module:
+            return None
+        assert constraint_type in ('f', 'u', 'i')
+        module_row = IrModule.objects.using(using).filter(name=module).first()
+        if module_row is None:
+            raise ValueError(
+                'No se puede registrar la restricción %s: el módulo %s no '
+                'está en ir_module_module' % (conname, module))
+        label = model_cls._meta.label
+        model_row = IrModel.objects.using(using).filter(model=label).first()
+        if model_row is None:
+            raise ValueError(
+                'No se puede registrar la restricción %s: el modelo %s no '
+                'está en ir_model' % (conname, label))
+
+        row = cls.objects.using(using).filter(
+            name=conname, module=module_row).first()
+        if row is None:
+            return cls.objects.using(using).create(
+                name=conname, module=module_row, model=model_row,
+                type=constraint_type, definition=definition or '',
+                message=message or '')
+        if (row.type, row.definition, row.message) == (
+                constraint_type, definition or '', message or ''):
+            return None
+        row.type = constraint_type
+        row.definition = definition or ''
+        row.message = message or ''
+        row.save(using=using)
+        return row
+
+    @classmethod
+    def _reflect_constraints(cls, model_classes, using=DEFAULT_DB_ALIAS):
+        """≙ ``_reflect_constraints`` (``odoo19c: :1987-1990``).
+
+        Docstring de la fuente, verbatim: *"Reflect the table objects of the
+        given models"*. Recibe las clases directamente porque aquí no hay un
+        registro que resuelva un nombre punteado a un modelo vivo.
+        """
+        for model_cls in model_classes:
+            cls._reflect_model(model_cls, using=using)
+
+    @classmethod
+    def _reflect_model(cls, model_cls, using=DEFAULT_DB_ALIAS):
+        """Refleja los objetos de tabla de un modelo — ``_reflect_model``.
+
+        Docstring de la fuente, verbatim: *"Reflect the _table_objects of the
+        given model"* (``odoo19c: :1992-2003``).
+
+        **Dónde viven los objetos de tabla es la única divergencia**, y ya está
+        declarada por ``atributos-de-clase-de-modelo.md``: la fuente los guarda
+        en ``model._table_objects``, un diccionario que su metaclase llena con
+        los atributos de clase ``models.Constraint`` y ``models.Index``; aquí
+        su hogar es ``Meta.constraints`` y ``Meta.indexes``, con el nombre
+        conservado. De ahí sale todo lo que la fuente lee: el nombre, el tipo
+        —``i`` para un índice, ``u`` para el resto, su misma regla— y la
+        definición, que Django emite con ``constraint_sql``/``create_sql``
+        sobre un editor de esquema que **no ejecuta nada** (``collect_sql``).
+
+        El módulo es el ``app_label`` del modelo, que es lo que aquí cumple el
+        papel del ``cons._module`` de allá.
+        """
+        module = model_cls._meta.app_label
+        registered = []
+        with connections[using].schema_editor(collect_sql=True) as editor:
+            objects = [
+                (obj.name, 'u', obj.constraint_sql(model_cls, editor))
+                for obj in model_cls._meta.constraints
+            ] + [
+                (obj.name, 'i', str(obj.create_sql(model_cls, editor)))
+                for obj in model_cls._meta.indexes
+            ]
+        for conname, constraint_type, definition in objects:
+            if not conname:
+                _logger.warning(
+                    'Objeto de tabla sin nombre en %s', model_cls._meta.label)
+                continue
+            row = cls._reflect_constraint(
+                model_cls, conname, constraint_type, definition, module,
+                using=using)
+            if row is not None:
+                registered.append(row)
+        return registered
+
+    @classmethod
+    def _module_data_uninstall(cls, modules_to_remove, using=DEFAULT_DB_ALIAS):
+        """≙ ``unlink`` (``odoo19c: :1873-1923``), su mitad de datos.
+
+        La guarda de propiedad es la de la fuente, con su comentario verbatim:
+        *"double-check we are really going to delete all the owners of this
+        schema element"* — una restricción que **otro** módulo también declara
+        no se toca.
+
+        DIVERGENCIA DE MECANISMO, la de la cabecera del módulo y la misma que
+        ``IrModelRelation`` declara: la fuente cierra emitiendo ``ALTER TABLE
+        ... DROP CONSTRAINT`` y ``DROP INDEX`` sobre el esquema vivo, tras
+        consultar ``pg_constraint`` para no soltar lo que no existe. Aquí el
+        esquema lo gobiernan las migraciones de Django. Se porta el borrado de
+        las filas de registro y se devuelven los nombres que la fuente habría
+        soltado, para que quien desinstale sepa qué migración le falta.
+
+        El nombre es ``_module_data_uninstall`` y no ``unlink`` porque **no es
+        el borrado de un registro**: es el paso de desinstalación de un módulo,
+        el mismo que ``IrModelData`` e ``IrModelRelation`` nombran así. La
+        fuente lo cuelga de ``unlink`` porque allá la desinstalación borra el
+        conjunto; aquí ``delete`` es el enganche de Django sobre una fila y
+        colgarle este cuerpo le daría a un borrado corriente el efecto de una
+        desinstalación.
+        """
+        if not is_system():
+            raise AccessError(
+                'Administrator access is required to uninstall a module')
+
+        rows = list(cls.objects.using(using).filter(
+            module__in=list(modules_to_remove)).order_by('-id'))
+        own_ids = {row.pk for row in rows}
+        to_drop = OrderedSet()
+        deletable_ids = []
+        for row in rows:
+            owners = set(cls.objects.using(using).filter(
+                name=row.name).values_list('pk', flat=True))
+            if owners - own_ids:
+                continue
+            to_drop.add(row.name)
+            deletable_ids.append(row.pk)
+
+        if deletable_ids:
+            cls.objects.using(using).filter(pk__in=deletable_ids).delete()
+        for name in to_drop:
+            _logger.info(
+                'La restricción %s queda huérfana al desinstalar el módulo; '
+                'su borrado es una migración, no DDL desde el modelo.', name)
+        return list(to_drop)
 
 
 class IrModelRelation(TimeStampedModel):

@@ -300,8 +300,13 @@ class TestTheOnchangeSetters:
     def test_the_selection_is_copied_into_the_value(self):
         model_row = _partner_model()
         field_row = _field(model_row, 'tipo', 'selection')
-        choice = IrModelFieldsSelection.objects.create(
-            field=field_row, value='delivery', name='Entrega', sequence=1)
+        # ``bulk_create`` y no ``create``: el campo es **base**, y la guarda
+        # de ``save`` cierra el alta interactiva sobre un campo base — igual
+        # que la fuente. El reflejo escribe por esta misma vía.
+        [choice] = IrModelFieldsSelection.objects.bulk_create([
+            IrModelFieldsSelection(
+                field_id=field_row, value='delivery', name='Entrega',
+                sequence=1)])
         action = _action(update_field_id=field_row, selection_value=choice)
 
         action._set_selection_value()
