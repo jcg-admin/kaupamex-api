@@ -10,13 +10,15 @@ Cada caso mide **quién gana** cuando el documento y el paperformat dicen cosas
 distintas, que es la substancia del método.
 """
 import inspect
+import io
 
 import pytest
+from PIL import Image
 
-from addons.base.models.ir_actions_report import (HelperNotBuilt,
-                                                  IrActionsReport)
+from addons.base.models.ir_actions_report import IrActionsReport
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.report_paperformat import ReportPaperformat
+from addons.base.report_template import UnknownImageFormat
 
 pytestmark = pytest.mark.django_db
 
@@ -161,12 +163,48 @@ class TestRunWkhtmltopdfDelegatesTheResolution:
         assert 'self._build_wkhtmltopdf_args(' in source
 
 
-class TestTheHtmlRasterFailsLoudly:
-    """``_run_wkhtmltoimage`` — bloqueo medido, no divergencia silenciosa."""
+class TestTheHtmlRasterDrawsFromTheDescriptor:
+    """``_run_wkhtmltoimage`` — el nombre es el contrato, el cuerpo es nuestro.
 
-    def test_it_raises_instead_of_returning_blank_images(self):
-        with pytest.raises(HelperNotBuilt, match='maquetación'):
-            IrActionsReport()._run_wkhtmltoimage(['<p>x</p>'], 100, 100)
+    Estuvo bloqueado declarando que faltaba «un motor de maquetación HTML».
+    La directiva del ejecutor cerró esa premisa: no usamos ni queremos
+    wkhtmltoimage ni QtWebKit. Y el motor no hacía falta — el cuerpo que este
+    árbol pasa **es el descriptor**, igual que en el camino del papel, así que
+    la imagen se dibuja de él con Pillow (tarea **#203**).
+    """
+
+    def test_it_returns_one_image_per_body(self):
+        images = IrActionsReport()._run_wkhtmltoimage(
+            [{'title': 'A'}, {'title': 'B'}], 160, 90, image_format='png')
+        assert len(images) == 2
+        assert all(Image.open(io.BytesIO(raw)).size == (160, 90)
+                   for raw in images)
+
+    def test_a_string_body_is_wrapped_like_the_paper_path_does(self):
+        # ``_run_wkhtmltopdf`` acepta las dos formas; ésta no puede ser más
+        # estricta, o un llamador de la fuente rompería aquí y no allá.
+        images = IrActionsReport()._run_wkhtmltoimage(
+            ['<p>x</p>'], 120, 60, image_format='png')
+        assert Image.open(io.BytesIO(images[0])).size == (120, 60)
+
+    def test_a_body_that_cannot_be_drawn_becomes_none_and_the_batch_survives(
+            self):
+        class Intratable:
+            def __str__(self):
+                raise ValueError('este valor no se deja escribir')
+
+        images = IrActionsReport()._run_wkhtmltoimage(
+            [{'title': 'A'}, {'title': Intratable()}, {'title': 'C'}],
+            120, 60, image_format='png')
+        assert images[1] is None
+        assert images[0] is not None and images[2] is not None
+
+    def test_an_unknown_format_aborts_the_batch_instead_of_nulling_it(self):
+        # Es una precondición de la tanda, como la versión del binario en la
+        # fuente — no el fallo de un cuerpo suelto.
+        with pytest.raises(UnknownImageFormat):
+            IrActionsReport()._run_wkhtmltoimage([{'t': 'x'}], 10, 10,
+                                                 image_format='webp')
 
     def test_its_signature_matches_the_source(self):
         signature = inspect.signature(IrActionsReport._run_wkhtmltoimage)

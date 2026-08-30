@@ -84,8 +84,11 @@ DTL corre con ``autoescape`` **apagado**: el texto va a un dict de Python y
 dato llegaría al papel como ``&amp;`` (medido en
 ``analisis-motor-de-plantillas-django-y-el-descriptor-json``).
 """
+import io
+
 from django.template import Context, Engine, Variable, VariableDoesNotExist
 from django.utils.html import conditional_escape, escape
+from PIL import Image, ImageDraw, ImageFont
 
 from addons.base.models import ir_field_converters
 from tools.translate import _
@@ -505,3 +508,84 @@ def descriptor_to_text(rendered):
             lines.append(f'--- {res_id} ---')
         lines.extend(_text_block(body))
     return '\n'.join(lines).encode()
+
+
+#: Formatos de imagen que el raster emite, con el nombre que Pillow les da.
+#: Son exactamente los dos que la firma de la fuente declara
+#: (``image_format: typing.Literal['jpg', 'png']``, ``odoo19c:
+#: ir_actions_report.py:471``); no se añade ninguno porque el contrato es suyo.
+IMAGE_FORMATS = {'jpg': 'JPEG', 'png': 'PNG'}
+
+#: Métricas del lienzo, en píxeles. Son de este renderizador y no de la
+#: fuente: allá la maquetación la resuelve el CSS de la página.
+IMAGE_MARGIN = 8
+IMAGE_FONT_SIZE = 13
+IMAGE_LINE_HEIGHT = 17
+
+
+class UnknownImageFormat(Exception):
+    """El formato pedido no está en :data:`IMAGE_FORMATS`.
+
+    Ruidoso a propósito: devolver un PNG donde se pidió otra cosa es el verde
+    que no discrimina — quien guarde los bytes con la extensión pedida sirve
+    un archivo cuyo contenido no coincide con su tipo declarado.
+    """
+
+
+def descriptor_to_image(rendered, width, height, image_format='jpg'):
+    """El descriptor como imagen raster — lo que ``_run_wkhtmltoimage`` entrega.
+
+    :param rendered: el intermedio de ``_render_template``, o un descriptor.
+    :param width: ancho en píxeles.
+    :param height: alto en píxeles.
+    :param image_format: ``'jpg'`` o ``'png'``, como la firma de la fuente.
+    :returns: ``bytes`` de la imagen.
+    :raises UnknownImageFormat: si el formato no está en :data:`IMAGE_FORMATS`.
+
+    **Divergencia de mecanismo, con su razón y su medición.** La fuente
+    rasteriza con ``wkhtmltoimage``, que maqueta una página HTML con QtWebKit
+    y la fotografía. Este árbol **no usa ni quiere** ese binario ni ese motor
+    (directiva del ejecutor 2026-08-30), y resulta que tampoco los necesita:
+    el cuerpo que aquí viaja **es el descriptor** —no una página— y el
+    descriptor ya lleva todo lo que la imagen debe mostrar. Lo que falta es
+    dibujarlo, y eso lo trae el stack: Pillow ya está declarado en
+    ``pyproject.toml`` y ``tools.barcode`` ya lo usa para su raster.
+
+    **Dibuja las mismas líneas que** :func:`descriptor_to_text`, y no por
+    comodidad: es lo que garantiza que los tres formatos digan lo mismo del
+    mismo descriptor. Inventar aquí un segundo vocabulario de maquetación
+    dejaría al raster contando otra historia que el texto y el marcado, sin
+    que nada lo delatara.
+
+    *Métrica:* los píxeles del lienzo emitido, leídos con Pillow.
+    *Ciega a:* la calidad tipográfica del resultado —usa la fuente por defecto
+    de Pillow, sin medir anchos de glifo— y a lo que no cabe: una línea más
+    allá del borde inferior **no se dibuja y no avisa**. Un descriptor que no
+    quepa entrega una imagen cierta y parcial, no una imagen falsa.
+    """
+    pillow_format = IMAGE_FORMATS.get(str(image_format).lower())
+    if pillow_format is None:
+        raise UnknownImageFormat(
+            _("Unknown image format %(asked)s; expected one of %(known)s") % {
+                'asked': image_format, 'known': ', '.join(sorted(IMAGE_FORMATS))})
+
+    bodies, ids = _bodies_and_ids(rendered)
+    lines = []
+    for body, res_id in zip(bodies, ids):
+        if res_id is not None:
+            lines.append(f'--- {res_id} ---')
+        lines.extend(_text_block(body))
+
+    canvas = Image.new('RGB', (max(1, int(width)), max(1, int(height))), 'white')
+    draw = ImageDraw.Draw(canvas)
+    font = ImageFont.load_default(size=IMAGE_FONT_SIZE)
+    top = IMAGE_MARGIN
+    for line in lines:
+        if top + IMAGE_LINE_HEIGHT > canvas.height - IMAGE_MARGIN:
+            break
+        draw.text((IMAGE_MARGIN, top), line, fill='black', font=font)
+        top += IMAGE_LINE_HEIGHT
+
+    output = io.BytesIO()
+    canvas.save(output, format=pillow_format)
+    return output.getvalue()

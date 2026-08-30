@@ -121,10 +121,13 @@ Lo que sigue fuera, y por qué:
   de línea de comandos frente a un diccionario), y va declarada en su
   docstring.
 
-  ``_run_wkhtmltoimage`` es el único que sigue sin cuerpo, y **no como
-  divergencia sino como bloqueo medido**: exige un motor de maquetación HTML,
-  y este árbol no declara ninguno. Su condición de cierre y su sucesor van en
-  su propio docstring. Falla en voz alta.
+  ``_run_wkhtmltoimage`` **ya tiene cuerpo** (tarea #203). Estuvo declarado
+  como bloqueo medido —«exige un motor de maquetación HTML y este árbol no
+  declara ninguno»— y esa premisa resultó falsa: el cuerpo que aquí viaja es
+  el **descriptor**, la misma forma que consume el camino del papel, no una
+  página con su CSS. Sin maquetación que resolver no falta ningún motor, así
+  que el raster se dibuja con Pillow desde el descriptor, igual que los otros
+  dos formatos se serializan a marcado y a texto. Detalle en su docstring.
 
   .. code-block:: text
 
@@ -1535,53 +1538,58 @@ class IrActionsReport(IrActionsBase):
             return merged.getvalue()
 
     def _run_wkhtmltoimage(self, bodies, width, height, image_format='jpg'):
-        """Dibuja cada cuerpo HTML como imagen raster.
+        """Dibuja cada cuerpo como imagen raster.
 
-        ≙ ``_run_wkhtmltoimage`` (``:465-511``), con su nombre y su firma.
+        ≙ ``_run_wkhtmltoimage`` (``:465-511``), con su nombre, su firma y su
+        contrato de retorno: una lista del mismo largo que ``bodies``, con los
+        bytes de cada imagen o ``None`` donde el dibujo falló.
 
-        :param bodies: documentos HTML válidos, como cadenas.
+        :param bodies: descriptores; una cadena se envuelve como ``{'body': …}``
+            igual que en :meth:`_run_wkhtmltopdf`.
         :param width: ancho en píxeles.
         :param height: alto en píxeles.
         :param image_format: ``'jpg'`` o ``'png'``.
-        :returns: una lista del mismo largo que ``bodies``, con los bytes de
-            cada imagen o ``None`` donde el dibujo falló.
 
-        **BLOQUEADO por** ``un motor de maquetación HTML`` — con su medición
-        y su sucesor, no como divergencia de mecanismo, que sería el camino
-        barato. Este árbol no declara ninguno: el motor de papel son los
-        helpers de libharu (ADR-017), que reciben un descriptor y dibujan
-        primitivas, no una página con su CSS resuelto. El raster de un código
-        de barras sí se pudo construir —``tools.barcode``, porque ahí no hay
-        maquetación— y éste no, por esa diferencia y no por la licencia.
+        **El nombre es el contrato del porte, no una invocación.** Aquí no se
+        ejecuta ``wkhtmltoimage`` ni QtWebKit, y no se ejecutarán: la
+        directiva del ejecutor (2026-08-30) los descarta. El cuerpo dibuja con
+        :func:`~addons.base.report_template.descriptor_to_image`, que es
+        Pillow sobre el descriptor.
 
-        Medido: el **único** consumidor en la referencia es
-        ``addons/marketing_card/models/card_campaign.py:333``, y ese addon no
-        está en este árbol. Dentro de ``src/`` y ``addons/`` el conteo de
-        llamadores es **cero**.
+        **Estuvo bloqueado sobre una premisa que resultó falsa.** La
+        declaración anterior decía que faltaba «un motor de maquetación HTML»,
+        y de ahí que fallara en voz alta. Medido al reabrirlo: en este árbol
+        el cuerpo que viaja **es el descriptor**, la misma forma que consume
+        el camino del papel — no una página con su CSS. No hay maquetación que
+        resolver, así que no falta ningún motor.
 
-        *Métrica:* llamadas a ``_run_wkhtmltoimage`` en los cuatro árboles de
-        la referencia y en nuestras dos raíces de addon.
-        *Ciega a:* un consumidor futuro que lo alcance por herencia sin
-        nombrar el símbolo.
-
-        Sucesor registrado: **tarea #203** — decidir el motor de maquetación
-        con que se dibuja una página HTML a raster, que es la condición para
-        escribir el cuerpo. Es decisión del ejecutor: dependencia externa
-        nueva, no derivable del árbol. Hasta entonces **falla en voz alta**:
-        devolver imágenes en blanco sería el verde que no discrimina.
+        Los dos desenlaces del error se reparten como en la fuente: un formato
+        desconocido es **precondición de la tanda** y aborta —el análogo de su
+        control de versión del binario (``:476-477``)—, mientras que un cuerpo
+        que no se deja dibujar se registra y entra como ``None`` sin llevarse
+        a los demás (``:503-508``).
 
         El corte de ``current_test`` de la fuente **no** se porta, y no por
         omisión: existe para no invocar al binario durante una prueba
-        (``:474-475``), y aquí no hay invocación que evitar. Portarlo
-        devolvería ``[None] * len(bodies)`` en la suite, que es exactamente
-        el verde que no discrimina — un consumidor futuro no distinguiría
-        «el motor dibujó nada» de «el motor no existe».
+        (``:474-475``), y aquí no hay binario que evitar. Portarlo devolvería
+        ``[None] * len(bodies)`` en la suite, que es el verde que no
+        discrimina — ningún test podría distinguir «dibujó nada» de «no
+        dibuja».
         """
-        raise HelperNotBuilt(
-            'el raster de HTML a imagen necesita un motor de maquetación, y '
-            'este árbol no declara ninguno: los helpers de libharu dibujan '
-            'primitivas desde un descriptor, no una página con su CSS '
-            'resuelto (ADR-017)')
+        # Se valida antes del recorrido para que el formato desconocido aborte
+        # la tanda entera y no se confunda con el fallo de un cuerpo suelto.
+        report_template.descriptor_to_image({}, 1, 1, image_format=image_format)
+
+        images = []
+        for body in bodies:
+            descriptor = dict(body) if isinstance(body, dict) else {'body': body}
+            try:
+                images.append(report_template.descriptor_to_image(
+                    descriptor, width, height, image_format=image_format))
+            except Exception as error:
+                _logger.warning('El raster del descriptor falló: %s', error)
+                images.append(None)
+        return images
 
     # --- Fusión de PDF ------------------------------------------------------
 

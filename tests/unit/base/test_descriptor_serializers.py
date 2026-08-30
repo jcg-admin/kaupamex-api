@@ -12,9 +12,12 @@ que los consumen, no el texto de sus cuerpos.
 es una decisión de presentación, no del serializador— y a lo que el motor de
 papel haga después con el descriptor, que no pasa por aquí.
 """
+import io
 from decimal import Decimal
 
+import pytest
 from django.utils.safestring import mark_safe
+from PIL import Image
 
 from addons.base import report_template as rt
 
@@ -131,3 +134,62 @@ class TestBothAcceptTheIntermediateAndABareDescriptor:
         # es quien lo formatea, así que tiene que dejarlo pasar tal cual.
         assert b'1234.50' in rt.descriptor_to_text({'total': Decimal('1234.50')})
         assert b'1234.50' in rt.descriptor_to_html({'total': Decimal('1234.50')})
+
+
+class TestTheRasterSerializerDrawsWhatTheDescriptorSays:
+    """``descriptor_to_image`` — el tercer formato, tarea **#203**.
+
+    La fuente no lo tiene porque su raster lo produce ``wkhtmltoimage``, un
+    binario externo que maqueta HTML con QtWebKit. Este árbol no lo usa ni lo
+    quiere (directiva del ejecutor), y no le hace falta: el intermedio de aquí
+    es el descriptor, y el descriptor ya dice todo lo que la imagen tiene que
+    mostrar.
+    """
+
+    def _colours(self, raw):
+        return len(Image.open(io.BytesIO(raw)).convert('RGB').getcolors(1 << 16))
+
+    def test_the_image_has_the_size_that_was_asked_for(self):
+        raw = rt.descriptor_to_image(DESCRIPTOR, 320, 240)
+        assert Image.open(io.BytesIO(raw)).size == (320, 240)
+
+    def test_png_comes_out_as_png_and_jpg_as_jpeg(self):
+        png = rt.descriptor_to_image(DESCRIPTOR, 200, 120, image_format='png')
+        jpg = rt.descriptor_to_image(DESCRIPTOR, 200, 120, image_format='jpg')
+        assert Image.open(io.BytesIO(png)).format == 'PNG'
+        assert Image.open(io.BytesIO(jpg)).format == 'JPEG'
+
+    def test_an_unknown_format_fails_loudly(self):
+        # Devolver un PNG donde se pidió otra cosa sería el verde que no
+        # discrimina: quien lo guarde con la extensión pedida sirve un archivo
+        # cuyo contenido no coincide con su tipo.
+        with pytest.raises(rt.UnknownImageFormat, match='webp'):
+            rt.descriptor_to_image(DESCRIPTOR, 200, 120, image_format='webp')
+
+    def test_the_canvas_is_not_blank_because_the_content_is_drawn(self):
+        # El control que discrimina: un lienzo en blanco del tamaño pedido
+        # pasaría los dos casos anteriores sin dibujar nada.
+        assert self._colours(rt.descriptor_to_image(DESCRIPTOR, 320, 240,
+                                                    image_format='png')) > 1
+
+    def test_two_different_descriptors_do_not_draw_the_same_pixels(self):
+        one = rt.descriptor_to_image({'title': 'Factura'}, 320, 240,
+                                     image_format='png')
+        another = rt.descriptor_to_image({'title': 'Nota de credito'}, 320, 240,
+                                         image_format='png')
+        assert one != another
+
+    def test_the_record_rule_reaches_the_drawing_like_it_does_the_text(self):
+        with_id = rt.descriptor_to_image(
+            {'bodies': [{'title': 'F'}], 'html_ids': ['7']}, 320, 240,
+            image_format='png')
+        without_id = rt.descriptor_to_image(
+            {'bodies': [{'title': 'F'}], 'html_ids': [None]}, 320, 240,
+            image_format='png')
+        assert with_id != without_id
+
+    def test_a_descriptor_taller_than_the_canvas_still_draws_what_fits(self):
+        tall = {f'field_{i}': str(i) for i in range(200)}
+        raw = rt.descriptor_to_image(tall, 200, 60, image_format='png')
+        assert Image.open(io.BytesIO(raw)).size == (200, 60)
+        assert self._colours(raw) > 1
