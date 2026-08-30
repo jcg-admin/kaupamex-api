@@ -1013,6 +1013,95 @@ class IrModelRelation(TimeStampedModel):
     def __str__(self):
         return self.name
 
+    @classmethod
+    def _reflect_relation(cls, model_cls, table, module,
+                          using=DEFAULT_DB_ALIAS):
+        """Registra la tabla de un Many2many — ``_reflect_relation``.
+
+        Docstring de la fuente, verbatim: *"Reflect the table of a many2many
+        field for the given model, to make it possible to delete it later when
+        the module is uninstalled"* (``odoo19c: ir_model.py:2051-2069``).
+
+        Sin este registro la fila no existe, y sin la fila
+        :meth:`_module_data_uninstall` no sabe qué tablas intermedias dejó un
+        módulo: la trazabilidad del Many2many empieza aquí.
+
+        La fuente lo escribe en SQL crudo con un ``SELECT`` de existencia y un
+        ``INSERT`` condicionado; aquí es ``get_or_create``, que es la misma
+        conducta —idempotente por ``(name, module)``— en el ORM. Y no hace
+        falta el ``invalidate_all`` de la primera línea de la fuente: ese vacía
+        su caché de registros, que aquí no existe.
+
+        El módulo o el modelo que no estén en sus tablas **no se inventan**: la
+        fuente los resuelve con dos subconsultas que dan ``NULL`` si faltan, y
+        su ``INSERT`` fallaría por ``NOT NULL``. Aquí se levanta ``ValueError``
+        con el nombre que faltó, que es el mismo rechazo con el motivo escrito.
+        """
+        module_row = IrModule.objects.using(using).filter(name=module).first()
+        if module_row is None:
+            raise ValueError(
+                'No se puede registrar la relación %s: el módulo %s no está '
+                'en ir_module_module' % (table, module))
+        label = model_cls._meta.label
+        model_row = IrModel.objects.using(using).filter(model=label).first()
+        if model_row is None:
+            raise ValueError(
+                'No se puede registrar la relación %s: el modelo %s no está '
+                'en ir_model' % (table, label))
+        row, _created = cls.objects.using(using).get_or_create(
+            name=table, module=module_row, defaults={'model': model_row})
+        return row
+
+    @classmethod
+    def _module_data_uninstall(cls, modules_to_remove, using=DEFAULT_DB_ALIAS):
+        """≙ ``_module_data_uninstall`` (``odoo19c: :2022-2049``), su mitad de datos.
+
+        Docstring de la fuente, verbatim: *"Delete PostgreSQL many2many
+        relations tracked by this model"*.
+
+        La guarda de propiedad es el corazón del método y se porta entera: una
+        tabla intermedia que **otro** módulo también declara no se toca. La
+        fuente lo dice en su propio comentario —*"as installed modules have
+        defined this element we must not delete it!"*— y lo resuelve
+        comprobando que **todos** los dueños de ese nombre estén dentro del
+        lote que se desinstala.
+
+        DIVERGENCIA DE MECANISMO, la misma que declara
+        ``IrModelData._module_data_uninstall`` y que el registro
+        ``scripts/divergencias_declaradas.txt`` lleva anotada: la fuente cierra
+        emitiendo ``DROP TABLE ... CASCADE`` sobre cada tabla superviviente, y
+        aquí el esquema lo gobiernan las migraciones de Django. Lo que se porta
+        es el borrado de las **filas de registro**, que es lo que da la
+        trazabilidad; el DDL no.
+
+        Devuelve los nombres de tabla que la fuente habría soltado, para que
+        quien desinstale sepa qué migración le falta escribir.
+        """
+        if not is_system():
+            raise AccessError(
+                'Administrator access is required to uninstall a module')
+
+        rows = list(cls.objects.using(using).filter(
+            module__in=list(modules_to_remove)).order_by('-id'))
+        own_ids = {row.pk for row in rows}
+        to_drop = OrderedSet()
+        deletable_ids = []
+        for row in rows:
+            owners = set(cls.objects.using(using).filter(
+                name=row.name).values_list('pk', flat=True))
+            if not owners.issubset(own_ids):
+                continue
+            to_drop.add(row.name)
+            deletable_ids.append(row.pk)
+
+        if deletable_ids:
+            cls.objects.using(using).filter(pk__in=deletable_ids).delete()
+        for table in to_drop:
+            _logger.info(
+                'La tabla %s queda huérfana al desinstalar el módulo; su '
+                'borrado es una migración, no DDL desde el modelo.', table)
+        return list(to_drop)
+
 
 class IrModelAccess(TimeStampedModel):
     """``ir.model.access`` — permiso CRUD por modelo y grupo.
@@ -1121,17 +1210,41 @@ class IrModelAccess(TimeStampedModel):
         la consulta.
 
         La fuente lo hace en SQL crudo y lo memoriza con ``ormcache`` sobre
-        ``(uid, mode)``. Aquí es el ORM y **no se memoriza**: la caché de la
-        fuente tiene su invalidador (``call_cache_clearing_methods``, llamado
-        desde ``create``/``write``/``unlink`` de esta misma tabla) y aquí ese
-        invalidador no existe todavía. Memorizar sin invalidador es la clase de
-        defecto que la tarea #58 ya midió en ``_get_group_ids``: una ACL
-        revocada seguiría concediendo hasta reiniciar el proceso.
+        ``(uid, mode)``. Aquí **también se memoriza, desde la tarea #172**: el
+        invalidador que faltaba —``call_cache_clearing_methods``— ya está
+        portado abajo y lo llaman :meth:`save` y :meth:`delete`, igual que la
+        fuente lo llama desde ``create``/``write``/``unlink``. Sin él,
+        memorizar habría sido el defecto que la tarea #58 midió en
+        ``_get_group_ids``: una ACL revocada seguiría concediendo hasta
+        reiniciar el proceso.
+
+        **La clave es la del conjunto de grupos, no la del usuario.** La fuente
+        puede usar ``self.env.uid`` porque su ``env`` lo lleva; aquí el usuario
+        entra por parámetro y puede llegar sin resolver (``user=None`` significa
+        *el de la petición*), así que una clave sobre ``user`` mezclaría a dos
+        usuarios distintos bajo el mismo ``None``. Se resuelve primero y se
+        memoriza sobre ``(grupos, modo)``, que es de lo que el resultado
+        depende de verdad: dos usuarios con los mismos grupos ven el mismo
+        conjunto, y la fuente les daría dos entradas iguales.
         """
         cls._check_mode(access_mode)
         if user is None:
             user = get_current_user()
-        group_ids = list(user._get_group_ids()) if user is not None else []
+        group_ids = (frozenset(user._get_group_ids())
+                     if user is not None else frozenset())
+        return cls._allowed_models_for_groups(group_ids, access_mode)
+
+    @classmethod
+    @ormcache('group_ids', 'access_mode', cache='stable')
+    def _allowed_models_for_groups(cls, group_ids, access_mode):
+        """La mitad memorizable de :meth:`_get_allowed_models`.
+
+        Símbolo **nuestro**: la fuente no lo tiene porque no lo necesita —su
+        ``ormcache`` se cuelga directamente de ``_get_allowed_models`` con la
+        clave ``self.env.uid``. Aquí el usuario llega por parámetro y hay que
+        resolverlo **antes** de calcular la clave; ese corte es lo único que
+        este método añade. La consulta es la de la fuente, sin cambios.
+        """
         rows = cls.objects.filter(
             active=True, **{f'perm_{access_mode}': True},
         ).filter(
@@ -1225,6 +1338,52 @@ class IrModelAccess(TimeStampedModel):
             group_id__isnull=True,
             **{f'perm_{access_mode}': True},
         ).exists()
+
+    @classmethod
+    def call_cache_clearing_methods(cls):
+        """Vacía lo que una ACL modificada invalida — ``call_cache_clearing_methods``.
+
+        ≙ ``odoo19c: odoo/addons/base/models/ir_model.py:2196-2199``. La fuente
+        vacía dos cosas: el caché de registros del entorno
+        (``env.invalidate_all()``) y la familia ``stable`` del registry, con el
+        comentario *"mainly _get_allowed_models"*.
+
+        Aquí sólo hay la segunda: el caché de registros de la fuente es su
+        ``env``, y este árbol no lo tiene —Django relee la fila—. La familia
+        ``stable`` sí existe (``orm.registry.clear_cache``) y es la que guarda
+        :meth:`_allowed_models_for_groups`, que es a lo que apunta el
+        comentario de la fuente.
+        """
+        registry.clear_cache('stable')
+
+    def save(self, *args, **kwargs):
+        """Enganche de Django — ≙ ``create`` (``:2205-2214``) y ``write`` (``:2216-2218``).
+
+        Los dos caminos de la fuente colapsan en ``save``, y los dos empiezan
+        por lo mismo: :meth:`call_cache_clearing_methods`. La fuente lo llama
+        **antes** de escribir, no después, y aquí se conserva el orden — una
+        entrada memorizada durante la escritura se recalcularía con la fila ya
+        cambiada, que es lo que la invalidación busca.
+
+        El aviso de la regla sin grupo es de ``create`` y sólo de ahí: una ACL
+        que concede algún permiso **sin** nombrar grupo lo concede a todos, y
+        la fuente lo marca como *deprecated feature*. Se emite al crear, que es
+        cuando la fila nace con esa forma.
+        """
+        creating = self._state.adding
+        type(self).call_cache_clearing_methods()
+        if creating and self.group_id_id is None and any(
+                (self.perm_read, self.perm_write,
+                 self.perm_create, self.perm_unlink)):
+            _logger.warning(
+                'La regla %s no tiene grupo; es una capacidad obsoleta. Toda '
+                'regla que conceda acceso debería nombrar su grupo.', self.name)
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        """Enganche de Django — ≙ ``unlink`` (``:2220-2222``)."""
+        type(self).call_cache_clearing_methods()
+        return super().delete(*args, **kwargs)
 
 
 class IrModelData(models.CopyMixin, TimeStampedModel):

@@ -99,6 +99,41 @@ class TestAllowedModels:
             IrModelAccess._get_allowed_models('browse')
 
 
+class TestTheCacheIsInvalidatedByItsOwnTable:
+    """≙ ``call_cache_clearing_methods`` (``odoo19c: :2196-2199``).
+
+    El conjunto de modelos permitidos se memoriza en la familia ``stable``,
+    igual que en la fuente. Una caché sin invalidador concede lo que ya se
+    revocó, que es el defecto que la tarea #58 midió en ``_get_group_ids``:
+    estos dos casos son el control de que el invalidador corre.
+
+    Medido con la guarda anulada —los dos ``call_cache_clearing_methods`` de
+    :meth:`IrModelAccess.save` y :meth:`IrModelAccess.delete` sustituidos por
+    ``pass``—: la suite de este archivo pasa de **23 passed** a **3 failed, 20
+    passed**. Caen estos dos y
+    ``TestCheck.test_without_a_user_only_global_rows_apply``, que también lee
+    después de escribir; los otros veinte no dependen del invalidador. Sin
+    memoización los tres pasan igual, porque cada lectura vuelve a la tabla.
+    """
+
+    def test_a_row_created_after_a_negative_read_grants(self, db):
+        who = _user('acl.cache.alta@practicayoruba.mx')
+        assert MODEL_LABEL not in IrModelAccess._get_allowed_models(
+            'read', user=who)
+        _acl('read', group=None)
+        assert MODEL_LABEL in IrModelAccess._get_allowed_models(
+            'read', user=who)
+
+    def test_a_row_deleted_after_a_positive_read_stops_granting(self, db):
+        row = _acl('read', group=None)
+        who = _user('acl.cache.baja@practicayoruba.mx')
+        assert MODEL_LABEL in IrModelAccess._get_allowed_models(
+            'read', user=who)
+        row.delete()
+        assert MODEL_LABEL not in IrModelAccess._get_allowed_models(
+            'read', user=who)
+
+
 class TestCheck:
     """≙ ``check(model, mode, raise_exception)`` — el veredicto."""
 
