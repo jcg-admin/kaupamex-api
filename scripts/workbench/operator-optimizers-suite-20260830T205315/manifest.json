@@ -1,6 +1,8 @@
 {
   "question": "el porte de la familia de optimizadores de operador, deja la suite verde?",
-  "instrument": ["uv run pytest -n 4 -q --reuse-db, con las cuatro bases de worker calientes"],
+  "instrument": [
+    "uv run pytest -n 4 -q --reuse-db, con las cuatro bases de worker calientes"
+  ],
   "metric": "casos passed / failed / skipped y reloj de pared de la suite completa",
   "blind_to": [
     "un fallo que solo aparezca en frio: estas dos ejecuciones reusan las bases, y --create-db podria descubrir una migracion que no aplica",
@@ -8,12 +10,19 @@
     "todo lo que la suite no cubre: un verde mide los casos escritos, no el comportamiento no escrito"
   ],
   "destination": "docs: source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/hallazgos/",
-  "source": ["src/orm/domains.py", "src/orm/fields.py", "src/orm/fields_properties.py", "src/addons/base/models/properties_base_definition_mixin.py"],
+  "source": [
+    "src/orm/domains.py",
+    "src/orm/fields.py",
+    "src/orm/fields_properties.py",
+    "src/addons/base/models/properties_base_definition_mixin.py"
+  ],
   "reproducible": "uv run pytest -n 4 -q --reuse-db",
   "outputs": [
     "suite-before-the-collection-fix-20260830T205315.log",
     "suite-after-the-collection-fix-20260830T210058.log"
   ],
-  "control": "las dos ejecuciones son el par: la primera con dos de los cuatro sitios estrechos ya repuntados (3 failed, 7682 passed), la segunda con los cuatro (0 failed, 7685 passed). El delta de 3 casos es exactamente TestSearchByProperty, que es lo que el sitio de fields_properties.py gobierna",
-  "findings": ["H-API-960"]
+  "control": "las dos ejecuciones son un par pareado: identica poblacion e identico modo, y entre una y otra solo cambian los dos sitios estrechos que faltaban por repuntar. Los casos del delta son exactamente los que ese sitio gobierna. Las cifras se publican en el hallazgo, no aqui",
+  "findings": [
+    "H-API-960"
+  ]
 }

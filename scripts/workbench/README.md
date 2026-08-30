@@ -6,8 +6,7 @@ evidencia de una medición vale tanto como su conclusión.
 
 ```
 scripts/workbench/<slug>-<ISO>/
-├── README.md            la pregunta, la premisa y su corrección, el veredicto
-├── manifest.json        el mismo contenido en forma verificable
+├── manifest.json        la pregunta, el instrumento, su ceguera y el destino
 ├── <instrument>.py      lo que mide o transforma
 ├── tests/               escritos ANTES del instrumento (TDD)
 ├── probes/              sondas de una pregunta suelta, no del camino principal
@@ -17,6 +16,26 @@ scripts/workbench/<slug>-<ISO>/
 `<ISO>` es `date -u +%Y%m%dT%H%M%S`, obtenido en el mismo turno en que se usa
 (`timestamps-iso8601-obligatorios.md`). El slug describe el trabajo, no su
 resultado: al empezar todavía no se sabe cuál es.
+
+## Una pieza NO lleva README
+
+Directiva del ejecutor 2026-08-30: *«los README.md no son lugar en donde se
+llevan registro, eso ya se tiene documentando en docs»*. Una pieza declara su
+**mecanismo** en `manifest.json` —la pregunta, el instrumento, a qué es ciego,
+y el `destination` que nombra dónde aterriza su conclusión— y nada más. El
+**registro** —qué se midió, qué salió, qué veredicto— vive en el hallazgo o el
+análisis de `docs: source/gestion/pm/api/iniciativas/<slug>/`, que es donde se
+versiona, se cita por `:ref:` y se audita.
+
+Es el corolario de `calibration-verified-numbers.md` aplicado a este
+directorio: un README con la tabla de resultados es una **segunda fuente de
+verdad** que nadie sincroniza, y envejece sin que nadie toque el archivo. Los
+tres que existían —`analogue-in-the-client`, `table-object-naming`,
+`operator-optimizers-suite`— duplicaban exactamente lo que ya llevaban
+H-API-956, H-API-957 y H-API-960; se retiraron, y el git log los conserva.
+
+Este archivo sí se queda: documenta el **mecanismo** del directorio, que es lo
+que un guion de `scripts/` puede documentar de sí mismo.
 
 ## De dónde sale esto, y por qué no se llama «eventos»
 
