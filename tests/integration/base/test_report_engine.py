@@ -612,3 +612,106 @@ class TestPlantillaSembrada:
         contenido, _ext = IrActionsReport._render(
             reporte_orden, [orden_con_lineas.pk])
         assert 'Incoterm' not in texto_impreso(contenido)
+
+
+class TestCallBetweenTemplates:
+    """``<call key="…"/>`` resuelve contra ``ir.ui.view``, como el root.
+
+    La referencia usa **un solo resolutor** para las dos vías: su
+    ``_render_template`` delega en ``ir.ui.view._render_template``
+    (``odoo19c: ir_actions_report.py:769-789``), y el ``t-call`` del
+    compilador entra por el mismo ``_get_template_view``
+    (``odoo19c: ir_ui_view.py:1162``). Aquí el intérprete recibe ese
+    resolutor por parámetro —``interpret_descriptor(arch, ctx, resolve_key)``—
+    y hasta este pase el reporte no le pasaba ninguno: todo ``<call>`` en una
+    plantilla almacenada levantaba ``needs a resolve_key``.
+
+    Tarea **#194**, sucesora del cableado del descriptor.
+    """
+
+    BASE = (
+        '<descriptor>'
+        '<field name="order_number">{{ docs.pk }}</field>'
+        '<call key="base.report_common_footer"/>'
+        '</descriptor>'
+    )
+    FOOTER = (
+        '<descriptor>'
+        '<section name="issuer">'
+        '<field name="name">Pie compartido ñ</field>'
+        '</section>'
+        '</descriptor>'
+    )
+
+    def make_root(self, arch=None):
+        return IrUiView.objects.create(
+            name='reporte con call', type='template',
+            key='sale.report_saleorder', arch_db=arch or self.BASE,
+            mode='primary', priority=1,
+        )
+
+    def make_footer(self, arch=None, **kwargs):
+        return IrUiView.objects.create(
+            name='pie compartido', type='template',
+            key='base.report_common_footer', arch_db=arch or self.FOOTER,
+            mode='primary', **kwargs,
+        )
+
+    def test_the_call_grafts_the_children_of_the_called_descriptor(
+            self, reporte_orden, orden_con_lineas):
+        self.make_root()
+        self.make_footer()
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
+        assert 'Pie compartido ñ' in texto_impreso(contenido)
+
+    def test_a_key_that_no_view_declares_raises(
+            self, reporte_orden, orden_con_lineas):
+        # Sin la vista del pie: el intérprete NO omite el bloque en silencio
+        # —un documento al que le falta una sección entera saldría bien
+        # formado y equivocado—, levanta nombrando la clave.
+        self.make_root()
+        # El emparejador exige el mensaje de AUSENCIA, no sólo la clave: sin
+        # esa precisión el caso pasaba en verde por el mensaje anterior
+        # —``needs a resolve_key``—, que también nombra la clave. Un control
+        # que no distingue las dos causas no mide el cableado.
+        with pytest.raises(InvalidReportTemplate,
+                           match='base.report_common_footer.*does not exist'):
+            IrActionsReport._render(reporte_orden, [orden_con_lineas.pk])
+
+    def test_the_called_template_arrives_with_its_combined_arch(
+            self, reporte_orden, orden_con_lineas):
+        # El resolutor devuelve el arch COMBINADO, no el crudo: una extensión
+        # XPath sobre el pie tiene que llegar al papel igual que sobre el
+        # root. Es el mismo mecanismo de herencia (pieza 6 de DEC-FW-05).
+        self.make_root()
+        pie = self.make_footer()
+        IrUiView.objects.create(
+            name='extension del pie', type='template',
+            key='base.report_common_footer_inherit_prueba',
+            inherit_id=pie, mode='extension',
+            arch_db=('<xpath expr="//section[@name=\'issuer\']" '
+                     'position="inside">'
+                     '<field name="phone">Tel del pie</field>'
+                     '</xpath>'),
+        )
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
+        assert 'Tel del pie' in texto_impreso(contenido)
+
+    def test_priority_breaks_the_tie_as_it_does_in_the_root(
+            self, reporte_orden, orden_con_lineas):
+        # El root resuelve por ``priority, id`` y el call tiene que usar el
+        # MISMO resolutor — es lo que hace la referencia, que entra a los dos
+        # por ``_get_template_view``. Dos pies con la misma clave: gana el de
+        # menor prioridad, no el primero insertado.
+        self.make_root()
+        self.make_footer(priority=16)
+        self.make_footer(
+            arch=self.FOOTER.replace('Pie compartido ñ', 'Pie prioritario'),
+            priority=1)
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
+        impreso = texto_impreso(contenido)
+        assert 'Pie prioritario' in impreso
+        assert 'Pie compartido ñ' not in impreso

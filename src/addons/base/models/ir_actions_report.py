@@ -837,6 +837,52 @@ class IrActionsReport(IrActionsBase):
 
     # --- Composición: contexto y plantilla ---------------------------------
 
+    @staticmethod
+    def _get_template_view(key):
+        """La vista ``type='template'`` que declara esa clave, o ``None``.
+
+        ≙ ``_get_template_view`` (``odoo19c: ir_ui_view.py:1162``), con su
+        dominio y su orden: ``_get_template_domain`` empareja por ``key``
+        (``:1169``) y ``_get_template_order`` desempata por ``priority, id``
+        (``:1173``), quedándose con la primera.
+
+        **Un solo resolutor para las dos vías, como la fuente.** Allá el
+        reporte no resuelve nada por su cuenta: delega en
+        ``ir.ui.view._render_template`` (``ir_actions_report.py:769-789``), y
+        el ``t-call`` del compilador entra por este mismo método. Aquí el
+        intérprete recibe el resolutor por parámetro, así que la unidad hay
+        que sostenerla en un sitio — éste — en vez de repetir el filtro en
+        cada llamador.
+
+        La divergencia declarada es ``mode='primary'``, que la fuente no
+        filtra: allá el ``active_test`` del ORM basta porque una extensión
+        nunca se resuelve sola. Aquí el arch de una extensión es un
+        ``<xpath>`` suelto, que no es un ``<descriptor>`` y no se puede
+        interpretar; el filtro lo excluye en la resolución en vez de dejarlo
+        fallar dentro del intérprete con un mensaje que no nombra la causa.
+        """
+        return IrUiView.objects.filter(
+            key=key, type=VIEW_TYPE_TEMPLATE, active=True, mode='primary',
+        ).order_by('priority', 'id').first()
+
+    @classmethod
+    def _resolve_template_key(cls, key):
+        """El resolutor que ``<call key="…"/>`` consume.
+
+        Devuelve el **arch combinado** del descriptor llamado, no el crudo:
+        una extensión XPath sobre la plantilla llamada tiene que llegar al
+        documento igual que sobre la raíz, que es lo que hace el mecanismo de
+        herencia de ``ir.ui.view``.
+
+        Devuelve ``None`` cuando ninguna vista declara la clave, y es
+        deliberado: el intérprete distingue ese caso —levanta nombrando la
+        clave (``report_template._interpret_call``)— de la ausencia de
+        resolutor. Resolver aquí a un descriptor vacío haría desaparecer un
+        bloque entero del papel en silencio.
+        """
+        view = cls._get_template_view(key)
+        return view._get_combined_arch() if view is not None else None
+
     def _render_template(self, template, values=None):
         """Compone el documento desde su plantilla, del lado del servidor.
 
@@ -894,9 +940,7 @@ class IrActionsReport(IrActionsBase):
         # Con las dos fuentes el catálogo queda abierto a extensión —una vista
         # nueva en BD redefine el documento— y cerrado a modificación: ningún
         # ``builder`` existente cambia por ello.
-        view = IrUiView.objects.filter(
-            key=template, type=VIEW_TYPE_TEMPLATE, active=True, mode='primary',
-        ).order_by('priority', 'id').first()
+        view = self._get_template_view(template)
         spec = report_catalog.get(template)
         if view is None and spec is None:
             raise UnknownReport(
@@ -917,8 +961,8 @@ class IrActionsReport(IrActionsBase):
         for record in records or [None]:
             context = dict(values, docs=record, report=self)
             if arch is not None:
-                bodies.append(
-                    report_template.interpret_descriptor(arch, context))
+                bodies.append(report_template.interpret_descriptor(
+                    arch, context, resolve_key=self._resolve_template_key))
             else:
                 bodies.append(spec.builder(record, **context))
             html_ids.append(getattr(record, 'pk', None))
