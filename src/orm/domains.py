@@ -89,6 +89,7 @@ esta capa. El nombre cambia porque el tipo de retorno cambia — llamarlo
 import collections
 import enum
 import functools
+import inspect
 import itertools
 import logging
 import operator as operator_module
@@ -97,6 +98,7 @@ import warnings
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Q
 
+from orm.fields_nonstored import NonStored
 from orm.fields import (
     NEGATIVE_CONDITION_OPERATORS as _FIELDS_NEGATIVE_OPERATORS,
     condition_to_q,
@@ -201,6 +203,25 @@ def _django_path(field_expr):
     sigue siendo conservador con las rutas (ver su docstring).
     """
     return field_expr.replace('.', '__')
+
+
+def _non_stored_field(model, name):
+    """El campo sin columna que ``_meta`` no conoce, o ``None``.
+
+    **La divergencia es de reparto, no de alcance.** La fuente guarda todos sus
+    campos en un solo ``_fields``, tengan columna o no
+    (``odoo19c: odoo/orm/models.py:473`` declara ``display_name`` ahí junto a
+    los demás). Django los separa: los que tienen columna viven en ``_meta`` y
+    los que no —los :class:`orm.fields_nonstored.NonStored`— son atributos de
+    clase. Resolver un campo, entonces, es mirar en los dos sitios; mirar sólo
+    en el primero deja fuera exactamente a los que necesitan ``search=``.
+
+    Se busca en la clase y no en la instancia: ``getattr`` sobre la clase
+    devuelve el descriptor mismo, que es lo que hay que inspeccionar, mientras
+    que sobre una instancia devolvería el **valor** que el descriptor calcula.
+    """
+    descriptor = inspect.getattr_static(model, name, None)
+    return descriptor if isinstance(descriptor, NonStored) else None
 
 
 class OptimizationLevel(enum.IntEnum):
@@ -420,6 +441,7 @@ class Domain:
             if domain == previous and domain._opt_level < next_level:
                 object.__setattr__(domain, '_opt_level', next_level)
         return domain
+
 
     def _optimize_step(self, model, level):
         """Un nivel de optimización — ≙ ``:466``."""
@@ -897,10 +919,82 @@ class DomainCondition(Domain):
             try:
                 field = current._meta.get_field(part)
             except FieldDoesNotExist:
-                self._raise('Campo inválido %s.%s', current._meta.label, part)
-            current = field.related_model if field.is_relation else None
+                field = _non_stored_field(current, part)
+                if field is None:
+                    self._raise('Campo inválido %s.%s',
+                                current._meta.label, part)
+            current = (field.related_model
+                       if getattr(field, 'is_relation', False) else None)
         object.__setattr__(self, '_field_instance', field)
         return field
+
+    def _optimize_field_search_method(self, model):
+        """El dominio con que el propio campo sustituye a esta condición.
+
+        ≙ ``DomainCondition._optimize_field_search_method``
+        (``odoo19c: odoo/orm/domains.py:986-1035``). Se porta la escalera
+        entera, que son cuatro peldaños y en ese orden:
+
+        1. **El operador tal cual.** Si el ``search`` del campo lo entiende,
+           su dominio sustituye a la condición y ahí termina.
+        2. **El operador inverso, negado.** Un ``search`` que sabe ``ilike``
+           pero no ``not ilike`` responde igual: se le pregunta por el
+           positivo y se niega el resultado. La fuente sólo lo intenta si el
+           primer peldaño no levantó — un error real no se reintenta.
+        3. **La descomposición de ``in``/``not in``.** Un ``search`` que sólo
+           implementa ``=`` atiende una lista como la disyunción de sus
+           valores, y ``not in`` como la conjunción de las negaciones. Es
+           retrocompatibilidad declarada de la fuente, no una invención.
+        4. **El error, nombrando el campo y el modelo.** Si ningún peldaño
+           dio dominio, la condición no se puede satisfacer y callar sería
+           devolver un resultado que nadie puede justificar.
+
+        DIVERGENCIA DE MECANISMO — dos, las dos de vía:
+
+        - **El error es ``ValueError``, no ``UserError``.** Es el mismo que
+          :meth:`_raise` usa en todo este archivo para una condición mal
+          formada, y el que sus llamadores ya atienden; introducir aquí una
+          jerarquía distinta partiría el contrato de error del módulo.
+        - **El peldaño ``any!`` de la fuente no se porta.** Allá reintenta la
+          condición con ``model.sudo()``, es decir elevando el permiso; aquí
+          el acotamiento por fila lo aplica ``AccessQuerySet`` cuando el
+          llamador lo pide, y elevarlo desde el optimizador concedería un
+          permiso que nadie otorgó. Es la misma divergencia que
+          ``name_search`` ya declara para el ``.sudo()`` de su cierre.
+        """
+        field = self._field(model)
+        operator, value = self.operator, self.value
+        error_original = None
+        try:
+            computed = field.determine_domain(model, operator, value)
+        except (NotImplementedError, ValueError) as error:
+            computed = NotImplemented
+            error_original = error
+        else:
+            if computed is not NotImplemented:
+                return Domain(computed)
+        if error_original is None:
+            inverso = _INVERSE_OPERATOR.get(operator)
+            if inverso is not None:
+                computed = field.determine_domain(model, inverso, value)
+                if computed is not NotImplemented:
+                    return ~Domain(computed)
+        try:
+            if operator == 'in':
+                return Domain.OR([
+                    Domain(field.determine_domain(model, '=', item))
+                    for item in value])
+            if operator == 'not in':
+                return Domain.AND([
+                    Domain(field.determine_domain(model, '!=', item))
+                    for item in value])
+        except (NotImplementedError, ValueError) as error:
+            if error_original is None:
+                error_original = error
+        if error_original is not None:
+            raise error_original
+        self._raise('Operador no soportado sobre %s de %s',
+                    self.field_expr, model._meta.label)
 
     def _optimize_step(self, model, level):
         """Despacha los optimizadores registrados — ≙ ``:969-984``.
@@ -916,13 +1010,30 @@ class DomainCondition(Domain):
         resolverlo. Sin modelo, la condición se optimiza por operador y nada
         más — es la misma frontera que ``_field`` ya impone.
         """
+        if model is not None:
+            field = self._field(model)
+            # El campo que sabe buscarse a sí mismo va ANTES que el registro
+            # — ≙ ``:956-967``. No es preferencia: un campo sin columna no
+            # tiene nada que un optimizador por tipo pueda reescribir, y su
+            # ``search`` devuelve un dominio sobre campos que sí la tienen,
+            # que es lo que el registro sabe optimizar después.
+            #
+            # ``field.name == self.field_expr`` descarta la travesía de
+            # relación: en ``partner_id.display_name`` el ``search`` que
+            # aplica es el del otro modelo, y quien lo alcanza es el
+            # optimizador de ``any``, no éste.
+            if (getattr(field, 'search', None) is not None
+                    and getattr(field, 'name', None) == self.field_expr):
+                domain = self._optimize_field_search_method(model)
+                domain = domain.optimize(model)
+                if domain != self:
+                    return domain
         optimizations = _OPTIMIZATIONS_FOR[level]
         for opt in optimizations.get(self.operator, ()):
             domain = opt(self, model)
             if domain != self:
                 return domain
         if model is not None:
-            field = self._field(model)
             field_type = getattr(field, 'type', None)
             if field_type is not None:
                 for opt in optimizations.get(field_type, ()):

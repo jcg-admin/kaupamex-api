@@ -74,7 +74,7 @@ from orm.environments import (
 )
 from orm.commands import ManyToManyLink, ManyToManySet, One2manyChild
 from orm import registry
-from orm.domains import Domain
+from orm.domains import Domain, FALSE_DOMAIN, TRUE_DOMAIN, to_q
 from orm.fields import convert_to_display_name
 from orm.fields_nonstored import NonStored
 from orm.fields_properties import Properties
@@ -2456,12 +2456,25 @@ class DisplayNameMixin:
        **asigna** (``record.display_name = convert(...)``). Aquí el campo no es
        un campo del ORM con cache de cómputo, así que el valor tiene que
        volver al descriptor por el retorno.
-    2. **``_search_display_name`` devuelve un ``QuerySet``**, no un ``Domain``.
-       Es lo que ``res_bank`` y ``res_currency`` ya devuelven, y lo que el
-       llamador de este árbol sabe consumir.
+    2. **``name_create`` y ``name_search`` reciben y devuelven lo de Django.**
+       ``name_search`` acota con un ``Q`` y no con un dominio extra, que es la
+       forma que sus llamadores de este árbol ya usaban.
     3. **``name_create`` y ``name_search`` son ``classmethod``**: allá son
        ``@api.model``, es decir métodos sobre un recordset vacío que sólo
        aporta el modelo. Ese papel lo cumple la clase.
+
+    Lo que DEJÓ de ser divergencia: la forma de ``_search_display_name``
+    ======================================================================
+
+    Hasta ``api@4f898d9e`` este bloque declaraba una tercera divergencia —
+    ``_search_display_name`` devolvía un ``QuerySet``— con el argumento de que
+    era *"lo que el llamador de este árbol sabe consumir"*. El argumento era
+    medible y quedó falso al llegar el segundo llamador: el optimizador de
+    dominios necesita un ``Domain``, y la diferencia no es de estilo. Un
+    dominio **se compone** —cabe dentro de un ``any``, se niega sin
+    materializar, se optimiza con el resto—; un ``QuerySet`` no. Ahora
+    devuelve ``Domain``, como la fuente, y ``name_search`` lo convierte con
+    ``to_q`` para seguir acotando en Django.
 
     Lo que NO es divergencia: la asignación sigue permitida
     ======================================================
@@ -2478,6 +2491,7 @@ class DisplayNameMixin:
     #: la fuente son los dos métodos de abajo; aquí el primero lo cablea el
     #: ``default`` del descriptor y el segundo lo llama ``name_search``.
     display_name = NonStored(default=_display_name_default,
+                             search='_search_display_name',
                              help_text='Display Name')
 
     def _compute_display_name(self):
@@ -2537,21 +2551,14 @@ class DisplayNameMixin:
             _logger.warning(
                 'No se puede buscar por display_name: %s no declara _rec_name '
                 'ni _rec_names_search', cls._meta.label)
-            return cls.objects.all()
+            return TRUE_DOMAIN
         negativo = operator in NEGATIVE_DISPLAY_NAME_OPERATORS
         if operator.endswith('like') and not value and '=' not in operator:
-            return cls.objects.none() if negativo else cls.objects.all()
+            return FALSE_DOMAIN if negativo else TRUE_DOMAIN
 
-        lookup = 'iexact' if operator in ('=', '!=', '<>') else 'icontains'
-        emparejado = None
-        for field_expr in search_fnames:
-            path = field_expr.replace('.', '__')
-            condition = Q(**{f'{path}__{lookup}': value})
-            emparejado = condition if emparejado is None else (
-                emparejado & condition if negativo else emparejado | condition)
-        if negativo:
-            return cls.objects.exclude(emparejado)
-        return cls.objects.filter(emparejado)
+        combinar = Domain.AND if negativo else Domain.OR
+        return combinar([Domain(field_expr, operator, value)
+                         for field_expr in search_fnames])
 
     @classmethod
     def name_create(cls, name):
@@ -2587,7 +2594,8 @@ class DisplayNameMixin:
         ``AccessQuerySet`` cuando el llamador lo pide, y elevarlo aquí sería
         conceder un permiso que nadie otorgó.
         """
-        queryset = cls._search_display_name(operator, name)
+        queryset = cls.objects.filter(
+            to_q(cls._search_display_name(operator, name), cls))
         if domain is not None:
             queryset = queryset.filter(domain)
         return [(record.pk, record.display_name) for record in queryset[:limit]]

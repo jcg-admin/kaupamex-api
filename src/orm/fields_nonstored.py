@@ -71,9 +71,16 @@ class NonStored:
     dejaría el descriptor sin saber su propio nombre.
     """
 
-    def __init__(self, *_args, default=None, help_text='', **_ignored):
+    def __init__(self, *_args, default=None, help_text='', search=None,
+                 **_ignored):
         self.default = default
         self.help_text = help_text
+        #: ≙ ``Field.search`` (``odoo19c: odoo/orm/fields.py:289``): el nombre
+        #: de un método o el invocable que sabe traducir una condición sobre
+        #: este campo a un dominio sobre campos que sí tienen columna. Sin él
+        #: el campo se puede leer y escribir, pero no se puede buscar — que es
+        #: exactamente lo que la fuente promete con un campo sin ``search``.
+        self.search = search
         self.name = None
 
     # -- protocolo de nombre ------------------------------------------------
@@ -106,6 +113,15 @@ class NonStored:
 
     def __delete__(self, instance):
         instance.__dict__.pop(self.name, None)
+
+    # -- protocolo de búsqueda ----------------------------------------------
+
+    #: ``determine_domain`` lo instala :mod:`orm.fields` sobre esta clase, no
+    #: se declara aquí: ``orm.fields`` importa a este módulo por la vía de
+    #: ``fields_numeric``, así que el import inverso es un ciclo. Es la misma
+    #: vía por la que ``type`` y ``relational`` llegan a ``models.Field``, y
+    #: por la misma razón: el contrato de la fuente se comparte, la jerarquía
+    #: del stack no.
 
     # -- resolución del default --------------------------------------------
 

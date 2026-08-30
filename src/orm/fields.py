@@ -68,6 +68,7 @@ from tools.sql import SQL, sql_order_by_type
 from orm.fields_binary import Binary, Image                    # noqa: F401
 from orm.fields_misc import Boolean, Json                      # noqa: F401
 from orm.fields_numeric import Float, Integer, Monetary        # noqa: F401
+from orm.fields_nonstored import NonStored                   # noqa: F401
 from orm.fields_properties import (                            # noqa: F401
     Properties,
     PropertiesDefinition,
@@ -1645,3 +1646,49 @@ def _field_resolve_depends(self, registry_module):
 
 
 models.Field.resolve_depends = _field_resolve_depends
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ``determine_domain`` — la condición que un campo traduce por sí mismo
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# ≙ ``Field.determine_domain`` (``odoo19c: odoo/orm/fields.py:1926-1928``),
+# cuyo cuerpo entero es ``determine(self.search, records, operator, value)``.
+#
+# Es la puerta del camino ``search=``: un campo que declara ``search`` no se
+# compila a SQL, porque puede no tener columna; en su lugar **devuelve un
+# dominio** que sustituye a la condición y se compone con el resto igual que
+# cualquier otro. Un ``QuerySet`` no puede hacerlo — no se puede meter dentro
+# de un ``any`` ni negar sin materializar—, y ésa es la razón por la que la
+# forma de retorno importa y no es un detalle de estilo.
+#
+# Se instala sobre DOS clases, y la duplicación es del stack, no del contrato:
+#
+# - ``models.Field`` — los campos con columna, que hoy no declaran ``search``
+#   pero heredan el protocolo para cuando lo declaren.
+# - ``NonStored`` — los campos sin columna, que son quienes lo necesitan hoy
+#   (``display_name`` es el primero). No es un ``models.Field``, así que
+#   heredar no lo alcanza.
+#
+# La instalación va aquí y no en ``fields_nonstored`` porque este módulo lo
+# importa por la vía de ``fields_numeric``: el import inverso sería un ciclo.
+# Es la misma vía por la que ``type`` y ``relational`` llegan a
+# ``models.Field``.
+
+
+def determine_domain(field, records, operator, value):
+    """El dominio que sustituye a una condición sobre ``field``.
+
+    Devuelve ``NotImplemented`` cuando el campo no declara ``search``: es la
+    misma señal con que la fuente dice *"este operador no lo soporto"* y deja
+    al despachador probar sus respaldos, en vez de un error que cortaría la
+    escalera antes del primer peldaño.
+    """
+    search = getattr(field, 'search', None)
+    if search is None:
+        return NotImplemented
+    return determine(search, records, operator, value)
+
+
+models.Field.determine_domain = determine_domain
+NonStored.determine_domain = determine_domain
