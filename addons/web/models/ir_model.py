@@ -38,15 +38,13 @@ genérica por-modelo.
 ``grep -rln "PropertiesField\\|Properties(" src/addons/`` → sólo ``fleet`` y
 ``product``, ambos con comodelo **fijo** (``fleet.vehicle`` →
 ``fleet.vehicle.model``), sin picker dinámico. Pero (b) **no** era correcto:
-existen, ya construidas, las dos piezas que hacían falta —
-``IrModelAccess.has_global_access`` (``base/models/ir_model.py:848-861``,
-la "mitad portable" que esa misma clase ya declara) y la clausura de grupos
-de ``ResGroups._closure``/``implied_ids``
-(``base/models/res_groups.py:184-217``, ya construida para
-``check_user_disjoint_groups``/``all_user_ids``) — y compone directamente el
-chequeo de acceso real por usuario que faltaba, sin inventar mecanismo
-nuevo (Rule 6 de ``porte-completo-no-parcial.md``: componer piezas
-existentes, no fabricar). ``self.env.user._is_internal()`` tiene destino
+existe la pieza que hacía falta. **Actualizado tras la tarea #204**: ese
+chequeo lo resuelve ahora ``IrModelAccess._get_access_groups`` —la expresión
+de grupos de la fuente— preguntada con ``matches`` contra
+``ResUsers._get_group_ids``. Antes se componía a mano con
+``has_global_access`` más la clausura de ``ResGroups._closure``/``implied_ids``,
+porque el álgebra no estaba portada; esa composición cubría dos de los tres
+desenlaces de la fuente y así lo declaraba. ``self.env.user._is_internal()`` tiene destino
 real y exacto: ``ResUsers._is_internal()`` (``base/models/res_users.py:430``),
 que YA resuelve el eje interno/portal/público por ``user_type`` de grupo.
 
@@ -82,34 +80,29 @@ sobre un registro concreto, igual que ``IrModel._reflect_models``, que ya es
 ``classmethod`` en ``base``).
 """
 from addons.base.models.ir_model import IrModel, IrModelAccess
-from addons.base.models.res_groups import ResGroups
 from orm.method_chain import chain_method
 
 
 def _has_access(user, model_name, access_mode='read'):
     """¿``user`` tiene ``access_mode`` sobre ``model_name``?
 
-    ≙ ``model.has_access(mode)`` de la referencia, compuesto — no
-    reimplementado — a partir de lo que ya existe: la ACL global de
-    ``IrModelAccess`` (sin grupo, abre el modo a todos) y la clausura de
-    grupos efectivos del usuario (directos + implicados por
-    ``ResGroups.implied_ids``). Sin clausura de expresiones de grupos
-    (``_get_group_definitions``, no portada — ver el docstring de
-    ``IrModelAccess`` en ``base``): un modelo que sólo abre el modo vía esa
-    álgebra no resuelve aquí, misma frontera ya declarada en ``base``.
+    ≙ ``model.has_access(mode)`` de la referencia, y ahora por su **mismo
+    mecanismo**: la expresión de grupos que concede el modo
+    (``IrModelAccess._get_access_groups``) preguntada contra los grupos
+    efectivos del usuario (``ResUsers._get_group_ids``, que ya es la clausura
+    transitiva).
+
+    Antes se componía a mano —ACL global, más la clausura de
+    ``implied_ids``, más un ``exists()``— porque el álgebra de expresiones no
+    estaba portada, y esta función lo declaraba: *"un modelo que sólo abre el
+    modo vía esa álgebra no resuelve aquí"*. La tarea **#204** portó
+    ``tools/set_expression.py`` y con él ``_get_access_groups``, así que la
+    frontera desapareció: los tres casos —sin ACL, con ACL global, con ACL por
+    grupo— los decide ahora ``matches`` sobre la misma expresión que usa
+    ``base``, en vez de dos consultas que sólo cubrían dos de los tres.
     """
-    if IrModelAccess.has_global_access(model_name, access_mode):
-        return True
-    direct_groups = list(
-        ResGroups.objects.filter(pk__in=user.group_ids.values_list('pk', flat=True))
-    )
-    if not direct_groups:
-        return False
-    effective_ids = ResGroups._closure(direct_groups, lambda g: g.implied_ids.all())
-    return IrModelAccess.objects.filter(
-        model_id__model=model_name, active=True, group_id__in=effective_ids,
-        **{f'perm_{access_mode}': True},
-    ).exists()
+    groups = IrModelAccess._get_access_groups(model_name, access_mode)
+    return groups.matches(user._get_group_ids())
 
 
 def _is_valid_for_model_selector(cls, user, model_name):

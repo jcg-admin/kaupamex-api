@@ -78,6 +78,7 @@ adaptador que lo vuelve seguro; el porqué está medido en ``H-API-577`` y sus
 pruebas en ``tests/unit/orm/test_extension_tardia_por_nombre.py``.
 """
 import importlib
+import inspect
 
 from django.db.models import Model
 from django.db.models.base import ModelBase
@@ -107,6 +108,33 @@ def is_model_definition(cls) -> bool:
     """``True`` si ``cls`` es una definición concreta (no abstracta). Equivale a
     ``odoo.orm.model_classes.is_model_definition`` — sobre ``Model._meta``."""
     return is_model_class(cls) and not cls._meta.abstract
+
+
+def _is_computed_surface(model_cls, name) -> bool:
+    """¿``name`` es un campo **calculado no almacenado** de este modelo?
+
+    La fuente valida ``_rec_name`` contra ``_fields``, y ahí entran también los
+    calculados sin columna: ``res.groups`` declara ``_rec_name = 'full_name'``
+    y su ``full_name`` es ``Char(compute='_compute_full_name')`` sin ``store``
+    (``odoo19c: base/models/res_groups.py:12,29``).
+
+    Aquí un campo así no es un campo de Django —no tiene columna que declarar—
+    sino un **descriptor** sobre la clase: una ``property`` o un
+    :class:`orm.fields_nonstored.NonStored`. Sin este reconocimiento, portar el
+    ``_rec_name`` de la fuente verbatim reventaba el arranque, y la única
+    salida habría sido no declararlo — omitir un atributo que la fuente sí
+    declara.
+
+    Se mira con ``inspect.getattr_static``, no con ``getattr``: éste
+    **ejecutaría** la ``property`` contra la clase y daría ``AttributeError``
+    por falta de instancia. Aquél devuelve el descriptor sin invocarlo.
+
+    Un nombre que no está en la clase sigue siendo inválido, que es lo que el
+    control tiene que poder rechazar: ``_rec_name = 'no_existe'`` no encuentra
+    ni campo ni descriptor y levanta igual que antes.
+    """
+    attr = inspect.getattr_static(model_cls, name, None)
+    return attr is not None and hasattr(type(attr), '__get__')
 
 
 def resolve_rec_name(model_cls):
@@ -149,7 +177,7 @@ def resolve_rec_name(model_cls):
     # con las dos. Aceptar solo ``name`` convertiria el porte fiel en un error.
     field_names = {f.name for f in campos} | {f.attname for f in campos}
     if declared:
-        if declared not in field_names:
+        if declared not in field_names and not _is_computed_surface(model_cls, declared):
             raise ValueError(
                 f'Invalid _rec_name={declared!r} for model '
                 f'{model_cls._meta.label}'

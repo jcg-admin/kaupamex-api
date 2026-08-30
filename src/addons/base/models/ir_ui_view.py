@@ -337,6 +337,27 @@ class IrUiView(TimeStampedModel):
                          name='ir_ui_view_model_inherit'),
         ]
 
+    def _check_groups(self):
+        """Una vista heredada no declara grupos en el registro.
+
+        ≙ ``_check_groups`` (``odoo19c: ir_ui_view.py:537-543``), su
+        ``@api.constrains('group_ids')`` — que aquí es el campo ``groups``,
+        el nombre que este árbol le dio al M2M. Los grupos de una vista **de
+        extensión** van dentro del propio arch, en el atributo ``groups=`` del
+        nodo: declararlos en el registro los aplicaría a la vista entera, no al
+        fragmento que la extensión aporta, que es lo contrario de lo que quien
+        los escribe pretende.
+
+        DIVERGENCIA DE ENLACE, la del archivo: allá es un ``@api.constrains``
+        que el ORM dispara al escribir; aquí lo llama
+        ``ResGroups._check_inherited_view_groups`` —su otro llamador en la
+        fuente— y se puede invocar a mano.
+        """
+        if self.groups.exists() and self.inherit_id_id and self.mode != 'primary':
+            raise ValidationError(
+                "Una vista heredada no puede declarar 'groups' en el registro. "
+                "Use el atributo 'groups' dentro de la definición de la vista.")
+
     def __str__(self):
         return self.name
 

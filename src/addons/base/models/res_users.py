@@ -94,6 +94,7 @@ from addons.base.models.ir_http import get_current_request
 from addons.base.models.res_device import _client_ip
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import AccessDenied, AccessError, UserError
+from orm import registry
 from orm.environments import get_current_company, get_current_user, is_su
 from orm.utils import SUPERUSER_ID
 
@@ -1520,19 +1521,20 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
     # --- Pertenencia a grupo por identificador externo (≙ :1034-1096) ---
     #
     # La referencia resuelve el xmlid contra
-    # ``res.groups._get_group_definitions().get_id(...)``, una caché del grafo
-    # de grupos que este árbol no tiene. Aquí la resolución va por
-    # ``ir.model.data`` —el mismo camino que ``env.ref`` toma allá— y la
-    # clausura transitiva sale de ``ResGroups.all_implied_by_ids``, que ya
-    # estaba portada.
+    # ``res.groups._get_group_definitions().get_id(...)``, y **eso es lo que
+    # este árbol hace ahora**: la tarea #204 portó ``tools/set_expression.py``
+    # y con él el constructor del grafo, así que la resolución ya no va por
+    # ``ir.model.data`` en cada llamada. El comentario anterior decía que era
+    # «una caché del grafo de grupos que este árbol no tiene», y describía un
+    # bloqueo, no una divergencia.
     #
-    # El puente entre ambas es una identidad, no una aproximación: la fuente
-    # pregunta ``group_id in user.all_group_ids`` con
+    # Se conserva el argumento de identidad que aquel rodeo necesitaba, porque
+    # sigue explicando por qué ``ResGroups.all_user_ids`` y ``all_group_ids``
+    # calculan lo mismo desde los dos extremos: la fuente pregunta
+    # ``group_id in user.all_group_ids`` con
     # ``all_group_ids = group_ids.all_implied_ids`` (``:447-449``), es decir
     # «¿algún grupo mío implica a G?». Leída desde G, esa misma arista es
-    # ``G.all_implied_by_ids``. Es exactamente el cómputo que
-    # ``ResGroups.all_user_ids`` ya hacía en este árbol, visto desde el
-    # usuario en vez de desde el grupo.
+    # ``G.all_implied_by_ids``.
     #
     # ``ResGroups`` se resuelve por el registro de apps y no por import:
     # ``res_groups.py`` importa ``ResUsers`` para declarar su M2M, así que un
@@ -1688,27 +1690,25 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
            transitivamente).
 
         Devuelve ``False`` —en vez de fallar— cuando el identificador no
-        resuelve, resuelve a algo que no es un grupo, o el usuario todavía no
-        tiene PK. Es la misma postura fail-closed que la fuente da a un
-        ``group_id`` ausente de ``all_group_ids``: un grupo que no existe no
-        otorga pertenencia.
+        resuelve o el usuario todavía no tiene PK. Es la misma postura
+        fail-closed que la fuente da a un ``group_id`` ausente de
+        ``all_group_ids``: ``get_id`` devuelve ``None`` para lo que no está en
+        el grafo, y ``None`` nunca es uno de los ids del usuario. Un xmlid que
+        apunte a algo que no es grupo cae por la misma vía: el grafo sólo
+        contiene grupos, así que no es una clave suya.
 
-        **La pregunta se hace contra** :meth:`_get_group_ids`, como en la
-        fuente (``group_id in self._get_group_ids()``, ``:1096``). Antes se
-        hacía desde el otro extremo —``group.all_implied_by_ids`` y un
-        ``.exists()`` sobre ``group_ids``—, que da **el mismo conjunto** (es la
-        identidad que el bloque de arriba ya argumenta) y recorría la clausura
-        entera en cada llamada: medido sobre una cadena de cinco grupos, **9
-        consultas por llamada, sin amortizar**. Por el memo son 9 la primera y
-        las del ``ref`` del xmlid después.
+        **Las dos mitades son las de la fuente** (``:1094-1096``): el xmlid se
+        resuelve con ``_get_group_definitions().get_id(...)`` y la pertenencia
+        se pregunta contra :meth:`_get_group_ids`. La resolución por
+        ``ir.model.data.ref`` que había aquí era el rodeo de cuando el grafo no
+        existía; hoy existe (tarea #204) y cuesta una lectura del memo en vez
+        de una consulta por llamada.
         """
         if self.pk is None:
             return False
-        data_model = apps.get_model('base', 'IrModelData')
-        group = data_model.ref(group_ext_id, raise_if_not_found=False)
-        if not isinstance(group, apps.get_model('base', 'ResGroups')):
-            return False
-        return group.pk in self._get_group_ids()
+        groups = apps.get_model('base', 'ResGroups')
+        group_id = groups._get_group_definitions().get_id(group_ext_id)
+        return group_id in self._get_group_ids()
 
     # --- Eje interno / portal / público (≙ res_users.py:1165-1179) ---
     #
@@ -3260,9 +3260,19 @@ def _invalidate_on_implication_changed(sender, action, **kwargs):
     guarda. Enumerarlos exigiría recorrer todos los usuarios — la operación
     que ``ResGroups.check_user_disjoint_groups`` evita por escala, siguiendo el
     comentario de la propia fuente.
+
+    Purga **dos** memos, no uno. El de la clausura por usuario, que es el que
+    este receptor ya cuidaba; y la familia ``groups`` del registry, donde vive
+    el grafo de ``ResGroups._get_group_definitions`` — ≙ el
+    ``clear_cache('groups')`` que la fuente hace en ``write`` cuando cambian
+    ``implied_ids``/``implied_by_ids`` (``odoo19c: res_groups.py:197-199``) y
+    en ``_check_disjoint_groups`` (``:85``). Sin esta segunda línea el grafo
+    conserva una implicación ya retirada, y ``_get_access_groups`` concede por
+    una arista que ya no existe.
     """
     if action in ('post_add', 'post_remove', 'post_clear'):
         _invalidate_group_ids()
+        registry.clear_cache('groups')
 
 
 @receiver(post_delete, sender='base.ResGroups',
@@ -3274,5 +3284,11 @@ def _invalidate_on_group_deleted(sender, **kwargs):
     pero **no está garantizado** para todo camino de borrado (un
     ``QuerySet.delete()`` con borrado rápido no instancia las filas). Este
     receptor cierra el hueco por el lado que sí es fiable.
+
+    Purga los mismos dos memos que el receptor de arriba, y por lo mismo: el
+    grafo de ``_get_group_definitions`` tiene una hoja por grupo, así que uno
+    borrado lo deja mintiendo. ≙ el ``clear_cache('groups')`` de ``unlink``
+    (``odoo19c: res_groups.py:303-305``).
     """
     _invalidate_group_ids()
+    registry.clear_cache('groups')

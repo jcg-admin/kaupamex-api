@@ -121,15 +121,6 @@ Qué NO se porta, con su medición
   el esquema lo gobiernan las migraciones de Django; DDL fuera de ellas deja
   la tabla ``django_migrations`` mintiendo. Las dos clases se portan como
   **registro** —que es lo que aporta trazabilidad— sin el ejecutor de DDL.
-- **``_get_access_groups``** de ``IrModelAccess`` — BLOQUEADO por
-  ``tools/set_expression.py``, no divergencia. Devuelve un objeto de expresión
-  de grupos de ``res.groups._get_group_definitions()``, y ese constructor sale
-  de un archivo que la referencia declara en una raíz espejada
-  (``odoo19c: odoo/tools/set_expression.py``, 616 líneas) y aquí no existe:
-  ``ls src/tools/set_expression.py`` → *No such file*. Es álgebra pura sin base
-  de datos, así que se porta entero — tarea **#204**. Mientras tanto
-  ``group_names_with_access`` y ``has_global_access`` cubren la parte
-  consultable.
 - **``_process_ondelete``** de ``IrModelFieldsSelection`` — BLOQUEADO por
   ``fields.Selection``, no divergencia. La política de borrado de un valor
   vive en la **declaración del campo** (``ondelete={...}``), y nuestro
@@ -202,6 +193,7 @@ import random
 import re
 from collections import defaultdict
 
+import api
 import fields
 import models
 from django.apps import apps
@@ -2561,6 +2553,57 @@ class IrModelAccess(TimeStampedModel):
             group_id__isnull=True,
             **{f'perm_{access_mode}': True},
         ).exists()
+
+    @classmethod
+    @api.model
+    @ormcache('model_name', 'access_mode', cache='stable')
+    def _get_access_groups(cls, model_name, access_mode='read'):
+        """La expresión de grupos que puede ``access_mode`` sobre ``model_name``.
+
+        ≙ ``_get_access_groups`` (``odoo19c: ir_model.py:2109-2126``), con sus
+        tres desenlaces verbatim y en el mismo orden:
+
+        1. sin ninguna ACL que conceda el modo → ``group_definitions.empty``;
+        2. con **alguna** ACL sin grupo → ``group_definitions.universe``, porque
+           una ACL global abre el modo a todos;
+        3. si no → ``from_ids`` de los grupos de las ACL que lo conceden.
+
+        Estuvo bloqueado por ``tools/set_expression.py``, que no existía en
+        este árbol — tarea **#204**, que lo portó entero. **No era una
+        divergencia**: el álgebra es pura, sin base de datos, y el stack no la
+        traía sólo porque nadie la había construido.
+
+        Sus dos mitades consultables —:meth:`group_names_with_access` y
+        :meth:`has_global_access`— **se conservan**: no son un sustituto que
+        ahora sobre, sino los dos consumidores concretos que ya tenían llamador
+        (el mensaje de ``_make_access_error`` y el panel). Lo que aporta este
+        método es lo que ninguna de las dos puede: **componer**, para expresar
+        "puede quien esté en A y no en B".
+
+        Divergencia de ENLACE, la misma que el resto del archivo declara: la
+        fuente lo marca ``@api.model`` sobre un método de instancia; aquí es un
+        ``classmethod``. ``@api.model`` se conserva encima y ``ormcache`` lee
+        ``_name`` del ``cls``.
+
+        La memoria va a ``stable``, la familia que la fuente nombra, y la
+        invalida :meth:`call_cache_clearing_methods` — el mismo invalidador que
+        ya cubre :meth:`_allowed_models_for_groups`, porque lo que cambia el
+        resultado de los dos es exactamente lo mismo: una fila de esta tabla.
+        """
+        cls._check_mode(access_mode)
+        label = cls._model_label(model_name)
+        accesses = list(cls.objects.filter(
+            model_id__model=label, active=True,
+            **{f'perm_{access_mode}': True},
+        ).values_list('group_id', flat=True))
+
+        group_definitions = ResGroups._get_group_definitions()
+        if not accesses:
+            return group_definitions.empty
+        if any(group_id is None for group_id in accesses):
+            # Hay acceso global: una ACL sin grupo concede el modo a todos.
+            return group_definitions.universe
+        return group_definitions.from_ids(accesses)
 
     @classmethod
     def call_cache_clearing_methods(cls):

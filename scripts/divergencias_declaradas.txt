@@ -998,6 +998,27 @@ base/models/ir_qweb.py::QwebJSON
 # `create` / `write` de esta clase siguen CONTADOS, y ahora porque estan
 # PORTADOS con su nombre (ver el modelo), no por la clausula de `write`.
 
+# --- base/models/res_groups.py :: ResGroups --------------------------------
+# Los tres lados de escritura de la fuente contra los dos de Django. La fuente
+# los declara para invalidar la cache del grafo de grupos (`_get_group_ids`,
+# `_get_group_definitions`) y para correr las guardas de borrado; aqui esos dos
+# trabajos los hacen `save()` y `delete()`, que son los enganches equivalentes.
+# Es la misma divergencia que este mismo archivo ya declara en
+# `authz_timeout/models/res_groups.py`, con la misma razon medida.
+#
+# Se declaran DOS de los tres. `write` NO, y no por olvido: la clausula
+# anti-abuso lo prohibe — sale ausente noventa veces en el arbol y un alias
+# convertiria noventa preguntas abiertas en noventa absoluciones
+# silenciosas. Lo vigila `tests/unit/scripts/test_divergencias_declaradas.py`,
+# que lo atrapo al declararlo aqui. Queda como deuda CONTADA en este
+# archivo, igual que en los otros ochenta y nueve sitios.
+#   create -> Django no separa alta de modificacion: las dos son `save()`, que
+#     invalida la cache `groups` con `registry.clear_cache('groups')`.
+base/models/res_groups.py::ResGroups::create
+#   unlink -> `delete()`, que ademas llama a `_unlink_except_settings_group`
+#     antes de borrar — el `@api.ondelete` de la fuente.
+base/models/res_groups.py::ResGroups::unlink
+
 # --- base/models/res_users.py ----------------------------------------------
 #
 # Los simbolos de este archivo ya estaban triados UNO POR UNO en su propio

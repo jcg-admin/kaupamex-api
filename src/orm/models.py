@@ -301,6 +301,57 @@ class AccessQuerySet(QuerySet):
         """
         return filtered_domain(self, domain)
 
+    def _get_external_ids(self):
+        """Los identificadores externos de cada fila — ``{pk: ['modulo.nombre']}``.
+
+        ≙ ``BaseModel._get_external_ids``
+        (``odoo19c: odoo/orm/models.py:5695-5714``). Lista vacía cuando la fila
+        no tiene ninguno, y **todos** los que tenga cuando tiene varios: la
+        fuente los acumula en un ``defaultdict(list)`` y ordena por ``id`` de
+        ``ir.model.data``, que es lo que fija cuál queda primero.
+
+        **La divergencia es de VÍA, no de alcance**, y es la de la sección de
+        permisos de este archivo: allá cuelga de ``BaseModel``, así que todo
+        modelo lo tiene; aquí el **recordset** es el ``QuerySet``, y su hogar
+        es esta clase, que ya aloja las cuatro formas de permiso y
+        ``filtered_domain``.
+
+        Dos precisiones de forma, ambas medidas:
+
+        - La fuente indexa el resultado por ``record._origin.id`` porque un
+          recordset puede contener registros **sin fila** (los del formulario).
+          Un ``QuerySet`` no: sólo entrega filas guardadas, así que
+          ``record._origin.pk == record.pk`` para todo lo que devuelve. Se
+          indexa por ``pk``.
+        - La columna ``model`` de ``ir.model.data`` guarda aquí la **etiqueta
+          de Django** (``base.ResGroups``), no el nombre con puntos: es lo que
+          escribe ``IrModelData._update_xmlids``, que es el único escritor.
+        """
+        Data = apps.get_model('base', 'IrModelData')
+        records = list(self)
+        result = collections.defaultdict(list)
+        rows = Data.objects.filter(
+            model=self.model._meta.label,
+            res_id__in=[record.pk for record in records],
+        ).order_by('pk').values_list('module', 'name', 'res_id')
+        for module, name, res_id in rows:
+            result[res_id].append('%s.%s' % (module, name))
+        return {record.pk: result[record.pk] for record in records}
+
+    def get_external_id(self):
+        """Un identificador externo por fila — ``{pk: 'modulo.nombre'}``.
+
+        ≙ ``BaseModel.get_external_id``
+        (``odoo19c: odoo/orm/models.py:5716-5735``). Cuando una fila tiene
+        varios devuelve **uno** de ellos, y cuando no tiene ninguno devuelve
+        la **cadena vacía** —no ``None``—: la fuente lo dice explícitamente,
+        *"to be usable as a function field"*, y quien la consume distingue el
+        caso comparando contra un falsy, no contra un centinela.
+        """
+        results = self._get_external_ids()
+        return {key: val[0] if val else ''
+                for key, val in results.items()}
+
 
 #: Manager que expone las cuatro formas. Un modelo las adopta con
 #: ``objects = AccessManager()``; ``RuleScopedManager`` hereda de él, así que
