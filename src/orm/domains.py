@@ -60,19 +60,22 @@ compilación y el **registro de optimizadores**: los cuatro registradores
 orden :func:`_optimize_nary_sort_key`, sus dos mapas y el despacho en los dos
 ``_optimize_step``. Quedan fuera, declarados:
 
-- **Los 33 optimizadores concretos** que se registran con él
-  (``_operator_equal_as_in``, ``_optimize_in_set``, ``_optimize_like_str``, la
-  jerarquía ``child_of``…). El mecanismo ya los admite; falta escribirlos, y es
-  la tarea **#225**. Consecuencia visible: la normalización de ``=``/``!=`` a
-  ``in``/``not in`` que allá hace ``_operator_equal_as_in`` aquí ocurre en
-  ``DomainCondition._to_q``, en el paso de compilación, porque sin ella el
-  compilador de hoja no recibiría el operador que la fuente le promete.
+- **Los optimizadores concretos** que se registran con él. El porte avanza
+  por familias: la de **operador** —``_operator_equal_if_value``,
+  ``_operator_different``, ``_operator_equals``, ``_operator_equal_as_in``,
+  ``_optimize_in_set``, ``_optimize_like_str``— y la de **tipo de campo**
+  —``_optimize_boolean_in``, ``_optimize_boolean_in_all``— ya están. Faltan la
+  de fecha, la relacional, la de propiedades, la jerarquía ``child_of`` y las
+  de fusión n-aria. **Cuáles y cuántas viven en el tablero**, no aquí: una
+  cuenta transcrita a este docstring envejece con cada porte sin que nadie
+  toque el archivo.
 - **Los seis** ``_as_predicate`` y ``DomainCondition._optimize_field_search_method``
   — siete símbolos. Su consumidor en la fuente es ``Model.filtered_domain``
   (filtrar en memoria en vez de en SQL), que **no existe en este árbol**:
   ``grep -rn "filtered_domain" src/ addons/`` da 0. Portarlos exigiría antes
   ``Field.filter_function`` y ``Field.expression_getter``, también ausentes.
-  Sucesor: tarea **#225** los cubre junto al resto de la capa.
+  Sucesor: la tarea del tablero que porta los optimizadores del registro los
+  cubre junto al resto de la capa.
 
 La adaptación de forma, declarada
 ==================================
@@ -102,7 +105,7 @@ from orm.fields import (
 from orm.fields_properties import Properties
 from orm.utils import COLLECTION_TYPES, parse_field_expr
 from tools.func import classproperty
-from tools.misc import OrderedSet
+from tools.misc import OrderedSet, str2bool
 from tools.query import Query
 from tools.sql import SQL
 
@@ -127,10 +130,11 @@ STANDARD_CONDITION_OPERATORS = frozenset([
 CONDITION_OPERATORS = set(STANDARD_CONDITION_OPERATORS) | {'=', '!=', '<>', '=='}
 """Los aceptados al construir. Los cuatro extra los normaliza la compilación.
 
-La fuente los admite igual y los reduce con optimizadores de módulo
-(``_operator_equal_as_in``, ``_operator_different``, ``_operator_equals``);
-mientras esa capa no exista (tarea **#225**) la reducción vive en
-``DomainCondition._to_q``.
+La fuente los admite igual y los reduce con optimizadores de módulo, y aquí
+también desde ``api@04ac6b64``: los declara cada ``@operator_optimization``,
+no esta constante. La reducción de respaldo que vive en
+``DomainCondition._to_q`` se conserva para la condición que llega sin pasar
+por ``optimize()`` — compilar es la única puerta que no se puede saltar.
 """
 
 INTERNAL_CONDITION_OPERATORS = frozenset(('any!', 'not any!'))
@@ -392,8 +396,11 @@ class Domain:
         Reescribe el dominio en uno lógicamente equivalente y más canónico. En
         este árbol las reescrituras vivas son el **empuje de la negación a las
         hojas**, el aplanado de los n-arios, el **orden** de sus hijos y el
-        despacho de los optimizadores **registrados**. Ninguno lo está todavía:
-        los 33 concretos son la tarea **#225**.
+        despacho de los optimizadores **registrados**. El porte de los
+        concretos avanza por familias —la de operador y la de tipo de campo ya
+        están— y su estado vive en el tablero, no en este docstring: una cuenta
+        transcrita aquí envejece con cada porte sin que nadie toque el
+        archivo.
         """
         return self._optimize(model, OptimizationLevel.BASIC)
 
@@ -1016,10 +1023,11 @@ class DomainCondition(Domain):
         Dos cosas ocurren antes de delegar en ``condition_to_q``:
 
         1. **``=``/``!=`` se normalizan a ``in``/``not in``** de un elemento.
-           Allá lo hace el optimizador ``_operator_equal_as_in`` (``:1280``);
-           aquí ocurre en el paso de compilación porque esa capa no existe
-           todavía (tarea **#225**). Sin esta normalización el compilador de
-           hoja recibiría un operador que la fuente le promete ya reducido.
+           Allá lo hace el optimizador ``_operator_equal_as_in`` (``:1280``), y
+           aquí también desde ``api@04ac6b64``. Esta normalización se conserva
+           como **respaldo**: una condición que llega sin haber pasado por
+           ``optimize()`` no la recibió, y el compilador de hoja espera el
+           operador que la fuente le promete ya reducido.
         2. **La colección vacía colapsa a constante** — ``in []`` es FALSO y
            ``not in []`` es VERDADERO. Es ``_optimize_in_set`` (``:1315``), y
            sin ella el compilador de hoja se queda sin nada que emitir: la
@@ -1360,6 +1368,101 @@ def _optimize_in_set(condition, _model):
         _logger.debug("La condición %r debería tener un valor de lista.", condition)
         value = [value]
     return DomainCondition(condition.field_expr, condition.operator, OrderedSet(value))
+
+
+@operator_optimization([op for op in CONDITION_OPERATORS if op.endswith('like')])
+def _optimize_like_str(condition, model):
+    """≙ ``_optimize_like_str`` (``odoo19c: :1391-1409``).
+
+    Docstring de la fuente, verbatim: *"Validate value for pattern matching,
+    must be a str"*.
+
+    El ramal del patrón vacío es el que consume ``field.relational``, y por eso
+    este optimizador no se pudo portar hasta ``api@85168364``: hasta entonces
+    el atributo valía ``False`` en todo campo, incluido un ``ForeignKey``
+    (:ref:`h-api-961`), así que la salida escalar se aplicaba a los dos.
+
+    Con patrón vacío hay dos desenlaces, y la fuente los separa:
+
+    - un campo **escalar** con un ``like`` a secas casa con todo, así que la
+      condición colapsa a un booleano sin mirar la columna;
+    - un campo **relacional**, o cualquier campo con un ``=like`` —que casa
+      sólo con la cadena vacía—, se traduce a una comparación contra la
+      columna, porque el resultado depende de si hay valor o no.
+    """
+    value = condition.value
+    if not value:
+        # ``=like`` casa sólo con la cadena vacía (invierte la condición)
+        result = ((condition.operator in NEGATIVE_CONDITION_OPERATORS)
+                  == ('=' in condition.operator))
+        field = condition._field(model)
+        # los campos relacionales y los no relacionales se comportan distinto
+        if (field is not None and field.relational) or '=' in condition.operator:
+            return DomainCondition(
+                condition.field_expr, '!=' if result else '=', False)
+        return Domain(result)
+    if isinstance(value, str):
+        return condition
+    if isinstance(value, SQL):
+        warnings.warn(
+            "Desde 19.0, usar Domain.custom(to_sql=lambda model, alias, "
+            "query: SQL(...))", DeprecationWarning)
+        return condition
+    if '=' in condition.operator:
+        condition._raise("El patrón a buscar debe ser una cadena",
+                         error=TypeError)
+    return DomainCondition(
+        condition.field_expr, condition.operator, str(value))
+
+
+@field_type_optimization(['boolean'])
+def _optimize_boolean_in(condition, model):
+    """≙ ``_optimize_boolean_in`` (``odoo19c: :1453-1474``).
+
+    Docstring de la fuente, verbatim: *"b in boolean_values"*.
+
+    Normaliza el valor a booleanos y, cuando queda un solo valor falso,
+    **invierte el operador** para comparar siempre contra ``[True]``. La fuente
+    declara el motivo: *"it eases the implementation of search methods"* — un
+    solo caso que atender en el compilador, en vez de dos simétricos.
+    """
+    value = condition.value
+    operator = condition.operator
+    if operator not in ('in', 'not in') or not isinstance(value, COLLECTION_TYPES):
+        condition._raise(
+            "No se puede comparar %r con %s, que no es una colección de longitud 1",
+            condition.field_expr, type(value))
+    if not all(isinstance(v, bool) for v in value):
+        # se interpretan los valores
+        if any(isinstance(v, str) for v in value):
+            _logger.debug("Comparando un booleano con una cadena en %s", condition)
+        value = {
+            str2bool(v.lower(), False) if isinstance(v, str) else bool(v)
+            for v in value
+        }
+    if len(value) == 1 and not any(value):
+        # al comparar booleanos, comparar siempre contra [True] si se puede
+        operator = _INVERSE_OPERATOR[operator]
+        value = [True]
+    return DomainCondition(condition.field_expr, operator, value)
+
+
+@field_type_optimization(['boolean'], OptimizationLevel.FULL)
+def _optimize_boolean_in_all(condition, model):
+    """≙ ``_optimize_boolean_in_all`` (``odoo19c: :1477-1485``).
+
+    Docstring de la fuente, verbatim: *"b in [True, False]  =>  True"*.
+
+    Acotado a ``FULL`` **a propósito**, y la fuente lo comenta: la
+    simplificación *"removes fields (like active) from the domain"*, así que
+    hacerla en un nivel anterior la aplicaría también a un subdominio, donde
+    ese campo todavía hace falta.
+    """
+    if (isinstance(condition.value, COLLECTION_TYPES)
+            and set(condition.value) == {False, True}):
+        # la tautología se simplifica a un booleano
+        return Domain(condition.operator == 'in')
+    return condition
 
 
 def AND(domains):
