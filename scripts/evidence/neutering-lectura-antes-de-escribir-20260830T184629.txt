@@ -1,0 +1,12 @@
+# Control discriminante — lectura-antes-de-escribir
+# fecha:    2026-08-30T18:46:29
+# archivo:  src/orm/fields.py
+# anulado:  s/^    record_value = {record: record\[self.name\] for record in records}$/    record_value = None/
+# tests:    tests/unit/orm/test_fields_related.py
+
+## 1. Verde de partida (guarda presente)
+12 passed, 1 warning in 6.29s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_fields_related.py::TestInverseRelated::test_it_reads_every_value_before_writing_any
+1 failed, 11 passed, 1 warning in 5.89s

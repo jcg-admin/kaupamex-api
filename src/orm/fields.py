@@ -56,10 +56,11 @@ from decimal import Decimal
 from operator import attrgetter
 from typing import TypeVar
 
+from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.utils.timezone import localtime
 
-from orm.environments import get_current_company, get_transaction
+from orm.environments import env as get_environment, get_current_company, get_transaction
 from tools.misc import OrderedSet, remove_accents
 from tools.translate import _
 from tools.sql import SQL, sql_order_by_type
@@ -1432,3 +1433,179 @@ def _field_base_field(self):
 #: la medición 4 del censo, con la raíz de Django ya ensanchada al paquete
 #: entero — con la raíz estrecha publicaba 0 asignaciones y el porte reventó.
 models.Field.base_field = _ComputedUnlessAssigned(_field_base_field)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# El campo relacionado — ≙ ``odoo19c: :557-772``
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# ``related='partner_id.country_id.name'`` declara un campo cuyo valor no vive
+# en su propia fila: se lee recorriendo una cadena punteada hasta el campo del
+# extremo. La fuente lo resuelve dándole al campo un ``compute`` y un
+# ``inverse`` propios, que son estos métodos.
+#
+# **Qué desbloqueó este porte, y por qué se hizo en este orden.** El recorrido
+# escribe ``record[self.name] = ...`` y lee ``record[name]``: sin el acceso por
+# clave (``orm/models.py``, ``api@35012013``) sería código que no puede correr.
+# Y ``setup_related`` recorre ``model._fields[name]`` por una cadena que puede
+# atravesar un ``One2many``, que no es concreto: con el mapa filtrado por
+# ``concrete`` esa cadena no se podía recorrer (``api@b7856a6b``, tarea #215).
+# Los dos son primitivas, y las dos se construyeron antes que este bloque.
+
+
+def _field_prepare_setup(self):
+    """≙ ``Field.prepare_setup`` (``:523``) — verbatim."""
+    self._setup_done = False
+
+
+models.Field.prepare_setup = _field_prepare_setup
+
+
+def _field_setup_nonrelated(self, model):
+    """≙ ``Field.setup_nonrelated`` (``:557``) — «determine the dependencies
+    and inverse field(s)».
+
+    Verbatim: la fuente no hace nada aquí. Es el gancho que sus subclases
+    relacionales sobreescriben, y se porta con su cuerpo vacío porque el
+    símbolo ES el contrato — quitarlo obligaría a cada subclase a saber si su
+    base lo declara.
+    """
+
+
+models.Field.setup_nonrelated = _field_setup_nonrelated
+
+
+def _field_traverse_related(self, record):
+    """≙ ``Field.traverse_related`` (``:666``) — «traverse the fields of the
+    related field ``self`` except for the last one, and return it as a pair
+    ``(last_record, last_field)``».
+
+    Verbatim, incluido el ``next(iter(corecord), corecord)``: al atravesar una
+    relación de varios se toma el primero, y si no hay ninguno se conserva el
+    contenedor vacío para que el llamador distinga «no hay» de «no se
+    recorrió».
+    """
+    for name in self.related.split('.')[:-1]:
+        corecord = record[name]
+        record = next(iter(corecord), corecord)
+    return record, self.related_field
+
+
+models.Field.traverse_related = _field_traverse_related
+
+
+def _field_process_related(self, value, env):
+    """≙ ``Field._process_related`` (``:720``) — «no transformation by default,
+    but allows override».
+
+    Se porta aunque no transforme nada: es el punto de extensión que las
+    subclases usan, y el docstring de la fuente lo dice de sí mismo.
+    """
+    return value
+
+
+models.Field._process_related = _field_process_related
+
+
+def _field_compute_related(self, records):
+    """≙ ``Field._compute_related`` (``:675``) — «compute the related field
+    ``self`` on ``records``».
+
+    **El orden del recorrido es el contrato, no un detalle.** La fuente
+    atraviesa TODOS los registros en un campo antes de pasar al siguiente
+    campo, no cada registro en todos sus campos, y dedica veinte líneas de
+    comentario a explicar por qué: recorrer campo a campo deja que la
+    prelectura resuelva el campo para todo el lote de una vez, y recorrer
+    registro a registro lo pide de uno en uno. Su comentario lo llama *«a
+    major impact on performance»*.
+
+    Se conserva ese orden aunque aquí la prelectura la haga
+    ``select_related``/``prefetch_related`` de Django y no el ORM: el orden es
+    lo que la deja funcionar, y invertirlo la anularía en silencio — el N+1
+    no rompe nada, sólo cuesta.
+    """
+    values = list(records)
+    for name in self.related.split('.')[:-1]:
+        values = [next(iter(value := element[name]), value) for element in values]
+    for record, value in zip(records, values):
+        record[self.name] = self._process_related(
+            value[self.related_field.name], get_environment())
+
+
+models.Field._compute_related = _field_compute_related
+
+
+def _field_inverse_related(self, records):
+    """≙ ``Field._inverse_related`` (``:724``) — «inverse the related field
+    ``self`` on ``records``».
+
+    La primera línea guarda los valores antes de tocar nada, y la fuente
+    explica por qué en su comentario: *«store record values, otherwise they
+    may be lost by cache invalidation»*. Escribir en el extremo de la cadena
+    invalida la caché del origen, así que leer después de escribir devolvería
+    otra cosa.
+
+    La guarda ``bool(target.id) == bool(record.id)`` también es verbatim: sólo
+    se propaga entre dos registros que sean ambos reales o ambos nuevos. Un
+    registro sin guardar no puede escribir en uno guardado.
+    """
+    record_value = {record: record[self.name] for record in records}
+    for record in records:
+        target, field = self.traverse_related(record)
+        if target and bool(target.id) == bool(record.id):
+            target[field.name] = record_value[record]
+
+
+models.Field._inverse_related = _field_inverse_related
+
+
+def _field_resolve_depends(self, registry_module):
+    """≙ ``Field.resolve_depends`` (``:807``) — «return the dependencies of
+    ``self`` as a collection of field tuples».
+
+    Cada dependencia declarada es un nombre punteado; esto la resuelve a la
+    tupla de campos que la recorre, para que quien invalide sepa qué tocar.
+
+    El parámetro se llama ``registry_module`` y no ``registry`` porque aquí el
+    registro es un **módulo** (``orm.registry``) y no la instancia por base de
+    la fuente — la divergencia está declarada en la cabecera de ese archivo.
+
+    **Dos vías para llegar al modelo, y la de Django va primero.** La fuente
+    resuelve por ``self.model_name``, el nombre punteado que su ORM le pone al
+    ligar el campo. Aquí quien liga el campo es Django, y lo que deja es
+    ``field.model`` — la clase, directamente. ``model_name`` sólo lo lleva un
+    campo cuyo puerto se lo haya declarado, así que preguntar sólo por él
+    dejaría fuera a todo campo ligado por Django, que son todos.
+    """
+    model = getattr(self, 'model', None)
+    if model is None:
+        model = registry_module.MODELS_BY_NAME.get(self.model_name)
+    if model is None:
+        return
+    for dotnames in registry_module.field_depends[self]:
+        field_sequence = []
+        current = model
+        for fname in dotnames.split('.'):
+            # ``_meta.get_field`` y no ``_fields``: aquí se recorren CLASES, y
+            # sobre la clase ``_fields`` es el objeto ``property``, no el mapa.
+            # Es el mismo registro por la vía que sí funciona sin instancia.
+            field = None
+            if current is not None:
+                try:
+                    field = current._meta.get_field(fname)
+                except FieldDoesNotExist:
+                    field = None
+            if field is None:
+                break
+            field_sequence.append(field)
+            related = getattr(field, 'related_model', None)
+            if related is None:
+                comodel = getattr(field, 'comodel_name', None)
+                related = (registry_module.MODELS_BY_NAME.get(comodel)
+                           if comodel else None)
+            current = related
+        else:
+            yield tuple(field_sequence)
+
+
+models.Field.resolve_depends = _field_resolve_depends
