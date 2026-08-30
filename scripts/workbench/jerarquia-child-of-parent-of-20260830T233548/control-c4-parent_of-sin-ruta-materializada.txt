@@ -1,0 +1,3 @@
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_domain_hierarchy.py::TestTheMaterializedPathIsAShortcutAndNotAnotherResult::test_parent_of_reads_the_ancestors_from_the_path_without_walking
+1 failed, 13 passed, 1 warning in 5.71s

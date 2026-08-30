@@ -1,0 +1,3 @@
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_domain_hierarchy.py::TestTheMaterializedPathIsAShortcutAndNotAnotherResult::test_child_of_returns_a_domain_when_the_path_is_materialized
+1 failed, 13 passed, 1 warning in 5.75s

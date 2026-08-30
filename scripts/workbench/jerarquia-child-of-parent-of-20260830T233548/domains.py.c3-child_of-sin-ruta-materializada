@@ -1115,13 +1115,6 @@ class DomainCondition(Domain):
         la base, así que **no es una evaluación en memoria** — es la única que
         hay hasta que exista esa implementación específica.
         """
-        if self.operator in ('child_of', 'parent_of'):
-            # ≙ ``:1045-1047``, con su TODO: no hay implementación específica,
-            # se sube a FULL —donde ``_operator_hierarchy`` la reescribe— y se
-            # evalúa el resultado. Va ANTES de ``_normalized`` porque el
-            # operador aún no es de los que el compilador de hoja admite.
-            return self._optimize(model, OptimizationLevel.FULL)._as_predicate(model)
-
         field_expr, operator, value, constant = self._normalized()
         if constant is not None:
             return constant._as_predicate(model)
@@ -1930,10 +1923,8 @@ def _operator_child_of_domain(comodel, parent):
     ids — guarda la consulta que los produce.
     """
     model = comodel.model
-    if getattr(model, '_parent_store', False) and parent == parent_name_of(model):
-        return Domain.OR(
-            DomainCondition('parent_path', '=like', path + '%')
-            for path in comodel.values_list('parent_path', flat=True) if path)
+    if False:   # SABOTAJE C3: la rama de ruta materializada de child_of
+        pass
     # sin ruta materializada, se baja nivel por nivel con la elevación
     # ambiental; el filtrado de las filas prohibidas lo hace el resto del
     # dominio, como declara la fuente

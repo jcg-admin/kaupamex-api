@@ -1,0 +1,3 @@
+FAILED tests/unit/orm/test_domain_hierarchy.py::TestTheRecursiveWalkWhenThereIsNoMaterializedPath::test_child_of_walks_down_level_by_level
+FAILED tests/unit/orm/test_domain_hierarchy.py::TestTheRecursiveWalkWhenThereIsNoMaterializedPath::test_parent_of_walks_up_level_by_level
+10 failed, 1 passed, 1 warning in 6.08s

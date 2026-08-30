@@ -95,6 +95,7 @@ __all__ = [
     'ModelBase', 'is_model_class', 'is_model_definition',
     'extend_model', 'extend_property', 'add_field_if_absent', 'model_key',
     'resolve_rec_name', 'ensure_rec_names',
+    'DEFAULT_PARENT_NAME', 'parent_name_of',
     'adopt_access_manager', 'ensure_access_managers',
 ]
 
@@ -136,6 +137,35 @@ def _is_computed_surface(model_cls, name) -> bool:
     """
     attr = inspect.getattr_static(model_cls, name, None)
     return attr is not None and hasattr(type(attr), '__get__')
+
+
+DEFAULT_PARENT_NAME = 'parent'
+"""El campo autorreferente por defecto — ≙ ``_parent_name: str = 'parent_id'``
+(``odoo19c: odoo/orm/models.py:435``).
+
+La fuente lo declara como atributo de clase de ``BaseModel``, así que **todo**
+modelo lo tiene y ``cls._parent_name`` nunca revienta. Aquí la base es la de
+Django y no es nuestra, así que el default vive en esta constante y se lee con
+:func:`parent_name_of`.
+
+Vale ``'parent'`` y no ``'parent_id'`` por la convención de sufijo que la
+tarea #141 fijó: la relación que allá se llama ``parent_id`` aquí se declara
+``parent = fields.Many2one('self', ...)`` y Django le pone ``attname``
+``parent_id``. Es el mismo campo por su otra cara — el mismo criterio con que
+:func:`resolve_rec_name` acepta las dos formas.
+"""
+
+
+def parent_name_of(model_cls):
+    """El ``_parent_name`` del modelo, o el default si no lo declara.
+
+    ≙ la lectura de ``comodel._parent_name`` que hace ``_operator_hierarchy``
+    (``odoo19c: odoo/orm/domains.py:1741``). Se escribe como función y no como
+    un ``getattr`` en el sitio porque son **tres** los sitios que lo leen —el
+    optimizador y sus dos constructores de dominio— y un default repetido tres
+    veces es tres sitios donde puede divergir.
+    """
+    return getattr(model_cls, '_parent_name', DEFAULT_PARENT_NAME)
 
 
 def resolve_rec_name(model_cls):

@@ -138,10 +138,24 @@ class TestAsPredicate:
         with pytest.raises(ValueError, match='Sin modelo'):
             Domain([('name', '=', 'X')])._as_predicate(None)
 
-    def test_the_hierarchy_is_refused_before_reaching_the_predicate(self):
-        """``child_of`` no existe en este árbol — lo rechaza ``checked()``."""
-        with pytest.raises(ValueError, match='Operador inválido'):
-            Domain([('parent', 'child_of', 1)])._as_predicate(ResPartner)
+    def test_the_hierarchy_goes_up_to_full_before_being_evaluated(self, db):
+        """``child_of`` no tiene predicado propio: se resuelve subiendo a
+        ``FULL``, que es donde su optimizador lo reescribe a un dominio simple
+        — ≙ ``odoo19c: :1045-1047``, con su *"TODO have a specific
+        implementation for these"*.
+
+        El caso **ejecuta** el predicado: hasta ``api@24b9b12c`` el operador ni
+        siquiera existía en ``CONDITION_OPERATORS`` y este mismo caso afirmaba
+        que ``checked()`` lo rechazaba. Comprobar sólo que no levanta lo dejaría
+        pasar con la rama ausente, porque el rechazo también vendría de
+        ``_normalized``: por eso se afirma sobre a quién acepta y a quién no.
+        """
+        padre = ResPartner.objects.create(name='Padre 967')
+        hija = ResPartner.objects.create(name='Hija 967', parent=padre)
+        ajena = ResPartner.objects.create(name='Ajena 967')
+        predicado = Domain([('id', 'child_of', padre.pk)])._as_predicate(ResPartner)
+        assert predicado(hija) and predicado(padre)
+        assert not predicado(ajena)
 
     def test_a_relation_traversal_refuses_in_memory(self):
         with pytest.raises(NotImplementedError, match='travesía'):
