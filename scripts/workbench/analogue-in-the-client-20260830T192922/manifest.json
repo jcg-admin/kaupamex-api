@@ -1,5 +1,5 @@
 {
-  "question": "el cliente Claude Code —y los cuatro repos de referencia de AI del arbol— tienen un mecanismo analogo a lo que docs hace en .claude/eventos/: una corrida fechada cuya evidencia se versiona?",
+  "question": "el cliente Claude Code —y los cuatro repos de referencia de AI— tienen un mecanismo analogo a .claude/eventos/, y COMO lo manejan?",
   "instrument": [
     "strings -n 4 sobre /opt/claude-code/bin/claude",
     "grep -aoE sobre el volcado, por literal y por contexto"
@@ -27,7 +27,9 @@
     "#220"
   ],
   "outputs": [
+    "client-mechanism-20260830T192922.txt",
     "counts-20260830T192922.txt"
   ],
-  "control": "el sentido de cada literal se lee en su contexto de 70 caracteres, no por su conteo: los 4 de workbench son de VS Code y un conteo pelado los habria leido como vocabulario del cliente"
+  "control": "el sentido de cada literal se lee en su contexto de 70 caracteres, no por su conteo: los 4 de workbench son de VS Code y un conteo pelado los habria leido como vocabulario del cliente",
+  "findings": []
 }
