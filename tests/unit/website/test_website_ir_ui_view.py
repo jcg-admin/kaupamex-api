@@ -291,7 +291,7 @@ class TestVisibilityPassword:
         assert WebsiteViewInfo.objects.get(view=view).visibility_password == ''
         assert view._get_pwd() == ''
 
-    def test_only_qweb_views_take_a_password(self):
+    def test_only_template_views_take_a_password(self):
         # ≙ ``if r.type == 'qweb'`` (``odoo19c: :44``).
         view = _make_view(key='website.form-565', type='form')
         view._set_pwd('secreto-565')

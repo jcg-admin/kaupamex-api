@@ -7,7 +7,7 @@ así que la plantilla puede ser HTML libre. Aquí el conversor es el helper de
 módulo define es el punto medio que preserva las dos propiedades que la
 directiva del ejecutor pide:
 
-- *lo que se lee* es un **registro en BD** (``ir.ui.view``, ``type='qweb'``,
+- *lo que se lee* es un **registro en BD** (``ir.ui.view``, ``type='template'``,
   resuelto por ``key`` = ``report_name``) — igual que la referencia
   (``odoo19c: ir_actions_report.py:769-781`` resuelve ``ir.ui.view``);
 - *cómo llega el documento* es **interpretado**, no ejecutado: el arch es XML
