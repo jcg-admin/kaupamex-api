@@ -31,6 +31,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
 import fields
 import models
+from orm.domains import Domain
 from django.apps import apps
 from django.conf import settings
 from django.utils.translation import get_language
@@ -2830,19 +2831,30 @@ class ResPartnerCategory(TimeStampedModel):
         descendencia** —el ``child_of`` de la fuente—, porque quien busca
         "Clientes" espera tambien "Clientes / Mayoristas".
 
-        DIVERGENCIA declarada: la fuente devuelve ``NotImplemented`` para los
-        operadores negados (``not like``), porque su dominio no sabe negar un
-        ``child_of``. Aqui se conserva esa negativa: un ``not`` sobre la
-        jerarquia pediria el complemento de un arbol, que no es lo mismo que
-        negar cada nombre.
+        DIVERGENCIA declarada, la primera: la fuente devuelve
+        ``NotImplemented`` para los operadores negados (``not like``), porque
+        su dominio no sabe negar un ``child_of``. Aqui se conserva esa
+        negativa: un ``not`` sobre la jerarquia pediria el complemento de un
+        arbol, que no es lo mismo que negar cada nombre.
+
+        DIVERGENCIA declarada, la segunda — de MECANISMO, no de alcance: la
+        fuente expresa la descendencia con ``('id', 'child_of', ids)`` y
+        ``_operator_hierarchy`` la traduce. Ese optimizador aun no esta
+        portado (tarea **#225**), asi que la descendencia se expresa con el
+        arbol materializado que este puerto ya mantiene: ``parent_path``
+        empieza por el de cada raiz. Es la misma conducta por el camino que la
+        propia fuente deja construido — su ``child_of`` compila a un
+        ``parent_path LIKE`` cuando el modelo declara ``_parent_store``.
+
+        Devuelve un ``Domain``, no un ``Q``: asi se compone dentro de un
+        ``any`` y lo puede optimizar el resto del arbol.
         """
         if not operator.endswith('like'):
-            return models.Q(name__iexact=value)
+            return Domain('name', '=', value)
         if operator.startswith('not'):
             return NotImplemented
         roots = cls.objects.filter(name__icontains=value)
-        paths = [r.parent_path for r in roots if r.parent_path]
-        condition = models.Q(pk__in=[r.pk for r in roots])
-        for path in paths:
-            condition |= models.Q(parent_path__startswith=path)
-        return condition
+        domain = Domain('id', 'in', [root.pk for root in roots])
+        for path in [root.parent_path for root in roots if root.parent_path]:
+            domain |= Domain('parent_path', '=like', f'{path}%')
+        return domain

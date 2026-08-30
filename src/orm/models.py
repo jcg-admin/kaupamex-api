@@ -74,7 +74,7 @@ from orm.environments import (
 )
 from orm.commands import ManyToManyLink, ManyToManySet, One2manyChild
 from orm import registry
-from orm.domains import Domain, FALSE_DOMAIN, TRUE_DOMAIN, to_q
+from orm.domains import Domain, to_q
 from orm.fields import convert_to_display_name
 from orm.fields_nonstored import NonStored
 from orm.fields_properties import Properties
@@ -2382,6 +2382,45 @@ class RecordLoaderMixin(FieldSqlMixin):
 
 
 
+def search_display_name(model_cls, operator, value):
+    """La implementación base de ``_search_display_name``, como función.
+
+    Existe por una divergencia **de vía**, no de alcance. En la fuente el
+    método cuelga de ``BaseModel``, así que una sobrescritura delega con
+    ``super()`` y siempre lo encuentra. Aquí el bloque ``display_name`` llega
+    por dos caminos distintos —herencia de :class:`DisplayNameMixin` para la
+    mayoría, e inyección de :func:`orm.model_classes.adopt_display_name` para
+    los que declaran su propia base— y en el segundo **``super()`` no lo ve**:
+    el mixin no está en el MRO.
+
+    Medido: de los tres modelos que sobrescriben este método en ``base``, dos
+    —``ResBank`` y ``ResCurrencyRate``— tienen el bloque inyectado y sólo uno
+    lo hereda. Una delegación con ``super()`` funcionaría en un tercio de los
+    casos, que es peor que no funcionar en ninguno: falla sólo para algunos
+    operadores de algunos modelos.
+
+    Por eso la implementación base es una función y el ``classmethod`` la
+    invoca. Una sobrescritura que quiera delegar la llama por su nombre, y
+    funciona por los dos caminos.
+    """
+    cls = model_cls
+    search_fnames = (getattr(cls, '_rec_names_search', None)
+                     or ([cls._rec_name] if getattr(cls, '_rec_name', None)
+                         else []))
+    if not search_fnames:
+        _logger.warning(
+            'No se puede buscar por display_name: %s no declara _rec_name '
+            'ni _rec_names_search', cls._meta.label)
+        return Domain.TRUE
+    negative = operator in NEGATIVE_DISPLAY_NAME_OPERATORS
+    if operator.endswith('like') and not value and '=' not in operator:
+        return Domain.FALSE if negative else Domain.TRUE
+
+    combine = Domain.AND if negative else Domain.OR
+    return combine([Domain(field_expr, operator, value)
+                    for field_expr in search_fnames])
+
+
 def _display_name_default(record):
     """El ``default`` del descriptor: delega en ``_compute_display_name``."""
     return record._compute_display_name()
@@ -2544,21 +2583,7 @@ class DisplayNameMixin:
         El corto-circuito del ``like ''`` de la fuente se porta: con valor
         vacío y operador positivo devuelve todo, y con uno negativo, nada.
         """
-        search_fnames = (getattr(cls, '_rec_names_search', None)
-                         or ([cls._rec_name] if getattr(cls, '_rec_name', None)
-                             else []))
-        if not search_fnames:
-            _logger.warning(
-                'No se puede buscar por display_name: %s no declara _rec_name '
-                'ni _rec_names_search', cls._meta.label)
-            return TRUE_DOMAIN
-        negativo = operator in NEGATIVE_DISPLAY_NAME_OPERATORS
-        if operator.endswith('like') and not value and '=' not in operator:
-            return FALSE_DOMAIN if negativo else TRUE_DOMAIN
-
-        combinar = Domain.AND if negativo else Domain.OR
-        return combinar([Domain(field_expr, operator, value)
-                         for field_expr in search_fnames])
+        return search_display_name(cls, operator, value)
 
     @classmethod
     def name_create(cls, name):
@@ -2595,7 +2620,7 @@ class DisplayNameMixin:
         conceder un permiso que nadie otorgó.
         """
         queryset = cls.objects.filter(
-            to_q(cls._search_display_name(operator, name), cls))
+            to_q(Domain('display_name', operator, name), cls))
         if domain is not None:
             queryset = queryset.filter(domain)
         return [(record.pk, record.display_name) for record in queryset[:limit]]

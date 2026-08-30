@@ -12,14 +12,19 @@ nuestros — medido, no supuesto. Los 90 restantes los recibe de
 ``orm.model_classes.adopt_display_name`` sobre ``class_prepared``, la misma
 pareja de vías que ``H-API-577`` estableció para el registro por nombre.
 
-Tres divergencias de FORMA, heredadas del árbol y declaradas
-=============================================================
+Dos divergencias de FORMA, heredadas del árbol y declaradas
+===========================================================
 
 El mixin las adopta porque cinco modelos ya las ejercían antes de existir:
-``_compute_display_name`` **devuelve** la etiqueta (la fuente la asigna),
-``_search_display_name`` devuelve un ``QuerySet`` (la fuente, un ``Domain``), y
+``_compute_display_name`` **devuelve** la etiqueta (la fuente la asigna), y
 ``name_create``/``name_search`` son ``classmethod`` (la fuente usa
 ``@api.model``). Un default que no las respetara rompería a esos cinco.
+
+La tercera se retiró en ``api@5ae823c9``: ``_search_display_name`` devolvía un
+``QuerySet`` y ahora devuelve un ``Domain``, como la fuente. Su argumento —*"es
+lo que el llamador de este árbol sabe consumir"*— quedó falso al llegar el
+segundo llamador, el optimizador de dominios, que necesita algo que se componga
+dentro de un ``any``. Ver :ref:`h-api-965`.
 
 Qué haría fallar a estos casos
 ==============================

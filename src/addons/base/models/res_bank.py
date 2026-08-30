@@ -86,6 +86,8 @@ Divergencias declaradas (DEC-KX-03)
 import fields
 import models
 from tools.translate import _
+from orm.domains import Domain
+from orm.models import search_display_name
 
 from addons.base.models.res_country import ResCountry, ResCountryState
 
@@ -162,18 +164,15 @@ class ResBank(models.Model):
         nombre no. Comparar el BIC por contenido devolvería bancos cuyo código
         contiene la cadena en medio, que no es lo que nadie busca.
 
-        Devuelve un ``QuerySet``. Los dos operadores que la fuente atiende son
-        ``ilike`` y ``not ilike``; cualquier otro delega —aquí, en el
-        ``filter`` por nombre, que es lo que ``super()`` hace allá.
+        Devuelve un ``Domain``, como la fuente. Los dos operadores que atiende
+        son ``ilike`` y ``not ilike``; cualquier otro delega en ``super()``,
+        que busca sobre ``_rec_names_search``.
         """
-        if not value:
-            return cls.objects.all()
-        matched = models.Q(bic__istartswith=value) | models.Q(name__icontains=value)
-        if operator == 'not ilike':
-            return cls.objects.exclude(matched)
-        if operator == 'ilike':
-            return cls.objects.filter(matched)
-        return cls.objects.filter(name__icontains=value)
+        if operator in ('ilike', 'not ilike') and value:
+            domain = (Domain('bic', '=ilike', f'{value}%')
+                      | Domain('name', 'ilike', value))
+            return ~domain if operator == 'not ilike' else domain
+        return search_display_name(cls, operator, value)
 
     @staticmethod
     def _sanitize_bic(value):

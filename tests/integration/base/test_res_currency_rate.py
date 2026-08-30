@@ -17,6 +17,7 @@ from django.db import IntegrityError, transaction
 
 from addons.base.models import ResCompany, ResCurrency
 from addons.base.models.res_currency import ResCurrencyRate
+from tests.conftest import matching_by_display_name
 from orm.environments import company_scope
 
 pytestmark = pytest.mark.integration
@@ -524,7 +525,7 @@ class TestSearchDisplayName:
         ResCurrencyRate.objects.create(currency=currency, company=company,
                                        name=date(2026, 3, 15),
                                        rate=Decimal('4'))
-        found = ResCurrencyRate._search_display_name('ilike', '15/03/2026')
+        found = matching_by_display_name(ResCurrencyRate, 'ilike', '15/03/2026')
         assert [r.name for r in found] == [date(2026, 3, 15)]
 
     def test_the_day_comes_before_the_month(self, currency, company):
@@ -539,14 +540,14 @@ class TestSearchDisplayName:
         """
         ResCurrencyRate.objects.create(currency=currency, company=company,
                                        name=date(2026, 4, 5), rate=Decimal('4'))
-        found = ResCurrencyRate._search_display_name('ilike', '05/04/2026')
+        found = matching_by_display_name(ResCurrencyRate, 'ilike', '05/04/2026')
         assert [r.name for r in found] == [date(2026, 4, 5)]
 
     def test_an_iso_date_also_parses(self, currency, company):
         ResCurrencyRate.objects.create(currency=currency, company=company,
                                        name=date(2026, 3, 15),
                                        rate=Decimal('4'))
-        found = ResCurrencyRate._search_display_name('ilike', '2026-03-15')
+        found = matching_by_display_name(ResCurrencyRate, 'ilike', '2026-03-15')
         assert [r.name for r in found] == [date(2026, 3, 15)]
 
     def test_a_number_searches_the_rate(self, currency, company):
@@ -558,7 +559,7 @@ class TestSearchDisplayName:
         ResCurrencyRate.objects.create(currency=currency, company=company,
                                        name=date(2026, 3, 15),
                                        rate=Decimal('4'))
-        found = ResCurrencyRate._search_display_name('ilike', '4')
+        found = matching_by_display_name(ResCurrencyRate, 'ilike', '4')
         assert [r.rate for r in found] == [Decimal('4.000000000000')]
 
     def test_a_value_that_is_neither_finds_nothing(self, currency, company):
@@ -567,7 +568,7 @@ class TestSearchDisplayName:
         ResCurrencyRate.objects.create(currency=currency, company=company,
                                        name=date(2026, 3, 15),
                                        rate=Decimal('4'))
-        assert not ResCurrencyRate._search_display_name('ilike', 'BBVA').exists()
+        assert not matching_by_display_name(ResCurrencyRate, 'ilike', 'BBVA').exists()
 
     def test_the_negated_operator_excludes(self, currency, company):
         """Qué haría fallar al control: ignorar el operador y filtrar siempre."""
@@ -577,7 +578,7 @@ class TestSearchDisplayName:
         ResCurrencyRate.objects.create(currency=currency, company=company,
                                        name=date(2026, 3, 16),
                                        rate=Decimal('5'))
-        excluded = ResCurrencyRate._search_display_name('not ilike', '2026-03-15')
+        excluded = matching_by_display_name(ResCurrencyRate, 'not ilike', '2026-03-15')
         assert [r.name for r in excluded] == [date(2026, 3, 16)]
 
 

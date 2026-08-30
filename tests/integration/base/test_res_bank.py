@@ -10,6 +10,7 @@ Qué haría fallar a cada control se declara en su caso.
 import pytest
 
 from addons.base.models import ResBank, ResCountry, ResCountryState
+from tests.conftest import matching_by_display_name
 
 pytestmark = pytest.mark.integration
 
@@ -91,11 +92,11 @@ class TestSearchDisplayName:
         }
 
     def test_the_name_matches_by_content(self, banks):
-        found = ResBank._search_display_name('ilike', 'orte')
+        found = matching_by_display_name(ResBank, 'ilike', 'orte')
         assert list(found) == [banks['banorte']]
 
     def test_the_bic_matches_by_prefix(self, banks):
-        found = ResBank._search_display_name('ilike', 'BCMR')
+        found = matching_by_display_name(ResBank, 'ilike', 'BCMR')
         assert list(found) == [banks['bbva']]
 
     def test_the_bic_does_not_match_in_the_middle(self, banks):
@@ -105,16 +106,16 @@ class TestSearchDisplayName:
         devolvería bancos cuyo código lleva la cadena en medio. Sin este caso,
         un ``icontains`` en las dos columnas pasaría los dos anteriores.
         """
-        assert not ResBank._search_display_name('ilike', 'RMXMM')
+        assert not matching_by_display_name(ResBank, 'ilike', 'RMXMM')
 
     def test_not_ilike_returns_the_complement(self, banks):
-        found = ResBank._search_display_name('not ilike', 'BCMR')
+        found = matching_by_display_name(ResBank, 'not ilike', 'BCMR')
         assert banks['bbva'] not in found
         assert banks['banorte'] in found
 
     def test_an_empty_value_matches_everything(self, banks):
         """La fuente delega en ``super()`` cuando el valor es falso."""
-        found = ResBank._search_display_name('ilike', '')
+        found = matching_by_display_name(ResBank, 'ilike', '')
         assert banks['bbva'] in found and banks['banorte'] in found
 
 

@@ -14,7 +14,7 @@ import inspect
 
 import pytest
 
-from orm.domains import Domain, TRUE_DOMAIN, to_q
+from orm.domains import Domain, to_q
 from orm.fields import determine
 from orm.fields_nonstored import NonStored
 
@@ -118,7 +118,7 @@ class TestSearchDisplayNameReturnsADomain:
             'key', 'ilike', 'x')
 
     def test_the_empty_like_short_circuit_is_kept(self, config_parameter):
-        assert config_parameter._search_display_name('ilike', '') is TRUE_DOMAIN
+        assert config_parameter._search_display_name('ilike', '') is Domain.TRUE
 
     def test_the_domain_still_compiles_to_a_queryset(self, config_parameter):
         config_parameter.objects.create(key='una.clave', value='v')

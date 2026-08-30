@@ -30,6 +30,7 @@ from addons.base.models.res_partner import (FormatAddressMixin,
                                             ResPartnerCategory)
 from addons.base.models.res_country import ResCountry
 from exceptions import ValidationError
+from tests.conftest import matching_by_display_name
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -102,8 +103,8 @@ def test_searching_by_name_brings_the_descendants():
     espera tambien "Clientes / Mayoristas"."""
     root = ResPartnerCategory.objects.create(name='Clientes')
     ResPartnerCategory.objects.create(name='Mayoristas', parent=root)
-    condition = ResPartnerCategory._search_display_name('like', 'Clientes')
-    assert ResPartnerCategory.objects.filter(condition).count() == 2
+    found = matching_by_display_name(ResPartnerCategory, 'like', 'Clientes')
+    assert found.count() == 2
 
 
 def test_a_negated_search_is_refused():

@@ -134,6 +134,8 @@ from django.db.models import F
 import fields
 import models
 from orm.environments import get_context, get_current_company
+from orm.utils import COLLECTION_TYPES
+from orm.domains import Domain
 from tools.misc import format_amount, get_lang
 from datetime import date
 from decimal import Decimal, InvalidOperation
@@ -1114,26 +1116,39 @@ class ResCurrencyRate(models.Model):
         *locale* de babel que usa la fuente.
 
         La delegación de la fuente va a ``super()``, que busca sobre
-        ``_rec_names_search = ['name', 'rate']``. Aquí eso es un ``Q`` sobre los
-        dos: la fecha si parseó, el número si el valor es numérico.
+        ``_rec_names_search = ['name', 'rate']`` y deja que el optimizador de
+        dominios resuelva el tipo de cada uno.
+
+        DIVERGENCIA declarada, de MECANISMO y con bloqueo medido: aquí esa
+        delegación **no se puede hacer todavía**. ``name`` es un ``Date`` y
+        ``rate`` un decimal; un dominio sobre los dos con un valor que no es
+        ni fecha ni número llega a Django y levanta ``ValidationError`` antes
+        de que nadie lo optimice. La fuente no tiene ese problema porque su
+        familia de optimizadores por tipo colapsa la condición imposible a
+        ``FALSE`` primero — y esa familia está **bloqueada** aquí: los seis
+        optimizadores de fecha necesitan ``model.env``, medido inexistente.
+        Sucesores registrados: **#209** (el ``env``) y **#225** (la familia).
+
+        Mientras tanto el reparto por tipo se hace aquí, con el mismo
+        resultado observable: la fecha si parseó, el número si el valor es
+        numérico, y nada si no es ninguno de los dos. Devuelve ``Domain``.
         """
-        if isinstance(value, (list, tuple, set)):
-            value = [parse_date(v) for v in value]
-            matched = models.Q(name__in=[v for v in value
-                                         if isinstance(v, date)])
+        if isinstance(value, COLLECTION_TYPES):
+            parsed = [parse_date(item) for item in value]
+            dates = [item for item in parsed if isinstance(item, date)]
+            matched = Domain('name', 'in', dates) if dates else Domain.FALSE
         else:
-            value = parse_date(value)
-            matched = models.Q(pk__in=[])
-            if isinstance(value, date):
-                matched = models.Q(name=value)
+            parsed = parse_date(value)
+            if isinstance(parsed, date):
+                matched = Domain('name', '=', parsed)
             else:
                 try:
-                    matched = models.Q(rate=Decimal(str(value)))
+                    matched = Domain('rate', '=', Decimal(str(parsed)))
                 except (InvalidOperation, ValueError, TypeError):
-                    matched = models.Q(pk__in=[])
+                    matched = Domain.FALSE
         if operator in ('not ilike', 'not in', '!='):
-            return cls.objects.exclude(matched)
-        return cls.objects.filter(matched)
+            return ~matched
+        return matched
 
     @classmethod
     def _company_currency_name(cls, company=None):

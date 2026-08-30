@@ -11,6 +11,7 @@ from django.db import connection
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
+from orm.domains import to_q
 
 from addons.authz_password_policy.data import seed as password_policy_seed
 from addons.authz_signup.data import seed as signup_flags_seed
@@ -435,3 +436,18 @@ def pytest_runtest_teardown(item):
 # El fixture no se sustituye por nada: sin objetos que instalar no hay paso que
 # dar. Si vuelve a hacer falta una vista de reporte, se declara como modelo
 # Python en el addon dueño, y entonces la crea la migración — no un fixture.
+
+
+def matching_by_display_name(model_cls, operator, value):
+    """Los registros que ``_search_display_name`` selecciona, como ``QuerySet``.
+
+    Desde ``api@5ae823c9`` ese método devuelve un ``Domain``, como la fuente:
+    un dominio se compone dentro de un ``any`` y un ``QuerySet`` no. Los casos
+    que quieren afirmar **qué filas** salen necesitan el paso intermedio, y es
+    el mismo que ``name_search`` da — ``to_q`` contra el modelo.
+
+    Vive en el ``conftest`` y no en cada archivo de test porque lo consumen
+    los casos de ``res_bank`` y los de ``res_currency_rate``, que son dos.
+    """
+    return model_cls.objects.filter(to_q(model_cls._search_display_name(
+        operator, value), model_cls))
