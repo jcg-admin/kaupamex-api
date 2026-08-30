@@ -1028,9 +1028,6 @@ Field = models.Field
 #: cuando quiere, y cuando no, gobierna el de aquí.
 _FIELD_CLASS_ATTRIBUTES = {
     # --- identidad y naturaleza del campo -------------------------------
-    'type': '',                     # el tipo del campo, en el vocabulario de
-                                    # la fuente; lo puebla ``type_for``
-    'relational': False,            # si es un campo relacional
     'translate': False,             # si el campo se traduce
     'is_text': False,               # si en la base es un tipo textual
     'falsy_value': None,            # el valor que cuenta como no establecido
@@ -1087,6 +1084,45 @@ _FIELD_CLASS_ATTRIBUTES = {
 for _name_attr, _default_value in _FIELD_CLASS_ATTRIBUTES.items():
     if not hasattr(models.Field, _name_attr):
         setattr(models.Field, _name_attr, _default_value)
+
+
+#: ``type`` — el vocabulario de la fuente sobre un campo de Django.
+#:
+#: Es el único de los 68 atributos de clase que **no** puede ser un valor
+#: llano: allá cada clase concreta declara el suyo (``Boolean.type =
+#: 'boolean'``), y aquí la clase concreta es la de Django, compartida entre
+#: tipos que la fuente separa. Un ``CharField`` con ``choices`` **es** la
+#: ``Selection`` de la fuente, y sin ``choices`` es su ``Char``: dos
+#: instancias de la misma clase con tipos distintos, que ningún atributo de
+#: clase puede expresar.
+#:
+#: Por eso delega en :func:`type_for`, que ya sabía el mapa completo y no
+#: estaba cableado a nada: hasta este porte ``type`` valía ``''`` en toda
+#: familia salvo ``date`` y ``datetime`` —las dos que ``fields_temporal``
+#: declara en su clase concreta, como la fuente—. El despacho por tipo de
+#: campo del registro de optimizadores (``orm/domains.py``) buscaba esa cadena
+#: vacía y no casaba con ninguna familia registrada.
+#:
+#: Un atributo llano de la subclase gana sobre esta ``property`` por
+#: resolución de atributo, así que las dos declaraciones de
+#: ``fields_temporal`` siguen gobernando su clase.
+models.Field.type = property(type_for)
+
+
+#: ``relational`` — hermano de ``type``, y con el mismo defecto de origen.
+#:
+#: La fuente lo declara **una vez**, en la base abstracta de los tres campos
+#: de relación: ``_Relational.relational: typing.Literal[True] = True``
+#: (``odoo19c: odoo/orm/fields_relational.py:35``). Aquí esa base es la de
+#: Django, que ya publica el mismo predicado con otro nombre —``is_relation``,
+#: verdadero para ``ForeignKey``, ``OneToOneField`` y ``ManyToManyField``—.
+#:
+#: Instalado como valor llano valía ``False`` incluso en un ``ForeignKey``,
+#: que es lo contrario de lo que la fuente garantiza. Su consumidor inmediato
+#: es ``_optimize_like_str``, que ramifica por él: un campo relacional con un
+#: patrón vacío devuelve una condición sobre el campo, y uno escalar devuelve
+#: un booleano. Con ``False`` universal el escalar se aplicaba a los dos.
+models.Field.relational = property(lambda self: self.is_relation)
 
 #: ≙ ``Field._by_type__`` colgado de la clase, como en la fuente.
 models.Field._by_type__ = _by_type__

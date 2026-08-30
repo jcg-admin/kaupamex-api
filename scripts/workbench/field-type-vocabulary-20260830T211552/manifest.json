@@ -1,0 +1,16 @@
+{
+  "question": "que publica field.type en cada familia de campo del arbol, y puede el registro de optimizadores despachar por el?",
+  "instrument": ["probe_field_type.py — instancia una familia por clase de Django y compara el atributo declarado contra type_for()"],
+  "metric": "familias cuyo atributo type es no vacio, sobre las doce medidas",
+  "blind_to": [
+    "una familia de campo fuera de las doce de la sonda: el mapa DJANGO_TYPE_TO_TTYPE tiene mas entradas de las que la sonda instancia",
+    "un campo de tercero que redeclare type en su clase concreta y por tanto sombree la property, que la sonda no distingue de uno que la herede",
+    "si el valor publicado es el CORRECTO para la fuente: la sonda mide que type y type_for coincidan, no que type_for acierte"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/hallazgos/",
+  "source": ["src/orm/fields.py", "src/orm/fields_temporal.py", "src/orm/domains.py"],
+  "reproducible": "PYTHONPATH=src DJANGO_SETTINGS_MODULE=config.settings.testing uv run python scripts/workbench/field-type-vocabulary-20260830T211552/probe_field_type.py",
+  "outputs": ["before-*.txt", "after-*.txt", "suite-*.log"],
+  "control": "el par before/after es la medicion: la sonda corre sobre el mismo arbol antes y despues de cablear type_for al atributo. Las cifras se publican en el hallazgo, no aqui",
+  "findings": ["H-API-961"]
+}

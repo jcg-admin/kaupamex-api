@@ -1,0 +1,15 @@
+BooleanField         declara=''             type_for='boolean'
+CharField            declara=''             type_for='char'
+TextField            declara=''             type_for='text'
+IntegerField         declara=''             type_for='integer'
+FloatField           declara=''             type_for='float'
+DecimalField         declara=''             type_for='monetary'
+DateField            declara='date'         type_for='date'
+DateTimeField        declara='datetime'     type_for='datetime'
+JSONField            declara=''             type_for='json'
+BinaryField          declara=''             type_for='binary'
+EmailField           declara=''             type_for='char'
+URLField             declara=''             type_for='char'
+
+con type declarado: 2 de 12
+CharField(choices=...) declara='' type_for='selection'
