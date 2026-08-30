@@ -44,6 +44,8 @@ archivo propio**: tenerlo sería la divergencia de forma que :ref:`h-api-568`
 registra.
 """
 import logging
+from collections import defaultdict
+from collections.abc import Callable, Collection, Iterator
 
 from django.apps import apps
 from django.db import connections
@@ -51,6 +53,7 @@ from django.db.models.signals import class_prepared
 from django.dispatch import receiver
 
 from tools.lru import LRU
+from tools.misc import OrderedSet
 
 _logger = logging.getLogger('kaupamex.registry')
 
@@ -507,3 +510,123 @@ def clear_field_depends():
     """
     field_depends.clear()
     field_depends_context.clear()
+
+
+class DummyRLock:
+    """≙ ``DummyRLock`` (``odoo19c: odoo/orm/registry.py:1189-1198``).
+
+    Docstring de la fuente, verbatim: *"Dummy reentrant lock, to be used while
+    running rpc and js tests"*.
+
+    Es un **objeto nulo**: cumple el protocolo de ``threading.RLock`` sin
+    tomar nada. La fuente lo sustituye en ``Registry._lock`` mientras corren
+    las pruebas de RPC y de JS, donde el cerrojo real serializaría peticiones
+    que la prueba necesita concurrentes.
+
+    ``__exit__`` devuelve ``None`` a propósito, así que la excepción del
+    bloque **se propaga**: un cerrojo nulo no es un ``try`` mudo.
+    """
+
+    def acquire(self):
+        pass
+
+    def release(self):
+        pass
+
+    def __enter__(self):
+        self.acquire()
+
+    def __exit__(self, type, value, traceback):
+        self.release()
+
+
+class TriggerTree(dict):
+    """≙ ``TriggerTree`` (``odoo19c: odoo/orm/registry.py:1201-1269``).
+
+    Docstring de la fuente, verbatim: *"The triggers of a field F is a tree
+    that contains the fields that depend on F, together with the fields to
+    inverse to find out which records to recompute"*.
+
+    El árbol que la fuente dibuja: G depende de F, H de ``X.F``, I de
+    ``W.X.F``, y J de ``Y.F``::
+
+                                 [G]
+                               X/   \\Y
+                             [H]     [J]
+                           W/
+                         [I]
+
+    Y para qué sirve, verbatim: *"when F is modified on records, mark G to
+    recompute on records, mark H to recompute on ``inverse(X, records)``, mark
+    I to recompute on ``inverse(W, inverse(X, records))``, mark J to recompute
+    on ``inverse(Y, records)``"*.
+
+    La **clave** de cada nodo es el campo a invertir; la **raíz** de cada nodo
+    son los campos a recalcular en ese punto del recorrido.
+
+    Divergencia de anotación, no de mecanismo
+    =========================================
+
+    La fuente declara ``dict['Field', 'TriggerTree']``. Aquí la clase hereda de
+    ``dict`` a secas y la anotación viaja en el docstring: ``Field`` es el ciclo
+    duro de siete que el orden de porte midió, y **la clave no crea dependencia
+    real** — el árbol nunca invoca nada del campo, sólo lo usa como clave
+    hasheable y lo guarda en su raíz. Esperar a ``Field`` para portar esto sería
+    confundir una anotación con un acoplamiento.
+    """
+
+    __slots__ = ['root']
+
+    # pylint: disable=keyword-arg-before-vararg
+    def __init__(self, root: Collection = (), *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.root = root
+
+    def __bool__(self) -> bool:
+        return bool(self.root or len(self))
+
+    def __repr__(self) -> str:
+        return f"TriggerTree(root={self.root!r}, {super().__repr__()})"
+
+    def increase(self, key) -> 'TriggerTree':
+        """El subárbol de ``key``, creándolo vacío si aún no existe."""
+        try:
+            return self[key]
+        except KeyError:
+            subtree = self[key] = TriggerTree()
+            return subtree
+
+    def depth_first(self) -> Iterator['TriggerTree']:
+        """Cada nodo del árbol, el padre antes que sus hijos."""
+        yield self
+        for subtree in self.values():
+            yield from subtree.depth_first()
+
+    @classmethod
+    def merge(cls, trees: list, select: Callable = bool) -> 'TriggerTree':
+        """≙ ``merge`` (``odoo19c: :1249-1269``).
+
+        Docstring de la fuente, verbatim: *"Merge trigger trees into a single
+        tree. The function ``select`` is called on every field to determine
+        which fields should be kept in the tree nodes. This enables to discard
+        some fields from the tree nodes"*.
+
+        Un subárbol que ``select`` deja vacío **no se conserva**: su
+        ``__bool__`` es falso y la rama desaparece del resultado.
+        """
+        root_fields = OrderedSet()             # los campos del nodo raíz
+        subtrees_to_merge = defaultdict(list)  # subárboles a fundir, por clave
+
+        for tree in trees:
+            root_fields.update(tree.root)
+            for label, subtree in tree.items():
+                subtrees_to_merge[label].append(subtree)
+
+        # El nodo raíz se queda con los campos para los que ``select`` es cierto.
+        result = cls([field for field in root_fields if select(field)])
+        for label, subtrees in subtrees_to_merge.items():
+            subtree = cls.merge(subtrees, select)
+            if subtree:
+                result[label] = subtree
+
+        return result
