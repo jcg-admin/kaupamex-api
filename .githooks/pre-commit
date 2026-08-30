@@ -314,4 +314,22 @@ if [ -f "$CHAIN_CHECKER" ]; then
     fi
 fi
 
+# ---------------------------------------------------------------------------
+# Gate 12: una pieza de trabajo del banco declara donde aterriza lo que produce.
+# scripts/workbench/<slug>-<ISO>/ guarda el instrumento y su evidencia; el
+# documento publicable vive en docs. Sin manifest.json con sus cinco claves
+# —question, instrument, metric, blind_to, destination— el trabajo produce una
+# cifra que nadie puede situar, y una salida que nadie encuentra.
+# Nace SIN baseline: el directorio arranco vacio, asi que no hay deuda que
+# congelar (directiva del ejecutor 2026-08-30, tarea #219).
+# Script: scripts/check_workbench.py.
+BENCH_CHECKER="$REPO_ROOT/scripts/check_workbench.py"
+if [ -f "$BENCH_CHECKER" ]; then
+    if ! python3 "$BENCH_CHECKER" --strict >/dev/null 2>&1; then
+        python3 "$BENCH_CHECKER" --strict >&2
+        echo "pre-commit: pieza de trabajo sin manifiesto completo — bloqueado" >&2
+        exit 1
+    fi
+fi
+
 exit "$EXIT_CODE"
