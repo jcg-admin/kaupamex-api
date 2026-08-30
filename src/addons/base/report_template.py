@@ -86,6 +86,7 @@ dato llegaría al papel como ``&amp;`` (medido en
 """
 from django.template import Context, Engine, Variable, VariableDoesNotExist
 
+from addons.base.models import ir_field_converters
 from tools.translate import _
 
 #: Motor DTL propio del intérprete. ``autoescape=False`` es parte del
@@ -108,6 +109,45 @@ MAX_CALL_DEPTH = 50
 
 class InvalidReportTemplate(ValueError):
     """El arch combinado no respeta el vocabulario de la plantilla."""
+
+
+def converter_for(widget):
+    """``widget`` → la clase de ``ir.qweb.field.*`` que lo sabe formatear.
+
+    Es el despacho de la fuente, verbatim en su forma:
+    ``model = 'ir.qweb.field.' + field_options['type']`` y
+    ``converter = self.env[model] if model in self.env else
+    self.env['ir.qweb.field']`` (``odoo19c: ir_qweb.py:2759-2760`` y
+    ``:2783-2784``). **Cae a la base cuando el modelo no existe** — no levanta;
+    se porta esa elección, que hace que un ``widget`` desconocido produzca el
+    valor escapado en vez de un documento roto.
+
+    Resuelve por el ``_name`` declarado en cada clase, no por el nombre de la
+    clase de Python: el nombre punteado es la identidad de la entidad en el
+    porte (pieza 4 de DEC-FW-05, :ref:`h-api-932`).
+
+    **Por qué no usa** ``orm.registry.model_by_name``: los 21 conversores son
+    ``Meta.abstract = True``, y Django no emite ``class_prepared`` para un
+    modelo abstracto — medido, ``model_by_name('ir.qweb.field')`` devuelve
+    ``None``. El mapa se construye recorriendo las subclases, que es donde el
+    dato sí está.
+    """
+    return _converters_by_name().get(
+        'ir.qweb.field.' + widget, ir_field_converters.IrFieldConverter)
+
+
+def _converters_by_name(_cache={}):
+    # Se construye una vez y se reusa: las subclases se declaran al importar
+    # el módulo y no cambian después.
+    if not _cache:
+        pending = [ir_field_converters.IrFieldConverter]
+        while pending:
+            klass = pending.pop()
+            name = getattr(klass, '_name', None)
+            if name:
+                _cache[name] = klass
+            pending.extend(klass.__subclasses__())
+    return _cache
 
 
 def _render_text(text, context):
@@ -178,7 +218,38 @@ def _loop_state(index, size):
     }
 
 
-def _interpret_children(node, context, resolve_key=None, depth=0):
+def _interpret_field(node, scope, widget_options=None):
+    """``<field>`` — su texto DTL, o el valor pasado por un conversor.
+
+    Dos formas, y la segunda es la que la tarea #197 cablea:
+
+    - **sin** ``widget``: el texto del nodo se renderiza con DTL y sale crudo.
+      Es el camino de siempre y **no cambia** — el control que lo fija vive en
+      ``test_who_formats_on_the_paper_path.py``.
+    - **con** ``widget``: el ``value`` se resuelve como *path* y lo formatea el
+      conversor de ``ir.qweb.field.*`` que ese widget nombre.
+
+    El ``widget`` exige ``value`` porque lo que se formatea es un **valor**, no
+    un texto ya renderizado: pasarle la salida de DTL daría una cadena a un
+    conversor que espera un ``Decimal``, y el error saldría lejos de su causa.
+
+    :raises InvalidReportTemplate: ``widget`` sin ``value``.
+    """
+    widget = node.get('widget')
+    if not widget:
+        return _render_text(node.text, scope)
+    path = node.get('value')
+    if not path:
+        raise InvalidReportTemplate(
+            _("Element <field name=%r> with widget %r needs a 'value' path")
+            % (node.get('name'), widget))
+    value = _resolve_path(path, Context(scope))
+    options = (widget_options or {}).get(widget)
+    return converter_for(widget).value_to_html(value, options)
+
+
+def _interpret_children(node, context, resolve_key=None, depth=0,
+                        widget_options=None):
     """Recorre los hijos del nodo y produce su dict.
 
     El contexto se copia por nodo: un ``<set>`` liga un nombre para sus
@@ -195,14 +266,15 @@ def _interpret_children(node, context, resolve_key=None, depth=0):
         if not _condition_holds(child, scope):
             continue
         if child.tag == 'call':
-            _interpret_call(child, scope, result, resolve_key, depth)
+            _interpret_call(child, scope, result, resolve_key, depth,
+                            widget_options)
             continue
         name = child.get('name')
         if not name:
             raise InvalidReportTemplate(
                 _("Element <%s> without 'name' in report template") % child.tag)
         if child.tag == 'field':
-            result[name] = _render_text(child.text, scope)
+            result[name] = _interpret_field(child, scope, widget_options)
         elif child.tag == 'set':
             value = child.get('value')
             if not value:
@@ -210,7 +282,8 @@ def _interpret_children(node, context, resolve_key=None, depth=0):
                     _("Element <set name=%r> without 'value' path") % name)
             scope[name] = _resolve_path(value, Context(scope))
         elif child.tag == 'section':
-            result[name] = _interpret_children(child, scope, resolve_key, depth)
+            result[name] = _interpret_children(child, scope, resolve_key, depth,
+                                               widget_options)
         elif child.tag == 'list':
             path = child.get('in')
             if not path:
@@ -222,7 +295,8 @@ def _interpret_children(node, context, resolve_key=None, depth=0):
                 item_scope = dict(scope, item=item,
                                   loop=_loop_state(index, len(rows)))
                 items.append(
-                    _interpret_children(child, item_scope, resolve_key, depth))
+                    _interpret_children(child, item_scope, resolve_key, depth,
+                                        widget_options))
             result[name] = items
         else:
             raise InvalidReportTemplate(
@@ -230,7 +304,8 @@ def _interpret_children(node, context, resolve_key=None, depth=0):
     return result
 
 
-def _interpret_call(node, context, result, resolve_key, depth=0):
+def _interpret_call(node, context, result, resolve_key, depth=0,
+                    widget_options=None):
     """``<call key="…"/>`` — injerta los hijos de otro descriptor.
 
     El equivalente de ``{% include %}``, con la diferencia que la medición
@@ -263,10 +338,11 @@ def _interpret_call(node, context, result, resolve_key, depth=0):
     if called.tag != 'descriptor':
         raise InvalidReportTemplate(
             _("Report template %r called by <call> is not a <descriptor>") % key)
-    result.update(_interpret_children(called, context, resolve_key, depth + 1))
+    result.update(_interpret_children(called, context, resolve_key, depth + 1,
+                                      widget_options))
 
 
-def interpret_descriptor(arch, context, resolve_key=None):
+def interpret_descriptor(arch, context, resolve_key=None, widget_options=None):
     """Interpreta el arch combinado de una vista hacia el descriptor JSON.
 
     :param arch: elemento raíz (lxml) — normalmente el resultado de
@@ -275,6 +351,11 @@ def interpret_descriptor(arch, context, resolve_key=None):
         pasa ``docs`` (el recordset) y el contexto del render
     :param resolve_key: callable ``key -> elemento`` que resuelve un
         ``<call>``; sin él, un ``<call>`` levanta en vez de omitirse
+    :param widget_options: ``{widget: options}`` — lo que cada conversor de
+        ``ir.qweb.field.*`` necesita para formatear (p. ej.
+        ``{'monetary': {'display_currency': moneda}}``). Sólo lo consume un
+        ``<field widget="…" value="…"/>``; un ``<field>`` sin ``widget`` sigue
+        saliendo por DTL.
     :return: dict listo para ``json.dumps`` → stdin del helper
     :raises InvalidReportTemplate: si el arch sale del vocabulario
     :raises RecursionError: si el anidamiento de ``<call>`` pasa de
@@ -283,4 +364,5 @@ def interpret_descriptor(arch, context, resolve_key=None):
     if arch.tag != 'descriptor':
         raise InvalidReportTemplate(
             _("Report template root must be <descriptor>, got <%s>") % arch.tag)
-    return _interpret_children(arch, context, resolve_key)
+    return _interpret_children(arch, context, resolve_key,
+                               widget_options=widget_options)

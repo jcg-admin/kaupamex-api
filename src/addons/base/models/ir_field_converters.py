@@ -1,9 +1,10 @@
 """``ir.qweb.field.*`` — los conversores de valor de campo a texto presentable.
 
 Adaptación de ``odoo/addons/base/models/ir_field_converters.py``
-(``odoo-tools@bf077302``, ``odoo19c:``, 913 líneas). Diecinueve clases, una
-por *widget* de ``t-field``: cómo se muestra un entero, un importe, una
-duración, una fecha relativa, un contacto.
+(``odoo-tools@bf077302``, ``odoo19c:``, 913 líneas). **Veintiuna** clases,
+una por *widget* de ``t-field``: cómo se muestra un entero, un importe, una
+duración, una fecha relativa, un contacto. Son las mismas 21 que la fuente
+declara (``grep -c '^class '`` en los dos archivos).
 
 Estos conversores **valen sin QWeb**. El motor decide *cuándo* llamarlos; lo
 que ellos saben es *cómo se escribe* un valor para que lo lea una persona, y
@@ -19,20 +20,33 @@ El formateo para presentación lo hace el **cliente**: ``ui: src/lib/intl.js``
 React los formatea con la locale del navegador.
 
 Consecuencia medida: ``python3 -c "import babel"`` → **ModuleNotFoundError**
-[PROVEN]. La referencia apoya en ``babel`` todo lo dependiente de idioma
-(``format_timedelta``, ``format_time``, símbolo y posición de la moneda). Sin
-esa dependencia, este archivo se parte en dos mitades honestas:
+[PROVEN]. La referencia apoya en ``babel`` parte de lo dependiente de idioma
+(``format_timedelta``, ``format_time``). Sin esa dependencia, este archivo se
+parte en dos mitades honestas:
 
 - **Lo independiente de idioma se porta entero y se ejercita**: la
   descomposición en unidades de tiempo, el formato digital ``HH:MM:SS``, el
   troceo de horas fraccionarias, el escape a HTML.
-- **Lo dependiente de idioma declara su punto de extensión** y levanta si
-  nadie lo conectó, en vez de fabricar un formateo *ad hoc* que compita con el
-  de ``intl.js`` y produzca dos formatos distintos para el mismo dato en la
-  misma pantalla.
+- **Lo que exige un catálogo lingüístico que no está** declara su punto de
+  extensión y levanta si nadie lo conectó, en vez de fabricar un formateo
+  *ad hoc* que compita con el de ``intl.js`` y produzca dos formatos distintos
+  para el mismo dato en la misma pantalla.
 
-Añadir ``babel`` al backend sólo para esto sería mover la decisión de dónde
-se formatea, que está tomada y documentada. Este archivo no la revisita.
+Corregido 2026-08-30 (tarea #197, :ref:`h-api-937`) — el párrafo de arriba
+decía *"símbolo y posición de la moneda"* entre lo que ``babel`` aporta, y es
+**falso**: los dos son campos de ``res.currency`` (``symbol``, ``position``),
+declarados en este árbol. Y los separadores de millar y decimal los trae
+``django.utils.formats.number_format`` por locale activa, sin dependencia
+nueva. Por eso ``IrFieldConverterMonetary`` **formatea aquí** desde ese pase:
+el camino del papel no tiene ``intl.js`` a quien delegar, así que su
+delegación producía un decimal crudo en el documento. Ver el docstring de esa
+clase.
+
+Añadir ``babel`` al backend sólo para lo que queda sería mover la decisión de
+dónde se formatea, que está tomada y documentada. Este archivo no la revisita.
+
+**El camino del API no cambia** por esto: ningún serializer llama a
+``value_to_html``; el reparto sigue siendo el de la pieza 4 (DEC-FW-05).
 
 ``TIMEDELTA_UNITS`` — el dato que hace todo lo demás
 ====================================================
@@ -70,6 +84,7 @@ import re
 from decimal import Decimal
 
 import models
+from django.utils import formats
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
@@ -377,12 +392,39 @@ class IrFieldConverterImage_Url(IrFieldConverter):
 
 
 class IrFieldConverterMonetary(IrFieldConverter):
-    """``monetary`` — importe con su moneda.
+    """``monetary`` — importe con su moneda, formateado **aquí**.
 
-    El **punto de extensión declarado**: el símbolo de la moneda y su posición
-    (antes o después del número) dependen de la locale, y aquí eso lo resuelve
-    ``ui: src/lib/intl.js``. Ver el docstring del módulo sobre por qué no se
-    fabrica un formateo paralelo.
+    Adaptación de ``odoo19c: ir_qweb_fields.py:491-562``. El importe se
+    redondea con la moneda y se formatea con los separadores de la locale
+    activa; el símbolo y su lado los pone la propia ``res.currency``.
+
+    **Por qué deja de delegar** (tarea #197, cierre de :ref:`h-api-937`). La
+    razón declarada para delegar era la ausencia de ``babel``, y sólo cubría
+    la mitad del caso: la referencia usa ``babel`` para el idioma, pero el
+    **símbolo** y la **posición** son campos de ``res.currency``
+    (``symbol``, ``position``), no datos de ``babel``; y los separadores los
+    trae ``django.utils.formats.number_format``, que resuelve por locale sin
+    dependencia nueva (medido: ``en`` → ``1,234.50``; ``es`` → ``1 234,50``).
+
+    El camino del papel no tiene ``ui: src/lib/intl.js`` que delegatario, así
+    que sin este cuerpo el importe salía en decimal crudo. El camino del API
+    **no cambia**: nadie llama a ``value_to_html`` desde un serializer.
+
+    Divergencia declarada — el envoltorio de presentación
+    ====================================================
+
+    La fuente devuelve ``Markup('{pre}<span class="oe_currency_value">…')`` y,
+    con ``label_price``, parte el decimal en un segundo ``span`` con
+    ``font-size:0.5em``. Las dos cosas son enganches de CSS del editor web de
+    Odoo, la misma familia que los atributos ``data-oe-*`` que el docstring
+    del módulo ya declara sin lector aquí. Medido: ``oe_currency_value`` da
+    **0** hits en ``ui: src/`` y **0** en ``api: src/`` + ``addons/``. Se
+    porta el **valor**; no su envoltorio sin consumidor.
+
+    :raises ValueError: sin ``display_currency`` en ``options``. La fuente lo
+        exige en ``get_available_options`` (``required="value_to_html"``) y
+        deja que el acceso al dict levante; aquí ese catálogo no se porta, así
+        que la exigencia se declara donde sí se lee.
     """
 
     _name = 'ir.qweb.field.monetary'
@@ -393,9 +435,39 @@ class IrFieldConverterMonetary(IrFieldConverter):
 
     @classmethod
     def value_to_html(cls, value, options=None):
-        raise NotImplementedError(
-            'El formateo monetario depende de la locale y lo hace el cliente '
-            '(ui/src/lib/intl.js). El API devuelve el decimal crudo.')
+        if value is None or value is False:
+            return ''
+        options = options or {}
+        currency = options.get('display_currency')
+        if currency is None:
+            raise ValueError(
+                "The monetary converter needs a 'display_currency' option: "
+                'an amount without its currency has no presentable form.')
+        if not isinstance(value, (int, float, Decimal)):
+            raise ValueError('The value sent to a monetary field is not a number.')
+
+        # La fuente redondea con la moneda ANTES de formatear, y lleva a cero
+        # exacto lo que redondea a cero — sin eso saldría "-0.00" en el papel.
+        amount = currency.round(value)
+        if currency.is_zero(amount):
+            amount = Decimal('0')
+
+        decimal_places = options.get('decimal_places', currency.decimal_places)
+        # ``number_format`` es el equivalente de ``lang.format(..., grouping)``
+        # de la fuente: el separador sale de la locale activa, no de un literal.
+        text = formats.number_format(amount, decimal_pos=decimal_places,
+                                     force_grouping=True)
+        # Los dos reemplazos son verbatim: el espacio separador de miles pasa a
+        # duro para que el navegador no parta el número, y tras el signo menos
+        # va un U+FEFF por la misma razón.
+        text = (text.replace(' ', '\N{NO-BREAK SPACE}')
+                    .replace('-', '-\N{ZERO WIDTH NO-BREAK SPACE}'))
+
+        symbol = currency.symbol or ''
+        nbsp = '\N{NO-BREAK SPACE}'
+        if currency.position == 'before':
+            return f'{symbol}{nbsp}{text}'
+        return f'{text}{nbsp}{symbol}'
 
 
 class IrFieldConverterFloat_Time(IrFieldConverter):

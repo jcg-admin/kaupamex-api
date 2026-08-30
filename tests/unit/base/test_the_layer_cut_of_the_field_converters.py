@@ -64,8 +64,11 @@ EXPECTED_NAMES = {
 
 #: Los que **no** resuelven aquí, con la palabra que su razón declara. Ninguno
 #: calla: el contrato observable es un ``NotImplementedError`` que dice por qué.
+#:
+#: ``IrFieldConverterMonetary`` **salió de esta tabla** en la tarea #197: su
+#: razón —la ausencia de ``babel``— resultó cubrir sólo la mitad de su caso, y
+#: el camino del papel no tiene cliente a quien delegar. Ver :ref:`h-api-940`.
 DELEGATED = {
-    'IrFieldConverterMonetary': 'cliente',
     'IrFieldConverterRelative': 'cliente',
     'IrFieldConverterBarcode': 'dependencias',
     'IrFieldConverterImage': None,

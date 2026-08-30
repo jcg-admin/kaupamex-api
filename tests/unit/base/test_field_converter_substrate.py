@@ -36,11 +36,13 @@ from addons.base.models.ir_ui_view import IrUiView
 
 CONVERTERS = pathlib.Path(ir_field_converters.__file__)
 
-#: Los cinco que delegan, con a quién. Se declara aquí para que la sonda falle
-#: si alguno cambia de bando sin que nadie lo note.
+#: Los **cuatro** que delegan, con a quién. Se declara aquí para que la sonda
+#: falle si alguno cambia de bando sin que nadie lo note — y es justo lo que
+#: pasó: ``IrFieldConverterMonetary`` estaba aquí y salió en la tarea **#197**,
+#: porque su razón declarada (la ausencia de ``babel``) sólo cubría la mitad
+#: de su caso. Ver :ref:`h-api-940`.
 DELEGATED = {
     'IrFieldConverterImage': 'cliente',
-    'IrFieldConverterMonetary': 'cliente',
     'IrFieldConverterRelative': 'cliente',
     'IrFieldConverterBarcode': 'cliente',
     'IrFieldConverterTemplate': 'compilador no portado',
@@ -68,12 +70,14 @@ class TestTheFamilyIsWhatTheReferenceDeclares:
     def test_there_are_twenty_one_classes(self):
         assert len(classify()) == 21
 
-    def test_fourteen_format_here_two_inherit_and_five_delegate(self):
+    def test_fifteen_format_here_two_inherit_and_four_delegate(self):
+        # Era 14/2/5 hasta la tarea #197, que sacó a ``Monetary`` del bando
+        # que delega. El reparto se mide, no se recuerda.
         split = classify()
         counts = {v: sum(1 for x in split.values() if x == v) for v in set(split.values())}
-        assert counts == {'formatea': 14, 'hereda': 2, 'delega': 5}, counts
+        assert counts == {'formatea': 15, 'hereda': 2, 'delega': 4}, counts
 
-    def test_the_five_that_delegate_are_the_declared_ones(self):
+    def test_the_four_that_delegate_are_the_declared_ones(self):
         assert {k for k, v in classify().items() if v == 'delega'} == set(DELEGATED)
 
 
@@ -91,9 +95,14 @@ class TestEveryDelegationNamesItsReason:
 class TestDjangoDidBringTheAlternative:
     """El control que separa «se eligió» de «no había con qué».
 
-    Si estos casos cayeran, las cinco delegaciones dejarían de ser una
+    Si estos casos cayeran, las cuatro delegaciones dejarían de ser una
     divergencia elegida y pasarían a ser una incapacidad — y el desenlace
     correcto sería otro. Por eso se miden.
+
+    Y en un caso el control **decidió**: ``number_format`` por locale es lo
+    que hizo innecesario a ``babel`` para el importe, así que ``Monetary``
+    dejó de delegar en la tarea #197. Un control que sólo hubiera confirmado
+    la delegación no habría podido hacerlo.
     """
 
     def test_django_formats_a_date_by_locale(self):
@@ -114,14 +123,25 @@ class TestDjangoDidBringTheAlternative:
 
 
 class TestWhatTheTreeActuallyImports:
-    """La contradicción, medida: la tabla propone Django y el código no lo usa."""
+    """La contradicción se cerró — y el sentido en que se cerró importa.
 
-    def test_the_module_does_not_import_django_formats(self):
+    Este bloque medía que la tabla proponía Django y el código no lo usaba.
+    La tarea #197 resolvió esa contradicción **usando Django**, no borrando
+    la propuesta: ``formats`` entró para el importe. ``timesince`` sigue sin
+    entrar porque ``Relative`` sigue delegando, y ése es el control que
+    distingue «se adoptó lo que hacía falta» de «se adoptó todo».
+    """
+
+    def test_the_module_now_imports_django_formats(self):
         source = CONVERTERS.read_text(encoding='utf-8')
-        assert 'django.utils.formats' not in source
-        assert 'django.utils.timesince' not in source
+        assert 'from django.utils import formats' in source
 
-    def test_what_it_does_import_is_escaping_only(self):
+    def test_but_not_timesince_because_relative_still_delegates(self):
+        source = CONVERTERS.read_text(encoding='utf-8')
+        assert 'django.utils.timesince' not in source
+        assert 'IrFieldConverterRelative' in DELEGATED
+
+    def test_what_it_imports_for_output_is_escaping(self):
         source = CONVERTERS.read_text(encoding='utf-8')
         assert 'from django.utils.html import escape' in source
         assert 'from django.utils.safestring import mark_safe' in source
