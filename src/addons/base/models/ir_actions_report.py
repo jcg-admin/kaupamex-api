@@ -163,7 +163,8 @@ from addons.base.models.ir_actions import IrActionsBase
 from addons.base.models.ir_ui_view import VIEW_TYPE_TEMPLATE, IrUiView
 from addons.base.models.ir_attachment import IrAttachment
 from addons.base.models.ir_model import IrModel
-from addons.base.models.report_paperformat import ReportPaperformat
+from addons.base.models.report_paperformat import (
+    ORIENTATION_LANDSCAPE, ReportPaperformat)
 from contextlib import contextmanager
 from collections import OrderedDict
 
@@ -1441,6 +1442,51 @@ class IrActionsReport(IrActionsBase):
             specific_paperformat_args = {}
         return bodies, html_ids, header, footer, specific_paperformat_args
 
+    def _paperformat_geometry(self, paperformat, args):
+        """La geometría de papel en milímetros, que es lo que el helper dibuja.
+
+        **Símbolo de más, y no es porte** — la referencia no lo necesita:
+        ``wkhtmltopdf`` recibe ``--page-size A4`` y resuelve el tamaño por su
+        cuenta. Nuestro motor es libharu, que dibuja sobre una caja de puntos,
+        así que alguien tiene que traducir el nombre del formato a medidas.
+        Ese alguien es esta capa y no el helper de C, por una razón medida:
+        ``HPDF_PageSizes`` declara **12** tamaños y ``report.paperformat``
+        declara **31**, así que resolverlo con ``HPDF_Page_SetSize`` dejaría
+        19 formatos sin receptor.
+
+        Las medidas salen de ``_print_page_size`` del propio paperformat, que
+        ya consulta la tabla de las 31 claves y ya intercambia ancho y alto en
+        apaisado. Los márgenes salen de ``args`` y no del modelo: ahí ya se
+        aplicaron las reglas de precedencia de ``_build_wkhtmltopdf_args``
+        —el ``data-report-margin-*`` del documento gana sobre el campo—, y
+        releerlos del modelo sería una segunda fuente de verdad que ignora
+        esa anulación.
+
+        Sin paperformat devuelve ``{}``: el helper conserva entonces sus
+        propias constantes, que son las que usó desde su primera versión.
+        Cambiarlas para quien no declara formato movería documentos que hoy
+        salen bien.
+        """
+        if not paperformat:
+            return {}
+        width, height = paperformat._print_page_size()
+        if not (width and height):
+            return {}
+
+        # La orientación que manda es la ya resuelta, no el campo del modelo:
+        # ``landscape=True`` fuerza apaisado aunque el formato diga vertical.
+        resolved = (args or {}).get('orientation', paperformat.orientation)
+        if (str(resolved).lower() == 'landscape') != (
+                paperformat.orientation == ORIENTATION_LANDSCAPE):
+            width, height = height, width
+
+        geometry = {'page_width_mm': width, 'page_height_mm': height}
+        for side in ('top', 'bottom', 'left', 'right'):
+            key = f'margin_{side}'
+            if key in (args or {}):
+                geometry[f'{key}_mm'] = args[key]
+        return geometry
+
     def _run_wkhtmltopdf(self, bodies, report_ref=False, header=None,
                          footer=None, landscape=False,
                          specific_paperformat_args=None,
@@ -1465,6 +1511,7 @@ class IrActionsReport(IrActionsBase):
             paperformat, landscape,
             specific_paperformat_args=specific_paperformat_args,
             set_viewport_size=set_viewport_size)
+        paper = dict(args, **self._paperformat_geometry(paperformat, args))
 
         spec = report_catalog.get(report.report_name)
         if spec is None:
@@ -1479,8 +1526,8 @@ class IrActionsReport(IrActionsBase):
                 descriptor.setdefault('header', header)
             if footer is not None:
                 descriptor.setdefault('footer', footer)
-            if args:
-                descriptor.setdefault('paperformat', args)
+            if paper:
+                descriptor.setdefault('paperformat', paper)
             pieces.append(run_helper(spec.helper, descriptor))
         if len(pieces) == 1:
             return pieces[0]

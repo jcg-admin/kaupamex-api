@@ -173,3 +173,64 @@ class TestTheHtmlRasterFailsLoudly:
         assert list(signature.parameters) == [
             'self', 'bodies', 'width', 'height', 'image_format']
         assert signature.parameters['image_format'].default == 'jpg'
+
+
+class TestTheGeometryReachesTheHelperInMillimetres:
+    """``_paperformat_geometry`` — las 31 claves, no las 12 de libharu."""
+
+    def _geometry(self, paperformat, landscape=False, **kwargs):
+        report = IrActionsReport()
+        args = report._build_wkhtmltopdf_args(paperformat, landscape, **kwargs)
+        return report._paperformat_geometry(paperformat, args)
+
+    def test_without_a_format_there_is_no_geometry(self):
+        # El helper conserva sus constantes: no se mueve lo que hoy sale bien.
+        assert IrActionsReport()._paperformat_geometry(None, {}) == {}
+
+    def test_a4_portrait_gives_its_millimetres(self):
+        geometry = self._geometry(_paperformat(format='A4',
+                                               orientation='Portrait'))
+        assert (geometry['page_width_mm'],
+                geometry['page_height_mm']) == (210, 297)
+
+    def test_landscape_swaps_the_sides(self):
+        geometry = self._geometry(_paperformat(format='A4',
+                                               orientation='Landscape'))
+        assert (geometry['page_width_mm'],
+                geometry['page_height_mm']) == (297, 210)
+
+    def test_forcing_landscape_swaps_a_portrait_format(self):
+        # La orientación que manda es la resuelta, no el campo del modelo.
+        geometry = self._geometry(
+            _paperformat(format='A4', orientation='Portrait'), landscape=True)
+        assert (geometry['page_width_mm'],
+                geometry['page_height_mm']) == (297, 210)
+
+    def test_a_format_outside_the_twelve_of_libharu_still_resolves(self):
+        # ``B0`` no está en HPDF_PageSizes; por eso la resolución vive aquí.
+        geometry = self._geometry(_paperformat(format='B0',
+                                               orientation='Portrait'))
+        assert geometry['page_width_mm'] > 0
+        assert geometry['page_height_mm'] > geometry['page_width_mm']
+
+    def test_custom_carries_its_own_measurements(self):
+        geometry = self._geometry(_paperformat(
+            format='custom', page_width=80, page_height=200,
+            orientation='Portrait'))
+        assert (geometry['page_width_mm'],
+                geometry['page_height_mm']) == (80, 200)
+
+    def test_the_margins_come_from_the_resolved_arguments(self):
+        geometry = self._geometry(_paperformat(
+            margin_top=40, margin_bottom=20, margin_left=7, margin_right=7))
+        assert geometry['margin_top_mm'] == '40'
+        assert geometry['margin_bottom_mm'] == '20'
+        assert geometry['margin_left_mm'] == '7'
+        assert geometry['margin_right_mm'] == '7'
+
+    def test_the_document_override_wins_over_the_format_margin(self):
+        # Releer el margen del modelo ignoraría esta anulación.
+        geometry = self._geometry(
+            _paperformat(margin_top=40),
+            specific_paperformat_args={'data-report-margin-top': 99})
+        assert geometry['margin_top_mm'] == '99'

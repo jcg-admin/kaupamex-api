@@ -285,9 +285,97 @@ hpdf_error_handler(HPDF_STATUS error_no, HPDF_STATUS detail_no,
 
 #define MARGIN_L   50.0f
 #define MARGIN_R   50.0f
-#define PAGE_TOP   790.0f
-#define PAGE_BOT   60.0f
+#define MARGIN_T   50.0f
+#define MARGIN_B   60.0f
 #define MAX_COLS   12
+
+/* Un milimetro en puntos PostScript, que es la unidad del PDF (72 / 25.4). */
+#define MM_TO_PT   2.8346457f
+
+/*
+ * Geometria de pagina — los ajustes de papel que el descriptor trae.
+ *
+ * El motor es libharu, no wkhtmltopdf, asi que la clave `paperformat` NO
+ * viaja como argumentos de linea de comandos: llega ya resuelta a milimetros
+ * por `_paperformat_geometry` de ir_actions_report, que consulta las 31
+ * claves de `report.paperformat`. Aqui solo se convierte a puntos.
+ *
+ * Se resuelve en Python y no aqui a proposito: el enum de libharu
+ * (HPDF_PageSizes) declara 12 tamanos y el modelo declara 31, asi que
+ * HPDF_Page_SetSize dejaria 19 formatos sin receptor. SetWidth/SetHeight los
+ * cubre todos.
+ *
+ * Sin la clave se conservan las cuatro constantes de arriba, que son las que
+ * este helper uso desde su primera version: cambiarlas para quien no declara
+ * paperformat moveria documentos que hoy salen bien.
+ */
+typedef struct {
+    float width, height;                          /* puntos; 0 = no fijar */
+    float margin_l, margin_r, margin_t, margin_b; /* puntos */
+} paper_t;
+
+/*
+ * Un numero del descriptor, o `fallback` si la clave no esta.
+ *
+ * Acepta el numero desnudo y el numero entre comillas: `_build_wkhtmltopdf_args`
+ * emite cadenas porque wkhtmltopdf recibia argumentos de texto, y el porte
+ * conserva esa forma (H-API-946).
+ */
+static float
+get_num(const char *obj, const char *key, float fallback)
+{
+    const char *v = obj_find(obj, key);
+    if (!v) return fallback;
+    if (*v == '"') v++;
+    char *end = NULL;
+    float value = strtof(v, &end);
+    return (end == v) ? fallback : value;
+}
+
+static void
+read_paper(const char *root, paper_t *paper)
+{
+    paper->width    = 0.0f;
+    paper->height   = 0.0f;
+    paper->margin_l = MARGIN_L;
+    paper->margin_r = MARGIN_R;
+    paper->margin_t = MARGIN_T;
+    paper->margin_b = MARGIN_B;
+
+    const char *pf = obj_find(root, "paperformat");
+    if (!pf) return;
+    pf = skip_ws(pf);
+    if (*pf != '{') return;
+
+    paper->width    = get_num(pf, "page_width_mm",  0.0f) * MM_TO_PT;
+    paper->height   = get_num(pf, "page_height_mm", 0.0f) * MM_TO_PT;
+    paper->margin_l = get_num(pf, "margin_left_mm",
+                              MARGIN_L / MM_TO_PT) * MM_TO_PT;
+    paper->margin_r = get_num(pf, "margin_right_mm",
+                              MARGIN_R / MM_TO_PT) * MM_TO_PT;
+    paper->margin_t = get_num(pf, "margin_top_mm",
+                              MARGIN_T / MM_TO_PT) * MM_TO_PT;
+    paper->margin_b = get_num(pf, "margin_bottom_mm",
+                              MARGIN_B / MM_TO_PT) * MM_TO_PT;
+}
+
+/*
+ * Una pagina nueva con la geometria pedida.
+ *
+ * Sin `paperformat` cae en A4 apaisado, que es lo que este helper hacia antes
+ * de que el descriptor pudiera declararlo.
+ */
+static HPDF_Page
+new_page(HPDF_Doc pdf, const paper_t *paper)
+{
+    HPDF_Page page = HPDF_AddPage(pdf);
+    HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4, HPDF_PAGE_LANDSCAPE);
+    if (paper->width > 0.0f && paper->height > 0.0f) {
+        HPDF_Page_SetWidth(page, paper->width);
+        HPDF_Page_SetHeight(page, paper->height);
+    }
+    return page;
+}
 
 static void
 draw_text(HPDF_Page page, HPDF_Font font, float size,
@@ -332,14 +420,14 @@ draw_header_row(HPDF_Page page, HPDF_Font font_bold, float y,
     /* Banda sombreada del encabezado (T-005): los glifos se pintan con el
        fill color, así que se restaura negro antes de escribir encima. */
     HPDF_Page_SetRGBFill(page, 0.92f, 0.92f, 0.92f);
-    HPDF_Page_Rectangle(page, MARGIN_L, y - 4.0f,
+    HPDF_Page_Rectangle(page, col_x[0], y - 4.0f,
                         col_x[ncols] - col_x[0], 16.0f);
     HPDF_Page_Fill(page);
     HPDF_Page_SetRGBFill(page, 0.0f, 0.0f, 0.0f);
 
     HPDF_Page_SetLineWidth(page, 0.5f);
-    HPDF_Page_MoveTo(page, MARGIN_L, y + 12);
-    HPDF_Page_LineTo(page, MARGIN_L + (col_x[ncols] - col_x[0]), y + 12);
+    HPDF_Page_MoveTo(page, col_x[0], y + 12);
+    HPDF_Page_LineTo(page, col_x[ncols], y + 12);
     HPDF_Page_Stroke(page);
     /* El recorte va aquí y no al parsear: el ancho de columna sólo se conoce
        cuando ya se sabe cuántas columnas hay. Es idempotente, así que
@@ -349,8 +437,8 @@ draw_header_row(HPDF_Page page, HPDF_Font font_bold, float y,
                         col_x[c + 1] - col_x[c] - 6.0f);
     for (int c = 0; c < ncols; c++)
         draw_text(page, font_bold, 9, col_x[c], y, cells[c]);
-    HPDF_Page_MoveTo(page, MARGIN_L, y - 4);
-    HPDF_Page_LineTo(page, MARGIN_L + (col_x[ncols] - col_x[0]), y - 4);
+    HPDF_Page_MoveTo(page, col_x[0], y - 4);
+    HPDF_Page_LineTo(page, col_x[ncols], y - 4);
     HPDF_Page_Stroke(page);
 }
 
@@ -426,29 +514,30 @@ main(void)
         return 2;
     }
 
-    HPDF_Page page = HPDF_AddPage(pdf);
-    HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4, HPDF_PAGE_LANDSCAPE);
+    paper_t paper;
+    read_paper(root, &paper);
+
+    HPDF_Page page = new_page(pdf, &paper);
     float page_w = HPDF_Page_GetWidth(page);
-    float printable_w = page_w - MARGIN_L - MARGIN_R;
-    float right_edge = page_w - MARGIN_R;
+    float printable_w = page_w - paper.margin_l - paper.margin_r;
+    float right_edge = page_w - paper.margin_r;
 
     char buf[1024];
-    float y = PAGE_TOP - 250.0f;  /* landscape A4 height ~595; cap top */
-    y = HPDF_Page_GetHeight(page) - 50.0f;
+    float y = HPDF_Page_GetHeight(page) - paper.margin_t;
 
     /* ---- Title ---- */
     get_str(root, "title", buf, sizeof(buf));
-    draw_text(page, font_bold, 16, MARGIN_L, y, buf[0] ? buf : "Reporte");
+    draw_text(page, font_bold, 16, paper.margin_l, y, buf[0] ? buf : "Reporte");
     y -= 22;
 
     get_str(root, "subtitle", buf, sizeof(buf));
-    if (buf[0]) { draw_text(page, font, 10, MARGIN_L, y, buf); y -= 14; }
+    if (buf[0]) { draw_text(page, font, 10, paper.margin_l, y, buf); y -= 14; }
 
     get_str(root, "generated_at", buf, sizeof(buf));
     if (buf[0]) {
         char line[1100];
         snprintf(line, sizeof(line), "Generado: %s", buf);
-        draw_text(page, font, 9, MARGIN_L, y, line);
+        draw_text(page, font, 9, paper.margin_l, y, line);
         y -= 18;
     }
     (void)right_edge;
@@ -484,7 +573,7 @@ main(void)
     float col_x[MAX_COLS + 1];
     float col_w = printable_w / (float)ncols;
     for (int c = 0; c <= ncols; c++)
-        col_x[c] = MARGIN_L + col_w * (float)c;
+        col_x[c] = paper.margin_l + col_w * (float)c;
 
     draw_header_row(page, font_bold, y, col_x, ncols, headers);
     y -= 16;
@@ -523,11 +612,9 @@ main(void)
                 if (*p == ']') p++;  /* close row array */
 
                 y -= 13;
-                if (y < PAGE_BOT) {
-                    page = HPDF_AddPage(pdf);
-                    HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4,
-                                      HPDF_PAGE_LANDSCAPE);
-                    y = HPDF_Page_GetHeight(page) - 50.0f;
+                if (y < paper.margin_b) {
+                    page = new_page(pdf, &paper);
+                    y = HPDF_Page_GetHeight(page) - paper.margin_t;
                     draw_header_row(page, font_bold, y, col_x, ncols, headers);
                     y -= 16;
                 }

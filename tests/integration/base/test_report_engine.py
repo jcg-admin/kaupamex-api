@@ -715,3 +715,67 @@ class TestCallBetweenTemplates:
         impreso = texto_impreso(contenido)
         assert 'Pie prioritario' in impreso
         assert 'Pie compartido ñ' not in impreso
+
+
+def page_box(pdf: bytes) -> tuple[float, float]:
+    """El ancho y alto reales del papel, leídos del ``/MediaBox`` emitido.
+
+    Es el control que discrimina de verdad: si la geometría del descriptor no
+    llegara al helper, el documento saldría igual y en A4, y un test que sólo
+    mirara el descriptor no lo notaría.
+    """
+    box = re.search(rb'/MediaBox\s*\[\s*[\d.]+\s+[\d.]+\s+'
+                    rb'([\d.]+)\s+([\d.]+)', pdf)
+    assert box, 'el PDF no declara /MediaBox'
+    return float(box.group(1)), float(box.group(2))
+
+
+@helpers_built
+class TestTheDeclaredPaperReachesTheDrawing:
+    """Los ajustes de papel del descriptor gobiernan la página (H-API-946)."""
+
+    #: Un milímetro en puntos PostScript — la unidad del PDF.
+    MM = 72 / 25.4
+
+    def test_without_a_paperformat_the_historic_size_survives(self):
+        width, height = page_box(run_helper('pdf_report', {
+            'title': 'T', 'columns': ['a'], 'rows': [['1']]}))
+        # A4 apaisado: lo que este helper dibujaba antes de leer el descriptor.
+        assert round(width) == 842 and round(height) == 595
+
+    @pytest.mark.parametrize('width_mm, height_mm', [
+        (210, 297),   # A4 vertical
+        (420, 297),   # A3 apaisado
+        (80, 200),    # ticket estrecho, fuera de los 12 de HPDF_PageSizes
+    ])
+    def test_the_declared_geometry_is_the_one_drawn(self, width_mm, height_mm):
+        width, height = page_box(run_helper('pdf_report', {
+            'title': 'T', 'columns': ['a'], 'rows': [['1']],
+            'paperformat': {'page_width_mm': width_mm,
+                            'page_height_mm': height_mm},
+        }))
+        assert round(width) == round(width_mm * self.MM)
+        assert round(height) == round(height_mm * self.MM)
+
+    def test_the_receipt_also_obeys_its_ticket(self):
+        width, height = page_box(run_helper('pdf_receipt', {
+            'issuer': {'name': 'Kaupamex'}, 'order_number': 'A-1',
+            'items': [], 'totals': {'total': '0.00'},
+            'paperformat': {'page_width_mm': 80, 'page_height_mm': 200},
+        }))
+        assert round(width) == round(80 * self.MM)
+        assert round(height) == round(200 * self.MM)
+
+    def test_the_declared_margin_moves_the_text(self):
+        """Un margen ancho empuja el dibujo: la clave no se lee y se ignora."""
+        def indent(margin_mm):
+            pdf = run_helper('pdf_report', {
+                'title': 'Titulo', 'columns': ['a'], 'rows': [['1']],
+                'paperformat': {'page_width_mm': 210, 'page_height_mm': 297,
+                                'margin_left_mm': margin_mm},
+            })
+            position = re.search(rb'([\d.]+)\s+[\d.]+\s+Td', operadores(pdf))
+            assert position, 'el PDF no coloca ningún texto'
+            return float(position.group(1))
+
+        assert indent(60) > indent(10) + 100

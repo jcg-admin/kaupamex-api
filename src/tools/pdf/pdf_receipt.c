@@ -417,7 +417,90 @@ load_logo_guarded(HPDF_Doc pdf, const unsigned char *png, size_t nb)
 
 #define MARGIN_L   50.0f
 #define MARGIN_R   50.0f
-#define PAGE_TOP   790.0f
+#define MARGIN_T   52.0f
+#define MARGIN_B   60.0f
+
+/* Un milimetro en puntos PostScript, que es la unidad del PDF (72 / 25.4). */
+#define MM_TO_PT   2.8346457f
+
+/*
+ * Geometria de pagina — los ajustes de papel que el descriptor trae.
+ *
+ * Gemelo del bloque de pdf_report.c, duplicado a proposito: cada helper se
+ * enlaza solo contra libharu y no comparte unidad de compilacion, que es la
+ * forma que este directorio ya seguia con su lector de JSON.
+ *
+ * La clave `paperformat` llega resuelta a milimetros por
+ * `_paperformat_geometry` de ir_actions_report, que consulta las 31 claves de
+ * `report.paperformat`. Se resuelve alli y no aqui porque HPDF_PageSizes solo
+ * declara 12 tamanos: SetWidth/SetHeight cubre los 31.
+ *
+ * Sin la clave se conservan las constantes de arriba.
+ */
+typedef struct {
+    float width, height;                          /* puntos; 0 = no fijar */
+    float margin_l, margin_r, margin_t, margin_b; /* puntos */
+} paper_t;
+
+/*
+ * Un numero del descriptor, o `fallback` si la clave no esta. Acepta el
+ * numero desnudo y el numero entre comillas: el porte de
+ * `_build_wkhtmltopdf_args` conserva la forma de texto de wkhtmltopdf.
+ */
+static float
+get_num(const char *obj, const char *key, float fallback)
+{
+    const char *v = obj_find(obj, key);
+    if (!v) return fallback;
+    if (*v == '"') v++;
+    char *end = NULL;
+    float value = strtof(v, &end);
+    return (end == v) ? fallback : value;
+}
+
+static void
+read_paper(const char *root, paper_t *paper)
+{
+    paper->width    = 0.0f;
+    paper->height   = 0.0f;
+    paper->margin_l = MARGIN_L;
+    paper->margin_r = MARGIN_R;
+    paper->margin_t = MARGIN_T;
+    paper->margin_b = MARGIN_B;
+
+    const char *pf = obj_find(root, "paperformat");
+    if (!pf) return;
+    pf = skip_ws(pf);
+    if (*pf != '{') return;
+
+    paper->width    = get_num(pf, "page_width_mm",  0.0f) * MM_TO_PT;
+    paper->height   = get_num(pf, "page_height_mm", 0.0f) * MM_TO_PT;
+    paper->margin_l = get_num(pf, "margin_left_mm",
+                              MARGIN_L / MM_TO_PT) * MM_TO_PT;
+    paper->margin_r = get_num(pf, "margin_right_mm",
+                              MARGIN_R / MM_TO_PT) * MM_TO_PT;
+    paper->margin_t = get_num(pf, "margin_top_mm",
+                              MARGIN_T / MM_TO_PT) * MM_TO_PT;
+    paper->margin_b = get_num(pf, "margin_bottom_mm",
+                              MARGIN_B / MM_TO_PT) * MM_TO_PT;
+}
+
+/*
+ * Una pagina nueva con la geometria pedida. Sin `paperformat` cae en A4
+ * vertical, que es lo que este helper hacia antes de que el descriptor
+ * pudiera declararlo.
+ */
+static HPDF_Page
+new_page(HPDF_Doc pdf, const paper_t *paper)
+{
+    HPDF_Page page = HPDF_AddPage(pdf);
+    HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4, HPDF_PAGE_PORTRAIT);
+    if (paper->width > 0.0f && paper->height > 0.0f) {
+        HPDF_Page_SetWidth(page, paper->width);
+        HPDF_Page_SetHeight(page, paper->height);
+    }
+    return page;
+}
 
 static void
 draw_text(HPDF_Page page, HPDF_Font font, float size,
@@ -581,13 +664,15 @@ main(void)
         return 2;
     }
 
-    HPDF_Page page = HPDF_AddPage(pdf);
-    HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4, HPDF_PAGE_PORTRAIT);
+    paper_t paper;
+    read_paper(root, &paper);
+
+    HPDF_Page page = new_page(pdf, &paper);
     float page_w = HPDF_Page_GetWidth(page);
-    float right_edge = page_w - MARGIN_R;
+    float right_edge = page_w - paper.margin_r;
 
     char buf[1024];
-    float y = PAGE_TOP;
+    float y = HPDF_Page_GetHeight(page) - paper.margin_t;
 
     /* ---- Issuer block + logo ---- */
     const char *issuer = obj_find(root, "issuer");
@@ -626,31 +711,31 @@ main(void)
         }
 
         get_str(issuer, "name", buf, sizeof(buf));
-        draw_text(page, font_bold, 18, MARGIN_L, y, buf);
+        draw_text(page, font_bold, 18, paper.margin_l, y, buf);
         y -= 22;
         get_str(issuer, "address", buf, sizeof(buf));
         /* La dirección se ENVUELVE, no se corta (T-004): el ancho es la
            mitad izquierda —el logo vive a la derecha— y 3 líneas bastan
            para cualquier dirección postal razonable. */
-        if (buf[0]) y = draw_text_wrapped(page, font, 10, MARGIN_L, y,
+        if (buf[0]) y = draw_text_wrapped(page, font, 10, paper.margin_l, y,
                                           280.0f, 3, buf);
         get_str(issuer, "email", buf, sizeof(buf));
-        if (buf[0]) { draw_text(page, font, 10, MARGIN_L, y, buf); y -= 14; }
+        if (buf[0]) { draw_text(page, font, 10, paper.margin_l, y, buf); y -= 14; }
         get_str(issuer, "phone", buf, sizeof(buf));
-        if (buf[0]) { draw_text(page, font, 10, MARGIN_L, y, buf); y -= 14; }
+        if (buf[0]) { draw_text(page, font, 10, paper.margin_l, y, buf); y -= 14; }
     }
 
     y -= 10;
 
     /* ---- Title ---- */
-    draw_text(page, font_bold, 15, MARGIN_L, y, "RECIBO DE COMPRA");
+    draw_text(page, font_bold, 15, paper.margin_l, y, "RECIBO DE COMPRA");
     y -= 22;
 
     /* ---- Order number + date ---- */
     get_str(root, "order_number", buf, sizeof(buf));
     char line[1100];
     snprintf(line, sizeof(line), "Orden: %s", buf);
-    draw_text(page, font_bold, 11, MARGIN_L, y, line);
+    draw_text(page, font_bold, 11, paper.margin_l, y, line);
     get_str(root, "date", buf, sizeof(buf));
     snprintf(line, sizeof(line), "Fecha: %s", buf);
     draw_text_right(page, font, 11, right_edge, y, line);
@@ -659,19 +744,19 @@ main(void)
     /* ---- Buyer block ---- */
     const char *buyer = obj_find(root, "buyer");
     if (buyer) {
-        draw_text(page, font_bold, 11, MARGIN_L, y, "Comprador");
+        draw_text(page, font_bold, 11, paper.margin_l, y, "Comprador");
         y -= 15;
         get_str(buyer, "name", buf, sizeof(buf));
-        if (buf[0]) { draw_text(page, font, 10, MARGIN_L, y, buf); y -= 13; }
+        if (buf[0]) { draw_text(page, font, 10, paper.margin_l, y, buf); y -= 13; }
         get_str(buyer, "address", buf, sizeof(buf));
         /* Envuelta a todo el ancho imprimible (T-004). */
-        if (buf[0]) y = draw_text_wrapped(page, font, 10, MARGIN_L, y,
-                                          right_edge - MARGIN_L, 3, buf);
+        if (buf[0]) y = draw_text_wrapped(page, font, 10, paper.margin_l, y,
+                                          right_edge - paper.margin_l, 3, buf);
     }
     y -= 12;
 
     /* ---- Items table header ---- */
-    float col_name = MARGIN_L;
+    float col_name = paper.margin_l;
     float col_sku  = 250.0f;
     float col_qty  = 360.0f;   /* right-aligned at */
     float col_pu   = 450.0f;   /* right-aligned at */
@@ -680,13 +765,13 @@ main(void)
     /* Banda sombreada del encabezado (T-005): los glifos se pintan con el
        fill color, así que se restaura negro antes de escribir encima. */
     HPDF_Page_SetRGBFill(page, 0.92f, 0.92f, 0.92f);
-    HPDF_Page_Rectangle(page, MARGIN_L, y - 4.0f,
-                        right_edge - MARGIN_L, 16.0f);
+    HPDF_Page_Rectangle(page, paper.margin_l, y - 4.0f,
+                        right_edge - paper.margin_l, 16.0f);
     HPDF_Page_Fill(page);
     HPDF_Page_SetRGBFill(page, 0.0f, 0.0f, 0.0f);
 
     HPDF_Page_SetLineWidth(page, 0.5f);
-    HPDF_Page_MoveTo(page, MARGIN_L, y + 12);
+    HPDF_Page_MoveTo(page, paper.margin_l, y + 12);
     HPDF_Page_LineTo(page, right_edge, y + 12);
     HPDF_Page_Stroke(page);
 
@@ -696,7 +781,7 @@ main(void)
     draw_text_right(page, font_bold, 10, col_pu, y, "P.Unit");
     draw_text_right(page, font_bold, 10, col_amt, y, "Importe");
     y -= 4;
-    HPDF_Page_MoveTo(page, MARGIN_L, y);
+    HPDF_Page_MoveTo(page, paper.margin_l, y);
     HPDF_Page_LineTo(page, right_edge, y);
     HPDF_Page_Stroke(page);
     y -= 14;
@@ -734,10 +819,8 @@ main(void)
 
                 if (y < 140) {
                     /* overflow to a new page (long orders) */
-                    page = HPDF_AddPage(pdf);
-                    HPDF_Page_SetSize(page, HPDF_PAGE_SIZE_A4,
-                                      HPDF_PAGE_PORTRAIT);
-                    y = PAGE_TOP;
+                    page = new_page(pdf, &paper);
+                    y = HPDF_Page_GetHeight(page) - paper.margin_t;
                 }
 
                 p = skip_value(item);
@@ -789,10 +872,10 @@ main(void)
         get_str(payment, "method", method, sizeof(method));
         get_str(payment, "status", status, sizeof(status));
         snprintf(line, sizeof(line), "Metodo de pago: %s", method);
-        draw_text(page, font, 10, MARGIN_L, y, line);
+        draw_text(page, font, 10, paper.margin_l, y, line);
         y -= 14;
         snprintf(line, sizeof(line), "Estado del pago: %s", status);
-        draw_text(page, font, 10, MARGIN_L, y, line);
+        draw_text(page, font, 10, paper.margin_l, y, line);
         y -= 14;
     }
 
@@ -826,7 +909,7 @@ main(void)
                 char nota[512];
                 json_string(p, nota, sizeof(nota));
                 if (nota[0]) {
-                    draw_text(page, font, 9, MARGIN_L, y, nota);
+                    draw_text(page, font, 9, paper.margin_l, y, nota);
                     y -= 12;
                 }
                 p = skip_value(p);
