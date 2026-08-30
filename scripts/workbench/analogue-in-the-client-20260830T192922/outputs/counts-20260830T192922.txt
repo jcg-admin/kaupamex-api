@@ -1,0 +1,39 @@
+# Conteos sobre claude 2.1.251 — docs: tools/claude-code-bin/2.1.251/claude_strings.txt
+# Metrica: lineas del volcado que contienen el literal (grep -ac)
+
+workbench               4
+workspace             385
+worktree              762
+workflow              707
+scriptPath             91
+journal                96
+phases                 39
+resumeFromRunId        15
+SKILL.md               98
+references/            26
+assets/                 4
+checkpoint             80
+snapshot              368
+manifest              382
+artifact             1215
+experiment            130
+
+# Los 4 de workbench, en contexto — una sola cadena, de VS Code:
+  {p}`}}let w={key:"shift+enter",command:"workbench.action.terminal.sendSequence",args:{tex
+
+# ── Segunda poblacion: los cuatro repos de referencia de AI bajo /home/user ──
+# Metrica: directorios de profundidad <=3 cuyo nombre marque una unidad de
+# trabajo fechada o instrumentada (ISO, runs/, experiments/, evidence, journal).
+  skills          0
+  agency-agents   0
+  claw-code       0
+  coreutils       0
+
+# Metrica: archivos .md/.json/.rs que nombran el termino (grep -rli).
+  workbench    0      workflow    287
+  worksite     0      evidence    144
+                      artifact     54
+                      playbook     34
+                      experiment   24
+                      runbook      18
+                      journal       7

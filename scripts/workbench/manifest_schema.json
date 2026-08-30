@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "manifest.json de una pieza de trabajo de scripts/workbench/",
+  "description": "Deriva del manifiesto.json que kaupamex-docs estreno en .claude/eventos/, con las claves medidas por frecuencia sobre sus 37 manifiestos y traducidas al ingles. Las cinco obligatorias son las que check_workbench.py verifica: sin ellas el trabajo produce una cifra que nadie puede situar.",
+  "type": "object",
+  "required": ["question", "instrument", "metric", "blind_to", "destination"],
+  "additionalProperties": true,
+  "properties": {
+    "question": {
+      "type": "string",
+      "minLength": 12,
+      "description": "Que se queria saber, en una frase. No el titulo del trabajo: la pregunta."
+    },
+    "instrument": {
+      "description": "Con que se midio o transformo — archivo, comando, o ambos.",
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "array", "items": {"type": "string"}, "minItems": 1}
+      ]
+    },
+    "metric": {
+      "type": "string",
+      "minLength": 12,
+      "description": "Que cuenta EXACTAMENTE la cifra que se publica. La unidad importa: sobre un ejecutable, ocurrencias y lineas divergen por un factor arbitrario."
+    },
+    "blind_to": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 8},
+      "description": "Que NO puede ver el instrumento. Si incluye el fenomeno sobre el que se iba a concluir, la conclusion no se emite (metrica-decide-la-conclusion.md)."
+    },
+    "destination": {
+      "description": "Donde aterriza lo que produce. Se declara ANTES de que exista.",
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "array", "items": {"type": "string"}, "minItems": 1}
+      ]
+    },
+
+    "corrected_premise": {
+      "type": "object",
+      "description": "Cuando la pregunta traia una cifra que resulto ser otra cosa. Medido en docs: paso en el trabajo de referencia al primer comando."
+    },
+    "findings": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^H-(API|UI|SERVER|DB|DOCS)-[0-9]+$"},
+      "description": "Los hallazgos que produce, por su ID."
+    },
+    "tasks": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^#[0-9]+$"},
+      "description": "Las tareas que abre o cierra."
+    },
+    "commits": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^(api|ui|db|docs|server)@[0-9a-f]{7,40}$"},
+      "description": "La traza repo@hash de lo que cambio en codigo."
+    },
+    "reproducible": {
+      "type": "string",
+      "description": "El comando que lo vuelve a correr, o por que no se puede."
+    },
+    "outputs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Las salidas fechadas de outputs/, que son el registro de la secuencia."
+    },
+    "source": {
+      "type": "string",
+      "description": "La fuente medida: el alias de la referencia con su commit, el ejecutable con su version, o la raiz del arbol."
+    },
+    "control": {
+      "type": "string",
+      "description": "El control que discrimina, y contra que se probo su neutralizacion."
+    }
+  }
+}
