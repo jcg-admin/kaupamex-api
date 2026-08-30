@@ -265,8 +265,6 @@ src/orm/model_classes.py::funcion
 src/orm/model_classes.py::modelo
 src/orm/model_classes.py::nombre
 src/orm/model_classes.py::propiedades
-src/tools/barcode.py::codigo
-src/tools/barcode.py::posicion
 src/tools/pdf/gen_font_c.py::POR_LINEA
 src/tools/pdf/gen_font_c.py::datos
 tests/conftest.py::_sembrar_al_inicio_de_sesion

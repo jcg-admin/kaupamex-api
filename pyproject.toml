@@ -79,6 +79,8 @@ dependencies = [
     # dependencia de Jinja2/Flask, no de Werkzeug: no entra en la exclusion
     # del stack (usamos gunicorn, no Werkzeug).
     "markupsafe>=2.1.0",
+    "python-barcode>=0.15.1",
+    "qrcode>=7.4",
 ]
 
 [project.optional-dependencies]

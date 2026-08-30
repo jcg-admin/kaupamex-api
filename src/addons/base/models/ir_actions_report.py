@@ -104,13 +104,40 @@ mecanismo que este pase construyó en vez de declarar como divergencia:
 
 Lo que sigue fuera, y por qué:
 
-- **Todo el motor**: ``_build_wkhtmltopdf_args``, ``_run_wkhtmltopdf``,
-  ``_run_wkhtmltoimage``, ``_prepare_html``, ``_render_qweb_pdf``,
-  ``_render_qweb_html``, ``_render_qweb_text``, ``_render_template``,
-  ``_merge_pdfs``, ``_get_rendering_context``, ``barcode``,
-  ``get_available_barcode_masks``, ``get_wkhtmltopdf_state``. Ver arriba: el
-  motor es nuestro (helpers libharu, por decreto del ejecutor), no
-  wkhtmltopdf. Es el bloque D del porte.
+- **El bloque D ya no está fuera.** Esta viñeta declaraba trece símbolos
+  ausentes «porque el motor es nuestro». Medido hoy (2026-08-30T04:32:34) eso
+  es falso: los trece están escritos. Once ya lo estaban desde pases
+  anteriores; los dos últimos —``barcode`` y ``get_available_barcode_masks``—
+  entraron en este pase, y la declaración anterior mezclaba dos contratos que
+  no son el mismo. El **PDF** lo dibujan los helpers de libharu (ADR-017); el
+  **raster de un código de barras a PNG** no toca ese motor, es
+  ``python-barcode`` + ``qrcode`` sobre Pillow (``tools/barcode.py``).
+  Confundirlos fue lo que mantuvo dos símbolos portables fuera del porte.
+
+  ``_build_wkhtmltopdf_args`` cayó por la misma confusión: sus catorce reglas
+  de precedencia —qué gana entre lo que declara el documento y lo que declara
+  el formato— no son de wkhtmltopdf, son del contrato. Lo único de la fuente
+  que no tiene receptor aquí es la **codificación** (una lista de argumentos
+  de línea de comandos frente a un diccionario), y va declarada en su
+  docstring.
+
+  ``_run_wkhtmltoimage`` es el único que sigue sin cuerpo, y **no como
+  divergencia sino como bloqueo medido**: exige un motor de maquetación HTML,
+  y este árbol no declara ninguno. Su condición de cierre y su sucesor van en
+  su propio docstring. Falla en voz alta.
+
+  .. code-block:: text
+
+     metodos ref 36 | mios 95 | ausentes 0
+     campos  ref 14 | mios 88 | ausentes 0
+
+  *Métrica:* símbolos declarados dentro de una ``ClassDef``, por AST, contra
+  ``odoo19c: odoo/addons/base/models/ir_actions_report.py``; el lado nuestro
+  suma ``ir_actions.py``, donde vive ``IrActionsBase`` con lo que la fuente
+  declara por clase.
+  *Ciega a:* que el cuerpo de cada símbolo haga lo que hace el de la fuente —
+  cuenta nombres, no comportamiento. Eso lo miden los tests.
+
 - **``_search_model_id``** — portado en el bloque A con el ``Domain`` de la
   fuente; esta entrada quedó obsoleta y se retira.
 - **``external_report_layout_id`` de ``res.company``** — la FK no tiene
@@ -122,6 +149,7 @@ Lo que sigue fuera, y por qué:
 import io
 import json
 import logging
+import os
 import subprocess
 from pathlib import Path
 
@@ -150,6 +178,8 @@ from orm.environments import (get_context, get_current_company,
 from orm.fields_temporal import Datetime
 from orm.models import filtered_domain
 from requests.exceptions import RequestException
+from tools.barcode import (check_barcode_encoding, image_to_png,
+                           render_barcode_image)
 from tools.mail import is_html_empty
 from tools.pdf import PdfFileReader, PdfFileWriter, PdfReadError
 from tools.safe_eval import const_eval, safe_eval, time
@@ -766,6 +796,139 @@ class IrActionsReport(IrActionsBase):
                 applicable.append(report)
         return applicable
 
+    # --- Código de barras ---------------------------------------------------
+
+    @classmethod
+    def barcode(cls, barcode_type, value, **kwargs):
+        """Dibuja el código de barras de ``value`` y devuelve su PNG.
+
+        ≙ ``barcode`` (``odoo19c: odoo/addons/base/models/ir_actions_report.py
+        :688-751``), con su nombre, su firma y sus seis reglas de despacho.
+
+        **La divergencia es de librería de raster, no de contrato.** La fuente
+        delega en ``createBarcodeDrawing`` de ReportLab —que es su librería de
+        PDF— y devuelve ``drawing.asString('png')``. Aquí el raster lo hacen
+        ``python-barcode`` y ``qrcode`` sobre Pillow (``tools.barcode``): el
+        motor de papel de este árbol (helpers de libharu, ADR-017) no dibuja
+        códigos, y confundir las dos cosas era lo que dejaba este símbolo
+        fuera del porte. Lo que entra y lo que sale es idéntico: un tipo, un
+        valor y opciones sueltas; sale el PNG.
+
+        Las seis reglas que la fuente declara, todas portadas:
+
+        1. ``defaults`` con **un validador por clave** — el llamador es una
+           URL, así que ``width='300'`` y ``humanreadable='0'`` llegan como
+           texto y se leen con ``int`` y ``bool(int(x))``. Un nivel de
+           corrección desconocido cae a ``'L'``.
+        2. La **guarda de tamaño**, antes de dibujar: área sobre 1 200 000 o
+           un lado sobre 10 000 → ``ValueError("Barcode too large")``.
+        3. ``UPCA`` de 11, 12 o 13 dígitos se **promueve a EAN13**, con cero
+           por delante en los dos primeros casos.
+        4. ``auto`` **adivina por longitud** (8 → EAN8, 13 → EAN13) y si no,
+           ``Code128``.
+        5. ``QR`` no tiene zona muda, así que ``quiet=False`` se traduce a
+           ``barBorder=0``.
+        6. Un ``EAN8``/``EAN13`` cuya codificación no cuadra **cae a
+           Code128**: si no, el dibujante corregiría el dígito verificador y
+           el código impreso no sería el pedido (``11111111`` saldría como
+           ``11111115``).
+
+        Y el ``except`` de la fuente con sus **tres** desenlaces: ``Code128``
+        y ``QR`` alzan su propio mensaje —son el último recurso, no hay a qué
+        caer—; cualquier otro tipo **reintenta como Code128**.
+
+        ``fontName`` no se fija: la fuente lo toma de ``get_barcode_font``,
+        que nombra una fuente T1 del catálogo de ReportLab. El texto legible
+        lo dibuja ``ImageWriter`` con la fuente que Pillow resuelva; la
+        divergencia está declarada en ``tools/barcode.py``.
+        """
+        defaults = {
+            'width': (600, int),
+            'height': (100, int),
+            'humanreadable': (False, lambda x: bool(int(x))),
+            'quiet': (True, lambda x: bool(int(x))),
+            'mask': (None, lambda x: x),
+            'barBorder': (4, int),
+            # El QR admite cuatro niveles de corrección de error, y el dibujo
+            # cambia con cada uno. Ver https://en.wikipedia.org/wiki/QR_code
+            # Nivel 'L' — hasta 7 % de daño   (por defecto)
+            # Nivel 'M' — hasta 15 %          (lo exige la factura QR de l10n_ch)
+            # Nivel 'Q' — hasta 25 %
+            # Nivel 'H' — hasta 30 %
+            'barLevel': ('L', lambda x: x in ('L', 'M', 'Q', 'H') and x or 'L'),
+        }
+        kwargs = {key: validator(kwargs.get(key, value))
+                  for key, (value, validator) in defaults.items()}
+        kwargs['humanReadable'] = kwargs.pop('humanreadable')
+
+        if (kwargs['width'] * kwargs['height'] > 1200000
+                or max(kwargs['width'], kwargs['height']) > 10000):
+            raise ValueError("Barcode too large")
+
+        if barcode_type == 'UPCA' and len(value) in (11, 12, 13):
+            barcode_type = 'EAN13'
+            if len(value) in (11, 12):
+                value = '0%s' % value
+        elif barcode_type == 'auto':
+            symbology_guess = {8: 'EAN8', 13: 'EAN13'}
+            barcode_type = symbology_guess.get(len(value), 'Code128')
+        elif barcode_type == 'QR':
+            # El QR no tiene zona muda: `quiet` no le aplica y la fuente lo
+            # ignora. El efecto equivalente lo da `barBorder`, que por
+            # defecto vale 4; sólo se anula cuando `quiet` es falso.
+            if not kwargs['quiet']:
+                kwargs['barBorder'] = 0
+
+        if (barcode_type in ('EAN8', 'EAN13')
+                and not check_barcode_encoding(value, barcode_type)):
+            # Si el valor no respeta la codificación, el dibujante calcularía
+            # el dígito verificador y devolvería un código distinto del
+            # pedido: un EAN-8 de 11111111 saldría como 11111115.
+            barcode_type = 'Code128'
+
+        try:
+            image = render_barcode_image(
+                barcode_type, value,
+                width=kwargs['width'], height=kwargs['height'],
+                human_readable=kwargs['humanReadable'],
+                quiet=kwargs['quiet'], bar_border=kwargs['barBorder'],
+                bar_level=kwargs['barLevel'])
+
+            # Si se pide una máscara y está registrada, su función
+            # post-procesa la imagen del código ya dibujado.
+            if kwargs['mask']:
+                available_masks = cls.get_available_barcode_masks()
+                mask_to_apply = available_masks.get(kwargs['mask'])
+                if mask_to_apply:
+                    mask_to_apply(kwargs['width'], kwargs['height'], image)
+
+            return image_to_png(image)
+        except (ValueError, AttributeError):
+            if barcode_type == 'Code128':
+                raise ValueError("Cannot convert into barcode.")
+            elif barcode_type == 'QR':
+                raise ValueError("Cannot convert into QR code.")
+            else:
+                return cls.barcode('Code128', value, **kwargs)
+
+    @classmethod
+    def get_available_barcode_masks(cls):
+        """Gancho de extensión.
+
+        ≙ ``get_available_barcode_masks`` (``:755-767``). Devuelve las
+        máscaras de QR disponibles como ``{código: función}``, donde el código
+        identifica la máscara y la función post-procesa el dibujo. Recibe:
+
+            - el ancho del QR, en píxeles
+            - el alto del QR, en píxeles
+            - el dibujo del código sobre el que aplicar la máscara
+
+        El tercer parámetro es una imagen de Pillow y no un ``Drawing`` de
+        ReportLab, por la misma divergencia de librería que declara
+        ``barcode``: el objeto cambia, el contrato de tres argumentos no.
+        """
+        return {}
+
     # --- Acción para el cliente -------------------------------------------
 
     def report_action(self, docids, data=None, config=True):
@@ -1127,6 +1290,124 @@ class IrActionsReport(IrActionsBase):
             return 'broken'
         return 'ok'
 
+    def _build_wkhtmltopdf_args(
+            self,
+            paperformat_id,
+            landscape,
+            specific_paperformat_args=None,
+            set_viewport_size=False):
+        """Resuelve los ajustes de papel con que se dibujará el documento.
+
+        ≙ ``_build_wkhtmltopdf_args`` (``:302-380``), con su nombre, su firma
+        y sus catorce reglas de precedencia.
+
+        :param paperformat_id: el ``report.paperformat`` que rige.
+        :param landscape: fuerza la orientación apaisada.
+        :param specific_paperformat_args: los ajustes que el propio documento
+            declara, con las claves ``data-report-*`` de la fuente. **Ganan**
+            sobre el formato del reporte.
+        :param set_viewport_size: activa un lienzo de ``1024x1280`` o
+            ``1280x1024`` según la orientación.
+        :returns: el diccionario de ajustes que el motor lee.
+
+        **La divergencia es de codificación, no de reglas.** La fuente
+        devuelve la lista de argumentos de línea de comandos con que invoca a
+        wkhtmltopdf (``['--margin-top', '40', …]``); aquí el motor son los
+        helpers de libharu (ADR-017), que reciben un descriptor y no una
+        línea de comandos. Así que sale un diccionario cuyas claves son las
+        mismas banderas sin el ``--`` y en snake_case, para que la
+        correspondencia con la fuente se pueda leer de un vistazo.
+
+        Lo que **no** cambia es la substancia: qué valor gana cuando el
+        documento y el formato dicen cosas distintas. Esas catorce reglas son
+        el motivo por el que este método existe, y son las que antes se
+        resolvían a ojo dentro de ``_run_wkhtmltopdf`` — que atendía dos de
+        las catorce (orientación y lienzo) y callaba las otras doce.
+
+        Dos ajustes de la fuente **no tienen receptor** en este motor y se
+        declaran en vez de omitirse:
+
+        - ``--zoom 96/dpi``, que la fuente aplica cuando el binario declara
+          ``dpi_zoom_ratio``. Es la corrección de un defecto de wkhtmltopdf al
+          escalar; libharu dibuja en puntos PostScript y no lo tiene.
+        - ``--quiet`` y ``--disable-local-file-access``, que gobiernan la
+          verbosidad y el acceso a disco **del subproceso** de wkhtmltopdf.
+          Aquí el aislamiento del helper lo fija ADR-017 en el propio
+          ``subprocess``, no en un argumento que el documento pueda tocar.
+        """
+        if (landscape is None and specific_paperformat_args
+                and specific_paperformat_args.get('data-report-landscape')):
+            landscape = specific_paperformat_args.get('data-report-landscape')
+
+        command_args = {}
+        if set_viewport_size:
+            command_args['viewport_size'] = (
+                landscape and '1024x1280' or '1280x1024')
+
+        if paperformat_id:
+            if paperformat_id.format and paperformat_id.format != 'custom':
+                command_args['page_size'] = paperformat_id.format
+
+            if (paperformat_id.page_height and paperformat_id.page_width
+                    and paperformat_id.format == 'custom'):
+                command_args['page_width'] = str(paperformat_id.page_width) + 'mm'
+                command_args['page_height'] = str(paperformat_id.page_height) + 'mm'
+
+            if (specific_paperformat_args
+                    and 'data-report-margin-top' in specific_paperformat_args):
+                command_args['margin_top'] = str(
+                    specific_paperformat_args['data-report-margin-top'])
+            else:
+                command_args['margin_top'] = str(paperformat_id.margin_top)
+
+            dpi = None
+            if (specific_paperformat_args
+                    and specific_paperformat_args.get('data-report-dpi')):
+                dpi = int(specific_paperformat_args['data-report-dpi'])
+            elif paperformat_id.dpi:
+                if os.name == 'nt' and int(paperformat_id.dpi) <= 95:
+                    _logger.info("Generating PDF on Windows platform require "
+                                 "DPI >= 96. Using 96 instead.")
+                    dpi = 96
+                else:
+                    dpi = paperformat_id.dpi
+            if dpi:
+                command_args['dpi'] = str(dpi)
+
+            if (specific_paperformat_args
+                    and 'data-report-header-spacing' in specific_paperformat_args):
+                command_args['header_spacing'] = str(
+                    specific_paperformat_args['data-report-header-spacing'])
+            elif paperformat_id.header_spacing:
+                command_args['header_spacing'] = str(
+                    paperformat_id.header_spacing)
+
+            command_args['margin_left'] = str(paperformat_id.margin_left)
+
+            if (specific_paperformat_args
+                    and 'data-report-margin-bottom' in specific_paperformat_args):
+                command_args['margin_bottom'] = str(
+                    specific_paperformat_args['data-report-margin-bottom'])
+            else:
+                command_args['margin_bottom'] = str(paperformat_id.margin_bottom)
+
+            command_args['margin_right'] = str(paperformat_id.margin_right)
+            if not landscape and paperformat_id.orientation:
+                command_args['orientation'] = str(paperformat_id.orientation)
+            if paperformat_id.header_line:
+                command_args['header_line'] = True
+            if paperformat_id.disable_shrinking:
+                command_args['disable_smart_shrinking'] = True
+
+        # Margen de tiempo para que la página termine de dibujarse.
+        command_args['javascript_delay'] = SystemParameter.get_param(
+            'report.print_delay', default='1000')
+
+        if landscape:
+            command_args['orientation'] = 'landscape'
+
+        return command_args
+
     def _prepare_html(self, html, report_model=False):
         """Parte el intermedio en cuerpos por registro, con su cabecera y pie.
 
@@ -1174,20 +1455,16 @@ class IrActionsReport(IrActionsBase):
         aislamiento que aquel ADR pide.
 
         Los argumentos de papel de la fuente —``landscape``,
-        ``specific_paperformat_args``, ``set_viewport_size``— se resuelven
-        contra el formato del reporte y viajan al descriptor bajo la clave
-        ``paperformat``, que es donde el helper los lee.
+        ``specific_paperformat_args``, ``set_viewport_size``— los resuelve
+        ``_build_wkhtmltopdf_args``, igual que en la fuente (``:539``), y
+        viajan al descriptor bajo la clave ``paperformat``.
         """
         report = self._get_report(report_ref) if report_ref else self
         paperformat = report.get_paperformat()
-        args = dict(specific_paperformat_args or {})
-        if landscape:
-            args['orientation'] = 'landscape'
-        elif paperformat is not None:
-            args.setdefault('orientation',
-                            getattr(paperformat, 'orientation', None))
-        if set_viewport_size:
-            args['viewport_size'] = set_viewport_size
+        args = self._build_wkhtmltopdf_args(
+            paperformat, landscape,
+            specific_paperformat_args=specific_paperformat_args,
+            set_viewport_size=set_viewport_size)
 
         spec = report_catalog.get(report.report_name)
         if spec is None:
@@ -1209,6 +1486,55 @@ class IrActionsReport(IrActionsBase):
             return pieces[0]
         with self._merge_pdfs([io.BytesIO(piece) for piece in pieces]) as merged:
             return merged.getvalue()
+
+    def _run_wkhtmltoimage(self, bodies, width, height, image_format='jpg'):
+        """Dibuja cada cuerpo HTML como imagen raster.
+
+        ≙ ``_run_wkhtmltoimage`` (``:465-511``), con su nombre y su firma.
+
+        :param bodies: documentos HTML válidos, como cadenas.
+        :param width: ancho en píxeles.
+        :param height: alto en píxeles.
+        :param image_format: ``'jpg'`` o ``'png'``.
+        :returns: una lista del mismo largo que ``bodies``, con los bytes de
+            cada imagen o ``None`` donde el dibujo falló.
+
+        **BLOQUEADO por** ``un motor de maquetación HTML`` — con su medición
+        y su sucesor, no como divergencia de mecanismo, que sería el camino
+        barato. Este árbol no declara ninguno: el motor de papel son los
+        helpers de libharu (ADR-017), que reciben un descriptor y dibujan
+        primitivas, no una página con su CSS resuelto. El raster de un código
+        de barras sí se pudo construir —``tools.barcode``, porque ahí no hay
+        maquetación— y éste no, por esa diferencia y no por la licencia.
+
+        Medido: el **único** consumidor en la referencia es
+        ``addons/marketing_card/models/card_campaign.py:333``, y ese addon no
+        está en este árbol. Dentro de ``src/`` y ``addons/`` el conteo de
+        llamadores es **cero**.
+
+        *Métrica:* llamadas a ``_run_wkhtmltoimage`` en los cuatro árboles de
+        la referencia y en nuestras dos raíces de addon.
+        *Ciega a:* un consumidor futuro que lo alcance por herencia sin
+        nombrar el símbolo.
+
+        Sucesor registrado: **tarea #203** — decidir el motor de maquetación
+        con que se dibuja una página HTML a raster, que es la condición para
+        escribir el cuerpo. Es decisión del ejecutor: dependencia externa
+        nueva, no derivable del árbol. Hasta entonces **falla en voz alta**:
+        devolver imágenes en blanco sería el verde que no discrimina.
+
+        El corte de ``current_test`` de la fuente **no** se porta, y no por
+        omisión: existe para no invocar al binario durante una prueba
+        (``:474-475``), y aquí no hay invocación que evitar. Portarlo
+        devolvería ``[None] * len(bodies)`` en la suite, que es exactamente
+        el verde que no discrimina — un consumidor futuro no distinguiría
+        «el motor dibujó nada» de «el motor no existe».
+        """
+        raise HelperNotBuilt(
+            'el raster de HTML a imagen necesita un motor de maquetación, y '
+            'este árbol no declara ninguno: los helpers de libharu dibujan '
+            'primitivas desde un descriptor, no una página con su CSS '
+            'resuelto (ADR-017)')
 
     # --- Fusión de PDF ------------------------------------------------------
 
