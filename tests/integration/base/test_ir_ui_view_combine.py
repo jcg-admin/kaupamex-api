@@ -21,7 +21,7 @@ pytestmark = pytest.mark.django_db
 def make_view(name, arch, *, inherit=None, mode=MODE_PRIMARY, priority=16,
               active=True, model=''):
     return IrUiView.objects.create(
-        name=name, type='qweb', key=f'test.{name}', arch_db=arch,
+        name=name, type='template', key=f'test.{name}', arch_db=arch,
         inherit_id=inherit, mode=mode, priority=priority, active=active,
         model=model,
     )

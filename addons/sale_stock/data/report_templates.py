@@ -10,7 +10,7 @@ layout fijo dibuja línea a línea.
 La condición ``{% if %}`` reproduce el ``t-if="doc.incoterm"`` de la fuente:
 sin dato, el campo rinde vacío y el helper no dibuja la línea.
 """
-from addons.base.models.ir_ui_view import IrUiView
+from addons.base.models.ir_ui_view import VIEW_TYPE_TEMPLATE, IrUiView
 from addons.sale.data.report_templates import REPORT_SALEORDER_KEY
 
 
@@ -43,7 +43,7 @@ def seed(using=None):
         return
     manager.create(
         name='Incoterm en la orden de venta (sale_stock)',
-        type='qweb', key=REPORT_INCOTERM_KEY,
+        type=VIEW_TYPE_TEMPLATE, key=REPORT_INCOTERM_KEY,
         mode='extension', active=True, inherit_id=primary,
         arch_db=REPORT_INCOTERM_ARCH,
     )

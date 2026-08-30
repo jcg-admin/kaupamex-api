@@ -117,7 +117,7 @@ class TestTheViewLanguageIsXml:
         XML no sobreviviera al viaje por JSON.
         """
         view = IrUiView.objects.create(
-            name='wire', type='qweb', key='test.wire', mode=MODE_PRIMARY,
+            name='wire', type='template', key='test.wire', mode=MODE_PRIMARY,
             arch_db='<doc><a t-esc="x"/></doc>',
         )
         arch = view.get_combined_arch()

@@ -60,6 +60,25 @@ del segundo grupo, y DEC-FW-05 fija por qué DTL es el evaluador.
 DTL **no** la expone —se construye con el filtro ``divisibleby``— y un
 descriptor la pide a menudo.
 
+Por qué DTL y no el compilador portado (DEC-FW-05)
+==================================================
+
+``IrTemplateExpressions._compile_expr`` existe en este árbol, portado fiel de
+la fuente con su allowlist de opcodes, y **no se cablea aquí**. Los dos
+candidatos se midieron con las mismas expresiones
+(``tests/unit/base/test_template_engine_choice.py``): DTL **rechaza** la
+aritmética y la llamada con argumentos; el compilador las admite.
+
+Para un **descriptor** ese rechazo es la propiedad que se quiere: el modelo
+calcula y expone el campo, y la plantilla sólo lo lee. Toda superficie de más
+en un evaluador es superficie que hay que contener, y la de DTL se contiene
+**por gramática** —``Variable('line.__class__')`` levanta
+``TemplateSyntaxError``— sin necesidad del allowlist.
+
+Su caveat, medido y con su consecuencia ya cerrada (:ref:`h-api-930`): DTL
+**invoca por su cuenta** un callable que encuentre en el contexto, y su guarda
+es ``alters_data``.
+
 DTL corre con ``autoescape`` **apagado**: el texto va a un dict de Python y
 ``json.dumps`` se encarga del quoting; con autoescape encendido un ``&`` del
 dato llegaría al papel como ``&amp;`` (medido en

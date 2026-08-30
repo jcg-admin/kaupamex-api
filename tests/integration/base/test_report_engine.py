@@ -495,7 +495,7 @@ class TestPlantillaEnBD:
         # 16): el orden de resolución es priority,id y estos casos prueban
         # el mecanismo con SU plantilla, no con la del addon.
         return IrUiView.objects.create(
-            name='reporte de prueba', type='qweb',
+            name='reporte de prueba', type='template',
             key='sale.report_saleorder', arch_db=arch or self.ARCH,
             mode='primary', priority=1, **kwargs,
         )
@@ -532,7 +532,7 @@ class TestPlantillaEnBD:
         # parcha el documento SIN tocar la plantilla base.
         base = self.make_template_view()
         IrUiView.objects.create(
-            name='extension incoterm', type='qweb',
+            name='extension incoterm', type='template',
             key='sale.report_saleorder_inherit_prueba',
             inherit_id=base, mode='extension',
             arch_db=('<xpath expr="//section[@name=\'issuer\']" '

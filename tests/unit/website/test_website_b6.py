@@ -170,7 +170,7 @@ class TestUniqueKeyAndPath:
     def test_get_unique_key_suffixes_on_collision(self):
         website = _make_website()
         IrUiView.objects.create(
-            name='Home', type='qweb', key='website.home', arch_db='<t/>')
+            name='Home', type='template', key='website.home', arch_db='<t/>')
         assert website.get_unique_key('home') == 'website.home-1'
 
     def test_get_unique_path_returns_free_path_untouched(self):

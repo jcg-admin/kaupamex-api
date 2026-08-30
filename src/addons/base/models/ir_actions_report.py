@@ -115,7 +115,7 @@ import models
 
 from addons.base import report_catalog, report_template
 from addons.base.models.ir_actions import IrActionsBase
-from addons.base.models.ir_ui_view import IrUiView
+from addons.base.models.ir_ui_view import VIEW_TYPE_TEMPLATE, IrUiView
 from addons.base.models.ir_attachment import IrAttachment
 from addons.base.models.ir_model import IrModel
 from addons.base.models.report_paperformat import ReportPaperformat
@@ -510,7 +510,7 @@ class IrActionsReport(IrActionsBase):
         action_data = action_ref._get_action_dict()
         action_data['domain'] = [
             ('name', 'ilike', self.report_name.split('.')[1]),
-            ('type', '=', 'qweb'),
+            ('type', '=', VIEW_TYPE_TEMPLATE),
         ]
         return action_data
 
@@ -821,7 +821,7 @@ class IrActionsReport(IrActionsBase):
         fuente devuelve la representación HTML que produce
         ``ir.ui.view._render_template``; aquí ese papel lo cumple el
         **descriptor**, que ``report_template.interpret_descriptor`` obtiene
-        del mismo sitio: una vista ``type='qweb'`` resuelta por su clave, con
+        del mismo sitio: una vista ``type='template'`` resuelta por su clave, con
         el arch ya combinado. Cambia la forma del intermedio, no el paso: sigue
         siendo composición separada de la conversión, que es la razón por la
         que la fuente tiene un motor y N documentos.
@@ -866,7 +866,7 @@ class IrActionsReport(IrActionsBase):
         # nueva en BD redefine el documento— y cerrado a modificación: ningún
         # ``builder`` existente cambia por ello.
         view = IrUiView.objects.filter(
-            key=template, type='qweb', active=True, mode='primary',
+            key=template, type=VIEW_TYPE_TEMPLATE, active=True, mode='primary',
         ).order_by('priority', 'id').first()
         spec = report_catalog.get(template)
         if view is None and spec is None:

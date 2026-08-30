@@ -29,6 +29,9 @@ def seed_view(apps, schema_editor):
             key=REPORT_SALEORDER_KEY).exists():
         IrUiView.objects.using(alias).create(
             name='Orden de venta (plantilla del documento)',
+            # El valor va CONGELADO: una migración escribe sobre el modelo
+            # histórico, y el renombre a ``template`` lo aplica
+            # ``base/0070`` sobre las filas ya escritas.
             type='qweb', key=REPORT_SALEORDER_KEY,
             mode='primary', active=True,
             arch_db=REPORT_SALEORDER_ARCH,

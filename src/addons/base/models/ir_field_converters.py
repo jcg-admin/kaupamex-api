@@ -141,6 +141,9 @@ class IrFieldConverter(models.Model):
     que cada subtipo redefine.
     """
 
+    _name = 'ir.qweb.field'
+    _description = 'Qweb Field'
+
     class Meta:
         abstract = True
 
@@ -170,6 +173,9 @@ class IrFieldConverter(models.Model):
 class IrFieldConverterInteger(IrFieldConverter):
     """``integer`` — entero con separador de miles."""
 
+    _name = 'ir.qweb.field.integer'
+    _description = 'Qweb Field Integer'
+
     class Meta:
         abstract = True
 
@@ -184,6 +190,9 @@ class IrFieldConverterInteger(IrFieldConverter):
 
 class IrFieldConverterFloat(IrFieldConverter):
     """``float`` — decimal con precisión declarada."""
+
+    _name = 'ir.qweb.field.float'
+    _description = 'Qweb Field Float'
 
     class Meta:
         abstract = True
@@ -205,6 +214,9 @@ class IrFieldConverterDate(IrFieldConverter):
     empobrecido: es el punto de corte declarado entre las dos capas.
     """
 
+    _name = 'ir.qweb.field.date'
+    _description = 'Qweb Field Date'
+
     class Meta:
         abstract = True
 
@@ -223,12 +235,18 @@ class IrFieldConverterDatetime(IrFieldConverterDate):
     que es donde se sabe cuál es.
     """
 
+    _name = 'ir.qweb.field.datetime'
+    _description = 'Qweb Field Datetime'
+
     class Meta:
         abstract = True
 
 
 class IrFieldConverterText(IrFieldConverter):
     """``text`` — texto con los saltos de línea preservados."""
+
+    _name = 'ir.qweb.field.text'
+    _description = 'Qweb Field Text'
 
     class Meta:
         abstract = True
@@ -240,6 +258,9 @@ class IrFieldConverterText(IrFieldConverter):
 
 class IrFieldConverterSelection(IrFieldConverter):
     """``selection`` — la **etiqueta** del valor, no el valor."""
+
+    _name = 'ir.qweb.field.selection'
+    _description = 'Qweb Field Selection'
 
     class Meta:
         abstract = True
@@ -266,6 +287,9 @@ class IrFieldConverterSelection(IrFieldConverter):
 class IrFieldConverterMany2one(IrFieldConverter):
     """``many2one`` — el nombre visible del registro apuntado."""
 
+    _name = 'ir.qweb.field.many2one'
+    _description = 'Qweb Field Many to One'
+
     class Meta:
         abstract = True
 
@@ -276,6 +300,9 @@ class IrFieldConverterMany2one(IrFieldConverter):
 
 class IrFieldConverterMany2many(IrFieldConverter):
     """``many2many`` — los nombres, separados por coma."""
+
+    _name = 'ir.qweb.field.many2many'
+    _description = 'Qweb field many2many'
 
     class Meta:
         abstract = True
@@ -290,6 +317,9 @@ class IrFieldConverterMany2many(IrFieldConverter):
 class IrFieldConverterOne2many(IrFieldConverterMany2many):
     """``one2many`` — igual que ``many2many`` en la fuente."""
 
+    _name = 'ir.qweb.field.one2many'
+    _description = 'Qweb field one2many'
+
     class Meta:
         abstract = True
 
@@ -303,6 +333,9 @@ class IrFieldConverterHtml(IrFieldConverter):
     le pasa HTML sin sanear, lo emite sin sanear.
     """
 
+    _name = 'ir.qweb.field.html'
+    _description = 'Qweb Field HTML'
+
     class Meta:
         abstract = True
 
@@ -313,6 +346,9 @@ class IrFieldConverterHtml(IrFieldConverter):
 
 class IrFieldConverterImage(IrFieldConverter):
     """``image`` — imagen embebida como ``data:`` URI."""
+
+    _name = 'ir.qweb.field.image'
+    _description = 'Qweb Field Image'
 
     class Meta:
         abstract = True
@@ -326,6 +362,9 @@ class IrFieldConverterImage(IrFieldConverter):
 
 class IrFieldConverterImage_Url(IrFieldConverter):
     """``image_url`` — imagen por URL."""
+
+    _name = 'ir.qweb.field.image_url'
+    _description = 'Qweb Field Image'
 
     class Meta:
         abstract = True
@@ -346,6 +385,9 @@ class IrFieldConverterMonetary(IrFieldConverter):
     fabrica un formateo paralelo.
     """
 
+    _name = 'ir.qweb.field.monetary'
+    _description = 'Qweb Field Monetary'
+
     class Meta:
         abstract = True
 
@@ -358,6 +400,9 @@ class IrFieldConverterMonetary(IrFieldConverter):
 
 class IrFieldConverterFloat_Time(IrFieldConverter):
     """``float_time`` — horas fraccionarias como ``HH:MM`` (``1.5`` → ``01:30``)."""
+
+    _name = 'ir.qweb.field.float_time'
+    _description = 'Qweb Field Float Time'
 
     class Meta:
         abstract = True
@@ -376,6 +421,9 @@ class IrFieldConverterTime(IrFieldConverter):
     Los dos límites se conservan como error, no como recorte: un 25 recortado
     a 23:59 escondería el dato malo.
     """
+
+    _name = 'ir.qweb.field.time'
+    _description = 'QWeb Field Time'
 
     class Meta:
         abstract = True
@@ -403,6 +451,9 @@ class IrFieldConverterDuration(IrFieldConverter):
 
     Los sub-segundos se ignoran, igual que allá.
     """
+
+    _name = 'ir.qweb.field.duration'
+    _description = 'Qweb Field Duration'
 
     class Meta:
         abstract = True
@@ -459,6 +510,9 @@ class IrFieldConverterRelative(IrFieldConverter):
     que sí se porta es el **cálculo**: la diferencia contra la referencia.
     """
 
+    _name = 'ir.qweb.field.relative'
+    _description = 'Qweb Field Relative'
+
     class Meta:
         abstract = True
 
@@ -486,6 +540,9 @@ class IrFieldConverterBarcode(IrFieldConverter):
     conversores esté completo y el punto de extensión sea explícito.
     """
 
+    _name = 'ir.qweb.field.barcode'
+    _description = 'Qweb Field Barcode'
+
     class Meta:
         abstract = True
 
@@ -503,6 +560,9 @@ class IrFieldConverterContact(IrFieldConverter):
     orden de las líneas y el descarte de las vacías. El marcado concreto lo
     pone la UI.
     """
+
+    _name = 'ir.qweb.field.contact'
+    _description = 'Qweb Field Contact'
 
     class Meta:
         abstract = True
@@ -535,6 +595,9 @@ class IrFieldConverterTemplate(IrFieldConverter):
     No portado: depende del compilador, que ``ir_template_expressions.py`` deja fuera con su
     razón medida.
     """
+
+    _name = 'ir.qweb.field.qweb'
+    _description = 'Qweb Field qweb'
 
     class Meta:
         abstract = True

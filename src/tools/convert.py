@@ -794,7 +794,11 @@ class XmlImport:
         record = etree.Element('record', attrib=record_attrs)
         record.append(Field(name, name='name'))
         record.append(Field(full_tpl_id, name='key'))
-        record.append(Field('qweb', name='type'))
+        # El valor va literal, como en la fuente: ``tools`` es framework y
+        # no importa de ``addons``. El canon es
+        # ``ir_ui_view.VIEW_TYPE_TEMPLATE``, que documenta por qué este
+        # árbol escribe ``template`` donde la fuente escribe ``qweb``.
+        record.append(Field('template', name='type'))
         if 'track' in el.attrib:
             record.append(Field(el.get('track'), name='track'))
         if 'priority' in el.attrib:

@@ -110,7 +110,7 @@ class TestDjangoDidBringTheAlternative:
     def test_the_selection_label_comes_from_the_orm_not_from_the_converter(self):
         # Sobre un modelo REAL del arbol, no uno fabricado aqui: `IrUiView.type`
         # declara `VIEW_TYPE_CHOICES`, y el ORM le genera el descriptor.
-        assert IrUiView(type='qweb').get_type_display() == 'QWeb'
+        assert IrUiView(type='template').get_type_display() == 'Plantilla'
 
 
 class TestWhatTheTreeActuallyImports:
@@ -138,3 +138,53 @@ class TestTheFourteenThatFormatHereDoItWithoutQweb:
 
     def test_the_empty_value_comes_out_empty_not_as_none(self):
         assert ir_field_converters.IrFieldConverterDate.value_to_html(None) == ''
+
+
+class TestEachConverterDeclaresItsIdentity:
+    """El ``_name`` de la fuente, verbatim — :ref:`h-api-932`.
+
+    ``atributos-de-clase-de-modelo.md``: si la clase de la referencia declara
+    atributos de clase, se portan TODOS los que declare. Aqui declara
+    ``_name`` y ``_description`` en las 21, y este arbol declaraba cero.
+
+    El ``_name`` NO se traduce aunque la clase si: es la identidad de la
+    entidad en el porte, igual que ``SystemParameter`` con su
+    ``ir.config_parameter``. Ver DEC-FW-05.
+    """
+
+    #: El mapa de la fuente, por posicion y por sufijo. Se escribe aqui porque
+    #: es el contrato: si alguno cambia, este archivo lo dice.
+    NAME_BY_CLASS = {
+        'IrFieldConverter': 'ir.qweb.field',
+        'IrFieldConverterInteger': 'ir.qweb.field.integer',
+        'IrFieldConverterFloat': 'ir.qweb.field.float',
+        'IrFieldConverterDate': 'ir.qweb.field.date',
+        'IrFieldConverterDatetime': 'ir.qweb.field.datetime',
+        'IrFieldConverterText': 'ir.qweb.field.text',
+        'IrFieldConverterSelection': 'ir.qweb.field.selection',
+        'IrFieldConverterMany2one': 'ir.qweb.field.many2one',
+        'IrFieldConverterMany2many': 'ir.qweb.field.many2many',
+        'IrFieldConverterOne2many': 'ir.qweb.field.one2many',
+        'IrFieldConverterHtml': 'ir.qweb.field.html',
+        'IrFieldConverterImage': 'ir.qweb.field.image',
+        'IrFieldConverterImage_Url': 'ir.qweb.field.image_url',
+        'IrFieldConverterMonetary': 'ir.qweb.field.monetary',
+        'IrFieldConverterFloat_Time': 'ir.qweb.field.float_time',
+        'IrFieldConverterTime': 'ir.qweb.field.time',
+        'IrFieldConverterDuration': 'ir.qweb.field.duration',
+        'IrFieldConverterRelative': 'ir.qweb.field.relative',
+        'IrFieldConverterBarcode': 'ir.qweb.field.barcode',
+        'IrFieldConverterContact': 'ir.qweb.field.contact',
+        'IrFieldConverterTemplate': 'ir.qweb.field.qweb',
+    }
+
+    @pytest.mark.parametrize('cls_name,dotted', sorted(NAME_BY_CLASS.items()))
+    def test_the_dotted_name_is_the_one_of_the_source(self, cls_name, dotted):
+        assert getattr(ir_field_converters, cls_name)._name == dotted
+
+    @pytest.mark.parametrize('cls_name', sorted(NAME_BY_CLASS))
+    def test_it_also_declares_its_description(self, cls_name):
+        assert getattr(ir_field_converters, cls_name)._description
+
+    def test_the_map_covers_every_class_of_the_module(self):
+        assert set(classify()) == set(self.NAME_BY_CLASS)

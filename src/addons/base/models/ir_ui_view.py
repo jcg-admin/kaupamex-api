@@ -168,7 +168,42 @@ MOVABLE_BRANDING = [
 #: Los cuatro modificadores que una vista puede declarar sobre un campo.
 VIEW_MODIFIERS = ('column_invisible', 'invisible', 'readonly', 'required')
 
-#: Los ocho tipos de vista, verbatim de la fuente.
+#: El octavo tipo de vista **NO copia el valor de la fuente**, y es la única
+#: divergencia de los ocho: donde ``odoo19c: base/models/ir_ui_view.py:120``
+#: escribe ``('qweb', 'QWeb')``, aquí se escribe
+#: ``('template', 'Plantilla')`` (DEC-FW-05, pieza 5 de 8).
+#:
+#: **Por qué diverge.** Los otros siete nombran *qué es* la vista —lista,
+#: formulario, gráfica, tabla dinámica, calendario, kanban, búsqueda—. El
+#: octavo nombraba *su intérprete*. Es el mismo par (intérprete, cosa) que
+#: ``report_type`` ya resolvió en ``ir_actions_report.py:146-152``: allí el
+#: prefijo ``qweb-`` se retiró porque *"afirmaría un sustrato que este árbol
+#: no tiene"*. Aquí el par no tiene segundo término: el valor **era** el
+#: intérprete y nada más.
+#:
+#: **Por qué ``template`` y no otra palabra — no se inventa.** Es el nombre
+#: que la propia referencia usa en la superficie que un humano escribe: su
+#: azúcar XML es ``<template id="...">``, con manejador ``_tag_template``
+#: (``odoo19c: odoo/tools/convert.py:469,655``), y sólo el valor almacenado
+#: dice ``qweb``. Nuestro ``tools/convert.py`` hace la misma sustitución. El
+#: renombre no cambia el concepto: alinea el dato con el nombre que la fuente
+#: ya le da donde se escribe.
+#:
+#: **Qué es este tipo, medido por sus tres consumidores** — es el único que:
+#: (a) el registro de vistas del cliente **excluye** (``addons/web``, porque
+#: no es una vista que el cliente dibuje); (b) **exige clave**, porque se
+#: resuelve por clave y no por (modelo, tipo) — la restricción de abajo; y
+#: (c) puede llevar contraseña de visibilidad en ``addons/website``, porque
+#: es una página servida. Los tres describen lo mismo: una **plantilla de
+#: documento**, no una disposición de interfaz.
+#:
+#: **Lo que el stack aporta para hacerlo** (criterio de las dos categorías):
+#: TRAE el mecanismo entero y no hay nada que construir — ``choices`` del
+#: ``CharField``, ``AlterField`` y ``RunPython`` para renombrar el dato ya
+#: guardado, y ``CheckConstraint`` para la restricción. El renombre es
+#: cableado, no construcción; por eso su costo no es argumento para
+#: conservar el valor viejo.
+VIEW_TYPE_TEMPLATE = 'template'
 VIEW_TYPE_CHOICES = [
     ('list', 'Lista'),
     ('form', 'Formulario'),
@@ -177,7 +212,7 @@ VIEW_TYPE_CHOICES = [
     ('calendar', 'Calendario'),
     ('kanban', 'Kanban'),
     ('search', 'Búsqueda'),
-    ('qweb', 'QWeb'),
+    (VIEW_TYPE_TEMPLATE, 'Plantilla'),
 ]
 
 MODE_PRIMARY = 'primary'
@@ -289,10 +324,11 @@ class IrUiView(TimeStampedModel):
                 ),
                 name='ir_ui_view_inheritance_mode',
             ),
-            # ``_qweb_required_key``: una vista QWeb necesita su clave.
+            # ``_qweb_required_key``: una vista de plantilla necesita su
+            # clave — es el único tipo que se resuelve por clave.
             models.CheckConstraint(
-                condition=~models.Q(type='qweb') | ~models.Q(key=''),
-                name='ir_ui_view_qweb_required_key',
+                condition=~models.Q(type=VIEW_TYPE_TEMPLATE) | ~models.Q(key=''),
+                name='ir_ui_view_template_required_key',
             ),
         ]
         indexes = [

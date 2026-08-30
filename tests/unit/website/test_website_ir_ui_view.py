@@ -229,7 +229,7 @@ def _make_website(slug='p565'):
 def _make_view(key='website.vista-565', **overrides):
     values = {
         'name': 'Vista 565',
-        'type': 'qweb',
+        'type': 'template',
         'key': key,
         'arch_db': '<t><div id="wrap"/></t>',
     }

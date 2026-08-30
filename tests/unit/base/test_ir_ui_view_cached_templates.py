@@ -17,7 +17,7 @@ from orm.environments import context_scope
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 
-def make_view(name, *, key=None, view_type='qweb', priority=16, active=True):
+def make_view(name, *, key=None, view_type='template', priority=16, active=True):
     """Una vista mínima; ``key`` por defecto deriva del nombre (QWeb la exige)."""
     if key is None:
         key = f'test.{name}'

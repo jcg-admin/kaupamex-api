@@ -215,4 +215,4 @@ class TestTheOneThatIsNotOfTheEngine:
         assert hasattr(timesince, 'timeuntil')
 
     def test_the_selection_label_comes_from_the_orm_not_from_a_converter(self):
-        assert IrUiView(type='qweb').get_type_display() == 'QWeb'
+        assert IrUiView(type='template').get_type_display() == 'Plantilla'

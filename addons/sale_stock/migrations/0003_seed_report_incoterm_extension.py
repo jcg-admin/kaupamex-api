@@ -33,6 +33,9 @@ def seed_extension(apps, schema_editor):
         return
     IrUiView.objects.using(alias).create(
         name='Incoterm en la orden de venta (sale_stock)',
+        # El valor va CONGELADO: una migración escribe sobre el modelo
+        # histórico, y el renombre a ``template`` lo aplica ``base/0070``
+        # sobre las filas ya escritas.
         type='qweb', key=REPORT_INCOTERM_KEY,
         mode='extension', active=True,
         inherit_id=primary,
