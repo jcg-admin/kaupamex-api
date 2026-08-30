@@ -196,7 +196,7 @@ from collections import defaultdict
 import fields
 import models
 from django.apps import apps
-from django.core.exceptions import ValidationError
+from django.core.exceptions import FieldDoesNotExist, ValidationError
 
 from addons.base.models.ir_module import IrModule
 from addons.base.models.ir_ui_view import IrUiView
@@ -208,7 +208,8 @@ from orm import registry
 from orm.environments import get_current_user, is_su, is_system
 from orm.fields import __all__ as _FIELD_NAMES
 from orm.models import MAGIC_COLUMNS
-from orm.utils import check_object_name
+from orm.utils import check_object_name, check_pg_name
+from tools.safe_eval import safe_eval
 from tools.cache import ormcache
 from tools.misc import OrderedSet, split_every
 
@@ -268,6 +269,32 @@ DJANGO_TYPE_TO_TTYPE = {
 #: nombre de cada campo de una cláusula de orden ya validada, para comprobar
 #: uno por uno que existan y estén almacenados.
 RE_ORDER_FIELDS = re.compile(r'"?(\w+)"?\s*(?:asc|desc)?', flags=re.I)
+
+def _model_class(model_label):
+    """≙ ``self.env[model]`` — la clase de ese nombre, o ``None``.
+
+    La fuente indexa el entorno, que conoce todos los modelos por su ``_name``.
+    Aquí se consulta el registro por nombre de la referencia (``orm.registry``)
+    con respaldo en el de Django, porque un modelo propio del L0 no declara
+    ``_name`` y sólo se alcanza por su etiqueta ``app.Modelo``. Devuelve
+    ``None`` en vez de levantar: los sitios que lo consumen difieren en qué
+    hacer con un modelo desaparecido —uno sigue, otro registra, otro
+    devuelve— y esa decisión es de cada uno.
+
+    Símbolo **nuestro**: la fuente no lo necesita porque su entorno ya es el
+    índice. Vive a nivel de módulo y no colgado de una clase porque lo
+    consumen cuatro de ellas —``ir.model.fields``, su selección,
+    ``ir.model.data`` y ``ir.model``—; colgarlo de una obligaría a las otras
+    tres a nombrarla para llegar a él.
+    """
+    model_cls = registry.MODELS_BY_NAME.get(model_label)
+    if model_cls is not None:
+        return model_cls
+    try:
+        return apps.get_model(model_label)
+    except (LookupError, ValueError):
+        return None
+
 
 STATE_MANUAL = 'manual'
 STATE_BASE = 'base'
@@ -772,7 +799,7 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         return created, updated
 
 
-class IrModelFields(TimeStampedModel):
+class IrModelFields(models.OriginMixin, TimeStampedModel):
     """``ir.model.fields`` — una fila por campo."""
 
     #: Los cinco atributos de ORM de ``odoo19c: ir_model.py:509-513``,
@@ -973,14 +1000,532 @@ class IrModelFields(TimeStampedModel):
         """``_in_modules`` — la app que declara el campo."""
         return self.model.split('.', 1)[0] if '.' in self.model else ''
 
-    def clean(self):
-        """``_check_name`` — el identificador cabe en el motor."""
-        super().clean()
-        if not re.fullmatch(r'\w{1,63}', self.name or ''):
+    # -- restricciones -------------------------------------------------------
+    #
+    # La fuente las declara con ``@api.constrains``, que su ORM dispara al
+    # escribir; aquí el disparador equivalente es :meth:`clean`, y por eso
+    # delega en vez de llevar el cuerpo. Los nombres son los de la fuente para
+    # que cada una se pueda llamar y probar por separado, como allá.
+
+    def _check_name(self):
+        """El identificador cabe en el motor — ``_check_name``.
+
+        ≙ ``odoo19c: ir_model.py:641-647``. La fuente delega en
+        ``models.check_pg_name`` y reenvasa su ``ValidationError`` con un
+        mensaje propio; aquí ``check_pg_name`` es el mismo de ``orm.utils``.
+        """
+        try:
+            check_pg_name(self.name or '')
+        except ValidationError:
             raise ValidationError(
                 'Los nombres de campo sólo pueden contener letras, dígitos y '
-                'guiones bajos (hasta 63 caracteres).'
-            )
+                'guiones bajos (hasta 63 caracteres).')
+
+    def _check_domain(self):
+        """El dominio evalúa — ``_check_domain`` (``odoo19c: :631-638``).
+
+        La fuente lo pasa por ``safe_eval``, que es el mismo evaluador acotado
+        que este árbol ya tiene portado (``tools.safe_eval``, tarea #140).
+        """
+        try:
+            safe_eval(self.domain or '[]')
+        except ValueError as error:
+            raise ValidationError(
+                'Ocurrió un error al evaluar el dominio:\n%s' % error)
+
+    def _check_relation(self):
+        """El modelo relacionado existe — ``_check_relation`` (``odoo19c: :728-731``).
+
+        Sólo sobre un campo personalizado: uno declarado en Python ya tiene su
+        relación resuelta por el propio ORM.
+        """
+        if (self.state == STATE_MANUAL and self.relation
+                and not IrModel._get_id(self.relation)):
+            raise ValidationError(
+                "Nombre de modelo desconocido '%s' en Modelo relacionado"
+                % self.relation)
+
+    def _check_relation_table(self):
+        """La tabla intermedia es un identificador válido — ``_check_relation_table``.
+
+        ≙ ``odoo19c: :769-772``.
+        """
+        if self.relation_table:
+            check_pg_name(self.relation_table)
+
+    def _check_on_delete_required_m2o(self):
+        """≙ ``_check_on_delete_required_m2o`` (``odoo19c: :835-841``).
+
+        Un Many2one requerido no puede declarar ``set null``: la política se
+        contradice con la obligatoriedad. Mensaje de la fuente, verbatim:
+        *"Only 'restrict' and 'cascade' make sense"*.
+        """
+        if (self.ttype == 'many2one' and self.required
+                and self.on_delete == 'set null'):
+            raise ValidationError(
+                'El campo m2o %s es requerido pero declara su política de '
+                "borrado como 'set null'. Sólo 'restrict' y 'cascade' tienen "
+                'sentido.' % self.name)
+
+    def _check_currency_field(self):
+        """El campo de moneda de un monetario — ``_check_currency_field``.
+
+        ≙ ``odoo19c: :775-790``, con sus cuatro rechazos y su respaldo: sin
+        ``currency_field`` declarado busca ``currency_id`` y luego
+        ``x_currency_id`` en el mismo modelo, y si no hay ninguno rechaza.
+        """
+        if self.state != STATE_MANUAL or self.ttype != 'monetary':
+            return
+        cls = type(self)
+        if not self.currency_field:
+            currency_field = (cls._get(self.model, 'currency_id')
+                              or cls._get(self.model, 'x_currency_id'))
+            if currency_field is None:
+                raise ValidationError(
+                    'El campo de moneda está vacío y el modelo no tiene un '
+                    'campo de respaldo')
+        else:
+            currency_field = cls._get(self.model, self.currency_field)
+            if currency_field is None:
+                raise ValidationError(
+                    'Campo desconocido "%s" en currency_field'
+                    % self.currency_field)
+        if currency_field.ttype != 'many2one':
+            raise ValidationError('El campo de moneda no es de tipo many2one')
+        if currency_field.relation != 'res.currency':
+            raise ValidationError(
+                'El campo de moneda debe relacionar con res.currency')
+
+    def _check_related(self):
+        """El campo relacionado coincide en tipo y comodelo — ``_check_related``.
+
+        ≙ ``odoo19c: :692-707``. Resuelve la ruta con :meth:`_related_field` y
+        compara las dos cosas que la fuente compara: el tipo y el modelo
+        relacionado.
+        """
+        if self.state != STATE_MANUAL or not self.related:
+            return
+        field = self._related_field()
+        if field.ttype != self.ttype:
+            raise ValidationError(
+                'El campo relacionado "%s" no es de tipo "%s"'
+                % (self.related, self.ttype))
+        if field.relation != self.relation:
+            raise ValidationError(
+                'El campo relacionado "%s" no tiene el comodelo "%s"'
+                % (self.related, self.relation))
+
+    def _check_depends(self):
+        """Las dependencias de un cómputo son válidas — ``_check_depends``.
+
+        Docstring de la fuente, verbatim: *"Check whether all fields in
+        dependencies are valid"* (``odoo19c: :734-761``). Sus cuatro rechazos
+        se conservan: dependencia vacía, ``id``, campo desconocido, y un campo
+        no relacional en medio de una ruta.
+
+        La fuente recorre ``model._fields``; aquí el registro de campos es el
+        de Django, y el paso de un tramo al siguiente es la clase relacionada
+        del ``ForeignKey``.
+        """
+        if not self.depends:
+            return
+        for sequence in self.depends.split(','):
+            if not sequence.strip():
+                raise UserError('Dependencia vacía en "%s"' % self.depends)
+            model_cls = _model_class(self.model)
+            if model_cls is None:
+                continue
+            names = sequence.strip().split('.')
+            last = len(names) - 1
+            for index, name in enumerate(names):
+                if name == 'id':
+                    raise UserError(
+                        "El método de cómputo no puede depender del campo 'id'")
+                try:
+                    field = model_cls._meta.get_field(name)
+                except FieldDoesNotExist:
+                    raise UserError(
+                        'Campo desconocido "%s" en la dependencia "%s"'
+                        % (name, sequence.strip()))
+                related_model = getattr(field, 'related_model', None)
+                if index < last and related_model is None:
+                    raise UserError(
+                        'Campo no relacional "%s" en la dependencia "%s"'
+                        % (name, sequence.strip()))
+                model_cls = related_model
+
+    def clean(self):
+        """Enganche de Django — corre las siete restricciones de la fuente."""
+        super().clean()
+        self._check_name()
+        self._check_domain()
+        self._check_relation()
+        self._check_relation_table()
+        self._check_on_delete_required_m2o()
+        self._check_currency_field()
+        self._check_related()
+        self._check_depends()
+
+    # -- resolución y consulta ----------------------------------------------
+
+    @classmethod
+    def _is_manual_name(cls, name):
+        """¿Es el nombre de un campo personalizado? — ``_is_manual_name``.
+
+        ≙ ``odoo19c: ir_model.py:1357-1358``. La fuente lo declara aquí **y**
+        en ``IrModel`` (``:495``); las dos clases lo llevan.
+        """
+        return name.startswith('x_')
+
+    @classmethod
+    def _get(cls, model_name, name):
+        """La fila de un campo, o ``None`` — ``_get``.
+
+        Docstring de la fuente, verbatim: *"Return the (sudoed) `ir.model.fields`
+        record with the given model and name. The result may be an empty
+        recordset if the model is not found"* (``odoo19c: :843-848``).
+
+        El conjunto vacío de allá es aquí ``None``, igual que en
+        ``IrModel._get``.
+        """
+        field_id = cls._get_ids(model_name).get(name)
+        return cls.objects.filter(pk=field_id).first() if field_id else None
+
+    @classmethod
+    @ormcache('model_name', cache='stable')
+    def _get_ids(cls, model_name):
+        """``{nombre: id}`` de los campos de un modelo — ``_get_ids``.
+
+        ≙ ``odoo19c: :851-854``, memorizado como allá. Lo vacía
+        :meth:`save`/:meth:`delete`, por la misma razón que la ACL vacía la
+        suya: una fila nueva no se resolvería por nombre hasta reiniciar.
+        """
+        return dict(cls.objects.filter(model=model_name)
+                    .values_list('name', 'id'))
+
+    @classmethod
+    def _get_fields_cached(cls, model_name):
+        """Los campos de un modelo, por nombre — ``_get_fields_cached``.
+
+        ≙ ``odoo19c: :1399-1419``. La fuente memoriza la **fila entera** para
+        que ``get_field_string``, ``get_field_help`` y ``get_field_selection``
+        no consulten una vez por campo. Aquí devuelve el diccionario
+        ``{nombre: fila}``, que es lo que esos tres consumen.
+        """
+        return {row.name: row for row in cls.objects.filter(model=model_name)}
+
+    @classmethod
+    def get_field_string(cls, model_name):
+        """``{nombre: etiqueta}`` de los campos de un modelo — ``get_field_string``.
+
+        Docstring de la fuente, verbatim: *"Return the translation of fields
+        strings in the context's language"* (``odoo19c: :1361-1371``). Aquí no
+        hay eje de traducción todavía (tarea **#184**), así que devuelve la
+        etiqueta guardada.
+        """
+        return {name: row.field_description
+                for name, row in cls._get_fields_cached(model_name).items()}
+
+    @classmethod
+    def get_field_help(cls, model_name):
+        """``{nombre: ayuda}`` — ``get_field_help`` (``odoo19c: :1374-1384``)."""
+        return {name: row.help
+                for name, row in cls._get_fields_cached(model_name).items()}
+
+    @classmethod
+    def get_field_selection(cls, model_name, field_name):
+        """Los pares de un campo Selection — ``get_field_selection``.
+
+        ≙ ``odoo19c: :1387-1395``. Delega en
+        :meth:`IrModelFieldsSelection._get_selection`, que es donde vive la
+        consulta ordenada.
+        """
+        row = cls._get(model_name, field_name)
+        if row is None:
+            return []
+        return IrModelFieldsSelection._get_selection(row.pk)
+
+    def _related_field(self):
+        """La fila del campo al que apunta ``related`` — ``_related_field``.
+
+        Docstring de la fuente, verbatim: *"Return the ``ir.model.fields``
+        record corresponding to ``self.related``"* (``odoo19c: :656-689``).
+
+        Sus tres rechazos se conservan y son lo que hace útil al método:
+        nombre desconocido, tramo intermedio no relacional, y tramo intermedio
+        no consultable. El tercero la fuente lo condiciona a que su registro
+        esté listo; aquí el registro de Django siempre lo está, y la condición
+        equivalente es que el campo esté almacenado.
+        """
+        names = self.related.split('.')
+        last = len(names) - 1
+        model_name = self.model or (self.model_id and self.model_id.model)
+        field = None
+        for index, name in enumerate(names):
+            field = type(self)._get(model_name, name)
+            if field is None:
+                raise UserError(
+                    'Nombre de campo desconocido "%s" en el campo relacionado '
+                    '"%s"' % (name, self.related))
+            if index < last and not field.relation:
+                raise UserError(
+                    'Campo no relacional "%s" en el campo relacionado "%s"'
+                    % (name, self.related))
+            if index < last and not field.store:
+                raise UserError(
+                    'El campo "%s" de la ruta relacionada "%s" no es '
+                    'consultable. Un campo no consultable no se puede usar en '
+                    'un campo relacionado.' % (name, self.related))
+            model_name = field.relation
+        return field
+
+    @classmethod
+    def _custom_many2many_names(cls, model_name, comodel_name):
+        """Nombres por defecto de la tabla y columnas de un M2M personalizado.
+
+        Docstring de la fuente, verbatim: *"Return default names for the table
+        and columns of a custom many2many field"* (``odoo19c: :793-801``). Su
+        forma se conserva entera, incluido el caso reflexivo: cuando las dos
+        tablas coinciden las columnas son ``id1``/``id2``.
+        """
+        first = _model_class(model_name)
+        second = _model_class(comodel_name)
+        if first is None or second is None:
+            raise ValueError(
+                'No se pueden componer los nombres del M2M: %s o %s no está '
+                'en el registro' % (model_name, comodel_name))
+        rel1, rel2 = first._meta.db_table, second._meta.db_table
+        table = 'x_%s_%s_rel' % tuple(sorted([rel1, rel2]))
+        if rel1 == rel2:
+            return table, 'id1', 'id2'
+        return table, '%s_id' % rel1, '%s_id' % rel2
+
+    # -- computes ------------------------------------------------------------
+
+    def _compute_copied(self):
+        """``copied`` — ≙ ``_compute_copied`` (``odoo19c: :617-619``).
+
+        Un One2many no se copia, ni un campo derivado (relacionado o
+        calculado): su valor lo produce otra cosa.
+        """
+        return (self.ttype != 'one2many'
+                and not (self.related or self.compute))
+
+    def _compute_relation_field_id(self):
+        """``relation_field_id`` — ≙ ``odoo19c: :588-593``."""
+        if self.state == STATE_MANUAL and self.relation_field:
+            return type(self)._get(self.relation, self.relation_field)
+        return None
+
+    def _compute_related_field_id(self):
+        """``related_field_id`` — ≙ ``odoo19c: :596-601``."""
+        if self.state == STATE_MANUAL and self.related:
+            return self._related_field()
+        return None
+
+    def _in_modules(self):
+        """``modules`` — ≙ ``_in_modules`` (``odoo19c: :622-628``).
+
+        Nombre de la fuente para el cómputo cuya superficie de lectura es la
+        propiedad :attr:`modules`.
+        """
+        return self.model_id.django_model._meta.app_label \
+            if self.model_id and self.model_id.django_model else ''
+
+    # -- onchange ------------------------------------------------------------
+    #
+    # La fuente los dispara desde su cliente web al editar el formulario; aquí
+    # no hay tal cliente, así que son métodos corrientes que el llamador
+    # invoca. Se portan por su nombre y su conducta: rellenan campos derivados
+    # a partir del que cambió, y devuelven el aviso cuando algo no cuadra.
+
+    def _onchange_related(self):
+        """≙ ``_onchange_related`` (``odoo19c: :710-718``).
+
+        Copia tipo y comodelo desde el campo apuntado, y marca sólo lectura.
+        Devuelve el aviso de la fuente en vez de propagar el error.
+        """
+        if not self.related:
+            return None
+        try:
+            field = self._related_field()
+        except UserError as error:
+            return {'warning': {'title': 'Advertencia', 'message': str(error)}}
+        self.ttype = field.ttype
+        self.relation = field.relation
+        self.readonly = True
+        return None
+
+    def _onchange_relation(self):
+        """≙ ``_onchange_relation`` (``odoo19c: :721-725``)."""
+        try:
+            self._check_relation()
+        except ValidationError as error:
+            return {'warning': {
+                'title': 'El modelo %s no existe' % self.relation,
+                'message': str(error)}}
+        return None
+
+    def _onchange_compute(self):
+        """≙ ``_onchange_compute`` (``odoo19c: :764-766``)."""
+        if self.compute:
+            self.readonly = True
+        return None
+
+    def _onchange_ttype(self):
+        """≙ ``_onchange_ttype`` (``odoo19c: :804-813``).
+
+        Rellena los tres nombres del M2M al elegir el tipo, y los limpia
+        cuando el tipo deja de serlo.
+        """
+        if self.ttype == 'many2many' and self.model_id and self.relation:
+            if _model_class(self.relation) is None:
+                return None
+            names = type(self)._custom_many2many_names(
+                self.model_id.model, self.relation)
+            self.relation_table, self.column1, self.column2 = names
+        else:
+            self.relation_table = ''
+            self.column1 = ''
+            self.column2 = ''
+        return None
+
+    def _onchange_relation_table(self):
+        """≙ ``_onchange_relation_table`` (``odoo19c: :816-832``).
+
+        Comentario de la fuente, verbatim: *"check whether other fields use the
+        same table"*. Si el otro campo es el inverso, las columnas se cruzan;
+        si no lo es, avisa — dos M2M sobre la misma tabla con columnas
+        distintas se pisan.
+        """
+        if not self.relation_table:
+            return None
+        others = type(self).objects.filter(
+            ttype='many2many', relation_table=self.relation_table,
+        ).exclude(pk=self.pk)
+        if not others.exists():
+            return None
+        for other in others:
+            if (other.model, other.relation) == (self.relation, self.model):
+                self.column1 = other.column2
+                self.column2 = other.column1
+                return None
+        return {'warning': {
+            'title': 'Advertencia',
+            'message': 'La tabla "%s" la usa otro campo, posiblemente '
+                       'incompatible.' % self.relation_table}}
+
+    def _prepare_update(self):
+        """¿Se puede modificar o quitar este campo? — ``_prepare_update``.
+
+        Docstring de la fuente, verbatim: *"Check whether the fields in ``self``
+        may be modified or removed. This method prevents the
+        modification/deletion of many2one fields that have an inverse
+        one2many, for instance"* (``odoo19c: ir_model.py:891-978``).
+
+        Se portan sus **dos guardas**, que son lo que el método decide:
+
+        1. **Una columna de módulo no se quita.** Mensaje de la fuente,
+           verbatim: *"This column contains module data and cannot be
+           removed!"*.
+        2. **Un campo del que otro depende no se quita.** La fuente lo resuelve
+           con su grafo de dependencias (``get_dependent_fields``,
+           ``field_inverses``); aquí el grafo equivalente es
+           ``_meta.related_objects`` de Django, que es quien sabe qué relación
+           inversa apunta a este campo.
+
+        DIVERGENCIA DE MECANISMO, la de la cabecera del módulo: el resto del
+        cuerpo de la fuente —sacar el campo del registro con ``pop_field``,
+        revisar que las vistas no queden rotas, y recargar el registro— es
+        maquinaria de campos manuales. Django construye su registro al importar
+        y lo congela; no hay campo que sacar ni registro que recargar.
+        """
+        if self.state != STATE_MANUAL:
+            raise UserError(
+                'Esta columna contiene datos de módulo y no se puede quitar.')
+        model_cls = _model_class(self.model)
+        if model_cls is None:
+            return self
+        try:
+            field = model_cls._meta.get_field(self.name)
+        except FieldDoesNotExist:
+            return self
+        for relation in model_cls._meta.related_objects:
+            if relation.field is not field and relation.remote_field is field:
+                raise UserError(
+                    "El campo '%s' no se puede quitar porque el campo '%s' "
+                    'depende de él.'
+                    % (self.name, relation.get_accessor_name()))
+        return self
+
+    def save(self, *args, **kwargs):
+        """Enganche de Django — ≙ ``create`` (``:1020-1061``) y ``write`` (``:1063-1152``).
+
+        De los dos caminos se portan las guardas, que son su mitad sustantiva:
+
+        - al **crear**, el modelo relacionado de un campo personalizado tiene
+          que existir (*"Model %s does not exist!"*), y un One2many almacenado
+          exige el Many2one inverso que lo sostiene;
+        - al **escribir**, un campo base no se altera por esta vía, su modelo
+          no se cambia, y su tipo tampoco — *"Changing the type of a field is
+          not yet supported. Please drop it and create it again!"*.
+
+        Y la invalidación que la fuente hace explícita con su comentario *"for
+        self._get_ids() in _update_selection()"*: sin ella, un campo nuevo no
+        se resuelve por nombre hasta reiniciar.
+
+        DIVERGENCIA DE MECANISMO, declarada: las recargas del registro y la
+        actualización del esquema (``_setup_models__``, ``init_models``) no
+        tienen receptor, y el renombre de columna que la fuente emite recae
+        sobre el esquema vivo, que aquí gobiernan las migraciones.
+        """
+        creating = self._state.adding
+        if creating:
+            if self.model_id_id and not self.model:
+                self.model = self.model_id.model
+            if self.state == STATE_MANUAL:
+                if self.relation and not IrModel._get_id(self.relation):
+                    raise UserError(
+                        '¡El modelo %s no existe!' % self.relation)
+                if (self.ttype == 'one2many' and self.store
+                        and not self.related
+                        and not type(self).objects.filter(
+                            ttype='many2one', model=self.relation,
+                            name=self.relation_field).exists()):
+                    raise UserError(
+                        '¡El Many2one %s del modelo %s no existe!'
+                        % (self.relation_field, self.relation))
+        else:
+            previous = self._origin
+            if previous is not None:
+                if previous.state != STATE_MANUAL:
+                    raise UserError(
+                        'Las propiedades de un campo base no se alteran por '
+                        'esta vía. Modifícalas en código Python, '
+                        'preferentemente en un addon propio.')
+                if self.model_id_id != previous.model_id_id:
+                    raise UserError(
+                        '¡Cambiar el modelo de un campo está prohibido!')
+                if self.ttype != previous.ttype:
+                    raise UserError(
+                        'Cambiar el tipo de un campo no está soportado. '
+                        'Bórralo y créalo de nuevo.')
+        result = super().save(*args, **kwargs)
+        registry.clear_cache('stable')
+        return result
+
+    def delete(self, *args, **kwargs):
+        """Enganche de Django — ≙ ``unlink`` (``:980-1017``).
+
+        La fuente antepone :meth:`_prepare_update`, y aquí igual: es la guarda
+        que impide quitar una columna de módulo o un campo del que otro
+        depende. El ``_drop_column`` que sigue es la divergencia de DDL ya
+        declarada — el esquema lo gobiernan las migraciones.
+        """
+        self._prepare_update()
+        result = super().delete(*args, **kwargs)
+        registry.clear_cache('stable')
+        return result
 
     @staticmethod
     def ttype_for(field):
@@ -1041,19 +1586,41 @@ class IrModelFields(TimeStampedModel):
 
         La fila de cada campo la arma ``_reflect_field_params``, que es el
         enganche; este método sólo recorre y escribe.
+
+        **Escribe sin pasar por :meth:`save`**, y esa es la equivalencia
+        exacta: la fuente refleja con ``upsert_en`` —SQL crudo— precisamente
+        para no pasar por la guarda de ``write``, que es del camino
+        interactivo. El reflejo escribe filas de campos **base**, y por esa vía
+        la guarda lo prohibiría. Aquí ``bulk_create`` y ``update`` son los dos
+        escritores de Django que no llaman al enganche.
         """
         model = model_row.django_model
         if model is None:
             return 0, 0
         created = updated = 0
+        existing = dict(cls.objects.filter(model=model_row.model)
+                        .values_list('name', 'id'))
+        nuevas = []
         for field in model._meta.get_fields():
             if field.auto_created and not field.concrete:
                 continue
-            values = cls._reflect_field_params(field, model_row)
-            _row, was_created = cls.objects.update_or_create(
-                model=model_row.model, name=field.name, defaults=values)
-            created += was_created
-            updated += not was_created
+            values = dict(cls._reflect_field_params(field, model_row))
+            # ``_reflect_field_params`` puede traer ya ``model`` y ``name`` —el
+            # enganche es libre de fijarlos—, así que se imponen aquí en vez de
+            # pasarlos aparte: de lo contrario el constructor recibe el mismo
+            # argumento dos veces.
+            values['model'] = model_row.model
+            values['name'] = field.name
+            row_id = existing.get(field.name)
+            if row_id is None:
+                nuevas.append(cls(**values))
+                created += 1
+            else:
+                cls.objects.filter(pk=row_id).update(**values)
+                updated += 1
+        if nuevas:
+            cls.objects.bulk_create(nuevas)
+        registry.clear_cache('stable')
         return created, updated
 
 
@@ -1313,7 +1880,7 @@ class IrModelFieldsSelection(models.OriginMixin, TimeStampedModel):
         por el descriptor, así que el filtro es el del ORM y la bifurcación no
         hace falta.
         """
-        model_cls = type(self)._model_class(self.field_id.model)
+        model_cls = _model_class(self.field_id.model)
         if model_cls is None:
             return None
         return model_cls.objects.using(using).filter(
@@ -2090,7 +2657,7 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
         complete_name = self._compute_complete_name()
         if not self.res_id or not self.model:
             return complete_name
-        model_cls = type(self)._model_class(self.model)
+        model_cls = _model_class(self.model)
         if model_cls is None:
             return complete_name
         try:
@@ -2221,7 +2788,7 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
         acceso — el mismo mecanismo que la fuente usa con su ``search``.
         """
         model_label, res_id = cls._xmlid_lookup(f'{module}.{xml_id}', using=using)
-        model_cls = cls._model_class(model_label)
+        model_cls = _model_class(model_label)
         if model_cls is None:
             raise ValueError(f'Model {model_label!r} is not loaded')
         if model_cls.objects.using(using).filter(pk=res_id).exists():
@@ -2453,26 +3020,6 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
             registry.loaded_xmlids.add(xml_id)
         return record
 
-    @staticmethod
-    def _model_class(model_label):
-        """≙ ``self.env[model]`` — la clase de ese nombre, o ``None``.
-
-        La fuente indexa el entorno, que conoce todos los modelos por su
-        ``_name``. Aquí se consulta el registro por nombre de la referencia
-        (``orm.registry``) con respaldo en el de Django, porque un modelo
-        propio del L0 no declara ``_name`` y sólo se alcanza por su etiqueta
-        ``app.Modelo``. Devuelve ``None`` en vez de levantar: los cinco sitios
-        que lo consumen difieren en qué hacer con un modelo desaparecido —uno
-        sigue, otro registra, otro devuelve— y esa decisión es de cada uno.
-        """
-        model_cls = registry.MODELS_BY_NAME.get(model_label)
-        if model_cls is not None:
-            return model_cls
-        try:
-            return apps.get_model(model_label)
-        except (LookupError, ValueError):
-            return None
-
     @classmethod
     def toggle_noupdate(cls, model, res_id, using=DEFAULT_DB_ALIAS):
         """≙ ``toggle_noupdate`` (``odoo19c: ir_model.py:2713-2717``).
@@ -2498,7 +3045,7 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
         Invierte **todas** las filas que nombren el registro, como la fuente:
         un mismo registro puede llevar identificador de más de un módulo.
         """
-        target = cls._model_class(model)
+        target = _model_class(model)
         if target is not None:
             models.AccessQuerySet(model=target, using=using).filter(
                 pk=res_id).check_access('write')
@@ -2554,7 +3101,7 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
         for row_id, xmlid, model_label, res_id in rows:
             if xmlid in registry.loaded_xmlids:
                 continue
-            model_cls = cls._model_class(model_label)
+            model_cls = _model_class(model_label)
             if model_cls is None:
                 continue
             record = model_cls.objects.using(using).filter(pk=res_id).first()
@@ -2635,7 +3182,7 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
                     delete(model_cls, ids[half:])
 
         for model_label, ids in ids_by_model.items():
-            model_cls = cls._model_class(model_label)
+            model_cls = _model_class(model_label)
             if model_cls is None:
                 _logger.info(
                     "Orphan ir.model.data records %s refer to unavailable "

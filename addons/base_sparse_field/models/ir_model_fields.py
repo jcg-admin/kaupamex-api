@@ -257,20 +257,27 @@ def reflect_sparse_fields(cls, model_row):
                 'state': STATE_BASE,
             },
         )
-        _fila, fue_creada = cls.objects.update_or_create(
-            model=model_row.model, name=name,
-            defaults={
-                'model_id': model_row,
-                'ttype': _ttype_of_sparse(descriptor),
-                'field_description': name,
-                'help': descriptor.help_text or '',
-                'store': False,
-                'state': STATE_BASE,
-                'serialization_field_id': fila_contenedor,
-            },
-        )
-        creados += fue_creada
-        actualizados += not fue_creada
+        valores = {
+            'model_id': model_row,
+            'ttype': _ttype_of_sparse(descriptor),
+            'field_description': name,
+            'help': descriptor.help_text or '',
+            'store': False,
+            'state': STATE_BASE,
+            'serialization_field_id': fila_contenedor,
+        }
+        # Sin pasar por ``save``: estas filas describen campos **base**, y la
+        # guarda de escritura de ``IrModelFields`` cierra esa vía —igual que la
+        # de la fuente—. El reflejo es el otro camino, el que allá escribe con
+        # ``upsert_en``; ``update`` y ``bulk_create`` son sus equivalentes.
+        actualizadas = cls.objects.filter(
+            model=model_row.model, name=name).update(**valores)
+        if actualizadas:
+            actualizados += 1
+        else:
+            cls.objects.bulk_create([
+                cls(model=model_row.model, name=name, **valores)])
+            creados += 1
     return creados, actualizados
 
 

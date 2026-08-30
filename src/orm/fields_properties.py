@@ -65,7 +65,7 @@ def _model_of(model_name):
     La fuente indexa el entorno, que conoce todo modelo por su ``_name``, y usa
     ``modelo in env`` como comprobación de existencia. Aquí se consulta el
     registro por nombre de la referencia con respaldo en el de Django, igual
-    que ``IrModelData._model_class``: un modelo propio del L0 no declara
+    que ``ir_model._model_class``: un modelo propio del L0 no declara
     ``_name`` y sólo se alcanza por su etiqueta ``app.Modelo``.
     """
     if not model_name:

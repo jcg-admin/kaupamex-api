@@ -172,7 +172,7 @@ from contextlib import contextmanager
 from collections import OrderedDict
 
 from addons.base.models.ir_config_parameter import SystemParameter
-from addons.base.models.ir_model import IrModelData
+from addons.base.models.ir_model import IrModelData, _model_class
 from addons.base.models.res_groups import ResGroups
 from exceptions import AccessError, UserError, ValidationError
 from orm import registry
@@ -1142,14 +1142,14 @@ class IrActionsReport(IrActionsBase):
         ≙ ``_get_rendering_context_model`` (``:1121-1123``):
         ``self.env.get('report.%s' % report.report_name)``. El ``env.get`` de
         la fuente —que devuelve ``None`` si el modelo no está— es aquí
-        ``IrModelData._model_class``, con el mismo contrato de ausencia y con
+        ``ir_model._model_class``, con el mismo contrato de ausencia y con
         las **dos** vías de resolución que este árbol necesita: el ``_name`` de
         la referencia y, como respaldo, la etiqueta ``app.Modelo`` de Django.
         La segunda no es adorno — ``ir.actions.report.model`` guarda hoy la
         etiqueta (``'sale.SaleOrder'``), no el ``_name``, y sin ese respaldo el
         contexto de dibujado salía con ``docs`` vacío y el PDF sin páginas.
         """
-        return IrModelData._model_class('report.%s' % report.report_name)
+        return _model_class('report.%s' % report.report_name)
 
     @classmethod
     def _get_rendering_context(cls, report, docids, data):
@@ -1166,7 +1166,7 @@ class IrActionsReport(IrActionsBase):
         if report_model is not None:
             data.update(report_model._get_report_values(docids, data=data))
         else:
-            model_cls = IrModelData._model_class(report.model)
+            model_cls = _model_class(report.model)
             docs = (list(model_cls.objects.filter(pk__in=docids or []))
                     if model_cls else [])
             data.update({
@@ -1685,7 +1685,7 @@ class IrActionsReport(IrActionsBase):
 
         no_attachment = get_context().get('report_pdf_no_attachment')
         if res_ids:
-            model_cls = IrModelData._model_class(report_sudo.model)
+            model_cls = _model_class(report_sudo.model)
             records = (list(model_cls.objects.filter(pk__in=res_ids))
                        if model_cls else [])
             for record in records:
@@ -1800,7 +1800,7 @@ class IrActionsReport(IrActionsBase):
                     'want it saved, please print the documents separately',
                     report.report_name)
                 continue
-            model_cls = IrModelData._model_class(report.model)
+            model_cls = _model_class(report.model)
             record = (model_cls.objects.filter(pk=res_id).first()
                       if model_cls else None)
             if record is None:

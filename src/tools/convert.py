@@ -131,7 +131,7 @@ def _model_of(model_str):
     respuesta.
 
     **Resuelve las dos formas de nombrar un modelo**, igual que
-    ``IrModelData._model_class``: el ``_name`` de la referencia
+    ``ir_model._model_class``: el ``_name`` de la referencia
     (``res.partner``) por ``orm.registry``, y la etiqueta de Django
     (``base.ResPartner``) por ``apps.get_model``. Un modelo propio del L0 no
     declara ``_name`` y sólo se alcanza por su etiqueta; y la columna
