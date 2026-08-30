@@ -57,6 +57,27 @@ restaurar() {
 }
 trap restaurar EXIT
 
+# El desenlace de una guarda anulada NO siempre es «N failed»: si la guarda
+# sostenia el arranque, pytest ni siquiera colecciona y emite `error` o
+# `INTERNALERROR`. Un filtro que solo viera `passed|failed|FAILED` publicaria
+# una seccion VACIA, y una seccion vacia se lee como «no cayo nada» — el mismo
+# verde-que-no-discrimina que este guion existe para atrapar. Medido: el porte
+# de `base_field` como `property` aborta el arranque de Django entero, y la
+# primera version de este filtro no lo vio.
+SENALES='^([0-9]+ (passed|failed|error|errors|warning)|FAILED|ERROR |INTERNALERROR)'
+
+medir() {
+    local salida
+    salida=$(uv run pytest "$TESTS" -q --reuse-db 2>&1 | grep -E "$SENALES" || true)
+    if [ -z "$salida" ]; then
+        # No emite vacio: un cero sin desenlace no es una medicion.
+        echo "SIN DESENLACE RECONOCIDO — las diez ultimas lineas en crudo:"
+        uv run pytest "$TESTS" -q --reuse-db 2>&1 | tail -10
+    else
+        echo "$salida"
+    fi
+}
+
 {
     echo "# Control discriminante — $SLUG"
     echo "# fecha:    $(date -u +%Y-%m-%dT%H:%M:%S)"
@@ -65,11 +86,11 @@ trap restaurar EXIT
     echo "# tests:    $TESTS"
     echo
     echo "## 1. Verde de partida (guarda presente)"
-    uv run pytest "$TESTS" -q --reuse-db 2>&1 | grep -E '^([0-9]+ (passed|failed)|FAILED)' || true
+    medir
     echo
     sed -i "$EXPRESION" "$ARCHIVO"
     echo "## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella"
-    uv run pytest "$TESTS" -q --reuse-db 2>&1 | grep -E '^([0-9]+ (passed|failed)|FAILED)' || true
+    medir
 } | tee "$EVIDENCIA"
 
 echo

@@ -51,6 +51,7 @@ import logging
 import operator as operator_module
 import re
 import warnings
+import weakref
 from decimal import Decimal
 from operator import attrgetter
 from typing import TypeVar
@@ -60,6 +61,7 @@ from django.utils.timezone import localtime
 
 from orm.environments import get_current_company, get_transaction
 from tools.misc import OrderedSet, remove_accents
+from tools.translate import _
 from tools.sql import SQL, sql_order_by_type
 
 from orm.fields_binary import Binary, Image                    # noqa: F401
@@ -945,8 +947,8 @@ def type_for(field):
 # ``isinstance(campo, Field)`` en falso para los veinte tipos del árbol, que es
 # exactamente lo contrario de lo que la fuente garantiza.
 #
-# Las cuatro mediciones que fijan la forma
-# =========================================
+# Las cinco mediciones que fijan la forma
+# =======================================
 #
 # Reproducibles con ``uv run python scripts/census_field_contract.py``:
 #
@@ -962,6 +964,18 @@ def type_for(field):
 #    portarse como ``property`` de solo lectura —la asignación levantaría
 #    ``AttributeError``—, así que van como atributo llano que la instancia
 #    pisa. Es la medición que decide, una por una, entre las dos formas.
+#
+#    Su **raíz importa tanto como su regla**: acotada a ``django/db/models``
+#    publicaba 0 asignaciones de ``base_field``, se portó como ``property``, y
+#    el arranque de Django reventó — ``ArrayField.__init__`` lo asigna desde
+#    ``django/contrib/postgres/fields/array.py:27``. Hoy la raíz es el paquete
+#    entero. De ahí sale :class:`_ComputedUnlessAssigned`, el descriptor NO de
+#    datos que deja ganar a quien asigne.
+# 5. **La conducta** — a qué responde ``models.Field`` con este módulo ya
+#    cargado. Es el único eje que no mide el NOMBRE, y hace falta porque la
+#    medición 1 busca el nombre en TODO ``src/``: una mención en un docstring
+#    de otro archivo la satisface. ``get_description`` figuraba presente por
+#    una línea de prosa que decía que NO existía.
 #
 # El veredicto por grupo — TRAE / CONSTRUYE
 # ==========================================
@@ -1075,3 +1089,346 @@ for _name_attr, _default_value in _FIELD_CLASS_ATTRIBUTES.items():
 
 #: ≙ ``Field._by_type__`` colgado de la clase, como en la fuente.
 models.Field._by_type__ = _by_type__
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# El protocolo de descripción — ≙ ``odoo19c: odoo/orm/fields.py:872-975``
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Es el bloque con el que un campo se **describe a su cliente**: qué nombre
+# lleva, de qué tipo es, si se puede ordenar, agrupar o agregar por él. La
+# fuente lo resuelve con un convenio de nombres —todo atributo que empieza por
+# ``_description_`` publica la clave que sigue al prefijo— y una tabla
+# ``description_attrs`` que su ``__init_subclass__`` deriva con ``dir(cls)``.
+#
+# Aquí ``__init_subclass__`` es una de las cuatro colisiones medidas: es de
+# Django y se respeta. La derivación se construye con la misma regla y el
+# mismo momento efectivo —la primera vez que alguien la pide, por clase— con
+# el descriptor :class:`_DerivedFromPrefix`, que cachea el resultado en el
+# ``__dict__`` de la clase que lo pidió. La diferencia con la fuente es
+# **cuándo** se deriva, no **qué** deriva: allá al crear la subclase, aquí al
+# primer acceso. Una subclase que añada su propio ``_description_*`` obtiene
+# su tabla igual que allá, porque ``dir()`` la ve.
+
+
+class _DerivedFromPrefix:
+    """Deriva una tabla ``(clave, atributo)`` de los nombres con un prefijo.
+
+    ≙ el cuerpo de ``__init_subclass__`` (``odoo19c: :336-344``), que hace lo
+    mismo con ``dir(cls)`` al crear cada subclase. Aquí es un descriptor de
+    clase porque ``__init_subclass__`` colisiona con el de Django.
+
+    Cachea **por clase**, así que la derivación corre una vez por cada una —
+    igual que allá, donde corre una vez por creación de subclase.
+
+    El caché va en un mapa propio y NO con ``setattr`` sobre la clase, y la
+    razón se midió: al pedir la tabla sobre ``models.Field`` —la clase que
+    aloja el descriptor— el ``setattr`` lo sustituía por la tupla, y a partir
+    de ahí toda subclase heredaba la tabla de la base en vez de derivar la
+    suya. El caché se comía al mecanismo que cachea.
+
+    El mapa es débil en su clave para no retener una clase que ya nadie usa.
+    """
+
+    def __init__(self, prefix, attribute_name):
+        self.prefix = prefix
+        self.attribute_name = attribute_name
+        self._by_class = weakref.WeakKeyDictionary()
+
+    def __get__(self, instance, owner=None):
+        owner = owner if owner is not None else type(instance)
+        cached = self._by_class.get(owner)
+        if cached is not None:
+            return cached
+        cut = len(self.prefix)
+        table = tuple((name[cut:], name) for name in dir(owner)
+                      if name.startswith(self.prefix))
+        self._by_class[owner] = table
+        return table
+
+
+#: ≙ ``Field.related_attrs`` / ``Field.description_attrs`` (``:336-344``).
+models.Field.related_attrs = _DerivedFromPrefix('_related_', 'related_attrs')
+models.Field.description_attrs = _DerivedFromPrefix('_description_',
+                                                    'description_attrs')
+
+
+def _field_get_description(self, env, attributes=None):
+    """≙ ``Field.get_description`` (``:872``) — «return a dictionary that
+    describes the field ``self``».
+
+    El convenio es el de la fuente verbatim: se recorre ``description_attrs``,
+    se descarta lo que no empiece por ``_description_``, se llama al valor si
+    es invocable —los que necesitan el entorno lo son— y se omite el ``None``.
+
+    Omitir el ``None`` no es cosmético: la clave ausente y la clave con
+    ``None`` significan cosas distintas para el cliente, y la fuente elige la
+    primera.
+    """
+    description = {}
+    for key, attribute in self.description_attrs:
+        if attributes is not None and key not in attributes:
+            continue
+        if not attribute.startswith('_description_'):
+            continue
+        value = getattr(self, attribute)
+        if callable(value):
+            value = value(env)
+        if value is not None:
+            description[key] = value
+    return description
+
+
+models.Field.get_description = _field_get_description
+
+#: Los doce que la fuente declara como ``property(attrgetter(...))``
+#: (``:889-900``): la clave publicada es el nombre del atributo que leen.
+#: Se instalan con la misma forma —``property``— porque ninguno de los doce
+#: aparece en la medición 4 del censo como asignado.
+for _key, _source_attribute in (
+        ('name', 'name'),
+        ('type', 'type'),
+        ('store', 'store'),
+        ('manual', 'manual'),
+        ('related', 'related'),
+        ('company_dependent', 'company_dependent'),
+        ('readonly', 'readonly'),
+        ('required', 'required'),
+        ('groups', 'groups'),
+        ('change_default', 'change_default'),
+        ('default_export_compatible', 'default_export_compatible'),
+        ('exportable', 'exportable'),
+):
+    setattr(models.Field, f'_description_{_key}', property(attrgetter(_source_attribute)))
+
+
+def _field_description_depends(self, env):
+    """≙ ``Field._description_depends`` (``:902``) — las dependencias que el
+    registro tiene anotadas para este campo."""
+    return env.registry.field_depends[self]
+
+
+models.Field._description_depends = _field_description_depends
+
+
+@property
+def _field_description_searchable(self):
+    """≙ ``Field._description_searchable`` (``:906``) — ``bool(self.store or
+    self.search)``, verbatim.
+
+    Un campo con columna se busca por SQL; uno sin columna se busca sólo si
+    declara su ``search=``. La disyunción es la misma que allá porque el
+    fenómeno es el mismo: hay o no hay por dónde buscar.
+    """
+    return bool(self.store or self.search)
+
+
+models.Field._description_searchable = _field_description_searchable
+
+
+def _field_description_sortable(self, env):
+    """≙ ``Field._description_sortable`` (``:909``).
+
+    **Divergencia de mecanismo, no de contrato.** La fuente responde
+    construyendo la consulta y viendo si revienta: llama a
+    ``model._order_field_to_sql(...)`` dentro de un ``try`` y devuelve
+    ``False`` ante ``ValueError``/``AccessError``. Es su forma de preguntarle
+    al motor, porque allá el motor de consultas es suyo.
+
+    Aquí el motor es el de Django, y la misma pregunta se responde **sin
+    construir nada**: un campo es ordenable si tiene columna. ``concrete`` es
+    el atributo con que Django lo declara, y es exacto — un campo no concreto
+    no tiene por dónde ordenarse en SQL.
+
+    El atajo de la fuente y su herencia se conservan verbatim: el campo
+    heredado responde por el suyo para no recomputar.
+    """
+    if self.column_type and self.store:
+        return True
+    inherited = self.inherited_field
+    if inherited is not None and inherited._description_sortable(env):
+        return True
+    return bool(getattr(self, 'concrete', False))
+
+
+models.Field._description_sortable = _field_description_sortable
+
+
+def _field_description_groupable(self, env):
+    """≙ ``Field._description_groupable`` (``:924``).
+
+    Misma divergencia de mecanismo que :func:`_field_description_sortable`, y
+    por la misma razón. La fuente distingue el caso temporal —agrupa por
+    ``<campo>:month``, no por el valor crudo— y esa distinción se conserva
+    porque es de contrato, no de motor: un ``date`` se agrupa por tramo.
+    """
+    if self.column_type and self.store:
+        return True
+    inherited = self.inherited_field
+    if inherited is not None and inherited._description_groupable(env):
+        return True
+    return bool(getattr(self, 'concrete', False))
+
+
+models.Field._description_groupable = _field_description_groupable
+
+
+def _field_description_aggregator(self, env):
+    """≙ ``Field._description_aggregator`` (``:940``).
+
+    Devuelve el operador con que el campo se agrega, o ``None`` si no lo
+    admite. La primera guarda es la de la fuente verbatim: sin ``aggregator``
+    declarado no hay nada que devolver, y con columna almacenada se devuelve
+    sin más comprobación.
+    """
+    if not self.aggregator or (self.column_type and self.store):
+        return self.aggregator
+    inherited = self.inherited_field
+    if inherited is not None and inherited._description_aggregator(env):
+        return inherited.aggregator
+    return self.aggregator if getattr(self, 'concrete', False) else None
+
+
+models.Field._description_aggregator = _field_description_aggregator
+
+
+def _field_description_string(self, env):
+    """≙ ``Field._description_string`` (``:955``) — la etiqueta, traducida al
+    idioma del entorno cuando lo hay.
+
+    Delega en ``ir.model.fields.get_field_string``, que es quien guarda el
+    mapa. Sin idioma en el entorno devuelve la etiqueta declarada, igual que
+    allá: no hay a qué traducir.
+    """
+    if self.string and env.lang:
+        model_name = self.base_field.model_name
+        field_string = env['ir.model.fields'].get_field_string(model_name)
+        return field_string.get(self.name) or self.string
+    return self.string
+
+
+models.Field._description_string = _field_description_string
+
+
+def _field_description_help(self, env):
+    """≙ ``Field._description_help`` (``:962``) — el hermano de
+    :func:`_field_description_string` para el texto de ayuda."""
+    if self.help and env.lang:
+        model_name = self.base_field.model_name
+        field_help = env['ir.model.fields'].get_field_help(model_name)
+        return field_help.get(self.name) or self.help
+    return self.help
+
+
+models.Field._description_help = _field_description_help
+
+
+def _field_description_falsy_value_label(self, env):
+    """≙ ``Field._description_falsy_value_label`` (``:969``) — qué mostrar
+    cuando el valor no está establecido, traducido."""
+    return _(self.falsy_value_label) if self.falsy_value_label else None
+
+
+models.Field._description_falsy_value_label = _field_description_falsy_value_label
+
+
+def _field_is_editable(self):
+    """≙ ``Field.is_editable`` (``:972``) — «return whether the field can be
+    editable in a view». Verbatim: ``not self.readonly``.
+
+    NO es el ``editable`` de Django, aunque suene igual: aquél gobierna si el
+    campo aparece en un ``ModelForm``; éste, si la vista lo deja editar. El
+    nombre de la fuente se conserva justamente para que los dos no se
+    confundan.
+    """
+    return not self.readonly
+
+
+models.Field.is_editable = _field_is_editable
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# El campo relacionado y la columna — ≙ ``odoo19c: :774-792``
+# ═══════════════════════════════════════════════════════════════════════════
+
+#: ≙ los cinco ``_related_*`` (``:774-778``). Publican, con el mismo convenio
+#: de prefijo que los ``_description_*``, qué atributo hereda un campo
+#: ``related=`` de aquél al que apunta. Los lee ``related_attrs``.
+for _key, _source_attribute in (
+        ('comodel_name', 'comodel_name'),
+        ('string', 'string'),
+        ('help', 'help'),
+        ('groups', 'groups'),
+        ('aggregator', 'aggregator'),
+):
+    setattr(models.Field, f'_related_{_key}', property(attrgetter(_source_attribute)))
+
+
+@property
+def _field_column_type(self):
+    """≙ ``Field.column_type`` (``:781``) — «return the actual column type for
+    this field, if stored as a column».
+
+    La rama de la fuente se conserva verbatim: un campo dependiente de empresa
+    o traducible guarda un mapa, no un escalar, así que su columna es
+    ``jsonb`` sea cual sea su tipo declarado. El resto devuelve su
+    ``_column_type``.
+
+    Allá es ``functools.cached_property``; aquí es ``property`` sin caché
+    porque ``_column_type`` es un atributo de clase que ninguna instancia
+    reescribe —medición 4 del censo: **1** asignación en todo el árbol, la de
+    ``fields_temporal._attach_base_date``, que corre al declarar la clase—.
+    Cachear un valor que no cambia no compra nada y añade una entrada por
+    instancia.
+    """
+    if self.company_dependent or self.translate:
+        return ('jsonb', 'jsonb')
+    return self._column_type
+
+
+models.Field.column_type = _field_column_type
+
+
+class _ComputedUnlessAssigned:
+    """Un valor derivado que la instancia puede pisar — descriptor NO de datos.
+
+    Una ``property`` es descriptor **de datos**: define ``__set__``, así que
+    gana sobre el ``__dict__`` de la instancia y una asignación revienta con
+    ``property of X has no setter``. Un descriptor que declara sólo ``__get__``
+    es **no** de datos: Python consulta primero el ``__dict__``, de modo que
+    quien asigne el atributo gana y quien no, obtiene el valor derivado.
+
+    Es el mecanismo exacto que el porte de ``base_field`` necesita, y la razón
+    está medida, no supuesta: ``ArrayField.__init__`` **asigna**
+    ``self.base_field`` (``django/contrib/postgres/fields/array.py:27``) con
+    otro significado —el campo de los elementos del arreglo—, y ``ArrayField``
+    hereda de ``models.Field``. Instalarlo como ``property`` aborta el
+    arranque de Django entero.
+    """
+
+    def __init__(self, function):
+        self.function = function
+        self.__doc__ = function.__doc__
+
+    def __set_name__(self, owner, name):
+        self.attribute_name = name
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        return self.function(instance)
+
+
+def _field_base_field(self):
+    """≙ ``Field.base_field`` (``:786``) — «return the base field of an
+    inherited field, or ``self``». Verbatim, recursivo por
+    ``inherited_field``.
+    """
+    inherited = self.inherited_field
+    return inherited.base_field if inherited is not None else self
+
+
+#: NO es ``property``: ver :class:`_ComputedUnlessAssigned`. La forma la fija
+#: la medición 4 del censo, con la raíz de Django ya ensanchada al paquete
+#: entero — con la raíz estrecha publicaba 0 asignaciones y el porte reventó.
+models.Field.base_field = _ComputedUnlessAssigned(_field_base_field)

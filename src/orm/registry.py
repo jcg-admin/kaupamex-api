@@ -427,3 +427,83 @@ def many2one_company_dependents(model_label):
             if related == model_label:
                 encontrados.append((model, field))
     return encontrados
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ``field_depends`` — ≙ ``odoo19c: odoo/orm/registry.py:252-253``
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Allá son dos ``Collector`` que el setup del registro **puebla** al cargar los
+# addons (``:410-474``): ``field_depends[campo]`` da los nombres punteados de
+# los que ese campo depende, y ``field_depends_context[campo]`` las claves de
+# contexto. El consumidor directo es ``Field._description_depends``
+# (``odoo/orm/fields.py:902``), que los publica al cliente.
+#
+# Aquí no hay fase de setup que poblar: Django carga los modelos y termina. Así
+# que el mapa se **deriva** de lo ya declarado, y se deriva una sola vez —
+# ``@api.depends`` deja su tupla en ``func._depends`` (``orm/decorators.py:23``),
+# y un campo calculado nombra su método en ``compute``.
+#
+# La derivación es la misma información por otro camino: allá el decorador la
+# entrega al setup, aquí el mapa va a buscarla al método. Lo que NO se hereda
+# es la invalidación parcial de ``:474``, que existe porque allá el registro se
+# reconstruye por base; aquí se vacía entero con :func:`clear_field_depends`.
+
+
+class _DerivedCollector:
+    """Mapa campo → tupla, derivado de lo declarado y cacheado entero.
+
+    ≙ ``Collector`` (``odoo19c: odoo/tools/misc.py``) en su lado de lectura:
+    un campo sin entrada devuelve la tupla vacía, nunca ``KeyError``. Esa
+    parte del contrato importa — ``_description_depends`` lo consulta para
+    todo campo, tenga o no dependencias declaradas.
+    """
+
+    def __init__(self, marker):
+        self.marker = marker
+        self._table = None
+
+    def _build(self):
+        table = {}
+        for model in apps.get_models():
+            for field in model._meta.get_fields():
+                declared = getattr(field, self.marker, None)
+                if declared is None:
+                    compute = getattr(field, 'compute', None)
+                    method = getattr(model, compute, None) if compute else None
+                    declared = getattr(method, self.marker, None)
+                if declared:
+                    table[field] = tuple(declared)
+        return table
+
+    def __getitem__(self, field):
+        if self._table is None:
+            self._table = self._build()
+        return self._table.get(field, ())
+
+    def __contains__(self, field):
+        return bool(self[field])
+
+    def clear(self):
+        """≙ ``Collector.clear`` (``:421-422``) — el mapa se vuelve a derivar
+        en la siguiente consulta."""
+        self._table = None
+
+
+#: ≙ ``Registry.field_depends`` (``:252``).
+field_depends = _DerivedCollector('_depends')
+
+#: ≙ ``Registry.field_depends_context`` (``:253``).
+field_depends_context = _DerivedCollector('_depends_context')
+
+
+def clear_field_depends():
+    """Vacía los dos mapas derivados.
+
+    Se llama cuando cambia lo declarado — un modelo nuevo registrado, un campo
+    extendido. NO hay invalidación parcial como en ``:474``: allá el registro
+    se reconstruye por base y merece el detalle; aquí la derivación entera
+    cuesta un recorrido de ``apps.get_models()``.
+    """
+    field_depends.clear()
+    field_depends_context.clear()

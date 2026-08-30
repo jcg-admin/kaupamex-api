@@ -21,13 +21,32 @@ cosas, y ninguna se puede suponer:
    lectura: la asignacion levantaria ``AttributeError``. Tiene que ser un
    atributo llano que la instancia pise.
 
+5. **Que RESPONDE la clase** ya cargada — el unico eje de conducta. Los
+   cuatro anteriores miden el NOMBRE; este mide si ``models.Field`` contesta
+   al simbolo despues de que ``orm.fields`` instale el contrato.
+
 La cuarta es la que no es obvia y la que decide la forma del porte. Sin ella,
-la eleccion entre ``property`` y atributo llano se haria a ojo.
+la eleccion entre ``property`` y atributo llano se haria a ojo. La quinta es
+la que NO se puede sustituir por ninguna de las otras: la medicion 1 busca el
+nombre con limite de palabra en TODO ``src/``, asi que una mencion en un
+docstring de otro archivo la satisface. Medido: ``get_description`` aparece en
+``src/addons/base/report/report_base_report_irmodulereference.py`` —en prosa
+que dice que NO existe— y la medicion 1 lo publicaba como presente. Es el
+sub-patron C de ``metrica-decide-la-conclusion.md``: el instrumento mide la
+FORMA (la cadena aparece) y la conclusion es sobre el FONDO (el simbolo esta
+portado).
+
+*Metrica:* ``hasattr`` sobre ``django.db.models.Field`` con ``orm.fields``
+importado.
+*Ciega a:* si el simbolo hace lo que hace el de la referencia. Un ``pass`` con
+el nombre correcto responde igual que el porte real — eso lo miden los tests,
+no un censo.
 
 Uso::
 
-    uv run python scripts/census_field_contract.py            # las cuatro
+    uv run python scripts/census_field_contract.py            # las cinco
     uv run python scripts/census_field_contract.py --ausentes # solo el 1 vs src
+    uv run python scripts/census_field_contract.py --conducta # solo la 5
 """
 import argparse
 import ast
@@ -38,8 +57,13 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import reference_roots  # noqa: E402
 
+import os  # noqa: E402
+
 import django  # noqa: E402
-from django.conf import settings  # noqa: E402
+
+REPO_SRC = pathlib.Path(__file__).resolve().parent.parent / 'src'
+sys.path.insert(0, str(REPO_SRC))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.testing')
 
 #: La path de la clase dentro del arbol de la referencia.
 REFERENCE_SUBPATH = ('odoo', 'orm', 'fields.py')
@@ -51,7 +75,15 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 
 #: Donde vive el paquete de Django instalado — el que de verdad corre, no el
 #: que declare ``pyproject.toml``.
-DJANGO_MODELS = REPO / '.venv/lib/python3.12/site-packages/django/db/models'
+#:
+#: Es el paquete **entero**, no ``django/db/models``. Acotarlo a esa carpeta
+#: fue una ceguera medida y cara: ``ArrayField.__init__`` asigna
+#: ``self.base_field`` y vive en ``django/contrib/postgres/fields/array.py``,
+#: fuera de aquella raiz. Con la raiz estrecha la medicion 4 publicaba 0
+#: asignaciones de ``base_field``, se porto como ``property`` de solo lectura,
+#: y el arranque de Django reventó con ``property of 'ArrayField' object has
+#: no setter``. La raiz del instrumento decidia la conclusion.
+DJANGO_MODELS = REPO / '.venv/lib/python3.12/site-packages/django'
 
 
 def reference_class():
@@ -103,11 +135,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--ausentes', action='store_true',
                         help='solo los simbolos que no aparecen en src/')
+    parser.add_argument('--conducta', action='store_true',
+                        help='solo la medicion 5: a que responde models.Field')
     args = parser.parse_args()
 
-    settings.configure(INSTALLED_APPS=[], DATABASES={})
     django.setup()
     from django.db import models
+    import orm.fields  # noqa: F401  — instala el contrato que la medicion 5 mide
 
     node = reference_class()
     attrs, methods = declared_symbols(node)
@@ -115,6 +149,10 @@ def main():
 
     print(f'=== {CLASS_NAME} — lineas {node.lineno}-{node.end_lineno} de la referencia ===')
     print(f'atributos {len(attrs)} · metodos {len(methods)} · total {len(attrs) + len(methods)}')
+
+    if args.conducta:
+        report_behaviour(models, attrs, methods)
+        return
 
     print('\n--- 1. AUSENTES en src/ (limite de palabra) ---')
     for etiqueta, grupo in (('atributo', attrs), ('metodo', methods)):
@@ -148,6 +186,22 @@ def main():
             times = assignments_of(n, root)
             if times:
                 print(f'    {times:5}  {n}')
+
+    report_behaviour(models, attrs, methods)
+
+
+def report_behaviour(models, attrs, methods):
+    """Medicion 5 — a que simbolo de la fuente responde la clase ya cargada."""
+    print('\n--- 5. CONDUCTA: a que responde django.db.models.Field ---')
+    total = len(attrs) + len(methods)
+    silent = []
+    for etiqueta, grupo in (('atributo', attrs), ('metodo', methods)):
+        falta = [(n, l) for n, l in grupo if not hasattr(models.Field, n)]
+        silent += [(n, l, etiqueta) for n, l in falta]
+        print(f'  {etiqueta}s sin respuesta: {len(falta)} de {len(grupo)}')
+    print(f'  responde a {total - len(silent)} de {total}')
+    for n, l, k in sorted(silent, key=lambda r: r[1]):
+        print(f'    :{l:<5} {k:<9} {n}')
 
 
 if __name__ == '__main__':
