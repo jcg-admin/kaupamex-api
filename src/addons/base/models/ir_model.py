@@ -121,12 +121,21 @@ Qué NO se porta, con su medición
   el esquema lo gobiernan las migraciones de Django; DDL fuera de ellas deja
   la tabla ``django_migrations`` mintiendo. Las dos clases se portan como
   **registro** —que es lo que aporta trazabilidad— sin el ejecutor de DDL.
-- **``_get_access_groups``** de ``IrModelAccess``: devuelve un objeto de
-  expresión de grupos de ``res.groups._get_group_definitions()``. Ese
-  constructor no está portado —``grep -rn "_get_group_definitions" src/`` →
-  **0**—; ``res_groups.py`` porta la implicación transitiva (``_closure``) y
-  los disjuntos, no el álgebra de expresiones. ``group_names_with_access`` sí
-  se porta, que es la parte consultable.
+- **``_get_access_groups``** de ``IrModelAccess`` — BLOQUEADO por
+  ``tools/set_expression.py``, no divergencia. Devuelve un objeto de expresión
+  de grupos de ``res.groups._get_group_definitions()``, y ese constructor sale
+  de un archivo que la referencia declara en una raíz espejada
+  (``odoo19c: odoo/tools/set_expression.py``, 616 líneas) y aquí no existe:
+  ``ls src/tools/set_expression.py`` → *No such file*. Es álgebra pura sin base
+  de datos, así que se porta entero — tarea **#204**. Mientras tanto
+  ``group_names_with_access`` y ``has_global_access`` cubren la parte
+  consultable.
+- **``_process_ondelete``** de ``IrModelFieldsSelection`` — BLOQUEADO por
+  ``fields.Selection``, no divergencia. La política de borrado de un valor
+  vive en la **declaración del campo** (``ondelete={...}``), y nuestro
+  ``fields.Selection`` no acepta ese parámetro: sin receptor, el método no
+  tiene de dónde leerla. Tarea **#205**. ``_get_records``, que es a quien
+  llama para saber qué filas guardaban el valor, sí está portado.
 - **La autorización efectiva sigue siendo por capacidad (DEC-11).**
   ``ir.model.access`` se porta como **dato** —el permiso CRUD declarado por
   modelo y grupo—, no como el gate que corre en cada request: ese es
@@ -444,13 +453,15 @@ class IrModel(models.OriginMixin, TimeStampedModel):
             return 0
         return model._base_manager.count()
 
-    @property
-    def inherited_model_ids(self):
-        """``_inherited_models`` — los modelos que este extiende.
+    def _inherited_models(self):
+        """Los modelos que este extiende — ``_inherited_models``.
 
-        En la referencia son los ``_inherits`` (herencia por delegación). Aquí
-        los padres abstractos del MRO, que es la misma relación: el modelo
-        hereda de ellos sin ser ellos.
+        ≙ ``odoo19c: ir_model.py:240-246``. En la referencia son los
+        ``_inherits`` (herencia por delegación). Aquí los padres del MRO, que
+        es la misma relación: el modelo hereda de ellos sin ser ellos.
+
+        Nombre de la fuente para el cómputo; su superficie de lectura es la
+        propiedad :attr:`inherited_model_ids`, que es donde el campo vive.
         """
         model = self.django_model
         if model is None:
@@ -466,6 +477,11 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         return type(self).objects.filter(model__in=parent_labels)
 
     @property
+    def inherited_model_ids(self):
+        """Superficie de lectura del campo; el cómputo es el de la fuente."""
+        return self._inherited_models()
+
+    @property
     def view_ids(self):
         """``_view_ids`` — las vistas declaradas sobre este modelo.
 
@@ -475,16 +491,23 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         """
         return IrUiView.objects.filter(model=self.model)
 
-    @property
-    def modules(self):
-        """``_in_modules`` — apps en que el modelo está definido.
+    def _in_modules(self):
+        """Las apps en que el modelo está definido — ``_in_modules``.
 
-        La referencia cruza los XML IDs contra los módulos instalados. Aquí el
-        dueño es el ``app_label`` de Django, que es dato de primera mano y no
-        necesita el cruce.
+        ≙ ``odoo19c: ir_model.py:249-255``. La referencia cruza los XML IDs
+        contra los módulos instalados. Aquí el dueño es el ``app_label`` de
+        Django, que es dato de primera mano y no necesita el cruce.
+
+        Nombre de la fuente para el cómputo; su superficie de lectura es la
+        propiedad :attr:`modules`.
         """
         model = self.django_model
         return model._meta.app_label if model is not None else ''
+
+    @property
+    def modules(self):
+        """Superficie de lectura del campo; el cómputo es el de la fuente."""
+        return self._in_modules()
 
     @classmethod
     def _is_manual_name(cls, name):
@@ -965,7 +988,32 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
             ),
         ]
 
+    def _compute_display_name(self, hide_model=False):
+        """La etiqueta del campo — ``_compute_display_name``.
+
+        ≙ ``odoo19c: ir_model.py:1155-1162``: la descripción del campo seguida
+        del nombre del modelo entre paréntesis, o la descripción sola cuando el
+        llamador pide ocultar el modelo.
+
+        La fuente lee ese «ocultar» de una clave de contexto (``hide_model``);
+        aquí llega por parámetro, que es la divergencia de contexto que este
+        árbol ya declara en todas partes — no hay un contexto ambiente que
+        consultar.
+        """
+        if hide_model:
+            return self.field_description
+        model_row = IrModel._get(self.model)
+        model_string = model_row.name if model_row is not None else self.model
+        return f'{self.field_description} ({model_string})'
+
     def __str__(self):
+        """Enganche de Django — el nombre técnico, que es lo que identifica.
+
+        NO delega en :meth:`_compute_display_name`: son dos etiquetas
+        distintas y las dos se usan. La de la fuente —«Descripción (Modelo)»—
+        es para la interfaz; ``modelo.campo`` es la que este árbol imprime en
+        errores y trazas, donde hace falta el identificador exacto.
+        """
         return f'{self.model}.{self.name}'
 
     @property

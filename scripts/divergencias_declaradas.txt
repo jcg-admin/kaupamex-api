@@ -1220,3 +1220,47 @@ certificate/models/certificate.py::CertificateCertificate::create
 # corredor levanta con el motivo en vez de callar; ver el bloque "El motor de
 # ejecucion (#117)" del propio archivo.
 base/models/ir_actions.py::IrActionsServer::_run_action_code_multi
+
+# ===========================================================================
+# base/models/ir_model.py  (tarea #172)
+# ===========================================================================
+#
+# `create`, `write` y `unlink` de las cinco clases NO se declaran aqui, y es
+# deliberado: la clausula anti-abuso del gate los deja como deuda contada
+# —`write` sale ausente noventa veces en el arbol— para que nadie convierta
+# noventa preguntas abiertas en noventa absoluciones. Su comportamiento SI
+# esta portado, en `save` y `delete`, y cada uno lo declara en su docstring
+# citando la linea de la fuente de la que viene cada mitad.
+
+# `_drop_table` emite `DROP TABLE` y `DROP VIEW` sobre el esquema vivo al
+# desinstalar un modulo. Aqui el esquema lo gobiernan las migraciones de
+# Django, y DDL fuera de ellas deja `django_migrations` mintiendo.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModel::_drop_table
+# `_drop_column` es su hermano por columna: `ALTER TABLE ... DROP COLUMN`.
+# Misma razon, mismo desenlace.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModelFields::_drop_column
+
+# `_default_field_id` da a un modelo recien creado su campo `x_name`, que solo
+# tiene sentido si el modelo se construye desde filas. Aqui un modelo se
+# declara en Python y sus campos vienen con el.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModel::_default_field_id
+# `_instanciate_attrs` construye la clase de modelo EN CALIENTE desde una fila
+# de `ir_model`. Django construye su registro al importar y lo congela
+# (`apps.populate`); montar el equivalente seria un metaregistro paralelo.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModel::_instanciate_attrs
+# Su hermano por campo: arma el descriptor desde una fila de
+# `ir_model_fields`. Misma razon.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModelFields::_instanciate_attrs
+# `_all_manual_field_data` alimenta a `_instanciate_attrs`: agrupa por modelo
+# las filas de campos manuales. Sin consumidor, no tiene conducta que
+# replicar.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModelFields::_all_manual_field_data
+# Idem, para un solo modelo.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModelFields::_get_manual_field_data
