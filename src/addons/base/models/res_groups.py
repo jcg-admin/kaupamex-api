@@ -98,6 +98,8 @@ from collections import deque
 import api
 import fields
 import models
+from orm.domains import NEGATIVE_CONDITION_OPERATORS, Domain
+from orm.fields_nonstored import NonStored
 from django.apps import apps
 from django.core.exceptions import ValidationError
 
@@ -158,6 +160,16 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
         (USER_TYPE_PORTAL, 'Portal'),
         (USER_TYPE_PUBLIC, 'Público'),
     ]
+
+    #: ≙ ``full_name = fields.Char(compute='_compute_full_name',
+    #: search='_search_full_name')`` (``odoo19c: res_groups.py:30``). No tiene
+    #: columna: es ``privilegio / nombre`` calculado al leerlo. Era una
+    #: ``property``, que no se puede buscar; ahora es el campo sin columna con
+    #: su ``search=``, el mecanismo que ``api@5ae823c9`` construyó — y con él
+    #: ``_rec_name = 'full_name'`` deja de apuntar a un nombre que no resuelve.
+    full_name = NonStored(default=lambda record: record._compute_full_name(),
+                          search='_search_full_name',
+                          help_text='Group Name')
 
     name = fields.Char(max_length=120, verbose_name='Nombre')
     comment = fields.Text(blank=True, default='', verbose_name='Comentario')
@@ -228,9 +240,8 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
     def __str__(self):
         return self.full_name
 
-    @property
-    def full_name(self):
-        """``privilegio / nombre``, o el nombre solo — ``_compute_full_name``."""
+    def _compute_full_name(self):
+        """``privilegio / nombre``, o el nombre solo — ≙ ``:123-129``."""
         if self.privilege_id and self.privilege:
             return '%s / %s' % (self.privilege.name, self.name)
         return self.name
@@ -252,26 +263,45 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
         - operador **negativo** → ``NotImplemented``. La fuente se rehúsa en vez
           de adivinar: la negación de una disyunción de dos columnas no es la
           disyunción de las negaciones, y componerla mal daría filas de más.
-        - operando **texto** → un solo término;
-        - operando **lista** → un término por elemento, unidos por O.
+        - operando **texto** → cada término recibe el valor tal cual;
+        - operando **lista** → cada término recibe ``[valor]``, porque el
+          operador que llega (``in``) espera una colección. Es lo que la fuente
+          resuelve con su ``make_operand``, y omitirlo produce ``name in 'Alfa'``
+          — un ``in`` sobre un escalar.
 
-        DIVERGENCIA DE FORMA, la misma que ``_search_display_name`` ya declara
-        en :class:`orm.models.DisplayNameMixin`: devuelve un ``QuerySet``, no un
-        ``Domain``. Es lo que el llamador de este árbol sabe consumir.
+        El **primer término repite el operando entero**, y eso es de la fuente:
+        con un operando de texto queda duplicado con el del bucle, y el punto
+        fijo lo colapsa en ``_optimize_same_conditions``. No se recorta aquí —
+        recortarlo cambiaría la forma que el optimizador espera recibir.
+
+        El privilegio se compara por ``any!`` sobre la relación, no atravesando
+        con punto: es lo que hace el consumidor real de
+        ``_optimize_m2o_bypass_comodel_id_lookup``, que reescribe esa subconsulta
+        a una comparación directa contra la columna.
+
+        Devuelve un ``Domain``, como la fuente. Hasta ``api@707b3e28`` devolvía
+        un ``QuerySet``, con el mismo argumento que ``_search_display_name``
+        declaraba y que quedó falso por la misma razón: un dominio se compone
+        dentro de un ``any`` y un ``QuerySet`` no (:ref:`h-api-965`).
         """
-        if operator.startswith('not '):
+        if operator in NEGATIVE_CONDITION_OPERATORS:
             return NotImplemented
 
-        operands = [operand] if isinstance(operand, str) else list(operand)
-        lookup = _OPERATOR_LOOKUPS.get(operator)
-        if lookup is None:
-            return NotImplemented
+        if isinstance(operand, str):
+            def make_operand(value):
+                return value
+            operands = [operand]
+        else:
+            def make_operand(value):
+                return [value]
+            operands = operand
 
-        where = models.Q(**{f'name__{lookup}': operand})
+        where_domains = [Domain('name', operator, operand)]
         for group in operands:
             if not group:
                 continue
-            where |= models.Q(**{f'name__{lookup}': group})
+            where_domains.append(
+                Domain('name', operator, make_operand(group)))
 
             if '/' in group:
                 privilege_name, _, group_name = group.partition('/')
@@ -282,12 +312,15 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
                 group_name = None
 
             if privilege_name:
-                term = models.Q(**{f'privilege__name__{lookup}': privilege_name})
+                domain = Domain(
+                    'privilege', 'any!',
+                    Domain('name', operator, make_operand(privilege_name)))
                 if group_name:
-                    term &= models.Q(**{f'name__{lookup}': group_name})
-                where |= term
+                    domain &= Domain('name', operator,
+                                     make_operand(group_name))
+                where_domains.append(domain)
 
-        return cls.objects.filter(where)
+        return Domain.OR(where_domains)
 
     @classmethod
     def _search(cls, queryset=None, order=None):

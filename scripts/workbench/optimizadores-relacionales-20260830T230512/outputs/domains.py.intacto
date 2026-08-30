@@ -1128,37 +1128,6 @@ class DomainCondition(Domain):
             return function
         return lambda record: not function(record)
 
-    def _any_to_q(self, field, operator, value, model):
-        """La subconsulta de un ``any`` sobre una relación — ≙ ``:1096-1112``.
-
-        La fuente emite ``columna IN (SELECT id FROM comodelo WHERE <sub>)``, y
-        eso es lo que se construye aquí: el subdominio se compila **contra el
-        comodelo** y se envuelve en el ``pk`` de sus filas.
-
-        **Por qué la subconsulta y no la travesía de Django.** ``privilege__name
-        = X`` daría el mismo conjunto para un many2one, pero sobre un x2many
-        emite un JOIN que **repite la fila** una vez por línea coincidente, y el
-        conteo del ``QuerySet`` deja de ser el número de registros. La
-        subconsulta no tiene ese efecto y además es la forma de la fuente.
-
-        Hasta ``api@707b3e28`` esta rama no existía: ``condition_to_q`` recibía
-        el ``Domain`` como si fuera una colección de valores y producía
-        ``privilege__in=[('name', 'in', ['X'])]`` — un ``Q`` que **se construye
-        sin error** y revienta al consultar con ``invalid literal for int()``.
-        Un verde en la construcción que no distingue «compila» de «el
-        compilador no conoce el operador».
-        """
-        if field is None or not getattr(field, 'is_relation', False):
-            self._raise("No se puede usar '%s' sobre un campo no relacional",
-                        operator)
-        comodel = field.related_model
-        if comodel is None:
-            self._raise("No se puede determinar el modelo de la relación")
-        subdomain = value if isinstance(value, Domain) else Domain(value)
-        rows = comodel.objects.filter(subdomain._to_q(comodel)).values('pk')
-        q = Q(**{f'{_django_path(self.field_expr)}__in': rows})
-        return ~q if operator.startswith('not ') else q
-
     def _to_q(self, model=None):
         """El filtro ``Q`` de la condición — ≙ ``_to_sql`` (``:1087``).
 
@@ -1184,8 +1153,6 @@ class DomainCondition(Domain):
             return constant._to_q(model)
 
         field = self._field(model)
-        if operator in ('any', 'any!', 'not any', 'not any!'):
-            return self._any_to_q(field, operator, value, model)
         if isinstance(field, Properties) and parse_field_expr(field_expr)[1]:
             # ≙ el despacho por tipo de campo de la fuente: su
             # ``Field.condition_to_sql`` lo sobreescribe ``Properties``

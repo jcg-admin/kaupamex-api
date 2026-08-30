@@ -438,16 +438,25 @@ def pytest_runtest_teardown(item):
 # Python en el addon dueño, y entonces la crea la migración — no un fixture.
 
 
-def matching_by_display_name(model_cls, operator, value):
-    """Los registros que ``_search_display_name`` selecciona, como ``QuerySet``.
+def matching_by_search_method(model_cls, method_name, operator, value):
+    """Los registros que el método ``search=`` de un campo selecciona.
 
-    Desde ``api@5ae823c9`` ese método devuelve un ``Domain``, como la fuente:
-    un dominio se compone dentro de un ``any`` y un ``QuerySet`` no. Los casos
-    que quieren afirmar **qué filas** salen necesitan el paso intermedio, y es
-    el mismo que ``name_search`` da — ``to_q`` contra el modelo.
+    Un campo sin columna declara su buscador con ``search='_search_x'``, y ese
+    método devuelve un ``Domain`` —como la fuente—, no un ``QuerySet``: un
+    dominio se compone dentro de un ``any`` y un ``QuerySet`` no. Los casos que
+    quieren afirmar **qué filas** salen necesitan el paso intermedio, y es el
+    mismo que da el optimizador cuando sustituye la condición: ``to_q`` contra
+    el modelo.
 
-    Vive en el ``conftest`` y no en cada archivo de test porque lo consumen
-    los casos de ``res_bank`` y los de ``res_currency_rate``, que son dos.
+    Está parametrizado por el nombre del método porque ya son dos las familias
+    que lo necesitan —``_search_display_name`` y ``_search_full_name``— y el
+    tercer campo con ``search=`` no debería traer un helper propio.
     """
-    return model_cls.objects.filter(to_q(model_cls._search_display_name(
-        operator, value), model_cls))
+    domain = getattr(model_cls, method_name)(operator, value)
+    return model_cls.objects.filter(to_q(domain, model_cls))
+
+
+def matching_by_display_name(model_cls, operator, value):
+    """El caso particular de ``_search_display_name``, que es el más usado."""
+    return matching_by_search_method(
+        model_cls, '_search_display_name', operator, value)

@@ -67,6 +67,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
 from addons.base.models.res_groups import ResGroups
+from tests.conftest import matching_by_search_method
 from addons.base.models.res_groups_privilege import ResGroupsPrivilege
 from exceptions import UserError
 
@@ -81,14 +82,25 @@ def _user(login):
 class TestSearchFullName:
     """≙ ``_search_full_name`` (``odoo19c: res_groups.py:131-165``)."""
 
+    @staticmethod
+    def _matching(operator, operand):
+        """Las filas que el dominio de ``_search_full_name`` selecciona.
+
+        El método devuelve un ``Domain``, como la fuente; estos casos afirman
+        **qué filas** salen, así que necesitan el paso de compilación que da
+        el optimizador al sustituir la condición.
+        """
+        return matching_by_search_method(
+            ResGroups, '_search_full_name', operator, operand)
+
     def test_the_bare_name_matches(self, db):
         group = ResGroups.objects.create(name='Contabilidad avanzada 204')
-        assert group in ResGroups._search_full_name('=', 'Contabilidad avanzada 204')
+        assert group in self._matching('=', 'Contabilidad avanzada 204')
 
     def test_the_privilege_slash_name_form_matches(self, db):
         privilege = ResGroupsPrivilege.objects.create(name='Ventas 204')
         group = ResGroups.objects.create(name='Responsable 204', privilege=privilege)
-        found = ResGroups._search_full_name('=', 'Ventas 204 / Responsable 204')
+        found = self._matching('=', 'Ventas 204 / Responsable 204')
         assert group in found, (
             'el operando compuesto tiene que descomponerse — un filtro por '
             '``name`` a secas no lo encontraría')
@@ -96,12 +108,12 @@ class TestSearchFullName:
     def test_the_privilege_alone_matches_its_groups(self, db):
         privilege = ResGroupsPrivilege.objects.create(name='Almacén 204')
         group = ResGroups.objects.create(name='Operario 204', privilege=privilege)
-        assert group in ResGroups._search_full_name('=', 'Almacén 204')
+        assert group in self._matching('=', 'Almacén 204')
 
     def test_a_list_of_operands_is_a_disjunction(self, db):
         uno = ResGroups.objects.create(name='Alfa 204')
         dos = ResGroups.objects.create(name='Beta 204')
-        found = ResGroups._search_full_name('in', ['Alfa 204', 'Beta 204'])
+        found = self._matching('in', ['Alfa 204', 'Beta 204'])
         assert uno in found and dos in found
 
     def test_a_negative_operator_is_refused(self, db):
