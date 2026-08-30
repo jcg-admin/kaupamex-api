@@ -2583,3 +2583,75 @@ class DisplayNameMixin:
 NEGATIVE_DISPLAY_NAME_OPERATORS = frozenset([
     'not like', 'not ilike', 'not =like', 'not =ilike', '!=', '<>',
 ])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# El acceso por clave — ≙ ``odoo19c: odoo/orm/models.py:6669-6698``
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Es la primitiva de la que cuelga la familia ``related=`` de ``Field``:
+# ``_compute_related`` escribe ``record[self.name] = ...`` e
+# ``_inverse_related`` lo lee. Sin ella el porte de esa familia sería código
+# que no puede correr.
+#
+# Medido antes de construir: ``django.db.models.Model`` no responde a
+# ``__getitem__`` ni a ``__setitem__``. No hay colisión que respetar.
+#
+# **Se porta SÓLO su rama de cadena.** La fuente sobrecarga ``__getitem__``
+# con tres significados —``inst[3]`` da el cuarto registro, ``inst[10:20]`` un
+# subconjunto, ``rs['name']`` un valor— porque allá un recordset ES un
+# contenedor de filas. Aquí una instancia de modelo es UNA fila, y el
+# contenedor es el ``QuerySet``, que ya responde a ``[3]`` y a ``[10:20]`` con
+# la semántica de Django. Portar esas dos ramas sobre la instancia inventaría
+# un significado que el contenedor ya tiene en otro sitio; la rama de cadena,
+# en cambio, no existe en ninguno de los dos.
+#
+# **Por qué NO consulta ``_fields``.** El árbol ya declara un ``_fields``
+# (``FieldToSqlMixin``, arriba) y su contrato es más estrecho que el de la
+# fuente: filtra por ``concrete``, porque quien lo consume compone SQL. La
+# fuente incluye TODOS los campos. Instalar un segundo ``_fields`` con la
+# semántica ancha crearía dos fuentes de verdad del mismo mapa —el defecto que
+# ``calibration-verified-numbers.md`` prohíbe—, y ensancharlo en el sitio
+# cambiaría el alcance de todo consumidor de ``_field_to_sql``. Así que el
+# acceso por clave pregunta a ``_meta``, que es el registro que todo modelo
+# tiene, y la reconciliación de los dos contratos queda como decisión con su
+# medición: tarea **#215**.
+
+
+def _model_getitem(self, key):
+    """≙ ``BaseModel.__getitem__``, rama de cadena (``:6674``) — «read the
+    field ``key``».
+
+    La fuente llama al **getter del campo**, no a ``getattr`` a secas, y su
+    comentario lo subraya: *«important: one must call the field's getter»*.
+    Aquí el getter del campo ES el descriptor que Django instaló, así que
+    ``getattr`` lo invoca — la indirección es la misma, sólo que quien aloja
+    el descriptor es Django.
+
+    Un nombre que el modelo no declara levanta ``KeyError`` y no
+    ``AttributeError``: es acceso por clave, y quien lo escribe espera el
+    error del mapa.
+    """
+    if not isinstance(key, str):
+        raise TypeError(
+            f'{type(self).__name__}[{key!r}]: sólo se accede por nombre de '
+            'campo. El contenedor de filas es el QuerySet, no la instancia.')
+    try:
+        self._meta.get_field(key)
+    except FieldDoesNotExist:
+        raise KeyError(key) from None
+    return getattr(self, key)
+
+
+def _model_setitem(self, key, value):
+    """≙ ``BaseModel.__setitem__`` (``:6694``) — «assign the field ``key`` to
+    ``value``». Mismo criterio que el getter, con el setter del descriptor."""
+    try:
+        self._meta.get_field(key)
+    except FieldDoesNotExist:
+        raise KeyError(key) from None
+    setattr(self, key, value)
+
+
+Model.__getitem__ = _model_getitem
+Model.__setitem__ = _model_setitem
