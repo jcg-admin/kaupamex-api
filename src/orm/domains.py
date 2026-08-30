@@ -53,22 +53,26 @@ Qué se porta y qué no
 =====================
 
 Se portan las **nueve clases** del AST con sus 84 símbolos, el parseo de la
-notación polaca, el álgebra booleana, el empuje de la negación a las hojas y la
-compilación. Quedan fuera, declarados:
+notación polaca, el álgebra booleana, el empuje de la negación a las hojas, la
+compilación y el **registro de optimizadores**: los cuatro registradores
+(:func:`operator_optimization`, :func:`field_type_optimization`,
+:func:`nary_optimization`, :func:`nary_condition_optimization`), la llave de
+orden :func:`_optimize_nary_sort_key`, sus dos mapas y el despacho en los dos
+``_optimize_step``. Quedan fuera, declarados:
 
-- **Los 39 optimizadores de módulo** (``_operator_equal_as_in``,
-  ``_optimize_in_set``, ``_optimize_like_str``, la jerarquía ``child_of``…).
-  Su veredicto por función es la tarea **#373**. Consecuencia visible: la
-  normalización de ``=``/``!=`` a ``in``/``not in`` que allá hace
-  ``_operator_equal_as_in`` aquí ocurre en ``DomainCondition._to_q``, en el
-  paso de compilación, porque sin ella el compilador de hoja no recibiría el
-  operador que la fuente le promete.
+- **Los 33 optimizadores concretos** que se registran con él
+  (``_operator_equal_as_in``, ``_optimize_in_set``, ``_optimize_like_str``, la
+  jerarquía ``child_of``…). El mecanismo ya los admite; falta escribirlos, y es
+  la tarea **#225**. Consecuencia visible: la normalización de ``=``/``!=`` a
+  ``in``/``not in`` que allá hace ``_operator_equal_as_in`` aquí ocurre en
+  ``DomainCondition._to_q``, en el paso de compilación, porque sin ella el
+  compilador de hoja no recibiría el operador que la fuente le promete.
 - **Los seis** ``_as_predicate`` y ``DomainCondition._optimize_field_search_method``
   — siete símbolos. Su consumidor en la fuente es ``Model.filtered_domain``
   (filtrar en memoria en vez de en SQL), que **no existe en este árbol**:
   ``grep -rn "filtered_domain" src/ addons/`` da 0. Portarlos exigiría antes
   ``Field.filter_function`` y ``Field.expression_getter``, también ausentes.
-  Sucesor: tarea **#373** los cubre junto al resto de la capa.
+  Sucesor: tarea **#225** los cubre junto al resto de la capa.
 
 La adaptación de forma, declarada
 ==================================
@@ -79,6 +83,7 @@ compone el ORM a partir del ``Q``, así que ni el alias ni la query viajan por
 esta capa. El nombre cambia porque el tipo de retorno cambia — llamarlo
 ``_to_sql`` y devolver un ``Q`` sería peor que renombrarlo.
 """
+import collections
 import enum
 import functools
 import itertools
@@ -121,7 +126,7 @@ CONDITION_OPERATORS = set(STANDARD_CONDITION_OPERATORS) | {'=', '!=', '<>', '=='
 
 La fuente los admite igual y los reduce con optimizadores de módulo
 (``_operator_equal_as_in``, ``_operator_different``, ``_operator_equals``);
-mientras esa capa no exista (tarea **#373**) la reducción vive en
+mientras esa capa no exista (tarea **#225**) la reducción vive en
 ``DomainCondition._to_q``.
 """
 
@@ -382,9 +387,10 @@ class Domain:
         """Optimizaciones básicas — ≙ ``:418``.
 
         Reescribe el dominio en uno lógicamente equivalente y más canónico. En
-        este árbol la única reescritura viva es el **empuje de la negación a
-        las hojas** más el aplanado de los n-arios; el resto de la capa es la
-        tarea **#373**.
+        este árbol las reescrituras vivas son el **empuje de la negación a las
+        hojas**, el aplanado de los n-arios, el **orden** de sus hijos y el
+        despacho de los optimizadores **registrados**. Ninguno lo está todavía:
+        los 33 concretos son la tarea **#225**.
         """
         return self._optimize(model, OptimizationLevel.BASIC)
 
@@ -632,13 +638,21 @@ class DomainNary(Domain):
         return self.apply(child.map_conditions(function) for child in self.children)
 
     def _optimize_step(self, model, level):
-        """Optimiza los hijos y aplana — ≙ ``:652``.
+        """Optimiza los hijos, los ordena y los fusiona — ≙ ``:652-669``.
 
-        La fuente además ordena los hijos y corre ``_MERGE_OPTIMIZATIONS`` para
-        fusionar condiciones del mismo campo. Esa capa es la tarea **#373**; sin
-        ella el aplanado sigue siendo correcto, sólo menos compacto.
+        Los tres pasos van en este orden y no es intercambiable: la fusión
+        recibe hijos **ya optimizados y ya ordenados**, que es lo que permite a
+        :func:`nary_condition_optimization` recorrerlos por bloques contiguos
+        del mismo campo en vez de por parejas.
+
+        Si nada cambió se devuelve ``self``, comparando por **identidad**: es
+        lo que corta el bucle de :meth:`Domain._optimize`, que repite hasta
+        punto fijo.
         """
         children = self._flatten(child._optimize(model, level) for child in self.children)
+        children.sort(key=_optimize_nary_sort_key)
+        for merge in _MERGE_OPTIMIZATIONS:
+            children = merge(type(self), children, model)
         if (len(self.children) == len(children)
                 and all(map(operator_module.is_, self.children, children))):
             return self
@@ -879,13 +893,32 @@ class DomainCondition(Domain):
         return field
 
     def _optimize_step(self, model, level):
-        """≙ ``:922``, reducido a marcar el nivel.
+        """Despacha los optimizadores registrados — ≙ ``:969-984``.
 
-        La fuente despacha aquí los 39 optimizadores registrados por operador y
-        por tipo de campo. Ninguno está portado (tarea **#373**), así que la
-        condición se devuelve tal cual y la normalización mínima que la
-        compilación necesita la hace ``_to_q``.
+        Dos consultas al mismo mapa, en este orden: primero por **operador**,
+        después por **tipo de campo**. La primera que devuelva un dominio
+        distinto gana y corta — la fuente lo hace igual, y el corte importa: sin
+        él, el segundo optimizador vería una condición que el primero ya
+        sustituyó, y el resultado dependería del orden de registro en vez del
+        contrato.
+
+        El tipo de campo sólo se consulta cuando hay modelo contra el que
+        resolverlo. Sin modelo, la condición se optimiza por operador y nada
+        más — es la misma frontera que ``_field`` ya impone.
         """
+        optimizations = _OPTIMIZATIONS_FOR[level]
+        for opt in optimizations.get(self.operator, ()):
+            domain = opt(self, model)
+            if domain != self:
+                return domain
+        if model is not None:
+            field = self._field(model)
+            field_type = getattr(field, 'type', None)
+            if field_type is not None:
+                for opt in optimizations.get(field_type, ()):
+                    domain = opt(self, model)
+                    if domain != self:
+                        return domain
         return self
 
     def _normalized(self):
@@ -899,7 +932,7 @@ class DomainCondition(Domain):
         para PostgreSQL y :meth:`_as_predicate` para memoria— y en la fuente
         ese trabajo lo hacen los optimizadores registrados, antes de que
         ninguno de los dos corra. Aquí esa capa no está portada (tarea
-        **#373**), así que la normalización ocurre en la compilación; tenerla
+        **#225**), así que la normalización ocurre en la compilación; tenerla
         una vez es lo que impide que los dos compiladores diverjan sobre el
         mismo dominio.
         """
@@ -949,7 +982,7 @@ class DomainCondition(Domain):
         olvido: no están en ``CONDITION_OPERATORS`` de este árbol, así que
         ``checked()`` los rechaza antes de llegar aquí. Una rama para ellos
         sería código que ningún test puede alcanzar. Su porte es la tarea
-        **#373**, con el resto del optimizador.
+        **#225**, con el resto del optimizador.
         """
         field_expr, operator, value, constant = self._normalized()
         if constant is not None:
@@ -958,7 +991,7 @@ class DomainCondition(Domain):
         positive_operator = NEGATIVE_CONDITION_OPERATORS.get(operator, operator)
         if positive_operator in ('any', 'any!'):
             self._raise('La travesía de relación no se evalúa en memoria '
-                        '(tarea #373)', error=NotImplementedError)
+                        '(tarea #225)', error=NotImplementedError)
         if isinstance(value, (Domain, Query, SQL)):
             self._raise('Un valor de tipo consulta exige ir al motor',
                         error=NotImplementedError)
@@ -982,7 +1015,7 @@ class DomainCondition(Domain):
         1. **``=``/``!=`` se normalizan a ``in``/``not in``** de un elemento.
            Allá lo hace el optimizador ``_operator_equal_as_in`` (``:1280``);
            aquí ocurre en el paso de compilación porque esa capa no existe
-           todavía (tarea **#373**). Sin esta normalización el compilador de
+           todavía (tarea **#225**). Sin esta normalización el compilador de
            hoja recibiría un operador que la fuente le promete ya reducido.
         2. **La colección vacía colapsa a constante** — ``in []`` es FALSO y
            ``not in []`` es VERDADERO. Es ``_optimize_in_set`` (``:1315``), y
@@ -1030,6 +1063,186 @@ TRUE_DOMAIN = Q()
 #: colapsa a «ninguna fila», así que su negación colapsa a «sin cláusula
 #: ``WHERE``» — el queryset entero.
 FALSE_DOMAIN = Q(pk__in=[])
+
+
+# ---------------------------------------------------------------------------
+# Optimizaciones: el registro
+# ≙ ``odoo19c: odoo/orm/domains.py:1099-1245``
+# ---------------------------------------------------------------------------
+
+_OPTIMIZATIONS_FOR = {
+    level: collections.defaultdict(list)
+    for level in OptimizationLevel if level != OptimizationLevel.NONE
+}
+"""Los optimizadores de condición, por nivel y por clave.
+
+La clave es **un operador o un tipo de campo**, indistintamente: el despacho de
+:meth:`DomainCondition._optimize_step` consulta primero por operador y luego por
+tipo, y los dos salen del mismo mapa. ``NONE`` no tiene entrada — es el nivel
+del dominio sin optimizar, así que no hay nada que correr en él.
+"""
+
+_MERGE_OPTIMIZATIONS = []
+"""Los optimizadores que fusionan los hijos ya optimizados de un n-ario."""
+
+
+def operator_optimization(operators, level=OptimizationLevel.BASIC):
+    """≙ ``operator_optimization`` (``odoo19c: :1114-1125``).
+
+    Docstring de la fuente, verbatim: *"Register a condition operator
+    optimization for (condition, model)"*.
+
+    Registrar un operador lo **declara construible**: entra en
+    :data:`CONDITION_OPERATORS`, así que ``Domain('campo', operador, valor)``
+    deja de rechazarlo. Es la razón de que los cuatro extra del árbol —``=``,
+    ``!=``, ``<>``, ``==``— estén hoy en esa constante escritos a mano: sus
+    optimizadores todavía no existen y sin ellos el constructor los rechazaría.
+    """
+    assert operators, "Falta el operador a registrar"
+    CONDITION_OPERATORS.update(operators)
+
+    def register(optimization):
+        mapping = _OPTIMIZATIONS_FOR[level]
+        for operator in operators:
+            mapping[operator].append(optimization)
+        return optimization
+
+    return register
+
+
+def field_type_optimization(field_types, level=OptimizationLevel.BASIC):
+    """≙ ``field_type_optimization`` (``odoo19c: :1128-1136``).
+
+    Docstring de la fuente, verbatim: *"Register a condition optimization by
+    field type for (condition, model)"*.
+
+    A diferencia de :func:`operator_optimization`, **no declara nada
+    construible**: un tipo de campo no es un operador.
+    """
+    def register(optimization):
+        mapping = _OPTIMIZATIONS_FOR[level]
+        for field_type in field_types:
+            mapping[field_type].append(optimization)
+        return optimization
+
+    return register
+
+
+def _optimize_nary_sort_key(domain):
+    """≙ ``_optimize_nary_sort_key`` (``odoo19c: :1139-1170``).
+
+    Docstring de la fuente, verbatim: *"Sorting key for nary domains so that
+    similar operators are grouped together"*, por (1) nombre de campo, (2)
+    familia de operador y (3) operador.
+
+    La fuente declara las tres razones de ordenar, y la tercera no es
+    cosmética: *"The generated SQL will be ordered by field name so that
+    database caching can be applied more frequently"*. Las otras dos son que
+    dos dominios equivalentes optimicen al mismo resultado, y que al depurar
+    las condiciones de un campo salgan juntas.
+
+    El ``'~'`` de las dos últimas ramas es deliberado, y la fuente lo comenta:
+    *"in python; '~' > any letter"* — lo que no es condición va al final.
+    """
+    if isinstance(domain, DomainCondition):
+        # El mismo campo y el mismo operador, juntos.
+        operator = domain.operator
+        positive_op = NEGATIVE_CONDITION_OPERATORS.get(operator, operator)
+        if positive_op == 'in':
+            order = "0in"
+        elif positive_op == 'any':
+            order = "1any"
+        elif positive_op == 'any!':
+            order = "2any"
+        elif positive_op.endswith('like'):
+            order = "like"
+        else:
+            order = positive_op
+        return domain.field_expr, order, operator
+    elif hasattr(domain, 'OPERATOR') and isinstance(domain.OPERATOR, str):
+        return '~', '', domain.OPERATOR
+    else:
+        return '~', '~', domain.__class__.__name__
+
+
+def nary_optimization(optimization):
+    """≙ ``nary_optimization`` (``odoo19c: :1173-1190``).
+
+    Docstring de la fuente, verbatim: *"Register an optimization to a list of
+    children of an nary domain. The function will take an iterable containing
+    optimized children of a n-ary domain and returns optimized domains"*.
+
+    Y su invariante, también verbatim: *"you always need to optimize both AND
+    and OR domains. It is always possible because if you can optimize ``a & b``
+    then you can optimize ``a | b`` because it is optimizing ``~(~a & ~b)``"*.
+    De ahí que cada optimización se escriba en espejo, decidiendo por
+    ``cls.ZERO.value``.
+    """
+    _MERGE_OPTIMIZATIONS.append(optimization)
+    return optimization
+
+
+def nary_condition_optimization(operators, field_types=None):
+    """≙ ``nary_condition_optimization`` (``odoo19c: :1193-1245``).
+
+    Docstring de la fuente, verbatim: *"Register an optimization for condition
+    children of an nary domain. The function will take a list of domain
+    conditions of the same field and returns optimized domains"*.
+
+    Es un **adaptador** sobre :func:`nary_optimization`: recorre los hijos ya
+    ordenados y entrega bloques contiguos de condiciones que comparten campo y
+    cuyo operador está en ``operators``. Un bloque de **una sola** condición no
+    se entrega — no hay nada que fusionar.
+
+    El recorrido usa un centinela para que la última vuelta cierre el bloque
+    abierto, y ``result`` permanece ``None`` hasta que alguna optimización
+    aplica: así una lista que nadie toca se devuelve **la misma**, y el
+    ``_optimize_step`` del n-ario puede compararla por identidad.
+    """
+    def register(optimization):
+        @nary_optimization
+        def optimizer(cls, domains, model):
+            # ``result`` sigue en None hasta que una optimización aplica; desde
+            # ahí es la optimización de ``domains[:index]``.
+            result = None
+            # Cuando no es None, ``domains[block:index]`` son condiciones del
+            # mismo ``field_expr``.
+            block = None
+
+            domains_iterator = enumerate(domains)
+            stop_item = (len(domains), None)
+            while True:
+                # El centinela cierra el último bloque y corta la iteración.
+                index, domain = next(domains_iterator, stop_item)
+                matching = (isinstance(domain, DomainCondition)
+                            and domain.operator in operators)
+
+                if block is not None and not (
+                        matching and domain.field_expr == domains[block].field_expr):
+                    if block < index - 1 and (
+                        field_types is None
+                        or domains[block]._field(model).type in field_types
+                    ):
+                        if result is None:
+                            result = domains[:block]
+                        result.extend(optimization(cls, domains[block:index], model))
+                    elif result is not None:
+                        result.extend(domains[block:index])
+                    block = None
+
+                if domain is None:
+                    break
+                if matching:
+                    if block is None:
+                        block = index
+                elif result is not None:
+                    result.append(domain)
+
+            return domains if result is None else result
+
+        return optimization
+
+    return register
 
 
 def AND(domains):
