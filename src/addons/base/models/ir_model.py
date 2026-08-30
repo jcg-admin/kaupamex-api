@@ -480,6 +480,50 @@ class IrModel(TimeStampedModel):
         return cls.objects.filter(model=name).values_list('pk', flat=True).first()
 
     @classmethod
+    def _reflect_model_params(cls, model):
+        """Los valores que una fila guarda del modelo — ≙ ``:425-436``.
+
+        **Las ocho claves de la fuente**, y cada una desde donde la fuente la
+        toma: el **atributo de clase**, no el ``Meta`` de Django. La distinción
+        no es cosmética — ``atributos-de-clase-de-modelo.md`` obliga a portar
+        todos los que la fuente declare, y esos atributos son precisamente los
+        que aquí se leen::
+
+            'name': model._description        # ``:429``
+            'order': model._order             # ``:430``
+            'info': …__doc__ de la mro        # ``:431``
+            'fold_name': model._fold_name     # ``:435``
+
+        Un modelo que **no** declara el atributo cae a su equivalente de
+        ``Meta``: ``verbose_name`` por ``_description`` y ``ordering`` por
+        ``_order``. Ese respaldo no es una divergencia sino la otra mitad de la
+        misma regla — *"si no declara ninguno, no se inventa ninguno"* —, y
+        cubre a los modelos propios del L0 que no adaptan nada de la fuente.
+
+        ``info`` recorre la ``mro`` buscando el primer ``__doc__`` no vacío,
+        igual que ``:431``: una subclase sin docstring hereda la descripción de
+        su base en vez de guardar la vacía.
+
+        ``state`` es ``STATE_BASE`` y no el ``'manual' if model._custom`` de la
+        fuente: ``_custom`` marca los modelos que su cliente crea en caliente
+        por formulario, superficie que aquí no existe. Las filas manuales que
+        sí existen las escribe quien las crea, no este reflejo.
+        """
+        info = next(
+            (klass.__doc__ for klass in model.__mro__ if klass.__doc__), '')
+        return {
+            'name': str(getattr(model, '_description', None)
+                        or model._meta.verbose_name),
+            'order': (getattr(model, '_order', None)
+                      or ', '.join(model._meta.ordering) or 'id'),
+            'info': info.strip(),
+            'state': STATE_BASE,
+            'abstract': model._meta.abstract,
+            'transient': not model._meta.managed,
+            'fold_name': getattr(model, '_fold_name', '') or '',
+        }
+
+    @classmethod
     def reflect_models(cls, app_labels=None):
         """Refleja el registro de Django en filas — inverso de ``_reflect_model``.
 
@@ -496,15 +540,8 @@ class IrModel(TimeStampedModel):
             if app_labels and model._meta.app_label not in app_labels:
                 continue
             label = f'{model._meta.app_label}.{model._meta.object_name}'
-            values = {
-                'name': str(model._meta.verbose_name),
-                'state': STATE_BASE,
-                'abstract': model._meta.abstract,
-                'transient': not model._meta.managed,
-                'order': ', '.join(model._meta.ordering) or 'id',
-            }
             _row, was_created = cls.objects.update_or_create(
-                model=label, defaults=values)
+                model=label, defaults=cls._reflect_model_params(model))
             created += was_created
             updated += not was_created
         return created, updated

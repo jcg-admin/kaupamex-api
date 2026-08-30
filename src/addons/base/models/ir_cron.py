@@ -200,6 +200,7 @@ from addons.base.models.ir_module import IrModule
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import LockError, UserError
 from orm.environments import context_scope, get_context, user_scope
+from tools.constants import GC_UNLINK_LIMIT
 
 _logger = logging.getLogger(__name__)
 
@@ -233,9 +234,6 @@ NOTIFY_FUNCTION = os.getenv('KAUPAMEX_NOTIFY_FUNCTION', 'pg_notify')
 #: su siguiente sondeo, que es justo lo que la variable existe para evitar.
 NOTIFY_CRON_CHANGES = bool(os.getenv('KAUPAMEX_NOTIFY_CRON_CHANGES'))
 
-#: Tope de filas por pasada de recoleccion — ``GC_UNLINK_LIMIT`` de
-#: ``odoo.tools.constants``. Local, igual que en ``ir_profile.py:83``.
-GC_UNLINK_LIMIT = 100_000
 
 
 class BadVersion(Exception):

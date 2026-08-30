@@ -72,6 +72,9 @@ from urllib.parse import urlparse
 import fields
 import models
 from django.core.cache import cache
+from tools.constants import (ASSET_EXTENSIONS, EXTERNAL_ASSET,
+                             SCRIPT_EXTENSIONS, STYLE_EXTENSIONS,
+                             TEMPLATE_EXTENSIONS)
 
 _logger = logging.getLogger(__name__)
 
@@ -90,15 +93,6 @@ INCLUDE_DIRECTIVE = 'include'
 #: Las que llevan argumento/campo ``target``.
 DIRECTIVES_WITH_TARGET = [AFTER_DIRECTIVE, BEFORE_DIRECTIVE, REPLACE_DIRECTIVE]
 
-# Extensiones de asset — verbatim de ``odoo/tools/constants.py:3-6``.
-SCRIPT_EXTENSIONS = ('js',)
-STYLE_EXTENSIONS = ('css', 'scss', 'sass', 'less')
-TEMPLATE_EXTENSIONS = ('xml',)
-ASSET_EXTENSIONS = SCRIPT_EXTENSIONS + STYLE_EXTENSIONS + TEMPLATE_EXTENSIONS
-
-#: Centinela para una URL externa — ``EXTERNAL_ASSET`` de la referencia, que
-#: allá es un ``object()`` sin más identidad que la suya.
-EXTERNAL_ASSET = object()
 
 #: Clave de la caché de bundles. La referencia usa ``clear_cache('assets')``.
 ASSET_CACHE_KEY = 'ir_asset:bundles'

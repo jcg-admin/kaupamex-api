@@ -1199,3 +1199,24 @@ sales_team/models/crm_tag.py::CrmTag::_get_default_color
 # ese argumento es exactamente el que la clausula existe para rechazar. En
 # `certificate` queda como deuda contada, igual que en los otros noventa.
 certificate/models/certificate.py::CertificateCertificate::create
+
+# --- ir_actions.py, IrActionsServer (tarea #117) -------------------------
+# AQUI NO ENTRAN `create` NI `write`, y conviene decir por que: sus cuerpos SI
+# estan portados —el ORM de la fuente separa alta y escritura en dos metodos y
+# el de Django los une en `save()`, que llama a los cuatro ganchos que aquellos
+# declaran: `_check_children`, `_check_python_code`, `_compute_name` y
+# `_record_code_revision`—, pero declararlos aqui abre la puerta que la clausula
+# anti-abuso de este registro existe para cerrar.
+#
+# Medido: el gate reporta `create` ausente **113** veces y `write` **110** en el
+# arbol. Una entrada por `IrActionsServer` seria el precedente para las otras
+# 222, y el par create/write -> save() es una decision de forma que gobierna a
+# todo el porte, no una divergencia de un modelo. Su hogar es la tarea **#77**,
+# no este archivo. `tests/unit/scripts/test_divergencias_declaradas.py` lo
+# vigila por nombre y este intento fue justamente lo que atrapo.
+#
+# El modo `code` NO se evalua en este arbol: es la misma divergencia declarada
+# que `ir_rule.domain_force` y que la rama `equation` de `_eval_value`. Su
+# corredor levanta con el motivo en vez de callar; ver el bloque "El motor de
+# ejecucion (#117)" del propio archivo.
+base/models/ir_actions.py::IrActionsServer::_run_action_code_multi

@@ -40,13 +40,22 @@ def _action(**kwargs):
 
 
 def _partner_model():
-    row, _created = IrModel.objects.get_or_create(
+    """La fila de ``ir.model`` cuyo ``name`` estos casos gobiernan.
+
+    ``update_or_create`` y no ``get_or_create``: la fila de ``base.ResPartner``
+    **ya existe** cuando estos casos corren —la siembra de la ACL la crea en
+    ``0059_seed_base_security``—, así que un ``defaults=`` no llegaba a
+    aplicarse nunca y el caso medía el nombre que la siembra hubiera puesto en
+    vez del que declara. El montaje no controlaba lo que creía controlar.
+    """
+    row, _created = IrModel.objects.update_or_create(
         model=PARTNER, defaults={'name': 'Contacto'})
     return row
 
 
 def _field(model_row, name, ttype='char'):
-    row, _created = IrModelFields.objects.get_or_create(
+    """Ídem: la fila del campo se fuerza, no se hereda de lo ya sembrado."""
+    row, _created = IrModelFields.objects.update_or_create(
         model=PARTNER, name=name,
         defaults={'model_id': model_row, 'ttype': ttype, 'state': 'base'})
     return row
@@ -202,11 +211,19 @@ class TestTheChildrenDomain:
         Es el control que discrimina: ``repr('model_id')`` trae comillas y
         ``repr(unquote('model_id'))`` no. Comparar dos ``Domain`` entre si
         seria ciego a la diferencia.
+
+        Se mide la posicion del **valor**, no la del campo. Una hoja es
+        ``(campo, operador, valor)`` y el campo es una cadena normal: sus
+        comillas son correctas y salen igual en la fuente. Afirmar que
+        ``"'model_id'"`` no aparece en ninguna parte medía las dos posiciones
+        a la vez y no podia pasar nunca.
         """
         rendered = repr(IrActionsServer._get_children_domain())
 
-        assert "'model_id'" not in rendered
-        assert "'id'" not in rendered
+        assert "'=', model_id)" in rendered
+        assert "'!=', id)" in rendered
+        assert "'=', 'model_id')" not in rendered
+        assert "'!=', 'id')" not in rendered
 
     def test_it_only_offers_actions_that_are_not_already_children(self):
         rendered = repr(IrActionsServer._get_children_domain())
@@ -236,17 +253,23 @@ class TestThePythonCodeIsCheckedWithoutRunningIt:
 
 @pytest.mark.django_db
 class TestTheCopyIsMarkedAsOne:
-    """≙ ``copy_data``: el duplicado se nombra como tal."""
+    """≙ ``copy_data``: el duplicado se nombra como tal.
+
+    Se indexa como ``dict`` y no como lista porque ésa es la forma que
+    ``CopyMixin.copy_data`` declara en este árbol: allá ``self`` es un
+    recordset y responde uno por registro; aquí una instancia **es** un
+    registro. Un ``[0]`` aquí mediría la forma de la fuente, no la nuestra.
+    """
 
     def test_the_duplicate_says_it_is_a_copy(self):
         action = _action(name='Original')
 
-        assert action.copy_data()[0]['name'] == 'Original (copia)'
+        assert action.copy_data()['name'] == 'Original (copia)'
 
     def test_an_explicit_name_wins_over_the_suffix(self):
         action = _action(name='Original')
 
-        assert action.copy_data({'name': 'Otro'})[0]['name'] == 'Otro'
+        assert action.copy_data({'name': 'Otro'})['name'] == 'Otro'
 
 
 @pytest.mark.django_db
@@ -294,10 +317,38 @@ class TestTheDefaultUpdatePath:
         assert IrActionsServer._default_update_path() == ''
 
     def test_it_picks_the_first_sensible_field_the_model_has(self):
+        """``user`` y no ``active``: la lista se recorre **en su orden**.
+
+        ``user`` es el cuarto candidato traducido (``user_id`` allá,
+        ``res_partner.py:231``, ``readonly=False, store=True``) y ``active`` el
+        último. Esperar ``active`` medía el final de la lista, que es lo que
+        devuelve un modelo que no tiene ninguno de los cuatro anteriores.
+        """
         model_row = _partner_model()
 
         with context_scope(default_model_id=model_row.pk):
-            assert IrActionsServer._default_update_path() == 'active'
+            assert IrActionsServer._default_update_path() == 'user'
+
+    def test_the_country_state_fk_does_not_pass_as_the_workflow_state(self):
+        """El control que discrimina la colisión que el sufijo ``_id`` produce.
+
+        ``state`` de la lista nombra el **estado de flujo** —``Selection`` en
+        98 de las 100 declaraciones de ``odoo19c``—, pero al quitar el sufijo
+        el ``state_id`` de ``res.partner`` pasa a llamarse igual. Sin el
+        discriminador de relación, con los cuatro primeros candidatos fuera de
+        alcance este caso devolvería la entidad federativa.
+        """
+        model_row = _partner_model()
+        without_the_first_four = [c for c in IrActionsServer.SENSIBLE_DEFAULT_FIELDS
+                          if c in ('state', 'active')]
+
+        with context_scope(default_model_id=model_row.pk):
+            original = IrActionsServer.SENSIBLE_DEFAULT_FIELDS
+            IrActionsServer.SENSIBLE_DEFAULT_FIELDS = without_the_first_four
+            try:
+                assert IrActionsServer._default_update_path() == 'active'
+            finally:
+                IrActionsServer.SENSIBLE_DEFAULT_FIELDS = original
 
 
 @pytest.mark.django_db

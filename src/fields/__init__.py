@@ -25,9 +25,11 @@ los dominios son otro módulo. Por eso aquí se importa **de cada módulo que
 define**, en su orden, y no con un ``import *`` sobre un agregador: el agregador
 esconde la procedencia y congela la superficie (ver la nota de ``Serialized``).
 
-Los cinco nombres de la fachada de la referencia que aquí faltan, con su
-veredicto medido (``porte-completo-no-parcial.md`` exige uno de tres, no el
-silencio):
+Los cinco nombres de la fachada de la referencia que este archivo tuvo que
+resolver, con su veredicto medido (``porte-completo-no-parcial.md`` exige uno de
+tres, no el silencio). Dos ya se exportan; **tres siguen faltando** —``Field``,
+``Id`` y ``NO_ACCESS``— y su ausencia es la que mide el recorrido AST de la
+sección «Verificación»:
 
 - ``parse_field_expr`` — **RESUELTO**: el símbolo ya existía en ``orm/utils.py``
   y es idéntico al de la fuente; lo que faltaba era su exportación. Se exporta
@@ -48,7 +50,11 @@ silencio):
   campo que consume ``is_field_accessible`` (``orm/models.py:3379``). Sin la
   clase ``Field`` el centinela es una cadena sin consumidor; su bloqueo es el
   porte de ``Field``.
-- ``Domain`` — sucesor registrado: tarea **#356**.
+- ``Domain`` — **RESUELTO**: la clase ya vivía en ``orm/domains.py`` con sus
+  ocho subclases y sus helpers (``AND``/``OR``/``NOT``/``to_q``); lo que
+  faltaba era su exportación por la fachada, que es como la consume un
+  addon (``odoo19c: addons/base/models/ir_actions.py:18`` →
+  ``from odoo.fields import Command, Domain``). Se exporta aquí.
 """
 # ruff: noqa: F401
 # Exporta las capacidades del ORM a quien escribe un addon.
@@ -67,6 +73,7 @@ from orm.fields_properties import Properties, PropertiesDefinition
 from orm.fields_binary import Binary, Image
 
 from orm.commands import Command
+from orm.domains import Domain
 from orm.utils import parse_field_expr
 
 # ``NonStored`` es campo NUESTRO —la referencia no lo tiene— pero es **un

@@ -56,7 +56,7 @@ _logger = logging.getLogger('kaupamex.registry')
 
 __all__ = [
     'apps', 'connections',
-    'MODELS_BY_NAME', 'name_of', 'model_by_name',
+    'MODELS_BY_NAME', 'name_of', 'model_by_name', 'model_by_key',
     'resolve_model_key', 'check_table_matches_name',
     'registrants_without_table',
     'clear_cache', 'clear_all_caches', 'cache_of', 'cache_invalidated',
@@ -242,6 +242,44 @@ def model_by_name(name):
     """La clase que declara ese ``_name``, o ``None`` si no está cargada."""
     _ensure_seeded()
     return MODELS_BY_NAME.get(name)
+
+
+def model_by_key(key):
+    """La clase de un modelo nombrado en **cualquiera** de las dos formas.
+
+    Puente que nuestra divergencia de almacenamiento necesita, y que la fuente
+    no necesita: allá ``self.env[name]`` sólo admite el nombre punteado porque
+    es el único que existe. Aquí conviven dos:
+
+    - ``'res.partner'`` — el ``_name`` de la referencia, que es la clave de
+      :data:`MODELS_BY_NAME`;
+    - ``'base.ResPartner'`` — el *label* de Django, que es lo que guardan las
+      columnas de texto que apuntan a un modelo (``ir_model.model``,
+      ``ir_actions_server.model_name``, ``ir_rule.model_name``).
+
+    Devuelve ``None`` si ninguna de las dos resuelve, en vez de levantar: sus
+    consumidores leen una **columna**, y una fila puede sobrevivir al modelo
+    que nombraba (módulo desinstalado, clase renombrada). Es el mismo criterio
+    con que ``IrModel.django_model`` devuelve ``None``.
+
+    :func:`resolve_model_key` es la hermana que **sí** levanta, porque su
+    consumidor —``extend_model``— nombra un destino que el programador escribió
+    y cuya ausencia es un error de programa, no un dato viejo.
+    """
+    if not key:
+        return None
+    _ensure_seeded()
+    model = MODELS_BY_NAME.get(key)
+    if model is not None:
+        return model
+    try:
+        app_label, model_name = key.split('.', 1)
+    except ValueError:
+        return None
+    try:
+        return apps.get_model(app_label, model_name)
+    except LookupError:
+        return None
 
 
 def resolve_model_key(*args):

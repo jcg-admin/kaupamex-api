@@ -207,13 +207,14 @@ from addons.base.models.ir_sequence import IrSequence
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import UserError
-from orm.commands import Command
+from fields import Command, Domain
 from addons.base.models.ir_model import IrModelData
 from orm.environments import (context_scope, get_context,
                               get_current_user, sudo)
 from orm.models_transient import TransientModel
-from orm.registry import MODELS_BY_NAME
-from tools.misc import get_diff, get_lang
+from orm.registry import model_by_key
+from tools.misc import get_diff, get_lang, unquote
+from tools.safe_eval import test_python_expr
 
 _logger = logging.getLogger(__name__)
 
@@ -244,11 +245,19 @@ BINDING_TYPE_CHOICES = [
 ]
 
 
-class IrActionsBase(TimeStampedModel):
+class IrActionsBase(models.CopyMixin, models.OriginMixin, TimeStampedModel):
     """Campos comunes de toda acción — el ``_inherit`` de la referencia.
 
     Abstracto porque allá la herencia es **por prototipo**: cada subtipo copia
     estos campos a su propia tabla en vez de compartirla.
+
+    ``models.CopyMixin`` y ``models.OriginMixin`` entran aquí y no en un subtipo
+    suelto porque allá ``copy``, ``copy_data`` y ``_origin`` viven en
+    ``BaseModel``: **todo** modelo los tiene. Aquí son mixins explícitos, así
+    que el sitio fiel es el abstracto que las siete acciones comparten, no la
+    única que además los consume (``IrActionsServer``: redefine ``copy_data``,
+    ``:1320-1326``, y lee el código guardado para decidir si anota revisión,
+    ``:730``). Ninguno declara campos: no hay migración.
     """
 
     name = fields.Char(max_length=255, verbose_name='Nombre de la acción')
@@ -523,7 +532,12 @@ class IrActionsActWindow(IrActionsBase):
         super().clean()
         for fname in ('res_model', 'binding_model_name'):
             model_name = getattr(self, fname, '')
-            if model_name and model_name not in MODELS_BY_NAME:
+            # Se admiten las DOS formas de nombrar un modelo, por la misma
+            # razón que en los otros tres sitios: la columna guarda el label
+            # de Django y ``MODELS_BY_NAME`` indexa por ``_name``. Con la
+            # pertenencia cruda, ``'base.ResPartner'`` —un nombre válido— se
+            # rechazaba como inválido.
+            if model_name and model_by_key(model_name) is None:
                 raise ValidationError(
                     'Nombre de modelo inválido “%s” en la definición de la '
                     'acción.' % model_name)
@@ -656,7 +670,10 @@ class ServerActionHistoryWizard(TransientModel):
         blank=True, related_name='wizards', verbose_name='Revisión')
 
     class Meta:
-        managed = False
+        # Con tabla real, como todo transitorio de la fuente
+        # (``_auto = True``, ``odoo19c: odoo/orm/models_transient.py:18``). El
+        # ``managed = False`` que había aquí dejaba al asistente sin dónde
+        # guardarse, y su suite fallaba con ``relation … does not exist``.
         db_table = 'server_action_history_wizard'
         verbose_name = 'Asistente de historial de acción de servidor'
         verbose_name_plural = 'Asistentes de historial de acción de servidor'
@@ -1433,7 +1450,7 @@ class IrActionsServer(IrActionsBase):
             '_action': '%s(#%s)' % (self.name, self.pk),
         }
         if self.model_name:
-            model = MODELS_BY_NAME.get(self.model_name)
+            model = model_by_key(self.model_name)
             sample = model.objects.first() if model is not None else None
             for field_row in (self.webhook_field_ids.all() if self.pk else []):
                 if sample is not None:
@@ -1466,27 +1483,34 @@ class IrActionsServer(IrActionsBase):
         ])
 
     def _check_python_code(self):
-        """≙ ``_check_python_code`` (``:840-845``) — valida, **nunca ejecuta**.
+        """≙ ``_check_python_code`` (``:960-965``) — valida, **nunca ejecuta**.
 
-        La fuente llama ``test_python_expr(expr, mode="exec")``, que hace dos
-        cosas: compilar —donde se detecta la sintaxis rota— y validar los
-        **opcodes** del bytecode resultante contra ``_SAFE_OPCODES``.
+        Delega en ``test_python_expr(expr, mode='exec')``, que hace las dos
+        cosas que la fuente le pide: compilar —donde se detecta la sintaxis
+        rota— y validar los **opcodes** del bytecode resultante contra
+        ``_SAFE_OPCODES``.
 
-        Aquí se porta la primera mitad. La segunda está **bloqueada por el
-        porte de ``tools/safe_eval.py``**, que en este árbol tiene 100 líneas
-        contra las 502 de la fuente y valida el AST con una whitelist de la
-        forma de un dominio —correcta para ``ir.rule``, insuficiente para
-        ``mode='exec'``—. El propio módulo lo dejó escrito: *"Si un consumidor
-        futuro necesita ``mode='exec'`` … ese pase amplía este módulo con la
-        validación de opcodes de la referencia — no la esquiva"*. Ese
-        consumidor es éste. Sucesor registrado: tarea **#140**.
+        La segunda mitad estuvo bloqueada mientras ``tools/safe_eval.py``
+        validaba el AST con una whitelist de la forma de un dominio —correcta
+        para ``ir.rule``, insuficiente para ``mode='exec'``—. Ese bloqueo se
+        cerró con el porte completo del módulo (tarea **#140**), así que aquí
+        ya no hay media validación: se llama al mismo guardián que la fuente.
+
+        ``filtered('code')`` de la fuente se lee aquí como la guarda de salida:
+        una acción sin código no tiene nada que validar. El ``sudo()`` no tiene
+        destinatario —esta lectura es del propio registro, no pasa por reglas
+        de fila—.
+
+        El contrato de ``test_python_expr`` es invertido a propósito, verbatim
+        de la fuente: devuelve el **mensaje** cuando algo va mal y ``False``
+        cuando todo está bien. Un ``if msg`` sobre esa salida es lo que separa
+        el rechazo del silencio.
         """
         if not self.code:
             return
-        try:
-            compile(self.code.strip(), '<ir.actions.server>', 'exec')
-        except (SyntaxError, TypeError, ValueError) as err:
-            raise ValidationError(str(err))
+        msg = test_python_expr(expr=self.code.strip(), mode='exec')
+        if msg:
+            raise ValidationError(msg)
 
     def _get_readable_fields(self):
         """≙ ``_get_readable_fields`` (``:1225-1228``).
@@ -1536,7 +1560,7 @@ class IrActionsServer(IrActionsBase):
                     'No tiene permisos suficientes para ejecutar esta acción.')
             return
 
-        model = MODELS_BY_NAME.get(self.model_name)
+        model = model_by_key(self.model_name)
         login = getattr(user, 'login', None)
         if model is not None and hasattr(model, 'check_access'):
             try:
@@ -1596,22 +1620,67 @@ class IrActionsServer(IrActionsBase):
         if self.value_field_to_show == 'selection_value' and self.selection_value:
             self.value = self.selection_value.value
 
-    def copy_data(self, default=None):
-        """≙ ``copy_data`` (``:1320-1326``) — el duplicado se nombra como tal."""
+    def copy_data(self, default=None, seen=None):
+        """≙ ``copy_data`` (``:1320-1326``) — el duplicado se nombra como tal.
+
+        La fuente itera ``vals_list`` porque allá ``self`` es un recordset y
+        ``super().copy_data()`` responde **uno por registro**. Aquí una
+        instancia **es** un registro y la base devuelve un ``dict``: es la
+        divergencia que ``CopyMixin.copy_data`` declara —*"Devuelve un dict, no
+        una lista … la forma plural la recupera quien la necesite iterando"*—.
+        El bucle de la fuente se lee entonces como su caso de un solo elemento;
+        el resto del cuerpo es verbatim.
+
+        ``seen`` viaja porque la base lo usa como guarda contra la recursión de
+        una relación circular, y una sobrescritura que lo tragara la anularía:
+        ``copy`` lo pasa al duplicar las hijas, que en este modelo son otras
+        acciones (``child_ids``) y pueden encadenarse.
+
+        ``None`` de la base —el registro ya se visitó— sale tal cual: añadirle
+        el sufijo a un duplicado que no se va a crear sería inventar valores.
+        """
         default = default or {}
-        vals_list = super().copy_data(default=default)
-        if not default.get('name'):
-            for vals in vals_list:
-                vals['name'] = '%s (copia)' % (vals.get('name', ''),)
-        return vals_list
+        values = super().copy_data(default=default, seen=seen)
+        if values is not None and not default.get('name'):
+            values['name'] = '%s (copia)' % (values.get('name', ''),)
+        return values
+
+    #: ≙ ``sensible_default_fields`` (``:599``), traducida a nuestros nombres.
+    #: Los cuatro primeros pierden el sufijo ``_id`` por la convención de FK
+    #: del árbol (tarea **#141**); ``state`` y ``active`` no lo llevaban.
+    SENSIBLE_DEFAULT_FIELDS = ['partner', 'user', 'users', 'stage', 'state',
+                               'active']
 
     @classmethod
     def _default_update_path(cls):
-        """≙ ``_default_update_path`` (``:711-720``).
+        """≙ ``_default_update_path`` (``:594-603``).
 
         El primer campo *sensato* que el modelo por defecto tenga y no sea de
         sólo lectura. La lista de candidatos es la de la fuente, en su orden;
         no es heurística nuestra.
+
+        **La lista se traduce, y una entrada colisiona.** Al quitar el sufijo
+        ``_id`` de las FK, ``state_id`` de la fuente pasa a llamarse ``state``
+        aquí — y ``state`` ya es una entrada de esta lista, con otro
+        significado: allá nombra el **estado de flujo** del registro. Medido
+        sobre las dos raíces de addon de ``odoo19c``, el campo llamado ``state``
+        es ``Selection`` en **98** declaraciones, ``Many2one`` en **1**
+        (``res_bank.py:27``, la entidad federativa) y ``Char`` en **1**. La
+        acepción de la lista es la de las 98.
+
+        Por eso ``state`` se acepta sólo cuando **no es una relación**: sin ese
+        discriminador, ``res.partner`` —cuyo ``state_id`` de la fuente aquí se
+        llama ``state``— devolvía la entidad federativa como campo por defecto
+        a actualizar, en vez de ``active``. No es heurística: es la traducción
+        del significado que la fuente le da a esa entrada.
+
+        Se recorren los campos **propios** del modelo y no ``_meta.get_fields()``
+        entero, porque aquél incluye las relaciones inversas que otro modelo
+        declara con ``related_name``. La fuente itera ``model._fields``, que son
+        sólo los suyos; contar las inversas mediría otra población.
+
+        ``editable`` es el ``readonly`` de la fuente con el signo invertido: es
+        el atributo con que Django dice lo mismo.
         """
         model_id = get_context().get('default_model_id')
         if not model_id:
@@ -1619,17 +1688,18 @@ class IrActionsServer(IrActionsBase):
         row = IrModel.objects.filter(pk=model_id).first()
         if row is None:
             return ''
-        model = MODELS_BY_NAME.get(row.model)
+        model = model_by_key(row.model)
         if model is None:
             return ''
-        sensible = ['partner_id', 'user_id', 'user_ids', 'stage_id', 'state',
-                    'active']
-        names = {f.name for f in model._meta.get_fields()}
-        for field_name in sensible:
-            if field_name in names:
-                field = model._meta.get_field(field_name)
-                if getattr(field, 'editable', True):
-                    return field_name
+        own = {f.name: f for f in model._meta.get_fields()
+               if getattr(f, 'concrete', False)}
+        for field_name in cls.SENSIBLE_DEFAULT_FIELDS:
+            field = own.get(field_name)
+            if field is None or not getattr(field, 'editable', True):
+                continue
+            if field_name == 'state' and field.is_relation:
+                continue
+            return field_name
         return ''
 
     def _check_children(self):
@@ -1664,9 +1734,64 @@ class IrActionsServer(IrActionsBase):
                 % ', '.join(child.name for child in children_with_warnings))
 
     def save(self, *args, **kwargs):
-        """``@api.constrains('parent_id', 'child_ids')`` de la fuente."""
+        """``@api.constrains('parent_id', 'child_ids')`` de la fuente.
+
+        Aquí también se dispara ``_compute_name``. En la fuente lo dispara el
+        ORM: ``automated_name`` es ``Char(compute='_compute_name', store=True)``
+        con ``@api.depends(lambda self: self._name_depends())`` (``:843``), así
+        que el motor lo recalcula cada vez que cambia una de sus tres
+        dependencias. Aquí el cómputo con columna se invoca explícitamente
+        antes del ``super().save()`` —misma forma que ``complete_name`` en
+        ``res_partner``—: ``store=True`` significa que el valor se persiste, no
+        que se derive en cada lectura.
+
+        Va **antes** del ``super()`` por eso mismo: después, la fila ya se
+        escribió y las dos columnas irían a disco en un segundo ``UPDATE``.
+
+        Aquí se registra también la revisión del código. La fuente lo hace en
+        **dos** métodos —``create`` (``:720-726``) anota la primera y ``write``
+        (``:730-732``) cada cambio posterior—; en este stack los dos caminos
+        pasan por ``save``, así que la rama la decide si la fila ya existe.
+        """
+        creating = self._state.adding or self.pk is None
+        previous_code = None if creating else (self._origin.code or '')
+
         self._check_children()
-        return super().save(*args, **kwargs)
+        self._check_python_code()
+        self._compute_name()
+        result = super().save(*args, **kwargs)
+        self._record_code_revision(creating, previous_code)
+        return result
+
+    def _record_code_revision(self, creating, previous_code):
+        """Anota la revisión del código — ≙ ``create`` (``:720-726``) y
+        ``write`` (``:730-732``).
+
+        Al **crear**, la fuente anota la primera revisión sólo si ``"code" in
+        vals``: una acción que nace sin código no tiene nada que versionar. Su
+        equivalente aquí es que el campo traiga texto — el ``in vals`` de allá
+        distingue *ausente* de *vacío*, y aquí ambos llegan como cadena vacía
+        porque la columna declara ``default=''``.
+
+        Al **escribir**, la guarda de la fuente es ``new_code != self.code``,
+        donde ``self.code`` es el valor **guardado**: dentro de ``write`` el
+        registro todavía no se ha actualizado. Aquí ``self`` ya trae el valor
+        nuevo cuando ``save`` corre, así que el anterior se lee de
+        ``self._origin`` **antes** del ``super()`` y llega como parámetro. Sin
+        eso la comparación sería del valor consigo mismo y toda escritura
+        anotaría una revisión.
+
+        Va **después** del ``super()`` y no antes: la revisión apunta a la
+        acción por clave ajena, y al crear esa clave no existe hasta que la
+        fila se escribe.
+        """
+        code = self.code or ''
+        if creating:
+            if code:
+                IrActionsServerHistory.objects.create(action=self, code=code)
+            return
+        if code and code != previous_code:
+            IrActionsServerHistory.objects.create(action=self, code=code)
 
     # ---- El motor de ejecución (#117) -------------------------------------
     #

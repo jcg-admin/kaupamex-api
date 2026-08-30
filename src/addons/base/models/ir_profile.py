@@ -70,17 +70,13 @@ import models
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from orm.models_transient import TransientModel
+from tools.constants import GC_UNLINK_LIMIT
 
 _logger = logging.getLogger(__name__)
 
 #: Clave del parámetro que habilita el perfilado — nombre verbatim de la
 #: referencia, para que el valor sea intercambiable con el suyo.
 PROFILING_ENABLED_UNTIL = 'base.profiling_enabled_until'
-
-#: Tope de filas por lote del recolector. La referencia usa
-#: ``GC_UNLINK_LIMIT`` de ``odoo.tools.constants``; aquí es local porque ese
-#: módulo de constantes no está portado.
-GC_UNLINK_LIMIT = 100_000
 
 #: Días que se conserva un perfil antes de que el recolector lo borre.
 GC_RETENTION_DAYS = 30
