@@ -105,7 +105,7 @@ from orm.fields import (
 from orm.fields_properties import Properties
 from orm.utils import COLLECTION_TYPES, parse_field_expr
 from tools.func import classproperty
-from tools.misc import OrderedSet, str2bool
+from tools.misc import OrderedSet, partition, str2bool
 from tools.query import Query
 from tools.sql import SQL
 
@@ -1193,6 +1193,27 @@ def nary_optimization(optimization):
     return optimization
 
 
+def _block_matches_field_types(condition, model, field_types):
+    """Si el bloque cae dentro del alcance de tipos de la optimización.
+
+    Divergencia declarada, hermana de la de ``DomainCondition._optimize_step``:
+    la fuente resuelve el campo siempre porque su ``model`` es un recordset;
+    aquí ``_field(None)`` devuelve ``None`` —es un **desconocido**, no una
+    ausencia— y una optimización acotada por tipo **no puede decidir** sin él,
+    así que no aplica.
+
+    Que esto sea una función y no una condición en línea tiene su motivo: el
+    caso llegó en la primera ejecución con optimizaciones reales acotadas por
+    tipo registradas. Mientras ``_MERGE_OPTIMIZATIONS`` estaba vacía la rama
+    sólo la ejercitaba un doble de test, que sí traía modelo; el ``AttributeError``
+    estaba ahí desde que se escribió el adaptador y **nada podía verlo**.
+    """
+    if field_types is None:
+        return True
+    field = condition._field(model)
+    return field is not None and field.type in field_types
+
+
 def nary_condition_optimization(operators, field_types=None):
     """≙ ``nary_condition_optimization`` (``odoo19c: :1193-1245``).
 
@@ -1230,10 +1251,8 @@ def nary_condition_optimization(operators, field_types=None):
 
                 if block is not None and not (
                         matching and domain.field_expr == domains[block].field_expr):
-                    if block < index - 1 and (
-                        field_types is None
-                        or domains[block]._field(model).type in field_types
-                    ):
+                    if block < index - 1 and _block_matches_field_types(
+                            domains[block], model, field_types):
                         if result is None:
                             result = domains[:block]
                         result.extend(optimization(cls, domains[block:index], model))
@@ -1463,6 +1482,192 @@ def _optimize_boolean_in_all(condition, model):
         # la tautología se simplifica a un booleano
         return Domain(condition.operator == 'in')
     return condition
+
+
+def _merge_set_conditions(cls, conditions):
+    """≙ ``_merge_set_conditions`` (``odoo19c: :1881-1908``).
+
+    Docstring de la fuente, verbatim: *"Base function to merge equality
+    conditions. Combine the 'in' and 'not in' conditions to a single set of
+    values"*, con sus dos ejemplos::
+
+        a in {1} or a in {2}              <=>  a in {1, 2}
+        a in {1, 2} and a not in {2, 5}   =>   a in {1}
+
+    No está registrada: es la **base** de las tres fusiones de conjunto, que
+    la llaman tras decidir si su caso admite la fusión.
+    """
+    assert all(isinstance(cond.value, OrderedSet) for cond in conditions)
+
+    # los conjuntos de las condiciones 'in' y 'not in'
+    in_sets = [c.value for c in conditions if c.operator == 'in']
+    not_in_sets = [c.value for c in conditions if c.operator == 'not in']
+
+    # se combinan
+    field_expr = conditions[0].field_expr
+    if cls.OPERATOR == '&':
+        if in_sets:
+            return [DomainCondition(
+                field_expr, 'in', intersection(in_sets) - union(not_in_sets))]
+        return [DomainCondition(field_expr, 'not in', union(not_in_sets))]
+    if not_in_sets:
+        return [DomainCondition(
+            field_expr, 'not in', intersection(not_in_sets) - union(in_sets))]
+    return [DomainCondition(field_expr, 'in', union(in_sets))]
+
+
+def intersection(sets):
+    """Intersección de una lista de ``OrderedSet`` — ≙ ``:1911-1913``."""
+    return functools.reduce(operator_module.and_, sets)
+
+
+def union(sets):
+    """Unión de una lista de ``OrderedSet`` — ≙ ``:1916-1918``.
+
+    Se construye por comprensión y no con ``|`` acumulado para conservar el
+    **orden de inserción**, que es lo que distingue un ``OrderedSet`` de un
+    ``set`` y lo que llega al SQL emitido.
+    """
+    return OrderedSet(elem for s in sets for elem in s)
+
+
+@nary_condition_optimization(operators=('in', 'not in'))
+def _optimize_merge_set_conditions_mono_value(cls, conditions, model):
+    """≙ ``_optimize_merge_set_conditions_mono_value`` (``:1921-1936``).
+
+    Docstring de la fuente, verbatim: *"Merge equality conditions … Do not
+    touch x2many fields which have a different semantic"*.
+
+    La exclusión no es una cautela: sobre un x2many ``a in {1} and a in {2}``
+    **puede** tener solución —un registro con las dos líneas— mientras que
+    sobre un escalar no. Fusionarlos con la misma regla cambiaría el conjunto
+    de filas que la consulta devuelve.
+    """
+    field = conditions[0]._field(model)
+    if field is None or field.type in ('many2many', 'one2many', 'properties'):
+        return conditions
+    return _merge_set_conditions(cls, conditions)
+
+
+@nary_condition_optimization(operators=('in',),
+                             field_types=['many2many', 'one2many'])
+def _optimize_merge_set_conditions_x2many_in(cls, conditions, model):
+    """≙ ``_optimize_merge_set_conditions_x2many_in`` (``:1939-1945``).
+
+    Docstring de la fuente, verbatim: *"Merge domains of 'in' conditions for
+    x2many fields like for 'any' operator"*.
+
+    Sólo bajo ``OR``: la unión es equivalente. Bajo ``AND`` la condición se
+    deja intacta, por la semántica que el optimizador anterior describe.
+    """
+    if cls is DomainAnd:
+        return conditions
+    return _merge_set_conditions(cls, conditions)
+
+
+@nary_condition_optimization(operators=('not in',),
+                             field_types=['many2many', 'one2many'])
+def _optimize_merge_set_conditions_x2many_not_in(cls, conditions, model):
+    """≙ ``_optimize_merge_set_conditions_x2many_not_in`` (``:1948-1954``).
+
+    Docstring de la fuente, verbatim: *"Merge domains of 'not in' conditions
+    for x2many fields like for 'not any' operator"*.
+
+    El espejo del anterior: sólo bajo ``AND``.
+    """
+    if cls is DomainOr:
+        return conditions
+    return _merge_set_conditions(cls, conditions)
+
+
+@nary_condition_optimization(['any'], ['many2one', 'one2many', 'many2many'])
+@nary_condition_optimization(['any!'], ['many2one', 'one2many', 'many2many'])
+def _optimize_merge_any(cls, conditions, model):
+    """≙ ``_optimize_merge_any`` (``:1957-1975``).
+
+    Docstring de la fuente, verbatim: *"Merge domains of 'any' conditions for
+    relational fields. This will lead to a smaller number of sub-queries which
+    are equivalent"*::
+
+        a any (f = 8) or a any (g = 5)   <=>  a any (f = 8 or g = 5)
+        a any (f = 8) and a any (g = 5)  <=>  a any (f = 8 and g = 5)
+
+    La segunda equivalencia vale **sólo para many2one**: con un x2many las dos
+    condiciones pueden satisfacerse en líneas distintas, y una sola subconsulta
+    exigiría que una misma línea cumpla las dos.
+    """
+    field = conditions[0]._field(model)
+    if (field is None or field.type != 'many2one') and cls is DomainAnd:
+        return conditions
+    merge_conditions, other_conditions = partition(
+        lambda c: isinstance(c.value, Domain), conditions)
+    if len(merge_conditions) < 2:
+        return conditions
+    base = merge_conditions[0]
+    sub_domain = cls(tuple(c.value for c in merge_conditions))
+    return [DomainCondition(base.field_expr, base.operator, sub_domain),
+            *other_conditions]
+
+
+@nary_condition_optimization(['not any'], ['many2one', 'one2many', 'many2many'])
+@nary_condition_optimization(['not any!'], ['many2one', 'one2many', 'many2many'])
+def _optimize_merge_not_any(cls, conditions, model):
+    """≙ ``_optimize_merge_not_any`` (``:1979-1998``).
+
+    Docstring de la fuente, verbatim: *"Merge domains of 'not any' conditions
+    for relational fields"*::
+
+        a not any (f = 1) or a not any (g = 5)   => a not any (f = 1 and g = 5)
+        a not any (f = 1) and a not any (g = 5)  => a not any (f = 1 or g = 5)
+
+    El subdominio se combina con ``cls.INVERSE`` —no con ``cls``— porque la
+    negación de la condición invierte el conector: es De Morgan aplicado al
+    interior de la subconsulta.
+    """
+    field = conditions[0]._field(model)
+    if (field is None or field.type != 'many2one') and cls is DomainOr:
+        return conditions
+    merge_conditions, other_conditions = partition(
+        lambda c: isinstance(c.value, Domain), conditions)
+    if len(merge_conditions) < 2:
+        return conditions
+    base = merge_conditions[0]
+    sub_domain = cls.INVERSE(tuple(c.value for c in merge_conditions))
+    return [DomainCondition(base.field_expr, base.operator, sub_domain),
+            *other_conditions]
+
+
+@nary_optimization
+def _optimize_same_conditions(cls, conditions, model):
+    """≙ ``_optimize_same_conditions`` (``:2001-2023``).
+
+    Docstring de la fuente, verbatim: *"Merge (adjacent) conditions that are
+    the same. Quick optimization for some conditions, just compare if we have
+    the same condition twice"*.
+
+    Sólo mira **adyacentes**, y basta: ``_optimize_nary_sort_key`` ya ordenó
+    los hijos, así que dos condiciones iguales quedan juntas.
+
+    El primer recorrido no construye nada — busca si hay algún duplicado. Sin
+    él, una lista sin duplicados devolvería una copia y el ``_optimize_step``
+    del n-ario, que compara por identidad, no podría cortar el punto fijo.
+    """
+    prev = None
+    for condition in conditions:
+        if prev == condition:
+            break
+        prev = condition
+    else:
+        return conditions
+
+    # se evita toda llamada a función, y se usa la semántica de la pila para
+    # la comparación con ``prev``
+    prev = None
+    return [
+        condition
+        for condition in conditions
+        if prev != (prev := condition)
+    ]
 
 
 def AND(domains):

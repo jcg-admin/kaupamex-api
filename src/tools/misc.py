@@ -375,6 +375,25 @@ def file_open_temporary_directory(env):
 html_escape = django_html_escape
 
 
+def partition(pred: Callable[[T], bool], elems: Iterable[T]) -> tuple[list[T], list[T]]:
+    """≙ ``partition`` (``odoo19c: odoo/tools/misc.py:373``).
+
+    Docstring de la fuente, verbatim: *"Return a pair equivalent to:
+    ``filter(pred, elems), filter(lambda x: not pred(x), elems)``"*.
+
+    Se porta —en vez de escribir las dos comprensiones donde haga falta—
+    porque recorre el iterable **una sola vez**: el predicado se evalúa una vez
+    por elemento, no dos. Su primer consumidor aquí son las fusiones n-arias de
+    ``orm/domains.py``, que reparten las condiciones de un bloque entre las que
+    llevan un subdominio y las que no.
+    """
+    yes: list[T] = []
+    nos: list[T] = []
+    for elem in elems:
+        (yes if pred(elem) else nos).append(elem)
+    return yes, nos
+
+
 def split_every(n, iterable, piece_maker=tuple):
     """≙ ``split_every`` (``odoo19c: odoo/tools/misc.py:684-697``).
 
