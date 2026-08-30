@@ -1484,6 +1484,86 @@ def _optimize_boolean_in_all(condition, model):
     return condition
 
 
+@operator_optimization(['any', 'not any', 'any!', 'not any!'])
+def _optimize_any_domain(condition, model):
+    """≙ ``_optimize_any_domain`` (``odoo19c: :1340-1358``).
+
+    Docstring de la fuente, verbatim: *"Make sure the value is an optimized
+    domain (or Query or SQL)"*.
+
+    Resuelve además la equivalencia sobre la clave primaria, que la fuente
+    escribe así::
+
+        id ANY domain      <=>  domain
+        id NOT ANY domain  <=>  ~domain
+
+    No hay relación que atravesar: la subconsulta sobre la propia tabla es el
+    dominio mismo.
+    """
+    value = condition.value
+    if isinstance(value, ANY_TYPES) and not isinstance(value, Domain):
+        if condition.operator in ('any', 'not any'):
+            # el operador pasa a su forma interna 'any!'
+            return DomainCondition(
+                condition.field_expr, condition.operator + '!', condition.value)
+        return condition
+    domain = Domain(value)
+    field = condition._field(model)
+    if field is not None and field.name == 'id':
+        return domain if condition.operator in ('any', 'any!') else ~domain
+    if value is domain:
+        # se evita recrear la misma condición
+        return condition
+    return DomainCondition(condition.field_expr, condition.operator, domain)
+
+
+def _optimize_any_domain_at_level(level, condition, model):
+    """≙ ``_optimize_any_domain_at_level`` (``:1362-1389``).
+
+    Optimiza el subdominio **contra el comodelo**, no contra este modelo: las
+    condiciones de dentro hablan del otro lado de la relación.
+
+    **Divergencia de mecanismo declarada.** La fuente resuelve el comodelo con
+    ``model.env[field.comodel_name]``; aquí no hay ``env`` sobre una clase de
+    Django —medido: ``IrRule.env`` levanta ``AttributeError``— y no hace falta,
+    porque Django lo trae en el propio campo: ``field.related_model`` es la
+    clase del otro modelo, que es exactamente lo que ``_optimize`` espera. El
+    alcance no cambia; cambia de dónde sale el comodelo.
+    """
+    domain = condition.value
+    if not isinstance(domain, Domain):
+        return condition
+    field = condition._field(model)
+    if field is None:
+        # sin modelo el campo es un desconocido — misma frontera que
+        # ``_optimize_step``: no se puede resolver el comodelo, no se optimiza
+        return condition
+    if not field.relational:
+        condition._raise("No se puede usar 'any' con un campo no relacional")
+    comodel = field.related_model
+    if comodel is None:
+        condition._raise("No se puede determinar el modelo de la relación")
+    domain = domain._optimize(comodel, level)
+    # si el subdominio es falso, la condición entera es constante
+    if domain.is_false():
+        return (_FALSE_DOMAIN if condition.operator in ('any', 'any!')
+                else _TRUE_DOMAIN)
+    if domain is condition.value:
+        # se evita recrear la misma condición
+        return condition
+    return DomainCondition(condition.field_expr, condition.operator, domain)
+
+
+#: Se registra y se liga en los cuatro niveles — ≙ ``:1392-1396``.
+[
+    operator_optimization(
+        ('any', 'not any', 'any!', 'not any!'), _level)(
+            functools.partial(_optimize_any_domain_at_level, _level))
+    for _level in OptimizationLevel
+    if _level > OptimizationLevel.NONE
+]
+
+
 def _merge_set_conditions(cls, conditions):
     """≙ ``_merge_set_conditions`` (``odoo19c: :1881-1908``).
 

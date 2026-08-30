@@ -1,0 +1,16 @@
+{
+  "question": "la familia any del registro necesita model.env para resolver el comodelo, o Django lo trae en el campo?",
+  "instrument": ["lectura del campo relacional en el shell de Django, y la suite de tests/unit/orm/"],
+  "metric": "casos passed/failed del subconjunto bajo cada sabotaje, y de la suite completa",
+  "blind_to": [
+    "el SQL de la subconsulta: los casos miden el dominio optimizado, no el EXISTS que sale de el",
+    "una relacion cuyo comodelo Django no resuelva en el campo — related_model es None solo en una relacion sin resolver, y ningun caso ejercita ese estado",
+    "la profundidad: los casos anidan un solo nivel de any, no una cadena"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/hallazgos/",
+  "source": ["src/orm/domains.py"],
+  "reproducible": "uv run pytest tests/unit/orm/test_domain_any_optimizers.py -q --reuse-db",
+  "outputs": ["suite-*.log"],
+  "control": "tres sabotajes: el colapso del pk retirado, el comodelo sustituido por el propio modelo, y el colapso del subdominio falso eliminado. Las cifras se publican en el hallazgo, no aqui",
+  "findings": ["H-API-964"]
+}
