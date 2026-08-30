@@ -42,12 +42,29 @@ aislamiento de fallos frente a ``mod_wsgi``. Medido:
 → **0** archivos. [PROVEN] No hay pipeline HTML→PDF que portar contra, ni
 falta: hay uno distinto, decidido y documentado.
 
-Consecuencia para ``report_type``: sus valores son ``pdf`` / ``text``, **no**
-``qweb-*``. El string de la referencia codifica dos cosas —el lenguaje de
-plantillas y el formato— y en **esta cadena** sólo la segunda es verdad.
-Conservarlo verbatim metería el sustrato ajeno dentro de nuestro dato; lo que
-se porta es el **rol** del campo (en qué formato sale el documento), que es la
-parte abstracta. Ver ``REPORT_TYPE_CHOICES`` para la tabla de correspondencia.
+Consecuencia para ``report_type``: su valor es ``pdf``, **uno solo**, y sin el
+prefijo ``qweb-``. Son dos recortes con dos motivos distintos, y conviene no
+confundirlos.
+
+El **prefijo** cae porque el string de la referencia codifica dos cosas —el
+lenguaje de plantillas y el formato— y en **esta cadena** sólo la segunda es
+verdad. Conservarlo verbatim metería el sustrato ajeno dentro de nuestro dato;
+lo que se porta es el **rol** del campo (en qué formato sale el documento), que
+es la parte abstracta.
+
+El **conjunto** se reduce a uno porque los otros dos no se pueden emitir aquí,
+y eso está medido: ``_render_qweb_html`` y ``_render_qweb_text`` están portados
+—el archivo se porta entero— con el cuerpo de la fuente, que devuelve lo que
+``_render_template`` produzca. Allá eso es la representación HTML; aquí es el
+**intermedio del descriptor** (``{'bodies': …, 'html_ids': …}``), así que el par
+que sale de esos dos métodos lleva un dict donde su nombre promete texto o
+marcado. Ofrecerlos en el enum entregaría un dict a un consumidor que espera
+bytes. Ver :ref:`h-api-935`.
+
+Su condición de reingreso, de :ref:`h-api-291`, se conserva y gana una tercera
+exigencia: el valor entra con su **declarante**, su **test** y —lo nuevo— su
+**serializador del descriptor** a ese formato, que es trabajo a construir y no
+un símbolo que el stack traiga. Ver ``REPORT_TYPE_CHOICES`` para el detalle.
 
 Precisión, porque la versión anterior de este párrafo decía de más: el árbol
 **sí tiene** lenguaje de plantillas —el de Django, configurado en
@@ -162,6 +179,15 @@ _logger = logging.getLogger(__name__)
 #: **0** tests ejercitan sus renderizadores. Un enum que oferta lo que nadie
 #: emite es el defecto que aquel hallazgo cerró; portar el método no obliga a
 #: ofrecer el valor.
+#:
+#: **Y hay una causa anterior a la falta de declarante** (:ref:`h-api-935`):
+#: los dos cuerpos son el de la fuente y devuelven lo que ``_render_template``
+#: produzca. Allá eso es HTML; aquí es el intermedio del descriptor —un
+#: ``dict``—, así que ofrecerlos entregaría un dict donde el nombre del valor
+#: promete texto o marcado. La condición de reingreso gana por eso una tercera
+#: exigencia: el **serializador del descriptor** a ese formato. Es trabajo a
+#: **construir** —el stack no trae ningún símbolo que aplane el descriptor a
+#: líneas ni a marcado—, no un cableado.
 REPORT_TYPE_PDF = 'pdf'
 REPORT_TYPE_CHOICES = [
     (REPORT_TYPE_PDF, 'PDF'),
@@ -314,8 +340,11 @@ class IrActionsReport(IrActionsBase):
     report_type = fields.Selection(
         max_length=16, choices=REPORT_TYPE_CHOICES, default=REPORT_TYPE_PDF,
         verbose_name='Tipo de reporte',
-        help_text='Formato de salida. Los tres de la fuente; el valor '
-                  'gobierna el despacho de _render.',
+        help_text='Formato de salida: PDF. El valor gobierna el despacho '
+                  'de _render. Divergencia declarada frente a la fuente, que '
+                  'ofrece tres: aquí el intermedio de la composición es el '
+                  'descriptor, y sólo el camino del PDF tiene quien lo '
+                  'convierta.',
     )
     report_name = fields.Char(
         max_length=255, verbose_name='Nombre de la plantilla')
