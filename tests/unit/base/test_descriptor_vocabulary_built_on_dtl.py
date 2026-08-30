@@ -205,3 +205,60 @@ class TestTheVocabularyStaysClosed:
     def test_the_root_must_still_be_descriptor(self):
         with pytest.raises(InvalidReportTemplate):
             interpret_descriptor(arch('<otro/>'), CONTEXT)
+
+
+class TestTheCallDepthIsCapped:
+    """Dos descriptores que se llaman mutuamente no cuelgan al proceso.
+
+    La fuente lo resuelve con un **tope de profundidad** de la pila de render,
+    no con un conjunto de claves ya visitadas
+    (``odoo19c: ir_qweb.py:766-768`` — ``if len(stack) > 50: raise
+    RecursionError('Qweb template infinite recursion')``). La diferencia
+    importa: un conjunto de visitados rechazaría llamar **dos veces** al mismo
+    bloque en puntos distintos del documento, que es legítimo; el tope sólo
+    rechaza el anidamiento que no termina.
+    """
+
+    def test_a_cycle_between_two_descriptors_raises_instead_of_hanging(self):
+        blocks = {
+            'a': arch('<descriptor><call key="b"/></descriptor>'),
+            'b': arch('<descriptor><call key="a"/></descriptor>'),
+        }
+        with pytest.raises(RecursionError, match='infinite recursion'):
+            interpret_descriptor(arch(
+                '<descriptor><call key="a"/></descriptor>'),
+                CONTEXT, resolve_key=blocks.get)
+
+    def test_a_descriptor_that_calls_itself_raises_too(self):
+        blocks = {}
+        blocks['solo'] = arch('<descriptor><call key="solo"/></descriptor>')
+        with pytest.raises(RecursionError, match='infinite recursion'):
+            interpret_descriptor(arch(
+                '<descriptor><call key="solo"/></descriptor>'),
+                CONTEXT, resolve_key=blocks.get)
+
+    def test_the_same_block_called_twice_is_not_a_cycle(self):
+        # El control que discrimina: si el tope fuera un conjunto de claves
+        # visitadas, este caso —legítimo— fallaría igual que los dos de
+        # arriba, y el verde de aquéllos no distinguiría un mecanismo del
+        # otro. Es el sub-patrón D de ``metrica-decide-la-conclusion.md``.
+        blocks = {'pie': arch(
+            '<descriptor><field name="v">{{ doc.ref }}</field></descriptor>')}
+        d = interpret_descriptor(arch(
+            '<descriptor><section name="uno"><call key="pie"/></section>'
+            '<section name="dos"><call key="pie"/></section></descriptor>'),
+            CONTEXT, resolve_key=blocks.get)
+        assert d == {'uno': {'v': 'SO-001'}, 'dos': {'v': 'SO-001'}}
+
+    def test_a_chain_below_the_cap_still_renders(self):
+        # Cuarenta llamadas encadenadas: por debajo del tope de la fuente, así
+        # que el documento sale. Sin este caso, un tope de 1 pasaría los tres
+        # anteriores y nadie lo notaría.
+        blocks = {f'n{i}': arch(f'<descriptor><call key="n{i + 1}"/></descriptor>')
+                  for i in range(40)}
+        blocks['n40'] = arch(
+            '<descriptor><field name="fin">{{ doc.ref }}</field></descriptor>')
+        d = interpret_descriptor(arch(
+            '<descriptor><call key="n0"/></descriptor>'),
+            CONTEXT, resolve_key=blocks.get)
+        assert d == {'fin': 'SO-001'}

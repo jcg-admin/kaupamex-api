@@ -94,6 +94,18 @@ from tools.translate import _
 _ENGINE = Engine(autoescape=False)
 
 
+#: Tope de anidamiento de ``<call>``. Es el de la fuente, verbatim:
+#: ``if len(stack) > 50: raise RecursionError('Qweb template infinite
+#: recursion')`` (``odoo19c: odoo/addons/base/models/ir_qweb.py:766-768``).
+#:
+#: El mecanismo es un **tope de profundidad**, no un conjunto de claves ya
+#: visitadas, y la diferencia es deliberada allá y aquí: un conjunto de
+#: visitados rechazaría llamar dos veces al mismo bloque en puntos distintos
+#: del documento —legítimo— mientras que el tope sólo rechaza el anidamiento
+#: que no termina.
+MAX_CALL_DEPTH = 50
+
+
 class InvalidReportTemplate(ValueError):
     """El arch combinado no respeta el vocabulario de la plantilla."""
 
@@ -166,7 +178,7 @@ def _loop_state(index, size):
     }
 
 
-def _interpret_children(node, context, resolve_key=None):
+def _interpret_children(node, context, resolve_key=None, depth=0):
     """Recorre los hijos del nodo y produce su dict.
 
     El contexto se copia por nodo: un ``<set>`` liga un nombre para sus
@@ -183,7 +195,7 @@ def _interpret_children(node, context, resolve_key=None):
         if not _condition_holds(child, scope):
             continue
         if child.tag == 'call':
-            _interpret_call(child, scope, result, resolve_key)
+            _interpret_call(child, scope, result, resolve_key, depth)
             continue
         name = child.get('name')
         if not name:
@@ -198,7 +210,7 @@ def _interpret_children(node, context, resolve_key=None):
                     _("Element <set name=%r> without 'value' path") % name)
             scope[name] = _resolve_path(value, Context(scope))
         elif child.tag == 'section':
-            result[name] = _interpret_children(child, scope, resolve_key)
+            result[name] = _interpret_children(child, scope, resolve_key, depth)
         elif child.tag == 'list':
             path = child.get('in')
             if not path:
@@ -209,7 +221,8 @@ def _interpret_children(node, context, resolve_key=None):
             for index, item in enumerate(rows):
                 item_scope = dict(scope, item=item,
                                   loop=_loop_state(index, len(rows)))
-                items.append(_interpret_children(child, item_scope, resolve_key))
+                items.append(
+                    _interpret_children(child, item_scope, resolve_key, depth))
             result[name] = items
         else:
             raise InvalidReportTemplate(
@@ -217,7 +230,7 @@ def _interpret_children(node, context, resolve_key=None):
     return result
 
 
-def _interpret_call(node, context, result, resolve_key):
+def _interpret_call(node, context, result, resolve_key, depth=0):
     """``<call key="…"/>`` — injerta los hijos de otro descriptor.
 
     El equivalente de ``{% include %}``, con la diferencia que la medición
@@ -227,7 +240,15 @@ def _interpret_call(node, context, result, resolve_key):
 
     **Sin resolutor se levanta, no se ignora.** Ignorarlo produciría un
     documento al que le falta un bloque entero, en silencio.
+
+    ``depth`` es el anidamiento de llamadas, no el del árbol: una ``section``
+    o una ``list`` no lo incrementan porque viven dentro del mismo descriptor.
+    Es el mismo criterio de la fuente, cuya pila cuenta un cuadro por
+    *plantilla* renderizada, no por nodo recorrido.
     """
+    if depth >= MAX_CALL_DEPTH:
+        raise RecursionError(
+            'Report template infinite recursion (depth %d)' % MAX_CALL_DEPTH)
     key = node.get('key')
     if not key:
         raise InvalidReportTemplate(
@@ -242,7 +263,7 @@ def _interpret_call(node, context, result, resolve_key):
     if called.tag != 'descriptor':
         raise InvalidReportTemplate(
             _("Report template %r called by <call> is not a <descriptor>") % key)
-    result.update(_interpret_children(called, context, resolve_key))
+    result.update(_interpret_children(called, context, resolve_key, depth + 1))
 
 
 def interpret_descriptor(arch, context, resolve_key=None):
@@ -256,6 +277,8 @@ def interpret_descriptor(arch, context, resolve_key=None):
         ``<call>``; sin él, un ``<call>`` levanta en vez de omitirse
     :return: dict listo para ``json.dumps`` → stdin del helper
     :raises InvalidReportTemplate: si el arch sale del vocabulario
+    :raises RecursionError: si el anidamiento de ``<call>`` pasa de
+        ``MAX_CALL_DEPTH`` — dos descriptores que se llaman entre sí
     """
     if arch.tag != 'descriptor':
         raise InvalidReportTemplate(
