@@ -79,7 +79,7 @@ def test_the_real_addon_declares_its_installations():
     assert raiz is not None, 'base_sparse_field no se resuelve en ninguna raíz'
     mapa, no_resolubles = gate.addon_installations(raiz)
     assert mapa[gate.normaliza('IrModelFields')] == {
-        'reflect_fields', 'save', 'serialization_field_id', 'ttype_for'}
+        '_reflect_fields', 'save', 'serialization_field_id', 'ttype_for'}
     assert no_resolubles == 0
 
 

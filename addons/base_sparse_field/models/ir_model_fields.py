@@ -19,7 +19,7 @@ Símbolo de la referencia            Veredicto
 ``IrModelFields.ttype`` (+serialized) portado — ``add_serialized_ttype()``
 ``IrModelFields.serialization_field_id`` portado — ``add_to_class`` desde ``ready()``
 ``IrModelFields.write`` (guarda)      portado — encadenado sobre ``save``
-``IrModelFields._reflect_fields``     portado — encadenado sobre ``reflect_fields``
+``IrModelFields._reflect_fields``     portado — encadenado sobre ``_reflect_fields``
 ``Sparse_FieldsTest``                 portado — ``models/sparse_fields_test.py``
 ``Base._valid_field_parameter``       divergencia de mecanismo (abajo)
 ``IrModelFields._instanciate_attrs``  divergencia de mecanismo (abajo)
@@ -69,7 +69,7 @@ de decidir::
     Serialized().get_internal_type()        -> 'JSONField'
     IrModelFields.ttype_for(Serialized())   -> 'json'
 
-Corregirlo dentro de ``reflect_fields`` no bastaría: ``reflect_fields`` es
+Corregirlo dentro de ``_reflect_fields`` no bastaría: ``_reflect_fields`` es
 quien escribe la fila, y su ``update_or_create`` volvería a poner ``json``
 cada vez que corriera. La corrección va donde nace el valor —``ttype_for``—
 encadenada con el relevo por ``None`` de ``orm/method_chain.py``: si el campo
@@ -309,5 +309,5 @@ def apply_base_sparse_field_extensions():
     add_serialization_field()
     chain_method(IrModelFields, 'ttype_for', staticmethod(sparse_ttype_for))
     chain_method(IrModelFields, 'save', check_sparse_write)
-    chain_method(IrModelFields, 'reflect_fields',
+    chain_method(IrModelFields, '_reflect_fields',
                  classmethod(reflect_sparse_fields), combine=sum_counters)

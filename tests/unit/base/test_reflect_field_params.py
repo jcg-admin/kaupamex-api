@@ -5,7 +5,7 @@ La referencia lo declara aparte de ``_reflect_fields``
 añadir columnas sin reescribir el recorrido: Enterprise 19 lo hereda en dos
 clases con ``_inherit = 'ir.model.fields'``.
 
-Aquí el recorrido inverso ya existía (``reflect_fields``) con el diccionario
+Aquí el recorrido inverso ya existía (``_reflect_fields``) con el diccionario
 en línea, así que el enganche no tenía dónde engancharse.
 """
 import pytest
@@ -37,7 +37,7 @@ def test_reflect_fields_consumes_the_hook():
     """El control: anular el enganche cambia lo que se escribe.
 
     Sin esta aserción el test anterior sólo probaría que existe un método —
-    no que ``reflect_fields`` pase por él, que es lo único que lo hace un
+    no que ``_reflect_fields`` pase por él, que es lo único que lo hace un
     punto de extensión.
     """
     row = IrModel.objects.create(model='base.IrModelInherit', name='Herencia')
@@ -50,7 +50,7 @@ def test_reflect_fields_consumes_the_hook():
 
     IrModelFields._reflect_field_params = classmethod(marked)
     try:
-        IrModelFields.reflect_fields(row)
+        IrModelFields._reflect_fields(row)
     finally:
         IrModelFields._reflect_field_params = classmethod(original)
 

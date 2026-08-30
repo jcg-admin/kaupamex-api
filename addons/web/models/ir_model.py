@@ -78,7 +78,7 @@ viaja implícito en el ``env``. Este árbol no tiene ``env`` — las cuatro
 funciones aceptan ``user`` explícito, mismo patrón que
 ``authz/permissions.py::has_capability(request.user, ...)``. Se instalan como
 ``classmethod`` sobre ``IrModel`` (equivalente de ``@api.model`` — no operan
-sobre un registro concreto, igual que ``IrModel.reflect_models``, que ya es
+sobre un registro concreto, igual que ``IrModel._reflect_models``, que ya es
 ``classmethod`` en ``base``).
 """
 from addons.base.models.ir_model import IrModel, IrModelAccess

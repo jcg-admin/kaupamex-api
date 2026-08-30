@@ -71,7 +71,7 @@ clase — medido en ``orm/fields_textual.py:11-12`` (``Text`` y ``Html`` son
 ambos ``TextField``) y ``orm/fields_selection.py:9`` (``Selection`` es
 ``CharField``, como ``Char``).
 
-Consecuencia: **el inverso del mapa no existe**. ``reflect_fields`` deriva el
+Consecuencia: **el inverso del mapa no existe**. ``_reflect_fields`` deriva el
 ``ttype`` del tipo interno de Django (``get_internal_type()``) con un mapa
 declarado, y recupera ``selection`` sólo porque ``field.choices`` lo delata.
 Un ``html`` reflejado saldrá como ``text``: la distinción se pierde en el
@@ -84,7 +84,7 @@ reflexión puede producir **14**. Las **6** inalcanzables, con su motivo:
 Clave                 Por qué la reflexión nunca la emite
 ===================== ==========================================================
 ``html``              colapsa en ``text`` (mismo ``TextField``)
-``one2many``          es el reverso de un FK; ``reflect_fields`` lo salta
+``one2many``          es el reverso de un FK; ``_reflect_fields`` lo salta
 ``reference``         ``GenericForeignKey``: no es campo concreto
 ``many2one_reference`` ídem
 ``properties``        es ``JSONField``; sale como ``json``
@@ -145,7 +145,7 @@ haya que volver a medirlo.
 Enganche                                 Desenlace
 ======================================== ====================================
 ``IrModelFields._reflect_field_params``  **portado** — se extrajo del cuerpo
-                                         de ``reflect_fields``, que lo tenía
+                                         de ``_reflect_fields``, que lo tenía
                                          en línea. Es el único que era un
                                          hueco de verdad.
 ``IrModelFields._check_name``            **divergencia de mecanismo** — el
@@ -303,12 +303,18 @@ class Base(models.Model):
     citas ``_inherit = 'base'`` de la referencia tengan destino.
     """
 
+    _name = 'base'
+    _description = 'Base'
+
     class Meta:
         abstract = True
 
 
 class Unknown(models.Model):
     """``_unknown`` — sustituto de un campo relacional sin comodelo conocido."""
+
+    _name = '_unknown'
+    _description = 'Unknown'
 
     class Meta:
         abstract = True
@@ -319,11 +325,9 @@ class IrModel(TimeStampedModel):
 
     #: Los cinco atributos de ORM que la fuente declara
     #: (``odoo19c: ir_model.py:56-61``), verbatim. El sexto que declara ahí,
-    #: ``_obj_name_uniq``, es un **objeto de tabla** y no un atributo de ORM:
-    #: su restricción ya existe aquí como ``unique=True`` sobre ``model``.
-    #: Conservar además su nombre exige moverla a ``Meta.constraints`` con su
-    #: migración — registrado en la tarea #172, con el resto del porte de este
-    #: archivo.
+    #: ``_obj_name_uniq``, es un **objeto de tabla**: vive en
+    #: ``Meta.constraints`` conservando su nombre, que es el hogar que
+    #: ``atributos-de-clase-de-modelo.md`` le fija.
     _name = 'ir.model'
     _description = 'Models'
     _order = 'model'
@@ -335,7 +339,7 @@ class IrModel(TimeStampedModel):
         help_text='Odoo name (traducible allá).',
     )
     model = fields.Char(
-        max_length=255, default='x_', unique=True, db_index=True,
+        max_length=255, default='x_', db_index=True,
         verbose_name='Modelo',
         help_text='Nombre técnico, p. ej. "base.IrModel".',
     )
@@ -361,6 +365,11 @@ class IrModel(TimeStampedModel):
         ordering = ['model']
         verbose_name = 'Modelo'
         verbose_name_plural = 'Modelos'
+        constraints = [
+            # ``_obj_name_uniq``: cada modelo tiene un nombre único.
+            models.UniqueConstraint(
+                fields=['model'], name='ir_model_obj_name_uniq'),
+        ]
 
     def __str__(self):
         return self.model
@@ -524,7 +533,7 @@ class IrModel(TimeStampedModel):
         }
 
     @classmethod
-    def reflect_models(cls, app_labels=None):
+    def _reflect_models(cls, app_labels=None):
         """Refleja el registro de Django en filas — inverso de ``_reflect_model``.
 
         La referencia refleja desde su propio registro; aquí la fuente es
@@ -549,6 +558,17 @@ class IrModel(TimeStampedModel):
 
 class IrModelFields(TimeStampedModel):
     """``ir.model.fields`` — una fila por campo."""
+
+    #: Los cinco atributos de ORM de ``odoo19c: ir_model.py:509-513``,
+    #: verbatim. Los tres objetos de tabla que la fuente declara junto a
+    #: ellos —``_name_unique``, ``_size_gt_zero``, ``_name_manual_field``—
+    #: viven en ``Meta.constraints`` conservando su nombre, que es el hogar
+    #: que ``atributos-de-clase-de-modelo.md`` les fija.
+    _name = 'ir.model.fields'
+    _description = 'Fields'
+    _order = 'name, id'
+    _rec_name = 'field_description'
+    _allow_sudo_commands = False
 
     name = fields.Char(
         max_length=63, default='x_', db_index=True,
@@ -763,7 +783,7 @@ class IrModelFields(TimeStampedModel):
 
         Está aparte del recorrido por la misma razón que en la referencia
         (``odoo19c: ir_model.py:1164``): es el **punto de extensión** por el
-        que un addon añade columnas sin reescribir ``reflect_fields``.
+        que un addon añade columnas sin reescribir ``_reflect_fields``.
         Enterprise 19 lo hereda en dos clases con
         ``_inherit = 'ir.model.fields'``; aquí el diccionario vivía en línea
         y no había dónde engancharse.
@@ -795,7 +815,7 @@ class IrModelFields(TimeStampedModel):
         }
 
     @classmethod
-    def reflect_fields(cls, model_row):
+    def _reflect_fields(cls, model_row):
         """Refleja los campos de un modelo — inverso de ``_reflect_fields``.
 
         Devuelve ``(creados, actualizados)``. Salta los reversos de relación
@@ -828,6 +848,10 @@ class IrModelInherit(models.Model):
     código; su historia la lleva el commit que cambió la clase.
     """
 
+    _name = 'ir.model.inherit'
+    _description = 'Model Inheritance Tree'
+    _log_access = False
+
     model_id = fields.Many2one(
         IrModel, on_delete=models.CASCADE, related_name='inherit_ids',
         verbose_name='Modelo',
@@ -859,7 +883,7 @@ class IrModelInherit(models.Model):
         return f'{self.model_id_id} ← {self.parent_id_id}'
 
     @classmethod
-    def reflect_inherits(cls, model_row):
+    def _reflect_inherits(cls, model_row):
         """Refleja los padres del MRO — inverso de ``_reflect_inherits``.
 
         La fuente recorre ``type(model).mro()`` buscando definiciones de
@@ -886,6 +910,11 @@ class IrModelInherit(models.Model):
 
 class IrModelFieldsSelection(TimeStampedModel):
     """``ir.model.fields.selection`` — un valor de un campo Selection."""
+
+    _name = 'ir.model.fields.selection'
+    _order = 'sequence, id'
+    _description = 'Fields Selection'
+    _allow_sudo_commands = False
 
     field = fields.Many2one(
         IrModelFields, on_delete=models.CASCADE, db_index=True,
@@ -916,6 +945,10 @@ class IrModelConstraint(TimeStampedModel):
     Registro, no ejecutor: ver el docstring del módulo sobre por qué no se
     porta el ``DROP CONSTRAINT`` de la desinstalación.
     """
+
+    _name = 'ir.model.constraint'
+    _description = 'Model Constraint'
+    _allow_sudo_commands = False
 
     name = fields.Char(
         max_length=255, db_index=True, verbose_name='Restricción',
@@ -958,6 +991,10 @@ class IrModelRelation(TimeStampedModel):
     equivalente del log-access en este árbol.
     """
 
+    _name = 'ir.model.relation'
+    _description = 'Relation Model'
+    _allow_sudo_commands = False
+
     name = fields.Char(
         max_length=255, db_index=True, verbose_name='Nombre de la relación',
         help_text='Nombre de la tabla que implementa el Many2many.')
@@ -983,6 +1020,11 @@ class IrModelAccess(TimeStampedModel):
     Dato, no gate: la autorización efectiva de este árbol es por capacidad
     (``HasCapability``, DEC-11). Ver el docstring del módulo.
     """
+
+    _name = 'ir.model.access'
+    _description = 'Model Access'
+    _order = 'model_id,group_id,name,id'
+    _allow_sudo_commands = False
 
     name = fields.Char(max_length=255, db_index=True, verbose_name='Nombre')
     active = fields.Boolean(
