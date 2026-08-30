@@ -45,7 +45,7 @@ from django.db import DEFAULT_DB_ALIAS, models
 from exceptions import UserError
 from orm import registry
 from orm.environments import context_scope, get_context, get_current_uid, sudo
-from orm.utils import parse_field_expr, regex_alphanumeric
+from orm.utils import COLLECTION_TYPES, parse_field_expr, regex_alphanumeric
 from tools.misc import OrderedSet, has_list_types, is_list_of
 from tools.sql import SQL
 from tools.translate import _
@@ -874,7 +874,7 @@ class Properties(models.JSONField):
         key = field_expr.replace('.', '__')
 
         if operator in ('in', 'not in'):
-            assert isinstance(value, (list, tuple, set, frozenset))
+            assert isinstance(value, COLLECTION_TYPES)
             # ≙ ``:686-699`` — el caso de ``False`` en la colección decide si
             # la fila «sin la propiedad» entra o sale.
             if len(value) == 1 and any(v is True for v in value):

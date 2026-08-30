@@ -77,6 +77,7 @@ from orm.fields_relational import Many2many, Many2one, One2many  # noqa: F401
 from orm.fields_selection import Selection                     # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
+from orm.utils import COLLECTION_TYPES
 
 #: El **registro de tipos de campo**, no la lista de exportables del módulo.
 #:
@@ -300,7 +301,6 @@ def display_name_of(record):
 
 _INEQUALITY_LOOKUP = {'<': 'lt', '>': 'gt', '<=': 'lte', '>=': 'gte'}
 
-_COLLECTION_TYPES = (list, tuple, set, frozenset)
 
 
 def condition_to_q(field_expr, operator, value, field=None):
@@ -354,7 +354,7 @@ def condition_to_q(field_expr, operator, value, field=None):
 
     # --- in / not in (igualdad) --------------------------------------------
     if operator in ('in', 'not in'):
-        values = list(value) if isinstance(value, _COLLECTION_TYPES) else [value]
+        values = list(value) if isinstance(value, COLLECTION_TYPES) else [value]
         params = [v for v in values if v is not False and v is not None]
         null_in_condition = len(params) < len(values)
         if null_value is not None:
@@ -577,7 +577,7 @@ def _filter_function(self, records, field_expr, operator, value):
 
     # --- in (igualdad) ------------------------------------------------------
     if operator == 'in':
-        if not isinstance(value, _COLLECTION_TYPES) or not value:
+        if not isinstance(value, COLLECTION_TYPES) or not value:
             raise ValueError(
                 f"filter_function con 'in' espera una colección no vacía, "
                 f'no {type(value)}')

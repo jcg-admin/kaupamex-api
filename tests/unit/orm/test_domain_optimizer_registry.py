@@ -238,7 +238,9 @@ class TestTheConditionBlockAdapter:
         DomainAnd([DomainCondition('a', 'in', [1]),
                    DomainCondition('a', 'in', [2]),
                    DomainCondition('b', '>', 3)]).optimize()
-        assert seen == [['a', 'a']]
+        # ``optimize`` repite hasta punto fijo, asi que la fusion puede correr
+        # mas de una vez; lo que se asierta es QUE bloque recibe, no cuantas.
+        assert set(map(tuple, seen)) == {('a', 'a')}
 
     def test_a_lone_condition_is_not_a_block(self):
         seen = []
@@ -261,7 +263,7 @@ class TestTheConditionBlockAdapter:
                             DomainCondition('a', 'in', [2])]).optimize()
         conditions = list(result.iter_conditions())
         assert len(conditions) == 1
-        assert conditions[0].value == [9]
+        assert list(conditions[0].value) == [9]
 
     def test_the_domains_outside_the_block_survive(self):
         @nary_condition_optimization(['in'])

@@ -149,9 +149,18 @@ class TestNegationReachesTheLeaves:
         assert domain.operator == 'not in'
 
     def test_optimizing_a_negated_or_applies_de_morgan(self):
+        """El OR negado pasa a AND y cada hijo invierte su operador.
+
+        Desde ``api@d7f4b8e4`` el operador invertido no se queda en ``!=``:
+        ``_operator_equal_as_in`` lo reduce a ``not in``, que es lo que la
+        fuente promete al compilador de hoja. Antes de ese optimizador la
+        reducción ocurría en la compilación, así que el dominio optimizado
+        conservaba el ``!=`` — este caso lo asertaba, y encodificaba la
+        AUSENCIA del optimizador, no el contrato.
+        """
         domain = Domain(['!', '|', ('a', '=', 1), ('b', '=', 2)]).optimize()
         assert isinstance(domain, DomainAnd)
-        assert all(child.operator == '!=' for child in domain.children)
+        assert all(child.operator == 'not in' for child in domain.children)
 
     def test_a_negated_inequality_adds_its_null_branch(self):
         """Sin valor *falsy*, ``NOT (a < v)`` debe incluir la fila sin valor."""

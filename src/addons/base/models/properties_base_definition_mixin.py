@@ -78,6 +78,7 @@ from addons.base.models.properties_base_definition import (
     PropertiesBaseDefinition,
 )
 from orm.domains import Domain
+from orm.utils import COLLECTION_TYPES
 from orm.models import FieldSqlMixin
 
 _logger = logging.getLogger(__name__)
@@ -150,7 +151,7 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
             PropertiesBaseDefinition._get_definition_id_for_property_field(
                 cls.properties_model_label(), PROPERTIES_FIELD_NAME))
 
-        if not isinstance(value, (list, tuple, set, frozenset)):
+        if not isinstance(value, COLLECTION_TYPES):
             value = (value,)
         return (Domain.TRUE if properties_base_definition_id in value
                 else Domain.FALSE)

@@ -87,7 +87,9 @@ import collections
 import enum
 import functools
 import itertools
+import logging
 import operator as operator_module
+import warnings
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Q
@@ -98,8 +100,9 @@ from orm.fields import (
     falsy_value,
 )
 from orm.fields_properties import Properties
-from orm.utils import parse_field_expr
+from orm.utils import COLLECTION_TYPES, parse_field_expr
 from tools.func import classproperty
+from tools.misc import OrderedSet
 from tools.query import Query
 from tools.sql import SQL
 
@@ -179,7 +182,7 @@ _INVERSE_INEQUALITY = {
 _TRUE_LEAF = (1, '=', 1)
 _FALSE_LEAF = (0, '=', 1)
 
-_COLLECTION_TYPES = (list, tuple, set, frozenset)
+_logger = logging.getLogger(__name__)
 
 MAX_OPTIMIZE_ITERATIONS = 1000
 
@@ -824,7 +827,7 @@ class DomainCondition(Domain):
 
     def __iter__(self):
         field_expr, operator, value = self.field_expr, self.operator, self.value
-        if isinstance(value, (*_COLLECTION_TYPES, Domain)):
+        if isinstance(value, (*COLLECTION_TYPES, Domain)):
             value = list(value)
         yield (field_expr, operator, value)
 
@@ -942,14 +945,14 @@ class DomainCondition(Domain):
             operator = '=' if operator == '==' else '!='
         if operator in ('=', '!='):
             operator = 'in' if operator == '=' else 'not in'
-            if isinstance(value, _COLLECTION_TYPES):
+            if isinstance(value, COLLECTION_TYPES):
                 # una colección vacía compara contra «no establecido»
                 value = tuple(value) or (False,)
             else:
                 value = (value,)
 
         if (operator in ('in', 'not in')
-                and isinstance(value, _COLLECTION_TYPES) and not value):
+                and isinstance(value, COLLECTION_TYPES) and not value):
             constant = _FALSE_DOMAIN if operator == 'in' else _TRUE_DOMAIN
             return field_expr, operator, value, constant
 
@@ -1243,6 +1246,120 @@ def nary_condition_optimization(operators, field_types=None):
         return optimization
 
     return register
+
+
+# ---------------------------------------------------------------------------
+# Optimizaciones: condiciones — la familia del operador
+# ≙ ``odoo19c: odoo/orm/domains.py:1250-1319``
+# ---------------------------------------------------------------------------
+
+ANY_TYPES = (Domain, Query, SQL)
+"""Los valores que hacen de una condición una **travesía de relación**.
+
+Un dominio, una consulta o un SQL en el lado del valor no son pertenencia: son
+otra búsqueda. ``_optimize_in_set`` los reconoce y cambia el operador a
+``any``/``not any``, que es donde el compilador sabe atravesar.
+"""
+
+
+@operator_optimization(['=?'])
+def _operator_equal_if_value(condition, _):
+    """≙ ``_operator_equal_if_value`` (``odoo19c: :1256-1260``).
+
+    Docstring de la fuente, verbatim: *"a =? b  <=>  not b or a = b"*.
+
+    Es el operador del valor **opcional**: con un valor vacío la condición no
+    filtra nada, así que colapsa a verdadero en vez de comparar contra falso.
+    """
+    if not condition.value:
+        return _TRUE_DOMAIN
+    return DomainCondition(condition.field_expr, '=', condition.value)
+
+
+@operator_optimization(['<>'])
+def _operator_different(condition, _):
+    """≙ ``_operator_different`` (``odoo19c: :1264-1268``).
+
+    Docstring de la fuente, verbatim: *"a <> b  =>  a != b"*, y su comentario:
+    *"already a rewrite-rule"*.
+    """
+    warnings.warn(
+        "El operador '<>' está obsoleto desde 19.0; usar '!=' directamente",
+        DeprecationWarning, stacklevel=2)
+    return DomainCondition(condition.field_expr, '!=', condition.value)
+
+
+@operator_optimization(['=='])
+def _operator_equals(condition, _):
+    """≙ ``_operator_equals`` (``odoo19c: :1272-1276``).
+
+    Docstring de la fuente, verbatim: *"a == b  =>  a = b"*.
+    """
+    warnings.warn(
+        "El operador '==' está obsoleto desde 19.0; usar '=' directamente",
+        DeprecationWarning, stacklevel=2)
+    return DomainCondition(condition.field_expr, '=', condition.value)
+
+
+@operator_optimization(['=', '!='])
+def _operator_equal_as_in(condition, _):
+    """≙ ``_operator_equal_as_in`` (``odoo19c: :1280-1300``).
+
+    Docstring de la fuente, verbatim: *"Equality operators. Validation for some
+    types and translate collection into 'in'"*.
+
+    **Es el optimizador que retira la deuda de** ``_normalized``: hasta ahora
+    esta reducción vivía en el paso de compilación porque esta capa no existía.
+    Ahora ocurre donde la fuente la pone, antes de que ningún compilador corra.
+
+    El caso de la colección vacía lo comenta la fuente verbatim: *"views
+    sometimes use ``('user_ids', '!=', [])`` to indicate the user is set"* — por
+    eso compara contra ``False`` en vez de colapsar.
+    """
+    value = condition.value
+    operator = 'in' if condition.operator == '=' else 'not in'
+    if isinstance(value, COLLECTION_TYPES):
+        if not value:
+            _logger.debug(
+                "La condición %r debería comparar contra False.", condition)
+            value = OrderedSet([False])
+        else:
+            _logger.debug(
+                "La condición %r debería usar el operador 'in' o 'not in'.",
+                condition)
+            value = OrderedSet(value)
+    elif isinstance(value, SQL):
+        # '=' SQL("x") pasa a 'in' SQL("(x)") — la pertenencia exige paréntesis.
+        value = SQL("(%s)", value)
+    else:
+        value = OrderedSet((value,))
+    return DomainCondition(condition.field_expr, operator, value)
+
+
+@operator_optimization(['in', 'not in'])
+def _optimize_in_set(condition, _model):
+    """≙ ``_optimize_in_set`` (``odoo19c: :1304-1319``).
+
+    Docstring de la fuente, verbatim: *"Make sure the value is an OrderedSet or
+    use 'any' operator"*.
+
+    Devuelve la **misma** condición cuando el valor ya es un ``OrderedSet`` no
+    vacío — la fuente lo comenta: *"very common case, just skip creation of a
+    new Domain instance"*. Esa identidad es lo que corta el bucle de
+    :meth:`Domain._optimize`, que compara por ``is``.
+    """
+    value = condition.value
+    if isinstance(value, OrderedSet) and value:
+        return condition
+    if isinstance(value, ANY_TYPES):
+        operator = 'any' if condition.operator == 'in' else 'not any'
+        return DomainCondition(condition.field_expr, operator, value)
+    if not value:
+        return _FALSE_DOMAIN if condition.operator == 'in' else _TRUE_DOMAIN
+    if not isinstance(value, COLLECTION_TYPES):
+        _logger.debug("La condición %r debería tener un valor de lista.", condition)
+        value = [value]
+    return DomainCondition(condition.field_expr, condition.operator, OrderedSet(value))
 
 
 def AND(domains):
