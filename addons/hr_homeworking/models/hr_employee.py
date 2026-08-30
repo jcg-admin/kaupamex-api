@@ -70,7 +70,8 @@ import fields
 import models
 
 from addons.hr_homeworking.models.hr_homeworking import DAYS, HrEmployeeLocation
-from orm.model_classes import extend_model
+from orm.model_classes import (extend_model,
+                              extend_selection_choices)
 
 
 def _get_current_day_location_field(cls):
@@ -161,16 +162,22 @@ HR_ICON_DISPLAY_SELECTION_ADD = [
 
 
 def _extend_hr_icon_display_choices(model):
-    """El ``selection_add`` — amplía las choices del campo ya declarado por
-    ``hr``. Idempotente por pertenencia (``ready()`` puede correr dos
-    veces). ``max_length=28`` del campo admite los tres valores nuevos
-    (el más largo, ``presence_office``, mide 15)."""
-    field = model._meta.get_field('hr_icon_display')
-    existing = {value for value, _label in field.choices}
-    field.choices = list(field.choices) + [
-        (value, label) for value, label in HR_ICON_DISPLAY_SELECTION_ADD
-        if value not in existing
-    ]
+    """El ``selection_add`` — amplía las choices del campo ya declarado por ``hr``.
+
+    Delega en :func:`orm.model_classes.extend_selection_choices`, que es
+    idempotente por pertenencia (``ready()`` puede correr dos veces) y que
+    además aplica la política de borrado. ``max_length=28`` del campo admite
+    los tres valores nuevos (el más largo, ``presence_office``, mide 15).
+
+    **Sin ``ondelete`` explícito, y es fiel:** la fuente tampoco lo declara
+    para este campo (``odoo19c: hr_homeworking/models/hr_employee.py``), y
+    puede permitírselo porque ``hr_icon_display`` **no** es requerido en su
+    raíz (``odoo19c: hr/models/hr_employee.py:107`` — un ``fields.Selection``
+    pelado). Los tres valores toman la política por defecto, ``'set null'``,
+    que es lo que allá hace ``ondelete.setdefault``.
+    """
+    return extend_selection_choices(model, 'hr_icon_display',
+                                    HR_ICON_DISPLAY_SELECTION_ADD)
 
 
 def apply_hr_homeworking_hr_employee_extensions():

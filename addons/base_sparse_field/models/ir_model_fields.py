@@ -83,6 +83,7 @@ from exceptions import UserError
 from addons.base.models.ir_model import STATE_BASE, IrModelFields
 from addons.base_sparse_field.models.fields import Serialized, Sparse
 from orm.method_chain import chain_method
+from orm.model_classes import extend_selection_choices
 
 #: Clave de tipo que la referencia añade al vocabulario de ``ttype``
 #: (``odoo19c: base_sparse_field/models/models.py:19-21``).
@@ -112,15 +113,25 @@ def add_serialized_ttype():
     ``serialized``.
 
     Se extiende el ``choices`` del campo vivo, que es donde Django valida.
-    ``ondelete={'serialized': 'cascade'}`` de la referencia no tiene
-    equivalente: es su política para las filas que quedan al DESinstalar el
-    módulo que aportó el valor, y aquí la instalación es ``INSTALLED_APPS``
-    —no hay desinstalación que dispare esa limpieza—.
+
+    **La política de borrado SÍ se porta** (tarea #205). Este docstring decía
+    que ``ondelete={'serialized': 'cascade'}`` *"no tiene equivalente"* porque
+    aquí no hay desinstalación de módulos. La premisa era correcta a medias:
+    la desinstalación no existe, pero borrar la fila de
+    ``ir.model.fields.selection`` sí es un camino vivo, y ahí la política
+    corre. El receptor lo construyó ``extend_selection_choices``.
+
+    ``ttype`` es ``required=True`` en la fuente
+    (``odoo19c: odoo/addons/base/models/ir_model.py:527``), así que la
+    política **no es opcional**: un valor nuevo sin ella dejaría filas
+    requeridas apuntando a nada, y la validación de la fuente lo rechaza.
+    La declaración está en ``odoo19c: base_sparse_field/models/models.py:21``
+    —otro archivo que el nuestro, ver la nota de sitio abajo—.
     """
-    ttype = IrModelFields._meta.get_field('ttype')
-    if any(key == SERIALIZED_TTYPE for key, _label in ttype.choices):
-        return
-    ttype.choices = list(ttype.choices) + [(SERIALIZED_TTYPE, SERIALIZED_TTYPE)]
+    extend_selection_choices(
+        IrModelFields, 'ttype',
+        [(SERIALIZED_TTYPE, SERIALIZED_TTYPE)],
+        ondelete={SERIALIZED_TTYPE: 'cascade'})
 
 
 def add_serialization_field():

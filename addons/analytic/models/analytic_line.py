@@ -12,15 +12,69 @@ unifica según el contexto (``analytic_plan_id``). Aquí se simplifica a una
 **FK única** ``account`` — la línea pertenece a UNA cuenta analítica (que a
 su vez pertenece a un plan jerárquico), no a "hasta N cuentas, una por plan".
 
-NO se portan (dependientes 100% de la columna dinámica):
+Dependientes de la columna dinámica — divergencia de MECANISMO
+--------------------------------------------------------------
+
+Los siete se apoyan en el conjunto de columnas ``x_planN_id`` que aquí no
+existe, porque la FK es única. No hay mecanismo que construir: la estructura
+que operan no está.
+
 ``_compute_auto_account``, ``_inverse_auto_account``, ``_search_auto_account``,
 ``_get_plan_fnames``, ``_get_mandatory_plans``, ``_get_plan_domain``,
-``_get_account_node_context``, ``default_get``, ``fields_get``, ``_get_view``,
-``_patch_view`` (las últimas cuatro son parcheo de vistas del cliente web de
-Odoo, sin análogo en una API DRF). ``category`` conserva sólo el valor
-``'other'`` de la referencia (otros addons de Odoo — ``hr_expense``,
-``sale`` — extienden esa selección; no aplica aquí). ``fiscal_year_search``
-(campo virtual sólo de filtro de vista) tampoco se porta.
+``_get_account_node_context``.
+
+Los cuatro del arch — su veredicto medido
+-------------------------------------------
+
+``default_get``, ``fields_get``, ``_get_view`` y ``_patch_view`` **no** son
+"sin análogo en una API DRF" — esa lectura estaba mal y era el camino barato.
+Medido contra el stack:
+
+===============  ==========  ==================================================
+Símbolo          Veredicto   Por qué
+===============  ==========  ==================================================
+``default_get``  **TRAE**    ya existe: ``orm/models.py:462``. Lo que falta es
+                             la mitad de esta clase, no el mecanismo.
+``fields_get``   CONSTRUYE   0 defs en el árbol; las primitivas están
+                             (``_meta.get_fields`` de Django + el serializer
+                             de DRF). Sin dependencia de fuera.
+``_get_view``    CONSTRUYE   el arch lo guarda ``ir.ui.view``; ver la arista
+``_patch_view``              de abajo.
+===============  ==========  ==================================================
+
+BLOQUEADO por ``get_views`` — el arch se lo entrega esa familia, que aún no se
+porta. Sucesor: tarea **#178**.
+
+``category`` — ya se amplía, y el docstring decía lo contrario
+---------------------------------------------------------------
+
+Decía *"otros addons de Odoo extienden esa selección; no aplica aquí"*. Es
+falso contra este mismo árbol: ``account/models/account_analytic_line.py``
+**ya** amplía el vocabulario con ``extend_selection_choices``, que es el
+receptor de ``selection_add`` (``orm/model_classes.py``).
+
+El campo se declara **sin** ``required``, y eso es fiel: la fuente tampoco lo
+declara (``odoo19c: analytic/models/analytic_line.py:218-221`` — un
+``fields.Selection`` pelado con ``default='other'``). Por eso los valores que
+otros addons le suman toman la política de borrado por defecto, ``'set null'``.
+
+``fiscal_year_search`` — su veredicto medido
+----------------------------------------------
+
+No es "campo virtual sólo de filtro de vista": la fuente lo declara
+``store=False`` con ``search='_search_fiscal_date'``
+(``odoo19c: :222-226``), y su cuerpo (``:272-274``) es un filtro de dominio
+real sobre ``date``. Faltan dos mecanismos, ambos con sucesor registrado:
+
+BLOQUEADO por ``compute_fiscalyear_dates`` — el rango del ejercicio fiscal
+sale de ``res.company`` y aquí da 0 defs. Sucesor: tarea **#207**.
+
+BLOQUEADO por ``search`` — el enganche de filtro de un campo no persistido;
+``store=False`` ya está construido (``orm/fields_nonstored.py``), el filtro no.
+Sucesor: tarea **#208**.
+
+Los dos son CONSTRUYE, no EXCLUIDO: ``datetime`` + ``dateutil`` y el ``Q`` de
+Django bastan, sin dependencia nueva.
 """
 import datetime
 from decimal import Decimal

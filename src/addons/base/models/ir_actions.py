@@ -410,7 +410,7 @@ class IrActionsActWindow(IrActionsBase):
         max_length=120, db_index=True, verbose_name='Modelo destino')
     target = fields.Selection(
         max_length=16, choices=TARGET_CHOICES, default='current',
-        verbose_name='Ventana destino')
+        required=False, verbose_name='Ventana destino')
     view_mode = fields.Char(
         max_length=120, default='list,form', verbose_name='Modos de vista',
         help_text="Lista separada por comas: 'form', 'list', 'calendar'…",

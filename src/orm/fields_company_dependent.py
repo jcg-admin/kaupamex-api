@@ -269,7 +269,9 @@ class CompanyDependent(models.JSONField):
         # —la columna guarda un mapa, y estar "no vacío" no dice nada de la
         # empresa activa— y dejarlo pasar produce una restricción que no
         # protege lo que su nombre promete.
-        if kwargs.get('required'):
+        # ``pop``, no ``get``: ``required`` es palabra de la fuente y Django no
+        # la conoce — dejarla en kwargs la haría estallar en ``super()``.
+        if kwargs.pop('required', None):
             raise ValueError('company_dependent field cannot be required')
         if kwargs.pop('translate', None):
             raise ValueError('company_dependent field cannot be translated')
@@ -428,15 +430,49 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
     :param base_type: uno de :data:`COMPANY_DEPENDENT_FIELDS`.
     :param plain: la clase de Django que se devuelve sin la palabra clave.
     :param extra_doc: párrafo propio del tipo, que se añade al docstring.
+
+    ``required=`` — el alias de firma de la fuente
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Mismo alias que ya lleva ``Char`` (``orm/fields_textual.py``): la palabra
+    clave de la fuente se traduce a ``blank`` —el vacío de formulario— y
+    **además se anota** en ``field.required``, que es el nombre que la fuente
+    usa y que Django deja libre (``models.Field`` no lo declara).
+
+    La anotación no es redundante con ``blank``: Django trae ``null`` y
+    ``blank`` en ``False`` por omisión, así que deducir "requerido" de ellos
+    da verdadero en todo campo que no los declare. La fuente decide al revés
+    —``required`` ausente es ``False``—, y quien lee el atributo
+    (``model_classes.check_ondelete_policies``) necesita la intención
+    declarada, no el defecto del ORM anfitrión.
     """
     if base_type not in COMPANY_DEPENDENT_FIELDS:
         raise ValueError(
             f'{base_type!r} no es uno de {COMPANY_DEPENDENT_FIELDS}')
 
-    def dispatcher(*args, company_dependent=False, **kwargs):
+    def dispatcher(*args, company_dependent=False, required=None, **kwargs):
+        if required is not None:
+            # Los dos, y no solo ``blank``: en la fuente el valor vacio de un
+            # escalar no-requerido es ``False``, que en la columna es NULL —
+            # no la cadena vacia. ``Char`` si mapea solo a ``blank`` porque su
+            # vacio SI es ``''``, alli y en Django.
+            kwargs.setdefault('blank', not required)
+            kwargs.setdefault('null', not required)
         if company_dependent:
-            return CompanyDependent(*args, base_type=base_type, **kwargs)
-        return plain(*args, **kwargs)
+            # La guarda de ``CompanyDependent`` lee ``required`` de kwargs;
+            # el despachador ya lo sacó de ahí, así que se le devuelve para
+            # que el aviso de la fuente siga disparando.
+            field = CompanyDependent(*args, base_type=base_type,
+                                     required=required, **kwargs)
+        else:
+            field = plain(*args, **kwargs)
+        # ``required`` de la fuente se ANOTA, no se deduce de ``null``/``blank``:
+        # Django los trae en ``False`` por omision, asi que leerlos daria
+        # "requerido" en los 181 campos que no declaran ninguno de los dos.
+        # La fuente hace lo contrario — ``required`` ausente significa False
+        # (``odoo19c: odoo/orm/fields.py``) — y ese es el defecto que se porta.
+        field.required = bool(required)
+        return field
 
     dispatcher.__name__ = name
     dispatcher.__qualname__ = name

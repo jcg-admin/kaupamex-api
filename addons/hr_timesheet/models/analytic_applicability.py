@@ -26,6 +26,7 @@ addons de Odoo extienden la selección — no aplica aquí"*). Este archivo es
 ese "otro addon".
 """
 from addons.analytic.models import AccountAnalyticApplicability
+from orm.model_classes import extend_selection_choices
 
 #: ≙ ``selection_add=[('timesheet', 'Timesheet')]`` (odoo19c: :11-14).
 #: Etiqueta en español por convención del árbol (``redaccion-tecnica-es.md``);
@@ -36,21 +37,20 @@ _BUSINESS_DOMAIN_EXTRA = [
 
 
 def _extend_selection_choices(model, field_name, extra_choices):
-    """Amplía en sitio los ``choices`` de un campo ya declarado en ``model``.
+    """≙ ``selection_add=`` con su ``ondelete=`` — delega en el compartido.
 
-    Idéntico al de ``account/models/account_analytic_plan.py``: no genera
-    migración (no es una columna nueva), y ``field.choices`` es una lista
-    mutable normal que ``Field.validate()`` consulta en cada llamada — la
-    ampliación es efectiva de inmediato. Idempotente.
+    Era una copia local de :func:`orm.model_classes.extend_selection_choices`,
+    una de cuatro idénticas en el árbol. Se retiran las cuatro: el compartido
+    hace lo mismo **y** acepta el ``ondelete`` que la fuente declara junto al
+    ``selection_add``, que es lo que la tarea **#205** construyó.
+
+    La política es la medida en ``odoo19c: hr_timesheet/models/analytic_applicability.py:14``:
+    ``{'timesheet': 'cascade'}``. Sin ella los registros que
+    guardaban el valor quedaban huérfanos al borrarlo.
     """
-    field = model._meta.get_field(field_name)
-    already_present = {value for value, _label in field.choices}
-    for value, label in extra_choices:
-        if value not in already_present:
-            field.choices.append((value, label))
-            already_present.add(value)
-
-
+    return extend_selection_choices(
+        model, field_name, extra_choices,
+        ondelete={'timesheet': 'cascade'})
 def apply_hr_timesheet_analytic_applicability_extensions():
     """Amplía ``business_domain`` con ``'timesheet'`` sobre
     ``analytic.AccountAnalyticApplicability``.

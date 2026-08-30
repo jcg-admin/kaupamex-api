@@ -121,9 +121,11 @@ def test_the_vocabulary_keeps_what_the_first_declarer_put(applicability):
     """Amplía, no sustituye — es la promesa entera de ``selection_add``."""
     field = applicability._meta.get_field('business_domain')
     previous = list(field.choices)
+    policies_before = dict(getattr(field, 'ondelete', None) or {})
     try:
         extend_selection_choices(
-            applicability, 'business_domain', [('probe_value', 'Sonda')])
+            applicability, 'business_domain', [('probe_value', 'Sonda')],
+            ondelete={'probe_value': 'cascade'})
         values = {v for v, _ in field.choices}
         assert 'probe_value' in values
         for value, _label in previous:
@@ -133,37 +135,45 @@ def test_the_vocabulary_keeps_what_the_first_declarer_put(applicability):
             )
     finally:
         field.choices = previous
+        field.ondelete = policies_before
 
 
 def test_the_same_value_is_not_added_twice(applicability):
     """Idempotente por valor, y lo devuelto lo declara."""
     field = applicability._meta.get_field('business_domain')
     previous = list(field.choices)
+    policies_before = dict(getattr(field, 'ondelete', None) or {})
     try:
         primera = extend_selection_choices(
-            applicability, 'business_domain', [('probe_twice', 'Sonda')])
+            applicability, 'business_domain', [('probe_twice', 'Sonda')],
+            ondelete={'probe_twice': 'cascade'})
         segunda = extend_selection_choices(
-            applicability, 'business_domain', [('probe_twice', 'Sonda')])
+            applicability, 'business_domain', [('probe_twice', 'Sonda')],
+            ondelete={'probe_twice': 'cascade'})
         assert primera == ['probe_twice']
         assert segunda == [], 'la segunda pasada no agrega nada'
         how_many = sum(1 for v, _ in field.choices if v == 'probe_twice')
         assert how_many == 1
     finally:
         field.choices = previous
+        field.ondelete = policies_before
 
 
 def test_it_returns_only_what_it_actually_added(applicability):
     """Con un valor ya presente y uno nuevo, devuelve sólo el nuevo."""
     field = applicability._meta.get_field('business_domain')
     previous = list(field.choices)
+    policies_before = dict(getattr(field, 'ondelete', None) or {})
     already_there = previous[0][0]
     try:
         added = extend_selection_choices(
             applicability, 'business_domain',
-            [(already_there, 'Etiqueta ignorada'), ('probe_new', 'Sonda')])
+            [(already_there, 'Etiqueta ignorada'), ('probe_new', 'Sonda')],
+            ondelete={'probe_new': 'cascade'})
         assert added == ['probe_new']
     finally:
         field.choices = previous
+        field.ondelete = policies_before
 
 
 # === controles positivos del árbol vivo ===============================

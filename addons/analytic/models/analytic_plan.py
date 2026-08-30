@@ -227,7 +227,7 @@ class AccountAnalyticApplicability(models.Model):
         verbose_name='Plan analítico',
     )
     business_domain = fields.Selection(
-        max_length=32,
+        max_length=32, required=True,
         choices=[('general', 'Miscelánea')],
         verbose_name='Dominio de negocio',
         help_text=(
@@ -238,7 +238,7 @@ class AccountAnalyticApplicability(models.Model):
         ),
     )
     applicability = fields.Selection(
-        max_length=16, choices=APPLICABILITY_CHOICES,
+        max_length=16, choices=APPLICABILITY_CHOICES, required=True,
         verbose_name='Aplicabilidad',
     )
     company = fields.Many2one(

@@ -64,6 +64,14 @@ BUSINESS_DOMAIN_SELECTION_ADD = [
     ('sale_order', 'Pedido de venta'),
 ]
 
+#: ≙ ``ondelete={'sale_order': 'cascade'}`` (``odoo19c: sale/models/analytic.py:20``).
+#: ``business_domain`` es ``required=True`` en la raíz
+#: (``odoo19c: analytic/models/analytic_plan.py:416``), y la fuente rechaza un
+#: valor nuevo sin política sobre un campo requerido: dejarlo vacío no sería un
+#: estado válido. Por eso la política es ``cascade`` — la fila de
+#: aplicabilidad se va con el dominio que la nombra.
+BUSINESS_DOMAIN_ONDELETE = {'sale_order': 'cascade'}
+
 
 def apply_sale_analytic_extensions():
     """Cuelga sobre la familia analítica lo que ``sale`` le añade.
@@ -92,5 +100,6 @@ def apply_sale_analytic_extensions():
     extend_model(
         'analytic', 'AccountAnalyticApplicability',
         selection_add={'business_domain': BUSINESS_DOMAIN_SELECTION_ADD},
+        ondelete={'business_domain': BUSINESS_DOMAIN_ONDELETE},
     )
 

@@ -420,7 +420,8 @@ class StockRule(TimeStampedModel):
         help_text='Si se desmarca, la regla se oculta sin borrarla (Odoo active).',
     )
     action                   = fields.Selection(
-        max_length=16, choices=ACTION_CHOICES, default=ACTION_PULL, db_index=True,
+        max_length=16, choices=ACTION_CHOICES, default=ACTION_PULL,
+        db_index=True, required=True,
         help_text='Dirección de la regla (Odoo action).',
     )
     sequence                 = fields.Integer(

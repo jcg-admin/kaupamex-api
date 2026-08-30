@@ -121,12 +121,14 @@ Qué NO se porta, con su medición
   el esquema lo gobiernan las migraciones de Django; DDL fuera de ellas deja
   la tabla ``django_migrations`` mintiendo. Las dos clases se portan como
   **registro** —que es lo que aporta trazabilidad— sin el ejecutor de DDL.
-- **``_process_ondelete``** de ``IrModelFieldsSelection`` — BLOQUEADO por
-  ``fields.Selection``, no divergencia. La política de borrado de un valor
-  vive en la **declaración del campo** (``ondelete={...}``), y nuestro
-  ``fields.Selection`` no acepta ese parámetro: sin receptor, el método no
-  tiene de dónde leerla. Tarea **#205**. ``_get_records``, que es a quien
-  llama para saber qué filas guardaban el valor, sí está portado.
+- **``_process_ondelete``** de ``IrModelFieldsSelection`` — **PORTADO**
+  (tarea #205). Estuvo declarado BLOQUEADO *"por ``fields.Selection``, que no
+  acepta ese parámetro"*, y esa premisa nombraba el receptor equivocado: la
+  fuente declara ``ondelete=`` **junto a** ``selection_add=`` en la misma
+  redeclaración del campo, y el ``selection_add`` de este árbol no es un
+  parámetro de campo sino ``extend_model(selection_add=…)``
+  (``orm/model_classes.py``). Ahí se construyó el receptor —el hermano que ya
+  existía—, con las cinco políticas de la fuente y su validación.
 - **La autorización efectiva sigue siendo por capacidad (DEC-11).**
   ``ir.model.access`` se porta como **dato** —el permiso CRUD declarado por
   modelo y grupo—, no como el gate que corre en cada request: ese es
@@ -198,6 +200,7 @@ import fields
 import models
 from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist, ValidationError
+from django.db.models.fields import NOT_PROVIDED
 
 from addons.base.models.ir_module import IrModule
 from addons.base.models.ir_ui_view import IrUiView
@@ -676,8 +679,8 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         registry.clear_cache('stable')
         return result
 
-    def delete(self, *args, **kwargs):
-        """Enganche de Django — ≙ ``unlink`` (``:353-381``).
+    def delete(self, *args, at_uninstall=False, **kwargs):
+        """Enganche de Django — ≙ ``unlink`` (``odoo19c: :353-381``).
 
         La fuente arrastra cuatro cosas antes de borrar la fila, y las cuatro
         se portan: los campos cuyo modelo relacionado desaparece, los crons que
@@ -693,8 +696,17 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         ``_prepare_update`` de la fuente, que preserva los campos que dependen
         de éstos, cae dentro de la maquinaria de campos manuales y no tiene
         receptor: aquí un campo se declara en Python.
+
+        ``at_uninstall`` es el receptor de ``@api.ondelete(at_uninstall=False)``
+        (``odoo19c: :346``), igual que en ``ir.model.fields.selection``: la
+        guarda protege el borrado a mano y **no** corre al desinstalar, que es
+        cuando el modelo de un módulo sí debe irse.
+
+        :param at_uninstall: ``True`` cuando el borrado es parte de desinstalar
+            un módulo. Salta la guarda.
         """
-        self._unlink_if_manual()
+        if not at_uninstall:
+            self._unlink_if_manual()
         model_name = self.model
         IrModelFields.objects.filter(relation=model_name).delete()
         # El cron llega por ``apps.get_model`` y no por ``import``: ``ir_cron``
@@ -866,7 +878,8 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
         max_length=255, blank=True, default='', verbose_name='Etiqueta del campo')
     help = fields.Text(blank=True, default='', verbose_name='Ayuda del campo')
     ttype = fields.Selection(
-        max_length=32, choices=FIELD_TYPES, verbose_name='Tipo de campo')
+        max_length=32, choices=FIELD_TYPES, required=True,
+        verbose_name='Tipo de campo')
     # ``selection_ids`` es el One2many de la fuente: llega como reverso desde
     # ``IrModelFieldsSelection.field`` (``related_name='selection_ids'``).
     copied = fields.Boolean(
@@ -1908,6 +1921,118 @@ class IrModelFieldsSelection(models.OriginMixin, TimeStampedModel):
                 cls._update_selection(model_name, field_name, list(choices),
                                       using=using)
 
+    def _process_ondelete(self, using=DEFAULT_DB_ALIAS):
+        """Aplica la politica de borrado de este valor — ``_process_ondelete``.
+
+        Docstring de la fuente, verbatim: *"Process the 'ondelete' of the given
+        selection values"* (``odoo19c: ir_model.py:1749-1822``).
+
+        Un valor de seleccion que desaparece deja huerfanas las filas que lo
+        guardaban. La politica dice que hacer con ellas, y la declara quien
+        amplio el vocabulario, junto a su ``selection_add``:
+
+        ==================  =================================================
+        Politica            Efecto sobre las filas con este valor
+        ==================  =================================================
+        ``'set null'``      el campo queda vacio — es el defecto
+        ``'set default'``   el campo toma el ``default`` de su declaracion
+        ``'set VALOR'``     el campo toma ``VALOR``
+        ``'cascade'``       la fila se borra con el valor
+        invocable           se le entrega el conjunto de filas y decide el
+        ==================  =================================================
+
+        DIVERGENCIA DE MECANISMO, en tres ejes medidos:
+
+        1. **La politica se lee del campo, no de un atributo del ``Field`` de
+           la fuente.** Alla vive en ``field.ondelete`` porque el campo es suyo;
+           aqui el campo es de Django y el atributo se lo cuelga
+           :func:`~orm.model_classes.extend_selection_choices`, con el **mismo
+           nombre**. Es el receptor que la tarea **#205** construyo: el bloqueo
+           declarado decia que faltaba en ``fields.Selection``, y el sitio real
+           es el hermano de ``selection_add``, que ya existia.
+        2. **El respaldo del ``safe_write``.** La fuente envuelve la escritura
+           en un ``savepoint`` y, si el ORM levanta, la repite por SQL crudo.
+           Aqui el savepoint es ``transaction.atomic(savepoint=True)`` y el
+           respaldo es ``QuerySet.update()``, que salta ``save()`` y sus
+           senales — el mismo rodeo, con el constructor del stack.
+        3. **El bucle por empresa no aplica.** Alla recorre ``env.companies``
+           para un campo ``company_dependent``, porque su valor se guarda como
+           ``{empresa: valor}`` en un ``jsonb`` y hay que tocar una entrada por
+           empresa. Aqui ese eje ya esta construido (tarea #129) y su escritura
+           pasa por el descriptor, que resuelve la empresa activa: la
+           bifurcacion la hace el campo, no este metodo. Es la misma razon por
+           la que :meth:`_get_records` tampoco bifurca.
+
+        No levanta si el modelo o el campo desaparecieron del registro: la
+        fuente tambien los salta, con su comentario sobre el script de
+        migracion (``:1776-1786``).
+        """
+        model_cls = _model_class(self.field_id.model)
+        if model_cls is None:
+            return
+        try:
+            field = model_cls._meta.get_field(self.field_id.name)
+        except FieldDoesNotExist:
+            return
+        if not getattr(field, 'choices', None):
+            # El campo cambio de tipo; la fuente lo salta igual (``:1788-1790``).
+            return
+
+        policy = (getattr(field, 'ondelete', None) or {}).get(self.value)
+        if policy is None:
+            # No viene de una ampliacion de vocabulario: no hay nada que hacer.
+            return
+
+        records = self._get_records(using=using)
+        if records is None:
+            return
+
+        if callable(policy):
+            policy(records)
+        elif policy == 'cascade':
+            records.delete()
+        elif policy == 'set default':
+            value = None if field.default is NOT_PROVIDED else field.default
+            self._safe_write(records, field.name, value, using=using)
+        elif policy == 'set null':
+            self._safe_write(records, field.name, None, using=using)
+        elif policy.startswith('set '):
+            self._safe_write(records, field.name, policy[4:], using=using)
+        else:
+            # Comprobacion de sanidad; la validacion vive en
+            # ``check_ondelete_policies``, al declarar la politica.
+            raise ValueError(
+                f'La politica de borrado {policy!r} no es valida para el '
+                f'campo {self.field_id.name!r}')
+
+    @staticmethod
+    def _safe_write(records, field_name, value, using=DEFAULT_DB_ALIAS):
+        """Escribe por el ORM y, si levanta, por debajo — ``safe_write``.
+
+        ≙ la clausura ``safe_write`` (``odoo19c: ir_model.py:1751-1773``), con
+        su comentario verbatim: *"going through the ORM failed, probably
+        because of an exception in an override or possibly a constraint"*.
+
+        Se saca a metodo propio porque el test la interroga aparte; alla es una
+        clausura y no se puede llamar sola. El respaldo es ``update()``, que no
+        dispara ``save()`` ni sus senales — el equivalente del SQL crudo de la
+        fuente, y por la misma razon: si un override o una restriccion impide
+        limpiar el valor huerfano, dejarlo apuntando al vacio es peor.
+        """
+        if not records.exists():
+            return
+        try:
+            with transaction.atomic(using=using, savepoint=True):
+                for record in records:
+                    setattr(record, field_name, value)
+                    record.save(using=using)
+        except Exception:
+            _logger.warning(
+                'No se pudo aplicar la politica de borrado sobre %s.%s; se '
+                'intenta por debajo del ORM.',
+                records.model._meta.label, field_name)
+            records.update(**{field_name: value})
+
     def _get_records(self, using=DEFAULT_DB_ALIAS):
         """Los registros que tienen este valor — ``_get_records``.
 
@@ -1974,9 +2099,42 @@ class IrModelFieldsSelection(models.OriginMixin, TimeStampedModel):
                     previous.value, self.value)
         return super().save(*args, **kwargs)
 
-    def delete(self, *args, **kwargs):
-        """Enganche de Django — ≙ ``unlink`` (``:1733-1745``)."""
-        self._unlink_if_manual()
+    def delete(self, *args, at_uninstall=False, **kwargs):
+        """Enganche de Django — ≙ ``unlink`` (``odoo19c: :1734-1746``).
+
+        El orden es el de la fuente: primero la guarda, luego la politica de
+        borrado sobre las filas que guardaban el valor, y sólo entonces el
+        borrado del valor. Invertirlo dejaría a :meth:`_get_records` sin nada
+        que encontrar.
+
+        ``at_uninstall`` — el receptor de ``@api.ondelete(at_uninstall=False)``
+        ---------------------------------------------------------------------
+
+        La fuente **no** llama a :meth:`_unlink_if_manual` desde ``unlink``: la
+        registra con ``@api.ondelete(at_uninstall=False)`` (``:1723``), y ese
+        argumento significa *"no corras esta guarda al desinstalar"*. Aquí no
+        hay decorador que registre enganches de borrado, así que la llamada es
+        explícita y la bandera viaja como palabra clave del método.
+
+        Sin ella el porte queda **incoherente**: la guarda rehúsa borrar el
+        valor de un campo base, y ``_process_ondelete`` sólo tiene sentido
+        justo ahí — al desinstalar el addon que sumó el valor. Un campo base
+        es lo que declara cualquier módulo, así que la política de borrado
+        quedaba inalcanzable para el caso que la motiva. El docstring de
+        :meth:`_unlink_if_manual` ya prometía *"la misma excepción al
+        desinstalar"*; esto es esa excepción.
+
+        DIVERGENCIA DE MECANISMO: la fuente además condiciona la guarda a
+        ``self.pool.ready`` — no dispara mientras el registro se carga. Aquí
+        Django congela el suyo al importar y no hay fase equivalente que
+        consultar, así que esa mitad no tiene receptor.
+
+        :param at_uninstall: ``True`` cuando el borrado es parte de desinstalar
+            un módulo. Salta la guarda y deja correr la política.
+        """
+        if not at_uninstall:
+            self._unlink_if_manual()
+        self._process_ondelete()
         return super().delete(*args, **kwargs)
 
 

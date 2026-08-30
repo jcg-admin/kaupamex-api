@@ -119,14 +119,22 @@ Además, ``_make_po_get_domain`` necesita ``partner.buyer_id``
 Divergencias declaradas
 ========================
 
-**D-1 — ``selection_add`` se expresa mutando ``choices``.** La fuente usa el
-kwarg ``selection_add=[('buy', 'Buy')]`` con ``ondelete={'buy': 'cascade'}``.
-Este ORM no tiene ese kwarg (``fields.Selection`` es ``models.CharField``,
-``src/orm/fields_selection.py:9``), así que el valor se añade **a la lista de
-opciones del campo ya declarado** — que es lo que ``selection_add`` produce
-allá. El ``ondelete`` queda **bloqueado**: es la política de qué hacer con las
-reglas ``buy`` si se desinstala el addon, y este árbol no tiene desinstalación
-de addons (0 modelos de módulo con estado de instalación poblado).
+**D-1 — ``selection_add`` se expresa por ``extend_selection_choices``.** La
+fuente usa el kwarg ``selection_add=[('buy', 'Buy')]`` con
+``ondelete={'buy': 'cascade'}`` en una redeclaración del campo. Aquí el
+mecanismo equivalente es :func:`~orm.model_classes.extend_selection_choices`,
+que amplía la lista de opciones del campo ya declarado — que es lo que
+``selection_add`` produce allá — y que **acepta el mismo ``ondelete``**.
+
+El ``ondelete`` estuvo declarado **bloqueado** por dos razones, y sólo una era
+cierta. La falsa: *"este ORM no tiene ese kwarg (``fields.Selection`` es
+``models.CharField``)"*. Nombraba el receptor equivocado — la política viaja
+con el ``selection_add``, no con la declaración del campo, y ese hermano ya
+existía. La cierta, y sigue siéndolo: este árbol no desinstala addons
+(``ir_module.state`` es derivado de ``INSTALLED_APPS``), así que el disparo
+por desinstalación no ocurre hoy. Pero borrar la fila de
+``ir.model.fields.selection`` sí es un camino vivo, y ahí la política corre:
+la tarea **#205** construyó el receptor y la porta entera.
 
 **D-2 — ``_select_seller`` no existe; la selección cae al filtro base.**
 Medido: ``grep -rn "def _select_seller" addons/ src/ --include=*.py`` → **0**.
@@ -165,7 +173,7 @@ from django.apps import apps
 from addons.stock.models.stock_rule import Procurement
 from orm.environments import get_context
 from orm.method_chain import chain_method, extend_list
-from orm.model_classes import extend_model
+from orm.model_classes import extend_model, extend_selection_choices
 
 #: ≙ ``('buy', 'Buy')`` del ``selection_add`` (``odoo19c: :18-20``).
 ACTION_BUY = 'buy'
@@ -572,9 +580,12 @@ def _install_rule(model):
         model.ACTION_BUY = ACTION_BUY
     if all(value != ACTION_BUY for value, _label in model.ACTION_CHOICES):
         model.ACTION_CHOICES.append((ACTION_BUY, ACTION_BUY_LABEL))
-    action_field = model._meta.get_field('action')
-    if all(value != ACTION_BUY for value, _label in action_field.choices):
-        action_field.choices = list(action_field.choices) + [(ACTION_BUY, ACTION_BUY_LABEL)]
+    # La política de borrado viaja con la ampliación, como en la fuente. Se
+    # aplica sobre la lista del campo, que es la que consulta la validación de
+    # Django y la que ``_process_ondelete`` lee.
+    extend_selection_choices(model, 'action',
+                             [(ACTION_BUY, ACTION_BUY_LABEL)],
+                             ondelete={ACTION_BUY: 'cascade'})
 
     chain_method(model, '_get_message_dict', _get_message_dict,
                  combine=_merge_vals)

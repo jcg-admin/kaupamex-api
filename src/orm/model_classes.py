@@ -81,6 +81,7 @@ import importlib
 import inspect
 
 from django.db.models import Model
+from django.db.models.fields import NOT_PROVIDED
 from django.db.models.base import ModelBase
 from django.db.models.signals import class_prepared
 from django.dispatch import receiver
@@ -506,13 +507,89 @@ def add_meta_index(model, index):
     return True
 
 
-def extend_selection_choices(model, field_name, extra):
+#: Las cinco politicas de borrado de un valor de seleccion, verbatim de la
+#: fuente (``odoo19c: odoo/orm/fields_selection.py:45-57``). ``'set VALUE'``
+#: no cabe en un conjunto —el valor es libre— y se reconoce por prefijo.
+ONDELETE_POLICIES = ('set null', 'set default', 'cascade')
+
+#: La politica que la fuente pone por defecto a todo valor nuevo que el
+#: ``selection_add`` no nombre (``:131-133``).
+ONDELETE_DEFAULT = 'set null'
+
+
+def check_ondelete_policies(field, ondelete, new_values, values):
+    """Valida el mapa ``{valor: politica}`` — ≙ el bloque de la fuente.
+
+    ≙ ``odoo19c: odoo/orm/fields_selection.py:129-163``, con sus cuatro
+    comprobaciones y sus cuatro mensajes. Se saca a funcion propia porque
+    :func:`extend_selection_choices` la usa una vez y el test la interroga
+    aparte; alla es un tramo del cuerpo de ``_setup_attrs__`` y no se puede
+    llamar sola.
+
+    :param field: el campo de Django cuyo vocabulario se amplia.
+    :param ondelete: el mapa declarado, ya con los defectos rellenos.
+    :param new_values: los valores que este ``selection_add`` **agrega** —
+        son los unicos a los que la politica aplica.
+    :param values: el vocabulario completo tras la ampliacion, para validar
+        el destino de un ``'set VALUE'``.
+    :raises ValueError: con el mensaje de la fuente, adaptado al espanol.
+    """
+    # La INTENCION declarada, no el defecto de Django. ``null`` y ``blank``
+    # nacen en ``False``, asi que deducir de ellos daria "requerido" en los
+    # 181 campos ``Selection`` del arbol que no declaran ninguno de los dos —
+    # el instrumento mediria la forma del ORM anfitrion y la conclusion seria
+    # sobre la intencion de la fuente. ``fields.Selection`` anota
+    # ``field.required`` cuando la declaracion lo dice, y su ausencia vale
+    # ``False``, que es el defecto de la fuente.
+    required = bool(getattr(field, 'required', False))
+    if required and new_values and ONDELETE_DEFAULT in ondelete.values():
+        raise ValueError(
+            f'{field.name!r}: un campo de seleccion requerido debe declarar '
+            f'una politica de borrado que limpie sus registros al '
+            f'desinstalar el modulo. Use una o mas de estas: '
+            f"'set default' (si el campo declara uno), 'cascade', o un "
+            f'invocable de un solo argumento, que recibe el conjunto de '
+            f'registros con el valor.')
+
+    for key, policy in ondelete.items():
+        if callable(policy) or policy in ('set null', 'cascade'):
+            continue
+        if policy == 'set default':
+            if field.default is NOT_PROVIDED:
+                raise ValueError(
+                    f"{field.name!r}: la politica 'set default' no vale para "
+                    f'este campo porque no declara un valor por defecto. '
+                    f'Declare uno en el campo base, o cambie la politica.')
+        elif isinstance(policy, str) and policy.startswith('set '):
+            if policy[4:] not in values:
+                raise ValueError(
+                    f"{field.name!r}: la politica 'set %' debe ser "
+                    f"'set null', 'set default', o 'set VALOR' donde VALOR "
+                    f'es un valor valido de la seleccion.')
+        else:
+            raise ValueError(
+                f'{field.name!r}: la politica de borrado {policy!r} para el '
+                f'valor {key!r} no es valida; elija una de '
+                f"'set null', 'set default', 'set [valor]', 'cascade' o un "
+                f'invocable.')
+
+
+def extend_selection_choices(model, field_name, extra, ondelete=None):
     """Amplia en sitio los ``choices`` de un campo ya declarado — ≙ ``selection_add``.
 
     ``extra`` es la lista de pares ``(valor, etiqueta)`` que el addon suma al
-    vocabulario que otro ya declaró. Es exactamente lo que la referencia
+    vocabulario que otro ya declaro. Es exactamente lo que la referencia
     expresa redeclarando el campo con ``selection_add=``: **amplia**, no
     sustituye, y por eso preserva los valores del declarante original.
+
+    ``ondelete`` es el ``{valor: politica}`` que la fuente declara **junto** a
+    ``selection_add``, y por la misma razon: la politica dice que hacer con
+    las filas que guardaban un valor cuando ese valor desaparece. Se guarda en
+    el atributo ``ondelete`` del propio campo —el mismo nombre que la fuente
+    le da (``odoo19c: fields_selection.py:67``)— porque es ahi donde
+    :meth:`~addons.base.models.ir_model.IrModelFieldsSelection._process_ondelete`
+    lo lee. Todo valor nuevo que el mapa no nombre recibe
+    :data:`ONDELETE_DEFAULT`, igual que alla (``:131-133``).
 
     No genera migracion. ``choices`` no es DDL: PostgreSQL guarda el valor en
     la misma columna de texto, y ``Field.validate()`` consulta la lista viva en
@@ -522,7 +599,9 @@ def extend_selection_choices(model, field_name, extra):
 
     Idempotente por pertenencia: ``ready()`` puede correr mas de una vez en
     tests que recargan el registro de apps, y un valor repetido en ``choices``
-    sale duplicado en todo selector que lo lea.
+    sale duplicado en todo selector que lo lea. El mapa de politicas se
+    **acumula** por la misma razon que alla (``self.ondelete.update``): dos
+    addons pueden ampliar el mismo campo, y el segundo no borra al primero.
 
     Devuelve los valores realmente agregados, para que el llamador pueda medir
     en vez de suponer.
@@ -536,12 +615,21 @@ def extend_selection_choices(model, field_name, extra):
         field.choices = list(field.choices) + [(value, label)]
         present.add(value)
         added.append(value)
+
+    policies = dict(ondelete or {})
+    for value in added:
+        policies.setdefault(value, ONDELETE_DEFAULT)
+    if policies:
+        check_ondelete_policies(field, policies, added, present)
+        combined = dict(getattr(field, 'ondelete', None) or {})
+        combined.update(policies)
+        field.ondelete = combined
     return added
 
 
 def extend_model(*destino, campos=None, metodos=None, overrides=None,
-                 propiedades=None, selection_add=None, indexes=None,
-                 luego=None):
+                 propiedades=None, selection_add=None, ondelete=None,
+                 indexes=None, luego=None):
     """Extiende un modelo cuando exista — ≙ ``_inherit``.
 
     El destino se nombra de una de las dos formas, y la primera es la de la
@@ -586,6 +674,14 @@ def extend_model(*destino, campos=None, metodos=None, overrides=None,
         de la referencia, vía :func:`extend_selection_choices`. Amplía el
         vocabulario de un ``fields.Selection`` ya declarado sin redeclararlo,
         que es lo que preserva los valores de quien lo declaró primero.
+    ``ondelete``
+        ``{nombre_campo: {valor: política}}`` — ≙ el ``ondelete=`` que la
+        fuente declara **junto** al ``selection_add`` en la misma
+        redeclaración, y por eso viaja aquí como su hermano y no como un
+        parámetro de ``fields.Selection``. Dice qué hacer con las filas que
+        guardaban un valor cuando ese valor desaparece; lo consume
+        ``IrModelFieldsSelection._process_ondelete``. Todo valor nuevo que el
+        mapa no nombre recibe ``'set null'``, como allá.
     ``indexes``
         ``[models.Index(…), …]`` — ≙ el ``index=`` que la referencia declara
         como atributo del campo, vía :func:`add_meta_index`. Es lo que hay que
@@ -608,7 +704,8 @@ def extend_model(*destino, campos=None, metodos=None, overrides=None,
             if not hasattr(modelo, nombre):
                 setattr(modelo, nombre, property(funcion))
         for nombre, extra in (selection_add or {}).items():
-            extend_selection_choices(modelo, nombre, extra)
+            extend_selection_choices(modelo, nombre, extra,
+                                     (ondelete or {}).get(nombre))
         for indice in (indexes or ()):
             add_meta_index(modelo, indice)
         if luego is not None:

@@ -198,6 +198,7 @@ from addons.account_peppol.exceptions import get_peppol_error_message
 from addons.account_peppol.tools.peppol_iap_connector import PEPPOL_PROXY_URLS
 from exceptions import UserError
 from orm.method_chain import chain_method
+from orm.model_classes import extend_selection_choices
 from tools.translate import _
 
 _logger = logging.getLogger(__name__)
@@ -218,18 +219,20 @@ WEBHOOK_SIGNING_SALT = 'account_peppol_webhook'
 
 
 def _extend_selection_choices(model, field_name, extra_choices):
-    """Amplía en sitio los ``choices`` de un campo ya declarado en ``model``.
+    """≙ ``selection_add=`` con su ``ondelete=`` — delega en el compartido.
 
-    Mismo helper que ``account/models/account_analytic_line.py:139`` — no
-    genera migración, idempotente."""
-    field = model._meta.get_field(field_name)
-    already_present = {value for value, _label in field.choices}
-    for value, label in extra_choices:
-        if value not in already_present:
-            field.choices.append((value, label))
-            already_present.add(value)
+    Era una copia local de :func:`orm.model_classes.extend_selection_choices`,
+    una de cuatro idénticas en el árbol. Se retiran las cuatro: el compartido
+    hace lo mismo **y** acepta el ``ondelete`` que la fuente declara junto al
+    ``selection_add``, que es lo que la tarea **#205** construyó.
 
-
+    La política es la medida en ``odoo19c: account_peppol/models/account_edi_proxy_user.py``:
+    ``{'peppol': 'cascade'}``. Sin ella los registros que
+    guardaban el valor quedaban huérfanos al borrarlo.
+    """
+    return extend_selection_choices(
+        model, field_name, extra_choices,
+        ondelete={'peppol': 'cascade'})
 def _merge_with_previous(new, previous):
     """``combine`` para hooks que aportan claves a un dict — ≙
     ``urls = super()...; urls['peppol'] = ...``."""
