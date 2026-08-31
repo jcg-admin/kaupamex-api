@@ -18,4 +18,3 @@ src/addons/base/models/ir_actions_report.py::grep -rln "reportlab\\|weasyprint\\
 src/addons/base/models/ir_http.py::grep -rn "def slugify\\|from django.utils.text import" src/
 src/addons/base/models/ir_model.py::grep -rn "^class IrModel\\b" src/
 src/addons/base/models/report_paperformat.py::grep -rn "^class IrActionsReport" src/
-src/orm/fields_properties.py::grep -rn "filtered_domain" src/ addons/

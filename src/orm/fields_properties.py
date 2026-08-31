@@ -44,6 +44,8 @@ from django.db import DEFAULT_DB_ALIAS, models
 
 from exceptions import UserError
 from orm import registry
+import orm.domains as _domains
+import orm.models as _models
 from orm.environments import context_scope, get_context, get_current_uid, sudo
 from orm.fields_nonstored import projection_or_none
 from orm.utils import COLLECTION_TYPES, parse_field_expr, regex_alphanumeric
@@ -996,27 +998,69 @@ class Properties(models.JSONField):
     def filter_function(self, records, field_expr, operator, value):
         """≙ ``filter_function`` (``odoo19c: :657-666``).
 
-        Porte BLOQUEADO — 0 de 1 símbolos. BLOQUEADO por ``filtered_domain`` —
-        el filtrado **en memoria** de un recordset, que su cuerpo llama en las
-        dos ramas (``getter(rec).filtered_domain(domain)``). Medido:
-        ``grep -rn "filtered_domain" src/ addons/`` da **0**, y su ausencia ya
-        está registrada en ``orm/domains.py`` junto a los seis ``_as_predicate``
-        y ``_optimize_field_search_method`` que dependen de ella.
+        El predicado **en memoria** de una condición sobre una propiedad. Dos
+        ramas producen un dominio —el ``any`` explícito y el ``in`` sobre una
+        propiedad relacional— y el resto delega en el caso base del campo.
 
-        El símbolo se declara con su nombre y su firma para que el hueco no sea
-        silencioso, y levanta nombrando el bloqueo. Su sucesor es la tarea
-        **#373**, que cubre esa capa entera — no una tarea nueva: el bloqueo es
-        exactamente el que aquélla ya declara.
+        **Este porte estuvo declinado con una razón que caducó**
+        (:ref:`h-api-992`). Decía: *"BLOQUEADO por ``filtered_domain`` … medido:
+        ``grep`` da 0"*. El porte de ``ir_default`` construyó ese mecanismo
+        —``orm/models.py`` lo declara como función de módulo y como método de
+        ``AccessQuerySet``— y con él ``Field.filter_function`` y
+        ``Field.expression_getter`` (``orm/fields.py``). La razón dejó de ser
+        cierta y nadie editó la prosa.
 
-        Lo que **no** está bloqueado es buscar por una propiedad en SQL, que es
-        el camino que el árbol sí ejerce: ``DomainCondition.__get_field`` corta
-        la ruta en el campo ``Properties`` y el compilador emite el mismo
-        ``->`` de la fuente. Ver :meth:`property_to_sql`.
+        **La divergencia que sí queda, medida, es de FORMA del import.** La
+        fuente declara este archivo *aguas abajo* de ``domains`` y ``models``
+        (``from .domains import Domain``, ``from .models import BaseModel``);
+        aquí la dirección está invertida —``domains.py`` y ``models.py``
+        importan ``Properties``— así que un ``from orm.domains import Domain``
+        cerraría el ciclo. Se resuelve con la forma que Python admite para un
+        ciclo: importar el **módulo**, no el símbolo, y resolver el nombre al
+        llamar. Enderezar la dirección es la tarea **#260**; hasta entonces
+        ``_domains`` y ``_models`` son ese import, declarado arriba y no dentro
+        de la función.
+
+        Tres adaptaciones de forma, ninguna de alcance:
+
+        - ``records`` es la **clase** del modelo, no un recordset: es lo que
+          ``DomainCondition._as_predicate`` pasa. Por eso el sondeo del tipo de
+          la propiedad usa ``records()`` —una instancia sin guardar— donde la
+          fuente usa ``records.browse()``.
+        - Un valor relacional sale como ``QuerySet`` —``Property.__getitem__``
+          devuelve ``model.objects.filter(pk__in=…)``— así que **no** hay que
+          envolverlo. Una primera redacción decía «una instancia, no un
+          recordset de uno» y la sonda lo desmintió: el guard que eso habría
+          justificado era código muerto.
+        - ``getter(rec).filtered_domain(domain)`` pasa por la **función** de
+          módulo, no por el método: el ``QuerySet`` de un comodelo cualquiera
+          no declara ``AccessManager``, así que el método puede no estar.
+        - El ``False`` del getter no es un contenedor vacío y no se puede
+          filtrar. Distinguir «declarada sin valor» (``QuerySet`` vacío) de
+          «no declarada» (``False``) es lo que decide qué caso ejerce la
+          guarda; lo destapó el control de neutralización, no la lectura.
         """
-        raise NotImplementedError(
-            'Properties.filter_function necesita filtered_domain, que aún no '
-            'está portado (tarea #373). Filtrar por propiedad en SQL sí '
-            'funciona: usa un dominio con la ruta "campo.propiedad".')
+        getter = self.expression_getter(field_expr)
+        domain = None
+        if operator == 'any' or isinstance(value, _domains.Domain):
+            domain = _domains.Domain(value).optimize(records)
+        elif (operator == 'in' and isinstance(value, COLLECTION_TYPES)
+                and isinstance(getter(records()), models.QuerySet)):
+            domain = _domains.Domain('id', 'in', value).optimize(records)
+
+        if domain is not None:
+            def matches(record):
+                corecords = getter(record)
+                if not corecords:
+                    # El getter devuelve ``False`` —no un contenedor vacío—
+                    # cuando el contenedor no declara la propiedad (``:989``).
+                    # ``False`` no es iterable: sin esto es un ``TypeError``.
+                    return []
+                return _models.filtered_domain(corecords, domain)
+            return matches
+
+        return super().filter_function(records, field_expr, operator, value)
+
 
 def check_property_field_value_name(property_name):
     """≙ ``check_property_field_value_name`` (``odoo19c: :27-29``).

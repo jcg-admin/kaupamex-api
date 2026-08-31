@@ -70,12 +70,15 @@ orden :func:`_optimize_nary_sort_key`, sus dos mapas y el despacho en los dos
   cuenta transcrita a este docstring envejece con cada porte sin que nadie
   toque el archivo.
 - **Los seis** ``_as_predicate`` y ``DomainCondition._optimize_field_search_method``
-  — siete símbolos. Su consumidor en la fuente es ``Model.filtered_domain``
-  (filtrar en memoria en vez de en SQL), que **no existe en este árbol**:
-  ``grep -rn "filtered_domain" src/ addons/`` da 0. Portarlos exigiría antes
-  ``Field.filter_function`` y ``Field.expression_getter``, también ausentes.
-  Sucesor: la tarea del tablero que porta los optimizadores del registro los
-  cubre junto al resto de la capa.
+  — siete símbolos. **Portados.** Este renglón decía que su consumidor
+  ``Model.filtered_domain`` *"no existe en este árbol"*, con su ``grep`` en 0,
+  y que portarlos exigiría antes ``Field.filter_function`` y
+  ``Field.expression_getter``, *"también ausentes"*. Las tres partes caducaron:
+  el porte de ``ir_default`` construyó ``filtered_domain`` —``orm/models.py``
+  lo declara como función de módulo y como método de ``AccessQuerySet``— y
+  ``orm/fields.py`` declara los otros dos. La prosa siguió describiendo el
+  árbol de antes hasta que ``check_stale_zero_claims.py`` volvió a correr el
+  comando (:ref:`h-api-992`).
 
 La adaptación de forma, declarada
 ==================================
@@ -329,9 +332,12 @@ class Domain:
         """Un dominio a medida — ≙ ``Domain.custom`` (``:289``).
 
         :param to_q: invocable ``(model) -> Q`` que implementa ``_to_q``.
-        :param predicate: invocable ``(record) -> bool``; se conserva el
-            parámetro para que la firma se lea contra la de la fuente, pero su
-            consumidor (``filtered_domain``) no existe aquí.
+        :param predicate: invocable ``(record) -> bool``. **Tiene consumidor**:
+            ``DomainCustom._as_predicate`` lo devuelve y ``filtered_domain``
+            llega hasta ahí. Sin él el dominio a medida no se puede evaluar en
+            memoria y ``_as_predicate`` lo dice levantando, en vez de inventar
+            un predicado. Esta línea decía *"su consumidor no existe aquí"*,
+            que el propio ``:794`` ya contradecía en el mismo archivo.
         """
         return DomainCustom(to_q, predicate)
 

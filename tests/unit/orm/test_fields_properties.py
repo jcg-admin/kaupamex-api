@@ -20,13 +20,14 @@ Cinco bloques, y el segundo es el que un porte silencioso perdería:
 """
 import pytest
 from django.apps import apps
+from django.db import models
 from django.db.models import Q
 
 from addons.fleet.models.fleet_vehicle import FleetVehicle
 from addons.fleet.models.fleet_vehicle_model import FleetVehicleModel
 from addons.fleet.models.fleet_vehicle_model_brand import (
     FleetVehicleModelBrand)
-from orm.domains import to_q
+from orm.domains import Domain, to_q
 from orm.fields_properties import (Properties, PropertiesDefinition, Property,
                                    check_property_field_value_name)
 
@@ -415,11 +416,165 @@ class TestSearchByProperty:
             _field().condition_to_q('vehicle_properties', 'in', ['x'])
 
 
-class TestBlockedSurface:
-    """Lo bloqueado lo dice, y nombra su mecanismo."""
+@pytest.mark.django_db
+class TestFilterFunction:
+    """El predicado en memoria — el porte que estuvo declinado sobre un cero.
 
-    def test_filter_function_names_its_blocker(self):
-        with pytest.raises(NotImplementedError) as excinfo:
-            _field().filter_function(None, 'vehicle_properties.c', '=', 'x')
-        assert 'filtered_domain' in str(excinfo.value)
-        assert '#373' in str(excinfo.value)
+    ``filter_function`` levantaba ``NotImplementedError`` con la razón
+    *"BLOQUEADO por ``filtered_domain``, medido: grep da 0"*. El mecanismo se
+    construyó al portar ``ir_default``, y la razón caducó sin que nadie
+    editara la prosa (:ref:`h-api-992`).
+
+    Los casos miden **conducta**, no la ausencia de la excepción: un
+    ``return lambda rec: True`` pasaría un caso que sólo afirmara «ya no
+    levanta» (sub-patrón D de ``metrica-decide-la-conclusion.md``). Cada uno
+    exige que el predicado **discrimine** entre dos filas.
+    """
+
+    @pytest.fixture
+    def scenario(self):
+        """Dos marcas, un contenedor con esquema, y tres filas que difieren."""
+        one = FleetVehicleModelBrand.objects.create(name='Marca uno')
+        other = FleetVehicleModelBrand.objects.create(name='Marca otra')
+        container = FleetVehicleModel.objects.create(
+            name='Con relacional', brand=one,
+            vehicle_properties_definition=[
+                {'name': 'marca', 'type': 'many2one', 'string': 'Marca',
+                 'comodel': 'fleet.FleetVehicleModelBrand'},
+                {'name': 'color', 'type': 'char', 'string': 'Color'}])
+        row_one = FleetVehicle.objects.create(
+            model=container,
+            vehicle_properties={'marca': one.pk, 'color': 'azul'})
+        row_other = FleetVehicle.objects.create(
+            model=container,
+            vehicle_properties={'marca': other.pk, 'color': 'rojo'})
+        empty = FleetVehicle.objects.create(model=container)
+        for row in (row_one, row_other, empty):
+            row.refresh_from_db()
+        return {'one': one, 'other': other, 'row_one': row_one,
+                'row_other': row_other, 'empty': empty}
+
+    def test_any_discriminates_between_two_rows(self, scenario):
+        """La rama que la fuente abre con ``operator == 'any'``."""
+        predicate = _field().filter_function(
+            FleetVehicle, 'vehicle_properties.marca', 'any',
+            [('name', '=', 'Marca uno')])
+        assert predicate(scenario['row_one'])
+        assert not predicate(scenario['row_other'])
+
+    def test_a_domain_value_takes_the_same_branch(self, scenario):
+        """``isinstance(value, Domain)`` entra sin que el operador lo diga."""
+        predicate = _field().filter_function(
+            FleetVehicle, 'vehicle_properties.marca', '=',
+            Domain('name', '=', 'Marca otra'))
+        assert predicate(scenario['row_other'])
+        assert not predicate(scenario['row_one'])
+
+    def test_the_matched_corecord_comes_back(self, scenario):
+        """No devuelve un booleano: devuelve los corregistros que casan."""
+        predicate = _field().filter_function(
+            FleetVehicle, 'vehicle_properties.marca', 'any',
+            [('name', '=', 'Marca uno')])
+        matched = predicate(scenario['row_one'])
+        assert [r.pk for r in matched] == [scenario['one'].pk]
+
+    def test_a_declared_property_without_value_matches_nothing(self, scenario):
+        """La fila sin valor: el contenedor la declara, así que hay corregistros.
+
+        Medido: ``expression_getter`` devuelve aquí un ``QuerySet`` **vacío**
+        —``model.objects.none()``, porque la definición SÍ se encuentra— y no
+        un ``False``. Este caso no ejerce la guarda de no-iterable; el que la
+        ejerce es el siguiente, y la distinción la destapó el control de
+        neutralización, no la lectura.
+        """
+        predicate = _field().filter_function(
+            FleetVehicle, 'vehicle_properties.marca', 'any',
+            [('name', '=', 'Marca uno')])
+        assert not predicate(scenario['empty'])
+
+    def test_an_undeclared_property_matches_nothing_instead_of_raising(
+            self, scenario):
+        """La guarda que la divergencia de forma hace necesaria, y su camino.
+
+        La fuente devuelve un recordset vacío, que sabe filtrarse solo. Aquí
+        ``expression_getter`` devuelve ``False`` cuando **el contenedor no
+        declara** la propiedad (``fields_properties.py:989`` — el ``for/else``
+        sale por ``return value or False``), y ``False`` no es iterable: sin
+        la guarda esto es un ``TypeError``, no un cero.
+
+        Es el caso que el control de neutralización exige — con
+        ``if not corecords`` anulado, éste y sólo éste cae.
+        """
+        predicate = _field().filter_function(
+            FleetVehicle, 'vehicle_properties.inexistente', 'any',
+            [('name', '=', 'Marca uno')])
+        assert not predicate(scenario['row_one'])
+
+    def test_a_plain_operator_delegates_to_the_base_field(self, scenario):
+        """La tercera rama: ``super().filter_function`` y su discriminación.
+
+        El operador es ``in`` y no ``=`` porque el predicado en memoria recibe
+        la condición **ya optimizada**: ``Domain`` normaliza la igualdad a
+        ``in`` antes de llegar aquí, y el caso base sólo conoce ``in``, la
+        familia ``like`` y las desigualdades (``orm/fields.py:848`` lo dice
+        levantando ``NotImplementedError`` para el resto).
+
+        Que delegue no basta —un ``super()`` que devolviera un predicado
+        constante también «delegaría»—, así que el caso exige que el
+        predicado separe las dos filas por el valor de la propiedad ``char``.
+        """
+        predicate = _field().filter_function(
+            FleetVehicle, 'vehicle_properties.color', 'in', ['azul'])
+        assert predicate(scenario['row_one'])
+        assert not predicate(scenario['row_other'])
+
+    def test_the_base_field_still_refuses_what_it_does_not_know(self):
+        """El control de que la delegación es real y no un atajo propio.
+
+        Si ``filter_function`` resolviera el caso plano por su cuenta, este
+        ``=`` no llegaría al caso base y no levantaría. Levanta: la tercera
+        rama entrega el trabajo, no lo simula.
+        """
+        with pytest.raises(NotImplementedError, match='Operador simple'):
+            _field().filter_function(
+                FleetVehicle, 'vehicle_properties.color', '=', 'azul')
+
+
+@pytest.mark.django_db
+class TestFilterFunctionMeasuredForm:
+    """Dos hechos de forma que el porte declara, medidos aquí.
+
+    Son control, no adorno: si alguno cambia, una de las tres adaptaciones de
+    forma del docstring de ``filter_function`` deja de ser cierta y hay que
+    reescribirla — que es exactamente el defecto que ``check_stale_zero_claims``
+    persigue, sólo que en la prosa de una firma en vez de en un conteo.
+    """
+
+    def test_a_relational_property_reads_as_a_queryset(self):
+        """La primera redacción del porte decía «una instancia»: es falso."""
+        brand = FleetVehicleModelBrand.objects.create(name='Medida')
+        container = FleetVehicleModel.objects.create(
+            name='Medida', brand=brand,
+            vehicle_properties_definition=[
+                {'name': 'marca', 'type': 'many2one',
+                 'comodel': 'fleet.FleetVehicleModelBrand'}])
+        row = FleetVehicle.objects.create(
+            model=container, vehicle_properties={'marca': brand.pk})
+        row.refresh_from_db()
+        value = _field().expression_getter('vehicle_properties.marca')(row)
+        assert isinstance(value, models.QuerySet)
+        assert not isinstance(value, models.Model)
+
+    def test_the_probe_of_an_empty_instance_is_not_a_queryset(self):
+        """Por qué la rama ``in`` de la fuente no se dispara en este árbol.
+
+        La fuente sondea el tipo con ``getter(records.browse())``; aquí el
+        equivalente es ``getter(records())`` —una instancia sin guardar— y
+        devuelve ``False``, porque sin contenedor no hay definición que
+        consultar. La rama se porta verbatim y **no se fuerza**: qué hace la
+        fuente con su recordset vacío es DESCONOCIDO (no se ejecuta Odoo).
+        """
+        probe = _field().expression_getter(
+            'vehicle_properties.marca')(FleetVehicle())
+        assert probe is False
+        assert not isinstance(probe, models.QuerySet)

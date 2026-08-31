@@ -1,0 +1,34 @@
+{
+  "question": "Properties.filter_function se puede portar entero —las tres ramas de odoo19c: odoo/orm/fields_properties.py:663-672— y su guarda discrimina de verdad, o pasa en verde sin ejercerse?",
+  "instrument": [
+    "probes/probe_shapes.py — resolucion del comodelo por nombre de la referencia y por nombre de clase Django",
+    "probes/probe_relational_value.py — tipo real que devuelve el getter de una propiedad many2one con valor",
+    "probes/probe_falsy_getter.py — las tres formas del valor: con valor, declarada sin valor, NO declarada por el contenedor",
+    "scripts/neutralize_and_measure.sh — anula la guarda y mide que casos caen",
+    "uv run pytest tests/unit/orm/test_fields_properties.py -q --reuse-db"
+  ],
+  "metric": "casos que caen al anular la guarda (deben ser exactamente los que dependen de ella), y el tipo verbatim que el getter devuelve en cada una de las tres formas",
+  "blind_to": [
+    "que hace la fuente con su records.browse() en la rama 'in' — no se ejecuta Odoo; el sondeo del tipo devuelve False aqui y la rama queda portada sin disparo medido",
+    "si el predicado es correcto para un dominio anidado sobre la propiedad relacional — los casos miden discriminacion entre dos filas, no la semantica completa de Domain",
+    "el orden de import: la divergencia de direccion frente a la fuente se verifico por arranque (import OK), no por un analisis de ciclo completo del paquete orm"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/hallazgo-H-API-992-el-predicado-en-memoria-se-declinaba-sobre-tres-ceros.rst",
+  "source": [
+    "odoo19c: odoo/orm/fields_properties.py:657-672 — la fuente del porte (odoo-tools, solo lectura)",
+    "src/orm/models.py:288,363 — filtered_domain, el ayudante que la declinacion daba por ausente",
+    "src/orm/fields.py:754,771 — expression_getter y filter_function del caso base"
+  ],
+  "reproducible": "bash scripts/neutralize_and_measure.sh (ver scripts/evidence/neutering-guard-getter-falsy-20260831T103224.txt)",
+  "corrected_premise": {
+    "afirmado_antes": "el valor de una propiedad many2one es aqui una instancia, no un recordset de uno",
+    "medido_ahora": "AccessQuerySet [<FleetVehicleModelBrand: Sonda>] — un QuerySet, porque Property.__getitem__ devuelve model.objects.filter(pk__in=...)",
+    "por_que_divergen": "la primera redaccion razono sobre la forma esperada del porte, no sobre la medida; la guarda isinstance(corecords, models.Model) que justificaba era codigo muerto",
+    "cambia_el_veredicto": true
+  },
+  "tasks": [
+    "#250",
+    "#260"
+  ],
+  "outputs": []
+}
