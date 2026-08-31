@@ -62,6 +62,8 @@ empresa, no una tabla intermedia.
 ``Many2one`` sí lo lleva, y es el tipo que más lo usa en la referencia: **35**
 de las 54 declaraciones de producto. Ver la rama en :func:`Many2one`.
 """
+from django.apps import apps
+from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 
 from orm.fields_company_dependent import CompanyDependent
@@ -70,7 +72,302 @@ from tools.sql import SQL
 
 __all__ = ['Many2one', 'One2many', 'Many2many', 'bypass_search_access']
 
-One2many = None                       # reverso de FK (related_name)
+class One2many:
+    """El conjunto de registros del comodelo cuyo inverso apunta a este — ≙ ``:843``.
+
+    La fuente lo define en una linea: *"the recordset of all the records in
+    ``comodel_name`` such that the field ``inverse_name`` is equal to the
+    current record"*. Django tiene ese conjunto —es el reverso de la FK, el
+    ``related_name`` del hijo— pero **no tiene donde declararlo en el padre**,
+    y ese es exactamente el hueco que esta clase cierra.
+
+    Hasta ``api@596cd2b`` este nombre valia ``None`` y estaba en el ``__all__``
+    publico: ``fields.One2many(...)`` daba ``TypeError: 'NoneType' object is
+    not callable``. La razon escrita —*"es el reverso de un FK en Django, sin
+    clase propia"*— describia el **mecanismo de lectura**, que es correcto, y
+    callaba el **sitio de declaracion**, que no lo es::
+
+        # la fuente, en el padre                    (odoo19c: res_partner.py)
+        child_ids = fields.One2many('res.partner.category', 'parent_id')
+
+        # Django, en el hijo                        (otro archivo, otra clase)
+        parent = models.ForeignKey(..., related_name='child_ids')
+
+    Al portar un modelo padre sus ``One2many`` desaparecian de su cuerpo. Es
+    el defecto de forma de :ref:`h-api-350` y del ``store=False``
+    (:ref:`h-api-361`): todos los simbolos presentes, la forma cambiada — y el
+    conteo, que es lo unico que el gate mide, no lo ve.
+
+    **No reimplementa la lectura: la reusa.** El valor sale del manager que
+    Django ya construyo, asi que ``.add()``, ``.create()`` y el resto del
+    protocolo del reverso siguen siendo los suyos. Lo que esta clase aporta es
+    el sitio de declaracion, ``copy=False`` y el rechazo por nombre.
+
+    Poblacion que lo consume: **730** declaraciones en ``odoo19c``, **37** solo
+    en ``base``. No hay que esperar al consumidor real — ya existe y esta
+    contado.
+
+    **No persiste.** Sigue el protocolo de ``contribute_to_class`` sin
+    registrarse en ``_meta``, igual que :class:`~orm.fields_nonstored.NonStored`:
+    la columna es la FK del hijo, que ya existe. Un ``One2many`` en ``_meta``
+    generaria migracion para una columna que nadie tiene.
+
+    Cobertura del porte — 13 simbolos en la fuente
+    ==============================================
+
+    ``porte-completo-no-parcial.md`` exige declarar **cuantos, cuales y por
+    que** cuando un porte no cierra todos los simbolos. Medido por AST contra
+    ``odoo19c: odoo/orm/fields_relational.py:843``:
+
+    ======================================= ===================================
+    Simbolo de la fuente                    Desenlace
+    ======================================= ===================================
+    ``__init__``                            **portado**, con los cuatro
+                                            parametros que su docstring
+                                            documenta
+    ``__get__``                             **portado** — reusa el manager del
+                                            reverso de Django
+    ``_additional_domain``                  **portado**; su rama polimorfica es
+                                            DESCONOCIDO con condicion de
+                                            cierre, tarea **#240**
+    ``get_comodel_domain``                  **portado** en su composicion; el
+                                            tipo de retorno esta bloqueado y
+                                            medido, tarea **#241**
+    ``_description_relation_field``         **portado** (aqui es ``property``,
+                                            alli ``property(attrgetter(...))``)
+    ``setup_nonrelated`` · ``update_db``    conducta **portada** en
+                                            ``_inverse_field``, con el mensaje
+                                            verbatim — pero **perezosa** donde
+                                            la fuente es eager. El eje eager es
+                                            la tarea **#242**
+    ``write_real`` · ``write_new``          su rama ``CLEAR``/``SET`` esta
+                                            **portada** en ``__set__``, con la
+                                            decision de ``ondelete``. Los otros
+                                            cinco comandos no pasan por el
+                                            campo: ``Command`` aqui es
+                                            ejecutivo (:ref:`h-api-589`, tarea
+                                            **#345**)
+    ``read``                                **divergencia de mecanismo** — la
+                                            fuente llena su cache por lote; aqui
+                                            la lectura es el manager del
+                                            reverso, y el lote lo da
+                                            ``prefetch_related``
+    ``setup_inverses``                      **DESCONOCIDO** — su consumidor es
+                                            la invalidacion de cache, y este
+                                            arbol no tiene cache de campos
+                                            (medido: 0 hits de ``inverses`` en
+                                            ``src/orm/``). Tarea **#244**
+    ``_condition_to_sql_relational``        **trabajo**, no divergencia: el lado
+    ``_get_query_for_condition_value``      SQL del campo. Tarea **#243**
+    ``_internal_description_domain_raw``    **trabajo**, detras de #241 porque
+                                            necesita el tipo ``Domain``
+    ======================================= ===================================
+
+    Siete simbolos son propios y no tienen contraparte por nombre:
+    ``__set_name__`` y ``contribute_to_class`` son el protocolo de nombre de
+    Django; ``_inverse_field``, ``_deletes_the_leftover`` y ``__set__`` son el
+    cuerpo de lo que la fuente resuelve dentro de ``setup_nonrelated`` y
+    ``write_real``; ``__repr__`` es el que la fuente hereda de ``Field``.
+    """
+
+    #: ≙ ``type = 'one2many'`` (``odoo19c: :866``).
+    type = 'one2many'
+
+    def __init__(self, comodel_name=None, inverse_name=None, *, copy=False,
+                 string=None, domain=None, context=None,
+                 bypass_search_access=False, **_ignored):
+        self.comodel_name = comodel_name
+        self.inverse_name = inverse_name
+        #: Los tres que la fuente documenta en su docstring (``:852-860``) y
+        #: que este porte tragaba en ``**_ignored``. Un parametro tragado es
+        #: peor que uno ausente: la llamada se escribe igual que la de la
+        #: fuente, pasa sin error, y no hace nada.
+        self.domain = domain
+        self.context = context or {}
+        #: *"whether access rights are bypassed on the comodel (default:
+        #: ``False``)"* — ``:859-860``. El default abierto seria un hueco de
+        #: permiso; lo consume ``domains._optimize_any_with_rights``.
+        self.bypass_search_access = bool(bypass_search_access)
+        #: ≙ ``copy: bool = False`` con su comentario verbatim: *"o2m are not
+        #: copied by default"* (``:867``). Lo mira ``BaseModel.copy`` para
+        #: decidir si arrastra los hijos; el default contrario duplicaria un
+        #: arbol entero al copiar su raiz.
+        self.copy = bool(copy)
+        self.string = string
+        self.name = None
+
+    @property
+    def _description_relation_field(self):
+        """La columna del hijo por la que cuelga el conjunto — ≙ ``:901``::
+
+            _description_relation_field = property(attrgetter('inverse_name'))
+
+        Es lo que el cliente lee en la descripcion del campo para saber por
+        donde esta enlazado.
+        """
+        return self.inverse_name
+
+    def _additional_domain(self, env=None):
+        """El predicado extra del inverso polimorfico — ≙ ``:913-919``.
+
+        La fuente devuelve ``Domain(inverse_field.model_field, '=',
+        self.model_name)`` cuando el inverso es un ``many2one_reference``: un
+        FK polimorfico guarda modelo e id en dos columnas, y sin acotar el
+        modelo el conjunto traeria las filas de todos los demas.
+
+        **DESCONOCIDO declarado, con su condicion de cierre.** Aqui
+        ``Many2oneReference`` es el ``GenericForeignKey`` de ``contenttypes``
+        (``orm/fields_reference.py:14``), que **no** expone ``model_field``: su
+        par de columnas se llama ``ct_field``/``fk_field`` y ningun addon
+        portado declara todavia un inverso polimorfico. La rama se cierra
+        cuando exista el primero que medir — tarea **#240**. Hasta entonces
+        devuelve el predicado vacio, que es lo que la fuente devuelve para los
+        otros dos tipos de inverso (``Domain.TRUE``).
+        """
+        return []
+
+    def get_comodel_domain(self, model=None):
+        """El dominio declarado, mas el del inverso — ≙ ``:918-919``.
+
+        La fuente compone ``super().get_comodel_domain(model) &
+        self._additional_domain(model.env)`` y devuelve un ``Domain``.
+
+        **El tipo de retorno esta BLOQUEADO, y el bloqueo esta medido dos
+        veces.** ``from orm.domains import Domain`` en la cabecera de este
+        archivo no arranca, por dos causas independientes que se apilan:
+
+        1. **Ciclo.** ``orm/domains.py:102`` importa ``orm.fields``, y
+           ``orm/fields.py:77`` importa este archivo de vuelta. Medido en las
+           dos direcciones, que es lo que ``no-lazy-imports.md`` excepcion #3
+           exige antes de aceptar nada que no sea un refactor::
+
+               ImportError: cannot import name 'Many2many' from partially
+               initialized module 'orm.fields_relational'
+
+        2. **Registro de apps.** Aun rompiendo el ciclo por orden, ``fields.py``
+           arrastra ``fields_reference`` -> ``contenttypes`` -> ``ContentType``,
+           y este archivo se carga desde ``inherits.py`` **durante**
+           ``apps.populate``::
+
+               django.core.exceptions.AppRegistryNotReady: Apps aren't loaded yet.
+
+        La referencia no tiene ninguno de los dos: su ``odoo/orm/domains.py``
+        importa ``.identifiers`` y ``.utils``, y **no** el modulo de campos
+        (medido sobre sus 19 imports). La arista de vuelta la pone nuestro
+        ``orm/fields.py`` al cargar el papel de fachada que la referencia
+        declara en ``odoo/fields.py``.
+
+        **No se resuelve aqui, y no por conveniencia:** retirar
+        ``orm/fields.py:77`` tiene dos consumidores medidos —``__all__``, del
+        que ``ir_model.FIELD_TYPES`` se deriva (``ir_model.py:213,239``), y
+        ``tests/unit/orm/test_fields_facade.py:61``, que ejercita
+        ``from orm.fields import *``— asi que cambia el vocabulario de
+        ``IrModelFields.ttype``. Separar definidor de fachada es el alcance
+        declarado de la tarea **#211**; el cambio de tipo de retorno de este
+        metodo es la tarea **#241**, que la sucede.
+
+        Lo que SI esta portado es la **composicion**, que es el contenido del
+        metodo: el dominio declarado en el campo mas el del inverso.
+        """
+        declarado = list(self.domain) if self.domain else []
+        return declarado + list(self._additional_domain())
+
+    # -- protocolo de nombre ------------------------------------------------
+
+    def __set_name__(self, owner, name):
+        """Camino del cuerpo de clase en una clase que NO es modelo Django."""
+        self.name = name
+
+    def contribute_to_class(self, cls, name, **_kwargs):
+        """Camino de ``ModelBase`` y de ``add_to_class`` — sin tocar ``_meta``."""
+        self.name = name
+        self.model_name = cls._meta.label
+        setattr(cls, name, self)
+
+    # -- protocolo de descriptor -------------------------------------------
+
+    def _inverse_field(self):
+        """El ``Many2one`` del comodelo que este campo invierte.
+
+        Rechaza el inverso inexistente **por nombre**, con el mensaje de
+        ``setup_nonrelated`` (``odoo19c: :889``)::
+
+            raise ValueError(f"{self.inverse_name!r} declared in {self!r} "
+                             f"does not exist on {comodel._name!r}.")
+
+        Un ``FieldDoesNotExist`` pelado de Django no dice cual de los dos
+        nombres esta mal: si el del comodelo o el del inverso.
+        """
+        comodel = apps.get_model(self.comodel_name)
+        try:
+            return comodel, comodel._meta.get_field(self.inverse_name)
+        except FieldDoesNotExist:
+            raise ValueError(
+                f'{self.inverse_name!r} declared in {self!r} does not exist '
+                f'on {self.comodel_name!r}.') from None
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        comodel, inverse = self._inverse_field()
+        accessor = inverse.remote_field.get_accessor_name()
+        if accessor is not None and hasattr(instance, accessor):
+            # El manager del reverso: trae ademas la escritura (``add``,
+            # ``create`` con el padre ya puesto), que un ``filter`` no da.
+            return getattr(instance, accessor)
+        # El inverso apunta a otro modelo, o su reverso esta suprimido con
+        # ``related_name='+'``. Queda la definicion literal de la fuente.
+        return comodel._default_manager.filter(**{self.inverse_name: instance})
+
+    def _deletes_the_leftover(self, inverse):
+        """Que hacer con el hijo que se queda fuera — ≙ ``write_real:975-979``.
+
+        La fuente lo decide por el ``ondelete`` del inverso, no por la
+        nulabilidad de la columna::
+
+            if getattr(comodel._fields[inverse], 'ondelete', False) == 'cascade':
+                to_delete.extend(lines._ids)
+            else:
+                lines[inverse] = False
+
+        Django decide por otra cosa: su ``RelatedManager.set()`` existe **si la
+        FK admite nulo**, y entonces anula. Sobre una FK ``null=True`` con
+        ``on_delete=CASCADE`` las dos politicas discrepan, y el porte impone la
+        de la fuente.
+        """
+        return getattr(inverse.remote_field, 'on_delete', None) is models.CASCADE
+
+    def __set__(self, instance, value):
+        """Asignar el conjunto — ≙ el tramo ``CLEAR``/``SET`` de ``write_real``.
+
+        La fuente los trata juntos (``command[0] in (Command.CLEAR,
+        Command.SET)``, ``:1027``): el conjunto queda **exactamente** en las
+        lineas dadas, y las que sobran pasan por ``unlink``. ``CLEAR`` es el
+        mismo camino con la lista vacia.
+
+        Los otros cinco comandos —``CREATE``, ``UPDATE``, ``DELETE``,
+        ``UNLINK``, ``LINK``— no pasan por aqui: en este arbol ``Command`` es
+        **ejecutivo** (escribe al llamarlo) en vez de ser un valor diferido que
+        el ORM interpreta. Esa divergencia es de la clase entera y esta
+        registrada en :ref:`h-api-589` (tarea **#345**), no de este metodo.
+        """
+        comodel, inverse = self._inverse_field()
+        nuevos = list(value or ())
+        vivos = [obj.pk for obj in nuevos if obj.pk is not None]
+        sobrantes = (comodel._default_manager
+                     .filter(**{self.inverse_name: instance})
+                     .exclude(pk__in=vivos))
+        if self._deletes_the_leftover(inverse):
+            sobrantes.delete()
+        else:
+            sobrantes.update(**{inverse.attname: None})
+        for obj in nuevos:
+            setattr(obj, self.inverse_name, instance)
+            obj.save(update_fields=[inverse.attname])
+
+    def __repr__(self):
+        return (f'One2many({self.comodel_name!r}, {self.inverse_name!r})')
+
 
 
 #: El permiso del comodelo no se aplica al atravesar este campo — ≙
@@ -262,3 +559,4 @@ def _many2one_join(self, model, alias, query):
 
 
 models.ForeignKey.join = _many2one_join
+
