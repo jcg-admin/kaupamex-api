@@ -19,6 +19,9 @@ from decimal import Decimal
 import pytest
 from django.core.exceptions import ValidationError
 
+from addons.crm.models.crm_lead import CrmLead
+from addons.product.models.product_supplierinfo import ProductSupplierinfo
+from addons.stock.models.stock_quant import StockQuant
 from addons.product.models import (
     ProductAttribute,
     ProductAttributeValue,
@@ -302,3 +305,35 @@ class TestProductProduct:
             name='Menú', type=TYPE_COMBO)
         variante = ProductProduct.objects.create(product_tmpl=tmpl)
         variante.clean()  # no debe levantar
+
+
+class TestGetImportTemplates:
+    """El lado proveedor del contrato de ``base_import`` en ``product``.
+
+    Hasta ``api@<este pase>`` el metodo se declinaba con una razon medida
+    sobre ``src/`` — una raiz que no puede contener el simbolo, porque los
+    addons viven en ``addons/``. Estos casos fijan la forma que la
+    referencia declara (``odoo19c: addons/product/models/product_supplierinfo.py:95-99``)
+    para que un cambio de etiqueta o de ruta salga en rojo y no en prosa.
+    """
+
+    def test_returns_one_template_entry(self):
+        assert len(ProductSupplierinfo.get_import_templates()) == 1
+
+    def test_the_entry_carries_the_reference_label_and_path(self):
+        entrada = ProductSupplierinfo.get_import_templates()[0]
+        assert entrada['label'] == 'Import Template for Vendor Pricelists'
+        assert entrada['template'] == '/product/static/xls/product_supplierinfo.xls'
+
+    def test_the_shape_matches_the_two_sibling_providers(self):
+        """Las tres implementaciones del arbol declaran las MISMAS claves.
+
+        Es lo que hace del simbolo un contrato y no tres metodos con el
+        mismo nombre: ``base_import`` lee ``label`` y ``template`` sin
+        saber de que modelo vienen.
+        """
+        claves = {
+            frozenset(proveedor.get_import_templates()[0])
+            for proveedor in (ProductSupplierinfo, CrmLead, StockQuant)
+        }
+        assert claves == {frozenset({'label', 'template'})}

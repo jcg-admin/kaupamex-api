@@ -2,7 +2,6 @@
 # heredada. Uno listado no bloquea; uno nuevo sí. Se paga al tocar
 # el archivo — el triaje es la tarea #250.
 # Clave: <archivo>::<comando citado>
-addons/product/models/product_supplierinfo.py::grep -rn "get_import_templates" src/
 addons/purchase_requisition/models/purchase.py::grep -rn "currency_rate" addons/ src/ --include=*.py
 addons/purchase_requisition/models/purchase_requisition.py::grep -rn "def _select_seller" addons/ src/
 addons/purchase_stock/models/purchase_order_line.py::grep -rn "to_refund" addons/ src/ --include=*.py

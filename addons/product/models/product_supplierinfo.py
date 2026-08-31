@@ -82,9 +82,6 @@ Qué NO se porta, con su medición
   para presembrar la variante al abrir el formulario desde un producto. Es
   plomería del cliente web; el equivalente aquí es el ``initial`` del
   serializer.
-- **``get_import_templates``**: devuelve la ruta de un ``.xls`` de ejemplo
-  para el importador de Odoo. No hay importador XLS en este árbol
-  (``grep -rn "get_import_templates" src/`` → **0** antes de este archivo).
 - **``check_company=True``** como declaración: aquí es una comprobación
   explícita en ``clean()``. El atributo del campo no existe en Django, pero
   la invariante que expresa —proveedor, producto y tarifa de la **misma**
@@ -107,6 +104,7 @@ from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_product import ProductProduct
 from addons.product.models.product_template import ProductTemplate
 from addons.uom.models.uom_uom import Uom
+from tools.translate import _
 
 #: Divisor del porcentaje de descuento. Constante nombrada porque el ``/ 100``
 #: suelto de la fuente es lo que delata si alguien guarda ``0.15`` en vez de
@@ -320,3 +318,31 @@ class ProductSupplierinfo(TimeStampedModel):
             and getattr(seller.partner, 'active', True)
             and (not seller.product_id or seller.product_id == product_id)
         ]
+
+    @classmethod
+    def get_import_templates(cls):
+        """≙ ``get_import_templates`` (``odoo19c: :95-99``).
+
+        Es el **lado proveedor** de un contrato de ``base_import``: el
+        asistente pregunta a cada modelo por su plantilla de ejemplo y
+        ofrece la descarga. Devuelve metadata —etiqueta y ruta—, no el
+        archivo, asi que se porta verbatim aunque el estatico y el
+        consumidor no esten todavia.
+
+        **Se porta, y hasta este pase se declinaba.** La razon vieja era
+        que "no hay importador XLS en este arbol", medida con
+        ``grep -rn "get_import_templates" src/``. Ese comando acota a
+        ``src/`` y el simbolo vive en ``addons/``: medido sobre las dos
+        raices, ``addons/crm/models/crm_lead.py:2337`` y
+        ``addons/stock/models/stock_quant.py:852`` ya lo declaran. Y "el
+        estatico no existe" no discrimina — los tres ``.xls``/``.xlsx``
+        estan ausentes, incluidos los dos que esos dos sitios devuelven.
+
+        Los otros cuatro sitios que aun declinan quedan en la tarea
+        **#264** (un veredicto unico); el consumidor —``base_import``, hoy
+        un esqueleto con solo ``date_patterns.py``— en la **#265**.
+        """
+        return [{
+            'label': _('Import Template for Vendor Pricelists'),
+            'template': '/product/static/xls/product_supplierinfo.xls',
+        }]
