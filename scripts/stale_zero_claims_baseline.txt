@@ -19,7 +19,6 @@ src/addons/base/models/ir_autovacuum.py::grep -rl orm_signaling src/ | grep -v i
 src/addons/base/models/ir_field_converters.py::grep -rn "barcode" pyproject.toml
 src/addons/base/models/ir_field_converters.py::grep -n "barcode" pyproject.toml
 src/addons/base/models/ir_http.py::grep -rn "def slugify\\|from django.utils.text import" src/
-src/addons/base/models/ir_mail_server.py::grep -rn "def email_normalize" src/
 src/addons/base/models/ir_model.py::grep -rn "^class IrModel\\b" src/
 src/addons/base/models/report_paperformat.py::grep -rn "^class IrActionsReport" src/
 src/addons/base/models/res_company.py::grep -rn "zeep" src/ | grep -v res_company.py

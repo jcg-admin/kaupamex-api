@@ -34,13 +34,19 @@ Qué haría fallar a cada control
 """
 import pytest
 
-from tools.mail import email_normalize, email_normalize_all, formataddr
+from tools.mail import (
+    email_domain_extract,
+    email_domain_normalize,
+    email_normalize,
+    email_normalize_all,
+    formataddr,
+)
 
 pytestmark = pytest.mark.unit
 
 
 class TestNormalize:
-    """≙ ``email_normalize`` — una dirección, o cadena vacía."""
+    """≙ ``email_normalize`` — una dirección, o ``False``."""
 
     def test_it_extracts_the_address_from_a_formatted_one(self):
         assert email_normalize('Ana Ruiz <ana@kaupamex.mx>') == 'ana@kaupamex.mx'
@@ -119,3 +125,54 @@ class TestFormatAddr:
         """CONTROL — una comilla sin escapar rompe la cabecera entera."""
         assert formataddr(('Ana "La Jefa"', 'ana@kaupamex.mx')) == (
             r'"Ana \"La Jefa\"" <ana@kaupamex.mx>')
+
+
+class TestDomainExtract:
+    """≙ ``email_domain_extract`` — el dominio de un correo, o ``False``."""
+
+    def test_it_returns_the_domain_of_a_bare_address(self):
+        assert email_domain_extract('info@proximus.be') == 'proximus.be'
+
+    def test_it_normalizes_before_extracting(self):
+        """El eje: la fuente llama a ``email_normalize`` dentro.
+
+        Lo haría fallar un ``split('@')[1]`` pelado — devolvería
+        ``'KAUPAMEX.MX>'`` con el formato ``Nombre <buzon>`` y la mayúscula.
+        """
+        assert email_domain_extract('Ana Ruiz <ana@KAUPAMEX.MX>') == (
+            'kaupamex.mx')
+
+    def test_an_invalid_address_gives_false(self):
+        assert email_domain_extract('no soy un correo') is False
+
+    def test_a_falsy_input_gives_false(self):
+        """CONTROL — el valor que devuelve ``email_normalize`` al fallar
+        entra aquí tal cual en ``_match_from_filter``."""
+        assert email_domain_extract(False) is False
+        assert email_domain_extract(None) is False
+
+    def test_two_addresses_give_false(self):
+        """CONTROL de la herencia del modo estricto: si ``email_normalize``
+        rehúsa con dos direcciones, esto rehúsa también."""
+        assert email_domain_extract('a@kaupamex.mx, b@kaupamex.mx') is False
+
+
+class TestDomainNormalize:
+    """≙ ``email_domain_normalize`` — un dominio en minúsculas, o ``False``."""
+
+    def test_it_lowercases_the_domain(self):
+        assert email_domain_normalize('KAUPAMEX.MX') == 'kaupamex.mx'
+
+    def test_an_address_is_not_a_domain(self):
+        """El eje: con ``@`` **no** es un dominio, y devolver algo lo
+        colaría en la rama de dominio de ``_match_from_filter``."""
+        assert email_domain_normalize('ana@kaupamex.mx') is False
+
+    def test_an_empty_domain_gives_false(self):
+        assert email_domain_normalize('') is False
+        assert email_domain_normalize(None) is False
+
+    def test_it_does_not_strip(self):
+        """CONTROL — la fuente **no** llama a ``strip``; sólo baja a
+        minúsculas. Afirmar lo contrario describe otra función."""
+        assert email_domain_normalize(' kaupamex.mx ') == ' kaupamex.mx '

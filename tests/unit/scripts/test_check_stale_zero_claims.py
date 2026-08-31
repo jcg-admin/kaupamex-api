@@ -217,6 +217,25 @@ class TestTheGateRefusesRatherThanPublishAFalseGreen:
         assert done.returncode == 0, done.stdout
         assert 'en baseline:' in done.stdout, done.stdout
 
+    def test_an_explicit_file_list_without_claims_is_not_a_refusal(self):
+        """El rehúse es del barrido del árbol, no de una lista de archivos.
+
+        El ``pre-commit`` invoca el gate con los ``.py`` en *staging*, y un
+        commit que no toca prosa de porte da 0 citas legítimamente. Sin la
+        distinción, el gate bloqueó su propio commit —medido: el commit de
+        este cambio— y bloquearía todos los demás.
+        """
+        done = self._run('--strict', 'src/tools/mail.py')
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert 'verde falso' not in done.stderr, done.stderr
+        assert '0 cita(s) con comando' in done.stdout, done.stdout
+
+    def test_an_explicit_file_list_still_reads_its_claims(self):
+        """CONTROL del par: sin él, «no rehúsa» y «no mide» dan lo mismo."""
+        done = self._run('--strict', 'src/addons/base/models/res_groups.py')
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert '1 cita(s) con comando' in done.stdout, done.stdout
+
     @staticmethod
     def _run(*flags, baseline=None):
         env = dict(os.environ)

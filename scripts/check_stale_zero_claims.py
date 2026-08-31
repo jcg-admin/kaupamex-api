@@ -326,7 +326,11 @@ def main():
     args = parser.parse_args()
 
     claims, skipped, stale, unrunnable = survey(args.files)
-    if claims == 0:
+    # El rehúse sólo aplica al barrido del árbol. Con una lista de archivos
+    # explícita —que es como lo invoca el `pre-commit`— un cero es un
+    # resultado legítimo: esos archivos no citan ningún cero. Rehusar ahí
+    # bloquea todo commit que no toque prosa de porte, y eso no mide nada.
+    if claims == 0 and not args.files:
         print('ERROR — 0 reclamos de cero encontrados. El recorrido no puede '
               'estar midiendo el árbol: publicar "0 caducados" aquí sería un '
               'verde falso. Revisar el patrón antes de confiar en la cifra.',

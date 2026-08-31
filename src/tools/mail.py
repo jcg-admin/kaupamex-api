@@ -289,6 +289,42 @@ def email_normalize_all(text):
     return list(filter(None, [_normalize_email(addr) for addr in emails]))
 
 
+def email_domain_extract(email):
+    """≙ ``email_domain_extract`` (``odoo19c: odoo/tools/mail.py:923-931``).
+
+    Docstring de la fuente, verbatim: *"Extract the company domain to be used
+    by IAP services notably. Domain is extracted from email information e.g:
+    - info@proximus.be -> proximus.be"*.
+
+    **Normaliza antes de partir**, y por eso admite el formato
+    ``Nombre <buzon@dominio>`` y baja la mayúscula. Devuelve ``False`` —no
+    cadena vacía— cuando no hay dirección que leer: es el mismo valor falso
+    que devuelve ``email_normalize``, y sus llamadores comparan un resultado
+    contra otro.
+    """
+    normalized_email = email_normalize(email)
+    if normalized_email:
+        return normalized_email.split('@')[1]
+    return False
+
+
+def email_domain_normalize(domain):
+    """≙ ``email_domain_normalize`` (``odoo19c: odoo/tools/mail.py:934-939``).
+
+    Docstring de la fuente, verbatim: *"Return the domain normalized or False
+    if the domain is invalid."*
+
+    Un texto con ``@`` **no** es un dominio: devolver algo lo colaría en la
+    rama de dominio de ``ir.mail_server._match_from_filter``, que es la única
+    que llama a esta función. La fuente **no** recorta espacios; sólo baja a
+    minúsculas.
+    """
+    if not domain or '@' in domain:
+        return False
+
+    return domain.lower()
+
+
 def parse_contact_from_email(text):
     """≙ ``parse_contact_from_email`` (``odoo19c: odoo/tools/mail.py:1031-1056``).
 
