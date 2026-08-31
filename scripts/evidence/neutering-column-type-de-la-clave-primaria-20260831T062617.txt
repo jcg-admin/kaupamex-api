@@ -1,0 +1,12 @@
+# Control discriminante — column-type-de-la-clave-primaria
+# fecha:    2026-08-31T06:26:17
+# archivo:  src/orm/fields.py
+# anulado:  s/^        '_column_type': None,$//
+# tests:    tests/unit/orm/test_field_class_attributes.py
+
+## 1. Verde de partida (guarda presente)
+15 passed, 1 warning in 5.38s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_field_class_attributes.py::TestTheColumnTypeOfTheTwoTreeDivergences::test_the_primary_key_does_not_inherit_the_integer_column
+1 failed, 14 passed, 1 warning in 5.61s

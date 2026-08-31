@@ -268,6 +268,13 @@ _CLASS_ATTRIBUTE_OVERRIDES = {
         'readonly': True,
         'prefetch': False,
         'column_type': ('int4', 'int4'),
+        #: ``Field._column_type = None`` (``odoo19c: odoo/orm/fields.py:259``)
+        #: y ``Id`` cuelga de ``Field``: la clave primaria NO hereda el
+        #: ``('int4','int4')`` de ``Integer``. Aquí sí lo heredaría —
+        #: ``AutoField(IntegerField)``—, que es la misma divergencia de árbol
+        #: de :ref:`h-api-970`. Quien publica el tipo de la columna de la
+        #: clave es ``column_type``, la línea de arriba.
+        '_column_type': None,
     },
     'Boolean': {                                   # ``fields_misc.py:24-25``
         'falsy_value': False,
@@ -328,6 +335,12 @@ _CLASS_ATTRIBUTE_OVERRIDES = {
     'Many2oneReference': {
         'falsy_value': 0,
         'aggregator': None,
+        #: ``Many2oneReference(Integer)`` guarda el id crudo del registro
+        #: apuntado, así que hereda la columna del entero. Aquí
+        #: ``GenericForeignKey`` no desciende de ``IntegerField``, y sin
+        #: declararlo respondía ``None``: la columna que la fuente declara
+        #: desaparecía.
+        '_column_type': ('int4', 'int4'),
     },
 }
 

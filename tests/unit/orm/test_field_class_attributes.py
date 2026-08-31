@@ -16,6 +16,7 @@ Los lectores no son hipotéticos —se midieron antes de tocar nada—: viven en
 ``src/orm/fields.py`` y son ``is_editable``, ``_description_string``,
 ``_description_aggregator`` y la ``property`` ``column_type``.
 """
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 
 from orm.fields import type_for
@@ -133,3 +134,37 @@ class TestTheReadersThatConsumeThem:
         assert type_for(models.CharField(max_length=8)) == 'char'
         assert type_for(models.CharField(max_length=8,
                                          choices=[('a', 'A')])) == 'selection'
+
+class TestTheColumnTypeOfTheTwoTreeDivergences:
+    """``_column_type`` donde el árbol de Django no es el de la fuente.
+
+    Los dos casos los hizo visibles la tarea #248: hasta entonces
+    ``_column_type`` estaba excluido del gate **entero**, por dos clases que la
+    fuente resuelve con ``property``. Al excluir por par en vez de por
+    atributo, once contrapartes pasaron a medirse y dos mentían.
+    """
+
+    def test_the_primary_key_does_not_inherit_the_integer_column(self):
+        """``Field._column_type = None`` (``odoo19c: :259``) y la fuente
+        declara ``class Id(Field)``.
+
+        Aquí las tres claves automáticas descienden de ``IntegerField``, que sí
+        recibe el ``('int4','int4')`` de ``Integer``. Es la misma divergencia de
+        árbol de :ref:`h-api-970`, y sin declararlo la clave primaria respondía
+        un ``_column_type`` que su contraparte no tiene.
+        """
+        for field_class in (models.AutoField, models.BigAutoField,
+                            models.SmallAutoField):
+            assert field_class._column_type is None, field_class.__name__
+        #: Lo que sí publica el tipo de la columna de la clave — ``:781-783``
+        #: lo lee a través de ``column_type``, no de ``_column_type``.
+        assert models.AutoField.column_type == ('int4', 'int4')
+
+    def test_the_generic_reference_keeps_the_integer_column(self):
+        """``Many2oneReference(Integer)`` guarda el id crudo del apuntado.
+
+        ``GenericForeignKey`` no desciende de ``IntegerField``, así que sin
+        declararlo respondía ``None``: la columna que la fuente declara
+        desaparecía del contrato.
+        """
+        assert GenericForeignKey._column_type == ('int4', 'int4')

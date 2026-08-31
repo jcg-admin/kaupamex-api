@@ -51,6 +51,7 @@ Corre con el intérprete del proyecto, no con ``python3``: mide **en vivo** con
 """
 import argparse
 import ast
+import inspect
 import os
 import pathlib
 import subprocess
@@ -85,9 +86,9 @@ def reference_root():
 def declared_in_reference(root):
     """``({atributo: valor_de_Field}, {atributo: {clase: valor}}, {atributo})``.
 
-    El tercer elemento son los atributos que la fuente declara en alguna clase
-    como ``property`` o ``cached_property``. **No se pueden comparar por AST**:
-    su valor depende de la instancia, no de la clase.
+    El tercer elemento son los PARES ``(atributo, clase)`` que la fuente
+    declara como ``property`` o ``cached_property``. **No se pueden comparar
+    por AST**: su valor depende de la instancia, no de la clase.
 
     Era la tercera ceguera del gate y la destapo el porte de #245. Sin este
     conjunto, corregir ``FloatField._column_type`` a ``('float8','float8')``
@@ -95,6 +96,13 @@ def declared_in_reference(root):
     convertia el arreglo en un incumplidor nuevo: el AST no ve la property, asi
     que comparaba contra el defecto ``None`` de ``Field``. Un gate que marca
     como defecto el valor correcto es peor que no tenerlo.
+
+    **Por PAR y no por atributo — tarea #248.** La primera version guardaba
+    solo el nombre del atributo, y con eso la exclusion se comia TAMBIEN las
+    clases donde la fuente lo declara literal. Medido: ``_column_type`` se
+    declara como ``property`` en **2** clases (``Char`` y ``Float``) y como
+    literal o llamada en **13**; excluirlo entero dejaba invisibles las once
+    contrapartes alcanzables que si son decidibles.
     """
     base, overrides, computed, parents = {}, {}, set(), {}
     for path in sorted((root / 'odoo' / 'orm').glob(REFERENCE_FILES)):
@@ -131,7 +139,7 @@ def declared_in_reference(root):
                 decorators = {ast.unparse(d) for d in statement.decorator_list}
                 if decorators & {'property', 'cached_property',
                                  'functools.cached_property'}:
-                    computed.add(statement.name)
+                    computed.add((statement.name, node.name))
 
     return base, overrides, computed, parents
 
@@ -171,6 +179,52 @@ class _Missing:
 _MISSING = _Missing()
 
 
+#: Las funciones de la fuente que un literal de atributo de clase puede
+#: llamar, resueltas contra NUESTRO puerto. Hoy es una: ``pg_varchar``, que
+#: ``Selection`` y ``Reference`` usan para declarar su columna. La tabla es
+#: explicita a proposito — un ``eval`` con el modulo entero abriria el gate a
+#: ejecutar cualquier cosa que la fuente escriba en un atributo de clase.
+_RESOLVABLE_CALLS = ('pg_varchar',)
+
+
+def resolve_call(literal):
+    """El valor de un literal que contiene una llamada portada, o el centinela.
+
+    ``('varchar', pg_varchar())`` **si** es decidible: la funcion existe en
+    ``src/tools/sql.py`` y no depende de la instancia. Compararla por ``repr``
+    —lo que hacia la primera version— fallaba siempre, porque la respuesta viva
+    es ``('varchar', 'VARCHAR')`` y el literal dice ``pg_varchar()``.
+
+    Es la mitad de la tarea #248 que separa los dos motivos de exclusion: la
+    ``property`` no se puede decidir; la llamada si.
+    """
+    try:
+        tree = ast.parse(literal, mode='eval')
+    except SyntaxError:
+        return _MISSING
+    called = {node.func.id for node in ast.walk(tree)
+              if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)}
+    if not called or not called <= set(_RESOLVABLE_CALLS):
+        return _MISSING
+    entorno = {}
+    for name in called:
+        function = getattr(_ported_tools(), name, None)
+        if function is None:
+            return _MISSING
+        entorno[name] = function
+    try:
+        return eval(compile(tree, '<referencia>', 'eval'), {'__builtins__': {}},
+                    entorno)
+    except Exception:
+        return _MISSING
+
+
+def _ported_tools():
+    """El modulo donde viven nuestras contrapartes de ``odoo/tools/sql.py``."""
+    import tools.sql
+    return tools.sql
+
+
 def agrees(answered, literal):
     """Si la respuesta viva casa con el literal que la fuente declara.
 
@@ -196,8 +250,11 @@ def agrees(answered, literal):
     try:
         expected = ast.literal_eval(literal)
     except (ValueError, SyntaxError, TypeError):
-        # Un literal que no es constante — ``('varchar', pg_varchar())``,
-        # ``attrgetter(...)``— se compara por su forma escrita.
+        resolved = resolve_call(literal)
+        if resolved is not _MISSING:
+            return answered == resolved
+        # Lo que no es constante NI llamada resoluble — ``attrgetter(...)`` —
+        # se compara por su forma escrita, que es lo unico que queda.
         return (repr(answered).replace(' ', '').replace('"', "'")
                 == literal.replace(' ', '').replace('"', "'"))
     if (answered is None) != (expected is None):
@@ -210,8 +267,19 @@ def agrees(answered, literal):
         return False
 
 
-def answered_here_by_name(django_name, attribute):
-    """La respuesta viva, buscada por nombre de clase — sólo para el informe."""
+def answered_here_by_name(django_name, attribute, known=None):
+    """La respuesta viva, buscada por nombre de clase — sólo para el informe.
+
+    **``known`` primero, y no es un adorno.** Buscar por nombre en dos módulos
+    deja fuera toda clase que viva en otro sitio: ``GenericForeignKey`` está en
+    ``django.contrib.contenttypes.fields``, así que el informe publicaba
+    ``<ausente>`` donde la medición había leído ``None``. Un informe que
+    contradice a su propia medición manda a corregir el valor equivocado —
+    quinta ceguera del gate, destapada al hacerse visible ``_column_type``
+    con la tarea #248.
+    """
+    if known and django_name in known:
+        return answered_here(known[django_name], attribute)
     from django.db import models as django_models
     import orm.fields as our_fields
     for module in (django_models, our_fields):
@@ -268,17 +336,42 @@ def main():
         name: tuple(c for c in classes if issubclass(c, models.Field))
         for name, classes in REFERENCE_CLASS_TO_DJANGO.items()
     }
+    #: El mapa que el informe consulta, para no volver a buscar por nombre una
+    #: clase que no vive en los dos módulos de siempre.
+    by_name = {c.__name__: c for classes in reachable.values() for c in classes}
 
-    # SEGUNDA EXCLUSION, tambien declarada una vez: el atributo que la fuente
-    # resuelve con una ``property`` en alguna clase. Su valor depende de la
-    # instancia, asi que ningun recorrido por AST puede decir cual es el
-    # correcto — y compararlo contra el defecto de ``Field`` publica como
-    # defecto justo el valor que la property devuelve.
-    computed_and_installed = sorted(computed & installed)
+    # SEGUNDA EXCLUSION, por PAR (atributo, clase) y no por atributo entero.
+    #
+    # Nacio para la ``property``: su valor depende de la instancia, asi que
+    # ningun recorrido por AST puede decir cual es el correcto, y compararlo
+    # contra el defecto de ``Field`` publica como defecto justo el valor que la
+    # property devuelve.
+    #
+    # Hasta la tarea #248 se aplicaba al ATRIBUTO, y con eso se comia tambien
+    # las clases donde la fuente lo declara literal: ``_column_type`` quedaba
+    # invisible en las once contrapartes decidibles por dos clases que si lo
+    # calculan (``Char`` y ``Float``). Ahora la exclusion nombra la clase.
+    excluded_by_form = sorted(
+        f'{attribute} en {reference_name}'
+        for attribute, reference_name in computed
+        if attribute in installed and reference_name in reachable)
+
+    # TERCERA EXCLUSION, y su motivo es el OPUESTO: aqui la respuesta depende
+    # de la instancia aunque alla sea literal. ``CharField`` sirve a la vez a
+    # ``Char`` —property en la fuente— y a ``Selection``, asi que su
+    # ``_column_type`` es una ``property`` nuestra: sobre la CLASE devuelve el
+    # descriptor, no el valor. Medirlo publicaria como defecto el mecanismo.
+    def answered_by_descriptor(django_class, attribute):
+        for klass in django_class.__mro__:
+            if attribute in klass.__dict__:
+                return inspect.isdatadescriptor(klass.__dict__[attribute])
+        return False
+
+    excluded_here = []
 
     offenders, measured, collisions = [], 0, []
     for attribute in sorted(installed & set(overrides)):
-        if attribute not in base or attribute in computed:
+        if attribute not in base:
             continue
         # Dos clases de la fuente que apuntan a la MISMA clase de Django y
         # declaran valores distintos: el atributo no puede satisfacer a las
@@ -295,6 +388,11 @@ def main():
                 by_django[django_class] = (reference_name, literal)
 
         for django_class, (reference_name, literal) in by_django.items():
+            if (attribute, reference_name) in computed:
+                continue                       # segunda exclusion, por par
+            if answered_by_descriptor(django_class, attribute):
+                excluded_here.append(f'{attribute} en {django_class.__name__}')
+                continue                       # tercera exclusion
             measured += 1
             answer = answered_here(django_class, attribute)
             if not agrees(answer, literal):
@@ -323,9 +421,15 @@ def main():
             # gate, destapada al entrar ``Html`` en el mapa de trasplante.
             expected = inherited_literal(reference_name, attribute,
                                          overrides, parents, base)
+            if (attribute, reference_name) in computed:
+                continue                       # segunda exclusion, por par
             for django_class in django_classes:
                 if django_class in by_django:
                     continue                   # otra clase de la fuente manda
+                if answered_by_descriptor(django_class, attribute):
+                    excluded_here.append(
+                        f'{attribute} en {django_class.__name__}')
+                    continue                   # tercera exclusion
                 measured += 1
                 answer = answered_here(django_class, attribute)
                 if not agrees(answer, expected[1]):
@@ -373,7 +477,8 @@ def main():
                 origen = f'{reference_name}='
             print(f'  {attribute:18s} {django_name:16s} '
                   f'la fuente declara {origen}{literal}  '
-                  f'(aqui: {answered_here_by_name(django_name, attribute)!r})')
+                  f'(aqui: '
+                  f'{answered_here_by_name(django_name, attribute, by_name)!r})')
         print('\nEl mecanismo esta construido: install_class_attribute_overrides() en\n'
               'src/orm/fields.py instala por clase concreta. Se extiende, no se\n'
               'inventa uno nuevo.')
@@ -387,12 +492,17 @@ def main():
         detalle = '; '.join(f'{k} -> {", ".join(v)}' for k, v in unreachable.items())
         print(f'(fuera del alcance por construccion: {detalle} — no desciende de '
               f'models.Field, asi que el parche de clase no la alcanza)')
-    if computed_and_installed:
-        print(f'(fuera del alcance por forma: {", ".join(computed_and_installed)} '
-              f'— la fuente los resuelve con una property en alguna clase, y su '
-              f'valor depende de la instancia; ningun recorrido por AST puede '
-              f'decidirlos. Su control es de conducta: '
+    if excluded_by_form:
+        print(f'(fuera del alcance por forma: {", ".join(excluded_by_form)} '
+              f'— la fuente los resuelve con una property, y su valor depende '
+              f'de la instancia; ningun recorrido por AST puede decidirlos. Su '
+              f'control es de conducta: '
               f'tests/unit/orm/test_field_class_attributes.py)')
+    if excluded_here:
+        print(f'(fuera del alcance por forma NUESTRA: '
+              f'{", ".join(sorted(set(excluded_here)))} — aqui la respuesta es '
+              f'una property, asi que sobre la clase devuelve el descriptor y '
+              f'no el valor. Mismo control de conducta)')
     return 1 if (fresh and args.strict) else 0
 
 

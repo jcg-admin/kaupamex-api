@@ -93,6 +93,46 @@ check "cita al padre real cuando no es Field" "si" \
       "$(grep -q 'hereda BaseString' scripts/field_class_attributes_baseline.txt \
          && echo si || echo no)"
 
+# ── 4-ter. CONTROL 4 — el atributo declarado por LLAMADA se mide ──────────
+# Tarea #248. La exclusion por forma nacio para la `property`, cuyo valor
+# depende de la instancia, y absorbia TAMBIEN al atributo declarado como
+# llamada — `Selection._column_type = ('varchar', pg_varchar())` — que si es
+# decidible resolviendo la funcion. Con la exclusion por atributo entero,
+# `_column_type` quedaba invisible en las ONCE clases donde la fuente lo
+# declara literal y aqui se responde literal.
+salida=$($GATE 2>&1)
+# El atributo suelto, sin clase, es la exclusion ancha que #248 retira. Con
+# clase — «_column_type en Char» — es la estrecha, que si es correcta.
+check "_column_type no queda excluido entero" "0" \
+      "$(echo "$salida" | grep -cE 'por forma: _column_type[,)—]')"
+check "la exclusion por forma nombra la CLASE, no solo el atributo" "si" \
+      "$(echo "$salida" | grep -q 'por forma:.*_column_type en ' && echo si || echo no)"
+
+# El sabotaje va sobre `Many2one`, cuyo bloque declara UN solo atributo: el
+# `sed` por linea seria fragil (tres bloques declaran el mismo literal).
+python3 - "$TARGET" <<'SABOTAJE'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1]); t = p.read_text()
+old = "    'Many2one': {                                  # ``fields_relational.py:245``\n        '_column_type': ('int4', 'int4'),\n    },\n"
+assert t.count(old) == 1, 'el bloque de Many2one cambio: re-escribir el sabotaje'
+p.write_text(t.replace(old, "    'Many2one': {},\n"))
+SABOTAJE
+salida=$($GATE --strict 2>&1); estado=$?
+check "retirar el _column_type de Many2one sale 1" "1" "$estado"
+check "y nombra ForeignKey" "si" \
+      "$(echo "$salida" | grep -q '_column_type.*ForeignKey' && echo si || echo no)"
+check "citando el valor vivo, no <ausente>" "si" \
+      "$(echo "$salida" | grep -q 'ForeignKey.*aqui: None' && echo si || echo no)"
+restore
+
+# ── 4-quater. La llamada se resuelve contra nuestro src/tools ─────────────
+check "agrees resuelve pg_varchar() en vez de comparar reprs" "True" \
+      "$(uv run python -c "
+import sys, pathlib
+sys.path.insert(0, 'scripts'); sys.path.insert(0, 'src')
+import check_field_class_attributes as G
+print(G.agrees(('varchar', 'VARCHAR'), \"('varchar', pg_varchar())\"))" 2>&1 | tail -1)"
+
 # ── 5. La restauracion devolvio el archivo ────────────────────────────────
 # Sin este caso, un `restore` roto dejaria los sabotajes puestos y el resto de
 # la suite mediria un arbol saboteado creyendolo limpio.
