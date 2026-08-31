@@ -81,6 +81,7 @@ dependencies = [
     "markupsafe>=2.1.0",
     "python-barcode>=0.15.1",
     "qrcode>=7.4",
+    "zeep>=4.3.3",
 ]
 
 [project.optional-dependencies]

@@ -68,10 +68,14 @@ Detalles pequeños que un port ingenuo pierde
 Qué NO se porta, con su medición
 ================================
 
-- **``ZeepOrmCache``** — caché de WSDL para el cliente SOAP ``zeep``, que la
-  referencia usa en localizaciones fiscales. Medido:
-  ``grep -rn "zeep" src/ | grep -v res_company.py`` → **0**. No hay cliente
-  SOAP en este árbol.
+- **``ZeepOrmCache``** — **PORTADO** en este pase, junto con
+  ``_get_zeep_cache__`` y ``_get_zeep_client__``. Este bullet declinaba **uno**
+  de los tres símbolos y su razón era *"no hay cliente SOAP en este árbol"*,
+  que describe nuestro estado y no un impedimento — el anti-patrón que
+  ``porte-completo-no-parcial.md`` prohíbe. El cliente se construyó:
+  ``src/tools/zeep/`` porta el envoltorio de seguridad de la referencia
+  (``odoo19c: odoo/tools/zeep/``) sobre ``zeep==4.3.3``, ya declarado en
+  ``pyproject.toml``. Ver :ref:`h-api-990`.
 - **``install_l10n_modules`` / ``uninstalled_l10n_module_ids``** — instalan
   paquetes de localización en caliente. Es el instalador, cuya ausencia
   ``ir_module.py`` ya declara y justifica.
@@ -89,8 +93,12 @@ Qué NO se porta, con su medición
 import base64
 import logging
 
+from zeep.cache import Base as ZeepCache
+
 import fields
 import models
+from tools import zeep
+from tools.cache import ormcache
 from addons.base.models.report_paperformat import ReportPaperformat
 from addons.base.models.res_country import ResCountry, ResCountryState
 from addons.base.models.res_currency import ResCurrency
@@ -124,6 +132,28 @@ LAYOUT_BACKGROUND_CHOICES = [
     ('Demo logo', 'Logotipo de demostración'),
     ('Custom', 'Personalizado'),
 ]
+
+
+class ZeepOrmCache(ZeepCache):
+    """Caché de XSD/WSDL para ``zeep``, respaldada por la caché del ORM.
+
+    ≙ ``ZeepOrmCache`` (``odoo19c: res_company.py:18-27``).
+
+    ``zeep`` define el contrato en ``zeep.cache.Base``: ``add(url, content)``
+    y ``get(url)``. Su implementación por defecto es un SQLite en disco; ésta
+    la sustituye por el bucket que ``_get_zeep_cache__`` mantiene en la caché
+    ``stable`` del registro, por compañía. Así el WSDL de una autoridad
+    tributaria se descarga una vez por proceso y no una por petición.
+    """
+
+    def __init__(self, company):
+        self.company = company
+
+    def add(self, url, content):
+        self.company._get_zeep_cache__()[url] = content
+
+    def get(self, url):
+        return self.company._get_zeep_cache__().get(url)
 
 
 class ResCompanyManager(models.AccessManager):
@@ -167,6 +197,12 @@ class ResCompany(TimeStampedModel):
     del modelo ``Company`` paralelo que se disolvió — una sola tabla, como la
     referencia. Ver ``analisis-extension-de-company-tres-motores``.
     """
+
+    _name = 'res.company'
+    _description = 'Companies'
+    _order = 'sequence, name'
+    _inherit = ['format.address.mixin', 'format.vat.label.mixin']
+    _parent_store = True
 
     objects = ResCompanyManager()
 
@@ -629,6 +665,42 @@ class ResCompany(TimeStampedModel):
         if path != self.parent_path:
             self.parent_path = path
             super().save(update_fields=['parent_path'])
+
+    @ormcache('self.id', cache='stable')
+    def _get_zeep_cache__(self):
+        """El bucket que ``tools.zeep`` usa para XSD y WSDL.
+
+        ≙ ``_get_zeep_cache__`` (``odoo19c: res_company.py:511-514``).
+
+        Devuelve un ``dict`` vacío la primera vez y **el mismo** en las
+        siguientes: la caché ``stable`` guarda el objeto, no una copia, así
+        que ``ZeepOrmCache.add`` escribe en él y ``get`` lo relee. Por eso el
+        método es de instancia y su clave lleva ``self.id`` — el bucket es por
+        compañía, no del proceso.
+
+        El guion bajo doble del sufijo es el de la fuente y se conserva: marca
+        que el método existe para el mecanismo, no para llamarse desde una
+        vista.
+        """
+        return {}
+
+    def _get_zeep_client__(self, url, *args, **kwargs):
+        """Un ``Client`` de ``tools.zeep`` que cachea sus XSD y WSDL aquí.
+
+        ≙ ``_get_zeep_client__`` (``odoo19c: res_company.py:515-521``).
+
+        El transporte se toma de ``kwargs`` si viene, y sólo se le pone la
+        caché **si no trae una**: quien pase su propio transporte con caché
+        decide, y este método no se la pisa.
+
+        El ``ensure_one()`` de la fuente no se porta: aquí ``self`` es **una**
+        fila, no un conjunto de registros — la misma divergencia de mecanismo
+        ya declarada en ``res_partner.py:2423``.
+        """
+        transport = kwargs.setdefault('transport', zeep.Transport())
+        if not transport.cache:
+            transport.cache = ZeepOrmCache(self)
+        return zeep.Client(url, *args, **kwargs)
 
 
 class ResCompanyUsersRel(models.Model):

@@ -1,0 +1,12 @@
+# Control discriminante — cache-propia-pisada
+# fecha:    2026-08-31T09:52:49
+# archivo:  src/addons/base/models/res_company.py
+# anulado:  s/        if not transport.cache:/        if True:/
+# tests:    tests/unit/base/test_res_company_zeep_cache.py
+
+## 1. Verde de partida (guarda presente)
+11 passed, 1 warning in 5.77s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/base/test_res_company_zeep_cache.py::TestTheClientInstallsTheCacheOnlyWhenTheTransportHasNone::test_a_transport_with_its_own_cache_is_not_overwritten
+1 failed, 10 passed, 1 warning in 6.21s
