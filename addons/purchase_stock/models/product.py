@@ -59,8 +59,8 @@ presencia, no conducta.
      - **divergencia**
      - ya existe con otro nombre — ver abajo
    * - ``suggest_estimated_price`` + su compute (``:40``, ``:62-78``)
-     - **bloqueado**
-     - ``grep -rn "_select_seller" addons/ src/`` → 0
+     - **desbloqueado**
+     - ``_select_seller`` ya está portado; queda como trabajo, no bloqueo (#267)
    * - ``_search_product_with_suggested_quantity`` (``:80-89``)
      - **bloqueado**
      - ``search_fetch``/``filtered_domain`` sobre un campo sin columna

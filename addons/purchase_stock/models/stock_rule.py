@@ -85,7 +85,7 @@ campo (``action``, que es un ``selection_add``) y 19 métodos.
      - los mismos 7 + ``buyer_id`` del contacto
    * - ``_update_purchase_order_line`` (``:298-324``)
      - **bloqueado**
-     - ``_select_seller`` + ``_fix_tax_included_price_company``
+     - ``_fix_tax_included_price_company`` (``_select_seller`` ya está portado)
    * - ``_post_vendor_notification`` (``:203-206``)
      - **bloqueado**
      - ``markupsafe`` no es dependencia + ``message_post`` sobre estos modelos
@@ -136,21 +136,16 @@ por desinstalación no ocurre hoy. Pero borrar la fila de
 ``ir.model.fields.selection`` sí es un camino vivo, y ahí la política corre:
 la tarea **#205** construyó el receptor y la porta entera.
 
-**D-2 — ``_select_seller`` no existe; la selección cae al filtro base.**
-Medido: ``grep -rn "def _select_seller" addons/ src/ --include=*.py`` → **0**.
-Es el método que elige **qué tarifa** de proveedor aplica según cantidad,
-fecha y unidad. Lo que sí existe es su primer paso:
-``ProductSupplierinfo.filtered_suppliers``
-(``addons/product/models/product_supplierinfo.py:302-322``), que filtra por
-empresa, proveedor activo y variante — las tres condiciones que la fuente
-aplica antes de ordenar por precio.
+**D-2 — CERRADA.** Decía que ``_select_seller`` no existía y que, en
+consecuencia, ``_get_matching_supplier`` y ``_get_lead_days`` **elegían la
+primera tarifa válida por secuencia**, no la de menor precio para la cantidad
+pedida.
 
-Consecuencia declarada, no escondida: ``_get_matching_supplier`` y
-``_get_lead_days`` **eligen la primera tarifa válida por secuencia**, no la de
-menor precio para la cantidad pedida. Las dos primeras ramas de
-``_get_matching_supplier`` (proveedor forzado por el abastecimiento, y
-proveedor del punto de pedido) se portan **sin degradación**: son las que el
-reabastecimiento automático usa, y no pasan por ``_select_seller``.
+La cadena entera está portada — ``_prepare_sellers``, ``_get_filtered_sellers``
+y ``_select_seller`` en ``addons/product/models/product_product.py`` — y los
+dos métodos la consumen: eligen por precio con descuento dentro del proveedor
+preferido, con la fecha planificada y la unidad pedida, como la fuente. La
+degradación que este bloque declaraba **ya no ocurre**. Ver :ref:`h-api-998`.
 
 **D-3 — ``markupsafe`` no es dependencia.** Medido (preámbulo de la tanda, y
 ``grep -i markupsafe uv.lock`` → vacío). ``_post_vendor_notification`` la usa
@@ -167,6 +162,7 @@ ordenar previamente** (recorre y acumula en un diccionario). El de
 es lo que el de la fuente hace por dentro y conserva el orden de aparición.
 """
 from collections import defaultdict
+from datetime import date
 
 from django.apps import apps
 
@@ -345,8 +341,8 @@ def _get_matching_supplier(cls, product_id, product_qty, product_uom,
 
     1. el proveedor que el abastecimiento ya trae (``supplierinfo_id``);
     2. el del punto de pedido, si lo tiene;
-    3. la tarifa que corresponda a la cantidad y la fecha — **D-2**: sin
-       ``_select_seller`` se cae al filtro base y se toma la primera válida.
+    3. la tarifa que corresponda a la cantidad y la fecha, elegida por
+       ``ProductProduct._select_seller``.
 
     Y el respaldo de la fuente, verbatim en intención: *«Fall back on a
     supplier for which no price may be defined. Not ideal, but better than
@@ -360,24 +356,44 @@ def _get_matching_supplier(cls, product_id, product_qty, product_uom,
     invoca sobre la clase; hacerlo ``@classmethod`` es lo que mantiene esa
     llamada coherente (``H-API-738``).
     """
+    # La fecha con la que se busca tarifa vigente: la planificada, nunca
+    # anterior a hoy (``max(...)`` de la fuente).
+    moment = None
+    if 'date_planned' in values:
+        planned = values['date_planned']
+        planned = getattr(planned, 'date', lambda: planned)()
+        moment = max(planned, date.today())
+
     if values.get('supplierinfo_id'):
-        return values['supplierinfo_id']
+        supplier = values['supplierinfo_id']
+    else:
+        orderpoint = values.get('orderpoint_id')
+        if orderpoint is not None and getattr(orderpoint, 'supplier_id', None):
+            supplier = orderpoint.supplier
+        else:
+            elegidas = product_id._select_seller(
+                partner_id=cls._get_partner_id(values, None),
+                quantity=product_qty,
+                date=moment,
+                uom_id=product_uom,
+                params={'force_uom': values.get('force_uom')},
+                company=company_id,
+            )
+            supplier = elegidas[0] if elegidas else None
 
-    orderpoint = values.get('orderpoint_id')
-    if orderpoint is not None and getattr(orderpoint, 'supplier_id', None):
-        return orderpoint.supplier
+    if supplier is not None:
+        return supplier
 
-    ProductSupplierinfo = apps.get_model('product', 'ProductSupplierinfo')
-    candidates = ProductSupplierinfo.filtered_suppliers(
-        _sellers_of(product_id), company_id, product_id)
-    if not candidates:
-        return None
-
-    # D-2: sin ``_select_seller`` no hay orden por precio para la cantidad;
-    # se toma la primera por secuencia, que es el orden natural del modelo.
-    matching_min_qty = [s for s in candidates
-                    if product_qty is None or s.min_qty <= product_qty]
-    return (matching_min_qty or candidates)[0]
+    # Respaldo de la fuente, verbatim en intención: *«Fall back on a supplier
+    # for which no price may be defined. Not ideal, but better than blocking
+    # the user.»* — el filtro por empresa lo aplica la fuente aquí de nuevo,
+    # no se delega en ``_prepare_sellers``.
+    company_pk = getattr(company_id, 'pk', company_id)
+    respaldo = [
+        s for s in product_id._prepare_sellers(False, company=company_id)
+        if not s.company_id or s.company_id == company_pk
+    ]
+    return respaldo[0] if respaldo else None
 
 
 def _notify_responsible(self, procurement):
@@ -403,8 +419,9 @@ def _get_lead_days(cls, rules, product, **values):
       forma que la fuente tiene de hacer visible el hueco en vez de esconderlo;
     - hay proveedor → suma su ``delay`` más ``company.days_to_purchase``.
 
-    D-2: cuando ``values`` no trae ``supplierinfo``, la fuente lo elige con
-    ``_select_seller(quantity=None)``; aquí se toma la primera tarifa válida.
+    Cuando ``values`` no trae ``supplierinfo``, se elige con
+    ``_select_seller(quantity=None)`` — verbatim: sin cantidad, el filtro de
+    mínimo no descarta ninguna tarifa y el plazo sale de la preferida.
 
     ``@classmethod`` porque el previo lo es
     (``addons/stock/models/stock_rule.py:999``), con la misma firma
@@ -420,12 +437,10 @@ def _get_lead_days(cls, rules, product, **values):
     delay_description = []
 
     seller = values.get('supplierinfo')
-    if seller is None:
-        ProductSupplierinfo = apps.get_model('product', 'ProductSupplierinfo')
-        company_rec = buy_rules[0].company
-        candidates = ProductSupplierinfo.filtered_suppliers(
-            _sellers_of(product), company_rec, product)
-        seller = candidates[0] if candidates else None
+    if seller is None and product is not None:
+        elegidas = product._select_seller(
+            quantity=None, company=buy_rules[0].company)
+        seller = elegidas[0] if elegidas else None
 
     if seller is None:
         delays['total_delay'] += NO_VENDOR_FOUND_DELAY

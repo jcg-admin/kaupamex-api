@@ -298,25 +298,37 @@ class ProductSupplierinfo(TimeStampedModel):
     # === SELECCIÓN ========================================================
 
     @classmethod
-    def filtered_suppliers(cls, sellers, company, product):
-        """``_get_filtered_supplier`` — las filas que sirven a esta compra.
+    def _get_filtered_supplier(cls, sellers, company_id, product_id,
+                               params=False):
+        """≙ ``_get_filtered_supplier`` (``odoo19c: :118-119``).
 
-        Tres condiciones, verbatim: la compañía encaja (o la fila es de
-        todas), el proveedor está activo, y la fila no es específica de
-        **otra** variante. La tercera es la que deja pasar las filas de
-        plantilla junto a la de la variante pedida.
+        Las filas que sirven a esta compra. Tres condiciones, verbatim: la
+        compañía encaja (o la fila es de todas), el proveedor está activo, y
+        la fila no es específica de **otra** variante. La tercera es la que
+        deja pasar las filas de plantilla junto a la de la variante pedida.
 
-        Recibe el conjunto ya obtenido en vez de consultarlo: quien llama
-        suele venir de ``product.seller_ids``, que ya está en memoria, y
-        volver a la base sería una consulta por producto.
+        ``params`` la fuente lo declara y **no lo usa**: es el enganche por el
+        que un addon de encima refina el filtro. Se porta en la firma para que
+        ``_prepare_sellers`` pueda pasarlo tal cual, como hace la fuente.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente es un método de
+        conjunto de registros (``self.filtered(...)``); aquí recibe el
+        conjunto como primer argumento y es ``classmethod``. Quien llama suele
+        venir de ``product.seller_ids``, que ya está en memoria, y volver a la
+        base sería una consulta por producto.
+
+        **El nombre se porta verbatim, con su guion bajo.** Hasta este pase se
+        llamaba ``filtered_suppliers``, que no es un renombre: promovía a API
+        pública un símbolo que la fuente reserva
+        (``porte-completo-no-parcial.md``, "El guion bajo se porta").
         """
-        company_id = getattr(company, 'pk', company)
-        product_id = getattr(product, 'pk', product)
+        company_pk = getattr(company_id, 'pk', company_id)
+        product_pk = getattr(product_id, 'pk', product_id)
         return [
             seller for seller in sellers
-            if (not seller.company_id or seller.company_id == company_id)
+            if (not seller.company_id or seller.company_id == company_pk)
             and getattr(seller.partner, 'active', True)
-            and (not seller.product_id or seller.product_id == product_id)
+            and (not seller.product_id or seller.product_id == product_pk)
         ]
 
     @classmethod

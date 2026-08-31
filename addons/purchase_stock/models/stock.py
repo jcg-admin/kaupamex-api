@@ -164,13 +164,13 @@ relación que la referencia no declara.
      - ídem
    * - ``_search_available_vendor`` (``:223-228``)
      - **bloqueado**
-     - ídem; además ``_prepare_sellers`` → 0 hits
+     - ídem (``_prepare_sellers`` ya está portado; lo que falta es el otro)
    * - ``action_view_purchase`` (``:237-250``)
      - **bloqueado**
      - ``_for_xml_id`` → 0 definiciones
    * - ``_get_replenishment_multiple_alternative`` (``:304-320``)
-     - **bloqueado**
-     - ``_select_seller`` → 0 hits
+     - **desbloqueado**
+     - ``_select_seller`` ya está portado; queda como trabajo, no bloqueo (#267)
    * - ``_quantity_in_progress`` (``:322-329``)
      - **bloqueado**
      - depende de ``product._get_quantity_in_progress``, bloqueado en ``product.py``

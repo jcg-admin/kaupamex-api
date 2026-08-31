@@ -14,11 +14,13 @@ Cubre lo que no depende de la base de datos real de forma esencial (aunque usa
 ``@pytest.mark.django_db`` porque el ORM lo exige): construcción de nombres,
 invariantes de ``clean()``, combinación de variantes y delegación a la ficha.
 """
+from datetime import date
 from decimal import Decimal
 
 import pytest
 from django.core.exceptions import ValidationError
 
+from addons.base.models import ResPartner
 from addons.crm.models.crm_lead import CrmLead
 from addons.product.models.product_supplierinfo import ProductSupplierinfo
 from addons.stock.models.stock_quant import StockQuant
@@ -337,3 +339,131 @@ class TestGetImportTemplates:
             for proveedor in (ProductSupplierinfo, CrmLead, StockQuant)
         }
         assert claves == {frozenset({'label', 'template'})}
+
+
+@pytest.mark.django_db
+class TestSelectSeller:
+    """La cadena ``_prepare_sellers`` → ``_get_filtered_sellers`` →
+    ``_select_seller`` (``odoo19c: addons/product/models/product_product.py:1016-1071``).
+
+    Cada caso exige que el resultado **discrimine** entre dos filas: un
+    ``return sellers[:1]`` desnudo pasaría cualquier caso que sólo afirmara
+    "devuelve algo".
+    """
+
+    def _tariff(self, tmpl, partner, **kwargs):
+        return ProductSupplierinfo.objects.create(
+            partner=partner, product_tmpl=tmpl, **kwargs)
+
+    def _variant(self, name='Eleke'):
+        tmpl = ProductTemplate.objects.create(name=name)
+        return tmpl, ProductProduct.objects.create(product_tmpl=tmpl)
+
+    def test_prepare_sellers_orders_by_the_reference_key(self):
+        """``(sequence, -min_qty, price, id)`` — la secuencia manda, y a
+        igual secuencia gana la cantidad mínima MAYOR (el ``-min_qty``)."""
+        tmpl, variant = self._variant()
+        supplier = ResPartner.objects.create(name='Proveedor')
+        late = self._tariff(tmpl, supplier, sequence=9, price=Decimal('1.00'))
+        early_small = self._tariff(
+            tmpl, supplier, sequence=1, min_qty=1, price=Decimal('5.00'))
+        early_large = self._tariff(
+            tmpl, supplier, sequence=1, min_qty=50, price=Decimal('5.00'))
+        assert variant._prepare_sellers() == [
+            early_large, early_small, late]
+
+    def test_prepare_sellers_drops_a_tariff_of_another_variant(self):
+        """Delega en ``_get_filtered_supplier``: la fila específica de otra
+        variante no entra, la de plantilla sí."""
+        tmpl, variant = self._variant()
+        other = ProductProduct.objects.create(product_tmpl=tmpl)
+        supplier = ResPartner.objects.create(name='Proveedor')
+        from_template = self._tariff(tmpl, supplier)
+        self._tariff(tmpl, supplier, product=other)
+        assert variant._prepare_sellers() == [from_template]
+
+    def test_filtered_sellers_drops_an_expired_tariff(self):
+        tmpl, variant = self._variant()
+        supplier = ResPartner.objects.create(name='Proveedor')
+        in_force = self._tariff(tmpl, supplier, price=Decimal('9.00'))
+        self._tariff(tmpl, supplier, price=Decimal('1.00'),
+                     date_end=date(2020, 1, 1))
+        assert variant._get_filtered_sellers() == [in_force]
+
+    def test_filtered_sellers_drops_a_tariff_not_yet_in_force(self):
+        tmpl, variant = self._variant()
+        supplier = ResPartner.objects.create(name='Proveedor')
+        in_force = self._tariff(tmpl, supplier, price=Decimal('9.00'))
+        self._tariff(tmpl, supplier, price=Decimal('1.00'),
+                     date_start=date(2999, 1, 1))
+        assert variant._get_filtered_sellers() == [in_force]
+
+    def test_filtered_sellers_requires_the_minimum_quantity(self):
+        """El mismo conjunto da resultados distintos según la cantidad — es
+        lo que distingue el filtro de un paso a través."""
+        tmpl, variant = self._variant()
+        supplier = ResPartner.objects.create(name='Proveedor')
+        single_unit = self._tariff(tmpl, supplier, min_qty=1, price=Decimal('9.00'))
+        bulk = self._tariff(tmpl, supplier, min_qty=100, price=Decimal('4.00'))
+        assert variant._get_filtered_sellers(quantity=5) == [single_unit]
+        assert set(variant._get_filtered_sellers(quantity=100)) == {
+            single_unit, bulk}
+
+    def test_filtered_sellers_accepts_the_parent_partner_tariff(self):
+        """Una tarifa firmada con la matriz sirve a la sucursal
+        (``seller.partner_id not in [partner_id, partner_id.parent_id]``)."""
+        tmpl, variant = self._variant()
+        parent_company = ResPartner.objects.create(name='Matriz')
+        branch = ResPartner.objects.create(name='Sucursal', parent=parent_company)
+        unrelated = ResPartner.objects.create(name='Ajena')
+        from_parent = self._tariff(tmpl, parent_company, price=Decimal('7.00'))
+        self._tariff(tmpl, unrelated, price=Decimal('1.00'))
+        assert variant._get_filtered_sellers(partner_id=branch) == [from_parent]
+
+    def test_select_seller_cuts_by_supplier_before_comparing_price(self):
+        """**El caso que discrimina.** El segundo proveedor es más barato y
+        NO gana: la fuente conserva sólo las filas del primero
+        (``if not res or res.partner_id == seller.partner_id``). Una
+        implementación que ordenara todo por precio devolvería la barata."""
+        tmpl, variant = self._variant()
+        preferred = ResPartner.objects.create(name='Preferido')
+        cheap_partner = ResPartner.objects.create(name='Barato')
+        expensive_from_preferred = self._tariff(
+            tmpl, preferred, sequence=1, price=Decimal('50.00'))
+        self._tariff(tmpl, cheap_partner, sequence=2, price=Decimal('1.00'))
+        assert variant._select_seller() == [expensive_from_preferred]
+
+    def test_select_seller_takes_the_cheapest_within_that_supplier(self):
+        tmpl, variant = self._variant()
+        supplier = ResPartner.objects.create(name='Proveedor')
+        self._tariff(tmpl, supplier, sequence=1, price=Decimal('50.00'))
+        cheaper = self._tariff(tmpl, supplier, sequence=1, price=Decimal('8.00'))
+        assert variant._select_seller() == [cheaper]
+
+    def test_select_seller_honours_the_discount(self):
+        """Ordena por ``price_discounted``, no por ``price``: la de precio
+        nominal mayor gana si su descuento la deja por debajo."""
+        tmpl, variant = self._variant()
+        supplier = ResPartner.objects.create(name='Proveedor')
+        self._tariff(tmpl, supplier, sequence=1, price=Decimal('10.00'))
+        discounted = self._tariff(
+            tmpl, supplier, sequence=1, price=Decimal('12.00'),
+            discount=Decimal('50.00'))
+        assert variant._select_seller() == [discounted]
+
+    def test_ordered_by_takes_primacy_over_the_price(self):
+        """``ordered_by`` antepone otro campo; el precio pasa a desempatar."""
+        tmpl, variant = self._variant()
+        supplier = ResPartner.objects.create(name='Proveedor')
+        low_min_qty = self._tariff(
+            tmpl, supplier, sequence=1, min_qty=0, price=Decimal('50.00'))
+        self._tariff(
+            tmpl, supplier, sequence=1, min_qty=1, price=Decimal('8.00'))
+        # Con ``quantity=10`` las dos superan su mínimo: el filtro deja de
+        # decidir y lo que se mide es el orden, que es el objeto del caso.
+        assert variant._select_seller(quantity=10) != [low_min_qty]
+        assert variant._select_seller(quantity=10, ordered_by='min_qty') == [low_min_qty]
+
+    def test_select_seller_returns_empty_when_nothing_matches(self):
+        tmpl, variant = self._variant()
+        assert variant._select_seller() == []

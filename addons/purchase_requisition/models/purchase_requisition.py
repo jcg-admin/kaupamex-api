@@ -15,7 +15,7 @@ concretas. Toma dos formas, y la distinción no es cosmética:
 - **Plantilla de compra** (``purchase_template``) — una lista de productos y
   cantidades que se copia a una orden nueva. No pacta precio ni fechas.
 
-Porte símbolo por símbolo — 45 de 45, con 3 degradaciones declaradas
+Porte símbolo por símbolo — 45 de 45, con 2 degradaciones declaradas
 =====================================================================
 
 *Métrica:* entradas del cuerpo de las dos clases contadas por AST sobre la
@@ -28,13 +28,13 @@ fuente, **descontando** los atributos de clase de modelo (``_name``,
   más **8 métodos**.
 
 Total **45**, y los 45 tienen destino aquí. Lo que NO es equivalencia son
-**tres degradaciones**, cada una nombrada abajo — el conteo mide presencia de
+**dos degradaciones**, cada una nombrada abajo — el conteo mide presencia de
 símbolo, no conducta (``metrica-decide-la-conclusion.md``).
 *Ciega a:* si un símbolo portado se comporta igual en ejecución, y a lo que
 otros addons cuelgan sobre estos dos modelos.
 
-Las tres degradaciones
-------------------------
+Las dos degradaciones
+-----------------------
 
 .. list-table::
    :header-rows: 1
@@ -42,14 +42,6 @@ Las tres degradaciones
 
    * - Símbolo (línea)
      - Causa medida
-   * - ``PurchaseRequisitionLine._compute_price_unit`` (``:206-214``)
-     - ``grep -rn "def _select_seller" addons/ src/`` → **0**. Es el método que
-       elige la tarifa del proveedor por cantidad y fecha. Misma ausencia que
-       ``purchase_stock/models/stock_rule.py`` ya declara (su D-2). Se porta
-       **la rama de respaldo** —``product.standard_price``— y se declara que la
-       rama de tarifa no se resuelve: sin ella el precio sugerido de una
-       plantilla de compra sale del costo estándar, no del acuerdo con ese
-       proveedor.
    * - ``PurchaseRequisition._onchange_vendor`` (``:47-62``)
      - **portado**, pero como método normal: en la fuente es ``@api.onchange``
        y lo dispara el formulario. Aquí devuelve el mismo
@@ -58,6 +50,20 @@ Las tres degradaciones
      - **portado parcialmente**: su guard de precio y la propagación a la
        tarifa se portan en ``save()``; lo que no se porta es la firma
        ``write(vals)``, que este ORM no tiene (D-3).
+
+Degradación CERRADA — el precio sugerido ya sale del acuerdo
+-------------------------------------------------------------
+
+``PurchaseRequisitionLine._compute_price_unit`` (``:206-214`` de la fuente) fue
+la tercera degradación de esta lista: se portaba **sólo la rama de respaldo**
+—``product.standard_price``— porque el método que elige la tarifa del proveedor
+por cantidad y fecha no existía en este árbol.
+
+Ya existe: ``ProductProduct._select_seller`` se portó con su cadena completa
+(``_prepare_sellers`` → ``_get_filtered_sellers`` → ``_select_seller``), así que
+la rama de tarifa **se resuelve** y el precio sugerido de una plantilla de
+compra sale del acuerdo con ese proveedor, no del costo estándar. Ver
+:ref:`h-api-998`.
 
 Divergencias declaradas
 ========================
@@ -559,13 +565,15 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
         Sólo aplica a una **plantilla de compra en borrador con proveedor**: el
         resto de casos la fuente los deja intactos (``continue``).
 
-        **La rama de tarifa está bloqueada**: ``_select_seller`` no existe en
-        este árbol (0 definiciones, misma medición que
-        ``purchase_stock/models/stock_rule.py`` D-2). Se porta la **rama de
-        respaldo** de la fuente —``line.product_id.standard_price``—, que es la
-        que ella misma toma cuando no encuentra tarifa. Es una degradación
-        declarada: el precio sugerido sale del costo estándar, no del acuerdo
-        con ese proveedor.
+        La **rama de tarifa** se porta: el precio sale del acuerdo con ese
+        proveedor para esa cantidad y esa fecha, y sólo cae al costo estándar
+        cuando no hay tarifa — que es el respaldo de la propia fuente.
+
+        Hasta este pase el bloque decía que ``_select_seller`` no existía en
+        este árbol. La cadena está portada
+        (``addons/product/models/product_product.py``) y la degradación que
+        aquí se declaraba —precio del costo estándar en vez del acuerdo— ya no
+        ocurre. Ver :ref:`h-api-998`.
         """
         requisition = self.requisition
         if (requisition is None
@@ -574,6 +582,14 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
                 or requisition.vendor_id is None
                 or self.product_id is None):
             return self.price_unit
+        seller = self.product._select_seller(
+            partner_id=requisition.vendor,
+            quantity=self.product_qty,
+            date=requisition.date_start,
+            uom_id=self.product_uom,
+        )
+        if seller:
+            return float(seller[0].price or 0.0)
         return float(self.product.standard_price or 0.0)
 
     # -- persistencia -------------------------------------------------------

@@ -212,7 +212,7 @@ class AccountMoveLine(AnalyticMixin, models.Model):
         filtrado su unidad de compra; la general toma la del propio producto.
 
         Ninguna esta bloqueada, y la cita de bloqueo que este metodo llevaba
-        era falsa: ``filtered_suppliers`` existe
+        era falsa: ``_get_filtered_supplier`` existe
         (``product_supplierinfo.py:302``, la equivalencia declarada de
         ``_get_filtered_supplier``), y ``seller_ids`` es un gestor sobre
         ``product.template``. Es la misma clase de defecto que
@@ -231,7 +231,7 @@ class AccountMoveLine(AnalyticMixin, models.Model):
         product_uom = self.product_id.uom
         if self.move_id and self.move.is_purchase_document():
             sellers = list(self.product_id.product_tmpl.seller_ids.all())
-            filtered_sellers = ProductSupplierinfo.filtered_suppliers(
+            filtered_sellers = ProductSupplierinfo._get_filtered_supplier(
                 sellers, self.company_id, self.product_id)
             first_seller = filtered_sellers[0] if filtered_sellers else None
             self.product_uom_id = getattr(first_seller, 'product_uom', None) or product_uom
