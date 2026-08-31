@@ -4,7 +4,8 @@
 Tarea **#250**, sucesora de :ref:`h-api-974`. Aquel hallazgo registro dos
 bloques de prosa que declinaban portar un campo ``related=`` dando como razon
 que un ``related`` es *«una copia que puede divergir»* — descripcion de
-``store=True``, que **552 de los 597** que la referencia declara no llevan.
+``store=True``, que la gran mayoría de los que la referencia declara no lleva
+(el reparto: ``python3 scripts/census_related_fields.py``).
 
 El defecto no eran esos dos bloques: es que **una razon escrita en prosa no
 tiene con que medirse** y envejece sin que nada lo note. Este guion es el

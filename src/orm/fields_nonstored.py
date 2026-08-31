@@ -87,9 +87,12 @@ class NonStored:
         #: ≙ ``Field.related`` (``odoo19c: odoo/orm/fields.py:286``) — la ruta
         #: punteada cuyo extremo aporta el valor. Con ella el campo **no lee
         #: su default**: navega la cadena, que es el ``compute`` de la fuente
-        #: (``:675`` ``_compute_related``). Es la forma de **552 de los 597**
-        #: ``related=`` que la referencia declara en los addons que este árbol
-        #: porta — los que no llevan ``store`` y por tanto no tienen columna.
+        #: (``:675`` ``_compute_related``). Es la forma de la gran mayoría de
+        #: los ``related=`` que la referencia declara en los addons que este
+        #: árbol porta — los que no llevan ``store`` y por tanto no tienen
+        #: columna. El reparto lo publica
+        #: ``python3 scripts/census_related_fields.py``, que no se transcribe
+        #: aquí porque crece con la referencia.
         self.related = related
         #: ≙ ``Field.search`` (``odoo19c: odoo/orm/fields.py:289``): el nombre
         #: de un método o el invocable que sabe traducir una condición sobre
@@ -207,8 +210,10 @@ def apply_related_defaults(related, kwargs):
 
     El primero es el que explica la forma del corpus: ``store`` por defecto es
     ``True`` en un campo cualquiera y **``False`` en un related**, así que de
-    los **597** que la referencia declara en los addons que este árbol porta,
-    **552 no llevan columna**. La prosa que declinaba portarlos llamándolos
+    los que la referencia declara en los addons que este árbol porta, la gran
+    mayoría **no lleva columna** (el reparto:
+    ``python3 scripts/census_related_fields.py``). La prosa que los declinaba
+    llamándolos
     «una copia que puede divergir» describía a los otros 45
     (:ref:`h-api-974`).
 

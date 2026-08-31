@@ -179,8 +179,9 @@ def Char(*args, store=_UNSET, required=None, translate=None, help=None,
     #: ``:452-458`` — un related NO se guarda por defecto, y un campo normal
     #: sí. El centinela distingue «no lo declaró» de «lo declaró ``True``»,
     #: que es lo que un default literal no puede: con ``store=True`` fijo,
-    #: todo related habría salido con columna y la forma de **552 de los 597**
-    #: medidos se habría perdido.
+    #: todo related habría salido con columna, y la forma de la gran mayoría
+    #: se habría perdido: el reparto lo publica
+    #: ``python3 scripts/census_related_fields.py``.
     if store is not _UNSET:
         kwargs['store'] = store
     related_attrs = apply_related_defaults(related, kwargs)

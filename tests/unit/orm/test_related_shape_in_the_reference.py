@@ -123,7 +123,8 @@ class TestARelatedIsAProjectionNotACopy:
         store» de «el detector no sabe verlo».
 
         ``company_id`` (``odoo19c: res_bank.py:101``) es el vecino que **sí**
-        lo declara, y está en los 45 de 597 que lo llevan.
+        lo declara, y está en la minoría que lo lleva — el reparto exacto lo
+        publica ``python3 scripts/census_related_fields.py``, no esta prosa.
         """
         root = _reference_root()
         if root is None or not root.is_dir():

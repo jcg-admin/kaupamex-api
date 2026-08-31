@@ -38,8 +38,10 @@ Esta sección decía que se omitían, con una razón que la propia referencia
 refutaba: *«un ``related`` almacenado es una copia que puede divergir del
 original»*. Eso describe ``store=True``, y la fuente los declara **sin store**
 — se calculan al leer, no se copian. Medido sobre los 120 addons que este
-árbol porta: **597** ``related=`` declarados, **552 sin store**. La razón no
-aplicaba a 552 de 597 (:ref:`h-api-974`).
+árbol porta, la inmensa mayoría de los ``related=`` declarados **no lleva
+store** — el reparto lo publica ``python3 scripts/census_related_fields.py``,
+que no se transcribe aquí porque crece con la referencia. La razón retirada no
+aplicaba a ninguno de ellos (:ref:`h-api-974`, :ref:`h-api-977`).
 
 Lo que se perdía al navegar la FK a mano (``cuenta.bank.country.code``) no era
 el valor sino la **búsqueda**: la fuente hace buscable un ``related`` cableando

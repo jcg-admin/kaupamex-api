@@ -1837,12 +1837,17 @@ models.Field._inverse_related = _field_inverse_related
 # ≙ ``Field.setup_related`` (``odoo19c: :604-660``) y ``Field._search_related``
 # (``:735-772``), más las cinco properties ``_related_*`` (``:774-778``).
 #
-# **Por qué se construye y no se declina.** Medido sobre los 120 addons que
-# este árbol porta: la referencia declara **597** campos ``related=``, y **552
-# sin ``store``**. No es un puñado de casos aislados — es un mecanismo. Dos
-# bloques de prosa de este árbol lo declinaban dando como razón que un
-# ``related`` es «una copia que puede divergir», y eso describe ``store=True``,
-# que 552 de 597 no llevan. La medición vive en
+# **Por qué se construye y no se declina.** Sobre los 120 addons que este
+# árbol porta la referencia declara centenares de campos ``related=``, y la
+# inmensa mayoría **sin ``store``**. No es un puñado de casos aislados — es un
+# mecanismo. Dos bloques de prosa de este árbol lo declinaban dando como razón
+# que un ``related`` es «una copia que puede divergir», y eso describe
+# ``store=True``, que casi ninguno lleva.
+#
+# El reparto **no se transcribe aquí**: crece con la referencia, y una cifra
+# copiada a prosa es la segunda fuente de verdad que
+# ``calibration-verified-numbers.md`` prohíbe. Lo publica
+# ``python3 scripts/census_related_fields.py``; la forma se ejerce en
 # ``tests/unit/orm/test_related_shape_in_the_reference.py``.
 #
 # **Qué diverge, y es de mecanismo.** El ``setup_related`` de la fuente usa su
@@ -1929,8 +1934,8 @@ def _field_setup_related(self, model):
     #: ``:634-636`` — buscable sólo si NO se guarda (con columna propia se
     #: busca por ella) y si cada eslabón lo es. El defecto de ``store`` es
     #: ``True``, así que un campo que quiera la búsqueda por cadena declara
-    #: ``store=False`` — que es la forma de **552 de los 597** ``related=``
-    #: medidos en la referencia.
+    #: ``store=False`` — que es la forma de casi todos los ``related=`` de la
+    #: referencia (reparto: ``python3 scripts/census_related_fields.py``).
     if not self.store and all(f._description_searchable for f in field_seq):
         self.search = self._search_related
 
