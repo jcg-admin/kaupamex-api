@@ -55,7 +55,12 @@ antes; la clase sólo aporta el tipo.
 from django.db import models
 
 from orm.fields_company_dependent import CompanyDependent, make_dispatcher
-from orm.fields_nonstored import NonStored
+from orm.fields_nonstored import (
+    _UNSET,
+    NonStored,
+    annotate_related,
+    apply_related_defaults,
+)
 
 __all__ = ['Char', 'Text', 'Html']
 
@@ -102,8 +107,8 @@ class Html(models.TextField):
         return name, 'django.db.models.TextField', args, kwargs
 
 
-def Char(*args, store=True, required=None, translate=None, help=None,
-         company_dependent=False, **kwargs):
+def Char(*args, store=_UNSET, required=None, translate=None, help=None,
+         company_dependent=False, related=None, **kwargs):
     """``fields.Char`` — ≙ el de la referencia, con y sin columna.
 
     ``store=True`` (el defecto, y el de los 432 usos del árbol) devuelve un
@@ -171,6 +176,16 @@ def Char(*args, store=True, required=None, translate=None, help=None,
     if help is not None:
         kwargs.setdefault('help_text', help)
 
+    #: ``:452-458`` — un related NO se guarda por defecto, y un campo normal
+    #: sí. El centinela distingue «no lo declaró» de «lo declaró ``True``»,
+    #: que es lo que un default literal no puede: con ``store=True`` fijo,
+    #: todo related habría salido con columna y la forma de **552 de los 597**
+    #: medidos se habría perdido.
+    if store is not _UNSET:
+        kwargs['store'] = store
+    related_attrs = apply_related_defaults(related, kwargs)
+    store = related_attrs['store']
+
     if company_dependent:
         if not store:
             raise ValueError(
@@ -190,4 +205,4 @@ def Char(*args, store=True, required=None, translate=None, help=None,
     else:
         campo = NonStored(*args, **kwargs)
     campo.odoo_translate = bool(translate)
-    return campo
+    return annotate_related(campo, related, related_attrs)

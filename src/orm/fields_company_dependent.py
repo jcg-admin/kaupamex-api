@@ -137,6 +137,11 @@ from django.db import models
 from django.db.models.query_utils import DeferredAttribute
 
 from orm.environments import get_current_company
+from orm.fields_nonstored import (
+    NonStored,
+    annotate_related,
+    apply_related_defaults,
+)
 from tools.sql import SQL
 
 __all__ = ['COMPANY_DEPENDENT_FIELDS', 'CompanyDependent',
@@ -450,7 +455,15 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
         raise ValueError(
             f'{base_type!r} no es uno de {COMPANY_DEPENDENT_FIELDS}')
 
-    def dispatcher(*args, company_dependent=False, required=None, **kwargs):
+    def dispatcher(*args, company_dependent=False, required=None,
+                   related=None, **kwargs):
+        #: ``related=`` se resuelve ANTES del despacho: un related no se
+        #: guarda por defecto (``odoo19c: odoo/orm/fields.py:455``), así que
+        #: quien elige entre el campo con columna y :class:`NonStored` tiene
+        #: que ver el ``store`` ya resuelto. El mecanismo es del **campo**, no
+        #: del tipo, así que ninguno de los cinco que este molde fabrica puede
+        #: quedarse fuera.
+        related_attrs = apply_related_defaults(related, kwargs)
         if required is not None:
             # Los dos, y no solo ``blank``: en la fuente el valor vacio de un
             # escalar no-requerido es ``False``, que en la columna es NULL —
@@ -458,7 +471,9 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
             # vacio SI es ``''``, alli y en Django.
             kwargs.setdefault('blank', not required)
             kwargs.setdefault('null', not required)
-        if company_dependent:
+        if related and not related_attrs['store']:
+            field = NonStored(*args, related=related, **kwargs)
+        elif company_dependent:
             # La guarda de ``CompanyDependent`` lee ``required`` de kwargs;
             # el despachador ya lo sacó de ahí, así que se le devuelve para
             # que el aviso de la fuente siga disparando.
@@ -472,7 +487,7 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
         # La fuente hace lo contrario — ``required`` ausente significa False
         # (``odoo19c: odoo/orm/fields.py``) — y ese es el defecto que se porta.
         field.required = bool(required)
-        return field
+        return annotate_related(field, related, related_attrs)
 
     dispatcher.__name__ = name
     dispatcher.__qualname__ = name

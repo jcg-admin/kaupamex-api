@@ -69,7 +69,11 @@ from tools.sql import SQL, pg_varchar, sql_order_by_type
 from orm.fields_binary import Binary, Image                    # noqa: F401
 from orm.fields_misc import Boolean, Json                      # noqa: F401
 from orm.fields_numeric import Float, Integer, Monetary        # noqa: F401
-from orm.fields_nonstored import NonStored                   # noqa: F401
+from orm.fields_nonstored import (                          # noqa: F401
+    NonStored,
+    annotate_related,
+    apply_related_defaults,
+)
 from orm.fields_properties import (                            # noqa: F401
     Properties,
     PropertiesDefinition,

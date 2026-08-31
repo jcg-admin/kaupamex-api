@@ -458,6 +458,12 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         related_name='partners',
         help_text='País (Odoo country_id).',
     )
+    #: ≙ ``country_code`` (``odoo19c: res_partner.py:269``), verbatim salvo el
+    #: nombre de la FK —allá ``country_id``, aquí ``country``—. Sin ``store``,
+    #: que es el defecto de la fuente para un ``related``: se calcula al leer
+    #: y no ocupa columna. Lo consume ``ResPartnerBank.country_code``, que lo
+    #: encadena (``res_bank.py:102``).
+    country_code = fields.Char('Country Code', related='country.code')
 
     # Índice de color de la paleta del cliente. La referencia lo declara en
     # ``res.partner`` con ``default=0`` (``res_partner.py:286``) — no confundir

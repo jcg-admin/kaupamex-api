@@ -26,36 +26,26 @@ así que 16 parece holgado — hasta que alguien guarda uno con separadores o un
 identificador local que no es BIC. El tope arbitrario no protege de nada; sólo
 espera para truncar.
 
-Qué NO se porta, con su medición
-=================================
+Los cuatro ``related`` de este archivo, ya declarados (#252)
+==========================================================
 
-- **``country_code``** — ``related='country.code'``
-  (``odoo19c: res_bank.py:29``). Se omite **hoy**, y la razón que este bloque
-  daba estaba refutada por la propia referencia.
+La referencia declara aquí cuatro proyecciones de un join, ninguna con
+``store``: ``ResBank.country_code`` (``odoo19c: res_bank.py:29``),
+``ResPartnerBank.bank_name`` (``:97``), ``bank_bic`` (``:98``) y
+``country_code`` (``:102``). Las cuatro están declaradas.
 
-  Decía *«un ``related`` almacenado es una copia que puede divergir del
-  original»*. Eso describe ``store=True``, y la referencia lo declara **sin
-  store**: es una proyección que se calcula al leer, no una copia. El mismo
-  archivo lo dice bien doce líneas más abajo —*«proyecciones de un join, no
-  dato propio»*— así que la prosa se contradecía a sí misma.
+Esta sección decía que se omitían, con una razón que la propia referencia
+refutaba: *«un ``related`` almacenado es una copia que puede divergir del
+original»*. Eso describe ``store=True``, y la fuente los declara **sin store**
+— se calculan al leer, no se copian. Medido sobre los 120 addons que este
+árbol porta: **597** ``related=`` declarados, **552 sin store**. La razón no
+aplicaba a 552 de 597 (:ref:`h-api-974`).
 
-  Medido sobre los 120 addons que este árbol porta: la referencia declara
-  **597** campos ``related=``, y **552 no llevan ``store``**. La razón
-  retirada no aplicaba a 552 de 597.
-
-  Lo que sí es cierto es que el consumidor puede leer la FK
-  (``cuenta.bank.country.code``). Lo que **se pierde** al hacerlo es la
-  búsqueda: la referencia hace buscable un ``related`` cableando
-  ``self.search = self._search_related`` en ``setup_related``
-  (``odoo19c: fields.py:637``), y navegar por la FK no lo da.
-
-  **Estado del mecanismo, medido.** ``setup_related`` y ``_search_related``
-  están portados y probados (:ref:`h-api-974`), pero todavía no cableados al
-  arranque: ``fields.Char(related='country.code')`` levanta ``TypeError`` —el
-  constructor no conoce la clave— y nadie llama a ``field.setup(model)``
-  (único caller medido en ``src/orm``: ``fields_properties.py:233``, para su
-  propia clase). Las dos piezas que faltan son la tarea **#252**; este campo
-  se declara con ella, y entonces esta sección se retira.
+Lo que se perdía al navegar la FK a mano (``cuenta.bank.country.code``) no era
+el valor sino la **búsqueda**: la fuente hace buscable un ``related`` cableando
+``self.search = self._search_related`` en ``setup_related``
+(``odoo19c: fields.py:637``). Con el mecanismo cableado al arranque, filtrar
+por ``country_code`` emite el dominio sobre la cadena.
 
 ``res.partner.bank`` — la cuenta, en este mismo archivo (#118)
 ===============================================================
@@ -97,15 +87,7 @@ Divergencias declaradas (DEC-KX-03)
    método de clase ``retrieve_acc_type()`` —sobreescribible igual que en la
    referencia— y el campo se rellena en ``save()``.
 
-3. **``bank_name``/``bank_bic``/``country_code`` esperan al mecanismo, no se
-   declinan.** Son ``related=`` de la referencia (``odoo19c: res_bank.py:97``,
-   ``:98``, ``:102``) — proyecciones de un join, no dato propio, y **ninguno
-   lleva ``store``**. La razón que este punto daba —«se navegan por la FK»— es
-   la misma que la sección de arriba retiró: navegar da el valor y no da la
-   búsqueda. Se declaran en cuanto la tarea **#252** cablee el mecanismo al
-   arranque.
-
-4. **``color`` no se porta.** Es ``compute`` sin ``store`` (odoo19c:
+3. **``color`` no se porta.** Es ``compute`` sin ``store`` (odoo19c:
    res_bank.py:104): un índice de paleta para el cliente web de Odoo, que este
    producto no tiene.
 """
@@ -157,6 +139,10 @@ class ResBank(models.Model):
         ResCountry, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='banks', help_text='País (Odoo country).',
     )
+    #: ≙ ``country_code`` (``odoo19c: res_bank.py:29``). Sin ``store``, que es
+    #: el defecto de la fuente para un ``related`` (``fields.py:455``): no
+    #: ocupa columna y se calcula al leer.
+    country_code = fields.Char('Country Code', related='country.code')
     email        = fields.Char(blank=True, default='', help_text='Odoo email.')
     phone        = fields.Char(blank=True, default='', help_text='Odoo phone.')
     active       = fields.Boolean(default=True, help_text='Odoo active.')
@@ -300,6 +286,18 @@ class ResPartnerBank(models.Model):
         related_name='accounts',
         help_text='Institución donde está la cuenta (Odoo bank_id).',
     )
+    #: ≙ ``bank_name`` y ``bank_bic`` (``odoo19c: res_bank.py:97-98``), con su
+    #: ``readonly=False``: la fuente los deja escribibles a propósito — el
+    #: formulario de la cuenta permite corregir el nombre o el BIC del banco
+    #: desde ahí, y el inverso lo propaga al banco. Aquí el inverso lo cablea
+    #: ``setup_related`` (``fields.py:632``) por la misma condición.
+    bank_name = fields.Char('Bank Name', related='bank.name', readonly=False)
+    bank_bic = fields.Char('Bank BIC', related='bank.bic', readonly=False)
+    #: ≙ ``country_code`` (``odoo19c: res_bank.py:102``). Encadena dos
+    #: eslabones: el extremo es el ``country_code`` de ``ResPartner``, que a su
+    #: vez es un ``related`` de ``country.code``. Ninguno de los dos ocupa
+    #: columna.
+    country_code = fields.Char('Country Code', related='partner.country_code')
     currency = fields.Many2one(
         'base.ResCurrency', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='bank_accounts',

@@ -58,6 +58,8 @@ a una raíz propia como ``src/core``— es la tarea **#121**.
 """
 import inspect
 
+from django.db import models
+
 __all__ = ['NonStored']
 
 
@@ -71,10 +73,24 @@ class NonStored:
     dejaría el descriptor sin saber su propio nombre.
     """
 
-    def __init__(self, *_args, default=None, help_text='', search=None,
-                 **_ignored):
+    def __init__(self, *args, default=None, help_text='', search=None,
+                 related=None, verbose_name=None, **_ignored):
         self.default = default
         self.help_text = help_text
+        #: ≙ ``Field.string`` (``odoo19c: odoo/orm/fields.py:264``) — la
+        #: etiqueta. Django la toma del primer posicional, y la fuente la
+        #: declara con ``string=``; se conserva por las dos vías para que la
+        #: declaración se lea contra la suya sin traducir nada. Un campo sin
+        #: columna no la usa para pintar formulario, pero tirarla dejaría al
+        #: árbol sin forma de medir cuántos la declaran.
+        self.verbose_name = verbose_name if args[:1] == () else args[0]
+        #: ≙ ``Field.related`` (``odoo19c: odoo/orm/fields.py:286``) — la ruta
+        #: punteada cuyo extremo aporta el valor. Con ella el campo **no lee
+        #: su default**: navega la cadena, que es el ``compute`` de la fuente
+        #: (``:675`` ``_compute_related``). Es la forma de **552 de los 597**
+        #: ``related=`` que la referencia declara en los addons que este árbol
+        #: porta — los que no llevan ``store`` y por tanto no tienen columna.
+        self.related = related
         #: ≙ ``Field.search`` (``odoo19c: odoo/orm/fields.py:289``): el nombre
         #: de un método o el invocable que sabe traducir una condición sobre
         #: este campo a un dominio sobre campos que sí tienen columna. Sin él
@@ -106,6 +122,8 @@ class NonStored:
             return self
         if self.name in instance.__dict__:
             return instance.__dict__[self.name]
+        if self.related:
+            return self.resolve_related(instance)
         return self.resolve_default(instance)
 
     def __set__(self, instance, value):
@@ -122,6 +140,26 @@ class NonStored:
     #: vía por la que ``type`` y ``relational`` llegan a ``models.Field``, y
     #: por la misma razón: el contrato de la fuente se comparte, la jerarquía
     #: del stack no.
+
+    # -- resolución de la cadena related -----------------------------------
+
+    def resolve_related(self, instance):
+        """El valor del extremo de ``self.related``, navegando eslabón a
+        eslabón — ≙ ``Field._compute_related`` (``odoo19c: :675``).
+
+        **El eslabón vacío no revienta.** La fuente escribe
+        ``next(iter(corecord), corecord)``: sobre un recordset vacío eso
+        devuelve el propio vacío y la cadena sigue sin valor. Aquí el análogo
+        es que un ``None`` corta el recorrido y el campo lee vacío, que es la
+        misma conducta observable — una fila sin país no tiene código de país,
+        y eso no es un error.
+        """
+        value = instance
+        for name in self.related.split('.'):
+            if value is None:
+                return None
+            value = getattr(value, name, None)
+        return value
 
     # -- resolución del default --------------------------------------------
 
@@ -146,3 +184,84 @@ class NonStored:
         if len(firma.parameters) >= 1:
             return self.default(instance)
         return self.default()
+
+
+#: Centinela de «el declarante no dijo nada». Hace falta porque el defecto de
+#: ``store`` **depende de si hay ``related``**: ``True`` en un campo normal y
+#: ``False`` en una proyección (``odoo19c: odoo/orm/fields.py:455``). Un
+#: default literal en la firma no puede expresar las dos cosas.
+_UNSET = object()
+
+
+def apply_related_defaults(related, kwargs):
+    """Los cuatro atributos que la fuente le da a un campo ``related=``.
+
+    ≙ ``odoo19c: odoo/orm/fields.py:452-458``, verbatim::
+
+        if attrs.get('related'):
+            attrs['store'] = store = attrs.get('store', False)
+            attrs['compute_sudo'] = attrs.get('compute_sudo',
+                                              attrs.get('related_sudo', True))
+            attrs['copy'] = attrs.get('copy', False)
+            attrs['readonly'] = attrs.get('readonly', True)
+
+    El primero es el que explica la forma del corpus: ``store`` por defecto es
+    ``True`` en un campo cualquiera y **``False`` en un related**, así que de
+    los **597** que la referencia declara en los addons que este árbol porta,
+    **552 no llevan columna**. La prosa que declinaba portarlos llamándolos
+    «una copia que puede divergir» describía a los otros 45
+    (:ref:`h-api-974`).
+
+    **Los saca de ``kwargs``** y los devuelve en un diccionario. Los cuatro
+    son del vocabulario de la fuente y el constructor de Django no los
+    conoce: dejarlos dentro revienta con ``unexpected keyword argument``. Su
+    hogar es el campo ya construido — lo hace :func:`annotate_related`.
+    """
+    declared_store = kwargs.pop('store', _UNSET)
+    if not related:
+        return {'store': True if declared_store is _UNSET else declared_store}
+    declared_sudo = kwargs.pop('compute_sudo', _UNSET)
+    if declared_sudo is _UNSET:
+        declared_sudo = kwargs.pop('related_sudo', True)
+    else:
+        kwargs.pop('related_sudo', None)
+    declared_copy = kwargs.pop('copy', _UNSET)
+    declared_readonly = kwargs.pop('readonly', _UNSET)
+    return {
+        'store': False if declared_store is _UNSET else declared_store,
+        'compute_sudo': declared_sudo,
+        'copy': False if declared_copy is _UNSET else declared_copy,
+        'readonly': True if declared_readonly is _UNSET else declared_readonly,
+    }
+
+
+def annotate_related(field, related, attrs):
+    """Deja en el campo lo que la declaración dijo, para que sea greppeable.
+
+    Los cuatro atributos son del vocabulario de la fuente y Django no los
+    conoce, así que no viajan en su constructor: se anotan aquí. Sin la
+    anotación el árbol no tendría con qué medir cuántos campos son una
+    proyección — el mismo criterio con que ``translate`` se anota en vez de
+    tragarse (``orm/fields_textual.py``).
+    """
+    field.related = related
+    if not related:
+        return field
+    for attribute, value in attrs.items():
+        setattr(field, attribute, value)
+    #: El campo queda buscable por su cadena, que es lo que navegar la FK a
+    #: mano no da — la razón por la que este mecanismo se porta en vez de
+    #: declinarse (:ref:`h-api-974`). ``_search_related`` lo instala
+    #: :mod:`orm.domains`; aquí se liga a esta instancia. Con ``store`` la
+    #: búsqueda va por la columna propia, así que no se cablea (``:635``).
+    if not attrs['store']:
+        field.search = _bind_search_related(field)
+    return field
+
+
+def _bind_search_related(field):
+    """``_search_related`` ligado a ``field`` — el invocable que ``search``
+    espera: ``(records, operator, value) -> Domain``."""
+    def search(records, operator, value):
+        return models.Field._search_related(field, records, operator, value)
+    return search
