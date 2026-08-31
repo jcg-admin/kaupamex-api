@@ -25,4 +25,3 @@ src/addons/base/models/report_paperformat.py::grep -rn "^class IrActionsReport" 
 src/addons/base/models/res_company.py::grep -rn "zeep" src/ | grep -v res_company.py
 src/addons/base/models/res_groups.py::grep -rn "^class IrUiView" src/
 src/orm/fields_properties.py::grep -rn "filtered_domain" src/ addons/
-src/orm/fields_textual.py::grep -rn "Text(store=False\\|Html(store=False)"

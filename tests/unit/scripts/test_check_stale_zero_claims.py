@@ -5,12 +5,12 @@ Mismo principio que ``test_check_fk_naming.py``: un gate se prueba contra un
 escribió el patrón — un fabricado hereda el encuadre de su autor y confirma el
 instrumento en vez de ponerlo a prueba.
 
-Los cuatro controles que discriminan
-=====================================
+Los cinco controles que discriminan
+====================================
 
-Cada uno corresponde a un defecto que la primera versión del gate tuvo, y que
-publicó una cifra falsa antes de corregirse. El caso está escrito para que
-**caiga** si la corrección se revierte:
+Cada uno corresponde a un defecto que una versión del gate tuvo, y que publicó
+una cifra falsa antes de corregirse. El caso está escrito para que **caiga** si
+la corrección se revierte:
 
 ===========================  ==================================  =============
 Control                      Qué mide                            Sin el arreglo
@@ -19,11 +19,17 @@ Control                      Qué mide                            Sin el arreglo
 ``wkhtmltopdf`` (la cita)    la prosa citándose a sí misma       5 falsos
 ``^class IrModel`` (código)  el porte contradiciendo su prosa    se silencia
 ``grep -ic stdnum``          ``-c`` emite el número, no líneas   5 falsos
+``Text(store=False`` +       el árbol medido, declarado en la    1 falso
+``odoo19c:`` en la prosa     prosa y no dentro del comando
 ===========================  ==================================  =============
 
-Los dos del medio son la misma línea de código con veredictos opuestos, y por
-eso van juntos: excluir el archivo entero arregla el primero y rompe el
-segundo. El discriminador que sostiene los dos es el literal RST.
+El tercero y el segundo son la misma línea de código con veredictos opuestos, y
+por eso van juntos: excluir el archivo entero arregla uno y rompe el otro. El
+discriminador que sostiene los dos es el literal RST.
+
+El quinto es de la misma familia que el cuarto —el comando no basta para saber
+qué se midió— pero en el otro eje: aquél confunde la **unidad** de la salida,
+éste la **población** de la entrada.
 """
 import importlib.util
 import os
@@ -52,25 +58,55 @@ class TestTheClaimIsReadWithItsCommand:
         """``res_groups.py`` declina el conjunto disjunto citando un cero."""
         claims = gate.claims_in(
             pathlib.Path('src/addons/base/models/res_groups.py'))
-        commands = [command for command, _ in claims]
+        commands = [command for command, _, _ in claims]
         assert any('^class IrUiView' in c for c in commands), commands
 
     def test_a_repeated_claim_gets_its_own_line(self):
         """Dos archivos repiten su cita; las dos merecen línea propia."""
         claims = gate.claims_in(
             pathlib.Path('addons/account_peppol/models/res_company.py'))
-        phone = [line for command, line in claims if 'phonenumbers' in command]
+        phone = [line for command, line, _ in claims
+                 if 'phonenumbers' in command]
         assert len(phone) == 2, claims
         assert phone[0] != phone[1], phone
 
     def test_the_line_carries_the_grep_it_names(self):
         """El ancla es la cita, no el primer ``grep`` del archivo."""
         path = pathlib.Path('src/addons/base/models/ir_actions_report.py')
-        for command, line in gate.claims_in(path):
+        for command, line, _ in gate.claims_in(path):
             if 'wkhtmltopdf' not in command:
                 continue
             text = path.read_text().splitlines()[line - 1]
             assert 'grep' in text and 'wkhtmltopdf' in text, text
+
+
+class TestTheTreeIsReadFromTheWholeQuote:
+    """El árbol que el autor midió no siempre cabe dentro del comando.
+
+    ``fields_textual.py`` cita ``grep -rn "Text(store=False…"`` **sobre**
+    ``odoo19c:`` — el alias vive en la prosa que une el comando con su cero.
+    Medir sólo el comando lo re-ejecuta contra nuestro árbol, que es otra
+    población, y publica un caducado que nunca lo fue.
+    """
+
+    #: El caso se mide sobre ``survey``, no sobre la regex: comprobar que
+    #: ``ANOTHER_TREE`` casa la cita deja verde al gate aunque nadie consulte
+    #: esa respuesta. Lo que discrimina es que el reclamo NO salga como
+    #: caducado — que es el efecto que la guarda produce.
+    def test_the_alias_in_the_prose_takes_the_claim_out_of_scope(self):
+        path = 'src/orm/fields_textual.py'
+        claims, skipped, stale, _ = gate.survey([path])
+        assert claims, 'la cita de Text/Html ya no está en el archivo'
+        assert skipped == claims, (skipped, claims)
+        assert stale == [], stale
+
+    def test_our_own_tree_is_not_taken_out_of_scope(self):
+        """El control positivo: una cita sin alias SÍ se re-ejecuta aquí."""
+        path = 'src/addons/base/models/res_groups.py'
+        claims, skipped, stale, _ = gate.survey([path])
+        assert claims, 'la cita de IrUiView ya no está en el archivo'
+        assert any('^class IrUiView' in command
+                   for _, _, command, _ in stale), stale
 
 
 class TestTheCitationIsNotItsOwnEvidence:

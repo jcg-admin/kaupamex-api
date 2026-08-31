@@ -98,7 +98,8 @@ CITATION = re.compile(r'``(grep\b[^`]{3,300}?)``[^\n]{0,90}?(?:da|→|->)\s*\*\*
 
 #: Un comando que apunta a OTRO árbol —la referencia, o el repo hermano de
 #: ``ui``— no mide el nuestro: ahí un cero no caduca con nuestros portes.
-ANOTHER_TREE = re.compile(r'\$?ODOO1[89][CE]|odoo-tools|\$ODOO|(?<![\w/])ui/')
+ANOTHER_TREE = re.compile(
+    r'\$?ODOO1[89][CE]|odoo1[89][ce]:|odoo-tools|\$ODOO|(?<![\w/])ui/', re.I)
 
 
 def locate(command, raw, used):
@@ -131,17 +132,22 @@ def locate(command, raw, used):
 
 
 def claims_in(path):
-    """Cada ``(comando, linea)`` que el archivo declara con resultado cero.
+    """Cada ``(comando, linea, cita)`` que el archivo declara con cero.
 
     El texto se aplana antes de buscar: la cita se parte en varias líneas
     cuando el docstring la envuelve, y un patrón por línea la perdería.
+
+    La **cita entera** viaja junto al comando porque el árbol que se midió no
+    siempre está dentro del comando: ``grep -rn "…" `` sobre ``odoo19c:`` da
+    **0** declara su población en la prosa que une las dos partes. Medirla
+    sólo por el comando la re-ejecuta contra el árbol equivocado.
     """
     raw = path.read_text(errors='ignore')
     flat = re.sub(r'\n\s*#?:?\s*', ' ', raw)
     found, used = [], set()
     for match in CITATION.finditer(flat):
         command = ' '.join(match.group(1).split())
-        found.append((command, locate(command, raw, used)))
+        found.append((command, locate(command, raw, used), match.group(0)))
     return found
 
 
@@ -294,9 +300,9 @@ def survey(only=()):
     """Cada reclamo medido, con su conteo de hoy y el reparto del alcance."""
     claims, skipped, stale, unrunnable = 0, 0, [], []
     for path in python_files(only):
-        for command, line in claims_in(path):
+        for command, line, quote in claims_in(path):
             claims += 1
-            if ANOTHER_TREE.search(command):
+            if ANOTHER_TREE.search(quote):
                 skipped += 1
                 continue
             count, why = rerun(command, path)

@@ -1,0 +1,49 @@
+src/addons/base/models/ir_actions_report.py:41  el reclamo dice 0 y hoy da 5
+    grep -rln "reportlab\\|weasyprint\\|wkhtmltopdf\\|FPDF" src/ --include=*.py
+src/addons/base/models/ir_autovacuum.py:46  el reclamo dice 0 y hoy da 2
+    grep -rl orm_signaling src/ | grep -v ir_autovacuum.py
+src/addons/base/models/ir_field_converters.py:68  el reclamo dice 0 y hoy da 1
+    grep -rn "barcode" pyproject.toml
+src/addons/base/models/ir_field_converters.py:610  el reclamo dice 0 y hoy da 1
+    grep -n "barcode" pyproject.toml
+src/addons/base/models/ir_http.py:19  el reclamo dice 0 y hoy da 2
+    grep -rn "def slugify\\|from django.utils.text import" src/
+src/addons/base/models/ir_mail_server.py:60  el reclamo dice 0 y hoy da 2
+    grep -rn "def email_normalize" src/
+src/addons/base/models/ir_model.py:40  el reclamo dice 0 y hoy da 1
+    grep -rn "^class IrModel\\b" src/
+src/addons/base/models/report_paperformat.py:38  el reclamo dice 0 y hoy da 1
+    grep -rn "^class IrActionsReport" src/
+src/addons/base/models/res_company.py:73  el reclamo dice 0 y hoy da 1
+    grep -rn "zeep" src/ | grep -v res_company.py
+src/addons/base/models/res_groups.py:87  el reclamo dice 0 y hoy da 2
+    grep -rn "^class IrUiView" src/
+src/orm/fields_properties.py:1002  el reclamo dice 0 y hoy da 25
+    grep -rn "filtered_domain" src/ addons/
+src/orm/fields_textual.py:20  el reclamo dice 0 y hoy da 2
+    grep -rn "Text(store=False\\|Html(store=False)"
+addons/account/report/account_hash_integrity_templates.py:38  el reclamo dice 0 y hoy da 3
+    grep -rn "_check_hash_integrity" addons/ src/
+addons/account/report/account_invoice_report.py:484  el reclamo dice 0 y hoy da 1
+    grep -rn "display_qr_code\\|_generate_qr_code" addons/account/
+addons/product/models/product_supplierinfo.py:87  el reclamo dice 0 y hoy da 2
+    grep -rn "get_import_templates" src/
+addons/purchase_requisition/models/purchase.py:89  el reclamo dice 0 y hoy da 37
+    grep -rn "currency_rate" addons/ src/ --include=*.py
+addons/purchase_requisition/models/purchase_requisition.py:46  el reclamo dice 0 y hoy da 2
+    grep -rn "def _select_seller" addons/ src/
+addons/purchase_stock/models/purchase_order_line.py:97  el reclamo dice 0 y hoy da 2
+    grep -rn "to_refund" addons/ src/ --include=*.py
+addons/purchase_stock/models/stock_rule.py:140  el reclamo dice 0 y hoy da 2
+    grep -rn "def _select_seller" addons/ src/ --include=*.py
+addons/stock/models/stock_orderpoint.py:33  el reclamo dice 0 y hoy da 1
+    grep -rn "class .*Orderpoint" addons/ src/ --include=*.py
+addons/web/models/ir_http.py:66  el reclamo dice 0 y hoy da 91
+    grep -rn "'cids'\\|response.set_cookie\\|COOKIE" src/ --include=*.py -i
+addons/web/models/models.py:87  el reclamo dice 0 y hoy da 3
+    grep -rln "date_utils\\|def start_of" src/tools/*.py src/orm/*.py
+addons/web/models/models.py:107  el reclamo dice 0 y hoy da 1
+    grep -rln "_update_cache\\|field_computed\\|def modified(\\|_apply_onchange_methods" src/orm/*.py src/addons/*/models/*.py
+addons/web/models/models.py:134  el reclamo dice 0 y hoy da 2
+    grep -rln "update_field_translations\\|get_installed(" src/ --include="*.py"
+24 reclamo(s) de cero caducado(s) fuera del baseline  ·  en baseline: 0  (alcance medido: 42 cita(s) con comando; 39 re-ejecutable(s), 2 contra otro árbol, 1 que este guion no sabe correr)

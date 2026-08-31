@@ -1,0 +1,12 @@
+# Control discriminante — gate-de-ceros-sin-alias-en-la-prosa
+# fecha:    2026-08-31T08:59:26
+# archivo:  scripts/check_stale_zero_claims.py
+# anulado:  s/^            if ANOTHER_TREE.search(quote):/            if False:/
+# tests:    tests/unit/scripts/test_check_stale_zero_claims.py
+
+## 1. Verde de partida (guarda presente)
+17 passed, 1 warning in 9.14s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/scripts/test_check_stale_zero_claims.py::TestTheTreeIsReadFromTheWholeQuote::test_the_alias_in_the_prose_takes_the_claim_out_of_scope
+1 failed, 16 passed, 1 warning in 11.44s
