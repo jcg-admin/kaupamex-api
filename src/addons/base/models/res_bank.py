@@ -47,8 +47,15 @@ Qué NO se porta, con su medición
   (``cuenta.bank.country.code``). Lo que **se pierde** al hacerlo es la
   búsqueda: la referencia hace buscable un ``related`` cableando
   ``self.search = self._search_related`` en ``setup_related``
-  (``odoo19c: fields.py:637``), y navegar por la FK no lo da. El mecanismo
-  ``related=`` es la tarea **#249**; este campo se porta con él.
+  (``odoo19c: fields.py:637``), y navegar por la FK no lo da.
+
+  **Estado del mecanismo, medido.** ``setup_related`` y ``_search_related``
+  están portados y probados (:ref:`h-api-974`), pero todavía no cableados al
+  arranque: ``fields.Char(related='country.code')`` levanta ``TypeError`` —el
+  constructor no conoce la clave— y nadie llama a ``field.setup(model)``
+  (único caller medido en ``src/orm``: ``fields_properties.py:233``, para su
+  propia clase). Las dos piezas que faltan son la tarea **#252**; este campo
+  se declara con ella, y entonces esta sección se retira.
 
 ``res.partner.bank`` — la cuenta, en este mismo archivo (#118)
 ===============================================================
@@ -90,10 +97,13 @@ Divergencias declaradas (DEC-KX-03)
    método de clase ``retrieve_acc_type()`` —sobreescribible igual que en la
    referencia— y el campo se rellena en ``save()``.
 
-3. **``bank_name``/``bank_bic``/``country_code`` no se portan como columna.**
-   Son ``related=`` de la referencia — proyecciones de un join, no dato propio.
-   Se navegan por la FK (``cuenta.bank.name``, ``cuenta.partner.country.code``).
-   Mismo criterio que los ``related`` de ``account.report.external.value``.
+3. **``bank_name``/``bank_bic``/``country_code`` esperan al mecanismo, no se
+   declinan.** Son ``related=`` de la referencia (``odoo19c: res_bank.py:97``,
+   ``:98``, ``:102``) — proyecciones de un join, no dato propio, y **ninguno
+   lleva ``store``**. La razón que este punto daba —«se navegan por la FK»— es
+   la misma que la sección de arriba retiró: navegar da el valor y no da la
+   búsqueda. Se declaran en cuanto la tarea **#252** cablee el mecanismo al
+   arranque.
 
 4. **``color`` no se porta.** Es ``compute`` sin ``store`` (odoo19c:
    res_bank.py:104): un índice de paleta para el cliente web de Odoo, que este

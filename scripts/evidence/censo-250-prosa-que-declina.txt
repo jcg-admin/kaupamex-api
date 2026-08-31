@@ -1,0 +1,44 @@
+archivos con al menos un marcador: 347
+lineas con marcador: 618
+
+los 20 archivos con mas:
+   27  addons/account_edi_ubl_cii/models/account_edi_ubl.py
+   14  addons/account_edi_ubl_cii/models/account_edi_xml_ubl_20.py
+   11  src/addons/base/models/res_partner.py
+   11  src/addons/base/models/res_users.py
+    9  src/addons/base/models/ir_module.py
+    8  src/addons/base/models/ir_cron.py
+    8  src/addons/base/models/ir_ui_view.py
+    8  src/addons/base/models/res_bank.py
+    6  src/addons/base/models/ir_actions.py
+    5  src/addons/base/models/ir_actions_report.py
+    5  src/addons/base/models/ir_model.py
+    5  src/orm/domains.py
+    5  src/orm/fields.py
+    5  src/orm/models.py
+    5  addons/account/models/chart_template.py
+    5  addons/fleet/models/fleet_vehicle.py
+    4  src/addons/base/models/ir_http.py
+    4  src/addons/base/models/ir_ui_menu.py
+    4  src/tools/convert.py
+    4  addons/account/models/account_report.py
+
+con ancla a la fuente: 396
+SIN ancla:             222
+
+los 15 sin ancla en src/ (el nucleo, donde el porte manda):
+  src/addons/base/exception_handling.py:33  (es un error del cliente, y su pila no aporta). El sellado anterior no tenía
+  src/addons/base/management/commands/cron.py:80  Deliberadamente NO se porta (colapsado en el modelo de proceso único de
+  src/addons/base/migrations/0048_ir_module_manifest_metadata.py:54  help_text="Odoo icon: la RUTA del icono, no el binario. El binario es icon_image, computado, y ése n
+  src/addons/base/models/__init__.py:48  (vocabulario y primitivas de QWeb; el compilador NO se porta — este árbol
+  src/addons/base/models/__init__.py:53  (registro de vistas y reglas de herencia; el combinador de XML no se porta).
+  src/addons/base/models/assetsbundle.py:52  Qué NO se porta, con su medición
+  src/addons/base/models/avatar_mixin.py:21  No se porta ``_get_avatar_128_access_token``: depende de
+  src/addons/base/models/ir_actions.py:65  Qué NO se porta, con su medición
+  src/addons/base/models/ir_actions_report.py:79  Qué NO se porta, con su medición
+  src/addons/base/models/ir_actions_report.py:305  # El descriptor viaja en UTF-8 crudo. Ya no hace falta ``ensure_ascii``:
+  src/addons/base/models/ir_asset.py:43  Qué NO se porta, con su medición
+  src/addons/base/models/ir_attachment.py:23  irrelevante aquí porque esa capa de ACL no se porta (ver abajo).
+  src/addons/base/models/ir_attachment.py:25  Alcance de la portación — deliberadamente NO se porta:
+  src/addons/base/models/ir_autovacuum.py:39  - ``self.env['ir.cron']._commit_progress()`` **no se porta**: pertenece al
+  src/addons/base/models/ir_autovacuum.py:43  - ``_gc_orm_signaling`` **no se porta**: barre las tablas
