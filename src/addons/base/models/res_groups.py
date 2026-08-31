@@ -78,15 +78,22 @@ Qué NO se porta, con su medición
   campo ``group`` apunta hoy a ``authz.Capability``. Re-apuntarlo es
   exactamente la decisión de producto que este docstring difiere; añadir aquí
   un segundo M2M crearía dos caminos de autorización al mismo menú, que es
-  peor que uno provisional.
-- ``view_group_hierarchy`` / ``_get_view_group_hierarchy`` (Json computado
-  para el formulario de ajustes) y ``action_show_all_users`` (devuelve una
-  ``ir.actions.act_window``): ``IrActionsActWindow`` **ya existe** desde el
-  porte de ``ir_actions.py``, pero ambos métodos dependen además de la capa de
-  **vistas** (``ir.ui.view``), que sigue sin portar —
-  ``grep -rn "^class IrUiView" src/`` → **0**.
-- ``_ensure_xml_id`` y ``get_external_id``: mismo motivo que ``disjoint_ids``,
-  no hay ``ir.model.data``.
+  peor que uno provisional. Sucesor: tarea **#86**, que reintegra ``authz`` a
+  ``base`` y hace de ``Role`` un ``ResGroups``; hasta entonces la deuda tiene
+  dueño y no es una declinación anónima.
+- ``view_group_hierarchy`` / ``_get_view_group_hierarchy`` y
+  ``action_show_all_users``: **portados**, y viven abajo en este archivo. Se
+  declinaban citando que la capa de vistas seguía ausente; ese cero caducó al
+  portarse ``ir_ui_view.py``, que hoy declara ``IrUiView`` e ``IrUiViewCustom``.
+  La declinación sobrevivió al porte porque una frase dentro de un docstring no
+  aparece en ninguna lista de trabajo — el defecto que el gate
+  ``check_stale_zero_claims.py`` existe para atrapar.
+- ``_ensure_xml_id`` y ``get_external_id``: **portados** también. Su bloqueo
+  —la ausencia de ``ir.model.data``— lo cerró el porte de ``ir_model.py``, que
+  declara ``IrModelData``, y ``get_external_id`` lo construyó la tarea #204 en
+  :class:`orm.models.AccessQuerySet`. El docstring de ``_ensure_xml_id`` ya lo
+  registraba mientras este párrafo seguía diciendo lo contrario: dos referentes
+  del mismo archivo en desacuerdo.
 - ``api_key_duration``: la duración máxima de una API key. Este árbol autentica
   por sesión de servidor (ADR-018) y las API keys no existen; el campo se
   porta como columna —es dato del grupo— pero sin lógica que lo consuma, y así

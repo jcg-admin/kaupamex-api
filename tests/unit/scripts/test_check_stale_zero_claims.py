@@ -15,7 +15,7 @@ la corrección se revierte:
 ===========================  ==================================  =============
 Control                      Qué mide                            Sin el arreglo
 ===========================  ==================================  =============
-``^class IrUiView``          un cero que el porte dejó falso     no se ve
+``def slugify``              un cero que el porte dejó falso     no se ve
 ``wkhtmltopdf`` (la cita)    la prosa citándose a sí misma       5 falsos
 ``^class IrModel`` (código)  el porte contradiciendo su prosa    se silencia
 ``grep -ic stdnum``          ``-c`` emite el número, no líneas   5 falsos
@@ -54,12 +54,20 @@ BASE = pytest.fixture(autouse=True)(
 class TestTheClaimIsReadWithItsCommand:
     """``claims_in`` extrae la cita y la ancla a la línea que la escribe."""
 
-    def test_it_finds_the_ir_ui_view_claim_of_res_groups(self):
-        """``res_groups.py`` declina el conjunto disjunto citando un cero."""
+    def test_it_finds_the_slugify_claim_of_ir_http(self):
+        """``ir_http.py`` declina el porte de ``slugify`` citando un cero.
+
+        **Re-anclado**: el control era el reclamo de ``IrUiView`` en
+        ``res_groups.py``, y se cerró al portarse la capa de vistas. Que un
+        control de gate caiga al arreglarse su defecto NO es fragilidad del
+        test — es el precio de anclarlo a un positivo real del repo, que es lo
+        que ``hallazgo-abierto-genera-sucesor.md`` exige. Un incumplidor
+        fabricado nunca caería, y tampoco probaría nada.
+        """
         claims = gate.claims_in(
-            pathlib.Path('src/addons/base/models/res_groups.py'))
+            pathlib.Path('src/addons/base/models/ir_http.py'))
         commands = [command for command, _, _ in claims]
-        assert any('^class IrUiView' in c for c in commands), commands
+        assert any('def slugify' in c for c in commands), commands
 
     def test_a_repeated_claim_gets_its_own_line(self):
         """Dos archivos repiten su cita; las dos merecen línea propia."""
@@ -102,10 +110,10 @@ class TestTheTreeIsReadFromTheWholeQuote:
 
     def test_our_own_tree_is_not_taken_out_of_scope(self):
         """El control positivo: una cita sin alias SÍ se re-ejecuta aquí."""
-        path = 'src/addons/base/models/res_groups.py'
+        path = 'src/addons/base/models/ir_http.py'
         claims, skipped, stale, _ = gate.survey([path])
-        assert claims, 'la cita de IrUiView ya no está en el archivo'
-        assert any('^class IrUiView' in command
+        assert claims, 'la cita de slugify ya no está en el archivo'
+        assert any('def slugify' in command
                    for _, _, command, _ in stale), stale
 
 
@@ -232,7 +240,7 @@ class TestTheGateRefusesRatherThanPublishAFalseGreen:
 
     def test_an_explicit_file_list_still_reads_its_claims(self):
         """CONTROL del par: sin él, «no rehúsa» y «no mide» dan lo mismo."""
-        done = self._run('--strict', 'src/addons/base/models/res_groups.py')
+        done = self._run('--strict', 'src/addons/base/models/ir_http.py')
         assert done.returncode == 0, done.stdout + done.stderr
         assert '1 cita(s) con comando' in done.stdout, done.stdout
 
