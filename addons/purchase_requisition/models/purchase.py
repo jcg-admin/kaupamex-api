@@ -83,11 +83,44 @@ un ``view_id`` sembrado por datos XML. Este árbol no siembra vistas (misma
 ausencia que ``_for_xml_id``, 0 definiciones). Los dos son descriptores de
 acción para el cliente web de Odoo, no lógica de negocio.
 
-**Causa D — la línea de compra no tiene moneda ni tasa.** ``price_total_cc``
-(``:257``) y ``company_currency_id`` (``:258``) más su
+**Causa D — la cabecera de ``purchase.order`` es un esqueleto.**
+``price_total_cc`` (``:257``) y ``company_currency_id`` (``:258``) más su
 ``_compute_price_total_cc`` (``:260-263``) dividen el subtotal entre
-``order_id.currency_rate``. Medido: ``grep -rn "currency_rate" addons/ src/
---include=*.py`` → **0**. Sin tasa no hay conversión a moneda de la empresa.
+``order_id.currency_rate``. Ese campo lo declara la **orden de compra**, no
+esta extensión: en la fuente es un ``compute`` con ``store=True`` sobre
+``currency_id``/``date_order``/``company_id``
+(``odoo19c: addons/purchase/models/purchase_order.py:164-170,211-218``). Aquí
+``purchase.order`` declara cinco campos —``name``, ``partner_id``,
+``date_order``, ``state``, ``note``— y ``purchase.order.line`` cuatro: ninguno
+de los tres de los que la tasa depende.
+``grep -c currency_rate addons/purchase/models/purchase_order.py`` da **0**.
+
+El **mecanismo no es el bloqueo**: ``_get_conversion_rate`` ya está portado
+(``src/addons/base/models/res_currency.py:462``), y ``related=`` —que
+``company_currency_id`` necesita— se construyó en la tarea #249. Lo que falta
+es la cabecera del addon ``purchase``, que no es alcance de esta extensión.
+Sucesor: tarea **#266**.
+
+.. note::
+
+   **Corregido 2026-08-31.** La razón anterior medía así:
+
+   .. code-block:: text
+
+      grep -rn "currency_rate" addons/ src/ --include=*.py   →  0
+
+   Ese cero caducó: hoy da **39**, con ``sale.order.currency_rate``
+   (``addons/sale/models/sale_order.py:675``) entre ellos. El comando barría
+   los dos árboles enteros cuando la pregunta era sobre **un modelo**; su
+   silencio dejó de discriminar en cuanto otro addon declaró el campo. El
+   bloqueo sigue siendo real —``purchase.order`` no lo tiene— pero se mide
+   donde la fuente lo dereferencia, y ahora tiene sucesor.
+
+   *Métrica:* declaraciones de ``currency_rate`` en el archivo del modelo que
+   la fuente dereferencia.
+   *Ciega a:* un ``currency_rate`` que llegue a ``purchase.order`` por
+   herencia desde otro archivo, y a si la tasa portada dará el mismo valor que
+   la de la fuente.
 
 **Causa E — depende de lo anterior.** ``action_choose`` (``:310-322``) llama a
 ``action_clear_quantities`` sobre las líneas de las alternativas, y necesita

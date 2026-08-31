@@ -1,0 +1,15 @@
+# Control discriminante — cita de currency_rate (#250)
+# fecha:    2026-08-31T11:47:59
+# archivo:  addons/purchase/models/purchase_order.py
+# inyectado: 'currency_rate = fields.Float()' tras la linea 37
+# gate:     scripts/check_stale_zero_claims.py addons/purchase_requisition/models/purchase.py
+
+## 1. Verde de partida — la cita dice 0 y hoy da 0
+grep -c currency_rate en el modelo: 0
+0 reclamo(s) de cero caducado(s) fuera del baseline  ·  en baseline: 0  (alcance medido: 1 cita(s) con comando; 1 re-ejecutable(s), 0 contra otro árbol, 0 que este guion no sabe correr)
+
+## 2. Con el simbolo INYECTADO — la cita debe quedar caducada
+grep -c currency_rate en el modelo: 1
+addons/purchase_requisition/models/purchase.py:96  el reclamo dice 0 y hoy da 1
+    grep -c currency_rate addons/purchase/models/purchase_order.py
+1 reclamo(s) de cero caducado(s) fuera del baseline  ·  en baseline: 0  (alcance medido: 1 cita(s) con comando; 1 re-ejecutable(s), 0 contra otro árbol, 0 que este guion no sabe correr)
