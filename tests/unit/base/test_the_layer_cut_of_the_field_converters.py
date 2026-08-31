@@ -68,9 +68,13 @@ EXPECTED_NAMES = {
 #: ``IrFieldConverterMonetary`` **salió de esta tabla** en la tarea #197: su
 #: razón —la ausencia de ``babel``— resultó cubrir sólo la mitad de su caso, y
 #: el camino del papel no tiene cliente a quien delegar. Ver :ref:`h-api-940`.
+#:
+#: ``IrFieldConverterBarcode`` salió en la tarea #250 por la misma clase de
+#: defecto: su razón era un cero medido —sin generador en las dependencias—
+#: que otro porte dejó falso sin que nadie releyera la declinación.
+#: Ver :ref:`h-api-991`.
 DELEGATED = {
     'IrFieldConverterRelative': 'cliente',
-    'IrFieldConverterBarcode': 'dependencias',
     'IrFieldConverterImage': None,
     'IrFieldConverterTemplate': None,
 }

@@ -41,10 +41,14 @@ CONVERTERS = pathlib.Path(ir_field_converters.__file__)
 #: pasó: ``IrFieldConverterMonetary`` estaba aquí y salió en la tarea **#197**,
 #: porque su razón declarada (la ausencia de ``babel``) sólo cubría la mitad
 #: de su caso. Ver :ref:`h-api-940`.
+#:
+#: ``IrFieldConverterBarcode`` salió por lo mismo en la tarea **#250**: su
+#: razón —``grep -n "barcode" pyproject.toml`` → 0— caducó cuando el porte de
+#: ``ir_actions_report.py`` trajo ``python-barcode`` y ``tools/barcode.py``.
+#: Ver :ref:`h-api-991`.
 DELEGATED = {
     'IrFieldConverterImage': 'cliente',
     'IrFieldConverterRelative': 'cliente',
-    'IrFieldConverterBarcode': 'cliente',
     'IrFieldConverterTemplate': 'compilador no portado',
 }
 
@@ -70,12 +74,14 @@ class TestTheFamilyIsWhatTheReferenceDeclares:
     def test_there_are_twenty_one_classes(self):
         assert len(classify()) == 21
 
-    def test_fifteen_format_here_two_inherit_and_four_delegate(self):
-        # Era 14/2/5 hasta la tarea #197, que sacó a ``Monetary`` del bando
-        # que delega. El reparto se mide, no se recuerda.
+    def test_sixteen_format_here_two_inherit_and_three_delegate(self):
+        # Era 14/2/5 hasta la tarea #197, que sacó a ``Monetary``; y 15/2/4
+        # hasta la #250, que sacó a ``Barcode`` cuando su cero medido —sin
+        # generador en las dependencias— resultó caducado. El reparto se
+        # mide, no se recuerda: por eso este caso falla al moverse uno.
         split = classify()
         counts = {v: sum(1 for x in split.values() if x == v) for v in set(split.values())}
-        assert counts == {'formatea': 15, 'hereda': 2, 'delega': 4}, counts
+        assert counts == {'formatea': 16, 'hereda': 2, 'delega': 3}, counts
 
     def test_the_four_that_delegate_are_the_declared_ones(self):
         assert {k for k, v in classify().items() if v == 'delega'} == set(DELEGATED)

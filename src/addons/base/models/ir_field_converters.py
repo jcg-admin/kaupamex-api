@@ -65,9 +65,11 @@ Qué NO se porta, con su medición
 ================================
 
 - **``IrFieldConverterBarcode``** — genera la imagen del código de barras como
-  ``data:`` URI. Medido: ``grep -rn "barcode" pyproject.toml`` → **0**; no hay
-  generador de códigos de barras en las dependencias. La clase se declara con
-  su punto de extensión.
+  ``data:`` URI. **Portado 2026-08-31** (:ref:`h-api-991`): el cero de este
+  bullet —``grep -rn "barcode" pyproject.toml`` → 0— caducó solo. Hoy da
+  **1** (``pyproject.toml:82``, ``python-barcode>=0.15.1``) y el raster vive
+  en ``tools/barcode.py``; el conversor delega en
+  ``IrActionsReport.barcode``, el mismo punto de entrada que la fuente usa.
 - **``to_html`` / ``render_element`` / ``attributes``** de la clase base:
   envuelven el valor en el nodo raíz con los atributos ``data-oe-*`` que el
   editor web de Odoo usa para edición en línea. Sin ese editor —este árbol
@@ -79,6 +81,7 @@ Qué NO se porta, con su medición
 - **``record_to_html`` con ``with_context``**: la propagación de contexto del
   ORM de Odoo. Se porta la firma y la lectura del campo, sin el contexto.
 """
+import base64
 import logging
 import re
 from decimal import Decimal
@@ -87,6 +90,8 @@ import models
 from django.utils import formats
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
+
+from addons.base.models.ir_actions_report import IrActionsReport
 
 _logger = logging.getLogger(__name__)
 
@@ -605,11 +610,28 @@ class IrFieldConverterRelative(IrFieldConverter):
 
 
 class IrFieldConverterBarcode(IrFieldConverter):
-    """``barcode`` — imagen del código de barras.
+    """``barcode`` — imagen del código de barras como ``data:`` URI.
 
-    No portado: medido ``grep -n "barcode" pyproject.toml`` → **0**; no hay
-    generador en las dependencias. Se declara la clase para que el mapa de
-    conversores esté completo y el punto de extensión sea explícito.
+    ≙ ``IrQwebFieldBarcode`` (``odoo19c: odoo/addons/base/models/
+    ir_qweb_fields.py:777-817``). Se porta ``value_to_html``;
+    ``get_available_options`` queda fuera por la divergencia que este archivo
+    declara para los 21 conversores —el catálogo describe las opciones a un
+    constructor de vistas que aquí no existe—, no por este símbolo en
+    particular. Las seis opciones que ese catálogo anuncia **sí** se aceptan
+    y se usan abajo, con sus mismos defaults.
+
+    **Portado en este pase; antes se declinaba y la razón ya era falsa.** El
+    docstring decía *"medido ``grep -n \"barcode\" pyproject.toml`` → 0; no
+    hay generador en las dependencias"*. Ese cero era cierto al escribirse y
+    caducó solo: hoy el mismo comando da **1** —
+    ``pyproject.toml:82`` declara ``python-barcode>=0.15.1``— y el generador
+    vive en ``tools/barcode.py`` desde el porte de ``ir_actions_report.py``.
+    Ver :ref:`h-api-991`.
+
+    El raster **no se dibuja aquí**: se delega en
+    ``IrActionsReport.barcode``, que es el mismo punto de entrada que la
+    fuente usa (``self.env['ir.actions.report'].barcode(...)``). Este
+    conversor sólo decide el marcado que envuelve al PNG.
     """
 
     _name = 'ir.qweb.field.barcode'
@@ -618,11 +640,55 @@ class IrFieldConverterBarcode(IrFieldConverter):
     class Meta:
         abstract = True
 
+    #: Los atributos de ``<img>`` que un ``img_*`` puede fijar. La fuente los
+    #: filtra por el ``safe_attrs`` de ``lxml.html.clean``; aquí la lista se
+    #: declara porque ``lxml.html.clean`` se separó a ``lxml_html_clean`` y
+    #: arrastrarlo por seis nombres sería una dependencia por conveniencia.
+    #: Divergencia de mecanismo, no de contrato: el filtro sigue existiendo y
+    #: sigue siendo una lista blanca.
+    IMG_SAFE_ATTRS = ('alt', 'title', 'class', 'style', 'width', 'height')
+
     @classmethod
     def value_to_html(cls, value, options=None):
-        raise NotImplementedError(
-            'No hay generador de códigos de barras en las dependencias de '
-            'este árbol.')
+        """El ``<img>`` con el PNG en base64, o el valor escapado si no es ASCII.
+
+        Las cuatro reglas de la fuente, en su orden:
+
+        1. valor vacío → cadena vacía;
+        2. valor **no ASCII** → no se dibuja, se devuelve el texto con sus
+           saltos de línea convertidos (``nl2br`` allá; aquí el escape de
+           ``IrFieldConverter`` más ``<br>``, que es lo mismo sin la
+           dependencia de plantilla);
+        3. los ``img_*`` del llamador pasan al ``<img>`` si su nombre está en
+           la lista blanca;
+        4. sin ``alt`` explícito, se compone uno con el valor.
+        """
+        if not value:
+            return ''
+
+        value = str(value)
+        if not re.match(r'^[\x00-\x7F]+$', value):
+            return mark_safe(escape(value).replace('\n', '<br>'))
+
+        options = options or {}
+        png = IrActionsReport.barcode(
+            options.get('symbology', 'Code128'),
+            value,
+            **{key: val for key, val in options.items()
+               if key in ('width', 'height', 'humanreadable', 'quiet', 'mask')},
+        )
+
+        attrs = {}
+        for key, val in options.items():
+            if key.startswith('img_') and key[4:] in cls.IMG_SAFE_ATTRS:
+                attrs[key[4:]] = val
+        attrs.setdefault('alt', f'Barcode {value}')
+        attrs['src'] = 'data:image/png;base64,%s' % (
+            base64.b64encode(png).decode())
+
+        rendered = ' '.join(f'{key}="{escape(str(val))}"'
+                            for key, val in attrs.items())
+        return mark_safe(f'<img {rendered}>')
 
 
 class IrFieldConverterContact(IrFieldConverter):

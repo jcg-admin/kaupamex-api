@@ -15,8 +15,6 @@ addons/web/models/models.py::grep -rln "date_utils\\|def start_of" src/tools/*.p
 addons/web/models/models.py::grep -rln "_update_cache\\|field_computed\\|def modified(\\|_apply_onchange_methods" src/orm/*.py src/addons/*/models/*.py
 addons/web/models/models.py::grep -rln "update_field_translations\\|get_installed(" src/ --include="*.py"
 src/addons/base/models/ir_actions_report.py::grep -rln "reportlab\\|weasyprint\\|wkhtmltopdf\\|FPDF" src/ --include=*.py
-src/addons/base/models/ir_field_converters.py::grep -rn "barcode" pyproject.toml
-src/addons/base/models/ir_field_converters.py::grep -n "barcode" pyproject.toml
 src/addons/base/models/ir_http.py::grep -rn "def slugify\\|from django.utils.text import" src/
 src/addons/base/models/ir_model.py::grep -rn "^class IrModel\\b" src/
 src/addons/base/models/report_paperformat.py::grep -rn "^class IrActionsReport" src/
