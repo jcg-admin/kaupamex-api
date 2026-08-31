@@ -234,12 +234,15 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
       está portada, y con ella la guarda del correo de :meth:`name_create` es
       observable.
 
-    **Divergencia de mecanismo, ya declarada en su sitio.**
+    **Portado, con su desenlace declarado en su sitio.**
 
-    - ``_get_view``, ``_get_view_cache_key`` y ``_view_get_address`` — mutan
-      el arch XML de una vista Odoo con XPath. Razón medida en
-      :class:`FormatAddressMixin` y :class:`FormatVatLabelMixin`, más abajo:
-      el **dato** está (``vat_label``, ``address_format``) y el árbol XML no.
+    - ``_get_view``, ``_get_view_cache_key`` y ``_view_get_address`` —
+      **portados** en :class:`FormatAddressMixin` y
+      :class:`FormatVatLabelMixin`, más abajo: entregan la decisión (qué
+      rótulo, qué orden) y el destino diverge. Este bullet los declaraba
+      divergencia de mecanismo sobre una premisa que dejó de ser cierta; ver
+      :ref:`h-api-981`. Queda una rama con sucesor: la de
+      ``address_view_id``, bloqueada por la tarea **#178**.
     - ``get_import_templates`` y ``_check_import_consistency`` — el asistente
       de importación CSV, con su razón medida junto a
       ``_extract_fields_from_address``. Desenlace: decisión del ejecutor,
@@ -2599,6 +2602,21 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         return result
 
 
+def _company_in_context():
+    """La empresa activa, o ``None`` — el ``self.env.company`` de la fuente.
+
+    Los dos mixins de formato leen el pais de la empresa activa, no el del
+    contacto que se esta pintando: la fuente lo dice en un comentario
+    (``odoo19c: res_partner.py:76``) — *"consider the country of the user, not
+    the country of the partner we want to display"*.
+    """
+    company_id = get_current_company()
+    if company_id is None:
+        return None
+    return apps.get_model('base', 'ResCompany').objects.filter(
+        pk=company_id).first()
+
+
 class FormatVatLabelMixin:
     """``format.vat.label.mixin`` — ≙ ``FormatVatLabelMixin``
     (``odoo19c: odoo/addons/base/models/res_partner.py:45-58``).
@@ -2608,18 +2626,23 @@ class FormatVatLabelMixin:
     la empresa (``env.company.country_id.vat_label``) y la **inyecta en el XML
     de la vista**, tanto en el ``<field name="vat">`` como en su ``<label>``.
 
-    DIVERGENCIA DE MECANISMO, medida y declarada. Medido en este arbol:
+    PORTADO ENTERO. El destino diverge —alla dos nodos del arch, aca el mapa
+    campo → etiqueta— y la decision es la misma: :meth:`vat_label_for` calcula
+    la etiqueta, :meth:`_get_view` dice que es ``vat`` quien la lleva.
 
-    - el **dato** SI esta: ``ResCountry.vat_label``
-      (``res_country.py:84``), portado con su ``help_text``;
-    - el **mecanismo** de la fuente NO: ``_get_view`` da **0 hits** en todo
-      el arbol (``grep -rn "def _get_view\b" src/ addons/``). No hay arch XML
-      que mutar porque la interfaz es React y consume JSON.
+    Las dos piezas del dato estan medidas: ``ResCountry.vat_label``
+    (``res_country.py:94``) y la forma de ``res_currency._get_view``
+    (``res_currency.py:726``), que es el precedente de este arbol para
+    entregar la decision en vez de escribirla.
 
-    Por eso el mixin porta el metodo que **calcula** la etiqueta —que es la
-    decision— y no el que la escribe en un arbol XML que aqui no existe. Un
-    serializer que exponga ``vat`` lee ``vat_label_for`` y manda la etiqueta
-    en la respuesta; ese cableado es la tarea **#47**.
+    Su consumidor —el serializer que exponga ``vat`` con su rotulo— es la
+    tarea **#47**.
+
+    .. note:: Este bloque declaraba divergencia de mecanismo sobre una
+       premisa que dejo de ser cierta: *"``_get_view`` da 0 hits en todo el
+       arbol"*. Medido al corregirlo, ``res_currency.py`` declara **cuatro**
+       (``:711``, ``:726``, ``:1171``, ``:1188``), y con ellas el patron que
+       hacia portable la conducta sin arch. Ver :ref:`h-api-981`.
     """
 
     _name = 'format.vat.label.mixin'
@@ -2636,6 +2659,34 @@ class FormatVatLabelMixin:
         country = getattr(company, 'country', None)
         return getattr(country, 'vat_label', '') or ''
 
+    @classmethod
+    def _get_view(cls, view_type='form', company=None, **options):
+        """≙ ``_get_view`` (``odoo19c: res_partner.py:49-57``).
+
+        La conducta que se porta: **el campo ``vat`` se rotula con la
+        etiqueta fiscal del pais de la empresa**. Alla la escribe en dos nodos
+        del arch —``<field name="vat">`` y su ``<label for="vat">``, el
+        segundo porque *"in some module vat field is replaced"*—; aca devuelve
+        el mapa campo → etiqueta y el destino lo decide quien lo consume.
+
+        Es la forma que ``res_currency._get_view``
+        (``res_currency.py:726``) ya estableci en este arbol: el metodo
+        entrega la decision, no la escribe.
+
+        :meth:`vat_label_for` calcula la etiqueta; este metodo dice **a que
+        campo pertenece**, que es la mitad que sin el habria que adivinar.
+
+        **Sin guarda de tipo de vista, a proposito.** La fuente no la tiene
+        aqui —si en :meth:`FormatAddressMixin._get_view` (``:133``)—, asi que
+        el rotulo fiscal tambien alcanza a la lista.
+        """
+        if company is None:
+            company = _company_in_context()
+        if company is None:
+            return {}
+        label = cls.vat_label_for(company)
+        return {'vat': label} if label else {}
+
 
 class FormatAddressMixin:
     """``format.address.mixin`` — ≙ ``FormatAddressMixin``
@@ -2647,26 +2698,36 @@ class FormatAddressMixin:
     del XML** de la vista para que el usuario vea el orden al que esta
     acostumbrado.
 
-    DIVERGENCIA DE MECANISMO, medida y declarada — la misma que el mixin de
-    arriba y por la misma razon:
+    PORTADO, con **una** rama declarada y su sucesor. Los cuatro simbolos de
+    la fuente y su estado aqui:
 
-    - el **dato** SI esta: ``ResCountry.address_format``
-      (``res_country.py:74``) con sus once claves admitidas en
-      ``ADDRESS_FORMAT_KEYS``;
-    - el **mecanismo** NO: ``_get_view``, ``_get_view_cache_key`` y
-      ``postprocess_and_fields`` dan **0 hits**; ``ir.ui.view`` no tiene arch
-      que postprocesar en este arbol.
+    ==============================  =========================================
+    Simbolo                         Estado
+    ==============================  =========================================
+    ``_extract_fields_from_address``  portado verbatim (``:68-72``)
+    ``_view_get_address``             portado en su rama de ``address_format``
+    ``_get_view_cache_key``           portado (``:127-129``)
+    ``_get_view``                     portado (``:130-135``)
+    ==============================  =========================================
 
-    Lo que SI se porta es ``_extract_fields_from_address``, que es **trabajo
-    de cadena puro** y por tanto independiente del canal: dice en que orden
-    van los campos, que es exactamente lo que una interfaz React necesita
-    recibir para pintarlos bien. Su consumidor —el serializer que exponga ese
-    orden— es la tarea **#47**.
+    El destino diverge —alla mueve nodos con ``addnext``, aca devuelve la
+    secuencia— y la decision es la misma: **en que orden van los campos de la
+    direccion**. Su consumidor, el serializer que la exponga, es la tarea
+    **#47**.
 
-    Lo que NO se porta, y su razon: ``_view_get_address`` (muta nodos
-    ``//div[hasclass('o_address_format')]`` con XPath), ``_get_view`` y
-    ``_get_view_cache_key``. Los tres operan sobre un arbol XML de vista Odoo;
-    no hay conducta que replicar porque no hay arbol.
+    **La rama que NO se porta**, con su condicion de cierre: la de
+    ``address_view_id`` (``:77-92``), que sustituye el bloque de direccion por
+    la vista propia del pais. Se apoya en un ``Many2one`` a ``ir.ui.view`` que
+    este arbol no declara —medido: ``grep -rn address_view_id src/ addons/``
+    da **0**— y su sucesor es la tarea **#178**, que porta la entrega de
+    vistas. No es una divergencia de mecanismo: es trabajo bloqueado por una
+    pieza nombrada.
+
+    .. note:: Este bloque declaraba las tres ultimas «divergencia de
+       mecanismo» sobre una premisa medida como falsa al re-medirla:
+       ``_get_view`` y ``_get_view_cache_key`` **no** dan 0 hits —
+       ``res_currency.py`` declara cuatro—, y esa forma es justo la que hace
+       portable la conducta sin arch. Ver :ref:`h-api-981`.
     """
 
     _name = 'format.address.mixin'
@@ -2693,22 +2754,128 @@ class FormatAddressMixin:
             [c[2:-2] for c in candidates if c in address_line],
             key=address_line.index)
 
+    #: Los dos derivados que en el arch apuntan al MISMO campo real — ``:112``
+    #: y ``:120`` de la fuente los mapean a ``state_id`` antes de buscarlo.
+    STATE_DERIVATIVES = ('state_code', 'state_name')
+
+    #: Los tres campos que la fuente coloca SIEMPRE, los nombre el formato o
+    #: no — el ``concerned_fields`` de ``:113``.
+    PLACED_FIELDS = ('zip', 'city', 'state_id')
+
+    @classmethod
+    def _view_get_address(cls, country):
+        """≙ ``_view_get_address`` (``odoo19c: res_partner.py:74-125``), rama
+        de ``address_format``.
+
+        La conducta que se porta: **el orden en que van los campos de la
+        direccion es el que el pais acostumbra**. Alla mueve nodos del arch
+        con ``addnext``; aca devuelve la secuencia y quien pinta decide donde
+        la escribe. Misma divergencia de destino que
+        ``res_currency._get_view`` (``res_currency.py:726``).
+
+        Tres piezas, y las tres son de la fuente:
+
+        1. **La linea que manda es la de la ciudad** (``:105``) — un formato
+           tiene varias lineas y solo una decide este orden.
+        2. **Los dos derivados apuntan a un campo real** (``:112``,
+           ``:120``): ``state_code`` y ``state_name`` se buscan como
+           ``state_id``. Nombrarlos los dos no lo duplica — un nodo no puede
+           estar en dos sitios a la vez.
+        3. **Lo que el formato no nombra va al final** (``:119-124``): la
+           fuente arranca de ``concerned_fields`` con los tres y coloca al
+           final los que sobran. Un formato que solo nombra ``zip`` y
+           ``city`` sigue teniendo que poner el estado en alguna parte.
+
+        DIVERGENCIA declarada, y es una sola: la fuente recorre el resto
+        iterando un ``set``, cuyo orden Python no garantiza. Aqui se ordena
+        alfabeticamente. No es un cambio de conducta —la fuente no decide ese
+        orden, lo deja al azar— sino darselo a algo que
+        :meth:`_get_view_cache_key` necesita estable para poder cachear.
+
+        La otra rama de la fuente (``:77-92``, sustituir el bloque por la
+        vista propia del pais) **no se porta**: se apoya en
+        ``country.address_view_id``, un ``Many2one`` a ``ir.ui.view`` que este
+        arbol no declara — medido: ``grep -rn address_view_id src/ addons/``
+        da **0**. Su condicion de cierre es la tarea **#178**, que porta la
+        entrega de vistas; hasta entonces el campo no tiene a que apuntar.
+        """
+        fmt = getattr(country, 'address_format', '') or ''
+        city_lines = [cls._extract_fields_from_address(line)
+                      for line in fmt.split('\n') if 'city' in line]
+        if not city_lines:
+            return []
+
+        declared = ['state_id' if name in cls.STATE_DERIVATIVES else name
+                    for name in city_lines[0]]
+        order = []
+        for name in declared:
+            if name not in order:
+                order.append(name)
+        for name in sorted(set(cls.PLACED_FIELDS) - set(order)):
+            order.append(name)
+        return order
+
     @classmethod
     def field_order_for(cls, country):
-        """El orden de ``zip`` / ``city`` / ``state`` que pide ``country``.
+        """El orden de la direccion que pide ``country`` — fachada publica.
 
-        Es la decision que ``_view_get_address`` toma antes de mover nodos
-        (``:105-108``): busca la **linea del formato que contiene la ciudad**
-        y de ahi saca el orden. Sin el XML de por medio, esa decision es todo
-        lo que hay que portar.
+        Delega en :meth:`_view_get_address`, que es donde vive la conducta.
+        La frontera publico/privado es la de la fuente: alla
+        ``_view_get_address`` es interno y lo llama ``_get_view``; aqui ese
+        interno tiene ademas un consumidor de fuera —el serializer de la
+        tarea **#47**— y esta fachada es su puerta.
 
         Devuelve lista vacia cuando el pais no declara formato, que es cuando
         la fuente no reordena nada.
         """
-        fmt = getattr(country, 'address_format', '') or ''
-        lines = [cls._extract_fields_from_address(line)
-                  for line in fmt.split('\n') if 'city' in line]
-        return lines[0] if lines else []
+        return cls._view_get_address(country)
+
+    @classmethod
+    def _get_view_cache_key(cls, view_type='form', company=None, **options):
+        """≙ ``_get_view_cache_key`` (``odoo19c: res_partner.py:127-129``).
+
+        Docstring de la fuente, verbatim: *"The override of _get_view, using
+        _view_get_address, changing the architecture according to the address
+        view of the company, makes the view cache dependent on the company.
+        Different companies could use each a different address view"*.
+
+        Los dos ejes que la fuente anade a la llave heredada (``:129``) son la
+        **empresa** y la bandera ``no_address_format``. Sin el primero, dos
+        empresas con formatos distintos comparten un orden que contradice a
+        una de las dos; sin el segundo, la llamada que pidio no formatear
+        recibe el orden cacheado de la que si.
+        """
+        if company is None:
+            company = _company_in_context()
+        return (cls._name, view_type, tuple(sorted(options.items())),
+                getattr(company, 'pk', None),
+                bool(get_context().get('no_address_format')))
+
+    @classmethod
+    def _get_view(cls, view_type='form', company=None, **options):
+        """≙ ``_get_view`` (``odoo19c: res_partner.py:130-135``).
+
+        Dos guardas, las dos de la fuente:
+
+        - **solo el formulario** (``:133`` — ``if view.type == 'form'``). Es
+          la asimetria que separa a este mixin de
+          :class:`FormatVatLabelMixin`, que no filtra por tipo;
+        - **la bandera del contexto** (``:96`` —
+          ``not self.env.context.get('no_address_format')``), que la fuente
+          usa para no reformatear una direccion **dentro** de otra ya
+          formateada.
+        """
+        if view_type != 'form':
+            return {}
+        if get_context().get('no_address_format'):
+            return {}
+        if company is None:
+            company = _company_in_context()
+        country = getattr(company, 'country', None)
+        if country is None:
+            return {}
+        order = cls._view_get_address(country)
+        return {'address_field_order': order} if order else {}
 
 
 

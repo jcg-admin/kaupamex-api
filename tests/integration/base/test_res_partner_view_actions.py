@@ -6,9 +6,14 @@ Contrato adaptado de ``odoo19c: odoo/addons/base/models/res_partner.py``:
 
 Las dos son de la capa de presentación y aun así son **conducta**, no XML:
 una devuelve el descriptor de la ventana que hay que abrir y la otra el
-título de la lista. Ninguna toca un arch, que es lo que separa a estas dos de
-``_get_view`` / ``_view_get_address`` — declarados divergencia de mecanismo en
-``FormatAddressMixin`` porque sí mutan nodos con XPath.
+título de la lista.
+
+Este párrafo decía que eso *"es lo que separa a estas dos de ``_get_view`` /
+``_view_get_address`` — declarados divergencia de mecanismo en
+``FormatAddressMixin``"*. Ya no las separa nada: los dos están portados con la
+misma forma —entregar la decisión y dejar el destino a quien la consume—, y su
+desglose vive en ``test_format_address_and_vat_label.py``. Ver
+:ref:`h-api-981`.
 
 Qué haría fallar a cada control se declara en cada caso.
 """
