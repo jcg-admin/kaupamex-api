@@ -480,11 +480,38 @@ class ReportAccountReportInvoice:
 
         La fuente pregunta ``invoice.display_qr_code`` y llama
         ``invoice._generate_qr_code(silent_errors=...)`` por cada
-        documento (``odoo19c: :187-192``). Medido en este arbol:
-        ``grep -rn "display_qr_code\\|_generate_qr_code"
-        addons/account/`` -> **0** apariciones -- ninguno de los dos existe
-        en ``AccountMove`` (``addons/account/models/account_move.py``,
-        fuera de mi alcance de escritura en la tarea #398).
+        documento (``odoo19c: :180-185``).
+
+        **El bloqueo NO es el generador de QR: ese ya esta portado.**
+        ``addons/account/models/res_partner_bank.py`` entrega
+        ``build_qr_code_url`` (:117), ``build_qr_code_base64`` (:127),
+        ``get_available_qr_methods_in_sequence`` (:201) y
+        ``_get_error_messages_for_qr`` (:208) -- los cuatro que la cadena
+        de la referencia consume. Lo que falta es **el lado del
+        documento**: los campos sobre los que ``_generate_qr_code``
+        decide. Medido 2026-08-31 contra
+        ``odoo19c: addons/account/models/account_move.py``, **5 de 5**
+        ausentes en nuestro ``AccountMove`` -- ``partner_bank`` (ref
+        :444), ``payment_reference`` (:467), ``qr_code_method`` (:483),
+        ``amount_residual`` (:559) y ``display_qr_code`` (:475, con su
+        ``_compute_display_qr_code`` en :2185) --, mas el interruptor de
+        empresa ``qr_code`` (``odoo19c: company.py:149``), que da **0**
+        en nuestro ``res_company.py``.
+
+        La cita que el gate de ceros caducados vigila es la del campo del
+        que cuelgan los otros cuatro:
+        ``grep -c display_qr_code addons/account/models/account_move.py`` da **0**.
+        El dia que ese campo aterrice, el gate marca esta prosa como
+        caducada y obliga a reabrir el bloqueo.
+
+        Sucesor: tarea **#263**.
+
+        *Metrica:* declaracion del campo (``^    <campo> =``) en nuestro
+        ``account_move.py`` frente a la de la referencia.
+        *Ciega a:* un porte que declare los campos con otro nombre, y al
+        ultimo eslabon de la cadena -- ``_generate_qr_code`` termina en
+        ``build_qr_code_base64``, que ya declara su propio bloqueo por el
+        renderizador de codigos de barras (tarea #192).
 
         No se degrada en silencio a ``{}``: eso seria el OK silencioso que
         ``check_silent_oks`` existe para impedir -- un reporte que
@@ -492,14 +519,29 @@ class ReportAccountReportInvoice:
         falta. Se levanta en cuanto hay al menos un documento a resolver;
         con ``docs`` vacio no hay nada que el metodo deba resolver, asi
         que no bloquea el caso trivial.
+
+        .. note::
+
+           **Corregido 2026-08-31 (H-API-995).** La version anterior
+           declinaba con dos defectos. (1) Su razon era falsa: decia que
+           ``display_qr_code``/``_generate_qr_code`` no existen "en
+           AccountMove", cuando el bloqueo real son los cinco campos y el
+           interruptor de empresa; el generador lleva portado desde el
+           cierre de la Ola B. (2) Citaba ``la tarea #398`` como limite de
+           alcance y ``#512`` como sucesor: los ids de tarea **reinician
+           por sesion** (tarea #3), asi que ambos ordinales estan muertos
+           -- el tablero llega a #262. Un sucesor citado por un ordinal
+           que no resuelve es la forma de cumplimiento sin su sustancia,
+           la misma clase que :ref:`h-api-994`.
         """
         if not docs:
             return {}
         raise NotImplementedError(
-            'AccountMove.display_qr_code / AccountMove._generate_qr_code '
-            'no estan portados (addons/account/models/account_move.py, '
-            'fuera de mi alcance de escritura en la tarea #398). Ver '
-            'hallazgo H-API-682, sucesor: tarea #512.'
+            'El lado del documento del QR de pago no esta portado: faltan '
+            'AccountMove.{partner_bank, payment_reference, qr_code_method, '
+            'amount_residual, display_qr_code} y ResCompany.qr_code '
+            '(el generador de res_partner_bank.py SI esta portado). '
+            'Ver hallazgos H-API-682 y H-API-995, sucesor: tarea #263.'
         )
 
 

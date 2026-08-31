@@ -1,0 +1,17 @@
+# Control discriminante — la cita vigilada del bloque QR de account.move
+# fecha:     2026-08-31T11:29:45
+# archivo:   addons/account/report/account_invoice_report.py
+# cita:      grep -c display_qr_code addons/account/models/account_move.py  ->  da **0**
+# inyeccion: se declara display_qr_code en el AccountMove de nuestro arbol (linea 108)
+
+## 1. Estado de partida (el campo NO existe)
+$ grep -c display_qr_code addons/account/models/account_move.py
+0
+0 reclamo(s) de cero caducado(s) fuera del baseline  ·  en baseline: 13  (alcance medido: 36 cita(s) con comando; 32 re-ejecutable(s), 3 contra otro árbol, 1 que este guion no sabe correr)
+
+## 2. Con el campo INYECTADO — el gate debe marcar la prosa caducada
+$ grep -c display_qr_code addons/account/models/account_move.py
+1
+addons/account/report/account_invoice_report.py:503  el reclamo dice 0 y hoy da 1
+    grep -c display_qr_code addons/account/models/account_move.py
+1 reclamo(s) de cero caducado(s) fuera del baseline  ·  en baseline: 13  (alcance medido: 36 cita(s) con comando; 32 re-ejecutable(s), 3 contra otro árbol, 1 que este guion no sabe correr)
