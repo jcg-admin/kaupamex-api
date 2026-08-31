@@ -93,11 +93,12 @@ Caen aquí, con la línea de la fuente: ``_ondelete_stock_moves`` (``:13-23``),
 ``_update_date_planned`` (``:412-418``), ``_update_qty_received_method``
 (``:420-424``), ``_merge_po_line`` (``:426-428``).
 
-**Causa B — ``to_refund`` no existe.** Medido:
-``grep -rn "to_refund" addons/ src/ --include=*.py`` → **0**. Es la bandera de
+**Causa B — CERRADA: ``to_refund`` ya existe.** Era la bandera de
 ``stock.move`` que distingue una devolución que se reembolsa de una que no, y
-la declara ``stock_account`` en la referencia. Cae
-``_get_outgoing_incoming_moves`` (``:399-410``), cuyas dos ramas la consultan.
+por su ausencia caía ``_get_outgoing_incoming_moves`` (``:401-413``), cuyas dos
+ramas la consultan. El campo se portó en
+``addons/stock_account/models/stock_move.py`` —donde lo declara la fuente— y el
+método está portado aquí. Ver :ref:`h-api-999`.
 
 **Causa C — ``_for_xml_id`` no existe** (0 definiciones):
 ``action_product_forecast_report`` (``:123-137``) devuelve el descriptor de una
@@ -129,6 +130,8 @@ con sus cuatro variables.
 """
 from django.core.exceptions import ValidationError
 
+from addons.stock.models.stock_location import USAGE_INVENTORY, USAGE_SUPPLIER
+
 import fields
 import models
 from orm.method_chain import chain_method
@@ -153,6 +156,41 @@ def _get_po_line_moves(self):
     método en este árbol. Sin llamador, el filtro no tiene con qué acotarse.
     """
     return self.move_ids.filter(product=self.product_id)
+
+
+def _get_outgoing_incoming_moves(self):
+    """≙ ``_get_outgoing_incoming_moves`` (``odoo19c: :401-413``).
+
+    Reparte los movimientos de esta línea en los que **salen** hacia el
+    proveedor —una devolución— y los que **entran**. De ese reparto sale la
+    cantidad recibida de la línea, así que un movimiento mal clasificado
+    cambia lo que la orden dice haber recibido.
+
+    ``to_refund`` es la bisagra: una devolución **con** la bandera resta de lo
+    recibido; una **sin** ella devuelve mercancía sin tocar la orden (la que
+    se cambia por otra, la que se rehace). La bandera la porta
+    ``stock_account/models/stock_move.py``, que es donde la declara la fuente.
+
+    Divergencias de nombre, ninguna de conducta: ``origin_returned_move_id``
+    es ``origin_returned_move`` aquí, y ``location_dest_id.usage`` se navega
+    como ``location_dest.usage`` porque ``location_dest_usage`` es una
+    ``property`` sin columna.
+    """
+    outgoing_moves, incoming_moves = [], []
+
+    for move in self.move_ids.all():
+        if (move.state == 'cancel'
+                or move.location_dest_usage == USAGE_INVENTORY
+                or self.product_id != move.product):
+            continue
+        if move._is_purchase_return() and (
+                move.to_refund or not move.origin_returned_move):
+            outgoing_moves.append(move)
+        elif move.location_dest.usage != USAGE_SUPPLIER:
+            if not move.origin_returned_move or move.to_refund:
+                incoming_moves.append(move)
+
+    return outgoing_moves, incoming_moves
 
 
 def _update_move_date_deadline(self, new_date):
@@ -275,6 +313,7 @@ def apply_purchase_stock_purchase_order_line_extensions():
         propiedades={'is_storable': is_storable},
         metodos={
             '_get_po_line_moves': _get_po_line_moves,
+            '_get_outgoing_incoming_moves': _get_outgoing_incoming_moves,
             '_update_move_date_deadline': _update_move_date_deadline,
             '_check_orderpoint_picking_type': _check_orderpoint_picking_type,
         },

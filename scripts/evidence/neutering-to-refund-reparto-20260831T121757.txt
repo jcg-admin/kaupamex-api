@@ -1,0 +1,12 @@
+# Control discriminante — to-refund-reparto
+# fecha:    2026-08-31T12:17:57
+# archivo:  addons/purchase_stock/models/purchase_order_line.py
+# anulado:  s/if not move.origin_returned_move or move.to_refund:/if True:/
+# tests:    tests/unit/purchase_stock/
+
+## 1. Verde de partida (guarda presente)
+7 passed, 1 warning in 9.54s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/purchase_stock/test_outgoing_incoming_moves.py::test_an_incoming_return_without_the_flag_is_dropped
+1 failed, 6 passed, 1 warning in 9.25s

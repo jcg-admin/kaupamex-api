@@ -72,7 +72,8 @@ no conducta (``metrica-decide-la-conclusion.md``).
      - ``selected_seller_id`` → 0 hits
    * - ``_action_synch_order`` (``:61-93``)
      - **bloqueado**
-     - ``to_refund`` → 0, ``purchase_method`` → 0
+     - ``purchase_method`` → 0 (``to_refund`` ya no bloquea: portado en
+       ``stock_account/models/stock_move.py``, :ref:`h-api-999`)
    * - ``_prepare_extra_move_vals`` (``:99-102``)
      - **bloqueado**
      - ``grep -rn "def _prepare_extra_move_vals"`` → 0

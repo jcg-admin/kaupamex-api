@@ -2,7 +2,6 @@
 # heredada. Uno listado no bloquea; uno nuevo sí. Se paga al tocar
 # el archivo — el triaje es la tarea #250.
 # Clave: <archivo>::<comando citado>
-addons/purchase_stock/models/purchase_order_line.py::grep -rn "to_refund" addons/ src/ --include=*.py
 addons/stock/models/stock_orderpoint.py::grep -rn "class .*Orderpoint" addons/ src/ --include=*.py
 addons/web/models/ir_http.py::grep -rn "'cids'\\|response.set_cookie\\|COOKIE" src/ --include=*.py -i
 addons/web/models/models.py::grep -rln "date_utils\\|def start_of" src/tools/*.py src/orm/*.py
