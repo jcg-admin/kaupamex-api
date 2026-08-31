@@ -1,4 +1,4 @@
-"""``ir.autovacuum`` — barrido periódico de los métodos ``@api.autovacuum``.
+r"""``ir.autovacuum`` — barrido periódico de los métodos ``@api.autovacuum``.
 
 Adaptación fiel de ``odoo/addons/base/models/ir_autovacuum.py``
 (``odoo-tools@bf077302``, ``odoo19c:``). Es el colector que recorre el
@@ -43,14 +43,31 @@ resuelve un problema real y no son intercambiables:
   está en ``:1130``. Ver :ref:`h-api-984`.
 - ``_gc_orm_signaling`` **no se porta TODAVÍA**, y su sucesor está registrado:
   barre las tablas ``orm_signaling_<señal>`` del invalidador de caché
-  multi-proceso de Odoo. Medido con ``grep -rl orm_signaling src/ | grep -v
-  ir_autovacuum.py`` → **0** archivos (el filtro excluye esta propia mención).
-  No hay tablas que barrer; portarlo sería declarar una capacidad inexistente.
+  multi-proceso de Odoo. No hay tablas que barrer; portarlo sería declarar una
+  capacidad inexistente. **Construir esas tablas es la tarea #256**, y este
+  método entra con ellas.
 
-  La medición sigue en pie y lo que le faltaba era el desenlace: **construir
-  esas tablas es la tarea #256**, y este método entra con ellas. Sin esa
-  línea, la razón medida se leía como un cierre y no como trabajo bloqueado
-  por una pieza nombrada.
+  El cero se mide por **declaración**, no por mención, y el patrón va
+  **anclado a inicio de línea** para no encontrarse a sí mismo:
+  ``grep -rn "^ *db_table *= *['\"]orm_signaling\|^ *def check_signaling\|^ *def
+  signal_changes" src/ --include=*.py`` → **0**.
+
+  El ancla no es cosmética. Sin ella el comando da **1**: esta misma cita, que
+  vive dentro de ``src/``. Es el defecto #2 de :ref:`h-api-985` —*"la cita se
+  encontraba a sí misma"*— reaparecido en la cita que lo corregía. El gate no
+  lo habría delatado: descuenta la línea de cita por el literal RST, así que
+  publica **0** mientras un humano que copie el comando lee **1**. Un ancla en
+  el patrón cierra las dos lecturas a la vez, sin el ``| grep -v <archivo>``
+  que :ref:`h-api-985` descartó por demasiado ancho.
+
+  La cita anterior era ``grep -rl orm_signaling src/ | grep -v
+  ir_autovacuum.py``, y hoy da **2** —``res_groups.py:824`` e
+  ``ir_ui_view.py:145``— sin que exista una sola tabla: los dos hits son
+  **prosa** que describe el mecanismo de la referencia. Un instrumento que
+  cuenta el nombre no distingue *"el mecanismo existe"* de *"alguien lo
+  nombró"*, que es el sub-patrón **C** de ``metrica-decide-la-conclusion.md``.
+  Que el conteo suba no invalida la declinación: obliga a releerla, y releída
+  se sostiene.
 """
 import collections
 import inspect

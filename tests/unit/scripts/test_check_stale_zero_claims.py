@@ -78,6 +78,39 @@ class TestTheClaimIsReadWithItsCommand:
         assert len(phone) == 2, claims
         assert phone[0] != phone[1], phone
 
+    def test_a_quoted_command_with_a_non_zero_is_not_a_claim(self):
+        """Citar un comando NO lo convierte en reclamo: el cero es el gancho.
+
+        ``ir_autovacuum.py`` cita **dos** comandos: el vigente, que declara su
+        cero, y el anterior, que la prosa conserva diciendo que *"hoy da 2"*
+        para explicar por qué se sustituyó. Sin el ``**0**`` en el patrón, el
+        gate contaría el segundo y re-ejecutaría un instrumento que su propio
+        archivo ya declaró inservible.
+        """
+        path = pathlib.Path('src/addons/base/models/ir_autovacuum.py')
+        commands = [command for command, _, _ in gate.claims_in(path)]
+        assert len(commands) == 1, commands
+        assert 'db_table' in commands[0], commands[0]
+        assert not any('grep -rl orm_signaling' in c for c in commands), commands
+
+    def test_the_claim_of_ir_autovacuum_does_not_find_itself(self):
+        """El comando citado NO se encuentra a sí mismo, y por eso va anclado.
+
+        La cita vive dentro de ``src/`` y su comando busca en ``src/``: sin el
+        ancla de inicio de línea el patrón encuentra su propia cita y devuelve
+        **1**, no el **0** que la prosa declara. El gate no lo delataría —
+        descuenta la línea de cita por el literal RST— así que el control mide
+        lo que un humano ve al copiar el comando, no lo que el gate cuenta.
+
+        Es el defecto #2 de H-API-985 reaparecido en la cita que lo corregía.
+        """
+        path = pathlib.Path('src/addons/base/models/ir_autovacuum.py')
+        command, _, _ = gate.claims_in(path)[0]
+        assert command.count('^ *') == 3, command
+        salida = subprocess.run(command, shell=True, capture_output=True,
+                                text=True, cwd=REPO)
+        assert salida.stdout == '', salida.stdout
+
     def test_the_line_carries_the_grep_it_names(self):
         """El ancla es la cita, no el primer ``grep`` del archivo."""
         path = pathlib.Path('src/addons/base/models/ir_actions_report.py')

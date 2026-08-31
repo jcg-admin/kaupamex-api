@@ -1,0 +1,12 @@
+# Control discriminante — claim-sin-ancla-se-encuentra-a-si-misma
+# fecha:    2026-08-31T09:38:06
+# archivo:  src/addons/base/models/ir_autovacuum.py
+# anulado:  s|\^ \*||g
+# tests:    tests/unit/scripts/test_check_stale_zero_claims.py
+
+## 1. Verde de partida (guarda presente)
+21 passed, 1 warning in 8.10s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/scripts/test_check_stale_zero_claims.py::TestTheClaimIsReadWithItsCommand::test_the_claim_of_ir_autovacuum_does_not_find_itself
+1 failed, 20 passed, 1 warning in 8.55s
