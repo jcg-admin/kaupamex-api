@@ -1,0 +1,11 @@
+clave primaria: id  (BigAutoField)
+  is_editable()          -> True      (la fuente: False, readonly=True)
+  _description_string    -> (necesita env)
+  .string                -> None   (la fuente: 'ID')
+  .readonly              -> False  (la fuente: True)
+  .prefetch              -> True  (la fuente: False)
+
+active         (BooleanField    ) aggregator=None     column_type=None
+name           (CharField       ) aggregator=None     column_type=None
+credit_limit   (FloatField      ) aggregator=None     column_type=None
+color          (IntegerField    ) aggregator=None     column_type=None

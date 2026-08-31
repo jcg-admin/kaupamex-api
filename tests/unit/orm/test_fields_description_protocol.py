@@ -123,8 +123,16 @@ class TestTheIndividualAnswers:
         assert field.is_editable() is False
 
     def test_column_type_turns_jsonb_when_the_value_is_a_map(self):
+        """El mapa por empresa o por idioma gana sobre el tipo declarado.
+
+        La primera aserción decía ``is None`` y fijaba el estado **anterior**
+        al porte de los atributos de clase (#245): un ``CharField`` no tenía
+        tipo de columna porque nadie instalaba ``_column_type``. Corregida al
+        valor de la fuente, el caso mide más, no menos — ahora se ve que el
+        ``jsonb`` **sustituye** un tipo real en vez de rellenar un hueco.
+        """
         field = models.CharField(max_length=8)
-        assert field.column_type is None
+        assert field.column_type == ('varchar', 'VARCHAR(8)')
         field.company_dependent = True
         assert field.column_type == ('jsonb', 'jsonb')
         field.company_dependent = False

@@ -1,0 +1,33 @@
+# Atributos de clase de campo que responden distinto de lo que la
+# fuente declara. Deuda heredada CONGELADA (tarea #245): uno
+# listado no bloquea, uno nuevo si. Se retira la linea al
+# corregirlo, o el baseline miente sobre deuda que ya no existe.
+_column_type::BooleanField::Boolean
+_column_type::CharField::Selection
+_column_type::DecimalField::Monetary
+_column_type::ForeignKey::Many2one
+_column_type::IntegerField::Integer
+_column_type::JSONField::Json
+_column_type::Properties::Properties
+_column_type::PropertiesDefinition::PropertiesDefinition
+_depends_context::BinaryField::Binary
+aggregator::DecimalField::Monetary
+aggregator::FloatField::Float
+aggregator::IntegerField::Integer
+copy::Properties::Properties
+is_text::CharField::BaseString
+is_text::TextField::BaseString
+precompute::Properties::Properties
+prefetch::AutoField::Id
+prefetch::BigAutoField::Id
+prefetch::BinaryField::Binary
+prefetch::Properties::Properties
+prefetch::SmallAutoField::Id
+readonly::AutoField::Id
+readonly::BigAutoField::Id
+readonly::SmallAutoField::Id
+string::AutoField::Id
+string::BigAutoField::Id
+string::SmallAutoField::Id
+write_sequence::DecimalField::Monetary
+write_sequence::Properties::Properties

@@ -26,7 +26,7 @@ y 5 variables de módulo.
                                     ``SQL.identifier``)
   ================================  =====================================
 
-**Pendientes — 32 funciones de módulo, 1 clase y 4 variables** que la
+**Pendientes — 30 funciones de módulo, 1 clase y 3 variables** que la
 referencia declara y aquí no existen: ``existing_tables``, ``table_kind`` (+
 ``TableKind``), ``create_model_table``, ``create_column``, ``rename_column``,
 ``convert_column``, ``convert_column_translatable``, ``_convert_column``,
@@ -35,7 +35,7 @@ referencia declara y aquí no existen: ``existing_tables``, ``table_kind`` (+
 ``drop_constraint``, ``add_foreign_key``, ``get_foreign_keys``,
 ``fix_foreign_key``, ``check_index_exist``, ``index_definition``,
 ``create_index``, ``add_index``, ``create_unique_index``, ``drop_index``,
-``drop_view_if_exists``, ``pg_varchar``, ``reverse_order``,
+``drop_view_if_exists``, ``reverse_order``,
 ``increment_fields_skiplock``, ``value_to_translated_trigram_pattern``,
 ``pattern_to_translated_trigram_pattern``,
 ``make_index_name``; y ``__all__``, ``_schema``, ``_CONFDELTYPES``.
@@ -47,7 +47,9 @@ esta declaración medida es el registro de esa cobertura (regla
 el 2026-08-28: ``tools/query.py`` lo exige para acotar el alias de un JOIN
 al límite de identificador de PostgreSQL, que es el consumidor que la
 política anunciaba. ``SQL_ORDER_BY_TYPE`` salió el 2026-08-30 por la misma
-regla: ``Field.column_order`` (``orm/fields.py``) es su consumidor.
+regla: ``Field.column_order`` (``orm/fields.py``) es su consumidor. ``pg_varchar`` salió el
+2026-08-31 por la misma regla: ``Char._column_type`` lo exige para que un
+``CharField`` responda su tipo de columna (tarea #245).
 
 ``named_to_positional_printf`` y ``_PrintfArgs`` viven en
 ``src/tools/misc.py`` — su hogar espejado (``odoo19c: odoo/tools/misc.py:1959``
@@ -341,6 +343,30 @@ def make_identifier(identifier: str) -> str:
         # espacio restante se usa como prefijo legible.
         return f"{identifier[:54]}_{crc32(identifier.encode()):08x}"
     return identifier
+
+
+def pg_varchar(size=0):
+    """≙ ``pg_varchar`` (``odoo19c: odoo/tools/sql.py:644-659``).
+
+    Devuelve la declaración ``VARCHAR`` de la columna: ``VARCHAR(n)`` con un
+    tamaño positivo y ``VARCHAR`` —sin límite— sin él. Verbatim de la fuente,
+    incluida la mayúscula y el ``ValueError`` ante un tamaño no entero.
+
+    **Sale hoy de la lista de pendientes de este módulo** porque su consumidor
+    apareció, que es la condición que esa lista declara: ``Char._column_type``
+    (``odoo19c: odoo/orm/fields_textual.py:494-496``) es
+    ``('varchar', pg_varchar(self.size))``, y el porte de los atributos de
+    clase de campo lo necesita para que un ``CharField`` responda su tipo de
+    columna en vez de ``None``. Mismo camino que recorrieron
+    ``make_identifier`` y ``SQL_ORDER_BY_TYPE``.
+    """
+    if size:
+        if not isinstance(size, int):
+            raise ValueError("VARCHAR parameter should be an int, got %s"
+                             % type(size))
+        if size > 0:
+            return 'VARCHAR(%d)' % size
+    return 'VARCHAR'
 
 
 def escape_psql(to_escape):

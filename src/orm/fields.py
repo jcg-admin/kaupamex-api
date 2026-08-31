@@ -63,7 +63,7 @@ from django.utils.timezone import localtime
 from orm.environments import env as get_environment, get_current_company, get_transaction
 from tools.misc import OrderedSet, remove_accents
 from tools.translate import _
-from tools.sql import SQL, sql_order_by_type
+from tools.sql import SQL, pg_varchar, sql_order_by_type
 
 from orm.fields_binary import Binary, Image                    # noqa: F401
 from orm.fields_misc import Boolean, Json                      # noqa: F401
@@ -214,6 +214,9 @@ REFERENCE_CLASS_TO_DJANGO = {
     'Date': (models.DateField,),
     'Datetime': (models.DateTimeField,),
     'Selection': (models.CharField,),
+    'Char': (models.CharField,),
+    'Text': (models.TextField,),
+    'Html': (Html,),
     '_Relational': (models.ForeignKey, models.ManyToManyField),
     'Many2one': (models.ForeignKey,),
     'Many2many': (models.ManyToManyField,),
@@ -223,40 +226,130 @@ REFERENCE_CLASS_TO_DJANGO = {
     'Many2oneReference': (Many2oneReference,),
 }
 
-#: El valor que cada clase de Django responde a ``falsy_value``.
+#: Lo que cada clase concreta de la fuente declara, y que su clase de Django
+#: tiene que responder.
 #:
 #: Las claves salen de :data:`REFERENCE_CLASS_TO_DJANGO`, no de una segunda
 #: lista: si mañana ``BaseString`` gana una tercera clase de destino, ésta la
 #: hereda sin que nadie se acuerde. Los **valores** sí se declaran aquí — son
 #: la declaración portada, y leerlos de la referencia en tiempo de import
-#: convertiría un árbol de consulta en una dependencia de arranque.
-_FALSY_VALUE_BY_REFERENCE_CLASS = {
-    'Id': None,
-    'Boolean': False,
-    'Integer': 0,
-    'Float': 0.0,
-    'Monetary': Decimal('0'),
-    'BaseString': '',
+#: convertiría un árbol de consulta en una dependencia de arranque. Quien
+#: comprueba que coinciden con la fuente es
+#: ``scripts/check_field_class_attributes.py``, que la lee por AST.
+#:
+#: Cada entrada cita la línea de su declaración allá. Lo que **no** cabe aquí
+#: —porque la fuente lo declara como ``property`` y depende de la instancia—
+#: se instala más abajo: ``Char._column_type`` y ``Float._column_type``.
+_CLASS_ATTRIBUTE_OVERRIDES = {
+    #: ``Id`` (``fields_misc.py:89-95``). Es el bloque que más mentía: las tres
+    #: clases de clave automática de Django cuelgan del ``Field`` base, así que
+    #: heredaban su defecto entero. ``AutoFieldMeta.__subclasscheck__`` hace
+    #: que ``issubclass(BigAutoField, AutoField)`` sea cierto sin que
+    #: ``AutoField`` esté en el MRO; la **resolución de atributo** sigue el
+    #: MRO, no la metaclase, así que hay que colgarlo de las tres.
+    #:
+    #: ``column_type`` va aquí, no ``_column_type``: la fuente lo declara en el
+    #: atributo público, saltándose la ``property`` de ``Field``. Un atributo
+    #: de clase en la subclase gana a una ``property`` de la clase base porque
+    #: la búsqueda para en la primera clase del MRO que lo tenga.
+    'Id': {
+        'falsy_value': None,
+        #: ``aggregator`` NO lo declara ``Id`` allá: lo hereda de ``Field``, que
+        #: dice ``None``. Aquí hay que decirlo **explícitamente** porque las
+        #: tres clases de clave automática de Django descienden de
+        #: ``IntegerField``, que sí recibe el ``'sum'`` de ``Integer``. La
+        #: fuente no tiene ese problema: su ``Id`` cuelga de ``Field``, no de
+        #: ``Integer``. Es la misma diferencia de árbol que obligó a declarar
+        #: ``falsy_value: None`` aquí arriba, y la destapó el gate.
+        'aggregator': None,
+        'string': 'ID',
+        'store': True,
+        'readonly': True,
+        'prefetch': False,
+        'column_type': ('int4', 'int4'),
+    },
+    'Boolean': {                                   # ``fields_misc.py:24-25``
+        'falsy_value': False,
+        '_column_type': ('bool', 'bool'),
+    },
+    'Json': {                                      # ``fields_misc.py:65``
+        '_column_type': ('jsonb', 'jsonb'),
+    },
+    'Integer': {                                   # ``fields_numeric.py:20-21``
+        'falsy_value': 0,
+        'aggregator': 'sum',
+        '_column_type': ('int4', 'int4'),
+    },
+    #: ``Float`` (``fields_numeric.py:107``, ``:125-133``). El agregado es
+    #: literal allá; el tipo de columna es una ``property`` que devuelve
+    #: ``('numeric','numeric')`` con dígitos declarados y ``('float8','float8')``
+    #: sin ellos. **Divergencia de mecanismo declarada:** en este stack la rama
+    #: de dígitos es *otra clase* —``DecimalField``, que recibe la declaración
+    #: de ``Monetary``—, así que ``FloatField`` sólo puede ser la otra rama. No
+    #: se recorta nada: las dos ramas existen, repartidas en dos clases.
+    'Float': {
+        'falsy_value': 0.0,
+        'aggregator': 'sum',
+        '_column_type': ('float8', 'float8'),
+    },
+    'Monetary': {                                  # ``fields_numeric.py:196-197``
+        'falsy_value': Decimal('0'),
+        'aggregator': 'sum',
+        '_column_type': ('numeric', 'numeric'),
+    },
+    'BaseString': {                                # ``fields_textual.py:33``
+        'falsy_value': '',
+    },
+    'Text': {                                      # ``fields_textual.py:542``
+        '_column_type': ('text', 'text'),
+    },
+    'Many2one': {                                  # ``fields_relational.py:245``
+        '_column_type': ('int4', 'int4'),
+    },
+    'Binary': {                                    # ``fields_binary.py``
+        'prefetch': False,
+    },
+    'Properties': {                                # ``fields_properties.py:53``
+        '_column_type': ('jsonb', 'jsonb'),
+        'prefetch': False,
+        'readonly': False,
+    },
+    'PropertiesDefinition': {                      # ``fields_properties.py:850``
+        '_column_type': ('jsonb', 'jsonb'),
+        'readonly': False,
+        'prefetch': True,
+    },
+    #: ``Many2oneReference`` (``fields_reference.py``) hereda de ``Integer``
+    #: allá, así que su ``falsy_value`` es el ``0`` de aquél; su ``aggregator``
+    #: sí lo declara propio, anulando el ``'sum'`` que heredaría. Aquí no
+    #: desciende de ``IntegerField``, de modo que las dos cosas hay que
+    #: decirlas: la heredada y la declarada.
+    'Many2oneReference': {
+        'falsy_value': 0,
+        'aggregator': None,
+    },
 }
 
-_FALSY_VALUE_TARGET_CLASSES = {
-    django_class: value
-    for reference_name, value in _FALSY_VALUE_BY_REFERENCE_CLASS.items()
-    for django_class in REFERENCE_CLASS_TO_DJANGO[reference_name]
-}
 
+def install_class_attribute_overrides():
+    """Instala por clase lo que la fuente declara por clase.
 
-def install_falsy_values():
-    """Instala ``falsy_value`` por clase, como la fuente lo declara.
+    El bucle de :data:`_FIELD_CLASS_ATTRIBUTES` pone el defecto de ``Field`` en
+    ``models.Field`` y nada más, así que **toda** clase concreta respondía ese
+    defecto. Medido antes de esta función: un ``IntegerField`` decía
+    ``falsy_value=None`` donde la fuente dice ``0``; un ``AutoField`` decía
+    ``readonly=False`` donde dice ``True``, y su lector ``is_editable``
+    declaraba editable la clave primaria de todo modelo.
 
-    ``models.Field.falsy_value = None`` ya lo pone
-    :data:`_FIELD_CLASS_ATTRIBUTES`; esto añade las sobrescrituras que allá
-    declara cada clase concreta (``Boolean``, ``Integer``, ``Float``,
-    ``Monetary``, ``BaseString``). Sin ellas el atributo existía y mentía: un
-    ``IntegerField`` respondía ``None`` donde la fuente responde ``0``.
+    Se llama **después** del bucle: el bucle pone el defecto y esto lo pisa
+    donde la fuente lo pisa. Invertir el orden no cambia nada —son clases
+    distintas— pero leerlo así deja claro cuál es el defecto y cuál la
+    excepción.
     """
-    for field_class, value in _FALSY_VALUE_TARGET_CLASSES.items():
-        setattr(field_class, 'falsy_value', value)
+    for reference_name, overrides in _CLASS_ATTRIBUTE_OVERRIDES.items():
+        for field_class in REFERENCE_CLASS_TO_DJANGO[reference_name]:
+            for attribute, value in overrides.items():
+                setattr(field_class, attribute, value)
 
 
 def falsy_value(field):
@@ -1168,7 +1261,27 @@ for _name_attr, _default_value in _FIELD_CLASS_ATTRIBUTES.items():
 #: el defecto de ``Field`` y éstas lo pisan donde la fuente lo pisa. Invertir
 #: el orden no cambia nada —son clases distintas— pero leerlo así deja claro
 #: cuál es el defecto y cuál la excepción.
-install_falsy_values()
+install_class_attribute_overrides()
+
+
+def _char_column_type(self):
+    """≙ ``Char._column_type`` (``odoo19c: odoo/orm/fields_textual.py:494-496``).
+
+    Allá es ``('varchar', pg_varchar(self.size))`` y aquí ``size`` es el
+    ``max_length`` de Django. Es una ``property`` y no una entrada de
+    :data:`_CLASS_ATTRIBUTE_OVERRIDES` porque **depende de la instancia**: dos
+    ``CharField`` de la misma clase declaran columnas distintas.
+
+    La misma ``property`` sirve a ``Selection`` (``fields_selection.py:63``),
+    que declara ``('varchar', pg_varchar())`` — el caso de ``size`` ausente.
+    Las dos clases de la fuente comparten aquí una sola clase de Django, así
+    que compartir el descriptor no es una simplificación: es la única forma en
+    que ``CharField`` puede responder por ambas.
+    """
+    return ('varchar', pg_varchar(self.max_length or 0))
+
+
+models.CharField._column_type = property(_char_column_type)
 
 
 #: ``type`` — el vocabulario de la fuente sobre un campo de Django.

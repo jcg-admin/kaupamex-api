@@ -217,7 +217,7 @@ class TestWhereFalsyValueLives:
 
         assert models.BigAutoField.falsy_value is None, (
             'la clave primaria heredó el falsy 0 de IntegerField: '
-            'install_falsy_values() dejó de nombrar las tres clases')
+            'install_class_attribute_overrides() dejó de nombrar las tres clases')
 
     def test_the_function_tolerates_an_unknown_field(self):
         """Lo único que la función añade sobre el atributo.

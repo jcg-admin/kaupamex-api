@@ -83,12 +83,32 @@ def reference_root():
 
 
 def declared_in_reference(root):
-    """``({atributo: valor_de_Field}, {atributo: {clase: valor}})`` por AST."""
-    base, overrides = {}, {}
+    """``({atributo: valor_de_Field}, {atributo: {clase: valor}}, {atributo})``.
+
+    El tercer elemento son los atributos que la fuente declara en alguna clase
+    como ``property`` o ``cached_property``. **No se pueden comparar por AST**:
+    su valor depende de la instancia, no de la clase.
+
+    Era la tercera ceguera del gate y la destapo el porte de #245. Sin este
+    conjunto, corregir ``FloatField._column_type`` a ``('float8','float8')``
+    —que es lo que la property de ``Float`` devuelve en su rama sin digitos—
+    convertia el arreglo en un incumplidor nuevo: el AST no ve la property, asi
+    que comparaba contra el defecto ``None`` de ``Field``. Un gate que marca
+    como defecto el valor correcto es peor que no tenerlo.
+    """
+    base, overrides, computed, parents = {}, {}, set(), {}
     for path in sorted((root / 'odoo' / 'orm').glob(REFERENCE_FILES)):
         for node in ast.parse(path.read_text()).body:
             if not isinstance(node, ast.ClassDef):
                 continue
+            # La jerarquia DE LA FUENTE, para saber de quien hereda cada clase
+            # cuando no declara el atributo. Sin esto el gate compara contra el
+            # defecto de ``Field`` y publica como defecto lo que la clase
+            # hereda bien de su padre: ``Html`` no declara ``falsy_value``, y
+            # ``BaseString`` —su padre— dice ``''``, no ``None``.
+            parents[node.name] = [
+                b.id for b in node.bases if isinstance(b, ast.Name)
+            ]
             for statement in node.body:
                 name = None
                 if (isinstance(statement, ast.Assign) and len(statement.targets) == 1
@@ -104,9 +124,38 @@ def declared_in_reference(root):
                     base[name] = literal
                 else:
                     overrides.setdefault(name, {})[node.name] = literal
+            for statement in node.body:
+                if not isinstance(statement, (ast.FunctionDef,
+                                              ast.AsyncFunctionDef)):
+                    continue
+                decorators = {ast.unparse(d) for d in statement.decorator_list}
+                if decorators & {'property', 'cached_property',
+                                 'functools.cached_property'}:
+                    computed.add(statement.name)
+
+    return base, overrides, computed, parents
 
 
-    return base, overrides
+def inherited_literal(reference_name, attribute, overrides, parents, base):
+    """``(clase_que_lo_declara, literal)`` siguiendo la jerarquia DE LA FUENTE.
+
+    Sube por los ``bases`` que el AST leyo hasta dar con la primera clase que
+    declara ``attribute``; si ninguna lo hace, cae al defecto de ``Field``.
+    Sin este recorrido el gate compara toda clase que no declare el atributo
+    contra ``Field``, y marca como incumplidora a la que lo hereda bien de un
+    padre intermedio.
+    """
+    visited, pending = set(), [reference_name]
+    while pending:
+        current = pending.pop(0)
+        if current in visited:
+            continue
+        visited.add(current)
+        declared = overrides.get(attribute, {}).get(current)
+        if declared is not None and current != reference_name:
+            return (current, declared)
+        pending.extend(parents.get(current, ()))
+    return (BASE_CLASS, base[attribute])
 
 
 def answered_here(django_class, attribute):
@@ -201,7 +250,7 @@ def main():
     from django.db import models  # noqa: E402
 
     root = reference_root()
-    base, overrides = declared_in_reference(root)
+    base, overrides, computed, parents = declared_in_reference(root)
     installed = set(_FIELD_CLASS_ATTRIBUTES)
 
     # EXCLUSION ESTRUCTURAL, declarada una vez y no cuarenta y cinco.
@@ -220,9 +269,16 @@ def main():
         for name, classes in REFERENCE_CLASS_TO_DJANGO.items()
     }
 
+    # SEGUNDA EXCLUSION, tambien declarada una vez: el atributo que la fuente
+    # resuelve con una ``property`` en alguna clase. Su valor depende de la
+    # instancia, asi que ningun recorrido por AST puede decir cual es el
+    # correcto — y compararlo contra el defecto de ``Field`` publica como
+    # defecto justo el valor que la property devuelve.
+    computed_and_installed = sorted(computed & installed)
+
     offenders, measured, collisions = [], 0, []
     for attribute in sorted(installed & set(overrides)):
-        if attribute not in base:
+        if attribute not in base or attribute in computed:
             continue
         # Dos clases de la fuente que apuntan a la MISMA clase de Django y
         # declaran valores distintos: el atributo no puede satisfacer a las
@@ -259,15 +315,23 @@ def main():
         for reference_name, django_classes in reachable.items():
             if reference_name in overrides[attribute]:
                 continue                       # la cubre el bucle de arriba
+            # Lo que hereda NO es siempre el defecto de ``Field``: puede
+            # heredarlo de un padre intermedio que si lo declara. ``Html`` no
+            # declara ``falsy_value`` y su padre ``BaseString`` dice ``''``,
+            # no el ``None`` de ``Field``. Comparar contra ``Field`` publicaba
+            # como defecto lo que la clase hereda BIEN — cuarta ceguera del
+            # gate, destapada al entrar ``Html`` en el mapa de trasplante.
+            expected = inherited_literal(reference_name, attribute,
+                                         overrides, parents, base)
             for django_class in django_classes:
                 if django_class in by_django:
                     continue                   # otra clase de la fuente manda
                 measured += 1
                 answer = answered_here(django_class, attribute)
-                if not agrees(answer, base[attribute]):
+                if not agrees(answer, expected[1]):
                     offenders.append(
                         f'{attribute}::{django_class.__name__}::'
-                        f'{reference_name}(hereda {BASE_CLASS})')
+                        f'{reference_name}(hereda {expected[0]})')
 
     key = lambda row: row  # noqa: E731
     frozen = set()
@@ -297,16 +361,20 @@ def main():
               f'       fuera del baseline:\n')
         for row in fresh:
             attribute, django_name, reference_name = row.split('::')
-            if reference_name.endswith(f'(hereda {BASE_CLASS})'):
-                literal = base[attribute]
-                origen = f'{reference_name.split("(")[0]} hereda {BASE_CLASS}='
+            if '(hereda ' in reference_name:
+                # La fila de la segunda forma trae de quien hereda, que ya no
+                # es siempre ``Field``: puede ser un padre intermedio.
+                declarer = reference_name.split('(hereda ')[1].rstrip(')')
+                literal = (base[attribute] if declarer == BASE_CLASS
+                           else overrides[attribute][declarer])
+                origen = f'{reference_name.split("(")[0]} hereda {declarer}='
             else:
                 literal = overrides[attribute][reference_name]
                 origen = f'{reference_name}='
             print(f'  {attribute:18s} {django_name:16s} '
                   f'la fuente declara {origen}{literal}  '
                   f'(aqui: {answered_here_by_name(django_name, attribute)!r})')
-        print('\nEl mecanismo esta construido: install_falsy_values() en\n'
+        print('\nEl mecanismo esta construido: install_class_attribute_overrides() en\n'
               'src/orm/fields.py instala por clase concreta. Se extiende, no se\n'
               'inventa uno nuevo.')
     else:
@@ -319,6 +387,12 @@ def main():
         detalle = '; '.join(f'{k} -> {", ".join(v)}' for k, v in unreachable.items())
         print(f'(fuera del alcance por construccion: {detalle} — no desciende de '
               f'models.Field, asi que el parche de clase no la alcanza)')
+    if computed_and_installed:
+        print(f'(fuera del alcance por forma: {", ".join(computed_and_installed)} '
+              f'— la fuente los resuelve con una property en alguna clase, y su '
+              f'valor depende de la instancia; ningun recorrido por AST puede '
+              f'decidirlos. Su control es de conducta: '
+              f'tests/unit/orm/test_field_class_attributes.py)')
     return 1 if (fresh and args.strict) else 0
 
 

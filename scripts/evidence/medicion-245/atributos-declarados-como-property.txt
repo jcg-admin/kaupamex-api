@@ -1,0 +1,6 @@
+atributos declarados SOLO como property: 4
+atributos declarados de las DOS formas (literal en unas clases, property en otras): 2
+
+=== los MIXTOS — el gate ve la mitad literal y es ciego a la property ===
+  _column_type             property en ['Float', 'Char']   literal en ['Boolean', 'Json', 'Integer', 'Monetary', 'Properties', 'PropertiesDefinition', 'Reference', 'Many2one', 'Selection', 'Date', 'Datetime', 'Text', 'Html']
+  column_type              property en ['Field', 'Binary']   literal en ['Id']

@@ -1586,7 +1586,7 @@ def _optimize_in_required(condition, model):
     3. ``field.falsy_value`` **también es un atributo de clase aquí**, como
        allá: el defecto lo instala ``_FIELD_CLASS_ATTRIBUTES``
        (``orm/fields.py``) sobre ``models.Field``, y las sobrescrituras por
-       tipo las instala ``install_falsy_values()``. La función
+       tipo las instala ``install_class_attribute_overrides()``. La función
        ``orm.fields.falsy_value`` que este optimizador llama es un lector
        tolerante a ``field is None``, no un mecanismo aparte.
 

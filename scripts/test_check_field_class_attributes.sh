@@ -54,9 +54,14 @@ check "publica el alcance medido" "si" \
       "$(echo "$salida" | grep -q 'alcance medido: [0-9]\+ pares' && echo si || echo no)"
 check "publica la exclusion estructural" "si" \
       "$(echo "$salida" | grep -q 'fuera del alcance por construccion' && echo si || echo no)"
+# La segunda exclusion, anadida con el porte de #245: el atributo que la fuente
+# resuelve con una property no se puede decidir por AST, y el gate lo dice en
+# vez de callarlo.
+check "publica la exclusion por forma" "si" \
+      "$(echo "$salida" | grep -q 'fuera del alcance por forma' && echo si || echo no)"
 
 # ── 3. CONTROL 1 — la segunda forma: heredar el defecto de la base ─────────
-sed -i "s/^    'Id': None,$/    # 'Id': None,/" "$TARGET"
+sed -i "s/^        'falsy_value': None,$/        # 'falsy_value': None,/" "$TARGET"
 salida=$($GATE --strict 2>&1); estado=$?
 check "retirar Id sale 1" "1" "$estado"
 check "y nombra las TRES clases de clave primaria" "3" \
@@ -66,7 +71,7 @@ check "citando el valor vivo, no solo el esperado" "si" \
 restore
 
 # ── 4. CONTROL 2 — la primera forma: la sobrescritura por clase ────────────
-sed -i "s/^    'Integer': 0,$/    # 'Integer': 0,/" "$TARGET"
+sed -i "s/^        'falsy_value': 0,$/        # 'falsy_value': 0,/" "$TARGET"
 salida=$($GATE --strict 2>&1); estado=$?
 check "retirar Integer sale 1" "1" "$estado"
 check "y nombra IntegerField" "si" \
@@ -75,13 +80,26 @@ check "None NO pasa por 0" "si" \
       "$(echo "$salida" | grep -q 'aqui: None' && echo si || echo no)"
 restore
 
+# ── 4-bis. CONTROL 3 — sigue la jerarquia DE LA FUENTE, no salta a Field ──
+# Cuarta ceguera, destapada al entrar `Html` en el mapa de trasplante: `Html`
+# no declara `falsy_value` y su padre `BaseString` dice `''`, no el `None` de
+# `Field`. Un gate que compare contra `Field` marca como defecto lo que la
+# clase hereda BIEN. Se mide sobre el reporte: la fila de la segunda forma
+# tiene que citar al padre real.
+salida=$($GATE 2>&1)
+check "no acusa a Html de heredar mal falsy_value" "0" \
+      "$(echo "$salida" | grep -c 'falsy_value.*Html')"
+check "cita al padre real cuando no es Field" "si" \
+      "$(grep -q 'hereda BaseString' scripts/field_class_attributes_baseline.txt \
+         && echo si || echo no)"
+
 # ── 5. La restauracion devolvio el archivo ────────────────────────────────
 # Sin este caso, un `restore` roto dejaria los sabotajes puestos y el resto de
 # la suite mediria un arbol saboteado creyendolo limpio.
 $GATE --strict > /dev/null 2>&1
 check "vuelve a pasar tras restaurar" "0" "$?"
 check "sin sabotajes en el archivo" "0" \
-      "$(grep -c "^    # 'Id': None,\|^    # 'Integer': 0," "$TARGET")"
+      "$(grep -c "^        # 'falsy_value':" "$TARGET")"
 
 # ── 6. Rehusa sin conteo cuando no puede medir ────────────────────────────
 # Un 0 sin poder arrancar Django seria el verde falso que el gate atrapa.
