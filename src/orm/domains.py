@@ -94,6 +94,7 @@ import itertools
 import logging
 import operator as operator_module
 import warnings
+from datetime import date, datetime, time, timedelta, timezone
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Q
@@ -105,9 +106,11 @@ from orm.fields import (
     falsy_value,
 )
 from orm.fields_properties import Properties
-from orm.environments import is_su
+from orm.environments import get_current_tz, is_su
 from orm.model_classes import parent_name_of
 from orm.utils import COLLECTION_TYPES, parse_field_expr
+from orm import registry
+from tools.date_utils import parse_date, parse_iso_date, utc
 from tools.func import classproperty
 from tools.misc import OrderedSet, partition, str2bool
 from tools.query import Query
@@ -1551,6 +1554,60 @@ def _optimize_in_set(condition, _model):
     return DomainCondition(condition.field_expr, condition.operator, OrderedSet(value))
 
 
+@operator_optimization(['in', 'not in'])
+def _optimize_in_required(condition, model):
+    """≙ ``_optimize_in_required`` (``odoo19c: :1322-1338``).
+
+    Docstring de la fuente, verbatim: *"Remove checks against a null value for
+    required fields"*.
+
+    Un campo cuya columna rechaza el nulo no puede valer ``False``, así que
+    compararlo contra ``False`` es trabajo que la base nunca va a satisfacer.
+    Retirarlo del conjunto reduce la condición sin cambiar su resultado.
+
+    **La divergencia de mecanismo, declarada, y son tres:**
+
+    1. La fuente pide **dos** guardas —``field.required`` (del ORM) y
+       ``field in registry.not_null_fields`` (de la base)— porque allá pueden
+       discrepar: el campo se declara obligatorio y la columna todavía admite
+       nulo hasta que el DDL corre. Aquí **son la misma**: ``null=False`` es lo
+       que Django declara y lo que emite. Por eso la guarda es una sola,
+       :func:`~orm.registry.is_not_null`, que es el lado de la base — el
+       conservador de los dos. Con ese colapso el disyunto
+       ``field.name == 'id'`` queda **subsumido**: existe allá porque
+       ``Id`` no se declara ``required`` y aun así su columna es NOT NULL,
+       y aquí la clave primaria ya es ``null=False``. Escribirlo como
+       ``or name == 'id'`` no lo conserva — lo **ensancha**, porque
+       admitiría un campo nulable llamado ``id`` que la fuente rechaza.
+    2. ``all(model._ids)`` acota la optimización a que no haya ``NewId`` en el
+       recordset. Aquí ``model`` es la **clase**, no un recordset, y este ORM
+       no tiene identificadores en vuelo: la guarda es vacuamente cierta y no
+       tiene con qué evaluarse.
+    3. ``field.falsy_value`` **también es un atributo de clase aquí**, como
+       allá: el defecto lo instala ``_FIELD_CLASS_ATTRIBUTES``
+       (``orm/fields.py``) sobre ``models.Field``, y las sobrescrituras por
+       tipo las instala ``install_falsy_values()``. La función
+       ``orm.fields.falsy_value`` que este optimizador llama es un lector
+       tolerante a ``field is None``, no un mecanismo aparte.
+
+       La única divergencia real está en la clave primaria: la fuente declara
+       ``class Id(Field)`` —**no** subclase de ``Integer``, así que su falsy
+       es ``None``— y en Django ``BigAutoField`` sí desciende de
+       ``IntegerField``. Lo que los emparenta con ``AutoField`` es el
+       ``__subclasscheck__`` de su metaclase, que gobierna ``isinstance`` y
+       **no** la búsqueda de atributos, así que las tres clases concretas de
+       clave primaria se nombran una a una. Lo mide
+       ``tests/unit/orm/test_domain_in_required.py``.
+    """
+    value = condition.value
+    field = condition._field(model)
+    if falsy_value(field) is None and registry.is_not_null(field):
+        value = OrderedSet(v for v in value if v is not False)
+    if len(value) == len(condition.value):
+        return condition
+    return DomainCondition(condition.field_expr, condition.operator, value)
+
+
 @operator_optimization([op for op in CONDITION_OPERATORS if op.endswith('like')])
 def _optimize_like_str(condition, model):
     """≙ ``_optimize_like_str`` (``odoo19c: :1391-1409``).
@@ -1735,6 +1792,318 @@ def _optimize_boolean_in_all(condition, model):
             and set(condition.value) == {False, True}):
         # la tautología se simplifica a un booleano
         return Domain(condition.operator == 'in')
+    return condition
+
+
+def _value_to_date(value, iso_only=False):
+    """≙ ``_value_to_date`` (``odoo19c: :1488-1511``).
+
+    Convierte el valor —o cada elemento de la colección— a ``date``. Las seis
+    ramas de la fuente se portan en su orden, y el orden importa: ``datetime``
+    va **primero** porque es subclase de ``date``, y comprobarlo después
+    devolvería el instante entero donde se espera el día.
+
+    **La divergencia de firma, declarada:** allá recibe ``env`` y se lo pasa a
+    ``parse_date``; aquí :func:`~tools.date_utils.parse_date` no lo lleva —la
+    zona y el idioma los resuelve ``orm.environments``— y esa divergencia ya
+    está declarada en el docstring de aquella función.
+    """
+    # el datetime va primero: es subclase de date
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date) or value is False:
+        return value
+    if isinstance(value, str):
+        if iso_only:
+            try:
+                value = parse_iso_date(value)
+            except ValueError:
+                # se comprueba el formato y se devuelve la cadena
+                parse_date(value)
+                return value
+        else:
+            value = parse_date(value)
+        return _value_to_date(value)
+    if isinstance(value, COLLECTION_TYPES):
+        return OrderedSet(_value_to_date(v, iso_only=iso_only) for v in value)
+    if isinstance(value, SQL):
+        warnings.warn("Desde 19.0, usar Domain.custom(to_sql=lambda model, alias, "
+                      "query: SQL(...))", DeprecationWarning)
+        return value
+    raise ValueError(f'No se pudo convertir {value!r} a una fecha')
+
+
+@field_type_optimization(['date'])
+def _optimize_type_date(condition, model):
+    """≙ ``_optimize_type_date`` (``odoo19c: :1513-1527``).
+
+    Docstring de la fuente, verbatim: *"Make sure we have a date type in the
+    value"*.
+
+    La comparación contra ``False`` con un operador de desigualdad da el
+    dominio vacío: una columna sin valor no es ni mayor ni menor que nada.
+    """
+    operator = condition.operator
+    if (
+        operator not in ('in', 'not in', '>', '<', '<=', '>=')
+        or "." in condition.field_expr
+    ):
+        return condition
+    value = _value_to_date(condition.value, iso_only=True)
+    if value is False and operator[0] in ('<', '>'):
+        # comparar contra False da un dominio vacío
+        return _FALSE_DOMAIN
+    return DomainCondition(condition.field_expr, operator, value)
+
+
+@field_type_optimization(['date'], level=OptimizationLevel.DYNAMIC_VALUES)
+def _optimize_type_date_relative(condition, model):
+    """≙ ``_optimize_type_date_relative`` (``odoo19c: :1529-1539``).
+
+    La fecha **relativa** —``'+3d'``, ``'=week_start'``— sólo se resuelve en
+    ``DYNAMIC_VALUES``: su valor depende de cuándo se evalúe, así que fijarlo
+    en ``BASIC`` congelaría un dominio que el llamador guarda para después.
+    """
+    operator = condition.operator
+    if (
+        operator not in ('in', 'not in', '>', '<', '<=', '>=')
+        or "." in condition.field_expr
+        or not isinstance(condition.value, (str, OrderedSet))
+    ):
+        return condition
+    value = _value_to_date(condition.value)
+    return DomainCondition(condition.field_expr, operator, value)
+
+
+def _value_to_datetime(value, iso_only=False):
+    """≙ ``_value_to_datetime`` (``odoo19c: :1542-1589``).
+
+    Docstring de la fuente, verbatim: *"Convert a value(s) to datetime.
+    :returns: A tuple containing the converted value and a boolean indicating
+    that all input values were dates. These are handled differently during
+    rewrites."*
+
+    Ese segundo miembro no es adorno: :func:`_optimize_type_datetime` suma un
+    día cuando la entrada era una **fecha** y un segundo cuando era un
+    **instante**, y sin el booleano no puede distinguirlos.
+
+    **Las dos divergencias de mecanismo, declaradas:**
+
+    1. ``env.tz`` lo resuelve :func:`~orm.environments.get_current_tz`, que es
+       el mismo dato por el camino de este árbol.
+    2. La fuente usa ``tz.localize(...)`` —API de ``pytz``, con su rodeo para
+       evitar el desplazamiento LMT— y aquí la zona es un
+       :class:`~zoneinfo.ZoneInfo`, donde ``datetime.combine(fecha, time.min,
+       tz)`` ya entrega el desplazamiento correcto sin rodeo. Es la misma
+       adaptación que ``get_current_tz`` declara.
+    """
+    if isinstance(value, datetime):
+        if value.tzinfo:
+            # se degrada a un datetime ingenuo, como la fuente
+            warnings.warn("Usar datetimes ingenuos en los dominios")
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value, False
+    if value is False:
+        return False, True
+    if isinstance(value, str):
+        if iso_only:
+            try:
+                value = parse_iso_date(value)
+            except ValueError:
+                # se comprueba el formato y se devuelve la cadena
+                _dt, is_date = _value_to_datetime(parse_date(value))
+                return value, is_date
+        else:
+            value = parse_date(value)
+        return _value_to_datetime(value)
+    if isinstance(value, date):
+        if value.year in (1, 9999):
+            # evita el desbordamiento: se trata como UTC
+            tz = None
+        elif (tz := get_current_tz()) == utc:
+            tz = None
+        value = datetime.combine(value, time.min, tz)
+        if tz is not None:
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value, True
+    if isinstance(value, COLLECTION_TYPES):
+        value, is_date = zip(*(_value_to_datetime(v, iso_only=iso_only)
+                               for v in value))
+        return OrderedSet(value), all(is_date)
+    if isinstance(value, SQL):
+        warnings.warn("Desde 19.0, usar Domain.custom(to_sql=lambda model, alias, "
+                      "query: SQL(...))", DeprecationWarning)
+        return value, False
+    raise ValueError(f'No se pudo convertir {value!r} a un datetime')
+
+
+@field_type_optimization(['datetime'])
+def _optimize_type_datetime(condition, model):
+    """≙ ``_optimize_type_datetime`` (``odoo19c: :1590-1646``).
+
+    Docstring de la fuente, verbatim: *"Make sure we have a datetime type in
+    the value"*.
+
+    **No es una optimización de eficiencia: es semántica.** Una columna
+    ``datetime`` comparada contra la fecha ``2024-01-01`` tiene que casar con
+    todo el día, no con su medianoche exacta; y comparada contra un instante,
+    con todo el segundo. Sin esta reescritura la comparación devuelve
+    resultados **equivocados**, no lentos. Por eso el rango se abre en los dos
+    lados: ``>= v`` y ``< v + delta``, con el delta de un día o de un segundo
+    según de qué venga el valor.
+
+    El desbordamiento tiene sus dos ramas, y no son la misma: por arriba
+    (``>``) el dominio queda vacío, porque nada es mayor que el máximo; por
+    abajo (``<=``) queda *"el campo tiene valor"*, porque todo lo que exista
+    es menor o igual.
+    """
+    field_expr = condition.field_expr
+    operator = condition.operator
+    if (
+        operator not in ('in', 'not in', '>', '<', '<=', '>=')
+        or "." in field_expr
+    ):
+        return condition
+    value, is_date = _value_to_datetime(condition.value, iso_only=True)
+
+    # la desigualdad
+    if operator[0] in ('<', '>'):
+        if value is False:
+            return _FALSE_DOMAIN
+        if not isinstance(value, datetime):
+            return condition
+        if value.microsecond:
+            assert not is_date, "una fecha no tiene microsegundos"
+            value = value.replace(microsecond=0)
+        delta = timedelta(days=1) if is_date else timedelta(seconds=1)
+        if operator == '>':
+            try:
+                value += delta
+            except OverflowError:
+                # por encima del máximo: imposible
+                return _FALSE_DOMAIN
+            operator = '>='
+        elif operator == '<=':
+            try:
+                value += delta
+            except OverflowError:
+                # por debajo del máximo: basta con que el campo tenga valor
+                return DomainCondition(field_expr, '!=', False)
+            operator = '<'
+
+    # la igualdad: se compara contra el segundo entero
+    if (
+        operator in ('in', 'not in')
+        and isinstance(value, COLLECTION_TYPES)
+        and any(isinstance(v, datetime) for v in value)
+    ):
+        delta = timedelta(seconds=1)
+        domain = DomainOr.apply(
+            DomainCondition(field_expr, '>=', v.replace(microsecond=0))
+            & DomainCondition(field_expr, '<', v.replace(microsecond=0) + delta)
+            if isinstance(v, datetime) else DomainCondition(field_expr, '=', v)
+            for v in value
+        )
+        if operator == 'not in':
+            domain = ~domain
+        return domain
+
+    return DomainCondition(field_expr, operator, value)
+
+
+@field_type_optimization(['datetime'], level=OptimizationLevel.DYNAMIC_VALUES)
+def _optimize_type_datetime_relative(condition, model):
+    """≙ ``_optimize_type_datetime_relative`` (``odoo19c: :1647-1658``).
+
+    El hermano de :func:`_optimize_type_date_relative` para el instante, y por
+    la misma razón: el valor relativo depende del momento de evaluación.
+    """
+    operator = condition.operator
+    if (
+        operator not in ('in', 'not in', '>', '<', '<=', '>=')
+        or "." in condition.field_expr
+        or not isinstance(condition.value, (str, OrderedSet))
+    ):
+        return condition
+    value, _is_date = _value_to_datetime(condition.value)
+    return DomainCondition(condition.field_expr, operator, value)
+
+
+@field_type_optimization(['properties'], level=OptimizationLevel.DYNAMIC_VALUES)
+def _optimize_properties_date_datetime(condition, model):
+    """≙ ``_optimize_properties_date_datetime`` (``odoo19c: :1660-1688``).
+
+    Una propiedad no declara su tipo en la columna —el contenedor entero es un
+    ``jsonb``—, así que el tipo se pregunta a la definición antes de convertir.
+    Y el valor convertido se **serializa a cadena**: dentro del JSON no hay
+    tipo de fecha, así que comparar contra un ``date`` de Python no casaría con
+    nada.
+
+    **La divergencia de mecanismo, declarada:** allá ``model`` es un recordset
+    vacío y ``model.get_property_definition`` se llama sobre él; aquí ``model``
+    es la **clase** de Django, y su análogo del recordset vacío es una
+    instancia sin guardar. Es el mismo objeto que
+    :meth:`~orm.models.FieldSqlMixin.get_property_definition` espera, y la
+    definición que devuelve **no depende del registro** — se resuelve por
+    modelo, igual que allá.
+    """
+    operator = condition.operator
+    if (
+        operator not in ('in', 'not in', '>', '<', '<=', '>=')
+        or condition.field_expr.count('.') != 1
+        or not isinstance(condition.value, (str, OrderedSet))
+    ):
+        return condition
+    definition = model().get_property_definition(condition.field_expr)
+    property_type = definition.get('type')
+
+    if property_type == 'date':
+        value = _value_to_date(condition.value)
+    elif property_type == 'datetime':
+        value, _is_date = _value_to_datetime(condition.value)
+    else:
+        return condition
+    # dentro del JSON no hay tipo de fecha: se compara contra su cadena
+    if isinstance(value, COLLECTION_TYPES):
+        value = OrderedSet(
+            str(item) if isinstance(item, (date, datetime)) else item
+            for item in value
+        )
+    elif isinstance(value, (date, datetime)):
+        value = str(value)
+
+    return DomainCondition(condition.field_expr, operator, value)
+
+
+@field_type_optimization(['binary'])
+def _optimize_type_binary_attachment(condition, model):
+    """≙ ``_optimize_type_binary_attachment`` (``odoo19c: :1690-1704``).
+
+    Un binario guardado en ``ir.attachment`` no tiene columna que consultar:
+    su valor vive en otra tabla. La fuente sólo admite la **comprobación de
+    existencia** sobre él y descarta el resto de la condición devolviendo el
+    dominio verdadero, con el error registrado en el log — no levantado, para
+    no reventar una búsqueda entera por un filtro que el cliente no debió
+    mandar.
+
+    La segunda mitad sí levanta: ``like`` sobre un binario no es un filtro mal
+    dirigido sino una operación que la columna no soporta.
+    """
+    field = condition._field(model)
+    operator = condition.operator
+    value = condition.value
+    if getattr(field, 'attachment', False) and not (
+            operator in ('in', 'not in') and set(value) == {False}):
+        try:
+            condition._raise('El binario se guarda como adjunto: sólo admite '
+                             'comprobación de existencia; se descarta el dominio')
+        except ValueError:
+            # se registra con su traza, como la fuente
+            _logger.exception("Operador inválido sobre un campo binario")
+        return _TRUE_DOMAIN
+    if operator.endswith('like'):
+        condition._raise('No se pueden usar operadores like sobre un campo '
+                         'binario', error=NotImplementedError)
     return condition
 
 

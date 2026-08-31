@@ -168,22 +168,61 @@ models.Field.register_lookup(SqlILike)
 # establecido». ``Json`` entra ahí, y es correcto: la fuente no le asigna
 # ninguno.
 #
-# El orden de la tabla importa poco pero no es arbitrario: en Django
-# ``AutoField`` hereda de ``IntegerField`` (falsy 0, ≙ el ``Id`` de la fuente) y
-# ``EmailField``/``SlugField``/``URLField`` heredan de ``CharField`` (falsy '').
+# La clave primaria es la fila que NO se deduce de la tabla de arriba: en
+# Django ``BigAutoField`` hereda de ``IntegerField``, así que sin declararla
+# valdría ``0``. La fuente dice lo contrario — ``class Id(Field)``
+# (``odoo19c: fields_misc.py:89``) **no** es subclase de ``Integer``, y por
+# tanto hereda ``Field.falsy_value = None``. Ahí descansa una conducta
+# observable: ``_optimize_in_required`` sólo retira el ``False`` de un ``in``
+# cuando el campo no tiene valor falsy, y en la fuente
+# ``('id', 'in', [1, False])`` sí lo retira.
+#
+# ``EmailField``/``SlugField``/``URLField`` heredan de ``CharField`` (falsy
+# ``''``) por MRO, así que no hace falta nombrarlas.
 
-_FALSY_VALUE_BY_FIELD_CLASS = (
-    (models.BooleanField, False),
-    (models.IntegerField, 0),
-    (models.FloatField, 0.0),
-    (models.DecimalField, Decimal('0')),
-    (models.CharField, ''),
-    (models.TextField, ''),
-)
+#: Las clases donde el atributo se instala.
+#:
+#: ``AutoField`` **no** basta: en Django ``BigAutoField`` y ``SmallAutoField``
+#: no lo tienen en su MRO —su cadena es ``BigAutoField → AutoFieldMixin →
+#: BigIntegerField → IntegerField``— y ``AutoFieldMixin`` no se exporta en
+#: ``django.db.models``. Lo que los hace pasar por ``AutoField`` es el
+#: ``__subclasscheck__`` de su metaclase, que gobierna ``isinstance`` y **no**
+#: la búsqueda de atributos. Medido: con ``IntegerField.x = 0`` y
+#: ``AutoField.x = None``, ``BigAutoField.x`` vale ``0``.
+#:
+#: Por eso las tres clases concretas de clave primaria se nombran una a una.
+_FALSY_VALUE_TARGET_CLASSES = {
+    models.AutoField: None,
+    models.BigAutoField: None,
+    models.SmallAutoField: None,
+    models.BooleanField: False,
+    models.IntegerField: 0,
+    models.FloatField: 0.0,
+    models.DecimalField: Decimal('0'),
+    models.CharField: '',
+    models.TextField: '',
+}
+
+
+def install_falsy_values():
+    """Instala ``falsy_value`` por clase, como la fuente lo declara.
+
+    ``models.Field.falsy_value = None`` ya lo pone
+    :data:`_FIELD_CLASS_ATTRIBUTES`; esto añade las sobrescrituras que allá
+    declara cada clase concreta (``Boolean``, ``Integer``, ``Float``,
+    ``Monetary``, ``BaseString``). Sin ellas el atributo existía y mentía: un
+    ``IntegerField`` respondía ``None`` donde la fuente responde ``0``.
+    """
+    for field_class, value in _FALSY_VALUE_TARGET_CLASSES.items():
+        setattr(field_class, 'falsy_value', value)
 
 
 def falsy_value(field):
     """El valor que cuenta como *no establecido* — ≙ ``Field.falsy_value``.
+
+    Lee el **atributo**, que es donde la fuente lo declara; la función existe
+    para dos cosas que el atributo no da: tolerar ``field is None`` (el caso
+    del campo desconocido) y ser el punto único que el resto del ORM importa.
 
     Devuelve ``None`` cuando el campo no tiene ninguno, que es el defecto de la
     fuente y también lo que se responde ante un campo desconocido: es la
@@ -192,10 +231,7 @@ def falsy_value(field):
     """
     if field is None:
         return None
-    for field_class, value in _FALSY_VALUE_BY_FIELD_CLASS:
-        if isinstance(field, field_class):
-            return value
-    return None
+    return getattr(field, 'falsy_value', None)
 
 
 # El subconjunto de ``NEGATIVE_CONDITION_OPERATORS`` que la familia ``like``
@@ -1085,6 +1121,12 @@ _FIELD_CLASS_ATTRIBUTES = {
 for _name_attr, _default_value in _FIELD_CLASS_ATTRIBUTES.items():
     if not hasattr(models.Field, _name_attr):
         setattr(models.Field, _name_attr, _default_value)
+
+#: Las sobrescrituras por clase concreta van DESPUÉS del bucle: el bucle pone
+#: el defecto de ``Field`` y éstas lo pisan donde la fuente lo pisa. Invertir
+#: el orden no cambia nada —son clases distintas— pero leerlo así deja claro
+#: cuál es el defecto y cuál la excepción.
+install_falsy_values()
 
 
 #: ``type`` — el vocabulario de la fuente sobre un campo de Django.

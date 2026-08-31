@@ -64,6 +64,7 @@ __all__ = [
     'registrants_without_table',
     'clear_cache', 'clear_all_caches', 'cache_of', 'cache_invalidated',
     'many2one_company_dependents', 'loaded_xmlids',
+    'not_null_fields', 'is_not_null',
 ]
 
 #: ≙ ``Registry.loaded_xmlids`` — los identificadores externos que el cargador
@@ -630,3 +631,74 @@ class TriggerTree(dict):
                 result[label] = subtree
 
         return result
+
+
+def not_null_fields(model=None):
+    """≙ ``Registry.not_null_fields`` (``odoo19c: odoo/orm/registry.py:267``).
+
+    El conjunto de campos cuya **columna** rechaza el nulo. Su consumidor en
+    la fuente son tres sitios que deciden si una condición tiene que contemplar
+    la fila sin valor: ``domains._optimize_in_required``,
+    ``fields.Field.condition_to_sql`` (``:1279``) y el lado relacional
+    (``fields_relational.py:487,1156``).
+
+    **La divergencia de mecanismo, declarada.** La fuente lo puebla en
+    ``check_null_constraints`` (``:786-801``): consulta ``pg_attribute`` por
+    ``attnotnull`` y lo cruza con lo que el campo *declara*
+    (``field.required and field.store``), avisando cuando el esquema y la
+    declaración no coinciden. Ese cruce existe porque allá el DDL lo emite el
+    propio ORM y puede quedar atrás de la declaración.
+
+    Aquí el DDL lo emiten las migraciones de Django, que derivan la restricción
+    de ``null=False`` — declaración y esquema no pueden divergir sin que una
+    migración lo registre. Por eso el conjunto se deriva de ``field.null``, y
+    el cruce contra ``pg_attribute`` sería medir dos veces la misma fuente.
+
+    Se conserva de la fuente: la **pk siempre entra** (``:795-797``, la rama
+    ``field_name == 'id'`` que no consulta el esquema), y sólo se miran los
+    modelos con tabla — el ``Model._auto and not Model._abstract`` de allá es
+    aquí el modelo concreto de Django.
+
+    :param model: si se da, sólo sus campos; si no, los de todo el registro.
+    :returns: ``set`` de instancias de campo.
+    """
+    candidates = [model] if model is not None else apps.get_models(include_auto_created=True)
+    result = set()
+    for candidate in candidates:
+        meta = getattr(candidate, '_meta', None)
+        if meta is None or meta.abstract or meta.proxy or not meta.managed:
+            continue
+        for field in meta.concrete_fields:
+            if field.primary_key or not field.null:
+                result.add(field)
+    return result
+
+
+def is_not_null(field):
+    """Si la columna de este campo rechaza el nulo — el uso puntual.
+
+    ``not_null_fields()`` recorre el registro entero; un optimizador de dominio
+    pregunta por **un** campo y no necesita pagar ese recorrido.
+
+    **Las dos vías tienen que dar la misma respuesta**, y la primera versión de
+    este atajo no lo hacía: leía ``field.null`` sin exigir que el campo tuviera
+    columna. Un ``ManyToManyField`` declara ``null=False`` —Django avisa de que
+    ahí el atributo *no tiene efecto*, porque la nulabilidad vive en la tabla
+    intermedia— así que el atajo lo daba por NOT NULL y el conjunto no.
+
+    Medido sobre el registro: **88 de 5345** campos discrepaban (87
+    ``ManyToManyField`` y 1 ``GenericForeignKey``). El coste no era teórico:
+    ``_optimize_in_required`` recortaba el ``False`` de un dominio sobre un
+    M2M, y ``Domain('groups', 'like', '')`` sobre ``ir.rule`` colapsaba a
+    ``TRUE`` en vez de quedarse como comparación contra la columna.
+
+    Por eso las dos condiciones que ``not_null_fields`` aplica al recorrer
+    —campo **concreto**, modelo con tabla— se aplican aquí una a una. Con
+    ellas, las dos vías coinciden en los 5407 campos medidos.
+    """
+    if not getattr(field, 'concrete', False):
+        return False
+    meta = getattr(getattr(field, 'model', None), '_meta', None)
+    if meta is None or meta.abstract or meta.proxy or not meta.managed:
+        return False
+    return bool(getattr(field, 'primary_key', False)) or not getattr(field, 'null', True)

@@ -69,7 +69,7 @@ from django.db import DEFAULT_DB_ALIAS, connections
 
 from exceptions import AccessError, UserError
 from orm.environments import (
-    context_scope, get_context, get_current_company, get_current_uid,
+    context_scope, env, get_context, get_current_company, get_current_uid,
     get_current_user, is_su,
 )
 from orm.commands import ManyToManyLink, ManyToManySet, One2manyChild
@@ -77,9 +77,10 @@ from orm import registry
 from orm.domains import Domain, to_q
 from orm.fields import convert_to_display_name
 from orm.fields_nonstored import NonStored
-from orm.fields_properties import Properties
+from orm.fields_properties import Properties, check_property_field_value_name
 from orm.utils import parse_field_expr
 from service.db import Savepoint
+from tools.sql import SQL
 
 _logger = logging.getLogger(__name__)
 
@@ -1626,6 +1627,76 @@ class RecordLoaderMixin(FieldSqlMixin):
     """
 
     # -- Propiedades ---------------------------------------------------------
+
+    def get_property_definition(self, full_name):
+        """≙ ``get_property_definition`` (``odoo19c: odoo/orm/models.py:3043``).
+
+        Docstring de la fuente, verbatim: *"Return the definition of the given
+        property"*, con ``full_name`` = *"Name of the field / property (e.g.
+        'property.integer')"*.
+
+        Su consumidor es ``domains._optimize_properties_date_datetime``, que
+        necesita saber de qué **tipo** es una propiedad para convertir el valor
+        de la condición antes de compilarla: sin el tipo no puede distinguir
+        una propiedad de fecha de una de texto, y la comparación se haría
+        contra la cadena cruda.
+
+        **La divergencia de mecanismo, declarada.** La fuente arma un ``SELECT``
+        con ``jsonb_array_elements`` sobre la tabla del registro de definición y
+        filtra en SQL por ``definition->>'name'`` (``:3060-3067``). Aquí la
+        lista ya la resuelve ``Properties._get_properties_definition(record)``
+        —el mismo camino que ``_clean_properties`` usa—, así que la selección
+        por nombre se hace sobre esa lista en vez de emitir una segunda
+        consulta. El resultado es el mismo: la definición que coincide, o
+        ``{}`` cuando no hay ninguna, que es el ``LIMIT 1`` sin filas de allá.
+
+        Se conserva de la fuente: la comprobación de lectura sobre el recordset
+        vacío, el ``ValueError`` cuando el campo no existe, y la validación del
+        nombre de la propiedad con
+        :func:`~orm.fields_properties.check_property_field_value_name` **antes**
+        de interpolarlo en el SQL.
+
+        **Es independiente del registro, como la fuente.** Su primera versión
+        leía la definición con ``field._get_properties_definition(self)`` —el
+        camino que usa :meth:`_clean_properties`— y eso NO es lo mismo: aquel
+        camino resuelve el contenedor **de un registro concreto**, y aquí no
+        hay ninguno. El único consumidor es
+        ``domains._optimize_properties_date_datetime``, que llama sobre el
+        **modelo**: con la versión por registro no habría podido resolver nada.
+        Es el sub-patrón D de ``metrica-decide-la-conclusion.md`` aplicado a un
+        mecanismo — construido, sin control que lo midiera contra su
+        consumidor.
+
+        **La divergencia de mecanismo, declarada:** allá el recordset vacío
+        llega por ``self.browse()``; aquí se construye el ``AccessQuerySet``
+        explícitamente, porque su adopción por modelo aún está en curso
+        (tarea #96) y el manager por omisión puede no traerlo. La comprobación
+        se hace igual — no se omite por no estar adoptada.
+        """
+        AccessQuerySet(model=type(self)).none().check_access('read')
+        field_name, property_name = parse_field_expr(full_name)
+        field = self._fields.get(field_name)
+        if not field:
+            raise ValueError(
+                f'Campo inválido {field_name!r} en el modelo '
+                f'{getattr(self, "_name", type(self).__name__)!r}')
+        check_property_field_value_name(property_name)
+
+        if not isinstance(field, Properties):
+            return {}
+        target_model = self._meta.get_field(field.definition_record).related_model
+        column = target_model._meta.get_field(
+            field.definition_record_field).column
+        result = env().execute_query_dict(SQL(
+            """ SELECT definition
+                  FROM %(table)s, jsonb_array_elements(%(field)s) definition
+                 WHERE %(field)s IS NOT NULL AND definition->>'name' = %(name)s
+                 LIMIT 1 """,
+            table=SQL.identifier(target_model._meta.db_table),
+            field=SQL.identifier(column),
+            name=property_name,
+        ))
+        return result[0]['definition'] if result else {}
 
     def _clean_properties(self):
         """≙ ``_clean_properties`` (``odoo19c: odoo/orm/models.py:5054-5068``).
