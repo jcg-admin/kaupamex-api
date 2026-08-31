@@ -60,7 +60,7 @@ import inspect
 
 from django.db import models
 
-__all__ = ['NonStored']
+__all__ = ['NonStored', 'projection_or_none']
 
 
 class NonStored:
@@ -270,3 +270,47 @@ def _bind_search_related(field):
     def search(records, operator, value):
         return models.Field._search_related(field, records, operator, value)
     return search
+
+
+def projection_or_none(related, kwargs):
+    """El descriptor si la declaración es una proyección sin columna.
+
+    Es el enrutador que comparten los constructores de campo. Devuelve la
+    pareja ``(campo, atributos)``:
+
+    - con ``related=`` y sin ``store`` —la forma de la inmensa mayoría de los
+      que la referencia declara— devuelve el :class:`NonStored` **ya anotado**,
+      y el constructor no llega a mirar sus propios argumentos;
+    - en cualquier otro caso devuelve ``None`` y el constructor sigue su
+      camino, anotando al final con :func:`annotate_related`.
+
+    Por qué los argumentos del tipo se vuelven opcionales
+    ======================================================
+
+    Es lo que la referencia declara, no una comodidad de aquí::
+
+        product_category = fields.Many2one(related='product_id.categ_id')
+        tag_ids          = fields.Many2many(related='lead_id.tag_ids')
+        subordinate_ids  = fields.One2many(related='employee_id.subordinate_ids')
+
+    Ninguna nombra su comodelo: **el extremo de la cadena lo determina**. Y no
+    hay dónde declararlo — un campo sin columna no tiene relación que definir;
+    leerlo es navegar hasta lo que haya al final, sea un valor, un registro o
+    un manager.
+
+    Cuando la declaración **sí** pide columna, el comodelo vuelve a hacer
+    falta y la referencia lo nombra::
+
+        company_id = fields.Many2one(comodel_name='res.company',
+                                     related='journal_id.company_id',
+                                     store=True)
+
+    Esa asimetría es el control que discrimina las dos ramas: si el enrutador
+    devolviera siempre el descriptor, la rama con columna dejaría de existir
+    sin que ningún caso lo notara.
+    """
+    related_attrs = apply_related_defaults(related, kwargs)
+    if related and not related_attrs['store']:
+        return annotate_related(NonStored(**kwargs), related,
+                                related_attrs), related_attrs
+    return None, related_attrs

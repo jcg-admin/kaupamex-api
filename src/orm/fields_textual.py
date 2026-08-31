@@ -60,6 +60,7 @@ from orm.fields_nonstored import (
     NonStored,
     annotate_related,
     apply_related_defaults,
+    projection_or_none,
 )
 
 __all__ = ['Char', 'Text', 'Html']
@@ -76,7 +77,7 @@ class Html(models.TextField):
     propia (sigue ``TEXT``).
     """
 
-    def __new__(cls, *args, company_dependent=False, **kwargs):
+    def __new__(cls, *args, company_dependent=False, related=None, **kwargs):
         """Despacha a ``CompanyDependent`` sin dejar de ser una clase.
 
         ``Html`` no puede ser una función como los otros ocho despachadores:
@@ -87,12 +88,20 @@ class Html(models.TextField):
         no llama a ``__init__`` — así el ``CompanyDependent`` queda construido
         por su propio constructor y no por el de ``TextField``.
         """
+        projection, _attributes = projection_or_none(related, kwargs)
+        if projection is not None:
+            return projection
         if company_dependent:
             return CompanyDependent(*args, base_type='html', **kwargs)
-        return super().__new__(cls)
+        instance = super().__new__(cls)
+        instance.related = related
+        return instance
 
-    def __init__(self, *args, company_dependent=False, **kwargs):
-        """Traga la palabra clave — la rama ya la resolvió :meth:`__new__`."""
+    def __init__(self, *args, company_dependent=False, related=None,
+                 **kwargs):
+        """Traga las dos palabras clave — las ramas las resolvió
+        :meth:`__new__`, y nombrarlas evita que caigan en ``**kwargs`` y
+        lleguen al constructor de Django, que no las conoce."""
         super().__init__(*args, **kwargs)
 
     def deconstruct(self):

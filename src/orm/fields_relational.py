@@ -67,7 +67,12 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 
 from orm.fields_company_dependent import CompanyDependent
-from orm.fields_nonstored import NonStored
+from orm.fields_nonstored import (
+    _UNSET,
+    NonStored,
+    annotate_related,
+    projection_or_none,
+)
 from tools.sql import SQL
 
 __all__ = ['Many2one', 'One2many', 'Many2many', 'bypass_search_access']
@@ -173,9 +178,40 @@ class One2many:
     #: ≙ ``type = 'one2many'`` (``odoo19c: :866``).
     type = 'one2many'
 
+    def __new__(cls, *args, related=None, **kwargs):
+        """Despacha la proyección sin dejar de ser una clase.
+
+        ``One2many`` no puede ser una función —``domains`` la usa en un
+        ``isinstance``— así que la bifurcación va aquí, con el mismo mecanismo
+        que ``Html``: cuando ``__new__`` devuelve una instancia que **no** es
+        de ``cls``, Python no llama a ``__init__``.
+
+        **Este era el peor de los nueve.** El ``**_ignored`` de abajo tragaba
+        ``related=`` y devolvía un campo sin la ruta puesta: la declaración se
+        escribía igual que la de la fuente
+        (``fields.One2many(related='employee_id.subordinate_ids')``), pasaba
+        sin error, y no hacía nada. Es literalmente el defecto que el
+        comentario de ``domain``/``context`` de este mismo constructor ya
+        describe —*«un parámetro tragado es peor que uno ausente»*— cometido
+        por segunda vez en la misma firma.
+
+        Sin ``store`` no hay comodelo ni inverso que declarar: el extremo de
+        la cadena es el manager del reverso, y navegarlo no necesita ninguno
+        de los dos. Es lo que la referencia declara, sin ellos.
+        """
+        projection, _attributes = projection_or_none(related, kwargs)
+        if projection is not None:
+            return projection
+        instance = super().__new__(cls)
+        instance.related = related
+        return instance
+
     def __init__(self, comodel_name=None, inverse_name=None, *, copy=False,
                  string=None, domain=None, context=None,
-                 bypass_search_access=False, **_ignored):
+                 bypass_search_access=False, related=None, **_ignored):
+        #: ``__new__`` ya lo dejó puesto; se acepta con nombre para que **no**
+        #: caiga en ``**_ignored``, que es como se tragaba antes.
+        self.related = related
         self.comodel_name = comodel_name
         self.inverse_name = inverse_name
         #: Los tres que la fuente documenta en su docstring (``:852-860``) y
@@ -429,7 +465,8 @@ def _mark_check_company(field, check_company):
     return field
 
 
-def Many2many(*args, check_company=False, **kwargs):
+def Many2many(*args, check_company=False, store=_UNSET, related=None,
+              **kwargs):
     """``fields.Many2many`` — el ``ManyToManyField`` de Django, marcable.
 
     Era un alias pelado (``Many2many = models.ManyToManyField``) y pasa a ser
@@ -441,8 +478,17 @@ def Many2many(*args, check_company=False, **kwargs):
     No lleva ``store=False`` ni ``company_dependent`` — ver el bloque del
     docstring del módulo, que mide por qué ninguno de los dos aplica aquí.
     """
-    return _mark_check_company(models.ManyToManyField(*args, **kwargs),
-                               check_company)
+    #: ``:452-458`` — igual que en ``Many2one``: la referencia declara
+    #: ``fields.Many2many(related="lead_id.tag_ids", readonly=True)`` sin
+    #: comodelo, porque el extremo de la cadena lo determina.
+    if store is not _UNSET:
+        kwargs['store'] = store
+    projection, related_attrs = projection_or_none(related, kwargs)
+    if projection is not None:
+        return _mark_check_company(projection, check_company)
+    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
+                                check_company)
+    return annotate_related(field, related, related_attrs)
 
 
 def _comodel_label(to):
@@ -462,8 +508,8 @@ def _comodel_label(to):
     return to._meta.label
 
 
-def Many2one(*args, store=True, company_dependent=False,
-             check_company=False, **kwargs):
+def Many2one(*args, store=_UNSET, company_dependent=False,
+             check_company=False, related=None, **kwargs):
     """``fields.Many2one`` — ≙ el de la referencia: con columna, sin ella o por empresa.
 
     ``store=True`` (el defecto, y el de todos los usos previos del árbol)
@@ -502,6 +548,18 @@ def Many2one(*args, store=True, company_dependent=False,
     accesor inverso que nombrar. Descartarlos en silencio sería el defecto que
     ``porte-completo-no-parcial.md`` prohíbe, así que quedan declarados.
     """
+    #: ``:452-458`` — con ``related=`` y sin columna, el comodelo sobra: el
+    #: extremo de la cadena lo determina, y así lo declara la referencia
+    #: (``fields.Many2one(related='product_id.categ_id')``, sin comodelo).
+    #: El centinela distingue «no declaró store» de «lo declaró True», que un
+    #: default literal no puede.
+    if store is not _UNSET:
+        kwargs['store'] = store
+    projection, related_attrs = projection_or_none(related, kwargs)
+    if projection is not None:
+        return projection
+    store = related_attrs['store']
+
     if company_dependent:
         if not store:
             raise ValueError(
@@ -526,9 +584,11 @@ def Many2one(*args, store=True, company_dependent=False,
                              comodel=_comodel_label(to), **kwargs),
             check_company)
     if store:
-        return _mark_check_company(models.ForeignKey(*args, **kwargs),
-                                   check_company)
-    return _mark_check_company(NonStored(*args, **kwargs), check_company)
+        field = _mark_check_company(models.ForeignKey(*args, **kwargs),
+                                    check_company)
+    else:
+        field = _mark_check_company(NonStored(*args, **kwargs), check_company)
+    return annotate_related(field, related, related_attrs)
 
 
 def _many2one_join(self, model, alias, query):

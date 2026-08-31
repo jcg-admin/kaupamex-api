@@ -42,6 +42,8 @@ from operator import attrgetter
 
 from django.db import models
 
+from orm.fields_nonstored import projection_or_none
+
 __all__ = ['Binary', 'Image']
 
 
@@ -61,7 +63,22 @@ class Binary(models.BinaryField):
     #: ≙ ``:37`` — el valor depende de si se pide el contenido o su tamaño.
     _depends_context = ('bin_size',)
 
-    def __init__(self, *args, attachment=False, **kwargs):
+    def __new__(cls, *args, related=None, **kwargs):
+        """Despacha la proyección sin dejar de ser una clase.
+
+        Mismo mecanismo que ``Html``: cuando ``__new__`` devuelve una
+        instancia que **no** es de ``cls``, Python no llama a ``__init__``, así
+        que el descriptor queda construido por el suyo. La clase se conserva
+        porque el árbol la usa en ``isinstance``.
+        """
+        projection, _attributes = projection_or_none(related, kwargs)
+        if projection is not None:
+            return projection
+        instance = super().__new__(cls)
+        instance.related = related
+        return instance
+
+    def __init__(self, *args, attachment=False, related=None, **kwargs):
         #: ≙ ``:39``. El default diverge — la razón, en el docstring del módulo.
         self.attachment = bool(attachment)
         super().__init__(*args, **kwargs)
@@ -103,7 +120,22 @@ class Image(models.ImageField):
     max_height = 0
     verify_resolution = True
 
-    def __init__(self, *args, max_width=0, max_height=0,
+    def __new__(cls, *args, related=None, **kwargs):
+        """Despacha la proyección sin dejar de ser una clase.
+
+        Mismo mecanismo que ``Html``: cuando ``__new__`` devuelve una
+        instancia que **no** es de ``cls``, Python no llama a ``__init__``, así
+        que el descriptor queda construido por el suyo. La clase se conserva
+        porque el árbol la usa en ``isinstance``.
+        """
+        projection, _attributes = projection_or_none(related, kwargs)
+        if projection is not None:
+            return projection
+        instance = super().__new__(cls)
+        instance.related = related
+        return instance
+
+    def __init__(self, *args, max_width=0, max_height=0, related=None,
                  verify_resolution=True, **kwargs):
         self.max_width = max_width
         self.max_height = max_height

@@ -34,7 +34,12 @@ tarea **#135**.
 from django.db import models
 
 from orm.fields_company_dependent import make_dispatcher
-from orm.fields_nonstored import NonStored
+from orm.fields_nonstored import (
+    _UNSET,
+    NonStored,
+    annotate_related,
+    projection_or_none,
+)
 
 __all__ = ['Integer', 'Float', 'Monetary']
 
@@ -42,7 +47,7 @@ Integer = make_dispatcher('Integer', 'integer', models.IntegerField)
 Float = make_dispatcher('Float', 'float', models.FloatField)
 
 
-def Monetary(*args, store=True, help=None, **kwargs):
+def Monetary(*args, store=_UNSET, help=None, related=None, **kwargs):
     """``fields.Monetary`` — ≙ el de la referencia, con y sin columna.
 
     ``help=`` es el alias de firma de la fuente para ``help_text=`` (misma
@@ -50,6 +55,15 @@ def Monetary(*args, store=True, help=None, **kwargs):
     """
     if help is not None:
         kwargs.setdefault('help_text', help)
-    if not store:
-        return NonStored(*args, **kwargs)
-    return models.DecimalField(*args, **kwargs)
+    #: ``:452-458`` — el centinela, por el mismo motivo que en ``Char``: el
+    #: defecto de ``store`` depende de si hay ``related``.
+    if store is not _UNSET:
+        kwargs['store'] = store
+    projection, related_attrs = projection_or_none(related, kwargs)
+    if projection is not None:
+        return projection
+    if not related_attrs['store']:
+        field = NonStored(*args, **kwargs)
+    else:
+        field = models.DecimalField(*args, **kwargs)
+    return annotate_related(field, related, related_attrs)

@@ -37,12 +37,51 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import addons_roots
 import reference_roots
 
-#: Los tipos cuyo constructor acepta ``related=`` hoy — ``Char`` con su rama
-#: propia y los cinco que fabrica ``make_dispatcher``
-#: (``src/orm/fields_company_dependent.py:411``).
-DISPATCHED_TYPES = frozenset({
-    'Char', 'Boolean', 'Selection', 'Integer', 'Float', 'Text',
-})
+#: La sonda de conducta construye campos reales, y eso exige el registro de
+#: Django en pie. Se levanta aqui y no dentro de :func:`accepts_related` para
+#: que el costo se pague una vez, y para que un fallo de arranque reviente
+#: antes de emitir cifra.
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.testing')
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / 'src'))
+import django
+django.setup()
+
+#: Argumentos posicionales mínimos por tipo — un ``Many2one`` sin comodelo no
+#: se construye, y sin ellos la sonda mediría «rechaza» por el motivo
+#: equivocado.
+PROBE_ARGUMENTS = {
+    'Many2one': ('base.ResPartner',),
+    'Many2many': ('base.ResPartner',),
+    'One2many': ('base.ResPartner',),
+}
+
+
+def accepts_related(field_type):
+    """¿El constructor de ``field_type`` acepta ``related=`` **y hace algo**?
+
+    Se mide **por conducta**, construyendo el campo — no leyendo una lista.
+    Una lista enumerada aquí es la segunda fuente de verdad que
+    ``calibration-verified-numbers.md`` prohíbe, y ya falló: la primera
+    versión de este guion enumeraba seis tipos y se saltaba ``Date`` y
+    ``Datetime``, que ``make_dispatcher`` fabrica igual que los otros cinco.
+
+    **Aceptar no basta.** ``One2many`` traga ``**kwargs`` y devolvía un campo
+    sin la clave puesta: acepta y no hace nada, que es peor que rechazar
+    porque el sitio de declaración se lee correcto. Por eso la sonda no
+    pregunta si el constructor no revienta, sino si el campo **queda con la
+    ruta declarada** — el sub-patrón D de
+    ``metrica-decide-la-conclusion.md`` aplicado al propio instrumento.
+    """
+    import fields as fields_facade
+    constructor = getattr(fields_facade, field_type, None)
+    if constructor is None:
+        return False
+    try:
+        field = constructor(*PROBE_ARGUMENTS.get(field_type, ()),
+                            related='probe.chain')
+    except Exception:
+        return False
+    return getattr(field, 'related', None) == 'probe.chain'
 
 #: Una llamada ``fields.X(...)`` que admite un nivel de anidamiento dentro.
 FIELD_CALL = re.compile(r'fields\.(\w+)\(((?:[^()]|\([^()]*\))*)\)', re.S)
@@ -68,7 +107,7 @@ def declarations_in(tree_root, addons):
                 'line': line,
                 'type': field_type,
                 'stored': bool(DECLARES_STORE.search(arguments)),
-                'dispatched': field_type in DISPATCHED_TYPES,
+                'dispatched': accepts_related(field_type),
             }
 
 
@@ -110,7 +149,7 @@ def main():
     print(f'  sin store:  {len(unstored)}  '
           f'({100 * len(unstored) / len(rows):.0f} %)')
     print(f'  con store:  {len(rows) - len(unstored)}')
-    print(f'  de un tipo que el despachador NO acepta: {len(pending)}  '
+    print(f'  que ningun constructor de aqui acepta todavia: {len(pending)}  '
           f'({100 * len(pending) / len(rows):.0f} %)')
     for field_type, count in sorted(by_type.items(), key=lambda x: -x[1]):
         print(f'      {field_type:12} {count}')

@@ -45,6 +45,7 @@ from django.db import DEFAULT_DB_ALIAS, models
 from exceptions import UserError
 from orm import registry
 from orm.environments import context_scope, get_context, get_current_uid, sudo
+from orm.fields_nonstored import projection_or_none
 from orm.utils import COLLECTION_TYPES, parse_field_expr, regex_alphanumeric
 from tools.misc import OrderedSet, has_list_types, is_list_of
 from tools.sql import SQL
@@ -156,6 +157,22 @@ class Properties(models.JSONField):
     ``django.db.models.JSONField``: las migraciones generadas cuando esto era
     un alias siguen siendo idénticas y ``makemigrations --check`` queda limpio.
     """
+
+    def __new__(cls, *args, related=None, **kwargs):
+        """Despacha la proyección sin dejar de ser una clase.
+
+        Mismo mecanismo que ``Html``: cuando ``__new__`` devuelve una
+        instancia que **no** es de ``cls``, Python no llama a ``__init__``, así
+        que el descriptor queda construido por el suyo. La clase se conserva
+        porque el árbol la usa en ``isinstance``.
+        """
+        projection, _attributes = projection_or_none(related, kwargs)
+        if projection is not None:
+            return projection
+        instance = super().__new__(cls)
+        instance.related = related
+        return instance
+
 
     #: ``'campo_al_contenedor.campo_de_definicion'``, tal cual la fuente.
     definition = None
