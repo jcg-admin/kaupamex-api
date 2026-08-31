@@ -1,0 +1,4 @@
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_domain_any_with_rights.py::TestTheFieldGrantsIt::test_a_field_that_bypasses_it_needs_no_elevation
+1 failed, 5 passed, 1 warning in 5.38s

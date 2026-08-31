@@ -1,0 +1,4 @@
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_domain_any_with_rights.py::TestTheDelegationImpliesIt::test_a_delegated_fk_bypasses_the_comodel_rights
+1 failed, 5 passed, 1 warning in 5.31s

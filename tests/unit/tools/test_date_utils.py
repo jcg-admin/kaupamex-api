@@ -20,6 +20,7 @@ import zoneinfo
 
 import babel
 import pytest
+from dateutil.relativedelta import relativedelta
 
 from tools import date_utils as du
 
@@ -268,13 +269,38 @@ def test_parse_date_pins_june():
     # "=6m" del docstring: fija el mes 6 y reinicia lo menor. "Lo menor" es la
     # HORA, no el dia: la rama de fijado aplica ``TRUNCATE_UNIT['month']``, que
     # es ``TRUNCATE_TODAY`` — microsegundo, segundo, minuto y hora a cero
-    # (``odoo19c: :22-31,:82-85``). El dia del mes sobrevive.
+    # (``odoo19c: :22-31,:82-85``). El dia del mes sobrevive, **si cabe** en el
+    # mes fijado; ver el caso siguiente.
+    hoy = du.parse_date('today')
     pinned = du.parse_date('today =6m')
-    assert (pinned.month, pinned.day) == (6, du.parse_date('today').day)
+    assert (pinned.month, pinned.day) == (6, min(hoy.day, 30))
     pinned_with_time = du.parse_date('now =6m')
     assert pinned_with_time.month == 6
     assert (pinned_with_time.hour, pinned_with_time.minute,
             pinned_with_time.second, pinned_with_time.microsecond) == (0, 0, 0, 0)
+
+
+def test_pinning_a_month_clamps_a_day_that_does_not_fit():
+    """El 31 fijado a un mes de 30 dias cae al 30, no al 1 del siguiente.
+
+    Es el comportamiento documentado de ``relativedelta``, que la fuente hereda
+    sin envolverlo: ``date(2026, 8, 31) + relativedelta(month=6)`` da el 30 de
+    junio. No hay codigo nuestro que lo decida — el caso existe para que la
+    conducta quede fijada y no se re-descubra.
+
+    **Este caso nacio de un rojo del calendario.** El anterior afirmaba que el
+    dia del mes sobrevive *siempre* al fijado, y con eso pasaba los 28 primeros
+    dias de cada mes y fallaba el 31 de agosto: su verde no distinguia *"el dia
+    sobrevive"* de *"hoy es un dia que cabe en junio"*. Por eso los dos miden
+    ahora contra fechas **fijadas** y no contra el dia en que corren.
+    """
+    agosto_31 = datetime.date(2026, 8, 31)
+    assert agosto_31 + relativedelta(month=6) == datetime.date(2026, 6, 30)
+    assert agosto_31 + relativedelta(month=2) == datetime.date(2026, 2, 28)
+    # uno que si cabe, como control positivo: sin el, el caso pasaria igual si
+    # el recorte se aplicara a todos los dias por igual
+    assert datetime.date(2026, 8, 15) + relativedelta(month=6) == \
+        datetime.date(2026, 6, 15)
 
 
 def test_parse_date_pins_three_in_the_morning():

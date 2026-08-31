@@ -68,9 +68,51 @@ from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import NonStored
 from tools.sql import SQL
 
-__all__ = ['Many2one', 'One2many', 'Many2many']
+__all__ = ['Many2one', 'One2many', 'Many2many', 'bypass_search_access']
 
 One2many = None                       # reverso de FK (related_name)
+
+
+#: El permiso del comodelo no se aplica al atravesar este campo — ≙
+#: ``_Relational.bypass_search_access`` (``odoo19c:
+#: odoo/orm/fields_relational.py:39``), con su comentario verbatim: *"whether
+#: access rights are bypassed on the comodel"*.
+#:
+#: Lo consume ``domains._optimize_any_with_rights``: un ``any`` sobre un campo
+#: que lo declara se reescribe a ``any!``, la forma que salta el permiso, y de
+#: ahí cuelga el resto de la cadena — ``_optimize_m2o_bypass_comodel_id_lookup``
+#: sólo actúa sobre los que llevan ``!``.
+#:
+#: **Se declara sobre las clases de campo de Django y no se consulta con un
+#: ``getattr`` de respaldo.** Es la misma decisión que la fuente toma al
+#: ponerlo en ``_Relational`` y no en ``Field``: un campo escalar **no** lo
+#: tiene, y preguntárselo tiene que ser un error y no un ``False`` silencioso.
+#: Un respaldo haría indistinguible *"este campo no lo concede"* de *"a este
+#: campo la pregunta no le aplica"*.
+#:
+#: Va sobre la clase porque **759** declaraciones del árbol lo necesitarían:
+#: 690 pasan por la fábrica ``fields.Many2one`` y 69 son ``models.ForeignKey``
+#: directas (medido con ``grep -rhoP`` sobre ``src/`` y ``addons/``). Marcarlo
+#: sólo en la fábrica dejaría a esas 69 sin el atributo, que es justo el
+#: agujero que el párrafo anterior prohíbe. Es un atributo **nuevo**: no
+#: sobreescribe nada de Django, así que no puede alterar su comportamiento.
+models.ForeignKey.bypass_search_access = False
+models.ManyToManyField.bypass_search_access = False
+
+
+def bypass_search_access(field, flag=True):
+    """Declara que el permiso del comodelo no aplica al atravesar ``field``.
+
+    La fuente lo recibe como palabra clave del constructor; aquí se cuelga del
+    campo ya construido por la misma razón de forma que ``check_company``: la
+    clase del campo es de Django y su constructor no conoce la palabra.
+
+    Es público —sin guion bajo— porque lo llama ``orm.inherits``, que está
+    fuera de este módulo: la delegación lo implica (``:257-259`` de la fuente,
+    con su comentario *"self.delegate implies self.bypass_search_access"*).
+    """
+    field.bypass_search_access = bool(flag)
+    return field
 
 
 def _mark_check_company(field, check_company):
