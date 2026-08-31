@@ -36,6 +36,13 @@ SLUG="${4:?falta el slug de la evidencia}"
 
 [ -f "$ARCHIVO" ] || { echo "ERROR — no existe $ARCHIVO"; exit 2; }
 
+# Segundo cinturon, anadido tras el episodio del 2026-08-31: la copia de abajo
+# protege ESTE archivo, y el checkpoint protege TODO lo demas que este sin
+# commitear cuando algo salga mal a mitad de la medicion. Cuesta un objeto de
+# git y no toca el arbol.
+bash "$(dirname "${BASH_SOURCE[0]}")/checkpoint_uncommitted.sh" \
+    "before-neutering-${SLUG}" || echo "AVISO — el checkpoint fallo; la copia de abajo sigue en pie"
+
 RESPALDOS=".neutering"
 mkdir -p "$RESPALDOS"
 COPIA="$RESPALDOS/$(echo "$ARCHIVO" | tr '/' '_').bak"
