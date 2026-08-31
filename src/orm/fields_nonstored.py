@@ -131,6 +131,78 @@ class NonStored:
 
     def __set__(self, instance, value):
         instance.__dict__[self.name] = value
+        #: ``:632`` — la fuente cablea el inverso **sólo** si el campo no es de
+        #: sólo lectura. Un ``related`` sin ``readonly=False`` declarado toma
+        #: el defecto de ``:458`` y no propaga: escribirlo se queda en memoria.
+        if self.related and not getattr(self, 'readonly', True):
+            self.inverse_related(instance, value)
+
+    def inverse_related(self, instance, value):
+        """Escribe ``value`` en el extremo de la cadena — ≙
+        ``Field._inverse_related`` (``odoo19c: fields.py:724``).
+
+        Este árbol ya tenía ese método portado verbatim, **sobre
+        ``models.Field``** (``orm/fields.py:1809``). Un :class:`NonStored` no
+        desciende de ``models.Field``, así que nunca lo alcanzaba: un
+        ``related`` con ``readonly=False`` aceptaba la escritura y la guardaba
+        en sombra sobre el origen. Es la forma de :ref:`h-api-978` otra vez —
+        acepta y no hace nada— en el otro sentido de la cadena.
+
+        Dos cosas son verbatim de la fuente, y la segunda no es cosmética:
+
+        - **La guarda de realidad** ``bool(target.id) == bool(record.id)``
+          (``:731``), con su comentario: *«update 'target' only if 'record' and
+          'target' are both real or both new»*. Un registro sin guardar no
+          escribe en uno guardado.
+        - **El eslabón vacío no revienta.** Sin destino no hay dónde escribir,
+          y eso no es un error — igual que leerlo da vacío.
+
+        Lo que **diverge, y es de mecanismo**: la fuente escribe con
+        ``target[field.name] = value``, que en su ORM es un ``write()`` que se
+        vacía solo. Aquí hay dos formas según lo que haya al final, porque
+        Django las distingue:
+
+        - un **valor**: ``setattr`` + ``save(update_fields=[...])``, la
+          escritura mínima;
+        - un **manager** del reverso de una FK: Django prohíbe la asignación
+          directa y **nombra la salida en su propio error** — ``.set()``. Se
+          usa ésa, que es la API que el stack declara para eso.
+        """
+        target, last_name = self.traverse_related(instance)
+        if target is None:
+            return
+        #: ``:731`` verbatim — ambos reales o ambos nuevos.
+        if bool(getattr(target, 'pk', None)) != bool(getattr(instance, 'pk',
+                                                             None)):
+            return
+        held = getattr(type(target), last_name, None)
+        if isinstance(held, NonStored):
+            #: El extremo es otra proyección: su propio ``__set__`` decide si
+            #: la cadena sigue. No se le puede pedir ``update_fields``, que es
+            #: cosa de una columna.
+            setattr(target, last_name, value)
+            return
+        current = getattr(target, last_name, None)
+        if hasattr(current, 'set'):
+            current.set(value)
+            return
+        setattr(target, last_name, value)
+        target.save(update_fields=[last_name])
+
+    def traverse_related(self, instance):
+        """El registro anterior al último eslabón, y el nombre de ése — ≙
+        ``Field.traverse_related`` (``odoo19c: fields.py:666``).
+
+        Devuelve ``(None, nombre)`` cuando la cadena se corta antes de llegar,
+        que es lo que deja al inverso sin destino donde escribir.
+        """
+        *path, last_name = self.related.split('.')
+        target = instance
+        for name in path:
+            if target is None:
+                return None, last_name
+            target = getattr(target, name, None)
+        return target, last_name
 
     def __delete__(self, instance):
         instance.__dict__.pop(self.name, None)

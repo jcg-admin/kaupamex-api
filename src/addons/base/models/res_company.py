@@ -83,8 +83,6 @@ Qué NO se porta, con su medición
   que ``ir_filters.action_id``. ``_get_view`` sigue fuera por otra razón —
   depende del combinador de XML, que ``ir_ui_view.py`` deja fuera con su
   medición.
-- **``bank_ids``** — ``related`` a ``partner_id.bank_ids``; llega solo cuando
-  ``res_partner`` declare el reverso de ``res.bank``.
 """
 import base64
 import logging
@@ -184,6 +182,17 @@ class ResCompany(TimeStampedModel):
         related_name='companies', verbose_name='Partner',
         help_text='Odoo partner_id. La identidad de la compañía vive aquí.',
     )
+    #: ≙ ``bank_ids`` (``odoo19c: res_company.py:77``), verbatim salvo los
+    #: nombres de las FK —allá ``partner_id.bank_ids``, aquí
+    #: ``partner.bank_accounts``—. Sin ``store``, que es el defecto de la
+    #: fuente para un ``related``: no ocupa columna y navega al leerse.
+    #:
+    #: Su ``readonly=False`` no es adorno: dice que el conjunto se puede
+    #: escribir desde la empresa, y el inverso lo lleva al titular
+    #: (``NonStored.inverse_related``). Que el extremo sea un manager y no un
+    #: valor es justo lo que hacía falta construir (:ref:`h-api-979`).
+    bank_ids = fields.One2many(related='partner.bank_accounts',
+                               readonly=False)
     active = fields.Boolean(default=True, verbose_name='Activa')
     sequence = fields.Integer(
         default=10, verbose_name='Secuencia',
