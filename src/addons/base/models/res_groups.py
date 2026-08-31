@@ -801,8 +801,33 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
 
         La memoria va a la familia ``groups`` (``orm/registry.py:84``), la
         misma que la fuente nombra, y se invalida con
-        ``registry.clear_cache('groups')``. La invalidación ya existe: la
-        dispara toda escritura sobre el M2M de grupos.
+        ``registry.clear_cache('groups')``, que dispara toda escritura sobre
+        el M2M de grupos.
+
+        .. warning:: Esa invalidación es **por proceso**, y con
+           ``workers = 4`` eso importa.
+
+           Corregido 2026-08-31 (:ref:`h-api-980`). Esta línea decía *«la
+           invalidación ya existe»* a secas, y se leía como completa. Lo es
+           dentro del proceso que escribe; los otros tres siguen respondiendo
+           con el álgebra vieja hasta que reciclen.
+
+           La fuente cierra ese hueco con ``signal_changes`` /
+           ``check_signaling`` (``odoo19c: odoo/orm/registry.py:1076-1140``):
+           una secuencia por caché en tablas ``orm_signaling_<nombre>``, que
+           cada proceso compara al empezar a atender. Medido: **0** en este
+           árbol.
+
+           Pesa más aquí que en cualquier otra caché porque lo que memoriza es
+           el álgebra sobre la que se deciden los permisos: un grupo retirado
+           en un worker sigue concediendo en los otros tres. El mecanismo se
+           construye —es PostgreSQL llano, que es justo lo que este stack
+           tiene— en la tarea **#256**.
+
+           ``ir_ui_view.py`` llegó a la conclusión **contraria** desde el
+           mismo hecho: rehusó adoptar su caché de plantillas citando este
+           mismo hueco. Dos archivos del mismo addon, dos desenlaces opuestos,
+           y ninguno sabía del otro.
 
         Divergencia de ENLACE, la misma que ``precision_get`` ya declara: la
         fuente lo marca ``@api.model`` sobre un método de instancia; aquí es un

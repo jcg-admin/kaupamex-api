@@ -126,8 +126,34 @@ invalidación compartida entre procesos: un caché por-proceso de contenido
 **mutable** (las vistas se editan y se archivan en caliente) serviría vistas
 viejas en 3 de 4 workers tras cada edición, sin error que lo delatara. La
 fuente puede permitírselo porque su registry invalida el ormcache en cada
-``write``; este árbol no tiene ese mecanismo, así que el desenlace correcto es
-resolver contra la base en cada llamada. Consecuencias declaradas:
+``write`` **y lo señala a los demás procesos**; aquí sólo existe la primera
+mitad, así que el desenlace correcto es resolver contra la base en cada
+llamada.
+
+.. note:: Corregido 2026-08-31 (:ref:`h-api-980`) — esta razón decía *«este
+   árbol no tiene ese mecanismo»*, y de las dos mitades sólo una era cierta.
+
+   **La invalidación local SÍ existe**: ``registry.clear_cache(*nombres)``
+   (``orm/registry.py:121``), portada de ``Registry.clear_cache``, y
+   ``res_groups.py`` la usa en tres sitios como invalidador de su caché
+   ``groups``.
+
+   **La señalización entre procesos NO**: ``signal_changes`` /
+   ``check_signaling`` (``odoo19c: odoo/orm/registry.py:1076-1140``) escriben
+   y leen una secuencia por caché en tablas ``orm_signaling_<nombre>``, y de
+   eso hay **0** en este árbol. Medido con un ``grep -rn`` sobre ``src/`` y
+   ``addons/`` de los cinco símbolos —``signal_changes``, ``check_signaling``,
+   ``orm_signaling``, ``cache_sequences``, ``get_sequences``—, cuyo único
+   acierto es la declinación que ``ir_autovacuum.py`` ya declara.
+
+   Con ``workers = 4`` (``setup/gunicorn.conf.py:93``), esa mitad ausente es
+   la que hace que un caché de contenido mutable sirva vistas viejas en 3 de 4
+   procesos. La conclusión de este bloque **no cambia** por la corrección: sin
+   la segunda mitad, no adoptar la caché sigue siendo lo correcto. Lo que
+   cambia es que la razón ahora nombra qué falta y qué no, que es lo que
+   permite cerrarla — la tarea **#256**.
+
+Consecuencias declaradas:
 
 - ``_get_template_minimal_cache_keys`` **no se porta**: su único consumidor es
   la clave del decorador retirado.
