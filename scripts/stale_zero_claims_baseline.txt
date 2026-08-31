@@ -2,7 +2,6 @@
 # heredada. Uno listado no bloquea; uno nuevo sí. Se paga al tocar
 # el archivo — el triaje es la tarea #250.
 # Clave: <archivo>::<comando citado>
-addons/account/report/account_hash_integrity_templates.py::grep -rn "_check_hash_integrity" addons/ src/
 addons/account/report/account_invoice_report.py::grep -rn "display_qr_code\\|_generate_qr_code" addons/account/
 addons/product/models/product_supplierinfo.py::grep -rn "get_import_templates" src/
 addons/purchase_requisition/models/purchase.py::grep -rn "currency_rate" addons/ src/ --include=*.py
