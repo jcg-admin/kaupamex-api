@@ -180,7 +180,18 @@ models.Field.register_lookup(SqlILike)
 # ``EmailField``/``SlugField``/``URLField`` heredan de ``CharField`` (falsy
 # ``''``) por MRO, así que no hace falta nombrarlas.
 
-#: Las clases donde el atributo se instala.
+#: La correspondencia entre la clase de campo de la FUENTE y la de Django.
+#:
+#: Es conocimiento de **porte**, no un detalle de ``falsy_value``: dice que el
+#: ``Boolean`` de allá es ``BooleanField`` aquí, y que su ``Id`` son las tres
+#: clases concretas de clave primaria. Vive aquí —y no en el gate que lo
+#: consume— porque una segunda copia sería la segunda fuente de verdad que
+#: `calibration-verified-numbers.md` prohíbe: el día que se porte un tipo
+#: nuevo, el mapa se actualiza en un sitio.
+#:
+#: Lo consume :data:`_FALSY_VALUE_TARGET_CLASSES` y el gate
+#: ``scripts/check_field_class_attributes.py``, que compara lo que cada clase
+#: de la fuente declara contra lo que la de Django responde.
 #:
 #: ``AutoField`` **no** basta: en Django ``BigAutoField`` y ``SmallAutoField``
 #: no lo tienen en su MRO —su cadena es ``BigAutoField → AutoFieldMixin →
@@ -191,16 +202,47 @@ models.Field.register_lookup(SqlILike)
 #: ``AutoField.x = None``, ``BigAutoField.x`` vale ``0``.
 #:
 #: Por eso las tres clases concretas de clave primaria se nombran una a una.
+REFERENCE_CLASS_TO_DJANGO = {
+    'Boolean': (models.BooleanField,),
+    'Integer': (models.IntegerField,),
+    'Float': (models.FloatField,),
+    'Monetary': (models.DecimalField,),
+    'BaseString': (models.CharField, models.TextField),
+    'Id': (models.AutoField, models.BigAutoField, models.SmallAutoField),
+    'Json': (models.JSONField,),
+    'Binary': (models.BinaryField,),
+    'Date': (models.DateField,),
+    'Datetime': (models.DateTimeField,),
+    'Selection': (models.CharField,),
+    '_Relational': (models.ForeignKey, models.ManyToManyField),
+    'Many2one': (models.ForeignKey,),
+    'Many2many': (models.ManyToManyField,),
+    'One2many': (One2many,),
+    'Properties': (Properties,),
+    'PropertiesDefinition': (PropertiesDefinition,),
+    'Many2oneReference': (Many2oneReference,),
+}
+
+#: El valor que cada clase de Django responde a ``falsy_value``.
+#:
+#: Las claves salen de :data:`REFERENCE_CLASS_TO_DJANGO`, no de una segunda
+#: lista: si mañana ``BaseString`` gana una tercera clase de destino, ésta la
+#: hereda sin que nadie se acuerde. Los **valores** sí se declaran aquí — son
+#: la declaración portada, y leerlos de la referencia en tiempo de import
+#: convertiría un árbol de consulta en una dependencia de arranque.
+_FALSY_VALUE_BY_REFERENCE_CLASS = {
+    'Id': None,
+    'Boolean': False,
+    'Integer': 0,
+    'Float': 0.0,
+    'Monetary': Decimal('0'),
+    'BaseString': '',
+}
+
 _FALSY_VALUE_TARGET_CLASSES = {
-    models.AutoField: None,
-    models.BigAutoField: None,
-    models.SmallAutoField: None,
-    models.BooleanField: False,
-    models.IntegerField: 0,
-    models.FloatField: 0.0,
-    models.DecimalField: Decimal('0'),
-    models.CharField: '',
-    models.TextField: '',
+    django_class: value
+    for reference_name, value in _FALSY_VALUE_BY_REFERENCE_CLASS.items()
+    for django_class in REFERENCE_CLASS_TO_DJANGO[reference_name]
 }
 
 

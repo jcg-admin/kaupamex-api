@@ -332,4 +332,28 @@ if [ -f "$BENCH_CHECKER" ]; then
     fi
 fi
 
+# ---------------------------------------------------------------------------
+# Gate 13: un atributo de clase de campo responde lo que la fuente declara.
+# `orm.fields` instala 45 atributos sobre `models.Field` con el defecto que la
+# fuente pone en su clase base. La fuente ademas los SOBRESCRIBE por clase
+# concreta, y si esas sobrescrituras no se instalan el atributo existe,
+# responde, y responde mal — ningun gate de porte lo ve ausente porque no lo
+# esta. Cayo asi `falsy_value` (h-api-970), y lo destapo un consumidor al
+# portarse, no una auditoria.
+#
+# Solo dispara si el commit toca el contrato de campo o el mapa de porte: es
+# el unico gate que arranca Django (~2.6 s), y cobrarselo a un commit de docs
+# es como se aprende a saltarse un hook.
+# Script: scripts/check_field_class_attributes.py (con baseline de deuda).
+ATTR_CHECKER="$REPO_ROOT/scripts/check_field_class_attributes.py"
+TOCA_CONTRATO=$(printf '%s\n' "${STAGED_PY[@]:-}" \
+    | grep -cE 'src/orm/fields(_[a-z]+)?\.py$' || true)
+if [ -f "$ATTR_CHECKER" ] && [ "$TOCA_CONTRATO" -gt 0 ]; then
+    if ! uv run python "$ATTR_CHECKER" --strict >/dev/null 2>&1; then
+        uv run python "$ATTR_CHECKER" --strict >&2
+        echo "pre-commit: un atributo de clase responde distinto de la fuente — bloqueado" >&2
+        exit 1
+    fi
+fi
+
 exit "$EXIT_CODE"
