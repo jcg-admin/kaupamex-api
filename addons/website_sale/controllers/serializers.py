@@ -6,10 +6,10 @@ filtrando por ``Domain('state', '=', 'draft')``). Estos serializers no
 declaran un modelo propio: proyectan esa orden y sus líneas al contrato que
 el SPA ya consume.
 """
-from django.utils.text import slugify
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from addons.base.models.ir_http import IrHttp
 from addons.product.models import ProductCategory, ProductTemplate
 
 
@@ -35,12 +35,35 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.CharField())
     def get_slug(self, obj):
-        """≙ ``ir.http._slug``: ``<nombre-slugificado>-<id>``.
+        """≙ ``_slug`` (``odoo19c: addons/http_routing/models/ir_http.py``).
 
-        El id al final es lo que resuelve el registro; el texto es
-        legibilidad y SEO.
+        ``<nombre-slugificado>-<id>``: el id al final es lo que resuelve el
+        registro; el texto es legibilidad y SEO.
+
+        **El slugify es el portado, no el de Django.** El docstring anterior
+        ya decía «≙ ``ir.http._slug``» y el cuerpo llamaba a
+        ``django.utils.text.slugify``, que con su ``allow_unicode=False`` por
+        defecto descarta todo lo que no sea ASCII: medido sobre siete
+        nombres, los dos divergen en cinco, y en tres el de Django devuelve
+        cadena vacía — un producto llamado ``手工皂`` quedaba en ``-42``.
+        ``base.models.ir_http`` porta el de la referencia justamente por esa
+        razón, y su hermano ``website_sale_wishlist`` ya lo usaba sobre el
+        mismo dato. Ver :ref:`h-api-993`.
+
+        Se conserva la rama del slug vacío de la fuente —un nombre sin
+        caracteres de palabra devuelve **sólo el id**, no ``-42``— y su
+        lectura de ``display_name``, que hoy coincide con ``name`` y seguirá
+        siendo correcta el día que el modelo declare un ``_rec_name``
+        compuesto.
+
+        Divergencia de SITIO, declarada: en la referencia esta composición
+        vive en ``http_routing``, addon que este árbol no porta. Mientras no
+        exista, el único consumidor la lleva. Sucesor: tarea **#261**.
         """
-        return f'{slugify(obj.name)}-{obj.pk}'
+        slugname = IrHttp.slugify_one(obj.display_name or '')
+        if not slugname:
+            return str(obj.pk)
+        return f'{slugname}-{obj.pk}'
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_image(self, obj):

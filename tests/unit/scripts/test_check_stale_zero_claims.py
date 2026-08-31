@@ -142,12 +142,20 @@ class TestTheTreeIsReadFromTheWholeQuote:
         assert stale == [], stale
 
     def test_our_own_tree_is_not_taken_out_of_scope(self):
-        """El control positivo: una cita sin alias SÍ se re-ejecuta aquí."""
+        """El control positivo: una cita sin alias SÍ se re-ejecuta aquí.
+
+        Lo que discrimina es que el reclamo **no salga como omitido** — que es
+        lo contrario del caso de arriba. Anclarlo en que salga *caducado*
+        ataba el control a que un defecto siguiera vivo: la cita de
+        ``slugify`` lo estaba por dos fallos de su propio comando, y al
+        corregirlos (:ref:`h-api-993`) el caso se puso rojo sin que la
+        conducta medida cambiara.
+        """
         path = 'src/addons/base/models/ir_http.py'
-        claims, skipped, stale, _ = gate.survey([path])
+        claims, skipped, _, unrunnable = gate.survey([path])
         assert claims, 'la cita de slugify ya no está en el archivo'
-        assert any('def slugify' in command
-                   for _, _, command, _ in stale), stale
+        assert skipped == 0, 'una cita sin alias no se omite'
+        assert unrunnable == [], unrunnable
 
 
 class TestTheCitationIsNotItsOwnEvidence:
@@ -172,6 +180,33 @@ class TestTheCitationIsNotItsOwnEvidence:
     def test_another_file_always_counts(self):
         line = 'src/tools/barcode.py:32:La referencia rasteriza con ``reportlab``'
         assert not gate.is_its_own_citation(line, self.CLAIMING)
+
+
+class TestTheExclusionIsAnExpressionNotASubstring:
+    """``grep -v`` recibe una expresion regular, no una subcadena.
+
+    Las dos citas del arbol que usan esta forma anclan la ruta con ``^``.
+    Aplicar el patron con ``in`` deja pasar TODO —``^src/…`` no es subcadena
+    de ninguna linea— y el conteo publica las coincidencias que el autor ya
+    habia excluido a mano. El filtro pasaba sin discriminar: sub-patron D de
+    ``metrica-decide-la-conclusion.md``, dentro del gate que existe para
+    atrapar justamente esa clase de verde. Ver :ref:`h-api-993`.
+    """
+
+    ANCHORED = '^src/addons/base/models/ir_http.py:'
+
+    def test_an_anchored_pattern_excludes_the_line(self):
+        line = 'src/addons/base/models/ir_http.py:224:    def slugify_one(cls'
+        assert gate.excludes(self.ANCHORED, line)
+
+    def test_the_anchor_does_not_reach_another_file(self):
+        line = 'addons/website_sale/controllers/serializers.py:63: slugify_one'
+        assert not gate.excludes(self.ANCHORED, line)
+
+    def test_an_invalid_pattern_falls_back_to_the_substring(self):
+        """Un patron que ``re`` no compila no tumba la medicion."""
+        assert gate.excludes('[', 'una [ suelta')
+        assert not gate.excludes('[', 'sin corchete')
 
 
 class TestTheRerunReproducesWhatTheAuthorMeasured:

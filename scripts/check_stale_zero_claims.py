@@ -180,6 +180,27 @@ def counts_instead_of_matching(parts):
     return False
 
 
+def excludes(pattern, line):
+    """¿La descarta el ``grep -v`` citado? Se aplica como EXPRESION, no como
+    subcadena.
+
+    ``grep -v`` recibe una expresion regular, y las dos citas que usan esta
+    forma anclan la ruta con ``^``. Un ``pattern not in line`` es ciego a ese
+    ancla: ``^src/…`` no es subcadena de ninguna linea, asi que la exclusion
+    no descartaba nada y el conteo publicaba las coincidencias que el autor
+    ya habia excluido a mano. Es el sub-patron D de
+    ``metrica-decide-la-conclusion.md``: el filtro pasaba y no discriminaba.
+
+    *Ciega a:* la sintaxis BRE que ``re`` no comparte —``\\|`` como
+    alternacion, ``\\{n\\}``—. Un patron que no compile cae al contraste
+    por subcadena, que es la conducta anterior, en vez de tumbar la medicion.
+    """
+    try:
+        return re.search(pattern, line) is not None
+    except re.error:
+        return pattern in line
+
+
 def is_its_own_citation(line, claiming):
     """¿Esta coincidencia es el reclamo repitiéndose a sí mismo?
 
@@ -262,7 +283,7 @@ def rerun(command, claiming):
         lines = [l for l in lines if not is_its_own_citation(l, claiming)]
         return len({l.split(':', 1)[0] for l in lines}), None
     for pattern in excluded:
-        lines = [l for l in lines if pattern not in l]
+        lines = [l for l in lines if not excludes(pattern, l)]
     if counts_instead_of_matching(parts):
         total = 0
         for line in lines:

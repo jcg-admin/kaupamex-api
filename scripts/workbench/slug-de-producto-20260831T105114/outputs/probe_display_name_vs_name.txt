@@ -1,0 +1,3 @@
+name='Camisa Azul'        display_name='Camisa Azul'  iguales=True
+name='Café Orgánico'      display_name='Café Orgánico'  iguales=True
+name='手工皂'                display_name='手工皂'  iguales=True

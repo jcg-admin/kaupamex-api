@@ -1,0 +1,8 @@
+nombre                   django                       portado                      coinciden
+Camisa Azul              'camisa-azul'                'camisa-azul'                True
+Café Orgánico            'cafe-organico'              'cafe-organico'              True
+ハンドメイド 石鹸                ''                           'ハントメイト-石鹸'                  False
+手工皂                      ''                           '手工皂'                        False
+صابون يدوي               ''                           'صابون-يدوي'                 False
+Ñandú_edición 2026       'nandu_edicion-2026'         'nandu-edicion-2026'         False
+Ω omega                  'omega'                      'ω-omega'                    False

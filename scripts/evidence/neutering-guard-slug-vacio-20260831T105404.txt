@@ -1,0 +1,15 @@
+# Control discriminante — guard-slug-vacio
+# fecha:    2026-08-31T10:54:04
+# archivo:  addons/website_sale/controllers/serializers.py
+# anulado:  s/if not slugname:/if False:/
+# tests:    tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py
+
+## 1. Verde de partida (guarda presente)
+15 passed, 1 warning in 5.19s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_a_name_without_word_characters_gives_only_the_id[!!!]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_a_name_without_word_characters_gives_only_the_id[---]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_a_name_without_word_characters_gives_only_the_id[   ]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_a_name_without_word_characters_gives_only_the_id[### $$$]
+4 failed, 11 passed, 1 warning in 4.99s

@@ -15,9 +15,25 @@ son puro algoritmo y valen en cualquier stack.
 ``slugify`` — la diferencia con el de Django, que sí importa
 ===========================================================
 
-Es la pieza con más valor del archivo, y **no la duplica** nada del árbol:
-``grep -rn "def slugify\\|from django.utils.text import" src/`` → **0**
-[PROVEN].
+Es la pieza con más valor del archivo, y hoy **no la duplica** nada del
+árbol de aplicación:
+``grep -rn "def slugify\\|from django.utils.text import" src/ addons/ --include=*.py | grep -v "^src/addons/base/models/ir_http.py:"``
+→ **0** [PROVEN, 2026-08-31].
+
+*Métrica:* declaraciones de ``slugify`` e importaciones del de Django, en las
+dos raíces de aplicación, **excluyendo este archivo** — que es quien lo
+declara.
+*Ciega a:* un duplicador que llame al de Django por otro camino
+(``django.utils.text.slugify(...)`` sin ``from``), y a los tests.
+
+> **Corregido 2026-08-31 (:ref:`h-api-993`).** Esta cita decía ``src/`` → 0 y
+> el instrumento tenía dos defectos que se anulaban entre sí: **medía este
+> mismo archivo** —sus dos ``def slugify…`` hacen que el comando devuelva
+> hits en cuanto el porte existe— y **no miraba** ``addons/``, que es donde
+> vivía el duplicador real: ``website_sale/controllers/serializers.py``
+> importaba ``django.utils.text.slugify`` y lo usaba para el slug de
+> producto, con un docstring que decía «≙ ``ir.http._slug``». Medido sobre
+> siete nombres, los dos algoritmos divergen en cinco.
 
 Django trae ``django.utils.text.slugify``, pero por defecto
 (``allow_unicode=False``) **descarta todo lo que no sea ASCII**: un título en
