@@ -1,0 +1,12 @@
+# Control discriminante — vista-sin-bandera-de-contexto
+# fecha:    2026-08-31T07:59:52
+# archivo:  src/addons/base/models/res_partner.py
+# anulado:  s/if get_context().get('no_address_format'):/if False:/
+# tests:    tests/integration/base/test_format_address_and_vat_label.py
+
+## 1. Verde de partida (guarda presente)
+16 passed, 1 warning in 7.15s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/integration/base/test_format_address_and_vat_label.py::TestTheAddressViewDecision::test_the_context_flag_disables_the_reordering
+1 failed, 15 passed, 1 warning in 5.69s

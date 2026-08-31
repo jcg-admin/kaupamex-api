@@ -1,0 +1,28 @@
+# Reclamos de cero que un porte dejó falsos, congelados como deuda
+# heredada. Uno listado no bloquea; uno nuevo sí. Se paga al tocar
+# el archivo — el triaje es la tarea #250.
+# Clave: <archivo>::<comando citado>
+addons/account/report/account_hash_integrity_templates.py::grep -rn "_check_hash_integrity" addons/ src/
+addons/account/report/account_invoice_report.py::grep -rn "display_qr_code\\|_generate_qr_code" addons/account/
+addons/product/models/product_supplierinfo.py::grep -rn "get_import_templates" src/
+addons/purchase_requisition/models/purchase.py::grep -rn "currency_rate" addons/ src/ --include=*.py
+addons/purchase_requisition/models/purchase_requisition.py::grep -rn "def _select_seller" addons/ src/
+addons/purchase_stock/models/purchase_order_line.py::grep -rn "to_refund" addons/ src/ --include=*.py
+addons/purchase_stock/models/stock_rule.py::grep -rn "def _select_seller" addons/ src/ --include=*.py
+addons/stock/models/stock_orderpoint.py::grep -rn "class .*Orderpoint" addons/ src/ --include=*.py
+addons/web/models/ir_http.py::grep -rn "'cids'\\|response.set_cookie\\|COOKIE" src/ --include=*.py -i
+addons/web/models/models.py::grep -rln "date_utils\\|def start_of" src/tools/*.py src/orm/*.py
+addons/web/models/models.py::grep -rln "_update_cache\\|field_computed\\|def modified(\\|_apply_onchange_methods" src/orm/*.py src/addons/*/models/*.py
+addons/web/models/models.py::grep -rln "update_field_translations\\|get_installed(" src/ --include="*.py"
+src/addons/base/models/ir_actions_report.py::grep -rln "reportlab\\|weasyprint\\|wkhtmltopdf\\|FPDF" src/ --include=*.py
+src/addons/base/models/ir_autovacuum.py::grep -rl orm_signaling src/ | grep -v ir_autovacuum.py
+src/addons/base/models/ir_field_converters.py::grep -rn "barcode" pyproject.toml
+src/addons/base/models/ir_field_converters.py::grep -n "barcode" pyproject.toml
+src/addons/base/models/ir_http.py::grep -rn "def slugify\\|from django.utils.text import" src/
+src/addons/base/models/ir_mail_server.py::grep -rn "def email_normalize" src/
+src/addons/base/models/ir_model.py::grep -rn "^class IrModel\\b" src/
+src/addons/base/models/report_paperformat.py::grep -rn "^class IrActionsReport" src/
+src/addons/base/models/res_company.py::grep -rn "zeep" src/ | grep -v res_company.py
+src/addons/base/models/res_groups.py::grep -rn "^class IrUiView" src/
+src/orm/fields_properties.py::grep -rn "filtered_domain" src/ addons/
+src/orm/fields_textual.py::grep -rn "Text(store=False\\|Html(store=False)"

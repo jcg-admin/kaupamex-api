@@ -1,0 +1,13 @@
+# Control discriminante — gate-de-ceros-sin-discriminador-de-cita
+# fecha:    2026-08-31T08:45:21
+# archivo:  scripts/check_stale_zero_claims.py
+# anulado:  s/    return '``' in text/    return True/
+# tests:    tests/unit/scripts/test_check_stale_zero_claims.py
+
+## 1. Verde de partida (guarda presente)
+15 passed, 1 warning in 9.65s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/scripts/test_check_stale_zero_claims.py::TestTheCitationIsNotItsOwnEvidence::test_a_code_line_of_the_same_file_counts
+FAILED tests/unit/scripts/test_check_stale_zero_claims.py::TestTheRerunReproducesWhatTheAuthorMeasured::test_the_port_contradicting_its_own_prose_is_seen
+2 failed, 13 passed, 1 warning in 9.73s

@@ -356,4 +356,24 @@ if [ -f "$ATTR_CHECKER" ] && [ "$TOCA_CONTRATO" -gt 0 ]; then
     fi
 fi
 
+# --- Gate 20: un reclamo de cero que el porte dejo falso (#228) ---------------
+# Un docstring declina un porte citando su propio comando: `grep ... src/` -> 0.
+# Esa razon es correcta al escribirse y CADUCA SOLA: el dia que alguien porta
+# lo que el grep buscaba, la prosa sigue diciendo cero. Cuatro declinaciones
+# seguidas resultaron apoyarse en un cero caducado (H-API-981..984), y las
+# cuatro se encontraron leyendo archivo por archivo.
+#
+# El gate re-ejecuta el comando que el texto dice haber corrido. No adivina el
+# simbolo: corre la cita. Deuda heredada congelada en
+# scripts/stale_zero_claims_baseline.txt — una listada no bloquea, una nueva si.
+# Script: scripts/check_stale_zero_claims.py.
+STALE_CHECKER="$REPO_ROOT/scripts/check_stale_zero_claims.py"
+if [ -f "$STALE_CHECKER" ] && [ "${#STAGED_PY[@]}" -gt 0 ]; then
+    if ! python3 "$STALE_CHECKER" --strict "${STAGED_PY[@]}" >/dev/null 2>&1; then
+        python3 "$STALE_CHECKER" --strict "${STAGED_PY[@]}" >&2
+        echo "pre-commit: un reclamo de cero ya no vale — re-medir la razon, no borrarla" >&2
+        exit 1
+    fi
+fi
+
 exit "$EXIT_CODE"
