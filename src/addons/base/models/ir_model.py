@@ -40,8 +40,9 @@ esperando precisamente a esta clase: ``ir_rule.model_name``,
 ``grep -rn "^class IrModel\\b" src/`` → **0**— deja de ser cierta con este
 commit y se corrige en los mismos archivos, no después (regla operativa de
 H-API-149). **La conversión de esas columnas a FK real no entra aquí**: cada
-una migra su propia tabla, y eso va en su pase, igual que se decidió con
-``ir_filters.action_id``.
+una migra su propia tabla, y su desenlace es la tarea **#139**. El precedente
+que esta frase citaba —``ir_filters.action_id``— **ya no difiere**: se
+convirtió en ``base/migrations/0077`` (:ref:`h-api-982`).
 
 ``FIELD_TYPES`` se **deriva**, no se declara
 ============================================

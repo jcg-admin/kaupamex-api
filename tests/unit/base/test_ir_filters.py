@@ -16,7 +16,10 @@ Toca DB → django_db.
 """
 import pytest
 
+from django.db import IntegrityError, transaction
+
 from addons.base.models import IrFilters
+from addons.base.models.ir_actions import IrActionsActions
 from tests.factories.user_factory import UserFactory
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
@@ -141,3 +144,91 @@ def test_update_no_default_no_desmarca_nada():
 def test_str_devuelve_name():
     filtro = IrFilters.objects.create(name='Mi filtro', model_id='orders.Order')
     assert str(filtro) == 'Mi filtro'
+
+
+# --- Los objetos de tabla de la fuente (#250) --------------------------------
+#
+# La referencia declara CUATRO piezas que este porte no traia: la FK real a
+# ``ir.actions.actions`` y sus tres objetos de tabla
+# (``odoo19c: ir_filters.py:19``, ``:26-40``). La FK se declinaba con una razon
+# que el propio bloque reconocia caduca —«ir.actions.actions ya esta portado,
+# asi que el FK real cabe»— y difiriendola «a su propio pase», que
+# ``hallazgo-abierto-genera-sucesor.md`` no admite como bloqueo.
+
+def test_the_action_is_a_real_foreign_key():
+    """``:19`` — ``fields.Many2one('ir.actions.actions', ...)``.
+
+    Que lo haria fallar: un ``Integer`` plano. Guarda el mismo numero y no
+    puede garantizar que apunte a una accion que exista, que es lo unico que
+    una FK compra.
+    """
+    field = IrFilters._meta.get_field('action_id')
+    assert field.is_relation
+    assert field.related_model is IrActionsActions
+
+
+def test_deleting_the_action_takes_its_filters(db):
+    """``ondelete='cascade'`` de ``:19``.
+
+    Que lo haria fallar: ``SET NULL`` o ``PROTECT``. Con el primero el filtro
+    sobrevive apuntando a nada y reaparece en todos los menus del modelo; con
+    el segundo la accion no se puede borrar.
+    """
+    action = IrActionsActions.objects.create(name='Accion de prueba')
+    IrFilters.objects.create(name='Filtro colgado', model_id='base.ResPartner',
+                             action_id=action)
+    action.delete()
+    assert not IrFilters.objects.filter(name='Filtro colgado').exists()
+
+
+def test_a_sort_that_is_not_an_array_is_rejected():
+    """``_check_sort_json`` (``:37-40``) — ``jsonb_typeof(sort::jsonb) =
+    'array'``.
+
+    Que lo haria fallar: aceptar cualquier cadena. ``sort`` se deserializa
+    como lista; un objeto o un escalar revientan en el lector, lejos de aqui.
+    """
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            IrFilters.objects.create(name='Orden invalido',
+                                     model_id='base.ResPartner', sort='{}')
+
+
+def test_a_valid_sort_passes_the_same_check(db):
+    """El control positivo del anterior: sin el, una restriccion que rechazara
+    TODO tambien pasaria el caso de arriba."""
+    filtro = IrFilters.objects.create(name='Orden valido',
+                                      model_id='base.ResPartner',
+                                      sort='["name asc"]')
+    assert filtro.pk is not None
+
+
+def test_the_parent_res_id_needs_its_embedded_action():
+    """``_check_res_id_only_when_embedded_action`` (``:33-36``).
+
+    Docstring de la fuente, verbatim: *"Constraint to ensure that the
+    embedded_parent_res_id is only defined when a top_action_id is defined."*
+
+    Que lo haria fallar: admitir el id del padre sin la accion embebida. El
+    filtro quedaria acotado a una fila de un modelo que nadie declaro.
+    """
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            IrFilters.objects.create(name='Padre sin embebida',
+                                     model_id='base.ResPartner',
+                                     embedded_parent_res_id=7)
+
+
+def test_the_lookup_index_of_the_source_is_declared():
+    """``_get_filters_index`` (``:26-28``) — ``(model_id, action_id,
+    embedded_action_id, embedded_parent_res_id)``.
+
+    Es la consulta que ``get_filters`` hace en cada apertura de vista. Que lo
+    haria fallar: no declararlo — el barrido secuencial no da error, solo
+    tarda, que es la clase de defecto que nadie reporta.
+    """
+    indexes = {index.name: list(index.fields)
+               for index in IrFilters._meta.indexes}
+    assert 'ir_filters_get_filters_index' in indexes
+    assert indexes['ir_filters_get_filters_index'] == [
+        'model_id', 'action_id', 'embedded_action', 'embedded_parent_res_id']

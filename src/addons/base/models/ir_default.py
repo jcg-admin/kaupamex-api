@@ -21,8 +21,10 @@ almacena como dos columnas de texto, mismo criterio que ``ir_filters.model_id``,
 
 ``ir.model.fields`` **sí existe** en este árbol desde el porte de
 ``ir_model.py`` (medido: ``grep -rn "^class IrModelFields\b" src/`` → 1 clase),
-así que la conversión a FK real es posible; lo que la difiere es que migra esta
-tabla y va en su propio pase, igual que ``ir_filters.action_id``.
+así que la conversión a FK real es posible y su desenlace es la tarea **#257**.
+El precedente que esta frase citaba —``ir_filters.action_id``— **ya no
+difiere**: se convirtió en ``base/migrations/0077`` (:ref:`h-api-982`), y con
+él cae «va en su propio pase» como razón.
 
 Consecuencia para los métodos que la fuente resuelve por la FK: aquí el tipo,
 la relación y el modelo del campo se **introspeccionan del registro de Django**

@@ -123,8 +123,11 @@ Qué NO se porta, con su medición
 - **``model_id`` como FK a ``ir.model``.** ``grep -rn "^class IrModel\b" src/``
   → **1** clase. [PROVEN] La medición que justificaba el ``Char`` —**0**
   clases— dejó de ser cierta. El campo **sigue** siendo ``model_name``
-  (``Char``): convertirlo a FK migra esta tabla, y eso va en su propio pase,
-  igual que se decidió con ``ir_filters.action_id``. Mismo estado en
+  (``Char``): convertirlo a FK migra esta tabla, y eso es la tarea **#139**.
+  El precedente que este bullet citaba —``ir_filters.action_id``— **ya no
+  difiere**: se convirtió en ``base/migrations/0077`` (:ref:`h-api-982`), así
+  que «va en su propio pase» dejó de tener respaldo y el desenlace es la
+  tarea, no la espera. Mismo estado en
   ``ir_rule``, ``ir_filters`` e ``ir_attachment``. Registrado como **#139**.
 
   El **ancla de columna 0** no es cosmética: sin ella el grep cuenta también

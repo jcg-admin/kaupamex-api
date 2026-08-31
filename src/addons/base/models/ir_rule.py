@@ -61,8 +61,10 @@ Qué NO se porta, con su medición
 - **``model_id`` como FK a ``ir.model``.** ``grep -rn "^class IrModel\b" src/``
   → **1** clase, así que el destino existe. El campo **sigue** siendo
   ``model_name`` (``Char`` indexado) con el label del modelo Django: cambiarlo
-  a FK migra esta tabla y va en su propio pase, igual que
-  ``ir_filters.action_id``. Mismo estado en ``ir_filters.model_id`` e
+  a FK migra esta tabla y su desenlace es la tarea **#139**. El precedente que
+  este bullet citaba —``ir_filters.action_id``— **ya no difiere**: se
+  convirtió en ``base/migrations/0077`` (:ref:`h-api-982`). Mismo estado en
+  ``ir_filters.model_id`` e
   ``ir_attachment.res_model``. Consecuencia visible aquí: ``_order`` de la
   fuente es ``'model_id DESC,id'`` —el **id** de la FK— y su forma Django es
   ``['-model_name', 'id']``, que ordena por el **texto**. Es otro orden, no el

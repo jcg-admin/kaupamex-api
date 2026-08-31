@@ -40,9 +40,11 @@ Cuatro archivos ya portados dejaron anotado que esperaban a éste:
 
 De esos, **sólo el de ``res_groups`` se cierra solo**: llega por el
 ``related_name`` del M2M de aquí. Los otros cuatro llevan una columna ``Char``
-o una propiedad ausente y su conversión migra su propia tabla, así que va en
-su pase — mismo criterio que ``ir_filters.action_id``. Sus mediciones sí se
-corrigen en este commit (regla de H-API-149).
+o una propiedad ausente y su conversión migra su propia tabla; su desenlace es
+la tarea **#257**. El criterio que esta frase citaba —``ir_filters.action_id``,
+diferido «a su pase»— **ya no existe**: se convirtió en
+``base/migrations/0077`` (:ref:`h-api-982`). Sus mediciones sí se corrigen en
+este commit (regla de H-API-149).
 
 Las tres reglas de herencia que el registro codifica
 ====================================================

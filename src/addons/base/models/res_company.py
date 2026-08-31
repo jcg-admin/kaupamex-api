@@ -79,8 +79,10 @@ Qué NO se porta, con su medición
   vistas. **Actualizado** (porte de ``ir_ui_view.py``):
   ``grep -rn "^class IrUiView\b" src/`` → **1** clase. [PROVEN] La medición de
   **0** que sostenía la omisión dejó de ser cierta. El campo **sigue** sin
-  columna aquí: añadir la FK migra esta tabla y va en su propio pase, igual
-  que ``ir_filters.action_id``. ``_get_view`` sigue fuera por otra razón —
+  columna aquí y su desenlace es la tarea **#257**; el precedente que este
+  bullet citaba —``ir_filters.action_id``— **ya no difiere**: se convirtió en
+  ``base/migrations/0077`` (:ref:`h-api-982`). ``_get_view`` sigue fuera por
+  otra razón —
   depende del combinador de XML, que ``ir_ui_view.py`` deja fuera con su
   medición.
 """
