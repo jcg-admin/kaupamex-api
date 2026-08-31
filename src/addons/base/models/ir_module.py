@@ -59,6 +59,7 @@ modelo, y a Enterprise 18 — que no se midió en este pase.
 """
 import fields
 import models
+from django.apps import apps
 from django.core.exceptions import ValidationError
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
@@ -76,10 +77,14 @@ class IrModuleCategory(TimeStampedModel):
     Procedencia: ``name`` · ``description`` · ``sequence`` · ``visible``
     (default True) · ``exclusive`` idénticos. ``parent_id`` → ``parent``;
     ``child_ids``/``module_ids``/``privilege_ids`` → los ``related_name``
-    correspondientes. ``xml_id`` **no se porta**: se computa desde
-    ``ir.model.data``, el registro de datos declarativos XML de Odoo, que este
-    árbol no tiene — su papel de identificador estable lo cumple el ``name``
-    técnico del módulo.
+    correspondientes. ``xml_id`` **SÍ se porta** — ver :meth:`_compute_xml_id`.
+
+    .. note:: Este párrafo decía que el campo *"no se porta: se computa desde
+       ``ir.model.data``, el registro de datos declarativos XML de Odoo, que
+       este árbol no tiene"*. La segunda mitad es falsa desde el porte de
+       ``ir_model.py``: ``ir.model.data`` se declara en ``:2848`` con los
+       cuatro campos que el cómputo necesita (``model``, ``res_id``,
+       ``module``, ``name``). Ver :ref:`h-api-983`.
     """
 
     _name = 'ir.module.category'
@@ -98,11 +103,51 @@ class IrModuleCategory(TimeStampedModel):
     visible     = fields.Boolean(default=True)
     exclusive   = fields.Boolean(default=False)
 
+    #: ≙ ``xml_id`` (``odoo19c: ir_module.py:91``):
+    #: ``fields.Char(string='External ID', compute='_compute_xml_id')``.
+    #:
+    #: **No persistido**, como allá: el dato vive en ``ir.model.data`` y una
+    #: columna aquí sería una copia que esa tabla puede desmentir. El
+    #: mecanismo es ``orm.fields_nonstored.NonStored``, el mismo con que
+    #: ``ir_actions.warning`` porta su ``compute`` sin columna.
+    xml_id = fields.NonStored(
+        default=lambda category: category._compute_xml_id(),
+        help_text='Odoo xml_id. Identificador externo "modulo.nombre", '
+                  'tomado de ir.model.data.',
+    )
+
     class Meta:
         db_table = 'ir_module_category'
         ordering = ['sequence', 'name', 'id']   # derivado de _order
         verbose_name = 'Aplicación'
         verbose_name_plural = 'Aplicaciones'
+
+    def _compute_xml_id(self):
+        """≙ ``_compute_xml_id`` (``odoo19c: ir_module.py:93-99``).
+
+        El identificador externo de una categoria es ``"<modulo>.<nombre>"``,
+        y sale de ``ir.model.data`` — no de esta tabla.
+
+        Dos fidelidades que conviene senalar porque no se leen solas:
+
+        - **la cadena vacia cuando nadie lo declaro**, no ``None``: es el
+          ``xml_ids.get(cat.id, [''])[0]`` de ``:99``, y es lo que deja al
+          consumidor sin ramificar;
+        - **el primero cuando hay varios**. Un mismo registro puede llevar
+          identificador de mas de un modulo —lo dice el propio
+          ``_process_end_unlink_record`` de la fuente— y el campo es ``Char``,
+          asi que entrega uno.
+
+        DIVERGENCIA declarada, y es la que este arbol ya tenia tomada: la
+        fuente busca por ``('model', '=', self._name)`` —el nombre Odoo— y
+        aqui ``ir.model.data`` guarda el **label de Django**
+        (``ir_model.py:3423`` escribe ``model_cls._meta.label``). Se consulta
+        por el label para no crear una segunda convencion en la misma columna.
+        """
+        fila = (apps.get_model('base', 'IrModelData').objects
+                .filter(model=type(self)._meta.label, res_id=self.pk)
+                .values_list('module', 'name').first())
+        return f'{fila[0]}.{fila[1]}' if fila else ''
 
     def _check_parent_not_circular(self):
         """≙ ``_check_parent_not_circular`` (``odoo19c: ir_module.py:102-105``).
