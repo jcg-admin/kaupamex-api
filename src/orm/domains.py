@@ -97,6 +97,7 @@ import warnings
 from datetime import date, datetime, time, timedelta, timezone
 
 from django.core.exceptions import FieldDoesNotExist
+from django.db import models
 from django.db.models import Q
 
 from orm.fields_nonstored import NonStored
@@ -104,6 +105,7 @@ from orm.fields import (
     NEGATIVE_CONDITION_OPERATORS as _FIELDS_NEGATIVE_OPERATORS,
     condition_to_q,
     falsy_value,
+    walk_related_chain,
 )
 from orm.fields_properties import Properties
 from orm.environments import get_current_tz, is_su
@@ -2612,3 +2614,62 @@ def to_q(domain, model=None):
     """
     return Domain(domain).optimize_full(model)._to_q(model)
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ``_search_related`` — la búsqueda de un campo ``related=``
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Vive aquí y no en ``orm/fields.py`` porque construye un ``Domain``, y aquel
+# módulo no puede importarlo sin cerrar el ciclo (``domains`` ya importa de
+# ``fields``). Es la misma vía por la que ``determine_domain`` se instala
+# sobre ``NonStored`` desde el módulo que sí ve a los dos.
+
+def _field_search_related(self, records, operator, value):
+    """≙ ``Field._search_related`` (``:735-772``) — el dominio que sustituye a
+    una condición sobre el campo proyectado.
+
+    ``('x.y.z', op, v)`` se reescribe como ``('x', 'any', [('y', 'any',
+    [('z', op, v)])])``, y la cadena se construye **hacia atrás** desde el
+    último eslabón.
+
+    El quinto lector de ``falsy_value`` (``:744``), y su razón: si el valor
+    buscado *es* el que cuenta como «sin establecer», la fila cuyo eslabón
+    many2one está vacío también satisface la condición — allá no hay registro
+    que mirar, y su ausencia **es** ese valor. Sin esta rama, buscar
+    ``country_code = False`` perdería todas las filas sin país.
+    """
+    null_value = falsy_value(self)
+    if isinstance(value, COLLECTION_TYPES):
+        value_is_null = any(v is False or v is None or v == null_value
+                            for v in value)
+    else:
+        value_is_null = value is False or value is None or value == null_value
+    can_be_null = (operator not in NEGATIVE_CONDITION_OPERATORS) == value_is_null
+
+    if operator in NEGATIVE_CONDITION_OPERATORS and not value_is_null:
+        #: ``:752-755`` verbatim: se devuelve al despachador para que lo
+        #: reintente con el operador positivo, en vez de emitir un dominio
+        #: que negaría la cadena entera.
+        return NotImplemented
+
+    field_seq = walk_related_chain(self, records)
+
+    domain = Domain(field_seq[-1].name, operator, value)
+    for field in reversed(field_seq[:-1]):
+        domain = Domain(
+            field.name,
+            'any!' if self.compute_sudo else 'any',
+            domain)
+        #: ``:770`` dice ``field.type == 'many2one' and not field.required``.
+        #: Aquí el eslabón nulable se lee por ``null``, que es de dónde sale
+        #: la verdad en este stack: ``required`` está instalado como atributo
+        #: de clase con defecto ``False`` y **no** se deriva de ``null``
+        #: (medido: 0 derivaciones en ``orm/fields.py``), así que leerlo
+        #: llamaría nulable a toda FK. Derivarlo es la tarea **#251**.
+        if (can_be_null and isinstance(field, models.ForeignKey)
+                and field.null):
+            domain |= Domain(field.name, '=', False)
+    return domain
+
+
+models.Field._search_related = _field_search_related

@@ -1,0 +1,17 @@
+campos medidos: 5170
+discrepancias entre bool(field.null) y not is_not_null(field): 120
+por tipo de campo: {'ManyToManyField': 87, 'BigAutoField': 5, 'DateTimeField': 2, 'CharField': 13, 'BooleanField': 2, 'ForeignKey': 1, 'GenericForeignKey': 1, 'PositiveIntegerField': 4, 'DecimalField': 2, 'EmailField': 1, 'TextField': 1, 'IntegerField': 1}
+
+  auth.Group                               permissions            ManyToManyField      atajo=False correcto=True
+  base.ResDevice                           id                     BigAutoField         atajo=False correcto=True
+  base.ResDevice                           created_at             DateTimeField        atajo=False correcto=True
+  base.ResDevice                           updated_at             DateTimeField        atajo=False correcto=True
+  base.ResDevice                           session_identifier     CharField            atajo=False correcto=True
+  base.ResDevice                           platform               CharField            atajo=False correcto=True
+  base.ResDevice                           browser                CharField            atajo=False correcto=True
+  base.ResDevice                           ip_address             CharField            atajo=False correcto=True
+  base.ResDevice                           country                CharField            atajo=False correcto=True
+  base.ResDevice                           city                   CharField            atajo=False correcto=True
+  base.ResDevice                           revoked                BooleanField         atajo=False correcto=True
+  base.ResDevice                           user                   ForeignKey           atajo=False correcto=True
+  ... (120 en total)

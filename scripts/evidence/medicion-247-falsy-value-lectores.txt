@@ -1,0 +1,14 @@
+=== los cinco sitios de la referencia que LEEN falsy_value ===
+  :  744  falsy_value = self.falsy_value
+  :  970  return env._(self.falsy_value_label) if self.falsy_value_label else None # pylint: disable=gettext-variable
+  : 1288  if (null_value := self.falsy_value) is not None:
+  : 1337  if (null_value := self.falsy_value) is not None:
+  : 1408  if False in value or self.falsy_value in value:
+  : 1456  if (null_value := self.falsy_value) is not None:
+
+=== los sitios de aqui que lo LEEN (por la funcion o el atributo) ===
+  :  356  def falsy_value(field):
+  :  545  null_value = falsy_value(field)
+  :  777  if False in values or falsy_value(self) in values:
+  :  811  if (null_value := falsy_value(self)) is not None:
+  : 1584  return _(self.falsy_value_label) if self.falsy_value_label else None

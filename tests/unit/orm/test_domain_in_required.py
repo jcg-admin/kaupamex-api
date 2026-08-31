@@ -22,7 +22,7 @@ from django.db import models
 
 from orm import registry
 from orm.domains import DomainCondition, _optimize_in_required
-from orm.fields import falsy_value
+from orm.fields import condition_to_q, falsy_value
 from orm.fields_binary import Binary
 
 
@@ -387,3 +387,157 @@ class TestTheTwoWaysToAskForNotNullAgree:
         assert _optimize_in_required(condition, rule) == condition, (
             'el optimizador recortó el False de un M2M: su columna no existe, '
             'así que la fila sin valor sigue siendo posible')
+
+
+class TestTheThirdConsumerAsksTheSameQuestion:
+    """``condition_to_q`` — ≙ ``Field._condition_to_sql`` (``odoo19c: :1279``).
+
+    La fuente tiene **tres** consumidores de ``not_null_fields`` fuera de su
+    registro, y los tres deciden lo mismo: si una condición tiene que
+    contemplar la fila sin valor. Aquí sólo uno estaba portado con el criterio
+    corregido —``_optimize_in_required``— y este otro seguía preguntando
+    ``bool(field.null)``, que es el atajo que :ref:`h-api-971` desmontó.
+
+    Medido sobre el registro entero antes de corregirlo: **120 de 5170**
+    campos, y las dos familias son las dos condiciones que
+    :func:`~orm.registry.is_not_null` comprueba. **88 no tienen columna
+    propia** —87 ``ManyToManyField`` y 1 ``GenericForeignKey``, cuyo
+    ``null=False`` no tiene efecto porque la nulabilidad vive en otra tabla—;
+    las otras **32** viven en modelos ``managed=False``, donde la columna no la
+    emite este ORM y por tanto no se puede afirmar que sea NOT NULL.
+
+    Las 120 discrepan **en la misma dirección** —el atajo dice «no puede ser
+    nula» cuando sí puede—, que es la peligrosa: ``condition_to_q`` retira
+    entonces la rama ``IS NULL`` y la fila sin valor desaparece del resultado.
+    """
+
+    def test_every_discrepancy_belongs_to_one_of_the_two_families(self):
+        """El recorrido completo, aserta la PROPIEDAD y no el conteo.
+
+        La primera versión de este caso fijaba ``== 120``, y falla en cuanto se
+        corre junto a otros archivos: varios tests de ``tests/unit/orm``
+        declaran modelos propios, así que ``apps.get_models()`` crece con lo
+        que se haya importado. Un conteo cuya población varía con el orden de
+        ejecución no mide lo que dice medir — es el sub-patrón A de
+        ``metrica-decide-la-conclusion``, cometido aquí mismo.
+
+        Lo que **no** varía es la razón de cada discrepancia: o el campo **no
+        tiene columna propia** —``concrete`` falso, así que su ``null=False``
+        no tiene efecto— o su modelo no es gestionado por este ORM, que no
+        emite su DDL y por tanto no puede afirmar NOT NULL. Son las dos
+        condiciones que :func:`~orm.registry.is_not_null` comprueba, y la
+        aserción va sobre ellas.
+
+        **La primera versión nombraba ``ManyToManyField``** en vez de la
+        propiedad, y falló contra un ``GenericForeignKey`` de
+        ``base.IrActionsServer``: también es no concreto, también declara
+        ``null=False`` sin efecto. Nombrar los ejemplares en lugar del rasgo
+        es el sub-patrón A de ``metrica-decide-la-conclusion``, cometido en el
+        caso escrito para evitarlo.
+        """
+        ajenas, medidos = [], 0
+        for model in apps.get_models():
+            for field in model._meta.get_fields():
+                if not hasattr(field, 'null'):
+                    continue
+                medidos += 1
+                if bool(field.null) == (not registry.is_not_null(field)):
+                    continue
+                sin_columna = not getattr(field, 'concrete', False)
+                no_gestionado = not model._meta.managed
+                if not (sin_columna or no_gestionado):
+                    ajenas.append(f'{model._meta.label}.{field.name} '
+                                  f'({type(field).__name__})')
+        assert medidos > 1000, (
+            f'sólo {medidos} campos medidos: el recorrido no está viendo el '
+            'registro y un 0 discrepancias aquí sería un verde falso')
+        assert not ajenas, (
+            f'{len(ajenas)} discrepancias fuera de las dos familias medidas '
+            f'— {ajenas[:5]}')
+
+    def test_the_count_over_a_fixed_population(self):
+        """El conteo exacto, sobre una población que NO crece con los tests.
+
+        **La población se fija por el ORIGEN del modelo, no por su etiqueta de
+        app.** ``apps.get_app_config('base').get_models()`` devuelve también
+        los modelos que un archivo de pruebas declara con
+        ``app_label = 'base'`` —medido: **4** archivos bajo ``tests/`` lo
+        hacen—, así que su tamaño depende de qué se haya importado. Este caso
+        ya falló por eso: verde en aislamiento, rojo en la suite entera, que es
+        el sub-patrón A de ``metrica-decide-la-conclusion.md`` cometido sobre
+        el propio control.
+
+        El discriminador es ``__module__``: los del árbol viven bajo
+        ``addons.base.models``; los de pruebas, bajo ``tests``.
+
+        *Métrica:* campos con atributo ``null`` en los modelos que
+        ``src/addons/base/models/`` declara.
+        *Ciega a:* un modelo del árbol que se declarara fuera de ese paquete, y
+        a los demás addons — para eso está el caso de la propiedad, que sí
+        recorre el registro entero.
+        """
+        arbol = [
+            model for model in apps.get_app_config('base').get_models()
+            if model.__module__.startswith('addons.base.models')]
+        discrepan, medidos = [], 0
+        for model in arbol:
+            for field in model._meta.get_fields():
+                if not hasattr(field, 'null'):
+                    continue
+                medidos += 1
+                if bool(field.null) != (not registry.is_not_null(field)):
+                    discrepan.append(f'{model._meta.label}.{field.name}')
+        assert medidos > 500, (
+            f'sólo {medidos} campos en base: el recorrido no la está viendo')
+        assert len(discrepan) == 27, (
+            f'{len(discrepan)} discrepancias en base, se esperaban 27. Es '
+            'evidencia fechada al portar #247; si cambia, se re-mide y se '
+            'actualiza con su razón — no se relaja la aserción')
+
+    def test_a_many_to_many_keeps_the_null_branch(self, mail_server):
+        """La consecuencia observable sobre el consumidor portado.
+
+        ``groups in [1, False]`` sobre un M2M tiene que emitir la rama de
+        nulos. Con el atajo, ``can_be_null`` salía ``False`` y ``condition_to_q``
+        devolvía el ``IN`` pelado.
+        """
+        field = apps.get_model('base', 'IrRule')._meta.get_field('groups')
+        assert field.null is False, (
+            'la precondición del caso cambió: sin null=False el atajo y el '
+            'recorrido coinciden y este caso no distingue nada')
+
+        q = condition_to_q('groups', 'in', [1, False], field)
+        assert 'isnull' in str(q), (
+            'la rama IS NULL desapareció de un M2M: la fila sin valor se cae '
+            f'del resultado — {q}')
+
+    def test_a_real_not_null_column_still_drops_it(self, sequence_range):
+        """El control positivo: la corrección no apagó el mecanismo.
+
+        Sin este caso, un ``can_be_null`` que valiera siempre ``True`` pasaría
+        el caso de arriba sin que nada lo notara.
+        """
+        field = sequence_range._meta.get_field('id')
+        assert registry.is_not_null(field) is True
+
+        q = condition_to_q('id', 'in', [1, False], field)
+        assert 'isnull' not in str(q), (
+            f'se emitió la rama IS NULL sobre una columna NOT NULL — {q}')
+
+    def test_a_field_of_an_unmanaged_model_keeps_it(self):
+        """La segunda familia de las 120, que no es el M2M.
+
+        En un modelo ``managed=False`` este ORM no emite el DDL, así que no
+        puede afirmar que la columna sea NOT NULL. La respuesta conservadora
+        es la correcta, y cambia sola el día que #201 decida el veredicto de
+        esos modelos.
+        """
+        device = apps.get_model('base', 'ResDevice')
+        assert device._meta.managed is False, (
+            'la precondición del caso cambió: ResDevice ya es managed y este '
+            'caso mide otra cosa')
+        field = device._meta.get_field('platform')
+        assert field.null is False and registry.is_not_null(field) is False
+
+        q = condition_to_q('platform', 'in', ['x', False], field)
+        assert 'isnull' in str(q), f'la rama IS NULL desapareció — {q}'

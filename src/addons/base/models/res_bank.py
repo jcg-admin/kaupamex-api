@@ -29,10 +29,26 @@ espera para truncar.
 Qué NO se porta, con su medición
 =================================
 
-- **``country_code``** — ``related='country.code'``. Aquí el acceso a través de
-  la FK (``bank.country.code``) da el mismo valor sin duplicar la columna, y un
-  ``related`` almacenado es una copia que puede divergir del original. Se omite
-  y se declara: el consumidor lee la FK.
+- **``country_code``** — ``related='country.code'``
+  (``odoo19c: res_bank.py:29``). Se omite **hoy**, y la razón que este bloque
+  daba estaba refutada por la propia referencia.
+
+  Decía *«un ``related`` almacenado es una copia que puede divergir del
+  original»*. Eso describe ``store=True``, y la referencia lo declara **sin
+  store**: es una proyección que se calcula al leer, no una copia. El mismo
+  archivo lo dice bien doce líneas más abajo —*«proyecciones de un join, no
+  dato propio»*— así que la prosa se contradecía a sí misma.
+
+  Medido sobre los 120 addons que este árbol porta: la referencia declara
+  **597** campos ``related=``, y **552 no llevan ``store``**. La razón
+  retirada no aplicaba a 552 de 597.
+
+  Lo que sí es cierto es que el consumidor puede leer la FK
+  (``cuenta.bank.country.code``). Lo que **se pierde** al hacerlo es la
+  búsqueda: la referencia hace buscable un ``related`` cableando
+  ``self.search = self._search_related`` en ``setup_related``
+  (``odoo19c: fields.py:637``), y navegar por la FK no lo da. El mecanismo
+  ``related=`` es la tarea **#249**; este campo se porta con él.
 
 ``res.partner.bank`` — la cuenta, en este mismo archivo (#118)
 ===============================================================

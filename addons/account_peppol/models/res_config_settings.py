@@ -25,10 +25,15 @@ Por qué está bloqueado — dos razones, las dos medidas
 2. **Los 15 campos son ``related=`` puros.** No aportan dato ni lógica: leen y
    escriben ``company_id.*`` y ``account_peppol_edi_user.*``, que **ya están
    portados** en ``models/res_company.py`` y
-   ``models/account_edi_proxy_user.py``. Duplicarlos aquí como columnas sería
-   inventar estado que hay que sincronizar. Es el mismo criterio con que este
-   árbol excluye ``views/``: la pantalla es del cliente, y el cliente de este
-   proyecto es React.
+   ``models/account_edi_proxy_user.py``.
+
+   Este punto decía además *«duplicarlos aquí como columnas sería inventar
+   estado que hay que sincronizar»*, y eso **no describe un ``related``**: sin
+   ``store`` no hay columna que duplicar ni estado que sincronizar — el valor
+   se calcula al leer. Medido sobre los 120 addons que este árbol porta, la
+   referencia declara **597** ``related=`` y **552 sin ``store``**. La
+   conclusión —no portar el asistente de ajustes— se sostiene por el punto 1
+   (no hay clase destino), no por ésta.
 
 Los 11 botones y dónde vive hoy lo que hacen
 ==============================================

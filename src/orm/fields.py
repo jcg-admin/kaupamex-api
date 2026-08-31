@@ -63,6 +63,7 @@ from django.utils.timezone import localtime
 from orm.environments import env as get_environment, get_current_company, get_transaction
 from tools.misc import OrderedSet, remove_accents
 from tools.translate import _
+from orm.registry import is_not_null
 from tools.sql import SQL, pg_varchar, sql_order_by_type
 
 from orm.fields_binary import Binary, Image                    # noqa: F401
@@ -520,8 +521,27 @@ def condition_to_q(field_expr, operator, value, field=None):
         ``falsy_value=None``, que son los defectos de la fuente
         (``Field.falsy_value = None``; un campo está en ``not_null_fields``
         sólo si algo lo declara).
+
+    Cómo se pregunta la nulabilidad
+    --------------------------------
+
+    ``self not in model.env.registry.not_null_fields`` allá (``:1281``), y aquí
+    :func:`~orm.registry.is_not_null`, que es el mismo criterio: columna real
+    de un modelo con tabla, y clave primaria o ``null=False``.
+
+    **Decía ``bool(field.null)``**, que es el atajo que :ref:`h-api-971`
+    desmontó en el otro consumidor y que aquí seguía vivo. Medido sobre el
+    registro entero: **120 de 5170** campos responden distinto, y los 120 en la
+    dirección peligrosa —el atajo dice «no puede ser nula» cuando sí puede—,
+    de modo que la rama ``IS NULL`` se retiraba y la fila sin valor
+    desaparecía del resultado.
+
+    Las 120 son dos familias: **87** ``ManyToManyField``, que declara
+    ``null=False`` sin efecto porque la nulabilidad vive en la tabla
+    intermedia; y **33** en modelos ``managed=False``, donde este ORM no emite
+    el DDL y por tanto no puede afirmar NOT NULL.
     """
-    can_be_null = True if field is None else bool(field.null)
+    can_be_null = True if field is None else not is_not_null(field)
     null_value = falsy_value(field)
 
     # --- in / not in (igualdad) --------------------------------------------
@@ -1791,6 +1811,190 @@ def _field_inverse_related(self, records):
 
 
 models.Field._inverse_related = _field_inverse_related
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ``related=`` — el campo que proyecta el valor del extremo de una cadena
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# ≙ ``Field.setup_related`` (``odoo19c: :604-660``) y ``Field._search_related``
+# (``:735-772``), más las cinco properties ``_related_*`` (``:774-778``).
+#
+# **Por qué se construye y no se declina.** Medido sobre los 120 addons que
+# este árbol porta: la referencia declara **597** campos ``related=``, y **552
+# sin ``store``**. No es un puñado de casos aislados — es un mecanismo. Dos
+# bloques de prosa de este árbol lo declinaban dando como razón que un
+# ``related`` es «una copia que puede divergir», y eso describe ``store=True``,
+# que 552 de 597 no llevan. La medición vive en
+# ``tests/unit/orm/test_related_shape_in_the_reference.py``.
+#
+# **Qué diverge, y es de mecanismo.** El ``setup_related`` de la fuente usa su
+# registro por base (``model.pool``, ``field._setup_done`` + ``field.setup()``,
+# ``field_setup_dependents``) para asegurar que cada eslabón esté listo antes
+# de recorrerlo. Aquí quien liga los campos es Django, al construir la clase:
+# cuando este código corre, la cadena ya está resuelta. Por eso el recorrido es
+# directo y no hay fase de espera que replicar. Los ``_extra_keys__`` y
+# ``_modules`` de ``:650-663`` son del cargador de módulos de la fuente, que
+# este árbol no tiene: su desenlace es divergencia de mecanismo declarada.
+
+
+def walk_related_chain(field, model):
+    """Los campos que ``field.related`` atraviesa, de origen a destino.
+
+    ≙ el recorrido de ``setup_related`` (``:608-617``), que allá lee
+    ``model.pool[model_name]._fields[name]``.
+
+    **La referencia no declara este símbolo**: inlinea el mismo recorrido dos
+    veces, en ``setup_related`` (``:608-617``) y en ``_search_related``
+    (``:757-762``). Aquí es uno solo, y **público** porque
+    :mod:`orm.domains` lo importa — no hay contrato de visibilidad de la
+    fuente que preservar, y un ``_nombre`` importado entre módulos sería el
+    defecto que PEP 8 nombra.
+
+    **Divergencia de mecanismo, medida:** aquí ``_fields`` es una ``property``
+    de **instancia** (``orm/models.py:1355``), y este recorrido corre sobre la
+    **clase** — Django liga los campos al construirla, así que no hay fase de
+    espera que replicar. El cuerpo de esa property es
+    ``{f.name: f for f in self._meta.get_fields()}``, y eso es exactamente lo
+    que se consulta: el mismo registro, alcanzado desde la clase.
+
+    Lanza ``KeyError`` nombrando el eslabón que falta, como la fuente
+    (``:611-615``).
+    """
+    field_seq, current = [], model
+    for name in field.related.split('.'):
+        by_name = {f.name: f for f in current._meta.get_fields()}
+        link = by_name.get(name)
+        if link is None:
+            raise KeyError(
+                f'El campo {name} de la definición related de {field.name} '
+                f'no existe en {current.__name__}.')
+        field_seq.append(link)
+        current = getattr(link, 'related_model', None) or current
+    return field_seq
+
+
+def _field_setup_related(self, model):
+    """≙ ``Field.setup_related`` (``:604-660``) — «setup the attributes of a
+    related field».
+
+    Deja instaladas las tres funciones que hacen del campo una proyección:
+    ``compute`` para leerlo, ``inverse`` para escribirlo, y ``search`` para
+    **buscarlo** — que es la que se perdía al navegar la cadena por la FK a
+    mano.
+    """
+    if not isinstance(self.related, str):
+        raise TypeError(f'related debe ser una ruta punteada, no {self.related!r}')
+
+    field_seq = walk_related_chain(self, model)
+
+    #: ``:622-624`` — el related y su destino son del mismo tipo, o la
+    #: proyección miente. Aquí el tipo lo publica la ``property`` ``type``
+    #: (``:1327``), que despacha por conducta y no por clase: un ``CharField``
+    #: con ``choices`` es ``selection`` y sin ellas ``char``, distinción que
+    #: la clase de Django no expresa por sí sola.
+    if self.type != field_seq[-1].type:
+        raise TypeError(
+            f'El tipo del campo related {self.name} ({self.type}) no coincide '
+            f'con el de su destino {field_seq[-1].name} '
+            f'({field_seq[-1].type}).')
+
+    self.related_field = field_seq[-1]
+
+    self.compute = self._compute_related
+    #: ``:632`` — sin inverso si el campo o su destino son de sólo lectura.
+    #: ``inherited`` y ``readonly`` se leen directos, sin ``getattr`` con
+    #: defecto: los instala :data:`_FIELD_CLASS_ATTRIBUTES` sobre
+    #: ``models.Field``, así que existen siempre. Un ``getattr`` defensivo
+    #: aquí escondería su desaparición en vez de delatarla.
+    if self.inherited or not (self.readonly or field_seq[-1].readonly):
+        self.inverse = self._inverse_related
+    #: ``:634-636`` — buscable sólo si NO se guarda (con columna propia se
+    #: busca por ella) y si cada eslabón lo es. El defecto de ``store`` es
+    #: ``True``, así que un campo que quiera la búsqueda por cadena declara
+    #: ``store=False`` — que es la forma de **552 de los 597** ``related=``
+    #: medidos en la referencia.
+    if not self.store and all(f._description_searchable for f in field_seq):
+        self.search = self._search_related
+
+    #: ``:640-641`` — un related de sólo lectura y sin inverso no puede
+    #: honrar un default: nadie escribiría ese valor. La fuente avisa en vez
+    #: de reventar, y aquí igual. El centinela de «sin default» en Django es
+    #: ``NOT_PROVIDED``, no ``None``: un ``default=None`` declarado es un
+    #: default real.
+    if (self.default is not models.NOT_PROVIDED
+            and self.readonly and not self.inverse):
+        _logger.warning('Default redundante en %s', self.name)
+
+    #: ``:643-647`` — copiar del destino lo que el related no declare por sí.
+    for attribute, prop in self.related_attrs:
+        if attribute not in self.__dict__ and prop.startswith('_related_'):
+            setattr(self, attribute, getattr(field_seq[-1], prop, None))
+
+
+models.Field.setup_related = _field_setup_related
+
+
+#: ``_search_related`` (``:735-772``) **se instala desde**
+#: :mod:`orm.domains`, no aquí, y la razón es una divergencia medida de
+#: **dirección de import**, no una preferencia:
+#:
+#: ==================  ==========================================
+#: La referencia       ``fields`` → ``domains`` (``odoo/orm/fields.py:24``),
+#:                     y la vuelta sólo bajo ``TYPE_CHECKING``
+#:                     (``odoo/orm/domains.py:73``).
+#: Aquí                al revés — ``domains`` importa de ``fields``
+#:                     ``condition_to_q``, ``falsy_value`` y
+#:                     ``NEGATIVE_CONDITION_OPERATORS``.
+#: ==================  ==========================================
+#:
+#: La inversión la causan esos tres símbolos, que la fuente **no tiene como
+#: función de módulo**: allá ``falsy_value`` es un atributo del campo y el
+#: compilador de hojas vive en ``Domain._to_q``. Con la dirección invertida,
+#: un cuerpo que construya ``Domain`` no cabe en este archivo, y un import
+#: dentro de la función está prohibido (``no-lazy-imports.md``).
+#:
+#: Enderezarla es la tarea **#380**, la misma que ``_NEGATIVE_LIKE_OPERATORS``
+#: ya citaba: unificar los tres en un hogar compartido devuelve la dirección
+#: de la fuente y trae este cuerpo a su archivo. Hasta entonces la instalación
+#: cruzada es la misma vía por la que ``determine_domain`` llega a
+#: ``NonStored``. :func:`_field_setup_related` lo referencia por ``self``, así
+#: que el orden de instalación no importa: cuando el campo se configura, el
+#: método ya está colgado.
+
+
+#: ``:774-778`` — de dónde copia ``setup_related`` cada atributo. Son
+#: properties allá y funciones aquí por la misma razón que el resto del
+#: parche: se cuelgan de ``models.Field``, que no se puede reabrir con
+#: ``property`` sin pisar lo que Django ya declare con ese nombre.
+models.Field._related_comodel_name = property(
+    lambda self: getattr(self, 'comodel_name', None))
+models.Field._related_string = property(lambda self: self.string)
+models.Field._related_help = property(lambda self: getattr(self, 'help', None))
+models.Field._related_groups = property(
+    lambda self: getattr(self, 'groups', None))
+models.Field._related_aggregator = property(lambda self: self.aggregator)
+
+
+def _field_setup(self, model):
+    """≙ ``Field.setup`` (``:526-542``) — el despachador de las dos ramas.
+
+    La fuente valida antes sus ``_extra_keys__`` contra
+    ``_valid_field_parameter``; aquí no hay cargador de módulos que los
+    aporte, así que esa mitad es divergencia de mecanismo declarada. Lo que sí
+    se porta es la bifurcación, que es el contrato: un campo con ``related``
+    va por un camino y el resto por el otro.
+    """
+    if getattr(self, '_setup_done', False):
+        return
+    if self.related:
+        self.setup_related(model)
+    else:
+        self.setup_nonrelated(model)
+    self._setup_done = True
+
+
+models.Field.setup = _field_setup
 
 
 def _field_resolve_depends(self, registry_module):
