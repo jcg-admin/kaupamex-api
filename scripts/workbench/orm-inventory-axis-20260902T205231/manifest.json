@@ -1,0 +1,30 @@
+{
+  "question": "De los simbolos que faltan en src/orm, cuales caen en «el stack lo trae hecho» y cuales en «el stack tiene con que construirlo» — la mitad del veredicto que el censo hermano dejo abierta, y la directiva del ejecutor de revisar que tenemos NOSOTROS antes de implementar el ORM.",
+  "instrument": [
+    "locate_absent_symbols.py",
+    "uv run python scripts/workbench/orm-inventory-axis-20260902T205231/locate_absent_symbols.py --root orm --detalle"
+  ],
+  "metric": "Nombres declarados como def/class por AST, indexados en dos universos: el stack instalado (.venv/lib/python3.12/site-packages mas la stdlib del interprete) y nuestro arbol fuera de la raiz espejada (src/ y addons/ menos src/orm/). Cada simbolo ausente cae en uno de cuatro cubos, con la especificidad exigida en LOS DOS lados: un solo paquete del stack o un solo archivo nuestro.",
+  "blind_to": [
+    "Que el simbolo encontrado HAGA lo que el de la fuente hace. El instrumento mide la forma —existe un nombre— y el veredicto es sobre el fondo: es el sub-patron C de metrica-decide-la-conclusion.md, declarado y no cometido. Por eso el guion NO emite el veredicto: emite el material.",
+    "El simbolo que el stack expone con OTRO nombre. frozendict de la fuente contra MappingProxyType de la stdlib cae en sin_rastro siendo un TRAE; el cubo terminal es una cota SUPERIOR de «se construye».",
+    "Todo lo que un paquete expone por C, por __getattr__ o por reexportacion en __init__: psycopg, lxml y libharu tienen superficie que ningun AST de .py ve.",
+    "El renombre nuestro. Un simbolo portado aqui con otro nombre sale en sin_rastro.",
+    "La distincion entre un metodo de BaseModel que aterrizo en un addon consumidor y una homonimia. El cubo ya_esta_aqui la acota con la especificidad pero no la cierra: convert_to_column_insert en base_sparse_field es lo primero; check en ir_model.py, lo segundo."
+  ],
+  "destination": "outputs/eje-de-inventario-orm.txt; cierra la mitad TRAE/CONSTRUYE de #209 y alimenta el orden de porte de #217",
+  "corrected_premise": {
+    "antes": "La premisa del eje era que un indice de nombres separa TRAE de CONSTRUYE.",
+    "despues": "El propio resultado la refuta en su mitad util: con la especificidad exigida en un solo lado, ya_esta_aqui recogia 36 simbolos de los que la mayoria eran dunders y verbos genericos (__setitem__, add, read, join, patch). Exigida en los dos, baja a 23 y la mayoria de esos si son reubicaciones reales. El cubo terminal —264 de 333, 79.3 %— es lo unico que el nombre decide solo.",
+    "quien_la_destapo": "el propio instrumento al correrse sobre el arbol real, no una relectura del diseno."
+  },
+  "control": "TestOnlyDeclarationsCount::test_a_name_only_mentioned_in_a_body_is_not_a_declaration — un archivo que nombra OrderedSet dos veces sin declararlo. Un instrumento que midiera por texto lo daria por presente y el veredicto diria «el stack lo trae hecho» sobre una variable local. Y TestTheSpecificityIsDemandedOnBothSides::test_two_files_of_ours_make_the_name_generic, que es el control de la premisa corregida: sin el, add entra como inventario propio.",
+  "reproducible": "uv run pytest scripts/workbench/orm-inventory-axis-20260902T205231/tests/ -q && uv run python scripts/workbench/orm-inventory-axis-20260902T205231/locate_absent_symbols.py --root orm --detalle",
+  "outputs": [
+    "outputs/eje-de-inventario-orm-*.txt"
+  ],
+  "source": "odoo19c @ odoo-tools abe4040ec1 (solo lectura); stack instalado del .venv de api; arbol propio en feature/kaupamex-l3",
+  "tasks": [
+    "#209"
+  ]
+}
