@@ -1,0 +1,21 @@
+{
+  "measured_at": "2026-09-02T17:16:43",
+  "binary": "/opt/claude-code/bin/claude",
+  "machine": {
+    "cpus": 4,
+    "memory_mb": 16075,
+    "max_user_processes": "64262"
+  },
+  "axis_1_tool_use_width": {
+    "guard": "KEo(){return a.CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY??10}",
+    "default": 10,
+    "env_value": null
+  },
+  "axis_2_detached_processes": {
+    "launched": 24,
+    "completed": 24,
+    "incomplete": 0,
+    "peak_concurrent": 24
+  },
+  "background_caps_declared_by_the_client": []
+}
