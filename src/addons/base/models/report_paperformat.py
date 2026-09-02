@@ -34,9 +34,15 @@ Procedencia de los campos — todos se portan:
 fue:
 
 1. Primera redacción: *"0 clases ``IrActions``"* — cierto entonces.
-2. Tras portar ``ir_actions.py``: **9** clases, pero
-   ``grep -rn "^class IrActionsReport" src/`` → **0**, porque
-   ``ir.actions.report`` vive en su propio archivo de la referencia.
+2. Tras portar ``ir_actions.py``: **9** clases, pero ``ir.actions.report``
+   vive en su propio archivo de la referencia, no en ``ir_actions.py`` —
+   medido en ese momento, no ahora (contradecía la medición 3 abajo si se
+   dejaba como cita viva):
+
+   .. code-block:: text
+
+      grep -rn "^class IrActionsReport" src/    # 0 en ese momento
+
 3. **Ahora** (porte de ``ir_actions_report.py``):
    ``grep -rn "^class IrActionsReport\b" src/`` → **1** clase. [PROVEN]
 
@@ -44,7 +50,9 @@ Y se cumplió la predicción literal —*"su FK declarará
 ``related_name='report_ids'`` y la relación aparece de este lado sola, sin
 tocar este archivo"*—: el ``paperformat`` de ``ir_actions_report.py`` lleva
 ese ``related_name``, y **este archivo no necesitó una sola línea nueva** para
-ganar la relación. Sólo se corrige la medición, que es lo que envejece.
+ganar la relación. Del reclamo del paso 2 sólo queda su medición 3, que es la
+única verdad viva de este apartado — el paso 2 es historia, no un dato que
+se re-verifique.
 
 Es el tercer hueco de esta iniciativa que se cierra **porque estaba anotado
 con su destino**, tras H-API-142 y los dos campos de ``ir_filters``.
@@ -259,6 +267,14 @@ ORIENTATION_PORTRAIT = 'Portrait'
 
 class ReportPaperformat(models.Model):
     """Configuración de formato de papel (``report.paperformat``)."""
+
+    #: Los dos atributos de clase que la fuente declara
+    #: (``odoo19c: odoo/addons/base/models/report_paperformat.py:166-167``),
+    #: verbatim. Conviven con su forma Django en ``Meta``: ``_description``
+    #: con ``verbose_name``. No se sustituyen entre sí —
+    #: ``atributos-de-clase-de-modelo.md``.
+    _name = 'report.paperformat'
+    _description = 'Paper Format Config'
 
     name = fields.Char(max_length=120, verbose_name='Nombre')
     default = fields.Boolean(
