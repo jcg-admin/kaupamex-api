@@ -157,11 +157,17 @@ class One2many:
                                             la lectura es el manager del
                                             reverso, y el lote lo da
                                             ``prefetch_related``
-    ``setup_inverses``                      **DESCONOCIDO** — su consumidor es
-                                            la invalidacion de cache, y este
-                                            arbol no tiene cache de campos
-                                            (medido: 0 hits de ``inverses`` en
-                                            ``src/orm/``). Tarea **#244**
+    ``setup_inverses``                      **divergencia de mecanismo** — el
+                                            mapa existe y lo mantiene Django en
+                                            ``remote_field``; la fuente tiene
+                                            que construirlo porque su ORM no lo
+                                            guarda. Aqui lo deriva
+                                            ``registry._TriggerRegistry``.
+                                            Cerrado con la capa B de #273
+                                            (:ref:`h-api-1032`); era
+                                            DESCONOCIDO por *"este arbol no
+                                            tiene cache de campos"*, y esa
+                                            causa la retiro la capa A
     ``_condition_to_sql_relational``        **trabajo**, no divergencia: el lado
     ``_get_query_for_condition_value``      SQL del campo. Tarea **#243**
     ``_internal_description_domain_raw``    **trabajo**, detras de #241 porque
