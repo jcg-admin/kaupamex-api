@@ -1294,6 +1294,28 @@ for _name_attr, _default_value in _FIELD_CLASS_ATTRIBUTES.items():
     if not hasattr(models.Field, _name_attr):
         setattr(models.Field, _name_attr, _default_value)
 
+#: El mismo contrato sobre :class:`~orm.fields_nonstored.NonStored`, con UNA
+#: excepción: ``store``.
+#:
+#: En la fuente no hay dos clases. Un campo sin columna **es** un ``Field`` con
+#: ``store=False`` (``odoo19c: odoo/orm/fields.py:455``), así que responde a
+#: los mismos cuarenta y tantos atributos que cualquier otro. Aquí la jerarquía
+#: del stack los separa —``NonStored`` no desciende de ``models.Field``, y no
+#: puede: no tiene columna que declarar—, y el bucle de arriba sólo alcanzaba a
+#: la clase de Django. El resultado era que un campo sin columna levantaba
+#: ``AttributeError`` ante ``_description_searchable``, que es justo lo que
+#: ``_field_setup_related`` pregunta a **cada eslabón** de una cadena
+#: ``related=`` antes de cablear su búsqueda (:ref:`h-api-1027`).
+#:
+#: ``store`` va a ``False`` y no al defecto de ``Field``: es lo que la clase
+#: significa, y de él depende ``_description_searchable`` —``bool(self.store or
+#: self.search)``—, que con ``True`` daría buscable a todos y no discriminaría
+#: nada.
+for _name_attr, _default_value in _FIELD_CLASS_ATTRIBUTES.items():
+    if not hasattr(NonStored, _name_attr):
+        setattr(NonStored, _name_attr,
+                False if _name_attr == 'store' else _default_value)
+
 #: Las sobrescrituras por clase concreta van DESPUÉS del bucle: el bucle pone
 #: el defecto de ``Field`` y éstas lo pisan donde la fuente lo pisa. Invertir
 #: el orden no cambia nada —son clases distintas— pero leerlo así deja claro
@@ -1496,6 +1518,10 @@ def _field_description_searchable(self):
 
 
 models.Field._description_searchable = _field_description_searchable
+#: Y sobre el campo sin columna, por la misma razón que ``determine_domain`` se
+#: instala en las dos clases: es una ``property``, así que el bucle de
+#: :data:`_FIELD_CLASS_ATTRIBUTES` —que copia valores— no la alcanza.
+NonStored._description_searchable = _field_description_searchable
 
 
 def _field_description_sortable(self, env):
