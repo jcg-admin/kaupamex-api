@@ -16,12 +16,8 @@ sobre los modelos **históricos** vía ``apps.get_model``, que es el idioma de
 from django.db import migrations
 
 from addons.base_install_request.data import (
-    INSTALL_REQUEST_TEMPLATE, INSTALL_REQUEST_TEMPLATE_MODULE,
-    INSTALL_REQUEST_TEMPLATE_XMLID)
-
-#: El ``model`` que la fila de ``ir.model.data`` guarda: la etiqueta Django del
-#: destino, que es lo que ``IrModelData.ref`` pasa a ``apps.get_model``.
-_TEMPLATE_MODEL_LABEL = 'mail.MailTemplate'
+    INSTALL_REQUEST_TEMPLATE, INSTALL_REQUEST_TEMPLATE_MODEL_LABEL,
+    INSTALL_REQUEST_TEMPLATE_MODULE, INSTALL_REQUEST_TEMPLATE_XMLID)
 
 
 def sembrar(apps, schema_editor):
@@ -42,7 +38,7 @@ def sembrar(apps, schema_editor):
         IrModelData.objects.using(alias).create(
             module=INSTALL_REQUEST_TEMPLATE_MODULE,
             name=INSTALL_REQUEST_TEMPLATE_XMLID,
-            model=_TEMPLATE_MODEL_LABEL,
+            model=INSTALL_REQUEST_TEMPLATE_MODEL_LABEL,
             res_id=plantilla.pk,
             noupdate=True,
         )

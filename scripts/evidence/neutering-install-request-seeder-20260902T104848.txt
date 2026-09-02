@@ -1,0 +1,14 @@
+# Control discriminante — el seeder de base_install_request en _SEEDERS
+# archivo:  tests/conftest.py
+# anulado:  la linea `install_request_template_seed,` del catalogo _SEEDERS
+# tests:    tests/unit/base_install_request/
+# estado:   las filas de mail_template e ir_model_data borradas antes de cada
+#           medicion, que es el estado en que las deja un test transaccional.
+
+## 1. Verde de partida (seeder en el catalogo, filas borradas)
+26 passed
+
+## 2. Con el seeder RETIRADO — caen exactamente los dos que dependen de el
+2 failed, 24 passed
+FAILED tests/unit/base_install_request/test_install_request_wizard.py::TestActionSendRequest::test_it_returns_the_client_action_of_the_source
+FAILED tests/unit/base_install_request/test_install_request_wizard.py::TestActionSendRequest::test_the_template_is_seeded_with_its_external_id
