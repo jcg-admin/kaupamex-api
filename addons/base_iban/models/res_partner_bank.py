@@ -8,6 +8,10 @@ Porte completo: los **13 símbolos** del archivo de la referencia (5 funciones d
 módulo + el mapa de países + 7 métodos de la clase). Ninguno queda fuera; el
 mapeo de los que cambian de forma está en la tabla de abajo.
 
+Los siete métodos de ``ResPartnerBank`` conservan **el nombre de la fuente**,
+guion bajo incluido, y se instalan uno a uno con nombre literal desde
+:func:`apply_base_iban_extensions`.
+
 Cómo se extiende ``res.partner.bank``
 ======================================
 
@@ -28,11 +32,17 @@ Mapeo de forma frente a la referencia
 ===========================  ==================================================
 Referencia                   Aquí
 ===========================  ==================================================
-``create`` + ``write``       un solo hook sobre ``save()`` — este ORM no
-                             distingue los dos caminos (``base/models/
-                             res_partner_bank.py:save``)
-``@api.constrains``          ``clean()`` — el hook de validación de Django, con
-``_check_iban``              34 precedentes en ``src/addons/``
+``create(vals_list)``        ``create(cls, **vals)`` — la firma de ``create``
+                             de este árbol (``orm/models.py:631``); se porta
+                             el paso, no la firma
+``write(vals)``              ``write(self, **vals)`` — el idioma ya establecido
+                             para portar ``write`` sobre un modelo sin
+                             ``write`` previa (``stock_location.py:575``)
+``save()``                   NO está en la fuente: es el punto del stack por el
+                             que pasan los dos caminos anteriores, así que
+                             normaliza también quien no usa ``create``/``write``
+``@api.constrains``          ``_check_iban()`` con su nombre, y ``clean()`` —el
+``_check_iban``              hook de Django, 34 precedentes— lo invoca
 ``@api.model`` +             ``@classmethod`` — el terminal de ``base`` ya
 ``super()``                  estaba declarado así
 ``_lt(...)`` con args        ``ValidationError(_('… %(x)s'), params=…)``, la
@@ -193,6 +203,72 @@ def retrieve_acc_type(cls, acc_number):
         return None
 
 
+def _prettify_iban_in_vals(vals):
+    """Deja ``acc_number`` en su formato canónico dentro de ``vals``.
+
+    ≙ el cuerpo que la referencia REPITE en ``create`` (``odoo19c:
+    base_iban:110-119``) y en ``write`` (``:121-128``): si el número valida
+    como IBAN se guarda en grupos de cuatro; si no valida se deja tal cual,
+    porque una cuenta doméstica es legítima.
+
+    Se escribe una vez y la usan los dos, en vez de repetirla como la fuente:
+    allá son dos cuerpos idénticos, y aquí serían tres con ``save``.
+    """
+    if not vals.get('acc_number'):
+        return vals
+    try:
+        validate_iban(vals['acc_number'])
+    except ValidationError:
+        # silent OK because guardar un número que no es IBAN es legítimo (una
+        # cuenta doméstica); sólo se deja de reformatear. El rechazo de un
+        # IBAN inválido lo hace _check_iban(), no este ayudante.
+        return vals
+    vals['acc_number'] = pretty_iban(normalize_iban(vals['acc_number']))
+    return vals
+
+
+def create(cls, **vals):
+    """Alta con el IBAN ya normalizado — ≙ ``create`` (``odoo19c: base_iban:110``).
+
+    La referencia recibe una **lista** de dicts y devuelve un recordset; aquí
+    recibe kwargs y devuelve la instancia, que es la firma de ``create`` en
+    este árbol (``orm/models.py:631`` y los seis ``create`` de clase de
+    ``src/addons/base/``). Lo que se porta es el **paso**, no la firma.
+
+    No hay ``create`` previa en ``base.ResPartnerBank`` —es un modelo Django
+    pelado, medido: ``hasattr(ResPartnerBank, 'create')`` era ``False``— así
+    que este método **es** el alta, no un envoltorio. El ``super().create(...)``
+    de la fuente se corresponde con la construcción + ``save()``, y ese
+    ``save()`` es el encadenado de este mismo addon, que vuelve a normalizar:
+    la operación es idempotente, igual que allá (su ``super().create`` recalcula
+    ``acc_type`` sobre el número ya bonito).
+    """
+    record = cls(**_prettify_iban_in_vals(dict(vals)))
+    record.save()
+    return record
+
+
+def write(self, **vals):
+    """Escritura con el IBAN ya normalizado — ≙ ``write`` (``base_iban:121``).
+
+    Mismo cuerpo que ``create`` en la fuente, y misma razón para existir aparte
+    de ``save``: la fuente intercepta los valores **antes** de que lleguen a la
+    fila, no la fila ya construida.
+
+    La firma es ``**vals`` y el cuerpo es *poner los atributos y guardar*,
+    que es el idioma ya establecido en este árbol para portar el ``write`` de
+    la referencia sobre un modelo sin ``write`` previa —
+    ``addons/stock/models/stock_location.py:575``,
+    ``stock_package_type.py:318``, ``stock_quant.py:868``. Devuelve ``self``,
+    como esos tres.
+    """
+    vals = _prettify_iban_in_vals(dict(vals))
+    for name, value in vals.items():
+        setattr(self, name, value)
+    self.save()
+    return self
+
+
 def get_bban(self):
     """El BBAN de esta cuenta — ≙ ``odoo19c: base_iban:105``."""
     if self.acc_type != 'iban':
@@ -224,17 +300,38 @@ def save(self, *args, **kwargs):
             pass
 
 
-def clean(self):
+def _check_iban(self):
     """Un IBAN declarado tiene que validar — ≙ ``_check_iban``, ``base_iban:130``.
 
-    La referencia lo declara ``@api.constrains('acc_number')`` y lee
-    ``bank.acc_type``, que allí es un ``compute`` siempre fresco. Aquí
-    ``acc_type`` es **columna almacenada**, así que leerla es la comprobación
-    *más fuerte*: atrapa una fila marcada ``iban`` cuyo ``acc_number`` se editó
-    por un camino que no pasó por ``save()``.
+    Conserva el **nombre de la fuente, guion bajo incluido**: allá es
+    ``@api.constrains('acc_number')``, es decir superficie interna que el ORM
+    invoca y nadie llama desde fuera. Quitarle el guion bajo lo promovería a
+    API pública, que es un contrato que la fuente nunca ofreció
+    (``porte-completo-no-parcial.md``, «el guion bajo se porta»).
+
+    La referencia itera ``for bank in self`` porque su ``self`` es un
+    recordset; aquí es una instancia, así que el bucle desaparece y el cuerpo
+    es el mismo.
+
+    Lee ``acc_type``, que allí es un ``compute`` siempre fresco y aquí es
+    **columna almacenada**: leerla es la comprobación *más fuerte*, porque
+    atrapa una fila marcada ``iban`` cuyo ``acc_number`` se editó por un camino
+    que no pasó por ``save()``.
     """
     if self.acc_type == 'iban':
         validate_iban(self.acc_number)
+
+
+def clean(self):
+    """El hook de validación de Django — invoca ``_check_iban``.
+
+    ``@api.constrains`` no tiene contraparte directa: el punto que este stack
+    ofrece para «valida antes de aceptar la fila» es ``Model.clean()``, con 34
+    precedentes en ``src/addons/``. Por eso el constraint de la referencia
+    conserva su nombre en :func:`_check_iban` y ``clean`` sólo lo llama — así
+    el símbolo portado es el de la fuente, y el hook del stack es el puente.
+    """
+    self._check_iban()
 
 
 def check_iban(self, iban=''):
@@ -268,9 +365,16 @@ def apply_base_iban_extensions():
     chain_method(ResPartnerBank, 'save', save)
     chain_method(ResPartnerBank, 'clean', clean)
 
-    # Métodos nuevos: no había previa, se instalan tal cual.
-    for name, func in (('get_bban', get_bban), ('check_iban', check_iban)):
-        chain_method(ResPartnerBank, name, func)
+    # Métodos nuevos: no había previa, se instalan tal cual. Van uno por uno y
+    # NO en un bucle: el bucle pasaba el nombre en una variable, así que el
+    # recorrido AST de ``scripts/check_porte_completo.py`` leía ``name`` en vez
+    # del símbolo y los daba por no portados. Un nombre literal por llamada es
+    # lo que hace la instalación atribuible.
+    chain_method(ResPartnerBank, 'get_bban', get_bban)
+    chain_method(ResPartnerBank, 'check_iban', check_iban)
+    chain_method(ResPartnerBank, '_check_iban', _check_iban)
+    chain_method(ResPartnerBank, 'write', write)
+    chain_method(ResPartnerBank, 'create', classmethod(create))
 
 #: Mapa ISO 3166-1 -> plantilla IBAN, copiado verbatim de la referencia
 #: (``odoo19c: base_iban:146-218``, 70 países). La descripción del formato

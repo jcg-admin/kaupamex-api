@@ -329,7 +329,8 @@ def _extend_model_symbols(nodo, funcs):
     """
     salida, nodos = set(), set()
     for k in nodo.keywords:
-        if k.arg in ('campos', 'metodos', 'propiedades') and isinstance(k.value, ast.Dict):
+        if (k.arg in ('campos', 'metodos', 'propiedades', 'overrides')
+                and isinstance(k.value, ast.Dict)):
             salida |= {c.value for c in k.value.keys
                        if isinstance(c, ast.Constant) and isinstance(c.value, str)}
         if k.arg != 'luego':
@@ -475,15 +476,22 @@ def _loop_resolved_nodes(nodo):
 def _destino_y_clave(nodo):
     """``(clase, símbolo)`` de una llamada de instalación, o ``(None, None)``.
 
-    Reconoce las tres formas que el árbol usa hoy: ``chain_method(C, 'x', …)``,
-    ``C.add_to_class('x', …)`` y el ayudante ``_add_if_absent(C, 'x', …)`` que
-    tres addons repiten para hacer idempotente el ``add_to_class``.
+    Reconoce las cuatro formas que el árbol usa hoy: ``chain_method(C, 'x', …)``,
+    ``wrap_method(C, 'x', …)``, ``C.add_to_class('x', …)`` y el ayudante
+    ``_add_if_absent(C, 'x', …)`` que tres addons repiten para hacer idempotente
+    el ``add_to_class``.
+
+    ``wrap_method`` se añadió 2026-09-02: es la TERCERA semántica de
+    ``orm/method_chain.py`` —la que entrega el ``super()`` en la mano— y este
+    recorrido no la veía, así que un símbolo portado con ella salía como
+    ausente. Medido al añadirla: **5** llamadas en ``addons/`` y ``src/`` fuera
+    del propio ``method_chain.py``.
     """
     f = nodo.func
     name = f.id if isinstance(f, ast.Name) else (
         f.attr if isinstance(f, ast.Attribute) else None)
 
-    if name in ('chain_method', '_add_if_absent') and len(nodo.args) >= 2:
+    if name in ('chain_method', 'wrap_method', '_add_if_absent') and len(nodo.args) >= 2:
         destino, clave = nodo.args[0], nodo.args[1]
     elif name == 'add_to_class' and nodo.args:
         # El receptor es el destino: ``ResBank.add_to_class('campo', …)``.

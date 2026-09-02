@@ -972,3 +972,14 @@ class unquote(str):
 
     def __repr__(self):
         return self
+
+
+class DotDict(dict):
+    """≙ ``DotDict`` (``odoo19c: tools/misc.py:1710-1719``) — acceso por punto
+    a las claves de un diccionario. ``foo = DotDict({'bar': False}); foo.bar``.
+    Un valor que a su vez sea diccionario sale envuelto igual.
+    """
+
+    def __getattr__(self, attrib):
+        val = self.get(attrib)
+        return DotDict(val) if isinstance(val, dict) else val

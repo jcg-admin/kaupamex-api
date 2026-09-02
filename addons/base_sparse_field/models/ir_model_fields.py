@@ -18,7 +18,8 @@ Símbolo de la referencia            Veredicto
 =================================== ==============================================
 ``IrModelFields.ttype`` (+serialized) portado — ``add_serialized_ttype()``
 ``IrModelFields.serialization_field_id`` portado — ``add_to_class`` desde ``ready()``
-``IrModelFields.write`` (guarda)      portado — encadenado sobre ``save``
+``IrModelFields.write`` (guarda)      portado — ``write`` con su nombre, más el
+                                    mismo invariante encadenado sobre ``save``
 ``IrModelFields._reflect_fields``     portado — encadenado sobre ``_reflect_fields``
 ``Sparse_FieldsTest``                 portado — ``models/sparse_fields_test.py``
 ``Base._valid_field_parameter``       divergencia de mecanismo (abajo)
@@ -184,6 +185,46 @@ def check_sparse_write(self, *args, **kwargs):
     return None
 
 
+def write(self, **vals):
+    """≙ ``write`` (``odoo19c: base_sparse_field/models/models.py:29-39``).
+
+    Conserva el nombre de la fuente. Es el punto que su comentario declara como
+    limitación explícita —*"renaming a sparse field or changing the storing
+    system is currently not allowed"*— y lo hace **sobre los valores que
+    entran**, antes de tocar la fila, igual que allá: su ``write`` recibe
+    ``vals`` y los compara contra el campo guardado.
+
+    Es la mitad que :func:`check_sparse_write` no puede cubrir sola. Aquélla
+    cuelga de ``save`` y tiene que releer la fila de la base, porque para
+    entonces la instancia ya trae los valores nuevos y el estado anterior se
+    perdió. Las dos coexisten a propósito: ésta atrapa el intento en la puerta
+    que la fuente vigila, y aquélla cubre el camino que no pasa por aquí
+    (``instance.name = x; instance.save()``).
+
+    La firma es ``**vals`` y el cuerpo es *comprobar, poner los atributos y
+    guardar* — el idioma ya establecido en este árbol para portar el ``write``
+    de la referencia sobre un modelo sin ``write`` previa
+    (``addons/stock/models/stock_location.py:575``). Devuelve ``self``.
+    """
+    if 'serialization_field_id' in vals or 'name' in vals:
+        entrante = vals.get('serialization_field_id')
+        entrante_id = getattr(entrante, 'pk', entrante)
+        if ('serialization_field_id' in vals
+                and self.serialization_field_id_id != entrante_id):
+            raise UserError(
+                f'No se permite cambiar el sistema de almacenamiento del '
+                f'campo "{self.name}".')
+        if (self.serialization_field_id_id
+                and 'name' in vals and self.name != vals['name']):
+            raise UserError(
+                f'No se permite renombrar el campo disperso "{self.name}".')
+
+    for name, value in vals.items():
+        setattr(self, name, value)
+    self.save()
+    return self
+
+
 def sparse_ttype_for(field):
     """≙ que ``Serialized.type`` sea ``'serialized'`` en la referencia.
 
@@ -327,5 +368,6 @@ def apply_base_sparse_field_extensions():
     add_serialization_field()
     chain_method(IrModelFields, 'ttype_for', staticmethod(sparse_ttype_for))
     chain_method(IrModelFields, 'save', check_sparse_write)
+    chain_method(IrModelFields, 'write', write)
     chain_method(IrModelFields, '_reflect_fields',
                  classmethod(reflect_sparse_fields), combine=sum_counters)
