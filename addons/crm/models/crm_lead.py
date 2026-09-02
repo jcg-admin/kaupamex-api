@@ -42,6 +42,7 @@ import fields
 import models
 
 from exceptions import UserError, ValidationError
+from orm.domains import Domain, to_q
 
 from addons.base.models import TimeStampedModel
 from addons.base.models.ir_config_parameter import SystemParameter
@@ -621,7 +622,21 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
     @api.depends('user_id', 'team_id', 'partner_id')
     def _compute_company_id(self):
-        """≙ ``_compute_company_id`` (:316-351) — coherencia de la empresa."""
+        """≙ ``_compute_company_id`` (:316-351) — coherencia de la empresa.
+
+        BLOQUEO MEDIDO en las dos ramas que leen la empresa **del cliente**:
+        ``ResPartner`` no declara ``company_id`` en este arbol, asi que
+        ``self.partner_id.company_id`` levanta ``AttributeError``. La fuente si
+        lo tiene (``odoo19c: res_partner.py``), y portarlo es la tarea **#110**.
+
+        Hasta entonces el cliente **no aporta empresa**: las dos ramas se leen
+        con ``_partner_company()``, que devuelve ``None`` cuando el campo no
+        existe. Eso conserva la forma de la fuente —el orden equipo >
+        responsable > cliente sigue escrito y las cuatro guardas siguen
+        corriendo— y sustituye el fallo duro por la ausencia de aporte, que es
+        lo que la fuente hace cuando el cliente no tiene empresa. Ver
+        :ref:`h-api-1034`.
+        """
         proposal = self.company_id
 
         if proposal:
@@ -640,7 +655,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             # salvo que el cliente traiga la suya
             elif not self.team_id_id and not self.user_id_id and (
                     not self.partner_id_id
-                    or self.partner_id.company_id_id != proposal.pk):
+                    or getattr(self._partner_company(), 'pk', None) != proposal.pk):
                 proposal = None
 
         # propuesta nueva por orden: equipo > responsable > cliente
@@ -650,9 +665,20 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             elif self.user_id_id:
                 self.company_id = self.user_id.company_id
             elif self.partner_id_id:
-                self.company_id = self.partner_id.company_id
+                self.company_id = self._partner_company()
             else:
                 self.company_id = None
+
+    def _partner_company(self):
+        """La empresa del cliente, o ``None`` mientras #110 no la porte.
+
+        Un solo sitio para el bloqueo, en vez de repetirlo en cada rama: cuando
+        ``ResPartner.company_id`` exista, este cuerpo se reduce a devolverlo y
+        las dos ramas de :meth:`_compute_company_id` quedan como la fuente.
+        """
+        if not self.partner_id_id:
+            return None
+        return getattr(self.partner_id, 'company_id', None)
 
     @api.depends('team_id', 'type')
     def _compute_stage_id(self):
@@ -728,9 +754,14 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
         Con cliente: la entidad comercial, si es empresa y no es el propio
         contacto. Sin cliente: se busca por nombre de empresa.
+
+        En ``ResPartner`` el simbolo publico es ``commercial_partner``
+        (``src/addons/base/models/res_partner.py:1448``); ``commercial_partner_id``
+        alli **no existe**, asi que el nombre viejo levantaba ``AttributeError``
+        en cuanto habia cliente. Ver :ref:`h-api-1034`.
         """
         if self.partner_id_id:
-            commercial = self.partner_id.commercial_partner_id
+            commercial = self.partner_id.commercial_partner
             if commercial and commercial.is_company and commercial.pk != self.partner_id_id:
                 return commercial
             return None
@@ -752,8 +783,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         arrastre correo y teléfono del anterior.
         """
         commercial = self.commercial_partner_id
+        of_the_partner = self.partner_id.commercial_partner if self.partner_id_id else None
         if self.partner_id_id and commercial and \
-                commercial.pk != self.partner_id.commercial_partner_id_id:
+                commercial.pk != (of_the_partner.pk if of_the_partner else None):
             self.partner_id = None
             self.email_from = ''
             self.phone = ''
@@ -1017,10 +1049,21 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         duplicates = set()
         if self.email_domain_criterion:
             duplicates |= _return_if_relevant(Q(email_domain_criterion=self.email_domain_criterion))
-        if self.partner_id_id and self.partner_id.commercial_partner_id_id:
+        commercial = self.partner_id.commercial_partner if self.partner_id_id else None
+        if commercial is not None:
+            # La fuente NO filtra por una columna de entidad comercial: pide
+            # ``("partner_id", "child_of", commercial.ids)`` (:664-667), o sea
+            # el cliente de la iniciativa **o cualquier descendiente suyo** en
+            # la jerarquia de ``res.partner``. Lo que habia filtraba
+            # ``partner_id__commercial_partner_id``, que aqui no compila —
+            # ``commercial_partner`` es una property sin columna— y ademas
+            # perdia a los descendientes. ``child_of`` ya esta registrado como
+            # optimizador (``orm/domains.py:2198``) y ``to_q`` optimiza a FULL,
+            # que es lo que lo hace resolver. Ver :ref:`h-api-1034`.
             duplicates |= set(
                 type(self).objects
-                .filter(partner_id__commercial_partner_id=self.partner_id.commercial_partner_id_id)
+                .filter(to_q(Domain('partner_id', 'child_of', [commercial.pk]),
+                             type(self)))
                 .exclude(pk=self.pk).values_list('pk', flat=True)
             )
         if self.phone_sanitized:
@@ -1131,8 +1174,26 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
         Nombre de empresa: el del padre del cliente si lo tiene; si no, el suyo
         cuando es empresa; si no, su ``company_name``.
+
+        DEPENDE DE LA FORMA DE LA FK, y hoy las dos conviven (:ref:`h-api-275`):
+
+        - **forma A** — ``parent = fields.Many2one(...)``: columna ``parent_id``
+          correcta, ``attname`` ``parent_id``, y el registro se lee por
+          ``.parent``. Es lo que ``ResPartner`` declara hoy, y lo que **736 de
+          las 878** FK del arbol declaran (medido).
+        - **forma C** — ``parent_id = fields.Many2one(..., db_column='parent_id')``:
+          columna Y accessor coinciden con la fuente a la vez; el ``attname``
+          pasa a ser ``parent_id_id``. Es la forma de destino, y ``crm`` ya la
+          usa para SUS propias FK (``self.partner_id_id``).
+
+        El barrido de A a C es la tarea **#143**. Mientras ``ResPartner`` siga en
+        forma A, se lee ``partner.parent`` / ``partner.parent_id``; lo que habia
+        —``partner.parent_id.name if partner.parent_id_id``— mezclaba las dos y
+        levantaba ``AttributeError`` en cuanto un cliente llegaba al computo.
+        Cuando #143 mueva ``ResPartner``, su reescritor tiene que alcanzar
+        tambien estas lecturas (tarea **#149**). Ver :ref:`h-api-1034`.
         """
-        partner_name = partner.parent_id.name if partner.parent_id_id else ''
+        partner_name = partner.parent.name if partner.parent_id else ''
         if not partner_name and partner.is_company:
             partner_name = partner.name
         elif not partner_name and partner.company_name:

@@ -1869,6 +1869,7 @@ class RecordLoaderMixin(FieldSqlMixin):
                   if fname not in (pk_name, 'id')}
         if not values:
             return self
+        determine_inverses = self._group_written_inverses(values)
         values, relational = self._load_records_split_relational(values)
         values = self._load_records_coerce_vals(values)
         if values:
@@ -1877,7 +1878,43 @@ class RecordLoaderMixin(FieldSqlMixin):
             self.save(update_fields=list(values))
         if relational:
             self._load_records_apply_relational(relational)
+        for fields in determine_inverses.values():
+            fields[0].determine_inverse(self)
         return self
+
+    def _group_written_inverses(self, values):
+        """Los campos escritos que declaran inverso, agrupados POR METODO.
+
+        ≙ ``determine_inverses = defaultdict(list)  # {inverse: fields}``
+        (``odoo19c: odoo/orm/models.py:4399``), poblado en ``:4416`` con
+        ``determine_inverses[field.inverse].append(field)``.
+
+        La agrupacion no es cosmetica: la fuente llama al inverso **una vez por
+        grupo** —``fields[0].determine_inverse(real_recs)`` (``:4493``)— porque
+        un mismo metodo puede invertir varios campos a la vez y llamarlo N veces
+        repetiria su efecto. Escribir ``email_from`` y ``phone`` en la misma
+        llamada da dos grupos y dos invocaciones; si ambos declararan el mismo
+        metodo, daria una.
+
+        Se calcula **antes** de partir los valores en columna y relacion, porque
+        la fuente recorre ``vals`` entero: un campo relacional con inverso
+        cuenta igual que uno con columna.
+
+        DIVERGENCIA DE MECANISMO declarada: la fuente lee ``self._fields``; aqui
+        el registro equivalente es :func:`~orm.utils.model_field_registry`, que
+        ya cubre el campo con columna y el que no la tiene. Y donde ella lanza
+        ``ValueError`` ante un nombre desconocido, aqui se ignora: ``write`` de
+        este arbol acepta nombres que ``save``/``_load_records_apply_relational``
+        resuelven por otras vias, y adelantar ese rechazo cambiaria el contrato
+        de un metodo que no es el de esta tarea.
+        """
+        fields_of = model_field_registry(type(self))
+        determine_inverses = collections.defaultdict(list)
+        for fname in values:
+            field = fields_of.get(fname)
+            if field is not None and getattr(field, 'inverse', None):
+                determine_inverses[field.inverse].append(field)
+        return determine_inverses
 
     @classmethod
     def _write_rows_skipping_save(cls, queryset, values):

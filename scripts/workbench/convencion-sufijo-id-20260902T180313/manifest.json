@@ -1,0 +1,17 @@
+{
+  "question": "usamos el sufijo _id en las FK portadas por alguna razon, o es deriva? Y contra que forma esta escrito quien las lee desde otro archivo?",
+  "instrument": "measure_fk_suffix_convention.py — recorre los ForeignKey y OneToOneField no auto-creados de todos los modelos registrados y los reparte por si su nombre declarado termina en _id, con el attname que Django deriva de cada uno",
+  "metric": "numero de FK declaradas por app, repartidas en dos cubos: nombre con sufijo _id (formas B y C de H-API-275) y nombre sin sufijo (forma A). El attname se registra junto a cada una para poder ver el _id_id que la forma C produce",
+  "blind_to": [
+    "la distincion entre forma B y forma C: las dos declaran el sufijo, y solo mirando db_column se separan. Este censo NO lo mira, asi que sus 142 con sufijo mezclan la forma de destino con la que produce la columna equivocada",
+    "las lecturas: mide como se DECLARA cada FK, no con que nombre la lee su consumidor desde otro archivo. Ese es el otro eje, y es donde vivia el defecto de H-API-1034",
+    "los campos sin columna (NonStored) y las property peladas que sustituyen a una FK de la fuente: no son ForeignKey, asi que no entran en el recorrido",
+    "los modelos no registrados en el arranque de pruebas: el censo mide apps.get_models(), no el arbol de archivos"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/hallazgo-H-API-1034-el-inverso-declarado-no-tenia-quien-lo-llamara.rst — seccion sobre por que la causa es el barrido #143 a medio hacer y no descuido de convencion",
+  "source": "el arbol vivo de kaupamex-api bajo config.settings.testing",
+  "findings": ["H-API-1034"],
+  "tasks": ["#143", "#149", "#311", "#315"],
+  "reproducible": "PYTHONPATH=src DJANGO_SETTINGS_MODULE=config.settings.testing uv run python scripts/workbench/convencion-sufijo-id-20260902T180313/measure_fk_suffix_convention.py",
+  "outputs": ["censo.json"]
+}

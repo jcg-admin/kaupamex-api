@@ -2254,6 +2254,29 @@ models.Field.resolve_depends = _field_resolve_depends
 # ``models.Field``.
 
 
+def determine_inverse(field, records):
+    """Ejecuta el inverso declarado del campo — ≙ ``Field.determine_inverse``.
+
+    Docstring de la fuente, verbatim: *"Given the value of ``self`` on
+    ``records``, inverse the computation."* Su cuerpo entero es
+    ``determine(self.inverse, records)`` (``odoo19c: odoo/orm/fields.py:1921``),
+    y aqui es el mismo: el despacho ya lo resuelve :func:`determine`, que sabe
+    llamar tanto una cadena como un invocable.
+
+    Se declara CONSTRUYE por el criterio de las dos categorias: no hay simbolo
+    hecho —Django no conoce la nocion de un metodo inverso sobre un campo— pero
+    las primitivas estan y no hace falta nada de fuera.
+
+    **Sin guarda, a proposito.** La fuente tampoco la tiene: sus dos llamadas
+    —``write`` (``odoo19c: odoo/orm/models.py:4493``) y el descriptor— agrupan
+    antes por ``field.inverse``, asi que solo llega aqui un campo que lo
+    declara. Un campo sin inverso levanta ``TypeError`` desde
+    :func:`determine`, que es exactamente lo que la fuente hace y lo que
+    distingue *"no lo declara"* de *"lo declara y no corrio"*.
+    """
+    return determine(field.inverse, records)
+
+
 def determine_domain(field, records, operator, value):
     """El dominio que sustituye a una condición sobre ``field``.
 
@@ -2270,6 +2293,8 @@ def determine_domain(field, records, operator, value):
 
 models.Field.determine_domain = determine_domain
 NonStored.determine_domain = determine_domain
+models.Field.determine_inverse = determine_inverse
+NonStored.determine_inverse = determine_inverse
 
 
 ############################################################################
