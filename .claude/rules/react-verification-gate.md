@@ -139,6 +139,35 @@ Contextos de alto riesgo:
 - Más de N archivos en una misma tarea.
 - Cierre de iniciativas: marcar done, actualizar contadores, cambiar `:estado:`.
 
+### 6-bis. La compactación NO conserva la evidencia — persistirla es la defensa
+
+El paréntesis de arriba —*"el valor verificado en un turno temprano puede no
+sobrevivir a la compactación"*— es correcto y se queda corto: dice que **puede**
+no sobrevivir, sin decir **qué** sobrevive. Medido sobre el prompt de resumen
+del ejecutable 2.1.258 (`XWo`), que obliga a nueve secciones:
+
+- **Lo que es directiva sobrevive**, y es la única garantía textual del
+  mecanismo. El prompt exige verbatim las directivas permanentes y las
+  prohibiciones —*"operations that must not be performed, credential or secret
+  handling rules"*— porque *"these MUST be preserved verbatim in the summary so
+  they continue to apply after compaction"*.
+- **Lo que es evidencia, no.** Una cifra medida a mitad de sesión pasa por la
+  reescritura y puede volver como paráfrasis. El resumen no es compresión sin
+  pérdida: es una reescritura guiada.
+
+De ahí el criterio operativo, y **no es «no comprimir»**: apagar la
+compactación no mueve el tope duro —se calcula sobre la ventana efectiva, no
+sobre el umbral—, así que sólo quita el escalón de aviso y hace que el margen
+reportado mienta. La defensa es **persistir**: un dato que importa va al `.rst`
+o a `.claude/eventos/**` **antes** de que el contexto se llene. Es el nivel 4
+de `niveles-de-retencion.md` —completitud percibida sin persistencia— aplicado
+a la sesión en vez de a un subagente, y lo mismo que `build-logs.md` ya exige
+para una prueba: el `.log` es tan durable como el contenedor.
+
+Análisis completo, con el coste de los dos caminos en tokens equivalentes:
+`docs: source/gestion/pm/docs/iniciativas/construir-harness-propio/`
+`analisis-que-pasa-si-no-se-comprime-la-sesion.rst`.
+
 ## Señal de violación
 
 Si en un turno aparece alguno de estos patrones sin un comando ejecutado
