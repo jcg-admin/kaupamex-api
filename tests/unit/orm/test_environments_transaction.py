@@ -100,15 +100,20 @@ class TestTheChannels:
 class TestTheTransaction:
     """Fila 6 — la estructura que Django no trae y aquí se construye."""
 
-    def test_it_declares_the_five_structures(self):
-        """Las cinco que tienen consumidor, y ninguna más.
+    def test_it_declares_the_six_structures(self):
+        """Las seis que tienen consumidor, y ninguna más.
 
         ``__slots__`` cerrado: un atributo nuevo escrito por descuido levanta
         ``AttributeError`` en vez de quedarse ahí sin que nadie lo note.
+
+        Eran cinco hasta la capa A de #273. ``field_cache_memo`` es la sexta:
+        el memo de ``Field._get_cache``, que la fuente cuelga del
+        ``Environment`` y aquí cuelga de la transacción porque es la
+        transacción quien tiene su vida (ver el comentario del slot).
         """
         assert Transaction.__slots__ == (
-            'field_data', 'field_data_patches', 'field_dirty',
-            'protected', 'tocompute')
+            'field_cache_memo', 'field_data', 'field_data_patches',
+            'field_dirty', 'protected', 'tocompute')
 
     def test_a_slot_outside_the_five_is_refused(self):
         """El control de que ``__slots__`` está de verdad cerrado."""

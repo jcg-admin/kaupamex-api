@@ -386,8 +386,8 @@ class Transaction:
     este árbol, y con su nombre: vive en ``tools/misc.py``
     (``file_open_temporary_directory``), donde se portó con la tarea #131.
     """
-    __slots__ = ('field_data', 'field_data_patches', 'field_dirty',
-                 'protected', 'tocompute')
+    __slots__ = ('field_cache_memo', 'field_data', 'field_data_patches',
+                 'field_dirty', 'protected', 'tocompute')
 
     def __init__(self):
         #: ``{campo: datos_gestionados_por_el_campo}``. Suele ser un mapa de
@@ -404,6 +404,20 @@ class Transaction:
         self.protected = StackMap()
         #: ``{campo: OrderedSet[id]}`` — los cómputos pendientes.
         self.tocompute = defaultdict(OrderedSet)
+        #: ``{(campo, clave_de_contexto): mapa}`` — el memo de
+        #: ``Field._get_cache``, para no rehacer la resolución del cubo en
+        #: cada lectura.
+        #:
+        #: La fuente lo cuelga del ``Environment`` (``_field_cache_memo``,
+        #: ``odoo19c: odoo/orm/fields.py:1534``) y aquí cuelga de la
+        #: transacción. **No es un cambio de contrato, es su hogar
+        #: correcto**: el propio docstring de la fuente ata la vida del memo
+        #: a la transacción —*"unless the transaction was entirely
+        #: invalidated"*—, y aquí ``Environment`` declara ``__eq__`` y
+        #: ``__hash__``, así que se compara por valor y se reconstruye a
+        #: voluntad; un memo por instancia fallaría entre dos entornos
+        #: iguales y no ahorraría nada.
+        self.field_cache_memo = {}
 
     def invalidate_field_data(self, spec=None):
         """Vacía el caché de campos, entero o el tramo que ``spec`` nombre.
@@ -413,6 +427,13 @@ class Transaction:
         """
         if spec is None:
             self.field_data.clear()
+            #: El memo guarda la instancia del mapa, no su contenido. Vaciar
+            #: ``field_data`` hace que la siguiente lectura construya un mapa
+            #: NUEVO, así que un memo superviviente serviría el viejo y las
+            #: escrituras se perderían en silencio. Es el caso que el
+            #: docstring de la fuente nombra: *"unless the transaction was
+            #: entirely invalidated"*.
+            self.field_cache_memo.clear()
             return
         for field, ids in spec:
             cache = self.field_data.get(field)
@@ -427,6 +448,7 @@ class Transaction:
     def clear(self):
         """≙ ``Transaction.clear`` — vacía cachés y cómputos pendientes."""
         self.invalidate_field_data()
+        self.field_cache_memo.clear()
         self.field_data_patches.clear()
         self.field_dirty.clear()
         self.tocompute.clear()

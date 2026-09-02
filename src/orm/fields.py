@@ -60,10 +60,12 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.utils.timezone import localtime
 
-from orm.environments import env as get_environment, get_current_company, get_transaction
+from orm.environments import (env as get_environment, get_current_company,
+                             get_transaction, sudo as elevate_privileges)
 from tools.misc import OrderedSet, remove_accents
 from tools.translate import _
-from orm.registry import is_not_null
+from orm.registry import (field_computed as registry_field_computed,
+                         field_depends_context, is_not_null)
 from tools.sql import SQL, pg_varchar, sql_order_by_type
 
 from orm.fields_binary import Binary, Image                    # noqa: F401
@@ -83,7 +85,7 @@ from orm.fields_relational import Many2many, Many2one, One2many  # noqa: F401
 from orm.fields_selection import Selection                     # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
-from orm.utils import COLLECTION_TYPES
+from orm.utils import COLLECTION_TYPES, record_ids
 
 #: El **registro de tipos de campo**, no la lista de exportables del módulo.
 #:
@@ -2141,3 +2143,277 @@ def determine_domain(field, records, operator, value):
 
 models.Field.determine_domain = determine_domain
 NonStored.determine_domain = determine_domain
+
+
+############################################################################
+#
+# Cache management methods — ≙ ``odoo19c: odoo/orm/fields.py:1520-1630``
+#
+# El almacén es ``Transaction.field_data``, que existía desde el porte de
+# ``environments.py`` y hasta aquí no tenía **ningún** consumidor: medido,
+# 0 lecturas fuera de su propio módulo. Esta sección es quien lo estrena.
+#
+# Veredicto por el criterio de las dos categorías:
+#
+# - **el stack lo trae hecho**: ``collections.deque(maxlen=0)`` para drenar
+#   un ``map`` en C, ``collections.ChainMap`` para fusionar los cubos de un
+#   campo con contexto, y ``defaultdict`` para el mapa por campo. Los tres
+#   de ``cpython``; se llaman y ya.
+# - **el stack tiene con qué construirlo**: la caché en sí. Django no tiene
+#   almacén de valor por campo y por transacción —el suyo es por instancia,
+#   en ``_state.fields_cache``, y muere con el objeto—, pero las primitivas
+#   están y no hace falta ninguna dependencia de fuera.
+#
+# La adaptación de firma es UNA y se declara aquí para no repetirla en cada
+# método: donde la fuente escribe ``records._ids``, aquí va
+# ``record_ids(records)``. No hay recordset en este stack — ver el docstring
+# de :func:`~orm.utils.record_ids` —; el resto del cuerpo es el de la fuente.
+############################################################################
+
+
+def _has_context_buckets(field):
+    """Si el campo separa su caché por clave de contexto.
+
+    ≙ ``self in env._field_depends_context`` de la fuente. Allá el registro
+    guarda el conjunto; aquí lo responde el mismo mapa derivado que ya
+    existía, ``registry.field_depends_context``.
+    """
+    return field in field_depends_context
+
+
+def _get_cache(self, env):
+    """La caché del campo: un mapa mutable de id a valor.
+
+    ≙ ``Field._get_cache`` (``:1525``). Docstring de la fuente: *"Calling
+    this function multiple times, always returns the same mapping instance
+    for a given environment, unless the transaction was entirely
+    invalidated."* Esa promesa sostiene el resto — quien recibe el mapa
+    escribe en él y espera que la escritura se vea.
+    """
+    transaction = env.transaction
+    memo_key = (self, env.cache_key(self) if _has_context_buckets(self) else None)
+    try:
+        return transaction.field_cache_memo[memo_key]
+    except KeyError:
+        field_cache = self._get_cache_impl(env)
+        transaction.field_cache_memo[memo_key] = field_cache
+        return field_cache
+
+
+def _get_cache_impl(self, env):
+    """≙ ``Field._get_cache_impl`` (``:1541``) — puede dar una vista del
+    almacén real, según lo que el campo necesite."""
+    cache = env.transaction.field_data[self]
+    if _has_context_buckets(self):
+        cache = cache.setdefault(env.cache_key(self), {})
+    return cache
+
+
+def _invalidate_cache(self, env, ids=None):
+    """≙ ``Field._invalidate_cache`` (``:1550``) — invalida los ids dados, o
+    todos si ``ids`` es ``None``.
+
+    Lee ``field_data.get`` y no el corchete a propósito: sobre un
+    ``defaultdict`` el corchete **crea** la entrada, y un campo que nadie ha
+    tocado quedaría con un cubo vacío por el mero hecho de invalidarlo.
+    """
+    cache = env.transaction.field_data.get(self)
+    if not cache:
+        return
+
+    caches = cache.values() if _has_context_buckets(self) else (cache,)
+    for field_cache in caches:
+        if ids is None:
+            field_cache.clear()
+            continue
+        for id_ in ids:
+            field_cache.pop(id_, None)
+
+
+def _get_all_cache_ids(self, env):
+    """Todos los ids con valor en caché, en cualquier entorno.
+
+    ≙ ``Field._get_all_cache_ids`` (``:1564``). El ``ChainMap`` es el truco
+    de la fuente para *"cheaply merge"* las claves de los cubos sin copiar
+    ninguno.
+    """
+    cache = env.transaction.field_data[self]
+    if _has_context_buckets(self):
+        return collections.ChainMap(*cache.values())
+    return cache
+
+
+def _cache_missing_ids(self, records):
+    """≙ ``Field._cache_missing_ids`` (``:1572``) — los ids sin valor en
+    caché."""
+    field_cache = self._get_cache(get_environment())
+    return (id_ for id_ in record_ids(records) if id_ not in field_cache)
+
+
+def _insert_cache(self, records, values):
+    """Rellena la caché SIN pisar lo que ya hay.
+
+    ≙ ``Field._insert_cache`` (``:1595``). El ``setdefault`` no es un
+    detalle: la fuente lo explica —*"this enables to keep the pending
+    updates of records, and flush them later"*—. Una asignación borraría una
+    escritura pendiente y la fila se guardaría con el valor leído de la base.
+
+    El ``deque(maxlen=0)`` es el drenaje en C que la fuente mide un 15 % más
+    rápido que el bucle equivalente; se porta igual, porque es el stack quien
+    lo trae hecho.
+    """
+    field_cache = self._get_cache(get_environment())
+    collections.deque(
+        map(field_cache.setdefault, record_ids(records), values), maxlen=0)
+
+
+def _update_cache(self, records, cache_value, dirty=False):
+    """Escribe el valor en caché y, si se pide, marca el campo sucio.
+
+    ≙ ``Field._update_cache`` (``:1609``). Docstring de la fuente: *"One can
+    normally make a clean field dirty but not the other way around. Updating
+    a dirty field without ``dirty=True`` is a programming error and logs an
+    error."* Se porta el **registro**, no una excepción: la fuente elige no
+    lanzar, y lanzar aquí cambiaría el contrato de todo escritor.
+    """
+    env = get_environment()
+    field_cache = self._get_cache(env)
+    ids = record_ids(records)
+    for id_ in ids:
+        field_cache[id_] = cache_value
+
+    # ``dirty`` sólo tiene sentido para un campo con columna y almacenado.
+    if self.column_type and self.store:
+        if dirty:
+            env.transaction.field_dirty[self].update(id_ for id_ in ids if id_)
+        else:
+            dirty_ids = env.transaction.field_dirty.get(self)
+            if dirty_ids and not dirty_ids.isdisjoint(ids):
+                _logger.error(
+                    "Field._update_cache() updating the value on %s.%s where "
+                    "dirty flag is already set",
+                    records, self.name, stack_info=True,
+                )
+
+
+############################################################################
+#
+# Computation of field values — ≙ ``odoo19c: odoo/orm/fields.py:1845-1918``
+#
+############################################################################
+
+
+def _as_record_list(records):
+    """Las filas de ``records`` como lista.
+
+    La contraparte de :func:`~orm.utils.record_ids` para cuando hace falta el
+    objeto y no el id — el cómputo se invoca sobre la fila, no sobre su clave.
+    """
+    if records is None:
+        return []
+    if isinstance(records, models.Model):
+        return [records]
+    return list(records)
+
+
+def _invoke_compute_method(field, records):
+    """Llama al método que ``field.compute`` nombra, sobre cada fila.
+
+    ≙ ``BaseModel._compute_field_value`` (``odoo19c: odoo/orm/models.py``) en
+    lo que este stack necesita. La fuente lo invoca sobre el *recordset*
+    entero y el método itera por dentro con ``for record in self``; aquí la
+    unidad es la instancia, así que el bucle vive de este lado y el método
+    recibe una fila. Es la misma adaptación de :func:`~orm.utils.record_ids`,
+    vista desde el otro lado.
+    """
+    for record in _as_record_list(records):
+        getattr(record, field.compute)()
+
+
+def recompute(self, records):
+    """Procesa los cómputos pendientes de este campo sobre ``records``.
+
+    ≙ ``Field.recompute`` (``:1850``). Sólo se llama si el campo es calculado
+    y almacenado.
+
+    **Dos divergencias de mecanismo, las dos con su motivo medido y su
+    sucesor** — ninguna recorta el comportamiento observable del campo:
+
+    1. *Sin lote de prelectura.* La fuente agrupa los pendientes en ventanas
+       de ``PREFETCH_MAX`` con ``expand_ids`` y computa la ventana entera de
+       una vez. Aquí el cómputo se invoca por fila (ver
+       :func:`_invoke_compute_method`), así que la ventana no ahorraría ni
+       una consulta: agruparla sería ceremonia. Vuelve a tener sentido el día
+       que el cómputo reciba un ``QuerySet``, que es la tarea **#306**.
+    2. *Sin reintento por fila ausente.* La fuente envuelve cada cómputo en
+       ``apply_except_missing``: ante un ``MissingError`` reintenta sobre
+       ``records.exists()`` y desmarca los que ya no existen *"otherwise they
+       remain to compute forever, which may lead to an infinite loop"*. Aquí
+       no hay ``MissingError`` — una fila borrada no se detecta al tocarla,
+       sino al consultarla — y el equivalente exige el lado de lectura del
+       motor, que es la capa C. Sucesor: tarea **#307**.
+    """
+    to_compute_ids = get_environment().transaction.tocompute.get(self)
+    if not to_compute_ids:
+        return
+
+    pending = [record for record in _as_record_list(records)
+               if record.pk in to_compute_ids]
+    if not pending:
+        return
+
+    if self.recursive:
+        # Un calculado recursivo se computa fila a fila, para que sus
+        # dependencias internas se resuelvan en orden. Aquí el no-recursivo
+        # también va fila a fila (divergencia 1 del docstring), así que las
+        # dos ramas coinciden; la condición se conserva porque es donde
+        # aterriza el lote cuando #306 lo construya.
+        for record in pending:
+            self.compute_value(record)
+        return
+
+    for record in pending:
+        self.compute_value(record)
+
+
+def compute_value(self, records):
+    """Invoca el método de cómputo; el resultado queda en caché.
+
+    ≙ ``Field.compute_value`` (``:1897``).
+
+    El orden importa, y la fuente lo razona: desmarca el cómputo **antes** de
+    correrlo *"just in case the compute method does not assign a value"* y
+    porque el propio método puede leer el valor viejo, lo que dispararía una
+    lectura que volvería a computar el campo — recursión infinita. Si el
+    cómputo revienta, se vuelve a marcar y se relanza.
+
+    ``compute_sudo`` no eleva aquí con ``records.sudo()`` —no hay recordset
+    que elevar— sino con el alcance de elevación del entorno, que es el
+    mecanismo equivalente de este stack (``orm.environments.sudo``).
+    """
+    env = get_environment()
+    ids = record_ids(records)
+    fields = registry_field_computed[self]
+
+    for field in fields:
+        if field.store:
+            env.remove_to_compute(field, ids)
+
+    try:
+        with env.protecting(fields, ids):
+            if self.compute_sudo:
+                with elevate_privileges():
+                    _invoke_compute_method(self, records)
+            else:
+                _invoke_compute_method(self, records)
+    except Exception:
+        for field in fields:
+            if field.store:
+                env.add_to_compute(field, ids)
+        raise
+
+
+for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
+                      _get_all_cache_ids, _cache_missing_ids, _insert_cache,
+                      _update_cache, recompute, compute_value):
+    setattr(models.Field, _cache_method.__name__, _cache_method)

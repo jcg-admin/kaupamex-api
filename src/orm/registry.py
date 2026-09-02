@@ -501,8 +501,58 @@ field_depends = _DerivedCollector('_depends')
 field_depends_context = _DerivedCollector('_depends_context')
 
 
+class _ComputedGrouper:
+    """Mapa campo → los campos que calcula el MISMO método.
+
+    ≙ ``Registry.field_computed`` (``odoo19c: odoo/orm/registry.py:515``). Su
+    contrato tiene dos mitades y las dos importan:
+
+    - un campo calculado devuelve la lista de **todos** los campos de su
+      modelo que declaran ese mismo ``compute``, incluido él. Es lo que
+      ``Field.compute_value`` recorre para desmarcar el cómputo pendiente de
+      todo el grupo, no sólo del campo por el que se entró;
+    - un campo **sin** ``compute`` no está en el mapa. La fuente lo consulta
+      con ``[]`` y deja que reviente, porque llamarlo sobre un campo no
+      calculado es un error de programación, no un caso.
+
+    Por eso NO hereda de :class:`_DerivedCollector`: aquél devuelve la tupla
+    vacía ante lo ausente, que aquí escondería justo ese error.
+    """
+
+    def __init__(self):
+        self._table = None
+
+    def _build(self):
+        table = {}
+        for model in apps.get_models():
+            groups = defaultdict(list)
+            for field in model._meta.get_fields():
+                compute = getattr(field, 'compute', None)
+                if compute:
+                    table[field] = group = groups[compute]
+                    group.append(field)
+        return table
+
+    def __getitem__(self, field):
+        if self._table is None:
+            self._table = self._build()
+        return self._table[field]
+
+    def __contains__(self, field):
+        if self._table is None:
+            self._table = self._build()
+        return field in self._table
+
+    def clear(self):
+        self._table = None
+
+
+#: ≙ ``Registry.field_computed`` (``:515``).
+field_computed = _ComputedGrouper()
+
+
 def clear_field_depends():
-    """Vacía los dos mapas derivados.
+    """Vacía los tres mapas derivados.
 
     Se llama cuando cambia lo declarado — un modelo nuevo registrado, un campo
     extendido. NO hay invalidación parcial como en ``:474``: allá el registro
@@ -511,6 +561,7 @@ def clear_field_depends():
     """
     field_depends.clear()
     field_depends_context.clear()
+    field_computed.clear()
 
 
 class DummyRLock:
