@@ -22,13 +22,18 @@ Porte símbolo por símbolo — 1 campo + 2 métodos (medido por AST)
      - portado — ``active_applicant_id`` del contexto → argumento
        ``applicant``
    * - ``action_search_matching_applicants`` (``:46-66``)
-     - BLOQUEADO — ``ir.actions.actions._for_xml_id`` + vistas XML +
-       ``Markup`` de ayuda: acción de cliente Odoo (familia (b), mismo
-       criterio que ``hr_fleet/models/employee.py``). El dato de negocio
-       que la acción listaba está disponible con el ORM::
-
-           HrApplicant.objects.exclude(job=job).filter(
-               skill_ids__in=job.job_skill_ids.values('skill_id'))
+     - DIVERGENCIA 4 declarada (tarea #62,
+       ``scripts/divergencias_declaradas.txt``): el dato de negocio —
+       real, portado — es ``_search_matching_applicants``; el envoltorio
+       ``ir.actions.act_window`` + vista XML + ``Markup`` de ayuda no
+       tiene mecanismo en este backend DRF (familia (b), mismo criterio
+       que ``hr_fleet/models/employee.py``)
+   * - ``_search_matching_applicants`` — NO es símbolo de la referencia;
+       es la porción de datos de ``action_search_matching_applicants``,
+       nombrada aparte para que el gate de porte pueda verla
+     - portado — ``HrApplicant.objects.exclude(job=self).filter(
+       skill_ids__in=self.job_skill_ids.values_list('skill_id',
+       flat=True)).distinct()``
 
 Divergencias declaradas
 ========================
@@ -42,7 +47,22 @@ Divergencias declaradas
 3. **``markupsafe.Markup`` no se importa** — sólo lo usaba la acción
    bloqueada; además no es dependencia del árbol (medido en ``uv.lock``
    por la tanda anterior — preámbulo, regla 1).
+4. **``action_search_matching_applicants`` — envoltorio de acción de
+   cliente, sin mecanismo en este stack (tarea #62).** Este backend no
+   tiene ``ir.actions.act_window``, ni registro de vistas XML, ni motor
+   de navegación de cliente — es un DRF puro; ninguno de los tres existe
+   para NINGÚN addon del árbol, no sólo aquí (mismo criterio que
+   ``hr_fleet``, ``authz_passkey``, etc., ya declarados en
+   ``scripts/divergencias_declaradas.txt``). Lo que la acción listaba —el
+   queryset de candidatos que comparten habilidad con el puesto y los dos
+   mensajes de ayuda— SÍ se construyó: vive en
+   ``_search_matching_applicants(self)``, real y con test. Declarado en
+   el registro como
+   ``hr_recruitment_skills/models/hr_job.py::HrJob::
+   action_search_matching_applicants``.
 """
+from django.apps import apps as django_apps
+
 from orm.model_classes import extend_model
 
 
@@ -76,6 +96,26 @@ def _compute_applicant_matching_score(self, applicant):
     return applicant_total / job_total * 100 if job_total else 0
 
 
+def _search_matching_applicants(self):
+    """La porción de datos de ``action_search_matching_applicants``
+    (``:46-66``) — DIVERGENCIA 4 declarada
+    (``scripts/divergencias_declaradas.txt``): el envoltorio de acción de
+    cliente no tiene mecanismo aquí; esto es la consulta que esa acción
+    listaba.
+
+    Devuelve el queryset de ``hr.applicant`` que NO están en este puesto
+    y comparten al menos una habilidad con las que el puesto requiere.
+    Vacío si el puesto no declara habilidades (misma guarda que
+    ``_compute_applicant_matching_score``).
+    """
+    HrApplicant = django_apps.get_model('hr_recruitment', 'HrApplicant')
+    if not self.job_skill_ids.exists():
+        return HrApplicant.objects.none()
+    skill_pks = self.job_skill_ids.values_list('skill_id', flat=True)
+    return (HrApplicant.objects.exclude(job_id=self.pk)
+            .filter(skill_ids__in=skill_pks).distinct())
+
+
 def apply_hr_recruitment_skills_hr_job_extensions():
     """Cuelga sobre ``hr.job`` lo que ``hr_recruitment_skills`` le añade —
     ≙ ``_inherit``. Se invoca desde ``HrRecruitmentSkillsConfig.ready()``."""
@@ -84,5 +124,6 @@ def apply_hr_recruitment_skills_hr_job_extensions():
         metodos={
             '_compute_applicant_matching_score':
                 _compute_applicant_matching_score,
+            '_search_matching_applicants': _search_matching_applicants,
         },
     )

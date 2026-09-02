@@ -1285,3 +1285,19 @@ base/models/ir_model.py::IrModelFields::_all_manual_field_data
 # Idem, para un solo modelo.
 # Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
 base/models/ir_model.py::IrModelFields::_get_manual_field_data
+
+# ===========================================================================
+# hr_recruitment_skills (tarea #62)
+# ===========================================================================
+
+# `action_search_matching_applicants` envuelve el queryset de candidatos en
+# un `ir.actions.act_window` con `views`/`context`/`Markup` de ayuda. Este
+# backend no tiene action de ventana, ni vistas XML, ni motor de navegacion
+# de cliente -- 0 mecanismo, no solo aqui (mismo criterio que `hr_fleet`,
+# `authz_passkey`, ya declarados en este archivo). El dato SI se porto:
+# `_search_matching_applicants(self)` construye el mismo queryset
+# (`HrApplicant.objects.exclude(job_id=self.pk).filter(skill_ids__in=...)`)
+# y tiene test propio.
+# Declarado en: addons/hr_recruitment_skills/models/hr_job.py, docstring del
+# modulo, Divergencia 4.
+hr_recruitment_skills/models/hr_job.py::HrJob::action_search_matching_applicants
