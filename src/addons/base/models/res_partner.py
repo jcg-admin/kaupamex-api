@@ -2407,7 +2407,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         return not any(user._is_internal() for user in usuarios)
 
     def _compute_same_vat_partner_id(self):
-        """BLOQUEADO por ``partner.company_id`` — otro partner con el mismo
+        r"""BLOQUEADO por ``partner.company_id`` — otro partner con el mismo
         identificador fiscal.
 
         ≙ ``_compute_same_vat_partner_id`` (``:451``). Su cuerpo necesitaba

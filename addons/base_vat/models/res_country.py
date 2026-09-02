@@ -68,11 +68,19 @@ from orm.environments import get_current_company
 from orm.model_classes import extend_model
 
 
-def _has_foreign_fiscal_position(country):
+def _compute_has_foreign_fiscal_position(country):
     """≙ ``_compute_has_foreign_fiscal_position`` (``odoo19c: :12-18``).
 
     ¿Hay alguna posición fiscal de la empresa activa que declare un
     identificador fiscal propio (``foreign_vat``) en **este** país?
+
+    **Divergencia de mecanismo, declarada: asigna allá, devuelve aquí.** La
+    fuente escribe ``country.has_foreign_fiscal_position = …`` porque su campo
+    es ``compute`` **sin** ``store`` y el ORM lo materializa en la caché del
+    recordset. Aquí ese campo no es columna sino la ``property`` de abajo, que
+    deriva el valor en cada acceso; asignarle desde el compute sería recursión.
+    Mismo predicado, misma población, mismo ``@api.depends_context('company')``
+    —que aquí es el ``get_current_company()`` que la consulta ya lee.
     """
     fiscal_position = apps.get_model('account', 'AccountFiscalPosition')
     queryset = (fiscal_position.objects
@@ -85,8 +93,27 @@ def _has_foreign_fiscal_position(country):
     return queryset.exists()
 
 
+def _has_foreign_fiscal_position(country):
+    """El campo ``has_foreign_fiscal_position`` (``odoo19c: :9``) como lectura.
+
+    ≙ ``fields.Boolean(compute='_compute_has_foreign_fiscal_position')``, el
+    *"Caching technical field"* que su comentario declara. Sin ``store``, así
+    que aquí es ``property`` y no columna; el cuerpo vive en el compute, que se
+    porta con su nombre para que el consumidor que lo llame directo —como hace
+    la fuente— lo encuentre.
+    """
+    return _compute_has_foreign_fiscal_position(country)
+
+
 def apply_base_vat_res_country_extensions():
     """Cuelga sobre ``res.country`` lo que ``base_vat`` le añade — ≙ ``_inherit``."""
-    extend_model('base', 'ResCountry', propiedades={
-        'has_foreign_fiscal_position': _has_foreign_fiscal_position,
-    })
+    extend_model(
+        'base', 'ResCountry',
+        metodos={
+            '_compute_has_foreign_fiscal_position':
+                _compute_has_foreign_fiscal_position,
+        },
+        propiedades={
+            'has_foreign_fiscal_position': _has_foreign_fiscal_position,
+        },
+    )

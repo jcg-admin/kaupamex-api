@@ -17,7 +17,10 @@ todos apuntan a **dos** destinos medidos, no a cinco causas distintas:
   ``odoo19c: addons/account/models/partner.py:847-959`` — **no** en ``base``,
   así que portarlos aquí sería el defecto de sitio que :ref:`h-api-568`
   registra. Medido:
-  ``grep -rc "def _check_vat\b" --include=*.py src/ addons/`` da **0**.
+  ``grep -rn "def _check_vat\b" --include=*.py src/ addons/ | grep -vc base_vat/models/res_partner.py``
+  da **0**. El ``grep -v`` excluye **este** archivo: la forma sin él
+  empareja esta misma cita y devolvía 1 — un reclamo que se contaba a sí
+  mismo, que es lo que ``check_stale_zero_claims`` destapó.
   Sucesor: tarea **#460**.
 - ``tools.hash_sign`` — la firma con la que el webhook de vuelta se autentica.
   Medido: ``grep -rc "def hash_sign" --include=*.py src/`` da **0**, y
@@ -46,14 +49,17 @@ Símbolo a símbolo — los métodos
      - la fuente lo marca ``OVERRIDE`` y **no** llama a ``super()``: se
        instala entero, sin previa que encadenar
    * - ``_inverse_vat`` (``:166``)
-     - **BLOQUEADO**
-     - ver su docstring
+     - bloqueado
+     - BLOQUEADO por ``account.res.partner._check_vat`` — su cuerpo es esa
+       llamada y el método vive en ``account``. Sucesor: **#460**
    * - ``_onchange_vat`` (``:170``)
-     - **BLOQUEADO**
-     - ídem
+     - bloqueado
+     - BLOQUEADO por ``account.res.partner._check_vat`` — mismo destino.
+       Sucesor: **#460**
    * - ``_get_country_specific_vat_variants`` (``:174``)
-     - **BLOQUEADO**
-     - ídem
+     - bloqueado
+     - BLOQUEADO por ``account.res.partner._run_vat_checks`` — la fuente lo
+       declara en ``account``, no aquí. Sucesor: **#460**
    * - ``_compute_perform_vies_validation`` (``:186``)
      - portado
      - sirve a la ``property`` ``perform_vies_validation``
@@ -70,8 +76,9 @@ Símbolo a símbolo — los métodos
      - portado
      - ver la divergencia 4 abajo
    * - ``_check_vies_iap`` (``:267``)
-     - **BLOQUEADO**
-     - ver su docstring
+     - bloqueado
+     - BLOQUEADO por ``tools.hash_sign`` — firma el ``webhook_token`` y el
+       ayudante no existe en este árbol. Sucesor: **#461**
    * - ``_cron_check_vies_iap`` (``:296``)
      - portado
      - el agrupado va por el ORM de Django (divergencia 3)
@@ -155,15 +162,17 @@ Símbolo a símbolo — los métodos
      - portado
      - Python puro
    * - ``_get_vat_required_valid`` (``:952``)
-     - **BLOQUEADO**
-     - ver su docstring
-   * - ``create`` (``:965``) · ``write`` (``:970``)
+     - bloqueado
+     - BLOQUEADO por ``account.res.partner._get_vat_required_valid`` — su
+       cuerpo abre con ese ``super()``. Sucesor: **#460**
+   * - ``create`` (``:964``) · ``write`` (``:970``)
      - portados
-     - ``overrides=`` — la previa llega en la mano
+     - un solo ``overrides={'save': …}``: aquí la mutación tiene una entrada,
+       no dos. Divergencia de mecanismo declarada en el docstring de ``save``
    * - ``_create_contact_parent_company`` (``:976``)
      - portado
      - ``overrides=``; la previa existe
-       (``src/addons/base/models/res_partner.py:1761``)
+       (``src/addons/base/models/res_partner.py:1777``)
 
 Símbolos que el gate NO cuenta, y que también van portados
 ===========================================================
@@ -236,12 +245,14 @@ from stdnum.util import clean
 
 import fields
 from addons.base.models.ir_config_parameter import SystemParameter
+from addons.base.models.ir_module import IrModule
+from addons.base.models.res_company import ResCompany
 from addons.base.models.res_country import ResCountry
 from addons.base.models.res_country_group import ResCountryGroup
 from addons.base.models.res_partner import EU_EXTRA_VAT_CODES
 from addons.base_vat.validators import validate_rfc
 from exceptions import ValidationError
-from orm.environments import get_current_company, sudo
+from orm.environments import env, get_context, get_current_company, sudo
 from orm.model_classes import extend_model
 from tools.translate import _
 
@@ -376,10 +387,10 @@ def _compute_perform_vies_validation(self):
     validity on the current VAT number"*.
     """
     to_check = self.vat
-    company = get_current_company(as_object=True)
+    company = _current_company()
     company_code = ''
     if company is not None:
-        fiscal_country = getattr(company, 'account_fiscal_country_id', None)
+        fiscal_country = getattr(company, 'account_fiscal_country', None)
         country = getattr(company, 'country', None)
         company_code = getattr(fiscal_country, 'code', None) or getattr(
             country, 'code', '') or ''
@@ -404,8 +415,6 @@ def _compute_vies_valid(self):
     consultan —ninguna empresa con la casilla encendida, y el partner que
     hereda del padre— sí hacen lo que la fuente hace.
     """
-    from_company = ResCountry  # marcador de import usado abajo por claridad
-    del from_company
     with sudo():
         enabled = _companies_with_vies_check().exists()
     if not enabled:
@@ -424,12 +433,13 @@ def _compute_vies_valid(self):
 
 def _companies_with_vies_check():
     """Las empresas con ``vat_check_vies`` encendido — ≙ el ``search_count``
-    de ``_compute_vies_valid`` (``odoo19c: :200``)."""
-    company = get_current_company(as_object=True)
-    model = type(company) if company is not None else None
-    if model is None:
-        return ResCountryGroup.objects.none()
-    return model.objects.filter(vat_check_vies=True)
+    de ``_compute_vies_valid`` (``odoo19c: :200``).
+
+    La fuente cuenta sobre ``res.company`` sin acotar por la empresa activa
+    (``self.env['res.company'].sudo().search_count([('vat_check_vies','=',True)])``);
+    aquí es la misma población, y el ``sudo()`` lo pone el llamador.
+    """
+    return ResCompany.objects.filter(vat_check_vies=True)
 
 
 def _split_vat(self, vat):
@@ -485,11 +495,23 @@ def _get_iap_vies_endpoint(self):
     return endpoint
 
 
+def _current_company():
+    """La empresa en curso como **objeto** — ≙ ``self.env.company``.
+
+    ``get_current_company()`` devuelve la **PK** (``orm/environments.py:233``),
+    no el registro; la referencia lee atributos (``account_fiscal_country_id``,
+    ``vat_check_vies``) sobre el objeto, así que aquí se resuelve una vez.
+    ``None`` cuando no hay empresa activada, que es el ``env.company`` vacío.
+    """
+    company_id = get_current_company()
+    if company_id is None:
+        return None
+    return ResCompany.objects.filter(pk=company_id).first()
+
+
 def _base_vat_module_is_demo():
     """≙ ``self.env.ref('base.module_base_vat').demo`` (``odoo19c: :261``)."""
-    from django.apps import apps as django_apps
-    module = django_apps.get_model('base', 'IrModule')
-    row = module.objects.filter(name='base_vat').first()
+    row = IrModule.objects.filter(name='base_vat').first()
     return bool(getattr(row, 'demo', False))
 
 
@@ -553,8 +575,9 @@ def _update_vies_status(self, status):
 
     BLOQUEADO por ``mail.thread._message_log_batch`` — razón: la nota que la
     fuente deja en el hilo del partner necesita ese método y no existe en este
-    árbol (medido: ``grep -rc "def _message_log_batch" --include=*.py src/
-    addons/`` da **0**; ``addons/crm/models/crm_team.py:140`` ya lo declaraba
+    árbol (medido: ``grep -rn "def _message_log_batch" --include=*.py src/ addons/ | grep -vc base_vat/models/res_partner.py``
+    da **0** — el ``grep -v`` excluye este archivo para que la cita no se
+    cuente a sí misma; ``addons/crm/models/crm_team.py:140`` ya lo declaraba
     ausente). La escritura del estado —el trabajo del método— sí se hace.
     Sucesor: tarea **#462**.
     """
@@ -602,7 +625,7 @@ def _format_vat_number(self, country_code, vat):
 
 def _build_vat_error_message(self, country_code, wrong_vat, record_label):
     """≙ ``_build_vat_error_message`` (``odoo19c: :349-383``)."""
-    company = get_current_company(as_object=True)
+    company = _current_company()
 
     vat_label = _("VAT")
     country = getattr(company, 'country', None) if company is not None else None
@@ -719,7 +742,6 @@ def _europe_country_group():
 
 def _no_vat_validation():
     """≙ ``self.env.context.get('no_vat_validation')`` (``odoo19c: :138``)."""
-    from orm.environments import get_context
     return bool(get_context().get('no_vat_validation'))
 
 
@@ -1365,27 +1387,32 @@ def _convert_hu_local_to_eu_vat(self, local_vat):
 
 # === Los tres enganches de escritura ======================================
 
-def create(cls, previous, **values):
-    """≙ ``create`` (``odoo19c: :964-968``).
+def save(self, previous, *args, **kwargs):
+    """≙ ``create`` (``odoo19c: :963-967``) **y** ``write`` (``:969-974``).
 
-    La fuente saca ``vies_valid`` de la cola de recomputación tras crear, para
-    que el valor que vino en el ``vals`` no se pise. Aquí la cola es la misma
-    (``orm.environments.Environment.remove_to_compute``).
+    **Divergencia de mecanismo, declarada — no de alcance.** La fuente engancha
+    dos métodos porque su ORM tiene dos entradas de mutación; aquí la entrada
+    es una sola, ``Model.save``, y el par ``crear`` / ``escribir`` se distingue
+    por ``self._state.adding``. El comportamiento portado es el mismo, símbolo
+    a símbolo:
+
+    - **crear** — la fuente saca ``vies_valid`` de la cola de recomputación
+      **siempre** tras crear, para que el valor que vino en el ``vals`` no se
+      pise con el ``compute``.
+    - **escribir** — lo saca **sólo** cuando el cambio viene de una
+      importación (``self.env.context.get('import_file')``).
+
+    Por qué no se enganchan ``create``/``write`` como allá, medido:
+    ``grep -cE "^    def (create|write)\\(" src/addons/base/models/res_partner.py``
+    da **0** — ``ResPartner`` no declara ninguno de los dos, y ``wrap_method``
+    exige implementación previa (``src/orm/method_chain.py:246-250``).
+    Declararlos aquí, sobre un modelo de ``base``, sería el defecto de sitio de
+    :ref:`h-api-568`. Su porte sobre ``res.partner`` es la tarea **#463**;
+    cuando exista, este enganche se reparte en los dos sin cambiar conducta.
     """
-    record = previous(**values)
-    _forget_vies_recompute(type(record), [record.pk])
-    return record
-
-
-def write(self, previous, values):
-    """≙ ``write`` (``odoo19c: :969-974``).
-
-    Sólo olvida la recomputación cuando el cambio viene de una importación,
-    igual que la fuente (``self.env.context.get('import_file')``).
-    """
-    result = previous(values)
-    from orm.environments import get_context
-    if get_context().get('import_file'):
+    creating = self._state.adding
+    result = previous(*args, **kwargs)
+    if creating or get_context().get('import_file'):
         _forget_vies_recompute(type(self), [self.pk])
     return result
 
@@ -1402,11 +1429,8 @@ def _create_contact_parent_company(self, previous):
 
 def _forget_vies_recompute(model, record_ids):
     """≙ ``env.remove_to_compute(self._fields['vies_valid'], …)``."""
-    from orm.environments import get_environment
     field = model._meta.get_field('vies_valid')
-    environment = get_environment()
-    if environment is not None:
-        environment.remove_to_compute(field, record_ids)
+    env().remove_to_compute(field, record_ids)
 
 
 # === El enganche ==========================================================
@@ -1483,8 +1507,7 @@ def apply_base_vat_extensions():
         'format_vat_is': format_vat_is,
         'format_vat_sm': format_vat_sm,
     }, overrides={
-        'create': classmethod(create),
-        'write': write,
+        'save': save,
         '_create_contact_parent_company': _create_contact_parent_company,
     }, luego=_hang_precompiled_regexes)
 
