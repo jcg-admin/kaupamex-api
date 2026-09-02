@@ -67,7 +67,13 @@ def test_a_variable_receiver_yields_no_class():
 
 
 def test_the_real_addon_declares_its_installations():
-    """``base_sparse_field`` cuelga cuatro símbolos sobre ``IrModelFields``.
+    """``base_sparse_field`` cuelga cinco símbolos sobre ``IrModelFields``.
+
+    Eran cuatro hasta que el porte añadió ``write``, que la referencia declara
+    en ``odoo19c: base_sparse_field/models/models.py:29`` y este árbol no
+    tenía: la guarda vivía sólo encadenada sobre ``save``, que es el camino de
+    Django y no el que la fuente vigila. El conteo de este control sube con el
+    porte — es lo que mide.
 
     Resuelve la ruta con ``addon_path``, no con una constante de raíz: desde el
     movimiento a dos raíces (:ref:`h-api-558`) ``base_sparse_field`` vive en
@@ -79,7 +85,8 @@ def test_the_real_addon_declares_its_installations():
     assert raiz is not None, 'base_sparse_field no se resuelve en ninguna raíz'
     mapa, no_resolubles = gate.addon_installations(raiz)
     assert mapa[gate.normaliza('IrModelFields')] == {
-        '_reflect_fields', 'save', 'serialization_field_id', 'ttype_for'}
+        '_reflect_fields', 'save', 'serialization_field_id', 'ttype_for',
+        'write'}
     assert no_resolubles == 0
 
 
@@ -255,3 +262,40 @@ def test_a_scoped_run_names_the_scope_of_its_count():
     assert 'tocadas por el recorrido' in registro, registro
     assert '--addon base' in registro, registro
     assert 'de 248 entrada(s) vivas' not in registro, registro
+
+
+class TestASiteScopedAliasAbsolvesOnlyItsSite:
+    """``PORTE_ALIAS_POR_SITIO`` casa por ``(archivo, clase, símbolo)``.
+
+    El alias global no sirve para una **colisión con el stack**: ``save`` sale
+    como ausente en decenas de sitios del árbol, y una entrada en
+    ``PORTE_ALIAS`` los absolvería todos de golpe — el mismo argumento que el
+    docstring del gate ya da para no aliasar ``write``. El alias por sitio
+    absuelve exactamente uno.
+    """
+
+    def test_the_declared_site_resolves_to_its_installed_name(self):
+        assert gate.normaliza_en(
+            'ir_ui_view.py', 'IrUiView', 'save') == 'save_from_html'
+
+    def test_the_same_symbol_elsewhere_keeps_its_own_name(self):
+        # Otro archivo, misma clase.
+        assert gate.normaliza_en('ir_model.py', 'IrUiView', 'save') == 'save'
+        # Mismo archivo, otra clase.
+        assert gate.normaliza_en('ir_ui_view.py', 'IrModel', 'save') == 'save'
+        # Mismo sitio, otro símbolo.
+        assert gate.normaliza_en('ir_ui_view.py', 'IrUiView', 'write') == 'write'
+
+    def test_without_a_site_entry_it_matches_normaliza(self):
+        for nombre in ('_compute_display_name', 'write', 'action_set_manual'):
+            assert gate.normaliza_en('cualquiera.py', 'Cualquiera', nombre) == \
+                gate.normaliza(nombre)
+
+    def test_the_class_key_flattens_the_separator_of_the_source(self):
+        """La llave usa ``class_key``, no el literal.
+
+        La referencia deriva el nombre de la clase de su ``_name`` y conserva
+        el separador (``IrMail_Server``); aquí se escribe en PascalCase. Si la
+        llave fuera el literal, el alias fallaría justo en esas clases.
+        """
+        assert gate.class_key('IrUi_View') == gate.class_key('IrUiView')
