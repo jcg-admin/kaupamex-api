@@ -232,11 +232,20 @@ class TestTheRerunReproducesWhatTheAuthorMeasured:
         assert count == 1, 'la clase que el propio porte añadió debe contar'
 
     def test_count_mode_reads_the_number_not_the_lines(self):
-        """``grep -ic`` imprime ``0`` en una línea; contarlas daría 1."""
+        """``grep -ic`` imprime UN número en UNA línea: contar líneas daría 1.
+
+        El caso fijaba ``count == 0`` cuando ``stdnum`` no era dependencia. Al
+        declararla (``api@414b286f``) el mismo comando pasó a dar **5**, y el
+        caso rojo — que es el gate funcionando: un reclamo de cero caducó y lo
+        dijo. Lo que el caso prueba no es el cero sino la LECTURA, así que la
+        aserción pasa a ser la que de verdad discrimina: un conteo mayor que
+        uno sólo puede venir de leer el número impreso, nunca de contar las
+        líneas de salida.
+        """
         claiming = pathlib.Path('addons/account_peppol/models/res_company.py')
         count, why = gate.rerun('grep -ic stdnum uv.lock', claiming)
         assert why is None, why
-        assert count == 0, 'la salida de -c ES el número, no una coincidencia'
+        assert count > 1, 'la salida de -c ES el número, no el conteo de líneas'
 
     def test_a_shell_glob_is_expanded(self):
         """Sin shell, ``src/orm/*.py`` llega literal y grep sale 2."""

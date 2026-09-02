@@ -30,14 +30,14 @@ Constantes y funciones de módulo
      - portado verbatim.
    * - ``_cc_checker`` (``:21-22``), ``PEPPOL_ENDPOINT_RULES`` (``:29-35``),
        ``PEPPOL_ENDPOINT_WARNINGS`` (``:37-44``)
-     - **BLOQUEADOS por ``python-stdnum``** — medido:
-       ``grep -ci stdnum uv.lock`` → **0**. Los validadores son
+     - **LIBRES, pendientes de portar.** Estuvieron bloqueados por
+       ``python-stdnum``, que no era dependencia; **ya lo es**
+       (``python-stdnum>=2.0``, ``api@414b286f``). Los validadores son
        ``get_cc_module('se', 'orgnr').is_valid`` y compañía: dígitos de
        control de seis países más EAN. Se conserva **la única regla que no
        depende de la biblioteca** —``'0201'``, que es un ``re.match``— para
        que la forma del mapa quede y sólo falten las entradas de ``stdnum``.
-       Sucesor: tarea PENDIENTE DE ASIGNAR — declarar ``python-stdnum`` o
-       construir los seis validadores.
+       Portarlas contra la librería es la tarea **#292**.
 
 Campos — 16
 -------------

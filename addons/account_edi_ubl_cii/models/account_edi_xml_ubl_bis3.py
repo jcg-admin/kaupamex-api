@@ -7,15 +7,15 @@ de licencia preservados (DEC-KX-03).
 Cobertura: 37 de 37 presentes — **33 portados, 4 bloqueados**
 =============================================================
 
-* ``_invoice_constraints_peppol_en16931_ubl`` — bloqueado por **``stdnum``**
-  (medido: ``grep -ic stdnum uv.lock`` → **0**). Valida NIF belga
+* ``_invoice_constraints_peppol_en16931_ubl`` — **LIBRE, pendiente de
+  portar**. Estuvo bloqueado por ``stdnum``, que no era dependencia; su
+  sucesor era declararla y **ya está declarada**
+  (``python-stdnum>=2.0``, ``api@414b286f``). Valida NIF belga
   (``be_vat.is_valid``) y noruego (``mva.is_valid``), y ambos son **dígitos de
-  control**, no normalizaciones. Ésa es la línea que separa este caso de
-  ``_be_vat_compact`` (vendorizado en ``account_edi_ubl.py``): ``compact``
-  normaliza y su resultado es verificable a ojo; ``is_valid`` decide si un
-  documento es válido, y una checksum mal transcrita produce **falsos
-  errores de validación en silencio**. Sucesor: declarar ``python-stdnum``
-  en ``pyproject.toml`` — fuera del write-set de este pase.
+  control**, no normalizaciones — por eso no se vendorizaron: ``compact``
+  normaliza y su resultado es verificable a ojo, mientras que una checksum mal
+  transcrita produce **falsos errores de validación en silencio**. Portarlo
+  contra la librería es la tarea **#292**.
 * ``_import_order_payment_terms_id`` — ``AccountPaymentTerm._check_company_domain``
   no existe (0 hits).
 * ``_import_order_ubl`` — ``markupsafe.Markup`` (0 en ``uv.lock``) más la API
