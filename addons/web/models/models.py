@@ -224,11 +224,15 @@ reemplaza el empaquetador dinámico de Odoo — no hay *bundle* CSS por-compañ�
 que invalidar en cada request porque no hay *bundle* dinámico de ningún tipo.
 
 **``web_override_translations`` (1 método).** Sobrescribe la traducción
-inline de un campo para el idioma activo. Su cuerpo consume dos símbolos que
-el árbol no define: ``res.lang.get_installed()`` y
-``update_field_translations``. Medido hoy con la forma que discrimina —una
-**definición**, no una mención—: ``grep -rn "def update_field_translations\\|def
-get_installed" src/ --include="*.py"`` → **0**.
+inline de un campo para el idioma activo. Su cuerpo consume dos símbolos, y
+**hoy sólo falta uno**: ``grep -rn "def update_field_translations" src/
+--include="*.py"`` → **0**.
+
+  ``res.lang.get_installed()`` **ya no falta**: se portó el 2026-09-02 junto a
+  ``base_setup`` —lo consume ``ResConfigSettings._compute_language_count``— y
+  vive en ``src/addons/base/models/res_lang.py:108``. Este párrafo lo daba por
+  ausente y era la mitad de su razón de bloqueo; se corrige aquí porque el
+  porte que lo trajo es el que caducó el reclamo.
 
   La razón vieja citaba ``grep -rln "update_field_translations|get_installed("``
   sin ``def``, y ese comando **hoy da 2**: sus dos aciertos son prosa en

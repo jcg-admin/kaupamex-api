@@ -336,15 +336,27 @@ class ResConfigSettings(BaseResConfigSettings):
                 name='Default access for new users')
             IrModelData.set_xmlid(default_group, DEFAULT_USER_GROUP_XMLID,
                                   noupdate=True)
-        return {
+        action = {
             'type': 'ir.actions.act_window',
             'name': 'Edit new user default group',
             'view_mode': 'form',
             'res_model': 'res.groups',
             'res_id': default_group.pk,
-            'views': [(IrModelData.ref(DEFAULT_GROUPS_FORM_XMLID).pk, 'form')],
             'target': 'new',
         }
+        # La fuente fija la vista con ``self.env.ref(...)`` sin salvavidas: ese
+        # identificador lo siembra su ``base/views/res_groups_views.xml``, que
+        # aquí no tiene contraparte — este árbol no porta las vistas XML.
+        # Medido: ``grep -rn "view_default_groups_form" src/ addons/`` → 1 hit,
+        # la constante de este archivo. Sin el registro, ``ref`` levantaría y
+        # la acción entera sería inalcanzable; con el salvavidas la acción
+        # abre el formulario por defecto, que es la degradación mínima.
+        # Sucesor: tarea **#458**, la siembra de las vistas de ``base``.
+        form_view = IrModelData.ref(DEFAULT_GROUPS_FORM_XMLID,
+                                    raise_if_not_found=False)
+        if form_view is not None:
+            action['views'] = [(form_view.pk, 'form')]
+        return action
 
     @classmethod
     def _prepare_report_view_action(cls, template):

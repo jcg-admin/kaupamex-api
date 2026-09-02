@@ -32,7 +32,7 @@ import models
 
 from addons.base.models import ResPartner
 from addons.base_geolocalize.models.base_geocoder import BaseGeocoder
-from orm.method_chain import chain_method
+from orm.method_chain import chain_method, wrap_method
 
 # Campos de ``res.partner`` cuyo cambio dispara el reset de geolocalización.
 # Fiel a Odoo 19:15 ('street', 'zip', 'city', 'state_id', 'country_id') con la
@@ -215,21 +215,76 @@ def _partner_geo_localize_record(self):
     return _geolocation_of(self).geo_localize()
 
 
+def _partner_write(self, previous, values):
+    """≙ ``write`` (``odoo19c: base_geolocalize/models/res_partner.py:12-21``).
+
+    Comentario de la fuente, verbatim: *"Reset latitude/longitude in case we
+    modify the address without updating the related geolocation fields"*.
+
+    **Por qué el receptor es ``res.partner`` y no la fila RELATED.** La fuente
+    declara las tres columnas sobre el contacto, así que su reset viaja en el
+    mismo ``vals`` del ``write``. Aquí las columnas viven en
+    ``res_partner_geolocation`` (DEC-SALE-01), pero **la puerta sigue siendo la
+    misma**: quien cambia la dirección escribe en el contacto. Colgar el reset
+    sólo en la fila RELATED dejaba la puerta sin vigilar — un contacto podía
+    mudarse de país con sus coordenadas viejas intactas.
+
+    Se instala con ``wrap_method`` y no con ``chain_method`` porque el override
+    necesita la previa en la mano — de ahí que ``previous`` sea el **segundo**
+    parámetro, que es el orden que ``orm/method_chain.py:279-281`` inyecta:
+    ``ResPartner`` **sí** hereda ``write`` (``RecordLoaderMixin.write``,
+    ``src/orm/models.py:1832``), y saltárselo dejaría el contacto sin guardar.
+
+    Divergencias declaradas
+    -----------------------
+
+    - **Los nombres del disparador.** ``state_id``/``country_id`` de la fuente
+      son aquí ``state``/``country`` (más su ``attname``), porque así los
+      declara ``base.ResPartner``.
+    - **Las coordenadas se DESVÍAN a la fila RELATED.** La fuente las escribe
+      en el mismo ``vals`` porque allá son columnas del contacto; aquí no lo
+      son, así que ``previous`` las rechazaría. Se extraen antes de delegar y
+      se aplican donde viven. Es el mismo dato por la misma puerta, en otra
+      tabla.
+    - **El ``vals`` del llamador NO se muta.** La fuente hace ``vals.update``;
+      aquí se delega una copia. Mutar el diccionario de quien llama es un
+      efecto que allá pasa inadvertido —sus claves son del mismo modelo— y
+      aquí sería una sorpresa: las que se sacan ya no son suyas.
+    """
+    remaining = dict(values)
+    geolocation = {name: remaining.pop(name)
+                   for name in GEOLOCATION_FIELDS if name in remaining}
+    touched = set(values)
+    address_changed = touched & set(
+        ADDRESS_FIELDS_TRIGGERING_RESET
+        + tuple(f'{name}_id' for name in ('state', 'country')))
+    if address_changed and not set(GEOLOCATION_FIELDS).issubset(touched):
+        geolocation = {name: 0.0 for name in GEOLOCATION_FIELDS}
+        # Un contacto sin fila RELATED no tiene coordenadas que resetear: se
+        # deja sin crear, porque una fila en cero no dice lo mismo que ninguna.
+        if not PartnerGeolocation.objects.filter(partner=self).exists():
+            geolocation = {}
+    if geolocation:
+        row = _geolocation_of(self)
+        for name, value in geolocation.items():
+            setattr(row, name, value)
+        row.save(update_fields=list(geolocation))
+    return previous(remaining)
+
+
 def apply_base_geolocalize_extensions():
-    """Cuelga los símbolos de la fuente sobre ``base.ResPartner``.
+    """Cuelga los tres símbolos de la fuente sobre ``base.ResPartner``.
 
     La llama ``BaseGeolocalizeConfig.ready()``, no el import del módulo: en
     tiempo de import el registro de modelos aún no está poblado y colgar sobre
     un modelo ajeno fallaría con ``AppRegistryNotReady``.
 
-    Los dos son **nuevos** sobre ``res.partner`` en este árbol, así que van por
-    ``chain_method`` a secas (rama ``previous is None``). El tercer símbolo de
-    la fuente, ``write``, NO se cuelga aquí: ``base.ResPartner`` no declara
-    ``write`` —declara ``save`` (``src/addons/base/models/res_partner.py:1510``)—
-    y el reset que la fuente hace dentro de su ``write`` opera sobre las
-    columnas de la fila RELATED. Vive donde están esas columnas, como
-    :meth:`PartnerGeolocation.write`, con el nombre de la fuente.
+    Los dos geocodificadores son **nuevos** sobre ``res.partner`` en este
+    árbol, así que van por ``chain_method`` a secas (rama ``previous is
+    None``). ``write`` va por ``wrap_method``: la previa existe y su resultado
+    es el del override.
     """
     chain_method(ResPartner, '_geo_localize',
                  classmethod(_partner_geo_localize))
     chain_method(ResPartner, 'geo_localize', _partner_geo_localize_record)
+    wrap_method(ResPartner, 'write', _partner_write)

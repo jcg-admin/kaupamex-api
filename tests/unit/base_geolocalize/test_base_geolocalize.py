@@ -272,3 +272,68 @@ class TestPartnerGeolocation:
         PartnerGeolocation.objects.create(partner=partner)
         partner.delete()
         assert PartnerGeolocation.objects.count() == 0
+
+
+class TestPartnerWriteResetsGeolocation:
+    """≙ ``ResPartner.write`` (``odoo19c: base_geolocalize/models/res_partner.py:12-21``).
+
+    La puerta que la fuente vigila es el ``write`` del **contacto**, no el de
+    la fila RELATED: quien muda una dirección escribe en ``res.partner``.
+    Estos casos ejercen esa puerta.
+    """
+
+    def test_changing_the_street_resets_the_coordinates(self):
+        partner = _make_partner()
+        geo = PartnerGeolocation.objects.create(
+            partner=partner, latitude=19.4326, longitude=-99.1332)
+        partner.write({'street': 'Otra calle 99'})
+        geo.refresh_from_db()
+        assert geo.latitude == 0.0
+        assert geo.longitude == 0.0
+
+    def test_changing_the_country_resets_the_coordinates(self):
+        partner = _make_partner()
+        geo = PartnerGeolocation.objects.create(
+            partner=partner, latitude=19.4326, longitude=-99.1332)
+        # ``country_id`` es el ``attname`` de la FK: el nombre con que un
+        # llamador que trae ids escribe la columna.
+        partner.write({'country_id': None})
+        geo.refresh_from_db()
+        assert geo.latitude == 0.0
+
+    def test_writing_the_address_and_the_coordinates_together_keeps_them(self):
+        """La segunda mitad de la condición de la fuente.
+
+        Si el mismo ``write`` trae la dirección **y** las dos coordenadas, no
+        hay reset: el llamador ya sabe dónde está el contacto.
+        """
+        partner = _make_partner()
+        geo = PartnerGeolocation.objects.create(
+            partner=partner, latitude=19.4326, longitude=-99.1332)
+        partner.write({'street': 'Otra calle 99',
+                       'latitude': 19.4326, 'longitude': -99.1332})
+        geo.refresh_from_db()
+        assert geo.latitude == 19.4326
+        assert geo.longitude == -99.1332
+
+    def test_an_unrelated_field_leaves_the_coordinates_alone(self):
+        partner = _make_partner()
+        geo = PartnerGeolocation.objects.create(
+            partner=partner, latitude=19.4326, longitude=-99.1332)
+        partner.write({'phone': '5599887766'})
+        geo.refresh_from_db()
+        assert geo.latitude == 19.4326
+
+    def test_the_write_still_persists_the_partner(self):
+        """El override delega en la previa — sin eso el contacto no se guarda."""
+        partner = _make_partner()
+        partner.write({'street': 'Otra calle 99'})
+        partner.refresh_from_db()
+        assert partner.street == 'Otra calle 99'
+
+    def test_a_partner_without_geolocation_row_does_not_break(self):
+        partner = _make_partner()
+        assert not PartnerGeolocation.objects.filter(partner=partner).exists()
+        partner.write({'city': 'Monterrey'})
+        partner.refresh_from_db()
+        assert partner.city == 'Monterrey'

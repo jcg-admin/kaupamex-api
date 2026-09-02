@@ -11,6 +11,7 @@ import pytest
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_company import ResCompany
+from addons.base.models.ir_ui_view import IrUiView
 from addons.base.models.res_country import ResCountry
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.res_lang import ResLang
@@ -97,20 +98,29 @@ class TestComputes:
     def test_is_root_company_is_false_for_a_child(self):
         parent = ResCompany.objects.create(name='Matriz')
         child = ResCompany.objects.create(name='Filial', parent=parent)
-        settings = SiteConfigSettings(company=child)
+        settings = SiteConfigSettings(company_id=child)
         assert settings._compute_is_root_company() is False
 
     def test_company_informations_concatenates_like_the_reference(self):
-        country = ResCountry.objects.create(
-            name='Testlandia', code='TL', vat_label='RFC')
+        country, _ = ResCountry.objects.get_or_create(
+            code='TL', defaults={'name': 'Testlandia'})
+        country.vat_label = 'RFC'
+        country.save(update_fields=['vat_label'])
         company = ResCompany.objects.create(
             name='Kaupamex QA', street='Av. Siempre Viva 742',
-            city='CDMX', zip='03100', country=country, vat='ABC010101XYZ')
-        settings = SiteConfigSettings(company=company)
+            city='CDMX', zip='03100', country=country)
+        # ``vat`` es una propiedad delegada al partner (``_inherits``), no una
+        # columna de ``res.company``: se escribe donde vive.
+        company.partner.vat = 'ABC010101XYZ'
+        company.partner.save(update_fields=['vat'])
+        settings = SiteConfigSettings(company_id=company)
         informations = settings._compute_company_informations()
         assert 'Av. Siempre Viva 742\n' in informations
         assert '03100 - CDMX\n' in informations
-        assert informations.endswith('\nRFC: ABC010101XYZ')
+        # El doble espacio es de la fuente, no un descuido: ``vat_display``
+        # ya termina en ``': '`` y la concatenación es ``'%s %s'``
+        # (``odoo19c: :127-128``). Se porta verbatim.
+        assert informations.endswith('\nRFC:  ABC010101XYZ')
 
     def test_company_informations_is_empty_without_company(self):
         settings = SiteConfigSettings()
@@ -127,27 +137,55 @@ class TestActions:
         assert action['target'] == 'current'
 
     def test_open_new_user_default_groups_creates_the_group_with_its_xmlid(self):
+        """La rama de creación: sin el identificador sembrado, lo crea y lo registra.
+
+        El árbol **sí** siembra ``base.default_user_group``, así que la rama
+        de creación sólo se alcanza retirando el registro primero. Sin ese
+        paso el caso mediría la rama de reutilización y pasaría en verde sin
+        ejercer nada de lo que dice medir.
+        """
+        IrModelData.objects.filter(module='base',
+                                   name='default_user_group').delete()
+        clear_cache('stable')
         assert IrModelData.ref(DEFAULT_USER_GROUP_XMLID,
                                raise_if_not_found=False) is None
         action = SiteConfigSettings().open_new_user_default_groups()
+        clear_cache('stable')
         created = IrModelData.ref(DEFAULT_USER_GROUP_XMLID)
         assert isinstance(created, ResGroups)
         assert action['res_id'] == created.pk
         assert action['target'] == 'new'
 
+    def test_open_new_user_default_groups_omits_the_view_it_cannot_resolve(self):
+        """``base.view_default_groups_form`` no está sembrado — se declara arriba.
+
+        El caso fija la conducta degradada: la acción sale sin la clave
+        ``views`` en vez de levantar. Si algún día se siembra la vista, este
+        caso cae y hay que reescribirlo — que es exactamente lo que se quiere.
+        """
+        action = SiteConfigSettings().open_new_user_default_groups()
+        assert 'views' not in action
+
     def test_open_new_user_default_groups_reuses_the_existing_group(self):
+        seeded = IrModelData.ref(DEFAULT_USER_GROUP_XMLID)
+        before = ResGroups.objects.count()
         first = SiteConfigSettings().open_new_user_default_groups()
         second = SiteConfigSettings().open_new_user_default_groups()
-        assert first['res_id'] == second['res_id']
-        assert ResGroups.objects.filter(
-            name='Default access for new users').count() == 1
+        assert first['res_id'] == second['res_id'] == seeded.pk
+        assert ResGroups.objects.count() == before
 
     def test_prepare_report_view_action_points_at_the_view(self):
+        view = IrUiView.objects.create(name='Cabecera externa', type='qweb',
+                                       arch_db='<div/>')
+        IrModelData.set_xmlid(view, 'base_setup.test_report_view')
         action = SiteConfigSettings._prepare_report_view_action(
-            DEFAULT_USER_GROUP_XMLID) if False else None
-        # El identificador de vista real lo siembra ``base``; el caso positivo
-        # se ejerce con el que ya existe en el árbol.
-        assert action is None
+            'base_setup.test_report_view')
+        assert action == {
+            'type': 'ir.actions.act_window',
+            'res_model': 'ir.ui.view',
+            'view_mode': 'form',
+            'res_id': view.pk,
+        }
 
     def test_edit_external_header_declares_its_blockade(self):
         with pytest.raises(NotImplementedError) as exc:

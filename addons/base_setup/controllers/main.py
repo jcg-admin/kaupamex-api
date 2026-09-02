@@ -49,7 +49,7 @@ from addons.base_setup.controllers.serializers import (
 from orm.environments import sudo
 
 #: ≙ ``LIMIT 10`` de la consulta de ``base_setup_data`` (``odoo19c:
-#: controllers/main.py:40``) — cuántos usuarios pendientes se listan.
+#: controllers/main.py:40``) — cuántos usuarios pending se listan.
 PENDING_USERS_LIMIT = 10
 
 
@@ -86,7 +86,7 @@ class SiteSettingsView(APIView):
 class BaseSetupDataView(APIView):
     """≙ ``BaseSetup.base_setup_data`` (``odoo19c: controllers/main.py:10-51``).
 
-    El panel de arranque: cuántos usuarios internos activos hay, cuántos de
+    El panel de arranque: cuántos usuarios internos active_users hay, cuántos de
     ellos **nunca han entrado**, y quiénes son los diez últimos.
 
     Divergencias declaradas
@@ -123,23 +123,23 @@ class BaseSetupDataView(APIView):
     required_capability = 'settings.edit'
 
     @extend_schema(
-        summary='Panel de arranque: usuarios activos y pendientes',
+        summary='Panel de arranque: usuarios active_users y pending',
         tags=['config'],
         responses={200: BaseSetupDataSerializer},
     )
     def get(self, request):
         with sudo():
-            activos = [user for user in ResUsers.objects.filter(active=True)
+            active_users = [user for user in ResUsers.objects.filter(active=True)
                        if not user.share]
-            con_acceso = set(
+            with_access = set(
                 ResUsersLog.objects.values_list('user_id', flat=True))
-        pendientes = [user for user in activos if user.pk not in con_acceso]
-        pendientes.sort(key=lambda user: user.pk, reverse=True)
+        pending = [user for user in active_users if user.pk not in with_access]
+        pending.sort(key=lambda user: user.pk, reverse=True)
         return Response(BaseSetupDataSerializer({
-            'active_users': len(activos),
-            'pending_count': len(pendientes),
+            'active_users': len(active_users),
+            'pending_count': len(pending),
             'pending_users': [[user.pk, user.login]
-                              for user in pendientes[:PENDING_USERS_LIMIT]],
+                              for user in pending[:PENDING_USERS_LIMIT]],
         }).data)
 
 
@@ -162,7 +162,7 @@ class BaseSetupDemoActiveView(APIView):
     required_capability = 'settings.edit'
 
     @extend_schema(
-        summary='¿La base tiene datos de demostración activos?',
+        summary='¿La base tiene datos de demostración active_users?',
         tags=['config'],
         responses={200: OpenApiTypes.BOOL},
     )
