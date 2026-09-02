@@ -243,20 +243,56 @@ class TestDespacho:
             method = RENDERER_PREFIX + value.lower().replace('-', '_')
             assert hasattr(IrActionsReport, method), (value, method)
 
-    def test_ported_renderers_are_not_offered_without_a_declarer(self):
-        """El porte trae los tres métodos; el enum ofrece uno solo.
+    def test_the_enum_offers_the_three_formats_the_source_declares(self):
+        """El enum vuelve a los tres de la fuente (tarea #250).
 
-        ``_render_qweb_html`` y ``_render_qweb_text`` están portados —el
-        archivo se porta entero— y **no** están en el enum: su condición de
-        reingreso (:ref:`h-api-291`) pide además declarante y test, y hoy hay
-        0 de cada uno. Este caso fija esa frontera para que nadie amplíe el
-        enum «porque el método ya existe», que es exactamente el razonamiento
-        que aquel hallazgo rechazó.
+        Este caso afirmaba ``offered == {'pdf'}`` con el argumento de que la
+        condición de reingreso de :ref:`h-api-291` pedía además declarante y
+        test. De las cuatro exigencias que aquella condición acabó teniendo,
+        tres se cumplieron (renderizador, serializador y test) y la cuarta
+        —declarante— era **circular**: ``Selection`` es ``CharField(choices=…)``
+        y Django valida ``choices`` en ``full_clean``, así que ningún addon
+        podía declarar un valor que el enum no ofrecía.
+
+        Lo que aquel hallazgo quería impedir lo sostiene el caso de arriba:
+        todo valor ofrecido tiene su renderizador.
         """
         offered = {v for v, _ in REPORT_TYPE_CHOICES}
-        assert offered == {'pdf'}
+        assert offered == {'html', 'pdf', 'text'}
         for ported in ('_render_qweb_html', '_render_qweb_text'):
             assert hasattr(IrActionsReport, ported), ported
+
+    def test_html_and_text_travel_the_whole_chain_and_come_out_different(
+            self, reporte_orden, orden_con_lineas):
+        """Los dos formatos nuevos, de punta a punta y sin helpers compilados.
+
+        Es el caso que discrimina: los dos recorren catálogo → contexto →
+        composición → despacho, y salen **distintos** sobre el mismo pedido.
+        Uno que sólo afirmara «devuelve algo» pasaría aunque los dos
+        devolvieran el dict crudo de ``_render_template``, que es el defecto
+        que :ref:`h-api-935` midió.
+
+        No lleva ``@helpers_built``, y no es olvido: el paso 5 —la conversión
+        por el helper en C— es del camino del PDF. ``html`` y ``text`` se
+        serializan en Python, así que su cadena está completa sin compilar
+        nada.
+        """
+        reporte_orden.report_type = 'html'
+        reporte_orden.save()
+        html, etiqueta_html = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
+
+        reporte_orden.report_type = 'text'
+        reporte_orden.save()
+        texto, etiqueta_texto = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
+
+        assert (etiqueta_html, etiqueta_texto) == ('html', 'text')
+        assert isinstance(html, bytes) and isinstance(texto, bytes)
+        # Cada uno lleva la marca de su formato, y ninguna es la del otro.
+        assert b'data-oe-model="sale.SaleOrder"' in html
+        assert b'<div' not in texto
+        assert html != texto
 
     def test_a_type_without_a_renderer_returns_none(self, reporte_orden):
         """Contrato de ausencia de la referencia (``:1150``): ``None``, no error.

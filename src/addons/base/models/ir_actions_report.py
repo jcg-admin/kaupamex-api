@@ -23,13 +23,6 @@ commit (regla de H-API-149).
 El motor de render: dos sustratos, no uno con hueco
 ===================================================
 
-Esta divergencia cubre **10 puntos de enganche** que Enterprise 19 usa sobre
-este modelo —``_render_qweb_pdf`` (2), ``_render_qweb_html``,
-``_get_rendering_context``, ``_get_rendering_context_model``,
-``_render_qweb_pdf_prepare_streams``, ``_run_wkhtmltopdf``, ``associated_view``,
-``report_action``, ``_get_readable_fields``—: todos son del pipeline
-HTML→PDF que aquí no existe. Medido en la tarea #78, :ref:`h-api-819`.
-
 La referencia rinde HTML con QWeb y lo convierte con ``wkhtmltopdf``, un
 binario externo cuyo estado (``install`` / ``ok`` / ``upgrade`` / ``workers``
 / ``broken``) el propio modelo consulta.
@@ -37,34 +30,81 @@ binario externo cuyo estado (``install`` / ``ok`` / ``upgrade`` / ``workers``
 Este árbol genera PDF con **helpers en C sobre libharu**, invocados por
 subprocess desde las vistas — ``tools/pdf/Makefile`` declara ``pdf_receipt``
 (UC-PAY-10) y ``pdf_report`` (UC-RPT-04 / UC-REP-05), y ADR-017 razona el
-aislamiento de fallos frente a ``mod_wsgi``. Medido:
-``grep -rln "reportlab\\|weasyprint\\|wkhtmltopdf\\|FPDF" src/ --include=*.py``
-→ **0** archivos. [PROVEN] No hay pipeline HTML→PDF que portar contra, ni
-falta: hay uno distinto, decidido y documentado.
+aislamiento de fallos frente a ``mod_wsgi``. Los nombres de la fuente se
+conservan como contrato del porte —``_run_wkhtmltopdf``,
+``get_wkhtmltopdf_state``— y el binario que nombran **no se ejecuta nunca**.
 
-Consecuencia para ``report_type``: su valor es ``pdf``, **uno solo**, y sin el
-prefijo ``qweb-``. Son dos recortes con dos motivos distintos, y conviene no
-confundirlos.
+Lo que esta divergencia YA NO declina (tarea #250)
+--------------------------------------------------
 
-El **prefijo** cae porque el string de la referencia codifica dos cosas —el
-lenguaje de plantillas y el formato— y en **esta cadena** sólo la segunda es
-verdad. Conservarlo verbatim metería el sustrato ajeno dentro de nuestro dato;
-lo que se porta es el **rol** del campo (en qué formato sale el documento), que
-es la parte abstracta.
+Este párrafo declaraba **10 puntos de enganche** de Enterprise 19 como
+ausentes «porque el pipeline HTML→PDF aquí no existe», y se apoyaba en una
+medición que hoy es falsa dos veces.
 
-El **conjunto** se reduce a uno porque los otros dos no se pueden emitir aquí,
-y eso está medido: ``_render_qweb_html`` y ``_render_qweb_text`` están portados
-—el archivo se porta entero— con el cuerpo de la fuente, que devuelve lo que
-``_render_template`` produzca. Allá eso es la representación HTML; aquí es el
-**intermedio del descriptor** (``{'bodies': …, 'html_ids': …}``), así que el par
-que sale de esos dos métodos lleva un dict donde su nombre promete texto o
-marcado. Ofrecerlos en el enum entregaría un dict a un consumidor que espera
-bytes. Ver :ref:`h-api-935`.
+**Falsa por su conclusión.** Los nueve símbolos distintos que enumeraba
+—``_render_qweb_pdf``, ``_render_qweb_html``, ``_get_rendering_context``,
+``_get_rendering_context_model``, ``_render_qweb_pdf_prepare_streams``,
+``_run_wkhtmltopdf``, ``associated_view``, ``report_action`` y
+``_get_readable_fields``— **están los nueve escritos**. Los portaron las tareas
+#170 (32 métodos y 11 atributos), #202 (el helper de libharu consume los
+ajustes de papel del descriptor) y #203 (el raster se dibuja desde el
+descriptor, con Pillow). El conteo por AST de más abajo lo confirma con
+``ausentes 0``.
 
-Su condición de reingreso, de :ref:`h-api-291`, se conserva y gana una tercera
-exigencia: el valor entra con su **declarante**, su **test** y —lo nuevo— su
-**serializador del descriptor** a ese formato, que es trabajo a construir y no
-un símbolo que el stack traiga. Ver ``REPORT_TYPE_CHOICES`` para el detalle.
+**Falsa por su instrumento**, que es lo que conviene no repetir. La medición
+citada era ésta:
+
+.. code-block:: text
+
+   grep -rln "reportlab|weasyprint|wkhtmltopdf|FPDF" src/ --include=*.py
+   → 0 archivos            (cierto cuando se escribió)
+
+Hoy ese comando devuelve **5** archivos, y ninguno de los cinco es una
+dependencia: son ``report_template.py``, ``models/__init__.py``, este archivo,
+``report_catalog.py`` y ``tools/barcode.py``, y los cinco **nombran** esas
+herramientas en prosa para explicar en qué divergen de ellas. Medido en el
+mismo pase, los ``import`` reales de ``reportlab``, ``weasyprint`` y ``fpdf``
+siguen siendo **ninguno**.
+
+El instrumento contaba el **significante** —la cadena— y la conclusión hablaba
+del **referente** —una dependencia instalada—, así que documentar bien la
+divergencia bastaba para invalidar su propia evidencia. Es el sub-patrón C de
+``metrica-decide-la-conclusion.md``. Un cero así no envejece por un cambio de
+diseño: envejece porque alguien escribió el nombre de lo que no usa.
+
+*Métrica:* archivos bajo ``src/`` cuyo texto contiene uno de los cuatro
+nombres, sin distinguir código de prosa.
+*Ciega a:* exactamente la distinción que su conclusión necesitaba — si el
+nombre aparece en un ``import`` o en un docstring que explica por qué no se
+importa.
+
+Consecuencia para ``report_type``: sus valores son ``html``, ``pdf`` y
+``text`` —los **tres** de la fuente— y ninguno lleva el prefijo ``qweb-``. Son
+dos ejes con dos motivos distintos, y conviene no confundirlos.
+
+El **prefijo** cae, y eso no cambia: el string de la referencia codifica dos
+cosas —el lenguaje de plantillas y el formato— y en **esta cadena** sólo la
+segunda es verdad. Conservarlo verbatim metería el sustrato ajeno dentro de
+nuestro dato; lo que se porta es el **rol** del campo (en qué formato sale el
+documento), que es la parte abstracta.
+
+El **conjunto** vuelve a ser el de la fuente. Estuvo en uno porque los dos
+renderizadores portados devuelven lo que ``_render_template`` produzca, y aquí
+eso es el **intermedio del descriptor** (``{'bodies': …, 'html_ids': …}``): el
+par que salía de ellos llevaba un dict donde su nombre promete texto o marcado
+(:ref:`h-api-935`). Eso dejó de ser cierto cuando la tarea #196 construyó
+``report_template.descriptor_to_html`` y ``descriptor_to_text``, que es lo que
+aquel hallazgo nombraba como trabajo a construir; los dos renderizadores
+serializan desde entonces, y devuelven los ``bytes`` que la firma de la fuente
+promete (``odoo19c: ir_actions_report.py:774``).
+
+La cuarta exigencia de la condición de reingreso —un **declarante**— era
+**circular**: ``Selection`` es ``CharField(choices=…)`` y Django valida
+``choices`` en ``full_clean``, así que ningún addon podía declarar un valor que
+el enum no ofrecía. Lo que :ref:`h-api-291` quería impedir —ofertar un formato
+que nadie sabe emitir— lo sostiene el invariante que sí discrimina: **todo
+valor ofrecido tiene su renderizador**, medido sobre la derivación de la
+fuente. Ver ``REPORT_TYPE_CHOICES`` para el detalle de las cuatro.
 
 Precisión, porque la versión anterior de este párrafo decía de más: el árbol
 **sí tiene** lenguaje de plantillas —el de Django, configurado en
@@ -204,27 +244,49 @@ _logger = logging.getLogger(__name__)
 #: ``docs: pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/
 #: analisis-que-nombra-qweb-en-report-type.rst`` (v3.0.0) y :ref:`h-api-289`.
 #:
-#: **Los otros dos valores.** ``html`` y ``text`` salieron del enum en
-#: :ref:`h-api-291` con una condición de reingreso escrita: *el valor entra con
-#: su renderizador, su declarante y su test; para ``text``, además, separando
-#: el contrato del ``builder``*. El bloque C aporta la **primera** —
-#: ``_render_qweb_html`` y ``_render_qweb_text`` existen— y ninguna de las
-#: otras: medido en este pase, **0** addons declaran ``html`` o ``text`` y
-#: **0** tests ejercitan sus renderizadores. Un enum que oferta lo que nadie
-#: emite es el defecto que aquel hallazgo cerró; portar el método no obliga a
-#: ofrecer el valor.
+#: **Los otros dos valores vuelven (tarea #250).** ``html`` y ``text`` salieron
+#: del enum en :ref:`h-api-291` con una condición de reingreso escrita —*el
+#: valor entra con su renderizador, su declarante y su test*— que
+#: :ref:`h-api-935` amplió con una cuarta: el **serializador del descriptor** a
+#: ese formato, por una razón real y no de conteo. Los dos renderizadores
+#: devuelven lo que ``_render_template`` produzca, y aquí eso es el intermedio
+#: del descriptor —un ``dict``—, así que ofrecerlos entonces habría entregado
+#: un dict donde el nombre del valor promete texto o marcado.
 #:
-#: **Y hay una causa anterior a la falta de declarante** (:ref:`h-api-935`):
-#: los dos cuerpos son el de la fuente y devuelven lo que ``_render_template``
-#: produzca. Allá eso es HTML; aquí es el intermedio del descriptor —un
-#: ``dict``—, así que ofrecerlos entregaría un dict donde el nombre del valor
-#: promete texto o marcado. La condición de reingreso gana por eso una tercera
-#: exigencia: el **serializador del descriptor** a ese formato. Es trabajo a
-#: **construir** —el stack no trae ningún símbolo que aplane el descriptor a
-#: líneas ni a marcado—, no un cableado.
+#: Las cuatro exigencias están cumplidas, y se miden una por una:
+#:
+#: - **renderizador** — ``_render_qweb_html`` y ``_render_qweb_text`` existen
+#:   desde el bloque C, porque el archivo se porta entero;
+#: - **serializador** — ``report_template.descriptor_to_html`` y
+#:   ``descriptor_to_text`` los construyó la tarea #196. Eran exactamente lo
+#:   que :ref:`h-api-935` nombraba como *trabajo a construir*: el stack no
+#:   traía ningún símbolo que aplanara el descriptor a marcado ni a líneas, y
+#:   se escribieron con sus primitivas (``conditional_escape``);
+#: - **test** — ``tests/unit/base/test_report_type_offers_what_it_can_emit.py``
+#:   y ``tests/unit/base/test_descriptor_serializers.py``, que comparan la
+#:   salida real de los dos caminos sobre un mismo descriptor;
+#: - **declarante** — es la exigencia que **no se podía cumplir por
+#:   construcción**, y ésa es la corrección de este pase. ``Selection`` es
+#:   ``CharField(choices=…)`` (``orm/fields_selection.py:25``) y Django valida
+#:   ``choices`` en ``full_clean``: ningún addon podía declarar un valor que el
+#:   enum no ofrecía. Pedir un declarante para abrir el enum, teniendo el enum
+#:   cerrado, es una condición circular. Lo que aquel hallazgo quería impedir
+#:   —ofertar un formato que nadie sabe emitir— lo sostiene el invariante que
+#:   sí discrimina: **todo valor ofrecido tiene su renderizador**, medido sobre
+#:   la derivación de la fuente.
+#:
+#: Lo que **no** vuelve es el prefijo ``qweb-``: esa divergencia tiene su
+#: motivo propio —arriba— y es independiente del conteo.
+REPORT_TYPE_HTML = 'html'
 REPORT_TYPE_PDF = 'pdf'
+REPORT_TYPE_TEXT = 'text'
+#: El orden y las etiquetas son los de la fuente
+#: (``odoo19c: odoo/addons/base/models/ir_actions_report.py:170-174``); lo
+#: único que cambia es el prefijo.
 REPORT_TYPE_CHOICES = [
+    (REPORT_TYPE_HTML, 'HTML'),
     (REPORT_TYPE_PDF, 'PDF'),
+    (REPORT_TYPE_TEXT, 'Text'),
 ]
 
 #: El prefijo que ``_render`` antepone al derivar el nombre del renderizador.
@@ -374,11 +436,12 @@ class IrActionsReport(IrActionsBase):
     report_type = fields.Selection(
         max_length=16, choices=REPORT_TYPE_CHOICES, default=REPORT_TYPE_PDF,
         verbose_name='Tipo de reporte',
-        help_text='Formato de salida: PDF. El valor gobierna el despacho '
-                  'de _render. Divergencia declarada frente a la fuente, que '
-                  'ofrece tres: aquí el intermedio de la composición es el '
-                  'descriptor, y sólo el camino del PDF tiene quien lo '
-                  'convierta.',
+        help_text='Formato de salida: html, pdf o text. El valor gobierna el '
+                  'despacho de _render. Son los tres de la fuente, sin su '
+                  'prefijo qweb-: aquí el intérprete no es QWeb. El intermedio '
+                  'de la composición es el descriptor, y cada formato tiene su '
+                  'serializador (pdf lo dibuja el helper de libharu, ADR-017; '
+                  'html y text los serializa report_template).',
     )
     report_name = fields.Char(
         max_length=255, verbose_name='Nombre de la plantilla')
