@@ -307,3 +307,29 @@ class TestMany2oneDispatcher:
         field = fields.Many2one(
             'base.ResPartner', on_delete=models.CASCADE)
         assert isinstance(field, models.ForeignKey)
+
+
+class TestABareStoreFalseGivesANonStoredField:
+    """El despachador de :func:`make_dispatcher` sin ``related=``.
+
+    La rama miraba ``related and not store``, así que un ``store=False``
+    declarado a secas —la forma con que la referencia escribe un ``compute``
+    sin columna, ``fields.Integer(compute='_compute_…')``— salía como columna
+    de Django y aparecía en ``makemigrations``. Primer consumidor:
+    ``hr_recruitment/models/digest.py`` (tarea #159).
+    """
+
+    def test_integer_without_store_is_the_plain_django_field(self):
+        assert isinstance(fields.Integer(), models.IntegerField)
+
+    def test_integer_with_store_false_is_non_stored(self):
+        assert isinstance(fields.Integer(store=False), NonStored)
+
+    def test_float_with_store_false_is_non_stored(self):
+        assert isinstance(fields.Float(store=False), NonStored)
+
+    def test_store_true_keeps_the_column(self):
+        """Discriminante: si la rama leyera cualquier ``store`` presente en
+        vez de su valor, un ``store=True`` explícito también perdería la
+        columna."""
+        assert isinstance(fields.Integer(store=True), models.IntegerField)

@@ -99,7 +99,6 @@ from django.core.exceptions import ValidationError
 import fields
 import models
 from orm.environments import get_current_company
-from orm.fields_nonstored import NonStored
 
 from addons.base.models import DecimalPrecision, ResCompany
 
@@ -179,7 +178,7 @@ class AccountAnalyticLine(AnalyticPlanFieldsMixin, models.Model):
     #: ≙ ``fiscal_year_search`` (``odoo19c: :222-226``) — atajo de filtro sin
     #: columna ni valor propio; buscarlo (con cualquier operador) acota a la
     #: ventana fiscal vigente. Ver el docstring del módulo.
-    fiscal_year_search = NonStored(
+    fiscal_year_search = fields.NonStored(
         search='_search_fiscal_date',
         help_text='Odoo fiscal_year_search — filtro por ejercicio fiscal '
                   'vigente, sin valor propio que leer.',

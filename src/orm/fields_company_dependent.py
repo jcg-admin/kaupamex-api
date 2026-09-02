@@ -471,7 +471,14 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
             # vacio SI es ``''``, alli y en Django.
             kwargs.setdefault('blank', not required)
             kwargs.setdefault('null', not required)
-        if related and not related_attrs['store']:
+        if not related_attrs['store']:
+            #: Sin columna, con ``related=`` o sin él. La condición era
+            #: ``related and not …``: un ``store=False`` declarado a secas
+            #: —la forma que la referencia usa para un ``compute`` sin
+            #: columna, ``fields.Integer(compute='_compute_…')``— caía en la
+            #: rama de abajo y salía como columna, y su migración aparecía en
+            #: ``makemigrations``. ``apply_related_defaults`` ya resuelve el
+            #: ``store`` de los dos casos (``:297-299``); aquí sólo se lee.
             field = NonStored(*args, related=related, **kwargs)
         elif company_dependent:
             # La guarda de ``CompanyDependent`` lee ``required`` de kwargs;

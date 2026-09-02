@@ -13,7 +13,12 @@ devuelve el ``DecimalField`` de siempre; con ``store=False`` devuelve un
 ``prefix_placeholder``). Primer consumidor Monetary:
 ``account/models/digest.py`` (los KPI ``kpi_account_*_value``, que en la
 fuente son ``compute`` no almacenados). ``Integer`` y ``Float`` **no** llevan
-la rama de ``store``: 0 usos con ``store=False`` en el árbol al escribir esto.
+la rama de ``store`` **propia**: la llevan por el molde de
+:func:`~orm.fields_company_dependent.make_dispatcher`, que devuelve un
+``NonStored`` en cuanto el ``store`` resuelto es falso — con ``related=``
+o sin él. Primer consumidor de ``Integer(store=False)``:
+``hr_recruitment/models/digest.py`` (tarea #159), cuyo KPI la fuente
+declara ``fields.Integer(compute=…)``, sin columna.
 
 ``company_dependent`` — ``Integer`` y ``Float`` sí lo llevan (tarea #129)
 =========================================================================
