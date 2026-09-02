@@ -1,4 +1,4 @@
-"""``ir.http`` extendido por ``web`` — detección de bots, cookie de compañías
+r"""``ir.http`` extendido por ``web`` — detección de bots, cookie de compañías
 y bootstrap de sesión del cliente.
 
 Adaptación de ``odoo19c: addons/web/models/ir_http.py``
@@ -30,16 +30,32 @@ confirmado hoy: ``grep -c "    def " odoo19c:web/models/ir_http.py`` → 11).
 **1 portado** (adaptado), **10 declarados ausentes** con razón — no hay
 recorte silencioso.
 
-Quién más extiende ``ir.http`` en este árbol (Nivel 0a, comando de hoy)
-========================================================================
+Quién más extiende ``ir.http`` en este árbol (re-verificado 2026-09-02T03:46:05)
+====================================================================================
 
-``grep -rn "ir_http\\|IrHttp" src/addons/ --include=*.py``: además de este
-archivo, ``bus/models/ir_http.py`` (docstring puro, sin código — declara
-``get_frontend_session_info`` fuera de alcance por DEC-AF-06, sin instalar
-nada) y ``website_sale_wishlist/controllers/serializers.py`` (consume
-``IrHttp.slugify_one``, de ``base``, no de este archivo). Ninguno instala
-``is_a_bot`` ni ``bots``: la cadena que ``chain_method`` arma aquí
-(``base.IrHttp`` ← este archivo) no tiene un tercer eslabón que romper.
+**El comando anterior apuntaba al árbol equivocado.** ``src/addons/`` sólo
+contiene ``base``; los hermanos de ``web`` (``bus``, ``utm``, ``website``,
+``website_sale``, ``website_sale_wishlist``, ``authz_timeout``,
+``hr_timesheet``, …) viven en el ``addons/`` de nivel superior — la misma
+raíz que este archivo. Re-ejecutado ahí:
+
+``grep -rln "^class IrHttp" addons/ --include=*.py`` da **2**:
+``addons/utm/models/ir_http.py`` (subclase de ``base.IrHttp``, encadena
+``_post_dispatch``) y ``addons/website/models/ir_http.py`` (subclase, 27+2
+métodos de consentimiento/routing). Ninguno de los dos toca ``bots`` ni
+``is_a_bot``:
+``grep -rln "is_a_bot" addons/ --include=*.py`` da **3** — este archivo
+y dos menciones en prosa dentro del propio addon ``web``
+(``controllers/webclient.py``, ``apps.py``); ninguna redefine el
+símbolo.
+``bus/models/ir_http.py`` sigue siendo docstring puro sin código (DEC-AF-06).
+
+El universo de archivos que sólo **mencionan** ``ir_http``/``IrHttp``
+(documentación, o consumo de ``IrHttp.slugify_one``/``IrHttp.slug`` desde
+``website_sale*``) es mucho mayor y no se enumera aquí: no compiten por el
+mismo símbolo. Lo único que esta sección necesita sostener es la cadena de
+``bots``/``is_a_bot``, y esa cadena sigue con un solo eslabón: ``base``
+(declara) ← ``web`` (este archivo, vía ``chain_method``).
 
 Portado (1)
 ===========
@@ -61,12 +77,54 @@ Este árbol NO selecciona compañía por cookie: ``CompanyContextMiddleware``
 (``base/models/ir_http.py:216-263``, cableado en
 ``config/settings/base.py:183``) la fija en cada petición desde
 ``request.user`` — vía ``ResUsers._get_company_ids``, que lleva el nombre de
-la referencia — y la limpia en el ``finally``. Verificado hoy que no
-hay ningún otro cookie de estado compuesto que sanear:
-``grep -rn "'cids'\\|response.set_cookie\\|COOKIE" src/ --include=*.py -i``
-→ **0** hits fuera de este mismo docstring y del de ``base/models/ir_http.py``.
-Sin cookie que leer, no hay qué normalizar. La extensión de ``base`` a la que
-esta override llamaría con ``super()``
+la referencia — y la limpia en el ``finally``.
+
+**El comando que sostenía esto quedó caducado — y no por lo que parece.**
+``grep -rn "'cids'\\|response.set_cookie\\|COOKIE" src/ --include=*.py -i`` da
+hoy **91** hits (2026-09-02T03:46:05): la gobernanza de cookies del LFPDPPP
+(``core/middleware/cookie_governance.py``), ``SESSION_COOKIE_*``,
+``CSRF_COOKIE_*`` y el carrito ``cart_token`` se construyeron después de
+escribirse este párrafo. Ninguno de los 91 es la cookie que ``_sanitize_cookies``
+normaliza: la medición correcta es el literal, no la palabra ``COOKIE`` suelta.
+``grep -rn "'cids'" src/ addons/ --include=*.py`` da **0** [PROVEN] fuera de
+esta misma cita. Y el punto de extensión sobre el que esta override colgaría
+no tiene NINGÚN invocador propio, en ningún addon:
+``grep -rn "\.sanitize_cookies(" src/ addons/ --include=*.py`` da **0**
+[PROVEN];
+``grep -rn "\._sanitize_cookies(" src/ addons/ --include=*.py`` da **0**
+[PROVEN]. Es un punto de extensión declarado y nunca disparado, en la
+referencia y aquí por igual — porque nadie en este árbol construyó el
+dispatcher de Werkzeug que en la fuente lo invoca. La conclusión de fondo
+(nada que sanear) sigue siendo correcta; lo caducado era la forma del
+comando, no el resultado — y el "0 acotado" de la versión anterior de este
+párrafo tampoco medía lo correcto: excluir los dos docstrings de
+``ir_http.py`` no bastaba, porque el patrón ``COOKIE`` es demasiado ancho
+para lo que esta declinación necesita sostener.
+
+**Hallazgo nuevo de este pase — el análogo real de ``cids`` sí existe, y
+está sin alimentar.** ``orm/environments.py::activate_companies(requested_ids,
+permitted_ids)`` es "fiel a la fuente" por su propio docstring: si
+``requested_ids`` trae algo, lo valida contra lo permitido — el mismo
+contrato que el ``allowed_company_ids`` de contexto que la referencia
+parsea desde ``cids``. Pero ``CompanyContextMiddleware.__call__``
+(``base/models/ir_http.py:438``) llama SIEMPRE ``activate_companies((),
+permitted)`` — ``requested_ids`` vacío, sin excepción — porque ningún canal
+(cabecera, cookie, query param) lo alimenta hoy. La pieza que ``cids``
+alimentaría en la referencia **existe y está construida**; sólo que nada del
+lado cliente la conecta.
+
+Esto no cambia la conclusión de este punto — seguiría sin haber una cookie
+``cids`` que sanear, porque el canal candidato de este árbol no es una
+cookie, es ``requested_ids`` de ``activate_companies``, y ese canal vive en
+``CompanyContextMiddleware`` (``base/models/ir_http.py``), fuera de este
+archivo. **DESCONOCIDO con condición de cierre:** si algún día se construye
+un selector de compañías activas en el cliente, el punto de enganche es
+``activate_companies`` en ``base``, no ``_sanitize_cookies`` aquí — este
+archivo no fabrica esa decisión (mismo criterio que el punto 10 de esta
+sección para ``get_currencies``). Sucesor: hallazgo/tarea a abrir sobre
+``CompanyContextMiddleware`` (fuera del alcance de este archivo).
+
+La extensión de ``base`` a la que esta override llamaría con ``super()``
 (``base/models/ir_http.py::sanitize_cookies``) ya es un punto de extensión
 vacío por diseño; portar aquí una segunda función igualmente vacía no
 aportaría nada que ``chain_method`` no resuelva ya cuando (si alguna vez)
