@@ -1,0 +1,13 @@
+# Control discriminante — base-sparse-field-write-guard
+# fecha:    2026-09-02T05:10:44
+# archivo:  addons/base_sparse_field/models/ir_model_fields.py
+# anulado:  s/^    if 'serialization_field_id' in vals or 'name' in vals:$/    if False:/
+# tests:    tests/unit/base_sparse_field/
+
+## 1. Verde de partida (guarda presente)
+41 passed, 1 warning in 5.03s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/base_sparse_field/test_serialized_conversion_and_write.py::TestIrModelFieldsWrite::test_write_refuses_to_change_the_storing_system
+FAILED tests/unit/base_sparse_field/test_serialized_conversion_and_write.py::TestIrModelFieldsWrite::test_write_refuses_to_rename_a_sparse_field
+2 failed, 39 passed, 1 warning in 5.18s

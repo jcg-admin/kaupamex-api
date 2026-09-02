@@ -87,6 +87,27 @@
 # Declarado en: addons/base_sparse_field/models/ir_model_fields.py:29-42
 base_sparse_field/models/models.py::Base::_valid_field_parameter
 
+# `_instanciate_attrs` traduce UNA FILA de `ir_model_fields` en los atributos
+# con que la referencia instancia un campo EN CALIENTE, y anade
+# `attrs['sparse'] = <nombre>`. Su unico llamador es la maquinaria de campos
+# manuales (`_add_manual_models` / `_instanciate`), que
+# `src/addons/base/models/ir_model.py:120` ya declara NO portada con su
+# medicion: Django construye su registro al importar y lo congela en
+# `apps.populate`, asi que no hay campo que instanciar en caliente al que
+# pasarle los atributos.
+#
+# Medido 2026-09-02 sobre este arbol:
+#   grep -rn "def _instanciate_attrs" --include=*.py src/ addons/  -> 0
+#   grep -rn "def _add_manual_models" --include=*.py src/ addons/  -> 0
+#
+# No es "dificil ni pendiente": no hay receptor. La consecuencia declarada es
+# que aqui `serialization_field_id` es REGISTRO y no insumo — se escribe para
+# que el catalogo diga la verdad, y nadie lo lee para reconstruir un campo.
+# Si algun dia se porta la maquinaria de campos manuales, esta entrada se
+# retira y el metodo se porta con ella.
+# Declarado en: addons/base_sparse_field/models/ir_model_fields.py:44-59
+base_sparse_field/models/models.py::IrModelFields::_instanciate_attrs
+
 # --- res_device.py (tarea #71) -------------------------------------------
 # El porte esta cerrado: los 15 metodos de la fuente tienen contraparte. Lo
 # que sigue son las divergencias de FORMA que el docstring del modulo declara
