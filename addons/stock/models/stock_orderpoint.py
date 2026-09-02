@@ -29,10 +29,17 @@ Por qué este archivo cierra la divergencia D-5 de ``stock_rule``
 =================================================================
 
 ``stock_rule.py:353-369`` declara ``_orderpoint_model()``, que devuelve ``None``
-**con un aviso en el log** porque el modelo no existía. Medido antes de este
-pase: ``grep -rn "class .*Orderpoint" addons/ src/ --include=*.py`` → **0**. Con
-este archivo, la primera de las tres tareas del planificador
-(``_run_scheduler_tasks``) deja de omitirse.
+**con un aviso en el log** cuando el modelo no está portado. Antes de este
+archivo la clase no existía en el árbol — una medición de un momento, no una
+declinación vigente, y por eso va como bloque literal y no como cita en línea:
+
+.. code-block:: text
+
+    grep -rn "class .*Orderpoint" addons/ src/ --include=*.py  → 0
+
+Hoy el mismo comando encuentra la clase que este archivo declara (más abajo)
+y sus propias citas en prosa. Con este archivo, la primera de las tres tareas
+del planificador (``_run_scheduler_tasks``) deja de omitirse.
 
 El contrato que ese llamador ya fijó, y que este porte cumple:
 
@@ -161,20 +168,31 @@ Lo que este archivo NO cierra
 
 - **``stock.replenishment.info``** — el modelo transitorio que
   ``action_stock_replenishment_info`` crea (``:336-338``) no existe en este
-  árbol (medido: ``grep -rn "replenishment.info" addons/ src/`` → 0). El método
-  devuelve su descriptor **sin** crear el registro y lo declara en su docstring.
-  Sucesor: tarea **#330**.
-- **``StockMove.orderpoint_id``** — ``stock_move.py:29-31`` declara que la FK
-  quedó fuera porque este modelo no existía. Ahora existe; añadirla es la tarea
-  **#382**, que se hace con su migración y sus consumidores
-  (``_prepare_procurement_values`` ya la pasa en ``values``).
-- **``@api.autovacuum``** sobre ``_unlink_processed_orderpoints`` (``:669``) — el
-  decorador que lo cuelga del vaciado periódico no existe aquí; el método se
-  porta entero y queda invocable. Sucesor: tarea **#124** (sembrar los crons).
+  árbol. El cero se mide por **declaración**, no por mención — la mención del
+  término sube con cada archivo que documenta la ausencia (hoy **21**, todas
+  prosa) —, y el patrón va **anclado a inicio de línea** para no confundir las
+  dos: ``grep -rn "^class .*Replenishment" addons/ src/ --include=*.py`` →
+  **0**. El método devuelve su descriptor **sin** crear el registro y lo
+  declara en su docstring. Sucesor: tarea **#330**.
+
+Dos ítems que esta sección declinaba con una razón hoy caducada, retirados de
+la lista para no repetir el defecto que motivó este barrido (#250):
+
+- **``StockMove.orderpoint``** — ``stock_move.py`` marcaba la FK pendiente por
+  la tarea #382 «porque este modelo no existía»; el modelo ya existe desde
+  este archivo y la FK, su migración y sus consumidores están cerrados
+  (``stock_move.py:648``, «El paso 5 está cerrado (tarea #382)»).
+- **``@api.autovacuum``** sobre ``_unlink_processed_orderpoints`` — el
+  decorador ya está aplicado (ver el docstring del propio método, más abajo).
+  El barrido lo recorre el cron único de ``ir.autovacuum``
+  (``base/migrations/0032_seed_cron_autovacuum.py``), así que la tarea
+  **#124** («sembrar los crons») no necesitaba una migración propia de este
+  addon.
 """
 from collections import defaultdict
 from datetime import datetime, time, timedelta
 
+import api
 import fields
 import models
 from django.apps import apps
@@ -1265,13 +1283,26 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         return {o.pk: 0.0 for o in orderpoints}
 
     @classmethod
+    @api.autovacuum
     def _unlink_processed_orderpoints(cls, orderpoints=None):
         """≙ ``_unlink_processed_orderpoints`` (``odoo19c: :672-686``).
 
         Borra las reglas **manuales creadas por el sistema** que ya no piden
         nada: son las que el reporte de reabastecimiento fabrica, y dejarlas
         ensuciaría la lista. La fuente lo cuelga de ``@api.autovacuum``; aquí
-        queda invocable y su cron es la tarea **#124**.
+        también. Es ``classmethod`` porque el colector
+        (``IrAutovacuum._run_vacuum_cleaner``) lo llama sin argumentos sobre la
+        clase — el mismo contrato que ``_compute_qty_to_order_computed`` y sus
+        hermanos ya cumplen — así que no hizo falta cambiar la firma para
+        decorarlo, sólo colgar el decorador. Sin argumento barre **todas** las
+        reglas manuales agotadas; con ``orderpoints`` acota el barrido a un
+        subconjunto, como lo llama ``_get_orderpoint_action``.
+
+        El cron que lo descubre ya estaba sembrado antes de este método
+        existir — es el único ``ir.autovacuum`` de ``base``
+        (``base/migrations/0032_seed_cron_autovacuum.py``), que recorre
+        ``apps.get_models()`` buscando cualquier método marcado. La tarea
+        **#124** («sembrar los crons») no pedía uno propio para este addon.
         """
         candidatas = cls.objects.filter(trigger='manual')
         if orderpoints is not None:
