@@ -18,7 +18,7 @@ import tempfile
 import typing
 import unicodedata
 from collections import defaultdict
-from collections.abc import (Callable, Iterable, Iterator,
+from collections.abc import (Callable, Iterable, Iterator, Mapping,
                              MutableMapping, MutableSet)
 from contextlib import contextmanager
 from difflib import HtmlDiff
@@ -126,6 +126,54 @@ SENTINEL = Sentinel.SENTINEL
 # que es un wrapper de esta misma función — se usa el stdlib directo, igual
 # que la referencia.
 consteq = hmac_lib.compare_digest
+
+
+class ReadonlyDict(Mapping[K, T], typing.Generic[K, T]):
+    """Mapa inmodificable, ni siquiera con ``dict.update`` — ≙ ``misc.py:1671-1706``.
+
+    Se parece a un ``frozendict``, con una desventaja y una ventaja:
+
+    - ``dict.update`` funciona sobre un ``frozendict`` y **no** sobre un
+      ``ReadonlyDict``;
+    - ``json.dumps`` conoce un ``frozendict`` de serie y **no** conoce un
+      ``ReadonlyDict``.
+
+    Las dos salen del mismo hecho: ``frozendict`` hereda de ``dict`` y
+    ``ReadonlyDict`` hereda de ``collections.abc.Mapping``. Según lo que haga
+    falta —impedir de verdad que el mapa se modifique, por seguridad, o que
+    ``json.dumps`` lo acepte— se elige uno u otro.
+
+    Aquí se porta el estricto, y su precio se paga en
+    :func:`tools.json.json_default`, que le da su propia rama.
+
+    ``types.MappingProxyType`` del stdlib **no** lo sustituye: es una vista
+    sobre el diccionario original, así que mutar el original cambia lo que la
+    vista muestra. Aquí ``__init__`` copia (``dict(data)``), que es lo que
+    hace inmodificable al resultado y no sólo a su interfaz.
+
+    Ejemplo::
+
+        data = ReadonlyDict({'foo': 'bar'})
+        data['baz'] = 'xyz'                 # lanza excepción
+        data.update({'baz': 'xyz'})         # lanza excepción
+        dict.update(data, {'baz': 'xyz'})   # lanza excepción
+    """
+    __slots__ = ('_data__',)
+
+    def __init__(self, data):
+        self._data__ = dict(data)
+
+    def __contains__(self, key: K):
+        return key in self._data__
+
+    def __getitem__(self, key: K) -> T:
+        return self._data__[key]
+
+    def __len__(self):
+        return len(self._data__)
+
+    def __iter__(self):
+        return iter(self._data__)
 
 
 def str2bool(s, default=None):

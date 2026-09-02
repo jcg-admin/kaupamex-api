@@ -1,0 +1,114 @@
+# Controles discriminantes — tarea #142 (json_default, lazy, ReadonlyDict, to_string)
+# fecha:  2026-09-02T04:16:22
+# metodo: copia .bak en .neutering/, sed sobre el archivo, pytest, restauracion
+#         desde la copia. NUNCA git checkout/stash: hay trabajo sin commitear.
+# lee:    un control que sigue verde con la guarda anulada no es una red
+#         (sub-patron D de metrica-decide-la-conclusion.md).
+
+## 0. VERDE DE PARTIDA — las cuatro suites con todas las guardas puestas
+52 passed, 1 warning in 5.17s
+
+## 1. json_default — rama datetime anulada (cae a la de date: trunca la hora)
+#  archivo: src/tools/json.py
+#  anulado: /if isinstance(obj, datetime):/,+1d
+FAILED tests/unit/tools/test_json_default.py::test_serializes_a_datetime_with_the_server_format
+FAILED tests/unit/tools/test_json_default.py::test_the_datetime_branch_comes_before_the_date_branch
+FAILED tests/unit/tools/test_json_default.py::test_works_as_the_default_hook_of_json_dumps
+3 failed, 10 passed, 1 warning in 4.65s
+restaurado OK
+
+## 2. json_default — rama date anulada (cae al str(obj) final)
+#  archivo: src/tools/json.py
+#  anulado: /if isinstance(obj, date):/,+1d
+FAILED tests/unit/tools/test_json_default.py::test_the_date_branch_is_not_the_string_fallback
+1 failed, 12 passed, 1 warning in 4.77s
+restaurado OK
+
+## 3. json_default — rama lazy anulada
+#  archivo: src/tools/json.py
+#  anulado: /if isinstance(obj, lazy):/,+1d
+FAILED tests/unit/tools/test_json_default.py::test_serializes_a_lazy_proxy_as_its_evaluated_value
+FAILED tests/unit/tools/test_json_default.py::test_the_lazy_branch_does_not_force_a_double_evaluation
+FAILED tests/unit/tools/test_json_default.py::test_works_as_the_default_hook_of_json_dumps
+3 failed, 10 passed, 1 warning in 4.59s
+restaurado OK
+
+## 4. json_default — rama ReadonlyDict anulada
+#  archivo: src/tools/json.py
+#  anulado: /if isinstance(obj, ReadonlyDict):/,+1d
+FAILED tests/unit/tools/test_json_default.py::test_serializes_a_readonly_dict_as_a_plain_dict
+FAILED tests/unit/tools/test_json_default.py::test_works_as_the_default_hook_of_json_dumps
+2 failed, 11 passed, 1 warning in 4.72s
+restaurado OK
+
+## 5. json_default — rama bytes anulada
+#  archivo: src/tools/json.py
+#  anulado: /if isinstance(obj, bytes):/,+1d
+FAILED tests/unit/tools/test_json_default.py::test_serializes_bytes_by_decoding_them
+FAILED tests/unit/tools/test_json_default.py::test_works_as_the_default_hook_of_json_dumps
+2 failed, 11 passed, 1 warning in 4.48s
+restaurado OK
+
+## 6. json_default — rama Domain anulada
+#  archivo: src/tools/json.py
+#  anulado: /if isinstance(obj, Domain):/,+1d
+FAILED tests/unit/tools/test_json_default.py::test_serializes_a_domain_as_its_polish_notation_list
+FAILED tests/unit/tools/test_json_default.py::test_serializes_a_compound_domain_keeping_its_operators
+2 failed, 11 passed, 1 warning in 4.84s
+restaurado OK
+
+## 7. json_default — el str(obj) final anulado
+#  archivo: src/tools/json.py
+#  anulado: s/^    return str(obj)$/    return None/
+FAILED tests/unit/tools/test_json_default.py::test_falls_back_to_the_string_representation
+FAILED tests/unit/tools/test_json_default.py::test_the_fallback_covers_a_type_json_would_reject
+2 failed, 11 passed, 1 warning in 4.58s
+restaurado OK
+
+## 8. lazy — la memoizacion anulada (no suelta func/args/kwargs: recalcula cada vez)
+#  archivo: src/tools/func.py
+#  anulado: /object.__setattr__(self, '_func', None)/,+2d
+FAILED tests/unit/tools/test_func_lazy.py::test_calls_the_function_only_once
+FAILED tests/unit/tools/test_func_lazy.py::test_releases_the_function_and_its_arguments_after_evaluating
+FAILED tests/unit/tools/test_func_lazy.py::test_writes_an_attribute_through_the_proxy
+FAILED tests/unit/tools/test_func_lazy.py::test_deletes_an_attribute_through_the_proxy
+FAILED tests/unit/tools/test_func_lazy.py::test_repr_hides_the_value_until_it_is_evaluated
+FAILED tests/unit/tools/test_json_default.py::test_the_lazy_branch_does_not_force_a_double_evaluation
+6 failed, 26 passed, 1 warning in 29.68s
+restaurado OK
+
+## 9. ReadonlyDict — heredando de dict, que es justo lo que hace el frozendict
+#  archivo: src/tools/misc.py
+#  anulado: s/^class ReadonlyDict(Mapping\[K, T\], typing.Generic\[K, T\]):/class ReadonlyDict(dict):/
+FAILED tests/unit/tools/test_misc_readonly_dict.py::test_derives_the_mapping_helpers_from_the_abc
+FAILED tests/unit/tools/test_misc_readonly_dict.py::test_rejects_item_assignment
+FAILED tests/unit/tools/test_misc_readonly_dict.py::test_rejects_item_deletion
+FAILED tests/unit/tools/test_misc_readonly_dict.py::test_rejects_the_update_method
+FAILED tests/unit/tools/test_misc_readonly_dict.py::test_rejects_update_called_through_the_dict_class
+FAILED tests/unit/tools/test_misc_readonly_dict.py::test_json_dumps_does_not_know_it
+FAILED tests/unit/tools/test_json_default.py::test_serializes_a_readonly_dict_as_a_plain_dict
+FAILED tests/unit/tools/test_json_default.py::test_works_as_the_default_hook_of_json_dumps
+8 failed, 16 passed, 1 warning in 5.04s
+restaurado OK
+
+## 10. Date.to_string — la guarda del valor falso anulada
+#  archivo: src/orm/fields_temporal.py
+#  anulado: s/return value.strftime(DATE_FORMAT) if value else False/return value.strftime(DATE_FORMAT)/
+FAILED tests/unit/orm/test_fields_temporal_to_string.py::test_date_to_string_returns_false_for_a_falsy_value
+1 failed, 21 passed, 1 warning in 4.80s
+restaurado OK
+
+## 11. Datetime.to_string — la guarda del valor falso anulada
+#  archivo: src/orm/fields_temporal.py
+#  anulado: s/return value.strftime(DATETIME_FORMAT) if value else False/return value.strftime(DATETIME_FORMAT)/
+FAILED tests/unit/orm/test_fields_temporal_to_string.py::test_datetime_to_string_returns_false_for_a_falsy_value
+1 failed, 21 passed, 1 warning in 4.69s
+restaurado OK
+
+## LECTURA — lo que estos once controles dicen
+#  El caso 2 hace caer UN solo test, y es el anadido a proposito:
+#  test_the_date_branch_is_not_the_string_fallback. Su hermano
+#  test_serializes_a_date_with_the_server_format sobrevive a la rama
+#  anulada porque str(date) y strftime('%Y-%m-%d') coinciden para un ano
+#  de cuatro cifras: medía el str(obj) final, no la rama. Es el verde que
+#  no discrimina, encontrado por el propio control.
