@@ -1,0 +1,23 @@
+{
+  "question": "Cuantos endpoints del monolito declaran su contrato OpenAPI con @extend_schema y cuantos no — el insumo de #316 y la semilla del gate de #317.",
+  "instrument": [
+    "census_declared_contract.py",
+    "uv run python scripts/workbench/openapi-contract-20260902T202807/census_declared_contract.py"
+  ],
+  "metric": "Endpoints hallados por AST bajo *addons/**/controllers/*.py — funcion con @api_view, metodo HTTP de una clase de vista DRF, o metodo con @action — clasificados por si llevan @extend_schema propio o si su clase los nombra en @extend_schema_view.",
+  "blind_to": [
+    "La CALIDAD del contrato: un responses={} vacio o un request=None puesto por inercia cuentan como declarado igual que uno completo.",
+    "Un endpoint servido fuera de controllers/ — el recorrido esta acotado a esa carpeta y no mide urls.py ni vistas declaradas en otro sitio.",
+    "El registro por router: una clase [router] cuenta como UN endpoint, no como las cinco acciones de CRUD que el router expande.",
+    "Si el schema generado es valido: el instrumento mira el decorador, no corre spectacular."
+  ],
+  "destination": "outputs/censo-contrato-declarado.txt; alimenta #316 y define el universo del gate #317",
+  "corrected_premise": {
+    "antes": "El titulo de #316 dice «los 29 endpoints que no lo declaran».",
+    "despues": "Medido: 196 de 232 declaran contrato, o sea 36 sin declarar sobre 181 archivos de controllers. La cifra del titulo es de otra medicion y no consta su instrumento; el alcance real de #316 se re-deriva de esta salida antes de trabajarla."
+  },
+  "reproducible": "uv run python scripts/workbench/openapi-contract-20260902T202807/census_declared_contract.py",
+  "outputs": ["outputs/censo-contrato-declarado.txt"],
+  "source": "arbol propio addons/ y src/addons/ en la rama feature/kaupamex-l3",
+  "tasks": ["#316", "#317"]
+}
