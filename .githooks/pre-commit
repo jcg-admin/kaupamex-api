@@ -105,6 +105,25 @@ if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
     fi
 fi
 
+# ─── Gate 5: ningun identificador lleva el nombre de la referencia ───────────
+# Directiva del ejecutor 2026-09-02: "En nuestra api, ningun archivo, clase,
+# funcion o firma de funcion, debe de tener odoo-*". Este arbol ADAPTA la
+# referencia; un simbolo nuestro con su nombre hace pasar por prestada una
+# pieza que es del producto. El caso que lo motivo lo prueba: odoo_translate
+# convivia con models.Field.translate, que orm/fields.py ya declaraba con el
+# defecto de la fuente — dos nombres para lo mismo, y el prestado le ganaba el
+# sitio al fiel.
+# Nace SIN baseline: el arbol estaba en 0 al cablearlo.
+# Script: scripts/check_identifier_reference_name.py.
+if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
+    REFNAME_CHECKER="$REPO_ROOT/scripts/check_identifier_reference_name.py"
+    if [[ ! -f "$REFNAME_CHECKER" ]]; then
+        echo "pre-commit: $REFNAME_CHECKER no encontrado — skip refname gate" >&2
+    else
+        python3 "$REFNAME_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
 # ─── check_bloqueo_declarado: el simbolo no portado nombra su bloqueador ─────
 # "No lo porte porque falta que algo lo llame" es una ARISTA dirigida, y el
 # orden de lo que queda sale de recorrer ese grafo. Mientras la razon viva en

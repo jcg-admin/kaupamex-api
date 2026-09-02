@@ -141,7 +141,7 @@ from reference_roots import ADDON_ALIAS, addon_root as reference_root, tree as _
 #: Raíz del árbol que gobierna (``odoo19c``). Ver
 #: ``referencia-odoo-gobierna-las-decisiones.md``: 19 desempata, y las rutas de
 #: una versión NO son válidas en la otra.
-ODOO19C = pathlib.Path(
+REFERENCE_19C = pathlib.Path(
     _tree('odoo19c')
 )
 
@@ -1006,8 +1006,8 @@ def main(argv=None):
                         'si ya no cubre nada)')
     args = p.parse_args(argv)
 
-    if not ODOO19C.is_dir():
-        print(f'AVISO: no está el árbol de referencia en {ODOO19C}; '
+    if not REFERENCE_19C.is_dir():
+        print(f'AVISO: no está el árbol de referencia en {REFERENCE_19C}; '
               'sin él este gate no puede medir nada.')
         return 0
 

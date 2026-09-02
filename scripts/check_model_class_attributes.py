@@ -95,7 +95,7 @@ from addons_roots import ADDONS_PATHS, addon_dirs, addon_path  # noqa: E402, F40
 import sys as _s, os.path as _op
 _s.path.insert(0, _op.dirname(_op.abspath(__file__)))
 from reference_roots import addon_root as _addon_root, tree as _tree
-ODOO19C = _tree('odoo19c')
+REFERENCE_19C = _tree('odoo19c')
 
 BASELINE = pathlib.Path(__file__).with_name('model_class_attributes_baseline.txt')
 
@@ -360,8 +360,8 @@ def main():
                          help='congela el estado actual como deuda heredada')
     args = parser.parse_args()
 
-    if not ODOO19C.is_dir():
-        print(f'AVISO: no está el árbol de referencia en {ODOO19C}; '
+    if not REFERENCE_19C.is_dir():
+        print(f'AVISO: no está el árbol de referencia en {REFERENCE_19C}; '
               'sin él este gate no puede medir nada.')
         return 0
 

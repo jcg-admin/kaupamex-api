@@ -59,7 +59,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 import sys as _s, os.path as _op
 _s.path.insert(0, _op.dirname(_op.abspath(__file__)))
 from reference_roots import addons_de as _addons_de, tree as _tree
-ODOO19C = _tree('odoo19c')
+REFERENCE_19C = _tree('odoo19c')
 
 BASELINE = REPO_ROOT / 'scripts' / 'chain_combine_baseline.txt'
 
@@ -264,8 +264,8 @@ def main():
     p.add_argument('--write-baseline', action='store_true')
     args = p.parse_args()
 
-    if not ODOO19C.is_dir():
-        print(f'AVISO: no esta el arbol de referencia en {ODOO19C}; '
+    if not REFERENCE_19C.is_dir():
+        print(f'AVISO: no esta el arbol de referencia en {REFERENCE_19C}; '
               'sin el este gate no puede medir nada.')
         return 0
 

@@ -80,7 +80,7 @@ import sys
 import sys as _s, os.path as _op
 _s.path.insert(0, _op.dirname(_op.abspath(__file__)))
 from reference_roots import tree as _tree
-ODOO19C = _tree('odoo19c')
+REFERENCE_19C = _tree('odoo19c')
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 SRC = REPO / 'src'
@@ -194,12 +194,12 @@ def main():
                         help='listar también las ya aceptadas')
     args = parser.parse_args()
 
-    if not ODOO19C.is_dir():
-        print(f'check_symbol_home: árbol de referencia ausente ({ODOO19C}) '
+    if not REFERENCE_19C.is_dir():
+        print(f'check_symbol_home: árbol de referencia ausente ({REFERENCE_19C}) '
               '— gate omitido, no es un fallo.')
         return 0
 
-    indice = indexar_referencia(ODOO19C)
+    indice = indexar_referencia(REFERENCE_19C)
     propias = clases_propias(SRC)
 
     fuera, aceptadas, ambiguas, sin_contraparte = [], [], [], 0

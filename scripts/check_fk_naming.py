@@ -72,7 +72,7 @@ from reference_roots import addon_root, tree as _tree  # noqa: E402
 
 #: La raíz del árbol que gobierna. Ver
 #: ``referencia-odoo-gobierna-las-decisiones.md``: 19 desempata.
-ODOO19C = _tree('odoo19c')
+REFERENCE_19C = _tree('odoo19c')
 
 #: Los constructores de UN solo valor relacional. ``fields.Many2one`` es
 #: nuestro despachador (``src/orm/fields_relational.py``): con ``store=True``
@@ -129,7 +129,7 @@ def _counterpart(relative):
     elif partes[:2] == ('src', 'addons') and len(partes) > 3:
         raiz, resto = addon_root(partes[2]), partes[3:]
     elif partes[:1] == ('src',) and len(partes) > 1:
-        raiz, resto = ODOO19C / 'odoo', partes[1:]
+        raiz, resto = REFERENCE_19C / 'odoo', partes[1:]
     else:
         return None
     return raiz.joinpath(*resto)

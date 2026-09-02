@@ -82,7 +82,7 @@ class HrResumeLine(TimeStampedModel):
         null=True, blank=True, verbose_name='Descripción',
         help_text='Odoo description (translate=True en la fuente — sin '
                   'dispatcher de traducción en fields.Html, ver '
-                  'fields.Char.odoo_translate en la fachada).',
+                  'fields.Char.translate en la fachada).',
     )
     line_type = fields.Many2one(
         'hr_skills.HrResumeLineType', on_delete=models.SET_NULL,
