@@ -96,7 +96,7 @@ def test_orderpoint_model_never_logs_the_stale_d5_warning(caplog):
 
 
 def test_run_scheduler_tasks_no_longer_skips_the_first_task(
-        company, warehouse, monkeypatch):
+        company, warehouse):
     """``_run_scheduler_tasks`` recalcula el punto de pedido — no lo omite.
 
     Con ``product_min_qty`` por encima del pronóstico (sin quants, el
@@ -110,20 +110,11 @@ def test_run_scheduler_tasks_no_longer_skips_the_first_task(
     Si la primera tarea se omitiera —el defecto que esta corrección cierra—
     los dos campos se quedarían en su valor por defecto (``None`` y ``0.0``).
 
-    **Fuera de alcance, encontrado al escribir este caso:**
-    ``stock_orderpoint.py`` (``_qty_pair``, ``_get_qty_to_order``…) llama
-    ``self.product._quantity_for(...)`` como si fuera un método ligado, pero
-    ``addons/stock/models/product.py`` nunca lo cuelga de ``ProductProduct``
-    con ``setattr`` — sólo cuelga ``qty_available``/``virtual_available``/etc.
-    (medido: ``grep -rn "'_quantity_for'" addons/ src/`` → 0 hits). Es un bug
-    preexistente, ajeno a la tarea #271 y a un archivo fuera del alcance
-    asignado a este pase (ni ``stock_rule.py`` ni ``report_catalog.py``), así
-    que no se corrige aquí. Se parchea sólo para este test, para poder
-    ejercitar ``_run_scheduler_tasks`` de verdad.
+    ``self.product._quantity_for(...)`` es el método ligado que el planificador
+    usa con contexto; hasta la tarea #277 ``stock/models/product.py`` no lo
+    colgaba de ``ProductProduct`` y este caso lo parcheaba con ``monkeypatch``
+    para poder correr. Ya no: el planificador corre contra el método real.
     """
-    monkeypatch.setattr(
-        ProductProduct, '_quantity_for',
-        lambda self, key, **kwargs: 0.0, raising=False)
 
     product = make_product(name='Reabastecido D-5')
     orderpoint = StockWarehouseOrderpoint.objects.create(
@@ -150,3 +141,31 @@ def test_run_scheduler_tasks_no_longer_skips_the_first_task(
     assert orderpoint.qty_to_order_computed == pytest.approx(20.0), (
         'qty_to_order_computed se quedó en su default: '
         '_compute_qty_to_order_computed no se ejecutó')
+
+
+# === ``_quantity_for`` colgado de ``ProductProduct`` (tarea #277) ==========
+#
+# Qué haría fallar estos casos: quitar ``('_quantity_for', _quantity_for)`` del
+# bloque de instalación de ``stock/models/product.py`` — el primero cae con
+# ``AttributeError`` y el segundo también, porque ``_qty_pair`` lo llama.
+
+
+def test_quantity_for_is_a_bound_method_of_the_product(company, warehouse):
+    """El método ligado existe y acepta el contexto del planificador."""
+    product = make_product(name='Cantidad ligada')
+    assert callable(getattr(product, '_quantity_for'))
+    context = {'location': warehouse.lot_stock.pk, 'to_date': None}
+    assert product._quantity_for('qty_available', **context) == 0.0
+    assert product._quantity_for('virtual_available', **context) == product.virtual_available
+
+
+def test_qty_pair_runs_against_the_real_method(company, warehouse):
+    """``_qty_pair`` del orderpoint consume el método real, sin parche."""
+    product = make_product(name='Par de cantidades')
+    orderpoint = StockWarehouseOrderpoint.objects.create(
+        product=product, company=company, warehouse=warehouse,
+        location=warehouse.lot_stock,
+        product_min_qty=1.0, product_max_qty=5.0,
+    )
+    on_hand, forecast = orderpoint._qty_pair()
+    assert (on_hand, forecast) == (0.0, 0.0)

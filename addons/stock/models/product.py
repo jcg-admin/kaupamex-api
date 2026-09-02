@@ -744,7 +744,15 @@ def _compute_quantities(cls, products, **kwargs):
 
 
 def _quantity_for(self, key, **kwargs):
-    """El valor de un campo de cantidad para ESTE producto."""
+    """El valor de un campo de cantidad para ESTE producto.
+
+    Las cinco ``property`` de cantidad lo llaman sin contexto; el planificador
+    de reabastecimiento lo llama **con** contexto (``location``, ``to_date``:
+    ``stock_orderpoint._get_product_context``), así que además de ayudante de
+    módulo se cuelga de ``ProductProduct`` como método ligado — hasta #277 no
+    se colgaba y ``_run_scheduler_tasks`` moría con ``AttributeError`` en el
+    primer orderpoint.
+    """
     return type(self)._compute_quantities([self], **kwargs).get(
         self.pk, {}).get(key, 0.0)
 
@@ -1314,6 +1322,7 @@ def apply_stock_product_extensions():
         if not hasattr(ProductProduct, name):
             setattr(ProductProduct, name, property(function))
     for name, function in (
+        ('_quantity_for', _quantity_for),
         ('get_components', get_components),
         ('_get_quantity_in_progress', _get_quantity_in_progress),
         ('_update_uom', _update_uom),
