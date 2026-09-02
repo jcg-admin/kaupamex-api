@@ -555,16 +555,13 @@ def Many2one(*args, store=_UNSET, company_dependent=False,
     #: default literal no puede.
     if store is not _UNSET:
         kwargs['store'] = store
-    projection, related_attrs = projection_or_none(related, kwargs)
+    projection, related_attrs = projection_or_none(related, kwargs,
+                                                  company_dependent)
     if projection is not None:
         return projection
     store = related_attrs['store']
 
     if company_dependent:
-        if not store:
-            raise ValueError(
-                'store=False y company_dependent=True son excluyentes: un '
-                'campo sin columna no tiene jsonb donde repartir el valor.')
         to = args[0] if args else kwargs.pop('to', None)
         resto = args[1:]                       # el ``on_delete`` posicional
         if to is None:

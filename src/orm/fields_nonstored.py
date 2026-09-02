@@ -75,7 +75,7 @@ class NonStored:
     """
 
     def __init__(self, *args, default=None, help_text='', search=None,
-                 related=None, verbose_name=None, **_ignored):
+                 related=None, verbose_name=None, compute=None, **_ignored):
         self.default = default
         self.help_text = help_text
         #: ≙ ``Field.string`` (``odoo19c: odoo/orm/fields.py:264``) — la
@@ -101,6 +101,20 @@ class NonStored:
         #: el campo se puede leer y escribir, pero no se puede buscar — que es
         #: exactamente lo que la fuente promete con un campo sin ``search``.
         self.search = search
+        #: ≙ ``Field.compute`` (``odoo19c: odoo/orm/fields.py:285``) — «el
+        #: nombre de un método o el invocable que calcula el campo». Es la
+        #: forma con que la fuente declara la inmensa mayoría de sus campos
+        #: sin columna: medido sobre ``addons/*/models/*.py`` y
+        #: ``odoo/addons/*/models/*.py`` de ``odoo19c``, **293** declaraciones
+        #: de los siete tipos que enruta :func:`projection_or_none` llevan
+        #: ``compute=`` y ningún ``store=True``.
+        #:
+        #: Se **conserva** y no se traga con el resto: sin él, el árbol no
+        #: tiene con qué medir cuántos campos sin columna declaran de dónde
+        #: sale su valor, y el motor de recálculo (tarea **#273**) no tendría
+        #: dónde leerlo cuando llegue. Hoy nadie lo invoca — el valor sigue
+        #: saliendo de ``related`` o de ``default``.
+        self.compute = compute
         self.name = None
 
     # -- protocolo de nombre ------------------------------------------------
@@ -436,7 +450,7 @@ def non_stored_fields(cls):
     return mapping
 
 
-def projection_or_none(related, kwargs):
+def projection_or_none(related, kwargs, company_dependent=False):
     """El descriptor si la declaración es una proyección sin columna.
 
     Es el enrutador que comparten los constructores de campo. Devuelve la
@@ -474,7 +488,17 @@ def projection_or_none(related, kwargs):
     sin que ningún caso lo notara.
     """
     related_attrs = apply_related_defaults(related, kwargs)
-    if related and not related_attrs['store']:
+    if not related_attrs['store']:
+        #: La exclusión vive AQUI y no en cada constructor porque es una
+        #: contradicción de la declaración, no una decisión de rama: el
+        #: enrutador es quien resuelve si hay columna, así que es el único
+        #: sitio donde los dos hechos coinciden. Antes vivía después de la
+        #: llamada, y con ``related=None`` nunca se alcanzaba — el enrutador
+        #: devolvía el descriptor primero y la contradicción pasaba muda.
+        if company_dependent:
+            raise ValueError(
+                'store=False y company_dependent=True son excluyentes: un '
+                'campo sin columna no tiene jsonb donde repartir el valor.')
         return annotate_related(NonStored(**kwargs), related,
                                 related_attrs), related_attrs
     return None, related_attrs

@@ -88,7 +88,8 @@ class Html(models.TextField):
         no llama a ``__init__`` — así el ``CompanyDependent`` queda construido
         por su propio constructor y no por el de ``TextField``.
         """
-        projection, _attributes = projection_or_none(related, kwargs)
+        projection, _attributes = projection_or_none(related, kwargs,
+                                                     company_dependent)
         if projection is not None:
             return projection
         if company_dependent:
@@ -98,7 +99,7 @@ class Html(models.TextField):
         return instance
 
     def __init__(self, *args, company_dependent=False, related=None,
-                 **kwargs):
+                 store=None, **kwargs):
         """Traga las dos palabras clave — las ramas las resolvió
         :meth:`__new__`, y nombrarlas evita que caigan en ``**kwargs`` y
         lleguen al constructor de Django, que no las conoce."""

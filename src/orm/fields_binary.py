@@ -78,7 +78,8 @@ class Binary(models.BinaryField):
         instance.related = related
         return instance
 
-    def __init__(self, *args, attachment=False, related=None, **kwargs):
+    def __init__(self, *args, attachment=False, related=None, store=None,
+                 **kwargs):
         #: ≙ ``:39``. El default diverge — la razón, en el docstring del módulo.
         self.attachment = bool(attachment)
         super().__init__(*args, **kwargs)
@@ -136,6 +137,7 @@ class Image(models.ImageField):
         return instance
 
     def __init__(self, *args, max_width=0, max_height=0, related=None,
+                 store=None,
                  verify_resolution=True, **kwargs):
         self.max_width = max_width
         self.max_height = max_height
