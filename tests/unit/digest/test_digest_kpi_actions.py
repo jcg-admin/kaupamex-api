@@ -13,8 +13,8 @@ Dos capas de prueba, deliberadamente separadas:
   idioma que ``tests/integration/base/test_res_currency_engine.py``.
 - La cadena **completa**, tal como Django la instala vía ``INSTALLED_APPS``
   (sin simular ``apply_*_extensions()`` a mano): si un ``overrides=`` de
-  ``crm`` o ``hr_recruitment`` se rompiera —clave mal escrita, kwarg
-  olvidado— estas claves desaparecerían del resultado.
+  ``crm``, ``hr_recruitment`` o ``account`` se rompiera —clave mal
+  escrita, kwarg olvidado— estas claves desaparecerían del resultado.
 """
 import pytest
 
@@ -26,12 +26,15 @@ from tests.factories.user_factory import UserFactory
 
 pytestmark = pytest.mark.django_db
 
-#: Los xml_id que ``crm``/``hr_recruitment`` cuelgan — verbatim de sus
-#: propios módulos (no se importan de ahí para que un typo en cualquiera de
-#: los dos lados se note aquí, no se enmascare comparando la misma cadena).
+#: Los xml_id que ``crm``/``hr_recruitment``/``account`` cuelgan — verbatim
+#: de sus propios módulos (no se importan de ahí para que un typo en
+#: cualquiera de los lados se note aquí, no se enmascare comparando la misma
+#: cadena). El de ``account`` es la tarea #279: hasta ella, su override se
+#: instalaba con ``if not hasattr: setattr`` y se saltaba en silencio.
 ACTION_PIPELINE = 'crm.crm_lead_action_pipeline'
 ACTION_ALL_LEADS = 'crm.crm_lead_all_leads'
 ACTION_OPEN_MY_EMPLOYEES = 'hr.open_view_employee_list_my'
+ACTION_OUT_INVOICE = 'account.action_move_out_invoice_type'
 
 
 def _base_method():
@@ -91,9 +94,9 @@ class TestBaseIsAnEmptyExtensionPoint:
 
 
 class TestFullChainAsDjangoInstallsIt:
-    """La cadena completa — ``crm`` + ``hr_recruitment`` sobre la base,
-    instalada por ``AppConfig.ready()`` al arrancar (sin invocar
-    ``apply_*_extensions()`` a mano)."""
+    """La cadena completa — ``crm`` + ``hr_recruitment`` + ``account``
+    sobre la base, instalada por ``AppConfig.ready()`` al arrancar (sin
+    invocar ``apply_*_extensions()`` a mano)."""
 
     def test_default_actions_for_a_user_without_special_groups(
         self, digest, company, recipient,
@@ -103,6 +106,7 @@ class TestFullChainAsDjangoInstallsIt:
             'kpi_crm_lead_created': ACTION_PIPELINE,
             'kpi_crm_opportunities_won': ACTION_PIPELINE,
             'kpi_hr_recruitment_new_colleagues': ACTION_OPEN_MY_EMPLOYEES,
+            'kpi_account_total_revenue': ACTION_OUT_INVOICE,
         }
 
     def test_lead_action_switches_for_group_use_lead(
@@ -112,10 +116,11 @@ class TestFullChainAsDjangoInstallsIt:
         actions = digest._compute_kpis_actions(company, recipient)
         assert actions['kpi_crm_lead_created'] == ACTION_ALL_LEADS
         # El grupo sólo condiciona el KPI de leads — el de oportunidades
-        # ganadas y el de hr_recruitment no se mueven.
+        # ganadas, el de hr_recruitment y el de account no se mueven.
         assert actions['kpi_crm_opportunities_won'] == ACTION_PIPELINE
         assert actions['kpi_hr_recruitment_new_colleagues'] == (
             ACTION_OPEN_MY_EMPLOYEES)
+        assert actions['kpi_account_total_revenue'] == ACTION_OUT_INVOICE
 
     def test_no_recipient_is_fail_closed_not_a_crash(self, digest, company):
         """``user=None`` no revienta — la guarda ``user is not None`` de
@@ -126,4 +131,5 @@ class TestFullChainAsDjangoInstallsIt:
             'kpi_crm_lead_created': ACTION_PIPELINE,
             'kpi_crm_opportunities_won': ACTION_PIPELINE,
             'kpi_hr_recruitment_new_colleagues': ACTION_OPEN_MY_EMPLOYEES,
+            'kpi_account_total_revenue': ACTION_OUT_INVOICE,
         }
