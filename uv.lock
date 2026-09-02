@@ -549,6 +549,7 @@ dependencies = [
     { name = "python-barcode" },
     { name = "python-dateutil" },
     { name = "python-decouple" },
+    { name = "python-stdnum" },
     { name = "pytz" },
     { name = "qrcode" },
     { name = "requests" },
@@ -599,6 +600,7 @@ requires-dist = [
     { name = "python-dateutil", specifier = ">=2.9.0" },
     { name = "python-decouple", specifier = "==3.8" },
     { name = "python-ldap", marker = "extra == 'ldap'", specifier = ">=3.4.0" },
+    { name = "python-stdnum", specifier = ">=2.0" },
     { name = "pytz", specifier = ">=2024.1" },
     { name = "qrcode", specifier = ">=7.4" },
     { name = "requests", specifier = ">=2.31.0" },
@@ -1122,6 +1124,15 @@ dependencies = [
     { name = "pyasn1-modules" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b2/f4/60edeb794bbc9ed0ff2149bbaeec605f3ed331766459d195832ecbd0ba2d/python_ldap-3.4.7.tar.gz", hash = "sha256:bacd9fb680d20263d8570ade1cf234d90d281149a8beb4f079dd8f33f7613dc8", size = 387477, upload-time = "2026-05-20T13:41:04.358Z" }
+
+[[package]]
+name = "python-stdnum"
+version = "2.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/15/7f/96c2b9de6024353177dc6139c33730d5ac25877bc33215515d6b95b84555/python_stdnum-2.2.tar.gz", hash = "sha256:e95fcfa858a703d4a40130cb3eaac133c60d8808a7f3c98efeedac968c2479b9", size = 1311813, upload-time = "2026-01-04T19:36:16.753Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2f/61/aa32d9c79f83a2fae033cd6496fb2a24aba918d31c73704271dfcfb48375/python_stdnum-2.2-py3-none-any.whl", hash = "sha256:bdf98fd117a0ca152e4047aa8ad254bae63853d4e915ddd4e0effb33ba0e9260", size = 1193213, upload-time = "2026-01-04T19:36:14.812Z" },
+]
 
 [[package]]
 name = "pytz"

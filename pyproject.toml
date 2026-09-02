@@ -82,6 +82,22 @@ dependencies = [
     "python-barcode>=0.15.1",
     "qrcode>=7.4",
     "zeep>=4.3.3",
+    # Validacion de identificadores fiscales por pais. La referencia la
+    # importa al top de `base_vat/models/res_partner.py:8` y su despachador
+    # central resuelve el validador por defecto de CADA pais con
+    # `stdnum.util.get_cc_module(cc, 'vat').is_valid`
+    # (odoo19c: addons/base_vat/models/res_partner.py:345): los `check_vat_xx`
+    # propios son la excepcion, no la regla. Medido sobre odoo19c: 27 archivos
+    # en 19 addons la importan, 48 usos solo en ese archivo, y ningun manifest
+    # la declara — es dependencia real aunque no este en external_dependencies.
+    #
+    # No se reimplementa. La regla de construir lo que el stack no trae es para
+    # MECANISMOS que Django no tiene (related=, company_dependent, el campo sin
+    # columna); esto es una tabla de algoritmos de ~100 paises, y escribirla
+    # aqui seria fabricar una segunda fuente de verdad para el RFC mexicano y
+    # noventa mas, sin nadie que la mantenga. LGPL-2.1+, sin dependencias
+    # obligatorias propias (`zeep` solo como extra, y ya esta en esta lista).
+    "python-stdnum>=2.0",
 ]
 
 [project.optional-dependencies]
