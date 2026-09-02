@@ -123,7 +123,16 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
     # campos del delegado **como propios**. Aplicarle por debajo el permiso del
     # comodelo dejaría al registro delegante viendo la mitad de sí mismo, según
     # qué reglas de fila pesen sobre el modelo del que hereda.
-    bypass_search_access(delegant_cls._meta.get_field(fk_name))
+    fk_field = delegant_cls._meta.get_field(fk_name)
+    bypass_search_access(fk_field)
+
+    # ``delegate`` es el atributo que la fuente declara en el propio campo
+    # (``odoo19c: odoo/orm/fields_relational.py:248,257``) y **no** un estado
+    # interno de este mecanismo: lo lee ``Many2one.convert_to_cache`` para
+    # decidir si el id del padre de un registro nuevo también es nuevo. Hasta
+    # ahora la delegación se marcaba sólo por su consecuencia —el salto de
+    # permiso— y el atributo no tenía dónde leerse.
+    fk_field.delegate = True
 
     def __getattr__(self, name):
         # Sólo se invoca cuando la búsqueda normal falló: los campos y

@@ -100,23 +100,35 @@ class TestTheChannels:
 class TestTheTransaction:
     """Fila 6 — la estructura que Django no trae y aquí se construye."""
 
-    def test_it_declares_the_six_structures(self):
-        """Las seis que tienen consumidor, y ninguna más.
+    def test_it_declares_the_closed_set_of_structures(self):
+        """Las que tienen consumidor, y ninguna más.
 
         ``__slots__`` cerrado: un atributo nuevo escrito por descuido levanta
         ``AttributeError`` en vez de quedarse ahí sin que nadie lo note.
 
-        Eran cinco hasta la capa A de #273. ``field_cache_memo`` es la sexta:
-        el memo de ``Field._get_cache``, que la fuente cuelga del
-        ``Environment`` y aquí cuelga de la transacción porque es la
-        transacción quien tiene su vida (ver el comentario del slot).
+        El conjunto **crece con el porte**, y por eso el caso lo enumera en vez
+        de contarlo: eran cinco hasta la capa A de #273, seis con
+        ``field_cache_memo`` —el memo de ``Field._get_cache``, que la fuente
+        cuelga del ``Environment`` y aquí cuelga de la transacción porque es
+        ella quien tiene su vida— y siete desde que #323 portó ``Cache``.
+        ``cache`` no es invención nuestra: la fuente lo declara en su propio
+        ``__slots__`` (``odoo19c: odoo/orm/environments.py:555``).
+
+        Los cuatro de la fuente que aquí **no** están —``registry``, ``envs``,
+        ``default_env`` y ``_Transaction__file_open_tmp_paths``— llevan su
+        divergencia declarada en el docstring de la clase.
         """
         assert Transaction.__slots__ == (
-            'field_cache_memo', 'field_data', 'field_data_patches',
+            'cache', 'field_cache_memo', 'field_data', 'field_data_patches',
             'field_dirty', 'protected', 'tocompute')
 
-    def test_a_slot_outside_the_five_is_refused(self):
-        """El control de que ``__slots__`` está de verdad cerrado."""
+    def test_a_slot_outside_the_declared_set_is_refused(self):
+        """El control de que ``__slots__`` está de verdad cerrado.
+
+        ``registry`` es el positivo real: la fuente lo declara y aquí es
+        divergencia —el registro es un módulo—, así que escribirlo tiene que
+        levantar en vez de crear el atributo en silencio.
+        """
         with pytest.raises(AttributeError):
             Transaction().registry = object()
 

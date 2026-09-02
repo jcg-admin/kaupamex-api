@@ -118,8 +118,8 @@ class Html(models.TextField):
 
 
 def Char(*args, store=_UNSET, required=None, translate=None, help=None,
-         company_dependent=False, related=None, **kwargs):
-    """``fields.Char`` — ≙ el de la referencia, con y sin columna.
+         size=None, company_dependent=False, related=None, **kwargs):
+    r"""``fields.Char`` — ≙ el de la referencia, con y sin columna.
 
     ``store=True`` (el defecto, y el de los 432 usos del árbol) devuelve un
     ``models.CharField`` con la firma de Django, exactamente como antes.
@@ -142,8 +142,18 @@ def Char(*args, store=_UNSET, required=None, translate=None, help=None,
     ==============  =====================================================
     ``required=``   ``blank=False``/``blank=True`` — el vacío de formulario
     ``help=``       ``help_text=``
+    ``size=``       ``max_length=`` — la longitud de la columna ``varchar``
     ``translate=``  se **anota** en el campo; ver el aviso de abajo
     ==============  =====================================================
+
+    ``size=`` es el cuarto alias, y no es cosmético: la referencia lo declara
+    en **33** sitios (medido con ``grep -rhoP 'fields\.Char\([^)]*size\s*='``
+    sobre ``odoo19c: addons`` y ``odoo``), y sin él cada uno de esos portes
+    revienta con ``TypeError`` al construir el campo. Es el mismo nombre que
+    ``_char_column_type`` ya traduce en el otro sentido
+    (``orm/fields.py:1332``): allá ``('varchar', pg_varchar(self.size))``, aquí
+    ``pg_varchar(self.max_length)``. Declararlo en la firma cierra el viaje de
+    ida, que era el que faltaba.
 
     El primer argumento posicional ya coincidía: es ``verbose_name`` en Django
     y la etiqueta en la referencia.
@@ -154,10 +164,11 @@ def Char(*args, store=_UNSET, required=None, translate=None, help=None,
        ``{lang: valor}`` y resuelve el idioma en el ORM
        (``odoo19c: odoo/orm/fields_textual.py:53`` — ``if self.store and
        self.translate``; ``:66`` — ``column['udt_name'] == 'jsonb'``). Aquí la
-       bandera **se conserva en el campo** (``field.odoo_translate``) para que
-       la declaración sea fiel y greppeable, pero el almacenamiento por idioma
-       no está construido: hoy la columna sigue siendo ``varchar`` y guarda un
-       solo idioma.
+       bandera **se conserva en el campo** (``field.translate``, el mismo
+       nombre que la fuente le da en ``odoo19c: odoo/orm/fields.py:288``) para
+       que la declaración sea fiel y greppeable, pero el almacenamiento por
+       idioma no está construido: hoy la columna sigue siendo ``varchar`` y
+       guarda un solo idioma.
 
        Anotarla en vez de aceptarla y tirarla es deliberado: un ``**kwargs``
        que se traga la bandera deja el árbol sin forma de medir cuántos campos
@@ -192,6 +203,8 @@ def Char(*args, store=_UNSET, required=None, translate=None, help=None,
     #: todo related habría salido con columna, y la forma de la gran mayoría
     #: se habría perdido: el reparto lo publica
     #: ``python3 scripts/census_related_fields.py``.
+    if size is not None:
+        kwargs['max_length'] = size
     if store is not _UNSET:
         kwargs['store'] = store
     related_attrs = apply_source_defaults(related, kwargs)
@@ -215,5 +228,5 @@ def Char(*args, store=_UNSET, required=None, translate=None, help=None,
         campo = models.CharField(*args, **kwargs)
     else:
         campo = NonStored(*args, **kwargs)
-    campo.odoo_translate = bool(translate)
+    campo.translate = bool(translate)
     return annotate_related(campo, related, related_attrs)

@@ -62,10 +62,14 @@ empresa, no una tabla intermedia.
 ``Many2one`` sí lo lleva, y es el tipo que más lo usa en la referencia: **35**
 de las 54 declaraciones de producto. Ver la rama en :func:`Many2one`.
 """
+import itertools
+
 from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
+from django.db.models.fields.related import RelatedField
 
+from orm.environments import env as get_environment
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
     _UNSET,
@@ -73,6 +77,9 @@ from orm.fields_nonstored import (
     annotate_related,
     projection_or_none,
 )
+from orm.identifiers import NewId
+from orm.utils import model_of, record_ids
+from tools.misc import SENTINEL, unique
 from tools.sql import SQL
 
 __all__ = ['Many2one', 'One2many', 'Many2many', 'bypass_search_access']
@@ -636,3 +643,194 @@ def _many2one_join(self, model, alias, query):
 
 models.ForeignKey.join = _many2one_join
 
+
+
+############################################################################
+#
+# El inverso en caché — ≙ ``odoo19c: odoo/orm/fields_relational.py:81,322,564``
+#
+# Cuando se escribe un lado de una relación, el **otro** lado que ya está en
+# caché queda obsoleto. ``_update_inverse`` es quien lo pone al día, y lo
+# consume ``Cache.patch`` (``orm/environments.py``). Vive aquí y no en
+# ``orm/fields.py`` porque su base es ``_Relational`` — la fuente sólo lo
+# declara para campos relacionales, y el genérico levanta ``NotImplementedError``.
+#
+# Divergencia de mecanismo, la misma de toda esta familia y por tanto declarada
+# una vez: el entorno es **ambiental** (``orm.environments.env()``) en vez de
+# ``records.env``; no hay recordset, así que ``records._ids`` es
+# :func:`~orm.utils.record_ids` y ``record.id`` es :func:`single_record_id`.
+#
+############################################################################
+
+
+def single_record_id(records):
+    """El id de una fila única — la adaptación de ``BaseModel.id``.
+
+    ≙ ``Id.__get__`` (``odoo19c: odoo/orm/fields_misc.py:103-114``): vacío
+    devuelve ``False``, uno devuelve su id, y más de uno es un error de
+    programación (*"Expected singleton"*). Se porta ese contrato tal cual.
+
+    Admite además un id **suelto** —entero o :class:`~orm.identifiers.NewId`—
+    y es una divergencia que hay que declarar, no un atajo. La fuente envuelve
+    el id en un recordset (``comodel.browse(new_id)``) sólo para tener algo con
+    ``.id``, y eso allá no consulta nada. Aquí :func:`~orm.utils.browse` **es
+    una consulta**, y un ``NewId`` no tiene fila que traer: el envoltorio
+    volvería vacío y el id se perdería en silencio. Por eso el id viaja crudo
+    desde ``Cache.patch`` y se normaliza en este punto.
+    """
+    if isinstance(records, (int, NewId)):
+        return records
+    ids = record_ids(records)
+    if not ids:
+        return False
+    if len(ids) == 1:
+        return ids[0]
+    raise ValueError("Expected singleton: %s" % (records,))
+
+
+def _relational_update_inverse(self, records, value):
+    """≙ ``_Relational._update_inverse`` (``:81``).
+
+    Docstring de la fuente: *"Update the cached value of ``self`` for
+    ``records`` with ``value``."* El genérico no sabe hacerlo — cada forma de
+    relación guarda su caché distinta— así que declara el contrato y delega en
+    la subclase. Se porta el ``raise`` verbatim: es lo que hace observable que
+    a un tipo relacional nuevo le falta su implementación, en vez de que herede
+    la del uno-a-muchos y corrompa la caché en silencio.
+    """
+    raise NotImplementedError
+
+
+def _many2one_convert_to_cache(self, value, record, validate=True):
+    """``Many2one.convert_to_cache`` — ≙ ``:328-351``. Formato: id o ``None``.
+
+    Las cinco ramas de la fuente, con una divergencia de forma y un bloqueo
+    medido:
+
+    - ``isinstance(value, BaseModel)`` se abre aquí a **instancia o
+      ``QuerySet``**, que son las dos formas en que este árbol representa un
+      conjunto de filas, y el modelo se compara con
+      :func:`~orm.utils.model_of` en vez de con ``value._name``.
+    - la rama de ``dict`` **no se porta**: la fuente construye un registro
+      virtual con ``comodel.new(value, origin=…)`` y ``BaseModel.new`` no
+      existe todavía en este árbol (``src/orm/models.py:376`` declara que su
+      equivalente es ``Model(**valores)``, sin registro que devuelva la fila
+      por su ``NewId``). Emitir sólo el ``NewId`` y descartar las demás claves
+      del ``dict`` sería un porte generoso —el método existiría sin hacer lo
+      que hace el de la fuente—, así que levanta ``NotImplementedError`` y su
+      sucesor está registrado como la tarea **#327**.
+
+    La guarda final es la que da sentido a ``delegate``: si **todas** las filas
+    son nuevas, el padre al que delegan también lo es, y su id se envuelve en
+    un :class:`~orm.identifiers.NewId`.
+    """
+    if type(value) is int or type(value) is NewId:
+        id_ = value
+    elif isinstance(value, (models.Model, models.QuerySet)):
+        ids = record_ids(value)
+        if validate and (model_of(value) is not self.related_model or len(ids) > 1):
+            raise ValueError("Wrong value for %s: %r" % (self, value))
+        id_ = ids[0] if ids else None
+    elif isinstance(value, tuple):
+        # el valor es un par (id, nombre), o una tupla de ids
+        id_ = value[0] if value else None
+    elif isinstance(value, dict):
+        raise NotImplementedError(
+            "%s.convert_to_cache no admite un dict: la fuente construye el "
+            "registro virtual con comodel.new(), que este arbol todavia no "
+            "tiene (tarea #327)" % (self.name,)
+        )
+    else:
+        id_ = None
+
+    if self.delegate and record and not any(record_ids(record)):
+        # si todas las filas son nuevas, el padre tambien lo es
+        id_ = id_ and NewId(id_)
+
+    return id_
+
+
+def _many2one_update_inverse(self, records, value):
+    """``Many2one._update_inverse`` — ≙ ``:322-324``.
+
+    El uno-a-uno del lado muchos: el valor se convierte al formato de caché
+    **por fila**, porque :meth:`convert_to_cache` consulta la propia fila para
+    decidir si el id del padre delegado es nuevo.
+    """
+    for record in records:
+        self._update_cache(
+            record, self.convert_to_cache(value, record, validate=False))
+
+
+def _relational_multi_update_inverse(self, records, value):
+    """``_RelationalMulti._update_inverse`` — ≙ ``:564-573``.
+
+    Suma ``value`` al valor en caché de cada fila. Las dos aserciones de la
+    fuente se portan verbatim porque son el contrato del método: sólo opera
+    sobre **ids nuevos** sobre **filas nuevas** — un id real se escribe por la
+    vía normal, no parcheando la caché.
+
+    Cuando la fila todavía no tiene valor en caché, el id no se puede sumar a
+    nada: se apunta en ``field_data_patches`` de la transacción y lo aplicará
+    :func:`_relational_multi_update_cache` cuando el valor llegue.
+    """
+    new_id = single_record_id(value)
+    assert not new_id, "Field._update_inverse solo admite un id nuevo"
+    env = get_environment()
+    field_cache = self._get_cache(env)
+    for record_id in record_ids(records):
+        assert not record_id, "Field._update_inverse solo admite filas nuevas"
+        cache_value = field_cache.get(record_id, SENTINEL)
+        if cache_value is SENTINEL:
+            env.transaction.field_data_patches[self][record_id].append(new_id)
+        else:
+            field_cache[record_id] = tuple(unique(cache_value + (new_id,)))
+
+
+def _relational_multi_update_cache(self, records, cache_value, dirty=False):
+    """``_RelationalMulti._update_cache`` — ≙ ``:576-586``.
+
+    Drena los parches que :func:`_relational_multi_update_inverse` dejó
+    pendientes: los ids apuntados se suman al valor que se está escribiendo,
+    en ese orden y sin repetir.
+
+    ``models.Field._update_cache`` se resuelve **en tiempo de llamada**, no al
+    importar: ``orm/fields.py`` instala el método base al final de su propio
+    módulo y es él quien importa a éste (``orm/fields.py:84``), así que al
+    ejecutarse estas líneas de módulo el atributo todavía no existe. Es el
+    ``super()`` de la fuente escrito de la única forma que el orden de carga
+    admite.
+    """
+    field_patches = get_environment().transaction.field_data_patches.get(self)
+    if field_patches and records is not None:
+        for record in records:
+            ids = field_patches.pop(record.pk, ())
+            if ids:
+                value = tuple(unique(itertools.chain(cache_value, ids)))
+            else:
+                value = cache_value
+            models.Field._update_cache(self, record, value, dirty)
+        return
+    models.Field._update_cache(self, records, cache_value, dirty)
+
+
+#: ``delegate`` — ≙ ``Many2one.delegate`` (``:248``), *"whether self implements
+#: delegation"*. Va sobre la clase por la misma razón que
+#: ``bypass_search_access``: el atributo tiene que existir en las 759
+#: declaraciones del árbol, pasen o no por la fábrica. Lo enciende
+#: ``orm.inherits.apply_inherits`` sobre el campo concreto, que es el
+#: equivalente del ``_setup_attrs__`` de la fuente (``:255-259``).
+models.ForeignKey.delegate = False
+
+RelatedField._update_inverse = _relational_update_inverse
+models.ForeignKey.convert_to_cache = _many2one_convert_to_cache
+models.ForeignKey._update_inverse = _many2one_update_inverse
+models.ManyToManyField._update_inverse = _relational_multi_update_inverse
+models.ManyToManyField._update_cache = _relational_multi_update_cache
+
+#: ``One2many`` **no recibe estos métodos**, y es una ausencia declarada, no un
+#: olvido: aquí es una clase plana (:class:`One2many`, arriba) que describe el
+#: reverso de una FK, no un ``models.Field``, así que no participa de la caché
+#: de campo ni tiene dónde colgarlos. En la fuente sí es un ``_RelationalMulti``
+#: y los hereda. Su desenlace va con el porte del lado SQL del uno-a-muchos —
+#: tareas **#243** y **#244**.

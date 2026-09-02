@@ -78,20 +78,37 @@ para el alcance, ``defaultdict`` para los mapas, y ``OrderedSet`` /
 alcances.
 """
 import logging
+import warnings
 from collections import defaultdict
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import timezone
+from pprint import pformat
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.apps import apps
-from django.db import DEFAULT_DB_ALIAS, connection, connections
+from django.db import DEFAULT_DB_ALIAS, connection, connections, models
 
-from exceptions import AccessError
+from exceptions import AccessError, CacheMiss
 from orm import registry
-from tools.misc import OrderedSet, StackMap
+from orm.utils import browse, model_of, model_field_registry, record_ids
+from tools.misc import SENTINEL, OrderedSet, StackMap, frozendict
+from tools.query import Query
+from tools.sql import SQL, execute_sql
 
 _logger = logging.getLogger(__name__)
+
+#: ≙ ``MAX_FIXPOINT_ITERATIONS`` (``odoo19c: odoo/orm/environments.py:37``).
+#: El tope de vueltas que el volcado da buscando el punto fijo: cada vuelta
+#: puede disparar cómputos que ensucien más campos, y sin tope el ciclo no
+#: termina. Su consumidor es el par ``flush``/``_recompute_all`` del
+#: ``Environment`` (``:370`` y ``:382``), que se porta en la tarea #324.
+MAX_FIXPOINT_ITERATIONS = 10
+
+#: ≙ ``EMPTY_DICT`` (``:635``) — «sentinel value for optional parameters».
+#: Un mapa vacío inmutable: se puede compartir como valor por omisión sin
+#: que nadie lo mute por accidente.
+EMPTY_DICT = frozendict()
 
 # === Los DOS canales del entorno (DEC-AISL-04) =============================
 # Réplica de la separación de la referencia, verificada idéntica en las dos
@@ -370,7 +387,7 @@ class Transaction:
     ``tocompute``      ``Field.recompute`` — los cómputos pendientes
     ================== ==========================================================
 
-    De los ocho ``__slots__`` de la fuente quedan fuera tres, y por razón
+    De los ocho ``__slots__`` de la fuente quedan fuera dos, y por razón
     medida, no por conveniencia:
 
     - ``registry`` — aquí el registro es ``orm.registry``, un módulo, no un
@@ -378,16 +395,22 @@ class Transaction:
     - ``envs`` / ``default_env`` — la fuente guarda un ``WeakSet`` de entornos
       para volcarlos al hacer ``flush``. Aquí el entorno es este mismo módulo
       de ``contextvars``: no hay N objetos que recorrer.
-    - ``cache`` — su propio comentario lo llama «backward-compatible view of
-      the cache»: es el nombre viejo de ``field_data``, conservado allá para
-      no romper addons. Aquí no hay historial que preservar.
+
+    ``cache`` **sí se porta**, y la versión anterior de este docstring lo
+    describía mal: no es «el nombre viejo de ``field_data``» sino la
+    :class:`Cache`, una fachada de 28 métodos cuyo almacén **es**
+    ``field_data``. El comentario de la fuente que se citaba —«backward-compatible
+    view of the cache»— acompaña a ``field_data``, no a ``cache``. La
+    corrección entra por la Clausula 2 del principio rector: estado heredado
+    incorrecto se corrige donde se encuentra.
 
     El ``_Transaction__file_open_tmp_paths`` de la fuente **sí** existe en
     este árbol, y con su nombre: vive en ``tools/misc.py``
     (``file_open_temporary_directory``), donde se portó con la tarea #131.
     """
-    __slots__ = ('field_cache_memo', 'field_data', 'field_data_patches',
-                 'field_dirty', 'protected', 'tocompute')
+    __slots__ = ('cache', 'field_cache_memo', 'field_data',
+                 'field_data_patches', 'field_dirty', 'protected',
+                 'tocompute')
 
     def __init__(self):
         #: ``{campo: datos_gestionados_por_el_campo}``. Suele ser un mapa de
@@ -404,6 +427,10 @@ class Transaction:
         self.protected = StackMap()
         #: ``{campo: OrderedSet[id]}`` — los cómputos pendientes.
         self.tocompute = defaultdict(OrderedSet)
+        #: ≙ ``Transaction.cache`` — la fachada de lectura y escritura sobre
+        #: las estructuras de arriba. No guarda nada propio: su ``__slots__``
+        #: es sólo la transacción que la sostiene.
+        self.cache = Cache(self)
         #: ``{(campo, clave_de_contexto): mapa}`` — el memo de
         #: ``Field._get_cache``, para no rehacer la resolución del cubo en
         #: cada lectura.
@@ -892,6 +919,443 @@ class Environment:
                           using=self._using or DEFAULT_DB_ALIAS)
 
 
+class Cache:
+    """La fachada de lectura y escritura del caché de registros.
+
+    ≙ ``Cache`` (``odoo19c: odoo/orm/environments.py:638``). Su docstring
+    describe el almacén, y ese almacén es aquí ``Transaction.field_data``:
+
+        «For most fields, the cache is simply a mapping from a record and a
+        field to a value. In the case of context-dependent fields, the mapping
+        also depends on the environment of the given record. For the sake of
+        performance, the cache is first partitioned by field, then by record.»
+
+    La otra mitad del contrato son las entradas **sucias** — las que difieren
+    de la base y representan escrituras pendientes. Sólo tienen sentido en un
+    campo almacenado, y si un campo sucio depende del contexto, **todos** sus
+    valores en ese registro cuentan como sucios.
+
+    Tres divergencias de mecanismo, declaradas
+    ==========================================
+
+    Ninguna recorta el porte: los 28 símbolos de la fuente están, con su
+    nombre, su firma y su comportamiento. Lo que cambia es de dónde sale cada
+    pieza del entorno.
+
+    1. **El entorno es ambiente, no un atributo del registro.** La fuente
+       escribe ``field._get_cache(model.env)``; aquí el entorno lo sirve
+       :func:`env`, que lo lee de los ``ContextVar`` de este módulo. El
+       parámetro ``model`` de :meth:`_get_field_cache` y
+       :meth:`_set_field_cache` **conserva su firma** —la fuente lo declara y
+       algún addon podría pasarlo— pero no decide el entorno.
+    2. **No hay recordset.** ``records._ids`` es :func:`~orm.utils.record_ids`,
+       ``model.browse(ids)`` es :func:`~orm.utils.browse`, y
+       ``records.browse(...)`` —que en la fuente sale gratis porque el
+       recordset es su propia clase— necesita además
+       :func:`~orm.utils.model_of`.
+    3. **El registro es un módulo.** ``self.transaction.registry`` no existe:
+       la transacción no sostiene el registro (ver el docstring de
+       :class:`Transaction`), así que se consulta ``orm.registry`` directo.
+
+    Los diez métodos deprecados se portan CON su categoría
+    ======================================================
+
+    La fuente marca diez métodos como obsoletos y **no lo hace de forma
+    uniforme**: cuatro pasan ``DeprecationWarning`` explícito
+    (:meth:`insert_missing`, :meth:`patch`, :meth:`patch_and_set`,
+    :meth:`get_records_different_from`) y seis llaman a ``warnings.warn`` a
+    secas, que por omisión emite ``UserWarning``
+    (:meth:`get_until_miss`, :meth:`get_dirty_fields`,
+    :meth:`filtered_dirty_records`, :meth:`filtered_clean_records`,
+    :meth:`has_dirty_fields`, :meth:`clear_dirty_field`).
+
+    El porte copia la categoría de cada uno tal cual. Homogeneizarlas sería
+    más limpio y **cambiaría el contrato**: un filtro de avisos que sólo
+    silencia ``DeprecationWarning`` se comporta distinto ante cada mitad, y
+    quien escriba ese filtro contra la fuente lo escribiría contra el nuestro.
+    """
+    __slots__ = ('transaction',)
+
+    def __init__(self, transaction):
+        self.transaction = transaction
+
+    def __repr__(self):
+        # para depurar: el contenido del caché, con las banderas de sucio
+        # marcadas como estrellas
+        data = {}
+        for field, field_cache in sorted(self.transaction.field_data.items(),
+                                         key=lambda item: str(item[0])):
+            dirty_ids = self.transaction.field_dirty.get(field, ())
+            if field in registry.field_depends_context:
+                data[field] = {
+                    key: {
+                        Starred(id_) if id_ in dirty_ids else id_:
+                            val if field.type != 'binary' else '<binary>'
+                        for id_, val in key_cache.items()
+                    }
+                    for key, key_cache in field_cache.items()
+                }
+            else:
+                data[field] = {
+                    Starred(id_) if id_ in dirty_ids else id_:
+                        val if field.type != 'binary' else '<binary>'
+                    for id_, val in field_cache.items()
+                }
+        return repr(data)
+
+    def _get_field_cache(self, model, field):
+        """El mapa del campo, para leerlo — no para modificarlo."""
+        return self._set_field_cache(model, field)
+
+    def _set_field_cache(self, model, field):
+        """El mapa del campo, para modificarlo.
+
+        ``model`` conserva la firma de la fuente y no elige el entorno: aquí
+        es ambiente (divergencia 1 del docstring de la clase).
+        """
+        return field._get_cache(env())
+
+    def contains(self, record, field):
+        """Si ``record`` tiene valor para ``field``."""
+        return record_ids(record)[0] in self._get_field_cache(record, field)
+
+    def contains_field(self, field):
+        """Si ``field`` tiene valor para al menos un registro."""
+        cache = self.transaction.field_data.get(field)
+        if not cache:
+            return False
+        # las llaves de 'cache' son tuplas si 'field' depende del contexto,
+        # e ids de registro en cualquier otro caso
+        if field in registry.field_depends_context:
+            return any(value for value in cache.values())
+        return True
+
+    def get(self, record, field, default=SENTINEL):
+        """El valor de ``field`` para ``record``."""
+        try:
+            field_cache = self._get_field_cache(record, field)
+            return field_cache[record_ids(record)[0]]
+        except KeyError:
+            if default is SENTINEL:
+                raise CacheMiss(record, field) from None
+            return default
+
+    def set(self, record, field, value, dirty=False):
+        """Fija el valor de ``field`` para ``record``.
+
+        Un campo limpio se puede ensuciar; al revés, no. Escribir sobre un
+        campo sucio sin ``dirty=True`` es un error de programación.
+
+        :param dirty: si ``field`` queda sucio en ``record`` tras la escritura
+        """
+        field._update_cache(record, value, dirty=dirty)
+
+    def update(self, records, field, values, dirty=False):
+        """Fija los valores de ``field`` para varios ``records``.
+
+        Misma regla que :meth:`set` sobre el sucio.
+
+        :param dirty: si ``field`` queda sucio en cada registro
+        """
+        for record, value in zip(records, values):
+            field._update_cache(record, value, dirty=dirty)
+
+    def update_raw(self, records, field, values, dirty=False):
+        """Variante de :meth:`update` sin la lógica de campos traducidos.
+
+        El ``records.with_context(prefetch_langs=True)`` de la fuente es aquí
+        un alcance de contexto: no hay recordset que envolver.
+        """
+        if field.translate:
+            with context_scope(prefetch_langs=True):
+                for record, value in zip(records, values):
+                    field._update_cache(record, value, dirty=dirty)
+            return
+        for record, value in zip(records, values):
+            field._update_cache(record, value, dirty=dirty)
+
+    def insert_missing(self, records, field, values):
+        """Fija ``field`` sólo en los registros que aún no tienen valor.
+
+        No sobreescribe lo que ya está en caché.
+        """
+        warnings.warn("Since 19.0, use Field._insert_cache", DeprecationWarning)
+        field._insert_cache(records, values)
+
+    def patch(self, records, field, new_id):
+        """Aplica un parche a un x2many sobre registros nuevos.
+
+        El parche consiste en sumar ``new_id`` a su valor en caché. Si el
+        valor todavía no está en caché, se aplicará cuando lo esté, vía
+        :meth:`patch_and_set`.
+        """
+        warnings.warn("Since 19.0, this method is internal", DeprecationWarning)
+        # ``assert isinstance(field, _RelationalMulti)`` de la fuente (``:763``).
+        # Allá exige un import perezoso para romper el ciclo; aquí la clase es
+        # ``models.ManyToManyField`` y el import va al top, porque
+        # ``django.db.models`` no conoce este árbol. ``One2many`` **no** entra
+        # en la aserción y es ausencia declarada, no descuido: aquí es una
+        # clase plana sin participación en la caché — su desenlace va con el
+        # porte de su lado SQL, tareas #243 y #244.
+        assert isinstance(field, models.ManyToManyField), (
+            "Cache.patch solo opera sobre un x2many; recibio %r" % (field,))
+        # La fuente envuelve el id con ``comodel.browse(new_id)`` sólo para
+        # entregarle a ``_update_inverse`` algo con ``.id``, y allá eso no
+        # consulta nada. Aquí ``browse`` **es una consulta** y un ``NewId`` no
+        # tiene fila que traer: el envoltorio volvería vacío y el id se
+        # perdería. Por eso viaja crudo — ver ``single_record_id`` en
+        # ``orm/fields_relational.py``, que declara la divergencia.
+        field._update_inverse(records, new_id)
+
+    def patch_and_set(self, record, field, value):
+        """Como :meth:`set`, pero aplica los parches pendientes a ``value`` y
+        devuelve el valor que quedó realmente en caché.
+        """
+        warnings.warn("Since 19.0, this method is internal", DeprecationWarning)
+        field._update_cache(record, value)
+        return self.get(record, field)
+
+    def remove(self, record, field):
+        """Quita el valor de ``field`` para ``record``."""
+        assert record_ids(record)[0] not in self.transaction.field_dirty.get(field, ())
+        try:
+            field_cache = self._set_field_cache(record, field)
+            del field_cache[record_ids(record)[0]]
+        except KeyError:
+            # silent OK because quitar lo que no esta es un no-op, y la fuente
+            # lo escribe igual (``:776-782``): ``remove`` es idempotente por
+            # contrato. Lo que SI levanta es el ``assert`` de arriba — quitar
+            # un valor sucio si es un error de programacion.
+            pass
+
+    def get_values(self, records, field):
+        """Los valores cacheados de ``field`` para ``records``.
+
+        Los ids sin valor se **saltan**; el generador no se corta.
+        """
+        field_cache = self._get_field_cache(records, field)
+        for record_id in record_ids(records):
+            try:
+                yield field_cache[record_id]
+            except KeyError:
+                # silent OK because saltar el hueco ES el contrato del metodo,
+                # portado verbatim de ``:750`` — su hermano ``get_until_miss``
+                # es el que corta en el primer hueco, y la pareja no tendria
+                # sentido si este tambien cortara.
+                pass
+
+    def get_until_miss(self, records, field):
+        """Los valores cacheados de ``field`` **hasta el primer hueco**."""
+        warnings.warn("Since 19.0, this is managed directly by Field")
+        field_cache = self._get_field_cache(records, field)
+        vals = []
+        for record_id in record_ids(records):
+            try:
+                vals.append(field_cache[record_id])
+            except KeyError:
+                break
+        return vals
+
+    def get_records_different_from(self, records, field, value):
+        """El subconjunto de ``records`` que NO tiene ``value`` en ``field``."""
+        warnings.warn("Since 19.0, becomes internal function of fields", DeprecationWarning)
+        return field._filter_not_equal(records, value)
+
+    def get_fields(self, record):
+        """Los campos que tienen valor para ``record``.
+
+        ``record._fields`` de la fuente es aquí
+        :func:`~orm.utils.model_field_registry` sobre su clase: el mapa vive
+        en el modelo, no en la fila.
+        """
+        record_id = record_ids(record)[0]
+        for name, field in model_field_registry(model_of(record)).items():
+            if name != 'id' and record_id in self._get_field_cache(record, field):
+                yield field
+
+    def get_records(self, model, field, all_contexts=False):
+        """Los registros de ``model`` que tienen valor para ``field``.
+
+        Por omisión mira el contexto en curso; con ``all_contexts`` mira
+        **todos** los contextos.
+        """
+        if all_contexts and field in registry.field_depends_context:
+            field_cache = self.transaction.field_data.get(field, EMPTY_DICT)
+            ids = OrderedSet(id_ for sub_cache in field_cache.values() for id_ in sub_cache)
+        else:
+            ids = self._get_field_cache(model, field)
+        return browse(model, ids)
+
+    def get_missing_ids(self, records, field):
+        """Los ids de ``records`` que no tienen valor para ``field``."""
+        return field._cache_missing_ids(records)
+
+    def get_dirty_fields(self):
+        """Los campos que tienen registros sucios en caché."""
+        warnings.warn("Since 19.0, don't use Cache to manipulate dirty fields")
+        return self.transaction.field_dirty.keys()
+
+    def filtered_dirty_records(self, records, field):
+        """Los ``records`` en que ``field`` está sucio."""
+        warnings.warn("Since 19.0, don't use Cache to manipulate dirty fields")
+        dirties = self.transaction.field_dirty.get(field, ())
+        return browse(model_of(records),
+                      [id_ for id_ in record_ids(records) if id_ in dirties])
+
+    def filtered_clean_records(self, records, field):
+        """Los ``records`` en que ``field`` NO está sucio."""
+        warnings.warn("Since 19.0, don't use Cache to manipulate dirty fields")
+        dirties = self.transaction.field_dirty.get(field, ())
+        return browse(model_of(records),
+                      [id_ for id_ in record_ids(records) if id_ not in dirties])
+
+    def has_dirty_fields(self, records, fields=None):
+        """Si alguno de ``records`` tiene campos sucios.
+
+        :param fields: una colección de campos, o ``None`` para cualquier
+            campo de ``records``
+        """
+        warnings.warn("Since 19.0, don't use Cache to manipulate dirty fields")
+        ids = record_ids(records)
+        if fields is None:
+            model_name = getattr(model_of(records), '_name', '')
+            return any(
+                not ids_sucios.isdisjoint(ids)
+                for field, ids_sucios in self.transaction.field_dirty.items()
+                if field.model_name == model_name
+            )
+        else:
+            return any(
+                field in self.transaction.field_dirty
+                and not self.transaction.field_dirty[field].isdisjoint(ids)
+                for field in fields
+            )
+
+    def clear_dirty_field(self, field):
+        """Limpia ``field`` en todos los registros y devuelve los ids que
+        estaban sucios.
+        """
+        warnings.warn("Since 19.0, don't use Cache to manipulate dirty fields")
+        return self.transaction.field_dirty.pop(field, ())
+
+    def invalidate(self, spec=None):
+        """Invalida el caché, entero o el tramo que ``spec`` nombre.
+
+        Invalidar un campo dependiente del contexto en un registro invalida
+        **todos** sus valores en ese registro — en todos los entornos.
+
+        La operación es insegura por omisión: invalidar un campo sucio tira el
+        valor que estaba por escribirse en la base.
+
+            spec = [(campo, ids), (campo, None), ...]
+
+        El ``next(iter(self.transaction.envs))`` de la fuente es aquí
+        :func:`env`: no hay conjunto de entornos del que sacar uno cualquiera
+        (divergencia 1), y el ambiente **es** el entorno en curso.
+        """
+        if spec is None:
+            self.transaction.invalidate_field_data()
+            return
+        entorno = env()
+        for field, ids in spec:
+            field._invalidate_cache(entorno, ids)
+
+    def clear(self):
+        """Invalida el caché y sus banderas de sucio."""
+        self.transaction.invalidate_field_data()
+        self.transaction.field_dirty.clear()
+        self.transaction.field_data_patches.clear()
+
+    def check(self, env):
+        """Comprueba la consistencia del caché contra la base, para ``env``.
+
+        Cuatro piezas divergen del cuerpo de la fuente, y las cuatro se
+        declaran aquí porque ninguna recorta lo que el método comprueba:
+
+        - ``model._table`` es ``model._meta.db_table``;
+        - ``model._table_sql`` **no tiene contraparte** — es el ``SQL`` con
+          que la fuente nombra una tabla que puede ser una vista. Aquí
+          ``Query`` ya usa ``SQL.identifier(alias)`` cuando no se le pasa
+          tabla, que es exactamente lo que ese argumento produce para una
+          tabla normal;
+        - ``model._field_to_sql`` sólo existe en los modelos que adoptan
+          ``FieldSqlMixin``. Para el resto se compone la columna directa, que
+          es lo que ese método devuelve para un campo con columna — y el
+          bucle de fuera ya filtró a exactamente esos;
+        - ``env.cr.execute`` + ``fetchall`` son ``env.execute_query``, que
+          devuelve las filas.
+
+        Y ``env[field.model_name]`` se resuelve por ``field.model``: aquí
+        ``model_name`` es un atributo de clase con ``''`` por omisión, así que
+        un campo de Django sin declararlo no se podría resolver por nombre —
+        mientras que ``field.model`` lo pone el propio ``contribute_to_class``.
+        """
+        depends_context = env.registry.field_depends_context
+        invalids = []
+
+        def process(model, field, field_cache):
+            # ignora registros nuevos y los que están por volcarse
+            dirty_ids = self.transaction.field_dirty.get(field, ())
+            ids = [id_ for id_ in field_cache if id_ and id_ not in dirty_ids]
+            if not ids:
+                return
+
+            # selecciona la columna para esos ids
+            tabla = model._meta.db_table
+            query = Query(env, tabla)
+            sql_id = SQL.identifier(tabla, 'id')
+            if hasattr(model, '_field_to_sql'):
+                sql_field = model._field_to_sql(tabla, field.name, query)
+            else:
+                sql_field = SQL.identifier(tabla, field.column)
+            if field.type == 'binary' and (
+                get_context().get('bin_size') or get_context().get('bin_size_' + field.name)
+            ):
+                sql_field = SQL('pg_size_pretty(length(%s)::bigint)', sql_field)
+            query.add_where(SQL("%s IN %s", sql_id, tuple(ids)))
+
+            # compara lo devuelto con lo que hay en caché
+            for id_, value in env.execute_query(query.select(sql_id, sql_field)):
+                cached = field_cache[id_]
+                if value == cached or (not value and not cached):
+                    continue
+                invalids.append((browse(model, (id_,)), field,
+                                 {'cached': cached, 'fetched': value}))
+
+        for field, field_cache in self.transaction.field_data.items():
+            # sólo campos con columna
+            if not field.store or not field.column_type or field.translate or field.company_dependent:
+                continue
+
+            model = field.model
+            if field in depends_context:
+                for context_keys, inner_cache in field_cache.items():
+                    context = dict(zip(depends_context[field], context_keys))
+                    if 'company' in context:
+                        # la llave 'company' del caché viene en realidad de la
+                        # clave de contexto 'allowed_company_ids' (ver
+                        # env.company y env.cache_key())
+                        context['allowed_company_ids'] = [context.pop('company')]
+                    with context_scope(**context):
+                        process(model, field, inner_cache)
+            else:
+                process(model, field, field_cache)
+
+        if invalids:
+            _logger.warning("Invalid cache: %s", pformat(invalids))
+
+
+class Starred:
+    """Ayudante para ``repr`` de un valor con una estrella detrás."""
+    __slots__ = ['value']
+
+    def __init__(self, value):
+        self.value = value
+
+    def __repr__(self):
+        return f"{self.value!r}*"
+
+
 def env():
     """El entorno de este alcance — ≙ ``self.env`` de la referencia.
 
@@ -916,12 +1380,16 @@ def execute_query(query, using=None):
     contraparte porque el ORM de Django no difiere escrituras a un caché
     propio: lo que se escribió ya está en la transacción cuando esta función
     corre.
+
+    **Y el cuerpo ya no vive aquí.** Ejecutar el SQL bajó a
+    ``tools.sql.execute_sql`` porque ``tools/query.py`` lo necesita y este
+    módulo necesita a ``Query`` para ``Cache.check``: con el cuerpo aquí los
+    dos se importaban mutuamente, y la excepción #3 de ``no-lazy-imports``
+    exige el arreglo estructural, no el import perezoso. El nombre y el
+    contrato de esta función no cambian — sigue siendo la puerta que la
+    referencia nombra.
     """
-    with connections[using or DEFAULT_DB_ALIAS].cursor() as cursor:
-        cursor.execute(query.code, query.params)
-        if cursor.description is None:
-            return []
-        return cursor.fetchall()
+    return execute_sql(query, using=using)
 
 
 __all__ = [
@@ -932,4 +1400,5 @@ __all__ = [
     'get_context', 'context_scope', 'get_current_tz',
     'Transaction', 'get_transaction', 'transaction_scope',
     'Environment', 'env',
+    'Cache', 'Starred', 'EMPTY_DICT', 'MAX_FIXPOINT_ITERATIONS',
 ]

@@ -77,10 +77,11 @@ from orm.environments import (
 from orm.commands import ManyToManyLink, ManyToManySet, One2manyChild
 from orm import registry
 from orm.domains import Domain, to_q
-from orm.fields import _as_record_list as as_record_list, convert_to_display_name
+from orm.fields import convert_to_display_name
 from orm.fields_nonstored import NonStored, non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
-from orm.utils import model_field_registry, parse_field_expr, record_ids
+from orm.utils import (as_record_list, model_field_registry,
+                       parse_field_expr, record_ids)
 from service.db import Savepoint
 from tools.misc import OrderedSet
 from tools.sql import SQL
@@ -1170,7 +1171,7 @@ class CopyMixin:
         No es una divergencia de mecanismo ni una omisión: **no hay
         traducciones que copiar**. La referencia guarda el campo traducible
         como columna ``jsonb`` ``{lang: valor}``; aquí ``translate=True`` se
-        **anota** en el campo (``field.odoo_translate``, ``orm/fields_textual``)
+        **anota** en el campo (``field.translate``, ``orm/fields_textual``)
         y la columna sigue siendo ``varchar`` con un solo idioma. Los tres
         símbolos que el cuerpo consume —``_get_stored_translations``,
         ``update_field_translations``, ``get_translation_dictionary``— están
@@ -2929,7 +2930,7 @@ Model.__setitem__ = _model_setitem
 # Donde ella escribe ``records.browse(ids)`` para rehacer un conjunto, aqui se
 # lleva una **lista de instancias**: no hay recordset que rehacer, y filtrar la
 # lista es la misma operacion sin la indireccion. Es la misma adaptacion que
-# ``orm.utils.record_ids`` y ``orm.fields._as_record_list`` ya declaran.
+# ``orm.utils.record_ids`` y ``orm.utils.as_record_list`` ya declaran.
 
 
 def _model_of_records(records):

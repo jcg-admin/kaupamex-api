@@ -62,7 +62,7 @@ from django.utils.timezone import localtime
 
 from orm.environments import (env as get_environment, get_current_company,
                              get_transaction, sudo as elevate_privileges)
-from tools.misc import OrderedSet, remove_accents
+from tools.misc import SENTINEL, OrderedSet, remove_accents
 from tools.translate import _
 from orm.registry import (field_computed as registry_field_computed,
                          field_depends_context, is_not_null)
@@ -85,8 +85,8 @@ from orm.fields_relational import Many2many, Many2one, One2many  # noqa: F401
 from orm.fields_selection import Selection                     # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
-from orm.utils import (COLLECTION_TYPES, model_field_registry,
-                       record_ids)
+from orm.utils import (COLLECTION_TYPES, as_record_list, browse,
+                       model_field_registry, model_of, record_ids)
 
 #: El **registro de tipos de campo**, no la lista de exportables del módulo.
 #:
@@ -2402,6 +2402,31 @@ def _cache_missing_ids(self, records):
     return (id_ for id_ in record_ids(records) if id_ not in field_cache)
 
 
+def _filter_not_equal(self, records, cache_value):
+    """Las filas cuyo valor en caché falta o difiere de ``cache_value``.
+
+    ≙ ``Field._filter_not_equal`` (``:1577``). Docstring de la fuente:
+    *"Return the subset of ``records`` for which the value of ``self`` is
+    either not in cache, or different from ``cache_value``."*
+
+    El centinela hace el trabajo: ``field_cache.get(id_, SENTINEL)`` no
+    distingue *"no está en caché"* de *"está y vale ``None``"* si el valor
+    por omisión fuera ``None`` — y ``None`` es un valor legítimo de casi
+    todos los campos. Con ``SENTINEL``, la ausencia siempre difiere.
+
+    Divergencia de mecanismo, la misma de toda esta familia: el entorno es
+    ambiental (``orm.environments.env()``) en vez de ``records.env``, los
+    ids salen de :func:`~orm.utils.record_ids` en vez de ``records._ids``, y
+    el conjunto de vuelta se arma con :func:`~orm.utils.browse` sobre
+    :func:`~orm.utils.model_of` en vez de ``records.browse``.
+    """
+    field_cache = self._get_cache(get_environment())
+    return browse(model_of(records), [
+        id_ for id_ in record_ids(records)
+        if field_cache.get(id_, SENTINEL) != cache_value
+    ])
+
+
 def _insert_cache(self, records, values):
     """Rellena la caché SIN pisar lo que ya hay.
 
@@ -2473,19 +2498,6 @@ def _update_cache(self, records, cache_value, dirty=False):
 ############################################################################
 
 
-def _as_record_list(records):
-    """Las filas de ``records`` como lista.
-
-    La contraparte de :func:`~orm.utils.record_ids` para cuando hace falta el
-    objeto y no el id — el cómputo se invoca sobre la fila, no sobre su clave.
-    """
-    if records is None:
-        return []
-    if isinstance(records, models.Model):
-        return [records]
-    return list(records)
-
-
 def _invoke_compute_method(field, records):
     """Llama al método que ``field.compute`` nombra, sobre cada fila.
 
@@ -2496,7 +2508,7 @@ def _invoke_compute_method(field, records):
     recibe una fila. Es la misma adaptación de :func:`~orm.utils.record_ids`,
     vista desde el otro lado.
     """
-    for record in _as_record_list(records):
+    for record in as_record_list(records):
         getattr(record, field.compute)()
 
 
@@ -2527,7 +2539,7 @@ def recompute(self, records):
     if not to_compute_ids:
         return
 
-    pending = [record for record in _as_record_list(records)
+    pending = [record for record in as_record_list(records)
                if record.pk in to_compute_ids]
     if not pending:
         return
@@ -2615,7 +2627,7 @@ def _cache_computed_values(fields, records):
     devuelve el manager, no lo que contiene. ``list(...)`` lo materializa a lo
     que ``.set()`` espera al volcarlo.
     """
-    rows = _as_record_list(records)
+    rows = as_record_list(records)
     for field in fields:
         if not _is_persisted(field):
             continue
@@ -2632,6 +2644,35 @@ def _cache_computed_values(fields, records):
 
 
 for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
-                      _get_all_cache_ids, _cache_missing_ids, _insert_cache,
+                      _get_all_cache_ids, _cache_missing_ids,
+                      _filter_not_equal, _insert_cache,
                       _update_cache, recompute, compute_value):
     setattr(models.Field, _cache_method.__name__, _cache_method)
+
+
+#: El campo SIN columna recibe la misma familia de caché, y no es un extra: es
+#: el que más depende de ella. En la fuente no hay dos clases —``display_name``
+#: es un ``Field`` con ``compute`` y sin ``store``— y su valor **sólo** vive en
+#: la caché de la transacción, porque no hay columna de donde releerlo. Partir
+#: ``Field`` en ``models.Field`` (Django) y :class:`NonStored` (descriptor) es
+#: divergencia de stack, así que el contrato se instala sobre las dos.
+#:
+#: Sin esto ``Cache.get_fields`` reventaba con ``AttributeError`` en el primer
+#: modelo que declarara uno — o sea en **todos**, porque ``display_name`` es
+#: universal en este árbol desde la tarea #134.
+#:
+#: ``_is_persisted`` corta solo: exige ``store`` **y** columna o tabla
+#: intermedia, y un ``NonStored`` no declara ninguna de las tres. Por eso la
+#: marca de sucio nunca prende sobre él y el volcado no intenta escribir una
+#: columna que no existe.
+#:
+#: ``recompute`` y ``compute_value`` **no** se instalan aquí, y la ausencia se
+#: declara: son el motor de recálculo, que la fuente dispara desde
+#: ``modified()`` y que este árbol construye en la tarea **#273**. Ambos leen
+#: ``field.store``, ``self.compute_sudo`` y ``self.recursive`` —tres atributos
+#: que ``NonStored`` no declara— así que colgarlos hoy entregaría media
+#: mecánica en vez de la de la fuente.
+for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
+                      _get_all_cache_ids, _cache_missing_ids,
+                      _filter_not_equal, _insert_cache, _update_cache):
+    setattr(NonStored, _cache_method.__name__, _cache_method)

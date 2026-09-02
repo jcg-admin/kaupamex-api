@@ -794,6 +794,27 @@ def groupby(iterable: Iterable[T], key: Callable[[T], K] = lambda arg: arg):
     return groups.items()
 
 
+def unique(it: Iterable[T]) -> Iterator[T]:
+    """≙ ``unique`` (``odoo19c: odoo/tools/misc.py:1213-1224``).
+
+    «"Uniquifier" for the provided iterable: will output each element of the
+    iterable once.» Los elementos deben ser hashables.
+
+    Se porta en vez de resolverlo con ``dict.fromkeys`` porque los dos
+    difieren en lo que importa a su consumidor: ``unique`` es un **generador
+    perezoso** —emite el primer elemento sin haber recorrido el resto— y
+    ``list(dict.fromkeys(it))`` materializa la secuencia entera antes de
+    devolver nada. ``_RelationalMulti._update_cache`` lo consume mientras
+    drena los parches pendientes de la transacción, así que la pereza no es
+    cosmética: la lista intermedia se construiría en cada escritura.
+    """
+    seen = set()
+    for e in it:
+        if e not in seen:
+            seen.add(e)
+            yield e
+
+
 def named_to_positional_printf(string, args):
     """≙ ``named_to_positional_printf`` (``odoo19c: odoo/tools/misc.py:1959``).
 
