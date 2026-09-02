@@ -287,9 +287,9 @@ class TestASiteScopedAliasAbsolvesOnlyItsSite:
         assert gate.normaliza_en('ir_ui_view.py', 'IrUiView', 'write') == 'write'
 
     def test_without_a_site_entry_it_matches_normaliza(self):
-        for nombre in ('_compute_display_name', 'write', 'action_set_manual'):
-            assert gate.normaliza_en('cualquiera.py', 'Cualquiera', nombre) == \
-                gate.normaliza(nombre)
+        for name in ('_compute_display_name', 'write', 'action_set_manual'):
+            assert gate.normaliza_en('cualquiera.py', 'Cualquiera', name) == \
+                gate.normaliza(name)
 
     def test_the_class_key_flattens_the_separator_of_the_source(self):
         """La llave usa ``class_key``, no el literal.

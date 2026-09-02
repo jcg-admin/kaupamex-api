@@ -42,6 +42,7 @@ import fields
 import models
 
 from exceptions import UserError, ValidationError
+from orm.domains import Domain, to_q
 
 from addons.base.models import TimeStampedModel
 from addons.base.models.ir_config_parameter import SystemParameter
@@ -203,6 +204,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     name = fields.Char(
         max_length=255, db_index=True, verbose_name='Opportunity',
         help_text='Nombre de la oportunidad (Odoo crm.lead.name).',
+        compute='_compute_name', store=True,
+        readonly=False,
     )
     # ≙ user_id (:104-107).
     user_id = fields.Many2one(
@@ -217,6 +220,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         db_index=True, related_name='crm_leads', verbose_name='Sales Team',
         db_column='team_id', check_company=True,
         help_text='Equipo de venta (Odoo team_id).',
+        compute='_compute_team_id', store=True,
+        readonly=False, precompute=True,
     )
     # ≙ lead_properties (:114-116): definition='team_id.lead_properties_definition'.
     lead_properties = fields.Properties(
@@ -229,6 +234,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         ResCompany, null=True, blank=True, on_delete=models.SET_NULL,
         db_index=True, related_name='crm_leads', verbose_name='Company',
         db_column='company_id', help_text='Empresa dueña (Odoo company_id).',
+        compute='_compute_company_id', store=True,
+        readonly=False,
     )
     # ≙ referred (:120).
     referred = fields.Char(
@@ -263,6 +270,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         CrmStage, null=True, blank=True, on_delete=models.PROTECT,
         db_index=True, related_name='leads', verbose_name='Stage',
         db_column='stage_id', help_text='Etapa del pipeline (Odoo stage_id).',
+        compute='_compute_stage_id', store=True,
+        readonly=False,
     )
     # ≙ tag_ids (:139-141): tabla intermedia crm_tag_rel(lead_id, tag_id).
     tag_ids = fields.Many2many(
@@ -285,6 +294,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     prorated_revenue = fields.Monetary(
         max_digits=16, decimal_places=2, default=0, verbose_name='Prorated Revenue',
         help_text='Ingreso prorrateado por probabilidad (Odoo prorated_revenue).',
+        compute='_compute_prorated_revenue', store=True,
     )
     # ≙ recurring_revenue (:146).
     recurring_revenue = fields.Monetary(
@@ -301,17 +311,20 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     recurring_revenue_monthly = fields.Monetary(
         max_digits=16, decimal_places=2, default=0, verbose_name='Expected MRR',
         help_text='Ingreso recurrente mensual (Odoo recurring_revenue_monthly).',
+        compute='_compute_recurring_revenue_monthly', store=True,
     )
     # ≙ recurring_revenue_monthly_prorated (:150-151), store + compute.
     recurring_revenue_monthly_prorated = fields.Monetary(
         max_digits=16, decimal_places=2, default=0, verbose_name='Prorated MRR',
         help_text='MRR prorrateado (Odoo recurring_revenue_monthly_prorated).',
+        compute='_compute_recurring_revenue_monthly_prorated', store=True,
     )
     # ≙ recurring_revenue_prorated (:152-153), store + compute.
     recurring_revenue_prorated = fields.Monetary(
         max_digits=16, decimal_places=2, default=0,
         verbose_name='Prorated Recurring Revenues',
         help_text='Recurrente prorrateado (Odoo recurring_revenue_prorated).',
+        compute='_compute_recurring_revenue_prorated', store=True,
     )
 
     # -- Dates ---------------------------------------------------------------
@@ -329,20 +342,26 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     date_open = fields.Datetime(
         null=True, blank=True, verbose_name='Assignment Date',
         help_text='Fecha de asignación (Odoo date_open).',
+        compute='_compute_date_open', store=True,
+        readonly=True,
     )
     # ≙ day_open (:160) / day_close (:161), store + compute.
     day_open = fields.Float(
         null=True, blank=True, verbose_name='Days to Assign',
         help_text='Días hasta la asignación (Odoo day_open).',
+        compute='_compute_day_open', store=True,
     )
     day_close = fields.Float(
         null=True, blank=True, verbose_name='Days to Close',
         help_text='Días hasta el cierre (Odoo day_close).',
+        compute='_compute_day_close', store=True,
     )
     # ≙ date_last_stage_update (:162-163), index, store + compute.
     date_last_stage_update = fields.Datetime(
         null=True, blank=True, db_index=True, verbose_name='Last Stage Update',
         help_text='Último cambio de etapa (Odoo date_last_stage_update).',
+        compute='_compute_date_last_stage_update', store=True,
+        readonly=True,
     )
     # ≙ date_conversion (:164).
     date_conversion = fields.Datetime(
@@ -369,6 +388,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         max_length=255, blank=True, default='', db_index=True,
         verbose_name='Contact Name',
         help_text='Nombre de contacto (Odoo contact_name).',
+        compute='_compute_contact_name', store=True,
+        readonly=False,
     )
     # ≙ partner_name (:182-185), index='trigram', tracking=20, compute + store.
     partner_name = fields.Char(
@@ -376,16 +397,22 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         verbose_name='Company Name',
         help_text='Nombre de la futura empresa que se creará al convertir la '
                   'iniciativa en oportunidad.',
+        compute='_compute_partner_name', store=True,
+        readonly=False,
     )
     # ≙ function (:186), compute + store.
     function = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Job Position',
         help_text='Puesto del contacto (Odoo function).',
+        compute='_compute_function', store=True,
+        readonly=False,
     )
     # ≙ email_from (:187-189), tracking=40, index='trigram', compute + inverse.
     email_from = fields.Char(
         max_length=255, blank=True, default='', db_index=True,
         verbose_name='Email', help_text='Correo del contacto (Odoo email_from).',
+        compute='_compute_email_from', store=True,
+        readonly=False, inverse='_inverse_email_from',
     )
     # ≙ email_normalized (:190) — la fuente lo hereda de ``mail.thread.blacklist``
     # y sólo lo redeclara para indexarlo. Ese mixin no existe aquí, así que la
@@ -400,11 +427,14 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         verbose_name='Email Domain Criterion',
         help_text='Dominio del correo, para buscar duplicados por coincidencia '
                   'exacta (Odoo email_domain_criterion).',
+        compute='_compute_email_domain_criterion', store=True,
     )
     # ≙ phone (:197-199), tracking=50, compute + inverse.
     phone = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Phone',
         help_text='Teléfono del contacto (Odoo phone).',
+        compute='_compute_phone', store=True,
+        readonly=False, inverse='_inverse_phone',
     )
     # ≙ phone_sanitized (:200) — mismo caso que email_normalized: lo aporta
     # ``mail.thread.phone``, que aquí no existe.
@@ -417,22 +447,28 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         max_length=9, choices=QUALITY_STATES, null=True, blank=True,
         verbose_name='Phone Quality',
         help_text='Calidad del teléfono (Odoo phone_state).',
+        compute='_compute_phone_state', store=True,
     )
     email_state = fields.Selection(
         max_length=9, choices=QUALITY_STATES, null=True, blank=True,
         verbose_name='Email Quality',
         help_text='Calidad del correo (Odoo email_state).',
+        compute='_compute_email_state', store=True,
     )
     # ≙ website (:207), compute + store.
     website = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Website',
         help_text='Sitio web del contacto (Odoo website).',
+        compute='_compute_website', store=True,
+        readonly=False,
     )
     # ≙ lang_id (:208-210), compute + store.
     lang_id = fields.Many2one(
         ResLang, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='crm_leads', verbose_name='Language',
         db_column='lang_id', help_text='Idioma del contacto (Odoo lang_id).',
+        compute='_compute_lang_id', store=True,
+        readonly=False,
     )
 
     # -- Address fields ------------------------------------------------------
@@ -468,6 +504,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     won_status = fields.Selection(
         max_length=8, choices=WON_STATUS, default='pending',
         verbose_name='Won/Lost', help_text='Ganada, perdida o en curso (Odoo won_status).',
+        compute='_compute_won_status', store=True,
     )
     # ≙ lost_reason_id (:238-240), ondelete='restrict', tracking=71.
     lost_reason_id = fields.Many2one(
@@ -585,7 +622,21 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
     @api.depends('user_id', 'team_id', 'partner_id')
     def _compute_company_id(self):
-        """≙ ``_compute_company_id`` (:316-351) — coherencia de la empresa."""
+        """≙ ``_compute_company_id`` (:316-351) — coherencia de la empresa.
+
+        BLOQUEO MEDIDO en las dos ramas que leen la empresa **del cliente**:
+        ``ResPartner`` no declara ``company_id`` en este arbol, asi que
+        ``self.partner_id.company_id`` levanta ``AttributeError``. La fuente si
+        lo tiene (``odoo19c: res_partner.py``), y portarlo es la tarea **#110**.
+
+        Hasta entonces el cliente **no aporta empresa**: las dos ramas se leen
+        con ``_partner_company()``, que devuelve ``None`` cuando el campo no
+        existe. Eso conserva la forma de la fuente —el orden equipo >
+        responsable > cliente sigue escrito y las cuatro guardas siguen
+        corriendo— y sustituye el fallo duro por la ausencia de aporte, que es
+        lo que la fuente hace cuando el cliente no tiene empresa. Ver
+        :ref:`h-api-1034`.
+        """
         proposal = self.company_id
 
         if proposal:
@@ -604,7 +655,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             # salvo que el cliente traiga la suya
             elif not self.team_id_id and not self.user_id_id and (
                     not self.partner_id_id
-                    or self.partner_id.company_id_id != proposal.pk):
+                    or getattr(self._partner_company(), 'pk', None) != proposal.pk):
                 proposal = None
 
         # propuesta nueva por orden: equipo > responsable > cliente
@@ -614,9 +665,20 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             elif self.user_id_id:
                 self.company_id = self.user_id.company_id
             elif self.partner_id_id:
-                self.company_id = self.partner_id.company_id
+                self.company_id = self._partner_company()
             else:
                 self.company_id = None
+
+    def _partner_company(self):
+        """La empresa del cliente, o ``None`` mientras #110 no la porte.
+
+        Un solo sitio para el bloqueo, en vez de repetirlo en cada rama: cuando
+        ``ResPartner.company_id`` exista, este cuerpo se reduce a devolverlo y
+        las dos ramas de :meth:`_compute_company_id` quedan como la fuente.
+        """
+        if not self.partner_id_id:
+            return None
+        return getattr(self.partner_id, 'company_id', None)
 
     @api.depends('team_id', 'type')
     def _compute_stage_id(self):
@@ -641,7 +703,11 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         if not self.date_last_stage_update:
             self.date_last_stage_update = datetime.now(timezone.utc)
 
-    @api.depends('create_date', 'date_open')
+    #: ``create_date`` de la fuente es ``created_at`` aqui — la columna de
+    #: auditoria de ``TimeStampedModel``. El decorador la nombraba con el
+    #: nombre de alla mientras el cuerpo ya leia el de aqui: era inerte, y
+    #: el porte estricto de ``resolve_depends`` (#273 capa B) lo destapo.
+    @api.depends('created_at', 'date_open')
     def _compute_day_open(self):
         """≙ ``_compute_day_open`` (:371-380) — días entre alta y asignación."""
         if not (self.date_open and self.created_at):
@@ -650,7 +716,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         date_create = self.created_at.replace(microsecond=0)
         self.day_open = abs((self.date_open - date_create).days)
 
-    @api.depends('create_date', 'date_closed')
+    #: Misma correccion que en ``_compute_day_open``: ``create_date`` no
+    #: existe aqui; la columna es ``created_at``.
+    @api.depends('created_at', 'date_closed')
     def _compute_day_close(self):
         """≙ ``_compute_day_close`` (:382-390) — días entre alta y cierre."""
         if not (self.date_closed and self.created_at):
@@ -686,9 +754,14 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
         Con cliente: la entidad comercial, si es empresa y no es el propio
         contacto. Sin cliente: se busca por nombre de empresa.
+
+        En ``ResPartner`` el simbolo publico es ``commercial_partner``
+        (``src/addons/base/models/res_partner.py:1448``); ``commercial_partner_id``
+        alli **no existe**, asi que el nombre viejo levantaba ``AttributeError``
+        en cuanto habia cliente. Ver :ref:`h-api-1034`.
         """
         if self.partner_id_id:
-            commercial = self.partner_id.commercial_partner_id
+            commercial = self.partner_id.commercial_partner
             if commercial and commercial.is_company and commercial.pk != self.partner_id_id:
                 return commercial
             return None
@@ -710,8 +783,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         arrastre correo y teléfono del anterior.
         """
         commercial = self.commercial_partner_id
+        of_the_partner = self.partner_id.commercial_partner if self.partner_id_id else None
         if self.partner_id_id and commercial and \
-                commercial.pk != self.partner_id.commercial_partner_id_id:
+                commercial.pk != (of_the_partner.pk if of_the_partner else None):
             self.partner_id = None
             self.email_from = ''
             self.phone = ''
@@ -975,10 +1049,21 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         duplicates = set()
         if self.email_domain_criterion:
             duplicates |= _return_if_relevant(Q(email_domain_criterion=self.email_domain_criterion))
-        if self.partner_id_id and self.partner_id.commercial_partner_id_id:
+        commercial = self.partner_id.commercial_partner if self.partner_id_id else None
+        if commercial is not None:
+            # La fuente NO filtra por una columna de entidad comercial: pide
+            # ``("partner_id", "child_of", commercial.ids)`` (:664-667), o sea
+            # el cliente de la iniciativa **o cualquier descendiente suyo** en
+            # la jerarquia de ``res.partner``. Lo que habia filtraba
+            # ``partner_id__commercial_partner_id``, que aqui no compila —
+            # ``commercial_partner`` es una property sin columna— y ademas
+            # perdia a los descendientes. ``child_of`` ya esta registrado como
+            # optimizador (``orm/domains.py:2198``) y ``to_q`` optimiza a FULL,
+            # que es lo que lo hace resolver. Ver :ref:`h-api-1034`.
             duplicates |= set(
                 type(self).objects
-                .filter(partner_id__commercial_partner_id=self.partner_id.commercial_partner_id_id)
+                .filter(to_q(Domain('partner_id', 'child_of', [commercial.pk]),
+                             type(self)))
                 .exclude(pk=self.pk).values_list('pk', flat=True)
             )
         if self.phone_sanitized:
@@ -1089,8 +1174,26 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
         Nombre de empresa: el del padre del cliente si lo tiene; si no, el suyo
         cuando es empresa; si no, su ``company_name``.
+
+        DEPENDE DE LA FORMA DE LA FK, y hoy las dos conviven (:ref:`h-api-275`):
+
+        - **forma A** — ``parent = fields.Many2one(...)``: columna ``parent_id``
+          correcta, ``attname`` ``parent_id``, y el registro se lee por
+          ``.parent``. Es lo que ``ResPartner`` declara hoy, y lo que **736 de
+          las 878** FK del arbol declaran (medido).
+        - **forma C** — ``parent_id = fields.Many2one(..., db_column='parent_id')``:
+          columna Y accessor coinciden con la fuente a la vez; el ``attname``
+          pasa a ser ``parent_id_id``. Es la forma de destino, y ``crm`` ya la
+          usa para SUS propias FK (``self.partner_id_id``).
+
+        El barrido de A a C es la tarea **#143**. Mientras ``ResPartner`` siga en
+        forma A, se lee ``partner.parent`` / ``partner.parent_id``; lo que habia
+        —``partner.parent_id.name if partner.parent_id_id``— mezclaba las dos y
+        levantaba ``AttributeError`` en cuanto un cliente llegaba al computo.
+        Cuando #143 mueva ``ResPartner``, su reescritor tiene que alcanzar
+        tambien estas lecturas (tarea **#149**). Ver :ref:`h-api-1034`.
         """
-        partner_name = partner.parent_id.name if partner.parent_id_id else ''
+        partner_name = partner.parent.name if partner.parent_id else ''
         if not partner_name and partner.is_company:
             partner_name = partner.name
         elif not partner_name and partner.company_name:

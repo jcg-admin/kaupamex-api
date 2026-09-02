@@ -66,10 +66,29 @@ class AccountAccount(models.Model):
     account_type   = fields.Selection(
         max_length=32, choices=ACCOUNT_TYPES,
         help_text='Tipo de cuenta (Odoo account_type, requerido).',
+        compute='_compute_account_type', store=True,
+        readonly=False, precompute=True,
     )
+    #: DIVERGENCIA DECLARADA — la fuente NO le da columna: la declara
+    #: ``compute="_compute_internal_group", search="_search_internal_group"``
+    #: sin ``store`` (``odoo19c: account_account.py:76-87``), mas el ayudante
+    #: ``_get_internal_group`` (``:648-649``).
+    #:
+    #: Aqui lleva columna desde ``0001_initial`` y **no se puede retirar hoy**.
+    #: Medido: el compilador de Django no resuelve un campo sin columna ni en
+    #: el modelo directo —``FieldError: Cannot resolve keyword ... into
+    #: field``, probado sobre tres campos vivos de ``ResPartner``— y el
+    #: consumidor de esta columna atraviesa una FK:
+    #: ``digest.py:133`` filtra ``account__internal_group='income'``. Con
+    #: ``store=False`` ese filtro deja de compilar.
+    #:
+    #: El enlace automatico de ``search=`` cubre hoy solo el campo ``related``
+    #: (``orm/fields_nonstored.py:521``), no el calculado. Sucesor con su
+    #: condicion de cierre: tarea #310.
     internal_group = fields.Selection(
         max_length=16, choices=INTERNAL_GROUPS, blank=True, default='',
         help_text='Grupo interno derivado de account_type (Odoo internal_group).',
+        compute='_compute_internal_group', store=True,
     )
     reconcile      = fields.Boolean(
         default=False,

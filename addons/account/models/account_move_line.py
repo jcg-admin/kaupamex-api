@@ -73,6 +73,7 @@ class AccountMoveLine(AnalyticMixin, models.Model):
     balance     = fields.Monetary(
         max_digits=16, decimal_places=2, default=Decimal('0.00'),
         help_text='Saldo = debe - haber (Odoo balance, computado).',
+        compute='_compute_balance', store=True, readonly=False, precompute=True,
     )
     display_type = fields.Selection(
         max_length=16, choices=DISPLAY_TYPES, blank=True, default='',

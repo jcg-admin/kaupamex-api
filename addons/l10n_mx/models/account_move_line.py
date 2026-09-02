@@ -65,9 +65,15 @@ def _compute_account_id(self):
     (``odoo-tools@622ddc2a``). Ver las tres divergencias declaradas en el
     docstring del módulo.
     """
-    move = self.move
-    if move is None:
+    # La guarda se lee por la COLUMNA, no por el descriptor: ``move`` es
+    # requerido (``account/models/account_move_line.py:52``), asi que con la
+    # FK sin poner ``self.move`` lanza ``RelatedObjectDoesNotExist`` en vez de
+    # devolver ``None`` — y este receptor corre en ``pre_save``, antes de que
+    # la base opine. En la fuente ``self.move_id`` es un recordset vacio
+    # (falso); aqui su equivalente nativo es el id de la columna.
+    if self.move_id is None:
         return
+    move = self.move
     if self.display_type != 'product' or move.move_type != 'out_refund':
         return
     company = move.company

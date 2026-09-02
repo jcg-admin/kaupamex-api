@@ -1,0 +1,17 @@
+== Control discriminante #305 (sub-patron D de metrica-decide-la-conclusion) ==
+Fecha: 2026-09-02T16:50:29
+
+-- 1. Verde con el cableado puesto --
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+13 passed, 1 warning in 8.07s
+
+-- 2. Se ANULA el cableado de AccountMoveLine.balance (se quita compute=) --
+compute= retirado de balance
+FAILED tests/unit/orm/test_compute_wiring.py::TestTheCycleReachesTheColumn::test_touching_debit_recomputes_the_balance_into_the_column
+FAILED tests/unit/orm/test_compute_wiring.py::TestTheWiringIsStoredAndNotEditable::test_it_is_no_longer_editable[AccountMoveLine-balance]
+2 failed, 11 passed, 1 warning in 8.37s
+
+-- 3. Se restaura --
+compute= presente otra vez: False
+FAILED tests/unit/orm/test_compute_wiring.py::TestTheWiringIsStoredAndNotEditable::test_it_is_no_longer_editable[AccountMoveLine-balance]
+2 failed, 11 passed, 1 warning in 8.24s

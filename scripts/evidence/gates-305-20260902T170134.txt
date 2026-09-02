@@ -1,0 +1,18 @@
+== Gates estaticos #305 ==
+Fecha: 2026-09-02T17:01:34
+
+--- check_no_lazy_imports
+Movelos al top-level del modulo. Ver iniciativa
+  docs/source/gestion/pm/api/iniciativas/eliminar-lazy-imports-pep8/
+para el razonamiento y las excepciones documentadas (none).
+exit=0
+--- check_silent_oks
+OK: todo silencio de excepción está justificado (2526 archivos medidos).
+exit=0
+--- check_identifier_language (archivos tocados)
+OK: identificadores en inglés (8 archivos medidos, 1026 en deuda heredada).
+exit=0
+--- makemigrations --check
+fleet.FleetVehicleLogServices.account_move_line: (fields.W342) Setting unique=True on a ForeignKey has the same effect as using a OneToOneField.
+	HINT: ForeignKey(unique=True) is usually better served by a OneToOneField.
+No changes detected

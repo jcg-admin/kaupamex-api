@@ -1,0 +1,20 @@
+{
+  "question": "cuantas tareas en segundo plano puede ejecutar esta sesion a la vez, sin despachar agentes?",
+  "instrument": "measure_background_capacity.py — lee del ejecutable el guard de la anchura de herramienta y busca un cap sobre el numero de tareas en segundo plano; lanza N procesos desprendidos y calcula el solape real barriendo sus marcas de inicio y fin. probes/measure_useful_width.py reparte una carga fija con CPU entre N trabajadores y mide el reloj de pared",
+  "metric": "tres ejes distintos: (1) el entero del guard CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY, (2) el maximo de procesos desprendidos vivos a la vez, contado por barrido de eventos, (3) la aceleracion del reloj de pared sobre una carga fija a 1, 2, 4, 8 y 16 trabajadores",
+  "blind_to": [
+    "la anchura de herramienta NO se mide por conducta desde dentro: quien la ejerce es el cliente, no este proceso. Se lee del guard, y el guard dice como resolveria, no cuantas llamadas emitio este turno",
+    "el eje 2 se midio con procesos dormidos: mide cuantos CABEN, no cuantos SIRVEN. Por eso existe el eje 3",
+    "la memoria: 24 durmientes no la ejercen. Un lote de 24 pytest con su base cada uno es otro perfil y no esta medido",
+    "el cap de subagentes: fuera de alcance por directiva del ejecutor (sin ejecutar agentes). El respaldo _e del guard FQn no se pudo resolver por nombre — el minificador reusa el identificador, y elegir uno de los cinco candidatos seria fabricar",
+    "la contencion de la base: los trabajadores de la sonda no tocan PostgreSQL. El reparto de pytest tiene su propio limite, ya medido aparte (-n 4, base por worker)"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/ — y la regla bash-background-tasks.md, que describe los caps de agentes y no los de tareas en segundo plano",
+  "source": [
+    "/opt/claude-code/bin/claude (2.1.258, por literal N.N.N dominante: 1891 contra 129 del segundo)",
+    ".claude/rules/bash-background-tasks.md",
+    ".claude/rules/long-running-commands.md"
+  ],
+  "tasks": ["#18"],
+  "reproducible": "python3 scripts/workbench/background-task-capacity-20260902T171637/measure_background_capacity.py --count 24 --seconds 6 && python3 scripts/workbench/background-task-capacity-20260902T171637/probes/measure_useful_width.py"
+}

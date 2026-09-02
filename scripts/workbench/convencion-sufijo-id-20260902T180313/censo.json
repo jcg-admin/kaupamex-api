@@ -1,0 +1,344 @@
+{
+  "total_fk": 878,
+  "con_sufijo_id": 142,
+  "sin_sufijo_id": 736,
+  "apps_que_mezclan_las_dos": [
+    "account",
+    "authz_totp",
+    "base",
+    "base_address_extended",
+    "base_automation",
+    "crm",
+    "hr",
+    "hr_recruitment",
+    "hr_recruitment_skills",
+    "mass_mailing",
+    "product",
+    "purchase",
+    "sale",
+    "sale_management",
+    "stock",
+    "stock_account",
+    "uom",
+    "website_sale"
+  ],
+  "reparto_por_app": {
+    "account": {
+      "con_sufijo": 10,
+      "sin_sufijo": 79
+    },
+    "account_add_gln": {
+      "con_sufijo": 0,
+      "sin_sufijo": 1
+    },
+    "account_check_printing": {
+      "con_sufijo": 0,
+      "sin_sufijo": 4
+    },
+    "account_debit_note": {
+      "con_sufijo": 0,
+      "sin_sufijo": 3
+    },
+    "account_edi": {
+      "con_sufijo": 3,
+      "sin_sufijo": 0
+    },
+    "account_edi_proxy_client": {
+      "con_sufijo": 2,
+      "sin_sufijo": 0
+    },
+    "account_payment": {
+      "con_sufijo": 0,
+      "sin_sufijo": 10
+    },
+    "account_tax_python": {
+      "con_sufijo": 0,
+      "sin_sufijo": 1
+    },
+    "account_update_tax_tags": {
+      "con_sufijo": 0,
+      "sin_sufijo": 6
+    },
+    "admin": {
+      "con_sufijo": 0,
+      "sin_sufijo": 2
+    },
+    "analytic": {
+      "con_sufijo": 0,
+      "sin_sufijo": 27
+    },
+    "auth": {
+      "con_sufijo": 0,
+      "sin_sufijo": 1
+    },
+    "authz": {
+      "con_sufijo": 0,
+      "sin_sufijo": 12
+    },
+    "authz_audit": {
+      "con_sufijo": 0,
+      "sin_sufijo": 1
+    },
+    "authz_ldap": {
+      "con_sufijo": 0,
+      "sin_sufijo": 2
+    },
+    "authz_oauth": {
+      "con_sufijo": 0,
+      "sin_sufijo": 2
+    },
+    "authz_passkey": {
+      "con_sufijo": 0,
+      "sin_sufijo": 1
+    },
+    "authz_reauth": {
+      "con_sufijo": 0,
+      "sin_sufijo": 1
+    },
+    "authz_signup": {
+      "con_sufijo": 0,
+      "sin_sufijo": 1
+    },
+    "authz_totp": {
+      "con_sufijo": 1,
+      "sin_sufijo": 3
+    },
+    "auto_backup": {
+      "con_sufijo": 1,
+      "sin_sufijo": 0
+    },
+    "base": {
+      "con_sufijo": 33,
+      "sin_sufijo": 88
+    },
+    "base_address_extended": {
+      "con_sufijo": 3,
+      "sin_sufijo": 2
+    },
+    "base_automation": {
+      "con_sufijo": 4,
+      "sin_sufijo": 2
+    },
+    "base_geolocalize": {
+      "con_sufijo": 0,
+      "sin_sufijo": 1
+    },
+    "base_install_request": {
+      "con_sufijo": 3,
+      "sin_sufijo": 0
+    },
+    "base_setup": {
+      "con_sufijo": 1,
+      "sin_sufijo": 0
+    },
+    "certificate": {
+      "con_sufijo": 0,
+      "sin_sufijo": 4
+    },
+    "crm": {
+      "con_sufijo": 14,
+      "sin_sufijo": 2
+    },
+    "delivery": {
+      "con_sufijo": 0,
+      "sin_sufijo": 7
+    },
+    "digest": {
+      "con_sufijo": 1,
+      "sin_sufijo": 0
+    },
+    "fleet": {
+      "con_sufijo": 0,
+      "sin_sufijo": 30
+    },
+    "helpdesk": {
+      "con_sufijo": 0,
+      "sin_sufijo": 3
+    },
+    "hr": {
+      "con_sufijo": 12,
+      "sin_sufijo": 44
+    },
+    "hr_homeworking": {
+      "con_sufijo": 2,
+      "sin_sufijo": 0
+    },
+    "hr_recruitment": {
+      "con_sufijo": 4,
+      "sin_sufijo": 19
+    },
+    "hr_recruitment_skills": {
+      "con_sufijo": 1,
+      "sin_sufijo": 3
+    },
+    "hr_skills": {
+      "con_sufijo": 0,
+      "sin_sufijo": 12
+    },
+    "hr_timesheet": {
+      "con_sufijo": 2,
+      "sin_sufijo": 0
+    },
+    "hr_work_entry": {
+      "con_sufijo": 0,
+      "sin_sufijo": 7
+    },
+    "html_editor": {
+      "con_sufijo": 0,
+      "sin_sufijo": 1
+    },
+    "loyalty": {
+      "con_sufijo": 0,
+      "sin_sufijo": 10
+    },
+    "mail": {
+      "con_sufijo": 0,
+      "sin_sufijo": 21
+    },
+    "mass_mailing": {
+      "con_sufijo": 2,
+      "sin_sufijo": 4
+    },
+    "mrp": {
+      "con_sufijo": 0,
+      "sin_sufijo": 13
+    },
+    "mrp_subcontracting": {
+      "con_sufijo": 0,
+      "sin_sufijo": 7
+    },
+    "onboarding": {
+      "con_sufijo": 0,
+      "sin_sufijo": 4
+    },
+    "payment": {
+      "con_sufijo": 0,
+      "sin_sufijo": 5
+    },
+    "product": {
+      "con_sufijo": 1,
+      "sin_sufijo": 38
+    },
+    "product_matrix": {
+      "con_sufijo": 0,
+      "sin_sufijo": 1
+    },
+    "project": {
+      "con_sufijo": 0,
+      "sin_sufijo": 7
+    },
+    "purchase": {
+      "con_sufijo": 6,
+      "sin_sufijo": 6
+    },
+    "purchase_requisition": {
+      "con_sufijo": 0,
+      "sin_sufijo": 7
+    },
+    "rating": {
+      "con_sufijo": 0,
+      "sin_sufijo": 9
+    },
+    "resource": {
+      "con_sufijo": 0,
+      "sin_sufijo": 10
+    },
+    "sale": {
+      "con_sufijo": 20,
+      "sin_sufijo": 8
+    },
+    "sale_crm": {
+      "con_sufijo": 0,
+      "sin_sufijo": 2
+    },
+    "sale_loyalty": {
+      "con_sufijo": 0,
+      "sin_sufijo": 2
+    },
+    "sale_management": {
+      "con_sufijo": 1,
+      "sin_sufijo": 1
+    },
+    "sale_margin": {
+      "con_sufijo": 0,
+      "sin_sufijo": 1
+    },
+    "sale_mrp": {
+      "con_sufijo": 0,
+      "sin_sufijo": 2
+    },
+    "sale_product_matrix": {
+      "con_sufijo": 0,
+      "sin_sufijo": 1
+    },
+    "sale_project": {
+      "con_sufijo": 0,
+      "sin_sufijo": 3
+    },
+    "sale_purchase": {
+      "con_sufijo": 0,
+      "sin_sufijo": 2
+    },
+    "sale_sms": {
+      "con_sufijo": 0,
+      "sin_sufijo": 2
+    },
+    "sale_stock": {
+      "con_sufijo": 0,
+      "sin_sufijo": 2
+    },
+    "sale_subscription": {
+      "con_sufijo": 0,
+      "sin_sufijo": 7
+    },
+    "sale_timesheet": {
+      "con_sufijo": 0,
+      "sin_sufijo": 4
+    },
+    "sales_team": {
+      "con_sufijo": 4,
+      "sin_sufijo": 0
+    },
+    "stock": {
+      "con_sufijo": 1,
+      "sin_sufijo": 141
+    },
+    "stock_account": {
+      "con_sufijo": 2,
+      "sin_sufijo": 1
+    },
+    "stock_landed_costs": {
+      "con_sufijo": 0,
+      "sin_sufijo": 5
+    },
+    "token_blacklist": {
+      "con_sufijo": 0,
+      "sin_sufijo": 2
+    },
+    "uom": {
+      "con_sufijo": 1,
+      "sin_sufijo": 1
+    },
+    "utm": {
+      "con_sufijo": 2,
+      "sin_sufijo": 0
+    },
+    "web": {
+      "con_sufijo": 2,
+      "sin_sufijo": 0
+    },
+    "website": {
+      "con_sufijo": 0,
+      "sin_sufijo": 21
+    },
+    "website_sale": {
+      "con_sufijo": 3,
+      "sin_sufijo": 2
+    },
+    "website_sale_wishlist": {
+      "con_sufijo": 0,
+      "sin_sufijo": 2
+    }
+  }
+}
+EXIT=0

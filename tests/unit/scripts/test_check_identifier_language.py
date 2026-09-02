@@ -61,15 +61,15 @@ class TestRealSpanishSurvivesTheExemption:
     adorno — un verde que no distingue «no hay español» de «no lo puedo ver».
     """
 
-    @pytest.mark.parametrize('nombre, esperado', [
+    @pytest.mark.parametrize('name, esperado', [
         ('devuelve_el_valor', ['devuelve', 'el', 'valor']),
         ('nombre_del_campo', ['campo', 'del', 'nombre']),
         ('crea_una_orden', ['crea', 'orden', 'una']),
         ('validacion_de_precio', ['de', 'precio', 'validacion']),
     ])
-    def test_a_spanish_identifier_is_still_flagged(self, gate, nombre, esperado):
+    def test_a_spanish_identifier_is_still_flagged(self, gate, name, esperado):
         familias = gate.code_suffix_families(FAMILIA_VAT)
-        assert gate.spanish_words_in(nombre, familias) == esperado
+        assert gate.spanish_words_in(name, familias) == esperado
 
 
 class TestTheExemptionIsMeasuredAgainstTheWholeTree:
@@ -93,8 +93,8 @@ class TestTheExemptionIsMeasuredAgainstTheWholeTree:
             familias = gate.code_suffix_families(n for n, _ in declarados)
             if not familias:
                 continue
-            for nombre, _ in declarados:
-                if gate.spanish_words_in(nombre) and not gate.spanish_words_in(
-                        nombre, familias):
-                    absueltos.append(nombre)
+            for name, _ in declarados:
+                if gate.spanish_words_in(name) and not gate.spanish_words_in(
+                        name, familias):
+                    absueltos.append(name)
         assert absueltos == ['check_vat_de'], absueltos

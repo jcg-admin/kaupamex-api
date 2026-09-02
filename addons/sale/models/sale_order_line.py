@@ -311,12 +311,16 @@ class SaleOrderLine(AnalyticMixin, TimeStampedModel):
         verbose_name='Precio con descuento sin impuestos',
         help_text='Odoo price_reduce_taxexcl ("Price Reduce Tax excl", '
                   'compute+store, precompute).',
+        compute='_compute_price_reduce_taxexcl', store=True,
+        precompute=True,
     )
     price_reduce_taxinc = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         verbose_name='Precio con descuento con impuestos',
         help_text='Odoo price_reduce_taxinc ("Price Reduce Tax incl", '
                   'compute+store, precompute).',
+        compute='_compute_price_reduce_taxinc', store=True,
+        precompute=True,
     )
     customer_lead = fields.Monetary(
         max_digits=16, decimal_places=4, default=Decimal('0.0000'),
@@ -415,18 +419,24 @@ class SaleOrderLine(AnalyticMixin, TimeStampedModel):
         verbose_name='Subtotal',
         help_text='Odoo price_subtotal ("Subtotal", compute+store, '
                   'precompute). El importe de la línea sin impuestos.',
+        compute='_compute_amount', store=True,
+        precompute=True,
     )
     price_tax = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         verbose_name='Impuesto total',
         help_text='Odoo price_tax ("Total Tax", compute+store, precompute). '
                   'El impuesto de la línea.',
+        compute='_compute_amount', store=True,
+        precompute=True,
     )
     price_total = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         verbose_name='Total',
         help_text='Odoo price_total ("Total", compute+store, precompute). El '
                   'importe de la línea con impuestos.',
+        compute='_compute_amount', store=True,
+        precompute=True,
     )
 
     class Meta:
