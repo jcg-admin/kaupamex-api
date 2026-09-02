@@ -12,9 +12,9 @@ Dos divergencias de forma, declaradas:
   formatearse, y este árbol no tiene traducción perezosa (el eje ``translate``
   es la tarea #184). Los mensajes se levantan en el momento, así que el
   resultado es el mismo texto.
-- ``Image.preinit()`` / ``Image._initialized = 2`` se conservan: precargan el
-  subconjunto mínimo de formatos que Pillow reconoce sin recorrer todos los
-  plugins, como la fuente.
+- ``Image.preinit()`` / ``Image._initialized = 2`` se conservan: precargan
+  el subconjunto mínimo de formatos que Pillow reconoce sin recorrer todos
+  los plugins, como la fuente.
 """
 import base64
 import binascii
@@ -22,7 +22,8 @@ import io
 from random import randrange
 from typing import Tuple, Union
 
-from PIL import IcoImagePlugin  # noqa: F401 — preload: ICO se considera seguro
+# ICO se precarga también: se considera seguro (la fuente hace lo mismo).
+from PIL import IcoImagePlugin  # noqa: F401
 from PIL import Image, ImageOps
 from PIL.Image import Palette, Resampling, Transpose
 
@@ -39,9 +40,9 @@ _lt = _
 Image.preinit()
 Image._initialized = 2
 
-#: ≙ ``FILETYPE_BASE64_MAGICWORD`` (``:32-38``): sólo los 6 primeros bits del
-#: base64 — bastante exacto para este uso y más rápido que decodificar el
-#: binario entero.
+#: ≙ ``FILETYPE_BASE64_MAGICWORD`` (``:32-38``): sólo los 6 primeros bits
+#: del base64 — bastante exacto para este uso y más rápido que decodificar
+#: el binario entero.
 FILETYPE_BASE64_MAGICWORD = {
     b'/': 'jpg',
     b'R': 'gif',
@@ -72,9 +73,9 @@ IMAGE_MAX_RESOLUTION = 50e6
 
 
 class ImageProcess:
-    """≙ ``ImageProcess`` (``:58-296``) — la tubería de operaciones sobre una
-    imagen: abrir, corregir orientación, redimensionar, recortar, colorear,
-    rellenar y serializar con calidad."""
+    """≙ ``ImageProcess`` (``:58-296``) — la tubería de operaciones sobre
+    una imagen: abrir, corregir orientación, redimensionar, recortar,
+    colorear, rellenar y serializar con calidad."""
 
     def __init__(self, source, verify_resolution=True):
         """Prepara la imagen ``source`` para procesarla.
@@ -101,7 +102,8 @@ class ImageProcess:
                 size = get_webp_size(source)
                 if size and size[0] * size[1] > IMAGE_MAX_RESOLUTION:
                     raise UserError(_lt(
-                        "Too large image (above %sMpx), reduce the image size.",
+                        "Too large image (above %sMpx), "
+                        "reduce the image size.",
                         str(IMAGE_MAX_RESOLUTION / 1e6)))
         else:
             try:
@@ -182,7 +184,7 @@ class ImageProcess:
         return output_bytes
 
     def resize(self, max_width=0, max_height=0, expand=False):
-        """Redimensiona sin superar el tamaño actual, salvo con ``expand``.
+        """Redimensiona sin superar el tamaño actual (salvo ``expand``).
 
         Conserva la relación de aspecto (para cambiarla, ``crop_resize``). Si
         ``max_width`` o ``max_height`` es falso, se calcula del otro; si los
@@ -208,7 +210,7 @@ class ImageProcess:
         return self
 
     def crop_resize(self, max_width, max_height, center_x=0.5, center_y=0.5):
-        """Recorta y redimensiona a la relación de ``max_width``/``max_height``.
+        """Recorta y redimensiona a la relación ``max_width``/``max_height``.
 
         Nunca agranda. El recorte va antes del redimensionado para conservar
         cuanto se pueda de la imagen: el objetivo es llegar a una relación de
@@ -315,8 +317,8 @@ def image_process(source, size=(0, 0), verify_resolution=False, quality=0,
 # ----------------------------------------
 
 def average_dominant_color(colors, mitigate=175, max_margin=140):
-    """≙ ``average_dominant_color`` (``:336-395``) — el color dominante de una
-    lista de ``(conteo, (R, G, B, A))`` (la salida de ``Image.getcolors``).
+    """≙ ``average_dominant_color`` (``:336-395``) — el color dominante de
+    una lista de ``(conteo, (R, G, B, A))`` (salida de ``Image.getcolors``).
 
     Cinco pasos: aislar el color más frecuente; fijar márgenes según su
     prevalencia; agrupar en el conjunto dominante los colores parecidos y
@@ -391,7 +393,8 @@ def binary_to_image(source):
     try:
         return Image.open(io.BytesIO(source))
     except (OSError, binascii.Error):
-        raise UserError(_lt("This file could not be decoded as an image file."))
+        raise UserError(
+            _lt("This file could not be decoded as an image file."))
 
 
 def base64_to_image(base64_source: Union[str, bytes]) -> Image:
@@ -400,7 +403,8 @@ def base64_to_image(base64_source: Union[str, bytes]) -> Image:
     try:
         return Image.open(io.BytesIO(base64.b64decode(base64_source)))
     except (OSError, binascii.Error):
-        raise UserError(_lt("This file could not be decoded as an image file."))
+        raise UserError(
+            _lt("This file could not be decoded as an image file."))
 
 
 def image_apply_opt(image: Image, output_format: str, **params) -> bytes:
@@ -459,7 +463,8 @@ def is_image_size_above(base64_source_1, base64_source_2):
     de subformato desconocido."""
     if not base64_source_1 or not base64_source_2:
         return False
-    if base64_source_1[:1] in (b'P', 'P') or base64_source_2[:1] in (b'P', 'P'):
+    if (base64_source_1[:1] in (b'P', 'P')
+            or base64_source_2[:1] in (b'P', 'P')):
         # Falso para SVG
         return False
 

@@ -150,6 +150,39 @@ def _structured_of(partner):
         return None
 
 
+def _get_city_id(self):
+    """La ciudad del catálogo — ≙ el campo ``city_id`` de ``:17``.
+
+    La fuente declara ``city_id`` como **columna de ``res.partner``**. Aquí la
+    columna vive en el RELATED (DEC-SALE-01), y esta propiedad restituye la
+    superficie en el receptor de la fuente: quien porte código de Odoo escribe
+    ``partner.city_id`` y lo encuentra.
+
+    No es azúcar: sin ella, ``_address_fields`` —que la fuente hace devolver
+    ``'city_id'``— rompería a su propio consumidor,
+    ``ResPartner._prepare_address_values``, que hace ``getattr(self, key)``
+    sobre cada campo de la lista.
+    """
+    structured = _structured_of(self)
+    return structured.city_id if structured is not None else None
+
+
+def _set_city_id(self, value):
+    """Escribe la ciudad en la fila RELATED, creándola si hace falta.
+
+    La fuente asigna una columna suya; aquí el destino es el RELATED, y una
+    asignación no puede fallar por no existir la fila todavía — sería una
+    diferencia de conducta que la fuente no tiene.
+    """
+    structured = _structured_of(self)
+    if structured is None:
+        if value is None:
+            return
+        structured = AddressStructured(partner=self)
+    structured.city_id = value
+    structured.save()
+
+
 def _address_fields(cls):
     """Añade ``city_id`` a los campos que se heredan del padre — ≙ ``:20-22``.
 
@@ -320,3 +353,10 @@ def apply_base_address_extended_extensions():
     chain_method(ResPartner, '_compute_street_data', _compute_street_data)
     chain_method(ResPartner, '_inverse_street_data', _inverse_street_data)
     chain_method(ResPartner, '_get_street_split', _get_street_split)
+
+    # ``city_id`` es COLUMNA de ``res.partner`` en la fuente (``:17``). Aquí es
+    # una propiedad sobre el mismo receptor, respaldada por el RELATED: es lo
+    # que hace que ``_address_fields`` pueda devolverla sin romper a
+    # ``_prepare_address_values``, que la lee con ``getattr``.
+    if not isinstance(getattr(ResPartner, 'city_id', None), property):
+        ResPartner.city_id = property(_get_city_id, _set_city_id)
