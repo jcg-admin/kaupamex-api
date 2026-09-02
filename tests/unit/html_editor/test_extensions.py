@@ -10,9 +10,10 @@ import pytest
 from addons.base.models import ir_field_converters as converters
 from addons.base.models.ir_http import IrHttp
 from addons.base.models.ir_model import Base
+from addons.base.models.ir_ui_view import MOVABLE_BRANDING
 from addons.base.models.ir_template_expressions import IrTemplateExpressions
 from django.apps import apps
-from lxml import html
+from lxml import etree, html
 from orm.registry import model_by_name
 
 from addons.html_editor.models import ir_attachment as he_attachment
@@ -216,7 +217,6 @@ class TestTheViewLearnedToSaveWhatWasEdited:
         assert View.save_from_html is not View.save
 
     def test_the_editing_attributes_include_the_movable_branding(self):
-        from addons.base.models.ir_ui_view import MOVABLE_BRANDING
         for attr in MOVABLE_BRANDING:
             assert attr in he_view.EDITING_ATTRIBUTES
         assert 'data-oe-type' in he_view.EDITING_ATTRIBUTES
@@ -229,14 +229,12 @@ class TestTheViewLearnedToSaveWhatWasEdited:
         assert cleaned == {'class': 'a b', 'id': 'keep'}
 
     def test_two_archs_with_the_attributes_in_another_order_are_equal(self):
-        from lxml import etree
         View = model_by_name('ir.ui.view')
         a = etree.fromstring('<div a="1" b="2"><p>x</p></div>')
         b = etree.fromstring('<div b="2" a="1"><p>x</p></div>')
         assert View._are_archs_equal(View(), a, b) is True
 
     def test_a_different_text_makes_them_unequal(self):
-        from lxml import etree
         View = model_by_name('ir.ui.view')
         a = etree.fromstring('<div><p>x</p></div>')
         b = etree.fromstring('<div><p>y</p></div>')

@@ -1,6 +1,8 @@
 """``html_editor.tools`` — vídeo incrustado e historia divergente."""
 import pytest
 from django.core.exceptions import ValidationError
+from io import BytesIO
+from PIL import Image
 
 from addons.html_editor import tools
 
@@ -79,9 +81,7 @@ class TestTheImageProcessSeam:
         assert tools._image_process(b'no soy una imagen') is None
 
     def test_a_real_png_survives_the_round_trip(self):
-        from io import BytesIO
 
-        from PIL import Image
         buf = BytesIO()
         Image.new('RGB', (2, 2), 'red').save(buf, 'PNG')
         out = tools._image_process(buf.getvalue())
