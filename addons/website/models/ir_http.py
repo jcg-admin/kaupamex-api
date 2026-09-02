@@ -16,6 +16,37 @@ en este árbol el enrutado y el despacho son la URLconf de Django más el
 router de DRF. Su re-evaluación viaja con el sucesor ya registrado **#545**
 (la enumeración sobre ``routing_map`` que bloqueó B2 de ``website.py``).
 
+``_slug`` y ``_slug_matching`` — medidos en #261, siguen ausentes
+=================================================================
+
+El addon ``http_routing`` ya existe en este árbol (tarea #261) y con él
+``ir.http._slug``, la composición ``<nombre>-<id>``. Eso reabre dos de los 28
+símbolos que este archivo declara ausentes, porque los dos viven aquí y no
+allá — **corrección de premisa medida**::
+
+    grep -rln "_slug_matching" --include=*.py "$ODOO19C/addons" "$ODOO19C/odoo"
+    -> addons/website/models/ir_http.py        (1 archivo, no http_routing)
+
+Los dos siguen **ausentes**, ahora con su bloqueo medido y no por pertenecer
+a la familia del enrutado:
+
+- ``_slug`` (``odoo19c: addons/website/models/ir_http.py:64-70``) prefiere
+  ``value.seo_name`` sobre el ``display_name`` cuando el registro lo declara.
+  Bloqueo: ``grep -rn "seo_name" --include=*.py addons/ src/`` da **0**. El
+  campo lo declara el mixin ``website.seo.metadata``
+  (``odoo19c: addons/website/models/mixins.py:29``), que este árbol no porta
+  — ``ir_ui_view.py:752-756`` ya lleva la marca de bloqueo y sucesor. Portar
+  el override hoy sería un ``try/except AttributeError`` que nunca deja de
+  levantar: un nombre sin mecanismo. Se porta con el mixin, en ese sucesor.
+
+- ``_slug_matching`` (``:73-78``) marca los argumentos de tipo registro con
+  ``slug_matching=True`` y reconstruye la URL con ``adapter.build``. Dos
+  bloqueos: este ORM no tiene contexto por registro —``http_routing`` ya
+  declara su análogo, el atributo ``_converter_value`` de ``ModelConverter``—
+  y su único consumidor en la fuente es el propio archivo
+  (**1** archivo en los 629 addons medidos), o sea que no habría quién lo
+  llamara. Se porta con ``routing_map``, sucesor **#545**.
+
 Divergencias declaradas:
 
 - ``_inherit = 'ir.http'`` → **subclase de** ``addons.base.models.IrHttp``.

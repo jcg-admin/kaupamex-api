@@ -1,0 +1,57 @@
+# Control discriminante — http-routing-slug  (tarea #261)
+# fecha:    2026-09-02T04:43:53
+# archivo:  addons/http_routing/models/ir_http.py
+# tests:    tests/unit/http_routing/ tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py
+# copia:    .neutering/addons_http_routing_models_ir_http.py.bak   (restauracion desde la copia, NUNCA desde git —
+#           tarea #177: 'git checkout <archivo>' borra lo no commiteado)
+
+## 0. Verde de partida (las dos guardas presentes)
+86 passed, 1 warning in 5.07s
+
+## 1. ANULADA la composicion del nombre — `return f"{slugname}-{identifier}"` -> `return str(identifier)`
+##    (es exactamente lo que `base.slug` hace: el id pelado)
+FAILED tests/unit/http_routing/test_model_converter.py::TestToUrlIsTheOtherDirection::test_it_writes_the_readable_slug
+FAILED tests/unit/http_routing/test_slug_composition.py::TestTheNameIsCarriedIntoTheSlug::test_a_record_gives_name_then_id
+FAILED tests/unit/http_routing/test_slug_composition.py::TestTheNameIsCarriedIntoTheSlug::test_a_name_search_tuple_gives_the_same
+FAILED tests/unit/http_routing/test_slug_composition.py::TestTheNameIsCarriedIntoTheSlug::test_it_is_not_just_the_id
+FAILED tests/unit/http_routing/test_slug_composition.py::TestNonAsciiSurvives::test_the_script_is_kept_and_the_accent_is_stripped[\u624b\u5de5\u7682-\u624b\u5de5\u7682-42]
+FAILED tests/unit/http_routing/test_slug_composition.py::TestNonAsciiSurvives::test_the_script_is_kept_and_the_accent_is_stripped[\u0635\u0627\u0628\u0648\u0646 \u064a\u062f\u0648\u064a-\u0635\u0627\u0628\u0648\u0646-\u064a\u062f\u0648\u064a-42]
+FAILED tests/unit/http_routing/test_slug_composition.py::TestNonAsciiSurvives::test_the_script_is_kept_and_the_accent_is_stripped[Caf\xe9 Org\xe1nico-cafe-organico-42]
+FAILED tests/unit/http_routing/test_slug_composition.py::TestNonAsciiSurvives::test_the_script_is_kept_and_the_accent_is_stripped[\xd1and\xfa_edici\xf3n 2026-nandu-edicion-2026-42]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheSlugKeepsWhatDjangoWouldDrop::test_a_non_latin_name_survives_in_the_slug[\u624b\u5de5\u7682-\u624b\u5de5\u7682-42]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheSlugKeepsWhatDjangoWouldDrop::test_a_non_latin_name_survives_in_the_slug[\u30cf\u30f3\u30c9\u30e1\u30a4\u30c9 \u77f3\u9e78-\u30cf\u30f3\u30c8\u30e1\u30a4\u30c8-\u77f3\u9e78-42]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheSlugKeepsWhatDjangoWouldDrop::test_a_non_latin_name_survives_in_the_slug[\u0635\u0627\u0628\u0648\u0646 \u064a\u062f\u0648\u064a-\u0635\u0627\u0628\u0648\u0646-\u064a\u062f\u0648\u064a-42]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheSlugKeepsWhatDjangoWouldDrop::test_a_latin_accent_is_stripped_by_decomposition
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheSlugKeepsWhatDjangoWouldDrop::test_an_underscore_is_replaced_like_any_non_word_character
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheSlugKeepsWhatDjangoWouldDrop::test_a_plain_ascii_name_is_unchanged
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_the_guard_is_not_reached_by_an_ordinary_name
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_the_showcase_slug_starts_with_the_wishlist_one[\u624b\u5de5\u7682]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_the_showcase_slug_starts_with_the_wishlist_one[Caf\xe9 Org\xe1nico]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_the_showcase_slug_starts_with_the_wishlist_one[Camisa Azul]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_both_come_from_the_ported_slugify
+19 failed, 67 passed, 1 warning in 4.82s
+
+## 2. ANULADA la rama del slug vacio — `if not slugname:` -> `if False:`
+##    (un nombre sin caracteres de palabra pasaria a dar '-42' en vez de '42')
+FAILED tests/unit/http_routing/test_slug_composition.py::TestTheEmptySlugBranch::test_a_name_without_word_characters_gives_only_the_id[!!!]
+FAILED tests/unit/http_routing/test_slug_composition.py::TestTheEmptySlugBranch::test_a_name_without_word_characters_gives_only_the_id[---]
+FAILED tests/unit/http_routing/test_slug_composition.py::TestTheEmptySlugBranch::test_a_name_without_word_characters_gives_only_the_id[   ]
+FAILED tests/unit/http_routing/test_slug_composition.py::TestTheEmptySlugBranch::test_a_name_without_word_characters_gives_only_the_id[### $$$]
+FAILED tests/unit/http_routing/test_slug_composition.py::TestTheEmptySlugBranch::test_a_name_without_word_characters_gives_only_the_id[]
+FAILED tests/unit/http_routing/test_slug_composition.py::TestTheEmptySlugBranch::test_none_is_treated_as_the_empty_name
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_a_name_without_word_characters_gives_only_the_id[!!!]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_a_name_without_word_characters_gives_only_the_id[---]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_a_name_without_word_characters_gives_only_the_id[   ]
+FAILED tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_a_name_without_word_characters_gives_only_the_id[### $$$]
+10 failed, 76 passed, 1 warning in 5.23s
+
+## 3. Restaurado — el verde vuelve, la copia coincide byte a byte
+86 passed, 1 warning in 5.02s
+
+## Lectura
+# Las dos guardas discriminan y NO se solapan: la composicion del nombre
+# sostiene 19 casos y la rama del slug vacio 10, y ningun caso cae en las
+# dos (los dos listados son disjuntos). Los que sobreviven a ambas —_unslug, _unslug_url, el convertidor
+# y las nueve ramas de _match— miden otra cosa, y esta escrito que la
+# miden: son las clases del archivo de tests que declaran su propia
+# guarda.

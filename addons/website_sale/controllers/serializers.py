@@ -35,35 +35,29 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.CharField())
     def get_slug(self, obj):
-        """≙ ``_slug`` (``odoo19c: addons/http_routing/models/ir_http.py``).
+        """``_slug`` del producto — ``<nombre-slugificado>-<id>``.
 
-        ``<nombre-slugificado>-<id>``: el id al final es lo que resuelve el
-        registro; el texto es legibilidad y SEO.
+        El id al final es lo que resuelve el registro; el texto es
+        legibilidad y SEO.
 
-        **El slugify es el portado, no el de Django.** El docstring anterior
-        ya decía «≙ ``ir.http._slug``» y el cuerpo llamaba a
-        ``django.utils.text.slugify``, que con su ``allow_unicode=False`` por
-        defecto descarta todo lo que no sea ASCII: medido sobre siete
-        nombres, los dos divergen en cinco, y en tres el de Django devuelve
-        cadena vacía — un producto llamado ``手工皂`` quedaba en ``-42``.
-        ``base.models.ir_http`` porta el de la referencia justamente por esa
-        razón, y su hermano ``website_sale_wishlist`` ya lo usaba sobre el
-        mismo dato. Ver :ref:`h-api-993`.
+        **Ya no se recompone aquí.** Este método construía
+        ``f'{slugname}-{obj.pk}'`` a mano sobre ``IrHttp.slugify_one`` y
+        declaraba su divergencia de SITIO con sucesor #261: en la referencia
+        la composición vive en ``http_routing``, addon que este árbol no
+        portaba. Ese addon existe desde #261, así que la composición se llama
+        donde la fuente la declara — ``IrHttp._slug``
+        (``odoo19c: addons/http_routing/models/ir_http.py:54-66``) — y este
+        serializer vuelve a ser lo que era, un proyector.
 
-        Se conserva la rama del slug vacío de la fuente —un nombre sin
-        caracteres de palabra devuelve **sólo el id**, no ``-42``— y su
-        lectura de ``display_name``, que hoy coincide con ``name`` y seguirá
-        siendo correcta el día que el modelo declare un ``_rec_name``
-        compuesto.
-
-        Divergencia de SITIO, declarada: en la referencia esta composición
-        vive en ``http_routing``, addon que este árbol no porta. Mientras no
-        exista, el único consumidor la lleva. Sucesor: tarea **#261**.
+        Lo que el cambio conserva, porque es la conducta que
+        ``tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py``
+        fija: el ``slugify`` es el portado y no el de Django (un producto
+        llamado ``手工皂`` conserva su nombre en la URL, ver :ref:`h-api-993`),
+        el nombre se lee de ``display_name``, y un nombre sin caracteres de
+        palabra devuelve **sólo el id**, no ``-42``. Las tres las hace ahora
+        ``_slug``, que es de donde salían.
         """
-        slugname = IrHttp.slugify_one(obj.display_name or '')
-        if not slugname:
-            return str(obj.pk)
-        return f'{slugname}-{obj.pk}'
+        return IrHttp._slug(obj)
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_image(self, obj):
