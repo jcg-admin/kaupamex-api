@@ -1,0 +1,26 @@
+=== Control discriminante de la capa C — sub-patron D
+Fecha: 2026-09-02T16:00:26
+
+--- A) linea base, motor completo ---
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+16 passed, 1 warning in 8.02s
+
+--- B) recorrido hacia atras anulado (no se baja por la dependencia) ---
+FAILED tests/unit/orm/test_modified_engine.py::TestTheFarDependencyWalksBackwards::test_touching_the_owner_marks_the_probe
+FAILED tests/unit/orm/test_modified_engine.py::TestTheFarDependencyWalksBackwards::test_only_the_probes_of_that_owner_are_marked
+FAILED tests/unit/orm/test_modified_engine.py::TestCreateSkipsTheManyToOneReturn::test_without_create_the_same_call_does_mark
+3 failed, 13 passed, 1 warning in 7.00s
+
+--- C) el paso al cache tras el computo, anulado ---
+FAILED tests/unit/orm/test_modified_engine.py::TestTheEngineClosesTheCircle::test_the_marked_field_reaches_the_column_on_flush
+1 failed, 15 passed, 1 warning in 7.58s
+
+--- Lectura del control ---
+B) anular el recorrido hacia atras: 3 rojos, y son exactamente los tres
+   que miden la dependencia lejana. Los de dependencia local sobreviven,
+   como debe ser: no bajan por ninguna relacion.
+C) anular el paso al cache tras el computo: 1 rojo, el unico que llega
+   hasta la COLUMNA. El calculo sigue corriendo y el valor sigue en el
+   atributo; lo que se pierde es que la fila de la base lo reciba — que
+   es la mitad silenciosa que store=True promete.
+Restaurado en ambos casos; diff contra la copia: identicos.

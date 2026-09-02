@@ -70,16 +70,17 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from exceptions import AccessError, UserError
 from orm.environments import (
     context_scope, env, get_context, get_current_company, get_current_uid,
-    get_current_user, is_su,
+    get_current_user, get_transaction, is_su, sudo as elevate_privileges,
 )
 from orm.commands import ManyToManyLink, ManyToManySet, One2manyChild
 from orm import registry
 from orm.domains import Domain, to_q
-from orm.fields import convert_to_display_name
+from orm.fields import _as_record_list as as_record_list, convert_to_display_name
 from orm.fields_nonstored import NonStored, non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
-from orm.utils import model_field_registry, parse_field_expr
+from orm.utils import model_field_registry, parse_field_expr, record_ids
 from service.db import Savepoint
+from tools.misc import OrderedSet
 from tools.sql import SQL
 
 _logger = logging.getLogger(__name__)
@@ -2867,3 +2868,398 @@ def _model_setitem(self, key, value):
 
 Model.__getitem__ = _model_getitem
 Model.__setitem__ = _model_setitem
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Capa C de #273 — ``modified()``: quien recorre el grafo y marca el recalculo
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# ≙ ``BaseModel.modified``, ``_modified``, ``_modified_triggers``,
+# ``_recompute_model``, ``_recompute_recordset`` y ``_recompute_field``
+# (``odoo19c: odoo/orm/models.py:6756-6959``).
+#
+# Las tres capas de #273, en una linea cada una:
+#
+# - **A** (``orm/fields.py``) — el campo sabe recalcularse y cachear su valor.
+# - **B** (``orm/registry.py``) — el grafo sabe QUE campos dependen de cual, y
+#   por que camino llegar a las filas afectadas.
+# - **C** (aqui) — alguien recorre ese grafo cuando un valor cambia, y marca.
+#
+# **Divergencia de mecanismo transversal, declarada una vez:** la fuente opera
+# sobre *recordsets* y aqui la unidad es la **instancia** o el ``QuerySet``.
+# Donde ella escribe ``records.browse(ids)`` para rehacer un conjunto, aqui se
+# lleva una **lista de instancias**: no hay recordset que rehacer, y filtrar la
+# lista es la misma operacion sin la indireccion. Es la misma adaptacion que
+# ``orm.utils.record_ids`` y ``orm.fields._as_record_list`` ya declaran.
+
+
+def _model_of_records(records):
+    """La clase de modelo de ``records`` — instancia, lista o ``QuerySet``."""
+    if isinstance(records, QuerySet):
+        return records.model
+    rows = as_record_list(records)
+    return type(rows[0]) if rows else None
+
+
+def _new_records(rows):
+    """Las filas aun sin persistir — ≙ el ``NewId`` de la fuente.
+
+    Alla un registro sin guardar lleva un id-falso y ``bool(NewId)`` es
+    ``False``; aqui Django deja ``pk is None`` hasta el ``save()``. Es el mismo
+    predicado con otro portador (``orm/identifiers.py`` lo declara).
+    """
+    return [row for row in rows if row.pk is None]
+
+
+def _inverse_accessor(inverse):
+    """El nombre por el que se navega ``inverse`` desde una instancia.
+
+    **No es ``inverse.name``**, y la diferencia es medible: en un
+    ``ManyToOneRel`` sin ``related_name`` el ``name`` es el del modelo en
+    minusculas y el atributo real es ``<modelo>_set``. La fuente no tiene esta
+    distincion porque su lado inverso es un campo declarado con su nombre; aqui
+    Django separa el nombre del registro del nombre del atributo, asi que se
+    pregunta por el segundo.
+    """
+    accessor = getattr(inverse, 'get_accessor_name', None)
+    return accessor() if accessor is not None else inverse.name
+
+
+def _traverse_inverse(rows, inverse):
+    """Las filas a las que ``rows`` llega por ``inverse``.
+
+    ≙ ``self[invf.name]`` de la fuente (``:6892``). El acceso a un lado inverso
+    en Django devuelve un *related manager*, no el conjunto: se materializa
+    aqui, y un lado directo devuelve la instancia o ``None``.
+    """
+    name = _inverse_accessor(inverse)
+    reached = []
+    seen = set()
+    for row in rows:
+        value = getattr(row, name, None)
+        if value is None:
+            continue
+        found = list(value.all()) if hasattr(value, 'all') else [value]
+        for item in found:
+            key = (type(item), item.pk) if item.pk is not None else id(item)
+            if key not in seen:
+                seen.add(key)
+                reached.append(item)
+    return reached
+
+
+def _records_pointing_at(model, field, rows):
+    """Las filas de ``model`` cuyo ``field`` apunta a alguna de ``rows``.
+
+    ≙ el ``else`` del ``for`` de ``:6903-6913``: cuando ningun inverso sirve,
+    la fuente busca por dominio. Aqui la busqueda es un ``filter`` con
+    ``__in``, y las filas aun sin persistir se resuelven por el cache del
+    campo — que es donde su valor vive hasta el ``save()``.
+    """
+    new_rows = _new_records(rows)
+    real_ids = [row.pk for row in rows if row.pk is not None]
+    found = []
+    if real_ids:
+        found = list(model.objects.filter(
+            **{f'{field.name}__in': real_ids}).order_by('pk'))
+    if new_rows:
+        cached_ids = field._get_cache(env())
+        new_keys = {id(row) for row in new_rows}
+        for candidate in model.objects.filter(pk__in=list(cached_ids)):
+            value = getattr(candidate, field.name, None)
+            if value is not None and id(value) in new_keys:
+                found.append(candidate)
+    return found
+
+
+def _modified_triggers(self, tree, create=False):
+    """Recorre el arbol de disparo hacia atras, cediendo que recalcular.
+
+    ≙ ``BaseModel._modified_triggers`` (``:6862-6918``). Cede tuplas
+    ``(campo, filas, creado)``.
+    """
+    rows = as_record_list(self)
+    if not rows:
+        return
+
+    #: Primero lo que hay que calcular sobre estas mismas filas.
+    for field in tree.root:
+        yield field, rows, create
+
+    #: Luego se baja por cada dependencia, invirtiendola.
+    for field, subtree in tree.items():
+        #: Al crear, ninguna otra fila puede tener todavia una referencia a
+        #: estas — ≙ ``:6884-6886``.
+        if create and (getattr(field, 'many_to_one', False)
+                       or getattr(field, 'type', None) in ('many2one',
+                                                           'many2one_reference')):
+            continue
+
+        model = getattr(field, 'model', None)
+        if model is None:
+            continue
+
+        records = None
+        for inverse in registry.field_inverses[field]:
+            #: Un inverso con dominio no sirve para la vuelta: su conjunto no
+            #: es el de todas las filas que apuntan aqui — ≙ ``:6889``.
+            if getattr(inverse, 'domain', None) and (
+                    getattr(inverse, 'one_to_many', False)
+                    or getattr(inverse, 'many_to_many', False)):
+                continue
+            records = _traverse_inverse(rows, inverse)
+            break
+
+        if records is None:
+            records = _records_pointing_at(model, field, rows)
+
+        if records:
+            yield from _modified_triggers(records, subtree)
+
+
+def _modified(self, fields, create):
+    """Los disparos que ``fields`` provoca sobre ``self``.
+
+    ≙ ``BaseModel._modified`` (``:6840-6860``). El ``select`` descarta del
+    arbol fusionado las ramas que solo contienen campos sin columna y sin nada
+    en cache: recorrerlas costaria consultas para no invalidar nada.
+    """
+    environment = env()
+
+    def select(field):
+        return bool((field.compute and field.store)
+                    or field._get_all_cache_ids(environment))
+
+    tree = registry.get_trigger_tree(fields, select=select)
+    if not tree:
+        return ()
+
+    #: La fuente eleva y desactiva el filtro por activo para el recorrido; aqui
+    #: la elevacion es un bloque de contexto, no un metodo del recordset, asi
+    #: que se abre alrededor de la construccion del iterador. Materializar es
+    #: deliberado: un generador perezoso saldria del bloque antes de recorrer.
+    with elevate_privileges(), context_scope(active_test=False):
+        return list(_modified_triggers(self, tree, create))
+
+
+def modified(self, fnames, create=False, before=False):
+    """Anuncia que ``fnames`` va a cambiar o cambio sobre ``self``.
+
+    ≙ ``BaseModel.modified`` (``:6756-6838``). Invalida el cache donde toca y
+    prepara el recalculo de los campos almacenados que dependan.
+
+    Docstring de la fuente, verbatim: *"Notify that fields will be or have been
+    modified on ``self``. This invalidates the cache where necessary, and
+    prepares the recomputation of dependent stored fields"*.
+
+    :param fnames: nombres de campo modificados sobre ``self``
+    :param create: si se llama en el contexto de una creacion
+    :param before: si se llama ANTES de modificar
+
+    El arbol de disparo de un campo F contiene los campos que dependen de F,
+    junto con los campos a invertir para saber que filas recalcular. Si G
+    depende de F, H de X.F, I de W.X.F y J de Y.F, el arbol de F es::
+
+                                  [G]
+                                X/   \\Y
+                              [H]     [J]
+                            W/
+                          [I]
+
+    y al modificar F sobre unas filas se marca G sobre ellas, H sobre
+    ``inverso(X, filas)``, I sobre ``inverso(W, inverso(X, filas))`` y J sobre
+    ``inverso(Y, filas)``.
+    """
+    rows = as_record_list(self)
+    if not rows or not fnames:
+        return
+
+    transaction = get_transaction()
+    if before:
+        #: Antes de modificar hay que ver que depende de ``self`` **ahora**, y
+        #: eso no debe recalcularse antes del cambio: solo se acumula.
+        marked = transaction.tocompute
+        tomark = collections.defaultdict(OrderedSet)
+    else:
+        #: Despues, el recorrido hacia atras tiene que contar con todo lo que
+        #: ya se sabe pendiente, asi que se marca cuanto antes.
+        marked = {}
+        tomark = transaction.tocompute
+
+    registry_of_model = model_field_registry(type(rows[0]))
+    fields = [registry_of_model[fname] for fname in fnames]
+    todo = [_modified(rows, fields, create)]
+
+    environment = env()
+    for field, records, created in itertools.chain.from_iterable(todo):
+        protected_ids = environment.protected(field)
+        records = [row for row in records if row.pk not in protected_ids]
+        if not records:
+            continue
+
+        if field.recursive:
+            #: Descarta lo ya procesado, para no entrar en ciclo — ``:6813``.
+            if field.compute and field.store:
+                seen = set(marked.get(field) or ()) | set(tomark.get(field) or ())
+                records = [row for row in records if row.pk not in seen]
+            else:
+                #: Sin columna solo interesan las filas con valor en cache: las
+                #: demas no tienen nada que invalidar.
+                in_cache = field._get_all_cache_ids(environment)
+                records = [row for row in records if row.pk in in_cache]
+            if not records:
+                continue
+            todo.append(_modified(records, [field], created))
+
+        if field.compute and field.store:
+            tomark[field].update(record_ids(records))
+        else:
+            #: Un calculado sin columna no se fuerza a recalcular: basta con
+            #: retirar su valor del cache — ``:6828-6831``.
+            field._invalidate_cache(environment, record_ids(records))
+
+    if before:
+        for field, ids in tomark.items():
+            environment.add_to_compute(field, ids)
+
+
+def _recompute_field(self, field, ids=None):
+    """Procesa el recalculo pendiente de ``field``.
+
+    ≙ ``BaseModel._recompute_field`` (``:6948-6959``).
+    """
+    pending = get_transaction().tocompute.get(field) or ()
+    ids = pending if ids is None else [i for i in ids if i in pending]
+    if not ids:
+        return
+    #: No se fuerza sobre las filas aun sin persistir: esas se recalculan al
+    #: leer el campo — ``:6955-6957``.
+    model = _model_of_records(self) or getattr(field, 'model', None)
+    if model is None:
+        return
+    field.recompute(list(model.objects.filter(pk__in=[i for i in ids if i])))
+
+
+def _recompute_model(self, fnames=None):
+    """Procesa los calculos pendientes de los campos del MODELO de ``self``.
+
+    ≙ ``BaseModel._recompute_model`` (``:6920-6932``). Sin acotar por fila: se
+    procesa todo lo pendiente de cada campo.
+    """
+    model = _model_of_records(self) or (self if isinstance(self, type) else None)
+    if model is None:
+        return
+    registry_of_model = model_field_registry(model)
+    fields = (registry_of_model.values() if fnames is None
+              else [registry_of_model[fname] for fname in fnames])
+    for field in fields:
+        if getattr(field, 'compute', None) and getattr(field, 'store', False):
+            _recompute_field(self, field)
+
+
+def _recompute_recordset(self, fnames=None):
+    """Procesa los calculos pendientes de las FILAS de ``self``.
+
+    ≙ ``BaseModel._recompute_recordset`` (``:6934-6946``). La diferencia con
+    ``_recompute_model`` es el alcance: aqui solo estas filas.
+    """
+    rows = as_record_list(self)
+    if not rows:
+        return
+    registry_of_model = model_field_registry(type(rows[0]))
+    fields = (registry_of_model.values() if fnames is None
+              else [registry_of_model[fname] for fname in fnames])
+    for field in fields:
+        if getattr(field, 'compute', None) and getattr(field, 'store', False):
+            _recompute_field(self, field, record_ids(rows))
+
+
+def _flush(self, fnames=None):
+    """Escribe a la base lo que el calculo dejo sucio en el cache.
+
+    ≙ ``BaseModel._flush`` (``odoo19c: odoo/orm/models.py:6386``). La fuente
+    saca del cache los campos sucios con sus ids y compone el ``UPDATE``; aqui
+    el ``UPDATE`` lo pone Django con ``save(update_fields=...)``, que escribe
+    **solo** esas columnas.
+
+    El cache lo puebla ``orm.fields._cache_computed_values``, que corre al
+    final de cada ``compute_value``: sin el, ``field_dirty`` estaria siempre
+    vacio y este metodo no tendria de donde saber que columna escribir.
+    """
+    rows = as_record_list(self)
+    if not rows:
+        return
+    dirty = get_transaction().field_dirty
+    model = type(rows[0])
+    wanted = None if fnames is None else set(fnames)
+
+    by_row = collections.defaultdict(list)
+    for field, ids in list(dirty.items()):
+        if getattr(field, 'model', None) is not model or not ids:
+            continue
+        if wanted is not None and field.name not in wanted:
+            continue
+        for row in rows:
+            if row.pk in ids:
+                by_row[row].append(field)
+
+    for row, row_fields in by_row.items():
+        names = []
+        for field in row_fields:
+            cached = field._get_cache(env())
+            if row.pk in cached:
+                setattr(row, getattr(field, 'attname', field.name),
+                        cached[row.pk])
+            names.append(getattr(field, 'attname', field.name))
+        row.save(update_fields=names)
+        for field in row_fields:
+            dirty[field].discard(row.pk)
+
+
+def flush_model(self, fnames=None):
+    """Procesa los calculos y las escrituras pendientes del MODELO de ``self``.
+
+    ≙ ``BaseModel.flush_model`` (``:6353-6365``). Docstring de la fuente,
+    verbatim: *"Process the pending computations and database updates on
+    ``self``'s model. When the parameter is given, the method guarantees that
+    at least the given fields are flushed to the database. More fields can be
+    flushed, though"*.
+    """
+    _recompute_model(self, fnames)
+    dirty = get_transaction().field_dirty
+    model = _model_of_records(self)
+    if model is None:
+        return
+    if fnames is None:
+        _flush(self)
+        return
+    registry_of_model = model_field_registry(model)
+    if any(registry_of_model[fname] in dirty for fname in fnames):
+        _flush(self, fnames)
+
+
+def flush_recordset(self, fnames=None):
+    """Procesa los calculos y las escrituras pendientes de las FILAS de ``self``.
+
+    ≙ ``BaseModel.flush_recordset`` (``:6367-6384``). La diferencia con
+    ``flush_model`` es el alcance: aqui solo estas filas.
+    """
+    rows = as_record_list(self)
+    if not rows:
+        return
+    _recompute_recordset(rows, fnames)
+    registry_of_model = model_field_registry(type(rows[0]))
+    fields = (registry_of_model.values() if fnames is None
+              else [registry_of_model[fname] for fname in fnames])
+    ids = set(record_ids(rows))
+    dirty = get_transaction().field_dirty
+    if not all(ids.isdisjoint(dirty.get(field) or ()) for field in fields):
+        _flush(rows, fnames)
+
+
+for _engine_method in (modified, _modified, _modified_triggers,
+                       _recompute_model, _recompute_recordset,
+                       _recompute_field, _flush, flush_model,
+                       flush_recordset):
+    setattr(Model, _engine_method.__name__, _engine_method)
+    setattr(QuerySet, _engine_method.__name__, _engine_method)

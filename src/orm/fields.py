@@ -2539,6 +2539,35 @@ def compute_value(self, records):
                 env.add_to_compute(field, ids)
         raise
 
+    _cache_computed_values(fields, records)
+
+
+def _cache_computed_values(fields, records):
+    """Lleva al caché lo que el cómputo dejó en la fila, marcándolo sucio.
+
+    Es la mitad de :func:`compute_value` que este stack tiene que escribir. La
+    fuente no la necesita: allá el método de cómputo **asigna sobre el
+    recordset**, y esa asignación ya pasa por ``_update_cache`` —el caché es el
+    canal de escritura del ORM—. Aquí el método asigna sobre la **instancia de
+    Django**, que es un objeto normal: el valor queda en el atributo y el caché
+    no se entera.
+
+    Sin este paso, ``field_dirty`` no se puebla nunca, y el ``_flush`` de la
+    capa C no tendría de dónde saber qué columna escribir: el cómputo correría,
+    el valor viviría en memoria, y la fila de la base seguiría con el valor
+    viejo. Es exactamente la mitad silenciosa que ``store=True`` promete.
+
+    Sólo para los campos **con columna**: un calculado sin ella no se persiste,
+    y ``_update_cache`` ya acota ahí su marca de sucio.
+    """
+    rows = _as_record_list(records)
+    for field in fields:
+        if not (field.store and field.column_type):
+            continue
+        for row in rows:
+            value = getattr(row, getattr(field, 'attname', field.name), None)
+            field._update_cache([row], value, dirty=True)
+
 
 for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
                       _get_all_cache_ids, _cache_missing_ids, _insert_cache,
