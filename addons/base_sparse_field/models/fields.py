@@ -59,8 +59,8 @@ este puerto ya construyó en ``orm/fields_nonstored.py``; ``Sparse`` es ese
 mismo mecanismo con el respaldo puesto en el campo serializado hermano en
 vez de en ``instance.__dict__``.
 
-Los tres métodos de conversión: los pone el framework
-======================================================
+Los tres métodos de conversión: PORTADOS, sobre el protocolo del framework
+==========================================================================
 
 La referencia declara en ``Serialized`` el protocolo entero de conversión de
 su ORM — ``convert_to_column_insert``, ``convert_to_cache`` y
@@ -68,8 +68,17 @@ su ORM — ``convert_to_column_insert``, ``convert_to_cache`` y
 — porque su ``fields.Field`` no sabe nada de JSON: el ``column_type`` es
 ``('text', 'text')`` y el ``json.dumps``/``json.loads`` lo escribe el campo.
 
-Aquí ``Serialized`` hereda de ``JSONField``, que ya trae ese protocolo con
-otros nombres. Medido antes de declararlo divergencia [PROVEN]::
+**Los tres se portan con su nombre y su firma**, y sus cuerpos delegan en el
+protocolo que ``JSONField`` ya trae con otros nombres (``get_prep_value`` /
+``from_db_value``). Lo que cambia es el **almacén**, no el contrato: allá el
+valor viaja a la columna como texto y aquí como ``jsonb``, así que
+``convert_to_cache`` no vuelve a serializar a mano lo que el motor guarda
+tipado. Esta sección decía antes que los tres *"quedan cubiertos"* por el
+framework y no se declaraban — un porte por delegación silenciosa, que es
+justo lo que ``porte-completo-no-parcial.md`` cuenta como ausente: quien busque
+``convert_to_record`` en este archivo tiene que encontrarlo.
+
+Medido antes de escribir los cuerpos [PROVEN]::
 
     f = Serialized()
     f.get_prep_value({'integer': 7, 'char': 'x', 'boolean': True})
@@ -79,10 +88,12 @@ otros nombres. Medido antes de declararlo divergencia [PROVEN]::
     -> {'integer': 7, 'char': 'x', 'boolean': True}        # round-trip idéntico
     f.from_db_value(None, None, None) -> None
 
-Es decir: **la columna es ``jsonb``, no ``text``**, así que la conversión la
-hace el driver y no el campo. Reescribir los tres métodos aquí volvería a
-serializar a mano lo que el motor ya guarda tipado — sería copiar una
-restricción de la referencia en vez de su conducta.
+Es decir: **la columna es ``jsonb``, no ``text``**, así que el ``json.dumps``
+de la fuente no se copia: copiarlo serializaría a mano lo que el motor ya
+guarda tipado, que sería portar una restricción de su capa multi-motor en vez
+de su conducta. Lo que sí se copia es todo lo demás — la firma, el orden de
+las ramas, la normalización de lo falso a ``None`` y la promesa de que un nulo
+se lee como mapa vacío.
 
 Cómo se declara aquí
 =====================
@@ -120,12 +131,11 @@ La referencia declara ``column_type = ('text', 'text')`` y serializa a mano
 con ``json.dumps``/``json.loads`` (``models/fields.py:88-101``), porque su
 capa soporta varios motores. Este proyecto es PostgreSQL-only (ADR-028), así
 que ``Serialized`` es un ``JSONField`` sobre ``jsonb`` nativo: el mapa se
-guarda estructurado, no como texto. Los tres métodos de conversión de la
-referencia —``convert_to_column_insert``, ``convert_to_cache``,
-``convert_to_record``— quedan cubiertos por el propio ``JSONField``, que ya
-entrega un ``dict`` al leer y acepta un ``dict`` al escribir.
+guarda estructurado, no como texto. Los tres métodos de conversión conservan
+su nombre y su firma; sus cuerpos son la misma operación contra ese almacén.
 """
 import copy
+import json
 
 from django.db import models
 
@@ -142,7 +152,66 @@ class Serialized(models.JSONField):
 
     ``prefetch = False`` de la referencia no tiene equivalente: aquí no hay
     prefetch por campo, la fila trae sus columnas completas.
+
+    Atributos de clase de la fuente y su destino aquí — ninguno se omite:
+
+    ==========================  ==================================================
+    ``odoo19c: fields.py``      Aquí
+    ==========================  ==================================================
+    ``type = 'serialized'``     lo declara ``SERIALIZED_TTYPE`` en el archivo
+                                hermano ``ir_model_fields.py``, que es quien lo
+                                consume (``sparse_ttype_for``); el ORM de este
+                                árbol no lee un ``type`` de la clase del campo
+    ``column_type = ('text',    ``jsonb``, que es lo que declara ``JSONField``;
+    'text')``                   divergencia de almacén, ver el encabezado
+    ``prefetch = False``        sin receptor: no hay prefetch por campo
+    ==========================  ==================================================
     """
+
+    def convert_to_column_insert(self, value, record, values=None,
+                                 validate=True):
+        """El valor tal como va a la columna — ≙ ``odoo19c: fields.py:85``.
+
+        Cuerpo verbatim de la fuente: delega en :meth:`convert_to_cache` con el
+        mismo ``validate``. ``values`` se acepta porque la firma de la fuente lo
+        declara y quien la llame puede pasarlo; aquí no participa, igual que
+        allá (su cuerpo tampoco lo usa).
+        """
+        return self.convert_to_cache(value, record, validate=validate)
+
+    def convert_to_cache(self, value, record, validate=True):
+        """La forma de caché del valor — ≙ ``odoo19c: fields.py:88``.
+
+        La fuente devuelve ``json.dumps(value)`` para un ``dict`` y ``value or
+        None`` para lo demás, porque su columna es ``text``. Aquí la columna es
+        ``jsonb``: el ``dict`` viaja **estructurado**, así que la conversión es
+        la del propio ``JSONField`` (``get_prep_value``, medido arriba: devuelve
+        el ``dict``) y el driver lo adapta.
+
+        La segunda mitad de la fuente se conserva **verbatim**: lo que no es un
+        mapa se pasa tal cual, y lo falso se normaliza a ``None`` — es lo que
+        impide guardar ``''`` donde debería ir un nulo.
+        """
+        if isinstance(value, dict):
+            return self.get_prep_value(value)
+        return value or None
+
+    def convert_to_record(self, value, record):
+        """El valor tal como lo ve el registro — ≙ ``odoo19c: fields.py:92``.
+
+        La fuente hace ``json.loads(value or "{}")`` porque de su columna sale
+        texto. De ``jsonb`` sale ya un ``dict``, así que el caso normal es
+        devolverlo; el ``json.loads`` se conserva para el texto, que es lo que
+        llega cuando el valor viene de un dump o de una columna heredada.
+
+        El ``or "{}"`` de la fuente es lo que garantiza que un nulo se lea como
+        mapa vacío, y esa promesa se mantiene en las tres ramas.
+        """
+        if isinstance(value, dict):
+            return value
+        if value is None or value == '':
+            return {}
+        return json.loads(value)
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('default', dict)

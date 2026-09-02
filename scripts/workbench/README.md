@@ -96,7 +96,25 @@ un comando de una línea cuya salida cabe en el turno.
 | Vive en | Qué es |
 |---|---|
 | `scripts/*.py` | instrumento **estable y reusable** — los gates, `reference_roots.py`, los censos que se vuelven a correr |
+| `scripts/evidence/` | la salida **cruda** de un instrumento ya promovido, sin pieza propia |
 | `scripts/workbench/<slug>-<ISO>/` | una pieza de trabajo **fechada**, con su instrumento propio y su evidencia |
+
+La fila del medio faltaba, y su ausencia costó una pregunta del ejecutor
+(2026-09-02): *«¿estás aún considerando `scripts/workbench/**`?»*. La respuesta
+—que un trabajo puede caer legítimamente fuera del banco— no se podía derivar
+de este archivo, aunque el árbol ya la ejercía.
+
+`scripts/evidence/` **no es un banco pobre**: es donde escribe un instrumento
+que ya se promovió. `neutralize_and_measure.sh:65` fija esa ruta en su propio
+cuerpo, y los manifiestos de `filter-function-de-properties` y
+`slug-de-producto` la citan en su clave `reproducible`. Un trabajo que **no
+construye instrumento** —usa uno promovido y publica su hallazgo— no abre
+pieza: su evidencia va ahí y su registro a `docs`. Abrirle pieza sería un
+manifiesto cuyo `instrument` apunta fuera de sí mismo, que es una carpeta vacía
+con ceremonia.
+
+El discriminador es el de la sección anterior, sin excepción nueva: **¿hubo que
+construir algo para responder la pregunta?** Si no, no hay pieza.
 
 El camino entre las dos es de una sola dirección: un instrumento que nace en
 el banco y resulta reusable **se promueve** a `scripts/`. Nunca al revés — un
@@ -140,6 +158,31 @@ incluye el fenómeno sobre el que se iba a concluir, la conclusión no se emite.
 Las opcionales que la experiencia de docs mostró útiles: `corrected_premise`
 (cuando la pregunta venía con una cifra que resultó ser otra cosa),
 `findings`, `tasks`, `reproducible`, `outputs`.
+
+## Antes de abrir una pieza: medir que su pregunta siga en pie
+
+Una pregunta se escribe una vez y el árbol cambia todos los días. Entre las dos
+fechas la premisa envejece sin que nada lo reporte: la pieza sigue preguntando
+por algo que el árbol ya contesta.
+
+```bash
+python3 scripts/verify_premise.py --manifest scripts/workbench/<slug>/manifest.json
+python3 scripts/verify_premise.py --workbench     # barrido del archivo
+```
+
+Lee `question` y `corrected_premise` del manifiesto —`metric` y `blind_to`
+describen el instrumento, no lo que se creía del árbol— y contrasta tres
+señales: un símbolo que ya está declarado, una ruta citada que no existe, y un
+bloqueador `#NNN` que ya cerró.
+
+**El veredicto es `RE-ENCUADRAR`, nunca `CERRAR`.** Que un símbolo exista no
+dice que su porte esté completo (`porte-completo-no-parcial.md`): dice que el
+encuadre debe re-medirse antes de despachar.
+
+**Su modo útil es `--manifest` sobre la pieza que se está redactando.** En el
+barrido del archivo, una señal sobre una pieza **ya cerrada** es la huella de
+su propio trabajo, no una premisa envejecida — el guion lo declara en su
+`Ciega a` y lo repite al pie del informe.
 
 ## Reglas que no se relajan aquí
 

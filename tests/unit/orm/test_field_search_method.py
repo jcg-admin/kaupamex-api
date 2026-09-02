@@ -15,7 +15,7 @@ import inspect
 import pytest
 
 from orm.domains import Domain, to_q
-from orm.fields import determine
+from orm.fields import _FIELD_CLASS_ATTRIBUTES, determine
 from orm.fields_nonstored import NonStored
 
 from addons.base.models.ir_config_parameter import SystemParameter
@@ -191,3 +191,56 @@ class TestTheFallbackLadder:
         with pytest.raises(ValueError, match='display_name'):
             Domain('display_name', 'ilike', 'x')\
                 ._optimize_field_search_method(config_parameter)
+
+
+class TestTheNonStoredAnswersTheFieldContract:
+    """Un campo sin columna responde al contrato de campo — ≙ ``Field``.
+
+    En la fuente ``NonStored`` no existe como clase aparte: un campo sin
+    columna **es** un ``Field`` con ``store=False``, así que responde a los
+    mismos atributos que cualquier otro. Aquí la jerarquía del stack los
+    separa —``NonStored`` no desciende de ``models.Field``—, y el bucle de
+    ``_FIELD_CLASS_ATTRIBUTES`` sólo alcanzaba a la clase de Django.
+
+    Qué haría fallar a cada control
+    --------------------------------
+
+    ``test_it_answers_whether_it_is_searchable``
+        CONTROL del hueco medido: antes levantaba ``AttributeError``. Su
+        consumidor real es ``_field_setup_related``, que recorre la cadena
+        preguntando ``f._description_searchable`` a cada eslabón — y un
+        eslabón sin columna cortaba el montaje.
+
+    ``test_it_is_not_stored``
+        CONTROL del único defecto que NO se hereda tal cual: ``store`` vale
+        ``True`` en ``Field`` y ``False`` aquí, que es lo que la clase
+        significa. Instalar el defecto de ``Field`` a secas lo pondría en
+        ``True`` y ``_description_searchable`` daría ``True`` para todos.
+    """
+
+    def test_it_answers_whether_it_is_searchable(self):
+        assert NonStored(default=None, search='_x')._description_searchable
+        assert not NonStored(default=None)._description_searchable
+
+    def test_it_is_not_stored(self):
+        assert NonStored(default=None).store is False
+
+    def test_it_answers_the_rest_of_the_class_contract(self):
+        """El resto de los atributos de clase, con el defecto de la fuente."""
+        field = NonStored(default=None)
+        faltantes = [name for name in _FIELD_CLASS_ATTRIBUTES
+                     if not hasattr(field, name)]
+        assert faltantes == [], (
+            f'el campo sin columna no responde a {len(faltantes)} atributos '
+            f'que la fuente declara en Field: {faltantes}')
+
+    def test_the_related_chain_can_cross_it(self):
+        """El consumidor real: ``_field_setup_related`` recorre la cadena.
+
+        Qué lo haría fallar: que un eslabón sin columna no responda
+        ``_description_searchable``. Era un ``AttributeError`` en el montaje,
+        no un rechazo declarado.
+        """
+        eslabones = [NonStored(default=None, search='_x'),
+                     NonStored(default=None)]
+        assert [f._description_searchable for f in eslabones] == [True, False]

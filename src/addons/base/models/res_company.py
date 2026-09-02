@@ -89,16 +89,54 @@ Qué NO se porta, con su medición
   otra razón —
   depende del combinador de XML, que ``ir_ui_view.py`` deja fuera con su
   medición.
+
+Fechas del ejercicio fiscal — sitio divergente, declarado (tarea #207)
+========================================================================
+
+``fiscalyear_last_day``/``fiscalyear_last_month`` y
+``compute_fiscalyear_dates`` (``odoo19c: account/models/company.py:74-75,
+1114-1122``) desbloquean ``fiscal_year_search`` de
+``addons/analytic/models/analytic_line.py`` y los ``related`` que
+``account/wizard/setup_wizards.py`` declara pendientes.
+
+La referencia los pone en la extensión ``account`` de ``res.company``
+(``_inherit``); este árbol replica ese ``_inherit`` con
+``apply_account_extensions()`` en ``addons/account/models/res_company.py``,
+que ya cuelga los cinco candados de fecha por el mismo mecanismo
+(``_add_if_absent`` + ``ready()`` de ``AccountConfig``).
+
+**Aquí NO se usa ese sitio.** El alcance de la tarea #207 restringe la
+edición a este archivo — evita una carrera de escritura con otros agentes
+que tocan ``account/models/res_company.py`` en la misma tanda. Los dos
+campos y el método se declaran **directamente en la clase base**, con la
+divergencia citada aquí para que quien la lea sepa que no es la forma
+preferida del proyecto, sino la que el alcance de este pase permitía.
+Prospectivo: si ``account/models/res_company.py`` gana un tramo libre para
+este par, migrar ahí no cambia la firma pública (mismo nombre, mismo
+comportamiento) — es un rehome, no un rediseño.
+
+``_check_fiscalyear_last_day`` (``odoo19c: :330-343``) se porta como guard
+explícito —no auto-hooked a ``save()``—, mismo patrón que
+``validate_hard_lock_date_change`` en ``account/models/res_company.py``: la
+referencia la ancla a ``account_opening_date`` (asiento de apertura), campo
+que este árbol no porta (Bloque 1, tarea #137). Se resuelve con
+``getattr(self, 'account_opening_date', None)`` y cae al año en curso
+cuando no existe — es DIVERGENCIA DE MECANISMO, no un recorte: la fuente
+también cae al año en curso cuando no hay fecha de apertura.
 """
 import base64
+import calendar
 import logging
+from datetime import date
 
 from zeep.cache import Base as ZeepCache
 
 import fields
 import models
-from tools import zeep
+from exceptions import ValidationError
+from tools import date_utils, zeep
 from tools.cache import ormcache
+from tools.translate import _
 from addons.base.models.report_paperformat import ReportPaperformat
 from addons.base.models.res_country import ResCountry, ResCountryState
 from addons.base.models.res_currency import ResCurrency
@@ -131,6 +169,17 @@ LAYOUT_BACKGROUND_CHOICES = [
     ('Blank', 'En blanco'),
     ('Demo logo', 'Logotipo de demostración'),
     ('Custom', 'Personalizado'),
+]
+
+#: ≙ ``MONTH_SELECTION`` (``odoo19c: account/models/company.py:17-30``) —
+#: el vocabulario de la fuente, verbatim y en el mismo orden (mismo criterio
+#: que ``ANNUAL_INVENTORY_MONTH_CHOICES`` de ``addons/stock/models/
+#: res_company.py``, que reutiliza esta misma lista de meses).
+MONTH_SELECTION = [
+    ('1', 'January'), ('2', 'February'), ('3', 'March'), ('4', 'April'),
+    ('5', 'May'), ('6', 'June'), ('7', 'July'), ('8', 'August'),
+    ('9', 'September'), ('10', 'October'), ('11', 'November'),
+    ('12', 'December'),
 ]
 
 
@@ -208,7 +257,12 @@ class ResCompany(TimeStampedModel):
 
     #: Campos que una sucursal hereda de su raíz. Es un método en la fuente
     #: para que un addon lo extienda; aquí, un ``classmethod`` por lo mismo.
-    _ROOT_DELEGATED_FIELDS = ('currency',)
+    #: ``fiscalyear_last_day``/``fiscalyear_last_month`` se suman aquí — ≙
+    #: ``_get_company_root_delegated_field_names`` de ``account``
+    #: (``odoo19c: company.py:311-316``): una sucursal no fija su propio
+    #: cierre de ejercicio, hereda el de su matriz.
+    _ROOT_DELEGATED_FIELDS = ('currency', 'fiscalyear_last_day',
+                              'fiscalyear_last_month')
 
     #: Campos de dirección que viven en el partner y se leen a través de él.
     _ADDRESS_FIELDS = (
@@ -327,6 +381,24 @@ class ResCompany(TimeStampedModel):
     layout_background_image = fields.Image(
         upload_to='company/layout/', null=True, blank=True,
         verbose_name='Imagen de fondo')
+
+    # === Ejercicio fiscal (Odoo account) ==================================
+    # ≙ ``fiscalyear_last_day``/``fiscalyear_last_month``
+    # (``odoo19c: account/models/company.py:74-75``). Sitio divergente
+    # declarado en el docstring del módulo: la referencia los pone en la
+    # extensión ``account`` de ``res.company``; aquí van directos en la
+    # clase base por el alcance de la tarea #207. Ver ese docstring.
+    fiscalyear_last_day = fields.Integer(
+        default=31, verbose_name='Último día del ejercicio fiscal',
+        help_text='Día del mes en que cierra el ejercicio fiscal de esta '
+                  'compañía (Odoo fiscalyear_last_day).',
+    )
+    fiscalyear_last_month = fields.Selection(
+        max_length=2, choices=MONTH_SELECTION, default='12',
+        verbose_name='Último mes del ejercicio fiscal',
+        help_text='Mes en que cierra el ejercicio fiscal de esta compañía '
+                  '(Odoo fiscalyear_last_month).',
+    )
 
     class Meta:
         db_table = 'res_company'
@@ -657,6 +729,59 @@ class ResCompany(TimeStampedModel):
         country = self.country
         if country is not None and getattr(country, 'currency_id', None):
             self.currency = country.currency
+
+    # === Ejercicio fiscal (Odoo account) ==================================
+
+    def compute_fiscalyear_dates(self, current_date):
+        """El rango del ejercicio fiscal que contiene ``current_date``.
+
+        ≙ ``compute_fiscalyear_dates`` (``odoo19c:
+        account/models/company.py:1114-1122``), verbatim: delega en
+        ``tools.date_utils.get_fiscal_year`` — el mismo algoritmo que la
+        fuente porta como ``odoo/tools/date_utils.py::get_fiscal_year`` y
+        que este árbol ya tiene construido (``src/tools/date_utils.py``).
+
+        El ``self.ensure_one()`` de la fuente no se porta: aquí ``self`` es
+        **una** fila, no un conjunto de registros — la misma divergencia de
+        mecanismo que ``_get_zeep_client__`` ya declara para el mismo motivo.
+
+        :param current_date: una fecha del ejercicio a resolver.
+        :return: ``{'date_from': ..., 'date_to': ...}``, las fronteras del
+            ejercicio.
+        """
+        date_from, date_to = date_utils.get_fiscal_year(
+            current_date, day=self.fiscalyear_last_day,
+            month=int(self.fiscalyear_last_month))
+        return {'date_from': date_from, 'date_to': date_to}
+
+    def _check_fiscalyear_last_day(self):
+        """El día de cierre existe en el mes de cierre — ≙
+        ``_check_fiscalyear_last_day`` (``odoo19c: :330-343``).
+
+        Guard EXPLÍCITO, no auto-hooked a ``save()`` — mismo patrón que
+        ``validate_hard_lock_date_change`` (``account/models/
+        res_company.py``): quien escribe estos dos campos lo llama antes de
+        persistir.
+
+        El 29 de febrero se acepta siempre, verbatim del comentario de la
+        fuente: *"if the user explicitly chooses the 29th of February we
+        allow it: there is no 'fiscalyear_last_year' so we do not know his
+        intentions."*
+
+        DIVERGENCIA DE MECANISMO — ``account_opening_date`` (el año de
+        referencia de la fuente) no está portado en este árbol (Bloque 1,
+        tarea #137); se resuelve con ``getattr`` y cae al año en curso
+        cuando no existe, que es lo que la fuente hace cuando tampoco hay
+        fecha de apertura (``:337-338``, ``else: year = datetime.now()
+        .year``).
+        """
+        if self.fiscalyear_last_day == 29 and self.fiscalyear_last_month == '2':
+            return
+        opening_date = getattr(self, 'account_opening_date', None)
+        year = opening_date.year if opening_date else date.today().year
+        max_day = calendar.monthrange(year, int(self.fiscalyear_last_month))[1]
+        if self.fiscalyear_last_day <= 0 or self.fiscalyear_last_day > max_day:
+            raise ValidationError(_('Invalid fiscal year last day'))
 
     def save(self, *args, **kwargs):
         """Mantiene la ruta materializada, que allá mantiene el ORM."""

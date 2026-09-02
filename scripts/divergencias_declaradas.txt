@@ -87,6 +87,27 @@
 # Declarado en: addons/base_sparse_field/models/ir_model_fields.py:29-42
 base_sparse_field/models/models.py::Base::_valid_field_parameter
 
+# `_instanciate_attrs` traduce UNA FILA de `ir_model_fields` en los atributos
+# con que la referencia instancia un campo EN CALIENTE, y anade
+# `attrs['sparse'] = <nombre>`. Su unico llamador es la maquinaria de campos
+# manuales (`_add_manual_models` / `_instanciate`), que
+# `src/addons/base/models/ir_model.py:120` ya declara NO portada con su
+# medicion: Django construye su registro al importar y lo congela en
+# `apps.populate`, asi que no hay campo que instanciar en caliente al que
+# pasarle los atributos.
+#
+# Medido 2026-09-02 sobre este arbol:
+#   grep -rn "def _instanciate_attrs" --include=*.py src/ addons/  -> 0
+#   grep -rn "def _add_manual_models" --include=*.py src/ addons/  -> 0
+#
+# No es "dificil ni pendiente": no hay receptor. La consecuencia declarada es
+# que aqui `serialization_field_id` es REGISTRO y no insumo — se escribe para
+# que el catalogo diga la verdad, y nadie lo lee para reconstruir un campo.
+# Si algun dia se porta la maquinaria de campos manuales, esta entrada se
+# retira y el metodo se porta con ella.
+# Declarado en: addons/base_sparse_field/models/ir_model_fields.py:44-59
+base_sparse_field/models/models.py::IrModelFields::_instanciate_attrs
+
 # --- res_device.py (tarea #71) -------------------------------------------
 # El porte esta cerrado: los 15 metodos de la fuente tienen contraparte. Lo
 # que sigue son las divergencias de FORMA que el docstring del modulo declara
@@ -1285,3 +1306,56 @@ base/models/ir_model.py::IrModelFields::_all_manual_field_data
 # Idem, para un solo modelo.
 # Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
 base/models/ir_model.py::IrModelFields::_get_manual_field_data
+
+# ===========================================================================
+# hr_recruitment_skills (tarea #62)
+# ===========================================================================
+
+# `action_search_matching_applicants` envuelve el queryset de candidatos en
+# un `ir.actions.act_window` con `views`/`context`/`Markup` de ayuda. Este
+# backend no tiene action de ventana, ni vistas XML, ni motor de navegacion
+# de cliente -- 0 mecanismo, no solo aqui (mismo criterio que `hr_fleet`,
+# `authz_passkey`, ya declarados en este archivo). El dato SI se porto:
+# `_search_matching_applicants(self)` construye el mismo queryset
+# (`HrApplicant.objects.exclude(job_id=self.pk).filter(skill_ids__in=...)`)
+# y tiene test propio.
+# Declarado en: addons/hr_recruitment_skills/models/hr_job.py, docstring del
+# modulo, Divergencia 4.
+hr_recruitment_skills/models/hr_job.py::HrJob::action_search_matching_applicants
+
+# --- base_automation/models/base_automation.py (tarea #281) ---------------
+# `_register_hook` / `_unregister_hook` parchean EN CALIENTE los metodos
+# `create`/`write`/`unlink`/`_compute_field_value` de cada modelo objetivo,
+# con closures (`make_create`, `make_write`, ...) y `.origin` para llamar al
+# original. Ese mecanismo es del registro de la referencia: un registro
+# mutable que se puede reconstruir en caliente.
+#
+# Medido 2026-09-02 sobre este arbol:
+#   grep -rnE "def _register_hook|def _unregister_hook" --include=*.py src/ addons/  -> 0
+#   grep -rn "class Registry" --include=*.py src/orm/*.py                            -> 0
+#   grep -rnE "\.origin\b" --include=*.py src/orm/                                   -> 9
+#   grep -c "@receiver" addons/base_automation/models/signals.py                     -> 3
+#
+# El sustituto NO es "no se porta": es OTRO mecanismo, construido y en pie.
+# Django trae el bus que la referencia se fabrica parcheando —
+# `django.db.models.signals`, que emite `pre_save`/`post_save`/`pre_delete`
+# para TODO modelo sin tocar ninguna clase—, y `models/signals.py` cuelga
+# tres receptores GLOBALES (`sender=None`) que consultan las reglas vivas en
+# cada disparo. Eso cubre lo que los dos metodos existen para conseguir, y
+# ademas hace innecesario re-registrar nada cuando una regla cambia: por eso
+# `_update_registry` es un no-op declarado y no un hueco.
+#
+# La guarda de reentrancia de la referencia (`__action_done`) tambien tiene
+# sustituto: un `set` en un `threading.local()` con el par
+# `(automation_pk, pk)`, en el mismo `signals.py`.
+#
+# Si algun dia este arbol tuviera un registro reconstruible en caliente, esta
+# entrada se retira y los dos metodos se portan con el.
+# Declarado en: addons/base_automation/models/base_automation.py:13-30
+base_automation/models/base_automation.py::BaseAutomation::_register_hook
+# Misma razon, mismo bloque de arriba: sin registro reconstruible en caliente
+# no hay nada que desenganchar. El gate exige el motivo encima de CADA entrada,
+# no una vez por bloque — por eso se repite en vez de heredarse.
+# Declarado en: addons/base_automation/models/base_automation.py:13-30
+base_automation/models/base_automation.py::BaseAutomation::_unregister_hook
+

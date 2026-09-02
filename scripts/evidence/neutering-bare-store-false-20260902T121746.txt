@@ -1,0 +1,14 @@
+=== CONTROL — el enrutador vuelve a mirar related en vez del store resuelto ===
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[Html]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[Binary]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[Image]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_a_bare_store_false_has_no_column[PropertiesDefinition]
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_the_many_to_many_does_not_need_its_comodel
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheRouterReadsTheResolvedStore::test_the_properties_field_has_no_column_either
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheDeclarationSurvivesInTheField::test_the_compute_is_kept
+FAILED tests/unit/orm/test_bare_store_false_declaration.py::TestTheDeclarationSurvivesInTheField::test_the_store_is_false
+8 failed, 5 passed, 1 warning in 4.96s
+restaurado: identico (cmp byte a byte); re-ejecucion: 13 passed

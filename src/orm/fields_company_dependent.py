@@ -140,7 +140,7 @@ from orm.environments import get_current_company
 from orm.fields_nonstored import (
     NonStored,
     annotate_related,
-    apply_related_defaults,
+    apply_source_defaults,
 )
 from tools.sql import SQL
 
@@ -463,7 +463,7 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
         #: que ver el ``store`` ya resuelto. El mecanismo es del **campo**, no
         #: del tipo, así que ninguno de los cinco que este molde fabrica puede
         #: quedarse fuera.
-        related_attrs = apply_related_defaults(related, kwargs)
+        related_attrs = apply_source_defaults(related, kwargs)
         if required is not None:
             # Los dos, y no solo ``blank``: en la fuente el valor vacio de un
             # escalar no-requerido es ``False``, que en la columna es NULL —
@@ -471,7 +471,14 @@ def make_dispatcher(name, base_type, plain, extra_doc=''):
             # vacio SI es ``''``, alli y en Django.
             kwargs.setdefault('blank', not required)
             kwargs.setdefault('null', not required)
-        if related and not related_attrs['store']:
+        if not related_attrs['store']:
+            #: Sin columna, con ``related=`` o sin él. La condición era
+            #: ``related and not …``: un ``store=False`` declarado a secas
+            #: —la forma que la referencia usa para un ``compute`` sin
+            #: columna, ``fields.Integer(compute='_compute_…')``— caía en la
+            #: rama de abajo y salía como columna, y su migración aparecía en
+            #: ``makemigrations``. ``apply_source_defaults`` ya resuelve el
+            #: ``store`` de los dos casos (``:297-299``); aquí sólo se lee.
             field = NonStored(*args, related=related, **kwargs)
         elif company_dependent:
             # La guarda de ``CompanyDependent`` lee ``required`` de kwargs;

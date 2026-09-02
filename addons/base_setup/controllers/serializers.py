@@ -101,3 +101,24 @@ class SiteSettingsSerializer(serializers.Serializer):
             SystemParameter.set_param(SOCIAL_LINKS_KEY, json.dumps(social))
 
         return SiteSettingsSerializer.read_current()
+
+
+class BaseSetupDataSerializer(serializers.Serializer):
+    """Contrato de ``GET /api/v2/config/base-setup-data/``.
+
+    ≙ el diccionario que devuelve ``BaseSetup.base_setup_data``
+    (``odoo19c: addons/base_setup/controllers/main.py:45-50``), con sus mismas
+    tres claves. La cuarta —``action_pending_users``— queda fuera: está
+    BLOQUEADA por ``res.users._action_show``, y la razón vive en el docstring
+    de :class:`~addons.base_setup.controllers.main.BaseSetupDataView`.
+
+    ``pending_users`` conserva la forma de la fuente: pares ``(id, login)``,
+    no objetos. La fuente los saca de un ``cr.fetchall()`` y los publica tal
+    cual; cambiarlos a diccionarios sería inventar un contrato que su UI no
+    consume.
+    """
+
+    active_users = serializers.IntegerField(min_value=0)
+    pending_count = serializers.IntegerField(min_value=0)
+    pending_users = serializers.ListField(
+        child=serializers.ListField(), allow_empty=True)

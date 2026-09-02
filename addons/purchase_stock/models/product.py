@@ -11,7 +11,7 @@ una semana, un año, el mismo trimestre del año pasado…) es una elección del
 usuario, y el mismo mecanismo sirve para las tres preguntas: demanda mensual,
 cantidad sugerida y precio estimado de esa sugerencia.
 
-Porte símbolo por símbolo — 9 de 19
+Porte símbolo por símbolo — 11 de 19
 =====================================
 
 *Métrica:* entradas del cuerpo de las tres clases contadas por AST sobre la
@@ -58,9 +58,9 @@ presencia, no conducta.
    * - ``purchase_order_line_ids`` (``:37``)
      - **divergencia**
      - ya existe con otro nombre — ver abajo
-   * - ``suggest_estimated_price`` + su compute (``:40``, ``:62-78``)
-     - **desbloqueado**
-     - ``_select_seller`` ya está portado; queda como trabajo, no bloqueo (#267)
+   * - ``suggest_estimated_price`` + su compute (``odoo19c: :40``, ``:62-78``)
+     - portado
+     - dos ``_select_seller`` en cascada — cantidad sugerida, luego mínima (#267)
    * - ``_search_product_with_suggested_quantity`` (``:80-89``)
      - **bloqueado**
      - ``search_fetch``/``filtered_domain`` sobre un campo sin columna
@@ -362,6 +362,62 @@ def suggested_qty(self):
     return self._compute_suggested_quantity()
 
 
+def _resolve_context_ref(ctx, key, app_label, model_name):
+    """Un id de contexto resuelto a instancia, o ``None`` — ≙ ``env[modelo].browse(id)``.
+
+    La fuente usa ``self.env[modelo].browse(ctx.get(key))``, que con un id
+    ausente o inexistente da un recordset vacío (falsy). Aquí el desenlace
+    equivalente es ``None``: las dos comprobaciones que lo consumen
+    (``partner_pk`` en ``_get_filtered_sellers`` y el ``params.get(...)`` de
+    más abajo) tratan ``None`` y un recordset vacío exactamente igual.
+    """
+    pk = ctx.get(key)
+    if not pk:
+        return None
+    Model = apps.get_model(app_label, model_name)
+    return Model.objects.filter(pk=pk).first()
+
+
+def _compute_suggest_estimated_price(self):
+    """≙ ``_compute_suggest_estimated_price`` (``odoo19c: :62-78``).
+
+    El precio estimado de comprar la cantidad sugerida. Las dos llamadas a
+    ``_select_seller`` de la fuente, en cascada y en su mismo orden: primero
+    la tarifa más barata que cubra ``suggested_qty`` exacta; si ninguna
+    aplica, la más barata por cantidad mínima (``ordered_by='min_qty'``, sin
+    filtrar por cantidad). Sin ninguna tarifa, el precio cae al costo
+    estándar del producto — la misma rama de respaldo que la fuente.
+
+    ``partner_id`` y ``params.order_id`` llegan por contexto, igual que la
+    fuente los toma de ``self.env.context`` con ``browse()``. ``params`` se
+    pasa completo a ``_select_seller`` aunque este árbol sólo consuma
+    ``force_uom`` de él (``addons/product/models/product_product.py:459``) —
+    es la misma forma vacía que la fuente ya tolera cuando no hay pedido en
+    curso.
+    """
+    if self.suggested_qty <= 0:
+        return 0.0
+    ctx = get_context()
+    seller_args = {
+        'partner_id': _resolve_context_ref(ctx, 'partner_id', 'base', 'ResPartner'),
+        'params': {
+            'order_id': _resolve_context_ref(
+                ctx, 'order_id', 'purchase', 'PurchaseOrder'),
+        },
+    }
+    elegidas = (self._select_seller(quantity=self.suggested_qty, **seller_args)
+                or self._select_seller(quantity=None, ordered_by='min_qty',
+                                       **seller_args))
+    seller = elegidas[0] if elegidas else None
+    price = seller.price_discounted if seller is not None else self.standard_price
+    return price * self.suggested_qty
+
+
+def suggest_estimated_price(self):
+    """≙ ``suggest_estimated_price`` (``odoo19c: :40``) — ``compute`` sin ``store``."""
+    return self._compute_suggest_estimated_price()
+
+
 def get_total_routes(self):
     """≙ ``get_total_routes`` (``odoo19c: :248-253``).
 
@@ -464,10 +520,12 @@ def apply_purchase_stock_product_extensions():
         propiedades={
             'monthly_demand': monthly_demand,
             'suggested_qty': suggested_qty,
+            'suggest_estimated_price': suggest_estimated_price,
         },
         metodos={
             '_compute_monthly_demand': _compute_monthly_demand,
             '_compute_suggested_quantity': _compute_suggested_quantity,
+            '_compute_suggest_estimated_price': _compute_suggest_estimated_price,
             '_get_monthly_demand_range': _get_monthly_demand_range,
             '_get_monthly_demand_moves_location_domain':
                 _get_monthly_demand_moves_location_domain,

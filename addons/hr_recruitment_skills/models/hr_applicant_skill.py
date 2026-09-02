@@ -33,6 +33,32 @@ cabecera + 1 campo + 2 métodos en la fuente)
 El protocolo de comandos x2many no aplica: los one2many de este árbol se
 escriben con llamadas directas al manager (DIVERGENCIA 3 del docstring de
 ``hr_individual_skill_mixin.py``); este modelo hereda ese criterio.
+
+Corrección H-API-803 (tarea #62) — ``applicant_id`` NO es la pk
+==================================================================
+
+``applicant_id = fields.Many2one(HrApplicant, ..., db_column='applicant_id')``
+es forma C (``api@a8949680``, "Move eight addons to form C for FK symbols"):
+el SÍMBOLO del campo ya lleva el sufijo ``_id``, y Django deriva el attname
+del símbolo sin condición — ``ForeignKey.get_attname()`` devuelve siempre
+``f'{self.name}_id'`` (``django/db/models/fields/related.py:1160-1161``,
+verificado en el paquete instalado). Por tanto:
+
+- ``applicant_skill.applicant_id`` — el OBJETO ``HrApplicant`` relacionado
+  (el descriptor del campo).
+- ``applicant_skill.applicant_id_id`` — la pk cruda (el attname).
+
+``_get_current_skills_by_applicant`` agrupaba por ``applicant_skill.
+applicant_id`` (el objeto) y el llamador (``hr_applicant.py::
+_compute_current_applicant_skill_ids``) indexaba con ``by_applicant[self.pk]``
+(un ``int``). ``Model.__eq__`` (``django/db/models/base.py:616-623``) devuelve
+``NotImplemented`` contra un no-``Model``, así que la clave nunca calzaba y
+el ``defaultdict(list)`` devolvía siempre ``[]`` — **la propiedad
+``current_applicant_skill_ids`` estaba silenciosamente vacía desde
+``api@a8949680``**, y con ella ``matching_skill_ids``/``missing_skill_ids``/
+``matching_score`` y ``HrJob._compute_applicant_matching_score``, que
+dependen todas de ella. Fix: agrupar por ``applicant_skill.applicant_id_id``
+(la pk), que es lo que el llamador ya esperaba.
 """
 from collections import defaultdict
 from datetime import date
@@ -84,10 +110,14 @@ class HrApplicantSkill(HrIndividualSkillMixin):
         habilidades vigentes; para un tipo certificación sin vigentes,
         conserva la certificación más reciente (mismo criterio que la
         referencia y que ``get_current_skills_by_employee``).
+
+        Agrupa por ``applicant_id_id`` (la pk cruda), NO por ``applicant_id``
+        (el objeto relacionado — forma C, ver la sección de corrección del
+        docstring del módulo): el llamador indexa por pk entera.
         """
         by_pair = defaultdict(list)
         for applicant_skill in applicant_skills:
-            by_pair[(applicant_skill.applicant_id,
+            by_pair[(applicant_skill.applicant_id_id,
                      applicant_skill.skill_id)].append(applicant_skill)
         today = date.today()
         result = defaultdict(list)

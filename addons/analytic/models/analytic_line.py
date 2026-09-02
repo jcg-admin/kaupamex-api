@@ -58,33 +58,49 @@ declara (``odoo19c: analytic/models/analytic_line.py:218-221`` — un
 ``fields.Selection`` pelado con ``default='other'``). Por eso los valores que
 otros addons le suman toman la política de borrado por defecto, ``'set null'``.
 
-``fiscal_year_search`` — su veredicto medido
+``fiscal_year_search`` — PORTADO (tarea #207)
 ----------------------------------------------
 
 No es "campo virtual sólo de filtro de vista": la fuente lo declara
 ``store=False`` con ``search='_search_fiscal_date'``
 (``odoo19c: :222-226``), y su cuerpo (``:272-274``) es un filtro de dominio
-real sobre ``date``. Faltan dos mecanismos, ambos con sucesor registrado:
+real sobre ``date``. Los dos mecanismos que lo bloqueaban ya están:
 
-BLOQUEADO por ``compute_fiscalyear_dates`` — el rango del ejercicio fiscal
-sale de ``res.company`` y aquí da 0 defs. Sucesor: tarea **#207**.
+``compute_fiscalyear_dates`` — el rango del ejercicio fiscal sale ahora de
+``res.company`` (``src/addons/base/models/res_company.py``, tarea #207,
+sitio divergente declarado en su propio docstring). Cerraba también el
+bloqueo de tarea #208.
 
-BLOQUEADO por ``search`` — el enganche de filtro de un campo no persistido;
-``store=False`` ya está construido (``orm/fields_nonstored.py``), el filtro no.
-Sucesor: tarea **#208**.
+``search=`` sobre un campo sin columna — el enganche **ya existía**: es
+:class:`orm.fields_nonstored.NonStored` con su parámetro ``search``, en
+producción desde ``display_name`` (``src/orm/models.py``). El docstring de
+esta clase decía lo contrario porque nadie lo había vuelto a medir contra
+ese archivo — la corrección es de este mismo pase.
 
-Los dos son CONSTRUYE, no EXCLUIDO: ``datetime`` + ``dateutil`` y el ``Q`` de
-Django bastan, sin dependencia nueva.
+``_search_fiscal_date`` se porta **verbatim** en lo que la fuente omite:
+ni ``operator`` ni ``value`` se leen, cualquier condición sobre
+``fiscal_year_search`` acota igual. Es un quirk de la fuente
+(``odoo19c: :272-274``), no un recorte de este puerto.
+
+DIVERGENCIA DE MECANISMO — ``self.env.company`` de la fuente es la
+compañía de la SESIÓN, no la del registro. Aquí se resuelve con
+``orm.environments.get_current_company()``, el mismo canal que
+``session_fiscal_country_codes`` ya usa para el eje gemelo
+(``addons/account/models/res_company.py``). Sin compañía activada el
+filtro no puede acotar nada: se devuelve ``[]`` (verdadero, no restringe),
+igual que ``_search_full_name`` cuando no hay nada que buscar.
 """
 import datetime
 from decimal import Decimal
 
+from dateutil.relativedelta import relativedelta
 from django.core.exceptions import ValidationError
 
 import fields
 import models
+from orm.environments import get_current_company
 
-from addons.base.models import DecimalPrecision
+from addons.base.models import DecimalPrecision, ResCompany
 
 
 class AnalyticPlanFieldsMixin(models.Model):
@@ -159,6 +175,14 @@ class AccountAnalyticLine(AnalyticPlanFieldsMixin, models.Model):
         max_length=16, choices=CATEGORIES, default='other',
         verbose_name='Categoría',
     )
+    #: ≙ ``fiscal_year_search`` (``odoo19c: :222-226``) — atajo de filtro sin
+    #: columna ni valor propio; buscarlo (con cualquier operador) acota a la
+    #: ventana fiscal vigente. Ver el docstring del módulo.
+    fiscal_year_search = fields.NonStored(
+        search='_search_fiscal_date',
+        help_text='Odoo fiscal_year_search — filtro por ejercicio fiscal '
+                  'vigente, sin valor propio que leer.',
+    )
 
     class Meta:
         db_table = 'account_analytic_line'
@@ -173,6 +197,25 @@ class AccountAnalyticLine(AnalyticPlanFieldsMixin, models.Model):
     def currency(self):
         """Odoo ``currency_id`` (``related="company_id.currency_id"``)."""
         return self.company.currency
+
+    @classmethod
+    def _search_fiscal_date(cls, operator, value):
+        """≙ ``_search_fiscal_date`` (``odoo19c:
+        analytic/models/analytic_line.py:272-274``), verbatim: ni
+        ``operator`` ni ``value`` se leen — ver el docstring del módulo.
+
+        La compañía es la de la SESIÓN (``self.env.company`` de la fuente),
+        no la del registro — divergencia de mecanismo declarada arriba.
+        """
+        company_id = get_current_company()
+        if company_id is None:
+            return []
+        company = ResCompany.objects.filter(pk=company_id).first()
+        if company is None:
+            return []
+        fiscal_range = company.compute_fiscalyear_dates(datetime.date.today())
+        return [('date', '>=',
+                fiscal_range['date_from'] - relativedelta(years=1))]
 
     @property
     def analytic_precision(self):

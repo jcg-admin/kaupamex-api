@@ -197,7 +197,7 @@ class Properties(models.JSONField):
         'separator',
     )
 
-    def __init__(self, *args, definition=None, **kwargs):
+    def __init__(self, *args, definition=None, store=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.definition = definition
 
@@ -1176,6 +1176,32 @@ class PropertiesDefinition(models.JSONField):
     ``django.db.models.JSONField``: las migraciones generadas cuando era un
     alias siguen siendo idénticas.
     """
+
+    def __new__(cls, *args, related=None, **kwargs):
+        """Despacha la proyección sin dejar de ser una clase.
+
+        El mismo enrutador que :class:`Properties`, ``Html``, ``Binary`` e
+        ``Image``. Faltaba aquí, y la ausencia no era una divergencia
+        declarada: ``fields.PropertiesDefinition(store=False)`` levantaba
+        ``TypeError`` en vez de dar un campo sin columna.
+
+        En la fuente no hay tal asimetría — es un ``Field`` como los demás
+        (``odoo19c: odoo/orm/fields_properties.py:844``), y todo ``Field``
+        admite ``store`` (``odoo/orm/fields.py:278``). Que hoy ninguna
+        declaración de la referencia lo pida (**0** medidas en
+        ``addons/*/models/*.py``) no autoriza a portar menos: el molde es el
+        del tipo, no el de sus consumidores de hoy.
+        """
+        projection, _attributes = projection_or_none(related, kwargs)
+        if projection is not None:
+            return projection
+        instance = super().__new__(cls)
+        instance.related = related
+        return instance
+
+    def __init__(self, *args, related=None, store=None, **kwargs):
+        """Traga las dos palabras clave que resolvió :meth:`__new__`."""
+        super().__init__(*args, **kwargs)
 
     #: Los campos ``Properties`` que consumen esta definición. Lo puebla
     #: ``Properties.setup``, igual que la fuente.

@@ -1,4 +1,4 @@
-r"""Sonda: las 20 directivas ``t-*``, ¿qué mecanismo nativo hace cada una?
+r"""Sonda: las directivas ``t-*``, ¿qué mecanismo nativo hace cada una?
 
 Directiva del ejecutor 2026-08-29: *"si es que no, entonces analiza los
 binarios de nuestro stack, genera los documentos de pruebas, y documenta"*.
@@ -11,7 +11,33 @@ binarios instalados.
 
 La lista de directivas **no se teclea**: sale de
 ``IrTemplateExpressions._directives_eval_order()``, así que si la fuente gana
-una, este archivo la ve faltar en vez de quedarse callado.
+una, este archivo la ve faltar en vez de quedarse callado. Eso ya ocurrió:
+``html_editor`` añadió **cuatro** al instalarse, y el control de abajo cayó
+en el mismo pase en vez de dejar la tabla desactualizada en silencio — que es
+exactamente para lo que existe.
+
+Las cuatro de ``html_editor``
+=============================
+
+Fuente: ``odoo19c: addons/html_editor/models/ir_qweb_fields.py:156-168``, que
+las inserta **antes de** ``att`` porque las cuatro leen atributos estáticos
+como ``string`` y ``att`` los borra todos. Su reparto de mecanismo:
+
+===============  ==========  =====================================
+Directiva        Mecanismo   Por qué
+===============  ==========  =====================================
+``snippet``      ``lxml``    ``el.attrib.pop`` sobre el nodo y un
+                             ``<div>`` de envoltura con los
+                             ``data-oe-*`` del bloque
+``snippet-call`` ``lxml``    ídem: mueve ``t-snippet-call`` a
+                             ``t-call`` y fija ``t-options``
+``placeholder``  ``lxml``    una sola línea: ``t-placeholder`` pasa
+                             a ``t-att-placeholder``
+``install``      ``orm-      consulta ``ir.module.module`` y el
+                 policy``    grupo ``base.group_system`` del actor;
+                             lo que emite depende de esa política,
+                             no del nodo
+===============  ==========  =====================================
 
 *Métrica:* la conducta observada de ``django.template`` 6.0.5 y de ``lxml``
 sobre el mismo material, más la presencia del símbolo en el registro de tags
@@ -52,7 +78,17 @@ MECHANISM_BY_DIRECTIVE = {
     'lang': 'orm-policy',
     'groups': 'orm-policy',
     'options': 'orm-policy', 'debug': 'orm-policy',
+    # Las cuatro que instala ``html_editor`` (ver el docstring del módulo).
+    'snippet': 'lxml', 'snippet-call': 'lxml', 'placeholder': 'lxml',
+    'install': 'orm-policy',
 }
+
+#: Cuántas directivas declara el motor **con los addons instalados**. No se
+#: teclea de memoria: es ``len(MECHANISM_BY_DIRECTIVE)``, y el control de
+#: abajo compara las dos poblaciones, así que las dos cifras no pueden
+#: divergir sin que un caso caiga. Las 20 del núcleo más las 4 de
+#: ``html_editor``.
+DIRECTIVE_COUNT = len(MECHANISM_BY_DIRECTIVE)
 
 
 class TestTheListItselfIsNotTyped:
@@ -65,8 +101,28 @@ class TestTheListItselfIsNotTyped:
             f'sólo en el motor {sorted(declared - set(MECHANISM_BY_DIRECTIVE))}, '
             f'sólo aquí {sorted(set(MECHANISM_BY_DIRECTIVE) - declared)}')
 
-    def test_there_are_twenty_of_them(self):
-        assert len(IrTemplateExpressions()._directives_eval_order()) == 20
+    def test_there_are_as_many_as_the_mechanism_table_declares(self):
+        """20 del núcleo + 4 de ``html_editor`` = 24, medido.
+
+        La cifra vive en :data:`DIRECTIVE_COUNT` y sale de la propia tabla de
+        reparto, no de un literal aparte: dos literales para la misma cifra
+        son dos que pueden divergir.
+        """
+        assert DIRECTIVE_COUNT == 24
+        assert len(IrTemplateExpressions()._directives_eval_order()) == DIRECTIVE_COUNT
+
+    def test_the_four_of_html_editor_go_before_att(self):
+        """El orden es la mitad del contrato de esas cuatro.
+
+        ``odoo19c: html_editor/models/ir_qweb_fields.py:161-162`` las inserta
+        en ``index('att') - 1`` con su motivo escrito: las cuatro dependen de
+        atributos estáticos y ``att`` los borra. Colocarlas después compila
+        igual y produce otro resultado, sin avisar.
+        """
+        order = IrTemplateExpressions()._directives_eval_order()
+        att = order.index('att')
+        for directive in ('snippet', 'snippet-call', 'placeholder', 'install'):
+            assert order.index(directive) < att, directive
 
 
 class TestTheElevenThatDjangoBringsDone:

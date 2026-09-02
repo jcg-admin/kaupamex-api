@@ -81,6 +81,15 @@ class TestResCity:
 
 
 class TestCountryAddressPolicy:
+    def test_it_declares_which_model_it_extends(self):
+        """≙ ``_inherit = 'res.country'`` (``odoo19c: …/res_country.py:8``).
+
+        El almacén diverge —allá es una columna de ``res_country``, aquí una
+        tabla RELATED (DEC-SALE-01)— y el atributo es lo que impide que esa
+        divergencia borre a quién extiende la clase.
+        """
+        assert CountryAddressPolicy._inherit == 'res.country'
+
     def test_enforce_cities_defaults_false(self):
         mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         pol = CountryAddressPolicy.objects.create(country=mx)
@@ -109,26 +118,26 @@ def _make_partner(street='Av. Insurgentes Sur 1234 - 5B'):
 
 
 class TestAddressStructured:
-    def test_compute_from_street_splits_parts(self):
+    def test_compute_street_data_splits_parts(self):
         partner = _make_partner()
         st = AddressStructured(partner=partner)
-        st.compute_from_street(partner.street)
+        st._compute_street_data(partner.street)
         assert st.street_name == 'Av. Insurgentes Sur'
         assert st.street_number == '1234'
         assert st.street_number2 == '5B'
 
-    def test_inverse_to_street_roundtrip(self):
+    def test_inverse_street_data_roundtrip(self):
         partner = _make_partner()
         st = AddressStructured(partner=partner)
-        st.compute_from_street(partner.street)
+        st._compute_street_data(partner.street)
         # Odoo _inverse_street_data: 'name number - number2'.
-        assert st.inverse_to_street() == 'Av. Insurgentes Sur 1234 - 5B'
+        assert st._inverse_street_data() == 'Av. Insurgentes Sur 1234 - 5B'
 
     def test_get_street_split_returns_three_keys(self):
         partner = _make_partner('Main 12')
         st = AddressStructured(partner=partner)
-        st.compute_from_street(partner.street)
-        assert st.get_street_split() == {
+        st._compute_street_data(partner.street)
+        assert st._get_street_split() == {
             'street_name': 'Main', 'street_number': '12', 'street_number2': '',
         }
 

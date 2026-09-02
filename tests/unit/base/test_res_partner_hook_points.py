@@ -42,8 +42,15 @@ def test_every_address_field_exists_in_the_model(db):
 
     La fuente los llama ``state_id``/``country_id``; aquí la convención los
     llama ``state``/``country``, y ésa es la única divergencia de la lista.
+
+    **Se mide contra ``_fields``, no contra ``_meta``** (tarea **#301**,
+    :ref:`h-api-1025`). El registro del modelo es el de la fuente: entran los
+    campos, tengan columna o no. ``base_address_extended`` añade ``city_id`` a
+    esta lista y aquí no tiene columna —vive en el RELATED, DEC-SALE-01—, así
+    que medirlo contra ``_meta`` preguntaba por las columnas y concluía sobre
+    los campos. Este caso llevaba rojo desde que ese addon extendió el gancho.
     """
-    declarados = {f.name for f in ResPartner._meta.get_fields()}
+    declarados = set(ResPartner()._fields)
     assert set(ResPartner._address_fields()) <= declarados
 
 

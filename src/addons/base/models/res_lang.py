@@ -104,6 +104,21 @@ class ResLang(models.Model):
     def __str__(self) -> str:
         return f'{self.name} ({self.code})'
 
+    @classmethod
+    def get_installed(cls):
+        """≙ ``get_installed`` (``odoo19c: odoo/addons/base/models/res_lang.py:311-313``).
+
+        Los pares ``(code, name)`` de los idiomas **activos**, ordenados por
+        nombre. La fuente los saca de ``_get_active_by('code')``, una caché de
+        ``LangData`` indexada por el campo que se le pida; aquí la consulta va
+        directa al gestor porque esa caché es del ORM de la referencia y su
+        porte no es de este archivo.
+        """
+        return [
+            (row.code, row.name)
+            for row in cls.objects.filter(active=True).order_by('name')
+        ]
+
     def format(self, percent, value, grouping=False):
         """≙ ``format`` (``odoo19c: res_lang.py:418-446``).
 

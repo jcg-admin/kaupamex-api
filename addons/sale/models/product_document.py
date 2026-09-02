@@ -26,6 +26,10 @@ import fields
 
 from orm.model_classes import extend_model
 
+#: ≙ la cabecera que la fuente declara en su clase (``odoo19c: :7``; la
+#: extensión aquí no es clase).
+_inherit = 'product.document'
+
 #: ≙ ``('hidden', "Hidden")`` (``odoo19c: :11``) — el documento no viaja al
 #: cliente. Es el valor por omisión.
 ATTACHED_ON_SALE_HIDDEN = 'hidden'

@@ -465,8 +465,31 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
 
     # -- Sincronización de campos derivados (≙ cadena de @api.depends) ------
 
+    def _compute_model_name(self):
+        """≙ el lado LECTOR de ``related="model_id.model"`` (``:134``).
+
+        La declaración del campo decía *"sincronizado desde ``model_id.model``
+        en ``save()``"* y **eso no ocurría**: la única travesía escrita era la
+        inversa (:meth:`_inverse_model_name`, de nombre a FK). Medido con una
+        regla creada con ``model_id`` y sin ``model_name``: la columna quedaba
+        en ``''``, así que el ``Char`` almacenado mentía sobre su origen y todo
+        lo que lee ``model_name`` —el dispatch de ``signals.py``, la
+        comparación de ``_compute_action_server_ids``— quedaba ciego.
+
+        Un ``related`` de la fuente tiene dos sentidos: lee del extremo y
+        escribe hacia él por su ``inverse``. Aquí el sentido lector va en la
+        cadena de ``_recompute_dependent_fields`` —el punto de entrada único
+        que este puerto usa en vez del motor ``@api.depends``— y el escritor
+        sigue en ``_inverse_model_name``, con el nombre que la fuente le da.
+
+        No pisa un ``model_name`` puesto a mano cuando todavía no hay FK: ése
+        es el insumo del sentido inverso, y ``save()`` lo resuelve antes.
+        """
+        if self.model_id is not None:
+            self.model_name = self.model_id.model
+
     def _inverse_model_name(self):
-        """≙ ``_inverse_model_name`` de la referencia."""
+        """≙ ``_inverse_model_name`` de la referencia — el lado ESCRITOR."""
         if self.model_name:
             self.model_id = IrModel.objects.filter(model=self.model_name).first()
 
@@ -635,6 +658,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         sobre ESTA instancia, antes de persistir — reemplaza el motor
         ``@api.depends`` (sin equivalente genérico en este ORM): el punto
         de entrada único es ``save()``."""
+        self._compute_model_name()
         self._compute_trigger()
         self._compute_trg_date_id()
         self._compute_trg_date_range_data()
@@ -859,6 +883,76 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         self._update_cron()
         self._update_registry()
         return result
+
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create`` (``odoo19c: base_automation.py:491-498``).
+
+        Conserva el nombre de la fuente. Es la puerta que allá vigila la
+        creación de reglas —crear una regla cambia lo que el cron tiene que
+        mirar y lo que el dispatch tiene que enganchar—, y aquí esa mitad la
+        hacía sólo ``save()``. Las dos coexisten a propósito, igual que en
+        ``addons/base_sparse_field/models/ir_model_fields.py``: ésta es la
+        puerta que la fuente vigila, y ``save()`` cubre el camino de Django
+        (``instance.campo = x; instance.save()``).
+
+        Acepta un ``dict`` suelto además de la lista, como el
+        ``@api.model_create_multi`` de la fuente. Devuelve la lista de reglas
+        creadas.
+
+        La invalidación de caché de plantillas de la fuente
+        (``registry.clear_cache('templates')`` tras ``_has_trigger_onchange``)
+        **no tiene receptor aquí**: no hay motor de onchange que memorice
+        atributos de plantilla —la divergencia está declarada en el docstring
+        del módulo— así que se conserva la consulta y no su efecto, que es lo
+        que ``save()`` ya hacía.
+        """
+        if isinstance(vals_list, dict):
+            vals_list = [vals_list]
+        automations = [cls.objects.create(**vals) for vals in vals_list]
+        for automation in automations:
+            automation._update_cron()
+            automation._update_registry()
+            automation._has_trigger_onchange()
+        return automations
+
+    def write(self, **vals):
+        """≙ ``write`` (``odoo19c: base_automation.py:500-511``).
+
+        Conserva el nombre y, con él, la asimetría que la fuente escribe: un
+        cambio en ``CRITICAL_FIELDS`` actualiza cron **y** dispatch; uno que
+        sólo toca ``RANGE_FIELDS`` actualiza **sólo** el cron. ``save()`` no
+        puede distinguirlas —para cuando corre, la instancia ya trae los
+        valores nuevos y no sabe cuáles entraron—, así que esa mitad del
+        comportamiento sólo existe por esta puerta.
+
+        La firma es ``**vals`` y el cuerpo es *poner los atributos y guardar*,
+        el idioma ya fijado por ``addons/stock/models/stock_location.py:575``.
+        Devuelve ``self``.
+        """
+        entrantes = set(vals)
+        for name, value in vals.items():
+            setattr(self, name, value)
+        super().save()
+        if entrantes.intersection(self.CRITICAL_FIELDS):
+            self._update_cron()
+            self._update_registry()
+            self._has_trigger_onchange()
+        elif entrantes.intersection(self.RANGE_FIELDS):
+            self._update_cron()
+        self._critical_snapshot = self._current_critical_snapshot()
+        return self
+
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: base_automation.py:513-521``).
+
+        Conserva el nombre; el cuerpo delega en :meth:`delete`, que es donde
+        vive la actualización de cron y dispatch. Existe para que el símbolo de
+        la fuente se pueda llamar por su nombre desde un puerto hermano, sin
+        que quien lea la referencia tenga que saber que aquí se llama de otra
+        forma.
+        """
+        return self.delete()
 
     def _current_critical_snapshot(self):
         return tuple(getattr(self, f, None) for f in self.CRITICAL_FIELDS)

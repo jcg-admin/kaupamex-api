@@ -2,6 +2,3 @@
 # heredada. Uno listado no bloquea; uno nuevo sí. Se paga al tocar
 # el archivo — el triaje es la tarea #250.
 # Clave: <archivo>::<comando citado>
-addons/web/models/models.py::grep -rln "date_utils\\|def start_of" src/tools/*.py src/orm/*.py
-addons/web/models/models.py::grep -rln "_update_cache\\|field_computed\\|def modified(\\|_apply_onchange_methods" src/orm/*.py src/addons/*/models/*.py
-addons/web/models/models.py::grep -rln "update_field_translations\\|get_installed(" src/ --include="*.py"

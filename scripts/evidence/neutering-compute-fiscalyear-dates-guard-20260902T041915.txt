@@ -1,0 +1,14 @@
+# Control discriminante — compute-fiscalyear-dates-guard
+# fecha:    2026-09-02T04:19:15
+# archivo:  src/addons/base/models/res_company.py
+# anulado:  s/if self\.fiscalyear_last_day <= 0 or self\.fiscalyear_last_day > max_day:/if False:  # neutralizado/
+# tests:    tests/unit/base/test_res_company_fiscalyear_dates.py
+
+## 1. Verde de partida (guarda presente)
+15 passed, 1 warning in 5.16s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/base/test_res_company_fiscalyear_dates.py::TestCheckFiscalyearLastDay::test_a_day_that_does_not_exist_in_the_month_raises
+FAILED tests/unit/base/test_res_company_fiscalyear_dates.py::TestCheckFiscalyearLastDay::test_a_zero_or_negative_day_raises
+FAILED tests/unit/base/test_res_company_fiscalyear_dates.py::TestCheckFiscalyearLastDay::test_control_without_calling_the_guard_the_bad_value_survives
+3 failed, 12 passed, 1 warning in 5.08s

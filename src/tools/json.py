@@ -11,38 +11,65 @@ Dos piezas con papeles distintos:
   serializar. Su consumidor es ``IrActionsServer._compute_webhook_sample_payload``,
   cuya carga puede traer mapas con claves que no son cadena.
 
-Qué NO se porta, con su medición
-=================================
+Cobertura medida
+================
 
-``json_default`` (``json.py:63-77``) — el ``default=`` que la fuente pasa a
-``json.dumps`` para los tipos que JSON no conoce. Sus siete ramas necesitan
-cuatro símbolos que este árbol **no tiene**, medido con
-``grep -rn "def to_string\\|class lazy\\|ReadonlyDict" --include=*.py src/`` →
-**0** en las tres:
+Los **seis** símbolos de nivel de módulo de la fuente (``json.py:1-94``)
+están portados, medido por AST: ``JSON_SCRIPTSAFE_MAPPER``, ``_ScriptSafe``,
+``JSON``, ``scriptsafe``, ``json_default`` y ``stringify_keys``. Ausentes: 0.
 
-===================  ================================================
-Rama                 Qué le falta aquí
-===================  ================================================
-``datetime``/``date``  ``fields.Datetime.to_string`` / ``fields.Date.to_string``
-``lazy``               la clase ``lazy`` de ``tools/func.py``
-``ReadonlyDict``       la clase de ``tools/misc.py``
-``Domain``             ``orm.domains.Domain`` **sí** existe
-``bytes`` / resto      stdlib
-===================  ================================================
+``json_default`` cerró con la tarea **#142**, que aportó las piezas que le
+faltaban. Medido al cerrarla, una por rama:
 
-Portarlo con cuatro de siete ramas sería el porte parcial silencioso que
-``porte-completo-no-parcial.md`` prohíbe, y con las cuatro piezas ausentes
-construidas al vuelo sería inventar tres símbolos del ORM desde este archivo.
-Sucesor registrado: tarea **#142**, que porta ``lazy``, ``ReadonlyDict`` y los
-dos ``to_string`` en su sitio y cierra ``json_default`` con sus siete ramas.
+===========================  ==================================================
+Rama                         De dónde sale su pieza aquí
+===========================  ==================================================
+``datetime`` / ``date``      ``Datetime.to_string`` / ``Date.to_string`` — **ya
+                             existían** en ``orm/fields_temporal.py:318`` y
+                             ``:237``. La medición de la premisa
+                             (``grep "def to_string"`` → 0) era **ciega**: los
+                             cuerpos se llaman ``_datetime_to_string`` y
+                             ``_date_to_string``, y el nombre de la fuente se
+                             instala como atributo (``:440``, ``:451``).
+``lazy``                     portada en ``tools/func.py`` por esta tarea
+``ReadonlyDict``             portada en ``tools/misc.py`` por esta tarea
+``Domain``                   ``orm.domains.Domain``, ya existente
+``bytes`` / resto            stdlib
+===========================  ==================================================
+
+DIVERGENCIA DE MECANISMO, declarada — de dónde vienen los símbolos
+==================================================================
+
+La fuente los toma de su fachada ``odoo.fields`` con un import **dentro** de
+la función (``json.py:63``), que ahí es obligado: ``odoo/__init__.py`` carga
+``tools`` antes que ``orm``, así que al nivel del módulo el ciclo es real.
+
+Aquí los imports van **al top**, que es lo que ``no-lazy-imports.md`` exige, y
+se puede porque el ciclo no existe: medido, ningún módulo de ``orm/`` —ni
+ninguna de sus dependencias transitivas en ``tools/``— importa ``tools.json``,
+cuyo único consumidor es ``addons/base/models/ir_actions.py``. La excepción #3
+de esa regla («ciclo real verificado») pide justamente esta comprobación antes
+de aceptar un import diferido; el resultado es que no hace falta.
+
+Cada símbolo se importa de **su** módulo y no de una fachada, que es la
+convención de este árbol (``tools/__init__.py``). Para ``Domain`` no hay otra
+opción: ``orm/fields.py`` deliberadamente **no** lo re-exporta —a diferencia
+de la fuente, que sí (``odoo/orm/fields.py:24``)— porque aquí la dirección de
+dependencia entre campo y dominio está invertida (``orm/fields.py:1975-1976``).
 """
 import json as json_
 import re
 from collections.abc import Mapping
+from datetime import date, datetime
 
 import markupsafe
 
-__all__ = ['scriptsafe', 'stringify_keys']
+from orm.domains import Domain
+from orm.fields_temporal import Date, Datetime
+from tools.func import lazy
+from tools.misc import ReadonlyDict
+
+__all__ = ['json_default', 'scriptsafe', 'stringify_keys']
 
 #: ≙ ``JSON_SCRIPTSAFE_MAPPER`` (``json.py:11-17``), verbatim. Los cinco
 #: caracteres son los que rompen un ``<script>`` o un ``<!--``; ninguno es
@@ -98,6 +125,38 @@ class JSON:
 
 #: ≙ ``scriptsafe = JSON()`` (``json.py:60``).
 scriptsafe = JSON()
+
+
+def json_default(obj):
+    """El ``default=`` de ``json.dumps`` — ≙ ``json.py:62-76``.
+
+    ``json.dumps`` sólo llama aquí cuando su codificador **no sabe** serializar
+    un objeto, así que cada rama es un tipo opaco y su representación. El
+    resultado vuelve al codificador, no a la salida: por eso las ramas de
+    ``lazy`` y ``ReadonlyDict`` devuelven el dato (el valor envuelto, un
+    ``dict``) y no su texto — un mapa se serializa como objeto JSON y no como
+    la representación de un diccionario de Python.
+
+    **El orden de las dos primeras ramas es el contrato**, no una casualidad de
+    redacción: ``datetime`` es subclase de ``date``, así que invertirlas
+    truncaría la hora de todo instante sin que nada fallara.
+
+    La última rama, ``str(obj)``, hace que la función no lance nunca: un tipo
+    sin rama propia se degrada a su texto en vez de reventar la serialización.
+    """
+    if isinstance(obj, datetime):
+        return Datetime.to_string(obj)
+    if isinstance(obj, date):
+        return Date.to_string(obj)
+    if isinstance(obj, lazy):
+        return obj._value
+    if isinstance(obj, ReadonlyDict):
+        return dict(obj)
+    if isinstance(obj, bytes):
+        return obj.decode()
+    if isinstance(obj, Domain):
+        return list(obj)
+    return str(obj)
 
 
 def stringify_keys(obj):

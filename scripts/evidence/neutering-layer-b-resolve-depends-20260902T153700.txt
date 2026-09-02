@@ -1,0 +1,41 @@
+=== Control discriminante — sub-patron D de metrica-decide-la-conclusion.md
+Fecha: 2026-09-02T15:37:00
+
+--- A) baseline con el porte completo ---
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+35 passed, 1 warning in 7.18s
+
+--- B) con el yield de cada prefijo ANULADO (solo la tupla completa) ---
+FAILED tests/unit/orm/test_field_resolve_depends.py::TestEveryPrefixIsEmitted::test_a_two_step_dependency_emits_both_prefixes
+FAILED tests/unit/orm/test_field_resolve_depends.py::TestEveryPrefixIsEmitted::test_a_one_step_dependency_emits_exactly_one_tuple
+FAILED tests/unit/orm/test_field_resolve_depends.py::TestEveryPrefixIsEmitted::test_the_relational_step_is_a_path_of_its_own
+FAILED tests/unit/orm/test_field_resolve_depends.py::TestTheInverseOfAOneToManyIsEmittedToo::test_the_plain_prefix_is_emitted_before_the_inverse
+FAILED tests/unit/orm/test_field_resolve_depends.py::TestTheInverseOfAOneToManyIsEmittedToo::test_the_full_path_is_still_emitted
+FAILED tests/unit/orm/test_field_resolve_depends.py::TestARegularModelDoesNotTriggerATransient::test_the_walk_stops_before_leaving_the_transient
+FAILED tests/unit/orm/test_field_resolve_depends.py::TestARegularModelDoesNotTriggerATransient::test_the_same_declaration_on_a_regular_model_walks_further
+FAILED tests/unit/orm/test_field_triggers.py::TestTheTriggersInvertTheDependency::test_a_local_dependency_lands_at_the_empty_path
+FAILED tests/unit/orm/test_field_triggers.py::TestTheTriggersInvertTheDependency::test_a_dotted_dependency_carries_the_field_to_inverse
+FAILED tests/unit/orm/test_field_triggers.py::TestTheTreeAndItsReaders::test_the_tree_of_a_local_dependency_has_it_at_the_root
+FAILED tests/unit/orm/test_field_triggers.py::TestTheTreeAndItsReaders::test_the_tree_of_a_far_dependency_hangs_from_the_field_to_inverse
+FAILED tests/unit/orm/test_field_triggers.py::TestTheTreeAndItsReaders::test_the_dependent_fields_are_listed
+FAILED tests/unit/orm/test_field_triggers.py::TestTheTreeAndItsReaders::test_the_merged_tree_covers_every_given_field
+FAILED tests/unit/orm/test_field_triggers.py::TestModifyingRelations::test_a_relational_field_with_dependents_modifies_relations
+FAILED tests/unit/orm/test_field_triggers.py::TestTheCachesFollowTheDeclaration::test_clearing_rebuilds_the_tree_cache
+15 failed, 20 passed, 1 warning in 7.29s
+
+--- C) con la emision del INVERSO de un one2many anulada ---
+FAILED tests/unit/orm/test_field_resolve_depends.py::TestTheInverseOfAOneToManyIsEmittedToo::test_the_foreign_key_that_inverts_the_relation_is_emitted
+FAILED tests/unit/orm/test_field_resolve_depends.py::TestTheInverseOfAOneToManyIsEmittedToo::test_the_plain_prefix_is_emitted_before_the_inverse
+2 failed, 33 passed, 1 warning in 6.87s
+
+--- Lectura del control ---
+B) anular la emision de cada prefijo: 15 rojos. Caen los tres de
+   TestEveryPrefixIsEmitted, los dos que dependen del prefijo en
+   TestTheInverseOfAOneToManyIsEmittedToo, los dos del transitorio, y
+   OCHO de la capa B — el grafo entero de disparadores se apoya en el
+   prefijo. Ese arrastre ES el hallazgo: con solo la tupla completa el
+   mecanismo estaba medio construido y su verde no lo delataba.
+C) anular la emision del inverso de un one2many: 2 rojos, exactamente
+   los dos casos que la miden. Ninguno de la capa B cae: la capa B no
+   ejercita ese camino, y eso queda declarado en vez de supuesto.
+Restaurado en ambos casos; diff contra la copia: identicos.

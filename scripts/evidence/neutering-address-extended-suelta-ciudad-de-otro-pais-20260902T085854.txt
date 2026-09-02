@@ -1,0 +1,11 @@
+# Control discriminante — address-extended-suelta-ciudad-de-otro-pais
+# fecha:    2026-09-02T08:58:54
+# archivo:  addons/base_address_extended/models/res_partner.py
+# anulado:  s/^        structured.city_id.country_id_id != self.country.pk):/        False):/
+# tests:    tests/unit/base_address_extended/
+
+## 1. Verde de partida (guarda presente)
+45 passed, 1 warning in 5.44s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+45 passed, 1 warning in 5.35s

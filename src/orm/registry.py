@@ -44,6 +44,7 @@ archivo propio**: tenerlo sería la divergencia de forma que :ref:`h-api-568`
 registra.
 """
 import logging
+import sys
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterator
 
@@ -53,7 +54,7 @@ from django.db.models.signals import class_prepared
 from django.dispatch import receiver
 
 from tools.lru import LRU
-from tools.misc import OrderedSet
+from tools.misc import Collector, OrderedSet
 
 _logger = logging.getLogger('kaupamex.registry')
 
@@ -501,8 +502,341 @@ field_depends = _DerivedCollector('_depends')
 field_depends_context = _DerivedCollector('_depends_context')
 
 
+class _ComputedGrouper:
+    """Mapa campo → los campos que calcula el MISMO método.
+
+    ≙ ``Registry.field_computed`` (``odoo19c: odoo/orm/registry.py:515``). Su
+    contrato tiene dos mitades y las dos importan:
+
+    - un campo calculado devuelve la lista de **todos** los campos de su
+      modelo que declaran ese mismo ``compute``, incluido él. Es lo que
+      ``Field.compute_value`` recorre para desmarcar el cómputo pendiente de
+      todo el grupo, no sólo del campo por el que se entró;
+    - un campo **sin** ``compute`` no está en el mapa. La fuente lo consulta
+      con ``[]`` y deja que reviente, porque llamarlo sobre un campo no
+      calculado es un error de programación, no un caso.
+
+    Por eso NO hereda de :class:`_DerivedCollector`: aquél devuelve la tupla
+    vacía ante lo ausente, que aquí escondería justo ese error.
+    """
+
+    def __init__(self):
+        self._table = None
+
+    def _build(self):
+        table = {}
+        for model in apps.get_models():
+            groups = defaultdict(list)
+            for field in model._meta.get_fields():
+                compute = getattr(field, 'compute', None)
+                if compute:
+                    table[field] = group = groups[compute]
+                    group.append(field)
+        return table
+
+    def __getitem__(self, field):
+        if self._table is None:
+            self._table = self._build()
+        return self._table[field]
+
+    def __contains__(self, field):
+        if self._table is None:
+            self._table = self._build()
+        return field in self._table
+
+    def clear(self):
+        self._table = None
+
+
+#: ≙ ``Registry.field_computed`` (``:515``).
+field_computed = _ComputedGrouper()
+
+
+class _TriggerRegistry:
+    """El grafo de disparo: qué recalcular cuando un campo cambia.
+
+    ≙ el bloque de ``Registry`` que va de ``field_inverses`` (``:506``) a
+    ``is_modifying_relations`` (``:670``). Es la **inversa** de la capa A:
+    aquélla sabe recalcular un campo; esto sabe QUÉ campos hay que recalcular
+    y por qué camino llegar a las filas afectadas.
+
+    Es una clase y no seis funciones sueltas porque los tres mapas
+    —``field_inverses``, los disparadores y el caché de árboles— se derivan del
+    mismo recorrido y se vacían juntos. Separarlos dejaría tres invalidaciones
+    que alguien tendría que acordarse de llamar en orden.
+
+    La inversa la trae el stack, y por eso ``setup_inverses`` no se porta
+    =====================================================================
+
+    La fuente construye ``field_inverses`` llamando a un ``setup_inverses``
+    **por clase de campo** (``One2many`` liga con su ``inverse_name``,
+    ``Many2many`` con su tabla de relación) porque su ORM no guarda la vuelta.
+    Django sí: ``field.remote_field`` es la relación inversa, y
+    ``_meta.get_fields()`` la publica como un objeto propio junto a los campos
+    concretos. Aquí el mapa se **deriva** de eso.
+
+    Es divergencia de mecanismo, no de alcance: el contenido del mapa es el
+    mismo —cada lado de una relación apunta al otro— y se obtiene sin la
+    ceremonia que la fuente necesita. Cierra el DESCONOCIDO que
+    ``fields_relational.py`` declaró sobre ``setup_inverses`` (tarea **#244**),
+    cuya razón era que este árbol no tenía caché de campos; desde la capa A la
+    tiene.
+    """
+
+    def __init__(self):
+        self._inverses = None
+        self._triggers = None
+        self._trees = {}
+        self._modifying = {}
+
+    # --- la relación inversa, derivada de Django ---------------------------
+
+    @property
+    def field_inverses(self):
+        """≙ ``Registry.field_inverses`` (``:506``) — cada lado de una
+        relación apunta al otro."""
+        if self._inverses is None:
+            self._inverses = self._build_inverses()
+        return self._inverses
+
+    @staticmethod
+    def _build_inverses():
+        inverses = Collector()
+        for model in apps.get_models():
+            for field in model._meta.get_fields():
+                remote = getattr(field, 'remote_field', None)
+                if remote is None:
+                    continue
+                # ``remote_field`` del concreto es el objeto de relación
+                # inversa, y el de éste es el concreto: la vuelta es simétrica
+                # y basta con anotar las dos direcciones de cada par.
+                inverses.add(field, remote)
+                inverses.add(remote, field)
+        return inverses
+
+    # --- los disparadores, invirtiendo lo declarado ------------------------
+
+    def field_triggers(self):
+        """La inversa de las dependencias: ``{campo: {ruta: campos}}``.
+
+        ≙ ``Registry._field_triggers`` (``:645``). Docstring de la fuente,
+        verbatim: *"the inverse of field dependencies, as a dictionary like
+        ``{field: {path: fields}}``, where ``field`` is a dependency, ``path``
+        is a sequence of fields to inverse and ``fields`` is a collection of
+        fields that depend on ``field``"*.
+
+        Es un método y no una propiedad porque la fuente lo declara con guion
+        bajo —es interno— y aquí un atributo de módulo con el mismo nombre
+        chocaría con el mapa público. El guion bajo se conserva en el nombre
+        del atributo, no en el del método (``porte-completo-no-parcial.md``:
+        el guion bajo es contrato, y este símbolo es el que el motor llama).
+        """
+        if self._triggers is None:
+            self._triggers = self._build_triggers()
+        return self._triggers
+
+    @staticmethod
+    def _build_triggers():
+        triggers = defaultdict(lambda: defaultdict(OrderedSet))
+        for model in apps.get_models():
+            # Un modelo abstracto de Django no está en ``get_models()``, así
+            # que el ``if Model._abstract: continue`` de la fuente no tiene
+            # nada que saltarse aquí.
+            for field in model._meta.get_fields():
+                resolve = getattr(field, 'resolve_depends', None)
+                if resolve is None:
+                    continue
+                for dependency in resolve(sys.modules[__name__]):
+                    *path, dep_field = dependency
+                    triggers[dep_field][tuple(reversed(path))].add(field)
+        return triggers
+
+    # --- el árbol y sus lectores -------------------------------------------
+
+    def get_field_trigger_tree(self, field):
+        """El árbol de disparo de un campo, por cierre transitivo.
+
+        ≙ ``Registry.get_field_trigger_tree`` (``:594``).
+        """
+        try:
+            return self._trees[field]
+        except KeyError:
+            # silent OK because es el fallo del memo, no un error: la ausencia
+            # de la clave ES la respuesta «todavía no está calculado», y el
+            # cuerpo que sigue lo calcula. La fuente lo escribe igual
+            # (``odoo19c: odoo/orm/registry.py:598-601``).
+            pass
+
+        triggers = self.field_triggers()
+        if field not in triggers:
+            return TriggerTree()
+
+        def transitive_triggers(field, prefix=(), seen=()):
+            if field in seen or field not in triggers:
+                return
+            for path, targets in triggers[field].items():
+                full_path = concat(prefix, path)
+                yield full_path, targets
+                for target in targets:
+                    yield from transitive_triggers(
+                        target, full_path, seen + (field,))
+
+        def concat(seq1, seq2):
+            """Cancela el par ida-vuelta: bajar por un ``many2one`` y subir
+            por su ``one2many`` deja el recorrido donde estaba."""
+            if seq1 and seq2:
+                first, second = seq1[-1], seq2[0]
+                if _is_round_trip(first, second):
+                    return concat(seq1[:-1], seq2[1:])
+            return seq1 + seq2
+
+        tree = TriggerTree()
+        for path, targets in transitive_triggers(field):
+            current = tree
+            for label in path:
+                current = current.increase(label)
+            if current.root:
+                current.root.update(targets)
+            else:
+                current.root = OrderedSet(targets)
+
+        self._trees[field] = tree
+        return tree
+
+    def get_trigger_tree(self, fields_changed, select=bool):
+        """El árbol a recorrer cuando ``fields_changed`` han cambiado.
+
+        ≙ ``Registry.get_trigger_tree`` (``:554``). ``select`` decide qué
+        campos se conservan en los nodos, para descartar los que no interesan.
+        """
+        triggers = self.field_triggers()
+        trees = [self.get_field_trigger_tree(field)
+                 for field in fields_changed if field in triggers]
+        return TriggerTree.merge(trees, select)
+
+    def get_dependent_fields(self, field):
+        """Los campos que dependen de ``field`` — ≙ ``:567``."""
+        if field not in self.field_triggers():
+            return
+        for tree in self.get_field_trigger_tree(field).depth_first():
+            yield from tree.root
+
+    def is_modifying_relations(self, field):
+        """Si tocar ``field`` puede cambiar QUÉ filas dependen de él.
+
+        ≙ ``Registry.is_modifying_relations`` (``:670``). Docstring de la
+        fuente, verbatim: *"Return whether ``field`` has dependent fields on
+        some records, and that modifying ``field`` might change the dependent
+        records"*.
+        """
+        try:
+            return self._modifying[field]
+        except KeyError:
+            inverses = self.field_inverses
+            result = field in self.field_triggers() and bool(
+                _is_relational(field) or inverses[field] or any(
+                    _is_relational(dep) or inverses[dep]
+                    for dep in self.get_dependent_fields(field)))
+            self._modifying[field] = result
+            return result
+
+    # --- invalidación ------------------------------------------------------
+
+    def clear(self):
+        """Vacía los cuatro mapas derivados.
+
+        ≙ el tramo de ``Registry._discard_fields`` (``:573``) que los descarta.
+        **Los cuatro juntos**: el caché de árboles guarda instancias derivadas
+        de los disparadores, así que vaciar uno y no el otro serviría un árbol
+        construido sobre un grafo que ya no existe — el mismo defecto que el
+        memo de ``_get_cache`` tenía frente a ``invalidate_field_data``.
+        """
+        self._inverses = None
+        self._triggers = None
+        self._trees.clear()
+        self._modifying.clear()
+
+
+def _is_relational(field):
+    """Si el campo lleva a otro modelo — ≙ ``Field.relational`` de la fuente.
+
+    Se lee de ``is_relation`` de Django, que es donde este stack lo declara,
+    y no de un atributo ``relational`` que habría que instalar en cada clase.
+    """
+    return bool(getattr(field, 'is_relation', False))
+
+
+def _is_round_trip(first, second):
+    """Si ``second`` deshace el paso que ``first`` dio.
+
+    ≙ la comprobación que ``concat`` hace en la fuente
+    (``many2one`` seguido del ``one2many`` que lo invierte). Aquí la decide la
+    propia relación inversa de Django en vez de comparar cuatro nombres a
+    mano: ``second`` deshace a ``first`` cuando es exactamente su
+    ``remote_field``, en cualquiera de los dos sentidos.
+    """
+    return (getattr(first, 'remote_field', None) is second
+            or getattr(second, 'remote_field', None) is first)
+
+
+#: La instancia única del grafo — el registro aquí es un módulo, no una
+#: instancia por base (divergencia declarada en la cabecera de este archivo).
+_triggers = _TriggerRegistry()
+
+
+def field_triggers():
+    """≙ ``Registry._field_triggers`` — ver :meth:`_TriggerRegistry.field_triggers`."""
+    return _triggers.field_triggers()
+
+
+def get_field_trigger_tree(field):
+    """≙ ``Registry.get_field_trigger_tree``."""
+    return _triggers.get_field_trigger_tree(field)
+
+
+def get_trigger_tree(fields_changed, select=bool):
+    """≙ ``Registry.get_trigger_tree``."""
+    return _triggers.get_trigger_tree(fields_changed, select)
+
+
+def get_dependent_fields(field):
+    """≙ ``Registry.get_dependent_fields``."""
+    return _triggers.get_dependent_fields(field)
+
+
+def is_modifying_relations(field):
+    """≙ ``Registry.is_modifying_relations``."""
+    return _triggers.is_modifying_relations(field)
+
+
+class _FieldInversesProxy:
+    """``registry.field_inverses`` como el mapa que la fuente expone.
+
+    La fuente lo declara ``cached_property``, así que se lee como atributo. Un
+    módulo no tiene propiedades, y una función obligaría a escribir
+    ``field_inverses()[campo]`` — que es otra firma. El proxy conserva la de la
+    fuente delegando en la instancia.
+    """
+
+    def __getitem__(self, field):
+        return _triggers.field_inverses[field]
+
+    def __contains__(self, field):
+        return field in _triggers.field_inverses
+
+    def __iter__(self):
+        return iter(_triggers.field_inverses)
+
+    def __len__(self):
+        return len(_triggers.field_inverses)
+
+
+#: ≙ ``Registry.field_inverses`` (``:506``).
+field_inverses = _FieldInversesProxy()
+
+
 def clear_field_depends():
-    """Vacía los dos mapas derivados.
+    """Vacía los mapas derivados de lo declarado.
 
     Se llama cuando cambia lo declarado — un modelo nuevo registrado, un campo
     extendido. NO hay invalidación parcial como en ``:474``: allá el registro
@@ -511,6 +845,8 @@ def clear_field_depends():
     """
     field_depends.clear()
     field_depends_context.clear()
+    field_computed.clear()
+    _triggers.clear()
 
 
 class DummyRLock:

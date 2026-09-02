@@ -2,7 +2,7 @@
 
 Fiel a ``base_geolocalize/data/data.xml`` de Odoo
 (``geoprovider_open_street``, ``geoprovider_google_map``). El **orden importa**:
-``Geocoder._get_provider()`` cae en ``openstreetmap`` cuando el parámetro
+``BaseGeocoder._get_provider()`` cae en ``openstreetmap`` cuando el parámetro
 ``base_geolocalize.geo_provider`` no está seteado, porque toma
 ``order_by('pk').first()``.
 

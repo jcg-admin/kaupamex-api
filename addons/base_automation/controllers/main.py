@@ -49,13 +49,21 @@ class BaseAutomationWebhookView(APIView):
         },
     )
     def get(self, request, rule_uuid):
-        return self._call(request, rule_uuid)
+        return self.call_webhook_http(request, rule_uuid)
 
     @extend_schema(exclude=True)
     def post(self, request, rule_uuid):
-        return self._call(request, rule_uuid)
+        return self.call_webhook_http(request, rule_uuid)
 
-    def _call(self, request, rule_uuid):
+    def call_webhook_http(self, request, rule_uuid):
+        """El cuerpo, con el nombre de la fuente (``:7``).
+
+        ``get``/``post`` son la puerta que DRF exige —el despacho por verbo es
+        del mecanismo, no de la fuente, que declara los dos métodos en un solo
+        ``@route(methods=['GET', 'POST'])``— y las dos delegan aquí. Conservar
+        el nombre deja el símbolo de la referencia localizable por su nombre en
+        vez de escondido tras un ``_call`` inventado.
+        """
         rule = BaseAutomation.objects.filter(webhook_uuid=rule_uuid).first()
         if not rule:
             return Response({'status': 'error'}, status=404)

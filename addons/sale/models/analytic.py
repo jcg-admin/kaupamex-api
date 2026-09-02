@@ -40,6 +40,20 @@ import models
 
 from orm.model_classes import extend_model
 
+#: ≙ la cabecera de ``AccountAnalyticLine`` (``odoo19c: :7``; la extensión
+#: aquí no es clase). Dos constantes y no una porque el archivo extiende DOS
+#: modelos: el sufijo nombra a cuál pertenece cada una.
+_INHERIT_ACCOUNT_ANALYTIC_LINE = 'account.analytic.line'
+
+#: ≙ la cabecera de ``AccountAnalyticApplicability`` (``odoo19c: :13-14``).
+#: La fuente declara DOS atributos en esta clase, no uno —``_inherit`` y
+#: ``_description``—; el segundo se porta verbatim aunque el modelo base
+#: (``addons/analytic/models/analytic_plan.py``) ya declare su propio
+#: ``Meta.verbose_name`` en español: son atributos distintos que no se
+#: sustituyen entre sí (``atributos-de-clase-de-modelo.md``).
+_INHERIT_ACCOUNT_ANALYTIC_APPLICABILITY = 'account.analytic.applicability'
+_DESCRIPTION_ACCOUNT_ANALYTIC_APPLICABILITY = "Analytic Plan's Applicabilities"
+
 #: ≙ el ``domain`` del ``Many2one`` (``odoo19c: :9``). Django no declara el
 #: dominio en el campo, así que la restricción se aplica donde se consulta y
 #: éste es su nombre único — quien filtre líneas candidatas lo importa.

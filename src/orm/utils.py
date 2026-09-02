@@ -19,7 +19,10 @@ objeto inservible; misma razón que los stubs de motor (environments/registry).
 import re
 from collections.abc import Set as AbstractSet
 
+from django.db import models
+
 from exceptions import ValidationError
+from orm.fields_nonstored import non_stored_fields
 
 regex_object_name = re.compile(r'^[a-z0-9_.]+$')
 regex_pg_name = re.compile(r'^[a-z_][a-z0-9_$]*$', re.IGNORECASE)
@@ -92,3 +95,66 @@ def expand_ids(id0, ids):
         if id_ not in seen and bool(id_) == kind:
             yield id_
             seen.add(id_)
+
+
+def record_ids(records):
+    """Los ids de ``records`` — la adaptación de ``BaseModel._ids``.
+
+    La fuente pasa por todas partes un *recordset*, que es un objeto con
+    ``_ids``: una tupla de ids del mismo modelo. Aquí no hay recordset —un
+    conjunto de filas es una instancia de modelo de Django, un ``QuerySet``, o
+    un iterable de cualquiera de los dos— así que el atributo no existe y la
+    firma de la fuente no se puede portar literal.
+
+    Ésta es la traducción, y es de **mecanismo**, no de alcance: donde la
+    fuente escribe ``records._ids``, aquí se escribe ``record_ids(records)`` y
+    el resto del cuerpo queda igual. Acepta las cuatro formas que el árbol
+    produce:
+
+    - una instancia de modelo → su ``pk`` (``None`` incluido: un registro sin
+      guardar tiene id falsy, que es lo que la fuente llama *nuevo*);
+    - un ``QuerySet`` → los ``pk`` de sus filas, en una sola consulta;
+    - un iterable de instancias o de enteros;
+    - ``None`` → vacío.
+
+    Devuelve siempre una **tupla**, como ``_ids`` en la fuente: el llamador la
+    recorre más de una vez (``_update_cache`` la usa dos veces seguidas) y un
+    generador se agotaría en la primera.
+    """
+    if records is None:
+        return ()
+    if isinstance(records, models.Model):
+        return (records.pk,)
+    if isinstance(records, models.QuerySet):
+        return tuple(records.values_list('pk', flat=True))
+    return tuple(
+        item.pk if isinstance(item, models.Model) else item
+        for item in records
+    )
+
+
+def model_field_registry(model):
+    """El mapa ``nombre -> campo`` de una clase de modelo.
+
+    Es el cuerpo de ``BaseModel._fields`` sacado a funcion para que se pueda
+    consultar **sobre la clase**, no solo sobre una instancia. La fuente lo
+    tiene asi de nacimiento: su ``Model._fields`` es un atributo de la clase de
+    registro, y ``resolve_depends`` lo recorre sin instanciar nada
+    (``odoo19c: odoo/orm/fields.py:823``). Aqui ``_fields`` es una ``property``
+    del modelo base, asi que sobre la clase devuelve el objeto ``property`` y
+    no el mapa.
+
+    Antes de esto ``resolve_depends`` resolvia con ``_meta.get_field``, que es
+    **mas estrecho**: un :class:`~orm.fields_nonstored.NonStored` no tiene
+    columna y por tanto no esta en ``_meta``. Esa es exactamente la ceguera que
+    :ref:`h-api-1025` ya habia corregido en ``_fields`` y que este camino
+    seguia teniendo — un ``@api.depends`` sobre un campo sin columna no
+    resolvia, y el silencio se leia como «esa dependencia no existe».
+
+    Un solo cuerpo para los dos consumidores: duplicar la construccion seria la
+    segunda fuente de verdad que ``calibration-verified-numbers.md`` prohibe, y
+    aqui divergiria justo por el eje que ya fallo una vez.
+    """
+    registry = {field.name: field for field in model._meta.get_fields()}
+    registry.update(non_stored_fields(model))
+    return registry

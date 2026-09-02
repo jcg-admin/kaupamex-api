@@ -1,0 +1,8 @@
+--- CON el alias por sitio ---
+porte incompleto: 0 hallazgos (0 de porte · 0 de extensión parcial · 0 de sitio, 0 símbolos) (alcance medido: 9 pares de archivo, 1 addons; 0 instalaciones con receptor no resoluble; 0 compute absueltos por property declarada)
+divergencias declaradas: 0 hallazgo(s), 0 simbolo(s), 0 entrada(s) tocadas por el recorrido de `--addon html_editor`; las MUERTAS no se calculan en un recorrido acotado
+--- SIN el alias por sitio (control) ---
+html_editor/models/ir_ui_view.py :: IrUiView — CLASE EXTENDIDA (1)
+    save
+porte incompleto: 1 hallazgos (0 de porte · 1 de extensión parcial · 0 de sitio, 0 símbolos) (alcance medido: 9 pares de archivo, 1 addons; 0 instalaciones con receptor no resoluble; 0 compute absueltos por property declarada)
+divergencias declaradas: 0 hallazgo(s), 0 simbolo(s), 0 entrada(s) tocadas por el recorrido de `--addon html_editor`; las MUERTAS no se calculan en un recorrido acotado

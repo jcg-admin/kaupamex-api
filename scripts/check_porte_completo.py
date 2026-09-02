@@ -329,7 +329,8 @@ def _extend_model_symbols(nodo, funcs):
     """
     salida, nodos = set(), set()
     for k in nodo.keywords:
-        if k.arg in ('campos', 'metodos', 'propiedades') and isinstance(k.value, ast.Dict):
+        if (k.arg in ('campos', 'metodos', 'propiedades', 'overrides')
+                and isinstance(k.value, ast.Dict)):
             salida |= {c.value for c in k.value.keys
                        if isinstance(c, ast.Constant) and isinstance(c.value, str)}
         if k.arg != 'luego':
@@ -475,15 +476,22 @@ def _loop_resolved_nodes(nodo):
 def _destino_y_clave(nodo):
     """``(clase, símbolo)`` de una llamada de instalación, o ``(None, None)``.
 
-    Reconoce las tres formas que el árbol usa hoy: ``chain_method(C, 'x', …)``,
-    ``C.add_to_class('x', …)`` y el ayudante ``_add_if_absent(C, 'x', …)`` que
-    tres addons repiten para hacer idempotente el ``add_to_class``.
+    Reconoce las cuatro formas que el árbol usa hoy: ``chain_method(C, 'x', …)``,
+    ``wrap_method(C, 'x', …)``, ``C.add_to_class('x', …)`` y el ayudante
+    ``_add_if_absent(C, 'x', …)`` que tres addons repiten para hacer idempotente
+    el ``add_to_class``.
+
+    ``wrap_method`` se añadió 2026-09-02: es la TERCERA semántica de
+    ``orm/method_chain.py`` —la que entrega el ``super()`` en la mano— y este
+    recorrido no la veía, así que un símbolo portado con ella salía como
+    ausente. Medido al añadirla: **5** llamadas en ``addons/`` y ``src/`` fuera
+    del propio ``method_chain.py``.
     """
     f = nodo.func
     name = f.id if isinstance(f, ast.Name) else (
         f.attr if isinstance(f, ast.Attribute) else None)
 
-    if name in ('chain_method', '_add_if_absent') and len(nodo.args) >= 2:
+    if name in ('chain_method', 'wrap_method', '_add_if_absent') and len(nodo.args) >= 2:
         destino, clave = nodo.args[0], nodo.args[1]
     elif name == 'add_to_class' and nodo.args:
         # El receptor es el destino: ``ResBank.add_to_class('campo', …)``.
@@ -703,9 +711,55 @@ def _despromovido(ref_name, ref_methods, our_methods):
             and ref_name not in our_methods)
 
 
+#: Renombres que valen en UN SITIO y no en el arbol: la llave es
+#: ``(archivo de la referencia, clase, simbolo)``, no el nombre suelto.
+#:
+#: ``PORTE_ALIAS`` es global, y por eso no sirve para una **colision con el
+#: stack**: aliasar ``save`` -> ``save_from_html`` en todo el arbol absolveria
+#: las ~90 ausencias de ``write``/``save`` que hoy son preguntas abiertas —el
+#: mismo argumento que el docstring de este modulo ya da para no aliasar
+#: ``write``—. Aqui el alias sale del sitio, asi que absuelve exactamente uno.
+#:
+#: El criterio para entrar: el nombre de la fuente **ya esta ocupado por otro
+#: contrato en la misma clase**, asi que el renombre lo fuerza el stack y no
+#: el gusto. Un metodo que hace lo mismo con otro nombre por preferencia NO
+#: entra aqui — eso se arregla renombrando el metodo.
+PORTE_ALIAS_POR_SITIO = {
+    # ``ir.ui.view.save(value, xpath=None)`` de la fuente actualiza una seccion
+    # de vista. Aqui ``save`` es el metodo de persistencia de Django, y este
+    # arbol ya lo declara como el puerto de ``create`` + ``write``: colgar
+    # encima la funcion de la fuente rompe toda escritura de vista, incluido
+    # el cargador de datos. El simbolo se porta con el nombre de la fuente
+    # —``def save(self, value, xpath=None)`` existe en el archivo— y se
+    # INSTALA como ``save_from_html``. Los dos metodos conviven y ninguno
+    # sustituye al otro. Declarado en el docstring de
+    # ``addons/html_editor/models/ir_ui_view.py``, Divergencia 2.
+    # El barrido de esta familia de colisiones es la tarea #98.
+    ('ir_ui_view.py', 'IrUiView', 'save'): 'save_from_html',
+}
+
+
 def normaliza(name):
     """El nombre comparable: alias declarado, y sin guiones bajos de borde."""
     return PORTE_ALIAS.get(name, name).strip('_')
+
+
+def normaliza_en(file_path, klass, name):
+    """El nombre comparable EN UN SITIO: primero el alias del sitio, luego el global.
+
+    El sitio se identifica por ``(archivo, clase, simbolo)`` con el archivo
+    tal como lo nombra la referencia y la clase por su ``class_key`` —la misma
+    llave con que se casan las clases, para que ``IrMail_Server`` y
+    ``IrMailServer`` no fallen el emparejamiento por el separador.
+
+    *Metrica:* la entrada de ``PORTE_ALIAS_POR_SITIO`` cuya llave case con los
+    tres campos; si no hay, el resultado es identico al de ``normaliza``.
+    *Ciega a:* dos clases con el mismo nombre en archivos distintos del mismo
+    addon — la llave lleva archivo, asi que las separa; y a un homonimo dentro
+    del MISMO archivo y la MISMA clase, que no puede existir.
+    """
+    alias = PORTE_ALIAS_POR_SITIO.get((file_path, class_key(klass), name))
+    return normaliza(alias if alias is not None else name)
 
 
 def class_key(name):
@@ -779,7 +833,7 @@ def _class_without_counterpart(addon, file_path, klass, metodos, instalado,
     tipo = 'CLASE AUSENTE' if puestos is None else 'CLASE EXTENDIDA'
     pendientes, absolutions = [], 0
     for m in sorted(metodos):
-        n = normaliza(m)
+        n = normaliza_en(file_path, klass, m)
         if n in ya:
             continue
         if n in absueltos:
@@ -854,7 +908,7 @@ def compara(addon):
                     continue
                 aqui_norm = {normaliza(m) for m in aqui}
                 faltan = [m for m in sorted(metodos)
-                          if normaliza(m) not in aqui_norm]
+                          if normaliza_en(ref_py.name, klass, m) not in aqui_norm]
                 if faltan:
                     hallazgos.append(
                         (addon, ref_py.name, klass, 'MÉTODOS AUSENTES', faltan))
@@ -899,7 +953,7 @@ def compara(addon):
             aqui_norm = {normaliza(m) for m in aqui}
             faltan, out_of_place, despromovidos = [], [], []
             for m in sorted(metodos):
-                n = normaliza(m)
+                n = normaliza_en(ref_py.name, klass, m)
                 if n in aqui_norm:
                     # El nombre esta, pero puede haber perdido su guion bajo:
                     # `normaliza` los aplana, asi que `_foo` y `foo` colisionan

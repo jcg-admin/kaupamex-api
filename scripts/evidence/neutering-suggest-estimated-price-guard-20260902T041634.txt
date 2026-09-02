@@ -1,0 +1,12 @@
+# Control discriminante — suggest-estimated-price-guard
+# fecha:    2026-09-02T04:16:34
+# archivo:  addons/purchase_stock/models/product.py
+# anulado:  398s/if self.suggested_qty <= 0:/if False:/
+# tests:    tests/unit/purchase_stock/test_suggest_estimated_price.py
+
+## 1. Verde de partida (guarda presente)
+4 passed, 1 warning in 4.59s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/purchase_stock/test_suggest_estimated_price.py::TestSuggestEstimatedPrice::test_zero_or_negative_suggested_qty_short_circuits_to_zero
+1 failed, 3 passed, 1 warning in 4.55s

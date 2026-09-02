@@ -1,0 +1,9 @@
+=== CONTROL — se retira el contrato de campo del NonStored ===
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_field_search_method.py::TestTheNonStoredAnswersTheFieldContract::test_it_answers_whether_it_is_searchable
+FAILED tests/unit/orm/test_field_search_method.py::TestTheNonStoredAnswersTheFieldContract::test_it_is_not_stored
+FAILED tests/unit/orm/test_field_search_method.py::TestTheNonStoredAnswersTheFieldContract::test_it_answers_the_rest_of_the_class_contract
+FAILED tests/unit/orm/test_field_search_method.py::TestTheNonStoredAnswersTheFieldContract::test_the_related_chain_can_cross_it
+4 failed, 21 passed, 1 warning in 5.17s
+restaurado: identico

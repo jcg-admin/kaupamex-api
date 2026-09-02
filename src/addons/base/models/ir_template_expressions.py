@@ -9,9 +9,12 @@ código Python**, que luego se ejecuta con una lista blanca de opcodes.
 De QWeb se porta el **mecanismo abstracto**, no su misión: ver la sección
 «Qué se porta de QWeb, y qué NO» — el HTML aquí lo emite React.
 
-Cubre de paso los **2 enganches** que Enterprise 19 usa aquí
+Cubre los **2 enganches** que Enterprise 19 usa aquí
 —``_prepare_environment`` y ``_get_template_cache_keys``—, los dos del
-compilador. Tarea #78, :ref:`h-api-819`.
+compilador. Tarea #78, :ref:`h-api-819`. Este párrafo los dio por portados
+desde ese pase y **no existían** hasta que ``http_routing`` (#261) intentó
+extender el primero: se portan con ``_get_converted_image_data_uri`` y
+``QwebJSON``, que el primero publica.
 
 Qué se porta de QWeb, y qué NO — corregido por el ejecutor 2026-08-29
 =====================================================================
@@ -136,15 +139,26 @@ Qué se conserva del porte anterior
   por argumento.
 - **``TemplateError`` / ``TemplateErrorInfo``** — el error con su contexto.
 """
+import base64
 import fnmatch
+import hashlib
 import io
 import logging
+import math
 import re
 import token
 import tokenize
-from urllib.parse import urlencode
+from urllib.parse import quote_plus, urlencode
 
+from dateutil.relativedelta import relativedelta
+
+from addons.base.models.ir_attachment import IrAttachment
+from addons.base.models.ir_http import get_current_request
 from orm import registry
+from orm.environments import env, get_context
+from tools import config
+from tools.image import FILETYPE_BASE64_MAGICWORD, image_data_uri
+from tools.json import JSON
 from tools.safe_eval import (
     _BLACKLIST,
     _BUILTINS,
@@ -152,6 +166,8 @@ from tools.safe_eval import (
     assert_valid_codeobj,
     to_opcodes,
 )
+from tools.safe_eval import datetime as safe_datetime
+from tools.safe_eval import time as safe_time
 from tools.translate import FORMAT_REGEX
 
 _logger = logging.getLogger(__name__)
@@ -325,6 +341,31 @@ def keep_query(current_params=None, *keep_params, **additional_params):
             params[name] = (
                 list(value) if isinstance(value, (list, tuple)) else [value])
     return urlencode(params, doseq=True)
+
+
+class QwebJSON(JSON):
+    """≙ ``QwebJSON`` (``odoo19c: base/models/ir_qweb.py:672-680``).
+
+    El ``json`` que ``_prepare_environment`` publica a las plantillas: el
+    ``dumps`` seguro de :class:`tools.json.JSON` más un ``default`` que
+    convierte a texto un fragmento renderizado antes de serializarlo. La
+    fuente reconoce ese fragmento por su clase (``QwebContent``); aquí no hay
+    fragmento renderizado —el motor no se porta, ver el docstring de
+    :class:`IrTemplateExpressions`— y se reconoce por el protocolo que esa
+    clase implementa: ``__html__``. Cualquier ``default`` que el llamador pase
+    sigue aplicándose después, como allá.
+    """
+
+    def dumps(self, *args, **kwargs):
+        prev_default = kwargs.pop('default', lambda obj: obj)
+        return super().dumps(*args, **kwargs, default=(
+            lambda obj: prev_default(
+                str(obj) if hasattr(obj, '__html__') else obj)
+        ))
+
+
+#: ≙ ``qwebJSON = QwebJSON()`` (``:680``).
+qwebJSON = QwebJSON()
 
 
 class IrTemplateExpressions:
@@ -704,6 +745,100 @@ class IrTemplateExpressions:
         pregunta y no como un ``findall`` suelto.
         """
         return bool(MALICIOUS_SCHEMES(value or ''))
+
+    def _get_template_cache_keys(self):
+        """≙ ``_get_template_cache_keys`` (``odoo19c: :951-953``) — verbatim.
+
+        Las claves de contexto que distinguen una compilación de otra en la
+        caché de ``_compile``. Es uno de los dos enganches que Enterprise 19
+        consulta (:ref:`h-api-819`); hasta este pase el docstring del módulo
+        lo daba por portado y no existía.
+        """
+        return ['lang', 'inherit_branding', 'inherit_branding_auto',
+                'edit_translations', 'profile']
+
+    def _get_converted_image_data_uri(self, base64_source):
+        """≙ ``_get_converted_image_data_uri`` (``odoo19c: :1269-1291``).
+
+        Con ``webp_as_jpg`` en el contexto, una imagen WEBP se sustituye por
+        su conversión JPEG ya adjunta —un ``ir.attachment`` cuyo
+        ``res_model``/``res_id`` apuntan al adjunto original, localizado por
+        el SHA1 del binario, que es el ``checksum`` que ``IrAttachment.save()``
+        calcula— porque el rasterizador no entiende WEBP. Sin conversión, o
+        sin el contexto, devuelve la URL ``data:`` del binario tal cual.
+        """
+        if get_context().get('webp_as_jpg'):
+            mimetype = FILETYPE_BASE64_MAGICWORD.get(base64_source[:1], 'png')
+            if 'webp' in mimetype:
+                bin_source = base64.b64decode(base64_source)
+                checksum = hashlib.sha1(bin_source).hexdigest()
+                origins = list(IrAttachment.objects
+                               .filter(checksum=checksum)
+                               .values_list('pk', flat=True))
+                if origins:
+                    converted = (IrAttachment.objects
+                                 .filter(res_model='ir.attachment',
+                                         res_id__in=origins,
+                                         mimetype='image/jpeg')
+                                 .first())
+                    if converted is not None and converted.datas:
+                        with converted.datas.open('rb') as handle:
+                            base64_source = base64.b64encode(handle.read())
+        return image_data_uri(base64_source)
+
+    def _prepare_environment(self, values):
+        """≙ ``_prepare_environment`` (``odoo19c: :1293-1327``).
+
+        Publica en ``values`` los nombres con que toda plantilla cuenta:
+        ``true``/``false`` siempre; y, salvo con ``minimal_qcontext`` en el
+        contexto, el usuario, la empresa, la petición, las utilidades de
+        fecha del ``safe_eval``, ``json``, ``floor``/``ceil``, ``env``,
+        ``lang`` y ``keep_query``. Es el otro enganche que Enterprise 19
+        consulta (:ref:`h-api-819`), y el que ``http_routing`` extiende para
+        sumar ``slug``/``unslug_url``.
+
+        Tres divergencias de forma, declaradas:
+
+        - ``request.session.debug`` es ``request.session.get('debug', '')``:
+          la sesión de Django es un mapa, no un objeto con atributos.
+        - ``res_company`` no lleva ``.sudo()``: la elevación aquí es un alcance
+          (``orm.environments.sudo``), no un atributo del registro.
+        - La fuente devuelve ``self.with_context(dev_mode=…)``; el contexto en
+          este árbol es un alcance de hilo (``context_scope``), no un atributo
+          del receptor, así que ``dev_mode`` lo sirve
+          :func:`tools.config.dev_mode` a quien lo consulte y el método
+          devuelve ``self`` — que es lo que sus llamadores encadenan.
+        """
+        request = get_current_request()
+        session = getattr(request, 'session', None)
+        debug = (session.get('debug', '') if session is not None else '') or ''
+        values.update(
+            true=True,
+            false=False,
+        )
+        if not get_context().get('minimal_qcontext'):
+            environment = env()
+            values.setdefault('debug', debug)
+            values.setdefault('user_id', environment.user)
+            values.setdefault('res_company', environment.company)
+            values.update(
+                request=request,  # puede ser None fuera de una petición
+                test_mode_enabled=config.test_enable(),
+                json=qwebJSON,
+                quote_plus=quote_plus,
+                time=safe_time,
+                datetime=safe_datetime,
+                relativedelta=relativedelta,
+                image_data_uri=self._get_converted_image_data_uri,
+                # ``math`` acotado para redondear en plantillas sin pasar por
+                # el controlador — mismas dos funciones que la fuente.
+                floor=math.floor,
+                ceil=math.ceil,
+                env=environment,
+                lang=environment.lang,
+                keep_query=keep_query,
+            )
+        return self
 
     def render(self, *args, **kwargs):
         """Punto de entrada del motor — **no** implementado aquí.

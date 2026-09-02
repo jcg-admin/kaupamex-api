@@ -61,6 +61,13 @@ from django.core.exceptions import ValidationError
 from orm.model_classes import extend_model
 from addons.base.models import ResCompany
 
+#: ≙ la cabecera que la fuente declara en su clase (``odoo19c: :8``; la
+#: extensión aquí no es clase). ``_check_company_auto`` (``:9``) y el objeto
+#: de tabla ``_check_quotation_validity_days`` (``:11-14``) ya se expresan
+#: más abajo —el primero en el docstring de :func:`apply_sale_extensions`,
+#: el segundo en :func:`_wire_constraints`—; sólo faltaba este.
+_inherit = 'res.company'
+
 #: ≙ ``domain=[('type','=','service'), ('invoice_policy','=','order')]``
 #: (``odoo19c: res_company.py:29-33``). El producto que materializa un
 #: descuento es un servicio facturado por pedido, no un bien de almacén.

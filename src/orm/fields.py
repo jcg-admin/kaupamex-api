@@ -60,10 +60,12 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.utils.timezone import localtime
 
-from orm.environments import env as get_environment, get_current_company, get_transaction
+from orm.environments import (env as get_environment, get_current_company,
+                             get_transaction, sudo as elevate_privileges)
 from tools.misc import OrderedSet, remove_accents
 from tools.translate import _
-from orm.registry import is_not_null
+from orm.registry import (field_computed as registry_field_computed,
+                         field_depends_context, is_not_null)
 from tools.sql import SQL, pg_varchar, sql_order_by_type
 
 from orm.fields_binary import Binary, Image                    # noqa: F401
@@ -72,7 +74,7 @@ from orm.fields_numeric import Float, Integer, Monetary        # noqa: F401
 from orm.fields_nonstored import (                          # noqa: F401
     NonStored,
     annotate_related,
-    apply_related_defaults,
+    apply_source_defaults,
 )
 from orm.fields_properties import (                            # noqa: F401
     Properties,
@@ -83,7 +85,8 @@ from orm.fields_relational import Many2many, Many2one, One2many  # noqa: F401
 from orm.fields_selection import Selection                     # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
-from orm.utils import COLLECTION_TYPES
+from orm.utils import (COLLECTION_TYPES, model_field_registry,
+                       record_ids)
 
 #: El **registro de tipos de campo**, no la lista de exportables del módulo.
 #:
@@ -1294,6 +1297,28 @@ for _name_attr, _default_value in _FIELD_CLASS_ATTRIBUTES.items():
     if not hasattr(models.Field, _name_attr):
         setattr(models.Field, _name_attr, _default_value)
 
+#: El mismo contrato sobre :class:`~orm.fields_nonstored.NonStored`, con UNA
+#: excepción: ``store``.
+#:
+#: En la fuente no hay dos clases. Un campo sin columna **es** un ``Field`` con
+#: ``store=False`` (``odoo19c: odoo/orm/fields.py:455``), así que responde a
+#: los mismos cuarenta y tantos atributos que cualquier otro. Aquí la jerarquía
+#: del stack los separa —``NonStored`` no desciende de ``models.Field``, y no
+#: puede: no tiene columna que declarar—, y el bucle de arriba sólo alcanzaba a
+#: la clase de Django. El resultado era que un campo sin columna levantaba
+#: ``AttributeError`` ante ``_description_searchable``, que es justo lo que
+#: ``_field_setup_related`` pregunta a **cada eslabón** de una cadena
+#: ``related=`` antes de cablear su búsqueda (:ref:`h-api-1027`).
+#:
+#: ``store`` va a ``False`` y no al defecto de ``Field``: es lo que la clase
+#: significa, y de él depende ``_description_searchable`` —``bool(self.store or
+#: self.search)``—, que con ``True`` daría buscable a todos y no discriminaría
+#: nada.
+for _name_attr, _default_value in _FIELD_CLASS_ATTRIBUTES.items():
+    if not hasattr(NonStored, _name_attr):
+        setattr(NonStored, _name_attr,
+                False if _name_attr == 'store' else _default_value)
+
 #: Las sobrescrituras por clase concreta van DESPUÉS del bucle: el bucle pone
 #: el defecto de ``Field`` y éstas lo pisan donde la fuente lo pisa. Invertir
 #: el orden no cambia nada —son clases distintas— pero leerlo así deja claro
@@ -1496,6 +1521,10 @@ def _field_description_searchable(self):
 
 
 models.Field._description_searchable = _field_description_searchable
+#: Y sobre el campo sin columna, por la misma razón que ``determine_domain`` se
+#: instala en las dos clases: es una ``property``, así que el bucle de
+#: :data:`_FIELD_CLASS_ATTRIBUTES` —que copia valores— no la alcanza.
+NonStored._description_searchable = _field_description_searchable
 
 
 def _field_description_sortable(self, env):
@@ -2019,53 +2048,179 @@ def _field_setup(self, model):
 models.Field.setup = _field_setup
 
 
+def _model_of(field, registry_module):
+    """La clase de modelo a la que ``field`` pertenece.
+
+    Dos vias, y la de Django va primero. La fuente resuelve por
+    ``field.model_name``, el nombre punteado que su ORM le pone al ligar el
+    campo. Aqui quien liga el campo es Django, y lo que deja es ``field.model``
+    — la clase, directamente. ``model_name`` solo lo lleva un campo cuyo puerto
+    se lo haya declarado, asi que preguntar solo por el dejaria fuera a todo
+    campo ligado por Django, que son todos.
+    """
+    model = getattr(field, 'model', None)
+    if model is not None:
+        return model
+    name = getattr(field, 'model_name', '')
+    return registry_module.MODELS_BY_NAME.get(name) if name else None
+
+
+def _comodel_of(field, registry_module):
+    """El modelo al que ``field`` lleva, o ``None`` si no lleva a ninguno.
+
+    ≙ el ``model_name = field.comodel_name`` con que la fuente avanza el
+    recorrido (``:865``). Django ya publica la clase en ``related_model``, asi
+    que no hace falta pasar por el nombre; ``comodel_name`` queda de respaldo
+    para un campo portado que lo declare y no sea relacion de Django.
+    """
+    related = getattr(field, 'related_model', None)
+    if related is not None:
+        return related
+    comodel = getattr(field, 'comodel_name', None)
+    return registry_module.MODELS_BY_NAME.get(comodel) if comodel else None
+
+
+def _is_one_to_many(field):
+    """Si ``field`` es el lado «muchos» de una relacion — ≙ ``type ==
+    'one2many'``.
+
+    Se pregunta por ``one_to_many`` de Django, que es donde este stack lo
+    declara, **y** por el ``type`` que :class:`~orm.fields_relational.One2many`
+    declara (``fields_relational.py:179``): el primero cubre el reverso de una
+    FK, el segundo el campo portado que se declara explicitamente.
+    """
+    return bool(getattr(field, 'one_to_many', False)
+                or getattr(field, 'type', None) == 'one2many')
+
+
+def _is_many_to_one(field):
+    """Si ``field`` lleva a UN registro — ≙ ``type == 'many2one'``.
+
+    Mismo criterio doble que :func:`_is_one_to_many`, por la misma razon.
+    """
+    return bool(getattr(field, 'many_to_one', False)
+                or getattr(field, 'type', None) == 'many2one')
+
+
 def _field_resolve_depends(self, registry_module):
-    """≙ ``Field.resolve_depends`` (``:807``) — «return the dependencies of
+    """≙ ``Field.resolve_depends`` (``:807-865``) — «return the dependencies of
     ``self`` as a collection of field tuples».
 
-    Cada dependencia declarada es un nombre punteado; esto la resuelve a la
-    tupla de campos que la recorre, para que quien invalide sepa qué tocar.
+    Cada dependencia declarada es un nombre punteado; esto la resuelve a las
+    tuplas de campos que la recorren, para que quien invalide sepa que tocar.
 
-    El parámetro se llama ``registry_module`` y no ``registry`` porque aquí el
-    registro es un **módulo** (``orm.registry``) y no la instancia por base de
-    la fuente — la divergencia está declarada en la cabecera de ese archivo.
+    El parametro se llama ``registry_module`` y no ``registry`` porque aqui el
+    registro es un **modulo** (``orm.registry``) y no la instancia por base de
+    la fuente — la divergencia esta declarada en la cabecera de ese archivo.
 
-    **Dos vías para llegar al modelo, y la de Django va primero.** La fuente
-    resuelve por ``self.model_name``, el nombre punteado que su ORM le pone al
-    ligar el campo. Aquí quien liga el campo es Django, y lo que deja es
-    ``field.model`` — la clase, directamente. ``model_name`` sólo lo lleva un
-    campo cuyo puerto se lo haya declarado, así que preguntar sólo por él
-    dejaría fuera a todo campo ligado por Django, que son todos.
+    > **Completado (tarea #273, capa B).** La version anterior emitia **solo la
+    > tupla completa**, en el ``else`` del ``for``. La fuente emite **cada
+    > prefijo** dentro del bucle, y ese es el contrato que el registro de
+    > disparadores consume: sin los prefijos, un ``@api.depends('owner.label')``
+    > nunca registra a ``owner`` como clave, asi que
+    > ``is_modifying_relations(owner)`` responde ``False`` sobre un campo que
+    > **si** cambia que filas dependen de el. Con la tupla completa como unica
+    > salida el mecanismo entero queda medio construido y su verde no lo
+    > delata.
+    >
+    > Se portan ademas los cinco comportamientos que faltaban y que la fuente
+    > declara en el mismo cuerpo: el corte por transitorio, el aviso de
+    > recursion, el aviso de precomputo con su corte en ``many2one``, el aviso
+    > de no-buscable, y la emision extra por el inverso de un ``one2many``.
+    > Esta ultima **no se podia portar antes**: necesita ``field_inverses``,
+    > que la capa B es la que construye.
+
+    Cuatro divergencias de mecanismo, todas declaradas:
+
+    - el mapa de campos del modelo lo da :func:`~orm.utils.model_field_registry`
+      —el cuerpo de ``BaseModel._fields``— y no ``_meta.get_field``, que es
+      ciego al campo sin columna (:ref:`h-api-1025`);
+    - ``_transient`` se lee con ``getattr``: aqui lo declara
+      ``orm.models_transient`` sobre los modelos que lo son, y los demas no
+      llevan el atributo;
+    - ``one2many`` y ``many2one`` se reconocen por los marcadores de Django
+      (``one_to_many`` / ``many_to_one``) ademas del ``type`` portado;
+    - el comodelo sale de ``related_model``, no del nombre.
     """
-    model = getattr(self, 'model', None)
-    if model is None:
-        model = registry_module.MODELS_BY_NAME.get(self.model_name)
-    if model is None:
+    model_zero = _model_of(self, registry_module)
+    if model_zero is None:
         return
+    zero_transient = bool(getattr(model_zero, '_transient', False))
+
     for dotnames in registry_module.field_depends[self]:
         field_sequence = []
-        current = model
-        for fname in dotnames.split('.'):
-            # ``_meta.get_field`` y no ``_fields``: aquí se recorren CLASES, y
-            # sobre la clase ``_fields`` es el objeto ``property``, no el mapa.
-            # Es el mismo registro por la vía que sí funciona sin instancia.
-            field = None
-            if current is not None:
-                try:
-                    field = current._meta.get_field(fname)
-                except FieldDoesNotExist:
-                    field = None
-            if field is None:
+        current = model_zero
+        check_precompute = bool(getattr(self, 'precompute', False))
+
+        for index, fname in enumerate(dotnames.split('.')):
+            if current is None:
                 break
+            #: Tocar un campo de un modelo normal no debe disparar el
+            #: recalculo de un campo de un modelo transitorio — ≙ ``:820-824``.
+            if zero_transient and not getattr(current, '_transient', False):
+                break
+
+            registry = model_field_registry(current)
+            try:
+                field = registry[fname]
+            except KeyError:
+                raise ValueError(
+                    f"Wrong @depends on '{self.compute}' (compute method of "
+                    f"field {self}). Dependency field '{fname}' not found in "
+                    f"model {current.__name__}."
+                ) from None
+
+            if field is self and index and not self.recursive:
+                self.recursive = True
+                warnings.warn(
+                    f'Field {self} should be declared with recursive=True',
+                    stacklevel=1)
+
+            #: Un campo precomputado puede depender de uno que no lo sea, pero
+            #: solo si se llega a el atravesando al menos un ``many2one``
+            #: — ≙ ``:834-838``.
+            #: Los tres atributos se leen con ``getattr``: el objeto de
+            #: relacion inversa de Django (``ForeignObjectRel``) **no** es un
+            #: ``models.Field``, asi que el bucle de
+            #: :data:`_FIELD_CLASS_ATTRIBUTES` no lo alcanza. Un lado inverso
+            #: no tiene columna propia ni computo, que es justo el default.
+            if (check_precompute and getattr(field, 'store', False)
+                    and getattr(field, 'compute', None)
+                    and not getattr(field, 'precompute', False)):
+                warnings.warn(
+                    f'Field {self} cannot be precomputed as it depends on '
+                    f'non-precomputed field {field}', stacklevel=1)
+                self.precompute = False
+
+            #: ``True`` por defecto por la misma razon: un lado inverso de
+            #: Django SI es atravesable en una consulta (``probes__source``),
+            #: que es lo que este aviso mide — «hay por donde llegar a las
+            #: filas que recalcular».
+            if field_sequence and not getattr(
+                    field_sequence[-1], '_description_searchable', True):
+                warnings.warn(
+                    f'Field {field_sequence[-1]!r} in dependency of {self} '
+                    f'should be searchable. This is necessary to determine '
+                    f'which records to recompute when {field} is modified. '
+                    f'You should either make the field searchable, or simplify '
+                    f'the field dependency.', stacklevel=1)
+
             field_sequence.append(field)
-            related = getattr(field, 'related_model', None)
-            if related is None:
-                comodel = getattr(field, 'comodel_name', None)
-                related = (registry_module.MODELS_BY_NAME.get(comodel)
-                           if comodel else None)
-            current = related
-        else:
-            yield tuple(field_sequence)
+
+            #: Un campo no se dispara a si mismo: un ``one2many`` con dominio
+            #: sobre ``foo`` declara ``line_ids.foo``, y el primer paso de esa
+            #: ruta es el propio campo — ≙ ``:853-856``.
+            if not (field is self and not index):
+                yield tuple(field_sequence)
+
+            if _is_one_to_many(field):
+                for inverse in registry_module.field_inverses[field]:
+                    yield tuple(field_sequence) + (inverse,)
+
+            if check_precompute and _is_many_to_one(field):
+                check_precompute = False
+
+            current = _comodel_of(field, registry_module)
 
 
 models.Field.resolve_depends = _field_resolve_depends
@@ -2115,3 +2270,306 @@ def determine_domain(field, records, operator, value):
 
 models.Field.determine_domain = determine_domain
 NonStored.determine_domain = determine_domain
+
+
+############################################################################
+#
+# Cache management methods — ≙ ``odoo19c: odoo/orm/fields.py:1520-1630``
+#
+# El almacén es ``Transaction.field_data``, que existía desde el porte de
+# ``environments.py`` y hasta aquí no tenía **ningún** consumidor: medido,
+# 0 lecturas fuera de su propio módulo. Esta sección es quien lo estrena.
+#
+# Veredicto por el criterio de las dos categorías:
+#
+# - **el stack lo trae hecho**: ``collections.deque(maxlen=0)`` para drenar
+#   un ``map`` en C, ``collections.ChainMap`` para fusionar los cubos de un
+#   campo con contexto, y ``defaultdict`` para el mapa por campo. Los tres
+#   de ``cpython``; se llaman y ya.
+# - **el stack tiene con qué construirlo**: la caché en sí. Django no tiene
+#   almacén de valor por campo y por transacción —el suyo es por instancia,
+#   en ``_state.fields_cache``, y muere con el objeto—, pero las primitivas
+#   están y no hace falta ninguna dependencia de fuera.
+#
+# La adaptación de firma es UNA y se declara aquí para no repetirla en cada
+# método: donde la fuente escribe ``records._ids``, aquí va
+# ``record_ids(records)``. No hay recordset en este stack — ver el docstring
+# de :func:`~orm.utils.record_ids` —; el resto del cuerpo es el de la fuente.
+############################################################################
+
+
+def _has_context_buckets(field):
+    """Si el campo separa su caché por clave de contexto.
+
+    ≙ ``self in env._field_depends_context`` de la fuente. Allá el registro
+    guarda el conjunto; aquí lo responde el mismo mapa derivado que ya
+    existía, ``registry.field_depends_context``.
+    """
+    return field in field_depends_context
+
+
+def _get_cache(self, env):
+    """La caché del campo: un mapa mutable de id a valor.
+
+    ≙ ``Field._get_cache`` (``:1525``). Docstring de la fuente: *"Calling
+    this function multiple times, always returns the same mapping instance
+    for a given environment, unless the transaction was entirely
+    invalidated."* Esa promesa sostiene el resto — quien recibe el mapa
+    escribe en él y espera que la escritura se vea.
+    """
+    transaction = env.transaction
+    memo_key = (self, env.cache_key(self) if _has_context_buckets(self) else None)
+    try:
+        return transaction.field_cache_memo[memo_key]
+    except KeyError:
+        field_cache = self._get_cache_impl(env)
+        transaction.field_cache_memo[memo_key] = field_cache
+        return field_cache
+
+
+def _get_cache_impl(self, env):
+    """≙ ``Field._get_cache_impl`` (``:1541``) — puede dar una vista del
+    almacén real, según lo que el campo necesite."""
+    cache = env.transaction.field_data[self]
+    if _has_context_buckets(self):
+        cache = cache.setdefault(env.cache_key(self), {})
+    return cache
+
+
+def _invalidate_cache(self, env, ids=None):
+    """≙ ``Field._invalidate_cache`` (``:1550``) — invalida los ids dados, o
+    todos si ``ids`` es ``None``.
+
+    Lee ``field_data.get`` y no el corchete a propósito: sobre un
+    ``defaultdict`` el corchete **crea** la entrada, y un campo que nadie ha
+    tocado quedaría con un cubo vacío por el mero hecho de invalidarlo.
+    """
+    cache = env.transaction.field_data.get(self)
+    if not cache:
+        return
+
+    caches = cache.values() if _has_context_buckets(self) else (cache,)
+    for field_cache in caches:
+        if ids is None:
+            field_cache.clear()
+            continue
+        for id_ in ids:
+            field_cache.pop(id_, None)
+
+
+def _get_all_cache_ids(self, env):
+    """Todos los ids con valor en caché, en cualquier entorno.
+
+    ≙ ``Field._get_all_cache_ids`` (``:1564``). El ``ChainMap`` es el truco
+    de la fuente para *"cheaply merge"* las claves de los cubos sin copiar
+    ninguno.
+    """
+    cache = env.transaction.field_data[self]
+    if _has_context_buckets(self):
+        return collections.ChainMap(*cache.values())
+    return cache
+
+
+def _cache_missing_ids(self, records):
+    """≙ ``Field._cache_missing_ids`` (``:1572``) — los ids sin valor en
+    caché."""
+    field_cache = self._get_cache(get_environment())
+    return (id_ for id_ in record_ids(records) if id_ not in field_cache)
+
+
+def _insert_cache(self, records, values):
+    """Rellena la caché SIN pisar lo que ya hay.
+
+    ≙ ``Field._insert_cache`` (``:1595``). El ``setdefault`` no es un
+    detalle: la fuente lo explica —*"this enables to keep the pending
+    updates of records, and flush them later"*—. Una asignación borraría una
+    escritura pendiente y la fila se guardaría con el valor leído de la base.
+
+    El ``deque(maxlen=0)`` es el drenaje en C que la fuente mide un 15 % más
+    rápido que el bucle equivalente; se porta igual, porque es el stack quien
+    lo trae hecho.
+    """
+    field_cache = self._get_cache(get_environment())
+    collections.deque(
+        map(field_cache.setdefault, record_ids(records), values), maxlen=0)
+
+
+def _update_cache(self, records, cache_value, dirty=False):
+    """Escribe el valor en caché y, si se pide, marca el campo sucio.
+
+    ≙ ``Field._update_cache`` (``:1609``). Docstring de la fuente: *"One can
+    normally make a clean field dirty but not the other way around. Updating
+    a dirty field without ``dirty=True`` is a programming error and logs an
+    error."* Se porta el **registro**, no una excepción: la fuente elige no
+    lanzar, y lanzar aquí cambiaría el contrato de todo escritor.
+    """
+    env = get_environment()
+    field_cache = self._get_cache(env)
+    ids = record_ids(records)
+    for id_ in ids:
+        field_cache[id_] = cache_value
+
+    # ``dirty`` sólo tiene sentido para un campo con columna y almacenado.
+    if self.column_type and self.store:
+        if dirty:
+            env.transaction.field_dirty[self].update(id_ for id_ in ids if id_)
+        else:
+            dirty_ids = env.transaction.field_dirty.get(self)
+            if dirty_ids and not dirty_ids.isdisjoint(ids):
+                _logger.error(
+                    "Field._update_cache() updating the value on %s.%s where "
+                    "dirty flag is already set",
+                    records, self.name, stack_info=True,
+                )
+
+
+############################################################################
+#
+# Computation of field values — ≙ ``odoo19c: odoo/orm/fields.py:1845-1918``
+#
+############################################################################
+
+
+def _as_record_list(records):
+    """Las filas de ``records`` como lista.
+
+    La contraparte de :func:`~orm.utils.record_ids` para cuando hace falta el
+    objeto y no el id — el cómputo se invoca sobre la fila, no sobre su clave.
+    """
+    if records is None:
+        return []
+    if isinstance(records, models.Model):
+        return [records]
+    return list(records)
+
+
+def _invoke_compute_method(field, records):
+    """Llama al método que ``field.compute`` nombra, sobre cada fila.
+
+    ≙ ``BaseModel._compute_field_value`` (``odoo19c: odoo/orm/models.py``) en
+    lo que este stack necesita. La fuente lo invoca sobre el *recordset*
+    entero y el método itera por dentro con ``for record in self``; aquí la
+    unidad es la instancia, así que el bucle vive de este lado y el método
+    recibe una fila. Es la misma adaptación de :func:`~orm.utils.record_ids`,
+    vista desde el otro lado.
+    """
+    for record in _as_record_list(records):
+        getattr(record, field.compute)()
+
+
+def recompute(self, records):
+    """Procesa los cómputos pendientes de este campo sobre ``records``.
+
+    ≙ ``Field.recompute`` (``:1850``). Sólo se llama si el campo es calculado
+    y almacenado.
+
+    **Dos divergencias de mecanismo, las dos con su motivo medido y su
+    sucesor** — ninguna recorta el comportamiento observable del campo:
+
+    1. *Sin lote de prelectura.* La fuente agrupa los pendientes en ventanas
+       de ``PREFETCH_MAX`` con ``expand_ids`` y computa la ventana entera de
+       una vez. Aquí el cómputo se invoca por fila (ver
+       :func:`_invoke_compute_method`), así que la ventana no ahorraría ni
+       una consulta: agruparla sería ceremonia. Vuelve a tener sentido el día
+       que el cómputo reciba un ``QuerySet``, que es la tarea **#306**.
+    2. *Sin reintento por fila ausente.* La fuente envuelve cada cómputo en
+       ``apply_except_missing``: ante un ``MissingError`` reintenta sobre
+       ``records.exists()`` y desmarca los que ya no existen *"otherwise they
+       remain to compute forever, which may lead to an infinite loop"*. Aquí
+       no hay ``MissingError`` — una fila borrada no se detecta al tocarla,
+       sino al consultarla — y el equivalente exige el lado de lectura del
+       motor, que es la capa C. Sucesor: tarea **#307**.
+    """
+    to_compute_ids = get_environment().transaction.tocompute.get(self)
+    if not to_compute_ids:
+        return
+
+    pending = [record for record in _as_record_list(records)
+               if record.pk in to_compute_ids]
+    if not pending:
+        return
+
+    if self.recursive:
+        # Un calculado recursivo se computa fila a fila, para que sus
+        # dependencias internas se resuelvan en orden. Aquí el no-recursivo
+        # también va fila a fila (divergencia 1 del docstring), así que las
+        # dos ramas coinciden; la condición se conserva porque es donde
+        # aterriza el lote cuando #306 lo construya.
+        for record in pending:
+            self.compute_value(record)
+        return
+
+    for record in pending:
+        self.compute_value(record)
+
+
+def compute_value(self, records):
+    """Invoca el método de cómputo; el resultado queda en caché.
+
+    ≙ ``Field.compute_value`` (``:1897``).
+
+    El orden importa, y la fuente lo razona: desmarca el cómputo **antes** de
+    correrlo *"just in case the compute method does not assign a value"* y
+    porque el propio método puede leer el valor viejo, lo que dispararía una
+    lectura que volvería a computar el campo — recursión infinita. Si el
+    cómputo revienta, se vuelve a marcar y se relanza.
+
+    ``compute_sudo`` no eleva aquí con ``records.sudo()`` —no hay recordset
+    que elevar— sino con el alcance de elevación del entorno, que es el
+    mecanismo equivalente de este stack (``orm.environments.sudo``).
+    """
+    env = get_environment()
+    ids = record_ids(records)
+    fields = registry_field_computed[self]
+
+    for field in fields:
+        if field.store:
+            env.remove_to_compute(field, ids)
+
+    try:
+        with env.protecting(fields, ids):
+            if self.compute_sudo:
+                with elevate_privileges():
+                    _invoke_compute_method(self, records)
+            else:
+                _invoke_compute_method(self, records)
+    except Exception:
+        for field in fields:
+            if field.store:
+                env.add_to_compute(field, ids)
+        raise
+
+    _cache_computed_values(fields, records)
+
+
+def _cache_computed_values(fields, records):
+    """Lleva al caché lo que el cómputo dejó en la fila, marcándolo sucio.
+
+    Es la mitad de :func:`compute_value` que este stack tiene que escribir. La
+    fuente no la necesita: allá el método de cómputo **asigna sobre el
+    recordset**, y esa asignación ya pasa por ``_update_cache`` —el caché es el
+    canal de escritura del ORM—. Aquí el método asigna sobre la **instancia de
+    Django**, que es un objeto normal: el valor queda en el atributo y el caché
+    no se entera.
+
+    Sin este paso, ``field_dirty`` no se puebla nunca, y el ``_flush`` de la
+    capa C no tendría de dónde saber qué columna escribir: el cómputo correría,
+    el valor viviría en memoria, y la fila de la base seguiría con el valor
+    viejo. Es exactamente la mitad silenciosa que ``store=True`` promete.
+
+    Sólo para los campos **con columna**: un calculado sin ella no se persiste,
+    y ``_update_cache`` ya acota ahí su marca de sucio.
+    """
+    rows = _as_record_list(records)
+    for field in fields:
+        if not (field.store and field.column_type):
+            continue
+        for row in rows:
+            value = getattr(row, getattr(field, 'attname', field.name), None)
+            field._update_cache([row], value, dirty=True)
+
+
+for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
+                      _get_all_cache_ids, _cache_missing_ids, _insert_cache,
+                      _update_cache, recompute, compute_value):
+    setattr(models.Field, _cache_method.__name__, _cache_method)

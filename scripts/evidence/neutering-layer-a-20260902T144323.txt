@@ -1,0 +1,19 @@
+# Control discriminante de la capa A — 2026-09-02T14:43:23
+# Cada guarda se anula, se corre el archivo, y se comprueba que caen
+# EXACTAMENTE los casos que dependen de ella.
+
+== 0. linea base, sin anular nada ==
+23 passed, 1 warning in 6.00s
+
+== 1. _insert_cache asigna en vez de setdefault ==
+FAILED tests/unit/orm/test_field_cache.py::TestInsertKeepsWhatIsAlreadyThere::test_it_does_not_overwrite_a_pending_value
+1 failed, 22 passed, 1 warning in 6.05s
+
+== 2. _has_context_buckets devuelve siempre False ==
+FAILED tests/unit/orm/test_field_cache.py::TestTheContextSplitsTheCache::test_a_context_field_keys_its_bucket
+FAILED tests/unit/orm/test_field_cache.py::TestAllCacheIdsMergesTheBuckets::test_a_context_field_merges_every_bucket
+2 failed, 21 passed, 1 warning in 6.07s
+
+== 3. compute_value no desmarca el computo antes de correrlo ==
+FAILED tests/unit/orm/test_field_cache.py::TestRecomputeOnlyTouchesWhatIsPending::test_computing_clears_the_pending_mark
+1 failed, 22 passed, 1 warning in 7.08s

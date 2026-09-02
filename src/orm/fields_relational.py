@@ -157,11 +157,17 @@ class One2many:
                                             la lectura es el manager del
                                             reverso, y el lote lo da
                                             ``prefetch_related``
-    ``setup_inverses``                      **DESCONOCIDO** — su consumidor es
-                                            la invalidacion de cache, y este
-                                            arbol no tiene cache de campos
-                                            (medido: 0 hits de ``inverses`` en
-                                            ``src/orm/``). Tarea **#244**
+    ``setup_inverses``                      **divergencia de mecanismo** — el
+                                            mapa existe y lo mantiene Django en
+                                            ``remote_field``; la fuente tiene
+                                            que construirlo porque su ORM no lo
+                                            guarda. Aqui lo deriva
+                                            ``registry._TriggerRegistry``.
+                                            Cerrado con la capa B de #273
+                                            (:ref:`h-api-1032`); era
+                                            DESCONOCIDO por *"este arbol no
+                                            tiene cache de campos"*, y esa
+                                            causa la retiro la capa A
     ``_condition_to_sql_relational``        **trabajo**, no divergencia: el lado
     ``_get_query_for_condition_value``      SQL del campo. Tarea **#243**
     ``_internal_description_domain_raw``    **trabajo**, detras de #241 porque
@@ -555,16 +561,13 @@ def Many2one(*args, store=_UNSET, company_dependent=False,
     #: default literal no puede.
     if store is not _UNSET:
         kwargs['store'] = store
-    projection, related_attrs = projection_or_none(related, kwargs)
+    projection, related_attrs = projection_or_none(related, kwargs,
+                                                  company_dependent)
     if projection is not None:
         return projection
     store = related_attrs['store']
 
     if company_dependent:
-        if not store:
-            raise ValueError(
-                'store=False y company_dependent=True son excluyentes: un '
-                'campo sin columna no tiene jsonb donde repartir el valor.')
         to = args[0] if args else kwargs.pop('to', None)
         resto = args[1:]                       # el ``on_delete`` posicional
         if to is None:

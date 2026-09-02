@@ -72,3 +72,25 @@ def root_path():
     localizar ``import_xml.rng``, igual que ``convert_xml_import`` allá.
     """
     return str(Path(__file__).resolve().parent.parent)
+
+
+def test_enable():
+    """≙ ``config['test_enable']`` — ¿corre la aplicación bajo pruebas?
+
+    La fuente lo lee de su bandera de línea de comandos; aquí el equivalente
+    es que el módulo de settings cargado sea el de pruebas
+    (``config.settings.testing``), que es la única forma en que este árbol
+    entra en modo de prueba.
+    """
+    return settings.SETTINGS_MODULE.endswith('.testing')
+
+
+def dev_mode():
+    """≙ ``config['dev_mode']`` — la lista de modos de desarrollo activos.
+
+    La fuente la puebla desde ``--dev=qweb,reload,…``; aquí la única fuente de
+    verdad del modo de desarrollo es ``DEBUG``, así que la lista es ``['qweb']``
+    con ``DEBUG`` encendido y vacía en producción. Se devuelve una lista y no
+    un booleano para conservar el contrato (``'qweb' in config['dev_mode']``).
+    """
+    return ['qweb'] if settings.DEBUG else []

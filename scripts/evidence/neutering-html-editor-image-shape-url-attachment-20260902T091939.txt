@@ -1,0 +1,12 @@
+# Control discriminante — html-editor-image-shape-url-attachment
+# fecha:    2026-09-02T09:19:39
+# archivo:  addons/html_editor/controllers/main.py
+# anulado:  s/if getattr(record, 'type', None) == 'url' and getattr(record, 'url', ''):/if False:/
+# tests:    tests/unit/html_editor/test_image_shape.py
+
+## 1. Verde de partida (guarda presente)
+14 passed, 2 warnings in 7.59s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheUrlAttachmentIsRedirectedInsteadOfEmbedded::test_the_response_points_at_the_origin
+1 failed, 13 passed, 2 warnings in 7.75s

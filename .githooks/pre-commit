@@ -120,6 +120,24 @@ if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
     fi
 fi
 
+# ─── check_bloqueo_vigente: la causa del bloqueo sigue sin existir ───────────
+# El gate de arriba mide la FORMA de la marca y declara su ceguera: no resuelve
+# el destino. Este lo resuelve. Una marca de bloqueo es una afirmacion de
+# estado fechada, asi que envejece sola y en silencio — y ademas saca el
+# simbolo de la lista de pendientes, porque el gate de porte la absuelve.
+# Episodio: image_shape de html_editor, bloqueado por tres simbolos que el
+# arbol ya tenia desde el cierre de #285 (H-API-1021).
+# Baseline de deuda heredada; una caducada nueva SI bloquea.
+# Script: scripts/check_bloqueo_vigente.py.
+if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
+    VIGENTE_CHECKER="$REPO_ROOT/scripts/check_bloqueo_vigente.py"
+    if [[ ! -f "$VIGENTE_CHECKER" ]]; then
+        echo "pre-commit: $VIGENTE_CHECKER no encontrado — skip vigencia gate" >&2
+    else
+        python3 "$VIGENTE_CHECKER" --strict "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
 # ─── check_escape_sequences: ninguna cadena declara un escape que Python no ──
 # conoce. Desde 3.12 emiten SyntaxWarning y la documentación anuncia que serán
 # SyntaxError. Se colaban por docstrings con markup RST (``\ `` es el escape de

@@ -25,6 +25,8 @@ from addons.base.data.res_country_data import seed as countries_seed
 from addons.base.data.res_lang_data import seed as langs_seed
 from addons.base.data.res_groups_data import seed as base_groups_seed
 from addons.base_geolocalize.data import seed as geo_providers_seed
+from addons.base_install_request.data import (
+    seed as install_request_template_seed)
 from addons.hr.data.hr_departure_reason_data import (
     seed as departure_reasons_seed,
 )
@@ -360,6 +362,7 @@ _SEEDERS = (
     totp_params_seed,           # authz_totp/0001 + 0002
     mail_subtypes_seed,         # mail/0002
     geo_providers_seed,         # base_geolocalize/0002
+    install_request_template_seed,  # base_install_request/0002
     departure_reasons_seed,     # hr/0003 (3 motivos de baja maestros)
     bootstrap_company_seed,     # BOOTSTRAP_COMPANY_CODE (no-op si no se declara)
     base_rules_seed,            # base/security (record rules multi-company)

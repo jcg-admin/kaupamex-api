@@ -62,23 +62,30 @@ sustrato. Cambian dos:
   plantilla.
 - **Paso 5 (conversión):** libharu en vez de ``wkhtmltopdf`` (ADR-017).
 
-Deuda declarada — nuestros helpers colapsan 3 y 5
+Lo que sólo PDF colapsa — corregido (tarea #268)
 =================================================
 
-En la referencia el intermedio existe **fuera** del conversor, y por eso un
-mismo ``report_name`` sale en tres formatos sin tocar la plantilla. Nuestros
-helpers en C reciben el descriptor y devuelven PDF en un solo proceso: componen
-**y** convierten.
+**Esta sección afirmaba que ``report_type`` no podía variar
+independientemente del ``helper`` "porque no hay intermedio neutral que un
+segundo conversor pueda leer".** Era cierto cuando el enum era sólo ``pdf``
+(H-API-291); dejó de serlo al reabrir ``html``/``text`` (tarea #196,
+``api@3a620979``) — ver ``REPORT_TYPE_CHOICES`` en ``ir_actions_report.py``.
 
-Consecuencia concreta: aquí ``report_type`` **no puede variar
-independientemente** del helper. Un reporte declarado ``pdf`` no se puede
-servir como ``html`` reutilizando su constructor, porque no hay intermedio
-neutral que un segundo conversor pueda leer.
+El descriptor que ``builder`` construye **es** el intermedio neutral: lo
+serializa ``report_template.descriptor_to_html``/``descriptor_to_text``
+(``_render_qweb_html``/``_render_qweb_text``) exactamente igual que, para
+``pdf``, lo consume el helper de C vía ``run_helper(spec.helper, descriptor)``
+(``ir_actions_report.py``). El mismo ``report_name``/``builder`` puede
+servirse en cualquiera de los tres formatos — basta con declarar el
+``ir.actions.report`` con el ``report_type`` que corresponda; ``_render_template``
+llama a ``spec.builder`` sin mirar el formato de salida.
 
-Se acepta el colapso —construir un intermedio neutral propio es trabajo mayor y
-hoy prematuro— pero se declara, y por eso ``ReportSpec`` nombra su ``helper``:
-no es que la declaración deba conocer el sustrato, es que en este árbol **no
-hay separación que ocultar**. El día que exista, ``helper`` sale del spec.
+Lo que **sí** sigue colapsado, y es lo único que la sección original medía
+bien: para ``pdf`` específicamente, el helper en C recibe el descriptor y
+devuelve PDF en un solo proceso — compone **y** convierte, sin exponer su
+propio paso intermedio (libharu, ADR-017). Por eso ``ReportSpec`` sigue
+nombrando su ``helper``: identifica qué binario usar cuando el formato es
+``pdf``; para ``html``/``text`` el campo no se consulta.
 
 Layout — ``<addon>/report/report_catalog.py``
 =============================================
@@ -149,13 +156,19 @@ class ReportSpec:
         (``'sale.order'``). Mismo criterio ya fijado por
         ``ir_rule.model_name``.
     :param name: etiqueta legible; la que ve quien imprime.
-    :param report_type: formato de salida. Hoy **sólo** ``pdf`` — el enum
-        lista lo que este árbol sabe emitir, no el catálogo de la referencia
-        (H-API-291). **Sin** el prefijo ``qweb-``: aquí no hay QWeb, así que
-        el prefijo afirmaría un sustrato inexistente. Ver
-        ``REPORT_TYPE_CHOICES`` en ``ir_actions_report.py`` para la tabla de
-        correspondencia con la referencia.
-    :param helper: binario de ``tools/pdf/`` que dibuja. Sólo para ``pdf``.
+    :param report_type: formato de salida — ``pdf`` (default), ``html`` o
+        ``text``; los tres que ``REPORT_TYPE_CHOICES`` declara en
+        ``ir_actions_report.py`` (reabiertos en la tarea #196,
+        ``api@3a620979``, tras estar acotados a ``pdf`` por H-API-291). El
+        enum lista lo que este árbol sabe emitir, no el catálogo de la
+        referencia. **Sin** el prefijo ``qweb-``: aquí no hay QWeb, así que el
+        prefijo afirmaría un sustrato inexistente. Ver ``REPORT_TYPE_CHOICES``
+        para la tabla de correspondencia con la referencia.
+    :param helper: binario de ``tools/pdf/`` que dibuja. Sólo se consulta
+        cuando ``report_type`` es ``pdf``; ``html``/``text`` serializan el
+        descriptor de ``builder`` directamente
+        (``report_template.descriptor_to_html``/``descriptor_to_text``) y no
+        lo miran.
     :param builder: callable ``(records, **ctx) -> dict``. Recibe el recordset
         y devuelve el descriptor JSON del helper. Es el análogo de la
         plantilla QWeb.

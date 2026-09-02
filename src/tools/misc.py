@@ -18,7 +18,7 @@ import tempfile
 import typing
 import unicodedata
 from collections import defaultdict
-from collections.abc import (Callable, Iterable, Iterator,
+from collections.abc import (Callable, Iterable, Iterator, Mapping,
                              MutableMapping, MutableSet)
 from contextlib import contextmanager
 from difflib import HtmlDiff
@@ -126,6 +126,54 @@ SENTINEL = Sentinel.SENTINEL
 # que es un wrapper de esta misma función — se usa el stdlib directo, igual
 # que la referencia.
 consteq = hmac_lib.compare_digest
+
+
+class ReadonlyDict(Mapping[K, T], typing.Generic[K, T]):
+    """Mapa inmodificable, ni siquiera con ``dict.update`` — ≙ ``misc.py:1671-1706``.
+
+    Se parece a un ``frozendict``, con una desventaja y una ventaja:
+
+    - ``dict.update`` funciona sobre un ``frozendict`` y **no** sobre un
+      ``ReadonlyDict``;
+    - ``json.dumps`` conoce un ``frozendict`` de serie y **no** conoce un
+      ``ReadonlyDict``.
+
+    Las dos salen del mismo hecho: ``frozendict`` hereda de ``dict`` y
+    ``ReadonlyDict`` hereda de ``collections.abc.Mapping``. Según lo que haga
+    falta —impedir de verdad que el mapa se modifique, por seguridad, o que
+    ``json.dumps`` lo acepte— se elige uno u otro.
+
+    Aquí se porta el estricto, y su precio se paga en
+    :func:`tools.json.json_default`, que le da su propia rama.
+
+    ``types.MappingProxyType`` del stdlib **no** lo sustituye: es una vista
+    sobre el diccionario original, así que mutar el original cambia lo que la
+    vista muestra. Aquí ``__init__`` copia (``dict(data)``), que es lo que
+    hace inmodificable al resultado y no sólo a su interfaz.
+
+    Ejemplo::
+
+        data = ReadonlyDict({'foo': 'bar'})
+        data['baz'] = 'xyz'                 # lanza excepción
+        data.update({'baz': 'xyz'})         # lanza excepción
+        dict.update(data, {'baz': 'xyz'})   # lanza excepción
+    """
+    __slots__ = ('_data__',)
+
+    def __init__(self, data):
+        self._data__ = dict(data)
+
+    def __contains__(self, key: K):
+        return key in self._data__
+
+    def __getitem__(self, key: K) -> T:
+        return self._data__[key]
+
+    def __len__(self):
+        return len(self._data__)
+
+    def __iter__(self):
+        return iter(self._data__)
 
 
 def str2bool(s, default=None):
@@ -471,6 +519,52 @@ def clean_context(context: dict) -> dict:
     :returns: copia sin las claves ``default_*``.
     """
     return {k: v for k, v in context.items() if not k.startswith('default_')}
+
+
+class Collector(dict):
+    """Un mapa de clave a tupla — ≙ ``Collector`` (``odoo19c: odoo/tools/misc.py:988``).
+
+    Docstring de la fuente, verbatim: *"A mapping from keys to tuples. This
+    implements a relation, and can be seen as a space optimization for
+    ``defaultdict(tuple)``"*.
+
+    Las dos mitades del contrato, y ninguna es opcional:
+
+    - **leer lo ausente devuelve** ``()``, **sin crear la entrada**. Por eso NO
+      es un ``defaultdict``: con aquél, preguntar por un campo sin inversa lo
+      añadiría al mapa, y el mapa se llenaría de entradas vacías al recorrerlo;
+    - **asignar vacío borra la clave**, que es lo que mantiene la invariante
+      anterior después de un ``discard``.
+
+    La anotación de la fuente es ``Collector[K, T]``; aquí la clase hereda de
+    ``dict`` a secas y los tipos viajan en el docstring, igual que en
+    :class:`~orm.registry.TriggerTree` y por la misma razón.
+    """
+
+    __slots__ = ()
+
+    def __getitem__(self, key):
+        return self.get(key, ())
+
+    def __setitem__(self, key, val):
+        val = tuple(val)
+        if val:
+            super().__setitem__(key, val)
+        else:
+            super().pop(key, None)
+
+    def add(self, key, val):
+        """Suma ``val`` a la tupla de ``key``, sin repetirlo."""
+        vals = self[key]
+        if val not in vals:
+            self[key] = vals + (val,)
+
+    def discard_keys_and_values(self, excludes):
+        """Retira lo excluido de los dos lados de la relación."""
+        for key in excludes:
+            self.pop(key, None)
+        for key, vals in list(self.items()):
+            self[key] = tuple(val for val in vals if val not in excludes)
 
 
 class StackMap(MutableMapping[K, T], typing.Generic[K, T]):
@@ -924,3 +1018,14 @@ class unquote(str):
 
     def __repr__(self):
         return self
+
+
+class DotDict(dict):
+    """≙ ``DotDict`` (``odoo19c: tools/misc.py:1710-1719``) — acceso por punto
+    a las claves de un diccionario. ``foo = DotDict({'bar': False}); foo.bar``.
+    Un valor que a su vez sea diccionario sale envuelto igual.
+    """
+
+    def __getattr__(self, attrib):
+        val = self.get(attrib)
+        return DotDict(val) if isinstance(val, dict) else val

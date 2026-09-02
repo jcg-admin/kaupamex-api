@@ -59,7 +59,7 @@ from orm.fields_nonstored import (
     _UNSET,
     NonStored,
     annotate_related,
-    apply_related_defaults,
+    apply_source_defaults,
     projection_or_none,
 )
 
@@ -88,7 +88,8 @@ class Html(models.TextField):
         no llama a ``__init__`` — así el ``CompanyDependent`` queda construido
         por su propio constructor y no por el de ``TextField``.
         """
-        projection, _attributes = projection_or_none(related, kwargs)
+        projection, _attributes = projection_or_none(related, kwargs,
+                                                     company_dependent)
         if projection is not None:
             return projection
         if company_dependent:
@@ -98,7 +99,7 @@ class Html(models.TextField):
         return instance
 
     def __init__(self, *args, company_dependent=False, related=None,
-                 **kwargs):
+                 store=None, **kwargs):
         """Traga las dos palabras clave — las ramas las resolvió
         :meth:`__new__`, y nombrarlas evita que caigan en ``**kwargs`` y
         lleguen al constructor de Django, que no las conoce."""
@@ -193,7 +194,7 @@ def Char(*args, store=_UNSET, required=None, translate=None, help=None,
     #: ``python3 scripts/census_related_fields.py``.
     if store is not _UNSET:
         kwargs['store'] = store
-    related_attrs = apply_related_defaults(related, kwargs)
+    related_attrs = apply_source_defaults(related, kwargs)
     store = related_attrs['store']
 
     if company_dependent:

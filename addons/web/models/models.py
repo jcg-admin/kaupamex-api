@@ -14,11 +14,57 @@ funcionando.
 Medición símbolo-por-símbolo por AST (``scripts/pendientes_cascara.py``,
 mide ``def``/``class`` por nombre, no substring — ver ``h-api-373``): **60**
 símbolos de 4 clases (``lazymapping``, ``Base``, ``ResCompany``,
-``RecordSnapshot``). **32 portados** (11 del primer pase + 21 del segundo:
+``RecordSnapshot``). **44 portados** (11 del primer pase + 21 del segundo:
 9 de ``read_group`` + 4 formatters anidados + 7 de ``search_panel`` + 1
-``get_parent_id`` anidado). **24 declarados ausentes**, cada uno con razón
-medida **hoy** — ver abajo. Ninguna ausencia hereda la redacción del primer
-pase.
+``get_parent_id`` anidado; + 8 del tercero: ``_web_read_group_fill_temporal``,
+``onchange`` y ``RecordSnapshot`` con sus 5 métodos). **16 declarados
+ausentes**, cada uno con razón medida **hoy** — ver abajo. Ninguna ausencia
+hereda la redacción de un pase anterior.
+
+Tercer pase (tarea #250) — el barrido de razones caducadas
+===========================================================
+
+Una razón de ausencia que cita un ``grep`` con resultado cero **caduca en
+silencio**: el árbol crece, el cero deja de ser cierto, y la ausencia sigue
+leyéndose como decisión cerrada. Es la misma forma que ``h-api-378`` ya
+registró para este archivo, un nivel más abajo — allá se heredaba la
+redacción, aquí se hereda la medición.
+
+Las tres razones que este archivo declinaba con un cero se volvieron a
+correr. **Ninguna de las tres seguía dando cero:**
+
+.. code-block:: text
+
+   grep -rln "date_utils|def start_of" src/tools/*.py src/orm/*.py
+       citado: 0    hoy: 3   (src/tools/date_utils.py, orm/domains.py,
+                              orm/fields_temporal.py)
+   grep -rln "_update_cache|field_computed|def modified(|_apply_onchange_methods"
+        src/orm/*.py src/addons/*/models/*.py
+       citado: 0    hoy: 1   (orm/environments.py)
+   grep -rln "update_field_translations|get_installed(" src/ --include="*.py"
+       citado: 0    hoy: 2   (orm/models.py, base/models/res_partner.py)
+
+Y las tres caducaron por motivos distintos, que es lo que hace falta separar
+antes de decidir:
+
+- La **primera** caducó de verdad: ``src/tools/date_utils.py`` existe, con
+  ``start_of``/``end_of``/``date_range``/``weeknumber``. El símbolo se porta.
+- La **segunda** caduca a medias. Su único acierto de hoy es una mención en
+  un docstring, no un mecanismo; pero el comando miraba los símbolos
+  equivocados — el árbol **sí** tiene ``@api.onchange``
+  (``orm/decorators.py:37``), ``NewId`` (``orm/identifiers.py:16``),
+  ``OriginMixin._origin`` (``orm/models.py:416``) y el grafo de dependencias
+  (``orm.registry.field_depends``, ``registry.py:498``). Lo que faltaba era
+  el **despachador**, y eso se construye: se porta.
+- La **tercera** caduca sólo como instrumento: sus dos aciertos son prosa en
+  docstrings. El mecanismo sigue ausente y **su sucesor ya estaba nombrado**
+  en el árbol, en dos tareas distintas. Se repunta la razón a una medición
+  que sí mide el mecanismo, y se citan los sucesores.
+
+La lección operativa, y aplica a toda razón de ausencia de este árbol: un
+``grep`` de **menciones** no mide un mecanismo. La forma que discrimina es
+``def <símbolo>``, que no la satisface un docstring que nombre al símbolo
+para decir que no está.
 
 Recordset (Odoo) → QuerySet (Django) — la adaptación estructural
 ==================================================================
@@ -41,7 +87,7 @@ filas con métodos propios". La adaptación:
   self.create(vals)``) se portan como método de **instancia** — ``self`` es
   la fila, igual que en la referencia cuando ``self`` tiene 0 o 1 registro.
 
-Portados (32, adaptados)
+Portados (44, adaptados)
 =========================
 
 Primer pase (11): ``lazymapping.__missing__`` · ``AND``/``OR`` (módulo) ·
@@ -78,16 +124,50 @@ configurable (no existe esa metadata en este ORM); y
 método por lo demás completo, sin consumidor que fije su forma, distinto de
 declarar el método entero ausente.
 
-Ausentes (24) — con razón medida hoy, no heredada
-====================================================
+Tercer pase — ``fill_temporal`` (1) y el formulario (6)
+=======================================================
 
-**``_web_read_group_fill_temporal`` (1 método).** Rellena huecos de fecha en
-series para gráficos (Jun-Sep-Dic → Jun-Jul-Ago-Sep-Oct-Nov-Dic). Necesita
-``date_utils.start_of``/``end_of``/``date_range``/``weeknumber`` y ``babel``
-para las etiquetas — medido hoy: ``grep -rln "date_utils\\|def start_of"
-src/tools/*.py src/orm/*.py`` → **0**; ``python3 -c "import babel"`` →
-``ModuleNotFoundError``. Ninguna utilidad genérica de calendario existe en
-el proyecto para construirlo sin reinventar ``date_utils`` entero.
+``_web_read_group_fill_temporal`` rellena los huecos de una serie temporal
+(Jun-Sep-Dic → Jun..Dic) para que el gráfico no pegue Diciembre contra
+Septiembre. Se apoya en ``date_utils.start_of``/``date_range``, y llega a
+``formatted_read_group``/``formatted_read_grouping_sets`` por un parámetro
+``fill_temporal`` explícito en vez de la clave de contexto de la referencia
+— misma convención por la que ``queryset`` reemplaza a ``domain``. La
+ausencia de ``babel`` **deja de bloquearlo**: la referencia consulta el
+locale sólo para corregir el inicio de semana, y aquí los dos extremos
+—``TruncWeek`` de Django y ``date_utils.start_of(v, 'week')``— son ISO, así
+que el desfase es cero por construcción.
+
+``onchange`` + ``RecordSnapshot`` (5 métodos) portan el recálculo de
+formulario: aislar lo cambiado, fotografiar el registro virtual, despachar
+los ``@api.onchange`` del campo tocado, repetir mientras algún método siga
+moviendo campos de la especificación, y devolver el diff de las dos fotos
+más los avisos fusionados. El registro virtual es una copia sin guardar que
+conserva el ``pk`` —así ``OriginMixin._origin`` sigue resolviendo a la fila,
+que es lo que un ``@api.onchange`` compara—, y ``self`` nunca se muta.
+
+Lo que ese porte **no** trae, medido: el ``record.modified(...)`` de la
+referencia (``:2148``), que propaga el cambio por el grafo de dependencias e
+invalida los campos calculados **con columna**. Aquí un cálculo sin columna
+es una ``property`` que la foto final ya ve; uno con columna se recalcula en
+``save()``. El grafo existe (``orm.registry.field_depends``); falta el motor
+que lo recorra, y ése es un mecanismo de ``src/orm/models.py``, no un símbolo
+de este archivo. El alcance de lo que desbloquearía son los ``@api.onchange``
+ya declarados en el árbol —los despacha **todos** este método; lo que espera
+es la cascada—, y el conteo lo publica el comando en vez de transcribirse
+aquí, porque crece con el árbol:
+
+.. code-block:: bash
+
+   grep -rn "@api.onchange" src/ addons/ --include='*.py'
+
+**Sucesor registrado — tarea #273:** *motor de recálculo de campos
+calculados sobre registro virtual*, en ``src/orm/models.py``, con condición de
+cierre medible — que ``def modified`` exista ahí y que ``onchange`` lo
+invoque.
+
+Ausentes (16) — con razón medida hoy, no heredada
+====================================================
 
 **``_web_read_group_groupby_properties_formatter`` (1 método) + sus 5
 formatters anidados** (``formatter_property_selection``,
@@ -98,47 +178,101 @@ metadata por-clave (``type``/``comodel``/``selection``/``tags``) que estos
 formatters necesitan para decidir cómo agrupar cada propiedad — mismo hueco
 ya documentado en ``web_read`` (rama ``properties`` de este mismo archivo).
 
-**``onchange`` (1 método) + ``RecordSnapshot`` (clase, 5 métodos: ``__init__``,
-``__eq__``, ``fetch``, ``has_changed``, ``diff``).** Requiere el motor de
-caché/cómputo de recordset de Odoo: registros virtuales (``self.new()``),
-``_update_cache``, el pool de dependencias (``field_computed``/
-``field_depends``), ``modified()`` y el despachador
-``_apply_onchange_methods`` que invoca los métodos ``@api.onchange``
-registrados. Medido hoy: ``grep -rln "_update_cache\\|field_computed\\|def
-modified(\\|_apply_onchange_methods" src/orm/*.py src/addons/*/models/*.py``
-→ **0**; ``grep -rn "def new(" src/orm/*.py`` → **0**. No es una pieza
-faltante puntual del ORM (como ``sequence.mixin`` o el campo
-``store=False``, que sí se construyeron) — es el subsistema de cómputo
-entero de Odoo, ausente por diseño (Django computa en ``save()``/``clean()``,
-explícito por modelo, ver ``orm/decorators.py``). Construirlo sería un
-proyecto de infraestructura propio, no un símbolo de este archivo.
-``cleanup``/``adapt`` (closures internos de ``web_read``/``read_progress_bar``
-en la referencia, para des-envolver ``NewId``) no aplican: sin ``onchange``
-no hay registros ``NewId`` fluyendo por este archivo — ``web_read`` y
-``read_progress_bar`` ya operan sobre filas reales de la base.
+**Cuatro closures internos** (``cleanup``, ``adapt``,
+``formatter_follow_many2one``, ``group_id_name``). Los cuatro desaparecen
+por la forma del puerto, no por una pieza que falte, y cada uno con su razón
+propia:
+
+- ``cleanup`` (dentro de ``web_read``) des-envuelve el ``NewId`` del ``id``
+  de un registro virtual. Con ``onchange`` ya portado la razón vieja —*"sin
+  onchange no hay NewId fluyendo"*— **ya no es la correcta**: la razón real
+  es que el diff del formulario no pasa por ``web_read``. La referencia
+  formatea los escalares con ``self.record.web_read(...)`` (``:2313``); aquí
+  no puede, porque ``web_read`` de este módulo lee de un ``QuerySet`` y el
+  registro del formulario no tiene fila. Los valores salen del propio
+  snapshot, así que ``web_read`` sigue viendo sólo filas reales.
+- ``adapt`` (dentro de ``read_progress_bar``) des-envuelve el ``(id,
+  etiqueta)`` que ``formatted_read_group`` devuelve para un many2one. Aquí
+  ``read_progress_bar`` agrega con ``.values().annotate()`` directo y nunca
+  ve una tupla — es la divergencia que su propio docstring ya declara.
+- ``formatter_follow_many2one`` recorre ``campo.subcampo`` recursivamente;
+  aquí el path punteado colapsa en un único lookup Django (``campo__subcampo``).
+- ``group_id_name`` (tres copias en las ramas de ``search_panel``) elige entre
+  devolver el valor crudo o el par ``(valor, etiqueta)``; en el puerto esa
+  decisión está en línea en cada rama, sin closure con nombre.
 
 **``ResCompany`` (clase, 4 métodos: ``create``, ``write``,
 ``_get_asset_style_b64``, ``_update_asset_style``).** Regeneran un adjunto
 CSS por-compañía (``web.asset_styles_company_report``) desde
 ``primary_color``/``secondary_color`` vía ``ir.qweb._render``. Medido hoy:
 ``grep -rn "styles_company_report" src/addons/`` → **0** (no existe ese
-adjunto/vista); ``grep -n "_render" src/addons/*/models/template_expressions.py`` → **0**
-(``ir.qweb`` no tiene método de render HTML). El pipeline de *assets* de
-este proyecto ya es una decisión tomada, no una laguna:
-``base/models/assetsbundle.py`` documenta que Webpack (``ui``) reemplaza el
-empaquetador dinámico de Odoo — no hay *bundle* CSS por-compañía que
-invalidar en cada request porque no hay *bundle* dinámico de ningún tipo.
+adjunto/vista); ``grep -n "def _render" src/addons/base/models/ir_template_expressions.py``
+→ **0** — el compilador de QWeb no está portado y su ``render`` levanta
+``NotImplementedError`` a propósito (``ir_template_expressions.py:708-720``).
+
+  El segundo comando **se corrigió en el tercer pase**: citaba
+  ``src/addons/*/models/template_expressions.py``, archivo que no existe (el
+  puerto se llama ``ir_template_expressions.py``). Un ``grep`` contra una
+  ruta inexistente falla y publica cero, así que el cero era del instrumento
+  y no del árbol — la ceguera que ``metrica-decide-la-conclusion.md`` llama
+  sub-patrón D. Contra el archivo real, ``_render`` da **2** aciertos, los
+  dos en el docstring que enumera lo que no se porta.
+
+El pipeline de *assets* de este proyecto ya es una decisión tomada, no una
+laguna: ``base/models/assetsbundle.py`` documenta que Webpack (``ui``)
+reemplaza el empaquetador dinámico de Odoo — no hay *bundle* CSS por-compañía
+que invalidar en cada request porque no hay *bundle* dinámico de ningún tipo.
 
 **``web_override_translations`` (1 método).** Sobrescribe la traducción
-inline de un campo para el idioma activo. Medido hoy: ``grep -rln
-"update_field_translations\\|get_installed(" src/ --include="*.py"`` → **0**.
-``res.lang`` existe (``base/models/res_lang.py``) pero es catálogo de
-locales/formatos (config), no una capa de **almacenamiento** de traducciones
-por campo (no hay ``JSONField`` por-idioma en ningún campo del árbol) — sin
-esa capa, no hay qué sobrescribir.
+inline de un campo para el idioma activo. Su cuerpo consume dos símbolos, y
+**hoy sólo falta uno**: ``grep -rn "def update_field_translations" src/
+--include="*.py"`` → **0**.
+
+  ``res.lang.get_installed()`` **ya no falta**: se portó el 2026-09-02 junto a
+  ``base_setup`` —lo consume ``ResConfigSettings._compute_language_count``— y
+  vive en ``src/addons/base/models/res_lang.py:108``. Este párrafo lo daba por
+  ausente y era la mitad de su razón de bloqueo; se corrige aquí porque el
+  porte que lo trajo es el que caducó el reclamo.
+
+  La razón vieja citaba ``grep -rln "update_field_translations|get_installed("``
+  sin ``def``, y ese comando **hoy da 2**: sus dos aciertos son prosa en
+  docstrings que nombran los símbolos **para decir que faltan**
+  (``orm/models.py:1173`` y ``base/models/res_partner.py:2083``). El cero
+  había caducado como instrumento sin que el mecanismo cambiara.
+
+Y no es una razón sin sucesor: los dos que faltan **ya tienen tarea
+nombrada** en el árbol, cada uno por su cuenta.
+
+- ``update_field_translations`` espera al almacenamiento por idioma. La
+  referencia guarda el campo traducible como columna ``jsonb``
+  ``{lang: valor}``; aquí ``translate=True`` se **anota** en el campo
+  (``field.odoo_translate``) y la columna sigue siendo ``varchar``. Sucesor:
+  tarea **#333**, ya citada en ``orm/fields_textual.py:165`` y en
+  ``orm/models.py:1177`` (donde ``copy_translations`` está bloqueado por lo
+  mismo). El alcance de ese almacenamiento —una columna ``jsonb`` y su
+  migración por cada campo que hoy declara la bandera— lo publica el propio
+  comando, y aquí se nombra en vez de transcribirse: es una propiedad del
+  árbol, que crece, no un hecho de este archivo.
+
+  .. code-block:: bash
+
+     # el conteo del día; descontar migraciones y los dos archivos del ORM
+     # que sólo documentan la bandera, que no declaran campo
+     grep -rn "translate=True" src/ addons/ --include='*.py' | grep -v /migrations/
+- ``get_installed`` espera a la tarea **#104**, citada en
+  ``base/models/res_partner.py:2085``.
+
+Portar el método sin esas dos piezas sólo cabría como cuerpo que levanta o
+que no escribe nada — un símbolo que el gate de porte contaría como presente
+y que no traduciría nada. Eso es un verde que no discrimina, así que se
+declara ausente con sus dos sucesores en vez de fabricarlo.
 """
+import inspect
 import re
 from collections import defaultdict
+from datetime import datetime
+
+from dateutil.relativedelta import relativedelta
 
 from django.contrib.postgres.aggregates import ArrayAgg, BoolAnd, BoolOr
 from django.core.exceptions import FieldDoesNotExist
@@ -153,9 +287,10 @@ from addons.base.models.ir_model import Base as _BaseRoot
 from exceptions import UserError
 from orm.domains import AND as _domain_and
 from orm.domains import OR as _domain_or
+from tools import date_utils
 from tools.translate import _
 
-__all__ = ['lazymapping', 'AND', 'OR', 'Base']
+__all__ = ['lazymapping', 'AND', 'OR', 'Base', 'RecordSnapshot']
 
 #: ≙ referencia ``MAX_NUMBER_OPENED_GROUPS`` (``models.py:29``).
 MAX_NUMBER_OPENED_GROUPS = 10
@@ -182,6 +317,20 @@ _READ_GROUP_NUMBER_GRANULARITY = {
     'hour_number': ('hour', ExtractHour),
     'minute_number': ('minute', ExtractMinute),
     'second_number': ('second', ExtractSecond),
+}
+
+#: Paso de cada granularidad temporal — ≙ referencia
+#: ``READ_GROUP_TIME_GRANULARITY`` (``odoo19c: odoo/orm/utils.py:22-29``),
+#: verbatim salvo ``hour``, que no está en :data:`_READ_GROUP_TRUNC` (Django
+#: expone ``TruncHour``, pero ninguna granularidad horaria llegó a este porte).
+#: Lo consume :meth:`Base._web_read_group_fill_temporal` para avanzar de un
+#: cubo al siguiente.
+_READ_GROUP_TIME_GRANULARITY = {
+    'day': relativedelta(days=1),
+    'week': relativedelta(days=7),
+    'month': relativedelta(months=1),
+    'quarter': relativedelta(months=3),
+    'year': relativedelta(years=1),
 }
 
 #: ``campo:agregador`` de la referencia → expresión Django. ``bool_and``/
@@ -1053,6 +1202,160 @@ class Base(_BaseRoot):
             for value in expand_values
         ]
 
+
+    @classmethod
+    def _read_group_empty_value(cls, spec):
+        """≙ referencia ``_read_group_empty_value``
+        (``odoo19c: odoo/orm/models.py:2230-2246``).
+
+        El valor con que se rellena una columna en un cubo que no existe en
+        base. Vive aquí y no en ``src/orm/models.py`` —que es su hogar en la
+        referencia— porque su único consumidor es
+        :meth:`_web_read_group_fill_temporal`; moverlo a la raíz espejada es
+        trabajo de la raíz, no de este pase (ver la sección "Ausentes").
+
+        Dos divergencias, las dos del mismo origen:
+
+        - **El nulo es ``None``, no ``False``.** La referencia devuelve
+          ``False`` en el caso general porque su ORM representa así el vacío;
+          aquí es ``None``, que es lo que ``QuerySet.values()`` pone en las
+          filas con las que estas otras tienen que convivir. Mezclar los dos
+          haría que una fila rellenada no comparase igual que una leída.
+        - **No recibe el modelo**, y la referencia sí (por ``self``). Allá lo
+          necesita para su rama relacional: un groupby sobre un ``many2one``
+          vacío devuelve el *recordset* vacío de ese comodelo. Aquí
+          ``.values()`` ya entrega ``None`` para toda columna nula, relacional
+          o no, así que la rama no tiene nada que decidir y el parámetro no
+          tendría uso.
+        """
+        if spec == '__count':
+            return 0
+        _field_spec, _sep, func = spec.rpartition(':')
+        if func in ('count', 'count_distinct'):
+            return 0
+        if func in ('array_agg', 'array_agg_distinct'):
+            return []
+        return None
+
+    @classmethod
+    def _web_read_group_fill_temporal(cls, model, rows, groupby, spec_to_key, aggregates,
+                                       fill_from=False, fill_to=False, min_groups=False):
+        """≙ referencia ``_web_read_group_fill_temporal`` (``models.py:970-1127``).
+
+        Rellena los huecos de fecha del **primer** agrupamiento. Agrupando por
+        mes con datos sólo en Jun, Sep y Dic, el gráfico pega Dic contra Sep y
+        engaña al lector; con los ceros explícitos salen los siete meses. Las
+        tres palancas de la referencia se conservan con su semántica:
+        ``fill_from``/``fill_to`` acotan el tramo a rellenar (los grupos fuera
+        de las cotas **no** se borran) y ``min_groups`` garantiza un número
+        mínimo de cubos contiguos desde ``fill_from``.
+
+        Tres divergencias de mecanismo, declaradas:
+
+        1. **Filas, no tuplas.** La referencia recibe las tuplas crudas de
+           ``_read_group`` e indexa por posición (``group[0]`` es el primer
+           agrupamiento). ``.values().annotate()`` de Django da **dicts**, así
+           que la columna se localiza por el alias que
+           :meth:`formatted_read_group` ya calcula (``spec_to_key``) — misma
+           información, resuelta por nombre en vez de por posición.
+
+        2. **Sin ``babel`` y sin desfase de semana.** La referencia corrige el
+           inicio de semana con ``get_lang(self.env).week_start`` porque su
+           ``_read_group`` agrupa por semana según el locale. Aquí la semana
+           la fija ``TruncWeek`` de Django, que es ISO (lunes), y
+           ``date_utils.start_of(value, 'week')`` usa esa misma referencia ISO
+           (``src/tools/date_utils.py:441-443``). Los dos extremos coinciden,
+           así que el desfase es cero por construcción y no hay locale que
+           consultar — es la razón por la que la ausencia de ``babel`` deja de
+           bloquear este método.
+
+        3. **``zoneinfo`` en vez de ``pytz``.** La referencia localiza las
+           cotas con ``pytz.timezone(...)``. Aquí las cotas heredan el
+           ``tzinfo`` de los cubos ya existentes (que Django produce ya
+           convertidos), y ``date_utils.date_range`` propaga esa zona a cada
+           paso (``date_utils.py:527-542``). Misma sustitución que
+           ``date_utils`` documenta para todo el módulo: Django 6 abandonó
+           ``pytz``.
+        """
+        if not groupby:
+            return rows
+        groupby_name = groupby[0]
+        field_path, _colon, granularity = groupby_name.partition(':')
+        if granularity not in _READ_GROUP_TIME_GRANULARITY:
+            return rows
+        field = cls._web_read_group_leaf_field(model, field_path)
+        if not getattr(field, 'get_internal_type', None) or \
+                field.get_internal_type() not in ('DateField', 'DateTimeField'):
+            return rows
+
+        key = spec_to_key[groupby_name]
+        existing = sorted(value for row in rows if (value := row.get(key)) is not None)
+        existing_from = existing[0] if existing else None
+        existing_to = existing[-1] if existing else None
+        sample = existing_from
+
+        fill_from = cls._read_group_fill_bound(fill_from, granularity, sample) or existing_from
+        fill_to = cls._read_group_fill_bound(fill_to, granularity, sample) or existing_to
+        if not fill_to and fill_from:
+            fill_to = fill_from
+        elif not fill_from and fill_to:
+            fill_from = fill_to
+        if not fill_from and not fill_to:
+            return rows
+
+        interval = _READ_GROUP_TIME_GRANULARITY[granularity]
+        if min_groups and min_groups > 0:
+            fill_to = max(fill_to, fill_from + (min_groups - 1) * interval)
+        if fill_from > fill_to:
+            return rows
+
+        required = list(date_utils.date_range(fill_from, fill_to, interval))
+        wanted = sorted(set(existing).union(required)) if existing else required
+
+        empty_row = {
+            spec_to_key[spec]: cls._read_group_empty_value(spec)
+            for spec in tuple(groupby[1:]) + tuple(aggregates)
+        }
+
+        rows_by_bucket = defaultdict(list)
+        for row in rows:
+            rows_by_bucket[row.get(key)].append(row)
+
+        result = []
+        for bucket in wanted:
+            if bucket in rows_by_bucket:
+                result.extend(rows_by_bucket[bucket])
+            else:
+                result.append(dict(empty_row, **{key: bucket}))
+        result.extend(rows_by_bucket.get(None, ()))
+        return result
+
+    @classmethod
+    def _read_group_fill_bound(cls, bound, granularity, sample):
+        """Normaliza una cota de :meth:`_web_read_group_fill_temporal`.
+
+        No existe como símbolo en la referencia — allá el mismo trabajo está
+        escrito dos veces en línea (``models.py:1080-1089``), una por cota,
+        con ``Date.to_date`` + ``start_of`` + ``tz.localize``. Aquí se
+        extrae porque la parte de zona horaria (punto 3 del docstring de
+        arriba) la hace más larga que un duplicado tolerable.
+
+        ``sample`` es un cubo ya existente: de él sale el ``tzinfo`` y si el
+        eje es ``date`` o ``datetime``, que es lo que la referencia deduce
+        del tipo del campo y del contexto.
+        """
+        if not bound:
+            return None
+        value = date_utils.parse_iso_date(bound) if isinstance(bound, str) else bound
+        if isinstance(sample, datetime) and not isinstance(value, datetime):
+            value = datetime.combine(value, datetime.min.time())
+        elif sample is not None and not isinstance(sample, datetime) and isinstance(value, datetime):
+            value = value.date()
+        value = date_utils.start_of(value, granularity)
+        if isinstance(sample, datetime) and sample.tzinfo is not None \
+                and isinstance(value, datetime) and value.tzinfo is None:
+            value = value.replace(tzinfo=sample.tzinfo)
+        return value
     @classmethod
     def _web_read_group_leaf_field(cls, model, field_path):
         """Resuelve el campo hoja de un ``path`` punteado tipo Odoo
@@ -1210,17 +1513,25 @@ class Base(_BaseRoot):
 
     @classmethod
     def formatted_read_group(cls, queryset, groupby=(), aggregates=(), having=None,
-                              offset=0, limit=None, order=None):
+                              offset=0, limit=None, order=None, fill_temporal=None):
         """≙ referencia ``formatted_read_group`` (``models.py:800-914``).
 
         ``queryset`` reemplaza ``domain`` (convención QuerySet-first del
         módulo, ya establecida en :meth:`read_progress_bar`). Sin soporte de
-        ``group_expand`` real (ver ``_web_read_group_field_expand``) ni de
-        ``fill_temporal`` (declarado ausente, familia arriba). ``having``,
-        si se pasa, es un ``Q`` que ya referencia los alias internos que
-        produce esta función para cada ``spec`` de ``aggregates`` — no hay
-        traducción automática spec→alias expuesta hoy porque ningún
-        llamador del árbol lo necesita todavía.
+        ``group_expand`` real (ver ``_web_read_group_field_expand``).
+        ``having``, si se pasa, es un ``Q`` que ya referencia los alias
+        internos que produce esta función para cada ``spec`` de
+        ``aggregates`` — no hay traducción automática spec→alias expuesta hoy
+        porque ningún llamador del árbol lo necesita todavía.
+
+        ``fill_temporal`` reemplaza la clave de contexto homónima de la
+        referencia (``:911``): allá el cliente la deja en ``env.context`` y
+        el método la recoge; aquí no hay contexto de entorno que atraviese la
+        llamada, así que viaja como **parámetro explícito** — misma
+        convención por la que ``queryset`` reemplaza a ``domain``. Los dos
+        valores de la referencia se conservan: un dict con
+        ``fill_from``/``fill_to``/``min_groups``, o cualquier valor cierto
+        para rellenar con las cotas que den los datos.
         """
         model = queryset.model
         groupby = tuple(groupby)
@@ -1268,7 +1579,32 @@ class Base(_BaseRoot):
             qs = qs.order_by(*group_keys)
 
         rows = list(qs[offset:offset + limit]) if limit else list(qs[offset:]) if offset else list(qs)
+        rows = cls._apply_fill_temporal(
+            model, rows, groupby, spec_to_key, aggregates, fill_temporal, offset, limit)
         return cls._web_read_group_format(model, groupby, spec_to_key, aggregates, rows)
+
+    @classmethod
+    def _apply_fill_temporal(cls, model, rows, groupby, spec_to_key, aggregates,
+                              fill_temporal, offset=0, limit=None):
+        """Puerta de :meth:`_web_read_group_fill_temporal`.
+
+        No existe como símbolo en la referencia: allá el mismo bloque está
+        escrito **dos veces** en línea, una en ``formatted_read_group``
+        (``:910-913``) y otra en ``formatted_read_grouping_sets``
+        (``:800-806``), con el rechazo de limit/offset sólo en la primera.
+        Aquí se comparte para que las dos entradas se comporten igual.
+
+        El rechazo se porta verbatim: rellenar una página produce cubos que
+        la página siguiente vuelve a emitir, y el paginador del cliente
+        cuenta dos veces.
+        """
+        if not (fill_temporal or isinstance(fill_temporal, dict)):
+            return rows
+        if limit or offset:
+            raise ValueError('No se puede usar fill_temporal con limit u offset')
+        options = fill_temporal if isinstance(fill_temporal, dict) else {}
+        return cls._web_read_group_fill_temporal(
+            model, rows, groupby, spec_to_key, aggregates, **options)
 
     @classmethod
     def _read_group_order_by(cls, order, spec_to_key):
@@ -1388,7 +1724,8 @@ class Base(_BaseRoot):
                 )
 
     @classmethod
-    def formatted_read_grouping_sets(cls, queryset, grouping_sets, aggregates=(), order=None):
+    def formatted_read_grouping_sets(cls, queryset, grouping_sets, aggregates=(), order=None,
+                                      fill_temporal=None):
         """≙ referencia ``formatted_read_grouping_sets`` (``models.py:702-798``).
 
         Divergencia declarada: la referencia arma **una** consulta SQL con
@@ -1401,7 +1738,8 @@ class Base(_BaseRoot):
         vez de 1.
         """
         return [
-            cls.formatted_read_group(queryset, list(groupby), aggregates, order=order)
+            cls.formatted_read_group(queryset, list(groupby), aggregates, order=order,
+                                     fill_temporal=fill_temporal)
             for groupby in grouping_sets
         ]
 
@@ -1482,3 +1820,420 @@ class Base(_BaseRoot):
         cls._add_groupby_values(groupby_read_specification, groupby, groups)
 
         return {'groups': groups, 'length': length}
+
+    # --- onchange -----------------------------------------------------------
+
+    def onchange(self, values, field_names, fields_spec):
+        """≙ referencia ``onchange`` (``models.py:1973-2195``).
+
+        Recalcula el formulario tras editar ``field_names`` y devuelve **sólo
+        lo que cambió**, más los avisos que los métodos ``@api.onchange``
+        hayan levantado. Con ``field_names`` vacío es un alta desde cero: se
+        siembran los defaults y se devuelven todos los campos de la
+        especificación.
+
+        ``self`` es UN registro, con o sin ``pk`` — misma lectura que
+        :meth:`web_save` hace del ``self`` recordset de la referencia cuando
+        tiene 0 o 1 elementos. **No se muta**: todo ocurre sobre la copia sin
+        guardar que devuelve :func:`_virtual_record`.
+
+        Qué se porta y qué no, medido
+        ==============================
+
+        Se porta el ciclo entero de la referencia: aislar lo cambiado de lo
+        inicial, la foto previa, el despacho por campo, las **pasadas
+        sucesivas** mientras un método siga moviendo campos de la
+        especificación, la foto final, el diff y la fusión de avisos.
+
+        **No se porta el recálculo de los campos calculados almacenados** —el
+        ``record.modified(...)`` de la referencia (``:2148``) dentro de su
+        ``env.protecting``, que propaga el cambio por el grafo de
+        dependencias y vuelve a calcular lo que dependa de lo tocado. Aquí un
+        cálculo es una ``property`` o un ``compute`` que Django resuelve al
+        leer, así que la foto final ya lo ve; lo que **no** ocurre es la
+        invalidación de un campo calculado **con columna**, que en este árbol
+        se recalcula en ``save()`` y no antes. El grafo existe
+        (``orm.registry.field_depends``, ``registry.py:498``); lo que falta es
+        el motor que lo recorra invalidando caché, y ése es un mecanismo de
+        ``src/orm/``, no un símbolo de este archivo.
+
+        Alcance de lo que ese motor desbloquearía: los ``@api.onchange``
+        declarados en el árbol, que este método **ya despacha todos** — lo que
+        espera es la cascada. El conteo se pide al comando y no se transcribe
+        (crece con el árbol): ``grep -rn "@api.onchange" src/ addons/
+        --include='*.py'``. La minoría que escribe otro campo del registro
+        —y no sólo avisa— es la que hace visible la diferencia.
+
+        Sucesor propuesto —no existe todavía—: *motor de recálculo de campos
+        calculados sobre registro virtual*, en ``src/orm/models.py``, con
+        condición de cierre medible: que ``def modified`` exista ahí y que
+        este método lo invoque en lugar de esta nota.
+        """
+        model = type(self)
+        field_names = list(field_names or ())
+        if any(_model_field(model, name) is None and not hasattr(model, name)
+               for name in field_names):
+            return {}
+
+        first_call = not field_names
+        values = dict(values or {})
+
+        if first_call:
+            field_names = [name for name in values if name != 'id']
+            missing = [name for name in fields_spec if name not in values]
+            defaults = model.default_get(missing) if hasattr(model, 'default_get') else {}
+            for name in missing:
+                if name in defaults:
+                    values[name] = defaults[name]
+                    field_names.append(name)
+
+        changed_values = {name: values[name] for name in field_names if name in values}
+        initial_values = {name: value for name, value in values.items()
+                          if name not in changed_values}
+
+        record = _virtual_record(self, initial_values)
+        snapshot0 = RecordSnapshot(record, fields_spec, fetch=not first_call)
+        for name, value in changed_values.items():
+            _assign(record, name, value)
+        for name in field_names:
+            if name in fields_spec:
+                snapshot0.fetch(name)
+
+        result = {'warnings': []}
+        todo = (list(dict.fromkeys(list(field_names) + list(fields_spec)))
+                if first_call else list(field_names))
+        done = set()
+        while todo:
+            visited = set()
+            for name in todo:
+                for method_name in _onchange_methods_for(model, name):
+                    if method_name in visited:
+                        continue
+                    _apply_onchange_method(record, method_name, result)
+                    visited.add(method_name)
+                done.add(name)
+            todo = [name for name in fields_spec
+                    if name not in done and snapshot0.has_changed(name)]
+
+        snapshot1 = RecordSnapshot(record, fields_spec)
+        result['value'] = snapshot1.diff(snapshot0, force=first_call)
+
+        warnings = result.pop('warnings')
+        if len(warnings) == 1:
+            title, message, kind = warnings[0]
+            result['warning'] = {'title': title, 'message': message,
+                                 'type': kind or 'dialog'}
+        elif len(warnings) > 1:
+            result['warning'] = {
+                'title': _('Avisos'),
+                'message': '\n\n'.join('%s\n\n%s' % (title, message)
+                                       for title, message, _kind in warnings),
+                'type': 'dialog',
+            }
+        return result
+
+
+# === Piezas del onchange ====================================================
+#
+# ≙ lo que en la referencia resuelve el ORM: ``_onchange_methods`` (el mapa
+# campo → métodos que el setup del registro puebla), ``self.new()`` (el
+# registro virtual) y ``_apply_onchange_methods``
+# (``odoo19c: odoo/orm/models.py:6975-6994``).
+#
+# DIVERGENCIA DE SITIO, declarada: el hogar de esas tres piezas en la
+# referencia es ``odoo/orm/models.py``, o sea ``src/orm/models.py`` en la raíz
+# espejada. Aquí aterrizan como funciones privadas de módulo junto a su único
+# consumidor porque este pase sólo toca ``addons/web/models/models.py``;
+# subirlas a ``src/orm/`` —y con ellas el ``@api.onchange`` que 37 archivos del
+# árbol ya declaran sin despachador— es trabajo de la raíz espejada, no de este
+# archivo. Se anotan como funciones privadas y no como métodos de ``Base`` para
+# que la comparación símbolo a símbolo con la referencia no las lea como
+# símbolos de ``Base`` que la fuente no tiene.
+
+
+def _model_field(model, field_name):
+    """El campo declarado, o ``None`` si el modelo no lo tiene."""
+    try:
+        return model._meta.get_field(field_name)
+    except FieldDoesNotExist:
+        return None
+
+
+def _is_x2many(field):
+    """Si el campo es ``one2many``/``many2many`` — ≙ el
+    ``field.type in ('one2many', 'many2many')`` de la referencia."""
+    return bool(getattr(field, 'many_to_many', False)
+                or getattr(field, 'one_to_many', False))
+
+
+def _x2many_lines(record, field_name):
+    """Las líneas de un x2many, o vacío si la fila aún no existe.
+
+    Django prohíbe tocar una relación de muchos sobre una fila sin guardar
+    (``Direct assignment to the forward side of a many-to-many set is
+    prohibited``) — la misma restricción que
+    ``orm.models.RecordLoaderMixin._load_records_split_relational`` declara.
+    La referencia no la tiene porque su registro virtual vive en caché.
+    """
+    if record.pk is None:
+        return ()
+    return list(getattr(record, field_name).all())
+
+
+def _snapshot_value(record, field_name):
+    """El valor de un campo escalar tal como lo ve el formulario.
+
+    Un ``many2one`` se lee por su ``attname`` (el id crudo) y no por el
+    atributo: leer el atributo dispararía una consulta por campo y por
+    pasada, y el id es lo que el cliente manda y compara.
+    """
+    field = _model_field(type(record), field_name)
+    if field is not None and (getattr(field, 'many_to_one', False)
+                              or getattr(field, 'one_to_one', False)):
+        return getattr(record, field.attname)
+    return getattr(record, field_name, None)
+
+
+def _assign(record, field_name, value):
+    """Escribe un valor sobre el registro virtual.
+
+    Un x2many se ignora a propósito: no hay dónde escribirlo sin fila (ver
+    :func:`_x2many_lines`), y tragárselo aquí es preferible a reventar la
+    llamada entera por un campo que el resto del ``onchange`` no necesita.
+    """
+    field = _model_field(type(record), field_name)
+    if field is not None and _is_x2many(field):
+        return
+    if field is not None and (getattr(field, 'many_to_one', False)
+                              or getattr(field, 'one_to_one', False)) \
+            and not hasattr(value, 'pk'):
+        setattr(record, field.attname, value)
+        return
+    setattr(record, field_name, value)
+
+
+def _onchange_methods_for(model, field_name):
+    """Nombres de los ``@api.onchange`` registrados para un campo.
+
+    ≙ ``self._onchange_methods[field_name]`` de la referencia, que allá es un
+    mapa que el setup del registro construye una vez. Aquí se **deriva** de lo
+    declarado —``@api.onchange`` deja su tupla en ``func._onchange``
+    (``orm/decorators.py:37-41``)—, que es el mismo camino que
+    ``orm.registry.field_depends`` ya toma para ``@api.depends``.
+
+    **Sin caché, y es deliberado:** aquel mapa se cachea porque lo consulta
+    todo campo de todo modelo; éste lo consulta un puñado de campos de un solo
+    modelo cuando alguien edita un formulario. Una caché aquí exigiría una
+    invalidación que nada dispara, y haría invisible un método añadido en
+    caliente.
+
+    ``getattr_static`` en vez de ``getattr``: el modelo puede declarar
+    descriptores que se resuelven al leerlos (``orm.fields_nonstored.NonStored``
+    calcula su default llamando al registro), y recorrer la clase entera no
+    debe ejecutar ninguno.
+    """
+    found = []
+    for name in dir(model):
+        if name.startswith('__'):
+            continue
+        try:
+            attr = inspect.getattr_static(model, name)
+        except AttributeError:
+            continue
+        func = getattr(attr, '__func__', attr)
+        declared = getattr(func, '_onchange', None)
+        if declared and field_name in declared:
+            found.append(name)
+    return tuple(sorted(found))
+
+
+def _apply_onchange_method(record, method_name, result):
+    """≙ referencia ``_apply_onchange_methods``
+    (``odoo19c: odoo/orm/models.py:6975-6994``), para **un** método.
+
+    Las asignaciones se aplican sobre el registro virtual; los avisos se
+    acumulan en ``result``. La referencia itera los métodos aquí dentro porque
+    su mapa ya está construido; aquí el bucle vive en :meth:`Base.onchange`,
+    que es quien decide el orden de las pasadas.
+    """
+    res = getattr(record, method_name)()
+    if not res:
+        return
+    for key, value in (res.get('value') or {}).items():
+        if key != 'id' and _model_field(type(record), key) is not None:
+            _assign(record, key, value)
+    warning = res.get('warning')
+    if warning:
+        entry = (warning.get('title') or _('Aviso'),
+                 warning.get('message') or '',
+                 warning.get('type') or '')
+        if entry not in result['warnings']:
+            result['warnings'].append(entry)
+
+
+def _virtual_record(record, values):
+    """El registro del formulario: una copia **sin guardar** de ``record``.
+
+    ≙ ``self.new(cache_values, origin=self)`` de la referencia (``:2098``).
+    Allá el registro virtual lleva un ``NewId`` y su ``origin`` apunta a la
+    fila; aquí la copia conserva el ``pk`` —así ``OriginMixin._origin`` sigue
+    resolviendo a la fila guardada (``orm/models.py:416-428``) y los x2many
+    siguen siendo legibles— y lo que la distingue del original es que nadie
+    la guarda. Es el mismo eje que ``OriginMixin`` ya declara para este árbol:
+    lo que separa "en formulario" de "guardado" no es el tipo del id sino el
+    estado de la instancia.
+    """
+    model = type(record)
+    virtual = model()
+    for field in model._meta.concrete_fields:
+        setattr(virtual, field.attname, getattr(record, field.attname))
+    virtual._state.db = record._state.db
+    virtual._state.adding = record._state.adding
+    for field_name, value in values.items():
+        _assign(virtual, field_name, value)
+    return virtual
+
+
+class RecordSnapshot(dict):
+    """≙ referencia ``RecordSnapshot`` (``models.py:2252-2360``).
+
+    Los valores de un registro siguiendo el árbol de prefijos de
+    ``fields_spec``: escalares en el sitio, x2many como un mapa
+    ``{id: RecordSnapshot}``. Es lo que permite a :meth:`Base.onchange`
+    responder **sólo** lo que cambió, comparando dos fotos del mismo registro
+    virtual.
+
+    Divergencia declarada — de dónde salen los valores del ``diff``: la
+    referencia formatea los escalares con ``self.record.web_read(...)``
+    (``:2313``). Aquí no se puede: ``web_read`` de este módulo lee de un
+    ``QuerySet`` y el registro del formulario no tiene fila que consultar.
+    Los valores salen del propio snapshot, que ya los leyó del registro — es
+    la misma información sin el viaje a la base.
+    """
+
+    __slots__ = ['record', 'fields_spec']
+
+    def __init__(self, record, fields_spec, fetch=True):
+        """≙ referencia ``RecordSnapshot.__init__`` (``:2256-2263``)."""
+        super().__init__()
+        self.record = record
+        self.fields_spec = fields_spec
+        if fetch:
+            for field_name in fields_spec:
+                self.fetch(field_name)
+
+    def __eq__(self, other):
+        """≙ referencia ``RecordSnapshot.__eq__`` (``:2265-2266``).
+
+        El registro entra en la comparación a propósito: dos etapas distintas
+        con los mismos valores no son la misma foto.
+        """
+        if not isinstance(other, RecordSnapshot):
+            return NotImplemented
+        return self.record == other.record and dict(self) == dict(other)
+
+    def __ne__(self, other):
+        """No está en la referencia y hace falta aquí: ``dict`` implementa su
+        propia comparación para los dos operadores, así que sin esto ``!=``
+        ignoraría el ``__eq__`` de arriba y compararía sólo los valores.
+        """
+        result = self.__eq__(other)
+        return result if result is NotImplemented else not result
+
+    __hash__ = None
+
+    def fetch(self, field_name):
+        """≙ referencia ``RecordSnapshot.fetch`` (``:2268-2278``)."""
+        field = _model_field(type(self.record), field_name)
+        if field is not None and _is_x2many(field):
+            sub_spec = (self.fields_spec.get(field_name) or {}).get('fields') or {}
+            self[field_name] = {
+                line.pk: RecordSnapshot(line, sub_spec)
+                for line in _x2many_lines(self.record, field_name)
+            }
+        else:
+            self[field_name] = _snapshot_value(self.record, field_name)
+
+    def has_changed(self, field_name):
+        """≙ referencia ``RecordSnapshot.has_changed`` (``:2280-2290``)."""
+        if field_name not in self:
+            return True
+        field = _model_field(type(self.record), field_name)
+        if field is None or not _is_x2many(field):
+            return self[field_name] != _snapshot_value(self.record, field_name)
+        if set(self[field_name]) != {line.pk for line in _x2many_lines(self.record, field_name)}:
+            return True
+        sub_spec = (self.fields_spec.get(field_name) or {}).get('fields') or {}
+        return any(line_snapshot.has_changed(sub_name)
+                   for line_snapshot in self[field_name].values()
+                   for sub_name in sub_spec)
+
+    def diff(self, other, force=False):
+        """≙ referencia ``RecordSnapshot.diff`` (``:2292-2360``).
+
+        Los valores de ``self`` que difieren de ``other``; con ``force``,
+        todos (es el alta desde cero, donde el cliente no tiene nada con que
+        comparar).
+        """
+        result = {}
+        for field_name in self.fields_spec:
+            if field_name == 'id':
+                continue
+            if not force and other.get(field_name) == self.get(field_name):
+                continue
+            field = _model_field(type(self.record), field_name)
+            if field is not None and _is_x2many(field):
+                result[field_name] = self._x2many_value(field_name, other, force)
+            else:
+                result[field_name] = self.get(field_name)
+        return result
+
+    def _x2many_value(self, field_name, other, force):
+        """El cambio de un x2many, con los dos verbos de la referencia.
+
+        No existe como símbolo aparte en la referencia —allá es el bloque
+        ``:2317-2360`` dentro de ``diff``—; se extrae porque la traducción del
+        vocabulario lo hace más largo que el resto del método junto.
+
+        **La información se porta entera**: qué líneas quedan y qué valores
+        cambió cada una. Lo que no se porta es su *codificación*, y hay dos
+        razones medidas, ninguna de ellas "este ORM no lo tiene":
+
+        1. La fuente serializa el cambio como **tuplas** ``Command``
+           (``delete``/``update``/``create``) que su ``write`` interpreta
+           después. El ``Command`` de este árbol es **ejecutivo** —escribe al
+           llamarlo (:ref:`h-api-589`, tarea **#345**)—, así que no hay tupla
+           que emitir.
+        2. Los tres portadores diferidos que ``orm/commands.py`` sí tiene
+           (``ManyToManySet``, ``ManyToManyLink``, ``One2manyChild``) son
+           vocabulario **interno del ORM**: la fachada pública sólo exporta
+           ``Command`` (``src/fields/__init__.py:75``), y
+           ``tests/unit/orm/test_fields_facade.py`` mide que ningún archivo de
+           ``addons/`` importe ``orm.commands`` (:ref:`h-api-604`). Un addon
+           que los emitiera cruzaría esa frontera.
+
+        Así que los dos verbos viajan como un dict, y los dos nombres son los
+        de la fuente (``Command.set`` y ``Command.update``): ``'set'`` con los
+        ids que quedan —una baja se expresa por omisión— y ``'update'`` con el
+        diff de cada línea que cambió por dentro. Sin llaves inventadas y sin
+        cruzar la fachada.
+
+        Que esto vuelva a ser el vocabulario propio del árbol pide las dos
+        piezas de arriba: la tarea **#345** (``Command`` diferido) y, con
+        ella, exportar los portadores por la fachada.
+        """
+        current = self[field_name]
+        previous = {} if force else (other.get(field_name) or {})
+        value = {}
+        if set(current) != set(previous):
+            value['set'] = list(current)
+        updates = {}
+        for line_id, line_snapshot in current.items():
+            if line_id not in previous:
+                continue
+            line_diff = line_snapshot.diff(previous[line_id])
+            if line_diff:
+                updates[line_id] = line_diff
+        if updates:
+            value['update'] = updates
+        return value

@@ -4,8 +4,14 @@ Adaptación de ``addons/account/models/digest.py``
 (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3, 39 líneas) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 
-Porte símbolo por símbolo — 3 de 3, uno de ellos bloqueado
-==============================================================
+Porte — 4 de 4 símbolos, 0 bloqueados
+======================================
+
+(4 = 2 métodos + 2 campos.) Los dos métodos estaban **bloqueados** hasta la
+tarea #158, que portó ``_compute_kpis_actions`` y ``compute_kpi_value`` en
+la base (``addons/digest/models/digest.py``); este pase (tarea #279) los
+desbloquea y reescribe la instalación con ``extend_model`` como ``crm`` y
+``hr_recruitment``.
 
 .. list-table::
    :header-rows: 1
@@ -14,174 +20,170 @@ Porte símbolo por símbolo — 3 de 3, uno de ellos bloqueado
    * - Símbolo
      - Estado
      - Nota
-   * - ``kpi_account_total_revenue``
+   * - ``kpi_account_total_revenue`` (``:11``)
      - portado
-     - campo booleano, sin dependencia
-   * - ``kpi_account_total_revenue_value``
-     - portado (campo) / **bloqueado** (compute)
-     - la columna se declara; su cálculo depende de una pieza ausente
-   * - ``_compute_kpis_actions``
-     - **bloqueado**
-     - depende del método base que sobreescribe, ausente
+     - columna ``Boolean`` (migración ``digest/0002``)
+   * - ``kpi_account_total_revenue_value`` (``:12``)
+     - portado
+     - ``compute`` sin ``store`` → campo no persistido; lo sirve su
+       ``_compute_…_value`` vía ``compute_kpi_value``
+   * - ``_compute_kpi_account_total_revenue_value`` (``:14-27``)
+     - portado
+     - suma de ``balance`` de líneas publicadas de cuentas ``income``, negada
+   * - ``_compute_kpis_actions`` (``:29-32``)
+     - portado
+     - ``overrides=`` (:mod:`orm.method_chain`) sobre el método base
 
 Qué es
-========
+======
 
-``digest.digest`` es el resumen periódico por correo (`` addons/digest``, ya
-portado). Cada KPI que un addon quiere sumar al digest declara un booleano
-(¿se muestra?), un campo monetario ``*_value`` computado, y opcionalmente
-una entrada en el diccionario de acciones que ``_compute_kpis_actions``
-arma. ``account`` suma el ingreso total del período: la suma de ``balance``
-de las líneas de asientos **publicados** cuya cuenta es de grupo interno
-``'income'``, en negativo (una cuenta de ingreso tiene saldo natural
-acreedor, negativo en la convención de signo de este ORM — igual que la
-referencia).
+``digest.digest`` es el resumen periódico por correo (``addons/digest``).
+Cada KPI que un addon suma al digest declara un booleano (¿se muestra?), un
+campo monetario ``*_value`` computado, y opcionalmente una entrada en el
+diccionario de acciones que ``_compute_kpis_actions`` arma. ``account`` suma
+el ingreso total del período: la suma de ``balance`` de las líneas de
+asientos **publicados** cuya cuenta es de grupo interno ``'income'``, en
+negativo (una cuenta de ingreso tiene saldo natural acreedor, negativo en la
+convención de signo de este ORM — igual que la referencia).
 
-Bloqueo — dos piezas ausentes en la base de ``DigestDigest``
-================================================================
+Divergencias declaradas — de forma, no de alcance
+=================================================
 
-``_compute_kpi_account_total_revenue_value`` (la referencia) y
-``_compute_kpis_actions`` (que ``account`` también sobreescribe) llaman a dos
-métodos de la clase base que **no existen** en
-``addons/digest/models/digest.py`` de este árbol:
-
-.. code-block:: text
-
-    grep -n "def _get_kpi_compute_parameters\|def _compute_kpis_actions" \
-        addons/digest/models/digest.py
-    → 0 hits (ambos)
-
-[PROVEN — medido en el pase que escribe este archivo]. El propio docstring de
-``digest.py`` ya los lista explícitamente entre lo que falta portar del envío
-completo (``~230 LOC de digest.py:130-484`` que la síntesis previa mapeó
-pieza por pieza). No es una omisión de este pase: es una pieza del **addon
-``digest``**, no de ``account``, y su cierre le corresponde a ese archivo.
-
-**Desenlace: (b) Bloqueado por pieza concreta**, con sucesor. El cuerpo se
-porta VERBATIM contra el contrato que la referencia declara —
-``self._get_kpi_compute_parameters()`` devolviendo ``(start, end,
-companies)``, y ``super()._compute_kpis_actions(company, user)`` devolviendo
-un diccionario mutable— así que en cuanto ``digest.py`` los declare, este
-archivo funciona sin tocarlo. Hasta entonces, invocar
-``compute_kpi_value(self, 'kpi_account_total_revenue', start, end)`` levanta
-``AttributeError`` en ``_get_kpi_compute_parameters`` — fallo ruidoso, no
-silencioso: no hay branch que finja un resultado.
-
-El campo booleano ``kpi_account_total_revenue`` en sí **no** depende de
-ninguna de las dos piezas — se porta y queda disponible de inmediato para que
-el usuario marque «Revenue» en su digest, aunque el valor no se calcule hasta
-que el cómputo se desbloquee.
+- **``_compute_kpi_account_total_revenue_value(self, start, end)`` recibe la
+  ventana por parámetro y DEVUELVE el valor.** La fuente la obtiene de
+  ``self._get_kpi_compute_parameters()`` y escribe ``record.<campo>`` en un
+  bucle sobre ``self``. Es el contrato que ``compute_kpi_value``
+  (``addons/digest/models/digest.py``) fija para todos los KPIs de este
+  árbol — el mismo que ``crm`` y ``hr_recruitment`` ya cumplen — y por eso
+  el agregado se hace para **una** compañía (la del digest, o la actual) en
+  vez de agruparse por ``company_id`` para N registros.
+- **La ventana es ``date > start`` y ``date <= end``**, verbatim de la fuente
+  (``:22-23``): no se normaliza al ``>= / <`` de
+  ``_calculate_company_based_kpi``, porque ése es otro método con otro
+  dominio.
+- **``parent_state = 'posted'`` se expresa como ``move__state``.** Este
+  árbol no materializa ``parent_state`` en la línea; el estado vive en el
+  asiento y se atraviesa la FK.
+- **``_compute_kpis_actions`` no resuelve ``?menu_id=<id>``.** La fuente
+  concatena el id de ``account.menu_finance`` porque el correo enlaza al
+  cliente web de Odoo, que resuelve el menú al navegar. Este árbol no tiene
+  ese cliente: el valor es el xml_id **sin resolver**, la misma forma que
+  ``crm`` y ``hr_recruitment`` ya usan para sus acciones.
+- **La guarda de grupo levanta ``AccessError`` igual que la fuente**, con el
+  mismo identificador externo y el mismo mensaje. Si
+  ``account.group_account_invoice`` no está sembrado, ``has_group`` devuelve
+  falso y la guarda niega — fail-closed, el desenlace correcto de un permiso
+  que no se puede afirmar.
 
 ``has_group`` — sí existe, y con la forma correcta
-=====================================================
+===================================================
 
-La guarda de acceso (*"sin permiso, no calcules, no revientes el digest de
-todos"*) sí tiene análogo exacto: ``ResUsers.has_group(group_ext_id)``
-(``src/addons/base/models/res_users.py:518``), método de instancia sobre el
-usuario — misma firma que ``self.env.user.has_group(...)`` de la referencia.
-Se porta verbatim.
+``ResUsers.has_group(group_ext_id)`` (``src/addons/base/models/res_users.py``)
+es un método de instancia sobre el usuario — misma firma que
+``self.env.user.has_group(...)`` de la referencia. Se porta verbatim.
 """
 import fields
-import models
+from django.db.models import Sum
 
 from addons.account.models.account_move_line import AccountMoveLine
-from addons.digest.models.digest import DigestDigest
 from exceptions import AccessError
 from orm.environments import get_current_company, get_current_user
+from orm.model_classes import extend_model
 from tools.translate import _
 
+#: El identificador externo que la fuente consulta, verbatim (``:15``).
+GROUP_ACCOUNT_INVOICE = 'account.group_account_invoice'
 
-def _compute_kpi_account_total_revenue_value(self):
-    """≙ ``_compute_kpi_account_total_revenue_value``
-    (``odoo19c: account/models/digest.py:14-27``).
+#: El xml_id que la fuente concatena con ``?menu_id=...`` — aquí sin
+#: resolver (ver la divergencia declarada arriba).
+ACTION_OUT_INVOICE = 'account.action_move_out_invoice_type'
 
-    **BLOQUEADO** por ``self._get_kpi_compute_parameters()`` — ver el
-    docstring del módulo. El resto del cuerpo es fiel: suma de ``balance``
-    de líneas de asientos publicados con cuenta de grupo ``'income'`` en el
-    rango, negada (Odoo invierte el signo de las cuentas de ingreso al
-    mostrarlo).
-    """
+
+def _assert_invoicing_user():
+    """≙ el ``if not self.env.user.has_group(...): raise AccessError``
+    (``:15-16``). Mensaje verbatim de la fuente."""
     user = get_current_user()
-    if user is None or not user.has_group('account.group_account_invoice'):
-        raise AccessError(_(
-            "Sin acceso: se omite este dato del digest del usuario."))
+    if not (user is not None and user.has_group(GROUP_ACCOUNT_INVOICE)):
+        raise AccessError(
+            _("Do not have access, skip this data for user's digest email"))
 
-    # ≙ ``self._get_kpi_compute_parameters()`` — falta en la base de
-    # ``digest.digest`` (ver docstring del módulo). Se invoca tal cual la
-    # referencia; el AttributeError es intencional mientras la pieza falte.
-    start, end, companies = self._get_kpi_compute_parameters()
 
-    # ``AccountMoveLine`` no lleva ``company``/``date`` propios — viven en su
-    # ``move`` (``account.move.line.company_id`` de la referencia es un
-    # ``related='move_id.company_id', store=True``; aquí se atraviesa la FK).
-    rows = (
+def _compute_kpi_account_total_revenue_value(self, start, end):
+    """≙ ``_compute_kpi_account_total_revenue_value`` (``:14-27``).
+
+    Suma de ``balance`` de las líneas de asientos **publicados** con cuenta
+    de grupo ``'income'`` en la ventana ``(start, end]``, acotada a la
+    compañía del digest (o a la actual si el digest no fija una), y negada:
+    la fuente invierte el signo porque una cuenta de ingreso tiene saldo
+    natural acreedor.
+
+    ``AccountMoveLine`` lleva ``company_id`` propio (materializado del
+    asiento en ``save()``, como el ``related store=True`` de la fuente);
+    ``date`` y ``state`` viven en el asiento y se atraviesa ``move``.
+    """
+    _assert_invoicing_user()
+    company = self.company_id or get_current_company()
+    companies = [company.pk] if company is not None else []
+    total = (
         AccountMoveLine.objects
         .filter(
-            move__company__in=companies,
-            move__date__gt=start, move__date__lte=end,
+            company_id__in=companies,
+            move__date__gt=start,
+            move__date__lte=end,
             account__internal_group='income',
             move__state='posted',
         )
-        .values('move__company')
-        .annotate(total=models.Sum('balance'))
+        .aggregate(total=Sum('balance'))['total']
     )
-    total_by_company = {
-        row['move__company']: row['total'] or 0 for row in rows
-    }
-
-    default_company = get_current_company()
-    for record in self:
-        company = record.company_id or default_company
-        record.kpi_account_total_revenue_value = -total_by_company.get(
-            company, 0)
+    return -(total or 0)
 
 
-def _compute_kpis_actions(self, company, user):
-    """≙ ``_compute_kpis_actions`` de ``account``
-    (``odoo19c: account/models/digest.py:29-32``).
+def _compute_kpis_actions(self, previous, company, user):
+    """≙ ``_compute_kpis_actions`` de ``account`` (``:29-32``).
 
-    **BLOQUEADO** — ``super()._compute_kpis_actions`` no existe en
-    ``DigestDigest`` de este árbol (ver docstring del módulo). Se deja el
-    contrato declarado —recibe ``company``/``user``, añade una clave al
-    diccionario de acciones— para que activarlo, cuando la base lo tenga,
-    sea sumar la llamada a ``super()`` que hoy no hay a qué apuntar.
-
-    La acción en sí —abrir el reporte de facturas de venta filtrado por el
-    menú de finanzas— depende además de ``ir.model.data`` para
-    ``account.menu_finance``, que no está sembrado en este árbol; se deja el
-    valor como ``None`` en vez de una URL rota.
+    Encadena con ``previous`` —el ``_compute_kpis_actions`` que ya esté
+    instalado (la base, o el de otro addon que se colgó antes)— y añade la
+    clave de este addon: el xml_id de la acción de facturas de cliente, sin
+    resolver (ver la divergencia declarada en el docstring del módulo).
     """
-    raise NotImplementedError(
-        'Bloqueado: DigestDigest._compute_kpis_actions (base) no existe '
-        'todavía en addons/digest/models/digest.py.')
+    res = previous(company, user)
+    res['kpi_account_total_revenue'] = ACTION_OUT_INVOICE
+    return res
 
 
 def apply_account_extensions():
     """≙ ``_inherit = 'digest.digest'`` de ``account``.
 
-    Cuelga el campo booleano (usable de inmediato) y los dos métodos
-    bloqueados (documentados, no silenciosos: levantan si se invocan antes
-    de que su pieza exista).
+    Cuelga los dos campos, el compute y la acción. La llama
+    ``AccountConfig.ready()``. ``_compute_kpis_actions`` va por
+    ``overrides=`` (:func:`orm.method_chain.wrap_method`): necesita el
+    diccionario que la implementación previa ya devolvió, para mutarlo. Un
+    ``if not hasattr: setattr`` —la forma anterior de este archivo— no
+    instala nada cuando la base ya declara el método, que es exactamente
+    el caso desde la tarea #158: la clave de ``account`` desaparecía del
+    correo en silencio.
     """
-    if not hasattr(DigestDigest, 'kpi_account_total_revenue'):
-        DigestDigest.add_to_class('kpi_account_total_revenue', fields.Boolean(
-            default=False, verbose_name='Ingresos',
-            help_text='Muestra el KPI de ingreso total del período en el '
-                      'digest (Odoo kpi_account_total_revenue).',
-        ))
-    if not hasattr(DigestDigest, 'kpi_account_total_revenue_value'):
-        DigestDigest.add_to_class(
-            'kpi_account_total_revenue_value', fields.Monetary(
+    extend_model(
+        'digest', 'DigestDigest',
+        campos={
+            'kpi_account_total_revenue': fields.Boolean(
+                default=False, verbose_name='Ingresos',
+                help_text='Muestra el KPI de ingreso total del período en '
+                          'el digest (Odoo kpi_account_total_revenue).',
+            ),
+            'kpi_account_total_revenue_value': fields.Monetary(
                 store=False, null=True, blank=True,
                 verbose_name='Ingreso total del período (valor)',
-                help_text='Odoo kpi_account_total_revenue_value — BLOQUEADO, '
-                          'ver docstring del módulo.',
-            ))
-
-    for name, function in (
-        ('_compute_kpi_account_total_revenue_value',
-         _compute_kpi_account_total_revenue_value),
-        ('_compute_kpis_actions', _compute_kpis_actions),
-    ):
-        if not hasattr(DigestDigest, name):
-            setattr(DigestDigest, name, function)
+                help_text='Odoo kpi_account_total_revenue_value — compute '
+                          'sin store; lo sirve '
+                          '_compute_kpi_account_total_revenue_value.',
+            ),
+        },
+        metodos={
+            '_compute_kpi_account_total_revenue_value':
+                _compute_kpi_account_total_revenue_value,
+        },
+        overrides={
+            '_compute_kpis_actions': _compute_kpis_actions,
+        },
+    )
