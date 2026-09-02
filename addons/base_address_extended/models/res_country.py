@@ -16,6 +16,16 @@ class CountryAddressPolicy(models.Model):
     del catálogo (Odoo ``enforce_cities``).
     """
 
+    #: ≙ ``_inherit = 'res.country'`` de la fuente
+    #: (``odoo19c: base_address_extended/models/res_country.py:8``). Se declara
+    #: verbatim aunque el mecanismo diverja: allá inyecta la columna en
+    #: ``res_country``, aquí la extensión vive en una tabla RELATED
+    #: (DEC-SALE-01). El atributo nombra a quién extiende, que es la
+    #: información que la divergencia de almacén no debe borrar
+    #: (``atributos-de-clase-de-modelo.md``). Mismo idioma que
+    #: ``AddressStructured`` en el archivo hermano ``res_partner.py``.
+    _inherit = 'res.country'
+
     country         = models.OneToOneField(
         'base.ResCountry', on_delete=models.CASCADE, related_name='address_policy',
         help_text='País al que aplica la política (Odoo res.country).',

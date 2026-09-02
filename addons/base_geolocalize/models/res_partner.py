@@ -30,7 +30,9 @@ from django.utils import timezone
 import fields
 import models
 
-from addons.base_geolocalize.models.base_geocoder import Geocoder
+from addons.base.models import ResPartner
+from addons.base_geolocalize.models.base_geocoder import BaseGeocoder
+from orm.method_chain import chain_method
 
 # Campos de ``res.partner`` cuyo cambio dispara el reset de geolocalización.
 # Fiel a Odoo 19:15 ('street', 'zip', 'city', 'state_id', 'country_id') con la
@@ -76,6 +78,30 @@ class PartnerGeolocation(models.Model):
 
     # -- Reset on address change (Odoo write, 19:12-21) ---------------------
 
+    def write(self, **vals):
+        """≙ ``write`` (``odoo19c: base_geolocalize/models/res_partner.py:12-21``).
+
+        Conserva el nombre de la fuente. Comentario suyo, verbatim: *"Reset
+        latitude/longitude in case we modify the address without updating the
+        related geolocation fields"*.
+
+        Es la puerta que la fuente vigila, y hasta este pase sólo existía
+        :meth:`apply_write_reset` —un nombre inventado que dejaba el símbolo de
+        la referencia sin localizar—. Aquélla se conserva porque hace la mitad
+        que ésta no puede: decidir el reset a partir de una lista de campos que
+        cambió **en otra tabla** (la dirección vive en ``base.ResPartner``, no
+        aquí), que es el caso que el llamador orquesta.
+
+        La firma es ``**vals`` y el cuerpo es *comprobar, poner los atributos y
+        guardar*, el idioma de ``addons/stock/models/stock_location.py:575``.
+        Devuelve ``self``.
+        """
+        self.apply_write_reset(vals)
+        for name, value in vals.items():
+            setattr(self, name, value)
+        self.save()
+        return self
+
     def apply_write_reset(self, changed_fields):
         """Limpia ``latitude``/``longitude`` si ``changed_fields`` toca algún
         campo de dirección sin actualizar también la geolocalización.
@@ -100,13 +126,13 @@ class PartnerGeolocation(models.Model):
         """Resuelve una dirección a ``(lat, lng)`` con fallback (Odoo 19:23-31):
         primero con la calle completa; si no hay match, sólo ciudad/estado/país.
         """
-        search = Geocoder.geo_query_address(
+        search = BaseGeocoder.geo_query_address(
             street=street, zip=zip, city=city, state=state, country=country)
-        result = Geocoder.geo_find(search, force_country=country)
+        result = BaseGeocoder.geo_find(search, force_country=country)
         if result is None:
-            search = Geocoder.geo_query_address(city=city, state=state,
+            search = BaseGeocoder.geo_query_address(city=city, state=state,
                                                  country=country)
-            result = Geocoder.geo_find(search, force_country=country)
+            result = BaseGeocoder.geo_find(search, force_country=country)
         return result
 
     def geo_localize(self):
@@ -141,3 +167,69 @@ class PartnerGeolocation(models.Model):
         self.date_localization = timezone.now().date()
         self.save(update_fields=['latitude', 'longitude', 'date_localization'])
         return True
+
+
+# --- Lo que la fuente declara sobre ``res.partner`` -------------------------
+#
+# Los tres símbolos de ``odoo19c: base_geolocalize/models/res_partner.py``
+# tienen por receptor ``res.partner``, no la tabla RELATED. Vivían como métodos
+# de ``PartnerGeolocation`` y por eso no se podían llamar desde un contacto —
+# que es como la fuente los expone. Se cuelgan sobre ``base.ResPartner`` con el
+# mismo idioma que ``base_address_extended`` (:mod:`orm.method_chain`).
+
+
+def _geolocation_of(partner):
+    """La fila RELATED del contacto, creándola si hace falta.
+
+    En la fuente las tres columnas viven en ``res_partner``; aquí viven en
+    ``res_partner_geolocation`` (DEC-SALE-01), así que escribir una
+    geolocalización empieza por tener dónde escribirla.
+    """
+    fila = PartnerGeolocation.objects.filter(partner=partner).first()
+    if fila is None:
+        fila = PartnerGeolocation.objects.create(partner=partner)
+    return fila
+
+
+def _partner_geo_localize(cls, street='', zip='', city='', state='',
+                          country=''):
+    """≙ ``_geo_localize`` (``odoo19c: :23-31``) — con receptor ``res.partner``.
+
+    ``@api.model`` en la fuente: no depende de un registro, sólo del entorno.
+    Aquí es ``classmethod``, la traducción que este árbol ya usa para ese
+    decorador.
+    """
+    return PartnerGeolocation._geo_localize(
+        street=street, zip=zip, city=city, state=state, country=country)
+
+
+def _partner_geo_localize_record(self):
+    """≙ ``geo_localize`` (``odoo19c: :33-65``) — geolocaliza ESTE contacto.
+
+    Delega en la fila RELATED, que es donde viven las tres columnas. La guarda
+    de contexto de la fuente (``import_file`` / ``current_test`` /
+    ``install_demo`` / registro no listo) y su ``_bus_send`` de aviso no tienen
+    receptor aquí: no hay contexto de sesión ni bus en vivo — la divergencia
+    está declarada en el docstring de :meth:`PartnerGeolocation.geo_localize`.
+    """
+    return _geolocation_of(self).geo_localize()
+
+
+def apply_base_geolocalize_extensions():
+    """Cuelga los símbolos de la fuente sobre ``base.ResPartner``.
+
+    La llama ``BaseGeolocalizeConfig.ready()``, no el import del módulo: en
+    tiempo de import el registro de modelos aún no está poblado y colgar sobre
+    un modelo ajeno fallaría con ``AppRegistryNotReady``.
+
+    Los dos son **nuevos** sobre ``res.partner`` en este árbol, así que van por
+    ``chain_method`` a secas (rama ``previous is None``). El tercer símbolo de
+    la fuente, ``write``, NO se cuelga aquí: ``base.ResPartner`` no declara
+    ``write`` —declara ``save`` (``src/addons/base/models/res_partner.py:1510``)—
+    y el reset que la fuente hace dentro de su ``write`` opera sobre las
+    columnas de la fila RELATED. Vive donde están esas columnas, como
+    :meth:`PartnerGeolocation.write`, con el nombre de la fuente.
+    """
+    chain_method(ResPartner, '_geo_localize',
+                 classmethod(_partner_geo_localize))
+    chain_method(ResPartner, 'geo_localize', _partner_geo_localize_record)

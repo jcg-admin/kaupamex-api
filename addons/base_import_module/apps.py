@@ -13,4 +13,5 @@ from django.apps import AppConfig
 class BaseImportModuleConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'addons.base_import_module'
-    verbose_name = 'Importación de módulos (bloqueado — ver docstring)'
+    label = 'base_import_module'
+    verbose_name = 'Importación de módulos'

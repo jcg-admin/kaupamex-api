@@ -8,9 +8,11 @@ app_label se registra en ``MULTIDB_CONTROL_PLANE_APPS`` (mismo patrón que
 ``base`` y ``base_address_extended``, SOL-091).
 
 ``base.geocoder`` (AbstractModel en Odoo, sin tabla) se porta como la clase de
-servicio ``Geocoder`` en ``models/base_geocoder.py`` — no un ``models.Model``,
-fiel a que Odoo tampoco le da persistencia propia.
+servicio ``BaseGeocoder`` en ``models/base_geocoder.py`` — no un
+``models.Model``, fiel a que Odoo tampoco le da persistencia propia.
 """
+import importlib
+
 from django.apps import AppConfig
 
 
@@ -19,3 +21,14 @@ class BaseGeolocalizeConfig(AppConfig):
     name = 'addons.base_geolocalize'
     label = 'base_geolocalize'
     verbose_name = 'Base — geolocalización de direcciones (base_geolocalize)'
+
+    def ready(self):
+        """Cuelga sobre ``base.ResPartner`` lo que la fuente le declara.
+
+        ``importlib.import_module`` y no un ``import`` al top — excepción #4 de
+        ``no-lazy-imports.md``: es una llamada de función, no un statement
+        ``import``, y en este punto el registro de modelos ya está poblado.
+        """
+        importlib.import_module(
+            'addons.base_geolocalize.models.res_partner'
+        ).apply_base_geolocalize_extensions()

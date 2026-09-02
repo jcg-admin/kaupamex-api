@@ -20,7 +20,15 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def mexico():
-    return ResCountry.objects.create(name='México', code='MX')
+    """México, tomado si ya existe.
+
+    ``res.country`` se siembra por migración de datos y ``code`` es único, así
+    que un ``create`` choca con ``res_country_code_key``. El idioma del árbol
+    para esto es ``get_or_create`` sobre el código — el mismo que usa el
+    archivo hermano ``test_base_address_extended.py``.
+    """
+    return ResCountry.objects.get_or_create(
+        code='MX', defaults={'name': 'México'})[0]
 
 
 @pytest.fixture
@@ -61,8 +69,8 @@ class TestAddressFields:
         ``ResPartner`` y no sólo sobre el RELATED.
         """
         partner = ResPartner.objects.create(name='Ferretería Los Arcos')
-        for campo in ResPartner._address_fields():
-            getattr(partner, campo)
+        for field_name in ResPartner._address_fields():
+            getattr(partner, field_name)
 
 
 class TestCityIdSurface:
@@ -113,7 +121,8 @@ class TestOnchangeCountryId:
 
     def test_changing_country_drops_a_city_of_another_country(
             self, guadalajara):
-        otro = ResCountry.objects.create(name='Guatemala', code='GT')
+        otro = ResCountry.objects.get_or_create(
+            code='GT', defaults={'name': 'Guatemala'})[0]
         partner = ResPartner.objects.create(name='Café La Ceiba')
         partner.city_id = guadalajara
         partner.country = otro
@@ -137,7 +146,8 @@ class TestOnchangeCountryId:
         Discrimina el ``wrap_method`` de un ``chain_method``: si este override
         no invocara ``previous()``, el estado de otro país sobreviviría.
         """
-        otro = ResCountry.objects.create(name='Belice', code='BZ')
+        otro = ResCountry.objects.get_or_create(
+            code='BZ', defaults={'name': 'Belice'})[0]
         partner = ResPartner.objects.create(name='Hotel Río Hondo')
         partner.state = jalisco
         partner.country = otro
@@ -161,7 +171,8 @@ class TestGetResCityByName:
         assert ResPartner._get_res_city_by_name('Guadalajara', None) is None
 
     def test_does_not_cross_country_borders(self, guadalajara):
-        otro = ResCountry.objects.create(name='Honduras', code='HN')
+        otro = ResCountry.objects.get_or_create(
+            code='HN', defaults={'name': 'Honduras'})[0]
         assert ResPartner._get_res_city_by_name('Guadalajara', otro) is None
 
 

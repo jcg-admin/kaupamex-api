@@ -1322,3 +1322,58 @@ base/models/ir_model.py::IrModelFields::_get_manual_field_data
 # Declarado en: addons/hr_recruitment_skills/models/hr_job.py, docstring del
 # modulo, Divergencia 4.
 hr_recruitment_skills/models/hr_job.py::HrJob::action_search_matching_applicants
+
+# --- base_automation/models/base_automation.py (tarea #281) ---------------
+# `_register_hook` / `_unregister_hook` parchean EN CALIENTE los metodos
+# `create`/`write`/`unlink`/`_compute_field_value` de cada modelo objetivo,
+# con closures (`make_create`, `make_write`, ...) y `.origin` para llamar al
+# original. Ese mecanismo es del registro de la referencia: un registro
+# mutable que se puede reconstruir en caliente.
+#
+# Medido 2026-09-02 sobre este arbol:
+#   grep -rnE "def _register_hook|def _unregister_hook" --include=*.py src/ addons/  -> 0
+#   grep -rn "class Registry" --include=*.py src/orm/*.py                            -> 0
+#   grep -rnE "\.origin\b" --include=*.py src/orm/                                   -> 9
+#   grep -c "@receiver" addons/base_automation/models/signals.py                     -> 3
+#
+# El sustituto NO es "no se porta": es OTRO mecanismo, construido y en pie.
+# Django trae el bus que la referencia se fabrica parcheando —
+# `django.db.models.signals`, que emite `pre_save`/`post_save`/`pre_delete`
+# para TODO modelo sin tocar ninguna clase—, y `models/signals.py` cuelga
+# tres receptores GLOBALES (`sender=None`) que consultan las reglas vivas en
+# cada disparo. Eso cubre lo que los dos metodos existen para conseguir, y
+# ademas hace innecesario re-registrar nada cuando una regla cambia: por eso
+# `_update_registry` es un no-op declarado y no un hueco.
+#
+# La guarda de reentrancia de la referencia (`__action_done`) tambien tiene
+# sustituto: un `set` en un `threading.local()` con el par
+# `(automation_pk, pk)`, en el mismo `signals.py`.
+#
+# Si algun dia este arbol tuviera un registro reconstruible en caliente, esta
+# entrada se retira y los dos metodos se portan con el.
+# Declarado en: addons/base_automation/models/base_automation.py:13-30
+base_automation/models/base_automation.py::BaseAutomation::_register_hook
+base_automation/models/base_automation.py::BaseAutomation::_unregister_hook
+
+# --- base_geolocalize/models/res_partner.py (tarea #281) ------------------
+# `write` SI esta portado, con el nombre de la fuente — lo que diverge es su
+# RECEPTOR, y por eso el gate (que empareja por clase) no lo ve.
+#
+# La fuente lo declara sobre `res.partner` porque alli viven las tres columnas
+# que resetea (`partner_latitude`, `partner_longitude`, `date_localization`).
+# Aqui esas columnas viven en la tabla RELATED `res_partner_geolocation`
+# (DEC-SALE-01, mismo criterio que `base_address_extended`), asi que el metodo
+# vive donde estan las columnas: `PartnerGeolocation.write`, con su nombre.
+#
+# Medido 2026-09-02 sobre este arbol:
+#   grep -cE "^    def write\(" src/addons/base/models/res_partner.py  -> 0
+#   grep -n  "def write" addons/base_geolocalize/models/res_partner.py -> 81
+#
+# El primero es el que decide: `base.ResPartner` no declara `write` —declara
+# `save` (`:1510`)—, asi que colgar un `write` sobre el contacto seria inventar
+# una puerta que este arbol no tiene, y el reset seguiria necesitando la fila
+# RELATED para operar. Los otros dos simbolos del archivo (`_geo_localize`,
+# `geo_localize`) SI se cuelgan sobre `base.ResPartner`, que es donde la
+# fuente los expone.
+# Declarado en: addons/base_geolocalize/models/res_partner.py:81-101
+base_geolocalize/models/res_partner.py::ResPartner::write

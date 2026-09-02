@@ -2,10 +2,13 @@
 
 Portación fiel de ``models/base_geocoder.py`` — idéntico entre Odoo 18
 (``scratchpad/odoo18/extracted/addons/base_geolocalize/models/base_geocoder.py``)
-y 19 (``scratchpad/odoo19x/addons/base_geolocalize/models/base_geocoder.py``,
-19:16-103); v19 solo agrega ``_call_openstreetmap_reverse``/``_get_localisation``
-(dependen de ``odoo.http.request.geoip``, sin equivalente HTTP-request en este
-addon — fuera de scope de esta slice).
+y 19 (``odoo19c: addons/base_geolocalize/models/base_geocoder.py``).
+
+**Porte completo — 12 de 12 símbolos** (tarea #281). Las tres exclusiones que
+este docstring declaraba —``_call_googlemap``, ``_geo_query_address_googlemap``
+y el par ``_call_openstreetmap_reverse``/``_get_localisation``— **ya no
+existen**: los cuatro están portados abajo, más ``get_google_map_api_key`` y
+``_raise_query_error``, que la versión anterior tampoco tenía.
 
 Correspondencia Odoo -> Django:
 
@@ -29,16 +32,24 @@ Decisiones de portación (H-BASE, ver reporte del orquestador):
   Django del proyecto — ``ir_config_parameter.py`` sólo usa
   ``django.core.exceptions.ValidationError`` para validaciones de modelo, que no
   aplica aquí porque esto no es una validación de campo).
-- **``_call_googlemap`` NO se porta en esta slice** (H-BASE): requiere una
-  API key paga (``base_geolocalize.google_map_api_key``) y su llamada HTTP no
-  es verificable sin credenciales reales. El proveedor ``googlemap`` se sigue
-  sembrando en el catálogo (fiel a ``data/data.xml``) para que
-  ``_get_provider``/administración lo liste, pero seleccionarlo activo hace que
-  ``geo_find`` levante ``GeoProviderNotImplemented`` — mismo comportamiento
-  observable que tendría Odoo si ``_call_googlemap`` no existiera (``hasattr``
-  falla -> ``UserError``). Análogamente, ``_geo_query_address_googlemap``
-  (reordena el país, 19:190-196) tampoco se porta: sin la llamada HTTP no hay
-  forma de ejercer esa rama con evidencia PROVEN en este slice.
+- **``_call_googlemap`` SÍ se porta** (corregido en #281). El docstring
+  anterior lo excluía porque *"su llamada HTTP no es verificable sin
+  credenciales reales"*, y eso confunde **no poder probar contra el servicio
+  real** con **no poder portar**: la llamada sale por ``_http_get_json``, que
+  existe precisamente para que un test la sustituya sin red. Lo que la clave
+  ausente cambia es la conducta —se levanta el mismo error que la fuente—, no
+  el alcance del porte. Igual ``_geo_query_address_googlemap``, que es
+  reordenación de cadena y no toca la red en absoluto.
+
+- **``_get_localisation`` recibe la petición explícita.** La fuente lee
+  ``odoo.http.request.geoip`` de un global de su capa HTTP; aquí no hay ese
+  global (medido: 0 definiciones de un resolutor GeoIP en ``src/`` —
+  ``src/addons/base/models/res_device.py:308`` ya lo declara: *"No hay
+  proveedor GeoIP en esta pila"*). El parámetro ``geoip`` viaja explícito,
+  el mismo criterio con que ``base_automation.get_webhook_request_payload``
+  recibe su ``request``. Sin él, el método cae directo a la resolución inversa
+  por coordenadas, que es la rama que la fuente toma cuando su GeoIP no
+  responde.
 """
 import json
 import logging
@@ -49,7 +60,7 @@ import urllib.request
 import fields
 import models
 
-from addons.base.models import SystemParameter
+from addons.base.models import ResCountry, SystemParameter
 
 _logger = logging.getLogger(__name__)
 
@@ -57,6 +68,24 @@ _logger = logging.getLogger(__name__)
 # 'base_geolocalize.geo_provider', 19:34 / 18:35). Guarda el pk de GeoProvider
 # como string, igual que Odoo guarda el id de base.geo_provider.
 GEO_PROVIDER_PARAM = 'base_geolocalize.geo_provider'
+
+#: ≙ la clave que ``get_google_map_api_key`` lee (``odoo19c: :12-13``).
+GOOGLE_MAP_API_KEY_PARAM = 'base_geolocalize.google_map_api_key'
+
+#: ≙ la URL del servicio de geocodificación de Google (``:148``).
+_GOOGLEMAP_URL = 'https://maps.googleapis.com/maps/api/geocode/json'
+#: ≙ la URL de resolución inversa de Nominatim (``:121``).
+_NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse'
+
+
+def get_google_map_api_key():
+    """≙ ``get_google_map_api_key`` (``odoo19c: :12-13``).
+
+    La fuente recibe el ``env`` y lee ``ir.config_parameter``; aquí el
+    parámetro vive en ``SystemParameter`` y no hace falta pasarlo de mano en
+    mano, que es la misma resolución que ya usa ``_get_provider``.
+    """
+    return SystemParameter.get_param(GOOGLE_MAP_API_KEY_PARAM)
 
 # User-Agent obligatorio por la política de uso de Nominatim (Odoo hardcodea
 # 'Odoo (http://www.odoo.com/contactus)', 19:94); se adapta al proyecto.
@@ -109,8 +138,12 @@ def _http_get_json(url, headers=None, timeout=10):
         return json.loads(response.read().decode('utf-8'))
 
 
-class Geocoder:
-    """``base.geocoder`` (Odoo ``AbstractModel``, 19:24-30 / 18:25-31).
+class BaseGeocoder:
+    """``base.geocoder`` — ≙ ``BaseGeocoder`` (``odoo19c: :24-30``).
+
+    El nombre es el de la fuente. Se llamaba ``Geocoder`` y eso no era una
+    traducción sino un rebautizo: la referencia declara ``class BaseGeocoder``,
+    y quitarle el prefijo dejaba el símbolo sin localizar por su nombre.
 
     Clase de servicio (sin tabla, sin instancia persistida) — fiel a que Odoo
     tampoco le da persistencia a un ``AbstractModel``. Todos los métodos son
@@ -213,9 +246,158 @@ class Geocoder:
             return None
         url = _NOMINATIM_URL + '?' + urllib.parse.urlencode(
             {'format': 'json', 'q': addr})
-        result = _http_get_json(url, headers={'User-Agent': _NOMINATIM_USER_AGENT})
+        try:
+            result = _http_get_json(
+                url, headers={'User-Agent': _NOMINATIM_USER_AGENT})
+        except Exception as error:  # noqa: BLE001 — ≙ el except de la fuente
+            cls._raise_query_error(error)
         _logger.info('openstreetmap nominatim service called')
         if not result:
             return None
         geo = result[0]
         return float(geo['lat']), float(geo['lon'])
+
+    @classmethod
+    def _call_openstreetmap_reverse(cls, lat, lon):
+        """≙ ``_call_openstreetmap_reverse`` (``odoo19c: :105-135``).
+
+        De coordenadas a dirección. Devuelve el cuerpo entero de la respuesta,
+        como la fuente — quien lo consume (``_get_localisation``) elige qué
+        campo leer de su clave ``address``.
+
+        La fuente aborta con ``UserError`` cuando corre bajo su bandera de
+        test (*"OpenStreetMap calls disabled in testing environment"*). Aquí
+        esa guarda **no se porta como tal**: la llamada sale por
+        ``_http_get_json``, que un test sustituye, así que no hay red que
+        proteger. Es divergencia de mecanismo, no de alcance — la fuente
+        necesita la bandera porque llama a ``requests`` en línea.
+        """
+        if not (lat and lon):
+            _logger.info('invalid latitude or longitude given')
+            return None
+        url = _NOMINATIM_REVERSE_URL + '?' + urllib.parse.urlencode(
+            {'format': 'json', 'lat': lat, 'lon': lon})
+        try:
+            result = _http_get_json(
+                url, headers={'User-Agent': _NOMINATIM_USER_AGENT})
+        except Exception as error:  # noqa: BLE001 — ≙ el except de la fuente
+            cls._raise_query_error(error)
+        _logger.info('openstreetmap nominatim service called')
+        return result
+
+    @classmethod
+    def _call_googlemap(cls, addr, **kw):
+        """≙ ``_call_googlemap`` (``odoo19c: :137-172``).
+
+        Docstring de la fuente, verbatim: *"Use google maps API. It won't work
+        without a valid API key."*
+
+        Se conservan sus tres desenlaces: ``ZERO_RESULTS`` devuelve ``None``,
+        un ``status`` distinto de ``OK`` levanta con el texto de la fuente
+        —incluida su explicación de que Google lo volvió de pago—, y una
+        respuesta con forma inesperada devuelve ``None`` sin levantar.
+
+        ``force_country`` viaja como ``components``, igual que allá.
+        """
+        apikey = get_google_map_api_key()
+        if not apikey:
+            raise GeoProviderNotImplemented(
+                'API key for GeoCoding (Places) required.\n'
+                'Visit https://developers.google.com/maps/documentation/'
+                'geocoding/get-api-key for more information.')
+        params = {'sensor': 'false', 'address': addr, 'key': apikey}
+        if kw.get('force_country'):
+            params['components'] = 'country:%s' % kw['force_country']
+        url = _GOOGLEMAP_URL + '?' + urllib.parse.urlencode(params)
+        try:
+            result = _http_get_json(url)
+        except Exception as error:  # noqa: BLE001 — ≙ el except de la fuente
+            cls._raise_query_error(error)
+        try:
+            if result['status'] == 'ZERO_RESULTS':
+                return None
+            if result['status'] != 'OK':
+                _logger.debug('Invalid Gmaps call: %s - %s', result['status'],
+                              result.get('error_message', ''))
+                raise GeoProviderNotImplemented(
+                    'Unable to geolocate, received the error:\n%s\n\n'
+                    'Google made this a paid feature.\n'
+                    'You should first enable billing on your Google account.\n'
+                    'Then, go to Developer Console, and enable the APIs:\n'
+                    'Geocoding, Maps Static, Maps Javascript.\n'
+                    % result.get('error_message'))
+            geo = result['results'][0]['geometry']['location']
+            return float(geo['lat']), float(geo['lng'])
+        except (KeyError, ValueError):
+            _logger.debug('Unexpected Gmaps API answer %s',
+                          result.get('error_message', ''))
+            return None
+
+    @classmethod
+    def _geo_query_address_googlemap(cls, street=None, zip=None, city=None,
+                                     state=None, country=None):
+        """≙ ``_geo_query_address_googlemap`` (``odoo19c: :189-195``).
+
+        Comentario de la fuente, verbatim: *"put country qualifier in front,
+        otherwise GMap gives wrong results — e.g. 'Congo, Democratic Republic
+        of the' => 'Democratic Republic of the Congo'"*.
+        """
+        if country and ',' in country and (
+                country.endswith(' of') or country.endswith(' of the')):
+            country = '{1} {0}'.format(*country.split(',', 1))
+        return cls._geo_query_address_default(
+            street=street, zip=zip, city=city, state=state, country=country)
+
+    @classmethod
+    def _raise_query_error(cls, error):
+        """≙ ``_raise_query_error`` (``odoo19c: :197-198``).
+
+        La fuente levanta ``UserError``; aquí el error de dominio del addon es
+        ``GeoProviderNotImplemented``, que ``geo_find`` re-eleva sin degradar a
+        ``None`` — la misma frontera que la fuente traza con su ``except
+        UserError: raise``.
+        """
+        raise GeoProviderNotImplemented(
+            'Error with geolocation server: %s' % error)
+
+    @classmethod
+    def _get_localisation(cls, latitude, longitude, geoip=None):
+        """≙ ``_get_localisation`` (``odoo19c: :200-224``).
+
+        Comentario de la fuente, verbatim: *"try to get city and/or country
+        from request.geoip first; if not possible, get them from latitude and
+        longitude"*, y su nota sobre por qué usa OpenStreetMap para la inversa:
+        *"for now, we use openstreetmap; if needed, we will add a setting like
+        'partner geolocation' that let the user decide which provider to use"*.
+
+        ``geoip`` llega explícito porque aquí no hay global de petición (ver el
+        docstring del módulo). Con ``None`` —el caso normal fuera de una
+        vista— se va derecho a la resolución inversa, que es la rama que la
+        fuente toma cuando su GeoIP no resuelve.
+
+        Devuelve ``'Unknown'`` cuando no reúne ni ciudad ni país, como la
+        fuente.
+        """
+        city = getattr(getattr(geoip, 'city', None), 'name', None)
+        country_code = getattr(geoip, 'country_code', None)
+        postcode = None
+        if not (city and country_code):
+            result = cls._call_openstreetmap_reverse(latitude, longitude)
+            address = (result or {}).get('address') if result else None
+            if address:
+                country_code = address.get('country_code')
+                city = (address.get('city_district') or address.get('town')
+                        or address.get('village') or address.get('city'))
+                postcode = address.get('postcode')
+
+        country = None
+        if country_code:
+            country = ResCountry.objects.filter(
+                code=country_code.upper()).first()
+
+        res = postcode or ''
+        if city:
+            res += ' %s' % city if res else city
+        if country:
+            res += ', %s' % country.name if res else country.name
+        return res or 'Unknown'

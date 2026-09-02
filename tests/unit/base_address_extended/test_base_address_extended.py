@@ -81,6 +81,15 @@ class TestResCity:
 
 
 class TestCountryAddressPolicy:
+    def test_it_declares_which_model_it_extends(self):
+        """≙ ``_inherit = 'res.country'`` (``odoo19c: …/res_country.py:8``).
+
+        El almacén diverge —allá es una columna de ``res_country``, aquí una
+        tabla RELATED (DEC-SALE-01)— y el atributo es lo que impide que esa
+        divergencia borre a quién extiende la clase.
+        """
+        assert CountryAddressPolicy._inherit == 'res.country'
+
     def test_enforce_cities_defaults_false(self):
         mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         pol = CountryAddressPolicy.objects.create(country=mx)

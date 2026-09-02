@@ -1,0 +1,12 @@
+# Control discriminante — install-request-guarda-modulo-instalado
+# fecha:    2026-09-02T08:55:03
+# archivo:  addons/base_install_request/wizard/base_module_install_request.py
+# anulado:  s/^        if module.state == STATE_INSTALLED:/        if False:/
+# tests:    tests/unit/base_install_request/
+
+## 1. Verde de partida (guarda presente)
+26 passed, 1 warning in 4.78s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/base_install_request/test_install_request_wizard.py::TestGetDependingApps::test_an_installed_module_raises
+1 failed, 25 passed, 1 warning in 5.00s

@@ -1,0 +1,129 @@
+bringing up nodes...
+bringing up nodes...
+
+.....................................................................FF. [ 43%]
+FF.FFFFFFFF............................................................. [ 87%]
+.....................                                                    [100%]
+=================================== FAILURES ===================================
+_ TestTheRecordKeyIsResolvedInBothFormsOfTheSource.test_the_model_slash_id_pair_resolves _
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/html_editor/test_image_shape.py:72: in test_the_model_slash_id_pair_resolves
+    found = _CONTROLLER._find_image_record(
+addons/html_editor/controllers/main.py:887: in _find_image_record
+    return IrBinary.find_record(model_and_id[1], int(model_and_id[2]))
+E   AttributeError: 'NoneType' object has no attribute 'find_record'
+_ TestTheRecordKeyIsResolvedInBothFormsOfTheSource.test_the_parenthesised_pair_resolves_too _
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/html_editor/test_image_shape.py:77: in test_the_parenthesised_pair_resolves_too
+    found = _CONTROLLER._find_image_record(
+addons/html_editor/controllers/main.py:887: in _find_image_record
+    return IrBinary.find_record(model_and_id[1], int(model_and_id[2]))
+E   AttributeError: 'NoneType' object has no attribute 'find_record'
+_ TestTheRecordKeyIsResolvedInBothFormsOfTheSource.test_an_unknown_model_resolves_to_nothing _
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/html_editor/test_image_shape.py:86: in test_an_unknown_model_resolves_to_nothing
+    assert _CONTROLLER._find_image_record('no.existe/1') is None
+addons/html_editor/controllers/main.py:887: in _find_image_record
+    return IrBinary.find_record(model_and_id[1], int(model_and_id[2]))
+E   AttributeError: 'NoneType' object has no attribute 'find_record'
+_ TestTheRecordKeyIsResolvedInBothFormsOfTheSource.test_a_missing_row_resolves_to_nothing _
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/html_editor/test_image_shape.py:89: in test_a_missing_row_resolves_to_nothing
+    assert _CONTROLLER._find_image_record(
+addons/html_editor/controllers/main.py:887: in _find_image_record
+    return IrBinary.find_record(model_and_id[1], int(model_and_id[2]))
+E   AttributeError: 'NoneType' object has no attribute 'find_record'
+_ TestTheShapeCarriesTheImageAndItsSize.test_the_size_comes_from_the_image_not_from_the_svg _
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/html_editor/test_image_shape.py:100: in test_the_size_comes_from_the_image_not_from_the_svg
+    response = _CONTROLLER.image_shape(
+addons/html_editor/controllers/main.py:916: in image_shape
+    record = self._find_image_record(img_key)
+addons/html_editor/controllers/main.py:887: in _find_image_record
+    return IrBinary.find_record(model_and_id[1], int(model_and_id[2]))
+E   AttributeError: 'NoneType' object has no attribute 'find_record'
+_ TestTheShapeCarriesTheImageAndItsSize.test_the_image_is_embedded_as_a_data_uri _
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/html_editor/test_image_shape.py:110: in test_the_image_is_embedded_as_a_data_uri
+    response = _CONTROLLER.image_shape(
+addons/html_editor/controllers/main.py:916: in image_shape
+    record = self._find_image_record(img_key)
+addons/html_editor/controllers/main.py:887: in _find_image_record
+    return IrBinary.find_record(model_and_id[1], int(model_and_id[2]))
+E   AttributeError: 'NoneType' object has no attribute 'find_record'
+_ TestTheShapeCarriesTheImageAndItsSize.test_the_response_is_cacheable_for_a_year _
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/html_editor/test_image_shape.py:120: in test_the_response_is_cacheable_for_a_year
+    response = _CONTROLLER.image_shape(
+addons/html_editor/controllers/main.py:916: in image_shape
+    record = self._find_image_record(img_key)
+addons/html_editor/controllers/main.py:887: in _find_image_record
+    return IrBinary.find_record(model_and_id[1], int(model_and_id[2]))
+E   AttributeError: 'NoneType' object has no attribute 'find_record'
+_ TestTheShapeCarriesTheImageAndItsSize.test_forced_size_derives_the_height_from_the_svg_ratio _
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/html_editor/test_image_shape.py:129: in test_forced_size_derives_the_height_from_the_svg_ratio
+    response = _CONTROLLER.image_shape(
+addons/html_editor/controllers/main.py:916: in image_shape
+    record = self._find_image_record(img_key)
+addons/html_editor/controllers/main.py:887: in _find_image_record
+    return IrBinary.find_record(model_and_id[1], int(model_and_id[2]))
+E   AttributeError: 'NoneType' object has no attribute 'find_record'
+_______ TestTheTwoRefusalsOfTheSource.test_an_unresolvable_key_is_a_404 ________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/html_editor/test_image_shape.py:141: in test_an_unresolvable_key_is_a_404
+    _CONTROLLER.image_shape(None, 'html_builder', 'x.svg',
+addons/html_editor/controllers/main.py:916: in image_shape
+    record = self._find_image_record(img_key)
+addons/html_editor/controllers/main.py:887: in _find_image_record
+    return IrBinary.find_record(model_and_id[1], int(model_and_id[2]))
+E   AttributeError: 'NoneType' object has no attribute 'find_record'
+______ TestTheTwoRefusalsOfTheSource.test_a_record_without_bytes_is_a_404 ______
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/html_editor/test_image_shape.py:150: in test_a_record_without_bytes_is_a_404
+    _CONTROLLER.image_shape(None, 'html_builder', 'x.svg',
+addons/html_editor/controllers/main.py:916: in image_shape
+    record = self._find_image_record(img_key)
+addons/html_editor/controllers/main.py:887: in _find_image_record
+    return IrBinary.find_record(model_and_id[1], int(model_and_id[2]))
+E   AttributeError: 'NoneType' object has no attribute 'find_record'
+_ TestTheUrlAttachmentIsRedirectedInsteadOfEmbedded.test_the_response_points_at_the_origin _
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/html_editor/test_image_shape.py:163: in test_the_response_points_at_the_origin
+    response = _CONTROLLER.image_shape(
+addons/html_editor/controllers/main.py:916: in image_shape
+    record = self._find_image_record(img_key)
+addons/html_editor/controllers/main.py:887: in _find_image_record
+    return IrBinary.find_record(model_and_id[1], int(model_and_id[2]))
+E   AttributeError: 'NoneType' object has no attribute 'find_record'
+_ TestTheLegacyModuleNameIsTranslated.test_web_editor_is_served_as_html_builder _
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/html_editor/test_image_shape.py:182: in test_web_editor_is_served_as_html_builder
+    _CONTROLLER.image_shape(None, 'web_editor', 'x.svg',
+addons/html_editor/controllers/main.py:916: in image_shape
+    record = self._find_image_record(img_key)
+addons/html_editor/controllers/main.py:887: in _find_image_record
+    return IrBinary.find_record(model_and_id[1], int(model_and_id[2]))
+E   AttributeError: 'NoneType' object has no attribute 'find_record'
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /home/user/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheRecordKeyIsResolvedInBothFormsOfTheSource::test_the_model_slash_id_pair_resolves
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheRecordKeyIsResolvedInBothFormsOfTheSource::test_the_parenthesised_pair_resolves_too
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheRecordKeyIsResolvedInBothFormsOfTheSource::test_an_unknown_model_resolves_to_nothing
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheRecordKeyIsResolvedInBothFormsOfTheSource::test_a_missing_row_resolves_to_nothing
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheShapeCarriesTheImageAndItsSize::test_the_size_comes_from_the_image_not_from_the_svg
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheShapeCarriesTheImageAndItsSize::test_the_image_is_embedded_as_a_data_uri
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheShapeCarriesTheImageAndItsSize::test_the_response_is_cacheable_for_a_year
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheShapeCarriesTheImageAndItsSize::test_forced_size_derives_the_height_from_the_svg_ratio
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheTwoRefusalsOfTheSource::test_an_unresolvable_key_is_a_404
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheTwoRefusalsOfTheSource::test_a_record_without_bytes_is_a_404
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheUrlAttachmentIsRedirectedInsteadOfEmbedded::test_the_response_points_at_the_origin
+FAILED tests/unit/html_editor/test_image_shape.py::TestTheLegacyModuleNameIsTranslated::test_web_editor_is_served_as_html_builder
+12 failed, 153 passed, 2 warnings in 9.64s
+EXIT=1
