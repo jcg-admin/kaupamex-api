@@ -157,3 +157,136 @@ class TestTheEvidenceComesFromBothUniverses:
 
     def test_a_symbol_with_no_trace_has_no_evidence(self):
         assert loc.evidence('LangProxyDict', {}, {}) == []
+
+
+class TestTheRenameMapIsAnExplicitDecision:
+    """El stack expone el mismo mecanismo con OTRO nombre.
+
+    Era la primera ceguera que el propio docstring del instrumento declaraba:
+    ``to_sql`` de la fuente y ``as_sql`` de Django hacen el mismo trabajo —
+    componer un fragmento de SQL— y el eje contaba el primero como ausencia de
+    mecanismo porque su nombre no aparece en el indice.
+
+    El mapa NO es una traduccion de vocabulario entre dos ORM: es una lista de
+    decisiones justificadas una por una contra el cuerpo de la referencia, con
+    el mismo criterio con que ``check_porte_completo.PORTE_ALIAS`` se niega a
+    aliasar ``write`` a ``save``.
+    """
+
+    def test_a_renamed_symbol_lands_in_its_own_bucket(self, tmp_path):
+        write(tmp_path / 'django' / 'a.py', 'def as_sql():\n    pass\n')
+        stack = loc.index_declarations([tmp_path])
+        assert loc.classify('to_sql', stack, {},
+                            rename={'to_sql': 'as_sql'}) == 'trae_renombrado'
+
+    def test_the_renamed_bucket_is_not_folded_into_the_direct_one(self):
+        """Un solo encabezado sobre dos metricas es el sub-patron A.
+
+        ``trae_candidato`` dice «el stack declara ESE nombre»; ``trae_renombrado``
+        dice «alguien decidio a mano que ESTE otro nombre es el mismo
+        mecanismo». La segunda lleva una firma humana que la primera no tiene, y
+        colapsarlas la borra del conteo.
+        """
+        assert 'trae_renombrado' in loc.BUCKETS
+        assert 'trae_renombrado' != 'trae_candidato'
+
+    def test_the_rename_does_not_launder_a_generic_target(self, tmp_path):
+        """EL CONTROL de la simetria, con un caso real del arbol.
+
+        ``contribute_to_class`` lo declaran tres paquetes instalados (django,
+        django_extensions, factory). Si el mapa lo resolviera a
+        ``trae_renombrado`` por el solo hecho de tener una fila, un nombre
+        generico saldria del otro lado con veredicto especifico — exactamente
+        la contaminacion que la clasificacion directa ya evita.
+        """
+        write(tmp_path / 'django' / 'a.py', 'def contribute_to_class():\n    pass\n')
+        write(tmp_path / 'factory' / 'b.py', 'def contribute_to_class():\n    pass\n')
+        stack = loc.index_declarations([tmp_path])
+        assert loc.classify(
+            'setup_nonrelated', stack, {},
+            rename={'setup_nonrelated': 'contribute_to_class'}) == 'nombre_generico'
+
+    def test_a_dead_entry_never_absolves_the_symbol(self, tmp_path):
+        """Una fila cuyo destino no existe no puede mover nada de cubo."""
+        write(tmp_path / 'django' / 'a.py', 'def otra_cosa():\n    pass\n')
+        stack = loc.index_declarations([tmp_path])
+        assert loc.classify('to_sql', stack, {},
+                            rename={'to_sql': 'no_existe'}) == 'sin_rastro'
+
+    def test_dead_entries_are_reported_not_swallowed(self, tmp_path):
+        """EL CONTROL QUE PUEDE FALLAR.
+
+        Sin este listado, una fila que apunta a un simbolo retirado del stack
+        deja de mover su cubo y nadie se entera: el conteo baja un punto y se
+        lee como si el mapa siguiera entero. Es el sub-patron D — un verde que
+        no distingue «no aplica» de «el instrumento dejo de ver».
+        """
+        write(tmp_path / 'django' / 'a.py', 'def as_sql():\n    pass\n')
+        stack = loc.index_declarations([tmp_path])
+        muertas = loc.dead_rename_entries(
+            stack, rename={'to_sql': 'as_sql', 'column_type': 'no_existe'})
+        assert muertas == [('column_type', 'no_existe')]
+
+    def test_our_tree_still_wins_over_the_rename(self, tmp_path):
+        """La precedencia no cambia: lo que ya escribimos es otro universo."""
+        write(tmp_path / 'django' / 'a.py', 'def as_sql():\n    pass\n')
+        stack = loc.index_declarations([tmp_path])
+        ours = {'to_sql': {'src/tools/sql.py'}}
+        assert loc.classify('to_sql', stack, ours,
+                            rename={'to_sql': 'as_sql'}) == 'ya_esta_aqui'
+
+    def test_the_rename_wins_over_a_coincidental_same_name_hit(self, tmp_path):
+        """Una fila justificada a mano pesa mas que una homonimia del indice.
+
+        Si el stack declarara ``to_sql`` en dos paquetes por casualidad, la
+        clasificacion directa lo mandaria a ``nombre_generico`` y la decision
+        humana —que nombra el simbolo concreto— quedaria enterrada.
+        """
+        write(tmp_path / 'django' / 'a.py',
+              'def as_sql():\n    pass\n\ndef to_sql():\n    pass\n')
+        write(tmp_path / 'sqlalchemy' / 'b.py', 'def to_sql():\n    pass\n')
+        stack = loc.index_declarations([tmp_path])
+        assert loc.classify('to_sql', stack, {},
+                            rename={'to_sql': 'as_sql'}) == 'trae_renombrado'
+
+    def test_the_summary_counts_the_new_bucket(self, tmp_path):
+        write(tmp_path / 'django' / 'a.py', 'def as_sql():\n    pass\n')
+        stack = loc.index_declarations([tmp_path])
+        total = loc.summary(['to_sql'], stack, {}, rename={'to_sql': 'as_sql'})
+        assert total.by_bucket['trae_renombrado'] == 1
+        assert sum(total.by_bucket.values()) == total.universe
+
+    def test_the_evidence_of_a_renamed_symbol_points_at_the_target(self, tmp_path):
+        """Sin esto el detalle diria «trae_renombrado» y no diria contra que."""
+        write(tmp_path / 'django' / 'a.py', 'def as_sql():\n    pass\n')
+        stack = loc.index_declarations([tmp_path])
+        rutas = loc.evidence('to_sql', stack, {}, rename={'to_sql': 'as_sql'})
+        assert rutas and all('django/a.py' in r for r in rutas)
+
+
+class TestTheShippedMapCoversTheThreeFamilies:
+    """El mapa que se despacha, no uno de laboratorio."""
+
+    def test_it_covers_the_sql_composition_family(self):
+        assert loc.STACK_RENAME['to_sql'] == 'as_sql'
+        assert loc.STACK_RENAME['condition_to_sql'] == 'as_sql'
+        assert loc.STACK_RENAME['_to_sql'] == 'as_sql'
+
+    def test_it_covers_the_column_ddl_family(self):
+        assert loc.STACK_RENAME['column_type'] == 'db_type'
+        assert loc.STACK_RENAME['update_db_column'] == 'alter_field'
+        assert loc.STACK_RENAME['update_db_notnull'] == 'alter_field'
+
+    def test_it_covers_the_descriptor_family(self):
+        assert loc.STACK_RENAME['setup_nonrelated'] == 'contribute_to_class'
+
+    def test_it_does_not_map_the_two_phase_setup_flag(self):
+        """EL CONTROL de la abstinencia.
+
+        ``prepare_setup`` solo pone ``_setup_done = False``: Django no tiene
+        setup en dos fases, asi que no hay simbolo renombrado que nombrar. Su
+        desenlace es CONSTRUYE y su sitio es ``sin_rastro``. Mapearlo por
+        parecido de familia seria el camino barato que la regla prohibe.
+        """
+        assert 'prepare_setup' not in loc.STACK_RENAME
+        assert '_prepare_setup' not in loc.STACK_RENAME
