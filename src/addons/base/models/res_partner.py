@@ -54,6 +54,21 @@ from tools.sql import SQL
 from tools.translate import _
 
 
+#: ≙ ``EU_EXTRA_VAT_CODES`` (``odoo19c: odoo/addons/base/models/res_partner.py:28-31``),
+#: verbatim. Dos paises europeos emiten su numero de IVA intracomunitario con
+#: un prefijo distinto del codigo ISO de su pais: Grecia usa ``EL`` y el Reino
+#: Unido usa ``XI`` para Irlanda del Norte. La tabla traduce el codigo del pais
+#: al prefijo que el numero lleva.
+#:
+#: Lo consumen dos sitios en la referencia, y los dos existen aqui:
+#: ``_compute_same_vat_partner_id`` (``:466``) y, invertida,
+#: ``base_vat/models/res_partner.py:23`` (``EU_EXTRA_VAT_CODES_INV``).
+EU_EXTRA_VAT_CODES = {
+    'GR': 'EL',
+    'GB': 'XI',
+}
+
+
 # put POSIX 'Etc/*' entries at the end to avoid confusing users - see bug 1086728
 #
 # El comentario va verbatim de ``odoo19c: odoo/addons/base/models/res_partner.py:39``:
@@ -588,8 +603,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     same_vat_partner_id = fields.NonStored(
         default=lambda partner: partner._compute_same_vat_partner_id(),
         help_text='Otro partner con el mismo identificador fiscal '
-                  '(Odoo same_vat_partner_id). BLOQUEADO por ``EU_EXTRA_VAT_CODES`` — '
-                  'falta la tabla de codigos de IVA; ver tarea #105.')
+                  '(Odoo same_vat_partner_id). BLOQUEADO por '
+                  '``partner.company_id`` — el partner no declara FK a '
+                  'empresa; ver tarea #105.')
     same_company_registry_partner_id = fields.NonStored(
         default=lambda partner: partner._compute_same_company_registry_partner_id(),
         help_text='Otro partner con el mismo registro mercantil '
@@ -2391,17 +2407,21 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         return not any(user._is_internal() for user in usuarios)
 
     def _compute_same_vat_partner_id(self):
-        """BLOQUEADO por ``EU_EXTRA_VAT_CODES`` — otro partner con el mismo
+        """BLOQUEADO por ``partner.company_id`` — otro partner con el mismo
         identificador fiscal.
 
-        ≙ ``_compute_same_vat_partner_id`` (``:451``). Su cuerpo necesita dos
-        piezas que este arbol NO tiene, medidas:
+        ≙ ``_compute_same_vat_partner_id`` (``:451``). Su cuerpo necesitaba
+        dos piezas; hoy **falta una sola**:
 
-        - ``EU_EXTRA_VAT_CODES`` — la tabla de codigos de IVA europeos que la
-          fuente consulta para decidir si el VAT se valida por pais;
+        - ``EU_EXTRA_VAT_CODES`` — **ya no bloquea**. La tabla se porto en
+          este mismo archivo (arriba, junto a ``_tzs``) al portar
+          ``base_vat``, que la consume invertida. Este docstring la declaraba
+          ausente y esa premisa dejo de ser cierta.
         - ``partner.company_id`` — el campo de empresa del partner, que aqui
           no existe todavia (el confinamiento por empresa vive en el
-          queryset, no en una FK del partner).
+          queryset, no en una FK del partner). Medido:
+          ``grep -cE "^    company(_id)? *= fields\." src/addons/base/models/res_partner.py``
+          da **0**.
 
         Devolver ``None`` es la conducta declarada mientras eso siga asi: NO
         es «no hay ningun partner con el mismo VAT», es «no se puede
