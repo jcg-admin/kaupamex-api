@@ -277,16 +277,37 @@ class TestTheGateRefusesRatherThanPublishAFalseGreen:
         assert 'verde falso' in done.stderr, done.stderr
 
     def test_strict_blocks_a_claim_outside_the_baseline(self, tmp_path):
-        """Con el baseline vacío bloquean los 24 reclamos reales del árbol.
+        """Un reclamo caducado fuera del baseline bloquea en ``--strict``.
 
         Es el par discriminante del congelado: si el baseline no se leyera,
         este caso y el siguiente darían lo mismo.
+
+        El control positivo era la deuda viva del árbol —*"con el baseline
+        vacío bloquean los 24 reclamos reales"*— y el barrido de la tarea
+        #250 la consumió entera: con el baseline vacío el gate da hoy exit 0
+        sobre el árbol real, así que el caso dejó de poder fallar por la vía
+        que medía. Ahora fabrica su propio reclamo caducado en un árbol
+        sintético, como ``test_it_exits_two_without_emitting_a_count``: un
+        docstring cita un ``grep`` con **0** y el archivo de al lado hace
+        que ese ``grep`` devuelva 1.
         """
+        (tmp_path / 'addons').mkdir()
+        src = tmp_path / 'src'
+        src.mkdir()
+        (src / 'declared.py').write_text('class Declared:\n    pass\n')
+        (src / 'claim.py').write_text(
+            '"""Razón caducada a propósito.\n\n'
+            'Medido: ``grep -rn "^class Declared" src/`` → **0**.\n"""\n')
         empty = tmp_path / 'vacio.txt'
         empty.write_text('')
-        done = self._run('--strict', baseline=empty)
-        assert done.returncode == 1, done.stdout
+        env = dict(os.environ, STALE_ZERO_BASELINE=str(empty))
+        done = subprocess.run(
+            [sys.executable,
+             str(REPO / 'scripts' / 'check_stale_zero_claims.py'), '--strict'],
+            cwd=tmp_path, capture_output=True, text=True, env=env)
+        assert done.returncode == 1, done.stdout + done.stderr
         assert 'fuera del baseline' in done.stdout, done.stdout
+        assert 'claim.py' in done.stdout, done.stdout
 
     def test_the_frozen_debt_does_not_block(self):
         done = self._run('--strict')
