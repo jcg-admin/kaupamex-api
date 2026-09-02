@@ -54,12 +54,13 @@ Divergencias declaradas
    (recalcular ``next_run_date`` al cambiar la periodicidad) se logra
    llamando ``action_set_periodicity``, que sí persiste.
 
-7. **El envío queda PENDIENTE DE INTEGRAR, no diferido por alcance** —
+7. **El envío queda PENDIENTE DE INTEGRAR, salvo el gancho de acciones
+   (portado en este pase, tarea #158)** —
    ``action_send``/``action_send_manual``/``_action_send``/
    ``_action_send_to_user``/``_cron_send_digest_email``/
-   ``_get_unsubscribe_token``/``_compute_tips``/``_compute_kpis_actions``/
+   ``_get_unsubscribe_token``/``_compute_tips``/
    ``_compute_preferences``/``_check_daily_logs``/``_format_currency_amount``
-   (los ~230 LOC de ``digest.py:130-484`` que no aparecen abajo).
+   (10 símbolos, dentro de ``digest.py:130-484``).
 
    La redacción previa lo llamaba "gap de alcance" y era falsa en su mitad
    principal: **tres de las cuatro piezas del envío ya existen** (H-API-302,
@@ -85,6 +86,73 @@ Divergencias declaradas
    no "construir el motor de envío". Lo que SÍ se porta aquí es el **motor
    de cómputo** (KPIs + periodicidad + suscripción), consumible tal cual por
    ese cableado sin reabrir este archivo.
+
+   ``_compute_kpis_actions`` (``odoo19c: digest.py:330-337``, 8 líneas) **SÍ
+   se porta en este pase** — a diferencia del resto del bloque, no depende
+   de la familia ``mail``: su contrato es un diccionario puro
+   (``{kpi_name: xml_id}``), sin plantilla ni cola que resolver. Es el punto
+   de extensión que cada addon con KPI cuelga con ``overrides=``
+   (:mod:`orm.method_chain`) para enlazar su acción — ver el método más
+   abajo, y las divergencias que declara sobre el ``menu_id`` de la
+   referencia.
+
+   Medición AST de antes/después de este pase, sobre los símbolos que este
+   punto listaba:
+
+   .. code-block:: text
+
+       $ python3 -c "
+       import ast
+       ref = '$ODOO19C/addons/digest/models/digest.py'
+       tree = ast.parse(open(ref).read())
+       names = {'action_send', 'action_send_manual', '_action_send',
+                '_action_send_to_user', '_cron_send_digest_email',
+                '_get_unsubscribe_token', '_compute_tips',
+                '_compute_kpis_actions', '_compute_preferences',
+                '_check_daily_logs', '_format_currency_amount'}
+       total = sum(n.end_lineno - n.lineno + 1 for n in ast.walk(tree)
+                   if isinstance(n, ast.FunctionDef) and n.name in names)
+       print(total)"
+       185
+
+   antes del pase: **185 líneas AST, 11 símbolos**. Después (retirado
+   ``_compute_kpis_actions``, 8 líneas): **177 líneas AST, 10 símbolos**.
+
+   Métrica: suma de ``end_lineno - lineno + 1`` por ``ast.FunctionDef`` de
+   la referencia, sobre el conjunto de nombres que este punto declara
+   pendiente.
+   Ciega a: comentarios y líneas en blanco internos al cuerpo (cuentan
+   igual que código — no es LOC lógico); y a los ``_compute_kpis``
+   (≙ ``compute_kpis``)/``_compute_timeframes``/``_calculate_company_
+   based_kpi``/``_get_company_field``/``_get_kpi_fields``
+   (≙ ``_get_kpi_field_names``)/``_get_margin_value``/``_get_next_run_
+   date``/``_get_next_periodicity`` que también viven en el span
+   ``130-484`` y **no** entran en esta cuenta porque ya estaban portados
+   antes de este pase.
+
+   Desbloqueó a ``crm/models/digest.py::_compute_kpis_actions`` y
+   ``hr_recruitment/models/digest.py::_compute_kpis_actions`` — los dos
+   consumían este símbolo, tarea #158.
+   ``account/models/digest.py::_compute_kpis_actions`` **NO** se
+   desbloqueó por esta vía, y es un hallazgo cross-archivo medido en este
+   pase (fuera de los tres archivos de la tarea #158, así que se deja
+   documentado y no se toca): su enganche usa
+   ``if not hasattr(DigestDigest, name): setattr(DigestDigest, name,
+   function)`` (``addons/account/models/digest.py:181-187``) en vez de
+   ``chain_method``/``overrides=``. Con el método base definido en el
+   **cuerpo de la clase** (no vía ``extend_model``), ``hasattr(DigestDigest,
+   '_compute_kpis_actions')`` es verdadero desde que este módulo se
+   importa — antes de que corra ningún ``AppConfig.ready()`` —, así que el
+   ``setattr`` de ``account`` se salta en silencio: el
+   ``NotImplementedError`` que declaraba su función deja de dispararse, y
+   con él desaparece SIN AVISO la contribución de ``account`` al
+   diccionario de acciones (nunca se agrega la clave
+   ``kpi_account_total_revenue``). Es la forma silenciosa del defecto que
+   ``orm/method_chain.py`` documenta como causa de H-API-364 — ahí eran
+   dos extensiones ``hasattr`` pisándose; aquí es una guarda que se
+   auto-desactiva en cuanto la base existe. Sucesor: migrar
+   ``account/models/digest.py`` a ``overrides=`` — pendiente de
+   asignación de tarea.
 
 8. **``ensure_one()`` no aplica** — Django no tiene recordsets; cada método
    opera sobre una única instancia.
@@ -453,3 +521,38 @@ class DigestDigest(TimeStampedModel):
                 }
             kpis.append(kpi)
         return kpis
+
+    def _compute_kpis_actions(self, company, user):
+        """≙ ``_compute_kpis_actions`` (``odoo19c: digest.py:330-337``).
+
+        Punto de extensión: cada addon que agrega un KPI cuelga aquí, con
+        ``overrides=`` (:mod:`orm.method_chain`), la acción que el correo
+        debería enlazar para ese KPI. La base no aporta ninguna — devuelve
+        ``{}``, igual que la fuente.
+
+        ``overrides=`` y no ``metodos=`` porque el patrón de la fuente
+        (``res = super()._compute_kpis_actions(...); res['kpi_x'] = ...;
+        return res``) necesita el diccionario **ya devuelto** por la
+        implementación previa para mutarlo, no un resultado con el que
+        combinar el propio — es el mismo caso que documenta
+        ``orm.method_chain.wrap_method``.
+
+        :param company: la ``ResCompany`` del digest. Sin uso en la base;
+            las extensiones que acotan su acción por compañía lo reciben
+            para eso.
+        :param user: el ``ResUsers`` destinatario del correo. Las
+            extensiones lo usan para condicionar la acción por grupo
+            (``user.has_group(...)``), igual que la fuente.
+        :returns: ``{kpi_name: accion}``. ``accion`` es el xml_id **sin
+            resolver** del ``ir.actions.act_window`` a abrir — la fuente
+            concatena ``?menu_id=<id>`` porque el correo enlaza al cliente
+            web de Odoo, que resuelve el menú al navegar; este árbol no
+            tiene ese cliente, así que no hay ``menu_id`` que resolver.
+            Misma forma de xml_id-sin-resolver que ya usan
+            ``CrmLostReason.action_lost_leads`` y
+            ``UtmCampaign.action_redirect_to_leads_opportunities``
+            (``addons/crm/models/crm_lost_reason.py``,
+            ``addons/crm/models/utm.py``).
+        :rtype: dict
+        """
+        return {}

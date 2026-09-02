@@ -3,10 +3,12 @@
 Adaptación de ``odoo19c: addons/crm/models/digest.py`` (LGPL-3, 38 líneas) —
 atribución y aviso de licencia preservados (DEC-KX-03).
 
-Porte BLOQUEADO — 6 de 7 símbolos
-=================================
+Porte — 7 de 7 símbolos, 0 bloqueados
+======================================
 
-(7 = 3 métodos + 4 campos.)
+(7 = 3 métodos + 4 campos.) ``_compute_kpis_actions`` se desbloqueó al
+portarse el método base — ver la tarea #158 en ``addons/digest/models/
+digest.py``.
 
 .. list-table::
    :header-rows: 1
@@ -33,10 +35,10 @@ Porte BLOQUEADO — 6 de 7 símbolos
    * - ``_compute_kpi_crm_opportunities_won_value`` (``:22``)
      - portado
      - ídem, con ``date_field`` y dominio adicional
-   * - ``_compute_kpis_actions`` (``:33``)
-     - BLOQUEADO por ``_compute_kpis_actions`` — ``addons.digest`` lo lista
-       entre los símbolos pendientes de integrar (punto 7 de su docstring),
-       así que no hay eslabón previo del que relevarse. Sucesor: **#158**.
+   * - ``_compute_kpis_actions`` (``:33-38``)
+     - portado
+     - ``overrides=`` (:mod:`orm.method_chain`) — cuelga sobre el
+       ``_compute_kpis_actions`` base, que ya existe (tarea #158)
 
 Lo que este porte DESBLOQUEÓ
 ============================
@@ -65,6 +67,13 @@ Divergencias declaradas
 - **``probability = '100'`` se compara como número.** La fuente escribe la
   cadena ``'100'`` en su dominio y su motor la coacciona; aquí el campo es
   numérico y el filtro va con el valor numérico. Mismo conjunto.
+- **``_compute_kpis_actions`` no resuelve ``?menu_id=<id>``.** La fuente
+  concatena el id de ``crm.crm_menu_root`` (``self.env.ref(...).id``)
+  porque el correo enlaza al cliente web de Odoo, que resuelve el menú al
+  navegar. Este árbol no tiene ese cliente: el valor es el xml_id **sin
+  resolver**, misma forma que ``CrmLostReason.action_lost_leads`` y
+  ``UtmCampaign.action_redirect_to_leads_opportunities`` ya usan (ver el
+  docstring del método base en ``addons/digest/models/digest.py``).
 """
 from exceptions import AccessError
 from orm.environments import get_current_user
@@ -108,8 +117,43 @@ def _compute_kpi_crm_opportunities_won_value(self, start, end):
     )
 
 
+#: El grupo que abre la vista de todos los leads en vez de sólo el pipeline.
+GROUP_USE_LEAD = 'crm.group_use_lead'
+
+#: Los dos xml_id que la fuente concatena con ``?menu_id=...`` — aquí sin
+#: resolver (ver la divergencia declarada arriba).
+ACTION_PIPELINE = 'crm.crm_lead_action_pipeline'
+ACTION_ALL_LEADS = 'crm.crm_lead_all_leads'
+
+
+def _compute_kpis_actions(self, previous, company, user):
+    """≙ ``_compute_kpis_actions`` de ``crm`` (``:33-38``).
+
+    Encadena con ``previous`` —el ``_compute_kpis_actions`` base, hoy
+    ``{}``— y añade las dos claves de este addon: el mismo xml_id sin
+    resolver para ambas, salvo que ``user`` pertenezca a
+    ``crm.group_use_lead``, en cuyo caso el KPI de leads apunta a la vista
+    de todos los leads en vez de sólo al pipeline. Usa ``user`` —el
+    parámetro, no ``get_current_user()``— porque es exactamente lo que
+    hace la fuente (``user.has_group(...)``, no ``self.env.user``): el
+    destinatario del correo puede no ser el actor de la sesión.
+    """
+    res = previous(company, user)
+    res['kpi_crm_lead_created'] = ACTION_PIPELINE
+    res['kpi_crm_opportunities_won'] = ACTION_PIPELINE
+    if user is not None and user.has_group(GROUP_USE_LEAD):
+        res['kpi_crm_lead_created'] = ACTION_ALL_LEADS
+    return res
+
+
 def apply_crm_extensions():
-    """Cuelga los cuatro campos y los dos computes. La llama ``CrmConfig.ready()``."""
+    """Cuelga los cuatro campos, los dos computes y la acción.
+
+    La llama ``CrmConfig.ready()``. ``_compute_kpis_actions`` va por
+    ``overrides=`` (:func:`orm.method_chain.wrap_method`) — necesita el
+    diccionario que la implementación previa ya devolvió, para mutarlo, no
+    un resultado con el que combinar el propio.
+    """
     extend_model(
         'digest', 'DigestDigest',
         campos={
@@ -128,5 +172,8 @@ def apply_crm_extensions():
                 _compute_kpi_crm_lead_created_value,
             '_compute_kpi_crm_opportunities_won_value':
                 _compute_kpi_crm_opportunities_won_value,
+        },
+        overrides={
+            '_compute_kpis_actions': _compute_kpis_actions,
         },
     )
