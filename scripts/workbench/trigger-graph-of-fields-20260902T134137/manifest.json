@@ -1,0 +1,27 @@
+{
+  "question": "cuantas aristas campo->campo declara hoy este arbol, y cuantas de ellas costarian una consulta al recorrer la vuelta que el motor de recalculo necesita?",
+  "instrument": "measure_trigger_graph.py — recorre apps.get_models() con el registro poblado, resuelve cada depends con Field.resolve_depends y clasifica cada peldano de vuelta por si Django deja navegarlo o hay que buscarlo",
+  "metric": "aristas (campo_dependencia, camino_invertido, campo_dependiente) que resolve_depends devuelve, repartidas en tres cubos: MISMO_MODELO (un solo peldano, sin vuelta), POR_INVERSO (el peldano relacional deja accesor de vuelta) y POR_BUSQUEDA (la vuelta esta oculta y cuesta un search por peldano)",
+  "blind_to": [
+    "una dependencia declarada que resolve_depends no resuelve: el bucle rompe en el primer nombre que _meta.get_field no encuentra y no emite la arista, asi que un depends hacia un campo aun no portado cuenta como ausente y no como roto",
+    "el coste real de la consulta: cuenta peldanos que costarian un search, no filas ni milisegundos",
+    "el orden de recalculo: mide que aristas existen, no en que secuencia habria que recorrerlas",
+    "las dependencias que la referencia declara y este arbol todavia no: la poblacion es apps.get_models(), no odoo/addons",
+    "depends_context: el segundo mapa derivado no entra en el conteo",
+    "el dominio del inverso: la fuente descarta un inverso one2many/many2many CON domain y sigue buscando; el censo no lee domain, asi que puede contar POR_INVERSO una vuelta que la fuente rechazaria"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/ — y la capa B de #273 (_field_triggers, get_trigger_tree) en src/orm/registry.py",
+  "source": [
+    "src/orm/registry.py",
+    "src/orm/fields.py",
+    "odoo19c: odoo/orm/registry.py:644-668 (_field_triggers)",
+    "odoo19c: odoo/orm/models.py:6862-6923 (_modified_triggers)"
+  ],
+  "corrected_premise": {
+    "decia": "la vuelta que no tiene inverso navegable NO se puede recorrer, asi que el arbol de disparo quedaria incompleto en esas aristas",
+    "mide": "odoo19c: odoo/orm/models.py:6908-6917 — cuando ningun field_inverses sirve, el for cae a su else y navega con model.search([(field.name, 'in', real_records.ids)]). La vuelta SIEMPRE existe",
+    "consecuencia": "el tercer cubo deja de ser un bloqueo y pasa a ser un coste. La pregunta cambia de «se puede construir?» a «cuanto cuesta cada arista», que es una decision de rendimiento y no de alcance"
+  },
+  "tasks": ["#273"],
+  "reproducible": "uv run python scripts/workbench/trigger-graph-of-fields-20260902T134137/measure_trigger_graph.py"
+}

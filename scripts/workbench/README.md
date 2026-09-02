@@ -96,7 +96,25 @@ un comando de una línea cuya salida cabe en el turno.
 | Vive en | Qué es |
 |---|---|
 | `scripts/*.py` | instrumento **estable y reusable** — los gates, `reference_roots.py`, los censos que se vuelven a correr |
+| `scripts/evidence/` | la salida **cruda** de un instrumento ya promovido, sin pieza propia |
 | `scripts/workbench/<slug>-<ISO>/` | una pieza de trabajo **fechada**, con su instrumento propio y su evidencia |
+
+La fila del medio faltaba, y su ausencia costó una pregunta del ejecutor
+(2026-09-02): *«¿estás aún considerando `scripts/workbench/**`?»*. La respuesta
+—que un trabajo puede caer legítimamente fuera del banco— no se podía derivar
+de este archivo, aunque el árbol ya la ejercía.
+
+`scripts/evidence/` **no es un banco pobre**: es donde escribe un instrumento
+que ya se promovió. `neutralize_and_measure.sh:65` fija esa ruta en su propio
+cuerpo, y los manifiestos de `filter-function-de-properties` y
+`slug-de-producto` la citan en su clave `reproducible`. Un trabajo que **no
+construye instrumento** —usa uno promovido y publica su hallazgo— no abre
+pieza: su evidencia va ahí y su registro a `docs`. Abrirle pieza sería un
+manifiesto cuyo `instrument` apunta fuera de sí mismo, que es una carpeta vacía
+con ceremonia.
+
+El discriminador es el de la sección anterior, sin excepción nueva: **¿hubo que
+construir algo para responder la pregunta?** Si no, no hay pieza.
 
 El camino entre las dos es de una sola dirección: un instrumento que nace en
 el banco y resulta reusable **se promueve** a `scripts/`. Nunca al revés — un
