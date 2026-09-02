@@ -37,9 +37,17 @@ Cuatro archivos ya portados llevan el modelo objetivo como ``Char`` plano
 esperando precisamente a esta clase: ``ir_rule.model_name``,
 ``ir_actions.IrActionsActWindow.res_model``, ``ir_filters.model_id`` y
 ``ir_embedded_actions.parent_res_model``. Su medición —
-``grep -rn "^class IrModel\\b" src/`` → **0**— deja de ser cierta con este
-commit y se corrige en los mismos archivos, no después (regla operativa de
-H-API-149). **La conversión de esas columnas a FK real no entra aquí**: cada
+``grep -rn "^class IrModel\\b" src/`` → **1** [PROVEN]— ya no es cierta
+(regla operativa de H-API-149): ``IrModel`` existe (línea 362 de este mismo
+archivo). La corrección de la cita ya alcanzó a dos de los cuatro, leído
+—no tocado aquí, fuera de alcance de este pase—: ``ir_rule.py`` (bullet
+``model_id``, → **1** clase) e ``ir_actions.py`` (bullet ``model_id`` de
+``IrActionsServer``, → **1**, [PROVEN]). Ninguno de los dos es el campo que
+esta frase nombra: son ``model_name``/``model_id`` de otras clases, no
+``ir_actions.IrActionsActWindow.res_model``, que —junto con
+``ir_filters.model_id`` e ``ir_embedded_actions.parent_res_model``— nunca
+llegó a escribir esta cita, así que no hay reclamo caduco propio que corregir
+ahí. **La conversión de esas columnas a FK real sigue sin entrar aquí**: cada
 una migra su propia tabla, y su desenlace es la tarea **#139**. El precedente
 que esta frase citaba —``ir_filters.action_id``— **ya no difiere**: se
 convirtió en ``base/migrations/0077`` (:ref:`h-api-982`).
