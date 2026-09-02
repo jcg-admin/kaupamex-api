@@ -62,6 +62,8 @@ from django.db.models import *          # noqa: F401,F403  (re-export ORM comple
 from django.db.models import (  # noqa: F401
     ForeignKey, Manager, Model, QuerySet,
 )
+from django.db.models.signals import post_init, pre_init, pre_save
+from django.dispatch import receiver
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import DatabaseError
@@ -3329,3 +3331,205 @@ for _engine_method in (modified, _modified, _modified_triggers,
                        flush_recordset):
     setattr(Model, _engine_method.__name__, _engine_method)
     setattr(QuerySet, _engine_method.__name__, _engine_method)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ``precompute`` — el cálculo que se adelanta al INSERT
+#     ≙ ``BaseModel._prepare_create_values`` (``odoo19c: odoo/orm/models.py:
+#     4786-4791``) y ``BaseModel._add_precomputed_values`` (``:4814-4846``)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Hasta aquí ``precompute`` sólo se **validaba**: ``resolve_depends`` avisa y
+# lo apaga cuando la cadena de dependencia no lo sostiene
+# (``orm/fields.py:2181-2189``), y ``_apply_precompute_block`` rechaza el
+# atributo sobre un campo que no es calculado, no es almacenado o es un M2M
+# (``orm/fields_nonstored.py:369-406``). Nadie lo **corría**: los nueve campos
+# vivos que lo declaran se computaban a mano desde el ``save()`` de su modelo.
+#
+# Qué hace la fuente, y en qué se traduce aquí
+# --------------------------------------------
+#
+# ``_prepare_create_values`` descarta de ``vals`` los precompute **readonly**
+# —para forzar su cómputo aunque el llamador haya pasado un valor— y
+# ``_add_precomputed_values`` computa todo precompute cuyo nombre ``fname not
+# in vals``, leyéndolo con ``record[fname]`` sobre un ``self.new(vals)``.
+#
+# Las dos mitades exigen saber **qué nombres dio el llamador**, y ahí está la
+# diferencia de este stack: la fuente tiene el diccionario ``vals`` delante;
+# una instancia de Django llega al ``pre_save`` con TODOS sus campos poblados
+# —los dados y los que tomaron su ``default``— y ya no distingue unos de
+# otros. El dato existe un instante antes: ``Model.__init__`` emite
+# ``pre_init`` con los ``args`` y ``kwargs`` del llamador **verbatim**
+# (``django/db/models/base.py:491``). Eso es ``vals``.
+#
+# Veredicto por el criterio de las dos categorías: **el stack tiene con qué
+# construirlo**. No hay símbolo hecho —Django no tiene la noción de un campo
+# que se calcule antes del INSERT— pero las tres primitivas son nativas y
+# ninguna viene de fuera del INVENTORY: ``pre_init``/``post_init`` capturan lo
+# que el llamador nombró y ``pre_save`` corre antes de ``_do_insert``, las tres
+# en ``('django', 'evaluación y control de flujo')``.
+
+
+#: Los nombres que el llamador pasó a ``__init__``, apilados mientras el
+#: constructor corre. Es una **pila** y no una casilla porque ``__init__``
+#: anida: un ``default`` que construye otra instancia mete la suya en medio, y
+#: con una sola casilla la de fuera se perdería.
+#:
+#: Si un ``__init__`` revienta entre las dos señales, su entrada se queda en la
+#: pila. Eso NO corrompe a la siguiente instancia —``post_init`` saca la
+#: **última**, que es la suya— sino que deja una entrada huérfana al fondo: una
+#: fuga acotada a un ``frozenset`` por constructor fallido.
+_EXPLICIT_VALUES = []
+
+
+def _explicit_value_names(sender, args, kwargs):
+    """Los campos que el llamador nombró al construir la fila.
+
+    Es la traducción de ``fname not in vals`` (``odoo19c: :4842``) al
+    constructor de Django, que admite las dos formas de pasar un valor:
+
+    - por palabra clave, que es el caso corriente y el que da ``kwargs``;
+    - por **posición**, que Django resuelve contra ``_meta.concrete_fields`` en
+      orden (``django/db/models/base.py:496``). Sin esta mitad, una fila
+      construida posicionalmente llegaría con el conjunto vacío y todo
+      precompute se recalcularía encima del valor que el llamador sí dio.
+
+    Se registran el ``name`` y el ``attname`` porque una FK responde a los dos
+    (``company`` y ``company_id``) y el llamador elige cuál usa.
+    """
+    names = set(kwargs)
+    if args:
+        for field, _value in zip(sender._meta.concrete_fields, args):
+            names.add(field.name)
+            names.add(field.attname)
+    return frozenset(names)
+
+
+@receiver(pre_init, dispatch_uid='orm.models.stack_explicit_values')
+def _stack_explicit_values(sender, args, kwargs, **_ignored):
+    """Apila lo que el llamador nombró, antes de que ``__init__`` lo mezcle."""
+    _EXPLICIT_VALUES.append(_explicit_value_names(sender, args, kwargs))
+
+
+@receiver(post_init, dispatch_uid='orm.models.attach_explicit_values')
+def _attach_explicit_values(sender, instance, **_ignored):
+    """Cuelga de la instancia lo que su constructor apiló."""
+    instance._explicit_values = (
+        _EXPLICIT_VALUES.pop() if _EXPLICIT_VALUES else frozenset())
+
+
+def _precomputable_fields(instance):
+    """Los precompute de este modelo que hay que calcular en esta fila.
+
+    ≙ el ``precomputable`` de ``_add_precomputed_values`` (``:4820``) ya
+    cruzado con las dos exclusiones que la fuente reparte en dos sitios:
+
+    - el precompute **readonly** se computa siempre, porque la fuente lo saca
+      de ``vals`` antes de mirarlo (``:4786-4791``);
+    - el precompute **escribible** respeta el valor que el llamador dio, que es
+      el ``fname not in vals`` de ``:4842``.
+    """
+    given = getattr(instance, '_explicit_values', None) or frozenset()
+    pending = {}
+    for name, field in model_field_registry(type(instance)).items():
+        if not getattr(field, 'precompute', False):
+            continue
+        if not getattr(field, 'readonly', False):
+            if name in given or getattr(field, 'attname', name) in given:
+                continue
+        pending[name] = field
+    return pending
+
+
+def _run_precompute_field(instance, name, pending, done, chain):
+    """Corre el cómputo de ``name``, y antes el de los precompute que lee.
+
+    **Esto es la mitad que la fuente obtiene gratis y aquí hay que construir.**
+    Allá el pase es perezoso: ``record[fname]`` sobre un registro virtual
+    dispara el cómputo *al leerlo*, así que un cómputo que lee otro precompute
+    lo resuelve por el camino y el orden de declaración da igual.
+
+    Aquí el cómputo se invoca, no se lee, y el orden de declaración **no** es el
+    de dependencia. Medido en el árbol: ``SaleOrderLine`` declara
+    ``price_reduce_taxexcl`` (``:309``) y ``price_reduce_taxinc`` (``:317``)
+    ANTES de ``price_subtotal`` (``:417``), ``price_tax`` (``:425``) y
+    ``price_total`` (``:433``), y sus dos cómputos leen justamente lo que
+    ``_compute_amount`` escribe. Un pase en orden de declaración los calcularía
+    contra el ``default``.
+
+    Así que la pereza se hace explícita: antes de correr el cómputo de un campo
+    se corren los de los precompute del **mismo modelo** que su ``@api.depends``
+    nombra. ``chain`` corta el ciclo —un campo recursivo se nombra a sí mismo— y
+    ``done`` lleva los **métodos** ya invocados, no los campos: ``_compute_amount``
+    escribe tres y correrlo tres veces repetiría su efecto.
+    """
+    field = pending[name]
+    if field.compute in done:
+        return
+    chain = chain + (name,)
+    for dotted in registry.field_depends[field]:
+        head = dotted.split('.')[0]
+        other = pending.get(head)
+        if other is not None and head not in chain and other.compute not in done:
+            _run_precompute_field(instance, head, pending, done, chain)
+    done.add(field.compute)
+    getattr(instance, field.compute)()
+
+
+def _add_precomputed_values(self):
+    """Calcula los precompute que faltan, antes de que la fila se inserte.
+
+    ≙ ``BaseModel._add_precomputed_values`` (``odoo19c: :4814-4846``).
+
+    **Tres divergencias de mecanismo, las tres con el mismo resultado
+    observable:**
+
+    1. *El valor no se copia a un diccionario.* La fuente escribe
+       ``vals[fname] = field.convert_to_write(record[fname], self)`` porque su
+       INSERT se arma desde ``vals``. Aquí el cómputo asigna sobre la propia
+       instancia, que es de donde Django arma el INSERT: el paso de copia no
+       tiene destino.
+    2. *Sin registro virtual.* La fuente computa sobre un ``self.new(vals)``
+       —un registro sin fila— para no ensuciar el caché con el valor de un
+       registro que aún no existe. Aquí el cómputo se invoca **directamente**
+       sobre la instancia, no por ``compute_value``, por la misma razón medida
+       al revés: ``record_ids`` de una fila sin guardar da ``None``, y
+       ``_update_cache`` escribiría ``field_cache[None]``, que la siguiente
+       fila sin guardar leería como suyo.
+    3. *Sin* ``__precomputed__``. La fuente marca los campos que precomputó
+       para que ``create`` **no dispare su** ``inverse`` (``:4664`` y
+       ``:4681``): el valor lo puso el cómputo, no el llamador, así que
+       invertirlo sería escribir hacia atrás algo que nadie pidió. Aquí ese
+       riesgo no existe por construcción — el único que llama a
+       ``determine_inverse`` es :meth:`write`, sobre los nombres que el llamador
+       le pasó (:meth:`_group_written_inverses`), y este pase no pasa por ahí.
+    """
+    pending = _precomputable_fields(self)
+    if not pending:
+        return
+    done = set()
+    for name in list(pending):
+        _run_precompute_field(self, name, pending, done, ())
+
+
+@receiver(pre_save, dispatch_uid='orm.models.run_precompute')
+def _run_precompute(sender, instance, raw=False, **_ignored):
+    """Dispara el pase de precompute justo antes del INSERT.
+
+    ``pre_save`` corre antes de ``_save_table`` —y por tanto antes de
+    ``_do_insert``— así que el valor calculado viaja en la MISMA sentencia
+    (``django/db/models/base.py:946``). Ése es el punto entero de
+    ``precompute``, y la fuente lo dice: *"computed stored fields with a column
+    have to be computed before create s.t. required and constraints can be
+    applied on those fields"* (``:4841``).
+
+    Dos salidas tempranas: ``raw`` es el cargador de fixtures, que escribe la
+    fila tal cual viene; y una fila que ya existe es un UPDATE, donde el
+    recálculo lo gobierna el motor de ``modified()``, no este pase.
+    """
+    if raw or not instance._state.adding:
+        return
+    _add_precomputed_values(instance)
+
+
+Model._add_precomputed_values = _add_precomputed_values
