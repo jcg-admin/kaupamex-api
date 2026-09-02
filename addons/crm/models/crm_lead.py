@@ -203,6 +203,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     name = fields.Char(
         max_length=255, db_index=True, verbose_name='Opportunity',
         help_text='Nombre de la oportunidad (Odoo crm.lead.name).',
+        compute='_compute_name', store=True,
+        readonly=False,
     )
     # ≙ user_id (:104-107).
     user_id = fields.Many2one(
@@ -217,6 +219,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         db_index=True, related_name='crm_leads', verbose_name='Sales Team',
         db_column='team_id', check_company=True,
         help_text='Equipo de venta (Odoo team_id).',
+        compute='_compute_team_id', store=True,
+        readonly=False, precompute=True,
     )
     # ≙ lead_properties (:114-116): definition='team_id.lead_properties_definition'.
     lead_properties = fields.Properties(
@@ -229,6 +233,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         ResCompany, null=True, blank=True, on_delete=models.SET_NULL,
         db_index=True, related_name='crm_leads', verbose_name='Company',
         db_column='company_id', help_text='Empresa dueña (Odoo company_id).',
+        compute='_compute_company_id', store=True,
+        readonly=False,
     )
     # ≙ referred (:120).
     referred = fields.Char(
@@ -263,6 +269,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         CrmStage, null=True, blank=True, on_delete=models.PROTECT,
         db_index=True, related_name='leads', verbose_name='Stage',
         db_column='stage_id', help_text='Etapa del pipeline (Odoo stage_id).',
+        compute='_compute_stage_id', store=True,
+        readonly=False,
     )
     # ≙ tag_ids (:139-141): tabla intermedia crm_tag_rel(lead_id, tag_id).
     tag_ids = fields.Many2many(
@@ -285,6 +293,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     prorated_revenue = fields.Monetary(
         max_digits=16, decimal_places=2, default=0, verbose_name='Prorated Revenue',
         help_text='Ingreso prorrateado por probabilidad (Odoo prorated_revenue).',
+        compute='_compute_prorated_revenue', store=True,
     )
     # ≙ recurring_revenue (:146).
     recurring_revenue = fields.Monetary(
@@ -301,17 +310,20 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     recurring_revenue_monthly = fields.Monetary(
         max_digits=16, decimal_places=2, default=0, verbose_name='Expected MRR',
         help_text='Ingreso recurrente mensual (Odoo recurring_revenue_monthly).',
+        compute='_compute_recurring_revenue_monthly', store=True,
     )
     # ≙ recurring_revenue_monthly_prorated (:150-151), store + compute.
     recurring_revenue_monthly_prorated = fields.Monetary(
         max_digits=16, decimal_places=2, default=0, verbose_name='Prorated MRR',
         help_text='MRR prorrateado (Odoo recurring_revenue_monthly_prorated).',
+        compute='_compute_recurring_revenue_monthly_prorated', store=True,
     )
     # ≙ recurring_revenue_prorated (:152-153), store + compute.
     recurring_revenue_prorated = fields.Monetary(
         max_digits=16, decimal_places=2, default=0,
         verbose_name='Prorated Recurring Revenues',
         help_text='Recurrente prorrateado (Odoo recurring_revenue_prorated).',
+        compute='_compute_recurring_revenue_prorated', store=True,
     )
 
     # -- Dates ---------------------------------------------------------------
@@ -329,20 +341,26 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     date_open = fields.Datetime(
         null=True, blank=True, verbose_name='Assignment Date',
         help_text='Fecha de asignación (Odoo date_open).',
+        compute='_compute_date_open', store=True,
+        readonly=True,
     )
     # ≙ day_open (:160) / day_close (:161), store + compute.
     day_open = fields.Float(
         null=True, blank=True, verbose_name='Days to Assign',
         help_text='Días hasta la asignación (Odoo day_open).',
+        compute='_compute_day_open', store=True,
     )
     day_close = fields.Float(
         null=True, blank=True, verbose_name='Days to Close',
         help_text='Días hasta el cierre (Odoo day_close).',
+        compute='_compute_day_close', store=True,
     )
     # ≙ date_last_stage_update (:162-163), index, store + compute.
     date_last_stage_update = fields.Datetime(
         null=True, blank=True, db_index=True, verbose_name='Last Stage Update',
         help_text='Último cambio de etapa (Odoo date_last_stage_update).',
+        compute='_compute_date_last_stage_update', store=True,
+        readonly=True,
     )
     # ≙ date_conversion (:164).
     date_conversion = fields.Datetime(
@@ -369,6 +387,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         max_length=255, blank=True, default='', db_index=True,
         verbose_name='Contact Name',
         help_text='Nombre de contacto (Odoo contact_name).',
+        compute='_compute_contact_name', store=True,
+        readonly=False,
     )
     # ≙ partner_name (:182-185), index='trigram', tracking=20, compute + store.
     partner_name = fields.Char(
@@ -376,16 +396,22 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         verbose_name='Company Name',
         help_text='Nombre de la futura empresa que se creará al convertir la '
                   'iniciativa en oportunidad.',
+        compute='_compute_partner_name', store=True,
+        readonly=False,
     )
     # ≙ function (:186), compute + store.
     function = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Job Position',
         help_text='Puesto del contacto (Odoo function).',
+        compute='_compute_function', store=True,
+        readonly=False,
     )
     # ≙ email_from (:187-189), tracking=40, index='trigram', compute + inverse.
     email_from = fields.Char(
         max_length=255, blank=True, default='', db_index=True,
         verbose_name='Email', help_text='Correo del contacto (Odoo email_from).',
+        compute='_compute_email_from', store=True,
+        readonly=False, inverse='_inverse_email_from',
     )
     # ≙ email_normalized (:190) — la fuente lo hereda de ``mail.thread.blacklist``
     # y sólo lo redeclara para indexarlo. Ese mixin no existe aquí, así que la
@@ -400,11 +426,14 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         verbose_name='Email Domain Criterion',
         help_text='Dominio del correo, para buscar duplicados por coincidencia '
                   'exacta (Odoo email_domain_criterion).',
+        compute='_compute_email_domain_criterion', store=True,
     )
     # ≙ phone (:197-199), tracking=50, compute + inverse.
     phone = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Phone',
         help_text='Teléfono del contacto (Odoo phone).',
+        compute='_compute_phone', store=True,
+        readonly=False, inverse='_inverse_phone',
     )
     # ≙ phone_sanitized (:200) — mismo caso que email_normalized: lo aporta
     # ``mail.thread.phone``, que aquí no existe.
@@ -417,22 +446,28 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         max_length=9, choices=QUALITY_STATES, null=True, blank=True,
         verbose_name='Phone Quality',
         help_text='Calidad del teléfono (Odoo phone_state).',
+        compute='_compute_phone_state', store=True,
     )
     email_state = fields.Selection(
         max_length=9, choices=QUALITY_STATES, null=True, blank=True,
         verbose_name='Email Quality',
         help_text='Calidad del correo (Odoo email_state).',
+        compute='_compute_email_state', store=True,
     )
     # ≙ website (:207), compute + store.
     website = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Website',
         help_text='Sitio web del contacto (Odoo website).',
+        compute='_compute_website', store=True,
+        readonly=False,
     )
     # ≙ lang_id (:208-210), compute + store.
     lang_id = fields.Many2one(
         ResLang, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='crm_leads', verbose_name='Language',
         db_column='lang_id', help_text='Idioma del contacto (Odoo lang_id).',
+        compute='_compute_lang_id', store=True,
+        readonly=False,
     )
 
     # -- Address fields ------------------------------------------------------
@@ -468,6 +503,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     won_status = fields.Selection(
         max_length=8, choices=WON_STATUS, default='pending',
         verbose_name='Won/Lost', help_text='Ganada, perdida o en curso (Odoo won_status).',
+        compute='_compute_won_status', store=True,
     )
     # ≙ lost_reason_id (:238-240), ondelete='restrict', tracking=71.
     lost_reason_id = fields.Many2one(
@@ -641,7 +677,11 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         if not self.date_last_stage_update:
             self.date_last_stage_update = datetime.now(timezone.utc)
 
-    @api.depends('create_date', 'date_open')
+    #: ``create_date`` de la fuente es ``created_at`` aqui — la columna de
+    #: auditoria de ``TimeStampedModel``. El decorador la nombraba con el
+    #: nombre de alla mientras el cuerpo ya leia el de aqui: era inerte, y
+    #: el porte estricto de ``resolve_depends`` (#273 capa B) lo destapo.
+    @api.depends('created_at', 'date_open')
     def _compute_day_open(self):
         """≙ ``_compute_day_open`` (:371-380) — días entre alta y asignación."""
         if not (self.date_open and self.created_at):
@@ -650,7 +690,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         date_create = self.created_at.replace(microsecond=0)
         self.day_open = abs((self.date_open - date_create).days)
 
-    @api.depends('create_date', 'date_closed')
+    #: Misma correccion que en ``_compute_day_open``: ``create_date`` no
+    #: existe aqui; la columna es ``created_at``.
+    @api.depends('created_at', 'date_closed')
     def _compute_day_close(self):
         """≙ ``_compute_day_close`` (:382-390) — días entre alta y cierre."""
         if not (self.date_closed and self.created_at):

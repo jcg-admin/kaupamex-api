@@ -99,6 +99,8 @@ class AccountPaymentMethodLine(models.Model):
     name              = fields.Char(
         max_length=255, blank=True, default='',
         help_text='Nombre visible (Odoo name, computado del método si vacío).',
+        compute='_compute_name', store=True,
+        readonly=False,
     )
     sequence          = fields.Integer(
         default=10, help_text='Orden de presentación (Odoo sequence).',

@@ -440,6 +440,8 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         help_text='Vigencia de la cotización (Odoo validity_date, '
                   'sale/models/sale_order.py:135). NULL si la empresa '
                   'no define quotation_validity_days.',
+        compute='_compute_validity_date', store=True,
+        readonly=False, precompute=True,
     )
 
     # Método de envío elegido (Odoo sale.order.carrier_id, que el módulo
@@ -492,14 +494,17 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     amount_untaxed = fields.Monetary(
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text='Subtotal sin IVA, suma de líneas (Odoo amount_untaxed).',
+        compute='_compute_amounts', store=True,
     )
     amount_tax     = fields.Monetary(
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text='IVA de la orden, suma de líneas (Odoo amount_tax).',
+        compute='_compute_amounts', store=True,
     )
     amount_total   = fields.Monetary(
         max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text='Total de la orden, suma de líneas (Odoo amount_total).',
+        compute='_compute_amounts', store=True,
     )
     # Si la cotización venció (Odoo is_expired, compute, store=False;
     # tarea #256). Sólo este símbolo del eje ``is_expired`` — sus dos
