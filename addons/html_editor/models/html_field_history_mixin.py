@@ -92,7 +92,6 @@ import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from orm.environments import get_current_uid, get_current_user
-from orm.fields_textual import Html
 
 from addons.html_editor.models.diff_utils import (
     apply_patch,
@@ -245,7 +244,7 @@ class HtmlFieldHistoryMixin(models.Model):
                         if hasattr(f, 'name')}
 
         if any(name in changed_versioned_fields
-               and not isinstance(model_fields.get(name), Html)
+               and not isinstance(model_fields.get(name), fields.Html)
                for name in versioned_fields):
             raise ValidationError(
                 "Ensure all versioned fields ( %s ) in model %s are declared "

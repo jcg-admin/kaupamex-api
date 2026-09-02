@@ -80,9 +80,18 @@ class TestFieldsRegistry:
     """``_fields`` — el registro por nombre, ≙ ``BaseModel._fields``."""
 
     def test_it_maps_concrete_field_names(self, definition):
+        """El registro trae las columnas **y** los campos sin columna.
+
+        ``display_name`` es el segundo: lo declara ``DisplayNameMixin`` como
+        :class:`~orm.fields_nonstored.NonStored`, y desde la tarea **#301**
+        entra en el registro como entra en el de la fuente
+        (:ref:`h-api-1025`). Antes el mapa era el de ``_meta`` a secas y este
+        caso enumeraba sólo las cinco columnas.
+        """
         assert set(definition._fields) == {
             'id', 'created_at', 'updated_at',
             'properties_field', 'properties_definition',
+            'display_name',
         }
 
     def test_the_values_are_the_django_fields(self, definition):

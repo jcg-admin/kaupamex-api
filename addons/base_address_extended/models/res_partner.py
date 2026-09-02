@@ -183,6 +183,46 @@ def _set_city_id(self, value):
     structured.save()
 
 
+class _CityId(fields.NonStored):
+    """``city_id`` de ``res.partner`` — el campo cuya columna vive en el RELATED.
+
+    Por qué es un descriptor y no una ``property``
+    ==============================================
+
+    La fuente declara ``city_id = fields.Many2one('res.city')`` **sobre
+    ``res.partner``** (``:17``), así que allá es un campo del modelo y entra en
+    su registro ``_fields``. Aquí la columna está en ``AddressStructured``
+    (DEC-SALE-01), y una ``property`` pelada restituye la lectura y la
+    escritura pero **no** la pertenencia al registro: ``self._fields`` la deja
+    fuera, y entonces ``_convert_fields_to_values`` —que recorre justo la lista
+    donde ``_address_fields`` mete este nombre— revienta con
+    ``FieldDoesNotExist``. Ocurrió sobre 35 casos (:ref:`h-api-1025`).
+
+    :class:`~orm.fields_nonstored.NonStored` es el mecanismo que este árbol ya
+    tiene para *"un campo de la fuente que aquí no tiene columna"* — es su
+    ``store=False``—, y desde la tarea **#301** ``_fields`` lo enumera. Con él
+    ``city_id`` vuelve a ser un campo del modelo, que es lo que allá es.
+
+    Qué se sobreescribe, y por qué no basta ``related=``
+    ====================================================
+
+    ``related='structured.city_id'`` describe la cadena y ya se declara, pero
+    su inverso genérico (:meth:`NonStored.inverse_related`) **no crea** el
+    eslabón que falta: sin fila RELATED, ``traverse_related`` devuelve ``None``
+    y la escritura se pierde en silencio. Allá ``city_id`` es una columna del
+    propio contacto y siempre se puede escribir, también en uno recién creado.
+    Los dos accesos se escriben aquí para conservar esa conducta.
+    """
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        return _get_city_id(instance)
+
+    def __set__(self, instance, value):
+        _set_city_id(instance, value)
+
+
 def _address_fields(cls):
     """Añade ``city_id`` a los campos que se heredan del padre — ≙ ``:20-22``.
 
@@ -355,8 +395,13 @@ def apply_base_address_extended_extensions():
     chain_method(ResPartner, '_get_street_split', _get_street_split)
 
     # ``city_id`` es COLUMNA de ``res.partner`` en la fuente (``:17``). Aquí es
-    # una propiedad sobre el mismo receptor, respaldada por el RELATED: es lo
-    # que hace que ``_address_fields`` pueda devolverla sin romper a
-    # ``_prepare_address_values``, que la lee con ``getattr``.
-    if not isinstance(getattr(ResPartner, 'city_id', None), property):
-        ResPartner.city_id = property(_get_city_id, _set_city_id)
+    # un campo SIN columna sobre el mismo receptor, respaldado por el RELATED.
+    # Se instala como descriptor y no como ``property`` para que entre en
+    # ``_fields`` —el registro del modelo— como entra allá: es lo que hace que
+    # ``_address_fields`` pueda devolverlo sin romper ni a
+    # ``_prepare_address_values``, que lo lee con ``getattr``, ni a
+    # ``_convert_fields_to_values``, que lo busca en el registro.
+    if not isinstance(vars(ResPartner).get('city_id'), _CityId):
+        _CityId(related='structured.city_id',
+                verbose_name='City ID').contribute_to_class(
+                    ResPartner, 'city_id')

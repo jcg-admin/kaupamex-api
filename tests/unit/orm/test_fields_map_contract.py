@@ -8,9 +8,17 @@ El rechazo del campo sin columna no desapareció: se mudó a ``_field_to_sql``,
 que es quien compone SQL y quien sabe qué puede convertir. Los dos casos de
 ``TestTheRejectionMovedNotVanished`` fijan que sigue ahí y con el mismo
 mensaje.
+
+**Segundo ensanchado (tarea #301, :ref:`h-api-1025`).** El mapa dejó de ser
+igual al de ``_meta``: ahora **contiene** al de ``_meta`` y además los campos
+sin columna que la clase declara —el ``store=False`` de la fuente—. Este
+archivo fijaba la igualdad, que era el contrato viejo; hoy fija la inclusión y
+mide por separado la mitad que ``_meta`` no puede dar.
 """
 import pytest
 from django.apps import apps
+
+from orm.fields_nonstored import non_stored_fields
 
 
 @pytest.fixture
@@ -22,7 +30,21 @@ class TestTheMapIsTheModelRegistry:
 
     def test_it_holds_every_field_meta_declares(self, partner_class):
         declared = {f.name for f in partner_class._meta.get_fields()}
-        assert set(partner_class()._fields) == declared
+        assert declared <= set(partner_class()._fields)
+
+    def test_it_also_holds_the_fields_without_a_column(self, partner_class):
+        """CONTROL del segundo ensanchado — la mitad que ``_meta`` no da.
+
+        Qué lo haría fallar: construir ``_fields`` sólo con
+        ``_meta.get_fields()``. Ése era el contrato hasta :ref:`h-api-1025`, y
+        con él ``_convert_fields_to_values`` reventaba sobre ``city_id``.
+        """
+        without_column = non_stored_fields(partner_class)
+        assert without_column, (
+            'el modelo de prueba ya no declara ningun campo sin columna')
+        registry = partner_class()._fields
+        for name, descriptor in without_column.items():
+            assert registry[name] is descriptor
 
     def test_a_non_concrete_field_is_in_the_map(self, partner_class):
         """El control que discrimina el ensanchado: con el filtro por

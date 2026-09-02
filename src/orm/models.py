@@ -76,7 +76,7 @@ from orm.commands import ManyToManyLink, ManyToManySet, One2manyChild
 from orm import registry
 from orm.domains import Domain, to_q
 from orm.fields import convert_to_display_name
-from orm.fields_nonstored import NonStored
+from orm.fields_nonstored import NonStored, non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
 from orm.utils import parse_field_expr
 from service.db import Savepoint
@@ -1379,12 +1379,33 @@ class FieldSqlMixin:
         > **en su sitio**, que es donde pertenece — quien compone SQL es quien
         > sabe qué puede convertir.
 
-        *Métrica:* ``_meta.get_fields()``, sin filtro.
-        *Ciega a:* el ``NonStored`` de ``orm/fields_nonstored.py``, que no es
-        un campo de Django y por diseño no aparece en ``_meta`` — es el
-        ``store=False`` de la fuente.
+        > **Ensanchado otra vez (tarea #301, :ref:`h-api-1025`).** La ceguera
+        > que la versión anterior declaraba abajo —*"ciega al ``NonStored``"*—
+        > no era una nota al pie: era la mitad que faltaba. El campo sin
+        > columna **es un campo del modelo** en la fuente, y dejarlo fuera
+        > volvía a hacer el mapa más estrecho que allá, sólo que por otro eje.
+        > Lo destapó ``_address_fields()``, que desde ``base_address_extended``
+        > devuelve ``city_id`` —sin columna aquí, DEC-SALE-01— y hacía reventar
+        > a ``_convert_fields_to_values`` sobre 35 casos de
+        > ``tests/integration/base``.
+        >
+        > Los seis consumidores se re-midieron uno a uno antes de ensanchar, y
+        > ninguno cambia de conducta: cuatro filtran por ``Properties`` o
+        > ``ForeignKey``, uno lee ``ondelete`` con ``getattr`` y el sexto
+        > —``_field_to_sql``— exige ``concrete``, que un ``NonStored`` no
+        > declara. Ahí el nombre pasa de dar ``None`` a dar el descriptor, y el
+        > mismo ``ValueError`` sale por la misma rama.
+
+        *Métrica:* ``_meta.get_fields()`` unido a los descriptores
+        :class:`~orm.fields_nonstored.NonStored` que el MRO de la clase
+        declara.
+        *Ciega a:* un campo de la fuente que aquí no se declare ni como campo
+        de Django ni como ``NonStored`` — una ``property`` pelada, por ejemplo.
+        Esa forma existe en el árbol y su barrido es la tarea **#302**.
         """
-        return {field.name: field for field in self._meta.get_fields()}
+        registry = {field.name: field for field in self._meta.get_fields()}
+        registry.update(non_stored_fields(type(self)))
+        return registry
 
     def _has_field_access(self, field, operation) -> bool:
         """Si el usuario puede leer o escribir este campo.
@@ -1858,6 +1879,77 @@ class RecordLoaderMixin(FieldSqlMixin):
         if relational:
             self._load_records_apply_relational(relational)
         return self
+
+    @classmethod
+    def _write_rows_skipping_save(cls, queryset, values):
+        """Escribe ``values`` sobre las filas de ``queryset`` sin pasar por
+        ``save()`` — ≙ el ``super().write(vals)`` de la fuente.
+
+        Por qué existe, y por qué no basta ``QuerySet.update()``
+        =======================================================
+
+        La fuente usa ``super().write(...)`` cuando quiere escribir **sin**
+        re-entrar en el ``write`` sobrecargado que volvería a sincronizar
+        (``odoo19c: res_partner.py:677-683`` es el caso de manual). Su análogo
+        en este stack es ``QuerySet.update()``: no invoca ``save()`` ni emite
+        señales.
+
+        Pero ``update()`` compone un ``UPDATE`` y por tanto **sólo sabe de
+        columnas**: un campo sin columna —el ``store=False`` de la fuente, aquí
+        :class:`~orm.fields_nonstored.NonStored`— le levanta
+        ``FieldDoesNotExist``. Allá no hay tal frontera: ``write`` acepta todo
+        campo del modelo, tenga columna o no. Sin esta separación, cualquier
+        addon que añada un campo sin columna a una lista que luego se escribe
+        en bloque revienta a su consumidor — que es lo que ``city_id`` de
+        ``base_address_extended`` hizo sobre 35 casos (:ref:`h-api-1025`).
+
+        El reparto es por registro, no por SQL: el descriptor de un campo sin
+        columna sabe dónde vive su valor, y escribirlo por ``setattr`` es
+        llamarlo. Eso no re-entra en ``save()`` del modelo que se está
+        escribiendo, así que la garantía de la fuente —no volver a
+        sincronizar— se conserva.
+        """
+        without_column = non_stored_fields(cls)
+        columns = {name: value for name, value in values.items()
+                   if name not in without_column}
+        projected = {name: value for name, value in values.items()
+                     if name in without_column}
+        if columns:
+            queryset.update(**columns)
+        if projected:
+            for record in queryset:
+                for name, value in projected.items():
+                    setattr(record, name, value)
+
+    @classmethod
+    def _create_row_from_values(cls, values, using=DEFAULT_DB_ALIAS):
+        """Crea la fila aceptando **todo** campo del modelo — ≙ ``create(vals)``.
+
+        Es la cara de alta de la misma frontera que
+        :meth:`_write_rows_skipping_save` cubre en la escritura. El
+        ``Model.__init__`` de Django rechaza con ``TypeError`` cualquier
+        argumento que no sea una columna suya, y allá ``create`` acepta todo
+        campo declarado — un ``store=False`` incluido. Sin esta separación,
+        pasarle a ``objects.create`` un diccionario derivado de una lista de
+        campos —``_address_fields()``, por ejemplo— revienta en cuanto un addon
+        mete en esa lista un campo que aquí no tiene columna
+        (:ref:`h-api-1025`).
+
+        El orden importa y es el de la fuente: la fila se crea primero con lo
+        que tiene columna, y el campo sin columna se escribe **después**, con
+        la fila ya real. Su descriptor puede necesitar la clave para colgar de
+        ella lo que respalda su valor, igual que un ``One2many`` necesita el
+        padre guardado.
+        """
+        without_column = non_stored_fields(cls)
+        columns = {name: value for name, value in values.items()
+                   if name not in without_column}
+        projected = {name: value for name, value in values.items()
+                     if name in without_column}
+        record = cls.objects.using(using).create(**columns)
+        for name, value in projected.items():
+            setattr(record, name, value)
+        return record
 
     @classmethod
     def _load_records_split_relational(cls, values):

@@ -858,7 +858,12 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     #   para no recursar. El equivalente exacto es ``QuerySet.update()``, que
     #   **no** llama a ``save()`` ni dispara señales; además se asignan los
     #   atributos en memoria, que es lo que allá hace la caché del registro.
-    # - ``self._fields[fname]`` es ``self._meta.get_field(fname)``.
+    # - ``self._fields[fname]`` se porta **verbatim**: este árbol declara
+    #   ``_fields`` como el registro del modelo (``orm/models.py``), igual que
+    #   allá. Hasta la tarea **#301** esta línea decía que el equivalente era
+    #   ``self._meta.get_field(fname)``, y era falso — ``_meta`` sólo tiene las
+    #   columnas, así que un campo sin columna reventaba la consulta. Ver
+    #   :ref:`h-api-1025`.
     # - ``_convert_to_write`` no tiene análogo: el valor que se asigna a una
     #   FK en Django **es** el objeto, así que el diccionario se arma con
     #   ``getattr`` directo.
@@ -875,9 +880,16 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         sincronizar una relación inversa copiaría la lista de hijos del padre
         al hijo, que es un ciclo y no una dirección. Aquí un ``one2many`` es
         un ``ManyToOneRel`` —el reverso de una FK— o un ``ManyToManyField``.
+
+        El registro que se consulta es ``self._fields``, el mismo nombre que la
+        fuente: contiene **todo** campo declarado, tenga columna o no. Un
+        nombre que el modelo no declara levanta ``KeyError``, que es lo que
+        ``self._fields[fname]`` hace allá — una errata no se acepta en
+        silencio.
         """
+        registry = self._fields
         for fname in field_names:
-            field = self._meta.get_field(fname)
+            field = registry[fname]
             if isinstance(field, (models.ManyToOneRel, models.ManyToManyRel,
                                   models.ManyToManyField)):
                 raise AssertionError(
@@ -911,15 +923,20 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
 
         El ``super().write`` es la mitad importante: escribe **saltándose** el
         ``write`` sobrecargado, que volvería a sincronizar. Aquí ese salto lo
-        da ``QuerySet.update()``, que no invoca ``save()`` ni emite señales.
-        Los atributos se asignan además en memoria porque allá el registro
-        queda actualizado en caché tras el ``write``.
+        da :meth:`~orm.models.RecordLoaderMixin._write_rows_skipping_save`, que
+        reparte los valores entre el ``UPDATE`` —para lo que tiene columna— y
+        el descriptor del campo sin columna, porque ``QuerySet.update()`` sólo
+        sabe de columnas y ``_address_fields()`` puede traer un campo que aquí
+        no la tiene (``city_id``, DEC-SALE-01). Los atributos se asignan además
+        en memoria porque allá el registro queda actualizado en caché tras el
+        ``write``.
         """
         addr_vals = {key: vals[key] for key in self._address_fields()
                      if key in vals}
         if not addr_vals:
             return
-        type(self).objects.filter(pk=self.pk).update(**addr_vals)
+        self._write_rows_skipping_save(
+            type(self).objects.filter(pk=self.pk), addr_vals)
         for key, value in addr_vals.items():
             setattr(self, key, value)
 
@@ -1417,8 +1434,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
                         to_write[fname] = value
             if to_write:
                 with sudo():
-                    cls.objects.using(using).filter(
-                        pk__in=children).update(**to_write)
+                    cls._write_rows_skipping_save(
+                        cls.objects.using(using).filter(pk__in=children),
+                        to_write)
 
         # do the second half of _fields_sync the "normal" way
         for partner, vals in zip(partners, vals_list):
@@ -1787,7 +1805,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             return None
         values = dict(name=self.company_name, is_company=True, vat=self.vat)
         values.update(self._convert_fields_to_values(self._address_fields()))
-        return type(self).objects.create(**values)
+        return type(self)._create_row_from_values(values)
 
     def delete(self, *args, **kwargs):
         """Guarda del borrado — ≙ ``_unlink_except_user`` (``:951-961``).

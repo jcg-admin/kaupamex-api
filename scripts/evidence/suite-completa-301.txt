@@ -1,0 +1,12 @@
+Suite completa tras la tarea #301 — 2026-09-02T11:59:29
+comando: uv run pytest -n 4 -q --reuse-db -p no:cacheprovider
+
+FAILED tests/unit/base/test_the_twenty_directives_land_where_the_split_says.py::TestTheListComesFromTheSourceNotFromHere::test_every_directive_of_the_source_has_a_landing
+FAILED tests/unit/website/test_website_ir_ui_view.py::TestBlockedSurface::test_the_blocked_methods_are_absent
+2 failed, 8962 passed, 4 skipped, 5 warnings in 293.07s (0:04:53)
+EXIT=1
+
+Los dos rojos reproducen en un worktree limpio sobre HEAD 535eae48,
+sin ningun cambio de esta tarea (control ejecutado 2026-09-02):
+  4 failed, 46 passed  — incluia ademas hook_points y la fachada,
+  que esta tarea cierra. Sucesor de los dos que quedan: tarea #303.

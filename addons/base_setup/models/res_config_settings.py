@@ -67,7 +67,6 @@ from addons.base.models.res_groups import ResGroups
 from addons.base.models.res_lang import ResLang
 from addons.base.models.res_users import ResUsers
 from orm.environments import get_current_company, sudo
-from orm.fields_nonstored import NonStored
 
 #: ≙ ``config_parameter='base_setup.show_effect'`` (``odoo19c: :38``).
 SHOW_EFFECT_PARAM = 'base_setup.show_effect'
@@ -160,6 +159,22 @@ class ResConfigSettings(BaseResConfigSettings):
       instanciación. El default es ``get_current_company``, que devuelve la PK
       —no el registro— porque el ``__init__`` de Django asigna el defecto al
       ``attname`` de la FK.
+
+      Su ``on_delete`` es ``DO_NOTHING``, y **no** es una relajación de la
+      integridad: es la única declaración que describe lo que la base hace.
+      Con ``managed = False`` Django no crea ni la tabla ni la restricción, así
+      que no hay fila que proteger ni columna que anular. Lo que sí hacía el
+      ``PROTECT`` anterior era meter a este modelo en el recolector de borrado
+      de ``res.company``, que consultaba una tabla inexistente y tumbaba el
+      borrado de cualquier empresa con ``UndefinedTable``. Django salta la
+      relación en ``Collector.collect`` **sólo** ante ``DO_NOTHING``.
+
+      Medido antes de aplicarlo: de los modelos sin tabla que este arranque
+      registra, **uno** declaraba una FK que el recolector visita — éste. Allá
+      el problema no existe porque un ``TransientModel`` **sí** tiene tabla y
+      la vacía el recolector de transitorios; aquí la divergencia de tener el
+      formulario sin tabla es anterior a este campo, y ésta es su consecuencia
+      declarada. Ver :ref:`h-api-1026`.
     - **``external_report_layout_id`` y ``edit_external_header``** —
       BLOQUEADO por ``res.company.external_report_layout_id``: el campo no
       tiene columna en este árbol y su propio archivo lo declara
@@ -203,7 +218,7 @@ class ResConfigSettings(BaseResConfigSettings):
     # === La empresa sobre la que se configura =============================
 
     company_id = fields.Many2one(
-        ResCompany, on_delete=models.PROTECT, db_column='company_id',
+        ResCompany, on_delete=models.DO_NOTHING, db_column='company_id',
         related_name='+', null=True, blank=False,
         default=get_current_company, verbose_name='Company',
         help_text='Odoo company_id — la empresa que el formulario configura.')
@@ -254,7 +269,7 @@ class ResConfigSettings(BaseResConfigSettings):
     # === Los que viajan a la empresa ======================================
 
     #: ≙ ``report_footer`` (``:33``) — ver la divergencia de ``Html`` arriba.
-    report_footer = NonStored(
+    report_footer = fields.NonStored(
         'Custom Report Footer', related='company_id.report_footer',
         readonly=False,
         help_text='Footer text displayed at the bottom of all reports.')
