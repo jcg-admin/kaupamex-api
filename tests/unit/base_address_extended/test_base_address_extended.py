@@ -109,26 +109,26 @@ def _make_partner(street='Av. Insurgentes Sur 1234 - 5B'):
 
 
 class TestAddressStructured:
-    def test_compute_from_street_splits_parts(self):
+    def test_compute_street_data_splits_parts(self):
         partner = _make_partner()
         st = AddressStructured(partner=partner)
-        st.compute_from_street(partner.street)
+        st._compute_street_data(partner.street)
         assert st.street_name == 'Av. Insurgentes Sur'
         assert st.street_number == '1234'
         assert st.street_number2 == '5B'
 
-    def test_inverse_to_street_roundtrip(self):
+    def test_inverse_street_data_roundtrip(self):
         partner = _make_partner()
         st = AddressStructured(partner=partner)
-        st.compute_from_street(partner.street)
+        st._compute_street_data(partner.street)
         # Odoo _inverse_street_data: 'name number - number2'.
-        assert st.inverse_to_street() == 'Av. Insurgentes Sur 1234 - 5B'
+        assert st._inverse_street_data() == 'Av. Insurgentes Sur 1234 - 5B'
 
     def test_get_street_split_returns_three_keys(self):
         partner = _make_partner('Main 12')
         st = AddressStructured(partner=partner)
-        st.compute_from_street(partner.street)
-        assert st.get_street_split() == {
+        st._compute_street_data(partner.street)
+        assert st._get_street_split() == {
             'street_name': 'Main', 'street_number': '12', 'street_number2': '',
         }
 

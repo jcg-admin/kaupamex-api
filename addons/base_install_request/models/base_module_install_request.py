@@ -1,60 +1,91 @@
-"""``base.module.install.request`` — addon ``base_install_request``.
+"""``base.module.install.request`` / ``base.module.install.review`` — el asistente.
 
-BLOQUEADO EN SU TOTALIDAD — mismo veredicto que ``addons/base_import_
-module/models/base_import_module.py``, mismo hallazgo raíz. Se detalla
-aquí porque el hallazgo raíz es idéntico pero el mecanismo concreto que lo
-hereda es distinto (no ZIP/manifest — un flujo de pedir-y-aprobar).
+Adaptación pendiente de ``odoo19c: addons/base_install_request/wizard/
+base_module_install_request.py`` (LGPL-3, 87 líneas) y de ``__init__.py``
+(``_auto_install_apps``) — atribución y aviso de licencia preservados
+(DEC-KX-03).
 
-Los 7 símbolos de la referencia (``odoo-tools@..., odoo19c:
-addons/base_install_request/`` — ``models/ir_module_module.py``:
-``action_open_install_request``; ``wizard/base_module_install_request.py``:
-``BaseModuleInstallRequest._compute_user_ids``/``.action_send_request``,
-``BaseModuleInstallReview._compute_modules_description``/
-``._get_depending_apps``/``.action_install_module``; ``__init__.py``:
-``_auto_install_apps``) implementan: un usuario interno **pide** activar
-un módulo no instalado; se notifica por correo a ``base.group_system``
-(los administradores del sistema, vía plantilla ``mail.template`` + QWeb);
-un administrador **revisa** las apps dependientes
-(``upstream_dependencies``) y **aprueba con un clic**
-(``button_immediate_install``).
+Porte BLOQUEADO — 0 de 6 símbolos
+==================================
 
-Por qué es el MISMO bloqueo, no uno nuevo
-=========================================================================
+Los seis del asistente y su arranque. **El séptimo símbolo del addon,
+``action_open_install_request``, YA NO está aquí: se portó** en
+``ir_module_module.py`` de este mismo paquete.
 
-Las tres etapas —pedir, revisar, aprobar— son ceremonia alrededor de UN
-acto central: instalar un módulo en caliente contra una base viva
-(``button_immediate_install``). Ese acto es precisamente el que
-``src/addons/base/models/ir_module.py`` declara fuera de alcance de esta
-plataforma (cita verbatim en el docstring de
-``addons/base_import_module/models/base_import_module.py``): instalar un
-addon aquí es una operación de **deploy** (``INSTALLED_APPS`` + migración),
-no una fila que un wizard pueda escribir en runtime. Sin el acto central,
-pedir su aprobación es pedir aprobación para algo que no se puede otorgar
-— construir el flujo de todos modos sería, en las palabras que ``ir_
-module.py`` ya usa, *"inventar una capacidad"*.
+Qué cambió respecto de la versión anterior de este docstring
+=============================================================
 
-Las tres piezas de infraestructura que el flujo necesita, y por qué
-ninguna cierra el hueco
-=========================================================================
+Decía *«bloqueado en su totalidad»* con tres causas, y **dos de las tres eran
+falsas al medirlas**:
 
-- **``base.group_system``** (grupo de administradores a notificar): este
-  árbol no tiene grupos Odoo — la autorización es por capacidad
-  (``authz``), y no existe una capacidad "gestionar módulos" porque no
-  existe la acción que gestionaría (mismo argumento circular que arriba).
-- **``mail.template`` + ``ir.qweb`` + ``mail_template.send_mail``**
-  (envío de la notificación): no portados — sin cliente web ni motor QWeb
-  de plantillas de correo en este árbol; el mecanismo de notificación real
-  de esta plataforma es ``addons/mail/models/notification_service.py``
-  (funciones ``notify_*`` explícitas, sin plantilla declarativa), pero
-  notificar sobre un evento que no puede ocurrir no aporta nada nuevo que
-  portar.
-- **``IrModule.upstream_dependencies``/``button_immediate_install``**: no
-  existen en ``src/addons/base/models/ir_module.py`` (medido: 0 hits) —
-  exactamente los métodos que ``ir_module.py`` declaró no portables.
+.. code-block:: text
 
-Este archivo es el único que se crea en el addon (mismo criterio que
-``base_import_module``: un archivo vacío por cada uno de los otros dos
-sitios de la referencia —``models/ir_module_module.py``, ``wizard/
-base_module_install_request.py``— no añade trazabilidad sobre lo que este
-docstring ya cubre completo).
+   grep -rn "upstream_dependencies" --include=*.py src/ addons/
+   → src/addons/base/models/ir_module.py:443   (EXISTE — el docstring decía "0 hits")
+
+   grep -rn "group_system" --include=*.py src/ addons/ | wc -l
+   → 45                                        (EXISTE — se declaraba ausente)
+
+   grep -rn "class MailTemplate" --include=*.py src/ addons/ | wc -l
+   → 1                                         (EXISTE — se declaraba no portado)
+
+Sólo la tercera se sostiene, y el veredicto ancho tapaba un método —la acción
+de arriba— que no dependía de ninguna de ellas. Por eso el bloqueo pasa de
+«el addon entero» a **una arista por símbolo**, que es lo que
+``scripts/check_bloqueo_declarado.py`` exige y lo que hace recorrible el grafo.
+
+El bloqueo real, medido
+========================
+
+.. code-block:: text
+
+   grep -rn "def button_immediate_install" --include=*.py src/ addons/ | wc -l
+   → 0
+   grep -rn "def button_install" --include=*.py src/ addons/ | wc -l
+   → 0
+
+Es el acto central: instalar un addon contra una base viva. En esta plataforma
+instalar es una operación de **deploy** (``INSTALLED_APPS`` + migración), no una
+fila que un asistente escriba en tiempo de ejecución — el veredicto lo declara
+``src/addons/base/models/ir_module.py``, y el porte de los símbolos que le
+faltan a ese archivo es la tarea **#452**.
+
+Símbolo a símbolo
+==================
+
+- ``BaseModuleInstallReview.action_install_module`` (``:81-87``) —
+  BLOQUEADO por ``ir.module.module.button_immediate_install`` — el método no
+  existe en este árbol (medido arriba: 0 definiciones). Sucesor: tarea **#452**,
+  que porta lo que le falta a ``src/addons/base/models/ir_module.py``.
+- ``_auto_install_apps`` (``__init__.py:9-21``) —
+  BLOQUEADO por ``ir.module.module.button_install`` — misma medición, 0
+  definiciones. Sucesor: tarea **#452**.
+- ``BaseModuleInstallReview._get_depending_apps`` (``:69-79``) —
+  BLOQUEADO por ``base.module.install.review`` — el ``TransientModel`` que lo
+  aloja no está declarado; su cuerpo sí es portable, porque
+  ``upstream_dependencies`` existe (``src/addons/base/models/ir_module.py:443``).
+  Sucesor: la sub-iniciativa ``portar-asistente-base-install-request``, cuya
+  condición de cierre es declarar los dos ``TransientModel`` con su migración.
+- ``BaseModuleInstallReview._compute_modules_description`` (``:61-67``) —
+  BLOQUEADO por ``ir.qweb._render`` — la descripción se arma con una plantilla
+  QWeb, y el motor de plantillas de este árbol
+  (``src/addons/base/models/ir_qweb.py``) no expone ese punto para una
+  plantilla de addon. Sucesor: la misma sub-iniciativa.
+- ``BaseModuleInstallRequest._compute_user_ids`` (``:22-25``) —
+  BLOQUEADO por ``base.module.install.request`` — ídem: el modelo que lo aloja
+  no existe todavía. El dato que lee **sí** está (``group_system``, 45 hits).
+  Sucesor: la misma sub-iniciativa.
+- ``BaseModuleInstallRequest.action_send_request`` (``:27-44``) —
+  BLOQUEADO por ``mail.template.send_mail`` — la clase ``MailTemplate`` existe
+  pero no declara ``send_mail`` (medido: 0 definiciones); el mecanismo de aviso
+  de esta plataforma es ``addons/mail/models/notification_service.py``. Sucesor:
+  la misma sub-iniciativa.
+
+Lo que este archivo no cierra
+==============================
+
+Los seis de arriba. Cuatro dependen de la sub-iniciativa
+``portar-asistente-base-install-request`` (declarar los dos ``TransientModel``
+con su migración, y decidir el sustituto de la plantilla QWeb y del envío de
+correo); dos dependen de la tarea **#452**.
 """
