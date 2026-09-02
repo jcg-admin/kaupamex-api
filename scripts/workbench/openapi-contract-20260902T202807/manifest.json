@@ -17,7 +17,12 @@
     "despues": "Medido: 196 de 232 declaran contrato, o sea 36 sin declarar sobre 181 archivos de controllers. La cifra del titulo es de otra medicion y no consta su instrumento; el alcance real de #316 se re-deriva de esta salida antes de trabajarla."
   },
   "reproducible": "uv run python scripts/workbench/openapi-contract-20260902T202807/census_declared_contract.py",
-  "outputs": ["outputs/censo-contrato-declarado.txt"],
+  "outputs": [
+    "outputs/censo-contrato-declarado-*.txt"
+  ],
   "source": "arbol propio addons/ y src/addons/ en la rama feature/kaupamex-l3",
-  "tasks": ["#316", "#317"]
+  "tasks": [
+    "#316",
+    "#317"
+  ]
 }

@@ -20,7 +20,11 @@
   },
   "control": "El cubo dissolved tiene que poder NO aplicarse: TestTheScopeIsTheFile::test_a_name_nobody_declares_is_missing declara una clase cuyo miembro tampoco llego y exige dissolved == [] con la clase en missing_classes. Sin ese caso, un instrumento que absolviera toda clase ausente pasaria los otros dos y convertiria el cubo en una amnistia automatica (sub-patron D de metrica-decide-la-conclusion.md).",
   "reproducible": "uv run pytest scripts/workbench/orm-root-census-20260902T203712/tests/ -q && uv run python scripts/workbench/orm-root-census-20260902T203712/census_orm_root.py --detalle",
-  "outputs": ["outputs/censo-orm-detalle.txt"],
+  "outputs": [
+    "outputs/censo-orm-detalle-*.txt"
+  ],
   "source": "odoo19c @ odoo-tools abe4040ec1 (solo lectura); arbol propio src/orm en la rama feature/kaupamex-l3",
-  "tasks": ["#209"]
+  "tasks": [
+    "#209"
+  ]
 }
