@@ -15,6 +15,11 @@ import fields
 
 from orm.model_classes import extend_model
 
+#: ≙ la cabecera que la fuente declara en su clase (``odoo19c: :7``; la
+#: extensión aquí no es clase). El destino es ``payment.PaymentGateway``,
+#: nuestra contraparte de ``payment.provider``.
+_inherit = 'payment.provider'
+
 #: ≙ ``('so_name', 'Based on Document Reference')`` (``odoo19c: :11``). El
 #: **valor** es idéntico al de la referencia —es lo que se guarda y se compara—;
 #: la etiqueta va en español por ``redaccion-tecnica-es.md``.

@@ -68,6 +68,12 @@ veredicto para dos de las tres piezas:
 ``addons/account_edi/models/ir_actions_report.py``.
 """
 
+#: ≙ la cabecera que la fuente declara en su clase (``odoo19c: :8``; la
+#: extensión aquí no es clase). Se porta aunque el archivo esté bloqueado —
+#: el bloqueo es de los dos símbolos que la clase declararía, no de su
+#: cabecera, que sigue siendo cierta: el destino es ``ir.actions.report``.
+_inherit = 'ir.actions.report'
+
 
 def apply_sale_report_extensions():
     """No-op declarado — los dos símbolos del archivo están bloqueados.

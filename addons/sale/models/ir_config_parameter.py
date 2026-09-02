@@ -34,6 +34,12 @@ from addons.sale import const
 from orm.model_classes import extend_model
 from tools.misc import str2bool
 
+#: ≙ la cabecera que la fuente declara en su clase (``odoo19c: :10``; la
+#: extensión aquí no es clase). El nombre punteado —``ir.config_parameter``—
+#: es el que ``SystemParameter`` registra (``src/addons/base/models/
+#: ir_config_parameter.py:12``, ``_name='ir.config_parameter'``).
+_inherit = 'ir.config_parameter'
+
 
 def create(cls, previous, vals_list, using=None):
     """≙ ``create`` (``odoo19c: :12-15``) — ``@api.model_create_multi``.

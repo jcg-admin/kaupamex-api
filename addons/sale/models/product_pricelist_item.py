@@ -18,6 +18,10 @@ from addons.base.models.res_groups import ResGroups
 from addons.product.models.product_pricelist_item import COMPUTE_PERCENTAGE
 from orm.model_classes import extend_model
 
+#: ≙ la cabecera que la fuente declara en su clase (``odoo19c: :5``; la
+#: extensión aquí no es clase).
+_inherit = 'product.pricelist.item'
+
 #: ≙ ``'sale.group_discount_per_so_line'`` (``odoo19c: :8``) — el identificador
 #: externo del grupo que enciende el descuento por línea de pedido. Se conserva
 #: verbatim: es la llave con que la siembra lo registra.
