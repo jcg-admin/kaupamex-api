@@ -8,14 +8,16 @@ some metadata to rendered and allow to edit fields, as well as render a few
 fields differently. Also, adds methods to convert values back to Odoo
 models."*
 
-**34 símbolos en la fuente: 28 portados, 6 bloqueados con sucesor** (los seis
-del compilador de nodos de QWeb, ver «El bloqueo del compilador»).
+**34 símbolos en la fuente, 34 portados.** Seis de ellos —los que extienden
+el compilador de nodos— quedan sin consumidor por una divergencia
+arquitectónica ya ratificada, no por un bloqueo: ver «Los seis sin
+consumidor».
 
 Las dos mitades del archivo
 ===========================
 
 1. **``IrQweb``** — cuatro directivas de *snippet* y dos enganches del
-   compilador. Es la mitad bloqueada.
+   compilador. Es la mitad portada y sin consumidor.
 2. **Los trece ``ir.qweb.field.*``** — la dirección **de vuelta**:
    ``from_html`` toma el nodo que la persona acaba de editar y produce el
    valor del campo, y ``attributes`` añade al nodo las marcas ``data-oe-*``
@@ -52,29 +54,36 @@ Fuente delega en                 Aquí lo cubre
 ``self.env.user``                ``orm.environments.get_current_user``
 ===============================  =====================================
 
-El bloqueo del compilador — 6 símbolos de ``IrQweb``
-====================================================
+Los seis sin consumidor — la divergencia, no un bloqueo
+=======================================================
 
 ``_compile_node``, ``_get_preload_attribute_xmlids``,
 ``_compile_directive_snippet``, ``_compile_directive_snippet_call``,
 ``_compile_directive_install`` y ``_compile_directive_placeholder``
-**extienden el compilador de nodos de QWeb**, que este árbol declina portar
-por decisión ya ratificada y escrita: ``base.ir_template_expressions`` dice
-que el HTML lo emite React y que su ``render`` levanta por diseño. Lo medido:
-de esa familia, ``base`` porta ``_directives_eval_order`` y no porta
-``_compile_node`` ni ningún ``_compile_directive_*``.
+**extienden el compilador de nodos de plantilla**, que este árbol **no
+porta por decisión ratificada**:
+``base.ir_template_expressions`` declara que el HTML lo emite React y que el
+backend entrega datos por DRF, así que un emisor de marcado en servidor no
+tendría a quién servir. Lo medido: de esa familia, ``base`` porta
+``_directives_eval_order`` y no porta ``_compile_node`` ni ningún
+``_compile_directive_*``.
 
-**No se declinan: se portan y quedan inertes.** Los seis se instalan con su
-nombre, su firma y su cuerpo, encadenados sobre ``IrTemplateExpressions``. Lo
-que no existe es su ``super()`` — ``_compile_node`` y ``_append_text`` —, así
-que nadie los invoca todavía y su primer consumidor será el compilador. Es la
-diferencia entre *"el símbolo no está"* y *"el símbolo está y espera a su
-motor"*, y sólo la segunda deja el trabajo hecho.
+**Se portan igual, y con su nombre.** Los seis se instalan con su firma y su
+cuerpo, encadenados sobre ``IrTemplateExpressions``, porque
+``porte-completo-no-parcial`` no admite omitir un símbolo por conveniencia:
+lo que se declara es su **destino**, no su ausencia. Su ``super()`` —
+``_compile_node`` y ``_append_text`` de la fuente — no existe aquí y no va a
+existir, así que nadie los invoca.
 
-**Sucesor nombrado:** portar el compilador de nodos de QWeb sobre
-``base.IrTemplateExpressions`` (``_compile_node``, ``_compile_directives``,
-``_append_text``). Vive en ``src/addons/base`` y por tanto fuera de los
-archivos de este puerto; se reporta al orquestador.
+Portarlos completos **no promete un consumidor**: deja el API completo. Quien
+consume este API es React, por el contrato que ``drf-spectacular`` publica; lo
+que estos seis emiten es marcado, que no viaja por ese contrato.
+
+**No hay sucesor, y ésa es la decisión.** Portar el compilador de nodos sobre
+``base.IrTemplateExpressions`` sería construir un emisor de HTML que ningún
+consumidor de este producto lee. Si la premisa arquitectónica cambiara —si
+algún día el backend renderizara HTML— la que se revisa es la decisión de
+``ir_template_expressions.py``, no este archivo.
 
 Los dos que **sí** enganchan hoy:
 
@@ -159,7 +168,8 @@ from django.utils import timezone
 from lxml import etree, html
 from markupsafe import Markup, escape_silent
 from orm.environments import get_current_user
-from orm.method_chain import chain_method, wrap_method
+from orm.method_chain import (chain_method, extend_list, merge_dict,
+                              wrap_method)
 from orm.registry import model_by_name
 from PIL import Image as I
 from tools.json import scriptsafe as json_safe
@@ -324,7 +334,7 @@ def _converter_for(model_name):
 
 
 # ------------------------------------------------------
-# IrQweb — las directivas de snippet (ver «El bloqueo del compilador»)
+# IrQweb — las directivas de snippet (ver «Los seis sin consumidor»)
 # ------------------------------------------------------
 
 
@@ -1055,7 +1065,7 @@ def apply_html_editor_extensions():
     # --- IrQweb → IrTemplateExpressions: directivas y enganches ----------
     chain_method(IrTemplateExpressions, '_compile_node', _compile_node)
     chain_method(IrTemplateExpressions, '_get_preload_attribute_xmlids',
-                 _get_preload_attribute_xmlids)
+                 _get_preload_attribute_xmlids, combine=extend_list)
     chain_method(IrTemplateExpressions, '_compile_directive_snippet',
                  _compile_directive_snippet)
     chain_method(IrTemplateExpressions, '_compile_directive_snippet_call',
@@ -1072,7 +1082,8 @@ def apply_html_editor_extensions():
     # --- Los trece conversores -------------------------------------------
     # ``classmethod(...)`` envuelve cada función porque el conversor de
     # ``base`` declara sus métodos así; ver el docstring del módulo.
-    chain_method(IrFieldConverter, 'attributes', classmethod(attributes))
+    chain_method(IrFieldConverter, 'attributes', classmethod(attributes),
+                 combine=merge_dict)
     chain_method(IrFieldConverter, 'value_from_string',
                  classmethod(value_from_string))
     chain_method(IrFieldConverter, 'from_html', classmethod(from_html))
@@ -1084,22 +1095,22 @@ def apply_html_editor_extensions():
                  classmethod(float_from_html))
 
     chain_method(IrFieldConverterMany2one, 'attributes',
-                 classmethod(many2one_attributes))
+                 classmethod(many2one_attributes), combine=merge_dict)
     chain_method(IrFieldConverterMany2one, 'from_html',
                  classmethod(many2one_from_html))
 
     chain_method(IrFieldConverterContact, 'attributes',
-                 classmethod(contact_attributes))
+                 classmethod(contact_attributes), combine=merge_dict)
     chain_method(IrFieldConverterContact, 'get_record_to_html',
                  classmethod(get_record_to_html))
 
     chain_method(IrFieldConverterDate, 'attributes',
-                 classmethod(date_attributes))
+                 classmethod(date_attributes), combine=merge_dict)
     chain_method(IrFieldConverterDate, 'from_html',
                  classmethod(date_from_html))
 
     chain_method(IrFieldConverterDatetime, 'attributes',
-                 classmethod(datetime_attributes))
+                 classmethod(datetime_attributes), combine=merge_dict)
     chain_method(IrFieldConverterDatetime, 'from_html',
                  classmethod(datetime_from_html))
 
@@ -1110,7 +1121,7 @@ def apply_html_editor_extensions():
                  classmethod(selection_from_html))
 
     chain_method(IrFieldConverterHtml, 'attributes',
-                 classmethod(html_attributes))
+                 classmethod(html_attributes), combine=merge_dict)
     chain_method(IrFieldConverterHtml, 'from_html',
                  classmethod(html_from_html))
 
@@ -1125,7 +1136,7 @@ def apply_html_editor_extensions():
                  classmethod(monetary_from_html))
 
     chain_method(IrFieldConverterDuration, 'attributes',
-                 classmethod(duration_attributes))
+                 classmethod(duration_attributes), combine=merge_dict)
     chain_method(IrFieldConverterDuration, 'from_html',
                  classmethod(duration_from_html))
 

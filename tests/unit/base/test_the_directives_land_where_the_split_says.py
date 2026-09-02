@@ -1,17 +1,23 @@
-r"""Las 20 directivas ``t-*``, aplicadas: dónde aterriza cada una en ESTE árbol.
+r"""Las directivas ``t-*``, aplicadas: dónde aterriza cada una en ESTE árbol.
 
 Directiva del ejecutor 2026-08-30: cerrar las piezas que quedan del desmontaje
 de QWeb con el mismo criterio de las dos categorías. Pieza 2 de 8.
 
-Hay ya dos archivos sobre estas 20 y **ninguno mide lo que este mide**:
+El archivo se llamaba ``test_the_twenty_directives_…`` y el veinte dejó de
+ser cierto: ``html_editor`` inserta cuatro más, así que la lista efectiva son
+**24**. El conteo era propiedad de un artefacto vivo transcrita al nombre del
+archivo, que es lo que ``calibration-verified-numbers.md`` prohíbe — por eso
+el nombre ya no lo lleva y la cifra la publica el propio caso al correr.
+
+Hay ya dos archivos sobre estas directivas y **ninguno mide lo que este mide**:
 
 - ``test_directive_substrate_without_qweb.py`` ejerce el **sustrato**: que
   DTL, ``lxml`` y el ORM traen el mecanismo que la tabla del análisis les
   atribuye. Responde *"¿existe con qué?"*.
 - Éste ejerce el **destino**: en qué símbolo de este árbol aterrizó cada
   directiva, ahora que el intérprete del descriptor está escrito. Responde
-  *"¿dónde quedó?"* — y para cuatro de las veinte la respuesta es una
-  divergencia declarada, no un símbolo.
+  *"¿dónde quedó?"* — y para once de las veinte de ``base`` la respuesta es
+  una divergencia declarada, no un símbolo.
 
 La lista **no se teclea**: sale de ``_directives_eval_order()``, así que una
 directiva nueva en la fuente aparece aquí sin destino en vez de pasar
@@ -60,7 +66,23 @@ LANDING = {
     'groups': 'orm-policy',
     'options': 'orm-policy',
     'debug': 'divergencia',
+    # Las cuatro que ``html_editor`` inserta antes de ``att``
+    # (``odoo19c: addons/html_editor/models/ir_qweb_fields.py:158-168``).
+    # Mismo desenlace y misma razón que las cuatro constructoras de marcado de
+    # ``base``: emiten marcado del editor —``Markup('<div …
+    # data-oe-type="snippet"`` y ``el.set('t-att-placeholder', …)``— para un
+    # cliente renderizado en servidor, y aquí ese cliente es React.
+    'placeholder': 'divergencia',
+    'snippet': 'divergencia',
+    'snippet-call': 'divergencia',
+    'install': 'divergencia',
 }
+
+#: Las que NO declara ``base``: las inserta la extensión de ``html_editor``.
+#: Se declaran aquí para poder afirmar el reparto de ``base`` sin él, y el
+#: caso ``test_the_extension_block_sits_where_the_source_puts_it`` comprueba
+#: contra la lista compuesta que de verdad vienen de ahí.
+EXTENSION_DIRECTIVES = ['placeholder', 'snippet', 'snippet-call', 'install']
 
 
 def arch(xml):
@@ -81,11 +103,34 @@ class TestTheListComesFromTheSourceNotFromHere:
         assert set(LANDING.values()) == {
             'descriptor', 'converters', 'orm-policy', 'divergencia'}
 
-    def test_the_split_is_the_one_the_decision_publishes(self):
-        counts = {v: sum(1 for x in LANDING.values() if x == v)
-                  for v in set(LANDING.values())}
+    def test_the_split_of_base_is_the_one_the_decision_publishes(self):
+        """El reparto que la decisión publica es el de las 20 de ``base``.
+
+        Se afirma **sin** las de la extensión: añadirlas al mismo conteo
+        habría movido una cifra ratificada por una razón que no es suya.
+        """
+        base = {k: v for k, v in LANDING.items()
+                if k not in EXTENSION_DIRECTIVES}
+        counts = {v: sum(1 for x in base.values() if x == v)
+                  for v in set(base.values())}
         assert counts == {'descriptor': 5, 'converters': 1,
                           'orm-policy': 3, 'divergencia': 11}, counts
+
+    def test_the_extension_block_sits_where_the_source_puts_it(self):
+        """Las cuatro vienen de la extensión, y se mide en la lista compuesta.
+
+        La fuente las inserta **antes de** ``att`` y en bloque, porque las
+        cuatro leen atributos estáticos que ``att`` borra
+        (``odoo19c: addons/html_editor/models/ir_qweb_fields.py:158-168``).
+        Ese contrato posicional es lo que distingue «vienen de la extensión»
+        de «alguien las escribió en ``base``», y el caso cae si un quinto
+        addon inserta una directiva suelta en otro sitio.
+        """
+        declared = IrTemplateExpressions._directives_eval_order(
+            IrTemplateExpressions)
+        positions = [declared.index(d) for d in EXTENSION_DIRECTIVES]
+        assert max(positions) - min(positions) == len(EXTENSION_DIRECTIVES) - 1
+        assert max(positions) < declared.index('att')
 
 
 class TestTheFiveThatLandInTheInterpreter:
@@ -173,6 +218,55 @@ class TestTheElevenThatDoNotLand:
                    '</descriptor>')
         assert interpret_descriptor(doc, {'flag': True, 'vacio': False}) == {'si': 'A'}
         assert interpret_descriptor(doc, {'flag': False, 'vacio': True}) == {'no': 'B'}
+
+
+class TestTheFourFromTheEditorExtension:
+    """Las cuatro de ``html_editor``: portadas, y su destino es ``divergencia``.
+
+    Un símbolo portado y un símbolo ausente no son lo mismo, y la diferencia
+    es lo que esta clase mide. ``html_editor`` encadena las cuatro sobre
+    ``IrTemplateExpressions`` con su nombre, su firma y su cuerpo — lo exige
+    ``porte-completo-no-parcial``, y la extensión las declara antes de ``att``
+    (``odoo19c: addons/html_editor/models/ir_qweb_fields.py:158-168``).
+
+    Su **destino** es el mismo que el de las cuatro constructoras de marcado
+    de ``base``, y por la misma razón arquitectónica que
+    ``src/addons/base/models/ir_template_expressions.py`` ya ratifica: lo que
+    emiten es marcado para un cliente renderizado en servidor —``Markup`` con
+    ``data-oe-type="snippet"``, un ``t-att-placeholder`` puesto en el nodo— y
+    aquí ese cliente es React; el backend entrega datos por DRF. Por eso el
+    intérprete del papel las rechaza por nombre.
+
+    **Portarlas completas no inventa un consumidor: deja el API completo.**
+    Es el criterio de ``porte-completo-no-parcial`` — el símbolo se porta
+    entero y lo que se declara es su destino, no su ausencia. Quien consume
+    este API es React, y lo hace por el contrato que ``drf-spectacular``
+    publica; lo que estas cuatro emiten es marcado, que no viaja por ese
+    contrato. Lo que la versión anterior de esta clase sí inventaba era **un
+    compilador futuro** que las invocaría — eso contradecía la decisión
+    ratificada, y se retiró.
+
+    *Métrica:* la presencia del método de cada una sobre
+    ``IrTemplateExpressions`` y el rechazo por nombre del intérprete del
+    descriptor.
+    *Ciega a:* qué marcado produciría el cuerpo portado — aquí nadie lo
+    invoca, así que su salida no se ejerce.
+    """
+
+    @pytest.mark.parametrize('directive', [
+        'placeholder', 'snippet', 'snippet-call', 'install'])
+    def test_the_compile_method_is_installed_with_the_source_name(
+            self, directive):
+        name = '_compile_directive_%s' % directive.replace('-', '_')
+        assert hasattr(IrTemplateExpressions, name), name
+
+    @pytest.mark.parametrize('tag', ['snippet', 'install'])
+    def test_the_paper_interpreter_refuses_them_by_name(self, tag):
+        # El mismo rechazo que las cuatro constructoras de marcado de ``base``:
+        # el intermedio del papel es un dict, no marcado del editor.
+        doc = arch('<descriptor><%s name="k">v</%s></descriptor>' % (tag, tag))
+        with pytest.raises(InvalidReportTemplate, match=tag):
+            interpret_descriptor(doc, {})
 
 
 class TestWhereTheFieldValueLandsOnThePaperPath:
