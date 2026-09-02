@@ -8,7 +8,7 @@ import base64
 import io
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from exceptions import UserError
 from tools.image import (
@@ -23,6 +23,17 @@ from tools.image import (
 def _png(width=64, height=32, mode='RGB', color=(200, 30, 30)):
     stream = io.BytesIO()
     Image.new(mode, (width, height), color).save(stream, format='PNG')
+    return stream.getvalue()
+
+
+def _png_with_ellipse(width=640, height=360):
+    """Un PNG con contenido no trivial: la paleta WEB sí lo encoge."""
+    image = Image.new('RGB', (width, height), (30, 60, 200))
+    ImageDraw.Draw(image).ellipse(
+        [(100, 20), (width - 100, height - 20)],
+        fill=(250, 220, 30), outline=(240, 25, 40), width=10)
+    stream = io.BytesIO()
+    image.save(stream, format='PNG')
     return stream.getvalue()
 
 
@@ -130,9 +141,26 @@ class TestImageQuality:
         out = ImageProcess(_png()).image_quality(output_format='BMP')
         assert Image.open(io.BytesIO(out)).format == 'PNG'
 
-    def test_png_with_quality_is_paletted(self):
-        out = ImageProcess(_png()).image_quality(quality=80)
+    def test_png_with_quality_is_paletted_when_that_shrinks_it(self):
+        """≙ la rama ``convert('P', palette=Palette.WEB)`` (``:150-152``).
+
+        El contenido tiene que ser no trivial —mismo criterio que
+        ``test_13_image_process_quality`` de la fuente, que dibuja una elipse
+        «so that optimization matters»—: sobre un PNG plano la paleta pesa
+        más que el original y entra la rama de abajo, no ésta.
+        """
+        source = _png_with_ellipse()
+        out = ImageProcess(source).image_quality(quality=80)
+        assert len(out) < len(source)
         assert Image.open(io.BytesIO(out)).mode == 'P'
+
+    def test_png_whose_paletted_form_is_bigger_returns_the_source(self):
+        """≙ ``if len(output_bytes) >= len(self.source) and … not
+        self.operationsCount: return self.source`` (``:164-167``) —
+        «Original should be returned if size increased». Un PNG plano de
+        64x32 cabe en menos bytes que su versión en paleta."""
+        source = _png()
+        assert ImageProcess(source).image_quality(quality=80) is source
 
 
 class TestImageProcessEntryPoint:
@@ -205,7 +233,8 @@ class TestWebpSize:
             get_webp_size(b'\x89PNG')
 
     def test_unknown_chunk_is_none(self):
-        assert get_webp_size(b'RIFF' + bytes(4) + b'WEBPVP8Z' + bytes(20)) is None
+        payload = b'RIFF' + bytes(4) + b'WEBPVP8Z' + bytes(20)
+        assert get_webp_size(payload) is None
 
 
 class TestSizeComparison:
