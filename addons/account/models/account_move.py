@@ -489,7 +489,7 @@ class AccountMove(SequenceMixin, models.Model):
         """
         user = self.partner
         party = getattr(user, 'partner', None) if user is not None else None
-        self.commercial_partner_id = getattr(party, 'commercial_partner', None) or party
+        self.commercial_partner_id = getattr(party, 'commercial_partner_id', None) or party
 
     def _compute_invoice_date_due(self):
         """La fecha de vencimiento -- ≙ ``odoo19c: :1077-1084``.
@@ -524,7 +524,7 @@ class AccountMove(SequenceMixin, models.Model):
         if self.partner_id is None:
             return
         party = getattr(self.partner, 'partner', None)
-        commercial_party = getattr(party, 'commercial_partner', None) if party else None
+        commercial_party = getattr(party, 'commercial_partner_id', None) if party else None
         self.invoice_user_id = (
             self.invoice_user_id
             or getattr(party, 'user', None)

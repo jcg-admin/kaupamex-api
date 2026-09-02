@@ -45,20 +45,25 @@ pytestmark = pytest.mark.integration
 
 class TestPrivatePublicSplit:
     """Los tres que ya existían: el field sigue leyéndose igual y ahora hay
-    dónde engancharse."""
+    dónde engancharse.
+
+    **Dos de los tres cambiaron de forma en #314.** ``commercial_partner_id``
+    y ``commercial_company_name`` eran ``property``; hoy son columnas con
+    ``compute=… store=True``, que es lo que la fuente declara
+    (``odoo19c: res_partner.py:301-306``). Eso mueve el punto de lectura —de
+    derivar en cada acceso a leer la columna— pero **no** el punto de
+    extensión: el addon sigue sobreescribiendo el mismo ``_compute_X``, sólo
+    que su efecto se observa al guardar. ``contact_address`` sigue siendo
+    property y conserva su control original.
+    """
 
     def test_the_commercial_partner_field_still_reads(self, db):
         company = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
         who = ResPartner.objects.create(name='Ana', parent=company)
-        assert who.commercial_partner == company
+        assert who.commercial_partner_id == company
 
-    @pytest.mark.parametrize('field, compute', [
-        ('commercial_partner', '_compute_commercial_partner'),
-        ('commercial_company_name', '_compute_commercial_company_name'),
-        ('contact_address', '_compute_contact_address'),
-    ])
-    def test_overriding_the_compute_changes_the_read(self, db, monkeypatch,
-                                                     field, compute):
+    def test_overriding_the_property_compute_changes_the_read(self, db,
+                                                              monkeypatch):
         """CONTROL de la partición, y tiene que hacerse SOBREESCRIBIENDO.
 
         Comparar ``who.X == who._compute_X()`` **no discrimina**: si el
@@ -72,8 +77,32 @@ class TestPrivatePublicSplit:
         company = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
         who = ResPartner.objects.create(name='Ana', parent=company,
                                         street='Reforma 1', city='CDMX')
-        monkeypatch.setattr(ResPartner, compute, lambda self: 'DESDE EL ADDON')
-        assert getattr(who, field) == 'DESDE EL ADDON'
+        monkeypatch.setattr(ResPartner, '_compute_contact_address',
+                            lambda self: 'DESDE EL ADDON')
+        assert who.contact_address == 'DESDE EL ADDON'
+
+    def test_overriding_the_stored_compute_changes_the_column(self, db,
+                                                              monkeypatch):
+        """El mismo control para los dos que ahora tienen columna.
+
+        La diferencia con el de arriba es CUÁNDO se observa: un computado
+        almacenado escribe al guardar, así que el override se comprueba
+        volviendo a guardar y releyendo de la base — no en el acceso.
+
+        Qué lo haría fallar: que la columna la escribiera cualquier otra cosa
+        que no sea ``_compute_commercial_company_name``. Ahí el override no
+        movería el valor y este caso caería, que es justo lo que se pide de
+        un punto de extensión.
+        """
+        company = ResPartner.objects.create(name='Kaupamex SA', is_company=True)
+        who = ResPartner.objects.create(name='Ana', parent=company)
+        monkeypatch.setattr(
+            ResPartner, '_compute_commercial_company_name',
+            lambda self: setattr(self, 'commercial_company_name',
+                                 'DESDE EL ADDON'))
+        who.save()
+        who.refresh_from_db()
+        assert who.commercial_company_name == 'DESDE EL ADDON'
 
 
 class TestIsPublic:
