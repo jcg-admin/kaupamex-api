@@ -58,6 +58,7 @@ a una raíz propia como ``src/core``— es la tarea **#121**.
 """
 import inspect
 import types
+import warnings
 
 from django.db import models
 
@@ -285,10 +286,121 @@ class NonStored:
 _UNSET = object()
 
 
-def apply_related_defaults(related, kwargs):
-    """Los cuatro atributos que la fuente le da a un campo ``related=``.
+def _declared_source_vocabulary(kwargs, related):
+    """Saca de ``kwargs`` el vocabulario de la fuente, UNA vez.
 
-    ≙ ``odoo19c: odoo/orm/fields.py:452-458``, verbatim::
+    La fuente trabaja sobre **un** diccionario ``attrs`` que lee repetidas
+    veces (``odoo19c: odoo/orm/fields.py:443-465``). Aquí el vocabulario llega
+    en ``kwargs`` y hay que retirarlo antes de que lo vea el constructor de
+    Django, así que se retira de golpe y los tres bloques leen del resultado.
+
+    **Sacarlo bloque a bloque fue un defecto real**: el de ``compute`` corría
+    primero y vaciaba ``copy``, ``readonly`` y ``compute_sudo``, así que el de
+    ``related`` los leía siempre como no declarados y pisaba lo que el autor
+    había escrito. Costó seis rojos en la suite —cuatro de escritura de
+    related, uno de ``copy=False`` y uno de ``readonly=False``— y ninguno lo
+    habría visto un subconjunto derivado por nombre de símbolo.
+
+    ``copy`` es la excepción y por una razón medida: ``models.Field.__init__``
+    **ya** lo acepta y lo anota (``orm/fields.py:900-910``), así que sobre un
+    campo corriente tiene que seguir viajando en ``kwargs``. Sólo se retira
+    cuando un bloque va a pisarlo.
+    """
+    declared = {
+        'compute': kwargs.pop('compute', None),
+        'inverse': kwargs.pop('inverse', None),
+        'recursive': kwargs.pop('recursive', _UNSET),
+        'precompute': kwargs.pop('precompute', _UNSET),
+        'compute_sudo': kwargs.pop('compute_sudo', _UNSET),
+        'related_sudo': kwargs.pop('related_sudo', _UNSET),
+        'readonly': kwargs.pop('readonly', _UNSET),
+        'store': kwargs.pop('store', _UNSET),
+    }
+    if declared['compute'] or related:
+        declared['copy'] = kwargs.pop('copy', _UNSET)
+    else:
+        declared['copy'] = _UNSET
+    return declared
+
+
+def _apply_compute_block(declared, attrs):
+    """El bloque ``compute`` de la fuente, verbatim.
+
+    ≙ ``odoo19c: odoo/orm/fields.py:443-451``::
+
+        if attrs.get('compute'):
+            # by default, computed fields are not stored, computed in superuser
+            # mode if stored, not copied (unless stored and explicitly not
+            # readonly), and readonly (unless inversible)
+            attrs['store'] = store = attrs.get('store', False)
+            attrs['compute_sudo'] = attrs.get('compute_sudo', store)
+            if not (attrs['store'] and not attrs.get('readonly', True)):
+                attrs['copy'] = attrs.get('copy', False)
+            attrs['readonly'] = attrs.get('readonly', not attrs.get('inverse'))
+
+    La condición doblemente negada de ``copy`` tiene una sola rama que NO
+    fuerza ``False``: con columna **y** ``readonly`` declarado falso. Sin un
+    caso que la ejerza, esa rama no se distingue de las otras tres.
+    """
+    compute = declared['compute']
+    attrs['compute'] = compute
+    attrs['inverse'] = declared['inverse']
+    if declared['recursive'] is not _UNSET:
+        attrs['recursive'] = declared['recursive']
+    if not compute:
+        return attrs
+
+    store = False if declared['store'] is _UNSET else declared['store']
+    attrs['store'] = store
+    attrs['compute_sudo'] = (store if declared['compute_sudo'] is _UNSET
+                             else declared['compute_sudo'])
+    readonly_default = True if declared['readonly'] is _UNSET else declared['readonly']
+    if not (store and not readonly_default):
+        attrs['copy'] = (False if declared['copy'] is _UNSET
+                         else declared['copy'])
+    elif declared['copy'] is not _UNSET:
+        attrs['copy'] = declared['copy']
+    attrs['readonly'] = (not declared['inverse']
+                         if declared['readonly'] is _UNSET
+                         else declared['readonly'])
+    return attrs
+
+
+def _apply_precompute_block(declared, attrs):
+    """≙ ``odoo19c: odoo/orm/fields.py:459-465`` — avisa y desactiva.
+
+    ``precompute`` sólo tiene efecto sobre un calculado (o un related, que es
+    un calculado con otro nombre) **y** con columna. Fuera de ahí la fuente
+    avisa y lo apaga; no lo acepta en silencio. El aviso no es decoración: sin
+    él, un ``precompute=True`` sobre un campo sin cómputo se lee como que algo
+    se adelanta, y no se adelanta nada.
+    """
+    precompute = (False if declared['precompute'] is _UNSET
+                  else declared['precompute'])
+    if precompute:
+        if not attrs.get('compute') and not attrs.get('related_declared'):
+            warnings.warn(
+                'precompute attribute does not make any sense on non computed '
+                'field', stacklevel=4)
+            precompute = False
+        elif not attrs.get('store'):
+            warnings.warn(
+                'precompute attribute has no impact on non stored field',
+                stacklevel=4)
+            precompute = False
+    attrs['precompute'] = precompute
+    return attrs
+
+
+def apply_source_defaults(related, kwargs):
+    """El bloque ``attrs`` de la fuente: lo que ``compute=`` y ``related=``
+    implican sin declararse.
+
+    ≙ ``odoo19c: odoo/orm/fields.py:443-465`` — tres bloques secuenciales sobre
+    el mismo diccionario, en este orden: ``compute``, ``related``,
+    ``precompute``. Se portan los tres.
+
+    El de ``related``, verbatim::
 
         if attrs.get('related'):
             attrs['store'] = store = attrs.get('store', False)
@@ -297,36 +409,83 @@ def apply_related_defaults(related, kwargs):
             attrs['copy'] = attrs.get('copy', False)
             attrs['readonly'] = attrs.get('readonly', True)
 
-    El primero es el que explica la forma del corpus: ``store`` por defecto es
-    ``True`` en un campo cualquiera y **``False`` en un related**, así que de
-    los que la referencia declara en los addons que este árbol porta, la gran
-    mayoría **no lleva columna** (el reparto:
-    ``python3 scripts/census_related_fields.py``). La prosa que los declinaba
-    llamándolos
-    «una copia que puede divergir» describía a los otros 45
-    (:ref:`h-api-974`).
+    Los otros dos viven en :func:`_apply_compute_block` y
+    :func:`_apply_precompute_block`, cada uno con su cita.
 
-    **Los saca de ``kwargs``** y los devuelve en un diccionario. Los cuatro
-    son del vocabulario de la fuente y el constructor de Django no los
-    conoce: dejarlos dentro revienta con ``unexpected keyword argument``. Su
-    hogar es el campo ya construido — lo hace :func:`annotate_related`.
+    ``store`` es el atributo que explica la forma del corpus: por defecto es
+    ``True`` en un campo cualquiera y **``False``** tanto en un related como en
+    un calculado. Medido sobre 3330 archivos ``models/*.py`` de ``odoo19c``: de
+    las **3641** declaraciones con ``compute=``, **2368** no piden columna. El
+    reparto de related lo publica ``scripts/census_related_fields.py``.
+
+    **Se llamaba ``apply_related_defaults``.** El nombre describía la mitad que
+    portaba; con las tres, mentiría.
     """
-    declared_store = kwargs.pop('store', _UNSET)
-    if not related:
-        return {'store': True if declared_store is _UNSET else declared_store}
-    declared_sudo = kwargs.pop('compute_sudo', _UNSET)
-    if declared_sudo is _UNSET:
-        declared_sudo = kwargs.pop('related_sudo', True)
-    else:
-        kwargs.pop('related_sudo', None)
-    declared_copy = kwargs.pop('copy', _UNSET)
-    declared_readonly = kwargs.pop('readonly', _UNSET)
-    return {
-        'store': False if declared_store is _UNSET else declared_store,
-        'compute_sudo': declared_sudo,
-        'copy': False if declared_copy is _UNSET else declared_copy,
-        'readonly': True if declared_readonly is _UNSET else declared_readonly,
-    }
+    declared = _declared_source_vocabulary(kwargs, related)
+    attrs = {'related_declared': bool(related)}
+
+    #: Orden de la fuente: ``compute``, luego ``related``, luego
+    #: ``precompute``. Importa: los dos primeros escriben ``store`` y el
+    #: segundo pisa al primero, que es lo que hace que un ``related=`` con
+    #: ``compute=`` acabe con la forma del related.
+    attrs = _apply_compute_block(declared, attrs)
+
+    if related:
+        related_sudo = (True if declared['related_sudo'] is _UNSET
+                        else declared['related_sudo'])
+        attrs.update({
+            'store': (False if declared['store'] is _UNSET
+                      else declared['store']),
+            'compute_sudo': (related_sudo if declared['compute_sudo'] is _UNSET
+                             else declared['compute_sudo']),
+            'copy': False if declared['copy'] is _UNSET else declared['copy'],
+            'readonly': (True if declared['readonly'] is _UNSET
+                         else declared['readonly']),
+        })
+    elif not declared['compute']:
+        attrs['store'] = (True if declared['store'] is _UNSET
+                          else declared['store'])
+        if declared['compute_sudo'] is not _UNSET:
+            attrs['compute_sudo'] = declared['compute_sudo']
+        if declared['readonly'] is not _UNSET:
+            attrs['readonly'] = declared['readonly']
+
+    attrs = _apply_precompute_block(declared, attrs)
+
+    #: ``editable=False`` es la forma NATIVA de Django de decir «esto no lo
+    #: escribe el cliente», y es la que DRF ya consume: ``get_field_kwargs``
+    #: (``rest_framework/utils/field_mapping.py:124-128``) hace
+    #: ``if ... or not model_field.editable: kwargs['read_only'] = True`` y
+    #: retorna. Así el contrato del endpoint sale del riel del anfitrión, sin
+    #: override en ningún serializer — el stack lo trae hecho.
+    #:
+    #: Aplica al calculado **y al related**, que es lo que la fuente declara
+    #: para los dos (``:451`` y ``:458``, ambos ``readonly``). Una versión
+    #: anterior lo restringía al calculado «para no cambiar el contrato de
+    #: campos ya publicados»; la razón no se sostiene, pero **tampoco la
+    #: medición con que se retiró**, y las dos quedan registradas porque el
+    #: instrumento equivocado es el hallazgo:
+    #:
+    #: - se midió ``apps.get_models()`` y dio **0** campos con ``related``,
+    #:   leído como «no hay contrato que proteger». Es un **falso negativo**:
+    #:   un ``related`` sin ``store`` explícito sale ``NonStored``, que no
+    #:   tiene columna y por tanto **no está en** ``_meta.get_fields()``. El
+    #:   censo era ciego justo al objeto que buscaba;
+    #:
+    #: - por AST hay **12** declaraciones vivas —``res_bank`` ×4,
+    #:   ``res_partner``, ``res_company``, ``res_config_settings`` ×5,
+    #:   ``base_address_extended``—, no cero.
+    #:
+    #: Lo que hace correcta la propagación no es que no haya related vivos:
+    #: es que la guarda exige ``store``, y **ninguna de las 12 declara
+    #: ``store=True``**. La inyección no las alcanza hoy; alcanzará al primer
+    #: related que pida columna, que es cuando la fuente dice que debe.
+    if (attrs.get('readonly') and attrs.get('store')
+            and 'editable' not in kwargs):
+        kwargs['editable'] = False
+
+    attrs.pop('related_declared', None)
+    return attrs
 
 
 def annotate_related(field, related, attrs):
@@ -339,7 +498,18 @@ def annotate_related(field, related, attrs):
     tragarse (``orm/fields_textual.py``).
     """
     field.related = related
-    if not related:
+    #: La salida temprana existe para NO tocar el campo corriente: sin
+    #: ``related`` ni ``compute``, el diccionario trae sólo ``store`` y los
+    #: defaults de clase (``orm/fields.py``) ya lo dicen. Anotar ahí pondría un
+    #: atributo de instancia en cada uno de los miles de campos del árbol para
+    #: repetir lo que la clase ya declara.
+    #:
+    #: Un calculado SÍ entra: su vocabulario es lo que
+    #: :class:`~orm.registry._DerivedCollector` lee para unir el campo con el
+    #: ``_depends`` de su método. Sin la anotación, ``field.compute`` sería
+    #: ``None`` y el mapa saldría vacío — que es lo que el censo midió antes de
+    #: este porte (44 métodos, 0 campos, 0 aristas).
+    if not related and not attrs.get('compute'):
         return field
     for attribute, value in attrs.items():
         setattr(field, attribute, value)
@@ -348,7 +518,7 @@ def annotate_related(field, related, attrs):
     #: declinarse (:ref:`h-api-974`). ``_search_related`` lo instala
     #: :mod:`orm.domains`; aquí se liga a esta instancia. Con ``store`` la
     #: búsqueda va por la columna propia, así que no se cablea (``:635``).
-    if not attrs['store']:
+    if related and not attrs['store']:
         field.search = _bind_search_related(field)
     return field
 
@@ -487,7 +657,7 @@ def projection_or_none(related, kwargs, company_dependent=False):
     devolviera siempre el descriptor, la rama con columna dejaría de existir
     sin que ningún caso lo notara.
     """
-    related_attrs = apply_related_defaults(related, kwargs)
+    related_attrs = apply_source_defaults(related, kwargs)
     if not related_attrs['store']:
         #: La exclusión vive AQUI y no en cada constructor porque es una
         #: contradicción de la declaración, no una decisión de rama: el

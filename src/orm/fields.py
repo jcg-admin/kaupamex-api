@@ -72,7 +72,7 @@ from orm.fields_numeric import Float, Integer, Monetary        # noqa: F401
 from orm.fields_nonstored import (                          # noqa: F401
     NonStored,
     annotate_related,
-    apply_related_defaults,
+    apply_source_defaults,
 )
 from orm.fields_properties import (                            # noqa: F401
     Properties,

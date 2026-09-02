@@ -59,7 +59,7 @@ from orm.fields_nonstored import (
     _UNSET,
     NonStored,
     annotate_related,
-    apply_related_defaults,
+    apply_source_defaults,
     projection_or_none,
 )
 
@@ -194,7 +194,7 @@ def Char(*args, store=_UNSET, required=None, translate=None, help=None,
     #: ``python3 scripts/census_related_fields.py``.
     if store is not _UNSET:
         kwargs['store'] = store
-    related_attrs = apply_related_defaults(related, kwargs)
+    related_attrs = apply_source_defaults(related, kwargs)
     store = related_attrs['store']
 
     if company_dependent:
