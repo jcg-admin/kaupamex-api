@@ -521,6 +521,52 @@ def clean_context(context: dict) -> dict:
     return {k: v for k, v in context.items() if not k.startswith('default_')}
 
 
+class Collector(dict):
+    """Un mapa de clave a tupla — ≙ ``Collector`` (``odoo19c: odoo/tools/misc.py:988``).
+
+    Docstring de la fuente, verbatim: *"A mapping from keys to tuples. This
+    implements a relation, and can be seen as a space optimization for
+    ``defaultdict(tuple)``"*.
+
+    Las dos mitades del contrato, y ninguna es opcional:
+
+    - **leer lo ausente devuelve** ``()``, **sin crear la entrada**. Por eso NO
+      es un ``defaultdict``: con aquél, preguntar por un campo sin inversa lo
+      añadiría al mapa, y el mapa se llenaría de entradas vacías al recorrerlo;
+    - **asignar vacío borra la clave**, que es lo que mantiene la invariante
+      anterior después de un ``discard``.
+
+    La anotación de la fuente es ``Collector[K, T]``; aquí la clase hereda de
+    ``dict`` a secas y los tipos viajan en el docstring, igual que en
+    :class:`~orm.registry.TriggerTree` y por la misma razón.
+    """
+
+    __slots__ = ()
+
+    def __getitem__(self, key):
+        return self.get(key, ())
+
+    def __setitem__(self, key, val):
+        val = tuple(val)
+        if val:
+            super().__setitem__(key, val)
+        else:
+            super().pop(key, None)
+
+    def add(self, key, val):
+        """Suma ``val`` a la tupla de ``key``, sin repetirlo."""
+        vals = self[key]
+        if val not in vals:
+            self[key] = vals + (val,)
+
+    def discard_keys_and_values(self, excludes):
+        """Retira lo excluido de los dos lados de la relación."""
+        for key in excludes:
+            self.pop(key, None)
+        for key, vals in list(self.items()):
+            self[key] = tuple(val for val in vals if val not in excludes)
+
+
 class StackMap(MutableMapping[K, T], typing.Generic[K, T]):
     """≙ ``StackMap`` (``odoo19c: odoo/tools/misc.py:1016-1054``).
 

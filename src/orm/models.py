@@ -78,7 +78,7 @@ from orm.domains import Domain, to_q
 from orm.fields import convert_to_display_name
 from orm.fields_nonstored import NonStored, non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
-from orm.utils import parse_field_expr
+from orm.utils import model_field_registry, parse_field_expr
 from service.db import Savepoint
 from tools.sql import SQL
 
@@ -1403,9 +1403,7 @@ class FieldSqlMixin:
         de Django ni como ``NonStored`` — una ``property`` pelada, por ejemplo.
         Esa forma existe en el árbol y su barrido es la tarea **#302**.
         """
-        registry = {field.name: field for field in self._meta.get_fields()}
-        registry.update(non_stored_fields(type(self)))
-        return registry
+        return model_field_registry(type(self))
 
     def _has_field_access(self, field, operation) -> bool:
         """Si el usuario puede leer o escribir este campo.

@@ -180,17 +180,45 @@ class TestResolveDepends:
         assert field.model is not None
         assert not field.model_name
 
-    def test_it_resolves_a_declared_chain_to_its_fields(self, db):
-        """El control de punta a punta: una dependencia declarada como nombre
-        punteado sale como la tupla de campos que la recorre."""
-        partner = registry.MODELS_BY_NAME['res.partner']
-        field = partner._meta.get_field('name')
+    @staticmethod
+    def _resolved_with(field, dotnames):
+        """Resuelve ``dotnames`` sobre ``field`` con el mapa sustituido."""
         collector = registry._DerivedCollector('_depends')
-        collector._table = {field: ('name',)}
+        collector._table = {field: dotnames}
         original = registry.field_depends
         registry.field_depends = collector
         try:
-            resolved = list(field.resolve_depends(registry))
+            return list(field.resolve_depends(registry))
         finally:
             registry.field_depends = original
-        assert resolved == [(field,)]
+
+    def test_it_resolves_a_declared_chain_to_its_fields(self, db):
+        """El control de punta a punta: una dependencia declarada como nombre
+        punteado sale como la tupla de campos que la recorre — y sale **cada
+        prefijo**, no solo la tupla entera (``odoo19c: :855``).
+
+        > **Actualizado en cadena (tarea #273, capa B).** Este caso declaraba
+        > ``{name: ('name',)}`` y esperaba ``[(name,)]``. Las dos mitades eran
+        > consecuencia del porte incompleto: la fuente **no** emite el primer
+        > paso cuando es el propio campo (``:854``), asi que esa declaracion
+        > resuelve a la lista vacia y nunca fue un control de «resuelve la
+        > cadena». Se cambia a una cadena real de dos pasos, que es lo que el
+        > nombre del caso dice medir; el contrato del primer paso se mide
+        > aparte, abajo.
+        """
+        partner = registry.MODELS_BY_NAME['res.partner']
+        field = partner._meta.get_field('name')
+        parent = partner._meta.get_field('parent')
+        parent_name = parent.related_model._meta.get_field('name')
+        assert self._resolved_with(field, ('parent.name',)) == [
+            (parent,), (parent, parent_name)]
+
+    def test_a_field_does_not_trigger_itself_as_the_first_step(self, db):
+        """≙ ``if not (field is self and not index)`` (``:854``).
+
+        Es el control que discrimina al de arriba: la MISMA maquinaria, con el
+        campo como primer paso de su propia dependencia, no emite nada.
+        """
+        partner = registry.MODELS_BY_NAME['res.partner']
+        field = partner._meta.get_field('name')
+        assert self._resolved_with(field, ('name',)) == []

@@ -22,6 +22,7 @@ from collections.abc import Set as AbstractSet
 from django.db import models
 
 from exceptions import ValidationError
+from orm.fields_nonstored import non_stored_fields
 
 regex_object_name = re.compile(r'^[a-z0-9_.]+$')
 regex_pg_name = re.compile(r'^[a-z_][a-z0-9_$]*$', re.IGNORECASE)
@@ -130,3 +131,30 @@ def record_ids(records):
         item.pk if isinstance(item, models.Model) else item
         for item in records
     )
+
+
+def model_field_registry(model):
+    """El mapa ``nombre -> campo`` de una clase de modelo.
+
+    Es el cuerpo de ``BaseModel._fields`` sacado a funcion para que se pueda
+    consultar **sobre la clase**, no solo sobre una instancia. La fuente lo
+    tiene asi de nacimiento: su ``Model._fields`` es un atributo de la clase de
+    registro, y ``resolve_depends`` lo recorre sin instanciar nada
+    (``odoo19c: odoo/orm/fields.py:823``). Aqui ``_fields`` es una ``property``
+    del modelo base, asi que sobre la clase devuelve el objeto ``property`` y
+    no el mapa.
+
+    Antes de esto ``resolve_depends`` resolvia con ``_meta.get_field``, que es
+    **mas estrecho**: un :class:`~orm.fields_nonstored.NonStored` no tiene
+    columna y por tanto no esta en ``_meta``. Esa es exactamente la ceguera que
+    :ref:`h-api-1025` ya habia corregido en ``_fields`` y que este camino
+    seguia teniendo — un ``@api.depends`` sobre un campo sin columna no
+    resolvia, y el silencio se leia como «esa dependencia no existe».
+
+    Un solo cuerpo para los dos consumidores: duplicar la construccion seria la
+    segunda fuente de verdad que ``calibration-verified-numbers.md`` prohibe, y
+    aqui divergiria justo por el eje que ya fallo una vez.
+    """
+    registry = {field.name: field for field in model._meta.get_fields()}
+    registry.update(non_stored_fields(model))
+    return registry

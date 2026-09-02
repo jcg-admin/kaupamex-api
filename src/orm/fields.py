@@ -85,7 +85,8 @@ from orm.fields_relational import Many2many, Many2one, One2many  # noqa: F401
 from orm.fields_selection import Selection                     # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
-from orm.utils import COLLECTION_TYPES, record_ids
+from orm.utils import (COLLECTION_TYPES, model_field_registry,
+                       record_ids)
 
 #: El **registro de tipos de campo**, no la lista de exportables del módulo.
 #:
@@ -2047,53 +2048,179 @@ def _field_setup(self, model):
 models.Field.setup = _field_setup
 
 
+def _model_of(field, registry_module):
+    """La clase de modelo a la que ``field`` pertenece.
+
+    Dos vias, y la de Django va primero. La fuente resuelve por
+    ``field.model_name``, el nombre punteado que su ORM le pone al ligar el
+    campo. Aqui quien liga el campo es Django, y lo que deja es ``field.model``
+    — la clase, directamente. ``model_name`` solo lo lleva un campo cuyo puerto
+    se lo haya declarado, asi que preguntar solo por el dejaria fuera a todo
+    campo ligado por Django, que son todos.
+    """
+    model = getattr(field, 'model', None)
+    if model is not None:
+        return model
+    name = getattr(field, 'model_name', '')
+    return registry_module.MODELS_BY_NAME.get(name) if name else None
+
+
+def _comodel_of(field, registry_module):
+    """El modelo al que ``field`` lleva, o ``None`` si no lleva a ninguno.
+
+    ≙ el ``model_name = field.comodel_name`` con que la fuente avanza el
+    recorrido (``:865``). Django ya publica la clase en ``related_model``, asi
+    que no hace falta pasar por el nombre; ``comodel_name`` queda de respaldo
+    para un campo portado que lo declare y no sea relacion de Django.
+    """
+    related = getattr(field, 'related_model', None)
+    if related is not None:
+        return related
+    comodel = getattr(field, 'comodel_name', None)
+    return registry_module.MODELS_BY_NAME.get(comodel) if comodel else None
+
+
+def _is_one_to_many(field):
+    """Si ``field`` es el lado «muchos» de una relacion — ≙ ``type ==
+    'one2many'``.
+
+    Se pregunta por ``one_to_many`` de Django, que es donde este stack lo
+    declara, **y** por el ``type`` que :class:`~orm.fields_relational.One2many`
+    declara (``fields_relational.py:179``): el primero cubre el reverso de una
+    FK, el segundo el campo portado que se declara explicitamente.
+    """
+    return bool(getattr(field, 'one_to_many', False)
+                or getattr(field, 'type', None) == 'one2many')
+
+
+def _is_many_to_one(field):
+    """Si ``field`` lleva a UN registro — ≙ ``type == 'many2one'``.
+
+    Mismo criterio doble que :func:`_is_one_to_many`, por la misma razon.
+    """
+    return bool(getattr(field, 'many_to_one', False)
+                or getattr(field, 'type', None) == 'many2one')
+
+
 def _field_resolve_depends(self, registry_module):
-    """≙ ``Field.resolve_depends`` (``:807``) — «return the dependencies of
+    """≙ ``Field.resolve_depends`` (``:807-865``) — «return the dependencies of
     ``self`` as a collection of field tuples».
 
-    Cada dependencia declarada es un nombre punteado; esto la resuelve a la
-    tupla de campos que la recorre, para que quien invalide sepa qué tocar.
+    Cada dependencia declarada es un nombre punteado; esto la resuelve a las
+    tuplas de campos que la recorren, para que quien invalide sepa que tocar.
 
-    El parámetro se llama ``registry_module`` y no ``registry`` porque aquí el
-    registro es un **módulo** (``orm.registry``) y no la instancia por base de
-    la fuente — la divergencia está declarada en la cabecera de ese archivo.
+    El parametro se llama ``registry_module`` y no ``registry`` porque aqui el
+    registro es un **modulo** (``orm.registry``) y no la instancia por base de
+    la fuente — la divergencia esta declarada en la cabecera de ese archivo.
 
-    **Dos vías para llegar al modelo, y la de Django va primero.** La fuente
-    resuelve por ``self.model_name``, el nombre punteado que su ORM le pone al
-    ligar el campo. Aquí quien liga el campo es Django, y lo que deja es
-    ``field.model`` — la clase, directamente. ``model_name`` sólo lo lleva un
-    campo cuyo puerto se lo haya declarado, así que preguntar sólo por él
-    dejaría fuera a todo campo ligado por Django, que son todos.
+    > **Completado (tarea #273, capa B).** La version anterior emitia **solo la
+    > tupla completa**, en el ``else`` del ``for``. La fuente emite **cada
+    > prefijo** dentro del bucle, y ese es el contrato que el registro de
+    > disparadores consume: sin los prefijos, un ``@api.depends('owner.label')``
+    > nunca registra a ``owner`` como clave, asi que
+    > ``is_modifying_relations(owner)`` responde ``False`` sobre un campo que
+    > **si** cambia que filas dependen de el. Con la tupla completa como unica
+    > salida el mecanismo entero queda medio construido y su verde no lo
+    > delata.
+    >
+    > Se portan ademas los cinco comportamientos que faltaban y que la fuente
+    > declara en el mismo cuerpo: el corte por transitorio, el aviso de
+    > recursion, el aviso de precomputo con su corte en ``many2one``, el aviso
+    > de no-buscable, y la emision extra por el inverso de un ``one2many``.
+    > Esta ultima **no se podia portar antes**: necesita ``field_inverses``,
+    > que la capa B es la que construye.
+
+    Cuatro divergencias de mecanismo, todas declaradas:
+
+    - el mapa de campos del modelo lo da :func:`~orm.utils.model_field_registry`
+      —el cuerpo de ``BaseModel._fields``— y no ``_meta.get_field``, que es
+      ciego al campo sin columna (:ref:`h-api-1025`);
+    - ``_transient`` se lee con ``getattr``: aqui lo declara
+      ``orm.models_transient`` sobre los modelos que lo son, y los demas no
+      llevan el atributo;
+    - ``one2many`` y ``many2one`` se reconocen por los marcadores de Django
+      (``one_to_many`` / ``many_to_one``) ademas del ``type`` portado;
+    - el comodelo sale de ``related_model``, no del nombre.
     """
-    model = getattr(self, 'model', None)
-    if model is None:
-        model = registry_module.MODELS_BY_NAME.get(self.model_name)
-    if model is None:
+    model_zero = _model_of(self, registry_module)
+    if model_zero is None:
         return
+    zero_transient = bool(getattr(model_zero, '_transient', False))
+
     for dotnames in registry_module.field_depends[self]:
         field_sequence = []
-        current = model
-        for fname in dotnames.split('.'):
-            # ``_meta.get_field`` y no ``_fields``: aquí se recorren CLASES, y
-            # sobre la clase ``_fields`` es el objeto ``property``, no el mapa.
-            # Es el mismo registro por la vía que sí funciona sin instancia.
-            field = None
-            if current is not None:
-                try:
-                    field = current._meta.get_field(fname)
-                except FieldDoesNotExist:
-                    field = None
-            if field is None:
+        current = model_zero
+        check_precompute = bool(getattr(self, 'precompute', False))
+
+        for index, fname in enumerate(dotnames.split('.')):
+            if current is None:
                 break
+            #: Tocar un campo de un modelo normal no debe disparar el
+            #: recalculo de un campo de un modelo transitorio — ≙ ``:820-824``.
+            if zero_transient and not getattr(current, '_transient', False):
+                break
+
+            registry = model_field_registry(current)
+            try:
+                field = registry[fname]
+            except KeyError:
+                raise ValueError(
+                    f"Wrong @depends on '{self.compute}' (compute method of "
+                    f"field {self}). Dependency field '{fname}' not found in "
+                    f"model {current.__name__}."
+                ) from None
+
+            if field is self and index and not self.recursive:
+                self.recursive = True
+                warnings.warn(
+                    f'Field {self} should be declared with recursive=True',
+                    stacklevel=1)
+
+            #: Un campo precomputado puede depender de uno que no lo sea, pero
+            #: solo si se llega a el atravesando al menos un ``many2one``
+            #: — ≙ ``:834-838``.
+            #: Los tres atributos se leen con ``getattr``: el objeto de
+            #: relacion inversa de Django (``ForeignObjectRel``) **no** es un
+            #: ``models.Field``, asi que el bucle de
+            #: :data:`_FIELD_CLASS_ATTRIBUTES` no lo alcanza. Un lado inverso
+            #: no tiene columna propia ni computo, que es justo el default.
+            if (check_precompute and getattr(field, 'store', False)
+                    and getattr(field, 'compute', None)
+                    and not getattr(field, 'precompute', False)):
+                warnings.warn(
+                    f'Field {self} cannot be precomputed as it depends on '
+                    f'non-precomputed field {field}', stacklevel=1)
+                self.precompute = False
+
+            #: ``True`` por defecto por la misma razon: un lado inverso de
+            #: Django SI es atravesable en una consulta (``probes__source``),
+            #: que es lo que este aviso mide — «hay por donde llegar a las
+            #: filas que recalcular».
+            if field_sequence and not getattr(
+                    field_sequence[-1], '_description_searchable', True):
+                warnings.warn(
+                    f'Field {field_sequence[-1]!r} in dependency of {self} '
+                    f'should be searchable. This is necessary to determine '
+                    f'which records to recompute when {field} is modified. '
+                    f'You should either make the field searchable, or simplify '
+                    f'the field dependency.', stacklevel=1)
+
             field_sequence.append(field)
-            related = getattr(field, 'related_model', None)
-            if related is None:
-                comodel = getattr(field, 'comodel_name', None)
-                related = (registry_module.MODELS_BY_NAME.get(comodel)
-                           if comodel else None)
-            current = related
-        else:
-            yield tuple(field_sequence)
+
+            #: Un campo no se dispara a si mismo: un ``one2many`` con dominio
+            #: sobre ``foo`` declara ``line_ids.foo``, y el primer paso de esa
+            #: ruta es el propio campo — ≙ ``:853-856``.
+            if not (field is self and not index):
+                yield tuple(field_sequence)
+
+            if _is_one_to_many(field):
+                for inverse in registry_module.field_inverses[field]:
+                    yield tuple(field_sequence) + (inverse,)
+
+            if check_precompute and _is_many_to_one(field):
+                check_precompute = False
+
+            current = _comodel_of(field, registry_module)
 
 
 models.Field.resolve_depends = _field_resolve_depends
