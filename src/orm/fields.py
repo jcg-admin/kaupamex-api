@@ -2419,6 +2419,23 @@ def _insert_cache(self, records, values):
         map(field_cache.setdefault, record_ids(records), values), maxlen=0)
 
 
+def _is_persisted(field):
+    """¿El valor de este campo sobrevive a la transacción?
+
+    La respuesta **no** es ``column_type``: un muchos-a-muchos persiste —en su
+    tabla intermedia— y no tiene columna en la fila. Con el predicado viejo el
+    M2M calculado quedaba fuera del caché y de la marca de sucio, así que el
+    volcado no tenía de dónde saber que había algo que escribir (#313).
+
+    El predicado vive aquí y no repetido en sus dos consumidores por lo mismo
+    que ``calibration-verified-numbers.md`` prohíbe la segunda copia de una
+    cifra: dos condiciones que dicen lo mismo divergen en cuanto una se toca.
+    """
+    return bool(getattr(field, 'store', False)
+                and (field.column_type
+                     or getattr(field, 'many_to_many', False)))
+
+
 def _update_cache(self, records, cache_value, dirty=False):
     """Escribe el valor en caché y, si se pide, marca el campo sucio.
 
@@ -2434,8 +2451,9 @@ def _update_cache(self, records, cache_value, dirty=False):
     for id_ in ids:
         field_cache[id_] = cache_value
 
-    # ``dirty`` sólo tiene sentido para un campo con columna y almacenado.
-    if self.column_type and self.store:
+    # ``dirty`` sólo tiene sentido para un campo PERSISTIDO — con columna, o
+    # con tabla intermedia si es un muchos-a-muchos (ver :func:`_is_persisted`).
+    if _is_persisted(self):
         if dirty:
             env.transaction.field_dirty[self].update(id_ for id_ in ids if id_)
         else:
@@ -2582,15 +2600,34 @@ def _cache_computed_values(fields, records):
     el valor viviría en memoria, y la fila de la base seguiría con el valor
     viejo. Es exactamente la mitad silenciosa que ``store=True`` promete.
 
-    Sólo para los campos **con columna**: un calculado sin ella no se persiste,
-    y ``_update_cache`` ya acota ahí su marca de sucio.
+    Sólo para los campos **persistidos**: un calculado sin columna no se
+    guarda, y ``_update_cache`` ya acota ahí su marca de sucio.
+
+    **El muchos-a-muchos entra, y por eso la condición no es** ``column_type``
+    (#313). Un M2M persiste —en su tabla intermedia— y no tiene columna en la
+    fila, así que la condición vieja lo dejaba fuera: el campo se calculaba, el
+    caché no se enteraba, ``field_dirty`` seguía vacío y la rama de
+    ``_flush_m2m`` no se ejecutaba nunca. Lo destapó el control discriminante
+    de #313: anular esa rama dejaba el módulo **en verde**, que es la señal de
+    que medía código muerto.
+
+    Su valor se lee del **manager**, no del atributo: ``getattr`` sobre un M2M
+    devuelve el manager, no lo que contiene. ``list(...)`` lo materializa a lo
+    que ``.set()`` espera al volcarlo.
     """
     rows = _as_record_list(records)
     for field in fields:
-        if not (field.store and field.column_type):
+        if not _is_persisted(field):
             continue
+        many_to_many = getattr(field, 'many_to_many', False)
         for row in rows:
-            value = getattr(row, getattr(field, 'attname', field.name), None)
+            if many_to_many:
+                if row.pk is None:
+                    continue
+                value = list(getattr(row, field.name).all())
+            else:
+                value = getattr(row, getattr(field, 'attname', field.name),
+                                None)
             field._update_cache([row], value, dirty=True)
 
 

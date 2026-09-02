@@ -489,7 +489,20 @@ def Many2many(*args, check_company=False, store=_UNSET, related=None,
     #: comodelo, porque el extremo de la cadena lo determina.
     if store is not _UNSET:
         kwargs['store'] = store
-    projection, related_attrs = projection_or_none(related, kwargs)
+    #: ``compute=`` en un M2M — #313. El bloque de la fuente se aplica igual
+    #: que en cualquier otro tipo; lo que cambia es el VOLCADO, no la
+    #: declaración: ``orm.models._flush_m2m`` entrega el valor calculado al
+    #: manager relacional en vez de asignarlo, porque Django prohíbe el
+    #: ``setattr`` sobre el lado directo de un muchos-a-muchos.
+    #:
+    #: La bandera viaja hasta el bloque de ``precompute``: un M2M no se puede
+    #: adelantar al ``INSERT`` —su tabla intermedia necesita el ``pk``—, así
+    #: que ahí se apaga con aviso. Va por el enrutador y no por una segunda
+    #: llamada a ``apply_source_defaults`` porque la primera **vacía**
+    #: ``kwargs``: llamarla dos veces devolvía un vocabulario vacío, y el
+    #: campo salía sin ``compute`` anotado.
+    projection, related_attrs = projection_or_none(related, kwargs,
+                                                   many_to_many=True)
     if projection is not None:
         return _mark_check_company(projection, check_company)
     field = _mark_check_company(models.ManyToManyField(*args, **kwargs),

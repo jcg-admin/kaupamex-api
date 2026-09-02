@@ -431,13 +431,19 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         help_text='Debe cumplirse para ejecutar la regla (Odoo filter_domain).',
     )
     last_run = fields.Datetime(null=True, blank=True, verbose_name='Última corrida')
+    #: Los dos ≙ ``odoo19c: base_automation.py:240-252``, que la fuente declara
+    #: ``compute=..., readonly=False, store=True``. Los tres se portan; el
+    #: volcado del M2M lo hace ``orm.models._flush_m2m``, porque Django prohíbe
+    #: el ``setattr`` sobre el lado directo de un muchos-a-muchos (#313).
     on_change_field_ids = fields.Many2many(
         IrModelFields, blank=True, related_name='+',
+        compute='_compute_on_change_field_ids', store=True, readonly=False,
         verbose_name='Campos disparadores de onchange',
         help_text='Poblado por dominio; dispatch bloqueado (ver docstring).',
     )
     trigger_field_ids = fields.Many2many(
         IrModelFields, blank=True, related_name='automations_watching',
+        compute='_compute_trigger_field_ids', store=True, readonly=False,
         verbose_name='Campos disparadores',
         help_text='Si vacío, se vigilan todos los campos (Odoo trigger_field_ids).',
     )

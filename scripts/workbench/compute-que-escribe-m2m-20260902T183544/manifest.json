@@ -1,0 +1,20 @@
+{
+  "question": "cuantos computos del arbol escriben una relacion M2M sin que ningun campo los nombre, y por que el motor de #273/#305 no los podia recibir?",
+  "instrument": "measure_m2m_writing_computes.py — recorre por AST cada def _compute_* y anota los atributos que escribe con set/add/remove/clear, cruzados con los campos Many2many declarados en el mismo archivo; marca cual esta nombrado por un compute= de campo. probes/probe_m2m_compute_today.py mide la conducta del motor sobre uno de ellos antes de tocar nada",
+  "metric": "llamadas <algo>.<atributo>.<verbo>(...) dentro del cuerpo de un def _compute_*, con verbo en {set, add, remove, clear} y <atributo> declarado Many2many en el archivo; mas el TypeError que Django lanza al asignar por setattr sobre el lado directo de un M2M",
+  "blind_to": [
+    "un computo que escriba el M2M llamando a un ayudante en vez de hacerlo en su cuerpo — el recorrido no sigue la llamada",
+    "un M2M declarado en OTRO archivo del que el computo escribe (el cruce es por archivo, no por modelo resuelto)",
+    "la asignacion directa, que Django prohibe desde 1.10 y por tanto no deberia existir; si existiera, el instrumento no la veria",
+    "el coste real de .set() sobre una relacion grande: las tres medidas son de configuracion, de cardinalidad baja, y no se midio el techo"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/",
+  "source": [
+    "odoo19c: addons/account/models/account_account.py:104-112, :605-607",
+    "odoo19c: addons/base_automation/models/base_automation.py:240-252, :418-430",
+    "api: src/orm/models.py:3214-3253 (_flush)",
+    "api: src/orm/fields_nonstored.py:326 (_apply_compute_block)"
+  ],
+  "tasks": ["#313"],
+  "reproducible": "python3 scripts/workbench/compute-que-escribe-m2m-*/measure_m2m_writing_computes.py"
+}

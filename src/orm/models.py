@@ -3244,13 +3244,42 @@ def _flush(self, fnames=None):
         names = []
         for field in row_fields:
             cached = field._get_cache(env())
+            if getattr(field, 'many_to_many', False):
+                if row.pk in cached:
+                    _flush_m2m(row, field, cached[row.pk])
+                continue
             if row.pk in cached:
                 setattr(row, getattr(field, 'attname', field.name),
                         cached[row.pk])
             names.append(getattr(field, 'attname', field.name))
-        row.save(update_fields=names)
+        if names:
+            row.save(update_fields=names)
         for field in row_fields:
             dirty[field].discard(row.pk)
+
+
+def _flush_m2m(row, field, value):
+    """Vuelca un campo muchos-a-muchos calculado — la rama que #313 anade.
+
+    Un M2M no es una columna y no admite ``setattr``: Django lanza
+    ``TypeError: Direct assignment to the forward side of a many-to-many set
+    is prohibited``. Tampoco cabe en ``update_fields``, que nombra columnas.
+    Por eso la rama existe: el mismo valor calculado se entrega al manager
+    relacional, que resuelve el diff contra la tabla intermedia.
+
+    ``.set()`` y no un ``bulk_create`` sobre un ``through`` propio: las
+    relaciones que hoy declaran computo son de **configuracion** —etiquetas de
+    una cuenta, campos que disparan una regla—, de cardinalidad baja y
+    escritura rara. Ahi lo caro es la superficie, no la ida a la base; y
+    ``.set()`` emite ``m2m_changed``, que es donde vive el control de acceso
+    de la relacion. La rama mira el CAMPO, no el modelo, asi que una relacion
+    de operacion que manana pida otro mecanismo no queda cerrada por esto.
+
+    Una fila sin ``pk`` no llega aqui: :func:`_flush` solo recorre las que el
+    registro de sucios nombra por id, y una fila nueva no tiene ninguno.
+    """
+    manager = getattr(row, field.name)
+    manager.set([] if value is None else value)
 
 
 def flush_model(self, fnames=None):
