@@ -46,7 +46,7 @@ class TestTheClassAttributesMatchTheReference:
         assert ReportPaperformat._description == 'Paper Format Config'
 
     def test_the_table_derives_from_the_name(self):
-        assert (ReportPaperformat.Meta.db_table
+        assert (ReportPaperformat._meta.db_table
                 == ReportPaperformat._name.replace('.', '_'))
 
 
