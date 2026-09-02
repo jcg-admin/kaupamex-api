@@ -40,8 +40,18 @@ SLUG="${4:?falta el slug de la evidencia}"
 # protege ESTE archivo, y el checkpoint protege TODO lo demas que este sin
 # commitear cuando algo salga mal a mitad de la medicion. Cuesta un objeto de
 # git y no toca el arbol.
-bash "$(dirname "${BASH_SOURCE[0]}")/checkpoint_uncommitted.sh" \
-    "before-neutering-${SLUG}" || echo "AVISO — el checkpoint fallo; la copia de abajo sigue en pie"
+# `NEUTERING_SKIP_CHECKPOINT=1` lo omite, y hay un caso en que es obligatorio
+# omitirlo: el checkpoint hace `git add -A`, que escribe en el INDICE — un
+# indice que en este repo comparten varios agentes a la vez. Un agente aislado
+# que tenga prohibido `git add` no puede llamarlo sin pisar el trabajo en
+# vuelo de otro. La copia por archivo de abajo sigue en pie en los dos casos,
+# que es la que de verdad garantiza la vuelta atras de lo que se neutraliza.
+if [ "${NEUTERING_SKIP_CHECKPOINT:-0}" = "1" ]; then
+    echo "checkpoint OMITIDO por NEUTERING_SKIP_CHECKPOINT=1 (indice compartido)"
+else
+    bash "$(dirname "${BASH_SOURCE[0]}")/checkpoint_uncommitted.sh" \
+        "before-neutering-${SLUG}" || echo "AVISO — el checkpoint fallo; la copia de abajo sigue en pie"
+fi
 
 RESPALDOS=".neutering"
 mkdir -p "$RESPALDOS"

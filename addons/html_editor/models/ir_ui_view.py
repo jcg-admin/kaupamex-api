@@ -92,8 +92,17 @@ Resolución, en dos mitades:
 declara ``controllers/urls.py`` de este addon. Se reporta al orquestador para
 que el contrato publicado nombre ``save_from_html`` y no ``save``.
 
-Divergencia 3 — ``_copy_field_terms_translations`` queda BLOQUEADO
-==================================================================
+Divergencia 3 — la copia de traducciones por término, detenida
+===============================================================
+
+BLOQUEADO por ``orm.models.get_translation_dictionary`` — con
+``_get_stored_translations``, ``env.cache.update_raw`` y el contexto
+``prefetch_langs``, son las cuatro piezas de la traducción por término que
+este árbol declara no portar. Medido 2026-09-02:
+``grep -rnE "def (get_translation_dictionary|_get_stored_translations)"
+--include=*.py src/orm/ src/addons/base/`` → 0 (las dos únicas apariciones
+son la prosa de ``src/orm/models.py:1172-1173``, que declara la ausencia).
+Sucesor: portar la traducción por término en ``src/orm`` + ``base``.
 
 Es el único símbolo no portado. Copia las traducciones **por término** de un
 campo a otro, y para eso necesita cinco piezas del ORM de la referencia que
@@ -291,9 +300,9 @@ def _copy_custom_snippet_translations(self, record, html_field):
         raise ValidationError(str(e))
 
     View = model_by_name('ir.ui.view')
-    for custom_snippet_el in tree.xpath(
+    for custom_snippet_element in tree.xpath(
             '//*[%s]' % _hasclass('s_custom_snippet')):
-        custom_snippet_name = custom_snippet_el.get('data-name')
+        custom_snippet_name = custom_snippet_element.get('data-name')
         custom_snippet_view = View.objects.filter(
             name=custom_snippet_name).first()
         if custom_snippet_view:
@@ -303,7 +312,10 @@ def _copy_custom_snippet_translations(self, record, html_field):
 
 def _copy_field_terms_translations(self, records_from, name_field_from,
                                    record_to, name_field_to):
-    """≙ ``_copy_field_terms_translations`` (``odoo19c: :137-216``) — BLOQUEADO.
+    """≙ ``_copy_field_terms_translations`` (``odoo19c: :137-216``).
+
+    BLOQUEADO por ``orm.models.get_translation_dictionary`` — ver la
+    divergencia 3 del docstring del módulo, con su medición y su sucesor.
 
     Copia las traducciones de términos de ``records_from.name_field_from`` a
     ``record_to.name_field_to`` para todos los idiomas activos, si el término
@@ -754,8 +766,11 @@ def apply_html_editor_extensions():
 
     ``save`` se instala como ``save_from_html``: ver la divergencia 2.
     """
+    # El destino se escribe **literal** y no por la constante: ver la nota de
+    # ``ir_attachment.py`` — ``extend_model`` es una declaración estática y una
+    # variable la vuelve ilegible para ``check_porte_completo``.
     extend_model(
-        _inherit,
+        'ir.ui.view',
         metodos={
             '_get_cleaned_non_editing_attributes':
                 _get_cleaned_non_editing_attributes,

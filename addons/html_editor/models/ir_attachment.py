@@ -32,8 +32,13 @@ Fuente delega en                 Aquí lo cubre
                                  la referencia)
 ===============================  =====================================
 
-Divergencia 1 — ``original_id`` queda BLOQUEADO, con sucesor
-=============================================================
+Divergencia 1 — el enlace al original, detenido con su arista
+==============================================================
+
+BLOQUEADO por ``src/addons/base/migrations`` — el campo es de un modelo de
+otra app y su ``AddField`` aterriza en la migración de ``base``, que está
+fuera de los archivos de este puerto. Sucesor: declararlo desde ``base`` (o
+autorizar a este puerto a escribir la migración de ``base``).
 
 La fuente declara ``original_id = fields.Many2one('ir.attachment', …)``: el
 enlace de una imagen recortada/optimizada a su original. Aquí **no se
@@ -89,7 +94,7 @@ Símbolo de la fuente             Estado      Nota
 ``image_src``                    portado     ``property``
 ``image_width``                  portado     ``property``
 ``image_height``                 portado     ``property``
-``original_id``                  BLOQUEADO   divergencia 1, con sucesor
+``original_id``                  detenido    divergencia 1, con arista
 ``_compute_local_url``           portado     nombre y guion bajo verbatim
 ``_compute_image_src``           portado     ídem
 ``_compute_image_size``          portado     ídem; devuelve el par
@@ -290,8 +295,14 @@ def apply_html_editor_extensions():
     La llama ``HtmlEditorConfig.ready()``. ``original_id`` **no** entra: ver
     la divergencia 1 del docstring del módulo.
     """
+    # El par se escribe **literal**, no ``*_inherit``: ``extend_model`` es una
+    # declaración de qué se instala y sobre qué clase, y un desempaquetado la
+    # vuelve ilegible para el recorrido estático de ``check_porte_completo``,
+    # que entonces publica ``CLASE AUSENTE`` sobre un porte que sí está. La
+    # constante ``_inherit`` sigue arriba porque es donde se documenta el
+    # destino; aquí manda la forma que se puede leer sin ejecutar.
     extend_model(
-        *_inherit,
+        'base', 'IrAttachment',
         propiedades={
             'local_url': _compute_local_url,
             'image_src': _compute_image_src,

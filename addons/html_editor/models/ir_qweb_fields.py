@@ -140,7 +140,21 @@ import babel
 import babel.dates
 import pytz
 import requests
-from addons.base.models import ir_field_converters as base_converters
+from addons.base.models.ir_field_converters import (
+    IrFieldConverter,
+    IrFieldConverterContact,
+    IrFieldConverterDate,
+    IrFieldConverterDatetime,
+    IrFieldConverterDuration,
+    IrFieldConverterFloat,
+    IrFieldConverterHtml,
+    IrFieldConverterImage,
+    IrFieldConverterInteger,
+    IrFieldConverterMany2one,
+    IrFieldConverterMonetary,
+    IrFieldConverterSelection,
+    IrFieldConverterText,
+)
 from django.utils import timezone
 from lxml import etree, html
 from markupsafe import Markup, escape_silent
@@ -253,10 +267,16 @@ def _babel_locale_parse(lang_code):
         try:
             return babel.Locale.parse(lang_code)
         except Exception:  # noqa: BLE001
+            # silent OK because un codigo de idioma invalido no es un error del
+            # editor: la fuente cae al idioma por defecto en el mismo punto
+            # (``odoo19c: odoo/tools/misc.py:1334-1336``) para que un dato de
+            # usuario mal formado no tumbe el renderizado de la plantilla.
             pass
     try:
         return babel.Locale.default()
     except Exception:  # noqa: BLE001
+        # silent OK because el ultimo recurso de la fuente es el mismo literal:
+        # sin locale por defecto en el sistema, ``en_US`` siempre parsea.
         return babel.Locale.parse("en_US")
 
 
@@ -330,20 +350,20 @@ def _compile_node(self, el, compile_context, level):
 
     snippet_base_node = el
     if el.tag == 't':
-        el_children = [child for child in list(el)
+        element_children = [child for child in list(el)
                        if isinstance(child.tag, str) and child.tag != 't']
-        if len(el_children) == 1:
-            snippet_base_node = el_children[0]
-        elif not el_children:
+        if len(element_children) == 1:
+            snippet_base_node = element_children[0]
+        elif not element_children:
             # Si no hay un nodo base válido, se comprueba si el nodo base es un
             # t-call a otra plantilla. Si lo es, la plantilla llamada debe
             # tomar la clave del snippet actual.
-            el_children = [child for child in list(el)
+            element_children = [child for child in list(el)
                            if isinstance(child.tag, str)]
-            if len(el_children) == 1:
-                sub_call = el_children[0].get('t-call')
+            if len(element_children) == 1:
+                sub_call = element_children[0].get('t-call')
                 if sub_call:
-                    el_children[0].set(
+                    element_children[0].set(
                         't-options',
                         f"{{'snippet-key': '{snippet_key}', "
                         f"'snippet-sub-call-key': '{sub_call}'}}")
@@ -1020,65 +1040,96 @@ def _element_to_text(e, output):
 
 
 def apply_html_editor_extensions():
-    """Cuelga las dos mitades — ≙ los catorce ``_inherit`` de la fuente."""
-    # --- IrQweb: las cuatro directivas y los dos enganches ---------------
-    for name, func in (
-        ('_compile_node', _compile_node),
-        ('_get_preload_attribute_xmlids', _get_preload_attribute_xmlids),
-        ('_compile_directive_snippet', _compile_directive_snippet),
-        ('_compile_directive_snippet_call', _compile_directive_snippet_call),
-        ('_compile_directive_install', _compile_directive_install),
-        ('_compile_directive_placeholder', _compile_directive_placeholder),
-    ):
-        chain_method(IrTemplateExpressions, name, func)
+    """Cuelga las dos mitades — ≙ los catorce ``_inherit`` de la fuente.
+
+    **Cada instalación se escribe como una llamada propia, con el nombre del
+    símbolo literal y la clase destino nombrada.** Antes iban en dos bucles
+    sobre tuplas, y aunque el efecto en ejecución es el mismo, el receptor y
+    la clave quedaban en variables de bucle: ``check_porte_completo`` —que lee
+    las llamadas de instalación sin ejecutarlas— no podía atribuir ni uno de
+    los veintiocho enganches y publicaba trece ``CLASE AUSENTE`` sobre un
+    porte completo. La forma de una llamada por símbolo es la que usa el resto
+    del árbol (``crm/models/digest.py``, ``http_routing/models/ir_qweb.py``) y
+    es la que se puede leer sin ejecutar.
+    """
+    # --- IrQweb → IrTemplateExpressions: directivas y enganches ----------
+    chain_method(IrTemplateExpressions, '_compile_node', _compile_node)
+    chain_method(IrTemplateExpressions, '_get_preload_attribute_xmlids',
+                 _get_preload_attribute_xmlids)
+    chain_method(IrTemplateExpressions, '_compile_directive_snippet',
+                 _compile_directive_snippet)
+    chain_method(IrTemplateExpressions, '_compile_directive_snippet_call',
+                 _compile_directive_snippet_call)
+    chain_method(IrTemplateExpressions, '_compile_directive_install',
+                 _compile_directive_install)
+    chain_method(IrTemplateExpressions, '_compile_directive_placeholder',
+                 _compile_directive_placeholder)
     wrap_method(IrTemplateExpressions, '_directives_eval_order',
                 _directives_eval_order)
     chain_method(IrTemplateExpressions, '_get_template_cache_keys',
                  _get_template_cache_keys, combine=_extend_cache_keys)
 
-    # --- Los trece conversores ------------------------------------------
-    for cls, metodos in (
-        (base_converters.IrFieldConverter, {
-            'attributes': attributes,
-            'value_from_string': value_from_string,
-            'from_html': from_html,
-        }),
-        (base_converters.IrFieldConverterInteger, {
-            'from_html': integer_from_html}),
-        (base_converters.IrFieldConverterFloat, {
-            'from_html': float_from_html}),
-        (base_converters.IrFieldConverterMany2one, {
-            'attributes': many2one_attributes,
-            'from_html': many2one_from_html}),
-        (base_converters.IrFieldConverterContact, {
-            'attributes': contact_attributes,
-            'get_record_to_html': get_record_to_html}),
-        (base_converters.IrFieldConverterDate, {
-            'attributes': date_attributes,
-            'from_html': date_from_html}),
-        (base_converters.IrFieldConverterDatetime, {
-            'attributes': datetime_attributes,
-            'from_html': datetime_from_html}),
-        (base_converters.IrFieldConverterText, {
-            'from_html': text_from_html}),
-        (base_converters.IrFieldConverterSelection, {
-            'from_html': selection_from_html}),
-        (base_converters.IrFieldConverterHtml, {
-            'attributes': html_attributes,
-            'from_html': html_from_html}),
-        (base_converters.IrFieldConverterImage, {
-            'from_html': image_from_html,
-            'load_local_url': load_local_url,
-            'load_remote_url': load_remote_url}),
-        (base_converters.IrFieldConverterMonetary, {
-            'from_html': monetary_from_html}),
-        (base_converters.IrFieldConverterDuration, {
-            'attributes': duration_attributes,
-            'from_html': duration_from_html}),
-    ):
-        for name, func in metodos.items():
-            chain_method(cls, name, classmethod(func))
+    # --- Los trece conversores -------------------------------------------
+    # ``classmethod(...)`` envuelve cada función porque el conversor de
+    # ``base`` declara sus métodos así; ver el docstring del módulo.
+    chain_method(IrFieldConverter, 'attributes', classmethod(attributes))
+    chain_method(IrFieldConverter, 'value_from_string',
+                 classmethod(value_from_string))
+    chain_method(IrFieldConverter, 'from_html', classmethod(from_html))
+
+    chain_method(IrFieldConverterInteger, 'from_html',
+                 classmethod(integer_from_html))
+
+    chain_method(IrFieldConverterFloat, 'from_html',
+                 classmethod(float_from_html))
+
+    chain_method(IrFieldConverterMany2one, 'attributes',
+                 classmethod(many2one_attributes))
+    chain_method(IrFieldConverterMany2one, 'from_html',
+                 classmethod(many2one_from_html))
+
+    chain_method(IrFieldConverterContact, 'attributes',
+                 classmethod(contact_attributes))
+    chain_method(IrFieldConverterContact, 'get_record_to_html',
+                 classmethod(get_record_to_html))
+
+    chain_method(IrFieldConverterDate, 'attributes',
+                 classmethod(date_attributes))
+    chain_method(IrFieldConverterDate, 'from_html',
+                 classmethod(date_from_html))
+
+    chain_method(IrFieldConverterDatetime, 'attributes',
+                 classmethod(datetime_attributes))
+    chain_method(IrFieldConverterDatetime, 'from_html',
+                 classmethod(datetime_from_html))
+
+    chain_method(IrFieldConverterText, 'from_html',
+                 classmethod(text_from_html))
+
+    chain_method(IrFieldConverterSelection, 'from_html',
+                 classmethod(selection_from_html))
+
+    chain_method(IrFieldConverterHtml, 'attributes',
+                 classmethod(html_attributes))
+    chain_method(IrFieldConverterHtml, 'from_html',
+                 classmethod(html_from_html))
+
+    chain_method(IrFieldConverterImage, 'from_html',
+                 classmethod(image_from_html))
+    chain_method(IrFieldConverterImage, 'load_local_url',
+                 classmethod(load_local_url))
+    chain_method(IrFieldConverterImage, 'load_remote_url',
+                 classmethod(load_remote_url))
+
+    chain_method(IrFieldConverterMonetary, 'from_html',
+                 classmethod(monetary_from_html))
+
+    chain_method(IrFieldConverterDuration, 'attributes',
+                 classmethod(duration_attributes))
+    chain_method(IrFieldConverterDuration, 'from_html',
+                 classmethod(duration_from_html))
+
     # ≙ ``local_url_re`` / ``redirect_url_re``, atributos de clase de
     # ``IrQwebFieldImage`` (``odoo19c: :480-481``).
-    base_converters.IrFieldConverterImage.local_url_re = local_url_re
-    base_converters.IrFieldConverterImage.redirect_url_re = redirect_url_re
+    IrFieldConverterImage.local_url_re = local_url_re
+    IrFieldConverterImage.redirect_url_re = redirect_url_re

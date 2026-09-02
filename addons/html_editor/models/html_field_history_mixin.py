@@ -41,11 +41,17 @@ Fuente delega en                 Aquí lo cubre
 Las tres divergencias de mecanismo, declaradas
 ==============================================
 
-**1. ``create`` + ``write`` → ``save``.** La fuente reparte en dos métodos lo
-que Django hace en uno. Es la misma equivalencia que ``base_sparse_field``
-(``write`` → ``save``) y que ``base.IrUiView.save``, ya establecida en este
-árbol. Los dos cuerpos se conservan enteros y se distinguen por ``self.pk is
-None``, que es exactamente la pregunta que separa ``create`` de ``write``:
+**1. ``create`` y ``write`` existen con su nombre; ``save`` es su cuerpo.**
+Los dos símbolos de la fuente se portan como métodos propios —
+:meth:`~HtmlFieldHistoryMixin.create` (``classmethod``, como en
+``stock.location`` y ``base_iban``) y :meth:`~HtmlFieldHistoryMixin.write` —
+y los dos delegan en :meth:`~HtmlFieldHistoryMixin.save`, que es **el único
+punto de escritura de este ORM**. Poner el cuerpo en ``save`` no es
+comodidad: por ahí pasan también ``objects.create``,
+``objects.update_or_create`` y el cargador de datos, así que dejar la
+generación de la revisión en ``write`` la haría saltable desde cualquiera de
+esos caminos. Las dos ramas se distinguen por ``self.pk is None``, que es
+exactamente la pregunta que separa ``create`` de ``write``:
 
 - rama de creación ≙ ``create`` — descarta el ``html_field_history`` que llegue
   de fuera, para que nadie pueda sembrar un historial falso al crear;
@@ -154,12 +160,50 @@ class HtmlFieldHistoryMixin(models.Model):
                     history_metadata[field_name].append(metadata)
         return history_metadata
 
-    def save(self, *args, **kwargs):
-        """≙ ``create`` (``:42-46``) + ``write`` (``:48-108``).
+    @classmethod
+    def create(cls, **vals):
+        """≙ ``create`` (``:42-46``).
 
-        Ver «Las tres divergencias» en el docstring del módulo: es un solo
-        método porque Django tiene un solo punto de escritura, y las dos ramas
-        de la fuente se distinguen por ``self.pk is None``.
+        La fuente descarta el ``html_field_history`` que llegue en los valores
+        antes de delegar en ``super().create``: nadie puede sembrar un
+        historial falso al crear. Aquí ocurre lo mismo, y el ``INSERT`` lo hace
+        el camino de Django — que vuelve a pasar por :meth:`save`, cuya rama de
+        creación repite el descarte para el llamador que use
+        ``objects.create(...)`` directamente.
+
+        La fuente recibe ``vals_list`` porque su ``create`` es
+        ``@api.model_create_multi``; aquí la firma es la del árbol
+        (``**vals``, un registro), como en ``stock.location`` y
+        ``base_iban``. Crear N registros es llamar N veces.
+        """
+        vals.pop('html_field_history', None)
+        return cls.objects.create(**vals)
+
+    def write(self, **vals):
+        """≙ ``write`` (``:48-108``).
+
+        Aplica los valores y persiste. El cuerpo que genera la revisión vive
+        en :meth:`save`, que es el único punto de escritura de este ORM y por
+        el que pasan también ``objects.update_or_create`` y el cargador de
+        datos: dejarlo aquí lo haría saltable. Lo que la fuente hace en dos
+        ``super().write`` —el de los valores y el del historial nuevo— lo hace
+        aquí ese ``save``, en el mismo orden y por la misma razón.
+
+        La fuente itera ``for rec in self`` porque su ``self`` es un
+        *recordset*; aquí es un registro, así que el bucle desaparece.
+        """
+        vals.pop('html_field_history', None)
+        for name, value in vals.items():
+            setattr(self, name, value)
+        self.save()
+        return True
+
+    def save(self, *args, **kwargs):
+        """El punto de escritura de Django — ``create`` + ``write``.
+
+        Las dos ramas de la fuente se distinguen por ``self.pk is None``, que
+        es exactamente la pregunta que separa una de otra. Ver «Las tres
+        divergencias» en el docstring del módulo.
         """
         is_new = self.pk is None
 

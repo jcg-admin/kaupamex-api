@@ -39,6 +39,7 @@ from .html_field_history_mixin import HtmlFieldHistoryMixin
 from .ir_attachment import SUPPORTED_IMAGE_MIMETYPES
 from .ir_websocket import (
     EDITOR_COLLABORATION,
+    IrWebsocket,
     editor_collaboration_channel,
 )
 from .test_models import (
@@ -49,6 +50,7 @@ from .test_models import (
 __all__ = [
     'EDITOR_COLLABORATION',
     'HtmlFieldHistoryMixin',
+    'IrWebsocket',
     'Html_EditorConverterTest',
     'Html_EditorConverterTestSub',
     'SUPPORTED_IMAGE_MIMETYPES',

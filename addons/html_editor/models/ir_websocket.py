@@ -116,55 +116,74 @@ def editor_collaboration_channel(model_name, field_name, res_id,
         db_name, EDITOR_COLLABORATION, model_name, field_name, int(res_id))
 
 
-def _build_bus_channel_list(channels, previous, *args, **kwargs):
-    """≙ ``_build_bus_channel_list`` (``odoo19c: :12-41``).
+class IrWebsocket:
+    """≙ ``IrWebsocket`` (``odoo19c: :11``).
 
-    La firma de la fuente es ``(self, channels)``. Aquí el receptor es un
-    módulo y no aporta nada al cuerpo, así que su hueco lo ocupa ``previous``
-    —el ``super()`` de este idioma—, que se invoca **al final**, con la lista
-    ya ampliada, allí donde la fuente escribe
-    ``super()._build_bus_channel_list(channels)``.
+    **Clase plana, no ``models.Model``**, por la misma razón que
+    ``base.IrBinary``: la fuente la declara ``AbstractModel`` —comportamiento
+    sin tabla— y aquí no hay columna que crear. Su único atributo de clase es
+    el ``_inherit`` que la fuente declara, y va verbatim: es el que nombra
+    sobre qué modelo se extiende, y quien lea el archivo tiene que poder leer
+    el destino sin salir de él.
+
+    El ``_inherit`` se materializa en :func:`apply_html_editor_extensions`,
+    que envuelve la función de módulo que ``bus`` porta en lugar de la clase.
+    Ver la divergencia 1 del docstring del módulo: el destino divergente es de
+    ``bus``, no de este archivo, y no cambia dónde vive el símbolo.
     """
-    user = get_current_user()
-    if user is not None:
-        # No se altera la lista original.
-        channels = list(channels)
-        for channel in channels:
-            if isinstance(channel, str):
-                match = re.match(EDITOR_COLLABORATION_CHANNEL_REGEX, channel)
-                if match:
-                    model_name = match[1]
-                    field_name = match[2]
-                    res_id = int(match[3])
 
-                    model = model_by_name(model_name)
-                    if model is None:
-                        continue
+    _inherit = 'ir.websocket'
 
-                    document = model.objects.filter(pk=res_id).first()
-                    if document is None:
-                        continue
+    @classmethod
+    def _build_bus_channel_list(cls, channels, previous, *args, **kwargs):
+        """≙ ``_build_bus_channel_list`` (``odoo19c: :12-41``).
 
-                    try:
-                        document.check_access('read')
-                        document.check_access('write')
-                        field = next(
-                            (f for f in model._meta.get_fields()
-                             if getattr(f, 'name', None) == field_name), None)
-                        if field is not None:
-                            document._check_field_access(field, 'read')
-                            document._check_field_access(field, 'write')
-                    except Exception:
-                        # ≙ ``except AccessError: continue`` — el árbol declara
-                        # el suyo en ``exceptions``, y ``_check_field_access``
-                        # puede levantar además el de Django. Descartar el
-                        # canal es lo que la fuente hace, y por el mismo
-                        # motivo: negarlo delataría que el registro existe.
-                        continue
+        La firma de la fuente es ``(self, channels)``. Aquí el receptor no
+        aporta nada al cuerpo —la fuente tampoco lo usa salvo para el
+        ``super()``—, así que el hueco del ``super()`` lo ocupa ``previous``,
+        que se invoca **al final**, con la lista ya ampliada, allí donde la
+        fuente escribe ``super()._build_bus_channel_list(channels)``.
+        """
+        user = get_current_user()
+        if user is not None:
+            # No se altera la lista original.
+            channels = list(channels)
+            for channel in channels:
+                if isinstance(channel, str):
+                    match = re.match(EDITOR_COLLABORATION_CHANNEL_REGEX, channel)
+                    if match:
+                        model_name = match[1]
+                        field_name = match[2]
+                        res_id = int(match[3])
 
-                    channels.append(editor_collaboration_channel(
-                        model_name, field_name, res_id))
-    return previous(channels, *args, **kwargs)
+                        model = model_by_name(model_name)
+                        if model is None:
+                            continue
+
+                        document = model.objects.filter(pk=res_id).first()
+                        if document is None:
+                            continue
+
+                        try:
+                            document.check_access('read')
+                            document.check_access('write')
+                            field = next(
+                                (f for f in model._meta.get_fields()
+                                 if getattr(f, 'name', None) == field_name), None)
+                            if field is not None:
+                                document._check_field_access(field, 'read')
+                                document._check_field_access(field, 'write')
+                        except Exception:
+                            # ≙ ``except AccessError: continue`` — el árbol declara
+                            # el suyo en ``exceptions``, y ``_check_field_access``
+                            # puede levantar además el de Django. Descartar el
+                            # canal es lo que la fuente hace, y por el mismo
+                            # motivo: negarlo delataría que el registro existe.
+                            continue
+
+                        channels.append(editor_collaboration_channel(
+                            model_name, field_name, res_id))
+        return previous(channels, *args, **kwargs)
 
 
 def apply_html_editor_extensions():
@@ -180,7 +199,8 @@ def apply_html_editor_extensions():
 
     @functools.wraps(previous)
     def wrapped(channels, *args, **kwargs):
-        return _build_bus_channel_list(channels, previous, *args, **kwargs)
+        return IrWebsocket._build_bus_channel_list(
+            channels, previous, *args, **kwargs)
 
     setattr(wrapped, _WRAPPED, True)
     bus_ir_websocket.build_bus_channel_list = wrapped

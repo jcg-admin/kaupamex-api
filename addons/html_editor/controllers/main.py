@@ -3,9 +3,11 @@
 Adaptación de ``odoo19c: addons/html_editor/controllers/main.py``
 (758 líneas, LGPL-3 — copia + adaptación con atribución, DEC-KX-03).
 
-**28 símbolos en la fuente: 24 portados, 4 bloqueados con sucesor.** Cinco
-constantes, dos funciones de módulo, la clase ``HTML_Editor`` y sus veinte
-métodos.
+Porte BLOQUEADO — 25 de 28 símbolos
+
+Cinco constantes, dos funciones de módulo, la clase ``HTML_Editor`` y sus
+veinte métodos. Los tres que faltan tienen su arista declarada en su propio
+docstring, con la medición del bloqueo y su sucesor.
 
 La forma del puerto: la clase queda, la ruta es una vista DRF
 =============================================================
@@ -59,43 +61,43 @@ animación)
 ``requests``                     **requests** — el mismo
 ===============================  =====================================
 
-Los cuatro bloqueos, con su sucesor
-====================================
+Los tres detenidos, con su arista medida y su sucesor
+======================================================
 
 ============================  ==========================================
-Símbolo de la fuente          Por qué, y su sucesor
+Símbolo de la fuente          Destino que falta, y su sucesor
 ============================  ==========================================
-``generate_text``             ``iap_tools.iap_jsonrpc`` (addon ``iap``)
-                              no está portado — medido: el árbol lo
-                              nombra sólo en prosa, en ``crm`` y
-                              ``website``, declarando su ausencia. La
-                              vista se porta y responde **503** con
+``generate_text``             ``iap.tools.iap_tools.iap_jsonrpc`` — el
+                              addon ``iap`` no existe aquí (medido:
+                              ``ls -d addons/iap`` → 0). La vista se
+                              porta y responde **503** con
                               ``codigo_error`` en vez de callar.
-                              **Sucesor:** portar ``iap`` con
-                              ``iap_tools``.
-``get_ice_servers``           ``mail.ice.server`` no está portado.
-                              Misma forma: 503 nombrado.
-                              **Sucesor:** portar ``mail.ice.server``.
-``link_preview_metadata``     ``mail.tools.link_preview`` no está
-                              portado. Misma forma: 503 nombrado.
+                              **Sucesor:** portar el addon ``iap``.
+``get_ice_servers``           ``mail.ice.server`` — el modelo no está
+                              portado (medido: 0 declaraciones de ese
+                              ``_name``). Misma forma: 503 nombrado.
+                              **Sucesor:** portar
+                              ``mail/models/mail_ice_server.py``.
+``link_preview_metadata``     ``mail.tools.link_preview
+                              .get_link_preview_from_url`` — el
+                              directorio ``addons/mail/tools`` no
+                              existe. Misma forma: 503 nombrado.
                               **Sucesor:** portar
                               ``mail/tools/link_preview.py``.
-``image_shape``               necesita ``get_webp_size``,
-                              ``binary_to_image`` e ``image_data_uri``
-                              de ``odoo/tools/image.py``, que no existe
-                              aquí, **y** ``ir.binary
-                              ._get_image_stream_from``, que ``base`` no
-                              porta (porta ``get_image_response_from``).
-                              **Sucesor:** el mismo
-                              ``src/tools/image.py`` que declaran
-                              ``models/ir_attachment.py`` y ``tools.py``,
-                              más el *stream* de ``ir.binary``.
 ============================  ==========================================
 
-**Los cuatro se portan como método con su nombre, su firma y su cuerpo hasta
+**Los tres se portan como método con su nombre, su firma y su cuerpo hasta
 donde el árbol llega**, y levantan un error nombrado en el punto exacto donde
 falta la pieza. No se omite ninguno: quien lea el archivo encuentra la arista,
 y quien llame al endpoint recibe un ``codigo_error`` que dice qué falta.
+
+``image_shape`` **estaba en esta tabla y ya no**: su causa —tres símbolos de
+``odoo/tools/image.py``— caducó cuando ``src/tools/image.py`` se portó, y el
+*stream* de ``ir.binary`` resultó no hacer falta (de él sólo se necesitan los
+bytes y el mimetype). Se porta entero. Un bloqueo declarado es una afirmación
+de estado y **caduca sola**: nada avisa el día en que su causa se resuelve, así
+que la única forma de saberlo es re-medirla al tocar el archivo. La medición
+que lo destapó está en el docstring de :meth:`HTML_Editor.image_shape`.
 
 ``link_preview_metadata_internal`` **sí** se porta entero: su rama externa
 delega en el bloqueado (y propaga su 503), pero su rama interna —resolver un
@@ -132,10 +134,12 @@ from urllib.parse import urlencode, urlparse
 
 import requests
 from addons.authz.permissions import require_capability
+from addons.base.models.ir_binary import IrBinary
 from addons.base.models.ir_http import IrHttp
+from addons.base.models.ir_model import IrModelData
 from django.core.files.base import ContentFile
 from django.db import models as django_models
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.html import escape
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from lxml import etree, html
@@ -144,6 +148,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from tools.image import binary_to_image, get_webp_size, image_data_uri
 from tools.misc import file_open
 
 from addons.html_editor.models.ir_attachment import (
@@ -857,40 +862,127 @@ class HTML_Editor:
         response['Cache-Control'] = 'max-age=%s' % STATIC_CACHE_LONG
         return response
 
-    def image_shape(self, request, module, filename, img_key, **kwargs):
-        """≙ ``image_shape`` (``odoo19c: :604-641``) — BLOQUEADO en su segunda
-        mitad.
+    def _find_image_record(self, img_key):
+        """El registro que ``img_key`` designa — ≙ ``ir.binary._find_record``.
 
-        La primera mitad —resolver el SVG de la forma y ajustar sus colores—
-        se porta entera y funciona. La segunda necesita ``get_webp_size``,
-        ``binary_to_image`` e ``image_data_uri`` de ``odoo/tools/image.py`` y
-        el *stream* de ``ir.binary``, que este árbol no tiene: ver la tabla de
-        bloqueos del docstring del módulo.
+        La fuente pasa ``img_key`` como primer posicional de ``_find_record``,
+        cuyo primer parámetro es ``xmlid``; y ese método acepta además el par
+        ``res_model`` + ``res_id``. Las dos formas llegan por la URL, así que
+        las dos se resuelven aquí:
+
+        - ``módulo.nombre`` → identificador externo, por ``ir.model.data.ref``;
+        - ``modelo/id`` o ``modelo(id)`` → el par, por ``ir.binary.find_record``
+          (que es el ``_find_record`` de la fuente con el guion bajo quitado
+          por ``base``).
+
+        El par admite las dos formas de nombrar un modelo que este árbol usa a
+        la vez: la de Django (``base.IrAttachment``) y la punteada de la fuente
+        (``ir.attachment``). ``IrBinary.find_record`` sólo entiende la primera
+        —delega en ``apps.get_model``—, así que la segunda se resuelve por
+        ``orm.registry.model_by_name``, que es el registro por ``_name``.
+
+        ``IrBinary`` e ``IrModelData`` se importan **directamente**: el primero
+        es una clase plana, no un modelo de Django, así que
+        ``model_by_name('ir.binary')`` devuelve ``None`` y el atributo revienta
+        con ``AttributeError``. Medido 2026-09-02 al escribir sus casos.
+
+        Devuelve ``None`` cuando no hay registro; el llamador responde 404, que
+        es lo que el ``MissingError`` de la fuente produce en su capa HTTP.
+        """
+        key = (img_key or '').strip()
+        if not key:
+            return None
+
+        model_and_id = re.match(r'^([\w.]+)[/(](\d+)\)?$', key)
+        if model_and_id:
+            name, res_id = model_and_id[1], int(model_and_id[2])
+            with contextlib.suppress(LookupError):
+                return IrBinary.find_record(name, res_id)
+            model = model_by_name(name)
+            if model is None:
+                return None
+            return model.objects.filter(pk=res_id).first()
+
+        if '.' in key:
+            with contextlib.suppress(ValueError):
+                return IrModelData.ref(key, raise_if_not_found=False)
+        return None
+
+    def image_shape(self, request, module, filename, img_key, **kwargs):
+        """≙ ``image_shape`` (``odoo19c: :604-641``).
+
+        Resuelve el SVG de la forma, le mete dentro la imagen del registro en
+        base64 y ajusta su tamaño al de esa imagen.
+
+        **Se declaró detenido y su causa había caducado.** El docstring
+        anterior nombraba tres símbolos de ``odoo/tools/image.py`` *"que este
+        árbol no tiene"*; medido 2026-09-02, ``src/tools/image.py`` los declara
+        los tres —``binary_to_image`` (:391), ``get_webp_size`` (:427) e
+        ``image_data_uri`` (:509)—. Lo único que faltaba de verdad era el
+        *stream* de ``ir.binary``, y de él sólo se necesitan dos cosas —los
+        bytes y el mimetype—, que salen del campo con
+        :func:`_attachment_raw`.
         """
         # Compatibilidad
         if module == 'web_editor':
             module = 'html_builder'
         svg = self._get_shape_svg(module, 'image_shapes', filename)
 
-        record = model_by_name('ir.binary').find_record(img_key)
+        record = self._find_image_record(img_key)
         if record is None:
             raise NotFound()
 
-        raise NotImplementedError(
-            'html_editor.image_shape: faltan `get_webp_size`, '
-            '`binary_to_image` e `image_data_uri` (su hogar es '
-            '`src/tools/image.py`, que no existe) y el stream de '
-            '`ir.binary`. El SVG de la forma sí se resolvió: %d bytes.'
-            % len(svg))
+        # ≙ ``if stream.type == 'url': return stream.get_response()`` — un
+        # adjunto de tipo ``url`` no tiene bytes que incrustar; se redirige a
+        # su origen, que es lo que el *stream* de la fuente hace.
+        if getattr(record, 'type', None) == 'url' and getattr(record, 'url', ''):
+            return HttpResponseRedirect(record.url)
+
+        image = _attachment_raw(record)
+        if not image:
+            raise NotFound()
+
+        if getattr(record, 'mimetype', '') == 'image/webp':
+            width, height = (str(size) for size in get_webp_size(image))
+        else:
+            img = binary_to_image(image)
+            width, height = (str(size) for size in img.size)
+        root = etree.fromstring(svg)
+
+        if root.attrib.get('data-forced-size'):
+            # Ajusta la altura del SVG para que la imagen encaje dentro (p. ej.
+            # para las formas de "devices").
+            svg_height = float(root.attrib.get('height'))
+            svg_width = float(root.attrib.get('width'))
+            svg_aspect_ratio = svg_width / svg_height
+            height = str(float(width) / svg_aspect_ratio)
+
+        root.attrib.update({'width': width, 'height': height})
+        # Actualiza la paleta de color por defecto del SVG de la forma.
+        svg, _ = self._update_svg_colors(
+            kwargs, etree.tostring(root, pretty_print=True).decode('utf-8'))
+        # Mete la imagen en base64 dentro de la forma.
+        uri = image_data_uri(b64encode(image))
+        svg = svg.replace('<image xlink:href="',
+                          '<image xlink:href="%s' % uri)
+
+        response = HttpResponse(svg, content_type='image/svg+xml')
+        response['Cache-Control'] = 'max-age=%s' % STATIC_CACHE_LONG
+        return response
 
     def generate_text(self, request, prompt, conversation_history):
-        """≙ ``generate_text`` (``odoo19c: :644-663``) — BLOQUEADO.
+        """≙ ``generate_text`` (``odoo19c: :644-663``).
 
-        El cuerpo de la fuente delega en ``iap_tools.iap_jsonrpc`` contra el
-        punto ``olg.api.odoo.com``. El addon ``iap`` no está portado; ver la
-        tabla de bloqueos. Se conserva la lectura de los dos parámetros del
-        sistema —que sí existen— para que el día del sucesor sólo falte la
-        llamada.
+        BLOQUEADO por ``iap.tools.iap_tools.iap_jsonrpc`` — el cuerpo de la
+        fuente delega en ese cliente JSON-RPC contra ``olg.api.odoo.com``, y
+        el addon ``iap`` no existe en este árbol. Medido 2026-09-02:
+        ``ls -d addons/iap`` → 0, y ``grep -rn "def iap_jsonrpc" --include=*.py
+        addons/ src/`` → 0. Escribir el cliente aquí pondría el símbolo en el
+        archivo equivocado, que es el defecto de :ref:`h-api-578`.
+        Sucesor: portar el addon ``iap`` con su ``tools/iap_tools.py``.
+
+        Se conserva la lectura de los dos parámetros del sistema —que sí
+        existen— para que el día del sucesor sólo falte la llamada.
         """
         IrConfigParameter = model_by_name('ir.config_parameter')
         olg_api_endpoint = IrConfigParameter.get_param(
@@ -902,9 +994,14 @@ class HTML_Editor:
             % (olg_api_endpoint, database_id))
 
     def get_ice_servers(self, request):
-        """≙ ``get_ice_servers`` (``odoo19c: :666-667``) — BLOQUEADO.
+        """≙ ``get_ice_servers`` (``odoo19c: :666-667``).
 
-        ``mail.ice.server`` no está portado; ver la tabla de bloqueos.
+        BLOQUEADO por ``mail.ice.server`` — el cuerpo de la fuente es una sola
+        línea que delega en ese modelo, y ``mail`` no lo porta. Medido
+        2026-09-02: ``grep -rn "_name = .mail.ice.server." --include=*.py
+        addons/ src/`` → 0, y ``grep -rn "def _get_ice_servers"
+        addons/mail/`` → 0.
+        Sucesor: portar ``mail/models/mail_ice_server.py``.
         """
         raise NotImplementedError(
             'html_editor.get_ice_servers: `mail.ice.server` no está portado.')
@@ -934,9 +1031,14 @@ class HTML_Editor:
         BusMessage.sendone(channel, EDITOR_COLLABORATION, bus_data)
 
     def link_preview_metadata(self, request, preview_url):
-        """≙ ``link_preview_metadata`` (``odoo19c: :684-688``) — BLOQUEADO.
+        """≙ ``link_preview_metadata`` (``odoo19c: :684-688``).
 
-        ``mail.tools.link_preview`` no está portado; ver la tabla de bloqueos.
+        BLOQUEADO por ``mail.tools.link_preview.get_link_preview_from_url`` —
+        el cuerpo de la fuente delega ahí para traerse los metadatos Open Graph
+        de una URL externa. Medido 2026-09-02: ``ls addons/mail/tools`` → el
+        directorio no existe, y ``grep -rn "get_link_preview_from_url"
+        --include=*.py addons/ src/`` → 0.
+        Sucesor: portar ``mail/tools/link_preview.py``.
         """
         raise NotImplementedError(
             'html_editor.link_preview_metadata: `mail.tools.link_preview` no '
@@ -1239,7 +1341,13 @@ def shape_endpoint(request, module, filename):
 @permission_classes([AllowAny])
 def image_shape_endpoint(request, img_key, module, filename):
     """≙ ``@http.route(['/web_editor/image_shape/<string:img_key>/…'],
-    auth='public')`` — la vista existe; su método está bloqueado."""
+    auth='public')``.
+
+    ``AllowAny`` porque la fuente declara ``auth="public"``: una forma con su
+    imagen dentro se sirve a quien pinta la página, igual que
+    :func:`shape_endpoint`. La capacidad no la aporta la ruta sino el registro:
+    quien no pueda resolverlo recibe 404.
+    """
     return _CONTROLLER.image_shape(request, module, filename, img_key,
                                    **request.GET.dict())
 

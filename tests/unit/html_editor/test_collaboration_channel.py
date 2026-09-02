@@ -11,19 +11,38 @@ produzca la guarda y no la ausencia del objeto. La evidencia de esa medición
 —con la guarda anulada a mano— vive en
 ``scripts/evidence/neutering-html-editor-collaboration-channel-*.txt``.
 """
+import re
+
 import pytest
+from addons.base.models import ResUsers
 from addons.bus.models import ir_websocket as bus_ws
 from django.db import DEFAULT_DB_ALIAS
 from orm.environments import user_scope
 
 from addons.html_editor.models.ir_websocket import (
     EDITOR_COLLABORATION,
+    IrWebsocket,
     EDITOR_COLLABORATION_CHANNEL_REGEX,
     editor_collaboration_channel,
 )
 from addons.html_editor.models.test_models import Html_EditorConverterTest
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
+
+
+def _collaboration_channels(channels):
+    """Los canales de coedición de la lista, filtrando lo que no es cadena.
+
+    ``bus.build_bus_channel_list`` añade el **partner del usuario** —un
+    registro, no una cadena— cuando hay sesión autenticada
+    (``addons/bus/models/ir_websocket.py:64-67``). Un ``c.startswith(...)``
+    directo sobre la lista revienta ahí con ``AttributeError``, que es un
+    fallo del instrumento y no de la guarda que estos casos miden. El filtro
+    va aquí, en un solo sitio, para que los tres casos midan lo mismo.
+    """
+    prefijo = DEFAULT_DB_ALIAS + ':'
+    return [c for c in channels
+            if isinstance(c, str) and c.startswith(prefijo)]
 
 
 @pytest.fixture
@@ -34,7 +53,6 @@ def record(db):
 
 @pytest.fixture
 def actor(db):
-    from addons.base.models import ResUsers
     return ResUsers.objects.create_user(login='html-editor-probe@kaupamex.test')
 
 
@@ -48,7 +66,6 @@ class TestTheChannelIsComposedInOnePlace:
         assert editor_collaboration_channel('a.b', 'c', '42').endswith(':42')
 
     def test_the_pattern_is_the_one_of_the_source(self):
-        import re
         match = re.match(EDITOR_COLLABORATION_CHANNEL_REGEX,
                          'editor_collaboration:res.partner.bank:comment:9')
         assert match is not None
@@ -68,14 +85,14 @@ class TestTheGuardOnlyAddsWhatTheActorCanReadAndWrite:
         asked = ['editor_collaboration:html_editor.converter.test:html:%d'
                  % record.pk]
         out = self._channels(asked)
-        assert not [c for c in out if c.startswith(DEFAULT_DB_ALIAS + ':')]
+        assert not _collaboration_channels(out)
 
     def test_an_unknown_model_is_discarded_in_silence(self, actor):
         with user_scope(actor.pk):
             out = self._channels(
                 ['editor_collaboration:no.existe.este.modelo:html:1'],
                 user=actor)
-        assert not [c for c in out if c.startswith(DEFAULT_DB_ALIAS + ':')]
+        assert not _collaboration_channels(out)
 
     def test_an_existing_model_with_a_missing_row_is_discarded(self, actor):
         # El modelo existe; la fila no. La fuente hace `continue`.
@@ -83,7 +100,7 @@ class TestTheGuardOnlyAddsWhatTheActorCanReadAndWrite:
             out = self._channels(
                 ['editor_collaboration:html_editor.converter.test:html:999999'],
                 user=actor)
-        assert not [c for c in out if c.startswith(DEFAULT_DB_ALIAS + ':')]
+        assert not _collaboration_channels(out)
 
     def test_a_channel_that_is_not_a_collaboration_one_passes_through(self,
                                                                       actor):
@@ -125,3 +142,33 @@ class TestTheGuardIsWhatDecides:
             'la guarda de acceso no rechazó el canal: si este caso pasa a '
             'fallar, es que el confinamiento de `_build_bus_channel_list` '
             'dejó de decidir')
+
+
+class TestTheSymbolLivesWhereTheSourcePutsIt:
+    """≙ ``class IrWebsocket`` (``odoo19c: :11``) y su ``_inherit``.
+
+    El destino de la extensión diverge —``bus`` porta ``ir.websocket`` como
+    funciones de módulo, no como clase— y eso **no** cambia dónde vive el
+    símbolo: la fuente lo declara dentro de ``IrWebsocket`` y aquí también.
+    Sin este caso, un refactor podría volver a aplanarlo a función de módulo y
+    nada lo diría hasta la siguiente auditoría de porte.
+    """
+
+    def test_the_class_declares_the_inherit_of_the_source(self):
+        assert IrWebsocket._inherit == 'ir.websocket'
+
+    def test_the_method_is_a_symbol_of_that_class(self):
+        assert callable(IrWebsocket._build_bus_channel_list)
+
+    def test_the_module_wrapper_delegates_to_it(self, actor, monkeypatch):
+        seen = []
+
+        def _spy(cls, channels, previous, *args, **kwargs):
+            seen.append(list(channels))
+            return previous(channels, *args, **kwargs)
+
+        monkeypatch.setattr(IrWebsocket, '_build_bus_channel_list',
+                            classmethod(_spy))
+        with user_scope(actor.pk):
+            bus_ws.build_bus_channel_list(['un_canal'], user=actor)
+        assert seen == [['un_canal']]
