@@ -1,0 +1,20 @@
+# verify_premise.py — control discriminante  2026-09-02T14:54:30
+
+== indice: que aporta la forma de campo (divergencia 2) ==
+archivos medidos            : 2387
+simbolos en el indice       : 9154
+visibles SOLO por ser campo : 1494  (16.3 %)
+Metrica: nombres unicos declarados como def/class o como asignacion a
+         fields.*/models.* con sangria de 4 espacios, sobre src + las
+         raices que addons_roots deriva de src/modules/module.py.
+Ciega a: el campo declarado con otra sangria o por setattr, y al
+         simbolo homonimo — por eso cada senal imprime su file:line.
+
+== el control del control: sin el guard, el indice vacio publica su cero ==
+indice sobre una raiz vacia : 0 simbolos, 0 archivos
+senales sobre esa base      : []
+-> ese 0 NO distingue «premisa firme» de «no pude medir»: por eso
+   build_symbol_index(require_files=True) sale 2 sin emitir conteo.
+
+== suite del instrumento ==
+19 passed, 1 warning in 5.52s
