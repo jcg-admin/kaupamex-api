@@ -36,6 +36,8 @@ cerrada de tipos que la fuente admite
 ``Monetary`` y allá es ``Float`` company_dependent es una decisión propia —
 tarea **#135**.
 """
+import decimal
+
 from django.db import models
 
 from orm.fields_company_dependent import make_dispatcher
@@ -72,3 +74,76 @@ def Monetary(*args, store=_UNSET, help=None, related=None, **kwargs):
     else:
         field = models.DecimalField(*args, **kwargs)
     return annotate_related(field, related, related_attrs)
+
+
+def _integer_convert_to_column(self, value, record, values=None, validate=True):
+    """``Integer.convert_to_column`` — ≙ ``odoo19c: odoo/orm/fields_numeric.py:32-33``.
+
+    ``int(value or 0)``: el vocabulario de ausencia de un entero es el cero, no
+    el ``NULL``. Es la sobrecarga que impide que la base lleve ``False`` a
+    ``NULL`` sobre una columna que la fuente declara siempre poblada.
+
+    **El cuerpo es verbatim y NO consulta ``null``.** Una primera versión
+    añadió una rama ``if self.null: return None``, razonando que la fuente
+    declara su ``Integer`` NOT NULL. Medido, eso es falso:
+    ``odoo19c: odoo/orm/fields.py:298`` declara ``required: bool = False`` —
+    «whether the field is required (NOT NULL in database)»—, así que la columna
+    de un ``Integer`` admite ``NULL`` como cualquier otra. Lo que la fuente
+    declara es ``falsy_value = 0`` (``fields_numeric.py:21``) y **tres**
+    conversores que colapsan la ausencia al cero —éste, ``convert_to_cache`` y
+    ``convert_to_record``—: el ORM nunca escribe ``NULL`` ni devuelve ``None``,
+    y un ``NULL`` heredado en la columna se lee como ``0``.
+
+    Cuando una restricción de tabla necesita el ``NULL``, la fuente lo resuelve
+    **en el modelo**, no aquí: ``ir_filters`` declara su ``CHECK`` y borra la
+    clave cuando vale cero antes de escribir
+    (``odoo19c: odoo/addons/base/models/ir_filters.py:33-34`` y ``:54-57``).
+    """
+    return int(value or 0)
+
+
+models.IntegerField.convert_to_column = _integer_convert_to_column
+
+
+def _float_convert_to_column(self, value, record, values=None, validate=True):
+    """``Float.convert_to_column`` — ≙ ``:155-163``.
+
+    Redondea al número de decimales declarado antes de escribir, que es el
+    punto entero del cuerpo de la fuente: sin ese paso el valor de la columna y
+    el de la caché divergen en el último dígito y las comparaciones dejan de
+    coincidir.
+
+    La fuente lee la precisión de ``self.get_digits(record.env)`` —un ajuste por
+    empresa— y aquí la declara el propio campo (``decimal_places``), que es
+    donde este stack la pone. El registro no hace falta: por eso la firma lo
+    acepta y el cuerpo no lo consulta.
+    """
+    value = float(value or 0.0)
+    scale = getattr(self, 'decimal_places', None)
+    return round(value, scale) if scale is not None else value
+
+
+models.FloatField.convert_to_column = _float_convert_to_column
+
+
+def _decimal_convert_to_column(self, value, record, values=None, validate=True):
+    """``Monetary.convert_to_column`` — ≙ el mismo reparto que ``Float``.
+
+    ``DecimalField`` es el tipo con que este árbol declara el dinero, y su
+    valor **no** pasa por ``float``: cuantizarlo en ``Decimal`` es lo que
+    conserva la representación exacta que la columna guarda. Un ``0`` o un
+    ``False`` entran como cero, no como ``NULL`` — mismo criterio que el
+    entero.
+    """
+    if value is None or value is False or value == '':
+        return decimal.Decimal(0)
+    if not isinstance(value, decimal.Decimal):
+        value = decimal.Decimal(str(value))
+    scale = getattr(self, 'decimal_places', None)
+    if scale is None:
+        return value
+    return value.quantize(decimal.Decimal(1).scaleb(-scale),
+                          rounding=decimal.ROUND_HALF_UP)
+
+
+models.DecimalField.convert_to_column = _decimal_convert_to_column

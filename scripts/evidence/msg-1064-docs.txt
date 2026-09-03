@@ -1,0 +1,22 @@
+Register H-API-1064 on the reverse relation
+
+El cableado de ``condition_to_q`` a la hoja de dominio destapo una
+asimetria del stack que la referencia no tiene: ``_field()`` resuelve
+por ``Model._meta.get_field()``, que devuelve tambien
+``ManyToOneRel``/``OneToOneRel``/``ManyToManyRel``. Ninguno hereda de
+``models.Field``, asi que no llevan los metodos que ``orm/fields.py``
+cuelga, y la guarda floja dio dos rojos reales en
+tests/unit/website/test_website_page.py::TestPageSearch.
+
+En la fuente esa asimetria no existe: el lado inverso es un
+``One2many``, que es un ``Field`` y responde al mismo contrato. Darle
+aqui el vocabulario de campo es la tarea #347, que con esto ya tiene
+su primer consumidor medido.
+
+El hallazgo registra los dos controles que discriminan —el aplanado de
+``Q`` que hace inutil ``in q.children``, y la anulacion de la guarda de
+empresa (7 passed a 4 failed, 3 passed)— y deja abiertos #347, #348 y
+los cinco ``condition_to_sql`` que otros archivos de la referencia
+sobrescriben.
+
+Traza: api@c7fa5102

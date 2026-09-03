@@ -249,6 +249,28 @@ def _supported_account_types():
 class ResPartnerBank(models.Model):
     """``res.partner.bank`` — cuenta bancaria de un contacto."""
 
+    #: Los cuatro atributos de clase que la fuente declara
+    #: (``odoo19c: res_bank.py:74-78``). Sin ``_name`` el modelo NO entra en
+    #: ``orm.registry.MODELS_BY_NAME``, y entonces el ``_inherits`` que lo
+    #: nombra —``account.setup.bank.manual.config``— no resuelve su comodelo y
+    #: la delegacion no se cablea: ``ensure_inherits()`` salta al declarante
+    #: cuando el comodelo es ``None``. Ese era el segundo eslabon de la tarea
+    #: #333, y no fallaba: la delegacion simplemente no existia.
+    _name = 'res.partner.bank'
+    _rec_name = 'acc_number'
+    _description = 'Bank Accounts'
+    _order = 'sequence, id'
+    #: ≙ ``_check_company_domain = models.check_company_domain_parent_of``
+    #: (``:78``): la coherencia de empresa se hereda del padre.
+    #: El ``classmethod`` es la forma de ESTE arbol, no un adorno: su
+    #: hermano ``CheckCompanyMixin._check_company_domain`` es un
+    #: ``@classmethod`` y el consumidor lo invoca sobre la clase. La fuente
+    #: asigna la funcion pelada porque alla el consumidor es un recordset,
+    #: que es una instancia. Mismo simbolo, misma semantica; lo que cambia
+    #: es sobre que se invoca.
+    _check_company_domain = classmethod(
+        models.check_company_domain_parent_of)
+
     acc_number = fields.Char(
         max_length=64,
         help_text='Número de cuenta tal como lo escribió el usuario (Odoo '

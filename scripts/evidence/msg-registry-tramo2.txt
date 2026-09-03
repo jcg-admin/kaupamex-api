@@ -1,0 +1,42 @@
+Port the field axis of Registry, its eight symbols
+
+El tramo 2 de Registry —de field_inverses (odoo19c:
+odoo/orm/registry.py:506) a is_modifying_relations (:670)— vivia
+aqui como funciones de modulo delegando en un _TriggerRegistry
+singleton, y la clase no exponia ninguna: escribir
+registry.get_dependent_fields(f), que es la firma de la fuente,
+daba AttributeError.
+
+Dos de los ocho estaban ausentes del arbol, no solo del objeto:
+
+- _discard_fields (:573) no existia en ninguna forma. Retira un
+  campo de las cinco estructuras derivadas a la vez, que es lo
+  que impide servir un arbol de disparo construido sobre un grafo
+  que ya no existe;
+- field_computed entregaba el agrupamiento por metodo de calculo
+  sin las TRES comprobaciones de consistencia de :526-550. Cuando
+  dos campos comparten compute y no comparten store, leer el no
+  guardado recalcula Y escribe el guardado: una lectura acaba
+  mutando filas, y nadie avisaba.
+
+El reparto entre «el stack lo trae hecho» y «el stack tiene con
+que construirlo» se midio antes de escribir, con su control, en
+scripts/workbench/registry-field-axis-support-20260903T053330/:
+1 READY, 7 BUILDABLE, 0 BLOCKED. Ningun simbolo tenia bloqueo
+medido, asi que se implementan los ocho. field_inverses es el
+unico READY porque Django guarda la relacion inversa como objeto
+propio y la fuente tiene que construirla con setup_inverses.
+
+Los dos memos del eje pasan a ser los del proceso y no copias
+por registro: el grafo se deriva de apps.get_models(), asi que
+dos memos recalcularian lo mismo y un descarte sobre uno dejaria
+al otro sirviendo lo viejo.
+
+Suite completa: 9869 passed, 4 skipped, 1 failed en 341.75 s con
+-n 4 y bases calientes. El unico rojo es el heredado de la nota
+Incoterm, ya registrado como tarea #340. Sube de 9838 passed / 3
+failed: los otros dos rojos los cerro el tramo 1 y este tramo
+anade 28 casos, lo que deja un caso de la diferencia sin
+atribuir. Lo que si es medida: el rojo restante es el de antes.
+
+Refs: #342, #209

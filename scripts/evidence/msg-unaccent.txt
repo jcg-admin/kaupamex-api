@@ -1,0 +1,47 @@
+Create the unaccent extension by migration
+
+Tres docstrings del arbol declaraban un bloqueo: "la extension no esta
+instalada", y de ahi que UNACCENT_ENABLED fuera False y SqlILike emitiera
+un ILIKE pelado, divergiendo de la fuente, que envuelve los dos lados con
+registry.unaccent (odoo19c: odoo/orm/fields.py:1326-1327).
+
+Medido al releerlo, no supuesto: pg_available_extensions declaraba
+unaccent 1.1 con installed_version en NULL. Estaba DISPONIBLE y nadie la
+creaba. Nunca fue un impedimento.
+
+La causa de que faltara justo donde se mide: el provisioner de db si la
+declara (db: provisioners/postgresql/db_setup.sh:194-195), pero solo corre
+sobre las bases que el provisiona. pytest levanta las suyas —el qa y una
+por worker de xdist— desde las migraciones, y ahi el provisioner no pasa.
+Por eso va como migracion: asi existe en las dos vias, siempre.
+
+Se enciende el mecanismo entero, no la mitad:
+
+- 0084_unaccent_extension.py crea la extension (CreateExtension emite
+  CREATE EXTENSION IF NOT EXISTS, idempotente).
+- UNACCENT_ENABLED pasa a True. La bandera existe para que las dos vias de
+  compilacion decidan lo mismo; encenderla a medias devolveria el defecto
+  que la creo, con el predicado en memoria y el motor discrepando sobre el
+  mismo dominio.
+- SqlILike envuelve los DOS lados en unaccent(...). Envolver solo la
+  columna dejaria el patron con su acento y "Acme" no encontraria a "acme".
+- SqlLike NO la usa, igual que la fuente: alla la envoltura esta dentro de
+  if operator.endswith('ilike').
+
+Nueve casos escritos antes del cambio, siete en rojo. El octavo pasaba en
+rojo y esa es la leccion: test_the_two_ways_agree solo mide que coincidan,
+y coincidian en NO encontrar. Es el sub-patron D de
+metrica-decide-la-conclusion.md, y por eso los otros seis existen. El
+control que discrimina de verdad es test_like_does_not_unaccent: sin el,
+envolver las dos familias saldria igual de verde.
+
+Barrida la prosa que el cambio deja falsa: el docstring de _unaccent
+—que ademas no nombraba la extension— y la clase de control de
+test_filtered_domain.py, cuyo rojo fue la senal de que aterrizo.
+
+Subconjunto derivado con grep por UNACCENT_ENABLED, SqlILike,
+remove_accents, filtered_domain e ilike: ocho directorios, 5363 passed.
+El unico rojo es test_incoterm_de_sale_stock_llega_al_papel, pre-existente
+y medido en HEAD sobre worktree limpio — tarea #340.
+
+Refs: #98

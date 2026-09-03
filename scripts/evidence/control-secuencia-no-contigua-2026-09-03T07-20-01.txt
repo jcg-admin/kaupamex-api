@@ -1,0 +1,63 @@
+Control de la senalizacion — la secuencia NO es contigua, y el control sigue
+discriminando tras corregir la afirmacion.
+
+Fecha (date -u): 2026-09-03T07:20:01
+Archivos:  src/orm/registry.py  (signal_changes)
+           tests/unit/orm/test_registry_signaling_axis.py
+
+== 1. El defecto: el caso afirmaba contiguidad, no la propiedad del mecanismo ==
+
+La suite completa con -n 4 dio 2 failed sobre gw1:
+
+    tests/unit/orm/test_registry_signaling_axis.py:139: test_a_second_reader_sees_the_bump
+        assert after['groups'] == before['groups'] + 1
+    E   assert 7 == (1 + 1)
+    tests/unit/orm/test_registry_signaling_axis.py:165: test_a_registry_change_bumps_the_registry_table
+        assert after == before + 1
+    E   assert 5 == (1 + 1)
+
+Reproducido en serie corriendo antes el caso que siembra y hace rollback:
+
+    $ uv run pytest tests/unit/base/test_ir_autovacuum_gc_signaling.py \
+                    tests/unit/orm/test_registry_signaling_axis.py -q --reuse-db
+        assert after == before + 1
+    E   assert 95 == (1 + 1)
+    2 failed, 38 passed in 6.20s
+
+Causa: la secuencia es max(id) de una tabla SERIAL. Un INSERT revertido quema
+el valor igual, asi que tras un caso que siembra y hace rollback el siguiente
+INSERT aterriza muy por encima del maximo sobreviviente. No es un defecto del
+porte: check_signaling compara con != (odoo19c: odoo/orm/registry.py:1096),
+nunca con aritmetica — la fuente solo consume la desigualdad.
+
+== 2. Correccion: se afirma > en vez de == +1, en los dos casos ==
+
+    $ uv run pytest tests/unit/base/test_ir_autovacuum_gc_signaling.py \
+                    tests/unit/orm/test_registry_signaling_axis.py -q --reuse-db
+    40 passed, 1 warning in 5.79s
+
+== 3. El control: con la escritura a la base NEUTRALIZADA ==
+
+Se retiraron los dos INSERT de signal_changes dejando solo el incremento del
+contador en memoria. Resultado sobre el archivo del eje:
+
+    2 failed, 29 passed, 1 warning in 5.55s
+    FAILED ...::TestSignalChanges::test_a_second_reader_sees_the_bump
+    FAILED ...::TestSignalChanges::test_a_registry_change_bumps_the_registry_table
+
+Caen EXACTAMENTE los dos que leen la base con un cursor ajeno al emisor. Los
+29 restantes sobreviven porque miden el contador en memoria y las banderas,
+que la version neutralizada sigue actualizando — miden otra cosa, y eso queda
+declarado.
+
+== 4. Restaurado ==
+
+    $ diff -q src/orm/registry.py /tmp/registry.orig.py
+    IDENTICO al previo al control
+    $ uv run pytest tests/unit/orm/test_registry_signaling_axis.py -q --reuse-db
+    31 passed, 1 warning in 5.74s
+
+Metrica: casos que caen al retirar los dos INSERT de signal_changes.
+Ciega a: cuantas filas inserta la senal — un signal_changes que escribiera dos
+veces la misma cache pasaria igual. Lo que discrimina es que un emisor que no
+escriba en la base deja after == before.

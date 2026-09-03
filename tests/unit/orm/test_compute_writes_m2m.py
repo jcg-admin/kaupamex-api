@@ -261,17 +261,31 @@ class TestTheCycleReachesTheJoinTable:
 
     def test_a_scalar_field_still_flushes_through_its_column(self, company):
         """El segundo control, y protege lo que ya funcionaba: la rama nueva
-        del M2M no puede haberse comido el camino de la columna."""
+        del M2M no puede haberse comido el camino de la columna.
+
+        **Los dos extremos se leen de la COLUMNA, no del atributo**, y no es
+        cosmetico: ``refresh_from_db`` de Django no es la invalidacion del
+        ORM. Copia campo a campo con ``setattr``, asi que reasigna tambien
+        ``account_type`` —que es calculado y escribible— y esa escritura marca
+        a sus dependientes, ``internal_group`` entre ellos. La lectura
+        siguiente del atributo recalcula y devuelve ``'expense'`` **haya
+        escrito o no el volcado**: es el sub-patron D de
+        ``metrica-decide-la-conclusion``, un verde que no discrimina.
+
+        ``values_list`` arma la tupla desde la fila sin instanciar el modelo,
+        asi que no pasa por el descriptor ni dispara recalculo alguno.
+        """
+        columna = lambda: AccountAccount.objects.filter(
+            pk=account.pk).values_list('internal_group', flat=True)[0]
+
         account = AccountAccount.objects.create(
             code='5000', name='Gastos', account_type='expense',
             company=company)
         AccountAccount.objects.filter(pk=account.pk).update(internal_group='')
-        account.refresh_from_db()
-        assert account.internal_group == ''
+        assert columna() == ''
 
         with transaction_scope():
             account.modified(['account_type'])
             account.flush_recordset(['internal_group'])
 
-        account.refresh_from_db()
-        assert account.internal_group == 'expense'
+        assert columna() == 'expense'

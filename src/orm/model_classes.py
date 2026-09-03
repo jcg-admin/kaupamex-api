@@ -79,8 +79,11 @@ pruebas en ``tests/unit/orm/test_extension_tardia_por_nombre.py``.
 """
 import importlib
 import inspect
+import logging
 
-from django.db.models import Model
+from django.core.exceptions import FieldDoesNotExist, ValidationError
+from django.db import models
+from django.db.models import CASCADE, ForeignKey, Model, PROTECT
 from django.db.models.fields import NOT_PROVIDED
 from django.db.models.base import ModelBase
 from django.db.models.signals import class_prepared
@@ -89,7 +92,11 @@ from django.dispatch import receiver
 from django.apps import apps
 
 from orm.method_chain import chain_method, wrap_method
-from orm.registry import resolve_model_key
+from orm.registry import (MODELS_BY_NAME, clear_marked_methods,
+                          field_depends, resolve_model_key)
+from tools.misc import discardattr
+
+_logger = logging.getLogger(__name__)
 
 __all__ = [
     'ModelBase', 'is_model_class', 'is_model_definition',
@@ -97,6 +104,11 @@ __all__ = [
     'resolve_rec_name', 'ensure_rec_names',
     'DEFAULT_PARENT_NAME', 'parent_name_of',
     'adopt_access_manager', 'ensure_access_managers',
+    'add_field', 'pop_field',
+    'is_abstract', 'is_transient', 'check_model_bases',
+    'inherits_of', 'inherits_children',
+    '_init_model_class_attributes', '_prepare_setup',
+    'ensure_model_class_attributes',
 ]
 
 
@@ -506,6 +518,211 @@ def add_field_if_absent(model, name, field):
     return True
 
 
+#: Las políticas de borrado que la delegación admite — ≙ ``('cascade',
+#: 'restrict')`` de ``_check_inherits`` (``odoo19c:
+#: odoo/orm/model_classes.py:473``). El mapeo es uno a uno con el ``on_delete``
+#: de Django: ``cascade`` borra en cadena, ``restrict`` impide borrar el padre
+#: mientras quede un hijo, que es lo que ``PROTECT`` hace.
+INHERITS_DELETE_POLICIES = (CASCADE, PROTECT)
+
+
+def inherits_of(model_cls):
+    """Las delegaciones declaradas por ``model_cls``, vacias si no declara.
+
+    **Divergencia de mecanismo, no de contrato.** La fuente declara el default
+    ``_inherits = {}`` en ``BaseModel`` (``odoo19c: odoo/orm/models.py:412``),
+    asi que todo modelo lo tiene y se lee sin preguntar. Aqui la clase base es
+    la de Django y no admite atributos nuestros: colgarselo alcanzaria tambien
+    a ``auth``, ``contenttypes`` y a todo modelo de tercero — la colision que
+    barre la tarea **#98**. El default vive en esta lectura.
+    """
+    return getattr(model_cls, '_inherits', {})
+
+
+def inherits_children(comodel_name):
+    """Los modelos que delegan EN ``comodel_name`` — la arista de vuelta.
+
+    ≙ ``registry[parent]._inherits_children`` (``odoo19c: odoo/orm/
+    model_classes.py:293-294``), que alla se mantiene **por escritura**: cada
+    ``_init_model_class_attributes`` anade el hijo al conjunto del padre.
+
+    Aqui se **deriva** del registro, con el mismo criterio que
+    ``orm.registry.field_depends`` ya toma para su eje: un mapa mantenido a
+    mano puede quedar con una entrada de un modelo que ya no delega, y no hay
+    quien lo note. Derivarlo no puede envejecer.
+
+    Lee por :func:`inherits_of`, que es el unico lector de ``_inherits`` del
+    arbol — un segundo lector seria la segunda fuente de verdad que
+    ``calibration-verified-numbers.md`` prohibe.
+
+    *Ciega a:* un modelo que declare ``_inherits`` y no llegue a
+    ``MODELS_BY_NAME`` por no declarar ``_name``; y al transitorio de
+    ``account`` que hoy declara delegacion y esta ausente del registro, que es
+    la tarea **#333**.
+    """
+    return frozenset(
+        model._name for model in MODELS_BY_NAME.values()
+        if comodel_name in inherits_of(model)
+    )
+
+
+def _inherits_field(model_cls, field_name):
+    """El campo delegado, o ``None`` si el modelo no lo declara.
+
+    ≙ ``model_cls._fields.get(field_name)`` de la fuente. Aquí ``_fields`` es
+    una ``property`` de instancia —se apoya en ``_meta``—, así que sobre la
+    **clase** devuelve el descriptor y no el mapa. El registro equivalente a
+    nivel de clase es ``_meta``, y su ``get_field`` levanta en vez de devolver
+    ``None``; esta envoltura restituye la forma de la fuente.
+    """
+    try:
+        return model_cls._meta.get_field(field_name)
+    except FieldDoesNotExist:
+        return None
+
+
+def _check_inherits(model_cls):
+    """Valida el campo de cada delegación declarada en ``_inherits``.
+
+    ≙ ``_check_inherits`` (``odoo19c: odoo/orm/model_classes.py:465-477``).
+    Mide **cuatro** propiedades del campo, y las cuatro tienen que darse: que
+    exista y sea una relación a uno, que delegue, que sea obligatorio y que su
+    política de borrado sea de las dos admitidas.
+
+    ================== ============================== =========================
+    La fuente exige    Cómo se lee allá                Cómo se lee aquí
+    ================== ============================== =========================
+    relación a uno     ``field.type != 'many2one'``    ``isinstance(…, ForeignKey)``
+    delegación         ``field.delegate``              ídem — lo pone ``apply_inherits``
+    obligatorio        ``field.required``              ``not field.null``
+    borrado admitido   ``ondelete in (cascade,         ``remote_field.on_delete in
+                       restrict)``                     INHERITS_DELETE_POLICIES``
+    ================== ============================== =========================
+
+    **La clave de ``_inherits`` nombra el campo de ESTE árbol.** La fuente
+    escribe ``{'res.partner': 'partner_id'}``; aquí la FK no lleva el sufijo
+    (decisión #141) y la clave la sigue: ``{'res.partner': 'partner'}``. El
+    criterio está declarado en ``addons/website/models/website_page.py:26-30``
+    y lo cumplen los tres declarantes del árbol.
+
+    El mensaje de las dos ramas se conserva verbatim de la fuente: quien lo lea
+    en un traceback tiene que poder buscarlo allá.
+    """
+    for comodel_name, field_name in inherits_of(model_cls).items():
+        field = _inherits_field(model_cls, field_name)
+        if not field or not isinstance(field, ForeignKey):
+            raise TypeError(
+                f"Missing many2one field definition for _inherits reference "
+                f"{field_name!r} in model {model_cls._name!r}. Add a field "
+                f"like: {field_name} = fields.Many2one({comodel_name!r}, "
+                f"required=True, ondelete='cascade')"
+            )
+        delegates = getattr(field, 'delegate', False)
+        policy = getattr(field.remote_field, 'on_delete', None)
+        if not (delegates and not field.null
+                and policy in INHERITS_DELETE_POLICIES):
+            raise TypeError(
+                f"Field definition for _inherits reference {field_name!r} in "
+                f"{model_cls._name!r} must be marked as 'delegate', 'required' "
+                f"with ondelete='cascade' or 'restrict'"
+            )
+
+
+def add_field(model_cls, name, field):
+    """Cuelga ``field`` bajo ``name`` en la clase de modelo ya construida.
+
+    ≙ ``add_field`` (``odoo19c: odoo/orm/model_classes.py:596-619``). «Add the
+    given ``field`` under the given ``name`` on the model class of the given
+    ``model``.»
+
+    Es el hermano **estricto** de :func:`add_field_if_absent`: aquél existe
+    para que dos addons no dupliquen la columna y calla si ya está; éste valida
+    y levanta. Las dos validaciones de la fuente se portan enteras:
+
+    1. **El nombre tiene que estar autorizado** — o lo declara la clase Python
+       (propia o de un delegado por ``_inherits``), o es personalizado y
+       empieza por ``x_``. Sin esto, un nombre inventado crearía una columna
+       que ningún código conoce.
+    2. **El valor tiene que ser un campo.** La fuente pide un ``fields.Field``;
+       aquí, un ``models.Field`` de Django, que es la misma pieza.
+
+    Y el aviso de la tercera rama —sobreescribir algo que no era un campo— se
+    conserva: no impide la operación, la deja en el log.
+
+    **Divergencia de mecanismo, no de contrato:** la fuente cierra apuntando el
+    campo en ``model_cls._fields__``, su registro por nombre. Aquí ese registro
+    es ``_meta``, y quien lo puebla es ``add_to_class`` — que además invoca
+    ``contribute_to_class`` y con él el ``__set_name__`` que la fuente llama a
+    mano. Una sola llamada hace las tres cosas.
+
+    De ahi sale la unica linea sin contraparte literal: la fuente **reemplaza**
+    con ``_fields__[name] = field``, y un ``dict`` reemplaza solo. ``_meta``
+    guarda sus campos en una lista, asi que colgar encima de uno que ya esta
+    dejaria los dos. :func:`pop_field` retira el anterior primero, que es lo
+    que hace del reemplazo un reemplazo.
+    """
+    delegated = [MODELS_BY_NAME[inherit] for inherit in inherits_of(model_cls)
+                 if inherit in MODELS_BY_NAME]
+    is_class_field = any(
+        isinstance(_inherits_field(cls, name), models.Field)
+        for cls in [model_cls] + delegated
+    )
+    if not (is_class_field
+            or MODELS_BY_NAME['ir.model.fields']._is_manual_name(name)):
+        raise ValidationError(
+            f"The field `{name}` is not defined in the `{model_cls._name}` "
+            f"Python class and does not start with 'x_'"
+        )
+
+    if not isinstance(field, models.Field):
+        raise ValidationError(
+            "You can only add `fields.Field` objects to a model fields")
+
+    previous = getattr(model_cls, name, None)
+    if previous is not None and isinstance(previous, models.Field):
+        _logger.warning("In model %r, field %r overriding existing value",
+                        model_cls._name, name)
+    pop_field(model_cls, name)
+    model_cls.add_to_class(name, field)
+    field._toplevel = True
+
+
+def pop_field(model_cls, name):
+    """Retira el campo ``name`` de la clase de modelo, y lo devuelve.
+
+    ≙ ``pop_field`` (``odoo19c: odoo/orm/model_classes.py:622-633``). «Remove
+    the field with the given ``name`` from the model class of ``model``.»
+
+    Las **dos** mitades importan, y la segunda es la que un ``delattr`` pelado
+    no hace: si el campo que se va era el ``_rec_name``, el modelo se queda
+    apuntando a una columna inexistente, y ``display_name`` seguiría
+    declarándolo entre sus dependencias. La fuente arregla las dos cosas aquí
+    mismo, y el puerto también.
+
+    **Divergencia de mecanismo, no de contrato.** La fuente saca el campo de
+    ``model_cls._fields__``; aquí el registro es ``_meta``, que no expone una
+    baja pública — así que se retira de la lista local que corresponda a su
+    forma y se caduca el cache derivado, que es lo que ``add_to_class`` hace al
+    poner. ``discardattr`` (``odoo19c: odoo/tools/misc.py:700``) quita el
+    descriptor sin preguntar si estaba.
+    """
+    field = _inherits_field(model_cls, name)
+    if field is not None:
+        meta = model_cls._meta
+        for bucket in (meta.local_fields, meta.local_many_to_many):
+            if field in bucket:
+                bucket.remove(field)
+        meta._expire_cache()
+        discardattr(model_cls, name)
+        discardattr(model_cls, getattr(field, 'attname', name))
+
+    if model_cls._rec_name == name:
+        # Arreglo de ``_rec_name`` y de las dependencias de ``display_name``.
+        model_cls._rec_name = None
+        field_depends.clear()
+    return field
+
+
 def add_meta_index(model, index):
     """Cuelga un ``models.Index`` del ``Meta`` de un model ajeno.
 
@@ -655,6 +872,210 @@ def extend_selection_choices(model, field_name, extra, ondelete=None):
         combined.update(policies)
         field.ondelete = combined
     return added
+
+
+def is_abstract(model_cls):
+    """El modelo no tiene tabla — ≙ ``_abstract`` (``odoo19c: odoo/orm/
+    models.py:381``).
+
+    Es un **lector**, no un atributo, y la razon esta medida: colgar
+    ``_abstract`` de ``models.Model`` alcanzaria a ``auth``, ``contenttypes``
+    y a todo modelo de tercero —la colision de la tarea **#98**— y ademas
+    **mentiria** sobre el modelo que si declara ``Meta.abstract = True``, que
+    lo heredaria en ``False`` (``orm/models.py:3846-3862``).
+
+    Lee las **dos** formas que este arbol si tiene: el ``Meta.abstract`` de
+    Django, que es el mecanismo del stack, y el ``_abstract`` declarado, que
+    es el de :class:`~orm.models.AbstractModel` para el registrante sin tabla.
+    """
+    meta = getattr(model_cls, '_meta', None)
+    if meta is not None and getattr(meta, 'abstract', False):
+        return True
+    return bool(getattr(model_cls, '_abstract', False))
+
+
+def is_transient(model_cls):
+    """El modelo se vacia solo — ≙ ``_transient`` (``odoo19c: odoo/orm/
+    models.py:382``).
+
+    Aqui **si** es un atributo de clase, porque su declarante es nuestro:
+    ``orm/models_transient.py:70``. El lector existe igual para que el check
+    de abajo lea las dos especies por la misma puerta, y para que el default
+    —``False``— viva en un solo sitio.
+    """
+    return bool(getattr(model_cls, '_transient', False))
+
+
+def _check_model_extension(model_cls, model_def):
+    """≙ ``_check_model_extension`` (``odoo19c: odoo/orm/model_classes.py:
+    233-250``) — «Check whether ``model_cls`` can be extended with
+    ``model_def``».
+
+    **De sus dos mitades, aqui solo tiene superficie la transitoria**, y no
+    por recorte: allá la mitad de ``_abstract`` existe porque ``_inherit``
+    FUNDE dos clases bajo un mismo ``_name``, y la segunda puede cambiarle la
+    especie a la primera. Aqui ``orm.registry._register`` **rechaza** el
+    ``_name`` duplicado (``registry.py:216-224``) — *"El nombre punteado
+    identifica un modelo, no una familia"*—, asi que esa fusion no ocurre y la
+    transformacion no tiene por donde entrar. Es una guarda mas estricta que
+    la de la fuente, no un hueco.
+
+    Los dos mensajes se portan **verbatim**: son lo que quien los lee busca
+    en la documentacion de la referencia.
+    """
+    if is_transient(model_cls) != is_transient(model_def):
+        if is_transient(model_cls):
+            raise TypeError(
+                f"{model_def} transforms the transient model "
+                f"{model_cls._name!r} into a non-transient model. "
+                "That class should either inherit from TransientModel, or set "
+                "a different '_name'."
+            )
+        raise TypeError(
+            f"{model_def} transforms the model {model_cls._name!r} into a "
+            "transient model. That class should either inherit from Model, or "
+            "set a different '_name'."
+        )
+
+
+def _check_model_parent_extension(model_cls, model_def, parent_cls):
+    """≙ ``_check_model_parent_extension`` (``:253-258``) — «Check whether
+    ``model_cls`` can inherit from ``parent_cls``».
+
+    Verbatim, mensaje incluido. Aqui el ``model_def`` de la firma es la propia
+    clase: no hay clase de definicion separada de la registrada, porque
+    ``ModelBase`` de Django ya construyo una sola.
+    """
+    if is_abstract(model_cls) and not is_abstract(parent_cls):
+        raise TypeError(
+            f"In {model_def}, abstract model {model_cls._name!r} cannot "
+            f"inherit from non-abstract model {parent_cls._name!r}."
+        )
+
+
+def check_model_bases(model_cls):
+    """Aplica los dos checks de la fuente sobre cada padre con ``_name``.
+
+    **Es lo unico nuestro de este bloque**, y cubre el hueco que deja la
+    ausencia de ``_base_classes__``: alla el recorrido lo hace
+    ``add_to_registry`` al fundir cada clase de definicion en la registrada
+    (``:225-229``), y aqui no hay fusion que recorrer — la jerarquia es la
+    MRO de Python, que ``ModelBase`` ya resolvio.
+
+    **Solo mide padres que declaren ``_name``**, como la fuente, que recorre
+    clases de definicion y no toda la cadena: un mixin sin nombre no es un
+    modelo y no tiene especie que contradecir.
+    """
+    for parent_cls in model_cls.__mro__[1:]:
+        if not getattr(parent_cls, '_name', None):
+            continue
+        _check_model_parent_extension(model_cls, model_cls, parent_cls)
+        _check_model_extension(parent_cls, model_cls)
+
+
+def _init_model_class_attributes(model_cls):
+    """≙ ``_init_model_class_attributes`` (``odoo19c: odoo/orm/model_classes.
+    py:261-298``) — «Initialize model class attributes».
+
+    Rellena los defaults que la fuente deriva del ``_name`` y funde el
+    ``_inherits`` declarado a lo largo de las bases.
+
+    **Tres divergencias, las tres medidas:**
+
+    - ``_log_access = _auto`` de la fuente no se cuelga: su equivalente aqui
+      es ``TimeStampedModel``, que declara las columnas de auditoria como
+      campos y no como una bandera (``atributos-de-clase-de-modelo.md``).
+    - ``_table`` se deja en el default derivado del ``_name``; quien manda
+      sobre la tabla real es ``Meta.db_table``, y que los dos coincidan lo
+      verifica ``orm.registry.check_table_matches_name()``.
+    - el recorrido es la **MRO**, no ``_base_classes__``. En orden inverso,
+      como la fuente, para que la declaracion propia gane sobre la de la base.
+
+    La fuente evita asignar un dict vacio *"to save memory"* (``:289-292``);
+    aqui el efecto observable es que la clase no gana un atributo que no
+    declaro, que es lo que :func:`inherits_of` lee.
+    """
+    # El ``_name`` DECLARADO, no el heredado: ``getattr`` recorre la MRO, y
+    # medido en el arbol hay un modelo —``addons/website/models/static_page.py:
+    # 30``, ``StaticPage``— que hereda el ``_name`` de un mixin sin declarar el
+    # suyo. Con ``getattr`` se le habrian escrito el ``_description`` y el
+    # ``_table`` del mixin. Es la misma lectura que ``orm.registry._register``
+    # ya hace (``registry.py:214``), y por la misma razon.
+    name = model_cls.__dict__.get('_name')
+    if not name:
+        return
+
+    if not model_cls.__dict__.get('_description'):
+        # El aviso de la fuente (``:271-272``), verbatim. Medido al portarlo:
+        # 0 de los 140 modelos registrados lo dispara — el arbol ya declara
+        # ``_description`` en todos, asi que entra sobre un baseline limpio.
+        _logger.warning("The model %s has no _description", name)
+        model_cls._description = name
+    if not model_cls.__dict__.get('_table'):
+        model_cls._table = name.replace('.', '_')
+
+    inherits = {}
+    for base in reversed(model_cls.__mro__):
+        inherits.update(base.__dict__.get('_inherits') or {})
+    if inherits:
+        model_cls._inherits = inherits
+
+
+def _prepare_setup(model_cls):
+    """≙ ``_prepare_setup`` (``odoo19c: odoo/orm/model_classes.py:329-346``) —
+    «Prepare the setup of the model».
+
+    Su unico trabajo es **olvidar** lo que el setup vuelve a calcular: los dos
+    atributos resueltos y los tres mapas de metodo marcado.
+
+    **Sin ``_setup_done__`` ni el cambio de bases** de la fuente (``:330-337``):
+    aquel guarda ``_base_classes__`` para poder reconstruir la clase, y aqui
+    ``ModelBase`` construyo una sola cuya MRO no se reescribe. Lo que queda es
+    el olvido, que es la mitad con consumidor.
+
+    Es el llamador que :func:`~orm.registry.clear_marked_methods` esperaba
+    desde la tarea **#334**: un colector que no se vacia hace invisible un
+    metodo anadido despues, y eso ya se midio
+    (``tests/unit/web/test_models_onchange.py``).
+    """
+    for attr in ('_rec_name', '_active_name'):
+        discardattr(model_cls, attr)
+    clear_marked_methods()
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.init_class_attributes')
+def _init_class_attributes_on_prepared(sender, **kwargs):
+    """Valida la especie heredada y rellena los defaults, clase por clase.
+
+    ``class_prepared`` dispara al final de ``ModelBase.__new__``, que es donde
+    la fuente corre los dos checks y ``_init_model_class_attributes``: al
+    fundir cada clase de definicion en la registrada
+    (``odoo19c: odoo/orm/model_classes.py:216-229``).
+
+    El orden importa y es el de la fuente: **primero se valida**, y solo
+    entonces se rellena. Rellenar una clase cuya especie contradice a su padre
+    seria dejar consistente un estado que no deberia existir.
+    """
+    check_model_bases(sender)
+    _init_model_class_attributes(sender)
+
+
+def ensure_model_class_attributes():
+    """Barrido para las clases preparadas ANTES de conectar el receptor.
+
+    Mismo hermano que :func:`ensure_rec_names` y :func:`ensure_access_managers`
+    ya tienen, y por la misma razon: ``class_prepared`` no dispara hacia atras,
+    asi que una clase construida antes de que este modulo se importara nunca
+    pasaria por el receptor. Corre desde ``AppConfig.ready()``.
+
+    Devuelve los nombres tocados, para que quien lo llame pueda medirlo.
+    """
+    tocados = []
+    for model_cls in list(MODELS_BY_NAME.values()):
+        check_model_bases(model_cls)
+        _init_model_class_attributes(model_cls)
+        tocados.append(model_cls._name)
+    return tocados
 
 
 def extend_model(*destino, campos=None, metodos=None, overrides=None,

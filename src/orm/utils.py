@@ -298,9 +298,16 @@ def model_field_registry(model):
     consultar **sobre la clase**, no solo sobre una instancia. La fuente lo
     tiene asi de nacimiento: su ``Model._fields`` es un atributo de la clase de
     registro, y ``resolve_depends`` lo recorre sin instanciar nada
-    (``odoo19c: odoo/orm/fields.py:823``). Aqui ``_fields`` es una ``property``
-    del modelo base, asi que sobre la clase devuelve el objeto ``property`` y
-    no el mapa.
+    (``odoo19c: odoo/orm/fields.py:823``).
+
+    > **Corregido (tarea #342).** Este parrafo decia que aqui ``_fields`` es
+    > una ``property`` y que sobre la clase devuelve el objeto ``property``.
+    > Era cierto y describia un hueco que esta funcion **tapaba en vez de
+    > cerrar**: cada consumidor que tenia la clase y no la fila llamaba aqui a
+    > mano. ``_fields`` es ahora un :class:`FieldRegistryDescriptor`, asi que
+    > ``Model._fields`` devuelve el mapa igual que allá. La funcion se queda
+    > —es el cuerpo que el descriptor invoca, y el que reciben los once sitios
+    > que ya la llamaban— pero deja de ser el unico camino desde la clase.
 
     Antes de esto ``resolve_depends`` resolvia con ``_meta.get_field``, que es
     **mas estrecho**: un :class:`~orm.fields_nonstored.NonStored` no tiene
@@ -316,6 +323,28 @@ def model_field_registry(model):
     registry = {field.name: field for field in model._meta.get_fields()}
     registry.update(non_stored_fields(model))
     return registry
+
+
+class FieldRegistryDescriptor:
+    """``_fields`` legible por la clase y por la fila.
+
+    La fuente declara ``_fields`` en la clase de registro, asi que
+    ``Model._fields`` y ``record._fields`` devuelven el mismo mapa; su
+    ``check_indexes`` lo lee por la clase
+    (``odoo19c: odoo/orm/registry.py:813``) y ``resolve_depends`` tambien
+    (``odoo/orm/fields.py:823``). Una ``property`` sirve solo la mitad de fila:
+    consultada sobre la clase devuelve el objeto descriptor.
+
+    El mecanismo no se trae de fuera. El protocolo de descriptor de CPython ya
+    distingue los dos accesos —``__get__`` recibe ``instance=None`` cuando el
+    acceso es por la clase, y el ``owner`` que hace falta—, asi que basta
+    usarlo en vez de la ``property``, que es el caso particular que solo
+    responde a la instancia.
+    """
+
+    def __get__(self, instance, owner=None):
+        """El mapa del modelo, venga el acceso de la clase o de una fila."""
+        return model_field_registry(owner if instance is None else type(instance))
 
 
 def model_of_field(field, registry_module):
@@ -345,3 +374,30 @@ def model_of_field(field, registry_module):
         return model
     name = getattr(field, 'model_name', '')
     return registry_module.MODELS_BY_NAME.get(name) if name else None
+
+
+def display_name_of(record):
+    """La etiqueta de un registro — ≙ ``record.display_name``.
+
+    Vive aquí y no en ``orm/fields.py``, donde nació, por la misma razón que
+    :func:`model_of` una función más arriba: tiene consumidores que **no
+    pueden** importar aquel archivo. Son tres, y hasta este pase cada uno
+    llevaba su copia:
+
+    - ``orm/fields.py`` — el despachador de ``convert_to_display_name``;
+    - ``orm/fields_relational.py`` — la sobrecarga de ``Many2one``, que
+      ``orm/fields.py`` importa (``orm/fields.py:86``), así que el import
+      inverso sería un ciclo;
+    - ``orm/fields_properties.py`` — la etiqueta de un valor de propiedad
+      relacional, con el mismo ciclo.
+
+    Tres copias de dos líneas son la segunda fuente de verdad que
+    ``calibration-verified-numbers.md`` prohíbe: la tercera se iba a escribir
+    en este pase y en su lugar se unificaron las tres.
+
+    Un modelo que aún no adoptó el ``display_name`` universal —los de terceros
+    lo son por decisión, el adoptador de ``orm.model_classes`` no los toca—
+    cae a ``str(record)``, que es el ``__str__`` de Django.
+    """
+    label = getattr(record, 'display_name', None)
+    return label if label else str(record)

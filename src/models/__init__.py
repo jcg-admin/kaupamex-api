@@ -59,7 +59,7 @@ usos reales del lado de Django. Las 17 menciones de ``models.Constraint`` que
 un grep de texto encuentra están todas en prosa que describe la referencia — la
 distinción la hace el AST, no el grep.
 
-Los diez que faltan, con su veredicto
+Los ocho que faltan, con su veredicto
 =====================================
 
 **Bloqueo medido**: ``orm/`` todavía no los declara, y ligar un nombre
@@ -70,9 +70,7 @@ símbolo, que es el mismo pase y no un barrido posterior:
   (``odoo19c: odoo/orm/models.py``). Es #211 y #209.
 - ``READ_GROUP_DISPLAY_FORMAT``, ``READ_GROUP_TIME_GRANULARITY``,
   ``parse_read_group_spec`` — la familia de ``read_group``.
-- ``check_companies_domain_parent_of``, ``check_company_domain_parent_of`` — los
-  dos dominios de coherencia de empresa que ``_check_company`` consume.
-- ``to_record_ids``, ``check_method_name`` — este último es #205.
+- ``check_method_name`` — es #205.
 
 Divergencia de sitio declarada: la referencia saca
 ``READ_GROUP_NUMBER_GRANULARITY`` de ``odoo/orm/models.py`` y aquí sale de
@@ -95,8 +93,11 @@ from orm.models import (
     DefaultGetMixin,
     Model,
     OriginMixin,
+    check_companies_domain_parent_of,
+    check_company_domain_parent_of,
     fix_import_export_id_paths,
     parse_read_group_spec,
+    to_record_ids,
     regex_order,
 )
 from orm.model_classes import is_model_class, is_model_definition

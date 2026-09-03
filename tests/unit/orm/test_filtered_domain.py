@@ -38,9 +38,9 @@ DOMAINS = [
     ('like',                [('name', 'like', 'Al%')]),
     ('ilike',               [('name', 'ilike', 'al%')]),
     ('=like exacto',        [('name', '=like', 'Alfa')]),
-    # El acentuado va con el acento en el patrón: el ``ilike`` de este árbol
-    # NO ignora acentos (``UNACCENT_ENABLED``), y el caso está abajo con su
-    # propio test para que la decisión quede medida y no supuesta.
+    # El acentuado va con el acento en el patrón porque la fila lo lleva; que
+    # además lo encuentre **sin** acento lo mide ``tests/unit/orm/
+    # test_unaccent.py``, donde vive la decisión completa.
     ('ilike con acento',    [('name', 'ilike', 'ácme')]),
     ('and',                 ['&', ('name', '=', 'Alfa'), ('active', '=', True)]),
     ('or',                  ['|', ('name', '=', 'Alfa'), ('name', '=', 'Beta')]),
@@ -178,20 +178,22 @@ class TestAsPredicate:
 class TestUnaccentDecisionIsShared:
     """El ``ilike`` en memoria decide lo mismo que ``sql_ilike``.
 
-    Mientras ``UNACCENT_ENABLED`` sea falso —lo es: la extensión ``unaccent``
-    no está instalada, y ``SqlILike`` emite un ``ILIKE`` pelado— buscar «acme»
-    **no** encuentra «Ácme», en ninguna de las dos vías. Cuando la tarea #98
-    instale la extensión, las dos cambian juntas.
+    Este caso mide la **coincidencia** entre las dos vías, no su veredicto: es
+    lo que hace observable que ``UNACCENT_ENABLED`` gobierne a las dos. Qué
+    contestan —desde 2026-09-03, que buscar «acme» **sí** encuentra «Ácme»—
+    lo mide ``tests/unit/orm/test_unaccent.py``.
+
+    Hasta ese día este caso afirmaba que ninguna de las dos ignoraba el
+    acento, y su rojo fue la señal de que la extensión había aterrizado.
     """
 
     @pytest.mark.django_db
-    def test_neither_way_ignores_the_accent(self, partners):
+    def test_both_ways_answer_the_same(self, partners):
         domain = [('name', 'ilike', 'acme')]
         from_engine = ResPartner.objects.filter(
             pk__in=[p.pk for p in partners]).filter(
                 Domain(domain)._to_q(ResPartner))
         assert _names(filtered_domain(partners, domain)) == _names(from_engine)
-        assert list(from_engine) == []
 
 
 class TestFilterFunction:

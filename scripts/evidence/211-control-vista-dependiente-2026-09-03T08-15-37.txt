@@ -1,0 +1,13 @@
+Control del eje de esquema de columna — tarea #211/#346
+Fecha (date -u): 2026-09-03T08:15:37
+Metrica: casos que caen al retirar drop_depending_views del rescate de
+         _convert_column (src/tools/sql.py), sobre
+         tests/unit/tools/test_sql_column_schema.py.
+Ciega a: si la vista se retira con o sin CASCADE — una vista que cuelgue de
+         otra no aparece en este subconjunto; y a la vista materializada en el
+         camino de convert_column, que sólo se ejerce en get_depending_views.
+
+fiel (con drop_depending_views)   12 passed
+neutralizado (sin el)              1 failed, 11 passed
+    FAILED TestConvertColumn::test_convert_column_drops_the_view_that_blocks_it
+restaurado                        12 passed

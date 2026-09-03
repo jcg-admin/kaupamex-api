@@ -1,0 +1,6 @@
+modelos registrados: 140
+abstractos: 0
+transitorios: 4
+abstracto-de-concreto: 0 []
+transitorio-de-no: 0 []
+no-de-transitorio: 0 []

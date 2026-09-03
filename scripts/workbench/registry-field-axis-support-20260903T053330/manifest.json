@@ -1,0 +1,25 @@
+{
+  "question": "de los ocho simbolos del eje de campos de Registry (odoo19c: odoo/orm/registry.py:506-682), cuales trae hechos este stack y cuales hay que construir con sus primitivas, y con que entrada del INVENTORY se paga cada uno?",
+  "instrument": "classify_field_axis_support.py — declara por simbolo los dotted paths que ya hacen el trabajo (installed) y los que hacen falta para construirlo (primitives), los resuelve por importlib mas getattr encadenado, y reparte en READY / BUILDABLE / BLOCKED",
+  "metric": "simbolos de la referencia repartidos en tres cubos: READY (todo installed resuelve, el porte es una llamada), BUILDABLE (nada installed pero todas las primitives resuelven) y BLOCKED (alguna primitive no resuelve, y se nombra)",
+  "blind_to": [
+    "la CONDUCTA del simbolo instalado: mide que el nombre resuelve, no que haga lo mismo que la referencia. Un READY dice que hay donde apoyarse, no que la semantica coincida",
+    "una primitiva que exista como atributo de instancia y no de clase: la resolucion es estatica, asi que remote_field de una instancia concreta no se puede declarar y en su lugar se declara ForeignObjectRel",
+    "el coste de construir: BUILDABLE no distingue diez lineas de doscientas",
+    "las dependencias de fuera del stack: si un simbolo necesitara un paquete no instalado, la primitiva no resolveria y saldria BLOCKED sin decir que la salida es instalarlo",
+    "los simbolos del eje que la referencia NO declara en este tramo: la poblacion son los ocho de :506 a :682, no Registry entero"
+  ],
+  "destination": "src/orm/registry.py — los ocho metodos del tramo 2 de la tarea #342; y docs: source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/",
+  "source": [
+    "odoo19c: odoo/orm/registry.py:506-682",
+    "src/orm/registry.py (_TriggerRegistry, _ComputedGrouper, _DerivedCollector)",
+    "src/tools/misc.py (Collector, OrderedSet)"
+  ],
+  "corrected_premise": {
+    "decia": "el eje de campos ya estaba portado: ocho funciones de modulo delegando en un _TriggerRegistry singleton",
+    "mide": "dos de los ocho estaban ausentes del arbol, no solo del objeto. _discard_fields (odoo19c: odoo/orm/registry.py:573) no existe en ninguna forma, y field_computed entrega el agrupamiento sin las TRES comprobaciones de consistencia que la fuente emite en :526-550 (compute_sudo, precompute, store)",
+    "consecuencia": "el criterio de dos cubos no se aplica al tramo entero sino simbolo a simbolo: seis se apoyan en lo que el stack trae y dos hay que escribirlos con primitivas de cpython y de nuestro propio tools.misc"
+  },
+  "tasks": ["#342", "#209"],
+  "reproducible": "DJANGO_SETTINGS_MODULE=config.settings.testing PYTHONPATH=src uv run python scripts/workbench/registry-field-axis-support-20260903T053330/classify_field_axis_support.py"
+}

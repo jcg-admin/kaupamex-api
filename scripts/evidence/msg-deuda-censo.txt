@@ -1,0 +1,35 @@
+Census the frozen Spanish identifier debt
+
+El gate de idioma publica "Deuda heredada congelada: 1024" en cada commit y
+nadie habia medido de que esta hecha. El ejecutor lo pidio: "ya no queremos
+Deuda heredada".
+
+La premisa que se corrige: NO hace falta construir un instrumento.
+scripts/rename_identifiers.py ya renombra por token y por posicion, con el
+guard de 3.12+ que la f-string exige (H-API-607). Lo que faltaba era el
+lexico y el reparto.
+
+El censo, sobre las 1024 entradas: 766 nombres distintos en 176 archivos —
+760 en tests, 241 en addons, 23 en src.
+
+Y el dato que cambia el plan: las palabras que dominan el baseline no son
+sustantivos sino CONECTORES —de 140, el 139, con 80, por 79, del 64, en 62.
+Un conector dentro de un identificador significa que el identificador es una
+frase, y una frase no se traduce palabra a palabra. Reparto por forma:
+
+  mecanica (sin conector)   499  48 %   tests 290 · addons 187 · src 22
+  juicio   (con conector)   525  51 %   tests 470 · addons  54 · src  1
+
+La clase de juicio se concentra en tests: 470 de 525, el 90 %. El codigo de
+produccion es casi todo mecanico, 209 de sus 264 entradas — que es por donde
+empieza el barrido, porque es donde mas importa y mas barato sale.
+
+El censo carga el lexico del gate POR RUTA en vez de copiarlo: copiarlo seria
+la segunda fuente de verdad que calibration-verified-numbers.md prohibe, y el
+agrupamiento tiene que usar la misma decision que produjo el baseline. Sin el
+lexico rehusa con exit 2 SIN emitir conteo — un 0 ahi seria un verde falso.
+
+La condicion de cierre no es bajar el conteo sino RETIRAR el archivo: mientras
+el baseline exista, el gate admite deuda.
+
+Refs: #124, #147, #219, #220

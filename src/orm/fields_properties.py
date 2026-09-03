@@ -48,7 +48,8 @@ import orm.domains as _domains
 import orm.models as _models
 from orm.environments import context_scope, get_context, get_current_uid, sudo
 from orm.fields_nonstored import projection_or_none
-from orm.utils import COLLECTION_TYPES, parse_field_expr, regex_alphanumeric
+from orm.utils import (COLLECTION_TYPES, display_name_of, parse_field_expr,
+                       regex_alphanumeric)
 from tools.misc import OrderedSet, has_list_types, is_list_of
 from tools.sql import SQL
 from tools.translate import _
@@ -81,24 +82,6 @@ def _model_of(model_name):
     except (LookupError, ValueError):
         return None
 
-
-def _display_name_of(record):
-    """La etiqueta de un registro — ≙ ``record.display_name``.
-
-    La divergencia que este ayudante declaraba **quedó cerrada** por la tarea
-    #134: ``display_name`` ya cuelga de la base común
-    (``orm.models.DisplayNameMixin``) y de ``orm.model_classes.adopt_display_name``
-    para los modelos que no la heredan, así que **todo** modelo nuestro lo
-    tiene — igual que en la fuente, donde cuelga de ``BaseModel``
-    (``odoo19c: odoo/orm/models.py:473``).
-
-    El ``or str(record)`` se conserva para un modelo de terceros (Django,
-    ``django.contrib.*``), al que el adoptador no toca por diseño.
-
-    No se importa el ``display_name_of`` de ``orm.fields``: ese módulo importa
-    a éste (``orm/fields.py:62``), así que el import inverso sería un ciclo.
-    """
-    return getattr(record, 'display_name', None) or str(record)
 
 __all__ = ['Properties', 'PropertiesDefinition', 'check_property_field_value_name']
 
@@ -551,6 +534,8 @@ class Properties(models.JSONField):
 
     # -- Escritura -----------------------------------------------------------
 
+    column_conversion_needs_record = True
+
     def convert_to_column(self, value, record, values=None, validate=True):
         """≙ ``convert_to_column`` (``odoo19c: :124-129``) — la forma de columna."""
         if not value:
@@ -776,7 +761,7 @@ class Properties(models.JSONField):
                         property_definition[value_key] = False
                     else:
                         property_definition[value_key] = (
-                            property_value, _display_name_of(row))
+                            property_value, display_name_of(row))
 
                 elif (property_type == 'many2many' and property_value
                         and is_list_of(property_value, int)):
@@ -785,7 +770,7 @@ class Properties(models.JSONField):
                         pk__in=property_value)
                     for row in rows:
                         property_definition[value_key].append(
-                            (row.pk, _display_name_of(row)))
+                            (row.pk, display_name_of(row)))
 
     @classmethod
     def _parse_json_types(cls, values_list, res_ids_per_model):
@@ -1226,6 +1211,8 @@ class PropertiesDefinition(models.JSONField):
         """Deconstruye como ``django.db.models.JSONField`` — ver el docstring."""
         name, _path, args, kwargs = super().deconstruct()
         return name, 'django.db.models.JSONField', args, kwargs
+
+    column_conversion_needs_record = True
 
     def convert_to_column(self, value, record, values=None, validate=True):
         """≙ ``convert_to_column`` (``odoo19c: :871-908``) — la forma de columna."""

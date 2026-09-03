@@ -72,7 +72,8 @@ simbolos declarados en esa misma raiz.
 (b) una dependencia hacia **fuera** de ``odoo/orm`` (``odoo/tools``), que se
 excluye a proposito: no bloquea dentro de esta raiz; (c) si el simbolo ya
 esta portado **de verdad** — la columna ``aqui`` mide que el nombre se declara
-en ``src/orm/``, no que haga lo mismo. Ese veredicto es la tarea #209;
+en ``src/orm/`` en alguna forma (clase, funcion, asignacion o re-export), no
+que haga lo mismo. Ese veredicto es la tarea #209;
 (d) una anotacion de tipo diferida (``from __future__ import annotations``)
 sigue contando como dura aunque no se evalue al importar, asi que el ciclo
 duro es una **cota superior**: puede ser mas pequeno, nunca mayor.
@@ -111,6 +112,51 @@ def top_level_symbols(root):
             if isinstance(node, (ast.ClassDef, ast.FunctionDef,
                                  ast.AsyncFunctionDef)):
                 found[node.name] = (path.name, node)
+    return found
+
+
+def declared_here(root):
+    """``{nombre}`` de todo simbolo que esta raiz declare, en CUALQUIER forma.
+
+    Responde una pregunta distinta de :func:`top_level_symbols`, y por eso es
+    otra funcion: aquella enumera los **nodos que se ordenan** —clases y
+    funciones, las unidades del grafo—; esta responde **«¿el nombre ya se
+    declara aqui?»**, y para eso cuenta tambien la asignacion de nivel
+    superior y el re-export.
+
+    La asimetria es deliberada. Meter las asignaciones en la enumeracion de
+    nodos cambiaria el grafo de la referencia —entrarian sus constantes de
+    modulo— y con el los niveles, que es lo que el guion existe para calcular.
+    Dejarlas fuera de este lado publica una ausencia falsa: medido, 12 de los
+    27 que la columna ``aqui`` daba por ausentes existian, declarados como
+    ``Boolean = make_dispatcher(...)`` o re-exportados. Es el sub-patron C de
+    ``metrica-decide-la-conclusion.md`` — el instrumento mide la FORMA de la
+    declaracion y se concluia sobre la PRESENCIA del simbolo.
+
+    Una raiz que no existe devuelve el conjunto vacio: quien llama ya
+    distingue ese caso, y levantar aqui obligaria a cada consumidor a
+    envolverlo.
+    """
+    found = set()
+    if not root.is_dir():
+        return found
+    for path in sorted(root.glob('*.py')):
+        for node in ast.parse(path.read_text(errors='ignore')).body:
+            if isinstance(node, (ast.ClassDef, ast.FunctionDef,
+                                 ast.AsyncFunctionDef)):
+                found.add(node.name)
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        found.add(target.id)
+            elif isinstance(node, ast.AnnAssign):
+                if isinstance(node.target, ast.Name):
+                    found.add(node.target.id)
+            elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                # El re-export cuenta por su nombre LOCAL: es el que queda
+                # disponible desde esta raiz.
+                for alias in node.names:
+                    found.add(alias.asname or alias.name.split('.')[0])
     return found
 
 
@@ -233,7 +279,7 @@ def main():
     nodes = sorted(symbols)
 
     ours_root = REPO.joinpath(*OUR_SUBPATH)
-    ours = set(top_level_symbols(ours_root)) if ours_root.is_dir() else set()
+    ours = declared_here(ours_root)
 
     components = cyclic_components(nodes, edges)
     grouped_nodes, grouped_edges, of_group = condense(nodes, edges, components)

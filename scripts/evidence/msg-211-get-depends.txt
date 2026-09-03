@@ -1,0 +1,55 @@
+Port Field.get_depends and wire the collector
+
+La referencia parte la maquinaria de dependencias en dos simbolos
+complementarios, no en uno: ``Field.get_depends``
+(odoo19c: odoo/orm/fields.py:561-598) PRODUCE el par
+``(depends, depends_context)`` a partir de lo que la clase declara, y
+``Field.resolve_depends`` (:807-865) lo CONSUME, expandiendo los
+nombres con punto a tuplas de campo. El puerto solo tenia el
+consumidor.
+
+Sin el productor, ``_DerivedCollector`` leia el atributo ``_depends``
+en crudo mas el de un unico ``getattr(model, compute)``. Eso cubre la
+rama 1 de la fuente (lo declarado en el campo gana) y la MITAD de la
+rama 3; la rama 2 —``related``, que deriva el depends de la ruta y
+acumula el depends_context recorriendo la cadena— NO existia, y el
+recorrido del MRO estaba reducido a una sola funcion. Un ``compute``
+sobreescrito en una subclase perdia el ``@api.depends`` de la clase
+base sin que nada lo delatara.
+
+Ahora el colector pregunta primero al productor y solo cae al atributo
+crudo cuando el objeto no lo lleva. El ``INDEX`` de clase reparte el
+par entre los dos colectores —0 dependencias, 1 contexto— de modo que
+``field_depends`` y ``field_depends_context`` comparten mecanismo en
+vez de duplicarlo. El respaldo devuelve ``None`` y no la tupla vacia
+para distinguir «el productor dice que no hay» de «esto no es un campo
+nuestro»: por ahi entra la relacion inversa de Django, que
+``_meta.get_fields()`` incluye y no hereda de ``models.Field``
+(tarea #347).
+
+DIVERGENCIA DE STACK declarada en el docstring: ``resolve_mro`` lee el
+``__dict__`` de cada clase en crudo, asi que un ``compute`` declarado
+``@staticmethod`` llega como el DESCRIPTOR y el marcador de
+``@api.depends`` vive en la funcion. Se desenvuelve con
+``getattr(func, '__func__', func)`` — lo que
+``getattr(model, compute)`` hacia gratis y el MRO no. Sin eso, un test
+ya existente (test_it_follows_compute_to_the_decorated_method) quedaba
+en rojo.
+
+Control que discrimina, corrido: con las dos guardas anuladas el
+archivo pasa de 13 passed a 4 failed, 9 passed — caen exactamente los
+que dependen de ellas. Evidencia en scripts/evidence/.
+
+Dos defectos propios que los gates de arbol completo atraparon, y que
+el subconjunto no habria visto:
+
+- 3 lazy imports en el archivo de test nuevo. Los vio la suite, no yo:
+  habia leido la cola del gate en vez de su linea de veredicto.
+- Dos modelos proxy declarados DENTRO de un caso quedan registrados en
+  el app registry para toda la sesion, y el barrido de system checks
+  los rechaza por models.E023 (nombre con guion bajo inicial). Fallaba
+  solo bajo -n 4. El control del MRO no necesita modelos: resolve_mro
+  recorre el __mro__ y nunca consulta el registro, asi que ahora usa
+  clases llanas.
+
+Suite completa (src/orm es raiz espejada): 10057 passed, 4 skipped.

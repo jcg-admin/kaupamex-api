@@ -58,7 +58,14 @@ class TestSaleOrderIsExpired:
         order = SaleOrder.objects.create(
             state=SaleOrder.STATE_DRAFT, company=company_sin_vencimiento,
         )
-        assert order.validity_date is None
+        # ``False``, no ``None``: es el vocabulario de la fuente para «sin
+        # valor» en el camino de vuelta del campo
+        # (``odoo19c: odoo/orm/fields.py:1053`` — ``return False if value is
+        # None else value``, sin sobrecarga en ``fields_temporal.py``). La
+        # COLUMNA sigue en ``NULL``; lo traduce ``convert_to_record`` al leer.
+        assert SaleOrder.objects.filter(pk=order.pk).values_list(
+            'validity_date', flat=True)[0] is None
+        assert order.validity_date is False
         assert order.is_expired is False
 
     def test_validity_date_se_calcula_del_plazo_de_la_empresa(self, company):

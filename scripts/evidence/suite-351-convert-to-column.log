@@ -1,0 +1,845 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  0%]
+........................................................................ [  1%]
+........................................................................ [  2%]
+...................F.................................................... [  2%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+...F...F.F...........F.............F..F..............F.................. [ 14%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+.....FF....................F..F...............F..F..F...........F....F.. [ 19%]
+..F..................................................................... [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+.................................F...................................... [ 27%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+..............................................F......................... [ 32%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+........................................................................ [ 34%]
+..................F..............F......F..............................F. [ 34%]
+.........................................F............F..............F.. [ 35%]
+....................F................................................... [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+......................................................................... [ 59%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+......................s................................................. [ 69%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+.................................................s...................... [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+......................................................................... [ 79%]
+....s................................................................... [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+........................................................................ [ 81%]
+........................................................................ [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 88%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+................................Exception ignored in: <function Transport.__del__ at 0x7f29dd677b00>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: 'object' object has no attribute 'close'
+Exception ignored in: <function Transport.__del__ at 0x7f29dd677b00>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: 'object' object has no attribute 'close'
+........................................ [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+..................................                                       [100%]
+=================================== FAILURES ===================================
+________ TestContratoEstable.test_el_descuento_se_presenta_en_positivo _________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/sale/test_superficies_salida_e5pre.py:110: in test_el_descuento_se_presenta_en_positivo
+    venta = _venta(producto, metodo, voucher=voucher)
+tests/integration/sale/test_superficies_salida_e5pre.py:81: in _venta
+    apply_voucher_to_draft(draft, voucher.code)
+addons/sale_loyalty/services.py:63: in apply_voucher_to_draft
+    raise DraftOrderError(f'Voucher no aplicable: {error_code}',
+E   addons.sale.services.DraftOrderError: Voucher no aplicable: VOUCHER_EXHAUSTED
+_________________ TestAplicarCupon.test_aplicar_voucher_fixed __________________
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/loyalty/test_vouchers.py:376: in test_aplicar_voucher_fixed
+    assert res.status_code == 200
+E   assert 400 == 200
+E    +  where 400 = <Response status_code=400, "application/json">.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Bad Request: /api/v2/cart/voucher/
+_______________ TestAplicarCupon.test_aplicar_voucher_percentage _______________
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/loyalty/test_vouchers.py:385: in test_aplicar_voucher_percentage
+    assert res.status_code == 200
+E   assert 400 == 200
+E    +  where 400 = <Response status_code=400, "application/json">.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Bad Request: /api/v2/cart/voucher/
+_____________ TestAplicarCupon.test_aplicar_voucher_free_shipping ______________
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/loyalty/test_vouchers.py:393: in test_aplicar_voucher_free_shipping
+    assert res.status_code == 200
+E   assert 400 == 200
+E    +  where 400 = <Response status_code=400, "application/json">.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Bad Request: /api/v2/cart/voucher/
+_________ TestAplicarCupon.test_monto_minimo_no_alcanzado_retorna_400 __________
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/loyalty/test_vouchers.py:435: in test_monto_minimo_no_alcanzado_retorna_400
+    assert res.json()['codigo_error'] == 'MINIMUM_AMOUNT_NOT_REACHED'
+E   AssertionError: assert 'VOUCHER_EXHAUSTED' == 'MINIMUM_AMOUNT_NOT_REACHED'
+E     - MINIMUM_AMOUNT_NOT_REACHED
+E     + VOUCHER_EXHAUSTED
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Bad Request: /api/v2/cart/voucher/
+______________________ TestAplicarCupon.test_quitar_cupon ______________________
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/loyalty/test_vouchers.py:441: in test_quitar_cupon
+    assert res.status_code == 200
+E   assert 400 == 200
+E    +  where 400 = <Response status_code=400, "application/json">.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Bad Request: /api/v2/cart/voucher/
+WARNING  django.request:log.py:249 Bad Request: /api/v2/cart/voucher/
+______________ TestAplicarCupon.test_reemplazar_voucher_existente ______________
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/loyalty/test_vouchers.py:457: in test_reemplazar_voucher_existente
+    assert res.status_code == 409
+E   assert 400 == 409
+E    +  where 400 = <Response status_code=400, "application/json">.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  django.request:log.py:249 Bad Request: /api/v2/cart/voucher/
+WARNING  django.request:log.py:249 Bad Request: /api/v2/cart/voucher/
+_______ TestVoucherChangeLogDelete.test_delete_voucher_emits_change_log ________
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/loyalty/test_vouchers.py:522: in test_delete_voucher_emits_change_log
+    v = Voucher.objects.create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+addons/loyalty/models/voucher.py:129: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1018: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1924: in execute_sql
+    for sql, params in self.as_sql():
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1813: in as_sql
+    field_prepare(field_pre_save(obj)) for obj in self.query.objs
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1742: in prepare_value
+    return field.get_db_prep_save(value, connection=self.connection)
+.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1011: in get_db_prep_save
+    return self.get_db_prep_value(value, connection=connection, prepared=False)
+.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1682: in get_db_prep_value
+    value = self.get_prep_value(value)
+.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1660: in get_prep_value
+    value = super().get_prep_value(value)
+.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1535: in get_prep_value
+    value = super().get_prep_value(value)
+src/orm/fields.py:2402: in _field_get_prep_value
+    value = self.convert_to_column(value, None, validate=False)
+src/orm/fields_temporal.py:183: in _base_date_convert_to_column
+    value = self.convert_to_cache(value, record, validate=validate)
+src/orm/fields_temporal.py:364: in _datetime_convert_to_cache
+    return _datetime_to_datetime(value)
+src/orm/fields_temporal.py:327: in _datetime_to_datetime
+    return datetime.strptime(value, DATETIME_FORMAT[:len(value) - 2])
+/usr/lib/python3.12/_strptime.py:554: in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+/usr/lib/python3.12/_strptime.py:333: in _strptime
+    raise ValueError("time data %r does not match format %r" %
+E   ValueError: time data '2020-01-01T00:00:00Z' does not match format '%Y-%m-%d %H:%M:%S'
+______________________ test_create_minimo_aplica_defaults ______________________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (49, Mis pendientes, orders.Order, [], {}, [], f, null, 0, t, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_ir_filters.py:53: in test_create_minimo_aplica_defaults
+    filtro = IrFilters.objects.create(name='Mis pendientes', model_id='orders.Order')
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/addons/base/models/ir_filters.py:226: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (49, Mis pendientes, orders.Order, [], {}, [], f, null, 0, t, null, null).
+_______________________ test_user_null_es_filtro_global ________________________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (50, Global, catalogue.Product, [], {}, [], f, null, 0, t, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_ir_filters.py:68: in test_user_null_es_filtro_global
+    filtro = IrFilters.objects.create(name='Global', model_id='catalogue.Product')
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/addons/base/models/ir_filters.py:226: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (50, Global, catalogue.Product, [], {}, [], f, null, 0, t, null, null).
+_______________________ test_user_set_es_filtro_privado ________________________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (51, Mio, catalogue.Product, [], {}, [], f, null, 0, t, null, 8760).
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_ir_filters.py:74: in test_user_set_es_filtro_privado
+    filtro = IrFilters.objects.create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/addons/base/models/ir_filters.py:226: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (51, Mio, catalogue.Product, [], {}, [], f, null, 0, t, null, 8760).
+_______________ test_segundo_default_global_desmarca_al_primero ________________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (52, Default A, orders.Order, [], {}, [], t, null, 0, t, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_ir_filters.py:84: in test_segundo_default_global_desmarca_al_primero
+    primero = IrFilters.objects.create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/addons/base/models/ir_filters.py:226: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (52, Default A, orders.Order, [], {}, [], t, null, 0, t, null, null).
+________________ test_default_personal_no_afecta_default_global ________________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (53, Default global, orders.Order, [], {}, [], t, null, 0, t, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_ir_filters.py:100: in test_default_personal_no_afecta_default_global
+    global_default = IrFilters.objects.create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/addons/base/models/ir_filters.py:226: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (53, Default global, orders.Order, [], {}, [], t, null, 0, t, null, null).
+______________________ test_default_no_afecta_otro_modelo ______________________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (54, Default orders, orders.Order, [], {}, [], t, null, 0, t, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_ir_filters.py:116: in test_default_no_afecta_otro_modelo
+    primero = IrFilters.objects.create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/addons/base/models/ir_filters.py:226: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (54, Default orders, orders.Order, [], {}, [], t, null, 0, t, null, null).
+___________________ test_update_no_default_no_desmarca_nada ____________________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (55, Default único, orders.Order, [], {}, [], t, null, 0, t, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_ir_filters.py:131: in test_update_no_default_no_desmarca_nada
+    primero = IrFilters.objects.create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/addons/base/models/ir_filters.py:226: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (55, Default único, orders.Order, [], {}, [], t, null, 0, t, null, null).
+____________________________ test_str_devuelve_name ____________________________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (56, Mi filtro, orders.Order, [], {}, [], f, null, 0, t, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_ir_filters.py:145: in test_str_devuelve_name
+    filtro = IrFilters.objects.create(name='Mi filtro', model_id='orders.Order')
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/addons/base/models/ir_filters.py:226: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (56, Mi filtro, orders.Order, [], {}, [], f, null, 0, t, null, null).
+__________________ test_deleting_the_action_takes_its_filters __________________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (57, Filtro colgado, base.ResPartner, [], {}, [], f, 4, 0, t, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_ir_filters.py:178: in test_deleting_the_action_takes_its_filters
+    IrFilters.objects.create(name='Filtro colgado', model_id='base.ResPartner',
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/addons/base/models/ir_filters.py:226: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (57, Filtro colgado, base.ResPartner, [], {}, [], f, 4, 0, t, null, null).
+___________________ test_a_valid_sort_passes_the_same_check ____________________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.CheckViolation: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (59, Orden valido, base.ResPartner, [], {}, ["name asc"], f, null, 0, t, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/unit/base/test_ir_filters.py:200: in test_a_valid_sort_passes_the_same_check
+    filtro = IrFilters.objects.create(name='Orden valido',
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/addons/base/models/ir_filters.py:226: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: new row for relation "ir_filters" violates check constraint "ir_filters_check_res_id_only_when_embedded_action"
+E   DETAIL:  Failing row contains (59, Orden valido, base.ResPartner, [], {}, ["name asc"], f, null, 0, t, null, null).
+__ TestPortedMethods.test_phone_code_for_resolves_by_code_case_insensitively ___
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/base/test_res_country_seed.py:137: in test_phone_code_for_resolves_by_code_case_insensitively
+    assert ResCountry.phone_code_for('nope') is None
+E   AssertionError: assert 47 is None
+E    +  where 47 = <bound method ResCountry.phone_code_for of <class 'addons.base.models.res_country.ResCountry'>>('nope')
+E    +    where <bound method ResCountry.phone_code_for of <class 'addons.base.models.res_country.ResCountry'>> = ResCountry.phone_code_for
+_____________ TestEnrollment.test_a_new_secret_resets_the_counter ______________
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/authz_totp/test_code_replay.py:175: in test_a_new_secret_resets_the_counter
+    assert TotpSecret.objects.get(user_id=user.pk).last_counter is None
+E   assert 0 is None
+E    +  where 0 = <TotpSecret: TotpSecret[8804] (pendiente)>.last_counter
+E    +    where <TotpSecret: TotpSecret[8804] (pendiente)> = <bound method QuerySet.get of <django.db.models.manager.ManagerFromAccessQuerySet object at 0x7f4c93c665d0>>(user_id=8804)
+E    +      where <bound method QuerySet.get of <django.db.models.manager.ManagerFromAccessQuerySet object at 0x7f4c93c665d0>> = <django.db.models.manager.ManagerFromAccessQuerySet object at 0x7f4c93c665d0>.get
+E    +        where <django.db.models.manager.ManagerFromAccessQuerySet object at 0x7f4c93c665d0> = TotpSecret.objects
+E    +      and   8804 = <ResUsers: secreto.nuevo@practicayoruba.mx>.pk
+_ TestSaleOrderIsExpired.test_is_expired_false_cuando_quotation_validity_days_es_cero _
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/sale/test_cancel_timeout_task.py:61: in test_is_expired_false_cuando_quotation_validity_days_es_cero
+    assert order.validity_date is None
+E   assert False is None
+E    +  where False = <SaleOrder: draft:3857>.validity_date
+_______ TestLineaDeRecompensa.test_el_descuento_nace_como_linea_negativa _______
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/sale/test_delivery_line_materializa_e1bis.py:154: in test_el_descuento_nace_como_linea_negativa
+    apply_voucher_to_draft(draft, voucher_20.code)
+addons/sale_loyalty/services.py:63: in apply_voucher_to_draft
+    raise DraftOrderError(f'Voucher no aplicable: {error_code}',
+E   addons.sale.services.DraftOrderError: Voucher no aplicable: VOUCHER_EXHAUSTED
+_____________ TestLineaDeRecompensa.test_resta_del_total_canonico ______________
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/sale/test_delivery_line_materializa_e1bis.py:163: in test_resta_del_total_canonico
+    apply_voucher_to_draft(draft, voucher_20.code)
+addons/sale_loyalty/services.py:63: in apply_voucher_to_draft
+    raise DraftOrderError(f'Voucher no aplicable: {error_code}',
+E   addons.sale.services.DraftOrderError: Voucher no aplicable: VOUCHER_EXHAUSTED
+________ TestLineaDeRecompensa.test_el_importe_no_lo_dicta_el_llamador _________
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/sale/test_delivery_line_materializa_e1bis.py:177: in test_el_importe_no_lo_dicta_el_llamador
+    apply_voucher_to_draft(draft, voucher_20.code)
+addons/sale_loyalty/services.py:63: in apply_voucher_to_draft
+    raise DraftOrderError(f'Voucher no aplicable: {error_code}',
+E   addons.sale.services.DraftOrderError: Voucher no aplicable: VOUCHER_EXHAUSTED
+_ TestMecanismoABorrarYRecrear.test_re_materializar_la_recompensa_deja_una_sola_linea _
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/sale/test_delivery_line_materializa_e1bis.py:203: in test_re_materializar_la_recompensa_deja_una_sola_linea
+    apply_voucher_to_draft(draft, voucher_20.code)
+addons/sale_loyalty/services.py:63: in apply_voucher_to_draft
+    raise DraftOrderError(f'Voucher no aplicable: {error_code}',
+E   addons.sale.services.DraftOrderError: Voucher no aplicable: VOUCHER_EXHAUSTED
+_____ TestBaseDelDescuento.test_el_envio_no_entra_en_la_base_del_descuento _____
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/sale/test_delivery_line_materializa_e1bis.py:215: in test_el_envio_no_entra_en_la_base_del_descuento
+    apply_voucher_to_draft(draft, voucher_20.code)
+addons/sale_loyalty/services.py:63: in apply_voucher_to_draft
+    raise DraftOrderError(f'Voucher no aplicable: {error_code}',
+E   addons.sale.services.DraftOrderError: Voucher no aplicable: VOUCHER_EXHAUSTED
+_________ TestBaseDelDescuento.test_el_orden_inverso_da_el_mismo_total _________
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/sale/test_delivery_line_materializa_e1bis.py:224: in test_el_orden_inverso_da_el_mismo_total
+    apply_voucher_to_draft(draft, voucher_20.code)
+addons/sale_loyalty/services.py:63: in apply_voucher_to_draft
+    raise DraftOrderError(f'Voucher no aplicable: {error_code}',
+E   addons.sale.services.DraftOrderError: Voucher no aplicable: VOUCHER_EXHAUSTED
+____ TestVoucherEndToEnd.test_checkout_con_voucher_materializa_ambas_lineas ____
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/sale/test_delivery_line_materializa_e1bis.py:235: in test_checkout_con_voucher_materializa_ambas_lineas
+    apply_voucher_to_draft(draft, voucher_20.code)
+addons/sale_loyalty/services.py:63: in apply_voucher_to_draft
+    raise DraftOrderError(f'Voucher no aplicable: {error_code}',
+E   addons.sale.services.DraftOrderError: Voucher no aplicable: VOUCHER_EXHAUSTED
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /home/user/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/orm/test_fields_related.py::TestResolveDepends::test_it_resolves_a_declared_chain_to_its_fields
+  /home/user/kaupamex-api/src/orm/fields.py:3380: UserWarning: Field base.ResPartner.name should be declared with recursive=True
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/sale/test_superficies_salida_e5pre.py::TestContratoEstable::test_el_descuento_se_presenta_en_positivo
+FAILED tests/integration/loyalty/test_vouchers.py::TestAplicarCupon::test_aplicar_voucher_fixed
+FAILED tests/integration/loyalty/test_vouchers.py::TestAplicarCupon::test_aplicar_voucher_percentage
+FAILED tests/integration/loyalty/test_vouchers.py::TestAplicarCupon::test_aplicar_voucher_free_shipping
+FAILED tests/integration/loyalty/test_vouchers.py::TestAplicarCupon::test_monto_minimo_no_alcanzado_retorna_400
+FAILED tests/integration/loyalty/test_vouchers.py::TestAplicarCupon::test_quitar_cupon
+FAILED tests/integration/loyalty/test_vouchers.py::TestAplicarCupon::test_reemplazar_voucher_existente
+FAILED tests/integration/loyalty/test_vouchers.py::TestVoucherChangeLogDelete::test_delete_voucher_emits_change_log
+FAILED tests/unit/base/test_ir_filters.py::test_create_minimo_aplica_defaults
+FAILED tests/unit/base/test_ir_filters.py::test_user_null_es_filtro_global - ...
+FAILED tests/unit/base/test_ir_filters.py::test_user_set_es_filtro_privado - ...
+FAILED tests/unit/base/test_ir_filters.py::test_segundo_default_global_desmarca_al_primero
+FAILED tests/unit/base/test_ir_filters.py::test_default_personal_no_afecta_default_global
+FAILED tests/unit/base/test_ir_filters.py::test_default_no_afecta_otro_modelo
+FAILED tests/unit/base/test_ir_filters.py::test_update_no_default_no_desmarca_nada
+FAILED tests/unit/base/test_ir_filters.py::test_str_devuelve_name - django.db...
+FAILED tests/unit/base/test_ir_filters.py::test_deleting_the_action_takes_its_filters
+FAILED tests/unit/base/test_ir_filters.py::test_a_valid_sort_passes_the_same_check
+FAILED tests/unit/base/test_res_country_seed.py::TestPortedMethods::test_phone_code_for_resolves_by_code_case_insensitively
+FAILED tests/integration/authz_totp/test_code_replay.py::TestEnrollment::test_a_new_secret_resets_the_counter
+FAILED tests/integration/sale/test_cancel_timeout_task.py::TestSaleOrderIsExpired::test_is_expired_false_cuando_quotation_validity_days_es_cero
+FAILED tests/integration/sale/test_delivery_line_materializa_e1bis.py::TestLineaDeRecompensa::test_el_descuento_nace_como_linea_negativa
+FAILED tests/integration/sale/test_delivery_line_materializa_e1bis.py::TestLineaDeRecompensa::test_resta_del_total_canonico
+FAILED tests/integration/sale/test_delivery_line_materializa_e1bis.py::TestLineaDeRecompensa::test_el_importe_no_lo_dicta_el_llamador
+FAILED tests/integration/sale/test_delivery_line_materializa_e1bis.py::TestMecanismoABorrarYRecrear::test_re_materializar_la_recompensa_deja_una_sola_linea
+FAILED tests/integration/sale/test_delivery_line_materializa_e1bis.py::TestBaseDelDescuento::test_el_envio_no_entra_en_la_base_del_descuento
+FAILED tests/integration/sale/test_delivery_line_materializa_e1bis.py::TestBaseDelDescuento::test_el_orden_inverso_da_el_mismo_total
+FAILED tests/integration/sale/test_delivery_line_materializa_e1bis.py::TestVoucherEndToEnd::test_checkout_con_voucher_materializa_ambas_lineas
+28 failed, 10086 passed, 4 skipped, 6 warnings in 313.67s (0:05:13)
+EXIT=1

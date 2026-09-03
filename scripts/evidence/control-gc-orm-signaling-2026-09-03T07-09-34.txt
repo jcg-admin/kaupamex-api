@@ -1,0 +1,30 @@
+Control de la guarda anulada — _gc_orm_signaling (sub-patron D de
+metrica-decide-la-conclusion.md). Se retira una clausula del DELETE, se corre el
+subconjunto, y se comprueba que caen EXACTAMENTE los casos que dependen de ella.
+
+Poblacion: 9 casos de tests/unit/base/test_ir_autovacuum_gc_signaling.py
+
+1. Cuerpo fiel — id AND fecha
+   9 passed
+
+2. Clausula de FECHA anulada
+   ("DELETE FROM %s WHERE id < (SELECT max(id)-9 FROM %s) ",)
+   2 failed, 7 passed
+   FAILED ...::TestThePruningKeepsBothClauses::test_a_fresh_row_survives_past_the_tenth
+   FAILED ...::TestThePruningKeepsBothClauses::test_the_two_clauses_conjugate
+
+3. Clausula de IDENTIFICADOR anulada
+   ("DELETE FROM %s WHERE %s IS NOT NULL " "AND date < NOW() - interval '1 hours'",)
+   4 failed, 5 passed
+   FAILED ...::TestThePruningKeepsBothClauses::test_old_rows_past_the_tenth_are_deleted
+   FAILED ...::TestThePruningKeepsBothClauses::test_the_two_clauses_conjugate
+   FAILED ...::TestThePruningKeepsBothClauses::test_ten_old_rows_are_untouched
+   FAILED ...::TestTheSweepCoversEveryTable::test_every_signaling_table_is_pruned
+
+4. Cuerpo restaurado
+   9 passed
+
+Lectura: test_the_two_clauses_conjugate cae en los DOS controles — es el unico
+caso cuya disposicion (frescas primero, viejas despues) separa las dos
+clausulas. test_a_fresh_row_survives_past_the_tenth sobrevive al control 3, y
+debe: con solo la clausula de fecha las quince frescas siguen ahi.

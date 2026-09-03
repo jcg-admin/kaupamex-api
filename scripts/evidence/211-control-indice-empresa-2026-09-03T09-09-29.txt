@@ -1,0 +1,17 @@
+Control de la optimizacion de indice del campo dependiente de empresa
+Fecha: 2026-09-03T09:09:29
+Instrumento: se sustituye el cuerpo de _field_condition_to_q_company por
+  'return models.Q(**{f"{self.name}__isnull": False}) & q' — antepone SIEMPRE.
+
+Con la guarda anulada:
+  4 failed, 3 passed
+  FAILED test_a_fallback_that_satisfies_leaves_the_condition_alone
+  FAILED test_an_undecidable_fallback_leaves_the_condition_alone
+  FAILED test_a_field_without_the_partial_index_is_left_alone
+  FAILED test_without_a_model_the_optimization_is_not_decided
+
+Sobreviven los 3 que NO dependen de la guarda: el que espera la rama,
+y los dos del campo llano (la fachada no llama a la optimizacion si el
+campo no es company_dependent).
+
+Con la guarda restaurada: 7 passed

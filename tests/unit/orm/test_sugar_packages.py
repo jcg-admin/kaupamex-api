@@ -49,7 +49,9 @@ PORTABLE_NOW = {
                'TransientModel', 'Constraint', 'Index', 'UniqueIndex',
                'check_object_name', 'check_pg_name',
                # Los tres que la tarea #328 porta y liga en el mismo pase.
-               'AbstractModel', 'parse_read_group_spec', 'check_method_name'),
+               'AbstractModel', 'parse_read_group_spec', 'check_method_name',
+               # El que la tarea #331 porta y liga en el mismo pase.
+               'to_record_ids'),
 }
 
 #: Lo que la fachada de la referencia liga y ``src/orm`` todavia NO declara.
@@ -58,11 +60,12 @@ PORTABLE_NOW = {
 BLOCKED_BY_ITS_SYMBOL = {
     'api': ('deprecated', 'Self'),
     'fields': ('Id',),
+    # ``check_company_domain_parent_of`` y su hermano plural salieron de aqui
+    # en la tarea #333: ``account.journal`` y ``res.partner.bank`` los declaran
+    # como ``_check_company_domain``, y el pase que porto esos dos atributos de
+    # clase construyo los dos simbolos, que es lo que esta lista describe.
     'models': ('READ_GROUP_DISPLAY_FORMAT', 'READ_GROUP_TIME_GRANULARITY',
-               'BaseModel', 'MetaModel',
-               'check_companies_domain_parent_of',
-               'check_company_domain_parent_of',
-               'to_record_ids'),
+               'BaseModel', 'MetaModel'),
 }
 
 PACKAGES = {'api': api, 'fields': fields, 'models': models}
@@ -88,6 +91,7 @@ DECLARANTE = {
     'depends_context': 'orm.decorators', 'ondelete': 'orm.decorators',
     'check_method_name': 'orm.utils',
     'AbstractModel': 'orm.models', 'parse_read_group_spec': 'orm.models',
+    'to_record_ids': 'orm.models',
     'is_model_class': 'orm.model_classes',
     'is_model_definition': 'orm.model_classes',
     'TransientModel': 'orm.models_transient',

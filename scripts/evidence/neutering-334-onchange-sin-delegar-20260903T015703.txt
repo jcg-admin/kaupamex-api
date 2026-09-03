@@ -1,0 +1,15 @@
+# Control discriminante — 334-onchange-sin-delegar
+# fecha:    2026-09-03T01:57:03
+# archivo:  addons/web/models/models.py
+# anulado:  s/    return registry.onchange_methods(model).get(field_name, ())/    return ()/
+# tests:    tests/unit/web/test_models_onchange.py
+
+## 1. Verde de partida (guarda presente)
+19 passed, 1 warning in 4.49s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/web/test_models_onchange.py::test_onchange_collects_the_warning_of_the_registered_method
+FAILED tests/unit/web/test_models_onchange.py::test_onchange_returns_the_value_the_method_assigned
+FAILED tests/unit/web/test_models_onchange.py::test_two_warnings_are_merged_into_one_dialog
+FAILED tests/unit/web/test_models_onchange.py::test_recursive_pass_reaches_a_second_method
+4 failed, 15 passed, 1 warning in 4.82s

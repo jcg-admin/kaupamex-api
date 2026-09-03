@@ -1,0 +1,9 @@
+BUILDABLE setup_signaling    postgresql/guardar y consultar el arch
+BUILDABLE get_sequences      postgresql/guardar y consultar el arch
+BUILDABLE check_signaling    cpython/evaluación y control de flujo
+BUILDABLE signal_changes     postgresql/guardar y consultar el arch
+BUILDABLE reset_changes      cpython/evaluación y control de flujo
+BUILDABLE manage_changes     cpython/evaluación y control de flujo
+READY     cursor             django/evaluación y control de flujo
+
+READY 1 · BUILDABLE 6 · BLOCKED 0 (alcance medido: 7 simbolos del tramo)

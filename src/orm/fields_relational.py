@@ -79,7 +79,7 @@ from orm.fields_nonstored import (
     projection_or_none,
 )
 from orm.identifiers import NewId
-from orm.utils import model_of, record_ids
+from orm.utils import display_name_of, model_of, record_ids
 from tools.misc import SENTINEL, unique
 from tools.sql import SQL
 
@@ -753,6 +753,35 @@ def _many2one_convert_to_cache(self, value, record, validate=True):
     return id_
 
 
+def _many2one_convert_to_display_name(self, value, record):
+    """``Many2one.convert_to_display_name`` — ≙ ``:397-398``.
+
+    La fuente escribe ``return value.display_name`` sin guarda, porque allá un
+    ``Many2one`` vacío es un **conjunto vacío** y su ``display_name`` ya vale
+    ``False``. Aquí una FK vacía es ``None``, que no tiene atributo alguno: la
+    guarda ``if value else False`` es la traducción de esa semántica, no un
+    añadido — devuelve el mismo ``False`` que la fuente para el campo vacío, y
+    ``_compute_display_name`` lo distingue.
+
+    ``Reference`` comparte cuerpo en la fuente (``:1101``); aquí lo hereda por
+    la adjunción a ``models.ForeignKey``, de la que ``OneToOneField`` desciende.
+    """
+    return display_name_of(value) if value else False
+
+
+def _relational_multi_convert_to_display_name(self, value, record):
+    """``_RelationalMulti.convert_to_display_name`` — ≙ ``:714-715``.
+
+    Verbatim de la fuente, ``raise NotImplementedError()``: un ``_rec_name``
+    que nombre una colección no tiene etiqueta única, y devolver algo inventado
+    escondería el error de declaración. El mensaje se añade porque el nuestro
+    no tiene el ``repr`` del campo en el traceback de la fuente.
+    """
+    raise NotImplementedError(
+        f'convert_to_display_name no aplica a {self!r}: una coleccion no '
+        f'tiene etiqueta unica')
+
+
 def _many2one_update_inverse(self, records, value):
     """``Many2one._update_inverse`` — ≙ ``:322-324``.
 
@@ -827,9 +856,12 @@ models.ForeignKey.delegate = False
 
 RelatedField._update_inverse = _relational_update_inverse
 models.ForeignKey.convert_to_cache = _many2one_convert_to_cache
+models.ForeignKey.convert_to_display_name = _many2one_convert_to_display_name
 models.ForeignKey._update_inverse = _many2one_update_inverse
 models.ManyToManyField._update_inverse = _relational_multi_update_inverse
 models.ManyToManyField._update_cache = _relational_multi_update_cache
+models.ManyToManyField.convert_to_display_name = (
+    _relational_multi_convert_to_display_name)
 
 #: ``One2many`` **no recibe estos métodos**, y es una ausencia declarada, no un
 #: olvido: aquí es una clase plana (:class:`One2many`, arriba) que describe el
@@ -926,3 +958,17 @@ class PrefetchX2many(collections.abc.Reversible):
             for id_ in reversed(self.record._prefetch_ids)
             for coid in field_cache.get(id_, ())
         )
+
+
+def _many2one_convert_to_column(self, value, record, values=None, validate=True):
+    """``Many2one.convert_to_column`` — ≙ ``odoo19c: odoo/orm/fields_relational.py:326-327``.
+
+    ``value or None``: el cero y la cadena vacía de una clave foránea son la
+    ausencia de relación, no una fila con ese identificador. La base los
+    conservaría —descarta por identidad— y la columna guardaría un ``0`` que no
+    apunta a nada.
+    """
+    return value or None
+
+
+models.ForeignKey.convert_to_column = _many2one_convert_to_column

@@ -471,6 +471,26 @@ def split_every(n, iterable, piece_maker=tuple):
         piece = piece_maker(islice(iterator, n))
 
 
+def discardattr(obj: object, key: str) -> None:
+    """≙ ``discardattr`` (``odoo19c: odoo/tools/misc.py:700-705``).
+
+    «Perform a ``delattr(obj, key)`` but without crashing if ``key`` is not
+    present.»
+
+    Su valor no es ahorrar tres líneas: es que quien retira un atributo **no
+    tiene que saber si lo puso él**. ``pop_field`` lo llama sobre un nombre que
+    puede venir de una definición de clase —y entonces el descriptor existe— o
+    de un campo colgado en caliente que ya se retiró; las dos rutas terminan
+    igual y ninguna necesita preguntar antes.
+    """
+    try:
+        delattr(obj, key)
+    except AttributeError:
+        # silent OK because la ausencia ES el caso previsto: el contrato de la
+        # fuente dice literalmente "without crashing if key is not present".
+        pass
+
+
 def is_list_of(values, type_):
     """≙ ``is_list_of`` (``odoo19c: odoo/tools/misc.py:1924-1930``).
 

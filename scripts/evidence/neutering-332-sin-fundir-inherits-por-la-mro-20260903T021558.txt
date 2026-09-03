@@ -1,0 +1,12 @@
+# Control discriminante — 332-sin-fundir-inherits-por-la-mro
+# fecha:    2026-09-03T02:15:58
+# archivo:  src/orm/model_classes.py
+# anulado:  s/^        inherits.update(base.__dict__.get(.\{0,2\}_inherits.\{0,2\}) or {})/        pass/
+# tests:    tests/unit/orm/test_model_class_construction.py
+
+## 1. Verde de partida (guarda presente)
+26 passed, 1 warning in 4.33s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_model_class_construction.py::TestInitModelClassAttributesFillsTheDefaultsFromTheName::test_it_merges_inherits_across_the_bases
+1 failed, 25 passed, 1 warning in 4.06s

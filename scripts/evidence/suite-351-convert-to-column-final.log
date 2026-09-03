@@ -1,0 +1,880 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  0%]
+........................................................................ [  1%]
+........................................................................ [  2%]
+..........................F............................................. [  2%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+......................................................................... [  4%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+....................F................................................... [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 19%]
+........................................................................ [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 24%]
+......................................................................... [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+............................................................F....F...... [ 29%]
+......F........F........................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+........................................................................ [ 34%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+....................F................................................... [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+.............F.......................................................... [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 51%]
+......................................................................... [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+......................................................................... [ 61%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 71%]
+...........................s............................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 76%]
+..................s..................................................... [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+...................................................s.................... [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+........................................................................ [ 81%]
+........................................................................ [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 88%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+..................................................................Exception ignored in: <function Transport.__del__ at 0x7fb82e77bba0>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: 'object' object has no attribute 'close'
+Exception ignored in: <function Transport.__del__ at 0x7fb82e77bba0>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: 'object' object has no attribute 'close'
+...... [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+.................................                                        [100%]
+=================================== FAILURES ===================================
+________ TestContratoEstable.test_el_descuento_se_presenta_en_positivo _________
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/sale/test_superficies_salida_e5pre.py:110: in test_el_descuento_se_presenta_en_positivo
+    venta = _venta(producto, metodo, voucher=voucher)
+tests/integration/sale/test_superficies_salida_e5pre.py:84: in _venta
+    confirm_draft_order(draft, address_data=dict(ADDR),
+addons/sale/services.py:373: in confirm_draft_order
+    Voucher.objects.filter(pk=voucher.pk).update(
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1611: in execute_sql
+    sql, params = self.as_sql()
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2065: in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+src/orm/fields.py:2426: in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+src/orm/fields_numeric.py:102: in _integer_convert_to_column
+    return int(value or 0)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+____ TestVoucherUsageCreatedOnCheckout.test_current_uses_increments_atomic _____
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/loyalty/test_voucher_usage.py:136: in test_current_uses_increments_atomic
+    res = auth_client.post(CHECKOUT_URL, checkout_data, format='json')
+.venv/lib/python3.12/site-packages/rest_framework/test.py:299: in post
+    response = super().post(
+.venv/lib/python3.12/site-packages/rest_framework/test.py:213: in post
+    return self.generic('POST', path, data, content_type, **extra)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:237: in generic
+    return super().generic(
+.venv/lib/python3.12/site-packages/django/test/client.py:671: in generic
+    return self.request(**r)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:289: in request
+    return super().request(**kwargs)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:241: in request
+    request = super().request(**kwargs)
+.venv/lib/python3.12/site-packages/django/test/client.py:1090: in request
+    self.check_exception(response)
+.venv/lib/python3.12/site-packages/django/test/client.py:805: in check_exception
+    raise exc_value
+.venv/lib/python3.12/site-packages/django/core/handlers/exception.py:55: in inner
+    response = get_response(request)
+.venv/lib/python3.12/site-packages/django/core/handlers/base.py:198: in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+.venv/lib/python3.12/site-packages/django/views/decorators/csrf.py:65: in _view_wrapper
+    return view_func(request, *args, **kwargs)
+.venv/lib/python3.12/site-packages/django/views/generic/base.py:106: in view
+    return self.dispatch(request, *args, **kwargs)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:515: in dispatch
+    response = self.handle_exception(exc)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:475: in handle_exception
+    self.raise_uncaught_exception(exc)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:486: in raise_uncaught_exception
+    raise exc
+.venv/lib/python3.12/site-packages/rest_framework/views.py:512: in dispatch
+    response = handler(request, *args, **kwargs)
+.venv/lib/python3.12/site-packages/rest_framework/decorators.py:50: in handler
+    return func(*args, **kwargs)
+addons/website_sale/controllers/payment.py:96: in express_checkout
+    confirmed = confirm_draft_order(
+addons/sale/services.py:373: in confirm_draft_order
+    Voucher.objects.filter(pk=voucher.pk).update(
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1611: in execute_sql
+    sql, params = self.as_sql()
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2065: in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+src/orm/fields.py:2426: in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+src/orm/fields_numeric.py:102: in _integer_convert_to_column
+    return int(value or 0)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+------------------------------ Captured log call -------------------------------
+ERROR    django.request:exception_handling.py:88 POST /api/v2/checkout/express/ -> 500 TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/addons/website_sale/controllers/payment.py", line 96, in express_checkout
+    confirmed = confirm_draft_order(
+                ^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/addons/sale/services.py", line 373, in confirm_draft_order
+    Voucher.objects.filter(pk=voucher.pk).update(
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1300, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2111, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1611, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2065, in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields.py", line 2426, in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields_numeric.py", line 102, in _integer_convert_to_column
+    return int(value or 0)
+           ^^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+ERROR    django.request:log.py:249 Internal Server Error: /api/v2/checkout/express/
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/views/generic/base.py", line 106, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/addons/website_sale/controllers/payment.py", line 96, in express_checkout
+    confirmed = confirm_draft_order(
+                ^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/addons/sale/services.py", line 373, in confirm_draft_order
+    Voucher.objects.filter(pk=voucher.pk).update(
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1300, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2111, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1611, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2065, in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields.py", line 2426, in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields_numeric.py", line 102, in _integer_convert_to_column
+    return int(value or 0)
+           ^^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+___________ TestReviewHelpfulVote.test_voto_incrementa_helpful_count ___________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/rating/test_reviews_endpoints.py:340: in test_voto_incrementa_helpful_count
+    r = admin_auth_client.post(
+.venv/lib/python3.12/site-packages/rest_framework/test.py:299: in post
+    response = super().post(
+.venv/lib/python3.12/site-packages/rest_framework/test.py:213: in post
+    return self.generic('POST', path, data, content_type, **extra)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:237: in generic
+    return super().generic(
+.venv/lib/python3.12/site-packages/django/test/client.py:671: in generic
+    return self.request(**r)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:289: in request
+    return super().request(**kwargs)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:241: in request
+    request = super().request(**kwargs)
+.venv/lib/python3.12/site-packages/django/test/client.py:1090: in request
+    self.check_exception(response)
+.venv/lib/python3.12/site-packages/django/test/client.py:805: in check_exception
+    raise exc_value
+.venv/lib/python3.12/site-packages/django/core/handlers/exception.py:55: in inner
+    response = get_response(request)
+.venv/lib/python3.12/site-packages/django/core/handlers/base.py:198: in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+.venv/lib/python3.12/site-packages/django/views/decorators/csrf.py:65: in _view_wrapper
+    return view_func(request, *args, **kwargs)
+.venv/lib/python3.12/site-packages/django/views/generic/base.py:106: in view
+    return self.dispatch(request, *args, **kwargs)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:515: in dispatch
+    response = self.handle_exception(exc)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:475: in handle_exception
+    self.raise_uncaught_exception(exc)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:486: in raise_uncaught_exception
+    raise exc
+.venv/lib/python3.12/site-packages/rest_framework/views.py:512: in dispatch
+    response = handler(request, *args, **kwargs)
+addons/rating/controllers/main.py:503: in post
+    Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1611: in execute_sql
+    sql, params = self.as_sql()
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2065: in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+src/orm/fields.py:2426: in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+src/orm/fields_numeric.py:102: in _integer_convert_to_column
+    return int(value or 0)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+------------------------------ Captured log call -------------------------------
+ERROR    django.request:exception_handling.py:88 POST /api/v2/products/4672/reviews/102/helpful-votes/ -> 500 TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/addons/rating/controllers/main.py", line 503, in post
+    Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1300, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2111, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1611, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2065, in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields.py", line 2426, in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields_numeric.py", line 102, in _integer_convert_to_column
+    return int(value or 0)
+           ^^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+ERROR    django.request:log.py:249 Internal Server Error: /api/v2/products/4672/reviews/102/helpful-votes/
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/views/generic/base.py", line 106, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/addons/rating/controllers/main.py", line 503, in post
+    Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1300, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2111, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1611, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2065, in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields.py", line 2426, in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields_numeric.py", line 102, in _integer_convert_to_column
+    return int(value or 0)
+           ^^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+______ TestReviewHelpfulVote.test_voto_retorna_helpful_count_actualizado _______
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/rating/test_reviews_endpoints.py:350: in test_voto_retorna_helpful_count_actualizado
+    r = admin_auth_client.post(
+.venv/lib/python3.12/site-packages/rest_framework/test.py:299: in post
+    response = super().post(
+.venv/lib/python3.12/site-packages/rest_framework/test.py:213: in post
+    return self.generic('POST', path, data, content_type, **extra)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:237: in generic
+    return super().generic(
+.venv/lib/python3.12/site-packages/django/test/client.py:671: in generic
+    return self.request(**r)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:289: in request
+    return super().request(**kwargs)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:241: in request
+    request = super().request(**kwargs)
+.venv/lib/python3.12/site-packages/django/test/client.py:1090: in request
+    self.check_exception(response)
+.venv/lib/python3.12/site-packages/django/test/client.py:805: in check_exception
+    raise exc_value
+.venv/lib/python3.12/site-packages/django/core/handlers/exception.py:55: in inner
+    response = get_response(request)
+.venv/lib/python3.12/site-packages/django/core/handlers/base.py:198: in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+.venv/lib/python3.12/site-packages/django/views/decorators/csrf.py:65: in _view_wrapper
+    return view_func(request, *args, **kwargs)
+.venv/lib/python3.12/site-packages/django/views/generic/base.py:106: in view
+    return self.dispatch(request, *args, **kwargs)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:515: in dispatch
+    response = self.handle_exception(exc)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:475: in handle_exception
+    self.raise_uncaught_exception(exc)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:486: in raise_uncaught_exception
+    raise exc
+.venv/lib/python3.12/site-packages/rest_framework/views.py:512: in dispatch
+    response = handler(request, *args, **kwargs)
+addons/rating/controllers/main.py:503: in post
+    Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1611: in execute_sql
+    sql, params = self.as_sql()
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2065: in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+src/orm/fields.py:2426: in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+src/orm/fields_numeric.py:102: in _integer_convert_to_column
+    return int(value or 0)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+------------------------------ Captured log call -------------------------------
+ERROR    django.request:exception_handling.py:88 POST /api/v2/products/4673/reviews/103/helpful-votes/ -> 500 TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/addons/rating/controllers/main.py", line 503, in post
+    Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1300, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2111, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1611, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2065, in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields.py", line 2426, in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields_numeric.py", line 102, in _integer_convert_to_column
+    return int(value or 0)
+           ^^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+ERROR    django.request:log.py:249 Internal Server Error: /api/v2/products/4673/reviews/103/helpful-votes/
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/views/generic/base.py", line 106, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/addons/rating/controllers/main.py", line 503, in post
+    Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1300, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2111, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1611, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2065, in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields.py", line 2426, in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields_numeric.py", line 102, in _integer_convert_to_column
+    return int(value or 0)
+           ^^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+____________ TestReviewHelpfulVote.test_voto_duplicado_retorna_400 _____________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/rating/test_reviews_endpoints.py:358: in test_voto_duplicado_retorna_400
+    admin_auth_client.post(
+.venv/lib/python3.12/site-packages/rest_framework/test.py:299: in post
+    response = super().post(
+.venv/lib/python3.12/site-packages/rest_framework/test.py:213: in post
+    return self.generic('POST', path, data, content_type, **extra)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:237: in generic
+    return super().generic(
+.venv/lib/python3.12/site-packages/django/test/client.py:671: in generic
+    return self.request(**r)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:289: in request
+    return super().request(**kwargs)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:241: in request
+    request = super().request(**kwargs)
+.venv/lib/python3.12/site-packages/django/test/client.py:1090: in request
+    self.check_exception(response)
+.venv/lib/python3.12/site-packages/django/test/client.py:805: in check_exception
+    raise exc_value
+.venv/lib/python3.12/site-packages/django/core/handlers/exception.py:55: in inner
+    response = get_response(request)
+.venv/lib/python3.12/site-packages/django/core/handlers/base.py:198: in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+.venv/lib/python3.12/site-packages/django/views/decorators/csrf.py:65: in _view_wrapper
+    return view_func(request, *args, **kwargs)
+.venv/lib/python3.12/site-packages/django/views/generic/base.py:106: in view
+    return self.dispatch(request, *args, **kwargs)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:515: in dispatch
+    response = self.handle_exception(exc)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:475: in handle_exception
+    self.raise_uncaught_exception(exc)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:486: in raise_uncaught_exception
+    raise exc
+.venv/lib/python3.12/site-packages/rest_framework/views.py:512: in dispatch
+    response = handler(request, *args, **kwargs)
+addons/rating/controllers/main.py:503: in post
+    Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1611: in execute_sql
+    sql, params = self.as_sql()
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2065: in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+src/orm/fields.py:2426: in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+src/orm/fields_numeric.py:102: in _integer_convert_to_column
+    return int(value or 0)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+------------------------------ Captured log call -------------------------------
+ERROR    django.request:exception_handling.py:88 POST /api/v2/products/4674/reviews/104/helpful-votes/ -> 500 TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/addons/rating/controllers/main.py", line 503, in post
+    Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1300, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2111, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1611, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2065, in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields.py", line 2426, in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields_numeric.py", line 102, in _integer_convert_to_column
+    return int(value or 0)
+           ^^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+ERROR    django.request:log.py:249 Internal Server Error: /api/v2/products/4674/reviews/104/helpful-votes/
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/views/generic/base.py", line 106, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/addons/rating/controllers/main.py", line 503, in post
+    Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1300, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2111, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1611, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2065, in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields.py", line 2426, in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields_numeric.py", line 102, in _integer_convert_to_column
+    return int(value or 0)
+           ^^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+______ TestReviewHelpfulVote.test_helpful_count_aparece_en_public_listing ______
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/rating/test_reviews_endpoints.py:387: in test_helpful_count_aparece_en_public_listing
+    admin_auth_client.post(
+.venv/lib/python3.12/site-packages/rest_framework/test.py:299: in post
+    response = super().post(
+.venv/lib/python3.12/site-packages/rest_framework/test.py:213: in post
+    return self.generic('POST', path, data, content_type, **extra)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:237: in generic
+    return super().generic(
+.venv/lib/python3.12/site-packages/django/test/client.py:671: in generic
+    return self.request(**r)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:289: in request
+    return super().request(**kwargs)
+.venv/lib/python3.12/site-packages/rest_framework/test.py:241: in request
+    request = super().request(**kwargs)
+.venv/lib/python3.12/site-packages/django/test/client.py:1090: in request
+    self.check_exception(response)
+.venv/lib/python3.12/site-packages/django/test/client.py:805: in check_exception
+    raise exc_value
+.venv/lib/python3.12/site-packages/django/core/handlers/exception.py:55: in inner
+    response = get_response(request)
+.venv/lib/python3.12/site-packages/django/core/handlers/base.py:198: in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+.venv/lib/python3.12/site-packages/django/views/decorators/csrf.py:65: in _view_wrapper
+    return view_func(request, *args, **kwargs)
+.venv/lib/python3.12/site-packages/django/views/generic/base.py:106: in view
+    return self.dispatch(request, *args, **kwargs)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:515: in dispatch
+    response = self.handle_exception(exc)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:475: in handle_exception
+    self.raise_uncaught_exception(exc)
+.venv/lib/python3.12/site-packages/rest_framework/views.py:486: in raise_uncaught_exception
+    raise exc
+.venv/lib/python3.12/site-packages/rest_framework/views.py:512: in dispatch
+    response = handler(request, *args, **kwargs)
+addons/rating/controllers/main.py:503: in post
+    Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1611: in execute_sql
+    sql, params = self.as_sql()
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2065: in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+src/orm/fields.py:2426: in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+src/orm/fields_numeric.py:102: in _integer_convert_to_column
+    return int(value or 0)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+------------------------------ Captured log call -------------------------------
+ERROR    django.request:exception_handling.py:88 POST /api/v2/products/4677/reviews/107/helpful-votes/ -> 500 TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/addons/rating/controllers/main.py", line 503, in post
+    Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1300, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2111, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1611, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2065, in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields.py", line 2426, in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields_numeric.py", line 102, in _integer_convert_to_column
+    return int(value or 0)
+           ^^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+ERROR    django.request:log.py:249 Internal Server Error: /api/v2/products/4677/reviews/107/helpful-votes/
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/views/generic/base.py", line 106, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/addons/rating/controllers/main.py", line 503, in post
+    Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1300, in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2111, in execute_sql
+    row_count = super().execute_sql(result_type)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1611, in execute_sql
+    sql, params = self.as_sql()
+                  ^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 2065, in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields.py", line 2426, in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/kaupamex-api/src/orm/fields_numeric.py", line 102, in _integer_convert_to_column
+    return int(value or 0)
+           ^^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+____ TestVoucherEndToEnd.test_checkout_con_voucher_materializa_ambas_lineas ____
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/sale/test_delivery_line_materializa_e1bis.py:236: in test_checkout_con_voucher_materializa_ambas_lineas
+    _checkout(draft, Decimal('99.00'))
+tests/integration/sale/test_delivery_line_materializa_e1bis.py:99: in _checkout
+    return confirm_draft_order(draft, address_data=dict(ADDR),
+addons/sale/services.py:373: in confirm_draft_order
+    Voucher.objects.filter(pk=voucher.pk).update(
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1611: in execute_sql
+    sql, params = self.as_sql()
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2065: in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+src/orm/fields.py:2426: in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+src/orm/fields_numeric.py:102: in _integer_convert_to_column
+    return int(value or 0)
+E   TypeError: int() argument must be a string, a bytes-like object or a real number, not 'CombinedExpression'
+___________ test_run_scheduler_tasks_no_longer_skips_the_first_task ____________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/stock/test_stock_rule_orderpoint_model.py:131: in test_run_scheduler_tasks_no_longer_skips_the_first_task
+    StockRule._run_scheduler_tasks(company_id=company.pk)
+addons/stock/models/stock_rule.py:1446: in _run_scheduler_tasks
+    orderpoint_model._compute_qty_to_order_computed(orderpoints)
+addons/stock/models/stock_orderpoint.py:703: in _compute_qty_to_order_computed
+    cls.objects.bulk_update(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:963: in bulk_update
+    rows_updated += queryset.filter(pk__in=pks).update(**update_kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1300: in update
+    rows = query.get_compiler(self.db).execute_sql(ROW_COUNT)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2111: in execute_sql
+    row_count = super().execute_sql(result_type)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1611: in execute_sql
+    sql, params = self.as_sql()
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:2065: in as_sql
+    val = field.get_db_prep_save(val, connection=self.connection)
+src/orm/fields.py:2426: in _field_get_db_prep_save
+    value = self.convert_to_column(value, None, validate=False)
+src/orm/fields_numeric.py:121: in _float_convert_to_column
+    value = float(value or 0.0)
+E   TypeError: float() argument must be a string or a real number, not 'Cast'
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /home/user/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/orm/test_fields_related.py::TestResolveDepends::test_it_resolves_a_declared_chain_to_its_fields
+  /home/user/kaupamex-api/src/orm/fields.py:3404: UserWarning: Field base.ResPartner.name should be declared with recursive=True
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/sale/test_superficies_salida_e5pre.py::TestContratoEstable::test_el_descuento_se_presenta_en_positivo
+FAILED tests/integration/loyalty/test_voucher_usage.py::TestVoucherUsageCreatedOnCheckout::test_current_uses_increments_atomic
+FAILED tests/integration/rating/test_reviews_endpoints.py::TestReviewHelpfulVote::test_voto_incrementa_helpful_count
+FAILED tests/integration/rating/test_reviews_endpoints.py::TestReviewHelpfulVote::test_voto_retorna_helpful_count_actualizado
+FAILED tests/integration/rating/test_reviews_endpoints.py::TestReviewHelpfulVote::test_voto_duplicado_retorna_400
+FAILED tests/integration/rating/test_reviews_endpoints.py::TestReviewHelpfulVote::test_helpful_count_aparece_en_public_listing
+FAILED tests/integration/sale/test_delivery_line_materializa_e1bis.py::TestVoucherEndToEnd::test_checkout_con_voucher_materializa_ambas_lineas
+FAILED tests/unit/stock/test_stock_rule_orderpoint_model.py::test_run_scheduler_tasks_no_longer_skips_the_first_task
+8 failed, 10106 passed, 4 skipped, 6 warnings in 436.91s (0:07:16)
+EXIT=1

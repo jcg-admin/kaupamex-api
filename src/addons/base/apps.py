@@ -22,10 +22,11 @@ globales de la instancia, no per-empresa (eso es L3 = ``Company``/
 """
 from django.apps import AppConfig, apps
 
-from orm.inherits import apply_inherits
+from orm.inherits import ensure_inherits
 from orm.model_classes import (ensure_access_managers, ensure_base_urls,
-                               ensure_display_names, ensure_rec_names)
-from orm.registry import MODELS_BY_NAME
+                               ensure_display_names,
+                               ensure_model_class_attributes,
+                               ensure_rec_names)
 
 
 class BaseConfig(AppConfig):
@@ -78,14 +79,16 @@ class BaseConfig(AppConfig):
         sólo alcanza a 291 de los 389 modelos. Lo consume
         ``ir.actions.report._get_report_url``.
         """
+        # Antes que los demas: valida la especie heredada y rellena los
+        # defaults que el resto lee (``_description``, ``_table``, la
+        # fusion de ``_inherits`` a lo largo de la MRO). Tarea #332.
+        ensure_model_class_attributes()
         ensure_rec_names()
         ensure_access_managers()
         ensure_display_names()
         ensure_base_urls()
-        users = apps.get_model('base', 'ResUsers')
-        for model_name, fk_name in users._inherits.items():
-            apply_inherits(
-                users,
-                MODELS_BY_NAME[model_name],
-                fk_name,
-            )
+        # Y ``ensure_inherits()``, que cablea la delegacion de TODO modelo
+        # registrado que declare ``_inherits`` — no solo ``ResUsers``. El
+        # bucle escrito a mano que habia aqui dejaba fuera a ``ir.cron``, que
+        # declara la suya en este mismo addon.
+        ensure_inherits()

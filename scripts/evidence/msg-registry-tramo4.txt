@@ -1,0 +1,37 @@
+Port the schema axis of Registry, its six symbols
+
+El tramo 4 de Registry —de check_null_constraints (odoo19c:
+odoo/orm/registry.py:779) a is_an_ordinary_table (:1001)— no
+existia aqui en ninguna forma. init declaraba _ordinary_tables,
+_sql_constraints y _constraint_queue como atributos y NADIE los
+leia ni los escribia: tres atributos muertos con nombre de la
+fuente.
+
+Los seis piden siete ayudantes de tools/sql.py que tampoco
+estaban —_CONFDELTYPES, make_index_name, existing_tables,
+drop_constraint, add_foreign_key, get_foreign_keys, create_index
+y drop_index—, y van con ellos.
+
+Aqui el DDL lo emiten las migraciones de Django y no el ORM, asi
+que estos seis VERIFICAN en vez de construir el schema. Eso no
+los hace redundantes: una migracion editada a mano, una tabla del
+provisioner o un indice retirado desde psql dejan al esquema por
+detras de la declaracion, y el aviso de la fuente es lo unico que
+lo delata. check_tables_exist conserva el aviso y no crea la
+tabla, que es la mitad con receptor aqui.
+
+Dos divergencias de puerta, ninguna de contenido:
+
+- psycopg3 no adapta una tupla a IN %s como hacia psycopg2 —una
+  tupla llega como texto y PostgreSQL da error de sintaxis—, asi
+  que las tres consultas por conjunto usan = ANY(%s) con lista;
+- is_an_ordinary_table abre el cursor por el alias del registro y
+  no por model.env.cr: aqui el modelo es una clase de Django y no
+  lleva entorno.
+
+Suite completa: 9905 passed, 4 skipped, 1 failed en 319.89 s con
+-n 4 y bases calientes. Sube de 9869 con los 32 casos nuevos de
+este tramo y los 4 del control de TriggerTree. El unico rojo
+sigue siendo el heredado de la nota Incoterm (tarea #340).
+
+Refs: #342, #338

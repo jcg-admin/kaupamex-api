@@ -1,0 +1,44 @@
+Port the seven remaining symbols of tools.func
+
+El archivo llevaba tres de los diez simbolos de la fuente y su docstring
+declaraba el criterio que lo justificaba: "un simbolo llega aqui cuando un
+modulo portado lo importa". Ese criterio esta retirado — no se espera al
+consumidor, porque el consumidor tambien se implementa. Es la forma que
+porte-completo-no-parcial.md prohibe: un porte parcial que se presenta como
+completo porque su propia regla lo autoriza.
+
+Portados verbatim de odoo19c: odoo/tools/func.py, con su forma:
+
+- lazy_property (:32-46) conserva su DeprecationWarning y su stacklevel=2,
+  que apunta el aviso a quien declara la propiedad, no a este archivo.
+- conditional (:49-60) devuelve la identidad cuando la condicion es falsa,
+  no None, para que el sitio siga siendo un decorador valido.
+- filter_kwargs (:63-77) devuelve el MISMO objeto cuando no sobra nada;
+  copiarlo romperia a quien escriba luego en el dict original.
+- synchronized (:80-90) busca el cerrojo por nombre de atributo al llamar,
+  no al declarar, asi que cada instancia trae el suyo.
+- locked (:93) es el alias de modulo, no una funcion propia.
+- frame_codeinfo (:96-111) traga cualquier excepcion: quien lo llama esta
+  construyendo un mensaje de error y un fallo aqui lo taparia.
+- lazy_classproperty (:127-131) memoriza sustituyendose a si misma sobre el
+  dueño, no en un diccionario aparte.
+
+__all__ queda con los seis nombres que declara la fuente: filter_kwargs,
+synchronized, locked y frame_codeinfo tampoco estan ahi en la referencia.
+La asimetria es del original y se preserva.
+
+28 casos escritos antes del porte, en tres capas: lo que el stack ya trae
+(functools.cached_property bajo lazy_property, inspect.signature bajo
+filter_kwargs) y lo que se construye encima. El cerrojo se mide con un doble
+que registra acquire y release, incluida la liberacion cuando el cuerpo
+levanta. El control de lazy_classproperty es que classproperty a secas NO
+memoriza: sin el, el caso pasaria igual con las dos clases confundidas.
+
+El nombre de archivo esperado en los casos de frame_codeinfo sale de
+__file__, no de un literal: el literal se quedo atras al renombrar este
+mismo archivo y fallo sin que lo medido cambiara.
+
+Subconjunto derivado con grep sobre tests/ por los simbolos y el modulo:
+tests/unit/tools y tests/unit/orm — 2385 passed.
+
+Refs: #338, #209

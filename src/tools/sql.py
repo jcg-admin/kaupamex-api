@@ -26,24 +26,31 @@ y 5 variables de módulo.
                                     ``SQL.identifier``)
   ================================  =====================================
 
-**Pendientes — 30 funciones de módulo, 1 clase y 3 variables** que la
-referencia declara y aquí no existen: ``existing_tables``, ``table_kind`` (+
-``TableKind``), ``create_model_table``, ``create_column``, ``rename_column``,
-``convert_column``, ``convert_column_translatable``, ``_convert_column``,
-``drop_depending_views``, ``get_depending_views``, ``set_not_null``,
-``drop_not_null``, ``constraint_definition``, ``add_constraint``,
-``drop_constraint``, ``add_foreign_key``, ``get_foreign_keys``,
-``fix_foreign_key``, ``check_index_exist``, ``index_definition``,
-``create_index``, ``add_index``, ``create_unique_index``, ``drop_index``,
-``drop_view_if_exists``, ``reverse_order``,
-``increment_fields_skiplock``, ``value_to_translated_trigram_pattern``,
-``pattern_to_translated_trigram_pattern``,
-``make_index_name``; y ``__all__``, ``_schema``, ``_CONFDELTYPES``.
+**Pendientes — 14 funciones de módulo y 1 clase** que la referencia declara
+y aquí no existen: ``table_kind`` (+ ``TableKind``), ``create_model_table``,
+``convert_column_translatable``, ``constraint_definition``,
+``add_constraint``, ``fix_foreign_key``, ``check_index_exist``,
+``index_definition``, ``add_index``, ``create_unique_index``,
+``drop_view_if_exists``, ``reverse_order``, ``increment_fields_skiplock``,
+``value_to_translated_trigram_pattern`` y
+``pattern_to_translated_trigram_pattern``.
 Todas sirven al DDL del registro de modelos de la
 referencia; aquí ese DDL lo emiten las migraciones de Django. Se portan
 cuando un consumidor las exija — el alcance de #549 es la clase ``SQL``;
 esta declaración medida es el registro de esa cobertura (regla
-``porte-completo-no-parcial``). ``make_identifier`` **salió de esa lista**
+``porte-completo-no-parcial``).
+
+**El eje de esquema de columna salió de esa lista el 2026-09-03 (#211/#346).**
+``Field.update_db`` y su familia son el consumidor que la política anunciaba,
+y exigen las siete de columna —``create_column``, ``convert_column``,
+``_convert_column``, ``drop_depending_views``, ``get_depending_views``,
+``set_not_null`` y ``drop_not_null``— más ``rename_column``, que se porta con
+ellas por vivir en el mismo tramo del fuente. ``existing_tables``,
+``drop_constraint``, ``add_foreign_key``, ``get_foreign_keys``,
+``create_index``, ``drop_index`` y ``make_index_name`` ya habían salido en
+pases anteriores; la lista seguía nombrándolas y se corrige aquí — una lista
+de pendientes que enumera lo ya portado es prosa que el porte dejó falsa.
+``make_identifier`` **salió de esa lista**
 el 2026-08-28: ``tools/query.py`` lo exige para acotar el alias de un JOIN
 al límite de identificador de PostgreSQL, que es el consumidor que la
 política anunciaba. ``SQL_ORDER_BY_TYPE`` salió el 2026-08-30 por la misma
@@ -84,11 +91,13 @@ saberlo. Ver H-API-306.
 ``pg_indexes`` (``odoo19c: odoo/tools/sql.py:542``), y aquí se conserva además
 el filtro por tabla que nuestra firma ya exponía.
 """
+import logging
 import re
 import warnings
 from zlib import crc32
 
-from django.db import DEFAULT_DB_ALIAS, connections
+from django.db import DEFAULT_DB_ALIAS, connections, transaction
+from django.db.utils import NotSupportedError
 from django.db.models.expressions import RawSQL
 
 from .misc import named_to_positional_printf
@@ -96,6 +105,24 @@ from .misc import named_to_positional_printf
 # ≙ ``IDENT_RE`` (``odoo19c: odoo/tools/sql.py:35``) — el filtro de
 # ``SQL.identifier``: minúsculas, dígitos, ``_``, ``$`` y ``-``.
 IDENT_RE = re.compile(r'^[a-z0-9_][a-z0-9_$\-]*$', re.I)
+
+#: El registro de cambios de schema — ≙ ``_schema`` de la fuente, que lo abre
+#: como ``logging.getLogger('odoo.schema')``. El nombre lleva el del producto
+#: por la misma razon que el resto del arbol: el canal es nuestro.
+_schema = logging.getLogger('kaupamex.schema')
+
+#: ≙ ``_CONFDELTYPES`` (``odoo19c: odoo/tools/sql.py:37-43``), verbatim.
+#:
+#: La letra de una columna ``confdeltype`` de ``pg_constraint`` por politica de
+#: borrado. Es el mapa que permite comparar la clave foranea **declarada** con
+#: la que la base tiene sin volver a leer su definicion en texto.
+_CONFDELTYPES = {
+    'RESTRICT': 'r',
+    'NO ACTION': 'a',
+    'CASCADE': 'c',
+    'SET NULL': 'n',
+    'SET DEFAULT': 'd',
+}
 
 #: ≙ ``SQL_ORDER_BY_TYPE`` (``odoo19c: odoo/tools/sql.py:261-272``), verbatim.
 #:
@@ -346,6 +373,20 @@ def make_identifier(identifier: str) -> str:
     return identifier
 
 
+def make_index_name(table_name: str, column_name: str) -> str:
+    """El nombre de indice que la convencion prescribe.
+
+    ≙ ``make_index_name`` (``odoo19c: odoo/tools/sql.py:779-781``). Docstring
+    de la fuente, verbatim: *"Return an index name according to conventions for
+    the given table and column"*.
+
+    Pasa por :func:`make_identifier`, y eso no es adorno: dos columnas largas
+    de la misma tabla producen nombres que se pasan de los 63 caracteres de
+    PostgreSQL, que trunca por su cuenta y **los colapsa en uno**.
+    """
+    return make_identifier(f"{table_name}__{column_name}_index")
+
+
 def pg_varchar(size=0):
     """≙ ``pg_varchar`` (``odoo19c: odoo/tools/sql.py:644-659``).
 
@@ -469,6 +510,293 @@ def index_exists(cursor, table_name, index_name, schema=None):
             'WHERE schemaname = %s AND tablename = %s AND indexname = %s '
             'LIMIT 1', [schema, table_name, index_name])
     return cursor.fetchone() is not None
+
+
+def existing_tables(cr, tablenames):
+    """Los nombres que existen de entre los dados.
+
+    ≙ ``existing_tables`` (``odoo19c: odoo/tools/sql.py:204-213``). Docstring
+    de la fuente, verbatim: *"Return the names of existing tables among
+    ``tablenames``"*.
+
+    Cuenta tabla ordinaria, vista y vista materializada —``relkind IN ('r',
+    'v', 'm')``—, que es lo que la fuente pregunta: un modelo servido por una
+    vista **tiene** su relacion, aunque no sea una tabla. La distincion la hace
+    :func:`~orm.registry.Registry.is_an_ordinary_table`, que filtra por ``'r'``
+    a secas.
+
+    Dos divergencias de puerta, ninguna de contenido. La fuente le pasa un
+    :class:`SQL` a su propio cursor; aqui el cursor es el de Django, que recibe
+    ``(sentencia, parametros)``. Y la fuente escribe ``IN %s`` con una tupla:
+    eso lo adaptaba psycopg2, y **psycopg3 no** —una tupla llega como texto y
+    PostgreSQL da error de sintaxis—. El equivalente en psycopg3 es
+    ``= ANY(%s)`` con una lista, que es la misma pregunta contra un arreglo.
+    """
+    tablenames = list(tablenames)
+    if not tablenames:
+        return []
+    cr.execute("""
+        SELECT c.relname
+          FROM pg_class c
+         WHERE c.relname = ANY(%s)
+           AND c.relkind IN ('r', 'v', 'm')
+           AND c.relnamespace = current_schema::regnamespace
+    """, [tablenames])
+    return [row[0] for row in cr.fetchall()]
+
+
+def create_column(cr, tablename, columnname, columntype, comment=None):
+    """Crea la columna dada con el tipo dado.
+
+    ≙ ``create_column`` (``odoo19c: odoo/tools/sql.py:326-341``). Docstring de
+    la fuente, verbatim: *"Create a column with the given type"*.
+
+    Dos detalles que NO son decoracion. El ``DEFAULT false`` del booleano deja
+    la columna con valor en las filas que ya existen, que es lo que permite
+    ponerle ``NOT NULL`` despues sin recorrerlas una a una. Y el comentario,
+    cuando lo hay, va por ``COMMENT ON COLUMN``: la fuente le pasa el
+    ``string`` del campo, asi que la etiqueta del campo aterriza en el
+    catalogo de PostgreSQL y se lee con ``col_description``.
+
+    La fuente emite las dos sentencias en un solo :class:`SQL` separado por
+    ``;``; aqui van en dos ``execute`` porque el cursor de Django rechaza el
+    multi-statement con parametros. El efecto observable es el mismo: las dos
+    corren dentro de la misma transaccion.
+    """
+    default = ' DEFAULT false' if columntype.upper() == 'BOOLEAN' else ''
+    cr.execute('ALTER TABLE {} ADD COLUMN {} {}{}'.format(
+        SQL.identifier(tablename).code, SQL.identifier(columnname).code,
+        columntype, default))
+    if comment:
+        cr.execute('COMMENT ON COLUMN {} IS %s'.format(
+            SQL.identifier(tablename, columnname).code), [comment])
+    _schema.debug("Table %r: added column %r of type %s", tablename, columnname, columntype)
+
+
+def rename_column(cr, tablename, columnname1, columnname2):
+    """Renombra la columna dada.
+
+    ≙ ``rename_column`` (``odoo19c: odoo/tools/sql.py:344-352``). Docstring de
+    la fuente, verbatim: *"Rename the given column"*.
+    """
+    cr.execute('ALTER TABLE {} RENAME COLUMN {} TO {}'.format(
+        SQL.identifier(tablename).code, SQL.identifier(columnname1).code,
+        SQL.identifier(columnname2).code))
+    _schema.debug("Table %r: renamed column %r to %r", tablename, columnname1, columnname2)
+
+
+def convert_column(cr, tablename, columnname, columntype):
+    """Convierte la columna al tipo dado.
+
+    ≙ ``convert_column`` (``odoo19c: odoo/tools/sql.py:355-359``). Docstring
+    de la fuente, verbatim: *"Convert the column to the given type"*.
+
+    El ``USING`` es el molde ``columna::tipo``, que es lo que la fuente arma
+    con ``SQL("%s::%s", ...)``.
+    """
+    using = '{}::{}'.format(SQL.identifier(columnname).code, columntype)
+    _convert_column(cr, tablename, columnname, columntype, using)
+
+
+def _convert_column(cr, tablename, columnname, columntype, using):
+    """El ``ALTER COLUMN ... TYPE`` con su recuperacion por vista dependiente.
+
+    ≙ ``_convert_column`` (``odoo19c: odoo/tools/sql.py:374-386``). La fuente
+    no le pone docstring.
+
+    El cuerpo tiene dos pasos y el segundo es la razon de existir de la
+    funcion: PostgreSQL **rechaza** cambiar el tipo de una columna que una
+    vista consume —``cannot alter type of a column used by a view or rule``,
+    que llega como ``NotSupportedError``—, asi que se retiran las vistas
+    dependientes y se reintenta. Sin ese rescate, un campo que gana precision
+    deja la migracion muerta en cuanto alguien creo una vista sobre el.
+
+    La divergencia de mecanismo es el punto de guardado. La fuente usa
+    ``cr.savepoint(flush=False)``, que es su cursor; aqui es
+    ``transaction.atomic()`` de Django, que dentro de una transaccion abierta
+    emite exactamente un ``SAVEPOINT``. Hace falta porque un error de
+    PostgreSQL aborta la transaccion entera: sin el punto de guardado, el
+    reintento fallaria con ``current transaction is aborted``.
+    """
+    query = (
+        'ALTER TABLE {t} ALTER COLUMN {c} DROP DEFAULT, '
+        'ALTER COLUMN {c} TYPE {tipo} USING {using}'
+    ).format(t=SQL.identifier(tablename).code, c=SQL.identifier(columnname).code,
+             tipo=columntype, using=using)
+    try:
+        with transaction.atomic(using=cr.db.alias):
+            cr.execute(query)
+    except NotSupportedError:
+        drop_depending_views(cr, tablename, columnname)
+        cr.execute(query)
+    _schema.debug("Table %r: column %r changed to type %s", tablename, columnname, columntype)
+
+
+def drop_depending_views(cr, table, column):
+    """Retira las vistas que leen la columna, para poder redimensionarla.
+
+    ≙ ``drop_depending_views`` (``odoo19c: odoo/tools/sql.py:389-397``).
+    Docstring de la fuente, verbatim: *"drop views depending on a field to
+    allow the ORM to resize it in-place"*.
+
+    El ``CASCADE`` no es opcional: una vista puede colgar de otra, y sin el la
+    primera se niega a caer.
+    """
+    for v, k in get_depending_views(cr, table, column):
+        cr.execute('DROP {} IF EXISTS {} CASCADE'.format(
+            'MATERIALIZED VIEW' if k == 'm' else 'VIEW',
+            SQL.identifier(v).code))
+        _schema.debug("Drop view %r", v)
+
+
+def get_depending_views(cr, table, column):
+    """Las vistas —ordinarias y materializadas— que leen la columna dada.
+
+    ≙ ``get_depending_views`` (``odoo19c: odoo/tools/sql.py:400-416``). La
+    fuente no le pone docstring; sí conserva la cita de su origen, un
+    intercambio de Stack Overflow, y la consulta se porta verbatim.
+
+    Cada fila es ``(nombre, relkind)`` con ``relkind`` en ``('v', 'm')``, que
+    es lo que :func:`drop_depending_views` necesita para elegir entre ``DROP
+    VIEW`` y ``DROP MATERIALIZED VIEW``.
+
+    ``quote_ident`` de la fuente se conserva **fuera** de la consulta: aqui el
+    nombre vuelve desnudo y quien lo emite lo cita con :meth:`SQL.identifier`,
+    que ademas lo valida contra ``IDENT_RE``. Devolverlo ya citado obligaria a
+    des-citarlo para compararlo con el nombre que el llamador conoce.
+    """
+    cr.execute("""
+        SELECT DISTINCT dependee.relname, dependee.relkind
+        FROM pg_depend
+        JOIN pg_rewrite ON pg_depend.objid = pg_rewrite.oid
+        JOIN pg_class AS dependee ON pg_rewrite.ev_class = dependee.oid
+        JOIN pg_class AS dependent ON pg_depend.refobjid = dependent.oid
+        JOIN pg_attribute ON pg_depend.refobjid = pg_attribute.attrelid
+            AND pg_depend.refobjsubid = pg_attribute.attnum
+        WHERE dependent.relname = %s
+        AND dependent.relnamespace = current_schema::regnamespace
+        AND pg_attribute.attnum > 0
+        AND pg_attribute.attname = %s
+        AND dependee.relkind IN ('v', 'm')
+    """, [table, column])
+    return cr.fetchall()
+
+
+def set_not_null(cr, tablename, columnname):
+    """Anade la restriccion ``NOT NULL`` a la columna dada.
+
+    ≙ ``set_not_null`` (``odoo19c: odoo/tools/sql.py:419-426``). Docstring de
+    la fuente, verbatim: *"Add a NOT NULL constraint on the given column"*.
+
+    La fuente pasa ``log_exceptions=False`` a su cursor porque el fallo es
+    esperado —una fila con ``NULL`` lo rechaza— y quien llama lo atiende. El
+    cursor de Django no tiene esa palanca; la divergencia es de registro, no
+    de comportamiento: la excepcion se propaga igual.
+    """
+    cr.execute('ALTER TABLE {} ALTER COLUMN {} SET NOT NULL'.format(
+        SQL.identifier(tablename).code, SQL.identifier(columnname).code))
+    _schema.debug("Table %r: column %r: added constraint NOT NULL", tablename, columnname)
+
+
+def drop_not_null(cr, tablename, columnname):
+    """Retira la restriccion ``NOT NULL`` de la columna dada.
+
+    ≙ ``drop_not_null`` (``odoo19c: odoo/tools/sql.py:429-435``). Docstring de
+    la fuente, verbatim: *"Drop the NOT NULL constraint on the given column"*.
+    """
+    cr.execute('ALTER TABLE {} ALTER COLUMN {} DROP NOT NULL'.format(
+        SQL.identifier(tablename).code, SQL.identifier(columnname).code))
+    _schema.debug("Table %r: column %r: dropped constraint NOT NULL", tablename, columnname)
+
+
+def drop_constraint(cr, tablename, constraintname):
+    """Retira la restriccion dada.
+
+    ≙ ``drop_constraint`` (``odoo19c: odoo/tools/sql.py:466-472``). Docstring
+    de la fuente, verbatim: *"Drop the given constraint"*.
+    """
+    cr.execute('ALTER TABLE {} DROP CONSTRAINT {}'.format(
+        SQL.identifier(tablename).code, SQL.identifier(constraintname).code))
+    _schema.debug("Table %r: dropped constraint %r", tablename, constraintname)
+
+
+def add_foreign_key(cr, tablename1, columnname1, tablename2, columnname2, ondelete):
+    """Crea la clave foranea dada.
+
+    ≙ ``add_foreign_key`` (``odoo19c: odoo/tools/sql.py:475-484``). Docstring
+    de la fuente, verbatim: *"Create the given foreign key, and return
+    ``True``"*.
+
+    El identificador va por :meth:`SQL.identifier`, que lo cita y lo valida
+    contra ``IDENT_RE``; ``ondelete`` NO es un identificador sino una palabra
+    reservada del dialecto, y por eso se comprueba contra
+    :data:`_CONFDELTYPES` antes de interpolarse — la fuente lo interpola con
+    ``SQL(ondelete)``, que tampoco lo cita, y la comprobacion es lo que aqui
+    cierra esa puerta.
+    """
+    if ondelete.upper() not in _CONFDELTYPES:
+        raise ValueError(f'Unknown ON DELETE policy: {ondelete!r}')
+    cr.execute('ALTER TABLE {} ADD FOREIGN KEY ({}) REFERENCES {}({}) ON DELETE {}'.format(
+        SQL.identifier(tablename1).code, SQL.identifier(columnname1).code,
+        SQL.identifier(tablename2).code, SQL.identifier(columnname2).code,
+        ondelete.upper()))
+    _schema.debug("Table %r: added foreign key %r references %r(%r) ON DELETE %s",
+                  tablename1, columnname1, tablename2, columnname2, ondelete)
+
+
+def get_foreign_keys(cr, tablename1, columnname1, tablename2, columnname2, ondelete):
+    """Los nombres de las claves foraneas que coinciden con lo dado.
+
+    ≙ ``get_foreign_keys`` (``odoo19c: odoo/tools/sql.py:487-511``). La fuente
+    no le pone docstring.
+
+    Filtra tambien por ``confdeltype``: dos claves entre las mismas columnas
+    con politica de borrado distinta **no** son la misma, y quien llama esta
+    decidiendo justamente si hay que rehacerla.
+    """
+    deltype = _CONFDELTYPES[ondelete.upper()]
+    cr.execute("""
+        SELECT fk.conname AS name
+        FROM pg_constraint AS fk
+        JOIN pg_class AS c1 ON fk.conrelid = c1.oid
+        JOIN pg_class AS c2 ON fk.confrelid = c2.oid
+        JOIN pg_attribute AS a1 ON a1.attrelid = c1.oid AND fk.conkey[1] = a1.attnum
+        JOIN pg_attribute AS a2 ON a2.attrelid = c2.oid AND fk.confkey[1] = a2.attnum
+        WHERE fk.contype = 'f'
+        AND c1.relname = %s
+        AND a1.attname = %s
+        AND c2.relname = %s
+        AND a2.attname = %s
+        AND c1.relnamespace = current_schema::regnamespace
+        AND fk.confdeltype = %s
+    """, [tablename1, columnname1, tablename2, columnname2, deltype])
+    return [row[0] for row in cr.fetchall()]
+
+
+def create_index(cr, indexname, tablename, expressions, method='btree', where=''):
+    """Crea el indice dado si no existe.
+
+    ≙ ``create_index`` (``odoo19c: odoo/tools/sql.py:564-583``). La fuente
+    comprueba antes con ``index_exists`` y sale sin hacer nada si ya estaba;
+    aqui la comprobacion la hace ``IF NOT EXISTS``, que es atomica y no deja la
+    ventana entre la pregunta y la creacion.
+    """
+    args = ', '.join(expressions)
+    condition = f' WHERE {where}' if where else ''
+    cr.execute('CREATE INDEX IF NOT EXISTS {} ON {} USING {} ({}){}'.format(
+        SQL.identifier(indexname).code, SQL.identifier(tablename).code,
+        SQL.identifier(method).code, args, condition))
+    _schema.debug("Table %r: created index %r (%s)", tablename, indexname, args)
+
+
+def drop_index(cr, indexname, tablename):
+    """Retira el indice dado si existe.
+
+    ≙ ``drop_index`` (``odoo19c: odoo/tools/sql.py:626-629``). Docstring de la
+    fuente, verbatim: *"Drop the given index if it exists"*.
+    """
+    cr.execute('DROP INDEX IF EXISTS {}'.format(SQL.identifier(indexname).code))
+    _schema.debug("Table %r: dropped index %r", tablename, indexname)
 
 
 def execute_sql(sql, using=None):

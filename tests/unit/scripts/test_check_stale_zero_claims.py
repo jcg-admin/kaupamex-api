@@ -81,32 +81,37 @@ class TestTheClaimIsReadWithItsCommand:
     def test_a_quoted_command_with_a_non_zero_is_not_a_claim(self):
         """Citar un comando NO lo convierte en reclamo: el cero es el gancho.
 
-        ``ir_autovacuum.py`` cita **dos** comandos: el vigente, que declara su
-        cero, y el anterior, que la prosa conserva diciendo que *"hoy da 2"*
-        para explicar por qué se sustituyó. Sin el ``**0**`` en el patrón, el
-        gate contaría el segundo y re-ejecutaría un instrumento que su propio
-        archivo ya declaró inservible.
+        ``fields_textual.py`` cita **dos** comandos: el del campo sin columna,
+        que declara su cero, y el de ``size=``, que declara **33** sitios de la
+        referencia. Sin el ``**0**`` en el patrón el gate contaría el segundo y
+        re-ejecutaría una medición que nunca prometió estar vacía.
+
+        **Re-anclado**: el control era el reclamo de ``ir_autovacuum.py``, y se
+        retiró al portarse ``_gc_orm_signaling`` — su condición de cierre se
+        cumplió y un reclamo de cero cumplido ya no mide nada. Que un control
+        de gate caiga al cerrarse su positivo es el precio de anclarlo a uno
+        real del repo, como ya documenta el caso de ``slugify`` de arriba.
         """
-        path = pathlib.Path('src/addons/base/models/ir_autovacuum.py')
+        path = pathlib.Path('src/orm/fields_textual.py')
         commands = [command for command, _, _ in gate.claims_in(path)]
         assert len(commands) == 1, commands
-        assert 'db_table' in commands[0], commands[0]
-        assert not any('grep -rl orm_signaling' in c for c in commands), commands
+        assert 'Text(store=False' in commands[0], commands[0]
+        assert not any('fields\\.Char' in c for c in commands), commands
 
-    def test_the_claim_of_ir_autovacuum_does_not_find_itself(self):
-        """El comando citado NO se encuentra a sí mismo, y por eso va anclado.
+    def test_the_claim_of_ir_http_does_not_find_itself(self):
+        """El comando citado NO se encuentra a sí mismo, y por eso se excluye.
 
-        La cita vive dentro de ``src/`` y su comando busca en ``src/``: sin el
-        ancla de inicio de línea el patrón encuentra su propia cita y devuelve
-        **1**, no el **0** que la prosa declara. El gate no lo delataría —
-        descuenta la línea de cita por el literal RST— así que el control mide
-        lo que un humano ve al copiar el comando, no lo que el gate cuenta.
+        La cita vive dentro de ``src/`` y su comando busca en ``src/``: sin la
+        exclusión el patrón encuentra su propia cita y devuelve **1**, no el
+        **0** que la prosa declara. El gate no lo delataría —descuenta la línea
+        de cita por el literal RST— así que el control mide lo que un humano ve
+        al copiar el comando, no lo que el gate cuenta.
 
         Es el defecto #2 de H-API-985 reaparecido en la cita que lo corregía.
         """
-        path = pathlib.Path('src/addons/base/models/ir_autovacuum.py')
+        path = pathlib.Path('src/addons/base/models/ir_http.py')
         command, _, _ = gate.claims_in(path)[0]
-        assert command.count('^ *') == 3, command
+        assert 'grep -v "^src/addons/base/models/ir_http.py:"' in command, command
         salida = subprocess.run(command, shell=True, capture_output=True,
                                 text=True, cwd=REPO)
         assert salida.stdout == '', salida.stdout
@@ -248,11 +253,25 @@ class TestTheRerunReproducesWhatTheAuthorMeasured:
         assert count > 1, 'la salida de -c ES el número, no el conteo de líneas'
 
     def test_a_shell_glob_is_expanded(self):
-        """Sin shell, ``src/orm/*.py`` llega literal y grep sale 2."""
+        """El glob se expande sin shell: ``src/orm/*.py`` llega como archivos.
+
+        El caso fijaba ``count == 0`` cuando ``src/orm/`` no declaraba ningun
+        ``def new(``. Al portar :class:`orm.registry.Registry` con su
+        ``new`` (tarea #342) el mismo comando pasa a dar **1**, y el caso se
+        puso rojo — que es el gate funcionando: un reclamo de cero caduco y lo
+        dijo, igual que le paso arriba al de ``stdnum``.
+
+        Lo que el caso prueba no es el cero sino la EXPANSION, asi que la
+        asercion pasa a la que discrimina: si el glob llegara literal, grep
+        recibiria una ruta inexistente y ``why`` traeria el motivo en vez de
+        ``None``. Un conteo positivo sobre archivos reales solo es posible con
+        el glob ya expandido.
+        """
         claiming = pathlib.Path('addons/web/models/models.py')
         count, why = gate.rerun('grep -rn "def new(" src/orm/*.py', claiming)
         assert why is None, why
-        assert count == 0
+        assert count >= 1, 'el glob llego literal: grep no leyo ningun archivo'
+
 
     def test_a_grep_v_pipe_filters_in_python(self):
         """Dos autores ya excluían su archivo a mano; se sostiene el filtro."""

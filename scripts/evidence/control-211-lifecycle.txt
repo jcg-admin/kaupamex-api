@@ -1,0 +1,46 @@
+Control que discrimina — los seis metodos del ciclo de vida de Field (#211)
+==========================================================================
+
+Metodo: se anulan DOS guardas a la vez en src/orm/fields.py y se corre el
+mismo archivo de test. Caen exactamente los casos que dependen de ellas.
+
+Guarda 1 — _field_read:
+    if not self.column_type:
+        raise NotImplementedError(...)
+  sustituida por  ->  return None
+
+Guarda 2 — _field_write:
+    records = self._filter_not_equal(records, cache_value)
+    if not record_ids(records):
+        return
+  retirada por completo.
+
+ANTES (arbol integro)
+---------------------
+$ uv run pytest tests/unit/orm/test_field_lifecycle_methods.py -q --reuse-db
+20 passed, 1 warning in 5.23s
+
+CON LAS DOS GUARDAS ANULADAS
+----------------------------
+$ uv run pytest tests/unit/orm/test_field_lifecycle_methods.py -q --reuse-db
+FAILED ...::TestRead::test_a_field_without_a_column_refuses
+FAILED ...::TestWrite::test_write_does_not_touch_a_row_whose_value_already_matches
+2 failed, 18 passed, 1 warning in 5.26s
+
+Caen los DOS que dependen de las guardas y ninguno mas. Los 18 que
+sobreviven miden otra cosa —el contrato instalado, create, _to_prefetch,
+determine_group_expand y el respaldo de empresa— y esta bien que la midan.
+
+La primera version del control de write NO discriminaba
+--------------------------------------------------------
+Miraba la cache: escribir el mismo valor la deja igual con filtro y sin el,
+asi que el caso pasaba en ambos casos. Medido: con la guarda anulada solo
+caia el de read (1 failed, 18 passed). El observable correcto es
+transaction.field_dirty — la fila cuyo valor ya coincide no debe quedar
+marcada para el UPDATE. Es el sub-patron D de
+metrica-decide-la-conclusion.md, detectado por correr el control y no por
+releer el test.
+
+RESTAURACION
+------------
+$ git diff --stat src/orm/fields.py   # tras restaurar, solo el porte de #211

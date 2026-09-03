@@ -208,8 +208,16 @@ class TestBackfillDeOrdenesPreexistentes:
         SaleOrder.objects.filter(pk=with_compute.pk).update(
             amount_total=Decimal('0.00'), amount_untaxed=Decimal('0.00'),
             amount_tax=Decimal('0.00'))
-        with_compute.refresh_from_db()
-        assert with_compute.amount_total == Decimal('0.00')
+        # La precondicion se lee de la COLUMNA, no del atributo.
+        # ``refresh_from_db`` de Django no es la invalidacion del ORM: copia
+        # campo a campo con ``setattr``, asi que reasigna tambien los campos
+        # de los que ``amount_total`` depende, y esa escritura los marca para
+        # recalculo. La lectura siguiente del atributo recalcularia y daria
+        # 180.00 aqui — el sub-patron D de ``metrica-decide-la-conclusion``.
+        # ``values_list`` arma la tupla desde la fila sin instanciar el
+        # modelo, asi que no pasa por el descriptor.
+        assert SaleOrder.objects.filter(pk=with_compute.pk).values_list(
+            'amount_total', flat=True)[0] == Decimal('0.00')
 
         # El backfill hace exactamente esto: recorrer la orden y recalcular.
         with_compute._compute_amounts()

@@ -1,0 +1,31 @@
+=== BASE (sin neutralizar) ===
+22 passed, 1 warning in 4.83s
+--- 1. to_record_ids sin OriginIds
+FAILED TestToRecordIdsNormalizesTheThreeShapes::test_an_unsaved_row_gives_nothing
+1 failed, 21 passed, 1 warning in 4.63s
+--- 2. add_field sin la validacion del nombre
+FAILED TestAddFieldHangsTheFieldOnTheBuiltClass::test_a_name_neither_declared_nor_manual_is_refused
+1 failed, 21 passed, 1 warning in 4.40s
+--- 3. add_field sin la validacion del tipo
+FAILED TestAddFieldHangsTheFieldOnTheBuiltClass::test_something_that_is_not_a_field_is_refused
+1 failed, 21 passed, 1 warning in 4.68s
+--- 4. pop_field sin el arreglo de _rec_name
+FAILED TestPopFieldTakesTheFieldOffAgain::test_it_clears_rec_name_when_it_was_the_one
+1 failed, 21 passed, 1 warning in 4.43s
+--- 5. _check_inherits sin las tres propiedades del campo
+FAILED TestCheckInheritsValidatesTheDelegatedField::test_a_field_that_does_not_delegate_is_refused
+FAILED TestCheckInheritsValidatesTheDelegatedField::test_a_nullable_field_is_refused
+FAILED TestCheckInheritsValidatesTheDelegatedField::test_a_wrong_ondelete_policy_is_refused
+3 failed, 19 passed, 1 warning in 4.45s
+--- 6. _check_inherits sin la validacion de existencia y tipo
+FAILED TestCheckInheritsValidatesTheDelegatedField::test_a_missing_field_is_refused
+FAILED TestCheckInheritsValidatesTheDelegatedField::test_a_field_that_is_not_a_foreign_key_is_refused
+2 failed, 20 passed, 1 warning in 4.42s
+--- 7. ensure_inherits sin cablear (la delegacion nunca se instala)
+FAILED TestCheckInheritsValidatesTheDelegatedField::test_the_live_declarants_pass
+1 failed, 21 passed, 1 warning in 4.83s
+=== ARBOL RESTAURADO ===
+ src/orm/inherits.py      |  42 +++++++++++
+ src/orm/model_classes.py | 189 ++++++++++++++++++++++++++++++++++++++++++++++-
+ src/orm/models.py        |  41 +++++++++-
+ 3 files changed, 269 insertions(+), 3 deletions(-)

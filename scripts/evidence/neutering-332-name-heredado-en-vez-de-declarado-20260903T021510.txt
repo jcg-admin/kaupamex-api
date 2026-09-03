@@ -1,0 +1,12 @@
+# Control discriminante — 332-name-heredado-en-vez-de-declarado
+# fecha:    2026-09-03T02:15:10
+# archivo:  src/orm/model_classes.py
+# anulado:  s/    name = model_cls.__dict__.get('_name')/    name = getattr(model_cls, '_name', None)/
+# tests:    tests/unit/orm/test_model_class_construction.py
+
+## 1. Verde de partida (guarda presente)
+26 passed, 1 warning in 4.14s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_model_class_construction.py::TestTheWiringRunsOnTheLiveTree::test_a_model_that_inherits_a_name_without_declaring_one_is_skipped
+1 failed, 25 passed, 1 warning in 4.31s

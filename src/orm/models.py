@@ -63,7 +63,8 @@ from django.db.models import *          # noqa: F401,F403  (re-export ORM comple
 from django.db.models import (  # noqa: F401
     ForeignKey, Manager, Model, QuerySet,
 )
-from django.db.models.signals import post_init, pre_init, pre_save
+from django.db.models.signals import (post_init, pre_delete, pre_init,
+                                      pre_save)
 from django.dispatch import receiver
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
@@ -81,9 +82,11 @@ from orm.domains import Domain, to_q
 from orm.fields import convert_to_display_name
 from orm.fields_nonstored import NonStored, non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
-from orm.utils import (as_record_list, check_object_name,
-                       model_field_registry, parse_field_expr, record_ids)
+from orm.utils import (FieldRegistryDescriptor, OriginIds, as_record_list,
+                       check_object_name, model_field_registry,
+                       parse_field_expr, record_ids)
 from service.db import Savepoint
+from tools.cache import ormcache
 from tools.misc import OrderedSet
 from tools.sql import SQL
 
@@ -112,6 +115,45 @@ def fix_import_export_id_paths(fieldname):
     fixed_db_id = re.sub(r'([^/])\.id', r'\1/.id', fieldname)
     fixed_external_id = re.sub(r'([^/]):id', r'\1/id', fixed_db_id)
     return fixed_external_id.split('/')
+
+
+def to_record_ids(arg) -> list:
+    """≙ ``to_record_ids`` (``odoo19c: odoo/orm/models.py:159-166``).
+
+    «Return the record ids of ``arg``, which may be a recordset, an integer or
+    a list of integers.»
+
+    Las tres formas se normalizan a una lista de ids reales, y las tres
+    descartan el id falso — pero **no por el mismo camino**, y la diferencia es
+    de la fuente, no de este puerto:
+
+    ================== ============================ =========================
+    Forma              La fuente                     Aquí
+    ================== ============================ =========================
+    recordset          ``arg.ids``                   ``OriginIds(record_ids(…))``
+    entero             ``[arg] if arg else []``      igual
+    iterable           ``[i for i in arg if i]``     igual
+    ================== ============================ =========================
+
+    **Divergencia de mecanismo en la primera fila, no de contrato.** Aquí no
+    hay recordset: un conjunto de filas es una instancia de modelo o un
+    ``QuerySet``, así que ``arg.ids`` no existe y su equivalente es
+    :func:`~orm.utils.record_ids`. Lo que ``.ids`` hace en la fuente
+    (``odoo19c: odoo/orm/models.py:5905-5909``) es envolver sus ids en
+    :class:`~orm.utils.OriginIds`, y por eso el puerto también lo envuelve: sin
+    esa envoltura una fila sin guardar aportaría ``None`` a la lista.
+
+    **La asimetría que esto deja es la de la fuente y se conserva.** Un
+    :class:`~orm.identifiers.NewId` **con origen** dentro de una fila se
+    resuelve a su origen; el mismo ``NewId`` dentro de una lista suelta se
+    descarta, porque la rama del iterable filtra por verdad y ``NewId`` es
+    falso. No se corrige: quien pasa una lista pasa ids, no registros.
+    """
+    if isinstance(arg, (Model, QuerySet)):
+        return list(OriginIds(record_ids(arg)))
+    if isinstance(arg, int):
+        return [arg] if arg else []
+    return [id_ for id_ in arg if id_]
 
 
 def itemgetter_tuple(items):
@@ -1003,6 +1045,109 @@ def _company_ids(companies):
     return ids
 
 
+def _ancestor_company_ids(companies):
+    """Los ids de ``companies`` **y de todos sus ancestros**.
+
+    ≙ el cuerpo comun de los dos ``*_parent_of`` de la fuente
+    (``odoo19c: odoo/orm/models.py:180-184`` y ``:196-200``), que recorre
+    ``rec.parent_path.split('/')[:-1]`` de cada empresa.
+
+    ``parent_path`` es la ruta materializada (``'1/4/9/'``) que
+    ``ResCompany._compute_parent_path`` mantiene: la lista de ancestros mas la
+    propia empresa, con separador final. El ``[:-1]`` de la fuente descarta el
+    hueco que deja ese separador, no un ancestro.
+
+    Una empresa sin ``parent_path`` poblado cae a su propio id: es la
+    respuesta correcta —una raiz es su unico ancestro— y evita que una fila
+    sin calcular desaparezca del dominio en silencio.
+    """
+    company_model = registry.MODELS_BY_NAME.get('res.company')
+    ids = _company_ids(companies)
+    if company_model is None or not ids:
+        return ids
+    ancestors = []
+    for company in company_model.objects.filter(pk__in=ids):
+        path = company.parent_path or ''
+        segments = [seg for seg in path.split('/')[:-1] if seg]
+        ancestors.extend(int(seg) for seg in segments) if segments \
+            else ancestors.append(company.pk)
+    return ancestors
+
+
+def check_company_domain_parent_of(cls, companies):
+    """Predicado de coherencia de empresa que admite a los **ancestros**.
+
+    ≙ ``check_company_domain_parent_of``
+    (``odoo19c: odoo/orm/models.py:169-184``). Docstring de la fuente,
+    verbatim: *"A `_check_company_domain` function that lets a record be used
+    if either: record.company_id = False (which implies that it is shared
+    between all companies), or record.company_id is a parent of any of the
+    given companies."*
+
+    Es la variante **jerarquica** de
+    :meth:`CheckCompanyMixin._check_company_domain`: aquella exige que la
+    empresa del registro este entre las dadas; esta admite ademas cualquier
+    ancestro suyo, que es como una matriz comparte catalogos con sus filiales.
+
+    Se declara como funcion de modulo —no como metodo— porque asi la declara
+    la fuente y asi la consumen los modelos:
+    ``_check_company_domain = models.check_company_domain_parent_of`` es una
+    **asignacion de atributo de clase**, no una sobreescritura. El primer
+    parametro se llama ``cls`` y no ``self`` porque en este arbol el consumidor
+    (:meth:`CheckCompanyMixin._check_company`) lo invoca sobre la clase.
+
+    Devuelve un ``Q`` y no un ``Domain`` por la misma razon que su hermano de
+    clase: el consumidor es un ``QuerySet``.
+
+    La rama ``isinstance(companies, str)`` de la fuente —el dominio simbolico
+    ``('company_id', 'parent_of', companies)``— **no se porta**: aqui el
+    operador ``parent_of`` sobre un nombre de campo es la tarea **#235**, y
+    hasta que exista un ``Q`` no puede expresarlo. Un ``str`` levanta
+    ``TypeError`` en vez de devolver un predicado que no discrimina.
+    """
+    if isinstance(companies, str):
+        raise TypeError(
+            'check_company_domain_parent_of no acepta un dominio simbolico: '
+            'el operador parent_of sobre un nombre de campo es la tarea #235'
+        )
+    name = _first_field_name(cls, COMPANY_FIELD_NAMES)
+    if name is None:
+        return None
+    ids = _ancestor_company_ids(companies)
+    if not ids:
+        return Q(**{f'{name}__isnull': True})
+    return Q(**{f'{name}__in': ids}) | Q(**{f'{name}__isnull': True})
+
+
+def check_companies_domain_parent_of(cls, companies):
+    """Su hermano plural, sobre el M2M de empresas.
+
+    ≙ ``check_companies_domain_parent_of``
+    (``odoo19c: odoo/orm/models.py:188-200``). Docstring de la fuente,
+    verbatim: *"A `_check_company_domain` function that lets a record be used
+    if any company in record.company_ids is a parent of any of the given
+    companies."*
+
+    **La diferencia con el singular no es cosmetica**: aqui NO hay rama de
+    «compartido entre todas». La fuente devuelve ``[]`` —dominio vacio, todo
+    pasa— cuando no se dan empresas, y un registro sin ninguna empresa en su
+    M2M no entra en el dominio. Se conserva: ``None`` significa «este modelo no
+    participa», que es otra cosa.
+    """
+    if isinstance(companies, str):
+        raise TypeError(
+            'check_companies_domain_parent_of no acepta un dominio simbolico: '
+            'el operador parent_of sobre un nombre de campo es la tarea #235'
+        )
+    name = _first_field_name(cls, COMPANIES_FIELD_NAMES)
+    if name is None:
+        return None
+    ids = _ancestor_company_ids(companies)
+    if not ids:
+        return Q()
+    return Q(**{f'{name}__in': ids})
+
+
 def _corecords(record, name):
     """Los registros que ``record.<name>`` apunta, siempre como lista.
 
@@ -1406,59 +1551,65 @@ class FieldSqlMixin:
     exportación de un campo sin columna.
     """
 
-    @property
-    def _fields(self):
-        """Los campos del modelo por nombre — ≙ ``BaseModel._fields``.
-
-        Allá es el registro que el ORM construye al cargar la clase; aquí lo
-        provee ``_meta``, que es el registro equivalente de Django. Entran
-        **todos**, como allá: el mapa es el registro del modelo, no el de sus
-        columnas.
-
-        > **Ensanchado (tarea #215, H-API-953).** Hasta hoy filtraba por
-        > ``concrete``, y ese filtro era un contrato **más estrecho** que el de
-        > la fuente sin que nadie hubiera comparado los dos alcances. Lo
-        > destapó ``setup_related`` (``odoo19c: :604``), que recorre
-        > ``model._fields[name]`` por una cadena punteada que puede atravesar
-        > un ``One2many`` — que no es concreto. Con el mapa estrecho esa cadena
-        > no se puede recorrer.
-        >
-        > Medido sobre ``ResPartner``: **107** campos en total, **66**
-        > concretos, **41** no. El filtro escondía el 38 %.
-        >
-        > Los cinco consumidores se midieron uno a uno antes de ensanchar.
-        > Cuatro filtran por su cuenta —dos exigen ``ForeignKey``, dos exigen
-        > ``Properties``— así que el filtro no era suyo. El quinto,
-        > ``_field_to_sql``, SÍ lo usaba: un nombre no concreto quedaba fuera
-        > del mapa y producía su ``ValueError`` limpio. Ese rechazo se conserva
-        > **en su sitio**, que es donde pertenece — quien compone SQL es quien
-        > sabe qué puede convertir.
-
-        > **Ensanchado otra vez (tarea #301, :ref:`h-api-1025`).** La ceguera
-        > que la versión anterior declaraba abajo —*"ciega al ``NonStored``"*—
-        > no era una nota al pie: era la mitad que faltaba. El campo sin
-        > columna **es un campo del modelo** en la fuente, y dejarlo fuera
-        > volvía a hacer el mapa más estrecho que allá, sólo que por otro eje.
-        > Lo destapó ``_address_fields()``, que desde ``base_address_extended``
-        > devuelve ``city_id`` —sin columna aquí, DEC-SALE-01— y hacía reventar
-        > a ``_convert_fields_to_values`` sobre 35 casos de
-        > ``tests/integration/base``.
-        >
-        > Los seis consumidores se re-midieron uno a uno antes de ensanchar, y
-        > ninguno cambia de conducta: cuatro filtran por ``Properties`` o
-        > ``ForeignKey``, uno lee ``ondelete`` con ``getattr`` y el sexto
-        > —``_field_to_sql``— exige ``concrete``, que un ``NonStored`` no
-        > declara. Ahí el nombre pasa de dar ``None`` a dar el descriptor, y el
-        > mismo ``ValueError`` sale por la misma rama.
-
-        *Métrica:* ``_meta.get_fields()`` unido a los descriptores
-        :class:`~orm.fields_nonstored.NonStored` que el MRO de la clase
-        declara.
-        *Ciega a:* un campo de la fuente que aquí no se declare ni como campo
-        de Django ni como ``NonStored`` — una ``property`` pelada, por ejemplo.
-        Esa forma existe en el árbol y su barrido es la tarea **#302**.
-        """
-        return model_field_registry(type(self))
+    #: Los campos del modelo por nombre — ≙ ``BaseModel._fields``.
+    #:
+    #: Allá es el registro que el ORM construye al cargar la clase; aquí lo
+    #: provee ``_meta``, que es el registro equivalente de Django. Entran
+    #: **todos**, como allá: el mapa es el registro del modelo, no el de sus
+    #: columnas.
+    #:
+    #: > **Ensanchado (tarea #215, H-API-953).** Hasta hoy filtraba por
+    #: > ``concrete``, y ese filtro era un contrato **más estrecho** que el de
+    #: > la fuente sin que nadie hubiera comparado los dos alcances. Lo
+    #: > destapó ``setup_related`` (``odoo19c: :604``), que recorre
+    #: > ``model._fields[name]`` por una cadena punteada que puede atravesar
+    #: > un ``One2many`` — que no es concreto. Con el mapa estrecho esa cadena
+    #: > no se puede recorrer.
+    #: >
+    #: > Medido sobre ``ResPartner``: **107** campos en total, **66**
+    #: > concretos, **41** no. El filtro escondía el 38 %.
+    #: >
+    #: > Los cinco consumidores se midieron uno a uno antes de ensanchar.
+    #: > Cuatro filtran por su cuenta —dos exigen ``ForeignKey``, dos exigen
+    #: > ``Properties``— así que el filtro no era suyo. El quinto,
+    #: > ``_field_to_sql``, SÍ lo usaba: un nombre no concreto quedaba fuera
+    #: > del mapa y producía su ``ValueError`` limpio. Ese rechazo se conserva
+    #: > **en su sitio**, que es donde pertenece — quien compone SQL es quien
+    #: > sabe qué puede convertir.
+    #:
+    #: > **Ensanchado otra vez (tarea #301, :ref:`h-api-1025`).** La ceguera
+    #: > que la versión anterior declaraba abajo —*"ciega al ``NonStored``"*—
+    #: > no era una nota al pie: era la mitad que faltaba. El campo sin
+    #: > columna **es un campo del modelo** en la fuente, y dejarlo fuera
+    #: > volvía a hacer el mapa más estrecho que allá, sólo que por otro eje.
+    #: > Lo destapó ``_address_fields()``, que desde ``base_address_extended``
+    #: > devuelve ``city_id`` —sin columna aquí, DEC-SALE-01— y hacía reventar
+    #: > a ``_convert_fields_to_values`` sobre 35 casos de
+    #: > ``tests/integration/base``.
+    #: >
+    #: > Los seis consumidores se re-midieron uno a uno antes de ensanchar, y
+    #: > ninguno cambia de conducta: cuatro filtran por ``Properties`` o
+    #: > ``ForeignKey``, uno lee ``ondelete`` con ``getattr`` y el sexto
+    #: > —``_field_to_sql``— exige ``concrete``, que un ``NonStored`` no
+    #: > declara. Ahí el nombre pasa de dar ``None`` a dar el descriptor, y el
+    #: > mismo ``ValueError`` sale por la misma rama.
+    #:
+    #: *Métrica:* ``_meta.get_fields()`` unido a los descriptores
+    #: :class:`~orm.fields_nonstored.NonStored` que el MRO de la clase
+    #: declara.
+    #: *Ciega a:* un campo de la fuente que aquí no se declare ni como campo
+    #: de Django ni como ``NonStored`` — una ``property`` pelada, por ejemplo.
+    #: Esa forma existe en el árbol y su barrido es la tarea **#302**.
+    #:
+    #: **Es un descriptor y no una ``property`` (tarea #342).** La fuente
+    #: declara ``_fields`` en la clase de registro, asi que ``Model._fields``
+    #: y ``record._fields`` devuelven el mismo mapa; ``check_indexes``
+    #: (``odoo19c: odoo/orm/registry.py:813``) lo lee por la clase. Una
+    #: ``property`` sobre la clase devuelve el objeto descriptor, no el mapa,
+    #: y ese hueco lo tapaba :func:`~orm.utils.model_field_registry` llamada a
+    #: mano en once sitios. El protocolo de descriptor de CPython ya distingue
+    #: los dos accesos, asi que el mecanismo no se trae de fuera: se usa.
+    _fields = FieldRegistryDescriptor()
 
     def _has_field_access(self, field, operation) -> bool:
         """Si el usuario puede leer o escribir este campo.
@@ -2985,7 +3136,20 @@ Model.__setitem__ = _model_setitem
 
 
 def _model_of_records(records):
-    """La clase de modelo de ``records`` — instancia, lista o ``QuerySet``."""
+    """La clase de modelo de ``records`` — clase, instancia, lista o ``QuerySet``.
+
+    La rama de la CLASE existe porque la fuente llama a esta familia sobre un
+    recordset vacio del modelo (``self.env[nombre]``), que allá lleva su modelo
+    consigo. Aqui el equivalente que llega desde el eje de esquema es la propia
+    clase, y ``as_record_list`` no la puede recorrer: ``list(ModelBase)`` es un
+    ``TypeError``. Sus dos consumidores —``flush_model`` y
+    ``_recompute_model``— ya escribian la guarda
+    ``or (self if isinstance(self, type) else None)``, asi que **declaraban**
+    admitir la clase; lo que faltaba era que esta funcion llegara a devolverla
+    en vez de reventar antes.
+    """
+    if isinstance(records, type):
+        return records
     if isinstance(records, QuerySet):
         return records.model
     rows = as_record_list(records)
@@ -3604,7 +3768,91 @@ def _run_precompute(sender, instance, raw=False, **_ignored):
     _add_precomputed_values(instance)
 
 
+def _validate_fields(self, field_names, excluded_names=()):
+    """Corre las restricciones que nombran alguno de los campos tocados.
+
+    ≙ ``_validate_fields`` (``odoo19c: odoo/orm/models.py:1252-1268``).
+    Docstring de la fuente, verbatim: *"Invoke the constraint methods for which
+    at least one field name is in ``field_names`` and none is in
+    ``excluded_names``"*.
+
+    **Los dos filtros son de la fuente y los dos importan.** El primero acota:
+    una restriccion que no nombra ningun campo tocado no tiene por que correr.
+    El segundo veta: basta con que UNO de los nombres que la restriccion
+    declara este excluido para que no corra — el llamador excluye lo que sabe
+    que esta a medio escribir, y una restriccion que lo mire daria un falso
+    negativo.
+
+    **Divergencia de mecanismo, no de contrato.** Alla el mapa de metodos es
+    una ``@property`` memoizada en la clase (``:519-546``) y aqui es el
+    colector :data:`~orm.registry.constraint_methods`, por la razon que su
+    docstring declara. Y ``self.sudo()`` es alla un recordset elevado; aqui la
+    elevacion es un bloque de contexto (``orm.environments.sudo``), asi que se
+    envuelve la corrida en vez de recibir otro receptor.
+
+    El comentario de la fuente sobre por que se eleva se conserva porque es la
+    razon y no el como: *"run constrains just as sudoed computed-stored fields
+    — see Field.compute_value()"*.
+    """
+    methods = registry.constraint_methods(type(self))
+    if not methods:
+        return
+    field_names = set(field_names)
+    excluded_names = set(excluded_names)
+    with elevate_privileges():
+        for check in methods:
+            declared = check._constrains
+            if (not field_names.isdisjoint(declared)
+                    and excluded_names.isdisjoint(declared)):
+                check(self)
+
+
+def _run_ondelete_checks(self, at_uninstall=False):
+    """Corre las comprobaciones marcadas antes de borrar la fila.
+
+    ≙ el bloque de ``unlink`` que recorre ``self._ondelete_methods``
+    (``odoo19c: odoo/orm/models.py:4205-4208``), con su comentario verbatim:
+    *"func._ondelete is True if it should be called during uninstallation"*.
+
+    El marcador NO es una bandera de presencia: guarda el ``at_uninstall`` que
+    el decorador recibio. Un metodo con ``at_uninstall=False`` corre en el
+    borrado normal y **se salta** cuando quien borra es la desinstalacion de un
+    modulo — porque entonces todo lo que el modulo declaro se va de todas
+    formas, y un ``UserError`` de negocio ahi solo dejaria la base a medias.
+    Ese razonamiento es el del docstring de ``@api.ondelete``
+    (``odoo19c: odoo/orm/decorators.py:139-149``).
+
+    **Divergencia de mecanismo:** alla la bandera de desinstalacion viaja en el
+    contexto (``MODULE_UNINSTALL_FLAG``); aqui es el argumento de esta llamada,
+    porque quien borra es ``Model.delete()`` de Django y no hay contexto de
+    recordset que consultar.
+    """
+    for check in registry.ondelete_methods(type(self)):
+        if check._ondelete or not at_uninstall:
+            check(self)
+
+
+@receiver(pre_delete, dispatch_uid='orm.models.run_ondelete_checks')
+def _run_ondelete_on_delete(sender, instance, **_ignored):
+    """Dispara las comprobaciones marcadas justo antes del DELETE.
+
+    ``pre_delete`` corre dentro de la transaccion del borrado y antes de la
+    sentencia, que es donde la fuente las corre: un ``UserError`` levantado
+    aqui deja la fila intacta.
+
+    Su equivalente de ``MODULE_UNINSTALL_FLAG`` es la clave de contexto
+    ``module_uninstall``, que el desinstalador activa. Con el contexto vacio
+    —el caso normal— vale ``False`` y corren todas.
+    """
+    if not registry.ondelete_methods(sender):
+        return
+    _run_ondelete_checks(
+        instance, at_uninstall=bool(get_context().get('module_uninstall')))
+
+
 Model._add_precomputed_values = _add_precomputed_values
+Model._validate_fields = _validate_fields
+Model._run_ondelete_checks = _run_ondelete_checks
 
 
 class RecordCache(collections.abc.Mapping):
@@ -3785,3 +4033,91 @@ class ReversibleComparator:
     def __repr__(self):
         return (f"<ReversibleComparator {self.__item!r}"
                 f"{' reverse' if self.__reverse else ''}>")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# El esquema de una columna sobre filas que ya existen
+#     ≙ ``BaseModel._init_column`` (``odoo19c: odoo/orm/models.py:3137-3161``)
+#     y ``BaseModel._table_has_rows`` (``:3163-3168``)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Los dos son consumidores de ``Field.update_db_notnull``: cuando una columna
+# nace, o cuando un campo pasa a ser obligatorio, las filas que ya estaban ahí
+# tienen ``NULL`` y la restricción no las admite. La fuente resuelve eso en dos
+# pasos —¿hay filas? y, si las hay, siémbrales el default— y aquí igual.
+#
+# **Divergencia de enlace, declarada.** La fuente los declara métodos de
+# instancia porque allá un «modelo» es un recordset. Aquí el modelo es una
+# clase de Django, y quien los llama —``Field.update_db``— tiene la clase, no
+# una fila. Se enlazan como ``classmethod``: el contrato es el mismo y el
+# receptor es el que el llamador tiene. Es la misma puerta que
+# ``registry.Registry.is_an_ordinary_table`` ya declaró para el cursor.
+
+
+def _init_column(cls, column_name):
+    """Siembra el valor por defecto de una columna en las filas existentes.
+
+    Docstring de la fuente, verbatim: *"Initialize the value of the given
+    column for existing rows"*.
+
+    El default se obtiene del campo y **no** de ``default_get``: la fuente lo
+    explica en su comentario —*"ideally, we should use default_get(), but it
+    fails due to ir.default not being ready"*— y aquí vale igual, porque este
+    camino corre mientras el esquema se está construyendo.
+
+    La guarda de ``necessary`` es de la fuente y no es cosmética: un booleano
+    no obligatorio trata ``False`` y ``NULL`` como lo mismo, así que sembrarlo
+    costaría un ``UPDATE`` sobre toda la tabla sin cambiar nada observable. Si
+    es obligatorio sí se escribe, porque ahí el ``NOT NULL`` sí distingue.
+    """
+    field = model_field_registry(cls)[column_name]
+    #: **Divergencia de mecanismo, no de conducta.** La fuente escribe
+    #: ``if field.default: value = field.default(self)`` porque en su ORM el
+    #: default, cuando existe, es SIEMPRE un invocable. En Django es un valor
+    #: **o** un invocable, y el centinela de «sin default» no es la falsedad
+    #: sino ``NOT_PROVIDED``: con ``default=''`` —el caso de un ``TextField``
+    #: obligatorio— la guarda de la fuente daria falso y la columna nueva
+    #: quedaria sin sembrar, que es justo lo contrario de lo que ella hace.
+    #: El par que el stack declara para esto resuelve las dos formas:
+    #: ``has_default()`` (``fields/__init__.py:1013``) y ``get_default()``
+    #: (``:1021``, que envuelve el valor en un ``lambda`` cuando no es
+    #: invocable).
+    if field.has_default():
+        value = field.get_default()
+        value = field.convert_to_write(value, cls)
+        value = field.convert_to_column_insert(value, cls)
+    else:
+        value = None
+    necessary = (value is not None) if field.type != 'boolean' or field.required else value
+    if not necessary:
+        return
+    _logger.debug("Tabla '%s': valor por defecto de la columna nueva %s a %r",
+                  cls._table, column_name, value)
+    query = SQL(
+        "UPDATE %(table)s SET %(field)s = %(value)s WHERE %(field)s IS NULL",
+        table=SQL.identifier(cls._table),
+        field=SQL.identifier(field.column),
+        value=value,
+    )
+    with connections[DEFAULT_DB_ALIAS].cursor() as cr:
+        cr.execute(query.code, query.params)
+
+
+def _table_has_rows(cls) -> bool:
+    """Si la tabla del modelo tiene alguna fila.
+
+    Docstring de la fuente, verbatim: *"Return whether the model's table has
+    rows. This method should only be used when updating the database schema"*.
+
+    Memorizado con :class:`~tools.cache.ormcache` como allá: durante la
+    construcción del esquema se pregunta una vez por campo y la respuesta no
+    cambia dentro de ese pase. Quien siembre filas después invalida con
+    ``orm.registry.clear_cache()``.
+    """
+    with connections[DEFAULT_DB_ALIAS].cursor() as cr:
+        cr.execute(f'SELECT 1 FROM {cls._table} LIMIT 1')
+        return bool(cr.fetchone())
+
+
+Model._init_column = classmethod(_init_column)
+Model._table_has_rows = classmethod(ormcache()(_table_has_rows))

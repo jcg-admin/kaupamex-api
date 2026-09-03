@@ -396,6 +396,21 @@ def validate_hard_lock_date_change(self, new_hard_lock_date):
             'Un nuevo candado duro debe ser posterior (o igual) al anterior.')
 
 
+def opening_move_posted(self):
+    """¿Esta empresa tiene asiento de apertura y esta publicado?
+
+    ≙ ``opening_move_posted`` (``odoo19c: account/models/company.py:829-831``),
+    docstring de la fuente verbatim: *"Returns true if this company has an
+    opening account move and this move is posted."*
+
+    Lo consume ``account.financial.year.op.opening_move_posted``, el campo
+    calculado del asistente de cierre fiscal: mientras el asiento no este
+    publicado la fecha de apertura sigue siendo editable.
+    """
+    move = self.account_opening_move
+    return bool(move) and move.state == 'posted'
+
+
 def compute_account_tax_fiscal_country(self):
     """El país fiscal cae al país de la empresa cuando nadie lo fijó — ≙
     ``compute_account_tax_fiscal_country`` (``odoo19c: company.py:387-390``).
@@ -699,6 +714,23 @@ def apply_account_extensions():
     # company.py:257-262``. Es lo que vuelve OPERABLE la guarda que
     # ``addons/account/models/mail_message.py`` ya declaraba completa e inerte:
     # sin este campo, ``account_audit_log_restricted`` era siempre False.
+    # El asiento de apertura y su fecha — ≙ ``odoo19c: company.py:167-169``.
+    # Los desbloquea la tarea #333: ``account.financial.year.op`` declara
+    # ``opening_date`` como ``related`` a ``account_opening_date`` y computa
+    # ``opening_move_posted`` desde ``account_opening_move_id``; sin los dos
+    # campos el asistente no tenia a que apuntar.
+    _add_if_absent(ResCompany, 'account_opening_move', fields.Many2one(
+        'account.AccountMove', on_delete=dj_models.SET_NULL, null=True, blank=True,
+        related_name='opening_for_companies',
+        verbose_name='Opening Journal Entry',
+        help_text='Asiento con el saldo inicial de todas las cuentas de esta '
+                  'empresa (Odoo account_opening_move_id).',
+    ))
+    _add_if_absent(ResCompany, 'account_opening_date', fields.Date(
+        null=True, blank=True, verbose_name='Opening Entry',
+        help_text='Fecha del asiento de apertura; desde ella se lleva la '
+                  'contabilidad (Odoo account_opening_date).',
+    ))
     _add_if_absent(ResCompany, 'restrictive_audit_trail', fields.Boolean(
         default=False, verbose_name='Rastro de auditoría restrictivo',
         help_text='Impide borrar o mutar los mensajes del chatter que '
@@ -730,6 +762,7 @@ def apply_account_extensions():
         ('get_lock_date_violations', get_lock_date_violations),
         ('format_lock_dates', format_lock_dates),
         ('get_violated_lock_dates', get_violated_lock_dates),
+        ('opening_move_posted', opening_move_posted),
         ('validate_hard_lock_date_change', validate_hard_lock_date_change),
         ('compute_account_tax_fiscal_country',
          compute_account_tax_fiscal_country),

@@ -174,6 +174,64 @@ class TestItsShape:
         assert '<G>' in rendered
 
 
+class TestTheKeyIsOnlyAKey:
+    """El control de la afirmacion que el docstring del porte hace.
+
+    ``orm/registry.py`` declara, sobre por que ``TriggerTree`` se porto sin
+    esperar a ``Field``: *"la clave no crea dependencia real — el arbol nunca
+    invoca nada del campo, solo lo usa como clave hasheable y lo guarda en su
+    raiz"*.
+
+    Los demas casos de este archivo usan un doble ``_Field`` que **si** lleva
+    atributos (``name``, ``keep``), asi que un acceso escondido a ``key.name``
+    pasaria desapercibido: el doble lo tiene. Estos casos usan ``object()``
+    pelado —sin un solo atributo propio— y ``_Opaque``, que **levanta** ante
+    cualquier lectura de atributo. Si el arbol tocara algo de su clave, caen.
+
+    Sin esto, la afirmacion del docstring es prosa: describe la conducta y no
+    la mide.
+    """
+
+    class _Opaque:
+        """Hashable, y nada mas: leerle un atributo es un error."""
+
+        def __getattr__(self, name):
+            raise AssertionError(f'TriggerTree leyo {name!r} de su clave')
+
+    def test_a_bare_object_works_as_a_key(self):
+        key, leaf = object(), object()
+        tree = TriggerTree()
+        tree.increase(key).root = [leaf]
+        assert tree[key].root == [leaf]
+
+    def test_an_opaque_key_survives_the_whole_walk(self):
+        key, leaf = self._Opaque(), self._Opaque()
+        tree = TriggerTree([leaf])
+        tree.increase(key).root = [leaf]
+        visited = list(tree.depth_first())
+        assert len(visited) == 2
+
+    def test_an_opaque_key_survives_the_merge(self):
+        key, first, second = self._Opaque(), self._Opaque(), self._Opaque()
+        one, other = TriggerTree([first]), TriggerTree([second])
+        one.increase(key).root = [first]
+        other.increase(key).root = [second]
+        merged = TriggerTree.merge([one, other], lambda field: True)
+        assert set(merged.root) == {first, second}
+        assert set(merged[key].root) == {first, second}
+
+    def test_only_the_select_predicate_reads_the_field(self):
+        """El control del control: si el predicado lee, el error es del predicado.
+
+        Un ``select`` que lea la clave SI levanta — y eso demuestra que la
+        sonda funciona, no que el arbol lea. La distincion es la que separa
+        *"el arbol no toca la clave"* de *"nadie la toca nunca"*.
+        """
+        tree = TriggerTree([self._Opaque()])
+        with pytest.raises(AssertionError, match='leyo'):
+            TriggerTree.merge([tree], lambda field: field.keep)
+
+
 class TestTheDummyLock:
     """``DummyRLock`` — el cerrojo nulo, para pruebas de RPC y de JS."""
 

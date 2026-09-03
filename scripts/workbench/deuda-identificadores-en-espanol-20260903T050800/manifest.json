@@ -1,0 +1,20 @@
+{
+  "question": "La deuda heredada de 1024 identificadores en espanol, congelada en baseline, se puede barrer con el instrumento que ya existe, o hace falta construir algo?",
+  "instrument": [
+    "measure_spanish_identifier_debt.py",
+    "scripts/rename_identifiers.py (ya versionado: por token y por posicion, guard 3.12+)",
+    "scripts/check_identifier_language.py (el gate que produjo el baseline)"
+  ],
+  "metric": "Entradas archivo::identificador del baseline scripts/identifier_language_baseline.txt, agrupadas por palabra distinta, por archivo y por raiz (tests / addons / src). La unidad es la ENTRADA, no el identificador distinto: el mismo nombre en dos archivos cuenta dos veces, porque son dos renombres.",
+  "blind_to": [
+    "si dos entradas con el mismo nombre son la misma ligadura o dos distintas: eso lo decide el reescritor por posicion, no este censo",
+    "el identificador en espanol que el lexico del gate no sabe ver — el baseline es una cota inferior, no el universo",
+    "si una traduccion propuesta colisiona con un nombre ya ligado en ese ambito; lo destapa el renombre, no la medicion",
+    "los nombres de ARCHIVO en espanol, que mide otro gate (docs: check_script_naming.py --idioma)"
+  ],
+  "destination": [
+    "scripts/identifier_language_baseline.txt — que encoge tramo a tramo hasta cero",
+    "el mapa de traduccion, derivado y no inventado, en translation_map.json de esta pieza"
+  ],
+  "corrected_premise": "No hace falta construir un instrumento: rename_identifiers.py ya renombra por token y por posicion, y tiene el guard de 3.12+ que la f-string exige (H-API-607). Lo que faltaba era el LEXICO de traduccion y el reparto por tramos, que es lo que esta pieza produce."
+}

@@ -55,3 +55,54 @@ def Json(*args, store=_UNSET, related=None, **kwargs):
     else:
         field = models.JSONField(*args, **kwargs)
     return annotate_related(field, related, related_attrs)
+
+
+def _boolean_convert_to_column(self, value, record, values=None, validate=True):
+    """``Boolean.convert_to_column`` — ≙ ``odoo19c: odoo/orm/fields_misc.py:28-29``.
+
+    ``bool(value)`` y no la rama de la base: es el ÚNICO tipo para el que
+    ``False`` es un valor y no la ausencia de valor. Sin esta sobrecarga, la
+    base lo traduciría a ``NULL`` y una columna booleana perdería la mitad de
+    su dominio.
+    """
+    return bool(value)
+
+
+models.BooleanField.convert_to_column = _boolean_convert_to_column
+
+
+def _json_convert_to_column(self, value, record, values=None, validate=True):
+    """``Json.convert_to_column`` — ≙ ``:76-81``.
+
+    **Divergencia de mecanismo declarada:** la fuente envuelve el valor en el
+    adaptador ``PsycopgJson`` porque su cursor recibe el parámetro crudo. Aquí
+    ese envoltorio lo pone el stack — ``JSONField.get_prep_value`` de Django
+    serializa con el codificador del campo—, así que el cuerpo entrega el valor
+    ya normalizado y deja el adaptado a quien lo trae hecho. Lo que sí se porta
+    es la forma: validar primero y descartar el ``None`` después.
+    """
+    if validate:
+        value = self.convert_to_cache(value, record)
+    if value is None:
+        return None
+    return value
+
+
+models.JSONField.convert_to_column = _json_convert_to_column
+
+
+def _id_convert_to_column(self, value, record, values=None, validate=True):
+    """``Id.convert_to_column`` — ≙ ``:119-120``.
+
+    ``return value``, sin traducir nada. El identificador no tiene vocabulario
+    de ausencia: o hay fila o no la hay. Hace falta declararlo porque
+    ``AutoField`` hereda de ``IntegerField``, y sin esta sobrecarga el
+    ``int(value or 0)`` de aquél convertiría el ``None`` de una fila en vuelo
+    en un ``0`` — un identificador que no existe.
+    """
+    return value
+
+
+models.AutoField.convert_to_column = _id_convert_to_column
+models.BigAutoField.convert_to_column = _id_convert_to_column
+models.SmallAutoField.convert_to_column = _id_convert_to_column
