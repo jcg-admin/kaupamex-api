@@ -120,8 +120,24 @@ class TestAgainstTheRealTree:
                 'Selection', 'Text'} <= here
 
     def test_what_is_genuinely_absent_stays_absent(self):
-        """Y el instrumento arreglado NO absuelve a los que faltan de verdad."""
+        """Y el instrumento arreglado NO absuelve a los que faltan de verdad.
+
+        ``Registry`` salio de esta lista al portarse como clase (tarea #342),
+        y su salida es el control funcionando: el caso se puso rojo el mismo
+        pase en que la clase aterrizo. Los cuatro que quedan siguen sin
+        declararse en ``src/orm/`` bajo ninguna forma.
+        """
         here = port_order.declared_here(
             port_order.REPO.joinpath(*port_order.OUR_SUBPATH))
-        assert not ({'BaseModel', 'MetaModel', 'Registry', 'add_to_registry',
+        assert not ({'BaseModel', 'MetaModel', 'add_to_registry',
                      'setup_model_classes'} & here)
+
+    def test_the_ported_registry_is_seen(self):
+        """El control en el otro sentido: lo que SI se porto, se ve.
+
+        Sin este caso, borrar un nombre de la lista de arriba pasaria verde
+        tanto si el simbolo se porto como si nadie lo miro.
+        """
+        here = port_order.declared_here(
+            port_order.REPO.joinpath(*port_order.OUR_SUBPATH))
+        assert 'Registry' in here

@@ -64,7 +64,8 @@ from orm.environments import (env as get_environment, get_current_company,
                              get_transaction, sudo as elevate_privileges)
 from tools.misc import SENTINEL, OrderedSet, remove_accents
 from tools.translate import _
-from orm.registry import (field_computed as registry_field_computed,
+from orm.registry import (UNACCENT_ENABLED,
+                          field_computed as registry_field_computed,
                          field_depends_context, is_not_null)
 from tools.sql import SQL, pg_varchar, sql_order_by_type
 
@@ -430,23 +431,15 @@ NEGATIVE_CONDITION_OPERATORS = frozenset([
 #: (``odoo19c: odoo/orm/registry.py:290``), que es ``remove_accents`` cuando la
 #: extensión ``unaccent`` está instalada y la identidad cuando no.
 #:
-#: **Aquí es verdadero desde 2026-09-03**, y con las dos vías encendidas a la
-#: vez. La extensión que lo permite es ``unaccent``, el contrib de PostgreSQL,
-#: y la crea ``base/migrations/0084_unaccent_extension.py``.
+#: Re-exportado de :data:`orm.registry.UNACCENT_ENABLED`, donde vive.
 #:
-#: Antes era falso, y su comentario lo declaraba como bloqueo: *"la extensión
-#: no está instalada"*. Medido al releerlo: ``pg_available_extensions`` la
-#: daba **disponible** con ``installed_version`` en ``NULL`` — nunca fue un
-#: impedimento, era un ``CREATE EXTENSION`` que nadie ejecutaba. El provisioner
-#: de ``db`` sí la declara; lo que faltaba era la vía por la que pytest
-#: construye sus bases, que son las migraciones.
+#: El registro es quien sabe si la función existe y el campo quien la consume
+#: — es la dirección de la fuente, que lee ``model.env.registry.unaccent``
+#: (``odoo19c: odoo/orm/fields.py:1326-1327``). Estuvo declarado aquí hasta
+#: 2026-09-03; moverlo fue lo que destrabó el ciclo de import al portar
+#: ``Registry`` como clase.
 #:
-#: La bandera existe para que las **dos** vías de compilación decidan lo mismo.
-#: Sin ella el predicado en memoria encontraría «Ácme» buscando «acme» y el
-#: motor no, sobre el mismo dominio — y eso lo destapó el test que las
-#: contrasta, no una relectura. Por eso esto y :class:`SqlILike` se leen
-#: juntos: son una decisión, no dos.
-UNACCENT_ENABLED = True
+#: Se re-exporta con su nombre porque sus consumidores lo leen de este módulo.
 
 
 def convert_to_display_name(field, value, record):

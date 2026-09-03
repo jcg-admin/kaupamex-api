@@ -248,11 +248,25 @@ class TestTheRerunReproducesWhatTheAuthorMeasured:
         assert count > 1, 'la salida de -c ES el número, no el conteo de líneas'
 
     def test_a_shell_glob_is_expanded(self):
-        """Sin shell, ``src/orm/*.py`` llega literal y grep sale 2."""
+        """El glob se expande sin shell: ``src/orm/*.py`` llega como archivos.
+
+        El caso fijaba ``count == 0`` cuando ``src/orm/`` no declaraba ningun
+        ``def new(``. Al portar :class:`orm.registry.Registry` con su
+        ``new`` (tarea #342) el mismo comando pasa a dar **1**, y el caso se
+        puso rojo — que es el gate funcionando: un reclamo de cero caduco y lo
+        dijo, igual que le paso arriba al de ``stdnum``.
+
+        Lo que el caso prueba no es el cero sino la EXPANSION, asi que la
+        asercion pasa a la que discrimina: si el glob llegara literal, grep
+        recibiria una ruta inexistente y ``why`` traeria el motivo en vez de
+        ``None``. Un conteo positivo sobre archivos reales solo es posible con
+        el glob ya expandido.
+        """
         claiming = pathlib.Path('addons/web/models/models.py')
         count, why = gate.rerun('grep -rn "def new(" src/orm/*.py', claiming)
         assert why is None, why
-        assert count == 0
+        assert count >= 1, 'el glob llego literal: grep no leyo ningun archivo'
+
 
     def test_a_grep_v_pipe_filters_in_python(self):
         """Dos autores ya excluían su archivo a mano; se sostiene el filtro."""

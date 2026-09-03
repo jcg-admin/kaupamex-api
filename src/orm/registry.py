@@ -46,8 +46,10 @@ registra.
 import inspect
 import logging
 import sys
-from collections import defaultdict
-from collections.abc import Callable, Collection, Iterator
+import threading
+import time
+from collections import defaultdict, deque
+from collections.abc import Callable, Collection, Iterator, Mapping
 
 from django.apps import apps
 from django.db import connections
@@ -62,9 +64,11 @@ from psycopg import sql as pg_sql
 # nivel de modulo — no una excepcion a ``no-lazy-imports.md``.
 import orm.environments
 
+from modules import db as modules_db
 from orm.utils import model_field_registry
+from tools.func import locked
 from tools.lru import LRU
-from tools.misc import Collector, OrderedSet
+from tools.misc import Collector, OrderedSet, remove_accents
 from tools.sql import SQL
 
 _logger = logging.getLogger('kaupamex.registry')
@@ -77,7 +81,7 @@ __all__ = [
     'clear_cache', 'clear_all_caches', 'cache_of', 'cache_invalidated',
     'many2one_company_dependents', 'loaded_xmlids',
     'not_null_fields', 'is_not_null',
-    '_unaccent',
+    '_unaccent', 'UNACCENT_ENABLED',
     'constraint_methods', 'ondelete_methods', 'onchange_methods',
     'clear_marked_methods',
 ]
@@ -126,6 +130,22 @@ _CACHES = {name: LRU(size) for name, size in _REGISTRY_CACHES.items()}
 #: Nombres de caché vaciados desde el último ciclo, ≙ ``Registry.cache_invalidated``
 #: (``odoo19c: odoo/orm/registry.py:238``). Lo consume la señal entre procesos.
 cache_invalidated = set()
+
+
+#: ¿Envuelve el ``ilike`` sus dos lados en ``unaccent(...)``?
+#:
+#: ≙ el veredicto que la fuente guarda en ``Registry.has_unaccent``
+#: (``odoo19c: odoo/orm/registry.py:286``) midiendo ``pg_proc`` al inicializar.
+#: Vive **aqui** y no en ``orm/fields.py`` por la misma razón que allá: el
+#: registro es quien lo sabe y el campo quien lo consume
+#: (``fields.py:1326-1327`` lee ``model.env.registry.unaccent``). Ponerlo al
+#: revés fue lo que produjo el ciclo de import al portar :class:`Registry`.
+#:
+#: Es ``True`` desde 2026-09-03: la extensión ``unaccent`` la crea
+#: ``base/migrations/0084_unaccent_extension.py`` en toda base que el ORM
+#: construya. La bandera existe para que las **dos** vías de compilación —el
+#: lookup ``SqlILike`` y el predicado en memoria— decidan lo mismo.
+UNACCENT_ENABLED = True
 
 
 def _unaccent(x):
@@ -1357,3 +1377,347 @@ def is_not_null(field):
     if meta is None or meta.abstract or meta.proxy or not meta.managed:
         return False
     return bool(getattr(field, 'primary_key', False)) or not getattr(field, 'null', True)
+
+
+# Este import va AQUI y no arriba, y la posicion es el mecanismo: ``orm.
+# model_classes`` importa ``MODELS_BY_NAME`` de este archivo (``:95``), asi que
+# arriba —antes de que la asignacion exista— el ciclo revienta. Aqui ya esta
+# definido, y el modulo se liga entero para resolver el atributo al llamar. Es
+# un import de nivel de modulo, no una excepcion a ``no-lazy-imports.md``;
+# mismo criterio que ``orm.environments`` de arriba.
+import orm.model_classes                                          # noqa: E402
+
+
+class Registry(Mapping):
+    """El registro de modelos de **una** base — ≙ ``odoo19c: odoo/orm/registry.py:84``.
+
+    Docstring de la fuente, verbatim: *"Model registry for a particular
+    database. The registry is essentially a mapping between model names and
+    model classes. There is one registry instance per database."*
+
+    Hasta 2026-09-03 este archivo llevaba el registro como **funciones de
+    modulo** y su docstring lo justificaba: *"por eso este archivo es un stub
+    delgado documentado, no una reimplementacion"*, con el argumento de que
+    recrear ``Registry`` duplicaria ``django.apps``. Eso es declarar
+    divergencia en vez de portar, que ``porte-completo-no-parcial.md``
+    prohibe: la clase se porta, y las funciones de modulo siguen siendo el eje
+    de proceso sobre el que se apoya.
+
+    **Que es una «base» aqui.** La fuente indexa por el nombre de base que le
+    pasa a psycopg. En este stack lo que designa una base es el **alias** de
+    ``django.db.connections``, y su nombre vive en ``settings.DATABASES``. La
+    clase acepta cualquiera de los dos: quien resuelve el alias es
+    :meth:`_alias`, no el indice, asi que ``Registry('default')`` y
+    ``Registry('kaupamex_core')`` conviven sin que el llamador tenga que saber
+    cual le toca.
+
+    **Por que ``models`` no es ``MODELS_BY_NAME`` directamente.** En Django la
+    clase de modelo pertenece al **proceso**, y cual base lee lo decide el
+    router por consulta; en la fuente pertenece a la base, porque cada base
+    tiene sus modulos instalados. El equivalente honesto es que cada registro
+    arranque con una **vista propia** del mapa de proceso y pueda estrecharla:
+    es lo que la fuente hace al cargar su grafo de modulos. Por eso
+    ``__setitem__`` y ``__delitem__`` escriben en el diccionario del registro y
+    no en el del proceso — dos registros no se pisan.
+
+    Este es el **tramo 1** del porte (tarea #342): el singleton por base, el
+    ciclo de vida y la mitad ``Mapping``. Los otros cuatro tramos —campos y
+    disparadores, carga y setup, schema, y senalizacion con cursor— estan
+    declarados ahi con sus simbolos. ``new`` porta su estructura y delega la
+    carga de modulos en :func:`_ensure_seeded`, que es lo que este arbol tiene;
+    el grafo de modulos de la fuente es el tramo 3.
+
+    Vive al final del archivo y no al principio como en la fuente porque su
+    cuerpo referencia a :class:`DummyRLock` y a :class:`TriggerTree`, que se
+    declaran arriba. La fuente puede ponerla primero porque abre con
+    ``from __future__ import annotations``.
+    """
+
+    #: El cerrojo de clase. Es **reentrante** a proposito: ``new`` lo toma y
+    #: llama a ``delete``, que tambien lo toma. Con un ``threading.Lock`` la
+    #: segunda toma se bloquearia contra si misma.
+    _lock: 'threading.RLock | DummyRLock' = threading.RLock()
+
+    #: Lo guarda la fuente para restaurarlo tras sustituir ``_lock`` por un
+    #: :class:`DummyRLock` mientras corren sus pruebas de RPC y de JS.
+    _saved_lock: 'threading.RLock | DummyRLock | None' = None
+
+    #: ≙ ``Registry.registries`` (``:94``). Docstring de la fuente, verbatim:
+    #: *"A mapping from database names to registries"*. El tamano —42, que la
+    #: fuente comenta como ``random default value``— se conserva.
+    registries = LRU(42)
+
+    _init: bool
+    ready: bool
+    loaded: bool
+    models: dict
+
+    def __new__(cls, db_name):
+        """El registro de ``db_name``, creandolo si no existe — ≙ ``:97-104``.
+
+        Docstring de la fuente, verbatim: *"Return the registry for the given
+        database name"*. El nombre vacio se rechaza con ``assert``, como alla:
+        un registro sin base no designa nada.
+        """
+        assert db_name, "Missing database name"
+        with cls._lock:
+            try:
+                return cls.registries[db_name]
+            except KeyError:
+                return cls.new(db_name)
+
+    @classmethod
+    @locked
+    def new(cls, db_name, *, update_module=False, install_modules=(),
+            upgrade_modules=(), reinit_modules=(), new_db_demo=None,
+            models_to_check=None):
+        """Construye y registra un registro nuevo para ``db_name`` — ≙ ``:113-215``.
+
+        Los siete parametros de la fuente se conservan con su significado:
+        ``update_module`` actualiza modulos al cargar; ``install_modules``,
+        ``upgrade_modules`` y ``reinit_modules`` nombran los modulos a
+        instalar, actualizar y reinicializar; ``new_db_demo`` decide la data de
+        demostracion; ``models_to_check`` acota la verificacion.
+
+        **Que hace aqui y que no.** La estructura es la de la fuente: crea la
+        instancia sin pasar por ``__new__``, la inicializa, anula en ella los
+        tres puntos de entrada de clase, la registra ANTES de cargar —porque la
+        carga vuelve a pedir ``Registry(db_name)`` y tiene que encontrarla— y la
+        descarta si algo revienta. La **carga de modulos** delega en
+        :func:`_ensure_seeded`; el grafo de modulos de la fuente
+        (``load_modules``, ``reset_modules_state``) es el tramo 3 de la tarea
+        **#342**, y hasta entonces los cinco parametros de modulo se guardan en
+        la instancia sin consumirse. Se guardan y no se ignoran: el tramo 3 los
+        lee de ahi.
+        """
+        t0 = time.time()
+        registry = object.__new__(cls)
+        registry.init(db_name)
+        # Anular los tres en la instancia es de la fuente (``:147``), y no es
+        # limpieza: llamarlos desde un registro ya construido es siempre un
+        # error, y asi revienta ahi en vez de hacer algo raro.
+        registry.new = registry.init = registry.registries = None
+
+        registry._update_module = bool(
+            update_module or install_modules or upgrade_modules or reinit_modules)
+        registry._install_modules = tuple(install_modules)
+        registry._upgrade_modules = tuple(upgrade_modules)
+        registry._reinit_modules = set(reinit_modules)
+        registry._new_db_demo = new_db_demo
+        registry._models_to_check = models_to_check
+
+        cls.delete(db_name)
+        cls.registries[db_name] = registry
+        try:
+            _ensure_seeded()
+        except Exception:
+            _logger.error('Failed to load registry')
+            del cls.registries[db_name]
+            raise
+
+        registry._init = False
+        registry.ready = True
+        _logger.debug("Registry loaded in %.3fs", time.time() - t0)
+        return registry
+
+    def init(self, db_name):
+        """Deja el registro en su estado inicial — ≙ ``:217-291``.
+
+        Los ejes derivados —dependencias de campo, colectores de metodo
+        marcado, disparadores— **se comparten con el proceso**: son propiedad
+        de las clases de modelo, que en Django son del proceso y no de la base.
+        Colgarlos como atributos de instancia aqui es lo que hace que
+        ``registry.field_depends`` se lea igual que en la fuente sin que haya
+        dos mapas que sincronizar.
+        """
+        self._init = True
+        self.loaded = False
+        self.ready = False
+        self.db_name = db_name
+
+        #: Vista propia del mapa de proceso — ver el docstring de la clase.
+        self.models = dict(MODELS_BY_NAME)
+
+        self._sql_constraints = set()
+        self._database_translated_fields = {}
+        self._database_company_dependent_fields = set()
+        self._ordinary_tables = None
+        self._constraint_queue = {}
+        self.__caches = {name: LRU(size)
+                         for name, size in _REGISTRY_CACHES.items()}
+
+        self._force_upgrade_scripts = set()
+        self._reinit_modules = set()
+        self._init_modules = set()
+        self.updated_modules = []
+        self.loaded_xmlids = loaded_xmlids
+
+        # Ejes derivados, compartidos con el proceso (ver el docstring).
+        self.field_depends = field_depends
+        self.field_depends_context = field_depends_context
+        self.many2many_relations = defaultdict(OrderedSet)
+        self.field_setup_dependents = Collector()
+        self.many2one_company_dependents = many2one_company_dependents
+        self.not_null_fields = not_null_fields()
+        self._field_trigger_trees = {}
+        self._is_modifying_relations = {}
+
+        self.registry_sequence = -1
+        self.cache_sequences = {}
+        self._invalidation_flags = threading.local()
+
+        #: ≙ ``Registry._assertion_report`` (``:227-231``). Alla guarda un
+        #: ``OdooTestResult`` de su propio corredor de pruebas; aqui el
+        #: corredor es pytest y su resultado no pasa por el registro. Queda en
+        #: ``None`` y su desenlace es el tramo 3 de la tarea **#342**.
+        self._assertion_report = None
+
+    @property
+    def unaccent(self):
+        """El envoltorio ``unaccent(...)``, o la identidad — ≙ ``:289``.
+
+        La fuente lo decide al inicializar, con un cursor abierto. Aqui se
+        decide al leerlo: construir un registro no tiene por que tocar la base,
+        y el veredicto es el mismo. Lo gobierna
+        :data:`orm.fields.UNACCENT_ENABLED`, que es la bandera que las dos vias
+        de compilacion comparten.
+        """
+        return _unaccent if self.has_unaccent else lambda x: x
+
+    @property
+    def unaccent_python(self):
+        """La normalizacion en memoria, hermana de :meth:`unaccent` — ≙ ``:290``."""
+        return remove_accents if self.has_unaccent else lambda x: x
+
+    @property
+    def has_unaccent(self):
+        """¿Existe la funcion ``unaccent``? — ≙ ``Registry.has_unaccent`` (``:286``).
+
+        Lee la bandera compartida en vez de preguntarle a la base en cada
+        lectura. Quien la fija midiendo es el arranque; medir aqui abriria un
+        cursor por consulta.
+        """
+        return UNACCENT_ENABLED
+
+    @property
+    def has_trigram(self):
+        """¿Existe ``word_similarity``? — ≙ ``Registry.has_trigram`` (``:287``)."""
+        with connections[self._alias()].cursor() as cr:
+            return modules_db.has_trigram(cr)
+
+    def _alias(self):
+        """El alias de ``connections`` que designa esta base.
+
+        La fuente no lo necesita: su ``db_name`` **es** lo que psycopg recibe.
+        Aqui abrir un cursor exige el alias, asi que se acepta cualquiera de
+        los dos y se resuelve al usarlo — ver el docstring de la clase.
+        """
+        if self.db_name in connections:
+            return self.db_name
+        for alias in connections:
+            if connections[alias].settings_dict.get('NAME') == self.db_name:
+                return alias
+        return 'default'
+
+    @classmethod
+    @locked
+    def delete(cls, db_name):
+        """Borra el registro de una base — ≙ ``:294-297``.
+
+        Docstring de la fuente, verbatim: *"Delete the registry linked to a
+        given database"*. Pregunta antes de borrar, como alla: borrar una base
+        que no esta registrada no es un error.
+        """
+        if db_name in cls.registries:
+            del cls.registries[db_name]
+
+    @classmethod
+    @locked
+    def delete_all(cls):
+        """Borra todos los registros — ≙ ``:301-303``.
+
+        Docstring de la fuente, verbatim: *"Delete all the registries"*.
+        """
+        cls.registries.clear()
+
+    # -- La mitad Mapping ----------------------------------------------------
+    #
+    # ≙ ``:305-330``. Los cinco abstractos; el mixin de ``Mapping`` aporta
+    # ``keys``, ``items``, ``values``, ``get``, ``__eq__`` y ``__ne__``.
+
+    def __len__(self):
+        """El tamano del registro — ≙ ``:309-311``."""
+        return len(self.models)
+
+    def __iter__(self):
+        """Un iterador sobre los nombres de modelo — ≙ ``:313-315``."""
+        return iter(self.models)
+
+    def __getitem__(self, model_name):
+        """El modelo de ese nombre, o ``KeyError`` — ≙ ``:317-319``."""
+        return self.models[model_name]
+
+    def __setitem__(self, model_name, model):
+        """Anade o reemplaza un modelo — ≙ ``:321-323``."""
+        self.models[model_name] = model
+
+    def __delitem__(self, model_name):
+        """Retira un modelo a medida — ≙ ``:325-330``.
+
+        Ademas lo olvida en los padres: el comentario de la fuente lo explica
+        —*"the custom model can inherit from mixins ('mail.thread', ...)"*—, y
+        sin eso el conjunto del padre quedaria nombrando un modelo que ya no
+        existe.
+        """
+        del self.models[model_name]
+        for model in self.models.values():
+            hijos = getattr(model, '_inherit_children', None)
+            if hijos is not None:
+                hijos.discard(model_name)
+
+    def descendants(self, model_names, *kinds):
+        """Los modelos dados y todos los que heredan de ellos — ≙ ``:332-348``.
+
+        Docstring de la fuente, verbatim: *"Return the models corresponding to
+        ``model_names`` and all those that inherit/inherits from them"*.
+
+        Recorre en anchura con una cola, y un modelo ya visto no se vuelve a
+        encolar: por eso admite un grafo con ciclos y no repite. Un nombre que
+        el registro no conoce se **salta**, no levanta — es lo que la fuente
+        hace con su ``self.get``.
+
+        **El eje ``_inherits`` se deriva aqui, no se mantiene.** La fuente
+        escribe ``registry[padre]._inherits_children`` en cada
+        ``_init_model_class_attributes``; este arbol lo calcula con
+        :func:`orm.model_classes.inherits_children`, por la razon que ese
+        archivo declara: un mapa mantenido a mano puede quedar nombrando un
+        modelo que ya no delega y nadie lo nota. Es divergencia de mecanismo,
+        no de contrato — el atributo se lee igual, y si la clase lo declara se
+        respeta el declarado.
+        """
+        assert all(kind in ('_inherit', '_inherits') for kind in kinds)
+
+        models = OrderedSet()
+        queue = deque(model_names)
+        while queue:
+            model = self.get(queue.popleft())
+            if model is None or model._name in models:
+                continue
+            models.add(model._name)
+            for kind in kinds:
+                queue.extend(self._children_of(model, kind))
+        return models
+
+    @staticmethod
+    def _children_of(model, kind):
+        """Los hijos de ``model`` por el eje ``kind``.
+
+        Lee el atributo que la fuente mantiene si la clase lo declara; si no,
+        deriva el eje ``_inherits`` del registro. Ver :meth:`descendants`.
+        """
+        declarado = getattr(model, kind + '_children', None)
+        if declarado is not None:
+            return declarado
+        if kind == '_inherits':
+            return orm.model_classes.inherits_children(model._name)
+        return ()
