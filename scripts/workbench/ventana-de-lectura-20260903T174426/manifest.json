@@ -1,24 +1,31 @@
 {
-  "question": "Al portar, leer el archivo entero cuesta mas tokens que una ventana sed/grep; en que tramo de tamano ese coste deja de pagar, y cuantos archivos hay en cada tramo — en NUESTRO arbol y en el de la referencia?",
+  "question": "Al portar, leer el archivo entero cuesta mas tokens que una ventana sed/grep; en que tramo de tamano ese coste deja de pagar, y cuantos archivos hay en cada tramo — en nuestro arbol y en los CUATRO alias de la referencia?",
   "instrument": [
     "scripts/workbench/ventana-de-lectura-20260903T174426/measure_reading_window_cost.py",
-    "python3 measure_reading_window_cost.py api=src odoo19c=$ODOO19C/odoo"
+    "python3 measure_reading_window_cost.py api=src --reference"
   ],
-  "metric": "Archivos .py por tramo de LINEAS (wc -l), con los bytes divididos entre cuatro como estimacion gruesa de tokens. Cada tramo lleva su veredicto de lectura; la particion es total por construccion.",
+  "metric": "Archivos .py por tramo de LINEAS (wc -l), con los bytes divididos entre cuatro como estimacion gruesa de tokens. Las raices de la referencia salen de scripts/reference_roots.py, no de literales. Cada tramo lleva su veredicto de lectura y la particion es total por construccion.",
   "blind_to": [
     "La razon real del tokenizador, que no es de cuatro bytes exactos: la estimacion sirve para decidir un tramo, no para presupuestar.",
     "El coste de los episodios que la ventana estrecha produjo, que no se midio en tokens sino en trabajo rehecho — la comparacion es de orden de magnitud, no pareada.",
     "Los archivos que no son .py: el .xml de datos y el .csv de ACL de la referencia se leen igual al portar y no entran en este conteo.",
-    "Si un archivo se lee una o veinte veces en la sesion; el tramo decide la politica, no el numero de lecturas reales."
+    "Si un archivo se lee una o veinte veces en la sesion; el tramo decide la politica, no el numero de lecturas reales.",
+    "La tercera copia de Enterprise 18 que vive dentro de la raiz de odoo18c: se EXCLUYE y se declara, pero el instrumento no dice si difiere de odoo18e.",
+    "Que los alias de Enterprise no se auditan por solape: se recorren enteros porque su raiz no anida otra poblacion, y eso no se verifico archivo a archivo."
   ],
   "destination": "docs: source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/hallazgo-H-API-1072-la-ventana-de-lectura-no-declara-lo-que-dejo-fuera.rst",
-  "source": "api@feature/kaupamex-l3 (src/) y odoo19c@abe4040ec1 (odoo/)",
+  "source": "api@feature/kaupamex-l3 (src/) y odoo-tools@abe4040ec1, los cuatro alias de reference_roots.TREE_ROOTS",
+  "corrected_premise": {
+    "antes": "odoo18c tiene 21857 archivos .py",
+    "despues": "7988 — su raiz 18.x/odoo-18 CONTIENE enterprise/ con 13869 .py dentro, una tercera copia de Enterprise 18 distinta de la de odoo18e (11989). Contarla inflaba Community 18 en 2.7x.",
+    "detectado_por": "el ejecutor, al senalar que solo se media una raiz de odoo-tools"
+  },
   "control": "Se retira el tramo 1501-4000 de BANDS sobre una copia y caen 4 de 14 casos — los tres de particion mas el parametrico de 4000; los otros 10 no dependen de ese tramo. Evidencia en outputs/control-discrimina-20260903T174426.txt. La copia rota se retira; no se commitea.",
-  "reproducible": "eval \"$(python3 scripts/reference_roots.py --env)\" && python3 scripts/workbench/ventana-de-lectura-20260903T174426/measure_reading_window_cost.py api=src odoo19c=$ODOO19C/odoo",
-  "findings": ["H-API-1072"],
+  "reproducible": "python3 scripts/workbench/ventana-de-lectura-20260903T174426/measure_reading_window_cost.py api=src --reference",
+  "findings": ["H-API-1072", "H-API-1073"],
   "tasks": ["#352", "#357"],
   "outputs": [
-    "outputs/reporte-20260903T174426.txt",
+    "outputs/reporte-cuatro-alias-20260903T175234.txt",
     "outputs/control-discrimina-20260903T174426.txt"
   ]
 }

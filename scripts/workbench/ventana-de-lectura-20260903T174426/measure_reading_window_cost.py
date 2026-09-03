@@ -16,9 +16,20 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import importlib.util
 import json
 import pathlib
 import sys
+
+# El declarador de raices de la referencia vive en scripts/ y este modulo en
+# scripts/workbench/<pieza>/, asi que se carga por ruta. No se copian las
+# rutas: `reference_roots` es la fuente unica, y duplicarlas aqui seria la
+# segunda fuente de verdad que su propio docstring prohibe (H-API-335).
+_SCRIPTS = pathlib.Path(__file__).resolve().parent.parent.parent
+_REFERENCE_SPEC = importlib.util.spec_from_file_location(
+    'reference_roots', _SCRIPTS / 'reference_roots.py')
+reference_roots = importlib.util.module_from_spec(_REFERENCE_SPEC)
+_REFERENCE_SPEC.loader.exec_module(reference_roots)
 
 # Cuatro bytes por token es la estimacion gruesa que basta para decidir un
 # tramo; la razon real del tokenizador no es esa, y el manifiesto lo declara
@@ -73,11 +84,29 @@ class FileSize:
         return self.size_bytes // BYTES_PER_TOKEN
 
 
-def measure_tree(root: pathlib.Path, pattern: str = '*.py') -> list[FileSize]:
-    """Mide cada archivo del arbol. Salta el que no se pueda leer."""
+#: Subarboles que se excluyen al medir un alias de Community. La raiz de
+#: ``odoo18c`` es ``18.x/odoo-18``, y ese directorio CONTIENE ``enterprise/``:
+#: medido 2026-09-03, 13 869 de sus 21 857 ``.py`` viven ahi. Recorrer el padre
+#: mezcla dos poblaciones e infla Community 18 en 2.7x — el eje de la version
+#: que :ref:`h-api-76` y :ref:`h-api-227` ya registraron. La exclusion se
+#: DECLARA en el reporte; no se aplica en silencio.
+EXCLUDED_SUBTREES = ('enterprise',)
+
+
+def measure_tree(root: pathlib.Path, pattern: str = '*.py',
+                 excluded: tuple[str, ...] = ()) -> list[FileSize]:
+    """Mide cada archivo del arbol. Salta el que no se pueda leer.
+
+    ``excluded`` son nombres de subarbol de primer nivel que quedan fuera; el
+    reporte los nombra junto al conteo, porque una exclusion silenciosa es la
+    ventana que no declara lo que dejo fuera.
+    """
     measured: list[FileSize] = []
     for path in sorted(root.rglob(pattern)):
         if not path.is_file():
+            continue
+        relative = path.relative_to(root)
+        if relative.parts and relative.parts[0] in excluded:
             continue
         try:
             lines = len(path.read_text(errors='ignore').splitlines())
@@ -97,7 +126,8 @@ def summarize(sizes) -> dict[str, int]:
     return counts
 
 
-def report(label: str, measured: list[FileSize]) -> dict:
+def report(label: str, measured: list[FileSize],
+           excluded: tuple[str, ...] = ()) -> dict:
     """El reporte de una poblacion, con su denominador junto a cada conteo."""
     total = len(measured)
     counts = summarize(measured)
@@ -107,6 +137,7 @@ def report(label: str, measured: list[FileSize]) -> dict:
     return {
         'population': label,
         'files': total,
+        'excluded_subtrees': list(excluded),
         'bands': [
             {
                 'band': band.name,
@@ -128,8 +159,11 @@ def report(label: str, measured: list[FileSize]) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('roots', nargs='+', metavar='ETIQUETA=RUTA',
-                        help='poblaciones a medir, p. ej. api=src')
+    parser.add_argument('roots', nargs='*', metavar='ETIQUETA=RUTA',
+                        help='poblaciones propias a medir, p. ej. api=src')
+    parser.add_argument('--reference', action='store_true',
+                        help='anadir los CUATRO alias de la referencia, con '
+                             'las raices que declara scripts/reference_roots.py')
     parser.add_argument('--json', action='store_true',
                         help='emitir el reporte como JSON')
     args = parser.parse_args(argv)
@@ -143,12 +177,27 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         reports.append(report(label, measure_tree(root)))
 
+    if args.reference:
+        # Los cuatro, no uno: medir un solo alias y concluir sobre «la
+        # referencia» es el eje de la version que h-api-76 y h-api-227 ya
+        # registraron. `require` rehusa si una raiz falta, en vez de publicar
+        # un 0 que se leeria como «no hay archivos».
+        for alias in sorted(reference_roots.TREE_ROOTS):
+            root = reference_roots.require(alias)
+            # Solo los de Community pueden llevar enterprise/ dentro; a un
+            # alias de Enterprise excluirlo le quitaria su propia poblacion.
+            excluded = EXCLUDED_SUBTREES if alias.endswith('c') else ()
+            reports.append(
+                report(alias, measure_tree(root, excluded=excluded), excluded))
+
     if args.json:
         print(json.dumps(reports, indent=2, ensure_ascii=False))
         return 0
 
     for item in reports:
-        print(f"=== {item['population']} — {item['files']} archivos .py")
+        fuera = (f"  (excluye {', '.join(item['excluded_subtrees'])}/)"
+                 if item['excluded_subtrees'] else '')
+        print(f"=== {item['population']} — {item['files']} archivos .py{fuera}")
         for band in item['bands']:
             print(f"  {band['files']:5d}  {band['share']:5.1f} %  "
                   f"{band['band']:12s} {band['verdict']}")
