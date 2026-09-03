@@ -1,9 +1,4 @@
-"""``tools.func`` — espejo de ``odoo/tools/func.py`` (sólo símbolos con consumidor).
-
-Misma regla que ``tools/misc.py``: un símbolo llega aquí cuando un módulo
-portado lo importa (``from tools.func import X``, espejo de ``from odoo.tools
-import X``), y **antes de portarlo se decide** si el stdlib ya lo resuelve. La
-decisión queda en el docstring del símbolo — no se porta por completitud.
+"""``tools.func`` — espejo de ``odoo/tools/func.py``, portado entero.
 
 Censo de la fuente (``odoo19c: odoo/tools/func.py``), medido por AST: **diez**
 símbolos de API — nueve definiciones (``reset_cached_properties``,
@@ -13,30 +8,44 @@ símbolos de API — nueve definiciones (``reset_cached_properties``,
 Fuera del censo quedan los dos parámetros de tipo (``T``, ``P``) y ``__all__``,
 que no son API.
 
-Portados **tres**:
+**Portados diez de diez.** Hasta 2026-09-03 este archivo llevaba tres y su
+docstring declaraba el criterio *"un símbolo llega aquí cuando un módulo
+portado lo importa"*. Ese criterio queda **retirado, y no por haber aparecido
+un consumidor**: el consumidor no es la condición. Todo símbolo de la
+referencia se implementa, y el que hoy no tiene quien lo llame lo tendrá
+porque su llamador también se implementa. Esperar al consumidor es la forma
+que ``porte-completo-no-parcial.md`` prohíbe — un porte parcial que se
+presenta como completo porque su propia regla lo autoriza.
 
-- ``classproperty`` (``:115-125``), que ``orm/domains.py`` consume;
-- ``lazy`` (``:135-262``), que ``tools/json.py`` consume en la tercera rama de
-  ``json_default`` — tarea #142;
-- ``reset_cached_properties`` (``:20-26``), que ``Transaction.reset`` consume
-  al reasignar el registro — tarea #324.
+Ejemplo de lo segundo, no de lo primero: ``Registry`` decora sus métodos de
+clase con ``@locked`` (``odoo19c: odoo/orm/registry.py:32``). Cuando se porte,
+``locked`` ya está aquí; el orden entre los dos no cambia que ambos se portan.
 
-**Ausentes: siete** —``lazy_property``, ``conditional``, ``filter_kwargs``,
-``synchronized``, ``locked``, ``frame_codeinfo`` y ``lazy_classproperty``—;
-ninguno tiene consumidor en este árbol y su porte se decide cuando lo tenga.
-Cuatro de ellos —``filter_kwargs``, ``synchronized``, ``locked`` y
-``frame_codeinfo``— ni siquiera están en el ``__all__`` de la fuente, que
-declara seis nombres.
+``__all__`` conserva los **seis** nombres que declara la fuente. Los otros
+cuatro —``filter_kwargs``, ``synchronized``, ``locked`` y ``frame_codeinfo``—
+no están ahí en la referencia y tampoco aquí: se importan por nombre, no por
+``from tools.func import *``. Esa asimetría es del original y se preserva.
 
 Adaptado de Odoo Community ``odoo/tools/func.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
 import functools
 import typing
+import warnings
+from collections.abc import Callable
+from inspect import Parameter, getsourcefile, signature
 
-__all__ = ['classproperty', 'lazy', 'reset_cached_properties']
+__all__ = [
+    'classproperty',
+    'conditional',
+    'lazy',
+    'lazy_classproperty',
+    'lazy_property',
+    'reset_cached_properties',
+]
 
 T = typing.TypeVar('T')
+P = typing.ParamSpec('P')
 
 
 def reset_cached_properties(obj):
@@ -65,6 +74,158 @@ def reset_cached_properties(obj):
             del obj_dict[name]
 
 
+class lazy_property(functools.cached_property):
+    """``cached_property`` que avisa de su propia obsolescencia — ≙ ``:32-46``.
+
+    La fuente la marca deprecada desde su versión 19 y remite a
+    ``functools.cached_property``, de la que hereda. Se porta **con** el aviso:
+    quitarlo convertiría un símbolo en retirada en uno vigente, que es cambiar
+    el contrato en vez de portarlo. El nombre va en minúscula porque lo es en
+    la fuente — se escribe como un decorador, no como un tipo.
+
+    ``stacklevel=2`` en el ``__init__`` apunta el aviso a la línea que declara
+    la propiedad, no a este archivo: quien la declara es quien tiene que verlo.
+    """
+
+    def __init__(self, func):
+        super().__init__(func)
+        warnings.warn(
+            "lazy_property is deprecated since Odoo 19, use `functools.cached_property`",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+
+    @staticmethod
+    def reset_all(instance):
+        """Vacía todas las propiedades memorizadas de ``instance``.
+
+        Delega en ``reset_cached_properties``, que es lo que la fuente pide
+        llamar directamente.
+        """
+        warnings.warn(
+            "lazy_property is deprecated since Odoo 19, use `reset_cache_properties` directly",
+            category=DeprecationWarning,
+        )
+        reset_cached_properties(instance)
+
+
+def conditional(condition: typing.Any, decorator: Callable[[T], T]) -> Callable[[T], T]:
+    """Aplica ``decorator`` sólo si ``condition`` es verdadera — ≙ ``:49-60``.
+
+    Docstring de la fuente, verbatim: *"Decorator for a conditionally applied
+    decorator"*, con este ejemplo::
+
+        @conditional(get_config('use_cache'), ormcache)
+        def fn():
+            pass
+
+    Cuando la condición es falsa devuelve la identidad, no ``None``: el sitio
+    de la declaración sigue siendo un decorador válido y la función queda sin
+    envolver. Evalúa la **veracidad** del argumento, no su identidad con
+    ``True`` — un ``0`` o una cadena vacía desactivan igual.
+    """
+    if condition:
+        return decorator
+    else:
+        return lambda fn: fn
+
+
+def filter_kwargs(func: Callable, kwargs: dict[str, typing.Any]) -> dict[str, typing.Any]:
+    """Recorta ``kwargs`` a lo que la firma de ``func`` acepta — ≙ ``:63-77``.
+
+    Docstring de la fuente, verbatim: *"Filter the given keyword arguments to
+    only return the kwargs that binds to the function's signature"*.
+
+    Tres reglas, y las tres salen del recorrido de ``inspect.signature``:
+
+    - un parámetro posicional-o-nombrado y uno sólo-nombrado **retienen** su
+      clave;
+    - un ``**kwargs`` en la firma retiene **todas** — no hay sobrante posible,
+      y por eso el recorrido corta ahí;
+    - un parámetro **sólo posicional** no retiene nada: su nombre no se puede
+      pasar por palabra clave, así que la clave homónima sobra.
+
+    Devuelve el **mismo objeto** cuando no sobra nada. Es lo que hace la
+    fuente y no es cosmético: quien llame puede seguir escribiendo en el dict
+    original sin que una copia intermedia se lo trague.
+    """
+    leftovers = set(kwargs)
+    for p in signature(func).parameters.values():
+        if p.kind in (Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY):
+            leftovers.discard(p.name)
+        elif p.kind == Parameter.VAR_KEYWORD:
+            leftovers.clear()
+            break
+
+    if not leftovers:
+        return kwargs
+
+    return {key: kwargs[key] for key in kwargs if key not in leftovers}
+
+
+def synchronized(lock_attr: str = '_lock') -> Callable[[Callable[P, T]], Callable[P, T]]:
+    """Envuelve un método en el cerrojo que la instancia lleva — ≙ ``:80-90``.
+
+    El cerrojo **no** lo crea este decorador: lo busca en la instancia por
+    nombre de atributo al llamar, no al declarar. Eso permite que cada
+    instancia traiga el suyo y que el atributo se asigne después de que la
+    clase esté definida.
+
+    Se entra con ``with``, así que el cerrojo se libera también cuando el
+    cuerpo levanta una excepción.
+    """
+    def synchronized_lock(func, /):
+        @functools.wraps(func)
+        def locked(inst, *args, **kwargs):
+            with getattr(inst, lock_attr):
+                return func(inst, *args, **kwargs)
+        return locked
+    return synchronized_lock
+
+
+locked = synchronized()
+"""El caso corriente de :func:`synchronized`: el cerrojo en ``self._lock``.
+
+≙ ``odoo19c: odoo/tools/func.py:93``. Es un alias de módulo, no una función
+propia — se aplica sin llamar (``@locked``), mientras que ``synchronized``
+se llama para nombrar otro atributo (``@synchronized('_mi_cerrojo')``).
+Su consumidor en el ORM es ``Registry``, que decora con él sus métodos de
+clase (``odoo19c: odoo/orm/registry.py:32``).
+"""
+
+
+def frame_codeinfo(fframe, back=0):
+    """Devuelve ``(archivo, linea)`` de un marco anterior — ≙ ``:96-111``.
+
+    Docstring de la fuente, verbatim: *"Return a (filename, line) pair for a
+    previous frame. @return (filename, lineno) where lineno is either int or
+    string==''"*.
+
+    Es un guion de diagnóstico, así que **traga cualquier excepción** y
+    devuelve ``("<unknown>", '')``. Esa forma no es descuido: quien lo llama
+    está construyendo un mensaje de error, y un fallo aquí no puede tapar el
+    error que se estaba reportando.
+
+    Dos variantes del par vacío, ambas de la fuente: ``"<unknown>"`` cuando no
+    hay marco o algo falla, y ``'<builtin>'`` cuando el marco existe pero no
+    tiene archivo fuente. El número de línea sale ``''`` —cadena, no cero—
+    cuando el marco no lo declara.
+    """
+    try:
+        if not fframe:
+            return "<unknown>", ''
+        for _i in range(back):
+            fframe = fframe.f_back
+        try:
+            fname = getsourcefile(fframe)
+        except TypeError:
+            fname = '<builtin>'
+        lineno = fframe.f_lineno or ''
+        return fname, lineno
+    except Exception:
+        return "<unknown>", ''
+
+
 class classproperty(typing.Generic[T]):
     """Una ``property`` que se resuelve sobre la clase — ≙ ``func.py:115-125``.
 
@@ -90,6 +251,28 @@ class classproperty(typing.Generic[T]):
     @property
     def __doc__(self):
         return self.fget.__doc__
+
+
+class lazy_classproperty(classproperty[T], typing.Generic[T]):
+    """``classproperty`` que se sustituye a sí misma tras el primer cálculo.
+
+    ≙ ``odoo19c: odoo/tools/func.py:127-131``. Docstring de la fuente,
+    verbatim: *"Similar to :class:`lazy_property`, but for classes"*.
+
+    La memorización no es un diccionario aparte: el descriptor **se borra** al
+    asignar el valor sobre el dueño con el mismo nombre. La segunda lectura ya
+    no pasa por aquí — encuentra un atributo de clase normal. De ahí que el
+    valor se guarde bajo ``self.fget.__name__``: el nombre de la función
+    decorada es el nombre bajo el que la clase la declara.
+
+    Sustituye en el **dueño**, no en la clase por la que se pregunta. Con
+    herencia, leerla desde una subclase memoriza en la clase que la declara.
+    """
+
+    def __get__(self, cls, owner=None, /):
+        val = super().__get__(cls, owner)
+        setattr(owner, self.fget.__name__, val)
+        return val
 
 
 class lazy:
