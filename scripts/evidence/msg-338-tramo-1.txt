@@ -1,0 +1,33 @@
+Port four stdlib-only modules of the tools root
+
+Primer tramo de la tarea #338. La raiz ``src/tools`` ↔ ``odoo/tools``
+esta espejada y le faltaban **20** de los 40 modulos de la
+referencia; entran los cuatro que no dependen de nada del ORM y que
+mas trabajo desbloquean.
+
+``intervals`` es el que paga primero: tres archivos del arbol lo
+declaraban bloqueo por escrito —``addons/hr/models/resource.py``,
+``hr_employee.py`` y ``addons/resource/models/resource_resource.py``—
+y en la referencia lo importan 20 archivos, el conteo mas alto de los
+veinte que faltaban. ``parse_version`` va segundo por la misma vara:
+18 importadores, entre ellos ``ir_module``, ``ir_actions_report`` e
+``ir_mail_server``.
+
+``pycompat`` y ``facade`` entran por completitud de la raiz, no por
+un consumidor que los espere. Los tres simbolos de ``pycompat`` estan
+marcados obsoletos desde 18.0 y se portan CON su aviso: retirarlos
+aqui adelantaria una retirada que la referencia no ha hecho.
+
+Los cuatro son CPython puro —``itertools``, ``re``, ``csv``,
+``codecs``, ``functools``, ``inspect``—, asi que sus pruebas corren
+sin transaccion. Del tercer elemento del triple de ``Intervals`` solo
+se pide ``union()``: un ``frozenset`` cumple el contrato igual que el
+recordset vacio que la fuente usa en su propia prueba.
+
+Cada prueba se escribio ANTES de su modulo, y el control discrimina:
+contra el archivo inexistente fallaba la importacion entera. La
+fuente no tiene prueba para ``parse_version`` —su verificacion vive
+en un bloque ``if __name__ == '__main__'`` que ninguna suite
+ejecuta—; sus dos cadenas son ahora el nucleo del caso.
+
+``tests/unit/tools``: 672 passed, de los cuales 111 son nuevos.
