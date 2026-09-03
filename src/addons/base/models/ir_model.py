@@ -816,23 +816,59 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         """Refleja el registro de Django en filas — inverso de ``_reflect_model``.
 
         La referencia refleja desde su propio registro; aquí la fuente es
-        ``apps.get_models()``. Devuelve ``(creadas, actualizadas)``.
+        ``apps.get_models()``. Devuelve ``(creadas, actualizadas)``, contadas
+        sobre las filas que **cambian**: una fila que ya describe su modelo no
+        se reescribe, igual que en ``:452`` de la fuente.
+
+        **El reflejo escribe por debajo del ORM, como la fuente.** ``:453``
+        llama a ``upsert_en`` —SQL con ``ON CONFLICT``—, no a ``write``, así
+        que la guarda de los cuatro campos inmodificables de :meth:`save` no
+        entra en este camino. Aquí el equivalente es
+        ``bulk_create(update_conflicts=True, unique_fields=['model'])``, que
+        Django emite como el mismo ``ON CONFLICT (model) DO UPDATE``.
+
+        No es un rodeo a la guarda: es su frontera. La guarda protege al
+        formulario, donde un humano no puede convertir la fila de un modelo en
+        la de otro. El reflejo hace lo contrario —lleva la fila a lo que el
+        modelo declara hoy—, y hacerlo por ``save`` lo vuelve imposible en
+        cuanto ``state`` difiere del sembrado, que es el caso de toda fila
+        creada a mano con el ``default=STATE_MANUAL`` del campo.
+
+        ``created_at`` queda fuera de ``update_fields`` a propósito: su
+        ``auto_now_add`` recalcula al preparar el lote, así que incluirlo
+        borraría la fecha de alta de una fila que ya existía.
 
         No borra filas huérfanas: una fila cuyo modelo desapareció es
         justamente la que ``django_model`` devuelve ``None``, y perderla borra
         con ella sus permisos y reglas. La limpieza es una decisión de
         desinstalación, no de reflexión.
         """
-        created = updated = 0
+        expected = {}
         for model in apps.get_models(include_auto_created=True):
             if app_labels and model._meta.app_label not in app_labels:
                 continue
             label = f'{model._meta.app_label}.{model._meta.object_name}'
-            _row, was_created = cls.objects.update_or_create(
-                model=label, defaults=cls._reflect_model_params(model))
-            created += was_created
-            updated += not was_created
-        return created, updated
+            expected[label] = cls._reflect_model_params(model)
+        if not expected:
+            return 0, 0
+        columns = list(next(iter(expected.values())))
+        stored = {row.model: row
+                  for row in cls.objects.filter(model__in=expected)}
+        pending = [
+            (label, params) for label, params in expected.items()
+            if label not in stored
+            or any(getattr(stored[label], column) != params[column]
+                   for column in columns)
+        ]
+        if not pending:
+            return 0, 0
+        cls.objects.bulk_create(
+            [cls(model=label, **params) for label, params in pending],
+            update_conflicts=True, unique_fields=['model'],
+            update_fields=[*columns, 'updated_at'])
+        registry.clear_cache('stable')
+        created = sum(label not in stored for label, _ in pending)
+        return created, len(pending) - created
 
 
 class IrModelFields(models.OriginMixin, TimeStampedModel):

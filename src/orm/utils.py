@@ -298,9 +298,16 @@ def model_field_registry(model):
     consultar **sobre la clase**, no solo sobre una instancia. La fuente lo
     tiene asi de nacimiento: su ``Model._fields`` es un atributo de la clase de
     registro, y ``resolve_depends`` lo recorre sin instanciar nada
-    (``odoo19c: odoo/orm/fields.py:823``). Aqui ``_fields`` es una ``property``
-    del modelo base, asi que sobre la clase devuelve el objeto ``property`` y
-    no el mapa.
+    (``odoo19c: odoo/orm/fields.py:823``).
+
+    > **Corregido (tarea #342).** Este parrafo decia que aqui ``_fields`` es
+    > una ``property`` y que sobre la clase devuelve el objeto ``property``.
+    > Era cierto y describia un hueco que esta funcion **tapaba en vez de
+    > cerrar**: cada consumidor que tenia la clase y no la fila llamaba aqui a
+    > mano. ``_fields`` es ahora un :class:`FieldRegistryDescriptor`, asi que
+    > ``Model._fields`` devuelve el mapa igual que allá. La funcion se queda
+    > —es el cuerpo que el descriptor invoca, y el que reciben los once sitios
+    > que ya la llamaban— pero deja de ser el unico camino desde la clase.
 
     Antes de esto ``resolve_depends`` resolvia con ``_meta.get_field``, que es
     **mas estrecho**: un :class:`~orm.fields_nonstored.NonStored` no tiene
@@ -316,6 +323,28 @@ def model_field_registry(model):
     registry = {field.name: field for field in model._meta.get_fields()}
     registry.update(non_stored_fields(model))
     return registry
+
+
+class FieldRegistryDescriptor:
+    """``_fields`` legible por la clase y por la fila.
+
+    La fuente declara ``_fields`` en la clase de registro, asi que
+    ``Model._fields`` y ``record._fields`` devuelven el mismo mapa; su
+    ``check_indexes`` lo lee por la clase
+    (``odoo19c: odoo/orm/registry.py:813``) y ``resolve_depends`` tambien
+    (``odoo/orm/fields.py:823``). Una ``property`` sirve solo la mitad de fila:
+    consultada sobre la clase devuelve el objeto descriptor.
+
+    El mecanismo no se trae de fuera. El protocolo de descriptor de CPython ya
+    distingue los dos accesos —``__get__`` recibe ``instance=None`` cuando el
+    acceso es por la clase, y el ``owner`` que hace falta—, asi que basta
+    usarlo en vez de la ``property``, que es el caso particular que solo
+    responde a la instancia.
+    """
+
+    def __get__(self, instance, owner=None):
+        """El mapa del modelo, venga el acceso de la clase o de una fila."""
+        return model_field_registry(owner if instance is None else type(instance))
 
 
 def model_of_field(field, registry_module):

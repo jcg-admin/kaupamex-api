@@ -82,8 +82,9 @@ from orm.domains import Domain, to_q
 from orm.fields import convert_to_display_name
 from orm.fields_nonstored import NonStored, non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
-from orm.utils import (OriginIds, as_record_list, check_object_name,
-                       model_field_registry, parse_field_expr, record_ids)
+from orm.utils import (FieldRegistryDescriptor, OriginIds, as_record_list,
+                       check_object_name, model_field_registry,
+                       parse_field_expr, record_ids)
 from service.db import Savepoint
 from tools.misc import OrderedSet
 from tools.sql import SQL
@@ -1549,59 +1550,65 @@ class FieldSqlMixin:
     exportación de un campo sin columna.
     """
 
-    @property
-    def _fields(self):
-        """Los campos del modelo por nombre — ≙ ``BaseModel._fields``.
-
-        Allá es el registro que el ORM construye al cargar la clase; aquí lo
-        provee ``_meta``, que es el registro equivalente de Django. Entran
-        **todos**, como allá: el mapa es el registro del modelo, no el de sus
-        columnas.
-
-        > **Ensanchado (tarea #215, H-API-953).** Hasta hoy filtraba por
-        > ``concrete``, y ese filtro era un contrato **más estrecho** que el de
-        > la fuente sin que nadie hubiera comparado los dos alcances. Lo
-        > destapó ``setup_related`` (``odoo19c: :604``), que recorre
-        > ``model._fields[name]`` por una cadena punteada que puede atravesar
-        > un ``One2many`` — que no es concreto. Con el mapa estrecho esa cadena
-        > no se puede recorrer.
-        >
-        > Medido sobre ``ResPartner``: **107** campos en total, **66**
-        > concretos, **41** no. El filtro escondía el 38 %.
-        >
-        > Los cinco consumidores se midieron uno a uno antes de ensanchar.
-        > Cuatro filtran por su cuenta —dos exigen ``ForeignKey``, dos exigen
-        > ``Properties``— así que el filtro no era suyo. El quinto,
-        > ``_field_to_sql``, SÍ lo usaba: un nombre no concreto quedaba fuera
-        > del mapa y producía su ``ValueError`` limpio. Ese rechazo se conserva
-        > **en su sitio**, que es donde pertenece — quien compone SQL es quien
-        > sabe qué puede convertir.
-
-        > **Ensanchado otra vez (tarea #301, :ref:`h-api-1025`).** La ceguera
-        > que la versión anterior declaraba abajo —*"ciega al ``NonStored``"*—
-        > no era una nota al pie: era la mitad que faltaba. El campo sin
-        > columna **es un campo del modelo** en la fuente, y dejarlo fuera
-        > volvía a hacer el mapa más estrecho que allá, sólo que por otro eje.
-        > Lo destapó ``_address_fields()``, que desde ``base_address_extended``
-        > devuelve ``city_id`` —sin columna aquí, DEC-SALE-01— y hacía reventar
-        > a ``_convert_fields_to_values`` sobre 35 casos de
-        > ``tests/integration/base``.
-        >
-        > Los seis consumidores se re-midieron uno a uno antes de ensanchar, y
-        > ninguno cambia de conducta: cuatro filtran por ``Properties`` o
-        > ``ForeignKey``, uno lee ``ondelete`` con ``getattr`` y el sexto
-        > —``_field_to_sql``— exige ``concrete``, que un ``NonStored`` no
-        > declara. Ahí el nombre pasa de dar ``None`` a dar el descriptor, y el
-        > mismo ``ValueError`` sale por la misma rama.
-
-        *Métrica:* ``_meta.get_fields()`` unido a los descriptores
-        :class:`~orm.fields_nonstored.NonStored` que el MRO de la clase
-        declara.
-        *Ciega a:* un campo de la fuente que aquí no se declare ni como campo
-        de Django ni como ``NonStored`` — una ``property`` pelada, por ejemplo.
-        Esa forma existe en el árbol y su barrido es la tarea **#302**.
-        """
-        return model_field_registry(type(self))
+    #: Los campos del modelo por nombre — ≙ ``BaseModel._fields``.
+    #:
+    #: Allá es el registro que el ORM construye al cargar la clase; aquí lo
+    #: provee ``_meta``, que es el registro equivalente de Django. Entran
+    #: **todos**, como allá: el mapa es el registro del modelo, no el de sus
+    #: columnas.
+    #:
+    #: > **Ensanchado (tarea #215, H-API-953).** Hasta hoy filtraba por
+    #: > ``concrete``, y ese filtro era un contrato **más estrecho** que el de
+    #: > la fuente sin que nadie hubiera comparado los dos alcances. Lo
+    #: > destapó ``setup_related`` (``odoo19c: :604``), que recorre
+    #: > ``model._fields[name]`` por una cadena punteada que puede atravesar
+    #: > un ``One2many`` — que no es concreto. Con el mapa estrecho esa cadena
+    #: > no se puede recorrer.
+    #: >
+    #: > Medido sobre ``ResPartner``: **107** campos en total, **66**
+    #: > concretos, **41** no. El filtro escondía el 38 %.
+    #: >
+    #: > Los cinco consumidores se midieron uno a uno antes de ensanchar.
+    #: > Cuatro filtran por su cuenta —dos exigen ``ForeignKey``, dos exigen
+    #: > ``Properties``— así que el filtro no era suyo. El quinto,
+    #: > ``_field_to_sql``, SÍ lo usaba: un nombre no concreto quedaba fuera
+    #: > del mapa y producía su ``ValueError`` limpio. Ese rechazo se conserva
+    #: > **en su sitio**, que es donde pertenece — quien compone SQL es quien
+    #: > sabe qué puede convertir.
+    #:
+    #: > **Ensanchado otra vez (tarea #301, :ref:`h-api-1025`).** La ceguera
+    #: > que la versión anterior declaraba abajo —*"ciega al ``NonStored``"*—
+    #: > no era una nota al pie: era la mitad que faltaba. El campo sin
+    #: > columna **es un campo del modelo** en la fuente, y dejarlo fuera
+    #: > volvía a hacer el mapa más estrecho que allá, sólo que por otro eje.
+    #: > Lo destapó ``_address_fields()``, que desde ``base_address_extended``
+    #: > devuelve ``city_id`` —sin columna aquí, DEC-SALE-01— y hacía reventar
+    #: > a ``_convert_fields_to_values`` sobre 35 casos de
+    #: > ``tests/integration/base``.
+    #: >
+    #: > Los seis consumidores se re-midieron uno a uno antes de ensanchar, y
+    #: > ninguno cambia de conducta: cuatro filtran por ``Properties`` o
+    #: > ``ForeignKey``, uno lee ``ondelete`` con ``getattr`` y el sexto
+    #: > —``_field_to_sql``— exige ``concrete``, que un ``NonStored`` no
+    #: > declara. Ahí el nombre pasa de dar ``None`` a dar el descriptor, y el
+    #: > mismo ``ValueError`` sale por la misma rama.
+    #:
+    #: *Métrica:* ``_meta.get_fields()`` unido a los descriptores
+    #: :class:`~orm.fields_nonstored.NonStored` que el MRO de la clase
+    #: declara.
+    #: *Ciega a:* un campo de la fuente que aquí no se declare ni como campo
+    #: de Django ni como ``NonStored`` — una ``property`` pelada, por ejemplo.
+    #: Esa forma existe en el árbol y su barrido es la tarea **#302**.
+    #:
+    #: **Es un descriptor y no una ``property`` (tarea #342).** La fuente
+    #: declara ``_fields`` en la clase de registro, asi que ``Model._fields``
+    #: y ``record._fields`` devuelven el mismo mapa; ``check_indexes``
+    #: (``odoo19c: odoo/orm/registry.py:813``) lo lee por la clase. Una
+    #: ``property`` sobre la clase devuelve el objeto descriptor, no el mapa,
+    #: y ese hueco lo tapaba :func:`~orm.utils.model_field_registry` llamada a
+    #: mano en once sitios. El protocolo de descriptor de CPython ya distingue
+    #: los dos accesos, asi que el mecanismo no se trae de fuera: se usa.
+    _fields = FieldRegistryDescriptor()
 
     def _has_field_access(self, field, operation) -> bool:
         """Si el usuario puede leer o escribir este campo.

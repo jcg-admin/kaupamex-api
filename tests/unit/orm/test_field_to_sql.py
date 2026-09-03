@@ -48,7 +48,16 @@ class TestPortedSurface:
         '_check_field_access', '_has_field_access', '_fields',
     ])
     def test_the_reference_method_is_declared_on_the_mixin(self, name):
-        assert hasattr(FieldSqlMixin, name)
+        """La declaracion se mide en el ``__dict__`` de la MRO, no con ``hasattr``.
+
+        ``hasattr`` **evalua**: para un metodo da lo mismo, pero para un
+        descriptor invoca su ``__get__`` y devuelve ``False`` si ese cuerpo
+        levanta. ``_fields`` es un descriptor desde la tarea #342, y su cuerpo
+        pide ``_meta`` — que un mixin sin tabla no tiene. El caso pasaba a rojo
+        por una razon que no era la que decia medir: el simbolo estaba
+        declarado en su sitio.
+        """
+        assert any(name in klass.__dict__ for klass in FieldSqlMixin.__mro__)
 
     def test_the_field_base_carries_the_two_sql_generation_methods(self):
         # odoo19c: odoo/orm/fields.py:1209 y :1241 — cuelgan de `Field`, así

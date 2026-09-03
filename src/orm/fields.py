@@ -1702,6 +1702,26 @@ def _field_column_type(self):
 
 models.Field.column_type = _field_column_type
 
+#: ``column_type`` tambien en el campo sin columna, por el mismo motivo que
+#: ``_description_searchable``: en la fuente **no hay dos clases**, asi que un
+#: ``store=False`` responde a ``column_type`` como cualquier otro campo. El
+#: bucle de ``_FIELD_CLASS_ATTRIBUTES`` ya le puso ``_column_type = None``, que
+#: es lo que el cuerpo lee; lo que faltaba era el lector publico.
+#:
+#: Lo destapo ``Registry.check_indexes`` (tarea #342), que recorre
+#: ``model._fields.values()`` y filtra por ``field.column_type and field.store``
+#: —``odoo19c: odoo/orm/registry.py:814`` verbatim—. Sin esta linea el recorrido
+#: reventaba en el primer campo sin columna del modelo.
+NonStored.column_type = property(_field_column_type)
+
+#: ``concrete`` es el nombre de Django para lo mismo que la fuente llama tener
+#: columna, y la equivalencia ya esta declarada arriba: *"``store``/
+#: ``column_type`` alla, ``concrete``/``column`` aqui"*. Un ``NonStored`` no la
+#: tiene, y decirlo permite que un consumidor filtre con el vocabulario del
+#: stack sin preguntar con ``getattr`` — que taparia por igual un campo sin
+#: columna y un atributo mal escrito.
+NonStored.concrete = False
+
 
 class _ComputedUnlessAssigned:
     """Un valor derivado que la instancia puede pisar — descriptor NO de datos.

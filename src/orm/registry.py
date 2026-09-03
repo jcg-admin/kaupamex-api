@@ -50,6 +50,7 @@ import threading
 import time
 import warnings
 from collections import defaultdict, deque
+from functools import partial
 from collections.abc import Callable, Collection, Iterator, Mapping
 
 from django.apps import apps
@@ -67,7 +68,7 @@ import orm.environments
 
 from modules import db as modules_db
 from orm.utils import model_field_registry
-from tools.func import locked
+from tools.func import locked, reset_cached_properties
 from tools.lru import LRU
 from tools.misc import Collector, OrderedSet, remove_accents
 from tools.sql import (SQL, _CONFDELTYPES, create_index, drop_constraint, drop_index,
@@ -1858,6 +1859,288 @@ class Registry(Mapping):
 
         self.field_setup_dependents.discard_keys_and_values(fields)
 
+    # -- Las dos banderas de invalidacion ------------------------------------
+    #
+    # ≙ ``:1017-1033``. Son del tramo 5, y entran aqui porque
+    # ``_setup_models__`` **escribe** la primera: sin ellas ese metodo no se
+    # puede portar entero. Viven en un ``threading.local`` a proposito — la
+    # invalidacion es del hilo que la hizo, y propagarla a los demas anunciaria
+    # un cambio que ellos no ven.
+
+    @property
+    def registry_invalidated(self):
+        """Si este hilo ha modificado el registro — ≙ ``:1017-1021``.
+
+        Docstring de la fuente, verbatim: *"Determine whether the current
+        thread has modified the registry"*.
+        """
+        return getattr(self._invalidation_flags, 'registry', False)
+
+    @registry_invalidated.setter
+    def registry_invalidated(self, value):
+        self._invalidation_flags.registry = value
+
+    @property
+    def cache_invalidated(self):
+        """Que caches ha modificado este hilo — ≙ ``:1026-1033``.
+
+        Docstring de la fuente, verbatim: *"Determine whether the current
+        thread has modified the cache"*.
+
+        Devuelve **el mismo** conjunto en cada lectura del hilo: quien lo lee
+        lo hace para anadirle un nombre, y un conjunto nuevo por lectura
+        perderia lo anotado.
+        """
+        try:
+            return self._invalidation_flags.cache
+        except AttributeError:
+            # silent OK because la ausencia del atributo ES la respuesta
+            # «este hilo aun no ha anotado nada», y el cuerpo que sigue lo
+            # crea. La fuente lo escribe igual (``:1030-1032``).
+            names = self._invalidation_flags.cache = set()
+            return names
+
+    # -- Carga y setup -------------------------------------------------------
+    #
+    # ≙ ``:350-380`` y ``:686-777``. El tramo 3 de la tarea #342.
+    #
+    # La divergencia de mecanismo que gobierna los tres primeros: alla el
+    # registro **instancia** las clases de modelo de cada modulo al cargarlo
+    # (``model_classes.add_to_registry``), porque una clase pertenece a la base
+    # y cada base tiene sus modulos instalados. Aqui las clases las construye
+    # Django al importar el modulo, una vez por proceso, y el registro las
+    # **recoge**. Lo que estos metodos conservan es lo demas: que caches se
+    # vacian, que memos se descartan y en que orden.
+
+    def load(self, module):
+        """Carga un modulo en el registro y nombra sus modelos — ≙ ``:350-380``.
+
+        Docstring de la fuente, verbatim: *"Load a given module in the
+        registry, and return the names of the directly modified models"*, y
+        sigue: *"At the Python level, the modules are already loaded, but not
+        yet on a per-registry level"*.
+
+        Esa segunda frase es justo lo que aqui no aplica: en Django la clase se
+        registra al importar y **no hay un segundo nivel** por base. Asi que la
+        instanciacion desaparece y queda lo que si tiene receptor: vaciar los
+        caches, descartar las propiedades derivadas y los memos del eje de
+        disparadores, y devolver los nombres.
+
+        Acepta el nodo de grafo de la fuente —cualquier objeto con ``.name``—
+        o el nombre a secas, que es lo que este arbol tiene: el ``app_label``
+        de Django.
+        """
+        name = getattr(module, 'name', module)
+
+        # vacia el cache para dejarlo consistente, sin senalizarlo
+        for cache in self._Registry__caches.values():
+            cache.clear()
+
+        reset_cached_properties(self)
+        self._field_trigger_trees.clear()
+        self._is_modifying_relations.clear()
+
+        model_names = []
+        for model in apps.get_models(include_auto_created=True):
+            if model._meta.app_label != name:
+                continue
+            model_name = getattr(model, '_name', None)
+            if model_name:
+                model_names.append(model_name)
+                self.models[model_name] = model
+        return model_names
+
+    @locked
+    def _setup_models__(self, cr, model_names=None):
+        """Prepara los modelos para usarse — ≙ ``:382-...``.
+
+        Docstring de la fuente, verbatim: *"Perform the setup of models. This
+        must be called after loading modules and before using the ORM"*, y
+        sobre el segundo parametro: *"When given ``model_names``, it performs
+        an incremental setup: only the models impacted by the given
+        ``model_names`` and all the already-marked models will be set up.
+        Otherwise, all models are set up"*.
+
+        El **marcado** de la fuente —``model_cls._setup_done__ = False`` y la
+        reconstruccion de cada campo— no tiene receptor aqui: la clase de
+        Django se construye una vez al importar y sus campos no se rehacen.
+        Lo que si tiene receptor, y es lo que este metodo hace, es la
+        invalidacion: vaciar los caches, descartar lo derivado y anunciar que
+        el registro cambio.
+
+        ``model_names`` acota el descarte a los descendientes nombrados por los
+        dos ejes, como alla; sin el, se descarta todo.
+        """
+        for cache in self._Registry__caches.values():
+            cache.clear()
+
+        reset_cached_properties(self)
+        self._field_trigger_trees.clear()
+        self._is_modifying_relations.clear()
+        self.registry_invalidated = True
+
+        if model_names is None:
+            self.many2many_relations.clear()
+            self.field_setup_dependents.clear()
+            clear_field_depends()
+        else:
+            impacted = self.descendants(model_names, '_inherit', '_inherits')
+            for fields in self.many2many_relations.values():
+                for pair in list(fields):
+                    if pair[0] in impacted:
+                        fields.discard(pair)
+
+    def post_init(self, func, *args, **kwargs):
+        """Encola una llamada para el final de ``init_models`` — ≙ ``:686-688``.
+
+        Docstring de la fuente, verbatim: *"Register a function to call at the
+        end of :meth:`~.init_models`"*.
+        """
+        self._post_init_queue.append(partial(func, *args, **kwargs))
+
+    def post_constraint(self, cr, func, key):
+        """Aplica la restriccion, y la difiere si falla — ≙ ``:690-709``.
+
+        Docstring de la fuente, verbatim: *"Call the given function, and delay
+        it if it fails during an upgrade"*.
+
+        El comentario de la fuente explica por que una clave ya encolada NO se
+        vuelve a aplicar: *"Module A may try to apply a constraint and fail but
+        another module B inheriting from Module A may try to reapply the same
+        constraint and succeed, however the constraint would already be in the
+        _constraint_queue and would be executed again at the end of the
+        registry cycle, this would fail (already-existing constraint)"*.
+
+        El punto de guardado de la fuente —``cr.savepoint(flush=False)``— es
+        aqui ``transaction.atomic``, que es lo que en Django abre un savepoint
+        anidado. Sin el, una restriccion que falla aborta la transaccion entera
+        y el siguiente ``cr.execute`` revienta con ``InFailedSqlTransaction``.
+        """
+        try:
+            if key not in self._constraint_queue:
+                with transaction.atomic(using=self._alias()):
+                    func(cr)
+            else:
+                self._constraint_queue[key] = func
+        except Exception as error:
+            if self._is_install:
+                _schema.error(*(error.args or (error,)))
+            else:
+                _schema.info(*(error.args or (error,)))
+                self._constraint_queue[key] = func
+
+    def finalize_constraints(self, cr):
+        """Aplica lo que quedo diferido — ≙ ``:711-721``.
+
+        Docstring de la fuente, verbatim: *"Call the delayed functions from
+        above"*.
+
+        Un fallo aqui **solo avisa**, y la fuente dice por que: *"warn only,
+        this is not a deployment showstopper, and can sometimes be a transient
+        error"*.
+        """
+        for func in self._constraint_queue.values():
+            try:
+                with transaction.atomic(using=self._alias()):
+                    func(cr)
+            except Exception as error:
+                _schema.warning(*(error.args or (error,)))
+        self._constraint_queue.clear()
+
+    def init_models(self, cr, model_names, context, install=True):
+        """Lleva los modelos nombrados a la base — ≙ ``:723-777``.
+
+        Docstring de la fuente, verbatim: *"Initialize a list of models (given
+        by their name). Call methods ``_auto_init`` and ``init`` on each model
+        to create or update the database tables supporting the models"*. El
+        ``context`` admite ``module`` —el modulo que se instala o actualiza— y
+        ``update_custom_fields``.
+
+        **``_auto_init`` e ``init`` no tienen receptor aqui**, y es la misma
+        divergencia que declara :meth:`check_tables_exist`: el DDL lo emiten
+        las migraciones de Django. Lo que este metodo conserva es todo lo
+        demas, que si lo tiene: la cola diferida, el reflejo del registro, el
+        descarte del memo de tablas y las tres verificaciones de schema, en el
+        orden de la fuente.
+
+        Los tres atributos temporales —``_post_init_queue``, ``_foreign_keys``
+        e ``_is_install``— se crean al entrar y se borran en el ``finally``,
+        como alla (``:775-777``). Son estado de UNA llamada: si se quedaran, la
+        siguiente heredaria la cola de la anterior.
+        """
+        if not model_names:
+            return
+
+        if 'module' in context:
+            _logger.info('module %s: creating or updating database tables',
+                         context['module'])
+        elif context.get('models_to_check', False):
+            _logger.info("verifying fields for every extended model")
+
+        try:
+            self._post_init_queue = deque()
+            # (tabla1, columna1) -> (tabla2, columna2, ondelete, modelo, modulo)
+            self._foreign_keys = {}
+            self._is_install = install
+
+            self._reflect_all(model_names, context)
+
+            self._ordinary_tables = None
+
+            while self._post_init_queue:
+                func = self._post_init_queue.popleft()
+                func()
+
+            self.check_indexes(cr, model_names)
+            self.check_foreign_keys(cr)
+            self.check_tables_exist(cr)
+        finally:
+            del self._post_init_queue
+            del self._foreign_keys
+            del self._is_install
+
+    def _reflect_all(self, model_names, context):
+        """Refleja el registro en las cinco tablas de ``ir.model``.
+
+        ≙ las cinco llamadas que ``init_models`` hace seguidas (``:749-753``):
+        ``_reflect_models``, ``_reflect_fields``, ``_reflect_selections``,
+        ``_reflect_constraints`` y ``_reflect_inherits``.
+
+        Sale a su propio metodo por dos razones. La primera es que aqui las
+        firmas no son las de alla: ``_reflect_models`` recibe **etiquetas de
+        app** y devuelve conteos, mientras ``_reflect_fields`` y
+        ``_reflect_inherits`` reciben la **fila** de ``ir.model`` de un modelo,
+        no una lista de nombres — asi que hace falta un puente que las una. La
+        segunda es que el modelo se resuelve por el registro
+        (``self.models['ir.model']``) y no por un import: ``orm`` no importa
+        addons.
+        """
+        model_classes = [self.models[name] for name in model_names
+                         if name in self.models]
+        if not model_classes:
+            return
+
+        ir_model = self.models.get('ir.model')
+        if ir_model is None:
+            _logger.info("Skipping reflection: ir.model is not in the registry yet")
+            return
+
+        app_labels = {model._meta.app_label for model in model_classes}
+        ir_model._reflect_models(app_labels)
+
+        wanted = {model._meta.label for model in model_classes}
+        for row in ir_model.objects.filter(model__in=[m._name for m in model_classes]):
+            if row.django_model is not None and row.django_model._meta.label in wanted:
+                ir_model._reflect_fields(row)
+                ir_model._reflect_inherits(row)
+
+        selection = self.models.get('ir.model.fields.selection')
+        if selection is not None:
+            selection._reflect_selections(model_classes)
+        constraint = self.models.get('ir.model.constraint')
+        if constraint is not None:
+            constraint._reflect_constraints(model_classes)
+
     # -- El eje de schema ----------------------------------------------------
     #
     # ≙ ``:779-1016``. Los seis simbolos con que la fuente compara lo declarado
@@ -1921,6 +2204,16 @@ class Registry(Mapping):
         ``'trigram'``, o lo falso. Un indice que existe con **otro metodo de
         acceso** del esperado esta obsoleto y se rehace; uno que existe con el
         metodo correcto se deja en paz.
+
+        **El filtro lleva un tercer termino que la fuente no necesita.** Alla
+        el registro de campos contiene ``Field`` y nada mas, asi que
+        ``field.column_type and field.store`` (``:814``) alcanza. Aqui
+        ``_fields`` incluye tambien los objetos de relacion inversa de Django
+        —``ManyToOneRel``, ``OneToOneRel``, ``ManyToManyRel``—, que no son
+        campos y no declaran ninguno de los dos atributos. ``field.concrete``
+        va delante porque es el que **si** declaran, y su ``False`` los deja
+        fuera por cortocircuito. Es el mismo veredicto que da la fuente a su
+        ``One2many``, dicho con el vocabulario del stack.
         """
         expected = [
             (make_index_name(model._table, field.name), model._table, field)
@@ -1928,7 +2221,7 @@ class Registry(Mapping):
             for model in [self.models[model_name]]
             if self._has_ordinary_schema(model)
             for field in model._fields.values()
-            if field.column_type and field.store
+            if field.concrete and field.column_type and field.store
         ]
         if not expected:
             return

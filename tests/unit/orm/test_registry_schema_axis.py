@@ -57,11 +57,21 @@ def scratch_table(cr):
 
 
 class _Field:
-    """Un doble de campo: lo que el eje de schema mira, y nada mas."""
+    """Un doble de campo: lo que el eje de schema mira, y nada mas.
+
+    **Un doble con atributos esconde el acceso a un atributo.** Este llevaba
+    los seis que el eje lee y ninguno mas, asi que los cinco casos de
+    ``TestCheckIndexes`` pasaban en verde mientras el recorrido real reventaba
+    contra un modelo de Django — que declara ``_fields`` de otra forma y mete
+    en el mapa objetos que no son campos. El control que lo discrimina no es un
+    doble mejor: es
+    :meth:`TestCheckIndexes.test_it_walks_a_real_model_without_breaking`, que
+    no usa doble ninguno.
+    """
 
     def __init__(self, name, *, column_type=('text', 'TEXT'), store=True,
                  required=True, index=None, translate=False,
-                 company_dependent=False):
+                 company_dependent=False, concrete=True):
         self.name = name
         self.column_type = column_type
         self.store = store
@@ -69,6 +79,10 @@ class _Field:
         self.index = index
         self.translate = translate
         self.company_dependent = company_dependent
+        #: El nombre de Django para «tiene columna». El filtro de
+        #: ``check_indexes`` lo pregunta primero porque es el unico que los
+        #: objetos de relacion inversa declaran.
+        self.concrete = concrete
 
 
 class _Meta:
@@ -153,6 +167,31 @@ class TestCheckIndexes:
     def test_an_empty_expectation_is_a_no_op(self, registry, cr):
         registry.models = {}
         registry.check_indexes(cr, [])
+
+    def test_it_walks_a_real_model_without_breaking(self, registry, cr):
+        """El control: un modelo de verdad, sin dobles.
+
+        ``res.partner`` mete en su ``_fields`` 36 ``ManyToOneRel``, 4
+        ``OneToOneRel``, 2 ``ManyToManyRel`` y 16 ``NonStored``: ninguno es un
+        campo con columna, y ninguno respondia a ``column_type``. Con el doble
+        de arriba eso no se veia — todos sus campos contestan a todo.
+
+        No afirma que se cree indice alguno; afirma que el recorrido **llega al
+        final**, que es lo que el porte prometia y no cumplia.
+        """
+        registry.check_indexes(cr, ['res.partner'])
+
+    def test_the_field_registry_answers_from_the_class(self, registry):
+        """``Model._fields`` sin instanciar — ≙ ``odoo19c: registry.py:813``.
+
+        Es la precondicion del caso anterior: si ``_fields`` fuera una
+        ``property``, sobre la clase devolveria el descriptor y el ``.values()``
+        de ``check_indexes`` fallaria antes de mirar ningun campo.
+        """
+        partner = apps.get_model('base', 'ResPartner')
+        registry_map = partner._fields
+        assert isinstance(registry_map, dict)
+        assert 'name' in registry_map
 
     def test_a_partial_index_carries_its_condition(self, registry, cr, scratch_table):
         registry.models = {'x.probe': _Model(
