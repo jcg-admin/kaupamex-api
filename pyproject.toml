@@ -98,6 +98,7 @@ dependencies = [
     # noventa mas, sin nadie que la mantenga. LGPL-2.1+, sin dependencias
     # obligatorias propias (`zeep` solo como extra, y ya esta en esta lista).
     "python-stdnum>=2.0",
+    "psutil>=5.9.8",
 ]
 
 [project.optional-dependencies]

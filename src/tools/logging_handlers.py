@@ -59,6 +59,38 @@ from tools.logging_context import get_correlation_id
 _reentrancy = threading.local()
 _exc_formatter = logging.Formatter()
 
+#: Nivel ``RUNBOT`` — ``odoo19c: odoo/netsvc.py:339``. Se sitúa entre ``INFO``
+#: (20) y ``WARNING`` (30): marca un mensaje dirigido a la infraestructura de
+#: pruebas, no al operador. La referencia lo declara con su nombre propio y a
+#: la vez lo mapea a ``"INFO"`` en ``_levelToName`` para que salga como INFO en
+#: el log (``odoo19c: odoo/netsvc.py:340-341``).
+RUNBOT = 25
+
+
+def install_runbot_level():
+    """Instala el nivel ``RUNBOT`` y el método ``Logger.runbot``.
+
+    ≙ ``odoo19c: odoo/netsvc.py:339-341,365-367``, donde las cinco líneas se
+    ejecutan al importar el módulo. Aquí van en una función **idempotente** que
+    su consumidor llama explícitamente: un import cuyo único efecto es un
+    side-effect no se distingue de un import muerto, y el gate de imports no
+    puede protegerlo.
+
+    El sitio es ``tools/logging_handlers.py`` y no ``src/netsvc.py`` por la
+    misma razón que ``DatabaseLogHandler`` (ver el docstring del módulo): éste
+    es el hogar declarado de las piezas de logging de ``netsvc`` en este árbol,
+    y la divergencia de sitio ya está registrada en :ref:`h-api-855`.
+    """
+    logging.RUNBOT = RUNBOT
+    logging.addLevelName(RUNBOT, "RUNBOT")
+    # Se muestra como INFO en el log, igual que en la referencia.
+    logging._levelToName[RUNBOT] = "INFO"
+
+    def runbot(self, message, *args, **kws):
+        self.log(RUNBOT, message, *args, **kws)
+
+    logging.Logger.runbot = runbot
+
 
 class DatabaseLogHandler(logging.Handler):
     """Persiste cada record a ``IrLogging``. Ver docstring del modulo."""
