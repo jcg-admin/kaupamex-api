@@ -151,8 +151,21 @@ class TestTheReportDeclaresWhatItMeasuredAndWhatItCannotSee:
 
     def test_the_scope_carries_the_denominator(self, index):
         flow = reference_flow.flow_of('convert_to_column', index)
-        assert flow.scope.files_scanned == len(index)
-        assert flow.scope.pairs_compared == len(flow.declarations)
+        assert flow.scope.files_parsed == len(index)
+        assert flow.scope.declarations == len(flow.declarations)
+
+    def test_the_universe_is_not_the_files_that_survived_the_prefilter(self):
+        # Publicar una sola cifra confundiria "cuanto se midio" con "de
+        # cuantos se leyo el AST" — el sub-patron A, un encabezado unico
+        # sobre dos metricas. Con prefiltro las dos son distintas.
+        roots = reference_flow.resolve_roots(('odoo/tools',))
+        files = reference_flow.universe_files(roots)
+        narrow = reference_flow.index_files(
+            reference_flow.files_naming(files, ('frozendict',)))
+        flow = reference_flow.flow_of(
+            'frozendict', narrow, universe=len(files))
+        assert flow.scope.files_in_universe == len(files)
+        assert flow.scope.files_parsed < flow.scope.files_in_universe
 
     def test_every_unit_is_printed_even_when_empty(self, index, tree_root):
         # Una unidad ausente del informe se lee como "no aplica"; una vacia,
@@ -174,6 +187,55 @@ class TestTheReportDeclaresWhatItMeasuredAndWhatItCannotSee:
         out = capsys.readouterr().out
         assert 'alcance medido:' in out
         assert 'Ciega a:' in out
+
+
+class TestThePrefilterWidensTheScopeWithoutLosingEdges:
+    """El prefiltro es lo que hace medible el arbol entero.
+
+    Dos controles, y los dos pueden fallar: que no pierda aristas —si las
+    perdiera, el conjunto reducido daria menos llamadores que el completo— y
+    que el alcance ancho encuentre al consumidor que el estrecho no ve.
+    """
+
+    def test_the_prefilter_keeps_every_edge_the_full_index_finds(self, index):
+        # Control: si ``files_naming`` descartara un archivo con arista, el
+        # conjunto de llamadores encogeria. Se compara contra el indice
+        # completo de las mismas raices, que es el instrumento sin filtro.
+        roots = reference_flow.resolve_roots(ROOTS)
+        files = reference_flow.universe_files(roots)
+        narrow = reference_flow.index_files(
+            reference_flow.files_naming(files, ('convert_to_column',)))
+        completo = reference_flow.flow_of('convert_to_column', index)
+        filtrado = reference_flow.flow_of('convert_to_column', narrow)
+        assert {(s.path, s.lineno) for s in filtrado.callers} \
+            == {(s.path, s.lineno) for s in completo.callers}
+        assert len(narrow) < len(index)
+
+    def test_the_narrow_scope_publishes_a_zero_the_wide_scope_refutes(self):
+        # El episodio que motivo el prefiltro: con las tres raices de
+        # framework, ``parse_inline_template`` solo se ve llamado por su
+        # propio archivo; el consumidor de verdad vive en ``addons/mail``.
+        # Ese informe no decia "nadie mas lo llama" sino "el alcance no
+        # llega a quien lo llama".
+        estrechas = reference_flow.resolve_roots(
+            ('odoo/tools', 'odoo/orm', 'odoo/addons/base'))
+        estrecho = reference_flow.index_roots(
+            estrechas, names=('parse_inline_template',))
+        dentro = reference_flow.callers_of(
+            estrecho, 'parse_inline_template',
+            reference_flow.declarations_named(
+                estrecho, 'parse_inline_template'))
+        assert [s for s in dentro if 'mail_render_mixin' in s.path] == []
+        assert {pathlib.Path(s.path).name for s in dentro} \
+            == {'rendering_tools.py'}
+
+        anchas = reference_flow.resolve_roots(reference_flow.DEFAULT_ROOTS)
+        ancho = reference_flow.index_roots(
+            anchas, names=('parse_inline_template',))
+        sitios = reference_flow.callers_of(
+            ancho, 'parse_inline_template',
+            reference_flow.declarations_named(ancho, 'parse_inline_template'))
+        assert [s for s in sitios if 'mail_render_mixin' in s.path]
 
 
 class TestTheGuardCanFail:

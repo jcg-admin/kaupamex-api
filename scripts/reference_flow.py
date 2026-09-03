@@ -50,9 +50,14 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import counterpart_body  # noqa: E402 — el motor: rutas, AST y denominador
 import reference_roots  # noqa: E402 — la raiz se declara una vez (H-API-335)
 
-#: Las raices que se miden cuando nadie las declara. Son las tres que el porte
-#: del framework toca a diario; no son "el arbol", y el informe lo dice.
-DEFAULT_ROOTS = ('odoo/tools', 'odoo/orm', 'odoo/addons/base')
+#: Las raices que se miden cuando nadie las declara: **el arbol entero**.
+#: Fue ``('odoo/tools', 'odoo/orm', 'odoo/addons/base')`` hasta que el prefiltro
+#: de ``files_naming`` hizo barato medirlo todo. Un default estrecho publicaba
+#: ceros falsos —``parse_inline_template`` daba 0 llamadores con su consumidor
+#: real en ``addons/mail``— y un cero de un instrumento que no alcanza es peor
+#: que ninguna cifra. Acotar sigue siendo posible con ``--root``, y entonces el
+#: informe dice sobre cuantos archivos midio.
+DEFAULT_ROOTS = ('odoo', 'addons')
 
 #: Lo que el instrumento NO puede ver, declarado junto al resultado en vez de
 #: en un comentario que nadie lee (``metrica-decide-la-conclusion.md``).
@@ -80,6 +85,22 @@ class CallSite:
 
 
 @dataclasses.dataclass(frozen=True)
+class FlowScope:
+    """El denominador, con sus DOS cifras: no se colapsan en una.
+
+    ``files_in_universe`` es cuanto abarca la medicion; ``files_parsed``, de
+    cuantos se leyo el AST tras el prefiltro. Publicar solo la segunda diria
+    "alcance medido: 2 archivos" de un barrido que cubrio 8476 — un encabezado
+    unico sobre dos metricas distintas, que es el sub-patron A de
+    ``metrica-decide-la-conclusion.md``.
+    """
+
+    files_in_universe: int
+    files_parsed: int
+    declarations: int
+
+
+@dataclasses.dataclass(frozen=True)
 class Flow:
     """Las cinco unidades de lectura de un simbolo, con su alcance."""
 
@@ -88,7 +109,7 @@ class Flow:
     bases_declaring: tuple
     callers: tuple
     siblings: tuple
-    scope: counterpart_body.Scope
+    scope: FlowScope
 
 
 def resolve_roots(roots):
@@ -102,20 +123,64 @@ def resolve_roots(roots):
     return resolved
 
 
-def index_roots(roots):
-    """Un indice ``ruta -> (arbol, declaraciones)`` de las raices dadas.
+def universe_files(roots):
+    """Los ``.py`` de las raices, listados una vez. No parsea nada."""
+    return list(counterpart_body.tree_files(roots))
+
+
+def files_naming(files, names):
+    """Los archivos cuyo TEXTO menciona alguno de los nombres.
+
+    Es el prefiltro que hace viable medir el arbol entero, y esa viabilidad no
+    es comodidad: con las tres raices por defecto, ``parse_inline_template``
+    reporta **0 llamadores** — y su consumidor real vive en
+    ``addons/mail/models/mail_render_mixin.py``, fuera de ellas. Ese cero es
+    el verde que no discrimina: no distingue "nadie lo llama" de "el alcance
+    no alcanza a quien lo llama".
+
+    Un archivo que no escribe el nombre no puede declararlo, llamarlo ni
+    heredarlo, asi que parsear su AST no aporta arista. Leer bytes cuesta
+    ordenes de magnitud menos que ``ast.parse``: medido sobre los 8476
+    archivos ``.py`` de la referencia, 0.11 s de prefiltro y 0.01 s de AST
+    sobre los 2 candidatos.
+
+    Ciego a la llamada cuyo nombre se arma en ejecucion
+    (``getattr(obj, 'pre' + 'fijo')``) — la misma ceguera que ``BLIND_SPOTS``
+    ya declara para el despacho dinamico, no una nueva.
+    """
+    needles = [name.encode() for name in names]
+    found = []
+    for path in files:
+        try:
+            data = path.read_bytes()
+        except OSError:
+            continue
+        if any(needle in data for needle in needles):
+            found.append(path)
+    return found
+
+
+def index_files(files):
+    """Un indice ``ruta -> (arbol, declaraciones)`` de los archivos dados.
 
     Se parsea **una vez** por archivo: las cuatro unidades leen del mismo
-    indice. Con las raices por defecto son cientos de archivos, no cientos de
-    miles, y esa cota es la decision de rendimiento del modulo.
+    indice.
     """
     index = {}
-    for path in counterpart_body.tree_files(roots):
+    for path in files:
         tree = counterpart_body.parse_file(path)
         if tree is None:
             continue
         index[path] = (tree, counterpart_body.declarations_of(path, tree))
     return index
+
+
+def index_roots(roots, names=None):
+    """El indice de las raices; con ``names``, solo de los que los mencionan."""
+    files = universe_files(roots)
+    if names is not None:
+        files = files_naming(files, names)
+    return index_files(files)
 
 
 def declarations_named(index, symbol):
@@ -180,8 +245,13 @@ def siblings_of(index, symbol, origin=None):
                          and (origin is None or pathlib.Path(path) != origin)}))
 
 
-def flow_of(symbol, index, origin=None):
-    """Las cinco unidades del simbolo sobre el indice ya construido."""
+def flow_of(symbol, index, origin=None, universe=None):
+    """Las cinco unidades del simbolo sobre el indice ya construido.
+
+    ``universe`` es el tamano del alcance ANTES del prefiltro. Sin el, el
+    informe publicaria como denominador el numero de archivos que sobrevivieron
+    al filtro, que es la cifra equivocada.
+    """
     declared = declarations_named(index, symbol)
     return Flow(
         symbol=symbol,
@@ -189,10 +259,10 @@ def flow_of(symbol, index, origin=None):
         bases_declaring=bases_declaring(index, declared, symbol),
         callers=callers_of(index, symbol, declared),
         siblings=siblings_of(index, symbol, origin),
-        scope=counterpart_body.Scope(
-            files_scanned=len(index),
-            files_with_counterpart=len(index),
-            pairs_compared=len(declared)),
+        scope=FlowScope(
+            files_in_universe=len(index) if universe is None else universe,
+            files_parsed=len(index),
+            declarations=len(declared)),
     )
 
 
@@ -268,15 +338,31 @@ def main(argv=None):
     if not symbols:
         parser.error('se requiere --symbol o --file')
 
-    index = index_roots(roots)
+    symbols = list(dict.fromkeys(symbols))
+    files = universe_files(roots)
+    index = index_files(files_naming(files, symbols))
+
+    # Segunda pasada. Las bases solo se conocen tras leer las declaraciones, y
+    # el contrato que gobierna puede vivir en una base declarada en OTRO
+    # archivo, que el prefiltro del simbolo no trajo. Sin esta pasada la
+    # unidad 2 publicaria 0 bases cada vez que la base vive aparte.
+    bases = {base for symbol in symbols
+             for _, decl in declarations_named(index, symbol)
+             for base in decl.bases}
+    if bases:
+        index.update(index_files(
+            path for path in files_naming(files, sorted(bases))
+            if path not in index))
+
     origin = target if args.file else None
-    for symbol in dict.fromkeys(symbols):
-        print(render(flow_of(symbol, index, origin), tree_root))
-    print(f'\nreference_flow: {len(dict.fromkeys(symbols))} simbolo(s) '
-          f'(alcance medido: {len(index)} archivo(s) .py sobre '
+    for symbol in symbols:
+        print(render(flow_of(symbol, index, origin, len(files)), tree_root))
+    print(f'\nreference_flow: {len(symbols)} simbolo(s) '
+          f'(alcance medido: {len(files)} archivo(s) .py sobre '
           f'{len(roots)} raiz(ces): '
           + ', '.join(str(r.relative_to(tree_root)) if r.is_relative_to(
-              tree_root) else str(r) for r in roots) + ')')
+              tree_root) else str(r) for r in roots)
+          + f'; {len(index)} parseado(s) tras el prefiltro por nombre)')
     print('Ciega a: ' + '; '.join(BLIND_SPOTS) + '.')
     return 0
 
