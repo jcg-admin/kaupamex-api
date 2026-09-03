@@ -64,7 +64,7 @@ from psycopg.types.json import Jsonb
 
 from orm.environments import (env as get_environment, get_current_company,
                              get_transaction, sudo as elevate_privileges)
-from tools.misc import SENTINEL, OrderedSet, remove_accents
+from tools.misc import SENTINEL, OrderedSet, remove_accents, unique
 from tools.translate import _
 from orm import registry as orm_registry
 from orm.registry import (UNACCENT_ENABLED, Registry,
@@ -2888,6 +2888,90 @@ def _field_resolve_depends(self, registry_module):
 
 
 models.Field.resolve_depends = _field_resolve_depends
+
+
+def get_depends(self, model):
+    """Las dependencias del campo y las de contexto — ≙ ``Field.get_depends``
+    (``odoo19c: odoo/orm/fields.py:561-598``), *"Return the field's
+    dependencies and cache dependencies"*.
+
+    Es el **productor** del par que :func:`_field_resolve_depends` consume: aquel
+    expande cada nombre punteado a las tuplas de campos que lo recorren, y este
+    decide **cuales son esos nombres** a partir de lo que la clase declara. Sin
+    el, el mapa ``registry.field_depends`` se derivaba del atributo ``_depends``
+    en crudo y dos de las tres ramas de la fuente no existian: la de ``related``
+    y la del recorrido del MRO sobre la funcion de calculo.
+
+    Las tres ramas, en el orden en que la fuente las evalua:
+
+    1. ``_depends`` explicito — *"the parameter 'depends' has priority over
+       'depends' on compute"* (``:563``).
+    2. ``related`` — la dependencia **es** la ruta; el contexto sale de recorrer
+       la cadena punteada eslabon por eslabon, acumulando el de cada campo.
+    3. ``compute`` — el ``_depends`` de **todas** las funciones sobreescritas
+       (``resolve_mro``), no solo el de la mas derivada.
+
+    Dos divergencias de mecanismo, ambas declaradas:
+
+    - el modelo de cada eslabon lo da :func:`_comodel_of` —que lee el
+      ``related_model`` de Django y cae a ``comodel_name``— en vez del
+      ``model.env[nombre]`` de la fuente, porque aqui el registro es un modulo;
+    - el mapa de campos lo da :func:`~orm.utils.model_field_registry`, el cuerpo
+      de ``BaseModel._fields``, y no ``model._fields`` directo.
+
+    :param model: la clase de modelo que declara el campo.
+    :returns: el par ``(depends, depends_context)``.
+    """
+    if self._depends is not None:
+        # ``:563-565`` — lo declarado en el campo gana sobre lo del computo.
+        return self._depends, self._depends_context or ()
+
+    if self.related:
+        if self._depends_context is not None:
+            depends_context = self._depends_context
+        else:
+            depends_context = []
+            field_model = model
+            for field_name in self.related.split('.'):
+                if field_model is None:
+                    raise ValueError(
+                        f'{model.__name__}.{self.name}: la ruta related '
+                        f'{self.related!r} atraviesa un campo que no lleva a '
+                        f'ningun modelo')
+                field = model_field_registry(field_model)[field_name]
+                depends_context.extend(field.get_depends(field_model)[1])
+                field_model = _comodel_of(field, orm_registry)
+            depends_context = tuple(unique(depends_context))
+        return [self.related], depends_context
+
+    if not self.compute:
+        return (), self._depends_context or ()
+
+    # ``:588-591`` — el ``compute`` declarado por nombre recorre el MRO; el que
+    # ya es funcion se usa tal cual.
+    if isinstance(self.compute, str):
+        funcs = resolve_mro(model, self.compute, callable)
+    else:
+        funcs = [self.compute]
+
+    depends = []
+    depends_context = list(self._depends_context or ())
+    for func in funcs:
+        # DIVERGENCIA DE STACK: ``resolve_mro`` lee el ``__dict__`` de cada
+        # clase en crudo, asi que un computo declarado ``@staticmethod`` o
+        # ``@classmethod`` llega aqui como el DESCRIPTOR, no como la funcion —
+        # y el marcador que ``@api.depends`` puso vive en la funcion. La fuente
+        # no lo necesita porque sus computos son funciones llanas; aqui se
+        # desenvuelve, que es lo que ``getattr(model, compute)`` hacia gratis.
+        func = getattr(func, '__func__', func)
+        deps = getattr(func, '_depends', ())
+        depends.extend(deps(model) if callable(deps) else deps)
+        depends_context.extend(getattr(func, '_depends_context', ()))
+
+    return depends, depends_context
+
+
+models.Field.get_depends = get_depends
 
 
 # ═══════════════════════════════════════════════════════════════════════════

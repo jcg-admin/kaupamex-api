@@ -626,6 +626,10 @@ class _DerivedCollector:
     todo campo, tenga o no dependencias declaradas.
     """
 
+    #: Cual de los dos elementos del par de ``get_depends`` consume este
+    #: colector: 0 las dependencias, 1 las de contexto.
+    INDEX = 0
+
     def __init__(self, marker):
         self.marker = marker
         self._table = None
@@ -652,15 +656,37 @@ class _DerivedCollector:
             declared = declared(model)
         return tuple(declared)
 
+    def _declared_by_the_field(self, field, model):
+        """Lo que ``Field.get_depends`` produce, o ``None`` si no lo publica.
+
+        El productor es ``get_depends`` (``odoo19c: odoo/orm/fields.py:561``),
+        que decide las tres ramas —``_depends`` explicito, ``related`` y el
+        recorrido del MRO sobre la funcion de calculo—. Leer el atributo en
+        crudo, que es lo que este colector hacia, veia solo la primera y media:
+        el ``related`` no aportaba nada y del computo tomaba una sola funcion.
+
+        Devuelve ``None`` —y no la tupla vacia— cuando el campo no lleva el
+        metodo, para que el respaldo de :meth:`_build` distinga «el productor
+        dice que no hay» de «este objeto no es un campo nuestro». La relacion
+        inversa de Django entra por ahi: ``_meta.get_fields()`` la incluye y no
+        hereda de ``models.Field`` (tarea **#347**).
+        """
+        producer = getattr(field, 'get_depends', None)
+        if producer is None:
+            return None
+        return producer(model)[self.INDEX]
+
     def _build(self):
         table = {}
         for model in apps.get_models():
             for field in model._meta.get_fields():
-                declared = getattr(field, self.marker, None)
+                declared = self._declared_by_the_field(field, model)
                 if declared is None:
-                    compute = getattr(field, 'compute', None)
-                    method = getattr(model, compute, None) if compute else None
-                    declared = getattr(method, self.marker, None)
+                    declared = getattr(field, self.marker, None)
+                    if declared is None:
+                        compute = getattr(field, 'compute', None)
+                        method = getattr(model, compute, None) if compute else None
+                        declared = getattr(method, self.marker, None)
                 if declared:
                     table[field] = self._resolve(declared, model)
         return table
@@ -696,8 +722,19 @@ class _DerivedCollector:
 #: ≙ ``Registry.field_depends`` (``:252``).
 field_depends = _DerivedCollector('_depends')
 
+class _DerivedContextCollector(_DerivedCollector):
+    """El hermano de :class:`_DerivedCollector` para el segundo elemento.
+
+    ``get_depends`` devuelve el par entero; los dos colectores consumen el mismo
+    productor y se reparten por :attr:`INDEX`, en vez de derivar cada uno por su
+    cuenta y arriesgar que discrepen.
+    """
+
+    INDEX = 1
+
+
 #: ≙ ``Registry.field_depends_context`` (``:253``).
-field_depends_context = _DerivedCollector('_depends_context')
+field_depends_context = _DerivedContextCollector('_depends_context')
 
 
 class _MarkedMethodCollector:
