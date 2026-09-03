@@ -1,0 +1,21 @@
+medido 2026-09-03T19:49:24
+
+=== 1. linea base ===
+35 passed, 1 warning in 5.06s
+
+=== 2. guarda ANULADA: el prefijo comun no se calcula (level = 0 siempre) ===
+FAILED tests/unit/tools/test_speedscope.py::TestProcess::test_the_common_prefix_stays_open_between_entries
+1 failed, 34 passed, 1 warning in 4.93s
+
+=== 3. restaurada ===
+35 passed, 1 warning in 4.92s
+
+=== 4. guarda ANULADA: el signo del diferencial de memoria (diff = abs(diff)) ===
+sha256(16) antes: cfa6241b71956fcd
+FAILED tests/unit/tools/test_speedscope.py::TestAddMemoryOutput::test_only_the_positive_differences_add_weight
+FAILED tests/unit/tools/test_speedscope.py::TestAddMemoryOutput::test_a_monotonically_decreasing_series_adds_no_output
+2 failed, 33 passed, 1 warning in 5.09s
+
+=== 5. restaurada — el archivo vuelve byte a byte ===
+sha256(16) despues: cfa6241b71956fcd  (coincide: si)
+35 passed, 1 warning in 5.33s
