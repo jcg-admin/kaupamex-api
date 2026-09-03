@@ -109,9 +109,21 @@ class AccountAccount(models.Model):
     note           = fields.Text(
         blank=True, default='', help_text='Notas internas (Odoo note).',
     )
+    #: ≙ ``tag_ids`` (``odoo19c: account_account.py:104-112``), que la fuente
+    #: declara ``compute='_compute_account_tags', readonly=False, store=True,
+    #: precompute=True``.
+    #:
+    #: Los tres primeros se portan verbatim. El cuarto **no se puede**: una
+    #: tabla intermedia necesita el ``pk`` de una fila que antes del ``INSERT``
+    #: no existe. La fuente no tiene el problema porque su ORM asigna el id
+    #: antes de ejecutar la cola de recálculo. El motor lo apaga con su aviso
+    #: (``orm/fields_nonstored.py:_apply_precompute_block``) en vez de
+    #: aceptarlo en silencio, así que declararlo aquí sería declarar algo que
+    #: no ocurre. Sucesor del adelanto: tarea **#312**.
     tags           = fields.Many2many(
         'account.AccountAccountTag', blank=True, related_name='accounts',
         db_table='account_account_account_tag',
+        compute='_compute_account_tags', store=True, readonly=False,
         help_text='Etiquetas de reporte de la cuenta (Odoo tag_ids). Una '
                   'cuenta sin etiqueta propia hereda las de la cuenta de '
                   'código inmediatamente anterior.',

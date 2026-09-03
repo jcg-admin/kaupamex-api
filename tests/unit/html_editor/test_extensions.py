@@ -268,3 +268,61 @@ class TestTheViewLearnedToSaveWhatWasEdited:
         assert he_view._hasclass('oe_structure') == (
             "contains(concat(' ', normalize-space(@class), ' '), "
             "' oe_structure ')")
+
+
+class TestTheConverterChainCombinesInsteadOfReplacing:
+    """``attributes`` de un conversor derivado FUNDE lo del eslabon base.
+
+    La fuente abre cada uno de los ocho con
+    ``attrs = super().attributes(...)`` — el derivado anade a lo que la clase
+    base ya puso. Aqui el idioma de extension es ``chain_method``, cuyo relevo
+    por defecto sólo invoca al eslabon previo si el nuevo devolvio ``None``; y
+    un diccionario vacio **no** es ``None``. Sin ``combine=merge_dict`` lo que
+    aporta la base se descarta en silencio, y ningun gate estatico lo ve.
+
+    El control esta medido con la guarda anulada
+    (``scripts/evidence/control_303_combine_merge.py``): con ``combine=`` la
+    llamada devuelve ``['placeholder']``; sin el, ``[]``.
+    """
+
+    @pytest.fixture
+    def partner(self):
+        Partner = apps.get_model('base', 'ResPartner')
+        return Partner(name='cadena de conversores')
+
+    def test_the_derived_converter_keeps_what_the_base_link_contributes(
+            self, partner):
+        """El ``placeholder`` lo pone el eslabon base; el derivado no lo toca.
+
+        Es lo que cae al retirar ``combine=``: el derivado empieza con
+        ``attrs = {}`` y su diccionario vacio gana al del eslabon previo.
+        """
+        attrs = converters.IrFieldConverterMany2one.attributes(
+            partner, 'parent', {'placeholder': 'nombre del padre'}, None)
+        assert attrs['placeholder'] == 'nombre del padre'
+
+    def test_the_derived_converter_still_contributes_its_own(self, partner):
+        """El control que separa «funde» de «sólo corre la base».
+
+        Sin este caso, un ``combine`` que descartara al eslabon nuevo pasaria
+        el de arriba sin distinguirse.
+        """
+        attrs = converters.IrFieldConverterMany2one.attributes(
+            partner, 'parent',
+            {'placeholder': 'nombre del padre', 'inherit_branding': True,
+             'null_text': 'sin padre'},
+            None)
+        assert attrs['placeholder'] == 'nombre del padre'
+        assert attrs['data-oe-many2one-allowreset'] == 1
+        assert 'data-oe-many2one-domain' in attrs
+
+    def test_a_converter_without_a_previous_link_is_unaffected(self, partner):
+        """El eslabon base no tiene previo: su ``combine=`` no cambia nada.
+
+        ``IrFieldConverter.attributes`` es el PRIMER eslabon —``base`` no
+        declara ``attributes``— asi que aqui ``combine=merge_dict`` no puede
+        fundir con nada. El caso fija que eso no lo rompe.
+        """
+        attrs = converters.IrFieldConverter.attributes(
+            partner, 'parent', {'placeholder': 'nombre del padre'}, None)
+        assert attrs == {'placeholder': 'nombre del padre'}

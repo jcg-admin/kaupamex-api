@@ -116,7 +116,7 @@ SALESPERSON_GROUP = 'sales_team.group_sale_salesman'
 #: Centinela: la instancia no se cargó de la base, así que no hay valor
 #: anterior de ``company`` contra el cual comparar. Distinto de ``None``, que
 #: sí es un valor legítimo (orden sin empresa).
-_EMPRESA_NO_CARGADA = object()
+_COMPANY_NOT_LOADED = object()
 
 
 def _compute_is_expired_default(order) -> bool:
@@ -431,10 +431,12 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         help_text='Empresa dueña de la orden (Odoo company_id). NULL pre-backfill.',
     )
     # Vigencia de la cotización (Odoo sale.order.validity_date, tarea #256).
-    # ``store=True, compute='_compute_validity_date'`` en la referencia; aquí
-    # se calcula en ``save()`` (ver el override abajo, junto a
-    # ``_compute_validity_date``) porque el insumo es ``company`` — un campo
-    # del propio ``SaleOrder``, no de ``order_line`` como ``amount_*``.
+    # ``store=True, compute='_compute_validity_date', precompute=True`` en la
+    # referencia, y aquí igual: el adelanto al INSERT lo corre el motor
+    # (``orm/models.py::_add_precomputed_values``, tarea #312) y el recálculo
+    # por cambio de empresa lo dispara ``save()`` (ver el override abajo)
+    # porque el insumo es ``company`` — un campo del propio ``SaleOrder``, no
+    # de ``order_line`` como ``amount_*``.
     validity_date = fields.Date(
         null=True, blank=True,
         help_text='Vigencia de la cotización (Odoo validity_date, '
@@ -858,7 +860,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     #: Empresa con la que se cargó la fila — lo puebla ``from_db``. Es el
     #: sustituto del grafo de dependencias que la referencia sí tiene: sin él,
     #: ``save()`` no puede saber si ``company`` cambió.
-    _loaded_company_id = _EMPRESA_NO_CARGADA
+    _loaded_company_id = _COMPANY_NOT_LOADED
 
     objects = models.AccessManager()         # cross-company (L0 admin)
     scoped = RuleScopedManager()             # L3: record rules (ir_rule)
@@ -1010,40 +1012,44 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         return order
 
     def save(self, *args, **kwargs):
-        """Calcula ``validity_date`` antes de persistir (tarea #256).
+        """Recalcula ``validity_date`` cuando cambia la empresa.
 
-        Mismo patrón de disparo que ``res_country.save()`` (precedente tras
-        ``__str__``): en la referencia ``@api.depends('company_id')`` dispara
-        ``_compute_validity_date`` automáticamente; aquí ``@api.depends`` es
-        **inerte** (``orm/decorators.py:23-27`` sólo anota ``_depends``, no hay
-        motor de recompute — tarea #191), así que el único disparo real es este
-        ``save()``.
-
-        Reproduce **los dos** disparos de la referencia, que no son uno:
+        La referencia declara el campo ``compute='_compute_validity_date',
+        store=True, readonly=False, precompute=True``
+        (``odoo19c: sale/models/sale_order.py:135``), y eso son **dos**
+        disparos distintos, no uno:
 
         1. ``precompute=True`` — al **crear**, y sólo si quien llama no dio
-           valor. Medido en ``odoo19c: odoo/orm/models.py:4841``
-           (``_add_precomputed_values``): ``if fname not in vals:`` — un
-           ``validity_date`` explícito en ``create()`` **sobrevive**, no lo
-           pisa el cómputo.
+           valor. Ese disparo ya NO vive aquí: lo corre el motor en
+           ``orm/models.py::_add_precomputed_values``, enganchado a
+           ``pre_save`` antes del INSERT (tarea #312).
         2. ``@api.depends('company_id')`` — al **cambiar la empresa**, no en
            cada escritura. Recalcular siempre convertiría un campo editable
            (``readonly=False``) en uno que el usuario no puede fijar.
 
-        Fuera de esos dos casos no toca el valor. ``update_fields`` se respeta:
-        si el cómputo corre en un ``save`` parcial, ``validity_date`` se añade
-        a la lista para que llegue a la base — calcularlo sin persistirlo
-        dejaría la instancia divergiendo de la fila en silencio.
+        Este ``save()`` conserva **sólo el segundo**, y por eso sigue
+        haciendo falta: ``@api.depends`` anota la dependencia pero el
+        recálculo por escritura lo dispara ``write()``, no un ``save()``
+        directo del ORM de Django.
+
+        La rama de creación que tenía divergía de su propia cita: usaba
+        ``if self.validity_date is None`` donde la fuente dice
+        ``if fname not in vals`` (``odoo19c: odoo/orm/models.py:4841``), así
+        que un ``validity_date=None`` explícito quedaba pisado por el cómputo.
+        El motor sí distingue las dos cosas — mira lo que el llamador nombró
+        al construir la fila, no el valor que resultó.
+
+        ``update_fields`` se respeta: si el cómputo corre en un ``save``
+        parcial, ``validity_date`` se añade a la lista para que llegue a la
+        base — calcularlo sin persistirlo dejaría la instancia divergiendo de
+        la fila en silencio.
         """
         update_fields = kwargs.get('update_fields')
-        cambio_empresa = (
-            self._loaded_company_id is not _EMPRESA_NO_CARGADA
+        company_changed = (
+            self._loaded_company_id is not _COMPANY_NOT_LOADED
             and self._loaded_company_id != self.company_id
         )
-        if self._state.adding:
-            if self.validity_date is None:
-                self._compute_validity_date()
-        elif cambio_empresa:
+        if company_changed:
             self._compute_validity_date()
             if update_fields is not None and 'validity_date' not in update_fields:
                 kwargs['update_fields'] = [*update_fields, 'validity_date']

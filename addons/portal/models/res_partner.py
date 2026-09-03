@@ -41,15 +41,16 @@ API pública** (``porte-completo-no-parcial.md``, H-API-581). Hasta este pase la
 función de módulo se llamaba ``can_edit_country``; sus dos consumidores
 (``portal/controllers/main.py``) pasan a invocar el método.
 
-La entidad comercial la resuelve ``ResPartner.commercial_partner``
-=================================================================
+La entidad comercial la resuelve ``ResPartner.commercial_partner_id``
+====================================================================
 
 Este archivo declaraba un ``_commercial_partner`` propio que subía por la
 cadena de padres hasta el que no tuviera ``parent_id``. **No es el corte de la
 fuente**: ``commercial_partner_id`` corta en ``is_company or not parent_id``
-(``src/addons/base/models/res_partner.py:1422``), así que una empresa hija era
-la entidad comercial allá y no aquí. Se retira el ayudante y se consulta la
-``property`` ya portada, que es el símbolo con la semántica correcta.
+(``src/addons/base/models/res_partner.py:1505``), así que una empresa hija era
+la entidad comercial allá y no aquí. Se retira el ayudante y se consulta el
+campo ya portado, que es el símbolo con la semántica correcta — columna desde
+#314, ``property`` antes.
 """
 from orm.model_classes import extend_model
 
@@ -109,7 +110,7 @@ def can_be_edited_by(partner, user):
         return True
     return (
         partner.type in ('invoice', 'delivery', 'other')
-        and _is_child_of(partner, current.commercial_partner)
+        and _is_child_of(partner, current.commercial_partner_id)
     )
 
 

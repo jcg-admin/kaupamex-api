@@ -333,7 +333,7 @@ def can_edit_vat(self, previous):
     """
     if not previous():
         return False
-    commercial = self.commercial_partner
+    commercial = self.commercial_partner_id
     return not _has_order(
         self, Q(partner__partner_id__in=_descendant_ids(commercial)))
 

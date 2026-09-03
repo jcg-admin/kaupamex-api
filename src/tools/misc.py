@@ -501,6 +501,41 @@ def has_list_types(values, types):
     )
 
 
+def freehash(arg: typing.Any) -> int:
+    """≙ ``freehash`` (``odoo19c: odoo/tools/misc.py:940-949``).
+
+    Hash de cualquier objeto, incluidos los que no lo admiten. El nombre lo
+    dice: *hash libre* de la exigencia de que el argumento sea hashable.
+
+    La cascada de la fuente, verbatim: primero ``hash`` normal; si lanza, un
+    ``Mapping`` se congela en un :class:`frozendict` y se hashea; un
+    ``Iterable`` se hashea por el ``frozenset`` de los hashes libres de sus
+    elementos; y lo que no es ninguna de las dos cae en ``id(arg)``.
+
+    Esa última rama es la que hace que la función **nunca** lance, y también
+    la que la vuelve inconsistente entre procesos: dos objetos iguales pero
+    distintos dan hashes distintos. Es intencional — su único consumidor es
+    :meth:`frozendict.__hash__`, que necesita un entero por valor para poder
+    ser clave, no una identidad estable en disco.
+
+    ``functools.reduce`` y ``hash`` del stdlib no lo resuelven: el stdlib
+    lanza ``TypeError`` ante una lista o un dict, que es precisamente el caso
+    que esta función existe para cubrir.
+
+    :param arg: cualquier objeto, hashable o no.
+    :returns: un entero; ``id(arg)`` cuando no hay otra forma de derivarlo.
+    """
+    try:
+        return hash(arg)
+    except Exception:
+        if isinstance(arg, Mapping):
+            return hash(frozendict(arg))
+        elif isinstance(arg, Iterable):
+            return hash(frozenset(freehash(item) for item in arg))
+        else:
+            return id(arg)
+
+
 def clean_context(context: dict) -> dict:
     """≙ ``clean_context`` (``odoo19c: odoo/tools/misc.py:952-956``).
 
@@ -519,6 +554,56 @@ def clean_context(context: dict) -> dict:
     :returns: copia sin las claves ``default_*``.
     """
     return {k: v for k, v in context.items() if not k.startswith('default_')}
+
+
+class frozendict(dict[K, T], typing.Generic[K, T]):
+    """Diccionario inmutable y **hashable** — ≙ ``frozendict`` (``misc.py:959-985``).
+
+    Hereda de ``dict`` y anula los siete mutadores con
+    ``NotImplementedError``. Su contraparte estricta es
+    :class:`ReadonlyDict`, y la frontera entre las dos ya está declarada en el
+    docstring de aquélla: ``frozendict`` cede ante ``dict.update(d, ...)``
+    —que salta el método de instancia y llega al de ``dict``— y a cambio
+    ``json.dumps`` lo serializa de serie, porque para el codificador es un
+    ``dict``.
+
+    Lo que ``ReadonlyDict`` **no** tiene y aquí es el motivo del porte:
+    ``__hash__``. Un ``frozendict`` sirve de clave, y ése es su consumidor —
+    ``Transaction.field_cache_memo`` en ``orm.environments`` indexa por el
+    contexto del campo, que es un mapa.
+
+    ``types.MappingProxyType`` tampoco lo sustituye, por la misma razón que
+    en :class:`ReadonlyDict`: es una vista sobre el original, no una copia, y
+    además no es hashable.
+
+    :param K: tipo de la clave.
+    :param T: tipo del valor.
+    """
+    __slots__ = ()
+
+    def __delitem__(self, key):
+        raise NotImplementedError("'__delitem__' not supported on frozendict")
+
+    def __setitem__(self, key, val):
+        raise NotImplementedError("'__setitem__' not supported on frozendict")
+
+    def clear(self):
+        raise NotImplementedError("'clear' not supported on frozendict")
+
+    def pop(self, key, default=None):
+        raise NotImplementedError("'pop' not supported on frozendict")
+
+    def popitem(self):
+        raise NotImplementedError("'popitem' not supported on frozendict")
+
+    def setdefault(self, key, default=None):
+        raise NotImplementedError("'setdefault' not supported on frozendict")
+
+    def update(self, *args, **kwargs):
+        raise NotImplementedError("'update' not supported on frozendict")
+
+    def __hash__(self) -> int:  # type: ignore[override]
+        return hash(frozenset((key, freehash(val)) for key, val in self.items()))
 
 
 class Collector(dict):
@@ -707,6 +792,27 @@ def groupby(iterable: Iterable[T], key: Callable[[T], K] = lambda arg: arg):
     for elem in iterable:
         groups[key(elem)].append(elem)
     return groups.items()
+
+
+def unique(it: Iterable[T]) -> Iterator[T]:
+    """≙ ``unique`` (``odoo19c: odoo/tools/misc.py:1213-1224``).
+
+    «"Uniquifier" for the provided iterable: will output each element of the
+    iterable once.» Los elementos deben ser hashables.
+
+    Se porta en vez de resolverlo con ``dict.fromkeys`` porque los dos
+    difieren en lo que importa a su consumidor: ``unique`` es un **generador
+    perezoso** —emite el primer elemento sin haber recorrido el resto— y
+    ``list(dict.fromkeys(it))`` materializa la secuencia entera antes de
+    devolver nada. ``_RelationalMulti._update_cache`` lo consume mientras
+    drena los parches pendientes de la transacción, así que la pereza no es
+    cosmética: la lista intermedia se construiría en cada escritura.
+    """
+    seen = set()
+    for e in it:
+        if e not in seen:
+            seen.add(e)
+            yield e
 
 
 def named_to_positional_printf(string, args):

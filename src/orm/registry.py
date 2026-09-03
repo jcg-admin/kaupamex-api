@@ -52,9 +52,11 @@ from django.apps import apps
 from django.db import connections
 from django.db.models.signals import class_prepared
 from django.dispatch import receiver
+from psycopg import sql as pg_sql
 
 from tools.lru import LRU
 from tools.misc import Collector, OrderedSet
+from tools.sql import SQL
 
 _logger = logging.getLogger('kaupamex.registry')
 
@@ -66,6 +68,7 @@ __all__ = [
     'clear_cache', 'clear_all_caches', 'cache_of', 'cache_invalidated',
     'many2one_company_dependents', 'loaded_xmlids',
     'not_null_fields', 'is_not_null',
+    '_unaccent',
 ]
 
 #: ≙ ``Registry.loaded_xmlids`` — los identificadores externos que el cargador
@@ -112,6 +115,40 @@ _CACHES = {name: LRU(size) for name, size in _REGISTRY_CACHES.items()}
 #: Nombres de caché vaciados desde el último ciclo, ≙ ``Registry.cache_invalidated``
 #: (``odoo19c: odoo/orm/registry.py:238``). Lo consume la señal entre procesos.
 cache_invalidated = set()
+
+
+def _unaccent(x):
+    """Envuelve ``x`` en la llamada SQL ``unaccent(...)``, repartiendo por tipo.
+
+    ≙ ``_unaccent`` (``odoo19c: odoo/orm/registry.py:76-81``). La fuente lo
+    asigna a ``Registry.unaccent`` cuando la extension esta instalada
+    (``:289``) y la identidad cuando no; sus consumidores alla son el indice
+    trigram (``:862-864``) y el compilador de ``ilike`` de ``osv/expression``
+    (``:449``).
+
+    **Divergencia de mecanismo, no de contrato.** La fuente tipa la tercera
+    rama con ``psycopg2.sql.Composable``; este arbol corre **psycopg 3**
+    (medido: ``psycopg.__version__`` == ``3.3.4``), cuyo homonimo vive en
+    ``psycopg.sql``. Es la misma clase con el mismo nombre en otro paquete,
+    asi que la rama se conserva entera apuntada al paquete que este stack
+    instala — no se recorta.
+
+    Las tres ramas devuelven tres tipos distintos, igual que la fuente: un
+    ``SQL`` compuesto, un ``psycopg.sql.Composed``, y la interpolacion de
+    cadena para el resto.
+
+    **Quien lo cablea.** El equivalente de ``Registry.unaccent`` —el
+    despachador que elige entre esto y la identidad segun
+    :func:`modules.db.has_unaccent`— espera a que la extension exista: hoy
+    ``pg_extension`` declara ``pg_trgm`` y ``plpgsql``, nada mas, y por eso
+    ``orm.fields.UNACCENT_ENABLED`` es ``False``. Instalarla y encender las
+    dos vias de compilacion a la vez es la tarea **#98**.
+    """
+    if isinstance(x, SQL):
+        return SQL("unaccent(%s)", x)
+    if isinstance(x, pg_sql.Composable):
+        return pg_sql.SQL('unaccent({})').format(x)
+    return f'unaccent({x})'
 
 
 def cache_of(cache_name):
@@ -468,6 +505,28 @@ class _DerivedCollector:
         self.marker = marker
         self._table = None
 
+    @staticmethod
+    def _resolve(declared, model):
+        """La tupla de lo declarado, resolviendo la forma invocable.
+
+        ``@api.depends`` y ``@api.constrains`` admiten **un solo argumento
+        invocable** en vez de nombres (``odoo19c: odoo/orm/decorators.py:265``
+        — *"One may also pass a single function as argument. In that case, the
+        dependencies are given by calling the function with the field's
+        model"*). La fuente lo resuelve al leerlo, en
+        ``odoo19c: odoo/orm/fields.py:595``::
+
+            depends.extend(deps(model) if callable(deps) else deps)
+
+        Aquí el lector es este colector, así que la resolución vive aquí. Sin
+        ella un ``_depends`` invocable reventaba con ``TypeError`` al pasar por
+        ``tuple()`` — la forma existía en el decorador y no tenía quien la
+        leyera.
+        """
+        if callable(declared):
+            declared = declared(model)
+        return tuple(declared)
+
     def _build(self):
         table = {}
         for model in apps.get_models():
@@ -478,7 +537,7 @@ class _DerivedCollector:
                     method = getattr(model, compute, None) if compute else None
                     declared = getattr(method, self.marker, None)
                 if declared:
-                    table[field] = tuple(declared)
+                    table[field] = self._resolve(declared, model)
         return table
 
     def __getitem__(self, field):

@@ -57,8 +57,8 @@ import sys as _s, os.path as _op
 _s.path.insert(0, _op.dirname(_op.abspath(__file__)))
 from reference_roots import TOOLS_ROOT as _TOOLS_ROOT, tree as _tree
 
-ODOO19C = str(_tree('odoo19c') / 'addons')
-ODOO_TOOLS = str(_TOOLS_ROOT)
+REFERENCE_19C = str(_tree('odoo19c') / 'addons')
+REFERENCE_TOOLS = str(_TOOLS_ROOT)
 
 # SOSPECHA de absorción con otro nombre. **NO se descuenta del conteo de
 # huecos** — la absorción es un VEREDICTO que se emite con evidencia, no una
@@ -100,7 +100,7 @@ RE_DEF = re.compile(r'^\s*def \w+', re.M)
 def commit_referencia():
     """El commit de odoo-tools sobre el que se midio — se anota, no se supone."""
     try:
-        out = subprocess.run(['git', '-C', ODOO_TOOLS, 'log', '-1', '--format=%H'],
+        out = subprocess.run(['git', '-C', REFERENCE_TOOLS, 'log', '-1', '--format=%H'],
                              capture_output=True, text=True, timeout=10)
         return out.stdout.strip()[:8] or '<desconocido>'
     except Exception:
@@ -295,7 +295,7 @@ def orden_topologico(nodos, depends):
 
 
 def construir():
-    ref = addons_de(ODOO19C)
+    ref = addons_de(REFERENCE_19C)
     nuestros = nuestros_addons()
     depends, malos = {}, {}
     for nombre, man in ref.items():
@@ -315,7 +315,7 @@ def construir():
     # Grafo 2 — co-tenencia sin dependencia, restringida a lo que ya tenemos
     por_modelo = defaultdict(set)
     for a in portados_en_ref:
-        decl, ext = modelos_de_addon(ODOO19C, a)
+        decl, ext = modelos_de_addon(REFERENCE_19C, a)
         for m in decl | ext:
             por_modelo[m].add(a)
     cotenencia = []
@@ -336,7 +336,7 @@ def construir():
     clases = clases_nuestras()
     usados = set()
     for a in portados_en_ref:
-        usados |= modelos_referenciados(ODOO19C, a)
+        usados |= modelos_referenciados(REFERENCE_19C, a)
     mecanismos = sorted(m for m in usados if not (nombres_de_clase(m) & clases))
 
     # Grafo 4 — cobertura de lo que YA está presente. Los grafos 1-3 asumen que un
@@ -345,7 +345,7 @@ def construir():
     for a in portados_en_ref:
         _d = addon_path(a)
         mio = cuenta_defs(str(_d.parent), a) if _d else 0
-        suyo = cuenta_defs(ODOO19C, a)
+        suyo = cuenta_defs(REFERENCE_19C, a)
         masa.append({'addon': a, 'nuestros': mio, 'referencia': suyo,
                      'ratio': (mio / suyo) if suyo else None})
     masa.sort(key=lambda x: (x['ratio'] is None, x['ratio']))
@@ -462,8 +462,8 @@ def main():
     p.add_argument('--json', action='store_true', help='salida JSON')
     args = p.parse_args()
 
-    if not os.path.isdir(ODOO19C):
-        print(f'ERROR: la referencia no está montada en {ODOO19C}', file=sys.stderr)
+    if not os.path.isdir(REFERENCE_19C):
+        print(f'ERROR: la referencia no está montada en {REFERENCE_19C}', file=sys.stderr)
         print('El mapa NO se emite sin árbol — un cero aquí no sería un cero real.',
               file=sys.stderr)
         return 2

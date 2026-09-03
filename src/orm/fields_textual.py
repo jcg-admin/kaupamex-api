@@ -52,6 +52,8 @@ Dos invariantes deliberados:
 El **saneo NO va en el campo** — sigue en la capa UI (``dompurify``), igual que
 antes; la clase sólo aporta el tipo.
 """
+import collections.abc
+
 from django.db import models
 
 from orm.fields_company_dependent import CompanyDependent, make_dispatcher
@@ -62,8 +64,9 @@ from orm.fields_nonstored import (
     apply_source_defaults,
     projection_or_none,
 )
+from tools.misc import SENTINEL
 
-__all__ = ['Char', 'Text', 'Html']
+__all__ = ['Char', 'Text', 'Html', 'LangProxyDict']
 
 Text = make_dispatcher('Text', 'text', models.TextField)
 
@@ -118,8 +121,8 @@ class Html(models.TextField):
 
 
 def Char(*args, store=_UNSET, required=None, translate=None, help=None,
-         company_dependent=False, related=None, **kwargs):
-    """``fields.Char`` — ≙ el de la referencia, con y sin columna.
+         size=None, company_dependent=False, related=None, **kwargs):
+    r"""``fields.Char`` — ≙ el de la referencia, con y sin columna.
 
     ``store=True`` (el defecto, y el de los 432 usos del árbol) devuelve un
     ``models.CharField`` con la firma de Django, exactamente como antes.
@@ -142,8 +145,18 @@ def Char(*args, store=_UNSET, required=None, translate=None, help=None,
     ==============  =====================================================
     ``required=``   ``blank=False``/``blank=True`` — el vacío de formulario
     ``help=``       ``help_text=``
+    ``size=``       ``max_length=`` — la longitud de la columna ``varchar``
     ``translate=``  se **anota** en el campo; ver el aviso de abajo
     ==============  =====================================================
+
+    ``size=`` es el cuarto alias, y no es cosmético: la referencia lo declara
+    en **33** sitios (medido con ``grep -rhoP 'fields\.Char\([^)]*size\s*='``
+    sobre ``odoo19c: addons`` y ``odoo``), y sin él cada uno de esos portes
+    revienta con ``TypeError`` al construir el campo. Es el mismo nombre que
+    ``_char_column_type`` ya traduce en el otro sentido
+    (``orm/fields.py:1332``): allá ``('varchar', pg_varchar(self.size))``, aquí
+    ``pg_varchar(self.max_length)``. Declararlo en la firma cierra el viaje de
+    ida, que era el que faltaba.
 
     El primer argumento posicional ya coincidía: es ``verbose_name`` en Django
     y la etiqueta en la referencia.
@@ -154,10 +167,11 @@ def Char(*args, store=_UNSET, required=None, translate=None, help=None,
        ``{lang: valor}`` y resuelve el idioma en el ORM
        (``odoo19c: odoo/orm/fields_textual.py:53`` — ``if self.store and
        self.translate``; ``:66`` — ``column['udt_name'] == 'jsonb'``). Aquí la
-       bandera **se conserva en el campo** (``field.odoo_translate``) para que
-       la declaración sea fiel y greppeable, pero el almacenamiento por idioma
-       no está construido: hoy la columna sigue siendo ``varchar`` y guarda un
-       solo idioma.
+       bandera **se conserva en el campo** (``field.translate``, el mismo
+       nombre que la fuente le da en ``odoo19c: odoo/orm/fields.py:288``) para
+       que la declaración sea fiel y greppeable, pero el almacenamiento por
+       idioma no está construido: hoy la columna sigue siendo ``varchar`` y
+       guarda un solo idioma.
 
        Anotarla en vez de aceptarla y tirarla es deliberado: un ``**kwargs``
        que se traga la bandera deja el árbol sin forma de medir cuántos campos
@@ -192,6 +206,8 @@ def Char(*args, store=_UNSET, required=None, translate=None, help=None,
     #: todo related habría salido con columna, y la forma de la gran mayoría
     #: se habría perdido: el reparto lo publica
     #: ``python3 scripts/census_related_fields.py``.
+    if size is not None:
+        kwargs['max_length'] = size
     if store is not _UNSET:
         kwargs['store'] = store
     related_attrs = apply_source_defaults(related, kwargs)
@@ -215,5 +231,114 @@ def Char(*args, store=_UNSET, required=None, translate=None, help=None,
         campo = models.CharField(*args, **kwargs)
     else:
         campo = NonStored(*args, **kwargs)
-    campo.odoo_translate = bool(translate)
+    campo.translate = bool(translate)
     return annotate_related(campo, related, related_attrs)
+
+
+class LangProxyDict(collections.abc.MutableMapping):
+    """Una vista de un idioma sobre la caché de un campo traducible.
+
+    ≙ ``LangProxyDict`` (``odoo19c: odoo/orm/fields_textual.py:706-777``).
+    Docstring de la fuente: *"A view on a dict[id, dict[lang, value]] that maps
+    id to value given a fixed language."*
+
+    El almacén real es ``{id: {idioma: valor}}``; esta clase lo presenta como
+    ``{id: valor}`` para un idioma fijo, así que el resto del ORM lee y escribe
+    la caché de un campo traducible sin saber que hay un nivel más.
+
+    La regla de respaldo, que es su única lógica
+    =============================================
+
+    Cuando el valor **no está en base ni se calcula** —campo sin columna, o
+    registro nuevo sin origen— el idioma pedido puede no existir en el mapa, y
+    la fuente cae a ``en_US``. Cuando **sí** está en base, no cae: pedir un
+    idioma ausente es un ``KeyError``, porque ahí el respaldo lo resuelve la
+    consulta y no la caché.
+
+    La fuente escribe esa condición **tres veces inline** —en :meth:`get`, en
+    :meth:`__getitem__` y en :meth:`__setitem__`—; aquí sale una vez a
+    :meth:`_falls_back`. Es la única diferencia de forma con la fuente, y la
+    pide ``calibration-verified-numbers.md``: tres copias de la misma regla son
+    tres fuentes de verdad que nadie sincroniza.
+
+    ``key or key.origin`` distingue el registro guardado del recién creado: un
+    id real es verdadero; un :class:`~orm.identifiers.NewId` sin origen es
+    falso y no tiene fila que consultar.
+
+    **Todavía no tiene consumidor en este árbol.** La columna ``jsonb`` por
+    idioma que la fuente usa para un campo ``translate=True`` no está
+    construida —hoy la columna es ``varchar`` y guarda un solo idioma, ver el
+    aviso de :func:`Char`—; construirla es la tarea **#333**, y el eje completo
+    de traducción del ORM la **#184**. La clase se porta entera contra su
+    contrato para que ese trabajo la encuentre hecha.
+    """
+
+    __slots__ = ('_cache', '_field', '_lang')
+
+    def __init__(self, field, cache, lang):
+        super().__init__()
+        self._field = field
+        self._cache = cache
+        self._lang = lang
+
+    def _falls_back(self, key):
+        """¿Cae a ``en_US`` este id? — la condición que la fuente repite tres
+        veces: el valor no se calcula y no está en base."""
+        return not (self._field.compute
+                    or (self._field.store and (key or key.origin)))
+
+    def get(self, key, default=None):
+        # sólo por rendimiento, como la fuente
+        vals = self._cache.get(key, SENTINEL)
+        if vals is SENTINEL:
+            return default
+        if vals is None:
+            return None
+        if self._falls_back(key):
+            return vals.get(self._lang, vals.get('en_US', default))
+        return vals.get(self._lang, default)
+
+    def __getitem__(self, key):
+        vals = self._cache[key]
+        if vals is None:
+            return None
+        if self._falls_back(key):
+            return vals.get(self._lang, vals.get('en_US'))
+        return vals[self._lang]
+
+    def __setitem__(self, key, value):
+        if value is None:
+            self._cache[key] = None
+            return
+        vals = self._cache.get(key)
+        if vals is None:
+            # el id no está en caché, o lo está como ``{id: None}``
+            self._cache[key] = vals = {self._lang: value}
+        else:
+            vals[self._lang] = value
+        if self._falls_back(key):
+            # sin fila que consultar, la caché tiene que llevar el valor de
+            # respaldo para los demás idiomas
+            vals.setdefault('en_US', value)
+
+    def __delitem__(self, key):
+        vals = self._cache.get(key)
+        if vals:
+            vals.pop(self._lang, None)
+
+    def __iter__(self):
+        for key, vals in self._cache.items():
+            if vals is None or self._lang in vals:
+                yield key
+
+    def __len__(self):
+        return sum(1 for _ in self)
+
+    def clear(self):
+        for vals in self._cache.values():
+            if vals:
+                vals.pop(self._lang, None)
+
+    def __repr__(self):
+        return (f"<LangProxyDict lang={self._lang!r} "
+                f"size={len(self._cache)} at {hex(id(self))}>")

@@ -366,7 +366,7 @@ def _apply_compute_block(declared, attrs):
     return attrs
 
 
-def _apply_precompute_block(declared, attrs):
+def _apply_precompute_block(declared, attrs, many_to_many=False):
     """≙ ``odoo19c: odoo/orm/fields.py:459-465`` — avisa y desactiva.
 
     ``precompute`` sólo tiene efecto sobre un calculado (o un related, que es
@@ -374,6 +374,15 @@ def _apply_precompute_block(declared, attrs):
     avisa y lo apaga; no lo acepta en silencio. El aviso no es decoración: sin
     él, un ``precompute=True`` sobre un campo sin cómputo se lee como que algo
     se adelanta, y no se adelanta nada.
+
+    **El tercer caso es nuestro, y es de stack** (#313). Un muchos-a-muchos no
+    se puede adelantar al ``INSERT`` porque su valor no vive en una columna de
+    la fila: vive en una tabla intermedia que necesita el ``pk`` para tener a
+    quién apuntar. La fuente no tiene el problema —su ORM asigna el id antes de
+    ejecutar la cola de recálculo— y por eso declara ``tag_ids`` con
+    ``precompute=True`` (``odoo19c: account_account.py:107``). Aquí se apaga
+    con su aviso, que es la misma conducta que la fuente da a sus dos casos:
+    decirlo, no tragárselo.
     """
     precompute = (False if declared['precompute'] is _UNSET
                   else declared['precompute'])
@@ -388,11 +397,17 @@ def _apply_precompute_block(declared, attrs):
                 'precompute attribute has no impact on non stored field',
                 stacklevel=4)
             precompute = False
+        elif many_to_many:
+            warnings.warn(
+                'precompute attribute has no impact on a many2many field: '
+                'its join table needs the pk of a row that does not exist '
+                'yet', stacklevel=4)
+            precompute = False
     attrs['precompute'] = precompute
     return attrs
 
 
-def apply_source_defaults(related, kwargs):
+def apply_source_defaults(related, kwargs, many_to_many=False):
     """El bloque ``attrs`` de la fuente: lo que ``compute=`` y ``related=``
     implican sin declararse.
 
@@ -450,7 +465,7 @@ def apply_source_defaults(related, kwargs):
         if declared['readonly'] is not _UNSET:
             attrs['readonly'] = declared['readonly']
 
-    attrs = _apply_precompute_block(declared, attrs)
+    attrs = _apply_precompute_block(declared, attrs, many_to_many)
 
     #: ``editable=False`` es la forma NATIVA de Django de decir «esto no lo
     #: escribe el cliente», y es la que DRF ya consume: ``get_field_kwargs``
@@ -620,7 +635,7 @@ def non_stored_fields(cls):
     return mapping
 
 
-def projection_or_none(related, kwargs, company_dependent=False):
+def projection_or_none(related, kwargs, company_dependent=False, many_to_many=False):
     """El descriptor si la declaración es una proyección sin columna.
 
     Es el enrutador que comparten los constructores de campo. Devuelve la
@@ -657,7 +672,7 @@ def projection_or_none(related, kwargs, company_dependent=False):
     devolviera siempre el descriptor, la rama con columna dejaría de existir
     sin que ningún caso lo notara.
     """
-    related_attrs = apply_source_defaults(related, kwargs)
+    related_attrs = apply_source_defaults(related, kwargs, many_to_many)
     if not related_attrs['store']:
         #: La exclusión vive AQUI y no en cada constructor porque es una
         #: contradicción de la declaración, no una decisión de rama: el

@@ -54,7 +54,7 @@ class TestClassAttributes:
             'Module Activation Review')
         assert BaseModuleInstallReview._rec_name == 'module_id'
 
-    def test_the_table_name_derives_from_the_odoo_name(self):
+    def test_the_table_name_derives_from_the_dotted_name(self):
         """``_name.replace('.', '_')`` — la derivación de la fuente."""
         for model in (BaseModuleInstallRequest, BaseModuleInstallReview):
             assert model._meta.db_table == model._name.replace('.', '_')

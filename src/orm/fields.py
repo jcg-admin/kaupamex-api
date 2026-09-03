@@ -62,7 +62,7 @@ from django.utils.timezone import localtime
 
 from orm.environments import (env as get_environment, get_current_company,
                              get_transaction, sudo as elevate_privileges)
-from tools.misc import OrderedSet, remove_accents
+from tools.misc import SENTINEL, OrderedSet, remove_accents
 from tools.translate import _
 from orm.registry import (field_computed as registry_field_computed,
                          field_depends_context, is_not_null)
@@ -85,7 +85,8 @@ from orm.fields_relational import Many2many, Many2one, One2many  # noqa: F401
 from orm.fields_selection import Selection                     # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
-from orm.utils import (COLLECTION_TYPES, model_field_registry,
+from orm.utils import (COLLECTION_TYPES, as_record_list, browse,
+                       model_field_registry, model_of, model_of_field,
                        record_ids)
 
 #: El **registro de tipos de campo**, no la lista de exportables del módulo.
@@ -2048,21 +2049,11 @@ def _field_setup(self, model):
 models.Field.setup = _field_setup
 
 
-def _model_of(field, registry_module):
-    """La clase de modelo a la que ``field`` pertenece.
-
-    Dos vias, y la de Django va primero. La fuente resuelve por
-    ``field.model_name``, el nombre punteado que su ORM le pone al ligar el
-    campo. Aqui quien liga el campo es Django, y lo que deja es ``field.model``
-    — la clase, directamente. ``model_name`` solo lo lleva un campo cuyo puerto
-    se lo haya declarado, asi que preguntar solo por el dejaria fuera a todo
-    campo ligado por Django, que son todos.
-    """
-    model = getattr(field, 'model', None)
-    if model is not None:
-        return model
-    name = getattr(field, 'model_name', '')
-    return registry_module.MODELS_BY_NAME.get(name) if name else None
+#: La resolucion vive en ``orm/utils.py`` desde la tarea #324: la comparte con
+#: ``Environment._recompute_all`` y ``flush_all``, que no pueden importar este
+#: archivo porque este importa ``orm.environments``. El alias conserva el nombre
+#: con que lo citan los consumidores de aqui.
+_model_of = model_of_field
 
 
 def _comodel_of(field, registry_module):
@@ -2402,6 +2393,31 @@ def _cache_missing_ids(self, records):
     return (id_ for id_ in record_ids(records) if id_ not in field_cache)
 
 
+def _filter_not_equal(self, records, cache_value):
+    """Las filas cuyo valor en caché falta o difiere de ``cache_value``.
+
+    ≙ ``Field._filter_not_equal`` (``:1577``). Docstring de la fuente:
+    *"Return the subset of ``records`` for which the value of ``self`` is
+    either not in cache, or different from ``cache_value``."*
+
+    El centinela hace el trabajo: ``field_cache.get(id_, SENTINEL)`` no
+    distingue *"no está en caché"* de *"está y vale ``None``"* si el valor
+    por omisión fuera ``None`` — y ``None`` es un valor legítimo de casi
+    todos los campos. Con ``SENTINEL``, la ausencia siempre difiere.
+
+    Divergencia de mecanismo, la misma de toda esta familia: el entorno es
+    ambiental (``orm.environments.env()``) en vez de ``records.env``, los
+    ids salen de :func:`~orm.utils.record_ids` en vez de ``records._ids``, y
+    el conjunto de vuelta se arma con :func:`~orm.utils.browse` sobre
+    :func:`~orm.utils.model_of` en vez de ``records.browse``.
+    """
+    field_cache = self._get_cache(get_environment())
+    return browse(model_of(records), [
+        id_ for id_ in record_ids(records)
+        if field_cache.get(id_, SENTINEL) != cache_value
+    ])
+
+
 def _insert_cache(self, records, values):
     """Rellena la caché SIN pisar lo que ya hay.
 
@@ -2419,6 +2435,23 @@ def _insert_cache(self, records, values):
         map(field_cache.setdefault, record_ids(records), values), maxlen=0)
 
 
+def _is_persisted(field):
+    """¿El valor de este campo sobrevive a la transacción?
+
+    La respuesta **no** es ``column_type``: un muchos-a-muchos persiste —en su
+    tabla intermedia— y no tiene columna en la fila. Con el predicado viejo el
+    M2M calculado quedaba fuera del caché y de la marca de sucio, así que el
+    volcado no tenía de dónde saber que había algo que escribir (#313).
+
+    El predicado vive aquí y no repetido en sus dos consumidores por lo mismo
+    que ``calibration-verified-numbers.md`` prohíbe la segunda copia de una
+    cifra: dos condiciones que dicen lo mismo divergen en cuanto una se toca.
+    """
+    return bool(getattr(field, 'store', False)
+                and (field.column_type
+                     or getattr(field, 'many_to_many', False)))
+
+
 def _update_cache(self, records, cache_value, dirty=False):
     """Escribe el valor en caché y, si se pide, marca el campo sucio.
 
@@ -2434,8 +2467,9 @@ def _update_cache(self, records, cache_value, dirty=False):
     for id_ in ids:
         field_cache[id_] = cache_value
 
-    # ``dirty`` sólo tiene sentido para un campo con columna y almacenado.
-    if self.column_type and self.store:
+    # ``dirty`` sólo tiene sentido para un campo PERSISTIDO — con columna, o
+    # con tabla intermedia si es un muchos-a-muchos (ver :func:`_is_persisted`).
+    if _is_persisted(self):
         if dirty:
             env.transaction.field_dirty[self].update(id_ for id_ in ids if id_)
         else:
@@ -2455,19 +2489,6 @@ def _update_cache(self, records, cache_value, dirty=False):
 ############################################################################
 
 
-def _as_record_list(records):
-    """Las filas de ``records`` como lista.
-
-    La contraparte de :func:`~orm.utils.record_ids` para cuando hace falta el
-    objeto y no el id — el cómputo se invoca sobre la fila, no sobre su clave.
-    """
-    if records is None:
-        return []
-    if isinstance(records, models.Model):
-        return [records]
-    return list(records)
-
-
 def _invoke_compute_method(field, records):
     """Llama al método que ``field.compute`` nombra, sobre cada fila.
 
@@ -2478,7 +2499,7 @@ def _invoke_compute_method(field, records):
     recibe una fila. Es la misma adaptación de :func:`~orm.utils.record_ids`,
     vista desde el otro lado.
     """
-    for record in _as_record_list(records):
+    for record in as_record_list(records):
         getattr(record, field.compute)()
 
 
@@ -2509,7 +2530,7 @@ def recompute(self, records):
     if not to_compute_ids:
         return
 
-    pending = [record for record in _as_record_list(records)
+    pending = [record for record in as_record_list(records)
                if record.pk in to_compute_ids]
     if not pending:
         return
@@ -2582,19 +2603,67 @@ def _cache_computed_values(fields, records):
     el valor viviría en memoria, y la fila de la base seguiría con el valor
     viejo. Es exactamente la mitad silenciosa que ``store=True`` promete.
 
-    Sólo para los campos **con columna**: un calculado sin ella no se persiste,
-    y ``_update_cache`` ya acota ahí su marca de sucio.
+    Sólo para los campos **persistidos**: un calculado sin columna no se
+    guarda, y ``_update_cache`` ya acota ahí su marca de sucio.
+
+    **El muchos-a-muchos entra, y por eso la condición no es** ``column_type``
+    (#313). Un M2M persiste —en su tabla intermedia— y no tiene columna en la
+    fila, así que la condición vieja lo dejaba fuera: el campo se calculaba, el
+    caché no se enteraba, ``field_dirty`` seguía vacío y la rama de
+    ``_flush_m2m`` no se ejecutaba nunca. Lo destapó el control discriminante
+    de #313: anular esa rama dejaba el módulo **en verde**, que es la señal de
+    que medía código muerto.
+
+    Su valor se lee del **manager**, no del atributo: ``getattr`` sobre un M2M
+    devuelve el manager, no lo que contiene. ``list(...)`` lo materializa a lo
+    que ``.set()`` espera al volcarlo.
     """
-    rows = _as_record_list(records)
+    rows = as_record_list(records)
     for field in fields:
-        if not (field.store and field.column_type):
+        if not _is_persisted(field):
             continue
+        many_to_many = getattr(field, 'many_to_many', False)
         for row in rows:
-            value = getattr(row, getattr(field, 'attname', field.name), None)
+            if many_to_many:
+                if row.pk is None:
+                    continue
+                value = list(getattr(row, field.name).all())
+            else:
+                value = getattr(row, getattr(field, 'attname', field.name),
+                                None)
             field._update_cache([row], value, dirty=True)
 
 
 for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
-                      _get_all_cache_ids, _cache_missing_ids, _insert_cache,
+                      _get_all_cache_ids, _cache_missing_ids,
+                      _filter_not_equal, _insert_cache,
                       _update_cache, recompute, compute_value):
     setattr(models.Field, _cache_method.__name__, _cache_method)
+
+
+#: El campo SIN columna recibe la misma familia de caché, y no es un extra: es
+#: el que más depende de ella. En la fuente no hay dos clases —``display_name``
+#: es un ``Field`` con ``compute`` y sin ``store``— y su valor **sólo** vive en
+#: la caché de la transacción, porque no hay columna de donde releerlo. Partir
+#: ``Field`` en ``models.Field`` (Django) y :class:`NonStored` (descriptor) es
+#: divergencia de stack, así que el contrato se instala sobre las dos.
+#:
+#: Sin esto ``Cache.get_fields`` reventaba con ``AttributeError`` en el primer
+#: modelo que declarara uno — o sea en **todos**, porque ``display_name`` es
+#: universal en este árbol desde la tarea #134.
+#:
+#: ``_is_persisted`` corta solo: exige ``store`` **y** columna o tabla
+#: intermedia, y un ``NonStored`` no declara ninguna de las tres. Por eso la
+#: marca de sucio nunca prende sobre él y el volcado no intenta escribir una
+#: columna que no existe.
+#:
+#: ``recompute`` y ``compute_value`` **no** se instalan aquí, y la ausencia se
+#: declara: son el motor de recálculo, que la fuente dispara desde
+#: ``modified()`` y que este árbol construye en la tarea **#273**. Ambos leen
+#: ``field.store``, ``self.compute_sudo`` y ``self.recursive`` —tres atributos
+#: que ``NonStored`` no declara— así que colgarlos hoy entregaría media
+#: mecánica en vez de la de la fuente.
+for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
+                      _get_all_cache_ids, _cache_missing_ids,
+                      _filter_not_equal, _insert_cache, _update_cache):
+    setattr(NonStored, _cache_method.__name__, _cache_method)

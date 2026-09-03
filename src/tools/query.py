@@ -68,9 +68,7 @@ las dos rutas producían SQL inválido en tiempo de ejecución.
 import itertools
 from collections.abc import Iterable, Iterator
 
-from orm.environments import execute_query
-
-from .sql import SQL, make_identifier
+from .sql import SQL, execute_sql, make_identifier
 
 __all__ = ['Query']
 
@@ -161,7 +159,7 @@ class Query:
         """
         if hasattr(self._env, 'execute_query'):
             return self._env.execute_query(sql)
-        return execute_query(sql, using=self._env)
+        return execute_sql(sql, using=self._env)
 
     @staticmethod
     def make_alias(alias: str, link: str) -> str:

@@ -18,7 +18,7 @@ class TestClassAttributes:
         assert BaseImportModule._name == 'base.import.module'
         assert BaseImportModule._description == 'Import Module'
 
-    def test_the_table_derives_from_the_odoo_name(self):
+    def test_the_table_derives_from_the_dotted_name(self):
         assert BaseImportModule._meta.db_table == \
             BaseImportModule._name.replace('.', '_')
 

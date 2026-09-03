@@ -80,8 +80,6 @@ addons/product_expiry/models/stock_move_line.py::producto
 addons/product_expiry/models/stock_quant.py::funcion
 addons/product_expiry/models/stock_quant.py::nombre
 addons/product_expiry/models/stock_quant.py::producto
-addons/sale/models/sale_order.py::_EMPRESA_NO_CARGADA
-addons/sale/models/sale_order.py::cambio_empresa
 addons/sale/services.py::codigo_error
 addons/stock/apps.py::funcion
 addons/stock/models/product_strategy.py::almacen

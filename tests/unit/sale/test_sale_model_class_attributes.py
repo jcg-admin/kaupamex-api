@@ -45,8 +45,8 @@ if _SCRIPTS_DIR not in sys.path:
 
 import reference_roots  # noqa: E402  (sys.path se ajusta arriba, no top-level real)
 
-ODOO19C = reference_roots.tree('odoo19c')
-REFERENCE_SALE_MODELS = ODOO19C / 'addons' / 'sale' / 'models'
+REFERENCE_19C = reference_roots.tree('odoo19c')
+REFERENCE_SALE_MODELS = REFERENCE_19C / 'addons' / 'sale' / 'models'
 OUR_SALE_MODELS = REPO_ROOT / 'addons' / 'sale' / 'models'
 
 pytestmark = pytest.mark.skipif(

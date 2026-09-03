@@ -88,6 +88,7 @@ import re
 import warnings
 from zlib import crc32
 
+from django.db import DEFAULT_DB_ALIAS, connections
 from django.db.models.expressions import RawSQL
 
 from .misc import named_to_positional_printf
@@ -468,3 +469,34 @@ def index_exists(cursor, table_name, index_name, schema=None):
             'WHERE schemaname = %s AND tablename = %s AND indexname = %s '
             'LIMIT 1', [schema, table_name, index_name])
     return cursor.fetchone() is not None
+
+
+def execute_sql(sql, using=None):
+    """Corre un :class:`SQL` y devuelve sus filas — el cuerpo que ejecuta.
+
+    **No tiene contraparte en la referencia**, y su existencia es estructural,
+    no de gusto. Allá el cursor cuelga del ``Environment``
+    (``odoo19c: odoo/orm/environments.py:527``), así que ``Query`` lo alcanza
+    por ``self.env.cr`` sin que ningún módulo tenga que importar a otro. Aquí
+    el cursor es ``connections[alias]`` de Django, y las dos piezas que lo
+    necesitan —``orm.environments.execute_query`` y ``tools.query.Query``— se
+    importan mutuamente si el cuerpo vive en la primera: ``tools/query.py``
+    ya importa de ``tools/sql.py``, y ``orm/environments.py`` importaría de
+    ``tools/query.py``, cerrando el ciclo.
+
+    Un import perezoso está prohibido (``no-lazy-imports``, y su excepción #3
+    exige el arreglo **estructural**, no el rodeo), así que el cuerpo baja al
+    módulo que ninguno de los dos importa a su vez. ``execute_query`` del
+    entorno delega aquí y conserva su nombre y su contrato: sigue siendo la
+    puerta que la referencia nombra, y deja de ser también la implementación.
+
+    ``using`` nombra el alias de conexión de Django. La lista vacía es la
+    respuesta a una sentencia sin tabla de salida (``INSERT`` sin
+    ``RETURNING``, ``UPDATE``), que es lo que ``cursor.description is None``
+    distingue de un ``SELECT`` sin filas.
+    """
+    with connections[using or DEFAULT_DB_ALIAS].cursor() as cursor:
+        cursor.execute(sql.code, sql.params)
+        if cursor.description is None:
+            return []
+        return cursor.fetchall()

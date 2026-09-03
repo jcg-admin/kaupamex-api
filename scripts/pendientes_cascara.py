@@ -46,7 +46,7 @@ from reference_roots import addon_root as _addon_root, tree as _tree
 #: y ``base``, del que depende todo el porte, vive en la segunda. Componer
 #: ``tree() / 'addons' / addon`` lo declaraba ausente con el mensaje *"no
 #: existe en la referencia"*, que es falso: describia donde se habia mirado.
-ODOO19C = str(_tree('odoo19c'))
+REFERENCE_19C = str(_tree('odoo19c'))
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from addons_roots import addon_path

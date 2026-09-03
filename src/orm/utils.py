@@ -17,11 +17,12 @@ sobre ``RawSQL`` (que exige ``params`` y no es un fragmento concatenable) daría
 objeto inservible; misma razón que los stubs de motor (environments/registry).
 """
 import re
+import warnings
 from collections.abc import Set as AbstractSet
 
 from django.db import models
 
-from exceptions import ValidationError
+from exceptions import AccessError, ValidationError
 from orm.fields_nonstored import non_stored_fields
 
 regex_object_name = re.compile(r'^[a-z0-9_.]+$')
@@ -46,6 +47,70 @@ READ_GROUP_NUMBER_GRANULARITY = {
     'minute_number': 'minute',
     'second_number': 'second',
 }
+
+
+#: ≙ ``regex_private`` (``odoo19c: odoo/orm/utils.py:14``). El nombre reservado
+#: del despacho remoto: el prefijo de guion bajo **y** ``init``, que no lo lleva
+#: y es igual de interno.
+regex_private = re.compile(r'^(_.*|init)$')
+
+
+def check_method_name(name):
+    """Levanta ``AccessError`` si ``name`` es un nombre de método privado.
+
+    ≙ ``check_method_name`` (``odoo19c: odoo/orm/utils.py:69-73``). Docstring de
+    la fuente, verbatim: *"Raise an ``AccessError`` if ``name`` is a private
+    method name"*.
+
+    **Se porta con su aviso de obsolescencia**, que es la mitad que informa: la
+    fuente la marcó obsoleta en 19.0 y redirige a ``service.model``. Aquí ese
+    sucesor ya existe y hace más —``get_public_method`` rechaza cinco formas,
+    no una— así que quien llame a ésta está midiendo un eje de los cinco.
+    Retirar el aviso dejaría de decírselo.
+    """
+    warnings.warn("Since 19.0, use service.model.get_public_method",
+                  DeprecationWarning)
+    if regex_private.match(name):
+        raise AccessError(
+            'Private methods (such as %s) cannot be called remotely.' % name)
+
+
+class OriginIds:
+    """Los ids de origen de una colección de ids, recorrible en los dos sentidos.
+
+    ≙ ``OriginIds`` (``odoo19c: odoo/orm/utils.py:129-146``). Docstring de la
+    fuente, verbatim: *"A reversible iterable returning the origin ids of a
+    collection of ``ids``.  Actual ids are returned as is, and ids without
+    origin are not returned"*.
+
+    Las dos mitades del contrato son igual de importantes, y la segunda es la
+    que se olvida: un :class:`~orm.identifiers.NewId` **sin** origen no se
+    emite. Es lo que hace que recorrer estos ids sea seguro contra la base —
+    todo lo que sale tiene fila.
+
+    El truco del cuerpo es el mismo de la fuente y conviene leerlo despacio:
+    ``id_ or getattr(id_, 'origin', None)`` se apoya en que ``NewId`` es falsy
+    (``identifiers.py``) mientras un id real no lo es. Así una sola expresión
+    despacha los dos casos sin preguntar por el tipo.
+
+    No es un generador: guarda la colección, no su recorrido, así que se puede
+    recorrer dos veces — que es justo lo que ``__reversed__`` necesita.
+    """
+
+    __slots__ = ['ids']
+
+    def __init__(self, ids):
+        self.ids = ids
+
+    def __iter__(self):
+        for id_ in self.ids:
+            if id_ := id_ or getattr(id_, 'origin', None):
+                yield id_
+
+    def __reversed__(self):
+        for id_ in reversed(self.ids):
+            if id_ := id_ or getattr(id_, 'origin', None):
+                yield id_
 
 
 def check_object_name(name):
@@ -133,6 +198,99 @@ def record_ids(records):
     )
 
 
+def as_record_list(records):
+    """Las filas de ``records`` como lista.
+
+    La contraparte de :func:`record_ids` para cuando hace falta el objeto y no
+    la clave — un cómputo, un inverso o una escritura de caché se invocan sobre
+    la fila, no sobre su id.
+
+    Vivía en ``orm/fields.py`` como ``_as_record_list`` y se movió aquí por la
+    segunda cláusula de ``atributos-de-clase-de-modelo.md`` (el SITIO del
+    símbolo): su propio docstring ya se declaraba «la contraparte de
+    ``orm.utils.record_ids``», y ``orm/models.py`` lo importaba de ``fields``
+    con otro nombre. Desde ``fields_relational`` no se podía consumir sin
+    invertir el import de ``fields`` — que es un ciclo, no una preferencia.
+    """
+    if records is None:
+        return []
+    if isinstance(records, models.Model):
+        return [records]
+    return list(records)
+
+
+def model_of(records):
+    """La clase de modelo de ``records`` — la vuelta de ``type(recordset)``.
+
+    Tercera pieza de la misma adaptación que :func:`record_ids` y
+    :func:`browse`, y por la misma razón: en la fuente un recordset **es** una
+    instancia de la clase de registro del modelo, así que ``records.browse(...)``
+    y ``records._name`` salen gratis. Aquí un conjunto de filas es una
+    instancia de modelo o un ``QuerySet``, y ninguno de los dos responde
+    ``browse``; hace falta llegar a la clase para pasársela a :func:`browse`.
+
+    Acepta las tres formas que el árbol produce —instancia, ``QuerySet`` y la
+    propia clase— y **rehúsa** cualquier otra con ``TypeError``. Un iterable
+    suelto no se admite a propósito: adivinar la clase mirando su primer
+    elemento lo consumiría cuando fuera un generador, y devolver ``None`` ante
+    lo desconocido convertiría el fallo en un ``AttributeError`` lejano.
+    """
+    if isinstance(records, models.QuerySet):
+        return records.model
+    if isinstance(records, models.Model):
+        return type(records)
+    if isinstance(records, type) and issubclass(records, models.Model):
+        return records
+    raise TypeError(
+        "model_of espera una instancia de modelo, un QuerySet o una clase de "
+        "modelo; recibió %r" % (type(records).__name__,)
+    )
+
+
+def browse(model, ids=()):
+    """Las filas de ``ids``, en el orden pedido — la adaptación de ``browse``.
+
+    ≙ ``BaseModel.browse`` (``odoo19c: odoo/orm/models.py:5883``). Es la vuelta
+    de :func:`record_ids`: aquélla traduce un conjunto de filas a sus ids, ésta
+    traduce unos ids al conjunto de filas. La normalización del argumento se
+    porta verbatim —el vacío, el entero suelto, el iterable— porque es la
+    misma decisión de la fuente y no depende del motor.
+
+    Lo que **sí** diverge es el mecanismo, y son dos puntos:
+
+    - **El orden se reconstruye.** La fuente guarda los ids en una tupla, así
+      que conservarlos es gratis. Un ``QuerySet`` no guarda ids: guarda una
+      consulta, y el motor devuelve las filas en el orden que le convenga (o en
+      el del ``Meta.ordering`` del modelo). El orden pedido se impone con un
+      ``CASE`` en el ``ORDER BY``, que es como PostgreSQL expresa «ordena por
+      esta lista».
+    - **Un id inexistente se descarta, no se difiere.** La fuente no consulta
+      nada al construir el recordset: un id que no existe falla más tarde, al
+      leerse. Aquí la consulta decide qué filas hay, así que el id sobrante se
+      cae del resultado. Por la misma razón un id repetido aparece una vez: una
+      fila no se duplica en SQL.
+
+    Las dos divergencias tienen su caso en
+    ``tests/unit/orm/test_utils_browse.py``, de modo que el día que este árbol
+    construya un conjunto de filas perezoso, esos casos caigan y la decisión se
+    vuelva a tomar en vez de heredarse.
+    """
+    if not ids:
+        ids = ()
+    elif ids.__class__ is int:
+        ids = (ids,)
+    else:
+        ids = tuple(ids)
+    if not ids:
+        return model.objects.none()
+    given_order = models.Case(
+        *[models.When(pk=pk, then=models.Value(position))
+          for position, pk in enumerate(ids)],
+        output_field=models.IntegerField(),
+    )
+    return model.objects.filter(pk__in=ids).order_by(given_order)
+
+
 def model_field_registry(model):
     """El mapa ``nombre -> campo`` de una clase de modelo.
 
@@ -158,3 +316,32 @@ def model_field_registry(model):
     registry = {field.name: field for field in model._meta.get_fields()}
     registry.update(non_stored_fields(model))
     return registry
+
+
+def model_of_field(field, registry_module):
+    """La clase de modelo a la que ``field`` pertenece.
+
+    ≙ ``field.model_name`` de la fuente, que es el nombre punteado que su ORM
+    le pone al campo al ligarlo (``odoo19c: odoo/orm/fields.py``). Aqui quien
+    liga el campo es Django, y lo que deja es ``field.model`` — la clase,
+    directamente. Por eso la resolucion tiene **dos vias y la de Django va
+    primero**: ``model_name`` solo lo lleva un campo cuyo puerto se lo haya
+    declarado, asi que preguntar solo por el dejaria fuera a todo campo ligado
+    por Django, que son todos.
+
+    ``registry_module`` se recibe en vez de importarse: ``orm.registry`` importa
+    de aqui, y este modulo es la capa de abajo. Es el mismo motivo por el que
+    ``model_field_registry`` recibe la clase y no la busca.
+
+    Vive aqui y no en ``orm/fields.py`` —donde nacio como ``_model_of``— porque
+    tiene un segundo consumidor que no puede importar aquel archivo:
+    ``Environment._recompute_all`` y ``flush_all`` lo necesitan para resolver el
+    modelo de un campo sucio, y ``orm/fields.py`` importa ``orm.environments``.
+    Copiar las tres lineas seria la segunda fuente de verdad que
+    ``calibration-verified-numbers.md`` prohibe.
+    """
+    model = getattr(field, 'model', None)
+    if model is not None:
+        return model
+    name = getattr(field, 'model_name', '')
+    return registry_module.MODELS_BY_NAME.get(name) if name else None

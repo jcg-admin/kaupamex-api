@@ -246,7 +246,7 @@ nombrada** en el árbol, cada uno por su cuenta.
 - ``update_field_translations`` espera al almacenamiento por idioma. La
   referencia guarda el campo traducible como columna ``jsonb``
   ``{lang: valor}``; aquí ``translate=True`` se **anota** en el campo
-  (``field.odoo_translate``) y la columna sigue siendo ``varchar``. Sucesor:
+  (``field.translate``) y la columna sigue siendo ``varchar``. Sucesor:
   tarea **#333**, ya citada en ``orm/fields_textual.py:165`` y en
   ``orm/models.py:1177`` (donde ``copy_translations`` está bloqueado por lo
   mismo). El alcance de ese almacenamiento —una columna ``jsonb`` y su

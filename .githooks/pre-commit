@@ -35,14 +35,26 @@ EXIT_CODE=0
 # entrypoints que fijan DJANGO_SETTINGS_MODULE antes de importar Django, así
 # que su import diferido es el constraint del framework — el propio template
 # `manage.py-tpl` de Django lo escribe así.
+#
+# El pathspec dice `src/***.py`, no `src/addons/***.py`, y la corrección es de
+# 2026-09-03 (#324): el guion ya declaraba `DEFAULT_ROOTS = ('src', 'addons',
+# 'tests')` desde las tareas #115 y #133, pero el hook seguía entregándole sólo
+# `src/addons`. Consecuencia medida: **85 archivos** de `src/orm` (29),
+# `src/tools` (38), `src/service` (7) y `src/config` (11) no llegaban a
+# NINGUNO de los gates de abajo al commitearse — las raíces de framework, que
+# es donde vive el ORM espejado. Es literalmente el defecto que el párrafo de
+# arriba describe para `addons/`, repetido un nivel más adentro: el guion sabía
+# medir y el hook no le pasaba qué medir. Los 85 se midieron limpios contra los
+# cuatro gates que corren sin base de datos antes de ensanchar el pathspec, así
+# que ensancharlo no introduce rojo; lo que introduce es cobertura.
 STAGED_PY=()
 while IFS= read -r line; do
     [[ -z "$line" ]] && continue
     STAGED_PY+=("$line")
 done < <(
     git diff --cached --name-only --diff-filter=ACM \
-        -- 'src/addons/***.py' 'addons/***.py' 'tests/***.py' 2>/dev/null \
-    | grep -vE 'migrations/|__pycache__' || true
+        -- 'src/***.py' 'addons/***.py' 'tests/***.py' 2>/dev/null \
+    | grep -vE 'migrations/|__pycache__|^src/manage\.py$' || true
 )
 
 if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
@@ -102,6 +114,25 @@ if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
         echo "pre-commit: $LANG_CHECKER no encontrado — skip idioma gate" >&2
     else
         python3 "$LANG_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
+# ─── Gate 5: ningun identificador lleva el nombre de la referencia ───────────
+# Directiva del ejecutor 2026-09-02: "En nuestra api, ningun archivo, clase,
+# funcion o firma de funcion, debe de tener odoo-*". Este arbol ADAPTA la
+# referencia; un simbolo nuestro con su nombre hace pasar por prestada una
+# pieza que es del producto. El caso que lo motivo lo prueba: odoo_translate
+# convivia con models.Field.translate, que orm/fields.py ya declaraba con el
+# defecto de la fuente — dos nombres para lo mismo, y el prestado le ganaba el
+# sitio al fiel.
+# Nace SIN baseline: el arbol estaba en 0 al cablearlo.
+# Script: scripts/check_identifier_reference_name.py.
+if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
+    REFNAME_CHECKER="$REPO_ROOT/scripts/check_identifier_reference_name.py"
+    if [[ ! -f "$REFNAME_CHECKER" ]]; then
+        echo "pre-commit: $REFNAME_CHECKER no encontrado — skip refname gate" >&2
+    else
+        python3 "$REFNAME_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
     fi
 fi
 

@@ -18,9 +18,9 @@ import sys
 raiz = subprocess.run(
     [sys.executable, 'scripts/reference_roots.py', '--env'],
     capture_output=True, text=True, check=True).stdout
-ODOO19C = re.search(r"ODOO19C=([^\n;\"']+)", raiz).group(1).strip().strip('"')
+REFERENCE_19C = re.search(r"ODOO19C=([^\n;\"']+)", raiz).group(1).strip().strip('"')
 
-ref_dir = pathlib.Path(ODOO19C) / 'addons/html_editor/models'
+ref_dir = pathlib.Path(REFERENCE_19C) / 'addons/html_editor/models'
 our_dir = pathlib.Path('addons/html_editor/models')
 
 total = faltan = 0

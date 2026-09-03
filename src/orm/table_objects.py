@@ -321,6 +321,45 @@ class Index(TableObject):
 
     unique: bool = False
 
+    def __new__(cls, *args, **kwargs):
+        """Reparte por la FORMA de la llamada, no por el tipo del argumento.
+
+        Un solo ``Index`` sirve a los dos usos que la fachada ``models`` tiene
+        que atender, porque las dos poblaciones son **disjuntas en el árbol**:
+
+        - **con argumento posicional** → el objeto de tabla de la referencia,
+          que recibe su definición SQL así (``odoo19c:
+          odoo/orm/table_objects.py``) y su nombre del atributo que lo aloja;
+        - **sólo palabras clave** → ``django.db.models.Index``, que es lo que
+          escriben los **51** sitios de ``Meta.indexes`` de este árbol (medido
+          por AST 2026-09-02; posicionales: 0).
+
+        **No es una heurística sobre lo que Django acepte.** Django admite un
+        ``str`` posicional y lo envuelve en ``F(...)`` sin quejarse —falla más
+        tarde, al resolver—, así que «Django lo rechaza» no discrimina nada. El
+        reparto es una decisión declarada, y su frontera la fija el caso
+        ``test_a_positional_string_is_the_table_object``.
+
+        La rama de Django devuelve el constructo **nativo**, no una subclase
+        nuestra: su ``deconstruct`` sigue diciendo ``django.db.models.Index`` y
+        las migraciones ya escritas se reconstruyen con el mismo objeto.
+
+        Ver :ref:`analisis-colision-de-nombre-de-index` para los cinco pasos
+        medidos y la matriz de criterios que eligió esta salida.
+        """
+        if not args:
+            if cls.unique:
+                # En Django lo único es ``UniqueConstraint``, no un ``Index``:
+                # la rama no tiene destino, y devolver un índice no único
+                # perdería la unicidad en silencio.
+                raise TypeError(
+                    f'{cls.__name__} no admite la forma de Django: en Django '
+                    'la unicidad es UniqueConstraint, no un Index. Pásale su '
+                    'definición SQL posicional, como hace la referencia.'
+                )
+            return DjangoIndex(**kwargs)
+        return super().__new__(cls)
+
     def __init__(self, definition):
         """Índice en SQL.
 

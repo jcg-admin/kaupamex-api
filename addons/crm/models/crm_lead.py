@@ -755,13 +755,15 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         Con cliente: la entidad comercial, si es empresa y no es el propio
         contacto. Sin cliente: se busca por nombre de empresa.
 
-        En ``ResPartner`` el simbolo publico es ``commercial_partner``
-        (``src/addons/base/models/res_partner.py:1448``); ``commercial_partner_id``
-        alli **no existe**, asi que el nombre viejo levantaba ``AttributeError``
-        en cuanto habia cliente. Ver :ref:`h-api-1034`.
+        ``ResPartner.commercial_partner_id`` es desde #314 una **columna** con
+        ``compute=... store=True recursive=True``, como la declara la fuente
+        (``odoo19c: res_partner.py:301-304``). Hasta entonces era una
+        ``property`` llamada ``commercial_partner``, y el nombre de la fuente
+        levantaba ``AttributeError`` en cuanto habia cliente
+        (:ref:`h-api-1034`).
         """
         if self.partner_id_id:
-            commercial = self.partner_id.commercial_partner
+            commercial = self.partner_id.commercial_partner_id
             if commercial and commercial.is_company and commercial.pk != self.partner_id_id:
                 return commercial
             return None
@@ -783,7 +785,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         arrastre correo y teléfono del anterior.
         """
         commercial = self.commercial_partner_id
-        of_the_partner = self.partner_id.commercial_partner if self.partner_id_id else None
+        of_the_partner = self.partner_id.commercial_partner_id if self.partner_id_id else None
         if self.partner_id_id and commercial and \
                 commercial.pk != (of_the_partner.pk if of_the_partner else None):
             self.partner_id = None
@@ -1049,17 +1051,19 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         duplicates = set()
         if self.email_domain_criterion:
             duplicates |= _return_if_relevant(Q(email_domain_criterion=self.email_domain_criterion))
-        commercial = self.partner_id.commercial_partner if self.partner_id_id else None
+        commercial = self.partner_id.commercial_partner_id if self.partner_id_id else None
         if commercial is not None:
             # La fuente NO filtra por una columna de entidad comercial: pide
             # ``("partner_id", "child_of", commercial.ids)`` (:664-667), o sea
             # el cliente de la iniciativa **o cualquier descendiente suyo** en
             # la jerarquia de ``res.partner``. Lo que habia filtraba
-            # ``partner_id__commercial_partner_id``, que aqui no compila —
-            # ``commercial_partner`` es una property sin columna— y ademas
-            # perdia a los descendientes. ``child_of`` ya esta registrado como
-            # optimizador (``orm/domains.py:2198``) y ``to_q`` optimiza a FULL,
-            # que es lo que lo hace resolver. Ver :ref:`h-api-1034`.
+            # ``partner_id__commercial_partner_id``, que ademas de no compilar
+            # entonces perdia a los descendientes. Desde #314 esa columna SI
+            # existe y el filtro compilaria — y aun asi no se usa, porque
+            # seguiria midiendo menos que la fuente. ``child_of`` esta
+            # registrado como optimizador (``orm/domains.py:2198``) y ``to_q``
+            # optimiza a FULL, que es lo que lo hace resolver.
+            # Ver :ref:`h-api-1034`.
             duplicates |= set(
                 type(self).objects
                 .filter(to_q(Domain('partner_id', 'child_of', [commercial.pk]),

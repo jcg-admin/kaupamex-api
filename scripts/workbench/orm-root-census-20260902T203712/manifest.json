@@ -1,0 +1,30 @@
+{
+  "question": "De los simbolos que la referencia declara en odoo/orm/, cuales estan aqui en el archivo que les corresponde, cuales viven en otro archivo, y cuales faltan — para saber si el porte del ORM esta cerrado antes de portar Cache y Starred.",
+  "instrument": [
+    "census_orm_root.py",
+    "uv run python scripts/workbench/orm-root-census-20260902T203712/census_orm_root.py --detalle"
+  ],
+  "metric": "Simbolos declarados por AST en cada archivo de odoo/orm/ (clases, funciones de modulo y metodos a cualquier profundidad, deduplicados por archivo), repartidos en cinco cubos contra el archivo homonimo de src/orm/: present, misplaced, dissolved, missing_classes y missing. El alcance de resolucion es EL ARCHIVO, no la raiz.",
+  "blind_to": [
+    "Los alias de tipo y las constantes de modulo: types.py declara DomainType, ContextType, ValuesType y ModelType, y el instrumento le mide 0 simbolos. Un archivo que sea solo re-exportacion y alias sale limpio sin estarlo.",
+    "El CUERPO del simbolo. Un metodo cuenta como presente por su nombre; que haga lo que el de la referencia hace no lo mide nadie aqui (porte-completo-no-parcial.md ya registra el conteo generoso).",
+    "El renombre. Un simbolo portado con otro nombre sale como ausente y como nuestro-sin-contraparte a la vez; no hay mapa de equivalencias como el de check_porte_completo.",
+    "Los atributos de clase (_name, _order, _inherit). No entran en ninguno de los cinco cubos — su gate es otro (atributos-de-clase-de-modelo.md).",
+    "La firma. Un simbolo con el mismo nombre y otros parametros cuenta como presente."
+  ],
+  "destination": "outputs/censo-orm-detalle.txt; la cifra alimenta el veredicto de #209 y el orden de porte de #217",
+  "corrected_premise": {
+    "antes": "La pregunta traia un censo por nombre desnudo sobre la raiz entera: 302 de 644 presentes, 342 ausentes.",
+    "despues": "Ese instrumento absuelve un simbolo que existe en OTRO archivo, que es la divergencia de sitio de h-api-578. Con el alcance por archivo: 327 de 853 presentes (38.3 %), 138 en otro archivo, 9 clases disueltas, 379 ausentes. Las dos poblaciones no son comparables — la primera deduplica por raiz, esta por archivo.",
+    "quien_la_destapo": "el propio instrumento, al correr los tests: BaseModel la CLASE tambien es un simbolo de la fuente y aqui no existe. No era una ausencia sino divergencia de forma, y sin su cubo propio el censo la contaba como deuda."
+  },
+  "control": "El cubo dissolved tiene que poder NO aplicarse: TestTheScopeIsTheFile::test_a_name_nobody_declares_is_missing declara una clase cuyo miembro tampoco llego y exige dissolved == [] con la clase en missing_classes. Sin ese caso, un instrumento que absolviera toda clase ausente pasaria los otros dos y convertiria el cubo en una amnistia automatica (sub-patron D de metrica-decide-la-conclusion.md).",
+  "reproducible": "uv run pytest scripts/workbench/orm-root-census-20260902T203712/tests/ -q && uv run python scripts/workbench/orm-root-census-20260902T203712/census_orm_root.py --detalle",
+  "outputs": [
+    "outputs/censo-orm-detalle-*.txt"
+  ],
+  "source": "odoo19c @ odoo-tools abe4040ec1 (solo lectura); arbol propio src/orm en la rama feature/kaupamex-l3",
+  "tasks": [
+    "#209"
+  ]
+}

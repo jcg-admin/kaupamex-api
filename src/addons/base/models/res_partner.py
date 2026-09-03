@@ -29,6 +29,7 @@ from random import randint
 from urllib.parse import urlsplit, urlunsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
+import api
 import fields
 import models
 from orm.domains import Domain
@@ -430,6 +431,31 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             'cuando algun usuario suyo es interno.'
         ),
     )
+    #: La **entidad comercial** del contacto — ``odoo19c: res_partner.py:301``.
+    #:
+    #: La fuente la declara ``compute=… store=True recursive=True index=True``,
+    #: y los cuatro atributos hacen falta: sin columna ningún ``filter`` la
+    #: alcanza (era el bloqueo de :ref:`h-api-1034`), sin índice el filtro por
+    #: familia recorre la tabla, y sin ``recursive`` el cómputo no resuelve una
+    #: cadena de tres niveles en orden.
+    #:
+    #: **Forma C** de :ref:`h-api-275`: el nombre lleva el sufijo —para que el
+    #: accessor devuelva el REGISTRO, como la fuente— y ``db_column`` fuerza la
+    #: columna, que si no Django la llamaría ``commercial_partner_id_id``.
+    commercial_partner_id = fields.Many2one(
+        'self', on_delete=models.SET_NULL, null=True, blank=True,
+        db_index=True, db_column='commercial_partner_id',
+        related_name='commercial_children',
+        compute='_compute_commercial_partner', store=True, recursive=True,
+        help_text='Entidad comercial del contacto: la primera empresa al subir '
+                  'por la cadena de padres (Odoo commercial_partner_id).',
+    )
+    commercial_company_name = fields.Char(
+        max_length=255, blank=True, default='',
+        compute='_compute_commercial_company_name', store=True,
+        help_text='Razón social de la entidad comercial (Odoo '
+                  'commercial_company_name, ``odoo19c: res_partner.py:305``).',
+    )
     company_name = fields.Char(
         max_length=150, blank=True, default='',
         help_text='Razón social escrita a mano cuando el contacto NO cuelga '
@@ -755,9 +781,15 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     # === Entidad comercial ================================================
     # Adaptación de ``_compute_commercial_partner`` /
     # ``_compute_commercial_company_name`` — ``odoo19c: res_partner.py:515-521``
-    # y ``:523-526``; idénticos en ``odoo18c: :450-456``. Allá son campos
-    # ``compute=... store=True``; aquí son propiedades, que es como este árbol
-    # expresa un computado (mismo patrón que ``ResCompany.name``).
+    # y ``:523-526``; idénticos en ``odoo18c: :450-456``. Los dos son campos
+    # ``compute=... store=True`` allá y aquí: los cómputos ESCRIBEN sus
+    # columnas, declaradas arriba junto a los demás campos.
+    #
+    # Hasta #314 eran dos ``@property``. Se leían igual y no dejaban columna,
+    # así que ningún ``filter`` las alcanzaba — el bloqueo que
+    # :ref:`h-api-1034` registró al portar el criterio de duplicados de
+    # ``crm.lead``, que la fuente resuelve con ``child_of`` sobre esta misma
+    # columna.
 
     # ------------------------------------------------------------------
     # Puntos de enganche del contacto — ``odoo19c: res_partner.py:660-700``.
@@ -867,8 +899,10 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     # - ``_convert_to_write`` no tiene análogo: el valor que se asigna a una
     #   FK en Django **es** el objeto, así que el diccionario se arma con
     #   ``getattr`` directo.
-    # - ``child_ids`` / ``parent_id`` / ``commercial_partner_id`` son aquí
-    #   ``children`` / ``parent`` / ``commercial_partner``.
+    # - ``child_ids`` / ``parent_id`` son aquí ``children`` / ``parent``.
+    #   ``commercial_partner_id`` conserva su nombre desde #314: es forma C de
+    #   :ref:`h-api-275` —el sufijo en el nombre, ``db_column`` fijando la
+    #   columna—, así que el accessor devuelve el REGISTRO como en la fuente.
     # ------------------------------------------------------------------
     def _convert_fields_to_values(self, field_names):
         """≙ ``_convert_fields_to_values`` (``odoo19c: res_partner.py:653-657``).
@@ -1004,7 +1038,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         misma. Sin él, una empresa se sincronizaría consigo y bajaría sus
         propios valores a los descendientes en cada escritura.
         """
-        commercial_partner = self.commercial_partner
+        commercial_partner = self.commercial_partner_id
         if commercial_partner.pk == self.pk:
             return
         sync_vals = commercial_partner._get_commercial_values()
@@ -1052,7 +1086,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
                 # La entidad comercial se resuelve DENTRO del alcance: sus
                 # valores dependientes de empresa son los de esta empresa, no
                 # los de la activa de fuera.
-                sync_vals = (self.commercial_partner
+                sync_vals = (self.commercial_partner_id
                              ._convert_fields_to_values(fields_to_sync))
                 for key, value in sync_vals.items():
                     setattr(self, key, value)
@@ -1077,7 +1111,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         todos: allá con un ``OrderedSet`` de ids, aquí con el mismo conjunto y
         un ``update`` por lote.
         """
-        commercial_partner = self.commercial_partner
+        commercial_partner = self.commercial_partner_id
         if fields_to_sync is None:
             fields_to_sync = self._commercial_fields()
         fields_to_sync = list(fields_to_sync)
@@ -1305,7 +1339,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         synced_fields = self._synced_commercial_fields()
         commercial_to_upstream = (
             bool(self.parent_id)
-            and self.commercial_partner.pk != self.pk
+            and self.commercial_partner_id.pk != self.pk
             and (any(field in values for field in synced_fields)
                  or 'parent' in values)
             and any(getattr(self, fname) != getattr(self.parent, fname)
@@ -1330,7 +1364,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         if not self.children.exists():
             return
         # Comerciales: sólo si este partner ES la entidad comercial
-        if self.commercial_partner.pk == self.pk:
+        if self.commercial_partner_id.pk == self.pk:
             fields_to_sync = [fname for fname in self._commercial_fields()
                               if fname in values]
             if fields_to_sync:
@@ -1396,9 +1430,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
            'normal' way"* porque dependen del estado ya escrito.
 
         Los nombres de campo son los de este árbol (``parent`` / ``children`` /
-        ``commercial_partner`` en vez de ``parent_id`` / ``child_ids`` /
-        ``commercial_partner_id``), que es la traducción ya declarada arriba en
-        este mismo archivo.
+        ``commercial_partner_id`` en vez de ``parent_id`` / ``child_ids``),
+        que es la traducción ya declarada arriba en este mismo archivo.
         """
         with context_scope(_partners_skip_fields_sync=True):
             partners = super()._load_records_create(vals_list, using=using)
@@ -1409,8 +1442,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         groups = defaultdict(list)
         for partner, vals in zip(partners, vals_list):
             cp_id = None
-            if vals.get('parent') and partner.commercial_partner.pk != partner.pk:
-                cp_id = partner.commercial_partner.pk
+            if vals.get('parent') and partner.commercial_partner_id.pk != partner.pk:
+                cp_id = partner.commercial_partner_id.pk
 
             add_id = None
             if partner.parent_id and partner.type == cls.TYPE_CONTACT:
@@ -1444,52 +1477,63 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             partner._handle_first_contact_creation()
         return partners
 
-    @property
-    def commercial_partner(self):
-        """El partner que representa la **entidad comercial** del contacto.
+    def _store_commercial_entity(self):
+        """Persiste la entidad comercial de este contacto Y la de su rama.
 
-        Sube por la cadena de padres hasta la primera company. Un contacto
-        suelto (sin padre) es su propia entidad comercial — por eso el corte
-        es ``is_company or not parent``, no sólo ``is_company``.
+        Sin contraparte de un solo símbolo en la fuente: allá el ORM resuelve
+        el grafo de ``@api.depends`` y su cola de recálculo alcanza sola a los
+        descendientes cuando cambia ``is_company`` o el padre. Aquí ese motor
+        existe (#273) pero todavía no corre en el camino de ``save``, así que
+        la propagación se escribe — y se escribe **una vez**, en vez de en
+        cada llamador. Cuando #312 retire las llamadas a mano, este método es
+        de los que se van.
 
-        El campo publico es ``commercial_partner``; el computo privado es
-        :meth:`_compute_commercial_partner`. La fuente parte cada campo en
-        dos y esa frontera ES el punto de extension: un addon que cambie
-        como se deriva la entidad comercial sobreescribe el computo, no la
-        lectura.
-
-        ≙ el campo ``commercial_partner_id``
-        (``odoo19c: base/models/res_partner.py:515``).
+        La bajada es por niveles y **no recurre**: la profundidad de la cadena
+        de contactos es dato, no código, y una jerarquía profunda no debe
+        agotar la pila. Lo que corta el ciclo es que un hijo ya visitado no
+        vuelve a la cola; el ciclo padre-hijo lo rechaza antes
+        :meth:`_check_parent_id`.
         """
-        return self._compute_commercial_partner()
+        pending = [self]
+        seen = set()
+        while pending:
+            partner = pending.pop()
+            if partner.pk in seen:
+                continue
+            seen.add(partner.pk)
+            partner._compute_commercial_partner()
+            partner._compute_commercial_company_name()
+            type(self).objects.filter(pk=partner.pk).update(
+                commercial_partner_id=partner.commercial_partner_id_id,
+                commercial_company_name=partner.commercial_company_name)
+            pending.extend(type(self).objects.filter(parent=partner.pk))
 
+    @api.depends('is_company', 'parent.commercial_partner_id')
     def _compute_commercial_partner(self):
         """≙ ``_compute_commercial_partner`` (``odoo19c: res_partner.py:515``).
 
-        Sube por la cadena de padres hasta la primera company. El corte es
+        Sube por la cadena de padres hasta la primera empresa. El corte es
         ``is_company or not parent_id`` verbatim de la fuente: un contacto
-        suelto es su propia entidad comercial.
+        suelto es su propia entidad comercial, y por eso NO basta con
+        ``is_company``.
+
+        **Escribe el campo, no lo devuelve** — es el contrato del cómputo
+        almacenado, aquí y en la fuente. Hasta #314 esto era una ``@property``
+        que devolvía: se leía igual y no dejaba columna, así que
+        ``filter(commercial_partner_id=…)`` no compilaba (:ref:`h-api-1034`).
+
+        La cadena la resuelve el padre, no este registro: se lee su
+        ``commercial_partner_id`` ya calculado. Eso es lo que ``recursive=True``
+        declara, y lo que hace que una nieta llegue a la abuela sin conocerla.
         """
         if self.is_company or not self.parent_id:
-            return self
-        return self.parent.commercial_partner
+            self.commercial_partner_id = self if self.pk else None
+            return
+        self.commercial_partner_id = (
+            self.parent.commercial_partner_id or self.parent)
 
-    @property
-    def commercial_company_name(self):
-        """Razón social de la entidad comercial.
-
-        Si la entidad comercial es una empresa, su ``name``; si no, el
-        ``company_name`` escrito a mano en este contacto. La referencia lo
-        resuelve con ``p.is_company and p.name or partner.company_name``.
-
-        El campo publico es ``commercial_company_name``; el computo privado
-        es :meth:`_compute_commercial_company_name`.
-
-        ≙ el campo ``commercial_company_name``
-        (``odoo19c: base/models/res_partner.py:523``).
-        """
-        return self._compute_commercial_company_name()
-
+    @api.depends('company_name', 'parent.is_company',
+                 'commercial_partner_id.name')
     def _compute_commercial_company_name(self):
         """≙ ``_compute_commercial_company_name``
         (``odoo19c: res_partner.py:523``).
@@ -1497,9 +1541,15 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         La fuente lo resuelve con ``p.is_company and p.name or
         partner.company_name``: si la entidad comercial es empresa, su
         nombre; si no, la razon social escrita a mano en este contacto.
+
+        Escribe el campo, como su hermano y como la fuente. Corre DESPUES de
+        :meth:`_compute_commercial_partner` porque lee su resultado — el orden
+        lo fija ``save`` mientras #312 no retire las llamadas a mano.
         """
-        p = self.commercial_partner
-        return p.name if p.is_company else self.company_name
+        entity = self.commercial_partner_id
+        self.commercial_company_name = (
+            entity.name if entity is not None and entity.is_company
+            else self.company_name)
 
     # ------------------------------------------------------------------
     # El punto de entrada de escritura — ``odoo19c: res_partner.py:856-948``.
@@ -1616,6 +1666,14 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
 
         result = super().save(*args, **kwargs)
 
+        # La entidad comercial va DESPUES del insert, y no por comodidad: el
+        # cómputo puede apuntar a ``self`` —un contacto suelto es su propia
+        # entidad— y una FK no acepta una instancia sin ``pk``. La fuente no
+        # tiene el problema porque su ORM asigna el id antes de correr la cola
+        # de recálculo. Mismo criterio que ``_compute_account_tags``, que
+        # espera al insert porque una M2M necesita la fila creada.
+        self._store_commercial_entity()
+
         if get_context().get('_partners_skip_fields_sync'):
             return result
 
@@ -1654,7 +1712,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         return {'type': 'ir.actions.act_window',
                 'res_model': 'res.partner',
                 'view_mode': 'form',
-                'res_id': self.commercial_partner.pk,
+                'res_id': self.commercial_partner_id.pk,
                 'target': 'current',
                 }
 

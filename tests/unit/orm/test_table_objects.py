@@ -247,3 +247,86 @@ class TestTheAliasIsGone:
 
     def test_it_is_not_djangos_check_constraint(self):
         assert not issubclass(Constraint, django_models.BaseConstraint)
+
+
+class TestIndexSplitsByTheShapeOfTheCall:
+    """Un solo ``Index`` para los dos usos — el reparto medido de #321.
+
+    ``odoo19c: odoo/models/__init__.py`` re-exporta ``Index`` desde
+    ``odoo/orm/table_objects.py``: el objeto de tabla, con su definicion SQL
+    **posicional**. Aqui la fachada ``models`` tambien entrega la superficie de
+    Django, donde ``Index`` se escribe con **palabras clave** en
+    ``Meta.indexes`` — y son 51 sitios reales.
+
+    Las dos poblaciones son disjuntas en el arbol (medido por AST: 51 con solo
+    palabras clave, 0 con posicional), asi que el constructor las reparte sin
+    ambiguedad. No es una heuristica sobre lo que Django acepte: Django **si**
+    admite un ``str`` posicional y lo envuelve en ``F(...)`` sin quejarse, asi
+    que el reparto es una decision nuestra, explicita y probada aqui.
+    """
+
+    def test_a_positional_string_is_the_table_object(self):
+        """EL CONTROL DE LA FRONTERA.
+
+        Fija la decision para que sea leida y no descubierta: un ``str``
+        posicional es la definicion SQL de la referencia, no la expresion que
+        Django construiria. Bajo la version anterior ese mismo argumento daba
+        ``F('(active) WHERE active IS TRUE')`` — un nombre de columna imposible
+        que falla al resolver, no al escribirse.
+        """
+        obj = Index('(active) WHERE active IS TRUE')
+        assert isinstance(obj, Index)
+        assert obj.get_definition(None) == 'INDEX (active) WHERE active IS TRUE'
+
+    def test_a_positional_callable_is_the_table_object(self):
+        """La fuente admite un invocable que recibe el registro."""
+        obj = Index(lambda registry: '(group_id, user_id)')
+        assert isinstance(obj, Index)
+        assert obj.get_definition(None) == 'INDEX (group_id, user_id)'
+
+    def test_keywords_only_give_djangos_index(self):
+        """Los 51 sitios de ``Meta.indexes`` siguen recibiendo el de Django."""
+        obj = Index(fields=['name'], name='res_partner_name_idx')
+        assert type(obj) is django_models.Index
+        assert obj.fields == ['name']
+        assert obj.name == 'res_partner_name_idx'
+
+    def test_the_django_branch_keeps_its_migration_identity(self):
+        """EL CONTROL que protege las migraciones ya escritas.
+
+        ``deconstruct`` es lo que una migracion guarda. Si la rama de Django
+        devolviera una subclase nuestra, las 51 migraciones existentes dejarian
+        de reconstruirse con el mismo objeto y ``makemigrations`` propondria un
+        cambio que nadie pidio.
+        """
+        ruta, _, _ = Index(fields=['name'], name='x_idx').deconstruct()
+        assert ruta == 'django.db.models.Index'
+
+    def test_a_condition_travels_to_the_django_branch(self):
+        """La forma que los indices parciales del arbol usan."""
+        obj = Index(fields=['active'], name='x_idx',
+                    condition=django_models.Q(active=True))
+        assert type(obj) is django_models.Index
+        assert obj.condition == django_models.Q(active=True)
+
+    def test_the_unique_index_refuses_the_django_shape(self):
+        """EL CONTROL de la herencia.
+
+        ``UniqueIndex`` hereda el reparto, y la rama de Django devolveria un
+        ``Index`` **no unico**: la unicidad se perderia en silencio, que es
+        justo el modo de fallo que un reparto por forma puede introducir. En
+        Django lo unico es ``UniqueConstraint``, no un ``Index``, asi que la
+        rama no tiene destino y el constructor lo dice.
+        """
+        with pytest.raises(TypeError, match='UniqueIndex'):
+            UniqueIndex(fields=['name'], name='x_idx')
+
+    def test_the_unique_index_still_takes_its_definition_positionally(self):
+        obj = UniqueIndex('(name) WHERE active')
+        assert isinstance(obj, UniqueIndex)
+        assert obj.get_definition(None) == 'UNIQUE INDEX (name) WHERE active'
+
+    def test_it_refuses_a_call_with_neither_shape(self):
+        """Ni posicional ni las palabras clave que Django exige."""
+        with pytest.raises((TypeError, ValueError)):
+            Index()

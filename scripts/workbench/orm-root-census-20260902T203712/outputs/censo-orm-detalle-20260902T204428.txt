@@ -1,0 +1,77 @@
+=== odoo/orm <-> src/orm ===
+
+archivo                        ref  aqui  otro  disue  falta
+commands.py                      8     8     0      0      0
+decorators.py                   17     8     3      1      5
+    ausentes: attrsetter, ondelete, depends_context, setter, wrapper
+    clases disueltas: deprecated
+    en otro archivo: __call__ -> environments.py, __init__ -> checks.py, create -> commands.py
+domains.py                      92    89     0      0      3
+    ausentes: _to_sql, and_predicate, or_predicate
+environments.py                 79    37     7      1     34
+    ausentes: reset, _protected, cache, _lang, _, _recompute_all, flush_all, _field_cache_memo, _field_dirty, _field_depends_context, flush_query, _get_field_cache, _set_field_cache, contains, contains_field, update_raw, insert_missing, patch, patch_and_set, remove, get_values, get_until_miss, get_records_different_from, get_fields, get_records, get_missing_ids, get_dirty_fields, filtered_dirty_records, filtered_clean_records, has_dirty_fields, clear_dirty_field, check, process
+    clases sin portar: Cache
+    clases disueltas: Starred
+    en otro archivo: __new__ -> domains.py, __setattr__ -> domains.py, flush -> models.py, get -> fields_nonstored.py, invalidate -> fields_nonstored.py, set -> commands.py, update -> commands.py
+fields.py                       83    18    19      0     46
+    ausentes: __init_subclass__, _get_attrs, prepare_setup, setup_nonrelated, get_depends, _compute_related, _process_related, _inverse_related, _search_related, column_type, base_field, resolve_depends, get_description, _description_depends, _description_searchable, _description_sortable, _description_groupable, _description_aggregator, _description_string, _description_help, _description_falsy_value_label, is_editable, convert_to_column_insert, get_column_update, column_order, update_db, update_db_column, _convert_db_column, update_db_notnull, update_db_related, to_sql, condition_to_sql, _condition_to_sql, _condition_to_sql_company, read, _filter_not_equal, _to_prefetch, determine_group_expand, apply_except_missing, add_not_null, _value_to_column, build_like_regex, recursive_compute, unaccent, is_inherited_field
+    clases sin portar: Field
+    en otro archivo: __repr__ -> commands.py, __set__ -> fields_company_dependent.py, __str__ -> identifiers.py, _setup_attrs__ -> fields_properties.py, convert_to_cache -> fields_properties.py, convert_to_column -> fields_properties.py, convert_to_export -> fields_properties.py, convert_to_read -> fields_properties.py, convert_to_record -> fields_properties.py, convert_to_write -> fields_properties.py, create -> commands.py, expression_getter -> fields_properties.py, filter_function -> fields_properties.py, get_company_dependent_fallback -> fields_company_dependent.py, property_to_sql -> fields_properties.py, setup -> fields_properties.py, setup_related -> fields_properties.py, traverse_related -> fields_nonstored.py, write -> fields_properties.py
+fields_binary.py                18     2     7      0      9
+    ausentes: column_type, _get_attrs, get_column_update, read, condition_to_sql, _inverse_related, _image_process, _process_related, _encode
+    en otro archivo: compute_value -> fields.py, convert_to_cache -> fields_properties.py, convert_to_column -> fields_properties.py, convert_to_record -> fields_properties.py, create -> commands.py, setup -> fields_properties.py, write -> fields_properties.py
+fields_misc.py                  14     1     8      0      5
+    ausentes: _condition_to_sql, update_db, to_sql
+    clases sin portar: Boolean, Id
+    en otro archivo: __get__ -> fields.py, __set__ -> fields_company_dependent.py, convert_to_cache -> fields_properties.py, convert_to_column -> fields_properties.py, convert_to_export -> fields_properties.py, convert_to_record -> fields_properties.py, expression_getter -> fields_properties.py, getter -> fields_temporal.py
+fields_numeric.py               24     1     8      0     15
+    ausentes: _get_attrs, _update_inverse, _column_type, get_digits, get_min_display_digits, _description_digits, _description_min_display_digits, _description_currency_field, _description_aggregator, get_currency_field, setup_nonrelated, convert_to_column_insert, _filter_not_equal
+    clases sin portar: Integer, Float
+    en otro archivo: __init__ -> checks.py, convert_to_cache -> fields_properties.py, convert_to_column -> fields_properties.py, convert_to_export -> fields_properties.py, convert_to_read -> fields_properties.py, convert_to_record -> fields_properties.py, convert_to_write -> fields_properties.py, setup_related -> fields_properties.py
+fields_properties.py            38    37     0      0      1
+    ausentes: condition_to_sql
+fields_reference.py             10     0     6      1      3
+    ausentes: _update_inverses, _record_ids_per_res_model
+    clases sin portar: Many2oneReference
+    clases disueltas: Reference
+    en otro archivo: convert_to_cache -> fields_properties.py, convert_to_column -> fields_properties.py, convert_to_display_name -> fields.py, convert_to_export -> fields_properties.py, convert_to_read -> fields_properties.py, convert_to_record -> fields_properties.py
+fields_relational.py            60     7    17      2     34
+    ausentes: _update_inverse, convert_to_record_multi, setup_nonrelated, setup_inverses, _related_domain, _description_domain, _description_allow_hierachy_operators, _internal_description_domain_raw, update_db, update_db_column, update_db_foreign_key, _remove_inverses, _update_inverses, to_sql, condition_to_sql, join, get_depends, write_batch, write_real, write_new, _check_sudo_commands, _get_query_for_condition_value, _condition_to_sql_relational, read, update_db_foreign_keys, validated, browse, relation_add, relation_remove, relation_set, relation_delete, get_origin
+    clases sin portar: _Relational, _RelationalMulti
+    clases disueltas: PrefetchMany2one, PrefetchX2many
+    en otro archivo: __iter__ -> domains.py, __reversed__ -> domains.py, _setup_attrs__ -> fields_properties.py, _update_cache -> fields.py, convert_to_cache -> fields_properties.py, convert_to_column -> fields_properties.py, convert_to_display_name -> fields.py, convert_to_export -> fields_properties.py, convert_to_read -> fields_properties.py, convert_to_record -> fields_properties.py, convert_to_write -> fields_properties.py, create -> commands.py, filter_function -> fields_properties.py, flush -> models.py, link -> commands.py, unlink -> commands.py, write -> fields_properties.py
+fields_selection.py             13     0     6      0      7
+    ausentes: setup_nonrelated, _get_attrs, _selection_modules, _description_selection, _default_group_expand, get_values
+    clases sin portar: Selection
+    en otro archivo: __init__ -> checks.py, _setup_attrs__ -> fields_properties.py, convert_to_cache -> fields_properties.py, convert_to_column -> fields_properties.py, convert_to_export -> fields_properties.py, setup_related -> fields_properties.py
+fields_temporal.py              18     1     6      0     11
+    ausentes: _expression_property_getter, today, context_today, to_date, to_string, now, context_timestamp, to_datetime
+    clases sin portar: BaseDate, Date, Datetime
+    en otro archivo: convert_to_cache -> fields_properties.py, convert_to_column -> fields_properties.py, convert_to_display_name -> fields.py, convert_to_export -> fields_properties.py, expression_getter -> fields_properties.py, property_to_sql -> fields_properties.py
+fields_textual.py               47     3    20      0     24
+    ausentes: _description_translate, get_depends, _convert_db_column, get_trans_terms, get_text_content, convert_to_column_insert, get_column_update, get_translation_dictionary, _get_stored_translations, translation_lang, get_translation_fallback_langs, _to_prefetch, to_sql, condition_to_sql, _column_type, update_db_column, _get_attrs, _convert, __setitem__, __delitem__, translate_func
+    clases sin portar: BaseString, Text, LangProxyDict
+    en otro archivo: __getitem__ -> environments.py, __iter__ -> domains.py, __len__ -> environments.py, __repr__ -> commands.py, _cache_missing_ids -> fields.py, _get_cache_impl -> fields.py, _insert_cache -> fields.py, _setup_attrs__ -> fields_properties.py, _update_cache -> fields.py, clear -> commands.py, convert_to_cache -> fields_properties.py, convert_to_column -> fields_properties.py, convert_to_read -> fields_properties.py, convert_to_record -> fields_properties.py, convert_to_write -> fields_properties.py, expression_getter -> fields_properties.py, get -> fields_nonstored.py, getter -> fields_temporal.py, setup_related -> fields_properties.py, write -> fields_properties.py
+identifiers.py                   8     8     0      0      0
+model_classes.py                16     2     0      0     14
+    ausentes: add_to_registry, _check_model_extension, _check_model_parent_extension, _init_model_class_attributes, setup_model_classes, _prepare_setup, _setup, _check_inherits, _add_inherited_fields, _setup_fields, _add_manual_models, _add_manual_fields, add_field, pop_field
+models.py                      226    62    25      3    136
+    ausentes: parse_read_group_spec, raise_on_invalid_object_name, to_record_ids, check_company_domain_parent_of, check_companies_domain_parent_of, _valid_field_parameter, _post_model_setup__, _table_sql, _constraint_methods, _ondelete_methods, _onchange_methods, _is_an_ordinary_table, __ensure_xml_id, _export_rows, export_data, _validate_fields, _rec_name_fallback, search_count, search_fetch, _read_grouping_sets, _read_group, _read_group_select, _read_group_groupby, _read_group_having, _read_group_orderby, _read_group_empty_value, _read_group_postprocess_groupby, _read_group_postprocess_aggregate, _read_group_expand_full, _read_group_fill_results, _read_group_fill_temporal, _read_group_format_result, _read_group_format_result_properties, read_group, _read_group_groupby_properties, _parent_store_compute, _check_removed_columns, _init_column, _table_has_rows, _auto_init, init, _check_parent_path, _add_sql_constraints, _sql_error_to_message_generic, fields_get, check_field_access_rights, read, update_field_translations, _update_field_translations, get_field_translations, _get_base_lang, _read_format, _fetch_field, fetch, _determine_fields_to_fetch, _fetch_query, get_metadata, check_access_rights, check_access_rule, _filter_access_rules, _filter_access_rules_python, _write, _write_multi, _prepare_create_values, _create, _compute_field_value, _parent_store_create, _parent_store_update_prepare, _parent_store_update, _order_to_sql, _order_field_to_sql, _search, _as_query, exists, lock_for_update, try_lock_for_update, _has_cycle, _check_recursion, _check_m2m_recursion, is_transient, search_read, toggle_active, action_archive, action_unarchive, _register_hook, _unregister_hook, _can_return_content, browse, ids, _cr, _uid, _context, ensure_one, with_env, with_user, with_company, with_context, with_prefetch, _convert_to_record, _convert_to_write, mapped, filtered, grouped, sorted, _sorted_order_to_function, new, __sub__, __le__, __gt__, __ge__, __int__, __deepcopy__, __setitem__, _cache, invalidate_model, invalidate_recordset, _has_onchange, _apply_onchange_methods, _get_placeholder_filename, is_constraint, wrap, is_ondelete, is_onchange, onchange_default, to_xid, order_to_function, add, add_default, wrapper, fill_properties_cache, fetch_fields, might_duplicate_rows, recordset, make_type
+    clases sin portar: BaseModel, Model
+    clases disueltas: MetaModel, RecordCache, ReversibleComparator
+    en otro archivo: __add__ -> domains.py, __and__ -> domains.py, __bool__ -> domains.py, __contains__ -> environments.py, __eq__ -> commands.py, __getitem__ -> environments.py, __hash__ -> domains.py, __init__ -> checks.py, __iter__ -> domains.py, __len__ -> environments.py, __lt__ -> identifiers.py, __new__ -> domains.py, __or__ -> domains.py, __repr__ -> commands.py, __reversed__ -> domains.py, _invalidate_cache -> fields.py, _update_cache -> fields.py, concat -> registry.py, getter -> fields_temporal.py, onchange -> decorators.py, search -> fields_nonstored.py, sudo -> environments.py, union -> domains.py, unlink -> commands.py, update -> commands.py
+models_transient.py              4     4     0      0      0
+registry.py                     58    24     3      0     31
+    ausentes: _unaccent, new, init, delete_all, __setitem__, __delitem__, descendants, _setup_models__, field_computed, _discard_fields, _field_triggers, post_init, post_constraint, finalize_constraints, init_models, check_null_constraints, check_indexes, add_foreign_key, check_foreign_keys, check_tables_exist, is_an_ordinary_table, registry_invalidated, cache_invalidated, setup_signaling, get_sequences, check_signaling, signal_changes, reset_changes, manage_changes, cursor
+    clases sin portar: Registry
+    en otro archivo: __new__ -> domains.py, delete -> commands.py, load -> models.py
+table_objects.py                11    11     0      0      0
+types.py                         0     0     0      0      0
+utils.py                         9     4     3      1      1
+    ausentes: check_method_name
+    clases disueltas: OriginIds
+    en otro archivo: __init__ -> checks.py, __iter__ -> domains.py, __reversed__ -> domains.py
+
+presentes en su archivo: 327 de 853 (38.3 %) · en otro archivo: 138 · clases disueltas: 9 · ausentes: 379
+(alcance medido: 22 archivos de la referencia, 0 sin contraparte)
+nuestros sin contraparte en la fuente: 6 — checks.py, fields_company_dependent.py, fields_nonstored.py, inherits.py, method_chain.py, routers.py

@@ -51,6 +51,7 @@ La forma es la misma que ``service/model.py`` ya usa para ``service/retry.py``.
 Ver :ref:`h-api-855` para el veredicto por archivo de las raíces espejadas.
 """
 import collections
+import collections.abc
 import functools
 import itertools
 import logging
@@ -62,6 +63,8 @@ from django.db.models import *          # noqa: F401,F403  (re-export ORM comple
 from django.db.models import (  # noqa: F401
     ForeignKey, Manager, Model, QuerySet,
 )
+from django.db.models.signals import post_init, pre_init, pre_save
+from django.dispatch import receiver
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import DatabaseError
@@ -75,10 +78,11 @@ from orm.environments import (
 from orm.commands import ManyToManyLink, ManyToManySet, One2manyChild
 from orm import registry
 from orm.domains import Domain, to_q
-from orm.fields import _as_record_list as as_record_list, convert_to_display_name
+from orm.fields import convert_to_display_name
 from orm.fields_nonstored import NonStored, non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
-from orm.utils import model_field_registry, parse_field_expr, record_ids
+from orm.utils import (as_record_list, check_object_name,
+                       model_field_registry, parse_field_expr, record_ids)
 from service.db import Savepoint
 from tools.misc import OrderedSet
 from tools.sql import SQL
@@ -1168,7 +1172,7 @@ class CopyMixin:
         No es una divergencia de mecanismo ni una omisión: **no hay
         traducciones que copiar**. La referencia guarda el campo traducible
         como columna ``jsonb`` ``{lang: valor}``; aquí ``translate=True`` se
-        **anota** en el campo (``field.odoo_translate``, ``orm/fields_textual``)
+        **anota** en el campo (``field.translate``, ``orm/fields_textual``)
         y la columna sigue siendo ``varchar`` con un solo idioma. Los tres
         símbolos que el cuerpo consume —``_get_stored_translations``,
         ``update_field_translations``, ``get_translation_dictionary``— están
@@ -1312,6 +1316,56 @@ def _delegated_origin(model, name):
 #: ≙ ``NO_ACCESS`` (``odoo19c: odoo/orm/models.py:122``). Valor sentinela de
 #: ``field.groups`` que prohíbe el campo a todo el mundo, elevación aparte.
 NO_ACCESS = '.'
+
+
+#: ≙ ``regex_read_group_spec`` (``odoo19c: odoo/orm/models.py:113``), verbatim.
+#: Parte una especificación de agrupamiento en sus tres piezas: el campo, el
+#: nombre de propiedad opcional tras el punto, y el agregado o granularidad
+#: opcional tras los dos puntos.
+regex_read_group_spec = re.compile(r'(\w+)(\.([\w\.]+))?(?::(\w+))?$')
+
+
+def parse_read_group_spec(spec):
+    """El triplete ``(campo, propiedad, agregado)`` de ``spec``.
+
+    ≙ ``parse_read_group_spec`` (``odoo19c: odoo/orm/models.py:125-136``).
+    Docstring de la fuente: *"Return a triplet corresponding to the given
+    field/property_name/aggregate specification."*
+
+    El patrón captura cuatro grupos y la fuente devuelve el 0, el 2 y el 3 —
+    el 1 es el punto con su contenido, que sólo existe para delimitar al 2.
+
+    La guarda **no es cosmética**: sin ella un ``spec`` que no parsea deja
+    ``res_match`` en ``None`` y el acceso a ``.groups()`` revienta con
+    ``AttributeError`` en vez del ``ValueError`` explicado que la fuente
+    promete a quien escribió el agrupamiento.
+    """
+    res_match = regex_read_group_spec.match(spec)
+    if not res_match:
+        raise ValueError(
+            f'Invalid aggregate/groupby specification {spec!r}.\n'
+            '- Valid aggregate specification looks like "<field_name>:<agg>" '
+            'example: "quantity:sum".\n'
+            '- Valid groupby specification looks like "<no_datish_field_name>" '
+            'or "<datish_field_name>:<granularity>" example: "date:month" or '
+            '"<properties_field_name>.<property>:<granularity>".'
+        )
+
+    groups = res_match.groups()
+    return groups[0], groups[2], groups[3]
+
+
+def raise_on_invalid_object_name(name):
+    """La mitad que lanza de :func:`~orm.utils.check_object_name`.
+
+    ≙ ``raise_on_invalid_object_name`` (``odoo19c: odoo/orm/models.py:139-142``).
+    El hermano devuelve un booleano y éste lo convierte en el rechazo que el
+    cargador de modelos necesita: un ``_name`` inválido no puede seguir adelante
+    en silencio.
+    """
+    if not check_object_name(name):
+        msg = "The _name attribute %s is not valid." % name
+        raise ValueError(msg)
 
 
 class FieldSqlMixin:
@@ -2927,7 +2981,7 @@ Model.__setitem__ = _model_setitem
 # Donde ella escribe ``records.browse(ids)`` para rehacer un conjunto, aqui se
 # lleva una **lista de instancias**: no hay recordset que rehacer, y filtrar la
 # lista es la misma operacion sin la indireccion. Es la misma adaptacion que
-# ``orm.utils.record_ids`` y ``orm.fields._as_record_list`` ya declaran.
+# ``orm.utils.record_ids`` y ``orm.utils.as_record_list`` ya declaran.
 
 
 def _model_of_records(records):
@@ -3211,46 +3265,95 @@ def _recompute_recordset(self, fnames=None):
             _recompute_field(self, field, record_ids(rows))
 
 
-def _flush(self, fnames=None):
+def _flush(self):
     """Escribe a la base lo que el calculo dejo sucio en el cache.
 
-    ≙ ``BaseModel._flush`` (``odoo19c: odoo/orm/models.py:6386``). La fuente
-    saca del cache los campos sucios con sus ids y compone el ``UPDATE``; aqui
-    el ``UPDATE`` lo pone Django con ``save(update_fields=...)``, que escribe
-    **solo** esas columnas.
+    ≙ ``BaseModel._flush`` (``odoo19c: odoo/orm/models.py:6386-6400``). La
+    fuente saca del cache los campos sucios con sus ids y compone el
+    ``UPDATE``; aqui el ``UPDATE`` lo pone Django con
+    ``save(update_fields=...)``, que escribe **solo** esas columnas.
 
     El cache lo puebla ``orm.fields._cache_computed_values``, que corre al
     final de cada ``compute_value``: sin el, ``field_dirty`` estaria siempre
     vacio y este metodo no tendria de donde saber que columna escribir.
+
+    **El alcance es el MODELO, no las filas de ``self``** — corregido con la
+    tarea #324. La version anterior arrancaba con ``rows = as_record_list(self)``
+    y ``if not rows: return``, asi que sobre un recordset vacio no escribia
+    nada; y ``flush_model``, que es quien lo llama sin filas, se volvia un
+    verde que no discrimina: corria, no volcaba, y nadie lo notaba. La fuente
+    recorre ``self._fields.values()`` y **saca** (``pop``) los ids sucios de
+    cada uno, sin mirar ``self._ids``: por eso su ``flush_model`` sobre un
+    recordset vacio si vuelca el modelo entero.
+
+    La firma tambien vuelve a la de la fuente: ``_flush(self)``, sin
+    ``fnames``. Quien acota por nombre es el llamador —``flush_model`` decide
+    si vale la pena volcar— y allá el volcado, una vez decidido, es completo.
     """
-    rows = as_record_list(self)
-    if not rows:
+    model = _model_of_records(self) or (self if isinstance(self, type) else None)
+    if model is None:
         return
     dirty = get_transaction().field_dirty
-    model = type(rows[0])
-    wanted = None if fnames is None else set(fnames)
+    dirty_field_ids = {}
+    for field in model_field_registry(model).values():
+        ids = dirty.pop(field, None)
+        if ids:
+            dirty_field_ids[field] = ids
+    if not dirty_field_ids:
+        return
 
-    by_row = collections.defaultdict(list)
-    for field, ids in list(dirty.items()):
-        if getattr(field, 'model', None) is not model or not ids:
-            continue
-        if wanted is not None and field.name not in wanted:
-            continue
-        for row in rows:
-            if row.pk in ids:
-                by_row[row].append(field)
+    #: Solo las filas ya persistidas: un id que no es entero es una fila
+    #: virtual, que se recalcula al leerla y no tiene columna que escribir.
+    wanted_ids = OrderedSet(record_id for ids in dirty_field_ids.values()
+                            for record_id in ids if isinstance(record_id, int))
+    rows = {row.pk: row for row in model.objects.filter(pk__in=list(wanted_ids))}
 
-    for row, row_fields in by_row.items():
+    for record_id in wanted_ids:
+        row = rows.get(record_id)
+        if row is None:
+            # silent OK because la fila se borro entre el calculo y el volcado:
+            # su id salio del cache sucio arriba, asi que no queda pendiente, y
+            # escribir sobre una fila inexistente es el error, no el silencio.
+            continue
         names = []
-        for field in row_fields:
+        for field, ids in dirty_field_ids.items():
+            if record_id not in ids:
+                continue
             cached = field._get_cache(env())
-            if row.pk in cached:
-                setattr(row, getattr(field, 'attname', field.name),
-                        cached[row.pk])
-            names.append(getattr(field, 'attname', field.name))
-        row.save(update_fields=names)
-        for field in row_fields:
-            dirty[field].discard(row.pk)
+            if record_id not in cached:
+                continue
+            if getattr(field, 'many_to_many', False):
+                _flush_m2m(row, field, cached[record_id])
+                continue
+            attname = getattr(field, 'attname', field.name)
+            setattr(row, attname, cached[record_id])
+            names.append(attname)
+        if names:
+            row.save(update_fields=names)
+
+
+def _flush_m2m(row, field, value):
+    """Vuelca un campo muchos-a-muchos calculado — la rama que #313 anade.
+
+    Un M2M no es una columna y no admite ``setattr``: Django lanza
+    ``TypeError: Direct assignment to the forward side of a many-to-many set
+    is prohibited``. Tampoco cabe en ``update_fields``, que nombra columnas.
+    Por eso la rama existe: el mismo valor calculado se entrega al manager
+    relacional, que resuelve el diff contra la tabla intermedia.
+
+    ``.set()`` y no un ``bulk_create`` sobre un ``through`` propio: las
+    relaciones que hoy declaran computo son de **configuracion** —etiquetas de
+    una cuenta, campos que disparan una regla—, de cardinalidad baja y
+    escritura rara. Ahi lo caro es la superficie, no la ida a la base; y
+    ``.set()`` emite ``m2m_changed``, que es donde vive el control de acceso
+    de la relacion. La rama mira el CAMPO, no el modelo, asi que una relacion
+    de operacion que manana pida otro mecanismo no queda cerrada por esto.
+
+    Una fila sin ``pk`` no llega aqui: :func:`_flush` solo recorre las que el
+    registro de sucios nombra por id, y una fila nueva no tiene ninguno.
+    """
+    manager = getattr(row, field.name)
+    manager.set([] if value is None else value)
 
 
 def flush_model(self, fnames=None):
@@ -3263,16 +3366,16 @@ def flush_model(self, fnames=None):
     flushed, though"*.
     """
     _recompute_model(self, fnames)
-    dirty = get_transaction().field_dirty
-    model = _model_of_records(self)
+    model = _model_of_records(self) or (self if isinstance(self, type) else None)
     if model is None:
         return
     if fnames is None:
         _flush(self)
         return
+    dirty = get_transaction().field_dirty
     registry_of_model = model_field_registry(model)
     if any(registry_of_model[fname] in dirty for fname in fnames):
-        _flush(self, fnames)
+        _flush(self)
 
 
 def flush_recordset(self, fnames=None):
@@ -3291,7 +3394,7 @@ def flush_recordset(self, fnames=None):
     ids = set(record_ids(rows))
     dirty = get_transaction().field_dirty
     if not all(ids.isdisjoint(dirty.get(field) or ()) for field in fields):
-        _flush(rows, fnames)
+        _flush(rows)
 
 
 for _engine_method in (modified, _modified, _modified_triggers,
@@ -3300,3 +3403,385 @@ for _engine_method in (modified, _modified, _modified_triggers,
                        flush_recordset):
     setattr(Model, _engine_method.__name__, _engine_method)
     setattr(QuerySet, _engine_method.__name__, _engine_method)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ``precompute`` — el cálculo que se adelanta al INSERT
+#     ≙ ``BaseModel._prepare_create_values`` (``odoo19c: odoo/orm/models.py:
+#     4786-4791``) y ``BaseModel._add_precomputed_values`` (``:4814-4846``)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Hasta aquí ``precompute`` sólo se **validaba**: ``resolve_depends`` avisa y
+# lo apaga cuando la cadena de dependencia no lo sostiene
+# (``orm/fields.py:2181-2189``), y ``_apply_precompute_block`` rechaza el
+# atributo sobre un campo que no es calculado, no es almacenado o es un M2M
+# (``orm/fields_nonstored.py:369-406``). Nadie lo **corría**: los nueve campos
+# vivos que lo declaran se computaban a mano desde el ``save()`` de su modelo.
+#
+# Qué hace la fuente, y en qué se traduce aquí
+# --------------------------------------------
+#
+# ``_prepare_create_values`` descarta de ``vals`` los precompute **readonly**
+# —para forzar su cómputo aunque el llamador haya pasado un valor— y
+# ``_add_precomputed_values`` computa todo precompute cuyo nombre ``fname not
+# in vals``, leyéndolo con ``record[fname]`` sobre un ``self.new(vals)``.
+#
+# Las dos mitades exigen saber **qué nombres dio el llamador**, y ahí está la
+# diferencia de este stack: la fuente tiene el diccionario ``vals`` delante;
+# una instancia de Django llega al ``pre_save`` con TODOS sus campos poblados
+# —los dados y los que tomaron su ``default``— y ya no distingue unos de
+# otros. El dato existe un instante antes: ``Model.__init__`` emite
+# ``pre_init`` con los ``args`` y ``kwargs`` del llamador **verbatim**
+# (``django/db/models/base.py:491``). Eso es ``vals``.
+#
+# Veredicto por el criterio de las dos categorías: **el stack tiene con qué
+# construirlo**. No hay símbolo hecho —Django no tiene la noción de un campo
+# que se calcule antes del INSERT— pero las tres primitivas son nativas y
+# ninguna viene de fuera del INVENTORY: ``pre_init``/``post_init`` capturan lo
+# que el llamador nombró y ``pre_save`` corre antes de ``_do_insert``, las tres
+# en ``('django', 'evaluación y control de flujo')``.
+
+
+#: Los nombres que el llamador pasó a ``__init__``, apilados mientras el
+#: constructor corre. Es una **pila** y no una casilla porque ``__init__``
+#: anida: un ``default`` que construye otra instancia mete la suya en medio, y
+#: con una sola casilla la de fuera se perdería.
+#:
+#: Si un ``__init__`` revienta entre las dos señales, su entrada se queda en la
+#: pila. Eso NO corrompe a la siguiente instancia —``post_init`` saca la
+#: **última**, que es la suya— sino que deja una entrada huérfana al fondo: una
+#: fuga acotada a un ``frozenset`` por constructor fallido.
+_EXPLICIT_VALUES = []
+
+
+def _explicit_value_names(sender, args, kwargs):
+    """Los campos que el llamador nombró al construir la fila.
+
+    Es la traducción de ``fname not in vals`` (``odoo19c: :4842``) al
+    constructor de Django, que admite las dos formas de pasar un valor:
+
+    - por palabra clave, que es el caso corriente y el que da ``kwargs``;
+    - por **posición**, que Django resuelve contra ``_meta.concrete_fields`` en
+      orden (``django/db/models/base.py:496``). Sin esta mitad, una fila
+      construida posicionalmente llegaría con el conjunto vacío y todo
+      precompute se recalcularía encima del valor que el llamador sí dio.
+
+    Se registran el ``name`` y el ``attname`` porque una FK responde a los dos
+    (``company`` y ``company_id``) y el llamador elige cuál usa.
+    """
+    names = set(kwargs)
+    if args:
+        for field, _value in zip(sender._meta.concrete_fields, args):
+            names.add(field.name)
+            names.add(field.attname)
+    return frozenset(names)
+
+
+@receiver(pre_init, dispatch_uid='orm.models.stack_explicit_values')
+def _stack_explicit_values(sender, args, kwargs, **_ignored):
+    """Apila lo que el llamador nombró, antes de que ``__init__`` lo mezcle."""
+    _EXPLICIT_VALUES.append(_explicit_value_names(sender, args, kwargs))
+
+
+@receiver(post_init, dispatch_uid='orm.models.attach_explicit_values')
+def _attach_explicit_values(sender, instance, **_ignored):
+    """Cuelga de la instancia lo que su constructor apiló."""
+    instance._explicit_values = (
+        _EXPLICIT_VALUES.pop() if _EXPLICIT_VALUES else frozenset())
+
+
+def _precomputable_fields(instance):
+    """Los precompute de este modelo que hay que calcular en esta fila.
+
+    ≙ el ``precomputable`` de ``_add_precomputed_values`` (``:4820``) ya
+    cruzado con las dos exclusiones que la fuente reparte en dos sitios:
+
+    - el precompute **readonly** se computa siempre, porque la fuente lo saca
+      de ``vals`` antes de mirarlo (``:4786-4791``);
+    - el precompute **escribible** respeta el valor que el llamador dio, que es
+      el ``fname not in vals`` de ``:4842``.
+    """
+    given = getattr(instance, '_explicit_values', None) or frozenset()
+    pending = {}
+    for name, field in model_field_registry(type(instance)).items():
+        if not getattr(field, 'precompute', False):
+            continue
+        if not getattr(field, 'readonly', False):
+            if name in given or getattr(field, 'attname', name) in given:
+                continue
+        pending[name] = field
+    return pending
+
+
+def _run_precompute_field(instance, name, pending, done, chain):
+    """Corre el cómputo de ``name``, y antes el de los precompute que lee.
+
+    **Esto es la mitad que la fuente obtiene gratis y aquí hay que construir.**
+    Allá el pase es perezoso: ``record[fname]`` sobre un registro virtual
+    dispara el cómputo *al leerlo*, así que un cómputo que lee otro precompute
+    lo resuelve por el camino y el orden de declaración da igual.
+
+    Aquí el cómputo se invoca, no se lee, y el orden de declaración **no** es el
+    de dependencia. Medido en el árbol: ``SaleOrderLine`` declara
+    ``price_reduce_taxexcl`` (``:309``) y ``price_reduce_taxinc`` (``:317``)
+    ANTES de ``price_subtotal`` (``:417``), ``price_tax`` (``:425``) y
+    ``price_total`` (``:433``), y sus dos cómputos leen justamente lo que
+    ``_compute_amount`` escribe. Un pase en orden de declaración los calcularía
+    contra el ``default``.
+
+    Así que la pereza se hace explícita: antes de correr el cómputo de un campo
+    se corren los de los precompute del **mismo modelo** que su ``@api.depends``
+    nombra. ``chain`` corta el ciclo —un campo recursivo se nombra a sí mismo— y
+    ``done`` lleva los **métodos** ya invocados, no los campos: ``_compute_amount``
+    escribe tres y correrlo tres veces repetiría su efecto.
+    """
+    field = pending[name]
+    if field.compute in done:
+        return
+    chain = chain + (name,)
+    for dotted in registry.field_depends[field]:
+        head = dotted.split('.')[0]
+        other = pending.get(head)
+        if other is not None and head not in chain and other.compute not in done:
+            _run_precompute_field(instance, head, pending, done, chain)
+    done.add(field.compute)
+    getattr(instance, field.compute)()
+
+
+def _add_precomputed_values(self):
+    """Calcula los precompute que faltan, antes de que la fila se inserte.
+
+    ≙ ``BaseModel._add_precomputed_values`` (``odoo19c: :4814-4846``).
+
+    **Tres divergencias de mecanismo, las tres con el mismo resultado
+    observable:**
+
+    1. *El valor no se copia a un diccionario.* La fuente escribe
+       ``vals[fname] = field.convert_to_write(record[fname], self)`` porque su
+       INSERT se arma desde ``vals``. Aquí el cómputo asigna sobre la propia
+       instancia, que es de donde Django arma el INSERT: el paso de copia no
+       tiene destino.
+    2. *Sin registro virtual.* La fuente computa sobre un ``self.new(vals)``
+       —un registro sin fila— para no ensuciar el caché con el valor de un
+       registro que aún no existe. Aquí el cómputo se invoca **directamente**
+       sobre la instancia, no por ``compute_value``, por la misma razón medida
+       al revés: ``record_ids`` de una fila sin guardar da ``None``, y
+       ``_update_cache`` escribiría ``field_cache[None]``, que la siguiente
+       fila sin guardar leería como suyo.
+    3. *Sin* ``__precomputed__``. La fuente marca los campos que precomputó
+       para que ``create`` **no dispare su** ``inverse`` (``:4664`` y
+       ``:4681``): el valor lo puso el cómputo, no el llamador, así que
+       invertirlo sería escribir hacia atrás algo que nadie pidió. Aquí ese
+       riesgo no existe por construcción — el único que llama a
+       ``determine_inverse`` es :meth:`write`, sobre los nombres que el llamador
+       le pasó (:meth:`_group_written_inverses`), y este pase no pasa por ahí.
+    """
+    pending = _precomputable_fields(self)
+    if not pending:
+        return
+    done = set()
+    for name in list(pending):
+        _run_precompute_field(self, name, pending, done, ())
+
+
+@receiver(pre_save, dispatch_uid='orm.models.run_precompute')
+def _run_precompute(sender, instance, raw=False, **_ignored):
+    """Dispara el pase de precompute justo antes del INSERT.
+
+    ``pre_save`` corre antes de ``_save_table`` —y por tanto antes de
+    ``_do_insert``— así que el valor calculado viaja en la MISMA sentencia
+    (``django/db/models/base.py:946``). Ése es el punto entero de
+    ``precompute``, y la fuente lo dice: *"computed stored fields with a column
+    have to be computed before create s.t. required and constraints can be
+    applied on those fields"* (``:4841``).
+
+    Dos salidas tempranas: ``raw`` es el cargador de fixtures, que escribe la
+    fila tal cual viene; y una fila que ya existe es un UPDATE, donde el
+    recálculo lo gobierna el motor de ``modified()``, no este pase.
+    """
+    if raw or not instance._state.adding:
+        return
+    _add_precomputed_values(instance)
+
+
+Model._add_precomputed_values = _add_precomputed_values
+
+
+class RecordCache(collections.abc.Mapping):
+    """Los campos de una fila que están en caché, por nombre.
+
+    ≙ ``RecordCache`` (``odoo19c: odoo/orm/models.py:7012-7043``). Docstring de
+    la fuente: *"A mapping from field names to values, to read the cache of a
+    record."* Es la vista que ``record._cache`` devuelve allá.
+
+    **Dos divergencias de mecanismo, ninguna de contrato.**
+
+    1. *El entorno es ambiente.* La fuente lee ``record.env`` —un ``__slots__``
+       del recordset (``:362``)—; aquí una fila es una instancia de Django y no
+       lleva entorno, así que se toma el de la transacción en curso con
+       :func:`~orm.environments.env`. Es la misma adaptación que hace el resto
+       de ``src/orm``.
+    2. *La fila ya es una sola.* La fuente abre con ``assert len(record) == 1``
+       porque allá recibe un recordset que podría traer N. Aquí el tipo del
+       argumento **es** el registro único, así que ese assert no tiene qué
+       comprobar; se conserva su intención comprobando que no llegue una
+       colección.
+
+    ``_fields`` sí existe con el contrato de la fuente —el registro completo
+    del modelo, no sólo sus columnas (tareas #215 y #301)—, así que el
+    recorrido de :meth:`__iter__` es el mismo.
+    """
+
+    __slots__ = ['_record']
+
+    def __init__(self, record):
+        assert not isinstance(record, (list, tuple, set, QuerySet)), (
+            "Unexpected RecordCache(%s)" % (record,))
+        self._record = record
+
+    def __contains__(self, name):
+        """¿Tiene la fila un valor en caché para el campo ``name``?"""
+        record = self._record
+        field = record._fields[name]
+        return record.id in field._get_cache(env())
+
+    def __getitem__(self, name):
+        """El valor en caché del campo ``name`` para la fila."""
+        record = self._record
+        field = record._fields[name]
+        return field._get_cache(env())[record.id]
+
+    def __iter__(self):
+        """Los nombres de campo que tienen valor en caché.
+
+        **La guarda de ``_get_cache`` es la tercera divergencia**, y es del
+        contrato de ``_fields``, no de esta clase. Allá el mapa sólo contiene
+        objetos ``Field``, y todos tienen caché. Aquí lo provee ``_meta``, que
+        incluye además los descriptores de relación **inversa** de Django
+        —``ManyToOneRel``, ``OneToOneRel``, ``ManyToManyRel``—, que no son
+        campos y no tienen dónde cachear: la fuente los modela como
+        ``One2many``, que allá sí es un ``Field``.
+
+        *Métrica:* atributos de ``res.partner`` en ``_fields`` con
+        ``_get_cache``: **86 de 128**; los 42 restantes son 36 ``ManyToOneRel``,
+        4 ``OneToOneRel`` y 2 ``ManyToManyRel``.
+        *Ciega a:* un campo que tuviera caché y no la expusiera con ese nombre.
+        La guarda se retira cuando el uno-a-muchos sea un campo propio con su
+        caché — tareas **#243** y **#244**.
+        """
+        record = self._record
+        id_ = record.id
+        environment = env()
+        for name, field in record._fields.items():
+            if not hasattr(field, '_get_cache'):
+                continue
+            if id_ in field._get_cache(environment):
+                yield name
+
+    def __len__(self):
+        """Cuántos campos tienen valor en caché."""
+        return sum(1 for name in self)
+
+
+class AbstractModel:
+    """La base del registrante **sin tabla** — ≙ ``AbstractModel``.
+
+    La fuente lo declara como alias de su base (``AbstractModel = BaseModel``,
+    ``odoo19c: odoo/orm/models.py:7047``), que trae ``_auto = False``
+    (``:370``), ``_register = False`` (``:380``), ``_abstract = True``
+    (``:381``) y ``_name = None`` (``:392``). Los cuatro se declaran aquí
+    verbatim.
+
+    **Por qué no hereda de Django, que es lo que lo hace útil.** Un registrante
+    sin tabla es exactamente lo que
+    :func:`~orm.registry.registrants_without_table` aparta al comparar
+    ``_name`` con ``db_table``: clases que declaran nombre punteado y no tienen
+    ``_meta``. Heredar de ``models.Model`` les daría uno —con ``db_table``
+    derivado del ``app_label``— y las sacaría de esa cuenta, que es el
+    denominador que impide que un cero de divergencias se lea como «todo
+    cuadra» cuando en realidad no había nada que comparar.
+
+    **Sus dos consumidores están medidos** y hoy no lo adoptan:
+    ``IrFieldsConverter`` (``ir.fields.converter``) e ``IrTemplateExpressions``
+    (``ir.qweb``). Que pasen a heredar de aquí —y con ello dejen de repetir los
+    cuatro atributos por su cuenta— es la tarea **#329**.
+    """
+
+    _name = None            #: el nombre del modelo, en notación de punto
+    _auto = False           #: no crea tabla en la base
+    _register = False       #: no visible en el registro por nombre
+    _abstract = True        #: es abstracto
+
+
+#: ``Model`` — ≙ ``class Model(AbstractModel)`` (``odoo19c: odoo/orm/models.py:7049``).
+#:
+#: **Ya existe, y es el de Django**: este módulo re-exporta el ORM completo
+#: (``from django.db.models import *``, arriba), así que ``orm.models.Model``
+#: es ``django.db.models.Model`` — *"main super-class for regular
+#: database-persisted models"*, que es palabra por palabra lo que la fuente
+#: dice del suyo. Lo hereda todo el árbol, y ``orm/models_transient.py:36`` lo
+#: importa de aquí por su nombre.
+#:
+#: **Los tres atributos de clase que la fuente le declara NO se le cuelgan**, y
+#: la razón está medida, no supuesta:
+#:
+#: - ``_auto = True`` — su equivalente es ``Meta.managed``, que Django ya
+#:   declara por modelo (``atributos-de-clase-de-modelo.md``).
+#: - ``_abstract = False`` — su equivalente es ``Meta.abstract``, y colgarlo
+#:   como constante en la base **mentiría** sobre todo modelo que sí declara
+#:   ``abstract = True``: lo heredaría en ``False``.
+#: - ``_register = False`` — su equivalente es el registro por nombre
+#:   ``orm.registry.MODELS_BY_NAME``, que se puebla por ``_name`` declarado.
+#:
+#: Y colgarle atributos a ``models.Model`` alcanza a **toda** clase que lo
+#: hereda, incluidas las de Django (``auth``, ``contenttypes``, ``sessions``) y
+#: las de terceros — la misma colisión que :class:`FieldSqlMixin` ya declara al
+#: elegir mixin en vez de adjuntar, y que la tarea **#98** barre.
+
+
+@functools.total_ordering
+class ReversibleComparator:
+    """Clave de orden con dirección y política de nulos **en la clave**.
+
+    ≙ ``ReversibleComparator`` (``odoo19c: odoo/orm/models.py:7066-7094``).
+
+    Los dos ejes son independientes, y ahí está su razón de ser: ``reverse``
+    invierte la comparación entre dos valores presentes, y ``none_first``
+    decide dónde va el ausente **sin** invertirse con el anterior. Un
+    ``sorted(reverse=True)`` no puede expresarlo —invierte la lista entera,
+    nulos incluidos— ni permite mezclar columnas ascendentes y descendentes en
+    un mismo orden, que es para lo que la fuente lo usa.
+
+    ``@functools.total_ordering`` deriva ``<=``, ``>`` y ``>=`` de
+    :meth:`__lt__` y :meth:`__eq__`; la fuente cuenta con ello.
+    """
+
+    __slots__ = ('__item', '__none_first', '__reverse')
+
+    def __init__(self, item, reverse, none_first):
+        self.__item = item
+        self.__reverse = reverse
+        self.__none_first = none_first
+
+    def __lt__(self, other):
+        item = self.__item
+        item_cmp = other.__item
+        if item == item_cmp:
+            return False
+        if item is None:
+            return self.__none_first
+        if item_cmp is None:
+            return not self.__none_first
+        if self.__reverse:
+            item, item_cmp = item_cmp, item
+        return item < item_cmp
+
+    def __eq__(self, other):
+        return self.__item == other.__item
+
+    def __hash__(self):
+        return hash(self.__item)
+
+    def __repr__(self):
+        return (f"<ReversibleComparator {self.__item!r}"
+                f"{' reverse' if self.__reverse else ''}>")
