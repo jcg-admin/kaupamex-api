@@ -84,13 +84,24 @@ class FileSize:
         return self.size_bytes // BYTES_PER_TOKEN
 
 
-#: Subarboles que se excluyen al medir un alias de Community. La raiz de
-#: ``odoo18c`` es ``18.x/odoo-18``, y ese directorio CONTIENE ``enterprise/``:
-#: medido 2026-09-03, 13 869 de sus 21 857 ``.py`` viven ahi. Recorrer el padre
-#: mezcla dos poblaciones e infla Community 18 en 2.7x — el eje de la version
-#: que :ref:`h-api-76` y :ref:`h-api-227` ya registraron. La exclusion se
-#: DECLARA en el reporte; no se aplica en silencio.
-EXCLUDED_SUBTREES = ('enterprise',)
+#: Subarboles anidados que son OTRA poblacion, no ruido. La raiz de ``odoo18c``
+#: es ``18.x/odoo-18`` y ese directorio CONTIENE ``enterprise/``: medido
+#: 2026-09-03, 13 869 de sus 21 857 ``.py`` viven ahi, en 1292 addons de los
+#: que **191 no existen en** ``odoo18e`` —``auth_passkey``, ``certificate``,
+#: ``account_iso20022``, ``accountant``…—.
+#:
+#: Por eso NO se descarta: se mide **aparte**. La licencia que declara un
+#: addon decide el mecanismo de porte (copiar con atribucion frente a
+#: reimplementar), y :ref:`analisis-inventario-account-cuatro-arboles` midio
+#: que 17 addons de ``account`` cambian de veredicto al mirar las cuatro
+#: poblaciones en vez de una. Descartar una quinta con 191 addons propios
+#: repetiria ese defecto, no lo evitaria.
+#:
+#: Lo que si seria un error es sumarla al conteo de Community 18: son
+#: poblaciones distintas y fundirlas es el eje de la version de
+#: :ref:`h-api-76`. Sin alias en ``reference_roots``, asi que va por ruta
+#: hasta que la tarea **#65** le de uno.
+NESTED_POPULATIONS = {'odoo18c': ('enterprise',)}
 
 
 def measure_tree(root: pathlib.Path, pattern: str = '*.py',
@@ -184,18 +195,25 @@ def main(argv: list[str] | None = None) -> int:
         # un 0 que se leeria como «no hay archivos».
         for alias in sorted(reference_roots.TREE_ROOTS):
             root = reference_roots.require(alias)
-            # Solo los de Community pueden llevar enterprise/ dentro; a un
-            # alias de Enterprise excluirlo le quitaria su propia poblacion.
-            excluded = EXCLUDED_SUBTREES if alias.endswith('c') else ()
+            nested = NESTED_POPULATIONS.get(alias, ())
             reports.append(
-                report(alias, measure_tree(root, excluded=excluded), excluded))
+                report(alias, measure_tree(root, excluded=nested), nested))
+            # Cada anidada se mide COMO POBLACION, no se descarta: sus addons
+            # propios cambian veredictos de licencia (ver NESTED_POPULATIONS).
+            for name in nested:
+                nested_root = root / name
+                if nested_root.is_dir():
+                    reports.append(
+                        report(f'{alias}/{name} (sin alias)',
+                               measure_tree(nested_root)))
 
     if args.json:
         print(json.dumps(reports, indent=2, ensure_ascii=False))
         return 0
 
     for item in reports:
-        fuera = (f"  (excluye {', '.join(item['excluded_subtrees'])}/)"
+        fuera = (f"  (sin {', '.join(item['excluded_subtrees'])}/, "
+                 f"que se mide aparte)"
                  if item['excluded_subtrees'] else '')
         print(f"=== {item['population']} — {item['files']} archivos .py{fuera}")
         for band in item['bands']:

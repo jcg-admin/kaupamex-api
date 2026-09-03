@@ -31,12 +31,13 @@ docstring prohibe (`H-API-335`).
 | Poblacion | Archivos .py | Cabe entero siempre (<=1500) |
 |---|---|---|
 | `api: src/` | 293 | 281 (**95.9 %**) |
-| `odoo18c` (excluye `enterprise/`) | 7 988 | 7 898 (98.9 %) |
+| `odoo18c` (sin su anidado) | 7 988 | 7 898 (98.9 %) |
+| `odoo18c/enterprise` (sin alias) | 13 869 | 13 768 (99.3 %) |
 | `odoo18e` | 11 989 | 11 902 (99.3 %) |
 | `odoo19c` | 8 566 | 8 459 (98.8 %) |
 | `odoo19e` | 7 535 | 7 491 (99.4 %) |
 
-Las cinco distribuciones coinciden en lo que decide: **entre el 95.9 % y el
+Las seis distribuciones coinciden en lo que decide: **entre el 95.9 % y el
 99.4 % cabe entero**. Nuestro arbol es el que menos, y aun asi son 281 de 293.
 
 El tramo `>4000` son 3 archivos aqui y entre 3 y 13 en cada alias. El mayor de
@@ -47,13 +48,25 @@ declarar su corte.
 
 ## La premisa que se corrigio al medir
 
-La primera version media **una** raiz y publicaba `odoo18c = 21 857 archivos`.
-Es falso: la raiz de ese alias es `18.x/odoo-18`, que **contiene**
-`enterprise/` con 13 869 `.py` dentro — una tercera copia de Enterprise 18,
-distinta de la de `odoo18e` (11 989). Community 18 real son **7 988**, un
-factor de 2.7. Registrado como `H-API-1073`; el instrumento lo excluye y lo
-**declara** en el reporte, porque una exclusion silenciosa es la misma ventana
-que no dice lo que dejo fuera.
+En dos pasos, los dos senalados por el ejecutor.
+
+**Uno:** la primera version media **una** raiz y concluia sobre «la
+referencia». Son cuatro alias, y los declara `scripts/reference_roots.py`.
+
+**Dos:** al medirlos, `odoo18c` daba 21 857 archivos. Su raiz `18.x/odoo-18`
+**contiene** `enterprise/` con 13 869 `.py` dentro; Community 18 real son
+**7 988**. La reaccion barata era excluirlo — y es la equivocada: ese anidado
+tiene **1292 addons y 191 no existen en** `odoo18e` (`auth_passkey`,
+`certificate`, `account_iso20022`, `accountant`...), mas 29 comunes con
+licencia distinta.
+
+Importa porque **la licencia decide el mecanismo de porte**: copiar con
+atribucion frente a reimplementar. `analisis-inventario-account-cuatro-arboles`
+midio que 22 de 75 addons de `account` declaran `LGPL-3` en algun arbol —cuatro
+solo en 18— y `analisis-alcance-website-sale-cuatro-arboles`, que **17
+cambiaron de veredicto** al mirar las cuatro poblaciones en vez de una. Por eso
+el anidado se mide **aparte**, no se descarta ni se funde. Registrado como
+`H-API-1073`; su alias es la tarea `#65`.
 
 ## Por que el control importa
 

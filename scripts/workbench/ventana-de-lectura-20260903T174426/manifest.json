@@ -1,5 +1,5 @@
 {
-  "question": "Al portar, leer el archivo entero cuesta mas tokens que una ventana sed/grep; en que tramo de tamano ese coste deja de pagar, y cuantos archivos hay en cada tramo — en nuestro arbol y en los CUATRO alias de la referencia?",
+  "question": "Al portar, leer el archivo entero cuesta mas tokens que una ventana sed/grep; en que tramo de tamano ese coste deja de pagar, y cuantos archivos hay en cada tramo — en nuestro arbol y en TODAS las poblaciones de la referencia, incluida la anidada sin alias?",
   "instrument": [
     "scripts/workbench/ventana-de-lectura-20260903T174426/measure_reading_window_cost.py",
     "python3 measure_reading_window_cost.py api=src --reference"
@@ -10,22 +10,29 @@
     "El coste de los episodios que la ventana estrecha produjo, que no se midio en tokens sino en trabajo rehecho — la comparacion es de orden de magnitud, no pareada.",
     "Los archivos que no son .py: el .xml de datos y el .csv de ACL de la referencia se leen igual al portar y no entran en este conteo.",
     "Si un archivo se lee una o veinte veces en la sesion; el tramo decide la politica, no el numero de lecturas reales.",
-    "La tercera copia de Enterprise 18 que vive dentro de la raiz de odoo18c: se EXCLUYE y se declara, pero el instrumento no dice si difiere de odoo18e.",
-    "Que los alias de Enterprise no se auditan por solape: se recorren enteros porque su raiz no anida otra poblacion, y eso no se verifico archivo a archivo."
+    "Si los 29 addons comunes con licencia distinta entre el anidado y odoo18e cambian algun veredicto de porte ya emitido: aqui solo consta que difieren.",
+    "Las otras cinco raices de 18.x/ sin alias (my-odoo-enterprise-18.0, almas_12_1, app-odoo-18.0...), que quedan en la tarea #65 y no se recorren aqui."
   ],
   "destination": "docs: source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/hallazgo-H-API-1072-la-ventana-de-lectura-no-declara-lo-que-dejo-fuera.rst",
   "source": "api@feature/kaupamex-l3 (src/) y odoo-tools@abe4040ec1, los cuatro alias de reference_roots.TREE_ROOTS",
   "corrected_premise": {
-    "antes": "odoo18c tiene 21857 archivos .py",
-    "despues": "7988 — su raiz 18.x/odoo-18 CONTIENE enterprise/ con 13869 .py dentro, una tercera copia de Enterprise 18 distinta de la de odoo18e (11989). Contarla inflaba Community 18 en 2.7x.",
-    "detectado_por": "el ejecutor, al senalar que solo se media una raiz de odoo-tools"
+    "antes": "odoo18c tiene 21857 archivos .py, y su enterprise/ anidado es ruido a excluir",
+    "despues": "Community 18 son 7988. El enterprise/ anidado (13869 .py, 1292 addons) NO es copia de odoo18e: tiene 191 addons propios —auth_passkey, certificate, account_iso20022, accountant— y 29 comunes con licencia distinta. Se mide como poblacion aparte, no se descarta: la licencia decide el mecanismo de porte, y analisis-inventario-account-cuatro-arboles midio 17 addons de account que cambian de veredicto segun que poblaciones se miren.",
+    "detectado_por": "el ejecutor, en dos pasos: primero que solo se media una raiz, luego que los alias de 18 existen por las tareas que 19 no cubre"
   },
   "control": "Se retira el tramo 1501-4000 de BANDS sobre una copia y caen 4 de 14 casos — los tres de particion mas el parametrico de 4000; los otros 10 no dependen de ese tramo. Evidencia en outputs/control-discrimina-20260903T174426.txt. La copia rota se retira; no se commitea.",
   "reproducible": "python3 scripts/workbench/ventana-de-lectura-20260903T174426/measure_reading_window_cost.py api=src --reference",
-  "findings": ["H-API-1072", "H-API-1073"],
-  "tasks": ["#352", "#357"],
+  "findings": [
+    "H-API-1072",
+    "H-API-1073"
+  ],
+  "tasks": [
+    "#65",
+    "#352",
+    "#357"
+  ],
   "outputs": [
-    "outputs/reporte-cuatro-alias-20260903T175234.txt",
+    "outputs/reporte-poblaciones-20260903T175630.txt",
     "outputs/control-discrimina-20260903T174426.txt"
   ]
 }
