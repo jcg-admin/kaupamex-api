@@ -1,0 +1,13 @@
+Control de discriminacion — 2026-09-03T17:44:26
+Neutralizacion: se retira el tramo 1501-4000 de BANDS (el defecto del episodio 6).
+
+=========================== short test summary info ============================
+FAILED scripts/workbench/ventana-de-lectura-20260903T174426/outputs/neutralized-20260903T174426/tests/test_reading_window_cost.py::TestThePartitionCoversTheWholeUniverse::test_every_size_lands_in_exactly_one_band[1501]
+FAILED scripts/workbench/ventana-de-lectura-20260903T174426/outputs/neutralized-20260903T174426/tests/test_reading_window_cost.py::TestThePartitionCoversTheWholeUniverse::test_every_size_lands_in_exactly_one_band[4000]
+FAILED scripts/workbench/ventana-de-lectura-20260903T174426/outputs/neutralized-20260903T174426/tests/test_reading_window_cost.py::TestThePartitionCoversTheWholeUniverse::test_the_bands_leave_no_gap_between_them
+FAILED scripts/workbench/ventana-de-lectura-20260903T174426/outputs/neutralized-20260903T174426/tests/test_reading_window_cost.py::TestThePartitionCoversTheWholeUniverse::test_the_counts_add_up_to_the_population
+4 failed, 10 passed, 1 warning in 0.18s
+
+Con el instrumento intacto:
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+14 passed, 1 warning in 0.07s

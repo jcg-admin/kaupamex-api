@@ -1,0 +1,22 @@
+=== api — 293 archivos .py
+    241   82.3 %  <=400        cat -n entero, siempre
+     40   13.7 %  401-1500     cat -n entero, siempre
+      9    3.1 %  1501-4000    cat -n entero la PRIMERA vez que la sesion toca el archivo; despues, ventana declarada
+      3    1.0 %  >4000        ventana obligatoria: simbolo + bases + llamadores + hermanos de contrato, y el comando declara su corte
+  cabe entero siempre: 281 (95.9 %)
+      5396 lineas  ~ 53074 tok  addons/base/migrations/0001_initial.py
+      4225 lineas  ~ 50970 tok  orm/fields.py
+      4123 lineas  ~ 48381 tok  orm/models.py
+      3525 lineas  ~ 41207 tok  addons/base/models/ir_model.py
+      3294 lineas  ~ 40085 tok  addons/base/models/res_users.py
+=== odoo19c — 534 archivos .py
+    423   79.2 %  <=400        cat -n entero, siempre
+     87   16.3 %  401-1500     cat -n entero, siempre
+     21    3.9 %  1501-4000    cat -n entero la PRIMERA vez que la sesion toca el archivo; despues, ventana declarada
+      3    0.6 %  >4000        ventana obligatoria: simbolo + bases + llamadores + hermanos de contrato, y el comando declara su corte
+  cabe entero siempre: 510 (95.5 %)
+      7130 lineas  ~ 79850 tok  orm/models.py
+      6126 lineas  ~ 60433 tok  addons/base/tests/test_views.py
+      5408 lineas  ~ 59999 tok  addons/test_orm/tests/test_fields.py
+      3623 lineas  ~ 41669 tok  addons/base/models/ir_ui_view.py
+      3521 lineas  ~ 36899 tok  addons/test_orm/tests/test_properties.py
