@@ -173,12 +173,35 @@ class TestResolveDepends:
         assert list(field.resolve_depends(registry)) == []
 
     def test_it_finds_the_model_the_django_way(self, db):
-        """Control que discrimina las dos vías: un campo ligado por Django
-        lleva ``field.model`` y NO ``model_name``. Resolviendo sólo por el
-        segundo —como la fuente— quedarían fuera todos."""
+        """Control que discrimina las dos vías de resolución del modelo.
+
+        **Corregido con el porte del bloque de setup (#211).** Este caso decía
+        *"un campo ligado por Django lleva ``field.model`` y NO
+        ``model_name``"*, y esa segunda mitad describía un **hueco**, no un
+        contrato: nada poblaba ``model_name``. Desde que
+        ``Field._setup_attrs__`` corre en ``contribute_to_class``, un campo de
+        un modelo que declara ``_name`` lo lleva —``attrs['model_name'] =
+        model_class._name``, ``odoo19c: odoo/orm/fields.py:433``—.
+
+        La vía de Django sigue haciendo falta, y por eso el caso sigue: un
+        campo cuyo propietario **no** declara ``_name`` sale con
+        ``model_name`` vacío (la tarea #341 mide 82 de esos), y sólo
+        ``field.model`` lo alcanza.
+        """
         field = registry.MODELS_BY_NAME['res.partner']._meta.get_field('name')
         assert field.model is not None
-        assert not field.model_name
+        assert field.model_name == 'res.partner'
+
+    def test_a_model_without_a_source_name_leaves_it_empty(self, db):
+        """La otra mitad del control: sin ``_name`` no hay qué copiar, y la
+        vía de Django es la única que resuelve el modelo."""
+        class _Sin:
+            pass
+
+        field = models.CharField(max_length=8)
+        field._setup_attrs__(_Sin, 'x')
+
+        assert field.model_name == ''
 
     @staticmethod
     def _resolved_with(field, dotnames):

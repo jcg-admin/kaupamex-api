@@ -46,6 +46,7 @@ agregador porque no es una clase de campo de Django y no puede aparecer en
 ``_meta.get_fields()``; se importa por su nombre. Ver :ref:`h-api-855`.
 """
 import collections
+import inspect
 import itertools
 import logging
 import operator as operator_module
@@ -1023,17 +1024,37 @@ models.Field.copy = True
 
 _DJANGO_FIELD_INIT = models.Field.__init__
 
+#: Los parámetros que el ``__init__`` de Django declara. Lo que llegue fuera de
+#: este conjunto es vocabulario de la fuente —o un parámetro desconocido— y no
+#: se le pasa: sería un ``TypeError``. Se deriva de la firma en vez de
+#: enumerarse porque la lista cambia entre versiones de Django y una copia
+#: sería la segunda fuente de verdad que ``calibration-verified-numbers.md``
+#: prohíbe.
+_DJANGO_FIELD_KWARGS = frozenset(
+    inspect.signature(_DJANGO_FIELD_INIT).parameters) - {'self'}
 
-def _field_init_with_copy(self, *args, copy=True, **kwargs):
-    """Acepta ``copy=`` en la declaración y lo anota en el campo.
 
-    Django no conoce la bandera, así que pasársela a su ``__init__`` sería un
-    ``TypeError``. Se saca de los kwargs y se guarda en la instancia; la
-    columna no cambia — ``copy`` no es una propiedad del almacenamiento sino
-    del duplicado, igual que allá.
+def _field_init_with_copy(self, *args, **kwargs):
+    """Anota lo que el autor declaró — ≙ ``self._args__`` de la fuente.
+
+    ``odoo19c: odoo/orm/fields.py:414`` lee ``self._args__`` para distinguir
+    *"lo declaró el autor"* de *"es el defecto de la clase"*: sin esa
+    distinción, :func:`_field_get_attrs` no puede rellenar **sólo** lo no
+    declarado y pisaría al autor. Allá el diccionario lo guarda el propio
+    ``__init__``; aquí lo guarda este envoltorio, que es el único ``__init__``
+    por el que pasan los veinte tipos.
+
+    Los parámetros que Django no conoce se retiran antes de delegar. ``copy``
+    es uno de ellos y tiene además su atributo propio, porque el duplicado lo
+    consulta campo a campo (``copy_data``, ``:5438``) sin pasar por el setup.
     """
+    declared = dict(kwargs)
+    for key in tuple(kwargs):
+        if key not in _DJANGO_FIELD_KWARGS:
+            del kwargs[key]
     _DJANGO_FIELD_INIT(self, *args, **kwargs)
-    self.copy = copy
+    self._args__ = declared
+    self.copy = declared.get('copy', True)
 
 
 models.Field.__init__ = _field_init_with_copy
@@ -1057,6 +1078,135 @@ def _field_deconstruct_without_copy(self):
 
 
 models.Field.deconstruct = _field_deconstruct_without_copy
+
+
+#
+# El bloque de setup del campo — ≙ ``__set_name__`` / ``_get_attrs`` /
+# ``_setup_attrs__`` (``odoo19c: odoo/orm/fields.py:382-500``)
+#
+# **El enganche NO es ``__set_name__``, y es un hecho del stack.**
+# ``ModelBase.__new__`` separa en ``contributable_attrs`` todo objeto que
+# declare ``contribute_to_class`` y pasa **sólo** ``new_attrs`` a ``super_new``
+# (``django/db/models/base.py:116-122``): el campo nunca entra al espacio de
+# nombres que ``type.__new__`` recibe, así que Python jamás ejecuta el
+# protocolo ``__set_name__`` sobre él. Django se lo entrega después con
+# ``add_to_class`` (``:212``) → ``contribute_to_class``. Medido con sonda de
+# conducta: un campo con ambos métodos sólo ve el segundo. Portar el cuerpo
+# bajo el nombre de la fuente sería código que nunca corre, así que va al
+# enganche equivalente vivo — divergencia de mecanismo, no de contrato.
+#
+
+
+def _field_get_attrs(self, model_class, name):
+    """Los atributos de parámetro del campo, ya normalizados.
+
+    ≙ ``Field._get_attrs`` (``:414-486``). Recibe lo declarado en ``_args__``
+    y devuelve el diccionario con lo que la fuente **deriva** de ello.
+
+    Tres de sus bloques —``compute``, ``related`` y ``precompute``— ya estaban
+    portados en :func:`~orm.fields_nonstored.apply_source_defaults`, que los
+    aplica en el sitio de declaración con el mismo centinela de "no declarado".
+    No se duplican aquí: dos copias del mismo criterio divergirían.
+    """
+    attrs = {}
+    modules = []
+    for field in self._args__.get('_base_fields__', ()):
+        if not isinstance(self, type(field)):
+            # 'self' pisa a 'field' y sus tipos no son compatibles; se
+            # descarta todo lo acumulado hasta aquí.
+            attrs.clear()
+            modules.clear()
+            continue
+        attrs.update(field._args__)
+        if field._module:
+            modules.append(field._module)
+    attrs.update(self._args__)
+    if self._module:
+        modules.append(self._module)
+
+    attrs['model_name'] = getattr(model_class, '_name', '')
+    attrs['name'] = name
+    attrs['_module'] = modules[-1] if modules else None
+    attrs['_modules'] = tuple(unique(modules) if len(modules) > 1 else modules)
+
+    if name == 'state':
+        # Un campo de estado se reinicia al duplicar: el duplicado empieza de
+        # cero, no en el estado del original.
+        attrs['copy'] = attrs.get('copy', False)
+    if attrs.get('company_dependent',
+                 getattr(self, 'company_dependent', False)):
+        # El respaldo sobre la instancia es la divergencia de mecanismo: allá
+        # ``company_dependent`` es un parámetro y viaja en ``_args__``; aquí es
+        # una **clase** (:class:`~orm.fields_company_dependent.CompanyDependent`)
+        # cuyo despachador consume la palabra antes de llegar a este
+        # ``__init__``. La derivación tiene que dispararse por la naturaleza
+        # real del campo, no por cómo se escribió; lo declarado —``copy``,
+        # ``index``, ``prefetch``— sigue saliendo de ``_args__`` y sigue
+        # ganando.
+        #
+        # El valor vive en un mapa por empresa, así que no viaja en la copia,
+        # se busca por el índice parcial que ``registry.check_indexes()`` crea
+        # para ``btree_not_null``, se prelee en su propio grupo, y depende de
+        # la empresa activa.
+        #
+        # Los tres avisos de la fuente (``:467-472``) NO se portan como aviso:
+        # aquí son **errores** en el constructor de
+        # :class:`~orm.fields_company_dependent.CompanyDependent` —``required``
+        # y ``translate`` levantan ``ValueError``, y el tipo base se valida
+        # contra ``COMPANY_DEPENDENT_FIELDS``—. Un error en el sitio de
+        # declaración cubre lo que el aviso cubría, y antes.
+        attrs['copy'] = attrs.get('copy', False)
+        attrs['index'] = attrs.get('index', 'btree_not_null')
+        attrs['prefetch'] = attrs.get('prefetch', 'company_dependent')
+        attrs['_depends_context'] = ('company',)
+    if 'depends' in attrs:
+        attrs['_depends'] = tuple(attrs.pop('depends'))
+    if 'depends_context' in attrs:
+        attrs['_depends_context'] = tuple(attrs.pop('depends_context'))
+
+    if 'group_operator' in attrs:
+        warnings.warn(
+            "Since Odoo 18, 'group_operator' is deprecated, use 'aggregator' "
+            "instead", DeprecationWarning, stacklevel=2)
+        attrs['aggregator'] = attrs.pop('group_operator')
+
+    return attrs
+
+
+def _field_setup_attrs(self, model_class, name):
+    """Escribe en el campo lo que :func:`_field_get_attrs` derivó.
+
+    ≙ ``Field._setup_attrs__`` (``:491-500``). ``_extra_keys__`` censa los
+    parámetros que la clase no conoce: la fuente los admite sin error —un campo
+    suyo no tiene juego fijo de parámetros— y los deja greppeables en vez de
+    silenciarlos.
+    """
+    attrs = self._get_attrs(model_class, name)
+
+    extra_keys = tuple(key for key in attrs if not hasattr(self, key))
+    if extra_keys:
+        attrs['_extra_keys__'] = extra_keys
+
+    self.__dict__.update(attrs)
+
+
+models.Field._get_attrs = _field_get_attrs
+models.Field._setup_attrs__ = _field_setup_attrs
+
+_DJANGO_FIELD_CONTRIBUTE = models.Field.contribute_to_class
+
+
+def _field_contribute_to_class(self, cls, name, private_only=False):
+    """El cuerpo de ``__set_name__``, en el enganche que este ORM sí ejecuta.
+
+    Va **después** de ``super()``: la fuente fija ``self.name`` antes de
+    montar, y aquí quien lo fija es ``set_attributes_from_name`` de Django.
+    """
+    _DJANGO_FIELD_CONTRIBUTE(self, cls, name, private_only=private_only)
+    self._setup_attrs__(cls, name)
+
+
+models.Field.contribute_to_class = _field_contribute_to_class
 
 
 # === Los seis del censo de ``odoo/orm/fields.py`` (tarea #209) ==============

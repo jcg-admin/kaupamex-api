@@ -1,0 +1,62 @@
+Port the setup block of Field
+
+La referencia declara tres simbolos que corren cuando el campo se
+engancha a su modelo — ``__set_name__`` (:382-407), ``_get_attrs``
+(:414-486) y ``_setup_attrs__`` (:491-500) de
+``odoo19c: odoo/orm/fields.py``. Aqui no existia ninguno: medido con
+``hasattr`` sobre ``models.Field`` tras importar ``orm.fields``, los
+tres daban False.
+
+``__set_name__`` ESTA MUERTO POR CONSTRUCCION en este ORM, y por eso
+su cuerpo se porta a ``contribute_to_class``. Medido con sonda de
+conducta sobre ``ModelBase``: ``django/db/models/base.py:116-122``
+separa los objetos que declaran ``contribute_to_class`` en
+``contributable_attrs`` y pasa solo ``new_attrs`` a ``super_new``, asi
+que el campo nunca llega al espacio de nombres que ``type.__new__``
+recibe — Python no corre el protocolo ``__set_name__``. Django entrega
+el nombre despues, por ``add_to_class`` (:212). Portarlo con el nombre
+de la fuente seria codigo que nunca corre.
+
+El sustrato ``_args__`` tampoco existia: era un default de clase con
+valor None y CERO pobladores, asi que ``_get_attrs`` no habria tenido
+como distinguir «el autor lo declaro» de «es el default de la clase».
+Ahora ``_field_init_with_copy`` lo puebla con los kwargs recibidos, y
+el conjunto de kwargs que Django acepta se DERIVA de
+``inspect.signature`` en vez de enumerarse a mano — una lista escrita
+a mano seria la segunda fuente de verdad que prohibe
+``calibration-verified-numbers``.
+
+DIVERGENCIA DE MECANISMO — ``company_dependent``. La referencia lo
+lleva como kwarg en ``_args__``; aqui es una CLASE
+(``fields_company_dependent.CompanyDependent``, con
+``company_dependent = True`` de atributo y un despachador que consume
+la palabra antes de ``models.Field.__init__``). Por eso el disparador
+lee ``attrs.get('company_dependent', getattr(self, ...))``: la
+derivacion se dispara por la naturaleza real del campo, y lo declarado
+por el autor sigue ganando. Sus tres avisos de la fuente NO se portan
+como avisos: aqui son errores en ``CompanyDependent.__init__``, que
+cubren lo mismo y antes.
+
+Los bloques ``compute``/``related``/``precompute`` de ``_get_attrs`` ya
+estaban portados en ``fields_nonstored.apply_source_defaults``, con
+centinelas ``_UNSET`` en el sitio de declaracion. No se duplican: dos
+copias del mismo criterio divergen.
+
+CONTROL CON LA GUARDA ANULADA: retirado el bloque de empresa, el
+subconjunto pasa de 30 passed a 1 failed, 30 passed — cae
+``test_a_field_of_the_tree_comes_out_derived`` y solo ese. Los dos
+casos ``_explicit_*_survives`` sobreviven: miden que el bloque no PISE
+lo declarado, no que exista. El docstring lo declara para que nadie
+los lea como el primero.
+
+ESTADO HEREDADO CORREGIDO (Clausula 2): ``test_fields_related.py::
+test_it_finds_the_model_the_django_way`` afirmaba
+``assert not field.model_name`` — describia el HUECO, no un contrato.
+Con el bloque portado el campo ya copia ``_name`` del modelo, asi que
+el caso se reescribe y se le anade su hermano, que mide la otra mitad:
+un modelo sin ``_name`` deja ``model_name`` vacio.
+
+Subconjunto derivado (tests/unit/orm + unit/base + integration/base,
+-n 4): 4388 passed.
+Suite completa (src/orm es raiz espejada): 10098 passed, 4 skipped
+en 325.12 s.
