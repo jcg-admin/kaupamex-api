@@ -48,6 +48,7 @@ import logging
 import sys
 import threading
 import time
+import warnings
 from collections import defaultdict, deque
 from collections.abc import Callable, Collection, Iterator, Mapping
 
@@ -589,6 +590,20 @@ class _DerivedCollector:
     def __contains__(self, field):
         return bool(self[field])
 
+    def pop(self, field, default=None):
+        """Retira la entrada de ``field``, o devuelve ``default`` si no estaba.
+
+        ≙ el ``self.field_depends.pop(f, None)`` de ``Registry._discard_fields``
+        (``odoo19c: odoo/orm/registry.py:577``). Alla ``field_depends`` es un
+        ``dict`` y hereda ``pop``; aqui el mapa se deriva y hay que exponerlo.
+        Fuerza la derivacion antes de retirar: sin eso, retirar de un mapa aun
+        no construido no quitaria nada y la siguiente consulta lo volveria a
+        traer.
+        """
+        if self._table is None:
+            self._table = self._build()
+        return self._table.pop(field, default)
+
     def clear(self):
         """≙ ``Collector.clear`` (``:421-422``) — el mapa se vuelve a derivar
         en la siguiente consulta."""
@@ -857,21 +872,84 @@ class _ComputedGrouper:
 
     Por eso NO hereda de :class:`_DerivedCollector`: aquél devuelve la tupla
     vacía ante lo ausente, que aquí escondería justo ese error.
+
+    La **tercera** mitad son las comprobaciones de consistencia (``:526-550``):
+    cuando dos campos comparten método de cálculo, la fuente avisa si no
+    comparten ``compute_sudo``, ``precompute`` o ``store``. Estaban ausentes
+    hasta 2026-09-03 — el agrupamiento se había portado y los avisos no, que es
+    el porte parcial silencioso que ``porte-completo-no-parcial.md`` prohíbe.
+    Ver :meth:`_warn_inconsistencies`.
     """
 
     def __init__(self):
         self._table = None
 
-    def _build(self):
+    def _build(self, models=None):
+        """El mapa, y de paso las tres comprobaciones de consistencia.
+
+        ``models`` acota la poblacion; por omision es ``apps.get_models()``.
+        El parametro existe porque las tres comprobaciones de abajo no se
+        pueden ejercer sobre un arbol coherente: un control que solo mida el
+        caso positivo no distingue *"avisa cuando toca"* de *"avisa siempre"*
+        (``metrica-decide-la-conclusion.md``, sub-patron D).
+        """
         table = {}
-        for model in apps.get_models():
+        for model in apps.get_models() if models is None else models:
+            model_name = getattr(model, '_name', None) or model.__name__
             groups = defaultdict(list)
             for field in model._meta.get_fields():
                 compute = getattr(field, 'compute', None)
                 if compute:
                     table[field] = group = groups[compute]
                     group.append(field)
+            for fields in groups.values():
+                if len(fields) > 1:
+                    self._warn_inconsistencies(model_name, fields)
         return table
+
+    @staticmethod
+    def _warn_inconsistencies(model_name, fields):
+        """Avisa cuando el grupo no comparte las tres banderas — ≙ ``:526-550``.
+
+        Son tres avisos distintos porque cada bandera rompe una cosa distinta:
+        ``compute_sudo`` decide con que privilegio corre el metodo, y mezclarlo
+        deja la mitad del grupo elevada por accidente; ``precompute`` decide si
+        el valor se calcula antes del ``INSERT``, y mezclarlo hace que un campo
+        se pierda esa ventana; ``store`` es el mas insidioso — leer un campo no
+        guardado dispara el calculo y **escribe** los guardados del mismo
+        grupo, asi que una lectura acaba mutando filas.
+
+        La fuente los emite con ``warnings.warn`` y ``stacklevel=1``: el aviso
+        senala esta linea a proposito, porque el defecto esta en la declaracion
+        de los campos y no en quien los consulta.
+        """
+        if len({field.compute_sudo for field in fields}) > 1:
+            fnames = ", ".join(field.name for field in fields)
+            warnings.warn(
+                f"{model_name}: inconsistent 'compute_sudo' for computed fields "
+                f"{fnames}. Either set 'compute_sudo' to the same value on all "
+                f"those fields, or use distinct compute methods for sudoed and "
+                f"non-sudoed fields.",
+                stacklevel=1,
+            )
+        if len({field.precompute for field in fields}) > 1:
+            fnames = ", ".join(field.name for field in fields)
+            warnings.warn(
+                f"{model_name}: inconsistent 'precompute' for computed fields "
+                f"{fnames}. Either set all fields as precompute=True (if "
+                f"possible), or use distinct compute methods for precomputed "
+                f"and non-precomputed fields.",
+                stacklevel=1,
+            )
+        if len({field.store for field in fields}) > 1:
+            fnames1 = ", ".join(field.name for field in fields if not field.store)
+            fnames2 = ", ".join(field.name for field in fields if field.store)
+            warnings.warn(
+                f"{model_name}: inconsistent 'store' for computed fields, "
+                f"accessing {fnames1} may recompute and update {fnames2}. "
+                f"Use distinct compute methods for stored and non-stored fields.",
+                stacklevel=1,
+            )
 
     def __getitem__(self, field):
         if self._table is None:
@@ -1081,19 +1159,46 @@ class _TriggerRegistry:
 
     # --- invalidación ------------------------------------------------------
 
-    def clear(self):
-        """Vacía los cuatro mapas derivados.
+    def has_inverses(self):
+        """Si el mapa de inversas ya está materializado.
 
-        ≙ el tramo de ``Registry._discard_fields`` (``:573``) que los descarta.
-        **Los cuatro juntos**: el caché de árboles guarda instancias derivadas
-        de los disparadores, así que vaciar uno y no el otro serviría un árbol
+        ≙ la pregunta ``if 'field_inverses' in vars(self)`` que
+        ``Registry._discard_fields`` hace antes de descartar (``:585``). Allá
+        interroga al ``__dict__`` de la instancia porque el mapa es una
+        ``cached_property``; aquí lo sabe el propio colector. La pregunta
+        importa igual en los dos: forzar la derivación para borrar de ella es
+        trabajo que nadie pidió.
+        """
+        return self._inverses is not None
+
+    def discard_triggers(self):
+        """Descarta los disparadores y sus dos memos, conservando las inversas.
+
+        ≙ el tramo de ``Registry._discard_fields`` que hace
+        ``self.__dict__.pop('_field_triggers', None)`` seguido de vaciar
+        ``_field_trigger_trees`` y ``_is_modifying_relations`` (``:580-583``).
+
+        **Los tres juntos**: el caché de árboles guarda instancias derivadas de
+        los disparadores, así que vaciar uno y no el otro serviría un árbol
         construido sobre un grafo que ya no existe — el mismo defecto que el
         memo de ``_get_cache`` tenía frente a ``invalidate_field_data``.
+
+        Los dos memos se vacían **en el sitio** y no se reasignan: un registro
+        construido los toma prestados en :meth:`Registry.init`, y reasignarlos
+        aquí dejaría a ese registro leyendo el diccionario viejo.
         """
-        self._inverses = None
         self._triggers = None
         self._trees.clear()
         self._modifying.clear()
+
+    def clear(self):
+        """Vacía los cuatro mapas derivados — los disparadores y las inversas.
+
+        Es :meth:`discard_triggers` más el mapa de inversas, que sobrevive a un
+        descarte por campo pero no a un cambio de lo declarado.
+        """
+        self._inverses = None
+        self.discard_triggers()
 
 
 def _is_relational(field):
@@ -1559,8 +1664,14 @@ class Registry(Mapping):
         self.field_setup_dependents = Collector()
         self.many2one_company_dependents = many2one_company_dependents
         self.not_null_fields = not_null_fields()
-        self._field_trigger_trees = {}
-        self._is_modifying_relations = {}
+
+        # Los dos memos del eje de disparadores son **los del proceso**, no
+        # copias por registro. El grafo se deriva de ``apps.get_models()``, que
+        # es del proceso: dos registros con memos propios recalcularian lo
+        # mismo dos veces, y ``_discard_fields`` sobre uno dejaria al otro
+        # sirviendo un arbol construido sobre un grafo que ya no existe.
+        self._field_trigger_trees = _triggers._trees
+        self._is_modifying_relations = _triggers._modifying
 
         self.registry_sequence = -1
         self.cache_sequences = {}
@@ -1618,6 +1729,128 @@ class Registry(Mapping):
             if connections[alias].settings_dict.get('NAME') == self.db_name:
                 return alias
         return 'default'
+
+    # -- El eje de campos y disparadores -------------------------------------
+    #
+    # ≙ ``:506-682``. Los ocho simbolos que la fuente declara entre
+    # ``field_inverses`` e ``is_modifying_relations``. Delegan en
+    # :data:`_triggers` y en los mapas derivados del modulo por la razon que la
+    # cabecera de este archivo declara: el grafo se deriva de
+    # ``apps.get_models()``, que es del proceso, mientras que en la fuente es
+    # de la base. El contrato que ve el llamador es el de la fuente — misma
+    # firma, mismo valor de vuelta.
+    #
+    # Su reparto entre «el stack lo trae hecho» y «el stack tiene con que
+    # construirlo» esta medido, con su control, en
+    # ``scripts/workbench/registry-field-axis-support-20260903T053330/``:
+    # 1 READY (``field_inverses``, porque Django guarda la relacion inversa y
+    # la fuente tiene que construirla), 7 BUILDABLE, 0 BLOCKED.
+
+    @property
+    def field_inverses(self):
+        """Cada lado de una relacion apunta al otro — ≙ ``:505-512``.
+
+        La fuente lo declara ``cached_property`` y lo construye llamando a
+        ``setup_inverses`` por clase de campo, porque su ORM no guarda la
+        vuelta. Django si: la relacion inversa es un objeto propio que
+        ``_meta.get_fields()`` publica, y el mapa se deriva de ahi. Divergencia
+        de mecanismo, mismo contenido — ver :class:`_TriggerRegistry`.
+        """
+        return _triggers.field_inverses
+
+    @property
+    def field_computed(self):
+        """Campo → los campos que calcula el MISMO metodo — ≙ ``:514-551``.
+
+        Incluye las tres comprobaciones de consistencia de la fuente; las emite
+        :meth:`_ComputedGrouper._warn_inconsistencies` al derivar el mapa.
+        """
+        return field_computed
+
+    @property
+    def _field_triggers(self):
+        """La inversa de las dependencias de campo — ≙ ``:642-667``.
+
+        Docstring de la fuente, verbatim: *"Return the field triggers, i.e.,
+        the inverse of field dependencies, as a dictionary like ``{field:
+        {path: fields}}``, where ``field`` is a dependency, ``path`` is a
+        sequence of fields to inverse and ``fields`` is a collection of fields
+        that depend on ``field``"*.
+
+        El guion bajo se conserva: la fuente lo declara interno y quitarlo
+        promoveria el simbolo a API publica (``porte-completo-no-parcial.md``).
+        """
+        return _triggers.field_triggers()
+
+    def get_trigger_tree(self, fields, select=bool):
+        """El arbol a recorrer cuando ``fields`` han cambiado — ≙ ``:552-564``.
+
+        Docstring de la fuente, verbatim: *"Return the trigger tree to traverse
+        when ``fields`` have been modified. The function ``select`` is called
+        on every field to determine which fields should be kept in the tree
+        nodes. This enables to discard some unnecessary fields from the tree
+        nodes"*.
+        """
+        return _triggers.get_trigger_tree(fields, select)
+
+    def get_dependent_fields(self, field):
+        """Los campos que dependen de ``field`` — ≙ ``:565-571``.
+
+        Docstring de la fuente, verbatim: *"Return an iterable on the fields
+        that depend on ``field``"*.
+        """
+        return _triggers.get_dependent_fields(field)
+
+    def get_field_trigger_tree(self, field):
+        """El arbol de disparo de un campo — ≙ ``:592-641``.
+
+        Docstring de la fuente, verbatim: *"Return the trigger tree of a field
+        by computing it from the transitive closure of field triggers"*.
+        """
+        return _triggers.get_field_trigger_tree(field)
+
+    def is_modifying_relations(self, field):
+        """Si tocar ``field`` puede cambiar QUE filas dependen de el — ≙ ``:669-682``.
+
+        Docstring de la fuente, verbatim: *"Return whether ``field`` has
+        dependent fields on some records, and that modifying ``field`` might
+        change the dependent records"*.
+        """
+        return _triggers.is_modifying_relations(field)
+
+    def _discard_fields(self, fields):
+        """Retira los campos dados de las estructuras derivadas — ≙ ``:573-590``.
+
+        Docstring de la fuente, verbatim: *"Discard the given fields from the
+        registry's internal data structures"*.
+
+        Las cinco de la fuente, en su orden, y **todas juntas**: descartar el
+        campo de los disparadores y dejarlo en el cache de arboles serviria un
+        arbol construido sobre un grafo que ya no existe.
+
+        El ``pop(f, None)`` del primer tramo es de la fuente y su comentario
+        explica por que: *"tests usually don't reload the registry, so when they
+        create custom fields those may not have the entire dependency setup, and
+        may be missing from these maps"*. Un campo ausente no es un error.
+
+        La fuente descarta ``field_inverses`` solo si esta materializado
+        (``if 'field_inverses' in vars(self)``) para no forzar su derivacion al
+        borrar; aqui la pregunta equivalente es si el colector ya se construyo,
+        y la responde el propio :class:`_TriggerRegistry`.
+        """
+        for field in fields:
+            field_depends.pop(field, None)
+            field_depends_context.pop(field, None)
+
+        # Los disparadores y sus dos memos se rehacen enteros: la derivacion
+        # cuesta un recorrido de ``apps.get_models()``, y una invalidacion
+        # parcial tendria que saber que arboles tocaban al campo retirado.
+        _triggers.discard_triggers()
+
+        if _triggers.has_inverses():
+            _triggers.field_inverses.discard_keys_and_values(fields)
+
+        self.field_setup_dependents.discard_keys_and_values(fields)
 
     @classmethod
     @locked

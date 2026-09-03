@@ -1,0 +1,41 @@
+{
+  "total": 8,
+  "buckets": {
+    "READY": [],
+    "BUILDABLE": [
+      "field_computed",
+      "is_modifying_relations"
+    ],
+    "BLOCKED": [
+      "field_inverses",
+      "get_trigger_tree",
+      "get_dependent_fields",
+      "_discard_fields",
+      "get_field_trigger_tree",
+      "_field_triggers"
+    ]
+  },
+  "missing": {
+    "field_inverses": [
+      "tools.misc.Collector.add"
+    ],
+    "get_trigger_tree": [
+      "orm.registry.TriggerTree.merge"
+    ],
+    "get_dependent_fields": [
+      "orm.registry.TriggerTree.depth_first"
+    ],
+    "_discard_fields": [
+      "tools.misc.Collector.discard_keys_and_values",
+      "orm.registry.field_depends"
+    ],
+    "get_field_trigger_tree": [
+      "orm.registry.TriggerTree.increase",
+      "tools.misc.OrderedSet"
+    ],
+    "_field_triggers": [
+      "tools.misc.OrderedSet",
+      "orm.fields.Field.resolve_depends"
+    ]
+  }
+}
