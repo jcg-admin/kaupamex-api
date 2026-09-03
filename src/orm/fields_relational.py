@@ -281,9 +281,10 @@ class One2many:
         La fuente compone ``super().get_comodel_domain(model) &
         self._additional_domain(model.env)`` y devuelve un ``Domain``.
 
-        **El tipo de retorno esta BLOQUEADO, y el bloqueo esta medido dos
-        veces.** ``from orm.domains import Domain`` en la cabecera de este
-        archivo no arranca, por dos causas independientes que se apilan:
+        **El tipo de retorno esta BLOQUEADO por ``orm.domains.Domain``, y el
+        bloqueo esta medido dos veces.** ``from orm.domains import Domain`` en
+        la cabecera de este archivo no arranca, por dos causas independientes
+        que se apilan:
 
         1. **Ciclo.** ``orm/domains.py:102`` importa ``orm.fields``, y
            ``orm/fields.py:77`` importa este archivo de vuelta. Medido en las
