@@ -39,7 +39,9 @@ import orm.table_objects as table_objects
 #: con las declaraciones de modulo de ``src/orm/``.
 PORTABLE_NOW = {
     'api': ('NewId', 'Environment', 'SUPERUSER_ID',
-            'ContextType', 'DomainType', 'IdType', 'ValuesType'),
+            'ContextType', 'DomainType', 'IdType', 'ValuesType',
+            # Los dos que la tarea #330 porta y liga en el mismo pase.
+            'depends_context', 'ondelete'),
     'fields': ('Field', 'NO_ACCESS'),
     'models': ('LOG_ACCESS_COLUMNS', 'MAGIC_COLUMNS',
                'READ_GROUP_NUMBER_GRANULARITY', 'fix_import_export_id_paths',
@@ -54,7 +56,7 @@ PORTABLE_NOW = {
 #: Ligarlos hoy rompe el import del paquete, asi que cada uno entra con el pase
 #: que porta su simbolo — es el mismo pase, no un barrido posterior.
 BLOCKED_BY_ITS_SYMBOL = {
-    'api': ('depends_context', 'deprecated', 'ondelete', 'Self'),
+    'api': ('deprecated', 'Self'),
     'fields': ('Id',),
     'models': ('READ_GROUP_DISPLAY_FORMAT', 'READ_GROUP_TIME_GRANULARITY',
                'BaseModel', 'MetaModel',
@@ -83,6 +85,7 @@ DECLARANTE = {
     'fix_import_export_id_paths': 'orm.models', 'regex_order': 'orm.models',
     'READ_GROUP_NUMBER_GRANULARITY': 'orm.utils',
     'check_object_name': 'orm.utils', 'check_pg_name': 'orm.utils',
+    'depends_context': 'orm.decorators', 'ondelete': 'orm.decorators',
     'check_method_name': 'orm.utils',
     'AbstractModel': 'orm.models', 'parse_read_group_spec': 'orm.models',
     'is_model_class': 'orm.model_classes',

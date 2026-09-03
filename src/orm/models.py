@@ -81,8 +81,8 @@ from orm.domains import Domain, to_q
 from orm.fields import convert_to_display_name
 from orm.fields_nonstored import NonStored, non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
-from orm.utils import (as_record_list, model_field_registry,
-                       parse_field_expr, record_ids)
+from orm.utils import (as_record_list, check_object_name,
+                       model_field_registry, parse_field_expr, record_ids)
 from service.db import Savepoint
 from tools.misc import OrderedSet
 from tools.sql import SQL
@@ -1353,6 +1353,19 @@ def parse_read_group_spec(spec):
 
     groups = res_match.groups()
     return groups[0], groups[2], groups[3]
+
+
+def raise_on_invalid_object_name(name):
+    """La mitad que lanza de :func:`~orm.utils.check_object_name`.
+
+    ≙ ``raise_on_invalid_object_name`` (``odoo19c: odoo/orm/models.py:139-142``).
+    El hermano devuelve un booleano y éste lo convierte en el rechazo que el
+    cargador de modelos necesita: un ``_name`` inválido no puede seguir adelante
+    en silencio.
+    """
+    if not check_object_name(name):
+        msg = "The _name attribute %s is not valid." % name
+        raise ValueError(msg)
 
 
 class FieldSqlMixin:

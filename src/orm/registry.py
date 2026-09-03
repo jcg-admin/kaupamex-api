@@ -505,6 +505,28 @@ class _DerivedCollector:
         self.marker = marker
         self._table = None
 
+    @staticmethod
+    def _resolve(declared, model):
+        """La tupla de lo declarado, resolviendo la forma invocable.
+
+        ``@api.depends`` y ``@api.constrains`` admiten **un solo argumento
+        invocable** en vez de nombres (``odoo19c: odoo/orm/decorators.py:265``
+        — *"One may also pass a single function as argument. In that case, the
+        dependencies are given by calling the function with the field's
+        model"*). La fuente lo resuelve al leerlo, en
+        ``odoo19c: odoo/orm/fields.py:595``::
+
+            depends.extend(deps(model) if callable(deps) else deps)
+
+        Aquí el lector es este colector, así que la resolución vive aquí. Sin
+        ella un ``_depends`` invocable reventaba con ``TypeError`` al pasar por
+        ``tuple()`` — la forma existía en el decorador y no tenía quien la
+        leyera.
+        """
+        if callable(declared):
+            declared = declared(model)
+        return tuple(declared)
+
     def _build(self):
         table = {}
         for model in apps.get_models():
@@ -515,7 +537,7 @@ class _DerivedCollector:
                     method = getattr(model, compute, None) if compute else None
                     declared = getattr(method, self.marker, None)
                 if declared:
-                    table[field] = tuple(declared)
+                    table[field] = self._resolve(declared, model)
         return table
 
     def __getitem__(self, field):

@@ -15,8 +15,8 @@ es quien realmente los llama.
 """
 
 __all__ = [
-    'attrsetter', 'depends', 'constrains', 'onchange', 'model',
-    'model_create_multi', 'returns', 'autovacuum',
+    'attrsetter', 'depends', 'depends_context', 'constrains', 'onchange',
+    'ondelete', 'model', 'model_create_multi', 'returns', 'autovacuum',
 ]
 
 
@@ -38,25 +38,109 @@ def attrsetter(attr, value):
     return setter
 
 
-def depends(*fields):
-    def deco(func):
-        func._depends = fields
-        return func
-    return deco
+def depends(*args):
+    """Declara de qué campos depende un método ``compute``.
+
+    ≙ ``depends`` (``odoo19c: odoo/orm/decorators.py:248-270``). Cada argumento
+    es una cadena de nombres de campo separados por punto::
+
+        pname = fields.Char(compute='_compute_pname')
+
+        @api.depends('partner_id.name', 'partner_id.is_company')
+        def _compute_pname(self):
+            ...
+
+    **La forma de un solo invocable** (``:265-266`` de la fuente: *"One may
+    also pass a single function as argument. In that case, the dependencies are
+    given by calling the function with the field's model"*) se guarda tal cual;
+    quien la resuelve es el lector — :class:`~orm.registry._DerivedCollector`,
+    igual que ``odoo19c: odoo/orm/fields.py:595`` hace ``deps(model) if
+    callable(deps) else deps``.
+
+    **La guarda de ``id``** reparte por ``split('.')``, no por subcadena: cae
+    ``'partner_id.id'`` y no cae ``'partner_id'``. Un ``'id' in arg`` rechazaría
+    los dos.
+    """
+    if args and callable(args[0]):
+        args = args[0]
+    elif any('id' in arg.split('.') for arg in args):
+        raise NotImplementedError("Compute method cannot depend on field 'id'.")
+    return attrsetter('_depends', args)
 
 
-def constrains(*fields):
-    def deco(func):
-        func._constrains = fields
-        return func
-    return deco
+def constrains(*args):
+    """Declara sobre qué campos dispara una restricción de Python.
+
+    ≙ ``constrains`` (``odoo19c: odoo/orm/decorators.py:92-128``). Admite la
+    misma forma de un solo invocable que :func:`depends`, y por el mismo
+    motivo: los nombres se dan llamando a la función con el modelo.
+
+    Sólo admite nombres simples — una cadena punteada se ignora, como avisa la
+    fuente. Esa parte es contrato del consumidor, no del decorador.
+    """
+    if args and callable(args[0]):
+        args = args[0]
+    return attrsetter('_constrains', args)
 
 
-def onchange(*fields):
-    def deco(func):
-        func._onchange = fields
-        return func
-    return deco
+def onchange(*args):
+    """Declara a qué campos del formulario reacciona el método.
+
+    ≙ ``onchange`` (``odoo19c: odoo/orm/decorators.py:189-235``). No tiene la
+    forma invocable: la fuente tampoco se la da.
+    """
+    return attrsetter('_onchange', args)
+
+
+def depends_context(*args):
+    """Declara de qué claves de contexto depende un ``compute`` no almacenado.
+
+    ≙ ``depends_context`` (``odoo19c: odoo/orm/decorators.py:273-296``). Cada
+    argumento es una clave del contexto::
+
+        price = fields.Float(compute='_compute_product_price')
+
+        @api.depends_context('pricelist')
+        def _compute_product_price(self):
+            ...
+
+    Todas las dependencias tienen que ser hashables. La fuente da soporte
+    especial a tres claves: ``company`` (la del contexto o la empresa activa),
+    ``uid`` (el usuario actual y su bandera de elevación) y ``active_test`` (la
+    del contexto del entorno o la del campo).
+
+    Su lector aquí ya existe: ``orm.registry.field_depends_context`` recoge el
+    marcador y ``Environment._field_depends_context`` lo consulta (tarea #324);
+    ``Binary`` lo declara con ``('bin_size',)``.
+    """
+    return attrsetter('_depends_context', args)
+
+
+def ondelete(*, at_uninstall):
+    """Marca un método para ejecutarse durante el borrado del registro.
+
+    ≙ ``ondelete`` (``odoo19c: odoo/orm/decorators.py:130-186``). Permite
+    rechazar el borrado desde el punto de vista del negocio —una orden de venta
+    validada no se borra— sin sobreescribir ``unlink``, que es lo que rompería
+    la desinstalación del módulo: al desinstalar, la sobreescritura seguiría
+    lanzando errores de usuario cuando lo correcto es borrar todo.
+
+    Por convención el método se llama ``_unlink_if_<condicion>`` o
+    ``_unlink_except_<condicion_contraria>``::
+
+        @api.ondelete(at_uninstall=False)
+        def _unlink_if_user_inactive(self):
+            if any(user.active for user in self):
+                raise UserError("Can't delete an active user!")
+
+    ``at_uninstall`` es **keyword-only**, como en la fuente, y casi siempre
+    ``False``: sólo va en ``True`` cuando la comprobación también aplica al
+    desinstalar —el ejemplo de la fuente es no dejar borrar el idioma por
+    defecto si no queda otro instalado—.
+
+    Su consumidor es ``_process_ondelete``, la tarea **#205**.
+    """
+    return attrsetter('_ondelete', at_uninstall)
 
 
 def _mark(method, attr):
