@@ -439,7 +439,11 @@ if [ -f "$WRITE_PATH_CHECKER" ] && [ "${#STAGED_PY[@]}" -gt 0 ]; then
     WRITE_PATH_RC=$?
     if [ "$WRITE_PATH_RC" -eq 2 ]; then
         echo "pre-commit: sin la raiz de la referencia no se mide el camino de escritura — skip" >&2
-    elif [ "$WRITE_PATH_RC" -ne 0 ]; then
+    elif [ "$WRITE_PATH_RC" -eq 0 ]; then
+        # El denominador se publica tambien en verde: un OK mudo no distingue
+        # "no hay divergencias" de "el gate no llego a correr".
+        echo "$WRITE_PATH_OUT"
+    else
         echo "$WRITE_PATH_OUT" >&2
         echo "pre-commit: el porte escribe por otro camino que la fuente." >&2
         echo "  Si la divergencia es deliberada, declararla en el docstring y" >&2
