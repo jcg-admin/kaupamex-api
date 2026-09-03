@@ -3,8 +3,7 @@ import importlib
 
 from django.apps import AppConfig, apps
 
-from orm.inherits import apply_inherits
-from orm.registry import MODELS_BY_NAME
+from orm.inherits import ensure_inherits
 
 
 class WebsiteConfig(AppConfig):
@@ -39,10 +38,6 @@ class WebsiteConfig(AppConfig):
             'addons.website.models.ir_ui_view')
         view_module.apply_website_ir_ui_view_extensions()
 
-        page = apps.get_model('website', 'WebsitePage')
-        for model_name, fk_name in page._inherits.items():
-            apply_inherits(
-                page,
-                MODELS_BY_NAME[model_name],
-                fk_name,
-            )
+        # ``ensure_inherits()`` cablea la delegacion de todo modelo registrado
+        # que declare ``_inherits``; ``WebsitePage`` es el de este addon.
+        ensure_inherits()

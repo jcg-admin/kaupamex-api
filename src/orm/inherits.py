@@ -69,6 +69,7 @@ a una raíz propia como ``src/core``— es la tarea **#121**.
 from django.db import transaction
 
 from orm.fields_relational import bypass_search_access
+from orm.registry import MODELS_BY_NAME
 
 
 def _delegable_field_names(delegate_model, delegant_cls):
@@ -179,3 +180,44 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
     delegant_cls.__setattr__ = __setattr__
     delegant_cls.save = save
     return delegated
+
+
+def ensure_inherits():
+    """Cablea la delegación de **todo** modelo registrado que declare ``_inherits``.
+
+    Hermana de ``ensure_rec_names`` / ``ensure_access_managers`` /
+    ``ensure_display_names`` / ``ensure_base_urls`` de
+    :mod:`orm.model_classes`, y por la misma razón: el atributo de clase se
+    declara en el modelo, pero el mecanismo que lo consume vive fuera y hay
+    que invocarlo una vez que el registro está poblado.
+
+    **Por qué deja de ser una lista escrita a mano.** Hasta hoy cada app
+    cableaba su propio declarante —``base`` el suyo, ``website`` el suyo— y el
+    tercero del árbol quedó fuera: ``ir.cron`` declaraba ``_inherits`` y nunca
+    se cableó, así que su FK no llevaba ``delegate`` y la delegación no
+    existía. Lo destapó :func:`~orm.model_classes._check_inherits` al portarse,
+    que es exactamente para lo que la fuente lo tiene.
+
+    Es el mismo defecto que el docstring de este módulo ya describe para otro
+    eje: *"una lista a mano no tiene forma de estar completa"*.
+
+    Idempotente: :func:`apply_inherits` reinstala sin duplicar, así que las
+    apps pueden llamarla cada una en su ``ready()``. Un declarante cuyo
+    comodelo aún no esté registrado se salta — lo cablea la app que lo cargue
+    después.
+
+    Devuelve los nombres de los modelos cableados, para que el llamador pueda
+    medir en vez de suponer.
+    """
+    cableados = []
+    for model_cls in list(MODELS_BY_NAME.values()):
+        declared = model_cls.__dict__.get('_inherits')
+        if not declared:
+            continue
+        for comodel_name, fk_name in declared.items():
+            comodel = MODELS_BY_NAME.get(comodel_name)
+            if comodel is None:
+                continue
+            apply_inherits(model_cls, comodel, fk_name)
+            cableados.append(model_cls._name)
+    return cableados

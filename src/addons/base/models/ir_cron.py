@@ -398,7 +398,15 @@ class IrCron(models.DefaultGetMixin, models.Model):
     _order = 'cron_name, id'
     _description = 'Scheduled Actions'
     _allow_sudo_commands = False
-    _inherits = {'ir.actions.server': 'ir_actions_server_id'}
+    #: La clave nombra el campo de ESTE arbol, no el de la fuente. Alla es
+    #: ``ir_actions_server_id`` porque la FK lleva el sufijo; aqui la FK se
+    #: llama ``ir_actions_server`` (decision #141) y ``_inherits`` la sigue,
+    #: como ya hacen ``ResUsers`` (``{'res.partner': 'partner'}``) y
+    #: ``WebsitePage`` (``{'ir.ui.view': 'view'}``). Hasta hoy este declaraba
+    #: el nombre de la fuente, asi que ``ensure_inherits`` no encontraba el
+    #: campo y la delegacion nunca se cableaba: la FK no llevaba ``delegate``
+    #: y ``_check_inherits`` la rechaza. Ver :ref:`h-api-1052`.
+    _inherits = {'ir.actions.server': 'ir_actions_server'}
 
     #: Las cuatro columnas que el ``LEFT JOIN last_cron_progress`` de
     #: ``_acquire_one_job`` (``odoo19c: ir_cron.py:355-370``) cuelga del job.

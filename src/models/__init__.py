@@ -72,7 +72,7 @@ símbolo, que es el mismo pase y no un barrido posterior:
   ``parse_read_group_spec`` — la familia de ``read_group``.
 - ``check_companies_domain_parent_of``, ``check_company_domain_parent_of`` — los
   dos dominios de coherencia de empresa que ``_check_company`` consume.
-- ``to_record_ids``, ``check_method_name`` — este último es #205.
+- ``check_method_name`` — es #205.
 
 Divergencia de sitio declarada: la referencia saca
 ``READ_GROUP_NUMBER_GRANULARITY`` de ``odoo/orm/models.py`` y aquí sale de
@@ -97,6 +97,7 @@ from orm.models import (
     OriginMixin,
     fix_import_export_id_paths,
     parse_read_group_spec,
+    to_record_ids,
     regex_order,
 )
 from orm.model_classes import is_model_class, is_model_definition

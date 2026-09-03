@@ -81,7 +81,7 @@ from orm.domains import Domain, to_q
 from orm.fields import convert_to_display_name
 from orm.fields_nonstored import NonStored, non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
-from orm.utils import (as_record_list, check_object_name,
+from orm.utils import (OriginIds, as_record_list, check_object_name,
                        model_field_registry, parse_field_expr, record_ids)
 from service.db import Savepoint
 from tools.misc import OrderedSet
@@ -112,6 +112,45 @@ def fix_import_export_id_paths(fieldname):
     fixed_db_id = re.sub(r'([^/])\.id', r'\1/.id', fieldname)
     fixed_external_id = re.sub(r'([^/]):id', r'\1/id', fixed_db_id)
     return fixed_external_id.split('/')
+
+
+def to_record_ids(arg) -> list:
+    """≙ ``to_record_ids`` (``odoo19c: odoo/orm/models.py:159-166``).
+
+    «Return the record ids of ``arg``, which may be a recordset, an integer or
+    a list of integers.»
+
+    Las tres formas se normalizan a una lista de ids reales, y las tres
+    descartan el id falso — pero **no por el mismo camino**, y la diferencia es
+    de la fuente, no de este puerto:
+
+    ================== ============================ =========================
+    Forma              La fuente                     Aquí
+    ================== ============================ =========================
+    recordset          ``arg.ids``                   ``OriginIds(record_ids(…))``
+    entero             ``[arg] if arg else []``      igual
+    iterable           ``[i for i in arg if i]``     igual
+    ================== ============================ =========================
+
+    **Divergencia de mecanismo en la primera fila, no de contrato.** Aquí no
+    hay recordset: un conjunto de filas es una instancia de modelo o un
+    ``QuerySet``, así que ``arg.ids`` no existe y su equivalente es
+    :func:`~orm.utils.record_ids`. Lo que ``.ids`` hace en la fuente
+    (``odoo19c: odoo/orm/models.py:5905-5909``) es envolver sus ids en
+    :class:`~orm.utils.OriginIds`, y por eso el puerto también lo envuelve: sin
+    esa envoltura una fila sin guardar aportaría ``None`` a la lista.
+
+    **La asimetría que esto deja es la de la fuente y se conserva.** Un
+    :class:`~orm.identifiers.NewId` **con origen** dentro de una fila se
+    resuelve a su origen; el mismo ``NewId`` dentro de una lista suelta se
+    descarta, porque la rama del iterable filtra por verdad y ``NewId`` es
+    falso. No se corrige: quien pasa una lista pasa ids, no registros.
+    """
+    if isinstance(arg, (Model, QuerySet)):
+        return list(OriginIds(record_ids(arg)))
+    if isinstance(arg, int):
+        return [arg] if arg else []
+    return [id_ for id_ in arg if id_]
 
 
 def itemgetter_tuple(items):
