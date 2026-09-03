@@ -94,3 +94,27 @@ def dev_mode():
     un booleano para conservar el contrato (``'qweb' in config['dev_mode']``).
     """
     return ['qweb'] if settings.DEBUG else []
+
+
+def bin_path():
+    """≙ ``config['bin_path']`` — directorio extra donde buscar binarios externos.
+
+    La fuente lo añade al ``PATH`` heredado antes de resolver un ejecutable
+    (``odoo19c: odoo/tools/misc.py:find_in_path``), para el despliegue donde el
+    binario auxiliar no vive en una ruta del sistema. Aquí el equivalente es la
+    setting ``BIN_PATH``; vacía significa "sólo el ``PATH`` del proceso".
+    """
+    return getattr(settings, 'BIN_PATH', '') or ''
+
+
+def pg_path():
+    """≙ ``config['pg_path']`` — directorio de las herramientas de PostgreSQL.
+
+    Gobierna dónde se busca ``pg_dump``/``pg_restore``
+    (``odoo19c: odoo/tools/misc.py:find_pg_tool``). Con un cluster instalado por
+    el gestor de paquetes los binarios están en el ``PATH`` y esta setting sobra;
+    hace falta cuando conviven varias versiones de PostgreSQL y el volcado debe
+    salir de una en concreto — un ``pg_dump`` más viejo que el servidor rehúsa
+    con ``server version mismatch``.
+    """
+    return getattr(settings, 'PG_PATH', '') or ''

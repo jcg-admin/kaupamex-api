@@ -27,6 +27,7 @@ from itertools import islice, repeat, starmap
 
 import datetime
 
+import babel
 from django.apps import apps
 from django.db import connections
 from django.utils import formats as django_formats
@@ -37,6 +38,7 @@ from lxml import etree
 
 from modules.module import ADDONS_PATHS
 from tools import config
+from tools.which import which
 
 # Formatos de fecha del servidor — verbatim de la referencia
 # (``odoo19c: odoo/tools/misc.py:535-542``). Son el formato en que la fuente
@@ -240,6 +242,54 @@ SKIPPED_ELEMENT_TYPES = (
     etree._Comment, etree._ProcessingInstruction,
     etree.CommentBase, etree.PIBase, etree._Entity,
 )
+
+def find_in_path(name):
+    """≙ ``find_in_path`` (``odoo19c: odoo/tools/misc.py:130-134``).
+
+    Resuelve un ejecutable auxiliar contra el ``PATH`` del proceso más el
+    directorio extra que declare la configuración. La fuente **añade** el
+    directorio al final, no lo sustituye: un binario del sistema sigue ganando,
+    y la setting sólo cubre el despliegue donde el auxiliar no vive en una ruta
+    estándar.
+
+    :param name: nombre del ejecutable, sin ruta.
+    :return: la ruta absoluta del primero que exista y sea ejecutable.
+    :raise OSError: si ninguna entrada del camino lo tiene (contrato de
+        :func:`tools.which.which`).
+    """
+    path = os.environ.get('PATH', os.defpath).split(os.pathsep)
+    extra = config.bin_path()
+    if extra and extra != 'None':
+        path.append(extra)
+    return which(name, path=os.pathsep.join(path))
+
+
+def find_pg_tool(name):
+    """≙ ``find_pg_tool`` (``odoo19c: odoo/tools/misc.py:137-144``).
+
+    Resuelve una herramienta de PostgreSQL (``pg_dump``, ``pg_restore``) en el
+    directorio que declare la configuración, o en el ``PATH`` si no hay ninguno.
+
+    A diferencia de :func:`find_in_path`, la ruta configurada **sustituye** al
+    ``PATH`` en vez de sumarse: cuando conviven varias versiones de PostgreSQL,
+    lo que se quiere es fijar cuál corre, no dejar que gane la primera del
+    camino. Esa asimetría es de la fuente y se porta tal cual.
+
+    :param name: nombre de la herramienta.
+    :return: su ruta absoluta.
+    :raise Exception: si no se encuentra — la fuente convierte aquí el
+        ``OSError`` de ``which`` en un error con el nombre del comando, porque
+        quien lo llama informa al operador y no distingue causas de E/S.
+    """
+    path = None
+    configurado = config.pg_path()
+    if configurado and configurado != 'None':
+        path = configurado
+    try:
+        return which(name, path=path)
+    except OSError:
+        raise Exception('Command `%s` not found.' % name)
+
 
 def _addons_paths():
     """Las raíces bajo las que :func:`file_path` admite abrir.
@@ -896,6 +946,35 @@ def street_split(street):
     }
 
 
+def babel_locale_parse(lang_code):
+    """≙ ``babel_locale_parse`` (``odoo19c: odoo/tools/misc.py:1329-1338``).
+
+    El ``babel.Locale`` de un código de idioma, con la cadena de respaldo de la
+    fuente: el código pedido, luego el del entorno, y ``en_US`` como último
+    recurso. Los dos ``except`` son deliberadamente anchos porque babel lanza
+    familias distintas —``ValueError`` por un código mal formado,
+    ``UnknownLocaleError`` por uno bien formado que no existe— y en ninguno de
+    los dos casos hay nada que decidir: se pasa al siguiente respaldo.
+
+    Nunca lanza: quien lo llama formatea un valor para mostrarlo, y un idioma
+    desconocido no puede tumbar la respuesta.
+
+    :param lang_code: código de idioma, o ``None``.
+    :return: el ``babel.Locale`` resuelto.
+    """
+    if lang_code:
+        try:
+            return babel.Locale.parse(lang_code)
+        except Exception:  # noqa: BLE001 — ver el docstring
+            # silent OK because el codigo pedido no resuelve y el contrato de
+            # la fuente es pasar al siguiente respaldo, no propagar el error.
+            pass
+    try:
+        return babel.Locale.default()
+    except Exception:  # noqa: BLE001 — ídem
+        return babel.Locale.parse('en_US')
+
+
 def parse_date(value, lang_code=None):
     """≙ ``parse_date`` (``odoo19c: odoo/tools/misc.py:1455-1472``).
 
@@ -913,8 +992,14 @@ def parse_date(value, lang_code=None):
     que es lo que distingue una localización de otra y lo único que babel
     aportaría.
 
-    No se añade ``babel`` como dependencia: medido, no está instalado, y el
-    stack ya trae la capacidad.
+    **Corregido 2026-09-03.** Este párrafo decía *"no se añade ``babel`` como
+    dependencia: medido, no está instalado"*, y eso dejó de ser cierto:
+    ``babel>=2.14.0`` está declarado en ``pyproject.toml:67`` y resuelve a
+    2.18.0 bajo ``uv run``. La divergencia de mecanismo sigue en pie —se usa la
+    lista de formatos de Django, no ``babel.dates.parse_date``— pero su razón ya
+    no es la ausencia de la librería, sino que el formato de entrada del usuario
+    lo gobierna la localización activa de Django. Re-decidir el mecanismo con
+    babel presente es la tarea **#360**.
 
     :param value: la cadena tecleada.
     :param lang_code: código de idioma; ``None`` usa el activo.

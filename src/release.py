@@ -34,6 +34,18 @@ version = (
 
 product_name = 'Kaupamex'
 description = 'Kaupamex — plataforma L0 de comercio multi-company'
+long_desc = """Kaupamex es el operador L0 de una plataforma SaaS multi-empresa
+que hospeda a empresas cliente (L1) para gestionar su ecommerce, ERP y CRM, con
+cobro por modulo mas renta mensual. Las capacidades tecnicas incluyen un
+monolito modular Django, un ORM extendido con el vocabulario de primitivos de la
+referencia, aislamiento por empresa a nivel de fila y un contrato OpenAPI 3
+generado desde el codigo.
+"""
+classifiers = """Development Status :: 3 - Alpha
+License :: Other/Proprietary License
+
+Programming Language :: Python
+"""
 url = 'https://github.com/jcg-admin/kaupamex'
 author = 'Equipo Kaupamex'
 author_email = 'dev@kaupamex.com'
@@ -43,11 +55,21 @@ author_email = 'dev@kaupamex.com'
 # (DEC-KX-03 punto 1) — una licencia no se re-etiqueta.
 license = 'Confidential'
 
+# Nombre del servicio de Windows. La referencia lo deriva de la serie con ese
+# mismo `replace` porque su MAJOR puede ser una cadena arbitraria ('saas~xx') y
+# la tilde no es válida en el nombre de un servicio NT. Lo consume
+# ``tools/osutil.is_running_as_nt_service`` en la rama de Windows.
+nt_service_name = 'kaupamex-server-' + series.replace('~', '-')
+
 # Mínimos de runtime. Coherentes con `requires-python` de pyproject
 # (">=3.12,<3.15"). La BD canónica es PostgreSQL (ADR-028, supersede
-# ADR-008/ADR-009 MariaDB); mínimo efectivo 14 — el mayor entre el de la
-# referencia (13, ``odoo19c: odoo/release.py:41``) y el de Django 6
-# (``django/db/backends/postgresql/features.py:10``, que aborta la conexión).
+# ADR-008/ADR-009 MariaDB).
 MIN_PY_VERSION = (3, 12)
 MAX_PY_VERSION = (3, 14)
-MIN_PG_VERSION = (14, 0)
+
+# Entero, no tupla — la referencia lo multiplica por 10000 para compararlo con
+# el `server_version` de libpq (``odoo19c: odoo/sql_db.py:699``), y una tupla no
+# admite esa aritmética. El valor es el mínimo efectivo: el mayor entre el de la
+# referencia (13, ``odoo19c: odoo/release.py:41``) y el de Django 6
+# (``django/db/backends/postgresql/features.py:10``, que aborta la conexión).
+MIN_PG_VERSION = 14

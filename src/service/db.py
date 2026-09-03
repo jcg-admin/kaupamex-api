@@ -36,6 +36,7 @@ from django.core.management import call_command
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 
 from tools import config
+from tools.misc import find_pg_tool
 
 _logger = logging.getLogger(__name__)
 
@@ -568,7 +569,7 @@ def dump_database(db_name, using=DEFAULT_DB_ALIAS):
     ensure_management_enabled()
     if not database_exists(db_name, using):
         raise ValueError('la base %r no existe' % (db_name,))
-    cmd = ['pg_dump', '--no-owner', '--format=c', db_name]
+    cmd = [find_pg_tool('pg_dump'), '--no-owner', '--format=c', db_name]
     proc = subprocess.Popen(
         cmd, env=_pg_env(using), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)
     return _DumpStream(proc)
@@ -594,7 +595,8 @@ def restore_database(db_name, dump_path, using=DEFAULT_DB_ALIAS):
     if database_exists(db_name, using):
         raise DatabaseExists('la base %r ya existe' % (db_name,))
     create_empty_database(db_name, using)
-    cmd = ['pg_restore', '--no-owner', '--dbname=' + db_name, dump_path]
+    cmd = [find_pg_tool('pg_restore'), '--no-owner',
+           '--dbname=' + db_name, dump_path]
     result = subprocess.run(
         cmd, env=_pg_env(using),
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
