@@ -53,7 +53,7 @@ from collections import defaultdict, deque
 from collections.abc import Callable, Collection, Iterator, Mapping
 
 from django.apps import apps
-from django.db import connections
+from django.db import DatabaseError, connections, transaction
 from django.db.models.signals import class_prepared
 from django.dispatch import receiver
 from psycopg import sql as pg_sql
@@ -70,9 +70,15 @@ from orm.utils import model_field_registry
 from tools.func import locked
 from tools.lru import LRU
 from tools.misc import Collector, OrderedSet, remove_accents
-from tools.sql import SQL
+from tools.sql import (SQL, _CONFDELTYPES, create_index, drop_constraint, drop_index,
+                       existing_tables, get_foreign_keys, make_index_name)
+from tools.sql import add_foreign_key as sql_add_foreign_key
 
 _logger = logging.getLogger('kaupamex.registry')
+
+#: El registro de cambios de schema — ≙ ``_schema`` de la fuente, que lo abre
+#: como ``logging.getLogger('odoo.schema')``.
+_schema = logging.getLogger('kaupamex.schema')
 
 __all__ = [
     'apps', 'connections',
@@ -1851,6 +1857,303 @@ class Registry(Mapping):
             _triggers.field_inverses.discard_keys_and_values(fields)
 
         self.field_setup_dependents.discard_keys_and_values(fields)
+
+    # -- El eje de schema ----------------------------------------------------
+    #
+    # ≙ ``:779-1016``. Los seis simbolos con que la fuente compara lo declarado
+    # contra lo que la base tiene. Ninguno existia aqui: ``init`` declaraba
+    # ``_ordinary_tables`` y ``_sql_constraints`` y **nadie los leia**.
+    #
+    # Aqui el DDL lo emiten las migraciones de Django y no el ORM, asi que
+    # estos seis **verifican** en vez de construir el schema entero. Eso NO los
+    # hace redundantes: una migracion editada a mano, una tabla creada por el
+    # provisioner o un indice retirado desde psql dejan al esquema por detras
+    # de la declaracion, y el aviso de la fuente es justo lo que lo delata.
+
+    def check_null_constraints(self, cr):
+        """Comprueba que las restricciones de no-nulo estan puestas — ≙ ``:779-803``.
+
+        Docstring de la fuente, verbatim: *"Check that all not-null constraints
+        are set"*.
+
+        Cruza ``pg_attribute`` contra lo que cada campo declara y **avisa**
+        cuando no coinciden. La ``id`` entra sin preguntarle al esquema, como
+        alla (``:795-797``): es la clave primaria y su no-nulo lo garantiza la
+        propia definicion de la tabla.
+
+        Repuebla :attr:`not_null_fields`, que hasta ahora sólo se derivaba de
+        ``field.null`` al inicializar. Las dos vias conviven a proposito: la
+        derivacion no necesita cursor y sirve al arranque; ésta necesita uno y
+        es la que puede ver la divergencia.
+        """
+        cr.execute("""
+            SELECT c.relname, a.attname
+            FROM pg_attribute a
+            JOIN pg_class c ON a.attrelid = c.oid
+            WHERE c.relnamespace = current_schema::regnamespace
+            AND a.attnotnull = true
+            AND a.attnum > 0
+            AND a.attname != 'id'
+        """)
+        not_null_columns = set(cr.fetchall())
+
+        self.not_null_fields.clear()
+        for model in self.models.values():
+            if not self._has_ordinary_schema(model):
+                continue
+            for field_name, field in model._fields.items():
+                if field_name == 'id':
+                    self.not_null_fields.add(field)
+                    continue
+                if field.column_type and field.store and field.required:
+                    if (model._table, field_name) in not_null_columns:
+                        self.not_null_fields.add(field)
+                    else:
+                        _schema.warning("Missing not-null constraint on %s", field)
+
+    def check_indexes(self, cr, model_names):
+        """Crea o retira los indices de columna de los modelos dados — ≙ ``:805-892``.
+
+        Docstring de la fuente, verbatim: *"Create or drop column indexes for
+        the given models"*.
+
+        El valor de ``field.index`` decide: ``'btree'``, ``'btree_not_null'``,
+        ``'trigram'``, o lo falso. Un indice que existe con **otro metodo de
+        acceso** del esperado esta obsoleto y se rehace; uno que existe con el
+        metodo correcto se deja en paz.
+        """
+        expected = [
+            (make_index_name(model._table, field.name), model._table, field)
+            for model_name in model_names
+            for model in [self.models[model_name]]
+            if self._has_ordinary_schema(model)
+            for field in model._fields.values()
+            if field.column_type and field.store
+        ]
+        if not expected:
+            return
+
+        cr.execute("""
+            SELECT idx.relname, tbl.relname, am.amname
+              FROM pg_index ix
+              JOIN pg_class idx ON idx.oid = ix.indexrelid
+              JOIN pg_class tbl ON tbl.oid = ix.indrelid
+              JOIN pg_am am ON am.oid = idx.relam
+             WHERE idx.relname = ANY(%s)
+               AND idx.relnamespace = current_schema::regnamespace
+        """, [[row[0] for row in expected]])
+        existing = {name: (table, method) for name, table, method in cr.fetchall()}
+
+        for indexname, tablename, field in expected:
+            index = field.index
+            assert index in ('btree', 'btree_not_null', 'trigram', True, False, None)
+
+            if index and field.translate and index != 'trigram':
+                _schema.warning(
+                    "Index attribute on %r ignored, only trigram index is "
+                    "supported for translated fields", field)
+                continue
+
+            # si el campo debe llevar indice, y con que metodo de acceso: gin
+            # para el trigram, btree para el resto.
+            will_index = bool(index) and (
+                (not field.translate and index != 'trigram')
+                or (index == 'trigram' and self.has_trigram))
+            if indexname in existing:
+                expected_method = 'gin' if index == 'trigram' else 'btree'
+                stale = existing[indexname][1] != expected_method
+                will_index &= stale     # se crea sólo cuando el que hay esta obsoleto
+            else:
+                stale = False
+
+            if will_index:
+                expression, method, where = self._index_shape(field, index)
+                try:
+                    with transaction.atomic(using=self._alias()):
+                        if stale:
+                            drop_index(cr, indexname, tablename)
+                        create_index(cr, indexname, tablename, [expression],
+                                     method, where)
+                except DatabaseError:
+                    _schema.error("Unable to add index %r for %s", indexname, self)
+
+            elif not index and tablename == existing.get(indexname, (None, None))[0]:
+                _schema.info("Keep unexpected index %s on table %s", indexname, tablename)
+
+    def _index_shape(self, field, index):
+        """La expresion, el metodo y la condicion del indice de un campo.
+
+        ≙ el cuerpo del ``if will_index`` de la fuente (``:853-881``). Sale a
+        su propio metodo porque decide tres valores a la vez y su llamador ya
+        lleva dos niveles de anidamiento; la fuente puede permitirselo en linea
+        porque no tiene que resolver el alias de conexion.
+        """
+        column = f'"{field.name}"'
+        if index == 'trigram':
+            if field.translate:
+                column = f"""(jsonb_path_query_array({column}, '$.*')::text)"""
+            # el ``unaccent`` va sólo en el indice trigram: es el unico que
+            # sirve al ``ilike`` insensible a acentos, que es donde se usa.
+            if self.has_unaccent == modules_db.FunctionStatus.INDEXABLE:
+                column = self.unaccent(column)
+            elif self.has_unaccent:
+                warnings.warn(
+                    "PostgreSQL function 'unaccent' is present but not immutable, "
+                    "therefore trigram indexes may not be effective.",
+                    stacklevel=1)
+            return f'{column} gin_trgm_ops', 'gin', ''
+        if index == 'btree_not_null' and field.company_dependent:
+            # la condicion por empresa usa un ``AND col IS NOT NULL`` extra
+            # para poder aprovechar el indice.
+            return f'({column} IS NOT NULL)', 'btree', f'{column} IS NOT NULL'
+        where = f'{column} IS NOT NULL' if index == 'btree_not_null' else ''
+        return column, 'btree', where
+
+    @staticmethod
+    def _has_ordinary_schema(model):
+        """Si el modelo tiene tabla propia que el schema deba verificar.
+
+        ≙ el ``Model._auto and not Model._abstract`` de la fuente. Aqui esos
+        dos atributos son ``Meta.managed`` y ``Meta.abstract``, que es donde
+        Django los declara: un modelo no gestionado es exactamente aquel cuya
+        tabla el ORM no toca, y uno abstracto no tiene tabla.
+        """
+        meta = getattr(model, '_meta', None)
+        return bool(meta is not None and meta.managed and not meta.abstract)
+
+    def add_foreign_key(self, table1, column1, table2, column2, ondelete,
+                        model, module, force=True):
+        """Declara una clave foranea esperada — ≙ ``:894-905``.
+
+        Docstring de la fuente, verbatim: *"Specify an expected foreign key"*.
+
+        ``force=False`` es un ``setdefault``: quien declara primero gana. La
+        distincion importa porque dos modulos pueden declarar la misma columna
+        y el segundo no debe pisar la politica de borrado del primero salvo que
+        lo pida.
+        """
+        key = (table1, column1)
+        val = (table2, column2, ondelete, model, module)
+        if force:
+            self._foreign_keys[key] = val
+        else:
+            self._foreign_keys.setdefault(key, val)
+
+    def check_foreign_keys(self, cr):
+        """Crea o actualiza las claves foraneas esperadas — ≙ ``:907-943``.
+
+        Docstring de la fuente, verbatim: *"Create or update the expected
+        foreign keys"*.
+
+        Cada clave nueva o rehecha se refleja en ``ir.model.constraint``, que
+        es lo que permite retirarla al desinstalar su modulo. El modelo se
+        resuelve por el propio registro —``self['ir.model.constraint']``— y no
+        por un import: ``orm`` no importa addons, y la mitad ``Mapping`` de esta
+        clase existe justamente para esto.
+        """
+        if not self._foreign_keys:
+            return
+
+        cr.execute("""
+            SELECT fk.conname, c1.relname, a1.attname, c2.relname, a2.attname, fk.confdeltype
+            FROM pg_constraint AS fk
+            JOIN pg_class AS c1 ON fk.conrelid = c1.oid
+            JOIN pg_class AS c2 ON fk.confrelid = c2.oid
+            JOIN pg_attribute AS a1 ON a1.attrelid = c1.oid AND fk.conkey[1] = a1.attnum
+            JOIN pg_attribute AS a2 ON a2.attrelid = c2.oid AND fk.confkey[1] = a2.attnum
+            WHERE fk.contype = 'f' AND c1.relname = ANY(%s)
+            AND c1.relnamespace = current_schema::regnamespace
+        """, [[table for table, column in self._foreign_keys]])
+        existing = {
+            (table1, column1): (name, table2, column2, deltype)
+            for name, table1, column1, table2, column2, deltype in cr.fetchall()
+        }
+
+        for key, val in self._foreign_keys.items():
+            table1, column1 = key
+            table2, column2, ondelete, model, module = val
+            deltype = _CONFDELTYPES[ondelete.upper()]
+            spec = existing.get(key)
+            if spec is None:
+                sql_add_foreign_key(cr, table1, column1, table2, column2, ondelete)
+            elif (spec[1], spec[2], spec[3]) != (table2, column2, deltype):
+                drop_constraint(cr, table1, spec[0])
+                sql_add_foreign_key(cr, table1, column1, table2, column2, ondelete)
+            else:
+                continue
+            conname = get_foreign_keys(cr, table1, column1, table2, column2, ondelete)[0]
+            self._reflect_foreign_key(model, conname, module)
+
+    def _reflect_foreign_key(self, model, conname, module):
+        """Anota la clave foranea en ``ir.model.constraint``.
+
+        ≙ la llamada ``model.env['ir.model.constraint']._reflect_constraint(
+        model, conname, 'f', None, module)`` que la fuente hace dos veces en
+        ``check_foreign_keys``. Sale a su propio metodo porque aqui el modelo
+        se resuelve por el registro y esa resolucion puede no estar disponible
+        —durante el arranque, antes de que ``ir.model.constraint`` se registre—
+        y esa condicion se comprueba una vez y no dos.
+        """
+        constraint_model = self.models.get('ir.model.constraint')
+        if constraint_model is None or model is None:
+            _schema.info("Foreign key %r not reflected: ir.model.constraint "
+                         "is not in the registry yet", conname)
+            return
+        constraint_model._reflect_constraint(model, conname, 'f', None, module)
+
+    def check_tables_exist(self, cr):
+        """Verifica que todas las tablas estan presentes — ≙ ``:945-...``.
+
+        Docstring de la fuente, verbatim: *"Verify that all tables are present
+        and try to initialize those that are missing"*.
+
+        Aqui **no** las inicializa, y la divergencia es del mecanismo entero:
+        la tabla la crea una migracion de Django, no el ORM. Lo que este metodo
+        conserva es el aviso, que es la mitad que sirve para detectar una
+        migracion que falta.
+        """
+        table2model = {
+            model._table: name
+            for name, model in self.models.items()
+            if self._has_ordinary_schema(model)
+            and not getattr(model, '_table_query', None)
+        }
+        if not table2model:
+            return
+        missing_tables = set(table2model).difference(existing_tables(cr, table2model))
+
+        if missing_tables:
+            missing = {table2model[table] for table in missing_tables}
+            _logger.info("Models have no table: %s.", ", ".join(sorted(missing)))
+
+    def is_an_ordinary_table(self, model):
+        """Si el modelo tiene una tabla ordinaria — ≙ ``:1001-1016``.
+
+        Docstring de la fuente, verbatim: *"Return whether the given model has
+        an ordinary table"*.
+
+        **Ordinaria** es ``relkind = 'r'``: existir no basta. Una vista existe
+        —y :func:`~tools.sql.existing_tables` la cuenta— y no admite las
+        operaciones que su llamador va a intentar.
+
+        La fuente abre el cursor por ``model.env.cr``; aqui el modelo es una
+        clase de Django y no lleva entorno, asi que el cursor sale del alias de
+        este registro. Mismo contrato, otra puerta.
+        """
+        if self._ordinary_tables is None:
+            tables = [m._table for m in self.models.values()
+                      if getattr(m, '_table', None)]
+            with connections[self._alias()].cursor() as cr:
+                cr.execute("""
+                    SELECT c.relname
+                      FROM pg_class c
+                     WHERE c.relname = ANY(%s)
+                       AND c.relkind = 'r'
+                       AND c.relnamespace = current_schema::regnamespace
+                """, [tables])
+                self._ordinary_tables = {row[0] for row in cr.fetchall()}
+
+        return model._table in self._ordinary_tables
 
     @classmethod
     @locked

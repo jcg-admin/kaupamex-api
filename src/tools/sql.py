@@ -84,6 +84,7 @@ saberlo. Ver H-API-306.
 ``pg_indexes`` (``odoo19c: odoo/tools/sql.py:542``), y aquí se conserva además
 el filtro por tabla que nuestra firma ya exponía.
 """
+import logging
 import re
 import warnings
 from zlib import crc32
@@ -96,6 +97,24 @@ from .misc import named_to_positional_printf
 # ≙ ``IDENT_RE`` (``odoo19c: odoo/tools/sql.py:35``) — el filtro de
 # ``SQL.identifier``: minúsculas, dígitos, ``_``, ``$`` y ``-``.
 IDENT_RE = re.compile(r'^[a-z0-9_][a-z0-9_$\-]*$', re.I)
+
+#: El registro de cambios de schema — ≙ ``_schema`` de la fuente, que lo abre
+#: como ``logging.getLogger('odoo.schema')``. El nombre lleva el del producto
+#: por la misma razon que el resto del arbol: el canal es nuestro.
+_schema = logging.getLogger('kaupamex.schema')
+
+#: ≙ ``_CONFDELTYPES`` (``odoo19c: odoo/tools/sql.py:37-43``), verbatim.
+#:
+#: La letra de una columna ``confdeltype`` de ``pg_constraint`` por politica de
+#: borrado. Es el mapa que permite comparar la clave foranea **declarada** con
+#: la que la base tiene sin volver a leer su definicion en texto.
+_CONFDELTYPES = {
+    'RESTRICT': 'r',
+    'NO ACTION': 'a',
+    'CASCADE': 'c',
+    'SET NULL': 'n',
+    'SET DEFAULT': 'd',
+}
 
 #: ≙ ``SQL_ORDER_BY_TYPE`` (``odoo19c: odoo/tools/sql.py:261-272``), verbatim.
 #:
@@ -346,6 +365,20 @@ def make_identifier(identifier: str) -> str:
     return identifier
 
 
+def make_index_name(table_name: str, column_name: str) -> str:
+    """El nombre de indice que la convencion prescribe.
+
+    ≙ ``make_index_name`` (``odoo19c: odoo/tools/sql.py:779-781``). Docstring
+    de la fuente, verbatim: *"Return an index name according to conventions for
+    the given table and column"*.
+
+    Pasa por :func:`make_identifier`, y eso no es adorno: dos columnas largas
+    de la misma tabla producen nombres que se pasan de los 63 caracteres de
+    PostgreSQL, que trunca por su cuenta y **los colapsa en uno**.
+    """
+    return make_identifier(f"{table_name}__{column_name}_index")
+
+
 def pg_varchar(size=0):
     """≙ ``pg_varchar`` (``odoo19c: odoo/tools/sql.py:644-659``).
 
@@ -469,6 +502,129 @@ def index_exists(cursor, table_name, index_name, schema=None):
             'WHERE schemaname = %s AND tablename = %s AND indexname = %s '
             'LIMIT 1', [schema, table_name, index_name])
     return cursor.fetchone() is not None
+
+
+def existing_tables(cr, tablenames):
+    """Los nombres que existen de entre los dados.
+
+    ≙ ``existing_tables`` (``odoo19c: odoo/tools/sql.py:204-213``). Docstring
+    de la fuente, verbatim: *"Return the names of existing tables among
+    ``tablenames``"*.
+
+    Cuenta tabla ordinaria, vista y vista materializada —``relkind IN ('r',
+    'v', 'm')``—, que es lo que la fuente pregunta: un modelo servido por una
+    vista **tiene** su relacion, aunque no sea una tabla. La distincion la hace
+    :func:`~orm.registry.Registry.is_an_ordinary_table`, que filtra por ``'r'``
+    a secas.
+
+    Dos divergencias de puerta, ninguna de contenido. La fuente le pasa un
+    :class:`SQL` a su propio cursor; aqui el cursor es el de Django, que recibe
+    ``(sentencia, parametros)``. Y la fuente escribe ``IN %s`` con una tupla:
+    eso lo adaptaba psycopg2, y **psycopg3 no** —una tupla llega como texto y
+    PostgreSQL da error de sintaxis—. El equivalente en psycopg3 es
+    ``= ANY(%s)`` con una lista, que es la misma pregunta contra un arreglo.
+    """
+    tablenames = list(tablenames)
+    if not tablenames:
+        return []
+    cr.execute("""
+        SELECT c.relname
+          FROM pg_class c
+         WHERE c.relname = ANY(%s)
+           AND c.relkind IN ('r', 'v', 'm')
+           AND c.relnamespace = current_schema::regnamespace
+    """, [tablenames])
+    return [row[0] for row in cr.fetchall()]
+
+
+def drop_constraint(cr, tablename, constraintname):
+    """Retira la restriccion dada.
+
+    ≙ ``drop_constraint`` (``odoo19c: odoo/tools/sql.py:466-472``). Docstring
+    de la fuente, verbatim: *"Drop the given constraint"*.
+    """
+    cr.execute('ALTER TABLE {} DROP CONSTRAINT {}'.format(
+        SQL.identifier(tablename).code, SQL.identifier(constraintname).code))
+    _schema.debug("Table %r: dropped constraint %r", tablename, constraintname)
+
+
+def add_foreign_key(cr, tablename1, columnname1, tablename2, columnname2, ondelete):
+    """Crea la clave foranea dada.
+
+    ≙ ``add_foreign_key`` (``odoo19c: odoo/tools/sql.py:475-484``). Docstring
+    de la fuente, verbatim: *"Create the given foreign key, and return
+    ``True``"*.
+
+    El identificador va por :meth:`SQL.identifier`, que lo cita y lo valida
+    contra ``IDENT_RE``; ``ondelete`` NO es un identificador sino una palabra
+    reservada del dialecto, y por eso se comprueba contra
+    :data:`_CONFDELTYPES` antes de interpolarse — la fuente lo interpola con
+    ``SQL(ondelete)``, que tampoco lo cita, y la comprobacion es lo que aqui
+    cierra esa puerta.
+    """
+    if ondelete.upper() not in _CONFDELTYPES:
+        raise ValueError(f'Unknown ON DELETE policy: {ondelete!r}')
+    cr.execute('ALTER TABLE {} ADD FOREIGN KEY ({}) REFERENCES {}({}) ON DELETE {}'.format(
+        SQL.identifier(tablename1).code, SQL.identifier(columnname1).code,
+        SQL.identifier(tablename2).code, SQL.identifier(columnname2).code,
+        ondelete.upper()))
+    _schema.debug("Table %r: added foreign key %r references %r(%r) ON DELETE %s",
+                  tablename1, columnname1, tablename2, columnname2, ondelete)
+
+
+def get_foreign_keys(cr, tablename1, columnname1, tablename2, columnname2, ondelete):
+    """Los nombres de las claves foraneas que coinciden con lo dado.
+
+    ≙ ``get_foreign_keys`` (``odoo19c: odoo/tools/sql.py:487-511``). La fuente
+    no le pone docstring.
+
+    Filtra tambien por ``confdeltype``: dos claves entre las mismas columnas
+    con politica de borrado distinta **no** son la misma, y quien llama esta
+    decidiendo justamente si hay que rehacerla.
+    """
+    deltype = _CONFDELTYPES[ondelete.upper()]
+    cr.execute("""
+        SELECT fk.conname AS name
+        FROM pg_constraint AS fk
+        JOIN pg_class AS c1 ON fk.conrelid = c1.oid
+        JOIN pg_class AS c2 ON fk.confrelid = c2.oid
+        JOIN pg_attribute AS a1 ON a1.attrelid = c1.oid AND fk.conkey[1] = a1.attnum
+        JOIN pg_attribute AS a2 ON a2.attrelid = c2.oid AND fk.confkey[1] = a2.attnum
+        WHERE fk.contype = 'f'
+        AND c1.relname = %s
+        AND a1.attname = %s
+        AND c2.relname = %s
+        AND a2.attname = %s
+        AND c1.relnamespace = current_schema::regnamespace
+        AND fk.confdeltype = %s
+    """, [tablename1, columnname1, tablename2, columnname2, deltype])
+    return [row[0] for row in cr.fetchall()]
+
+
+def create_index(cr, indexname, tablename, expressions, method='btree', where=''):
+    """Crea el indice dado si no existe.
+
+    ≙ ``create_index`` (``odoo19c: odoo/tools/sql.py:564-583``). La fuente
+    comprueba antes con ``index_exists`` y sale sin hacer nada si ya estaba;
+    aqui la comprobacion la hace ``IF NOT EXISTS``, que es atomica y no deja la
+    ventana entre la pregunta y la creacion.
+    """
+    args = ', '.join(expressions)
+    condition = f' WHERE {where}' if where else ''
+    cr.execute('CREATE INDEX IF NOT EXISTS {} ON {} USING {} ({}){}'.format(
+        SQL.identifier(indexname).code, SQL.identifier(tablename).code,
+        SQL.identifier(method).code, args, condition))
+    _schema.debug("Table %r: created index %r (%s)", tablename, indexname, args)
+
+
+def drop_index(cr, indexname, tablename):
+    """Retira el indice dado si existe.
+
+    ≙ ``drop_index`` (``odoo19c: odoo/tools/sql.py:626-629``). Docstring de la
+    fuente, verbatim: *"Drop the given index if it exists"*.
+    """
+    cr.execute('DROP INDEX IF EXISTS {}'.format(SQL.identifier(indexname).code))
+    _schema.debug("Table %r: dropped index %r", tablename, indexname)
 
 
 def execute_sql(sql, using=None):

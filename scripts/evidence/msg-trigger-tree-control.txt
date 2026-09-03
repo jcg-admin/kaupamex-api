@@ -1,0 +1,25 @@
+Measure the claim that the tree ignores its key
+
+El docstring de TriggerTree en src/orm/registry.py afirma, para
+justificar que se portara sin esperar a Field: «la clave no crea
+dependencia real — el arbol nunca invoca nada del campo, solo lo
+usa como clave hasheable y lo guarda en su raiz».
+
+Esa afirmacion era prosa. Los 25 casos que el archivo ya tenia
+usan un doble _Field que SI lleva atributos (name, keep), asi que
+un acceso escondido a key.name habria pasado desapercibido: el
+doble lo tiene.
+
+Los cuatro casos nuevos la miden. Usan object() pelado y una
+clase _Opaque cuyo __getattr__ levanta ante cualquier lectura, y
+recorren las tres superficies del arbol: increase, depth_first y
+merge. Si el arbol tocara algo de su clave, caen.
+
+El cuarto es el control del control: un select que SI lee la
+clave levanta, lo que demuestra que la sonda funciona. Sin el,
+que los otros tres pasen no distinguiria «el arbol no lee» de
+«_Opaque no detecta nada».
+
+29 passed en tests/unit/orm/test_trigger_tree.py.
+
+Refs: #342, #217
