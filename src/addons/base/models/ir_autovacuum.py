@@ -41,33 +41,24 @@ resuelve un problema real y no son intercambiables:
   declara explícitamente como diferido"*; medido, ``ir_cron.py:62`` dice **"El
   runner del cron — PORTADO COMPLETO (2026-08-26)"** y ``_commit_progress``
   está en ``:1130``. Ver :ref:`h-api-984`.
-- ``_gc_orm_signaling`` **no se porta TODAVÍA**, y su sucesor está registrado:
-  barre las tablas ``orm_signaling_<señal>`` del invalidador de caché
-  multi-proceso de Odoo. No hay tablas que barrer; portarlo sería declarar una
-  capacidad inexistente. **Construir esas tablas es la tarea #256**, y este
-  método entra con ellas.
+- ``_gc_orm_signaling`` **SÍ se porta, desde este pase**. Este bullet decía
+  *"no se porta TODAVÍA … no hay tablas que barrer; portarlo sería declarar una
+  capacidad inexistente. Construir esas tablas es la tarea #256, y este método
+  entra con ellas"*. Las tablas existen: las crea
+  ``base/migrations/0085_orm_signaling_tables.py`` y las consume el eje de
+  señalización de ``orm.registry`` (``setup_signaling``, ``get_sequences``,
+  ``check_signaling``, ``signal_changes``). La declinación era correcta y su
+  condición de cierre se cumplió, así que el método entra con ellas.
 
-  El cero se mide por **declaración**, no por mención, y el patrón va
-  **anclado a inicio de línea** para no encontrarse a sí mismo:
-  ``grep -rn "^ *db_table *= *['\"]orm_signaling\|^ *def check_signaling\|^ *def
-  signal_changes" src/ --include=*.py`` → **0**.
+  El cero que la declinación citaba —el patrón anclado de ``db_table`` y de las
+  dos declaraciones del eje— hoy mide **2**: las dos ``def`` de
+  ``orm/registry.py``. Ese ascenso es exactamente lo que la cita prometía
+  observar cuando el mecanismo llegara, así que la cita **se retira** en vez de
+  actualizarse: un reclamo de cero cuya condición se cumplió ya no mide nada.
 
-  El ancla no es cosmética. Sin ella el comando da **1**: esta misma cita, que
-  vive dentro de ``src/``. Es el defecto #2 de :ref:`h-api-985` —*"la cita se
-  encontraba a sí misma"*— reaparecido en la cita que lo corregía. El gate no
-  lo habría delatado: descuenta la línea de cita por el literal RST, así que
-  publica **0** mientras un humano que copie el comando lee **1**. Un ancla en
-  el patrón cierra las dos lecturas a la vez, sin el ``| grep -v <archivo>``
-  que :ref:`h-api-985` descartó por demasiado ancho.
-
-  La cita anterior era ``grep -rl orm_signaling src/ | grep -v
-  ir_autovacuum.py``, y hoy da **2** —``res_groups.py:824`` e
-  ``ir_ui_view.py:145``— sin que exista una sola tabla: los dos hits son
-  **prosa** que describe el mecanismo de la referencia. Un instrumento que
-  cuenta el nombre no distingue *"el mecanismo existe"* de *"alguien lo
-  nombró"*, que es el sub-patrón **C** de ``metrica-decide-la-conclusion.md``.
-  Que el conteo suba no invalida la declinación: obliga a releerla, y releída
-  se sostiene.
+  Lo delató el gate ``check_stale_zero_claims``, no una relectura — un reclamo
+  de cero es una afirmación fechada y el gate la re-ejecuta, que es la única
+  razón por la que este método no se quedó declinado tras construir sus tablas.
 """
 import collections
 import inspect
@@ -76,11 +67,15 @@ import random
 import time
 
 from django.apps import apps
+from django.db import connection
 from django.db import models as django_models
 from django.db import transaction
 
 from addons.base.models.ir_cron import IrCron
+from orm.decorators import autovacuum
 from orm.environments import get_context
+from orm.registry import signaling_table_names
+from tools.sql import SQL
 
 _logger = logging.getLogger(__name__)
 
@@ -180,3 +175,40 @@ class IrAutovacuum(django_models.Model):
                 # Un método roto no cancela el resto — se registra y se sigue.
                 _logger.exception('Falló %s.%s()', model, attr)
                 transaction.rollback()
+
+
+    @classmethod
+    @autovacuum
+    def _gc_orm_signaling(cls):
+        """Poda las tablas de señalización — ≙ ``:64-75``.
+
+        Comentario de la fuente, verbatim: *"keep the last 10 entries for each
+        signal, and all entries from the last hour. This keeps the signaling
+        tables small enough for performance, but also gives a useful glimpse
+        into the recent signaling history, including the timestamps of the
+        increments"*. Las dos condiciones se conjugan con ``AND``: una fila
+        sobrevive si está entre las diez últimas **o** si es de la última hora.
+
+        Las tablas son de sólo-inserción y cada invalidación añade una fila, así
+        que sin este barrido crecen sin techo — y son las que
+        ``Registry.get_sequences`` lee en **cada** petición con un ``max(id)``
+        por tabla.
+
+        **Divergencias de puerta, no de contenido:**
+
+        - La lista de tablas sale de ``signaling_table_names()``, que ya la
+          declara una vez para el eje y la migración; la fuente reconstruye
+          ``['registry', *_CACHES_BY_KEY]`` aquí por tercera vez.
+        - El cursor sale de ``connection`` y no de ``self.env.cr``: aquí el
+          método es ``classmethod`` por el contrato del runner del cron (ver el
+          docstring de :meth:`_run_vacuum_cleaner`), así que no hay ``self`` del
+          que colgar un entorno.
+        """
+        with connection.cursor() as cr:
+            for table in signaling_table_names():
+                query = SQL(
+                    "DELETE FROM %s WHERE id < (SELECT max(id)-9 FROM %s) "
+                    "AND date < NOW() - interval '1 hours'",
+                    SQL.identifier(table), SQL.identifier(table),
+                )
+                cr.execute(query.code, query.params)

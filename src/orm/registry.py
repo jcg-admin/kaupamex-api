@@ -5,8 +5,10 @@ clase de modelo (``registry['res.partner']``). Se construye al cargar los addons
 de esa DB, cachea la estructura de modelos/campos y coordina el setup del schema.
 Es singleton por ``db_name`` (``Registry(db_name)`` devuelve el existente).
 
-Mapeo a Django — **Django ya provee el registro de modelos**, y por eso este
-archivo es un stub delgado documentado, no una reimplementación:
+Mapeo a Django — **Django ya provee el registro de modelos**, y por eso el
+puerto no lo duplica; lo que sí recrea es todo lo que la fuente cuelga del
+registro y Django no tiene (el mapa por nombre punteado, el eje de campos y
+disparadores, el de schema, la carga y la señalización entre procesos):
 
 ===================================  ===================================================
 Odoo ``Registry``                    Equivalente Django
@@ -50,6 +52,7 @@ import threading
 import time
 import warnings
 from collections import defaultdict, deque
+from contextlib import closing, contextmanager, nullcontext
 from functools import partial
 from collections.abc import Callable, Collection, Iterator, Mapping
 
@@ -86,7 +89,9 @@ __all__ = [
     'MODELS_BY_NAME', 'name_of', 'model_by_name', 'model_by_key',
     'resolve_model_key', 'check_table_matches_name',
     'registrants_without_table',
-    'clear_cache', 'clear_all_caches', 'cache_of', 'cache_invalidated',
+    'clear_cache', 'clear_all_caches', 'cache_of',
+    'cache_invalidated_names', 'reset_invalidation_record',
+    'signaling_table_names',
     'many2one_company_dependents', 'loaded_xmlids',
     'not_null_fields', 'is_not_null',
     '_unaccent', 'UNACCENT_ENABLED',
@@ -127,6 +132,31 @@ _CACHES_BY_KEY = {
     'groups': ('groups', 'templates', 'templates.cached_values'),
 }
 
+def signaling_table_names():
+    """Las siete tablas del eje de señalización, en el orden de la fuente.
+
+    ≙ la expresión que la referencia escribe **dos veces** —en
+    ``setup_signaling`` (``odoo19c: odoo/orm/registry.py:1043``) y en
+    ``get_sequences`` (``:1067``)—: el registro primero, luego una por clave de
+    :data:`_CACHES_BY_KEY`.
+
+    **Divergencia de forma declarada, y su razón.** La fuente la repite; aquí
+    es una función porque hay un **tercer** consumidor que allá no existe: la
+    migración que crea las tablas (``base/migrations/0085_orm_signaling_tables``),
+    ya que en este árbol el DDL lo emiten las migraciones. Tres copias de la
+    misma lista serían la segunda fuente de verdad que
+    ``calibration-verified-numbers.md`` prohíbe.
+
+    La migración, aun así, **congela sus siete literales** en vez de llamar a
+    esta función: una migración es historia, y derivarla del código vivo haría
+    que añadir una clave de caché reescribiera el pasado. Una clave nueva se
+    queda sin tabla y :meth:`Registry.setup_signaling` la nombra en voz alta,
+    que es para lo que su verificación existe.
+    """
+    return ('orm_signaling_registry',
+            *(f'orm_signaling_{cache_name}' for cache_name in _CACHES_BY_KEY))
+
+
 #: Los contenedores vivos. La referencia los cuelga de la instancia de
 #: ``Registry`` (``self.__caches``, ``:233``) porque allá hay un registry por
 #: base de datos; aquí el registry es el módulo —la dimensión por-DB la cubre
@@ -135,9 +165,55 @@ _CACHES_BY_KEY = {
 #: singleton que este árbol tiene.
 _CACHES = {name: LRU(size) for name, size in _REGISTRY_CACHES.items()}
 
-#: Nombres de caché vaciados desde el último ciclo, ≙ ``Registry.cache_invalidated``
-#: (``odoo19c: odoo/orm/registry.py:238``). Lo consume la señal entre procesos.
-cache_invalidated = set()
+#: El registro de invalidación **de este hilo** — ≙ los dos campos que la
+#: fuente guarda en ``Registry._invalidation_flags`` (``odoo19c:
+#: odoo/orm/registry.py:224``): ``registry`` (bool) y ``cache`` (conjunto de
+#: nombres vaciados desde la última señal).
+#:
+#: Vive en el módulo por la misma razón que :data:`_CACHES`, y es la mitad que
+#: faltaba: los contenedores son estado de proceso, así que su registro de
+#: invalidación también lo es. Antes de reconciliarlo había **dos estructuras
+#: paralelas y disjuntas** — un conjunto de módulo que ``clear_cache`` escribía
+#: y nadie leía, y un ``threading.local`` de instancia que la property
+#: ``Registry.cache_invalidated`` leía y nadie escribía. El eje de señalización
+#: se habría portado entero y habría señalizado siempre cero: un verde que no
+#: discrimina (``metrica-decide-la-conclusion.md``, sub-patrón D).
+#:
+#: **Por hilo, no por proceso**, igual que la fuente: la invalidación es del
+#: hilo que la hizo, y ``signal_changes`` corre al cerrar la petición en ese
+#: mismo hilo. Propagarla a los demás anunciaría un cambio que ellos no ven.
+_invalidation = threading.local()
+
+
+def cache_invalidated_names():
+    """Los nombres de caché que **este hilo** vació desde la última señal.
+
+    ≙ el conjunto que la fuente devuelve en ``Registry.cache_invalidated``
+    (``:1026-1033``). Devuelve **el mismo** conjunto en cada llamada del hilo:
+    quien lo pide lo hace para añadirle un nombre, y uno nuevo por llamada
+    perdería lo anotado.
+    """
+    try:
+        return _invalidation.cache
+    except AttributeError:
+        # silent OK because la ausencia del atributo ES la respuesta «este hilo
+        # aún no ha anotado nada», y el cuerpo que sigue lo crea. La fuente lo
+        # escribe igual (``:1030-1032``).
+        names = _invalidation.cache = set()
+        return names
+
+
+def reset_invalidation_record():
+    """Olvida lo que este hilo hubiera anotado — lo llama ``Registry.init``.
+
+    ≙ ``self._invalidation_flags = threading.local()`` de la fuente (``:279``),
+    que al inicializar un registro descarta el registro de invalidación entero.
+    Aquí el descarte es del hilo que construye, porque la estructura es de
+    proceso: un hilo ajeno conserva lo suyo, que es lo que él necesita
+    señalizar.
+    """
+    _invalidation.registry = False
+    _invalidation.cache = set()
 
 
 #: ¿Envuelve el ``ilike`` sus dos lados en ``unaccent(...)``?
@@ -215,7 +291,7 @@ def clear_cache(*cache_names):
     for cache_name in cache_names:
         for cache in _CACHES_BY_KEY[cache_name]:
             _CACHES[cache].clear()
-        cache_invalidated.add(cache_name)
+        cache_invalidated_names().add(cache_name)
 
     # información sobre la causa de la invalidación
     if _logger.isEnabledFor(logging.DEBUG):
@@ -231,7 +307,7 @@ def clear_all_caches():
     for cache_name, caches in _CACHES_BY_KEY.items():
         for cache in caches:
             _CACHES[cache].clear()
-        cache_invalidated.add(cache_name)
+        cache_invalidated_names().add(cache_name)
 
     _logger.debug('Invalidating all model caches')
 
@@ -1655,8 +1731,6 @@ class Registry(Mapping):
         self._database_company_dependent_fields = set()
         self._ordinary_tables = None
         self._constraint_queue = {}
-        self.__caches = {name: LRU(size)
-                         for name, size in _REGISTRY_CACHES.items()}
 
         self._force_upgrade_scripts = set()
         self._reinit_modules = set()
@@ -1682,7 +1756,7 @@ class Registry(Mapping):
 
         self.registry_sequence = -1
         self.cache_sequences = {}
-        self._invalidation_flags = threading.local()
+        reset_invalidation_record()
 
         #: ≙ ``Registry._assertion_report`` (``:227-231``). Alla guarda un
         #: ``OdooTestResult`` de su propio corredor de pruebas; aqui el
@@ -1874,11 +1948,11 @@ class Registry(Mapping):
         Docstring de la fuente, verbatim: *"Determine whether the current
         thread has modified the registry"*.
         """
-        return getattr(self._invalidation_flags, 'registry', False)
+        return getattr(_invalidation, 'registry', False)
 
     @registry_invalidated.setter
     def registry_invalidated(self, value):
-        self._invalidation_flags.registry = value
+        _invalidation.registry = value
 
     @property
     def cache_invalidated(self):
@@ -1887,18 +1961,12 @@ class Registry(Mapping):
         Docstring de la fuente, verbatim: *"Determine whether the current
         thread has modified the cache"*.
 
-        Devuelve **el mismo** conjunto en cada lectura del hilo: quien lo lee
-        lo hace para anadirle un nombre, y un conjunto nuevo por lectura
-        perderia lo anotado.
+        Es **el mismo** registro que escribe :func:`clear_cache`, y ahi esta
+        el trabajo del tramo 5: antes eran dos estructuras disjuntas y el eje
+        de senalizacion habria leido siempre un conjunto vacio. Ver el
+        docstring de :data:`_invalidation`.
         """
-        try:
-            return self._invalidation_flags.cache
-        except AttributeError:
-            # silent OK because la ausencia del atributo ES la respuesta
-            # «este hilo aun no ha anotado nada», y el cuerpo que sigue lo
-            # crea. La fuente lo escribe igual (``:1030-1032``).
-            names = self._invalidation_flags.cache = set()
-            return names
+        return cache_invalidated_names()
 
     # -- Carga y setup -------------------------------------------------------
     #
@@ -1933,7 +2001,7 @@ class Registry(Mapping):
         name = getattr(module, 'name', module)
 
         # vacia el cache para dejarlo consistente, sin senalizarlo
-        for cache in self._Registry__caches.values():
+        for cache in _CACHES.values():
             cache.clear()
 
         reset_cached_properties(self)
@@ -1971,7 +2039,7 @@ class Registry(Mapping):
         ``model_names`` acota el descarte a los descendientes nombrados por los
         dos ejes, como alla; sin el, se descarta todo.
         """
-        for cache in self._Registry__caches.values():
+        for cache in _CACHES.values():
             cache.clear()
 
         reset_cached_properties(self)
@@ -2140,6 +2208,236 @@ class Registry(Mapping):
         constraint = self.models.get('ir.model.constraint')
         if constraint is not None:
             constraint._reflect_constraints(model_classes)
+
+    # -- El eje de senalizacion entre procesos --------------------------------
+    #
+    # ≙ ``:1036-1186``. Los siete simbolos con que la fuente entera un proceso
+    # de lo que invalido OTRO. Con ``workers = 4``
+    # (``setup/gunicorn.conf.py:93``) sin este eje una invalidacion local deja
+    # a los otros tres sirviendo contenido viejo — la mitad que
+    # :ref:`h-api-980` declaro ausente y que la tarea **#256** cierra.
+    #
+    # Su reparto entre «el stack lo trae hecho» y «el stack tiene con que
+    # construirlo» esta medido, con su control, en
+    # ``scripts/workbench/registry-signaling-axis-support-20260903T063526/``:
+    # 1 READY (``cursor``, porque ``connections[alias].cursor()`` ya es el
+    # cursor con su gestor de contexto), 6 BUILDABLE, 0 BLOCKED.
+    #
+    # La UNICA divergencia de mecanismo del tramo es quien emite el DDL: alla
+    # ``setup_signaling`` crea la tabla que falte; aqui la crea
+    # ``base/migrations/0085_orm_signaling_tables`` y el metodo conserva la
+    # mitad con receptor —la verificacion, que **nombra** la ausente—. Mismo
+    # reparto que ``check_tables_exist`` (:ref:`h-api-1057`).
+
+    def setup_signaling(self):
+        """Prepara la senalizacion entre procesos — ≙ ``:1036-1064``.
+
+        Docstring de la fuente, verbatim: *"Setup the inter-process signaling
+        on this registry"*, y su comentario explica el mecanismo: la secuencia
+        de ``orm_signaling_registry`` indica cuando hay que recargar el
+        registro, y las de ``orm_signaling_...`` cuando hay que vaciar cada
+        cache. Son tablas insert-only y no secuencias porque *"signaling was
+        previously using sequence but this doesn't work with replication"*.
+
+        **Verifica en vez de crear** — la divergencia que la cabecera de la
+        seccion declara. Una tabla ausente levanta ``RuntimeError`` con su
+        nombre; crearla es trabajo de la migracion.
+        """
+        with self.cursor() as cr:
+            tables = tuple(signaling_table_names())
+            cr.execute(
+                "SELECT table_name FROM information_schema.tables"
+                " WHERE table_name = ANY(%s) AND table_schema = current_schema",
+                [list(tables)])
+            existing_sig_tables = {row[0] for row in cr.fetchall()}
+            missing = [name for name in tables if name not in existing_sig_tables]
+            if missing:
+                raise RuntimeError(
+                    "Faltan las tablas de senalizacion %s: las crea la "
+                    "migracion base.0085_orm_signaling_tables, que no se ha "
+                    "aplicado en esta base." % ', '.join(missing))
+
+            db_registry_sequence, db_cache_sequences = self.get_sequences(cr)
+            self.registry_sequence = db_registry_sequence
+            self.cache_sequences.update(db_cache_sequences)
+
+            _logger.debug(
+                "Multiprocess load registry signaling: [Registry: %s] %s",
+                self.registry_sequence,
+                ' '.join('[Cache %s: %s]' % cs
+                         for cs in self.cache_sequences.items()))
+
+    def get_sequences(self, cr):
+        """La secuencia del registro y la de cada cache — ≙ ``:1066-1074``.
+
+        Un solo ``SELECT`` con un subquery ``max(id)`` por tabla, como la
+        fuente: leer siete tablas en siete viajes costaria siete veces mas por
+        peticion, que es donde este eje se consume.
+        """
+        tables = tuple(signaling_table_names())
+        selects = SQL(', ').join([SQL('(SELECT max(id) FROM %s)',
+                                      SQL.identifier(table))
+                                  for table in tables])
+        query = SQL("SELECT %s", selects)
+        cr.execute(query.code, query.params)
+        row = cr.fetchone()
+        assert row is not None, "No result when reading signaling sequences"
+        registry_sequence, *cache_sequences_values = row
+        cache_sequences = dict(zip(_CACHES_BY_KEY, cache_sequences_values))
+        return registry_sequence, cache_sequences
+
+    def check_signaling(self, cr=None):
+        """Se entera de lo que otro proceso senalizo — ≙ ``:1076-1108``.
+
+        Docstring de la fuente, verbatim: *"Check whether the registry has
+        changed, and performs all necessary operations to update the registry.
+        Return an up-to-date registry"*.
+
+        Devuelve un registro al dia: **el mismo** si nada cambio, o uno
+        reconstruido si la secuencia del registro se movio. Los caches cuya
+        secuencia se movio se vacian **sin** llamar a :func:`clear_cache` —
+        comentario de la fuente: *"don't call clear_cache to avoid signal
+        loop"*—, porque anotar la invalidacion la reenviaria a los demas
+        procesos y el ciclo no pararia.
+        """
+        with nullcontext(cr) if cr is not None else closing(self.cursor(readonly=True)) as cr:
+            assert cr is not None
+            db_registry_sequence, db_cache_sequences = self.get_sequences(cr)
+            changes = ''
+            # ¿hay que recargar el registro de modelos?
+            if self.registry_sequence != db_registry_sequence:
+                _logger.info("Reloading the model registry after database signaling.")
+                self = Registry.new(self.db_name)
+                self.registry_sequence = db_registry_sequence
+                if _logger.isEnabledFor(logging.DEBUG):
+                    changes += "[Registry - %s -> %s]" % (
+                        self.registry_sequence, db_registry_sequence)
+            # ¿hay que invalidar los caches de modelo?
+            else:
+                invalidated = []
+                for cache_name, cache_sequence in self.cache_sequences.items():
+                    expected_sequence = db_cache_sequences[cache_name]
+                    if cache_sequence != expected_sequence:
+                        for cache in _CACHES_BY_KEY[cache_name]:
+                            if cache not in invalidated:
+                                invalidated.append(cache)
+                                cache_of(cache).clear()
+                        self.cache_sequences[cache_name] = expected_sequence
+                        if _logger.isEnabledFor(logging.DEBUG):
+                            changes += "[Cache %s - %s -> %s]" % (
+                                cache_name, cache_sequence, expected_sequence)
+                if invalidated:
+                    _logger.info("Invalidating caches after database signaling: %s",
+                                 sorted(invalidated))
+            if changes:
+                _logger.debug("Multiprocess signaling check: %s", changes)
+        return self
+
+    def signal_changes(self):
+        """Avisa a los demas procesos de lo invalidado — ≙ ``:1110-1140``.
+
+        Docstring de la fuente, verbatim: *"Notifies other processes if
+        registry or cache has been invalidated"*.
+
+        El ``elif`` es de la fuente y su comentario dice por que: *"no need to
+        notify cache invalidation in case of registry invalidation, because
+        reloading the registry implies starting with an empty cache"*.
+
+        Incrementa **ademas** su propio contador en memoria. Si otro proceso
+        escribio a la vez, el contador queda por detras y el siguiente
+        ``check_signaling`` lo detecta — que es el desenlace correcto, no una
+        carrera perdida.
+        """
+        if not self.ready:
+            _logger.warning(
+                'Calling signal_changes when registry is not ready is not suported')
+            return
+
+        if self.registry_invalidated:
+            _logger.info("Registry changed, signaling through the database")
+            with self.cursor() as cr:
+                cr.execute("INSERT INTO orm_signaling_registry DEFAULT VALUES")
+                self.registry_sequence += 1
+
+        elif self.cache_invalidated:
+            _logger.info("Caches invalidated, signaling through the database: %s",
+                         sorted(self.cache_invalidated))
+            with self.cursor() as cr:
+                for cache_name in self.cache_invalidated:
+                    query = SQL("INSERT INTO %s DEFAULT VALUES",
+                                SQL.identifier(f'orm_signaling_{cache_name}'))
+                    cr.execute(query.code, query.params)
+                    self.cache_sequences[cache_name] += 1
+
+        self.registry_invalidated = False
+        self.cache_invalidated.clear()
+
+    def reset_changes(self):
+        """Deshace la invalidacion en vez de anunciarla — ≙ ``:1142-1153``.
+
+        Docstring de la fuente, verbatim: *"Reset the registry and cancel all
+        invalidations"*. Es la contraparte de :meth:`signal_changes` cuando el
+        trabajo que invalido fallo: se rehace el setup y se vacian los caches
+        anotados, **sin** escribir en la base.
+        """
+        if self.registry_invalidated:
+            with closing(self.cursor()) as cr:
+                self._setup_models__(cr)
+                self.registry_invalidated = False
+        if self.cache_invalidated:
+            for cache_name in self.cache_invalidated:
+                for cache in _CACHES_BY_KEY[cache_name]:
+                    cache_of(cache).clear()
+            self.cache_invalidated.clear()
+
+    @contextmanager
+    def manage_changes(self):
+        """Senaliza al salir bien, deshace al fallar — ≙ ``:1155-1163``.
+
+        Docstring de la fuente, verbatim: *"Context manager to signal/discard
+        registry and cache invalidations"*. La fuente lo declara **deprecado**
+        desde 19.0 en favor de llamar a los dos metodos directamente, y el
+        aviso se porta con el simbolo: quitarlo publicaria como vigente lo que
+        la fuente marca de salida.
+        """
+        warnings.warn(
+            "Since 19.0, use signal_changes() and reset_changes() directly",
+            DeprecationWarning, stacklevel=2)
+        try:
+            yield self
+            self.signal_changes()
+        except Exception:
+            self.reset_changes()
+            raise
+
+    def cursor(self, /, readonly=False):
+        """Un cursor nuevo sobre la base — ≙ ``:1165-1186``.
+
+        Docstring de la fuente, verbatim: *"Return a new cursor for the
+        database. The cursor itself may be used as a context manager to
+        commit/rollback and close automatically"*, y sobre el parametro:
+        *"Attempt to acquire a cursor on a replica database. Acquire a
+        read/write cursor on the primary database in case no replica exists or
+        that no readonly cursor could be acquired"*.
+
+        **La replica se busca por alias, no por atributo.** La fuente guarda
+        dos conexiones (``self._db`` y ``self._db_readonly``); aqui las
+        conexiones las declara ``DATABASES``, asi que la replica es el alias
+        ``<alias>_readonly`` si esta declarado. Sin el, el fallback de la
+        fuente es el camino unico — que es lo que este arbol tiene hoy, y por
+        eso ``readonly=True`` devuelve el cursor de escritura.
+        """
+        alias = self._alias()
+        if readonly:
+            replica = f'{alias}_readonly'
+            if replica in connections:
+                try:
+                    return connections[replica].cursor()
+                except DatabaseError:
+                    _logger.warning(
+                        "Failed to open a readonly cursor, falling back to "
+                        "read-write cursor")
+        return connections[alias].cursor()
 
     # -- El eje de schema ----------------------------------------------------
     #

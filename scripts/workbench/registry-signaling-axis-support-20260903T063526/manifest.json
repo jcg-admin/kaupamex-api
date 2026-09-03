@@ -1,0 +1,24 @@
+{
+  "question": "de los siete simbolos del eje de senalizacion de Registry (odoo19c: odoo/orm/registry.py:1036-1186), cuales trae hechos este stack y cuales hay que construir con sus primitivas, y con que entrada del INVENTORY se paga cada uno?",
+  "instrument": "classify_signaling_axis_support.py — declara por simbolo los dotted paths que ya hacen el trabajo (installed) y los que hacen falta para construirlo (primitives), los resuelve por importlib mas getattr encadenado, y reparte en READY / BUILDABLE / BLOCKED",
+  "metric": "simbolos de la referencia repartidos en tres cubos: READY (todo installed resuelve, el porte es una llamada), BUILDABLE (nada installed pero todas las primitives resuelven) y BLOCKED (alguna primitive no resuelve, y se nombra)",
+  "blind_to": [
+    "la CONDUCTA del simbolo: mide que el nombre resuelve, no que haga lo mismo que la referencia. Un READY dice que hay donde apoyarse, no que la semantica coincida",
+    "el ESQUEMA: las siete tablas orm_signaling_<nombre> que setup_signaling crea en la fuente no existen aqui y el clasificador no las mira — aqui el DDL lo emiten las migraciones, asi que su ausencia no aparece como BLOCKED",
+    "el segundo proceso: el eje existe para que cuatro workers de gunicorn se enteren de la invalidacion del vecino, y una resolucion de nombres en un solo proceso no puede ver esa conducta",
+    "el coste de construir: BUILDABLE no distingue diez lineas de doscientas",
+    "los simbolos que la referencia declara fuera de este tramo: la poblacion son los siete de :1036 a :1186, no Registry entero"
+  ],
+  "destination": "src/orm/registry.py — los siete metodos del tramo 5 de la tarea #342; y docs: source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/",
+  "source": "odoo19c: odoo/orm/registry.py:1036-1186",
+  "control": "neutralize_and_measure.sh — retira src del PYTHONPATH y vuelve a correr. Con el arbol presente: READY 1 · BUILDABLE 6 · BLOCKED 0. Sin el: READY 1 · BUILDABLE 1 · BLOCKED 5, y el guion nombra que primitiva falta en cada uno. El suite lo prueba ademas con test_a_missing_primitive_blocks.",
+  "corrected_premise": {
+    "decia": "el eje de senalizacion no existe en este arbol, y la invalidacion de cache la resuelve clear_cache",
+    "mide": "hay DOS estructuras de cache paralelas y disjuntas. La de modulo —_CACHES, el conjunto cache_invalidated, clear_cache() y clear_all_caches()— es la que 158 sitios llaman y la que escribe el conjunto (registry.py:218,234). La de instancia —self.__caches (:1658) y la property Registry.cache_invalidated (:1884), que lee un threading.local— es la que signal_changes tendria que leer, y hoy no la escribe nadie mas que los tests",
+    "consecuencia": "el tramo 5 no es solo portar siete metodos: es reconciliar las dos estructuras para que clear_cache escriba el conjunto que signal_changes lee. Sin eso el eje se portaria completo y senalizaria siempre cero — un verde que no discrimina"
+  },
+  "tasks": ["#342", "#256"],
+  "findings": ["H-API-980"],
+  "reproducible": "DJANGO_SETTINGS_MODULE=config.settings.testing PYTHONPATH=src uv run python scripts/workbench/registry-signaling-axis-support-20260903T063526/classify_signaling_axis_support.py",
+  "outputs": ["outputs/con-arbol-20260903T063655.txt", "outputs/sin-arbol-20260903T063655.txt"]
+}

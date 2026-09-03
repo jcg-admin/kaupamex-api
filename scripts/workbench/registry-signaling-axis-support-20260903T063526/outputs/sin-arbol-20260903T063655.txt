@@ -1,0 +1,9 @@
+BLOCKED   setup_signaling    postgresql/guardar y consultar el arch  falta: tools.sql.SQL, orm.registry._CACHES_BY_KEY
+BLOCKED   get_sequences      postgresql/guardar y consultar el arch  falta: tools.sql.SQL, orm.registry._CACHES_BY_KEY
+BLOCKED   check_signaling    cpython/evaluación y control de flujo  falta: orm.registry.Registry.new, orm.registry._CACHES_BY_KEY
+BLOCKED   signal_changes     postgresql/guardar y consultar el arch  falta: tools.sql.SQL
+BLOCKED   reset_changes      cpython/evaluación y control de flujo  falta: orm.registry._CACHES_BY_KEY
+BUILDABLE manage_changes     cpython/evaluación y control de flujo
+READY     cursor             django/evaluación y control de flujo
+
+READY 1 · BUILDABLE 1 · BLOCKED 5 (alcance medido: 7 simbolos del tramo)
