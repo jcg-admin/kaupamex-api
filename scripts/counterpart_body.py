@@ -166,6 +166,93 @@ def counterpart(path):
     return None
 
 
+@dataclasses.dataclass(frozen=True)
+class Declaration:
+    """Un simbolo declarado en un archivo, con su duena y su linea.
+
+    ``methods_of`` devuelve el nodo por nombre y pierde dos cosas que un
+    analisis de flujo necesita: la **clase duena** —el contrato puede vivir en
+    una base, no en la clase que se lee— y la **funcion de modulo**, que en
+    ``odoo/tools`` es la forma dominante. Esta estructura las conserva sin
+    cambiar el contrato de ``methods_of``, que ``compare`` ya consume.
+    """
+
+    name: str
+    owner: str            # nombre de la clase, o '' si es de modulo
+    lineno: int
+    node: object
+    bases: tuple = ()     # las bases declaradas: de la clase duena, o suyas
+    kind: str = 'function'   # function | class | assign
+
+
+def parse_file(path):
+    """El AST del archivo, o ``None`` si no se puede leer ni parsear."""
+    try:
+        return ast.parse(pathlib.Path(path).read_text(errors='ignore'))
+    except (SyntaxError, OSError, UnicodeDecodeError):
+        return None
+
+
+def base_names(klass):
+    """Los nombres de las bases declaradas, por atributo o sueltos."""
+    names = []
+    for base in klass.bases:
+        if isinstance(base, ast.Name):
+            names.append(base.id)
+        elif isinstance(base, ast.Attribute):
+            names.append(base.attr)
+    return tuple(names)
+
+
+def declarations_of(path, tree=None):
+    """Todo simbolo declarado en el archivo: clase, funcion y asignacion.
+
+    Tres diferencias con ``methods_of``, y las tres las pide un analisis de
+    flujo. No **colapsa por nombre** — dos clases del mismo archivo pueden
+    declarar el mismo metodo, y esa coincidencia es lo que la unidad
+    *hermanos* mide. Recoge la **funcion de modulo**, que en ``odoo/tools`` es
+    la forma dominante. Y recoge **clase y asignacion**: un informe que sólo
+    viera funciones diria "no se declara" de una clase que si existe, y ese
+    cero seria falso — el sub-patron D de ``metrica-decide-la-conclusion.md``.
+
+    La asignacion se recoge sólo al nivel del cuerpo —de modulo o de clase—,
+    no dentro de una funcion: una variable local no es una declaracion que
+    otro archivo pueda consumir.
+    """
+    tree = tree if tree is not None else parse_file(path)
+    if tree is None:
+        return []
+    found, nested = [], set()
+    for klass in ast.walk(tree):
+        if not isinstance(klass, ast.ClassDef):
+            continue
+        bases = base_names(klass)
+        found.append(Declaration(
+            klass.name, '', klass.lineno, klass, bases, 'class'))
+        for member in klass.body:
+            if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                found.append(Declaration(
+                    member.name, klass.name, member.lineno, member, bases))
+                nested.add(id(member))
+            elif isinstance(member, ast.Assign):
+                for target in member.targets:
+                    if isinstance(target, ast.Name):
+                        found.append(Declaration(
+                            target.id, klass.name, member.lineno, member,
+                            bases, 'assign'))
+        nested.add(id(klass))
+    for node in tree.body:
+        if (isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and id(node) not in nested):
+            found.append(Declaration(node.name, '', node.lineno, node))
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    found.append(Declaration(
+                        target.id, '', node.lineno, node, (), 'assign'))
+    return found
+
+
 def methods_of(path):
     """Los metodos declarados en clases del archivo, por nombre."""
     try:

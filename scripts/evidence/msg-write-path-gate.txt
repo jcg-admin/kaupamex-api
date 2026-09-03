@@ -1,0 +1,40 @@
+Add a gate for the write-path axis of a port
+
+El gate de porte compara nombres de simbolo: si la fuente declara
+`create` y nosotros declaramos `create`, lo da por portado. Ninguno de
+los 29 `check_*.py` del repo lee el CUERPO de un metodo, asi que un
+puerto cuyo cuerpo escribe por debajo del ORM mientras la fuente lo
+cruza —o al reves— pasa los gates en verde. Ese es el defecto que
+#345 encontro a mano en `_reflect_fields`, y a mano no escala.
+
+El eje que importa no es la llamada literal sino si la escritura pasa
+por el hook del ORM, que es donde viven las guardas, las senales y las
+validaciones. Las dos direcciones tienen riesgo asimetrico: cruzar una
+guarda que la fuente respeta corrompe datos; saltarse un hook que la
+fuente salta a proposito solo cuesta rendimiento.
+
+`counterpart_body.py` es el motor y no sabe que propiedad se mide:
+recibe un `Axis` con el vocabulario de cada lado y el veredicto por
+par de categorias. `check_write_path.py` es la declaracion de un eje
+mas su CLI. Se separaron por SRP —el motor cambia cuando cambia la
+forma de emparejar archivos con su contraparte; el eje cambia cuando
+cambia el vocabulario del ORM— y porque el siguiente eje que haga
+falta son ~20 lineas de declaracion en vez de otro guion entero. El
+coste es una invocacion mas en el pre-commit; claridad y mantenimiento
+lo pagan. Precedente en el repo: la particion de `graph_algorithms.py`
+en tres por la misma razon.
+
+La abstraccion ademas subio la cobertura: `MIRRORED_ROOTS` del motor
+incluye `src/tools`, que el guion monolitico no miraba — 115 archivos
+con contraparte en vez de 108.
+
+Control de discriminacion, con la guarda anulada por
+`neutralize_and_measure.sh`: la suite pasa de 18 passed a 6 failed,
+12 passed, y el gate sobre el mismo alcance de 88 pares publica
+`0 hallazgos` — un verde indistinguible del real. Evidencia en
+scripts/evidence/neutering-camino-de-escritura-20260903T180924.txt.
+
+Las 28 divergencias medidas quedan congeladas en el baseline: una
+listada no bloquea, una nueva si. Su barrido es la tarea #358.
+
+Refs: #345, #358
