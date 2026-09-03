@@ -1,0 +1,25 @@
+Measure the nested population instead of dropping it
+
+La version anterior excluia enterprise/ de la raiz de odoo18c por
+considerarlo ruido que inflaba Community 18. Medido antes de darlo por
+bueno: no es copia de odoo18e. Tiene 1292 addons y 191 no existen en el
+—auth_passkey, certificate, account_iso20022, accountant, account_loans—
+mas 29 comunes que declaran otra licencia.
+
+Eso lo vuelve una poblacion, no ruido. La licencia decide el mecanismo
+de porte —copiar con atribucion frente a reimplementar— y es la razon
+por la que los alias de 18 existen: el inventario de account midio que
+22 de 75 addons declaran LGPL-3 en algun arbol, cuatro solo en 18, y el
+alcance de website_sale que 17 cambiaron de veredicto al mirar las
+cuatro poblaciones en vez de una. Una sexta con 191 addons propios puede
+mover mas.
+
+Asi que se mide aparte: odoo18c queda en sus 7988 y el anidado aparece
+como su propia fila, con la separacion declarada en la salida. Ni se
+funden —seria el eje de la version— ni se descarta una.
+
+El censo que debia haberla encontrado tampoco la vio: midio manifiestos
+hasta profundidad 3 desde 18.x/ y esta esta a 4. La tarea #65 pasa de
+cinco raices sin alias a seis.
+
+Refs: H-API-1073, #65

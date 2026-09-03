@@ -425,4 +425,31 @@ if [ -f "$STALE_CHECKER" ] && [ "${#STAGED_PY[@]}" -gt 0 ]; then
     fi
 fi
 
+# ─── check_write_path: el porte escribe por el mismo camino que la fuente ────
+# H-API-1058: un reflejo escribia con `update_or_create` —cruzando la guarda de
+# `save()`— donde la fuente escribe con SQL crudo a proposito. Ninguno de los
+# otros gates lo veia: miden presencia, cabecera, sitio o nombre, no el CUERPO.
+# Baseline de deuda heredada; una divergencia NUEVA de camino SI bloquea.
+# El gate rehusa sin la raiz de la referencia en vez de publicar un 0 falso, y
+# ese rehuse no debe bloquear un commit: se avisa y se sigue.
+# Script: scripts/check_write_path.py (eje sobre scripts/counterpart_body.py).
+WRITE_PATH_CHECKER="$REPO_ROOT/scripts/check_write_path.py"
+if [ -f "$WRITE_PATH_CHECKER" ] && [ "${#STAGED_PY[@]}" -gt 0 ]; then
+    WRITE_PATH_OUT=$(python3 "$WRITE_PATH_CHECKER" --strict "${STAGED_PY[@]}" 2>&1)
+    WRITE_PATH_RC=$?
+    if [ "$WRITE_PATH_RC" -eq 2 ]; then
+        echo "pre-commit: sin la raiz de la referencia no se mide el camino de escritura — skip" >&2
+    elif [ "$WRITE_PATH_RC" -eq 0 ]; then
+        # El denominador se publica tambien en verde: un OK mudo no distingue
+        # "no hay divergencias" de "el gate no llego a correr".
+        echo "$WRITE_PATH_OUT"
+    else
+        echo "$WRITE_PATH_OUT" >&2
+        echo "pre-commit: el porte escribe por otro camino que la fuente." >&2
+        echo "  Si la divergencia es deliberada, declararla en el docstring y" >&2
+        echo "  anadirla al baseline con --write-baseline; si no, corregir el camino." >&2
+        EXIT_CODE=1
+    fi
+fi
+
 exit "$EXIT_CODE"

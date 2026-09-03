@@ -1,0 +1,66 @@
+=== api — 293 archivos .py
+    241   82.3 %  <=400        cat -n entero, siempre
+     40   13.7 %  401-1500     cat -n entero, siempre
+      9    3.1 %  1501-4000    cat -n entero la PRIMERA vez que la sesion toca el archivo; despues, ventana declarada
+      3    1.0 %  >4000        ventana obligatoria: simbolo + bases + llamadores + hermanos de contrato, y el comando declara su corte
+  cabe entero siempre: 281 (95.9 %)
+      5396 lineas  ~ 53074 tok  addons/base/migrations/0001_initial.py
+      4225 lineas  ~ 50970 tok  orm/fields.py
+      4123 lineas  ~ 48381 tok  orm/models.py
+      3525 lineas  ~ 41207 tok  addons/base/models/ir_model.py
+      3294 lineas  ~ 40085 tok  addons/base/models/res_users.py
+=== odoo18c — 7988 archivos .py  (sin enterprise/, que se mide aparte)
+   7391   92.5 %  <=400        cat -n entero, siempre
+    507    6.3 %  401-1500     cat -n entero, siempre
+     77    1.0 %  1501-4000    cat -n entero la PRIMERA vez que la sesion toca el archivo; despues, ventana declarada
+     13    0.2 %  >4000        ventana obligatoria: simbolo + bases + llamadores + hermanos de contrato, y el comando declara su corte
+  cabe entero siempre: 7898 (98.9 %)
+      7637 lineas  ~ 85264 tok  odoo/models.py
+      7209 lineas  ~ 83795 tok  addons/stock/tests/test_move.py
+      6638 lineas  ~ 80993 tok  addons/account/models/account_move.py
+      5755 lineas  ~ 68053 tok  addons/account/tests/test_account_move_reconcile.py
+      5753 lineas  ~ 57177 tok  odoo/addons/base/tests/test_views.py
+=== odoo18c/enterprise (sin alias) — 13869 archivos .py
+  13019   93.9 %  <=400        cat -n entero, siempre
+    749    5.4 %  401-1500     cat -n entero, siempre
+     89    0.6 %  1501-4000    cat -n entero la PRIMERA vez que la sesion toca el archivo; despues, ventana declarada
+     12    0.1 %  >4000        ventana obligatoria: simbolo + bases + llamadores + hermanos de contrato, y el comando declara su corte
+  cabe entero siempre: 13768 (99.3 %)
+      7615 lineas  ~ 84891 tok  odoo/models.py
+      7417 lineas  ~ 96717 tok  odoo/addons/account_reports/models/account_report.py
+      6646 lineas  ~ 92956 tok  odoo/addons/test_l10n_be_hr_payroll_account/tests/test_payslips_validation.py
+      6291 lineas  ~ 76775 tok  odoo/addons/account/models/account_move.py
+      5514 lineas  ~ 55173 tok  odoo/addons/base/tests/test_views.py
+=== odoo18e — 11989 archivos .py
+  11282   94.1 %  <=400        cat -n entero, siempre
+    620    5.2 %  401-1500     cat -n entero, siempre
+     76    0.6 %  1501-4000    cat -n entero la PRIMERA vez que la sesion toca el archivo; despues, ventana declarada
+     11    0.1 %  >4000        ventana obligatoria: simbolo + bases + llamadores + hermanos de contrato, y el comando declara su corte
+  cabe entero siempre: 11902 (99.3 %)
+     10746 lineas  ~112937 tok  test_l10n_be_hr_payroll_account/tests/test_payslips_validation.py
+      6797 lineas  ~ 78939 tok  stock/tests/test_move.py
+      6157 lineas  ~ 79884 tok  account_reports/models/account_report.py
+      5225 lineas  ~ 61135 tok  account/tests/test_account_move_reconcile.py
+      5146 lineas  ~ 56758 tok  test_new_api/tests/test_new_fields.py
+=== odoo19c — 8566 archivos .py
+   7873   91.9 %  <=400        cat -n entero, siempre
+    586    6.8 %  401-1500     cat -n entero, siempre
+     94    1.1 %  1501-4000    cat -n entero la PRIMERA vez que la sesion toca el archivo; despues, ventana declarada
+     13    0.2 %  >4000        ventana obligatoria: simbolo + bases + llamadores + hermanos de contrato, y el comando declara su corte
+  cabe entero siempre: 8459 (98.8 %)
+      7384 lineas  ~ 90283 tok  addons/account/models/account_move.py
+      7130 lineas  ~ 79850 tok  odoo/orm/models.py
+      6998 lineas  ~ 81820 tok  addons/stock/tests/test_move.py
+      6156 lineas  ~ 72485 tok  addons/account/tests/test_account_move_reconcile.py
+      6126 lineas  ~ 60433 tok  odoo/addons/base/tests/test_views.py
+=== odoo19e — 7535 archivos .py
+   7120   94.5 %  <=400        cat -n entero, siempre
+    371    4.9 %  401-1500     cat -n entero, siempre
+     41    0.5 %  1501-4000    cat -n entero la PRIMERA vez que la sesion toca el archivo; despues, ventana declarada
+      3    0.0 %  >4000        ventana obligatoria: simbolo + bases + llamadores + hermanos de contrato, y el comando declara su corte
+  cabe entero siempre: 7491 (99.4 %)
+      7881 lineas  ~103012 tok  account_reports/models/account_report.py
+      6846 lineas  ~ 96229 tok  test_l10n_be_hr_payroll_account/tests/test_payslips_validation.py
+      4601 lineas  ~ 55936 tok  stock_barcode/tests/test_barcode_client_action_picking.py
+      3367 lineas  ~ 40431 tok  knowledge/models/knowledge_article.py
+      3352 lineas  ~ 39385 tok  account_asset/tests/test_account_asset.py
