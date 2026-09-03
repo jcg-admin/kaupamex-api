@@ -1,0 +1,11 @@
+Commit the declared output and the three commit messages
+
+El manifest de la pieza declara reporte-poblaciones-20260903T175630.txt
+en outputs y el archivo no estaba versionado: una salida declarada y
+ausente es una cita a evidencia que no existe, el defecto que
+build-logs.md registra —el .log es tan durable como el contenedor.
+
+Van con el los tres mensajes de commit de scripts/evidence, donde ya
+viven otros dieciocho.
+
+Refs: H-API-1072, H-API-1073

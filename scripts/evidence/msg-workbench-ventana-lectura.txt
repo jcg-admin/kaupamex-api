@@ -1,0 +1,24 @@
+Add the reading-window cost bench to scripts/workbench
+
+Mide en que tramo de tamano leer un archivo entero deja de pagar frente a
+una ventana sed/grep, y lo hace para las DOS poblaciones que se leen al
+portar: nuestro src/ y el odoo/ de la referencia. La version anterior de
+esta medicion solo miraba src/, que es la mitad menos leida.
+
+Las dos distribuciones coinciden: 281 de 293 archivos de src/ (95.9 %) y
+510 de 534 de la referencia (95.5 %) caben en 1500 lineas o menos, donde
+el veredicto es cat -n entero. El tramo de 1501-4000 son 9 y 21 archivos,
+y es el que concentra el porte —ir_model, res_users, res_partner,
+registry, domains—: se leen enteros la primera vez que la sesion los toca.
+Solo 3 en cada poblacion pasan de 4000 lineas, y ahi la ventana es
+obligatoria; el mayor de todos es el orm/models.py de la referencia, 7130
+lineas.
+
+El control no verifica que los numeros salgan bonitos: verifica que la
+particion sea total y que ningun tramo quede sin veredicto, que es el
+defecto que el ejecutor detecto en la prosa de H-API-1072 —un tramo
+medido y sin instruccion, invisible mirando los tramos de uno en uno.
+Discrimina: con el tramo de en medio retirado caen 4 de 14 casos y
+sobreviven los 10 que no dependen de el.
+
+Refs: H-API-1072, #352, #357
