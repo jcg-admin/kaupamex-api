@@ -31,10 +31,13 @@ import datetime
 
 import pytest
 from django.db import models as django_models
+from django.db.models import F, Value
+from django.db.models.expressions import CombinedExpression
 from psycopg.types.json import Jsonb
 
 import fields
 from addons.base.models.ir_default import IrDefault
+from addons.base.models.res_company import ResCompany
 from orm.environments import company_scope, env as ambient_env, transaction_scope
 
 
@@ -68,22 +71,63 @@ def field_of(name):
     (42, '42'),
     (datetime.date(2026, 9, 3), '2026-09-03'),
 ])
-def test_convert_to_column_follows_the_four_branches(value, expected):
+def test_the_base_convert_to_column_follows_the_four_branches(value, expected):
     """≙ ``:981-992``: ``None``/``False`` a ``None``, ``str`` tal cual,
-    ``bytes`` decodificado, y el resto por ``str``."""
-    assert field_of('label').convert_to_column(value, None) == expected
+    ``bytes`` decodificado, y el resto por ``str``.
+
+    Se invoca **el cuerpo base**, no el del campo: desde que cada tipo declara
+    su sobrecarga —como la fuente— un ``Char`` ya no llega hasta aqui, y medir
+    la base a traves de el mediria la sobrecarga. La fuente reparte esta
+    decision por clase y este caso mide la clase raiz.
+    """
+    field = field_of('label')
+    assert django_models.Field.convert_to_column(field, value, None) == expected
 
 
-def test_convert_to_column_keeps_the_empty_string():
+def test_the_base_convert_to_column_keeps_the_empty_string():
     """La cadena vacia NO es ``None``: la rama de ``str`` va antes que
     cualquier prueba de verdad, y la fuente solo descarta ``None`` y ``False``
     por identidad."""
-    assert field_of('label').convert_to_column('', None) == ''
+    field = field_of('label')
+    assert django_models.Field.convert_to_column(field, '', None) == ''
 
 
-def test_convert_to_column_keeps_the_zero():
-    """``0`` no es ``False`` por identidad, asi que sale como ``'0'``."""
-    assert field_of('amount').convert_to_column(0, None) == '0'
+@pytest.mark.parametrize('name, value, expected', [
+    ('label', 0, '0'),
+    ('label', '', ''),
+    ('label', False, None),
+    ('label', b'bytes', 'bytes'),
+    ('amount', 0, 0),
+    ('amount', False, 0),
+    ('amount', '42', 42),
+    ('when', False, None),
+    ('when', '2026-09-03', datetime.date(2026, 9, 3)),
+])
+def test_each_type_declares_its_own_vocabulary_of_absence(name, value, expected):
+    """El reparto por clase que la fuente declara, medido tipo a tipo.
+
+    ``Char`` delega en su cache, que descarta ``None`` y ``False`` **por
+    identidad** y lleva el resto a texto (``odoo19c:
+    odoo/orm/fields_textual.py:84-85`` y ``:102-113``) — la cadena vacia y el
+    cero sobreviven, porque son valores; ``Integer`` lleva la
+    ausencia al cero, no a ``NULL`` (``fields_numeric.py:32-33``); ``Date``
+    descarta lo falso y convierte el resto (``fields_temporal.py:97-103``).
+
+    Es el control que discrimina el caso de arriba: si todos heredaran la base,
+    los tres darian la misma respuesta —texto— y ninguna de estas filas
+    coincidiria.
+    """
+    assert field_of(name).convert_to_column(value, None) == expected
+
+
+def test_the_boolean_is_the_one_that_keeps_false():
+    """``Boolean`` es el UNICO tipo para el que ``False`` es un valor y no la
+    ausencia de valor (``odoo19c: odoo/orm/fields_misc.py:28-29``). Sin su
+    sobrecarga la base lo llevaria a ``NULL`` y la columna perderia la mitad
+    de su dominio — por eso este caso va aparte y no como una fila mas."""
+    field = django_models.BooleanField()
+    assert field.convert_to_column(False, None) is False
+    assert field.convert_to_column(None, None) is False
 
 
 # --- convert_to_column_insert ----------------------------------------------
@@ -120,10 +164,16 @@ def test_convert_to_column_insert_omits_the_value_equal_to_the_fallback():
 
 # --- convert_to_cache / record / read / write / export ----------------------
 
-def test_convert_to_cache_returns_the_value_verbatim():
-    """≙ ``:1034-1044``: el ``Field`` base no transforma nada."""
+def test_the_base_convert_to_cache_returns_the_value_verbatim():
+    """≙ ``:1034-1044``: el ``Field`` base no transforma nada.
+
+    Se invoca el cuerpo base por la clase raiz, no por un campo: ``Char`` ya
+    declara el suyo (``odoo19c: odoo/orm/fields_textual.py:102-113``), asi que
+    medirlo a traves de el mediria la sobrecarga.
+    """
     mark = object()
-    assert field_of('label').convert_to_cache(mark, None) is mark
+    assert django_models.Field.convert_to_cache(
+        field_of('label'), mark, None) is mark
 
 
 @pytest.mark.parametrize('method', ['convert_to_record', 'convert_to_read'])
@@ -225,3 +275,53 @@ def test_get_column_update_refuses_when_the_value_is_not_cached():
     with transaction_scope():
         with pytest.raises(KeyError):
             field_of('label').get_column_update(ConversionProbe(id=99))
+
+
+# --- el cableado a get_db_prep_save y la expresion SQL -----------------------
+
+class TestTheWiringLetsAnExpressionThrough:
+    """El conversor traduce un VALOR; una expresion SQL no lo es.
+
+    ``convert_to_column`` esta cableado a ``Field.get_db_prep_save`` — el
+    ultimo metro hacia el motor— para que el vocabulario de la fuente llegue a
+    la columna. Ese metro tambien lo recorre lo que **no** es un valor: en un
+    ``UPDATE`` con ``F()``, el compilador resuelve la expresion y se la pasa al
+    campo (``django/db/models/sql/compiler.py:2035-2065``).
+
+    El discriminador NO se inventa: lo declara la propia funcion envuelta,
+    ``django/db/models/fields/__init__.py:1007-1011``::
+
+        def get_db_prep_save(self, value, connection):
+            if hasattr(value, "as_sql"):
+                return value
+            return self.get_db_prep_value(value, connection=connection,
+                                          prepared=False)
+
+    Y la fuente coincide en el fondo: sus dos unicos llamadores de
+    ``convert_to_column`` (``odoo19c: odoo/orm/models.py:3145`` y ``:4870``)
+    le pasan un valor del formato de cache, nunca un fragmento de SQL — los
+    suyos viajan como ``SQL()`` y no entran por aqui.
+
+    **El control discrimina:** sin la guarda, ``int(value or 0)`` recibe un
+    ``CombinedExpression`` y revienta con ``TypeError``. Medido: 8 casos de la
+    suite cayeron asi antes de portarla.
+    """
+
+    def test_an_update_with_an_expression_reaches_the_column(self, db):
+        company = ResCompany.objects.create(
+            code='orm-conv-expr', name='ORM conversion expression',
+            quotation_validity_days=30,
+        )
+        ResCompany.objects.filter(pk=company.pk).update(
+            quotation_validity_days=F('quotation_validity_days') + 1)
+
+        assert ResCompany.objects.filter(pk=company.pk).values_list(
+            'quotation_validity_days', flat=True)[0] == 31
+
+    def test_the_wiring_refuses_to_convert_what_carries_its_own_sql(self):
+        """La guarda se mide sola, sin motor: lo que trae ``as_sql`` sale
+        intacto del cableado."""
+        expression = CombinedExpression(F('amount'), '+', Value(1))
+        assert hasattr(expression, 'as_sql')
+        assert field_of('amount').get_db_prep_save(
+            expression, connection=None) is expression

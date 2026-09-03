@@ -285,10 +285,34 @@ class TestTheEngineClosesTheCircle:
     def test_without_the_flush_the_column_keeps_the_old_value(self, db, tables):
         """El control positivo del anterior: el recalculo solo NO escribe. Es
         el reparto de la fuente —``_recompute_*`` calcula, ``_flush``
-        escribe— y aqui queda medido en vez de supuesto."""
+        escribe— y aqui queda medido en vez de supuesto.
+
+        Se lee la **columna** con un cursor, no el atributo. El vocabulario de
+        la fuente para «sin valor» es ``False``, no ``None``:
+        ``odoo19c: odoo/orm/fields.py:1053`` declara verbatim
+        ``return False if value is None else value`` en ``convert_to_record``.
+        Un ``is None`` sobre un campo portado afirma la semantica de Django,
+        no el contrato que se porto — y ademas confunde «la columna sigue
+        vacia» con «el atributo devuelve None», que son dos cosas distintas.
+        La columna es la que esta regla mide.
+
+        La columna vale ``0`` y no ``NULL``, y la cadena que lo produce es toda
+        de la fuente, medida al crear la fila: el almacén de la instancia lleva
+        ``None``, el descriptor lo devuelve como ``convert_to_record(None)`` →
+        ``False`` (``odoo19c: odoo/orm/fields.py:1053``), y el camino a la
+        columna lo convierte con ``int(False or 0)`` → ``0``
+        (``fields_numeric.py:32-33``). Es el vocabulario de ausencia de un
+        entero, que la fuente fija en el cero y no en el ``NULL``
+        (``falsy_value = 0``, ``fields_numeric.py:21``).
+
+        Discrimina igual, que es lo que este control existe para hacer: con el
+        volcado la columna vale 14; sin él, 0.
+        """
         row = EngineProbe.objects.create(source=7)
         with transaction_scope():
             row.modified(['source'])
             row._recompute_recordset(['doubled'])
-        fresh = EngineProbe.objects.get(pk=row.pk)
-        assert fresh.doubled is None
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'SELECT doubled FROM orm_engine_probe WHERE id = %s', [row.pk])
+            assert cursor.fetchone()[0] == 0

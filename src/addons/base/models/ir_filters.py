@@ -222,7 +222,25 @@ class IrFilters(models.Model):
         por defecto del mismo alcance modelo+usuario — versión simplificada de
         ``_check_global_default``/``create_or_replace`` de Odoo (ver docstring
         del módulo: aquí sobre-escribe silenciosamente en vez de distinguir
-        error-en-alcance-global vs sobre-escritura-en-alcance-personal)."""
+        error-en-alcance-global vs sobre-escritura-en-alcance-personal).
+
+        Y descarta el cero de ``embedded_parent_res_id`` antes de escribir,
+        que es el guardián que la fuente pone en el mismo sitio
+        (``odoo19c: odoo/addons/base/models/ir_filters.py:54-57``), con su
+        comentario apuntando a la restricción::
+
+            # check_res_id_only_when_embedded_action
+                if vals.get('embedded_parent_res_id') == 0:
+                    del vals['embedded_parent_res_id']
+
+        Hace falta porque el conversor de columna de ``Integer`` lleva la
+        ausencia al cero (``fields_numeric.py:32-33``: ``int(value or 0)``) y
+        la restricción de tabla exige ``NULL`` mientras no haya acción
+        embebida. La fuente resuelve la tensión aquí, en el modelo, y no
+        relajando el conversor.
+        """
+        if self.embedded_parent_res_id == 0:
+            self.embedded_parent_res_id = None
         super().save(*args, **kwargs)
         if self.is_default:
             type(self).objects.filter(

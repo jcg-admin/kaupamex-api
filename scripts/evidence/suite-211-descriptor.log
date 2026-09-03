@@ -1,0 +1,281 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  0%]
+......................................................................... [  1%]
+........................................................................ [  2%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 19%]
+........................................................................ [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+........................................................................ [ 34%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+....................................................................F.F. [ 46%]
+...................................................................F.... [ 47%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+......................................................................... [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+.......................................................F...F....F....... [ 69%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+s.......s...................s........................................... [ 81%]
+........................................................................ [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 86%]
+.......................................................F................ [ 87%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 94%]
+......................................................................... [ 95%]
+......................................................................... [ 96%]
+........................................................................ [ 96%]
+........................................Exception ignored in: <function Transport.__del__ at 0x7f4830e5ae80>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: 'object' object has no attribute 'close'
+.Exception ignored in: <function Transport.__del__ at 0x7f4830e5ae80>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: 'object' object has no attribute 'close'
+............................... [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+........................................................................ [ 99%]
+........................                                                 [100%]
+=================================== FAILURES ===================================
+_ TestTheEngineClosesTheCircle.test_the_marked_field_reaches_the_column_on_flush _
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/orm/test_modified_engine.py:283: in test_the_marked_field_reaches_the_column_on_flush
+    assert row.doubled == 14
+E   assert 0 == 14
+E    +  where 0 = <EngineProbe: EngineProbe object (11)>.doubled
+_ TestTheEngineClosesTheCircle.test_without_the_flush_the_column_keeps_the_old_value _
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/orm/test_modified_engine.py:294: in test_without_the_flush_the_column_keeps_the_old_value
+    assert fresh.doubled is None
+E   assert False is None
+E    +  where False = <EngineProbe: EngineProbe object (12)>.doubled
+_ TestValidityDateEndToEnd.test_creating_with_an_explicit_none_leaves_it_none __
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/orm/test_precompute_before_insert.py:358: in test_creating_with_an_explicit_none_leaves_it_none
+    assert order.validity_date is None
+E   assert False is None
+E    +  where False = <SaleOrder: draft:3339>.validity_date
+_ TestRecomputeOnlyTouchesWhatIsPending.test_a_field_with_nothing_pending_does_not_compute _
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/orm/test_field_cache.py:190: in test_a_field_with_nothing_pending_does_not_compute
+    assert field not in open_transaction.field_data
+E   AssertionError: assert <django.db.models.fields.IntegerField: total> not in defaultdict(<class 'dict'>, {<django.db.models.fields.IntegerField: total>: {}})
+E    +  where defaultdict(<class 'dict'>, {<django.db.models.fields.IntegerField: total>: {}}) = <orm.environments.Transaction object at 0x7f72216b77d0>.field_data
+____ TestRecomputeOnlyTouchesWhatIsPending.test_a_pending_id_gets_computed _____
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/orm/test_field_cache.py:196: in test_a_pending_id_gets_computed
+    field.recompute(record)
+src/orm/fields.py:3863: in recompute
+    self.compute_value(record)
+src/orm/fields.py:3893: in compute_value
+    _invoke_compute_method(self, records)
+src/orm/fields.py:3817: in _invoke_compute_method
+    getattr(record, field.compute)()
+tests/unit/orm/test_field_cache.py:48: in _compute_total
+    self.total = (self.source or 0) * 2
+src/orm/fields.py:1400: in __set__
+    field.write(instance, value)
+src/orm/fields.py:3509: in _field_write
+    if not record_ids(records):
+src/orm/utils.py:194: in record_ids
+    return tuple(records.values_list('pk', flat=True))
+.venv/lib/python3.12/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.12/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.12/site-packages/django/db/models/query.py:277: in __iter__
+    for row in compiler.results_iter(
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1573: in results_iter
+    results = self.execute_sql(
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1622: in execute_sql
+    cursor = self.connection.cursor()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ TestRecomputeOnlyTouchesWhatIsPending.test_computing_clears_the_pending_mark _
+[gw3] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/orm/test_field_cache.py:203: in test_computing_clears_the_pending_mark
+    field.recompute(record)
+src/orm/fields.py:3863: in recompute
+    self.compute_value(record)
+src/orm/fields.py:3893: in compute_value
+    _invoke_compute_method(self, records)
+src/orm/fields.py:3817: in _invoke_compute_method
+    getattr(record, field.compute)()
+tests/unit/orm/test_field_cache.py:48: in _compute_total
+    self.total = (self.source or 0) * 2
+src/orm/fields.py:1400: in __set__
+    field.write(instance, value)
+src/orm/fields.py:3509: in _field_write
+    if not record_ids(records):
+src/orm/utils.py:194: in record_ids
+    return tuple(records.values_list('pk', flat=True))
+.venv/lib/python3.12/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.12/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.12/site-packages/django/db/models/query.py:277: in __iter__
+    for row in compiler.results_iter(
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1573: in results_iter
+    results = self.execute_sql(
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1622: in execute_sql
+    cursor = self.connection.cursor()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ TestTheCycleReachesTheJoinTable.test_a_scalar_field_still_flushes_through_its_column _
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/orm/test_compute_writes_m2m.py:270: in test_a_scalar_field_still_flushes_through_its_column
+    assert account.internal_group == ''
+E   AssertionError: assert 'expense' == ''
+E     + expense
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /home/user/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/orm/test_fields_related.py::TestResolveDepends::test_it_resolves_a_declared_chain_to_its_fields
+  /home/user/kaupamex-api/src/orm/fields.py:3248: UserWarning: Field base.ResPartner.name should be declared with recursive=True
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_modified_engine.py::TestTheEngineClosesTheCircle::test_the_marked_field_reaches_the_column_on_flush
+FAILED tests/unit/orm/test_modified_engine.py::TestTheEngineClosesTheCircle::test_without_the_flush_the_column_keeps_the_old_value
+FAILED tests/unit/orm/test_precompute_before_insert.py::TestValidityDateEndToEnd::test_creating_with_an_explicit_none_leaves_it_none
+FAILED tests/unit/orm/test_field_cache.py::TestRecomputeOnlyTouchesWhatIsPending::test_a_field_with_nothing_pending_does_not_compute
+FAILED tests/unit/orm/test_field_cache.py::TestRecomputeOnlyTouchesWhatIsPending::test_a_pending_id_gets_computed
+FAILED tests/unit/orm/test_field_cache.py::TestRecomputeOnlyTouchesWhatIsPending::test_computing_clears_the_pending_mark
+FAILED tests/unit/orm/test_compute_writes_m2m.py::TestTheCycleReachesTheJoinTable::test_a_scalar_field_still_flushes_through_its_column
+7 failed, 10098 passed, 4 skipped, 6 warnings in 362.59s (0:06:02)
+EXIT=1

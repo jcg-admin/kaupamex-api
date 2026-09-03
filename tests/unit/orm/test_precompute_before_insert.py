@@ -343,19 +343,33 @@ class TestValidityDateEndToEnd:
 
         assert order.validity_date == timezone.localdate() + timedelta(days=15)
 
-    def test_creating_with_an_explicit_none_leaves_it_none(self, company):
+    def test_creating_with_an_explicit_none_leaves_it_unset(self, company):
         """El caso que la rama de creación de ``SaleOrder.save()`` fallaba.
 
         Usaba ``if self.validity_date is None`` como sustituto de ``if fname
         not in vals``, así que un ``None`` explícito era indistinguible de un
         valor ausente y el cómputo lo pisaba. El motor mira lo que el llamador
         NOMBRÓ, no el valor que resultó.
+
+        Se mide la **columna**, no el atributo, y no es un rodeo: ``values_list``
+        arma la tupla desde la fila sin instanciar el modelo, así que no pasa
+        por el descriptor. Es el único plano donde «el cómputo no escribió» se
+        distingue de lo que el descriptor conteste.
+
+        Y el **atributo** se mide junto a ella, porque los dos planos de lectura
+        del descriptor ya responden lo mismo: ``False``, que es el vocabulario
+        de la fuente para «sin valor» (``odoo19c: odoo/orm/fields.py:1053``:
+        ``return False if value is None else value``). Su vuelta la cierra
+        ``convert_to_column`` en el camino a la columna, así que ese ``False``
+        se guarda como ``NULL`` y no revienta el conversor de Django.
         """
         order = SaleOrder.objects.create(company=company, validity_date=None)
 
-        assert order.validity_date is None
+        assert SaleOrder.objects.filter(pk=order.pk).values_list(
+            'validity_date', flat=True)[0] is None
+        assert order.validity_date is False
         order.refresh_from_db()
-        assert order.validity_date is None
+        assert order.validity_date is False
 
 
 @pytest.fixture

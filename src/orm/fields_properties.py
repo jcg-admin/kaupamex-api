@@ -534,6 +534,8 @@ class Properties(models.JSONField):
 
     # -- Escritura -----------------------------------------------------------
 
+    column_conversion_needs_record = True
+
     def convert_to_column(self, value, record, values=None, validate=True):
         """≙ ``convert_to_column`` (``odoo19c: :124-129``) — la forma de columna."""
         if not value:
@@ -1209,6 +1211,8 @@ class PropertiesDefinition(models.JSONField):
         """Deconstruye como ``django.db.models.JSONField`` — ver el docstring."""
         name, _path, args, kwargs = super().deconstruct()
         return name, 'django.db.models.JSONField', args, kwargs
+
+    column_conversion_needs_record = True
 
     def convert_to_column(self, value, record, values=None, validate=True):
         """≙ ``convert_to_column`` (``odoo19c: :871-908``) — la forma de columna."""

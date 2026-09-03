@@ -342,3 +342,43 @@ class LangProxyDict(collections.abc.MutableMapping):
     def __repr__(self):
         return (f"<LangProxyDict lang={self._lang!r} "
                 f"size={len(self._cache)} at {hex(id(self))}>")
+
+
+def _textual_convert_to_column(self, value, record, values=None, validate=True):
+    """``Char.convert_to_column`` — ≙ ``odoo19c: odoo/orm/fields_textual.py:84-85``.
+
+    Delega en ``convert_to_cache``, que es donde la fuente pone el recorte a
+    ``size`` y el descarte del valor vacío. Cubre también ``Selection``: la
+    fuente las declara como dos clases (``:84`` y
+    ``fields_selection.py:223-226``) y este stack lleva ambas al mismo
+    ``models.CharField``, así que una sola sobrecarga porta las dos — sus
+    cuerpos terminan en el mismo sitio, ``convert_to_cache`` y luego la base.
+    """
+    return self.convert_to_cache(value, record, validate)
+
+
+def _textual_convert_to_cache(self, value, record, validate=True):
+    """``Char.convert_to_cache`` — ≙ ``odoo19c: odoo/orm/fields_textual.py:102-113``.
+
+    Cuatro pasos, en el orden de la fuente: ``None`` y ``False`` se descartan
+    **por identidad** —la cadena vacía sobrevive, y es un valor distinto de la
+    ausencia—; ``bytes`` se decodifica; lo demás se lleva a texto; y el
+    resultado se recorta al tamaño declarado.
+
+    El tamaño lo declara ``max_length`` en este stack, que es donde la fuente
+    pone ``self.size``. Un ``TextField`` no lo declara y entonces no recorta,
+    igual que el ``Text`` de la fuente.
+    """
+    if value is None or value is False:
+        return None
+    text = value.decode() if isinstance(value, bytes) else str(value)
+    size = getattr(self, 'max_length', None)
+    return text[:size] if size else text
+
+
+models.CharField.convert_to_cache = _textual_convert_to_cache
+models.TextField.convert_to_cache = _textual_convert_to_cache
+
+
+models.CharField.convert_to_column = _textual_convert_to_column
+models.TextField.convert_to_column = _textual_convert_to_column

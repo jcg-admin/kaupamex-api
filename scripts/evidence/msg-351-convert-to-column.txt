@@ -1,0 +1,48 @@
+Port convert_to_column and the field descriptor
+
+Dos piezas encadenadas del contrato de ``Field``. El descriptor (#211)
+unifica los dos planos de lectura que el puerto tenia donde la fuente
+tiene uno: el nivel de almacen devuelve
+``field.convert_to_record(value, instance)``, asi que el vocabulario
+de la fuente para "sin valor" —``False``, no ``None``
+(``odoo19c: odoo/orm/fields.py:1053``)— llega al atributo.
+
+Ese cambio exige la vuelta, que es #351: sin ella un ``False`` llegaba
+al conversor de fecha de Django y reventaba. Se portan las 17
+sobrecargas de ``convert_to_column`` que la referencia declara en 9
+archivos de ``odoo/orm`` —base, boolean, integer, float, monetary, id,
+json, many2one y los textuales— y se cablean a
+``Field.get_db_prep_save``, que es el camino de ESCRITURA. No a
+``get_prep_value``: ese lo usa Django tambien para los parametros de
+una condicion, y recortar ahi por ``max_length`` convertia
+``code__iexact='nope'`` en ``'no'``, que es Noruega.
+
+Tres exclusiones, ninguna inventada:
+
+- lo que trae ``as_sql`` no es un valor. Lo declara la propia funcion
+  envuelta (``django/db/models/fields/__init__.py:1009``); el
+  compilador de ``UPDATE`` resuelve un ``F()`` y se lo pasa al campo
+  (``sql/compiler.py:2035-2065``), y el cableado corria por delante de
+  esa guarda;
+- ``None`` sobre columna nulable es el caso "la clave no venia en
+  vals", que la fuente resuelve no construyendo la columna;
+- ``Properties`` necesita el registro, y lo declara con
+  ``column_conversion_needs_record`` en vez de descartarse en
+  silencio.
+
+``Integer.convert_to_column`` queda VERBATIM en ``int(value or 0)``.
+Una primera version le anadio una rama ``if self.null`` razonando que
+la fuente declara su ``Integer`` NOT NULL; medido, es falso
+—``odoo19c: odoo/orm/fields.py:298`` declara ``required: bool =
+False``—. Lo que la fuente declara es ``falsy_value = 0`` y tres
+conversores que colapsan la ausencia al cero. Donde una restriccion
+necesita el ``NULL``, lo resuelve EN EL MODELO: ``ir_filters`` borra
+la clave cuando vale cero antes de escribir
+(``odoo19c: odoo/addons/base/models/ir_filters.py:33-34`` y
+``:54-57``), y eso es lo que ``ir_filters.save()`` porta aqui.
+
+Suite completa: 10116 passed, 4 skipped, 0 failed en 334.30 s
+(``-n 4``, bases calientes). Evidencia en
+``scripts/evidence/suite-351-guarda-expresion-sql.log``.
+
+Refs: #211, #351

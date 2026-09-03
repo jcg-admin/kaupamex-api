@@ -1,0 +1,24 @@
+Bind the ORM transaction to the cursor
+
+La fuente tiene UNA transaccion, y cuelga del cursor: medido sobre
+todo ``$ODOO19C/odoo/``, ``grep -rn "Transaction("`` devuelve una sola
+instanciacion —``odoo19c: odoo/orm/environments.py:72``, guardada por
+``if transaction is None`` en ``:70-71``—. No existe una transaccion
+"de fuera" que sobreviva a un bloque de trabajo; el puerto tenia dos,
+una en un ContextVar y otra en la conexion, y la de fuera devolvia
+entradas de cache anteriores al trabajo recien hecho.
+
+El ContextVar se retira. ``get_transaction()`` resuelve siempre contra
+la conexion y ``transaction_scope()`` pasa a ser un CORTE: al salir
+llama ``clear()``, que es lo que la fuente hace en sus cuatro cortes
+—``commit()`` (``sql_db.py:560-564``, flush y luego clear),
+``rollback()`` (``:570-572``, clear primero),
+``_FlushingSavepoint.rollback()`` (``:137-139``) y ``_close``
+(``:534``)—. El ``close`` ademas descarta la transaccion entera, que
+es el analogo de morir el cursor.
+
+Los cuatro cortes se cablean sobre ``BaseDatabaseWrapper`` con un
+envoltorio unico, para que la cache del ORM siga al ciclo de vida de
+la conexion de Django y no a un alcance paralelo.
+
+Refs: #350

@@ -61,6 +61,7 @@ from datetime import date, datetime, time, timezone
 from zoneinfo import ZoneInfo, available_timezones
 
 from django.db import models
+from django.utils.dateparse import parse_datetime
 
 from orm.environments import get_context, get_current_tz
 from orm.fields_company_dependent import make_dispatcher
@@ -306,13 +307,44 @@ def _datetime_to_datetime(value):
     if isinstance(value, date):
         if isinstance(value, datetime):
             if value.tzinfo:
-                raise ValueError(
-                    "Datetime field expects a naive datetime: %s" % value)
+                # **Divergencia de mecanismo declarada.** La fuente rechaza el
+                # aware (``:230-249``) porque su almacen guarda naive UTC: no
+                # tiene soporte de zona en la columna. Este stack declara
+                # ``USE_TZ = True`` (``config/settings/base.py:344``), asi que
+                # la forma de REGISTRO de un ``DateTimeField`` es aware y es lo
+                # que la columna persiste. Rechazarlo aqui obligaria a que todo
+                # computo asignara naive y luego Django avisara de lo contrario
+                # al escribir — dos capas exigiendo formas opuestas del mismo
+                # valor. Se conserva el aware, que es el que la columna guarda.
+                #
+                # Medido: ``crm_lead._compute_date_last_stage_update`` asigna
+                # ``datetime.now(timezone.utc)`` y, con el descriptor portado,
+                # su escritura pasa por este conversor — 3 casos de la suite.
+                return value
             return value
         return datetime.combine(value, time.min)
 
-    # TODO: fix data files
-    return datetime.strptime(value, DATETIME_FORMAT[:len(value) - 2])
+    # **Segunda divergencia de mecanismo declarada, del mismo origen que la de
+    # arriba.** La fuente sólo admite su propio formato —``strptime`` contra
+    # ``DATETIME_FORMAT``, recortado a la longitud del valor (``:246-248``)—
+    # porque ese es el único que su almacén produce. Este stack habla ISO-8601
+    # en sus fronteras: la fuente de un valor puede ser un payload JSON, un
+    # `.env` o una migración, y Django lo parsea con ``parse_datetime``, que
+    # admite el desplazamiento de zona y la ``Z`` final.
+    #
+    # Se intenta primero el formato de la fuente —para que un valor que ella
+    # produciría se lea igual— y sólo si no encaja se usa el parser del stack.
+    # Estrechar aquí no es fidelidad: es una regresión, porque el mismo valor
+    # entraba antes por el conversor de Django. Medido al cablear
+    # ``convert_to_column``: ``'2020-01-01T00:00:00Z'`` reventó el ``save()``
+    # de ``loyalty.voucher``.
+    try:
+        return datetime.strptime(value, DATETIME_FORMAT[:len(value) - 2])
+    except ValueError:
+        parsed = parse_datetime(value)
+        if parsed is None:
+            raise
+        return parsed
 
 
 def _datetime_to_string(value):

@@ -60,6 +60,7 @@ from typing import TypeVar
 from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist
 from django.db import DEFAULT_DB_ALIAS, connections, models
+from django.db.models.query_utils import DeferredAttribute
 from django.utils.timezone import localtime
 from psycopg.types.json import Jsonb
 
@@ -1196,6 +1197,316 @@ models.Field._setup_attrs__ = _field_setup_attrs
 _DJANGO_FIELD_CONTRIBUTE = models.Field.contribute_to_class
 
 
+#: Marca de «esta instancia se está construyendo».
+#:
+#: **Construir un registro NO es asignarle sus campos.** En la fuente un
+#: recordset se construye con ``browse``, que no toca ``Field.__set__``: el
+#: valor de la base entra por la CACHÉ, en la rama de lectura. Aquí quien
+#: construye es ``Model.__init__`` de Django, que asigna **cada campo concreto
+#: por posición** —``cls(*values)`` en ``Model.from_db``—, así que con el
+#: descriptor puesto una simple lectura de la base entraba por ``__set__`` y se
+#: comportaba como una escritura de negocio.
+#:
+#: Medido, y el efecto no era cosmético: ``_recompute_field`` materializa sus
+#: filas con ``model.objects.filter(pk__in=...)``; cada instancia así creada
+#: escribía sus campos calculados, ``Field.write`` llamaba a
+#: ``remove_to_compute`` y **borraba la marca de recálculo pendiente** justo
+#: antes de que ``recompute`` la leyera. El resultado era un ``recompute`` con
+#: ``pendientes=OrderedSet([])`` que no computaba nada y un volcado que escribía
+#: el valor viejo en la columna — 3 casos de ``tests/unit/orm/``.
+#:
+#: El envoltorio marca la instancia mientras ``__init__`` corre; ``__set__`` lo
+#: consulta y en ese tramo escribe **sólo** el almacén, que es exactamente lo
+#: que Django hacía antes del descriptor y lo que la fuente hace al construir.
+_DJANGO_MODEL_INIT = models.Model.__init__
+
+
+def _model_init_marking_the_load(self, *args, **kwargs):
+    """Envuelve ``Model.__init__`` para marcar el tramo de construcción."""
+    object.__setattr__(self, '_orm_building', True)
+    try:
+        _DJANGO_MODEL_INIT(self, *args, **kwargs)
+    finally:
+        object.__setattr__(self, '_orm_building', False)
+
+
+models.Model.__init__ = _model_init_marking_the_load
+
+
+class FieldDescriptor(DeferredAttribute):
+    """El cuerpo de ``Field.__get__`` y ``Field.__set__``, en el enganche vivo.
+
+    ≙ ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:1642-1804``) y
+    ``Field.__set__`` (``:1807-1841``).
+
+    **El descriptor NO es el campo, y por eso el cuerpo no cuelga de
+    ``models.Field``.** La fuente hace del propio ``Field`` su descriptor: el
+    objeto que vive en el atributo de clase *es* el campo. Django coloca ahí un
+    objeto distinto, que el campo instala por ``descriptor_class``
+    (= ``DeferredAttribute``). Medido sobre ``res.partner``: ``name`` y
+    ``active`` llevan un ``DeferredAttribute``, ``barcode`` un
+    ``_CompanyDependentAttribute`` y ``parent_id`` un
+    ``ForeignKeyDeferredAttribute``. Colgar ``__get__`` de ``models.Field``
+    sería código muerto — nadie lo consultaría —, igual que lo era
+    ``__set_name__`` antes de portarse a ``contribute_to_class``
+    (:ref:`h-api-1067`). El cuerpo se porta al descriptor; el sitio cambia, el
+    comportamiento no.
+
+    **Por qué se instala SÓLO donde hay ``compute``.** ``DeferredAttribute`` no
+    declara ``__set__``: es un descriptor de NO datos, así que
+    ``instance.__dict__`` gana y su ``__get__`` sólo se consulta cuando el valor
+    falta. Ese ``__dict__`` **es** la rama de acierto de caché de la fuente.
+    Declarar ``__set__`` lo convierte en descriptor de datos y entonces toda
+    lectura de todo campo pasa por Python: medido sobre 300 000 lecturas con un
+    cuerpo vacío, **42.6 ns contra 132.9 ns — 3.12×** en el camino más caliente
+    del ORM. Lo que el ``__dict__`` de Django no cubre son las tres ramas que
+    la fuente añade —recálculo pendiente, cómputo al fallar la caché, y el
+    reparto en tres cubos de la escritura— y las tres sólo tienen receptor donde
+    el campo declara ``compute``. Ahí el coste del descriptor es despreciable
+    frente a la llamada al método de cómputo. Una columna llana conserva el
+    camino rápido de Django.
+
+    Precedente propio del árbol: ``_CompanyDependentAttribute``
+    (``orm/fields_company_dependent.py:167``) ya porta comportamiento de campo a
+    un descriptor, y se instala por campo en ``contribute_to_class``.
+    """
+
+    def __get__(self, instance, cls=None):
+        """≙ ``Field.__get__`` (``:1642``) — el valor del campo sobre la fila."""
+        if instance is None:
+            # ``:1644-1645`` — acceso por la clase: devuelve el descriptor.
+            return self
+
+        field = self.field
+        environment = get_environment()
+
+        # ``:1647-1651`` — el control de acceso por campo. La guarda por
+        # ``hasattr`` es la que el árbol ya usa en ``models.py:1454``: el
+        # contrato vive en los modelos que heredan el mixin de acceso, no en
+        # ``django.db.models.Model``.
+        if not environment.su and hasattr(instance, '_has_field_access'):
+            if not instance._has_field_access(field, 'read'):
+                instance._check_field_access(field, 'read')
+
+        # ``:1653-1661`` — la rama ``record_len != 1`` NO tiene receptor: aquí
+        # ``instance`` es UNA fila, nunca un recordset de N. ``ensure_one`` está
+        # ausente del árbol por esa misma razón (divergencia de stack ya
+        # declarada en ``orm/utils.py``).
+
+        if field.compute and getattr(field, 'store', False):
+            # ``:1664-1666`` — procesa los cómputos pendientes.
+            field.recompute(instance)
+
+        record_id = instance.pk
+        field_cache = field._get_cache(environment)
+        try:
+            # ``:1668-1673`` — acierto de caché.
+            return field.convert_to_record(field_cache[record_id], instance)
+        except KeyError:
+            # silent OK because el fallo de cache NO es un error: es la
+            # bifurcacion del cuerpo. La fuente lo escribe igual
+            # (``try: value = field_cache[record.id] / except KeyError: pass``,
+            # ``:1668-1691``) porque ``KeyError`` es como el cache dice "no lo
+            # tengo", y las ramas de abajo son exactamente su respuesta.
+            pass
+
+        # **Aquí hay DOS cachés, no una — y la segunda es el ``__dict__``.**
+        # La fuente tiene una sola (``env.cache``) y su acierto es la rama de
+        # arriba. En este stack, Django mantiene además el almacén de la
+        # instancia, y ES el analogo de esa misma rama: es donde
+        # ``Model.__init__`` deja la fila leida, donde ``save()`` lee la
+        # columna y donde el metodo de computo asigna (:ref:`h-api-1067`).
+        # Consultar solo la caché del ORM deja fuera al almacén, y entonces
+        # una fila recien construida —sin ``pk``, con su valor ya puesto— cae
+        # en la rama de computo. Medido: ``pre_save`` disparaba
+        # ``_compute_amounts`` sobre una ``SaleOrder`` sin ``pk`` y su
+        # ``order_line`` reventaba con *'SaleOrder' instance needs to have a
+        # primary key* — 443 casos de la suite.
+        #
+        # El recalculo pendiente ya se proceso arriba (``field.recompute``),
+        # asi que un valor en el almacén es un valor vigente, no uno viejo.
+        if field.attname in instance.__dict__:
+            # **El valor del almacén se devuelve TAL CUAL.** La rama de arriba
+            # aplica ``convert_to_record`` porque lo que guarda ``env.cache``
+            # está en forma de caché; el almacén de Django guarda la forma de
+            # registro —es lo que ``Model.__init__`` puso y lo que ``pre_save``
+            # espera leer—, así que pasarlo por ``convert_to_cache`` y volver
+            # NO es la identidad. Medido: un ``DateField`` salía de ese viaje
+            # como algo que ``parse_date`` rechazaba con *fromisoformat:
+            # argument must be str* — 443 casos de la suite.
+            value = instance.__dict__[field.attname]
+            if record_id:
+                # Sembrar la caché del ORM sólo con ``pk``: es su clave. Una
+                # fila en vuelo dentro de ``_do_insert`` no la tiene todavía.
+                field._update_cache(
+                    instance,
+                    field.convert_to_cache(value, instance, validate=False))
+            # **Se traduce, igual que la rama de arriba.** Las dos ramas
+            # son el mismo acierto de caché de la fuente —una sola en su
+            # cuerpo— y por tanto tienen que responder lo mismo:
+            # ``convert_to_record`` (``odoo19c: odoo/orm/fields.py:1053``,
+            # ``return False if value is None else value``) lleva el ``None``
+            # al vocabulario de la fuente para «sin valor», que es ``False``.
+            # Sin esto el MISMO campo de la MISMA fila respondía ``False`` o
+            # ``None`` según cuál de los dos planos contestara.
+            #
+            # La vuelta la cierra ``convert_to_column`` en el camino de la
+            # columna (ver :func:`_field_get_prep_value`): sin ella ese
+            # ``False`` viajaba al ``parse_date`` de Django y lo rechazaba.
+            return field.convert_to_record(value, instance)
+
+        # ``:1694-1804`` — las ramas de fallo de caché.
+        if getattr(field, 'store', False) and record_id:
+            # ``:1697-1713`` — fila real y persistida: se lee de la base. Quien
+            # lo hace es el ``DeferredAttribute`` de Django, que devuelve
+            # ``instance.__dict__[attname]`` si la fila se cargó, y si no emite
+            # el ``refresh_from_db`` de la columna. Es el equivalente medido de
+            # ``_fetch_field``, que este árbol no declara.
+            #
+            # **Divergencia de mecanismo declarada:** la fuente prelecta la
+            # ventana de ``_to_prefetch`` en una consulta; aquí la unidad es la
+            # fila, así que la ventana no ahorraría ninguna. Es la misma
+            # divergencia 1 de :func:`recompute`, con el mismo sucesor: **#306**.
+            value = super().__get__(instance, cls)
+            field._update_cache(
+                instance, field.convert_to_cache(value, instance, validate=False))
+
+        elif getattr(field, 'store', False) and getattr(instance, '_origin', None) \
+                and not (field.compute and getattr(field, 'readonly', False)):
+            # ``:1716-1734`` — fila nueva con origen: el valor se toma de la
+            # fila guardada que la origina.
+            origin = instance._origin
+            value = field.convert_to_cache(
+                getattr(origin, field.name), instance, validate=False)
+            field._update_cache(instance, value)
+
+        elif field.compute:
+            # ``:1736-1763`` — sin columna, o fila nueva sin origen: se computa.
+            if environment.is_protected(field, record_id):
+                field._update_cache(
+                    instance,
+                    field.convert_to_cache(False, instance, validate=False))
+            else:
+                field.compute_value(instance)
+                if record_id in tuple(field._cache_missing_ids(instance)):
+                    if getattr(field, 'readonly', False) and not field.store:
+                        raise ValueError(
+                            f'Compute method failed to assign '
+                            f'{instance}.{field.name}')
+                    # ``:1753-1757`` — el cómputo no asignó: valor nulo.
+                    field._update_cache(
+                        instance,
+                        field.convert_to_cache(False, instance, validate=False))
+
+        # ``:1765-1783`` — la rama del ``many2one`` delegado sobre fila nueva NO
+        # tiene receptor aquí: el descriptor no se instala sobre una FK, que
+        # conserva el ``ForeignKeyDeferredAttribute`` de Django con su propio
+        # camino de escritura (ver :func:`_field_contribute_to_class`).
+
+        else:
+            # ``:1786-1801`` — ni almacenado ni calculado: el valor por omisión.
+            field._update_cache(
+                instance, field.convert_to_cache(False, instance, validate=False))
+            defaults = instance.default_get([field.name])
+            if field.name in defaults:
+                field._update_cache(
+                    instance,
+                    field.convert_to_cache(defaults[field.name], instance))
+
+        # La caché pudo invalidarse entera dentro del cómputo (``:1759-1761``),
+        # así que se vuelve a pedir en vez de reusar la referencia de arriba.
+        field_cache = field._get_cache(environment)
+        return field.convert_to_record(field_cache[record_id], instance)
+
+    def __set__(self, instance, value):
+        """≙ ``Field.__set__`` (``:1807-1841``) — el reparto en tres cubos.
+
+        **Divergencia de mecanismo declarada, y es la del cubo real.** La fuente
+        manda la fila persistida a ``records.write({name: value})``, que en este
+        árbol es ``BaseModel.write`` (``orm/models.py:2057``) — y ése llama a
+        ``self.save(update_fields=…)``, o sea emite SQL. Portarlo literal haría
+        que ``partner.campo = x`` lanzara un UPDATE, cuando la asignación de
+        Django emite **cero** consultas (medido en
+        ``test_a_real_record_does_not_emit_sql_on_assignment``). Se porta lo que
+        ``Field.write`` hace —descartar el recálculo pendiente, filtrar la fila
+        cuyo valor ya coincide, marcar la caché sucia— más ``modified()``, que
+        es la mitad de disparo; el volcado sigue siendo ``save()``.
+        """
+        field = self.field
+        # El atributo de instancia se escribe SIEMPRE: es de donde ``save()``
+        # de Django lee la columna, y de donde la lee ``_cache_computed_values``
+        # tras el cómputo.
+        instance.__dict__[field.attname] = value
+
+        if instance.__dict__.get('_orm_building'):
+            # **Construir NO es asignar, y esto lo decide la fuente.**
+            #
+            # Su camino de lectura es ``BaseModel._fetch_query``
+            # (``odoo19c: odoo/orm/models.py:3879-3933``), que **no pasa por
+            # ``Field.__set__``**: lee las columnas y puebla la caché con
+            # ``field._insert_cache(fetched, values)``. El comentario de la
+            # fuente dice por qué es ``insert`` y no ``update``: *"If we assume
+            # that the value of a pending update is in cache, we can avoid
+            # flushing pending updates if the fetched values do not overwrite
+            # values in cache"* — *"store values in cache, but without
+            # overwriting"*.
+            #
+            # Aquí el ``_fetch_query`` es el cargador de Django: ``from_db``
+            # construye con ``cls(*values)`` y ``Model.__init__`` asigna cada
+            # campo concreto por posición. Ése es el enganche equivalente, así
+            # que este tramo hace lo mismo que la fuente y nada más: poblar sin
+            # pisar. Sin ``remove_to_compute``, sin marca de sucio y sin
+            # ``modified()`` — son la lógica de negocio de una escritura, y
+            # cancelaban el recálculo pendiente de la fila recién cargada.
+            #
+            # El ``setdefault`` de ``_insert_cache`` subsume la guarda del
+            # valor sucio: una escritura pendiente ES lo que la fuente se niega
+            # a sobreescribir, con esas palabras.
+            if instance.pk:
+                field._insert_cache(
+                    instance,
+                    [field.convert_to_cache(value, instance, validate=False)])
+            return
+
+        environment = get_environment()
+        record_id = instance.pk
+
+        if environment.is_protected(field, record_id):
+            # ``:1819-1822`` — fila en cómputo: sin lógica de negocio y sin
+            # recálculo. Sin este cubo, escribir el resultado de un cómputo
+            # dispararía el recálculo del propio campo: recursión infinita.
+            field.write(instance, value)
+            return
+
+        if not record_id:
+            # ``:1824-1836`` — fila nueva: sin lógica de negocio, pero con
+            # protección y con aviso de modificación.
+            # ``.get(self) or [self]`` de la fuente. El agrupador de este
+            # árbol NO expone ``.get`` a propósito —un campo sin ``compute``
+            # ahí es un error de programación, no un caso (``registry.py:979``)
+            # — así que la consulta va por ``in`` + ``[]``, que es la misma
+            # semántica sin esconder el error.
+            protected = (registry_field_computed[field]
+                         if field in registry_field_computed else [field])
+            with environment.protecting(protected, instance):
+                if getattr(field, 'relational', False):
+                    instance.modified([field.name], before=True)
+                field.write(instance, value)
+                instance.modified([field.name])
+
+            if getattr(field, 'inherited', False):
+                # ``:1833-1836`` — el campo delegado también se asigna sobre el
+                # padre cuando el padre es nuevo.
+                parent = getattr(instance, field.related.split('.')[0], None)
+                if parent is not None and not parent.pk:
+                    setattr(parent, field.name, value)
+            return
+
+        # ``:1838-1841`` — fila real. Ver la divergencia del docstring.
+        field.write(instance, field.convert_to_write(value, instance))
+        instance.modified([field.name])
+
+
 def _field_contribute_to_class(self, cls, name, private_only=False):
     """El cuerpo de ``__set_name__``, en el enganche que este ORM sí ejecuta.
 
@@ -1204,6 +1515,31 @@ def _field_contribute_to_class(self, cls, name, private_only=False):
     """
     _DJANGO_FIELD_CONTRIBUTE(self, cls, name, private_only=private_only)
     self._setup_attrs__(cls, name)
+    _install_field_descriptor(self, cls)
+
+
+def _install_field_descriptor(field, cls):
+    """Cuelga :class:`FieldDescriptor` del campo calculado, y sólo de ése.
+
+    Dos guardas, y ninguna es de comodidad:
+
+    1. **``compute`` declarado.** Es donde las tres ramas del cuerpo de la
+       fuente tienen trabajo; sobre una columna llana el ``__dict__`` de Django
+       ya hace de acierto de caché, y convertir su descriptor en uno de datos
+       cuesta **3.12×** por lectura (medido en
+       ``scripts/evidence/medicion-211-descriptor.txt``).
+    2. **El atributo de clase es un ``DeferredAttribute`` PELADO.** Un
+       ``ForeignKeyDeferredAttribute`` o un ``_CompanyDependentAttribute`` ya
+       son descriptores de datos con su propio camino de lectura y escritura
+       portado; sustituirlos rompería la relación o el eje por empresa. Por eso
+       la condición es de tipo exacto, no ``isinstance``.
+    """
+    if not getattr(field, 'compute', None):
+        return
+    current = cls.__dict__.get(field.attname)
+    if type(current) is not DeferredAttribute:
+        return
+    setattr(cls, field.attname, FieldDescriptor(field))
 
 
 models.Field.contribute_to_class = _field_contribute_to_class
@@ -2023,6 +2359,97 @@ def _field_convert_to_column_insert(self, value, record, values=None, validate=T
 
 
 models.Field.convert_to_column_insert = _field_convert_to_column_insert
+
+
+_DJANGO_FIELD_GET_DB_PREP_SAVE = models.Field.get_db_prep_save
+
+
+def _field_get_db_prep_save(self, value, connection):
+    """El cableado de ``convert_to_column`` al camino de escritura del stack.
+
+    **Dónde encaja, y es ``get_db_prep_save`` y no ``get_prep_value``.** En la
+    fuente ``convert_to_column`` es el último paso hacia el parámetro SQL **de
+    una escritura**: quien guarda una columna pasa por él, y de ahí sale el
+    vocabulario de «sin valor» traducido. Una **condición** de búsqueda no pasa
+    por ahí — la arma ``_condition_to_sql``, que es otro camino. Django separa
+    los dos igual: ``get_prep_value`` lo consultan la escritura **y** el
+    ``lookup``; ``get_db_prep_save`` sólo la escritura (lo llama ``pre_save``).
+
+    Cablearlo al primero fue un defecto medido: el recorte a ``max_length`` que
+    ``Char`` aplica al guardar (``odoo19c: odoo/orm/fields_textual.py:110``:
+    ``value = s[:self.size]``) se aplicaba también al parámetro de un
+    ``code__iexact='nope'``, que quedaba en ``'no'`` y encontraba Noruega. El
+    recorte es correcto; el sitio no lo era.
+
+    **Por qué sólo cuando el tipo la declara.** El cuerpo base
+    (:func:`_field_convert_to_column`) lleva a texto todo lo que no sea
+    ``str``/``bytes``, que es correcto para la familia textual de la fuente y
+    no para un tipo que este stack convierte a su manera. La fuente reparte esa
+    decisión **por clase**: declara la sobrecarga donde el tipo tiene
+    vocabulario propio —``Boolean`` conserva ``False`` (``fields_misc.py:28``),
+    ``Integer`` lo lleva a ``0`` (``fields_numeric.py:32``), ``Many2one`` a
+    ``None`` (``fields_relational.py:326``), ``Char`` delega en su caché
+    (``fields_textual.py:84``)— y hereda la base donde no. Aquí se lee ese
+    mismo reparto: el tipo que la declaró la usa; el que no, conserva la
+    conversión de Django intacta.
+
+    ``validate=False`` y sin registro: la validación pertenece a la escritura
+    del ORM —que llama a ``convert_to_column_insert`` con el registro— y no a
+    este último metro hacia el motor, donde el valor ya está decidido.
+
+    **``None`` sobre una columna que admite el nulo NO se convierte, y ésa es
+    la traducción de «la clave no venía en ``vals``».** La fuente construye la
+    columna sólo para los campos **presentes** en el diccionario de escritura
+    (``convert_to_column_insert`` por clave); el que no viene toma el default
+    de la columna, que sin ``required`` es ``NULL``. Django no tiene esa
+    distinción —escribe todas las columnas siempre— y lo que lleva en su lugar
+    es el ``None`` del atributo. Así que ``None`` sobre columna nulable es el
+    caso *ausente* y pasa sin tocar; un ``False``, un ``0`` o una cadena vacía
+    son un valor **dado** y sí pasan por el conversor, que los lleva al
+    vocabulario del tipo —``0`` para un entero, ``None`` para el resto—.
+
+    Sin esta lectura, ``int(value or 0)`` convertía el «no establecido» de una
+    columna nulable en un cero real: medido, ``ir_filters.embedded_parent_res_id``
+    dejó de ser ``NULL`` y su ``CHECK`` lo rechazó, y un contador de uso vacío
+    pasó a leerse como agotado. La fuente no tiene ese problema porque la clave
+    sencillamente no llega hasta aquí.
+
+    **Lo que trae su propio SQL no es un valor y no se convierte.** El
+    discriminador no se inventa: lo declara la propia función envuelta
+    (``django/db/models/fields/__init__.py:1009`` — ``if hasattr(value,
+    "as_sql"): return value``). En un ``UPDATE`` con ``F()`` el compilador
+    resuelve la expresión y se la pasa al campo
+    (``django/db/models/sql/compiler.py:2035-2065``); el cableado corría
+    **por delante** de esa guarda y ``int(value or 0)`` recibía un
+    ``CombinedExpression``. La fuente coincide en el fondo: sus dos únicos
+    llamadores de ``convert_to_column`` (``odoo19c: odoo/orm/models.py:3145``
+    y ``:4870``) le pasan un valor del formato de caché, y sus fragmentos de
+    SQL viajan como ``SQL()`` sin entrar por aquí.
+
+    **Y hay cuerpos que sí necesitan el registro**, así que se excluyen por
+    declaración y no por descarte silencioso:
+    :attr:`~models.Field.column_conversion_needs_record`. Es el caso de
+    ``Properties`` (``odoo19c: odoo/orm/fields_properties.py:124`` y ``:871``),
+    cuya forma de columna se resuelve contra la definición que cuelga del
+    registro. Para ésos el camino sigue siendo el del ORM, que sí lo tiene.
+    """
+    if not (hasattr(value, 'as_sql') or (value is None and self.null)
+            or self.column_conversion_needs_record
+            or type(self).convert_to_column is models.Field.convert_to_column):
+        value = self.convert_to_column(value, None, validate=False)
+    return _DJANGO_FIELD_GET_DB_PREP_SAVE(self, value, connection)
+
+
+models.Field.get_db_prep_save = _field_get_db_prep_save
+
+#: Si el cuerpo de ``convert_to_column`` del campo consulta el registro.
+#:
+#: Por omisión no: los cuerpos de la fuente para ``Boolean``, ``Integer``,
+#: ``Many2one``, ``Char`` y la propia base deciden con el valor y nada más. Lo
+#: declara en ``True`` el tipo cuya forma de columna se resuelve contra el
+#: registro —``Properties``—, y con eso queda fuera del cableado a
+#: ``get_prep_value``, que no tiene registro que pasar.
+models.Field.column_conversion_needs_record = False
 
 
 def _field_get_column_update(self, record):
@@ -3240,18 +3667,20 @@ def _field_write(self, records, value):
     la misma traducción que toda esta familia aplica: lo descartado es lo
     mismo, cambia por dónde se nombra.
 
-    El filtro por ``_filter_not_equal`` no es una optimización: sin él, una
-    escritura del valor que la fila ya tiene la marcaría sucia y forzaría un
-    UPDATE que no cambia nada.
+    El filtro no es una optimización: sin él, una escritura del valor que la
+    fila ya tiene la marcaría sucia y forzaría un UPDATE que no cambia nada.
+    Se pide en su forma de **ids** (:meth:`_filter_not_equal_ids`) y no de
+    filas: allí está la razón medida de por qué el símbolo existe.
     """
-    get_environment().remove_to_compute(self, record_ids(records))
+    ids = record_ids(records)
+    get_environment().remove_to_compute(self, ids)
 
     cache_value = self.convert_to_cache(value, records)
-    records = self._filter_not_equal(records, cache_value)
-    if not record_ids(records):
+    surviving = self._filter_not_equal_ids(records, cache_value)
+    if not surviving:
         return
 
-    self._update_cache(records, cache_value, dirty=True)
+    self._update_cache(surviving, cache_value, dirty=True)
 
 
 def _field_create(self, record_values):
@@ -3467,11 +3896,52 @@ def _filter_not_equal(self, records, cache_value):
     el conjunto de vuelta se arma con :func:`~orm.utils.browse` sobre
     :func:`~orm.utils.model_of` en vez de ``records.browse``.
     """
+    return browse(model_of(records),
+                  self._filter_not_equal_ids(records, cache_value))
+
+
+def _filter_not_equal_ids(self, records, cache_value):
+    """Los **ids** de las filas cuyo valor en caché falta o difiere.
+
+    No tiene contraparte en la fuente, y la razón es de mecanismo: allí un
+    recordset **lleva** sus ids en una tupla, así que
+    ``self._filter_not_equal(...)._ids`` es gratis y su ``if not records``
+    no consulta nada. Aquí :func:`~orm.utils.browse` devuelve un
+    ``QuerySet`` —una consulta, no una lista— y volver a pedirle los ids
+    con :func:`~orm.utils.record_ids` los lee de la base.
+
+    Medido: sin este símbolo, ``Field.write`` sobre una fila en cómputo
+    ejecuta un ``SELECT`` por escritura, y en un test unitario sin la marca
+    ``django_db`` levanta *"Database access not allowed"* — 7 casos de
+    ``tests/unit/orm/``. La fuente no toca la base en ese punto, así que el
+    ``SELECT`` era nuestro, no suyo.
+
+    :meth:`_filter_not_equal` conserva su contrato —devuelve el conjunto de
+    filas— y se construye sobre éste; quien sólo necesita los ids los pide
+    aquí y no paga la vuelta. **El invariante que liga a los dos** es que
+    esto devuelve exactamente los ids de aquello:
+
+        ``record_ids(f._filter_not_equal(r, v)) == f._filter_not_equal_ids(r, v)``
+
+    De ahí sale la guarda por ``id_``, que no es un descarte arbitrario:
+    :func:`~orm.utils.browse` no lleva una fila sin ``pk``, así que un
+    ``None`` en esta tupla rompería la igualdad. Y la caché del ORM está
+    **indexada por pk** —es su clave—, de modo que sembrarla con ``None``
+    haría que ese valor le contestara a la siguiente fila en vuelo, que
+    también tiene ``pk`` nulo. Medido: con el ``None`` dentro, el
+    ``pre_save`` de un ``DateField`` leía la forma de caché de otra fila y
+    ``parse_date`` la rechazaba con *fromisoformat: argument must be str*.
+
+    La fuente no necesita la guarda porque su fila nueva lleva un
+    ``NewId``, que sí es una clave de caché válida. Construir ese
+    identificador virtual es la tarea **#327**; hasta entonces la fila en
+    vuelo vive sólo en el almacén de instancia de Django.
+    """
     field_cache = self._get_cache(get_environment())
-    return browse(model_of(records), [
+    return tuple(
         id_ for id_ in record_ids(records)
-        if field_cache.get(id_, SENTINEL) != cache_value
-    ])
+        if id_ and field_cache.get(id_, SENTINEL) != cache_value
+    )
 
 
 def _insert_cache(self, records, values):
@@ -3685,14 +4155,43 @@ def _cache_computed_values(fields, records):
                     continue
                 value = list(getattr(row, field.name).all())
             else:
-                value = getattr(row, getattr(field, 'attname', field.name),
-                                None)
+                value = _value_left_by_compute(row, field)
             field._update_cache([row], value, dirty=True)
+
+
+def _value_left_by_compute(row, field):
+    """Lo que el cómputo dejó en la fila, SIN volver a pasar por el descriptor.
+
+    Este read-back leía con ``getattr``, y eso era correcto mientras el
+    atributo de clase fuese un descriptor que sólo consulta el ``__dict__``.
+    Desde :class:`FieldDescriptor` (#211) ya no lo es: sobre una fila sin ``pk``
+    —el caso de ``pre_save`` en el INSERT— el ``getattr`` vuelve a entrar por
+    la rama de cómputo, que llama otra vez a ``compute_value``, que vuelve a
+    llamar aquí. Medido: ``RecursionError`` al crear cualquier fila con un
+    campo calculado y persistido.
+
+    La fuente no tiene el problema porque no tiene este paso: allá el método de
+    cómputo asigna **sobre el recordset** y esa asignación ya es
+    ``_update_cache``. Aquí asigna sobre la instancia de Django, así que lo que
+    hay que leer es **el almacén de la instancia**, no el campo.
+
+    El caso aplazado —el atributo ausente del ``__dict__``— conserva el camino
+    de Django llamando al ``__get__`` del padre, que es literalmente lo que el
+    ``getattr`` hacía antes. No puede reentrar: ese camino no computa.
+    """
+    attname = getattr(field, 'attname', field.name)
+    if attname in row.__dict__:
+        return row.__dict__[attname]
+    descriptor = getattr(type(row), attname, None)
+    if isinstance(descriptor, FieldDescriptor):
+        return DeferredAttribute.__get__(descriptor, row, type(row))
+    return getattr(row, attname, None)
 
 
 for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
                       _get_all_cache_ids, _cache_missing_ids,
-                      _filter_not_equal, _insert_cache,
+                      _filter_not_equal, _filter_not_equal_ids,
+                      _insert_cache,
                       _update_cache, recompute, compute_value):
     setattr(models.Field, _cache_method.__name__, _cache_method)
 
@@ -3721,5 +4220,6 @@ for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
 #: mecánica en vez de la de la fuente.
 for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
                       _get_all_cache_ids, _cache_missing_ids,
-                      _filter_not_equal, _insert_cache, _update_cache):
+                      _filter_not_equal, _filter_not_equal_ids,
+                      _insert_cache, _update_cache):
     setattr(NonStored, _cache_method.__name__, _cache_method)

@@ -1,0 +1,55 @@
+MEDICION #211 — __get__ y __set__: donde viven de verdad
+==================================================================
+
+1. AUSENTES en models.Field
+   Field.__get__    hasattr = False
+   Field.__set__    hasattr = False
+
+2. EL DESCRIPTOR NO ES EL CAMPO — sonda sobre res.partner
+   La fuente hace del campo su propio descriptor. Django coloca en el
+   atributo de clase un objeto DISTINTO, que el campo instala.
+
+   campo        objeto en la clase             __get__  __set__
+   name         DeferredAttribute              True     False
+   active       DeferredAttribute              True     False
+   barcode      _CompanyDependentAttribute     True     True
+   parent_id    ForeignKeyDeferredAttribute    True     True
+
+   models.Field.descriptor_class = <class 'django.db.models.query_utils.DeferredAttribute'>
+
+3. DeferredAttribute NO define __set__ — es non-data descriptor
+   __get__ declarado: True
+   __set__ declarado: False
+   Consecuencia: la escritura de un campo escalar en Django es un
+   instance.__dict__[name] = value sin interceptor. La fuente SI lo
+   intercepta, y ahi reparte en tres cubos (protegidas/nuevas/reales).
+
+4. PIEZAS que los dos cuerpos piden — todas presentes salvo una
+   Field.write                True
+   Field.convert_to_write     True
+   Field.convert_to_cache     True
+   Field.convert_to_record    True
+   Field._get_cache           True
+   Field._update_cache        True
+   Field.recompute            True
+   Field._to_prefetch         True
+   Field.read                 True
+   Field.relational           True
+   Field.inherited            True
+   Environment._protected       True
+   Environment.protecting       True
+   Environment.transaction      True
+   transaction.tocompute      True
+
+5. CONSECUENCIA DE PORTE
+   El cuerpo de __get__/__set__ se porta al DESCRIPTOR, que es el
+   enganche vivo, y models.Field.descriptor_class lo declara. Es el
+   mismo desenlace que __set_name__ -> contribute_to_class (H-API-1067)
+   y tiene precedente propio en el arbol: _CompanyDependentAttribute,
+   que ya porta comportamiento de campo a un descriptor.
+
+Metrica: hasattr sobre models.Field; type() del objeto que ocupa el
+atributo de clase en res.partner; __dict__ de DeferredAttribute.
+Ciega a: los campos cuyo descriptor lo instale una libreria de tercero
+sin pasar por descriptor_class, y a los tipos de campo no presentes en
+res.partner.

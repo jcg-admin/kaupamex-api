@@ -958,3 +958,17 @@ class PrefetchX2many(collections.abc.Reversible):
             for id_ in reversed(self.record._prefetch_ids)
             for coid in field_cache.get(id_, ())
         )
+
+
+def _many2one_convert_to_column(self, value, record, values=None, validate=True):
+    """``Many2one.convert_to_column`` — ≙ ``odoo19c: odoo/orm/fields_relational.py:326-327``.
+
+    ``value or None``: el cero y la cadena vacía de una clave foránea son la
+    ausencia de relación, no una fila con ese identificador. La base los
+    conservaría —descarta por identidad— y la columna guardaría un ``0`` que no
+    apunta a nada.
+    """
+    return value or None
+
+
+models.ForeignKey.convert_to_column = _many2one_convert_to_column
