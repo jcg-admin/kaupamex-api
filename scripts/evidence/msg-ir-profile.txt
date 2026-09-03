@@ -1,0 +1,62 @@
+Close the port of ir_profile and its wizard
+
+Cuarto bloque de la tarea #338. ir_profile.py es el consumidor de
+speedscope.py (api@9bb9b3e1) y de profiler.py (api@d9a05f6f): sin el, el
+perfil que aquellos generan no tiene donde persistirse ni como servirse.
+
+17 de 17 simbolos de odoo19c: odoo/addons/base/models/ir_profile.py,
+medidos por AST sobre el recorrido completo; ninguno ausente. El archivo
+pasa de 226 a 605 lineas.
+
+Lo que se gana, por clase:
+
+- ProfileSetMixin — el conjunto de perfiles con sus tres derivados
+  (_compute_speedscope, _compute_speedscope_url, _compute_config_url) y
+  _add_outputs, que arma el enlace de la vista agregada.
+  no persistidos (speedscope, speedscope_url, config_url) con
+  fields.NonStored, set_profiling y action_view_speedscope.
+  de modo que la vista agregada opera sobre un queryset y no sobre una
+  fila suelta, como el recordset de la fuente.
+- IrProfile — los cinco atributos de clase que la fuente declara
+  (_name, _description, _order, _rec_name, _log_access), los tres campos
+  no persistidos (speedscope, speedscope_url, config_url) via
+  fields.NonStored, set_profiling y action_view_speedscope.
+
+BaseEnableProfilingWizard era un porte parcial silencioso: la fuente
+declara dos campos (duration, expiration) que aqui no existian, y su
+_compute_expiration era un classmethod sobre el parametro en vez del
+computo por fila que @api.depends('duration') gobierna. Ahora lleva los
+dos campos, el computo con su dependencia, y submit() devuelve False
+como la fuente.
+
+Con eso el transitorio deja de declarar abstract=True y gana su tabla:
+TransientModel declara _auto = True en la fuente
+(odoo19c: odoo/orm/models_transient.py:18) y expiration es store=True
+alli; sin columna no hay donde guardar lo que submit va a leer. Cierra
+la parte de la tarea #201 que corresponde a este transitorio; IrDemo y
+ResConfig siguen con su managed=False y su razon sin medir.
+
+El mes se calcula con relativedelta de python-dateutil, declarado en
+pyproject.toml:58, igual que la fuente; la aproximacion de 30 dias que
+tenia _DURATION_DELTAS desaparece.
+
+Migracion 0086: crea base_enable_profiling_wizard con sus dos columnas.
+
+Subconjunto derivado con
+grep -rl 'IrProfile\|ir_profile\|ir.profile\|BaseEnableProfilingWizard'
+--include=*.py tests/ | sed 's|/[^/]*$||' | sort | uniq -c
+-> tests/unit/tools; se anaden tests/unit/base y tests/integration/base
+porque la migracion toca el esquema del addon. 3362 passed, 1 failed en
+272.13 s.
+
+El unico rojo es
+tests/integration/base/test_report_engine.py::TestPlantillaSembrada::
+test_incoterm_de_sale_stock_llega_al_papel, pre-existente y ya
+registrado como tarea #340: pasa al correr su clase sola (4 passed en
+6.20 s), asi que es contaminacion de orden dentro del subconjunto y no
+depende de este cambio, que no toca la capa de reportes.
+
+Gates estaticos en verde: sin lazy imports (2586 archivos), sin
+silencios de excepcion injustificados (2586), identificadores en ingles.
+
+Refs: #338, #201, #340

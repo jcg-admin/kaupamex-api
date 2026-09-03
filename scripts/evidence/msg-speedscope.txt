@@ -1,0 +1,39 @@
+Port tools/speedscope, the profile file format
+
+Segundo bloque de la tarea #338, elegido por el flujo medido de la
+referencia y no por lectura: speedscope.py encabeza la lista con 369
+consumidores, sólo por detrás de profiler.py, que es su único llamador
+directo dentro de tools.
+
+Es el conversor del perfil crudo al formato que consume
+https://www.speedscope.app: una tabla compartida de marcos deduplicados
+más N perfiles que la referencian por índice. Emite las dos variantes
+del formato — evented para tiempo y SQL, sampled para memoria.
+
+13 de 13 símbolos de odoo19c: odoo/tools/speedscope.py, medidos por AST;
+ninguno ausente y ninguno nuestro que sobre. El cuerpo se copia y adapta
+con atribución (LGPL-3 declarado en el manifiesto del núcleo,
+DEC-KX-03);
+los comentarios y docstrings pasan a español, los identificadores se
+conservan.
+
+Los dos controles que discriminan, medidos con la guarda anulada y
+registrados en scripts/evidence/speedscope-controles.log:
+
+- El prefijo común de process. Con el bloque de continuidad sustituido
+  por level = 0 cae exactamente 1 caso de 35, el que dice medirlo: el
+  marco compartido por dos entradas pasa de abrirse una vez a abrirse
+  dos. El caso contrario, con continuous=False, prueba que el parámetro
+  tiene efecto en el otro sentido.
+- El signo del diferencial de memoria. Con diff = abs(diff) caen
+  exactamente 2 de 35 — el del peso acumulado y el de la serie
+  decreciente. El archivo vuelve byte a byte tras restaurar: mismo
+  sha256.
+
+35 casos nuevos. La suite derivada del símbolo tocado es
+tests/unit/tools, derivada con grep -rl sobre tests/: 832 passed en
+9.66 s. Gates estáticos en verde: sin lazy imports, sin silencios de
+excepción injustificados, canon-idioma sin violaciones e identificadores
+en inglés.
+
+Refs: #338

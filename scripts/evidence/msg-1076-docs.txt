@@ -1,0 +1,15 @@
+Register H-API-1076: read the flow before porting
+
+Ningun gate del arbol mira el vecindario de un simbolo: los cuatro que
+miden un porte —simbolos del archivo, cabecera, sitio y nombre— son
+mediciones locales, y el contrato que gobierna vive fuera del cuerpo.
+``convert_to_column`` es el positivo: 15 clases en 10 archivos.
+
+El hallazgo registra el guion que publica las cinco unidades de lectura,
+por que se construye sobre ``counterpart_body`` en vez de al lado, y los
+tres defectos que tuvo mientras se escribia — los tres del sub-patron D,
+con su control de regresion y la medicion de la guarda anulada.
+
+Traza: api@973a6fff.
+
+Refs: #352

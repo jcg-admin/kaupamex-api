@@ -1,0 +1,23 @@
+Document the profiler port and its measured guard
+
+Los dos hallazgos del tercer bloque de la tarea #338, con la traza al
+commit de codigo api@d9a05f6f.
+
+H-API-1080 cubre el porte de tools/profiler: 41 de 41 simbolos medidos
+por AST, las dos divergencias de mecanismo declaradas (la tupla que
+psycopg3 adapta a literal compuesto, y las columnas NOT NULL de nuestro
+ir_profile), la construccion de install_runbot_level en
+tools/logging_handlers, y los dos controles con la guarda anulada.
+
+H-API-1079 es lo que la primera de esas mediciones destapo: la guarda
+del marco duplicado de PeriodicCollector.add nunca ve el marco anterior,
+porque el bloque de congelamiento limpia last_frame trece lineas antes
+de la comparacion. Lo que atrapa de verdad es el hilo sin marco. El
+defecto es de la fuente; el porte se deja verbatim y los dos casos de
+test fijan la conducta real para que un refactor no la cambie creyendo
+que corrige un duplicado. Queda DOCUMENTADO con su condicion de cierre.
+
+El index de la iniciativa suma las dos filas y sus dos entradas de
+toctree. Sintaxis RST validada sobre los tres archivos: 0 errores.
+
+Refs: #338
