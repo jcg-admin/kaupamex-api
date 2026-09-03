@@ -110,17 +110,18 @@ class TestTheTransaction:
         de contarlo: eran cinco hasta la capa A de #273, seis con
         ``field_cache_memo`` —el memo de ``Field._get_cache``, que la fuente
         cuelga del ``Environment`` y aquí cuelga de la transacción porque es
-        ella quien tiene su vida— y siete desde que #323 portó ``Cache``.
-        ``cache`` no es invención nuestra: la fuente lo declara en su propio
-        ``__slots__`` (``odoo19c: odoo/orm/environments.py:555``).
+        ella quien tiene su vida—, siete desde que #323 portó ``Cache`` y
+        **nueve** desde que #324 portó ``envs`` y ``default_env``. Ninguno de
+        los tres últimos es invención nuestra: la fuente los declara en su
+        propio ``__slots__`` (``odoo19c: odoo/orm/environments.py:555-558``).
 
-        Los cuatro de la fuente que aquí **no** están —``registry``, ``envs``,
-        ``default_env`` y ``_Transaction__file_open_tmp_paths``— llevan su
-        divergencia declarada en el docstring de la clase.
+        Los dos de la fuente que aquí **no** están —``registry`` y
+        ``_Transaction__file_open_tmp_paths``— llevan su divergencia declarada
+        en el docstring de la clase.
         """
         assert Transaction.__slots__ == (
-            'cache', 'field_cache_memo', 'field_data', 'field_data_patches',
-            'field_dirty', 'protected', 'tocompute')
+            'cache', 'default_env', 'envs', 'field_cache_memo', 'field_data',
+            'field_data_patches', 'field_dirty', 'protected', 'tocompute')
 
     def test_a_slot_outside_the_declared_set_is_refused(self):
         """El control de que ``__slots__`` está de verdad cerrado.

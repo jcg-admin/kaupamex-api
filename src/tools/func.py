@@ -13,27 +13,56 @@ símbolos de API — nueve definiciones (``reset_cached_properties``,
 Fuera del censo quedan los dos parámetros de tipo (``T``, ``P``) y ``__all__``,
 que no son API.
 
-Portados **dos**:
+Portados **tres**:
 
 - ``classproperty`` (``:115-125``), que ``orm/domains.py`` consume;
 - ``lazy`` (``:135-262``), que ``tools/json.py`` consume en la tercera rama de
-  ``json_default`` — tarea #142.
+  ``json_default`` — tarea #142;
+- ``reset_cached_properties`` (``:20-26``), que ``Transaction.reset`` consume
+  al reasignar el registro — tarea #324.
 
-**Ausentes: ocho** —``reset_cached_properties``, ``lazy_property``,
-``conditional``, ``filter_kwargs``, ``synchronized``, ``locked``,
-``frame_codeinfo`` y ``lazy_classproperty``—; ninguno tiene consumidor en este
-árbol y su porte se decide cuando lo tenga. Cuatro de ellos —``filter_kwargs``,
-``synchronized``, ``locked`` y ``frame_codeinfo``— ni siquiera están en el
-``__all__`` de la fuente, que declara seis nombres.
+**Ausentes: siete** —``lazy_property``, ``conditional``, ``filter_kwargs``,
+``synchronized``, ``locked``, ``frame_codeinfo`` y ``lazy_classproperty``—;
+ninguno tiene consumidor en este árbol y su porte se decide cuando lo tenga.
+Cuatro de ellos —``filter_kwargs``, ``synchronized``, ``locked`` y
+``frame_codeinfo``— ni siquiera están en el ``__all__`` de la fuente, que
+declara seis nombres.
 
 Adaptado de Odoo Community ``odoo/tools/func.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
 """
+import functools
 import typing
 
-__all__ = ['classproperty', 'lazy']
+__all__ = ['classproperty', 'lazy', 'reset_cached_properties']
 
 T = typing.TypeVar('T')
+
+
+def reset_cached_properties(obj):
+    """Vacía las ``functools.cached_property`` memorizadas en ``obj``.
+
+    ≙ ``reset_cached_properties`` (``odoo19c: odoo/tools/func.py:20-26``).
+    Docstring de la fuente, verbatim: *"Reset all cached properties on the
+    instance `obj`"*.
+
+    Una ``cached_property`` guarda su resultado en el ``__dict__`` de la
+    instancia bajo su propio nombre; borrar esa entrada hace que la siguiente
+    lectura vuelva a calcular. **Sólo** se borra lo que respalda a una
+    ``cached_property`` del tipo: un atributo normal del mismo ``__dict__``
+    sobrevive, y ésa es la mitad que hace del guion un control y no un
+    ``vars(obj).clear()``.
+
+    Su consumidor aquí es ``Transaction.reset``
+    (``odoo19c: odoo/orm/environments.py:610-618``): tras reasignar el
+    registro, lo que cada entorno memorizó sobre el registro viejo deja de ser
+    válido.
+    """
+    cls = type(obj)
+    obj_dict = vars(obj)
+    for name in list(obj_dict):
+        if isinstance(getattr(cls, name, None), functools.cached_property):
+            del obj_dict[name]
 
 
 class classproperty(typing.Generic[T]):

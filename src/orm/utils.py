@@ -251,3 +251,32 @@ def model_field_registry(model):
     registry = {field.name: field for field in model._meta.get_fields()}
     registry.update(non_stored_fields(model))
     return registry
+
+
+def model_of_field(field, registry_module):
+    """La clase de modelo a la que ``field`` pertenece.
+
+    ≙ ``field.model_name`` de la fuente, que es el nombre punteado que su ORM
+    le pone al campo al ligarlo (``odoo19c: odoo/orm/fields.py``). Aqui quien
+    liga el campo es Django, y lo que deja es ``field.model`` — la clase,
+    directamente. Por eso la resolucion tiene **dos vias y la de Django va
+    primero**: ``model_name`` solo lo lleva un campo cuyo puerto se lo haya
+    declarado, asi que preguntar solo por el dejaria fuera a todo campo ligado
+    por Django, que son todos.
+
+    ``registry_module`` se recibe en vez de importarse: ``orm.registry`` importa
+    de aqui, y este modulo es la capa de abajo. Es el mismo motivo por el que
+    ``model_field_registry`` recibe la clase y no la busca.
+
+    Vive aqui y no en ``orm/fields.py`` —donde nacio como ``_model_of``— porque
+    tiene un segundo consumidor que no puede importar aquel archivo:
+    ``Environment._recompute_all`` y ``flush_all`` lo necesitan para resolver el
+    modelo de un campo sucio, y ``orm/fields.py`` importa ``orm.environments``.
+    Copiar las tres lineas seria la segunda fuente de verdad que
+    ``calibration-verified-numbers.md`` prohibe.
+    """
+    model = getattr(field, 'model', None)
+    if model is not None:
+        return model
+    name = getattr(field, 'model_name', '')
+    return registry_module.MODELS_BY_NAME.get(name) if name else None

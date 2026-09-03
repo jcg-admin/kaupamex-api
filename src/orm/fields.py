@@ -86,7 +86,8 @@ from orm.fields_selection import Selection                     # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
 from orm.utils import (COLLECTION_TYPES, as_record_list, browse,
-                       model_field_registry, model_of, record_ids)
+                       model_field_registry, model_of, model_of_field,
+                       record_ids)
 
 #: El **registro de tipos de campo**, no la lista de exportables del módulo.
 #:
@@ -2048,21 +2049,11 @@ def _field_setup(self, model):
 models.Field.setup = _field_setup
 
 
-def _model_of(field, registry_module):
-    """La clase de modelo a la que ``field`` pertenece.
-
-    Dos vias, y la de Django va primero. La fuente resuelve por
-    ``field.model_name``, el nombre punteado que su ORM le pone al ligar el
-    campo. Aqui quien liga el campo es Django, y lo que deja es ``field.model``
-    — la clase, directamente. ``model_name`` solo lo lleva un campo cuyo puerto
-    se lo haya declarado, asi que preguntar solo por el dejaria fuera a todo
-    campo ligado por Django, que son todos.
-    """
-    model = getattr(field, 'model', None)
-    if model is not None:
-        return model
-    name = getattr(field, 'model_name', '')
-    return registry_module.MODELS_BY_NAME.get(name) if name else None
+#: La resolucion vive en ``orm/utils.py`` desde la tarea #324: la comparte con
+#: ``Environment._recompute_all`` y ``flush_all``, que no pueden importar este
+#: archivo porque este importa ``orm.environments``. El alias conserva el nombre
+#: con que lo citan los consumidores de aqui.
+_model_of = model_of_field
 
 
 def _comodel_of(field, registry_module):

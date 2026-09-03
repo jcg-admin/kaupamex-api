@@ -3214,51 +3214,71 @@ def _recompute_recordset(self, fnames=None):
             _recompute_field(self, field, record_ids(rows))
 
 
-def _flush(self, fnames=None):
+def _flush(self):
     """Escribe a la base lo que el calculo dejo sucio en el cache.
 
-    ≙ ``BaseModel._flush`` (``odoo19c: odoo/orm/models.py:6386``). La fuente
-    saca del cache los campos sucios con sus ids y compone el ``UPDATE``; aqui
-    el ``UPDATE`` lo pone Django con ``save(update_fields=...)``, que escribe
-    **solo** esas columnas.
+    ≙ ``BaseModel._flush`` (``odoo19c: odoo/orm/models.py:6386-6400``). La
+    fuente saca del cache los campos sucios con sus ids y compone el
+    ``UPDATE``; aqui el ``UPDATE`` lo pone Django con
+    ``save(update_fields=...)``, que escribe **solo** esas columnas.
 
     El cache lo puebla ``orm.fields._cache_computed_values``, que corre al
     final de cada ``compute_value``: sin el, ``field_dirty`` estaria siempre
     vacio y este metodo no tendria de donde saber que columna escribir.
+
+    **El alcance es el MODELO, no las filas de ``self``** — corregido con la
+    tarea #324. La version anterior arrancaba con ``rows = as_record_list(self)``
+    y ``if not rows: return``, asi que sobre un recordset vacio no escribia
+    nada; y ``flush_model``, que es quien lo llama sin filas, se volvia un
+    verde que no discrimina: corria, no volcaba, y nadie lo notaba. La fuente
+    recorre ``self._fields.values()`` y **saca** (``pop``) los ids sucios de
+    cada uno, sin mirar ``self._ids``: por eso su ``flush_model`` sobre un
+    recordset vacio si vuelca el modelo entero.
+
+    La firma tambien vuelve a la de la fuente: ``_flush(self)``, sin
+    ``fnames``. Quien acota por nombre es el llamador —``flush_model`` decide
+    si vale la pena volcar— y allá el volcado, una vez decidido, es completo.
     """
-    rows = as_record_list(self)
-    if not rows:
+    model = _model_of_records(self) or (self if isinstance(self, type) else None)
+    if model is None:
         return
     dirty = get_transaction().field_dirty
-    model = type(rows[0])
-    wanted = None if fnames is None else set(fnames)
+    dirty_field_ids = {}
+    for field in model_field_registry(model).values():
+        ids = dirty.pop(field, None)
+        if ids:
+            dirty_field_ids[field] = ids
+    if not dirty_field_ids:
+        return
 
-    by_row = collections.defaultdict(list)
-    for field, ids in list(dirty.items()):
-        if getattr(field, 'model', None) is not model or not ids:
-            continue
-        if wanted is not None and field.name not in wanted:
-            continue
-        for row in rows:
-            if row.pk in ids:
-                by_row[row].append(field)
+    #: Solo las filas ya persistidas: un id que no es entero es una fila
+    #: virtual, que se recalcula al leerla y no tiene columna que escribir.
+    wanted_ids = OrderedSet(record_id for ids in dirty_field_ids.values()
+                            for record_id in ids if isinstance(record_id, int))
+    rows = {row.pk: row for row in model.objects.filter(pk__in=list(wanted_ids))}
 
-    for row, row_fields in by_row.items():
+    for record_id in wanted_ids:
+        row = rows.get(record_id)
+        if row is None:
+            # silent OK because la fila se borro entre el calculo y el volcado:
+            # su id salio del cache sucio arriba, asi que no queda pendiente, y
+            # escribir sobre una fila inexistente es el error, no el silencio.
+            continue
         names = []
-        for field in row_fields:
-            cached = field._get_cache(env())
-            if getattr(field, 'many_to_many', False):
-                if row.pk in cached:
-                    _flush_m2m(row, field, cached[row.pk])
+        for field, ids in dirty_field_ids.items():
+            if record_id not in ids:
                 continue
-            if row.pk in cached:
-                setattr(row, getattr(field, 'attname', field.name),
-                        cached[row.pk])
-            names.append(getattr(field, 'attname', field.name))
+            cached = field._get_cache(env())
+            if record_id not in cached:
+                continue
+            if getattr(field, 'many_to_many', False):
+                _flush_m2m(row, field, cached[record_id])
+                continue
+            attname = getattr(field, 'attname', field.name)
+            setattr(row, attname, cached[record_id])
+            names.append(attname)
         if names:
             row.save(update_fields=names)
-        for field in row_fields:
-            dirty[field].discard(row.pk)
 
 
 def _flush_m2m(row, field, value):
@@ -3295,16 +3315,16 @@ def flush_model(self, fnames=None):
     flushed, though"*.
     """
     _recompute_model(self, fnames)
-    dirty = get_transaction().field_dirty
-    model = _model_of_records(self)
+    model = _model_of_records(self) or (self if isinstance(self, type) else None)
     if model is None:
         return
     if fnames is None:
         _flush(self)
         return
+    dirty = get_transaction().field_dirty
     registry_of_model = model_field_registry(model)
     if any(registry_of_model[fname] in dirty for fname in fnames):
-        _flush(self, fnames)
+        _flush(self)
 
 
 def flush_recordset(self, fnames=None):
@@ -3323,7 +3343,7 @@ def flush_recordset(self, fnames=None):
     ids = set(record_ids(rows))
     dirty = get_transaction().field_dirty
     if not all(ids.isdisjoint(dirty.get(field) or ()) for field in fields):
-        _flush(rows, fnames)
+        _flush(rows)
 
 
 for _engine_method in (modified, _modified, _modified_triggers,

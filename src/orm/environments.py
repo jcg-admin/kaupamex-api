@@ -77,8 +77,10 @@ para el alcance, ``defaultdict`` para los mapas, y ``OrderedSet`` /
 ``StackMap`` de ``tools/misc.py`` para el orden de inserción y el apilado de
 alcances.
 """
+import functools
 import logging
 import warnings
+import weakref
 from collections import defaultdict
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -88,13 +90,19 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.apps import apps
 from django.db import DEFAULT_DB_ALIAS, connection, connections, models
+from django.utils import translation
+from django.utils.functional import Promise
+from django.utils.translation.trans_real import to_language
 
 from exceptions import AccessError, CacheMiss
 from orm import registry
-from orm.utils import browse, model_of, model_field_registry, record_ids
+from orm.utils import (SUPERUSER_ID, browse, model_of, model_field_registry,
+                       model_of_field, record_ids)
+from tools.func import reset_cached_properties
 from tools.misc import SENTINEL, OrderedSet, StackMap, frozendict
 from tools.query import Query
 from tools.sql import SQL, execute_sql
+from tools.translate import _translate_and_format
 
 _logger = logging.getLogger(__name__)
 
@@ -387,14 +395,24 @@ class Transaction:
     ``tocompute``      ``Field.recompute`` — los cómputos pendientes
     ================== ==========================================================
 
-    De los ocho ``__slots__`` de la fuente quedan fuera dos, y por razón
+    De los ocho ``__slots__`` de la fuente queda fuera **uno**, y por razón
     medida, no por conveniencia:
 
     - ``registry`` — aquí el registro es ``orm.registry``, un módulo, no un
-      objeto que la transacción tenga que sostener.
-    - ``envs`` / ``default_env`` — la fuente guarda un ``WeakSet`` de entornos
-      para volcarlos al hacer ``flush``. Aquí el entorno es este mismo módulo
-      de ``contextvars``: no hay N objetos que recorrer.
+      objeto que la transacción tenga que sostener. Lo que una reconstrucción
+      del suyo produce son sus mapas derivados, y eso es lo que
+      :meth:`reset` invalida con ``registry.clear_field_depends()``.
+
+    ``envs`` y ``default_env`` **sí se portan** desde la tarea #324, y la
+    versión anterior de este docstring los daba por descartados con una razón
+    que no se sostiene: decía que «el entorno es este mismo módulo de
+    ``contextvars``, no hay N objetos que recorrer». Sí los hay —
+    :class:`Environment` es una clase y se instancia— y sin ellos ni
+    :meth:`flush` ni :meth:`reset` se pueden portar: los dos recorren los
+    entornos vivos. La corrección entra por la Clausula 2 del principio rector.
+    Lo único que cambia de mecanismo es el contenedor: una **lista de
+    referencias débiles** en vez de un ``WeakSet``, porque
+    :meth:`Environment.__hash__` lee el canal ambiental y no es estable.
 
     ``cache`` **sí se porta**, y la versión anterior de este docstring lo
     describía mal: no es «el nombre viejo de ``field_data``» sino la
@@ -408,9 +426,9 @@ class Transaction:
     este árbol, y con su nombre: vive en ``tools/misc.py``
     (``file_open_temporary_directory``), donde se portó con la tarea #131.
     """
-    __slots__ = ('cache', 'field_cache_memo', 'field_data',
-                 'field_data_patches', 'field_dirty', 'protected',
-                 'tocompute')
+    __slots__ = ('cache', 'default_env', 'envs', 'field_cache_memo',
+                 'field_data', 'field_data_patches', 'field_dirty',
+                 'protected', 'tocompute')
 
     def __init__(self):
         #: ``{campo: datos_gestionados_por_el_campo}``. Suele ser un mapa de
@@ -445,6 +463,21 @@ class Transaction:
         #: voluntad; un memo por instancia fallaría entre dos entornos
         #: iguales y no ahorraría nada.
         self.field_cache_memo = {}
+        #: ≙ ``Transaction.envs`` (``odoo19c: odoo/orm/environments.py:557``)
+        #: — los entornos vivos de esta transacción. La fuente usa un
+        #: ``WeakSet``; aquí es una **lista de referencias débiles**, y la
+        #: razón está medida: :meth:`Environment.__hash__` lee el canal
+        #: ambiental, así que su hash NO es estable y un ``WeakSet`` perdería
+        #: el elemento en cuanto alguien abriera un ``context_scope``. La
+        #: búsqueda de la fuente es de todos modos un recorrido lineal con
+        #: ``==`` (``:73-75``), que es exactamente lo que la lista entrega —
+        #: sin exigir hashabilidad. La poda de las muertas la hace
+        #: :func:`_live_envs`.
+        self.envs = []
+        #: ≙ ``Transaction.default_env`` (``:558``) — «the default
+        #: transaction's environment is the first one with a valid uid»
+        #: (``:85-87``). Es quien :meth:`flush` usa para volcar.
+        self.default_env = None
 
     def invalidate_field_data(self, spec=None):
         """Vacía el caché de campos, entero o el tramo que ``spec`` nombre.
@@ -471,6 +504,51 @@ class Transaction:
                 continue
             for record_id in ids:
                 cache.pop(record_id, None)
+
+    def flush(self):
+        """Vuelca los cómputos y las escrituras pendientes de la transacción.
+
+        ≙ ``Transaction.flush`` (``odoo19c: odoo/orm/environments.py:589-598``).
+        Docstring de la fuente, verbatim: *"Flush pending computations and
+        updates in the transaction"*.
+
+        El respaldo —volcar como usuario público cuando no hay ``default_env``—
+        se porta con su aviso: la fuente lo emite dentro del bucle, antes de
+        romperlo en la primera vuelta, así que sólo sale una vez aunque haya N
+        entornos. Se conserva ese orden.
+        """
+        if self.default_env is not None:
+            self.default_env.flush_all()
+            return
+        for environment in _live_envs(self):
+            _logger.warning("Missing default_env, flushing as public user")
+            public_user = environment.ref('base.public_user')
+            Environment(environment._using, public_user.pk, {}).flush_all()
+            break
+
+    def reset(self):
+        """Reinicia la transacción tras recargar el registro.
+
+        ≙ ``Transaction.reset`` (``:610-618``). Docstring de la fuente,
+        verbatim: *"Reset the transaction.  This clears the transaction, and
+        reassigns the registry on all its environments.  This operation is
+        strongly recommended after reloading the registry"*.
+
+        **La reasignación del registro toma aquí la forma que el registro
+        tiene.** Allá es un objeto por base y se reconstruye
+        (``self.registry = Registry(self.registry.db_name)``); aquí es un
+        módulo, y lo que una reconstrucción produce son sus mapas derivados de
+        lo declarado, que es justo lo que ``registry.clear_field_depends()``
+        vacía. Por eso el orden importa: primero se invalida lo derivado,
+        después se tira lo que cada entorno memorizó sobre ello —``
+        _field_depends_context`` es una ``functools.cached_property`` y
+        seguiría sirviendo el mapa viejo—, y sólo entonces se limpia la
+        transacción.
+        """
+        registry.clear_field_depends()
+        for environment in _live_envs(self):
+            reset_cached_properties(environment)
+        self.clear()
 
     def clear(self):
         """≙ ``Transaction.clear`` — vacía cachés y cómputos pendientes."""
@@ -525,6 +603,25 @@ def transaction_scope():
             _transaction.set(previous)
 
 
+def _live_envs(transaction):
+    """Los entornos vivos de ``transaction``, podando las referencias muertas.
+
+    ≙ recorrer ``transaction.envs`` en la fuente, donde es un ``WeakSet`` y la
+    poda la hace el recolector. Aquí ``envs`` es una lista de referencias
+    débiles —ver el comentario de :class:`Transaction`— así que la referencia
+    muerta queda en la lista hasta que alguien la recorre; este recorrido es
+    ese alguien.
+    """
+    alive = []
+    for reference in list(transaction.envs):
+        environment = reference()
+        if environment is None:
+            transaction.envs.remove(reference)
+        else:
+            alive.append(environment)
+    return alive
+
+
 class Environment:
     """≙ ``Environment`` (``odoo19c: odoo/orm/environments.py:40-549``).
 
@@ -574,18 +671,93 @@ class Environment:
     Sin ese activado el objeto sería decorativo: dos vistas del entorno que
     no coinciden es peor que una sola.
     """
-    __slots__ = ('_uid_override', '_context_override', '_su_override',
-                 '_using', '_tokens')
+    #: **Sin ``__slots__``, y no por descuido.** La clase los declaraba, y el
+    #: porte de ``__new__``/``__setattr__`` (tarea #324) los retira: el
+    #: mecanismo de la fuente vive en el ``__dict__`` de la instancia —
+    #: ``__setattr__`` decide con ``name in vars(self)`` (``:93``),
+    #: ``functools.cached_property`` guarda ahí su resultado, y
+    #: ``reset_cached_properties`` lo borra de ahí—. Con ``__slots__`` los tres
+    #: quedan sin receptor: ``vars()`` de un objeto ranurado levanta
+    #: ``TypeError``. El ahorro de memoria que los ranuras daban pesa aún menos
+    #: desde que ``__new__`` agrupa: hay un entorno por juego de ejes, no uno
+    #: por construcción.
 
-    def __init__(self, cr=None, uid=None, context=None, su=None):
-        # La firma es la de la fuente —``Environment(cr, uid, context, su)``—
-        # y ``cr`` es aquí el **alias** de la conexión, que es lo que este
-        # stack usa para nombrarla; ``None`` significa la de por defecto.
+    def __new__(cls, cr=None, uid=None, context=None, su=None):
+        """El entorno se **agrupa por transacción**: dos construcciones con los
+        mismos ejes devuelven el MISMO objeto.
+
+        ≙ ``Environment.__new__`` (``odoo19c: odoo/orm/environments.py:64-89``).
+        La firma es la de la fuente —``Environment(cr, uid, context, su)``— y
+        ``cr`` es aquí el **alias** de la conexión, que es lo que este stack usa
+        para nombrarla; ``None`` significa la de por defecto.
+
+        Tres divergencias de mecanismo, las tres medidas:
+
+        - **La guarda del primer argumento.** La fuente exige
+          ``isinstance(cr, BaseCursor)``; aquí el cursor es la conexión de
+          Django y lo que se recibe es su alias, así que la guarda equivalente
+          es que el alias esté declarado. ``None`` pasa: es la de por defecto.
+        - **La transacción no cuelga del cursor.** Allá
+          ``cr.transaction`` la crea si falta (``:70-72``); aquí la transacción
+          es un ``ContextVar`` de este módulo y :func:`get_transaction` hace
+          exactamente eso mismo — crearla si falta.
+        - **La búsqueda compara los OVERRIDES, no los valores resueltos.** La
+          fuente compara ``env.uid``/``env.su``/``env.context``, que allá son
+          los valores fijados en la construcción. Aquí esos tres son vistas del
+          canal ambiental y cambian dentro de la vida del objeto; lo que
+          identifica a la instancia es lo que guarda, que son sus overrides.
+          Comparar los resueltos agruparía dos entornos que el contexto separa
+          un instante después.
+
+        Lo que **no** cambia: la elevación implícita del super-usuario
+        (``:66-67``), el registro en ``transaction.envs`` y la elección del
+        ``default_env`` como el primero con un uid entero y no vacío.
+        """
+        assert cr is None or cr in connections, (
+            'cr nombra la conexión por su alias; %r no está declarado' % (cr,))
+        if uid == SUPERUSER_ID:
+            su = True
+
+        transaction = get_transaction()
+
+        for environment in _live_envs(transaction):
+            if (environment._using == cr
+                    and environment._uid_override == uid
+                    and environment._su_override == su
+                    and environment._context_override == context):
+                return environment
+
+        self = object.__new__(cls)
         self._using = cr
         self._uid_override = uid
         self._context_override = context
         self._su_override = su
+        #: La pila de marcos de activación — una lista por cada ``with``
+        #: abierto sobre ESTE objeto. Era una lista plana, y con ``__new__``
+        #: agrupando dejó de bastar: dos ``with`` anidados sobre el mismo
+        #: entorno compartirían el objeto, y un ``__exit__`` que vacía la lista
+        #: entera devolvería los canales del marco de fuera al salir del de
+        #: dentro. Un marco por entrada mantiene la disciplina LIFO que
+        #: ``ContextVar.reset`` exige.
         self._tokens = []
+        transaction.envs.append(weakref.ref(self))
+        if transaction.default_env is None and uid and isinstance(uid, int):
+            transaction.default_env = self
+        return self
+
+    def __setattr__(self, name, value):
+        """≙ ``Environment.__setattr__`` (``:91-95``) — una vez inicializado,
+        los atributos son de sólo lectura; para variar un eje se deriva otro
+        entorno con ``env(...)``.
+
+        La ``functools.cached_property`` no pasa por aquí: escribe directamente
+        en ``instance.__dict__``. Por eso memorizar un valor derivado no choca
+        con la guarda, y ``reset_cached_properties`` puede borrarlo.
+        """
+        if name in vars(self):
+            raise AttributeError(
+                f"Attribute {name!r} is read-only, call `env()` instead")
+        return super().__setattr__(name, value)
 
     # --- el índice de modelos, que es el azúcar que motivó la clase --------
 
@@ -671,20 +843,27 @@ class Environment:
         )
 
     def __enter__(self):
-        """Activa los overrides sobre los canales — ver el docstring."""
+        """Activa los overrides sobre los canales — ver el docstring.
+
+        Cada entrada apila **su propio marco**: el mismo objeto puede estar
+        dentro de dos ``with`` anidados desde que ``__new__`` agrupa, y sin el
+        marco el ``__exit__`` de dentro devolvería también los tokens de fuera.
+        """
+        frame = []
         if self._uid_override is not None:
-            self._tokens.append((_uid, _uid.set(self._uid_override)))
+            frame.append((_uid, _uid.set(self._uid_override)))
         if self._context_override is not None:
-            self._tokens.append((_context, _context.set(
+            frame.append((_context, _context.set(
                 dict(self._context_override))))
         if self._su_override is not None:
-            self._tokens.append((_su, _su.set(bool(self._su_override))))
+            frame.append((_su, _su.set(bool(self._su_override))))
+        self._tokens.append(frame)
         return self
 
     def __exit__(self, exc_type, exc, tb):
-        for channel, token in reversed(self._tokens):
+        frame = self._tokens.pop() if self._tokens else []
+        for channel, token in reversed(frame):
             channel.reset(token)
-        self._tokens.clear()
         return False
 
     # --- los tres ejes, leídos del canal salvo override --------------------
@@ -779,6 +958,254 @@ class Environment:
     def transaction(self):
         """≙ ``env.transaction`` — la transacción del ORM en curso."""
         return get_transaction()
+
+    # --- las vistas de la transacción y del registro -----------------------
+    #
+    # La fuente declara las cinco como ``functools.cached_property``, y aquí
+    # sólo la última lo es. **No es una preferencia: es que allá el objeto es
+    # inmutable y aquí no.** ``Environment.transaction`` de la fuente se fija
+    # en ``__new__`` (``:80``), así que memorizar ``transaction.cache`` es
+    # memorizar algo que no puede cambiar. Aquí ``transaction`` es una vista de
+    # un ``ContextVar``: memorizar su caché serviría la de la transacción vieja
+    # en cuanto entrara otra, y el fallo sería silencioso — se leería y se
+    # escribiría en un almacén que ya nadie vuelca.
+    #
+    # ``_field_depends_context`` **sí** se memoriza, y es la excepción con
+    # receptor: lo que devuelve es un objeto del módulo ``orm.registry``, que
+    # no cambia de identidad; lo que cambia es su contenido, y quien lo
+    # invalida es :meth:`Transaction.reset` llamando a
+    # ``reset_cached_properties`` sobre cada entorno — que es exactamente el
+    # motivo por el que la fuente escribió ese método.
+
+    @property
+    def _protected(self):
+        """≙ ``Environment._protected`` (``:198-200``) — «Return the protected
+        map of the transaction»."""
+        return self.transaction.protected
+
+    @property
+    def cache(self):
+        """≙ ``Environment.cache`` (``:203-205``) — «Return the cache object of
+        the transaction»."""
+        return self.transaction.cache
+
+    @property
+    def _field_dirty(self):
+        """≙ ``Environment._field_dirty`` (``:507-509``) — «Map fields to set of
+        dirty ids»."""
+        return self.transaction.field_dirty
+
+    @property
+    def _field_cache_memo(self):
+        """≙ ``Environment._field_cache_memo`` (``:502-504``) — «Memo for
+        `Field._get_cache(env)`.  Do not use it».
+
+        Allá el memo nace vacío en el entorno; aquí cuelga de la transacción, y
+        la razón está escrita en :class:`Transaction`: el propio docstring de
+        la fuente ata su vida a la transacción —*"unless the transaction was
+        entirely invalidated"*—, y aquí el entorno se compara por valor, así
+        que un memo por instancia fallaría entre dos entornos iguales.
+        """
+        return self.transaction.field_cache_memo
+
+    @functools.cached_property
+    def _field_depends_context(self):
+        """≙ ``Environment._field_depends_context`` (``:512-513``) — el mapa
+        ``campo -> claves de contexto de las que depende``."""
+        return self.registry.field_depends_context
+
+    # --- idioma ------------------------------------------------------------
+
+    @property
+    def _lang(self):
+        """≙ ``Environment._lang`` (``:305-313``) — «Return the technical
+        language code of the current context for **model_terms** translated
+        field».
+
+        El prefijo ``'_'`` no es decorativo: marca el pseudo-idioma con que la
+        referencia sirve los términos **sin traducir** cuando el cliente está
+        editando o revisando traducciones, para que el editor vea el original.
+
+        Plana y no memorizada, por lo mismo que las cuatro de arriba: allá el
+        ``context`` es un ``frozendict`` fijado en la construcción; aquí es una
+        vista del canal y cambia dentro de la vida del objeto.
+        """
+        context = self.context
+        lang = self.lang or 'en_US'
+        if context.get('edit_translations') or context.get('check_translations'):
+            lang = '_' + lang
+        return lang
+
+    def _(self, source, *args, **kwargs):
+        """Traduce ``source`` con el idioma de ESTE entorno.
+
+        ≙ ``Environment._`` (``:315-348``). Docstring de la fuente, verbatim:
+        *"Translate the term using current environment's language"*. Uso::
+
+            self.env._("hello world")
+            self.env._("hello %s", "test")
+            self.env._(LAZY_TRANSLATION)
+
+        :param source: el texto a traducir, o una traducción perezosa.
+        :param args: argumentos posicionales de ``%``; excluyentes con kwargs.
+        :param kwargs: argumentos nombrados de ``%(nombre)s``.
+        :return: el texto traducido.
+
+        **Qué cambia de mecanismo, y qué no.** Lo que no cambia es el contrato:
+        el idioma sale del entorno y no del hilo, las dos formas de argumento
+        son excluyentes, una fuente que no es texto ni perezosa levanta
+        ``TypeError``, y un fallo de traducción no propaga — se registra en
+        ``debug`` y se devuelve la fuente.
+
+        Lo que cambia es **quién es la traducción perezosa** y **cómo se elige
+        el catálogo**:
+
+        - Allá es una ``LazyGettext`` con su ``_translate(lang)``; aquí
+          ``tools.translate._`` devuelve el proxy perezoso de Django
+          (``django.utils.functional.Promise``), y resolverlo bajo un idioma es
+          convertirlo a texto dentro de ``translation.override``. La clase
+          ``LazyGettext`` no se porta porque no tiene consumidor —la razón está
+          medida en el docstring de ``tools/translate.py``—; lo que se porta es
+          la rama que la atiende, sobre el perezoso que este árbol sí produce.
+        - Allá el catálogo se elige **por módulo**, y la fuente lo descubre del
+          marco de llamada (``get_translated_module(2)``). El catálogo de
+          Django no tiene esa llave: fusiona los ``locale/`` de las apps en uno
+          por idioma, así que el nombre del módulo no discrimina nada y
+          descubrirlo sería medir un eje que el receptor no tiene. Darle esa
+          llave es la tarea **#185**, que es quien construye el catálogo por
+          idioma; hasta entonces la selección es por idioma y el módulo no
+          participa.
+
+        El código de idioma se traduce al de Django (``es_MX`` → ``es-mx``) con
+        el propio ``to_language`` del paquete instalado: son dos escrituras del
+        mismo idioma, no dos idiomas.
+        """
+        lang = self.lang or 'en_US'
+        if isinstance(source, str):
+            assert not (args and kwargs), "Use args or kwargs, not both"
+        elif isinstance(source, Promise):
+            assert not args and not kwargs, (
+                "All args should come from the lazy text")
+            with translation.override(to_language(lang)):
+                return str(source)
+        else:
+            raise TypeError(f"Cannot translate {source!r}")
+        try:
+            with translation.override(to_language(lang)):
+                return _translate_and_format(source, args, kwargs)
+        except Exception:  # noqa: BLE001 — la fuente traga igual (``:346``)
+            _logger.debug('translation went wrong for "%r", skipped', source,
+                          exc_info=True)
+        return source
+
+    # --- reinicio de la transacción ----------------------------------------
+
+    def reset(self):
+        """≙ ``Environment.reset`` (``:59-62``) — «Reset the transaction, see
+        :meth:`Transaction.reset`».
+
+        La fuente la marcó obsoleta en 19.0 y su cuerpo es la delegación más el
+        aviso; se porta con los dos, aviso incluido: retirarlo dejaría de avisar
+        justo a quien la sigue llamando.
+        """
+        warnings.warn("Since 19.0, use directly `transaction.reset()`",
+                      DeprecationWarning)
+        self.transaction.reset()
+
+    # --- cómputos y volcado ------------------------------------------------
+
+    def _recompute_all(self):
+        """Procesa todos los cómputos pendientes.
+
+        ≙ ``Environment._recompute_all`` (``:368-378``). Docstring de la
+        fuente, verbatim: *"Process all pending computations"*.
+
+        El ``for ... else`` es el de la fuente y no un adorno: el ``else`` de un
+        bucle corre cuando NO hubo ``break``, o sea cuando las
+        ``MAX_FIXPOINT_ITERATIONS`` vueltas se agotaron sin llegar al punto
+        fijo. Ahí el aviso es lo único que separa un cómputo que se realimenta
+        de un cuelgue.
+
+        **El modelo del campo se resuelve por ``field.model``**, no por
+        ``self[field.model_name]``: aquí quien liga el campo es Django y lo que
+        deja es la clase — es la resolución de dos vías que
+        :func:`~orm.utils.model_of_field` declara. Y lo que recibe el método es
+        ``model.objects.none()``, que es el equivalente del recordset vacío con
+        que la fuente lo invoca; ``env[nombre]`` devuelve aquí la **clase**, y
+        una clase no trae el método ligado.
+        """
+        for _ in range(MAX_FIXPOINT_ITERATIONS):
+            fields_ = [field for field, ids in self.transaction.tocompute.items()
+                       if any(ids)]
+            if not fields_:
+                break
+            for field in fields_:
+                model = model_of_field(field, registry)
+                if model is None:
+                    raise KeyError(getattr(field, 'model_name', '') or repr(field))
+                model.objects.none()._recompute_field(field)
+        else:
+            _logger.warning("Too many iterations for recomputing fields!")
+
+    def flush_all(self):
+        """Vuelca a la base todos los cómputos y escrituras pendientes.
+
+        ≙ ``Environment.flush_all`` (``:380-390``). Docstring de la fuente,
+        verbatim: *"Flush all pending computations and updates to the
+        database"*.
+
+        La fuente agrupa por ``field.model_name``; aquí se agrupa por la
+        **clase**, que es lo que ``field.model`` entrega, y el conjunto es un
+        ``OrderedSet`` por lo mismo que allá: el orden de volcado tiene que ser
+        determinista.
+
+        El filtro ``if ids`` no está en la fuente y aquí hace falta: su
+        ``_field_dirty`` es un ``defaultdict`` igual que el nuestro, pero allá
+        ``_flush`` **saca** las claves al volcar, mientras que cualquier lectura
+        de un campo por índice crea aquí una entrada vacía. Sin el filtro esas
+        entradas vacías darían diez vueltas y un aviso que no describe nada.
+        """
+        for _ in range(MAX_FIXPOINT_ITERATIONS):
+            self._recompute_all()
+            models_to_flush = OrderedSet()
+            for field, ids in list(self._field_dirty.items()):
+                if not ids:
+                    continue
+                model = model_of_field(field, registry)
+                if model is None:
+                    raise KeyError(getattr(field, 'model_name', '') or repr(field))
+                models_to_flush.add(model)
+            if not models_to_flush:
+                break
+            for model in models_to_flush:
+                model.objects.none().flush_model()
+        else:
+            _logger.warning("Too many iterations for flushing fields!")
+
+    def flush_query(self, query):
+        """Vuelca los campos que ``query`` declara en su metadata.
+
+        ≙ ``Environment.flush_query`` (``:515-525``). Docstring de la fuente,
+        verbatim: *"Flush all the fields in the metadata of ``query``"*.
+
+        Es el volcado **acotado** que precede a una consulta: sin él la
+        consulta leería de la base valores que sólo están en la caché. Los
+        campos los declara el propio ``SQL`` al componerse
+        (``to_flush=self`` en ``orm/fields.py``), así que la lista no se
+        adivina: viaja con la consulta.
+        """
+        fields_to_flush = tuple(query.to_flush)
+        if not fields_to_flush:
+            return
+
+        names_to_flush = defaultdict(OrderedSet)
+        for field in fields_to_flush:
+            model = model_of_field(field, registry)
+            if model is None:
+                raise KeyError(getattr(field, 'model_name', '') or repr(field))
+            names_to_flush[model].add(field.name)
+        for model, field_names in names_to_flush.items():
+            model.objects.none().flush_model(list(field_names))
 
     # --- las tres guardas de elevación -------------------------------------
 
