@@ -34,8 +34,9 @@ from django.db import connections
 
 from orm import registry
 from orm.environments import (Environment, MAX_FIXPOINT_ITERATIONS,
-                              context_scope, env, get_current_uid,
-                              get_transaction, transaction_scope)
+                              _discard_connection_transaction, context_scope,
+                              env, get_current_uid, get_transaction,
+                              transaction_scope)
 from orm.utils import model_field_registry
 from tools.sql import SQL
 from tools.translate import _ as lazy_translation
@@ -63,11 +64,17 @@ class TestTheEnvironmentIsPooledByTransaction:
 
     def test_the_pool_is_per_transaction(self):
         """Dos transacciones no comparten entorno: el almacen es de la
-        transaccion, no del modulo."""
-        with transaction_scope():
-            first = Environment(uid=7)
-        with transaction_scope():
-            assert Environment(uid=7) is not first
+        transaccion, no del modulo.
+
+        La segunda transaccion se obtiene **descartando** la del cursor, que
+        es como nace una en la fuente: la transaccion cuelga del cursor
+        (``odoo19c: odoo/orm/environments.py:70-72``) y el siguiente cursor
+        entra con ``transaction is None``. Un ``transaction_scope()`` no
+        serviria aqui — corta, no crea, que es justo lo que la fuente hace.
+        """
+        first = Environment(uid=7)
+        _discard_connection_transaction()
+        assert Environment(uid=7) is not first
 
     def test_the_superuser_uid_elevates_implicitly(self):
         """≙ ``if uid == SUPERUSER_ID: su = True`` (``:66-67``)."""
@@ -81,13 +88,18 @@ class TestTheEnvironmentIsPooledByTransaction:
             assert environment in alive
 
     def test_the_default_env_is_the_first_with_an_integer_uid(self):
-        """≙ ``:85-87`` — «the first one with a valid uid»."""
-        with transaction_scope() as transaction:
-            Environment()                      # sin uid: no es candidato
-            assert transaction.default_env is None
-            first = Environment(uid=7)
-            Environment(uid=9)
-            assert transaction.default_env is first
+        """≙ ``:85-87`` — «the first one with a valid uid».
+
+        Parte de una transaccion recien nacida, no de un corte: el candidato
+        es el **primero**, asi que un entorno agrupado antes lo decidiria.
+        """
+        _discard_connection_transaction()
+        transaction = get_transaction()
+        Environment()                      # sin uid: no es candidato
+        assert transaction.default_env is None
+        first = Environment(uid=7)
+        Environment(uid=9)
+        assert transaction.default_env is first
 
     def test_an_alias_that_is_not_declared_is_refused(self):
         """≙ ``assert isinstance(cr, BaseCursor)`` (``:65``), con la guarda que
@@ -165,10 +177,9 @@ class TestTheViewsOfTheTransaction:
         """El control de por que NO estan memorizadas: aqui la transaccion es
         ambiental y una vista memorizada serviria la vieja."""
         environment = Environment(uid=7)
-        outer = environment.cache
-        with transaction_scope():
-            assert environment.cache is not outer
-        assert environment.cache is outer
+        before = environment.cache
+        _discard_connection_transaction()
+        assert environment.cache is not before
 
 
 class TestTheResetTossesWhatWasMemoized:
@@ -334,9 +345,10 @@ class TestTheTransactionFlush:
         assert row.name == 'por transaction.flush'
 
     def test_without_a_default_env_and_without_envs_it_is_a_no_op(self):
-        with transaction_scope() as transaction:
-            assert transaction.default_env is None
-            transaction.flush()
+        _discard_connection_transaction()
+        transaction = get_transaction()
+        assert transaction.default_env is None
+        transaction.flush()
 
 
 class TestTheFixpointCeiling:

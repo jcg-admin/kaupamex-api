@@ -90,6 +90,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.apps import apps
 from django.db import DEFAULT_DB_ALIAS, connection, connections, models
+from django.db.backends.base.base import BaseDatabaseWrapper
 from django.utils import translation
 from django.utils.functional import Promise
 from django.utils.translation.trans_real import to_language
@@ -559,48 +560,171 @@ class Transaction:
         self.tocompute.clear()
 
 
-#: La transacción en curso. Un ``ContextVar`` y no un ``threading.local``
-#: por la misma razón que los otros canales de este módulo: una vista async
-#: y un ``Task`` de asyncio comparten hilo, y el ``local`` los mezclaría.
-_transaction = ContextVar('kaupamex_transaction', default=None)
+#: El atributo con que la transacción del ORM cuelga de la conexión.
+#:
+#: ≙ ``cr.transaction`` — la fuente lo escribe literalmente:
+#: ``transaction = cr.transaction = Transaction(Registry(cr.dbname))``
+#: (``odoo19c: odoo/orm/environments.py:72``). La transacción del ORM **vive en
+#: el cursor y muere con él**, y de ahí sale que su caché no pueda quedar
+#: obsoleta: cuando el cursor termina, la caché termina.
+_TRANSACTION_ATTRIBUTE = 'orm_transaction'
+
+
+def _connection_transaction(using=None):
+    """La transacción del ORM que cuelga de la conexión — el ``cr`` de aquí.
+
+    ``django.db.connection`` es el equivalente del cursor de la fuente: uno por
+    hilo, con ``commit``, ``rollback`` y ``close``. Colgar de él la
+    :class:`Transaction` es portar el ``cr.transaction`` de la fuente al objeto
+    que este stack ya trae hecho.
+    """
+    conexion = connections[using or DEFAULT_DB_ALIAS]
+    current = getattr(conexion, _TRANSACTION_ATTRIBUTE, None)
+    if current is None:
+        current = Transaction()
+        setattr(conexion, _TRANSACTION_ATTRIBUTE, current)
+    return current
 
 
 def get_transaction():
     """La transacción en curso, creándola si aún no hay una.
 
-    ≙ ``env.transaction``. La fuente la ata al cursor; aquí al alcance de
-    ejecución, que es lo que este módulo ya gobierna para usuario, empresa y
-    contexto.
+    ≙ ``env.transaction``, y **es la del cursor**. La fuente lo escribe en un
+    solo sitio de todo el árbol —medido con ``grep -rn "Transaction("`` sobre
+    ``$ODOO19C/odoo/``, una única instanciación—, guardado por un ``if``::
+
+        transaction = cr.transaction
+        if transaction is None:
+            transaction = cr.transaction = Transaction(Registry(cr.dbname))
+
+    ``odoo19c: odoo/orm/environments.py:70-72``. Una transacción por cursor,
+    perezosa, compartida por todo ``Environment`` que use ese cursor. Aquí el
+    cursor es ``django.db.connections[alias]``, que el stack ya trae hecho.
     """
-    current = _transaction.get()
-    if current is None:
-        current = Transaction()
-        _transaction.set(current)
-    return current
+    return _connection_transaction()
 
 
 @contextmanager
-def transaction_scope():
-    """Abre una transacción del ORM y la cierra al salir.
+def transaction_scope(using=None):
+    """Delimita un bloque de trabajo del ORM y **corta** al salir.
 
-    Al salir **vacía** las estructuras: una entrada de caché que sobreviva a
-    su transacción es un valor que ya no describe ninguna fila. Es el
-    ``Transaction.clear()`` que la fuente llama al terminar.
+    No abre una segunda transacción: cede la del cursor y, al salir, la vacía.
+    Es la semántica del *savepoint* de la fuente, que tampoco instancia nada —
+    su rollback llama ``self._cr.clear()``
+    (``odoo19c: odoo/sql_db.py:137-139``), y ese ``clear`` del cursor delega
+    en ``self.transaction.clear()`` (``:188-192``): **la misma** transacción
+    que el bloque estaba usando.
+
+    Por qué el corte va al salir y no al entrar: es donde la fuente lo pone en
+    los tres cortes que declara —``commit()`` vuelca y luego vacía
+    (``:560-564``), ``rollback()`` vacía primero (``:570-572``), ``_close()``
+    vacía la caché entera (``:534``)—. Una entrada que sobreviva a su bloque
+    describe una fila que el bloque acaba de cambiar; conservarla sirve un
+    valor anterior al trabajo recién hecho. Medido antes de este corte: la
+    columna quedaba en ``60.00`` y la lectura posterior devolvía ``0.00``.
+
+    **Esto retiró el anidamiento, que no tenía contraparte.** La versión
+    anterior creaba una ``Transaction`` propia por bloque y restauraba la de
+    fuera al salir, con una pila en un ``ContextVar``. La fuente no tiene pila
+    ni transacción de fuera: tiene una por cursor. La pila se retiró, y con
+    ella la pregunta de qué hacer con la caché de la que quedaba debajo.
 
     No sustituye a ``django.db.transaction.atomic`` ni compite con él: aquél
     gobierna el ``COMMIT``/``ROLLBACK`` del motor, éste el estado del ORM que
     vive **encima**. Se anidan, y el orden natural es ``atomic`` por fuera.
     """
-    previous = _transaction.get()
-    current = Transaction()
-    token = _transaction.set(current)
+    current = _connection_transaction(using)
     try:
         yield current
     finally:
         current.clear()
-        _transaction.reset(token)
-        if previous is not None:
-            _transaction.set(previous)
+
+
+#: Los cuatro cortes del ciclo del cursor, con su semántica portada.
+#:
+#: La fuente los declara uno a uno en ``odoo19c: odoo/sql_db.py``:
+#:
+#: =================  =========================================================
+#: ``commit()``       ``self.flush()`` y **luego** ``self.clear()`` (``:560-564``)
+#: ``rollback()``     el rollback del savepoint llama ``self._cr.clear()``
+#:                    (``:137-139``)
+#: ``close()``        ``self.cache.clear()`` (``:534``)
+#: =================  =========================================================
+#:
+#: El orden del ``commit`` es el punto: se vuelca **antes** de vaciar, porque
+#: vaciar primero tiraría la escritura pendiente sin escribirla. El rollback no
+#: vuelca — el motor deshizo la fila, así que el valor pendiente ya no describe
+#: nada.
+#:
+#: Con el criterio de las dos categorías: el cursor **lo trae hecho** el stack
+#: (``django.db.connection`` es por hilo y expone los tres métodos); el corte en
+#: esos puntos **hay con qué construirlo** —Django no emite señal de rollback,
+#: pero los métodos son públicos y se envuelven sin dependencia de fuera—.
+#:
+#: ``savepoint_rollback`` entra por la misma razón que la fuente le da su
+#: propio corte: es el rollback que de verdad ocurre bajo un ``atomic``, y sin
+#: él una prueba que revierte dejaría la caché describiendo filas que el motor
+#: ya deshizo.
+_CURSOR_CUTS = ('commit', 'rollback', 'close', 'savepoint_rollback')
+
+
+def _clear_connection_transaction(conexion):
+    """Vacía la transacción del ORM que cuelga de ``conexion``, si la hay."""
+    current = getattr(conexion, _TRANSACTION_ATTRIBUTE, None)
+    if current is not None:
+        current.clear()
+
+
+def _discard_connection_transaction(using=None):
+    """Descarta la transacción del ORM: la siguiente lectura crea otra.
+
+    ≙ **el cursor muere**. En la fuente la transacción no se vacía al cerrar:
+    desaparece con su cursor, porque vive colgada de él
+    (``cr.transaction``, ``odoo19c: odoo/orm/environments.py:70-72``) y el
+    siguiente cursor entra con ``transaction is None`` y crea la suya. Vaciar
+    y descartar NO son lo mismo: ``clear()`` conserva el objeto —y con él los
+    entornos agrupados en ``envs`` y su ``default_env``—, que es lo correcto
+    para un ``commit`` o un ``rollback``, donde el cursor sigue vivo.
+    """
+    conexion = connections[using or DEFAULT_DB_ALIAS]
+    if hasattr(conexion, _TRANSACTION_ATTRIBUTE):
+        delattr(conexion, _TRANSACTION_ATTRIBUTE)
+
+
+def _wrap_cursor_cut(name, flush_first, discard):
+    """Envuelve un método del cursor para cortar la transacción del ORM.
+
+    ``discard`` reparte los dos cortes que la fuente distingue: ``close``
+    **descarta** —el cursor muere y su transacción con él—, mientras que
+    ``commit``, ``rollback`` y ``savepoint_rollback`` **vacían** sobre el
+    cursor vivo (``odoo19c: odoo/sql_db.py:560-564``, ``:570-572``,
+    ``:137-139``).
+    """
+    original = getattr(BaseDatabaseWrapper, name)
+
+    @functools.wraps(original)
+    def cut(self, *args, **kwargs):
+        if flush_first:
+            current = getattr(self, _TRANSACTION_ATTRIBUTE, None)
+            if current is not None:
+                current.flush()
+        try:
+            return original(self, *args, **kwargs)
+        finally:
+            if discard:
+                if hasattr(self, _TRANSACTION_ATTRIBUTE):
+                    delattr(self, _TRANSACTION_ATTRIBUTE)
+            else:
+                _clear_connection_transaction(self)
+
+    return cut
+
+
+for _cut_name in _CURSOR_CUTS:
+    setattr(BaseDatabaseWrapper, _cut_name,
+            _wrap_cursor_cut(_cut_name,
+                             flush_first=(_cut_name == 'commit'),
+                             discard=(_cut_name == 'close')))
 
 
 def _live_envs(transaction):
@@ -1247,7 +1371,11 @@ class Environment:
         dict: al salir tiene que reaparecer lo de abajo, no perderse.
         """
         transaction = self.transaction
-        ids = OrderedSet() if records is None else OrderedSet(records)
+        # ``records`` es un *recordset* en la fuente, y aquí una instancia de
+        # modelo, un ``QuerySet`` o un iterable. ``record_ids`` es la
+        # traducción de ``records._ids`` que el árbol ya usa en todas partes;
+        # sin ella ``OrderedSet(instancia)`` intenta iterar la fila y revienta.
+        ids = OrderedSet(record_ids(records))
         transaction.protected.pushmap({field: ids for field in fields})
         try:
             yield self

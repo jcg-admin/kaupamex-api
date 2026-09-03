@@ -25,7 +25,8 @@ from django.apps import apps
 from django.db import connection, connections, transaction
 
 from orm import registry
-from orm.environments import (Transaction, context_scope, env, get_context,
+from orm.environments import (Transaction, _connection_transaction,
+                              context_scope, env, get_context,
                               get_current_uid, get_transaction, is_su, sudo,
                               transaction_scope, user_scope)
 
@@ -206,35 +207,55 @@ class TestTheTransactionScope:
         """≙ ``env.transaction`` — dos lecturas dan el mismo objeto."""
         assert get_transaction() is get_transaction()
 
-    def test_a_scope_opens_a_new_one(self):
-        outer = get_transaction()
-        with transaction_scope() as inner:
-            assert inner is not outer
-            assert get_transaction() is inner
+    def test_the_scope_is_the_connections_own_transaction(self):
+        """No abre una segunda: **es** la del cursor.
 
-    def test_leaving_the_scope_restores_the_previous_one(self):
-        outer = get_transaction()
-        with transaction_scope():
-            pass
-        assert get_transaction() is outer
+        Medido sobre toda la referencia — ``grep -rn "Transaction("`` sobre
+        ``$ODOO19C/odoo/`` devuelve **una sola** instanciacion,
+        ``odoo19c: odoo/orm/environments.py:72``::
+
+            transaction = cr.transaction = Transaction(Registry(cr.dbname))
+
+        y esta guardada por ``if transaction is None`` (``:70-71``). Una
+        transaccion por cursor, creada perezosamente y compartida por todo
+        ``Environment`` que use ese cursor. No hay «transaccion de fuera».
+        """
+        with transaction_scope() as inside:
+            assert inside is get_transaction()
+            assert inside is _connection_transaction()
+
+    def test_two_nested_scopes_are_the_same_transaction(self):
+        """El control que discrimina el caso de arriba.
+
+        Si el alcance creara una propia, estos dos objetos serian distintos y
+        habria una pila que restaurar. La fuente no la tiene: su savepoint no
+        instancia nada — su rollback llama ``self._cr.clear()``
+        (``odoo19c: odoo/sql_db.py:137-139``) sobre **esa misma** transaccion,
+        via ``BaseCursor.clear()`` (``:188-192``).
+        """
+        with transaction_scope() as outer:
+            with transaction_scope() as inner:
+                assert inner is outer
 
     def test_leaving_the_scope_clears_its_cache(self):
-        """Una entrada que sobreviva a su transacción describe una fila que
-        ya no existe. Es la razón de ser del ``clear()`` al salir."""
-        with transaction_scope() as inner:
-            inner.field_data['a'][1] = 'x'
-        assert dict(inner.field_data) == {}
+        """Una entrada que sobreviva a su transaccion describe una fila que
+        ya no existe. Es la razon de ser del ``clear()`` al salir, y es el
+        corte que la fuente da en cada frontera: ``commit()`` vuelca y luego
+        vacia (``sql_db.py:560-564``), ``rollback()`` vacia primero
+        (``:570-572``), ``_close()`` vacia la cache entera (``:534``)."""
+        with transaction_scope() as inside:
+            inside.field_data['a'][1] = 'x'
+        assert dict(inside.field_data) == {}
 
-    def test_the_outer_cache_survives_the_inner_scope(self):
-        """El control de que el ``clear()`` del anidado no barre al de fuera."""
-        outer = get_transaction()
-        outer.field_data['a'][1] = 'x'
-        try:
-            with transaction_scope():
-                pass
-            assert outer.field_data['a'] == {1: 'x'}
-        finally:
-            outer.clear()
+    def test_a_scope_does_not_clear_on_the_way_in(self):
+        """El control positivo del anterior: el corte va al SALIR, no al
+        entrar. Sin este caso, un ``clear()`` en ambos extremos pasaria igual
+        el de arriba y se llevaria por delante el trabajo del bloque que lo
+        envuelve."""
+        seeded = get_transaction()
+        seeded.field_data['a'][1] = 'x'
+        with transaction_scope():
+            assert dict(seeded.field_data) == {'a': {1: 'x'}}
 
 
 class TestTheEnvironmentSugar:
