@@ -731,6 +731,126 @@ models.Field.to_sql = _field_to_sql_expression
 models.Field.property_to_sql = _field_property_to_sql
 
 
+# === La condición de dominio — ≙ "condition_to_sql" de la fuente ============
+#
+# ``odoo19c: odoo/orm/fields.py:1249-1377`` declara **tres** símbolos, no uno,
+# y el reparto es el contrato:
+#
+# - ``condition_to_sql`` (``:1249-1260``) — la **fachada de dos pasos**: compone
+#   el cuerpo de la condición con la optimización de índice del campo
+#   dependiente de empresa. Es lo que ``Domain`` llama (``domains.py:1096``), y
+#   lo que un tipo de campo sobreescribe cuando necesita otra forma:
+#   ``Properties`` lo hace en los dos árboles.
+# - ``_condition_to_sql`` (``:1262-1366``) — el **cuerpo**.
+# - ``_condition_to_sql_company`` (``:1368-1377``) — la **optimización**.
+#
+# DIVERGENCIA DE FORMA, la ya declarada para toda esta capa (ver
+# ``orm/domains.py``): el retorno es ``Q`` y no ``SQL``, porque el ``WHERE`` lo
+# compone Django. El nombre sigue al tipo de retorno —``condition_to_sql`` es
+# ``condition_to_q``, ``_condition_to_sql_company`` es
+# ``_condition_to_q_company``— y el guion bajo se conserva: es el contrato de
+# visibilidad, no decoración (``porte-completo-no-parcial.md``).
+#
+# El **cuerpo** ya estaba portado como la función de módulo
+# :func:`condition_to_q` (arriba), con su divergencia medida. Aquí se le da su
+# nombre de método, ``_condition_to_q``, para que el reparto de tres símbolos
+# exista también aquí: sin él, un tipo de campo que quisiera sobreescribir sólo
+# el cuerpo tendría que reescribir la fachada entera.
+
+
+def _field_condition_to_q(self, field_expr, operator, value, model=None):
+    """La condición ``(campo, operador, valor)`` a ``Q`` — la fachada.
+
+    ≙ ``Field.condition_to_sql`` (``odoo19c: odoo/orm/fields.py:1249-1260``).
+
+    Dos pasos, en el orden de la fuente: el cuerpo, y encima la optimización
+    de índice que sólo aplica al campo dependiente de empresa.
+
+    :param model: la clase de modelo, o ``None`` cuando quien llama no la
+        conoce. Sin modelo la optimización no se puede decidir —consulta
+        ``ir.default`` por el nombre del modelo— y se devuelve el cuerpo tal
+        cual, que es el conjunto de filas correcto en todo caso.
+    """
+    q = self._condition_to_q(field_expr, operator, value, model)
+    if self.company_dependent:
+        q = self._condition_to_q_company(q, field_expr, operator, value, model)
+    return q
+
+
+def _field_condition_to_q_body(self, field_expr, operator, value, model=None):
+    """El cuerpo de la condición — ≙ ``Field._condition_to_sql`` (``:1262-1366``).
+
+    Delega en la función de módulo :func:`condition_to_q`, que es donde el
+    cuerpo vive y donde su divergencia frente a la fuente está medida y
+    declarada. El ``model`` no se consume aquí: la fuente lo usa para resolver
+    el ``SQL`` de la columna (``model._field_to_sql``) y ese trabajo lo hace
+    Django al compilar el ``Q``.
+
+    La ruta con punto pasa a la travesía de Django (``a.b`` → ``a__b``). Se
+    escribe aquí en vez de importar ``_django_path`` de ``orm/domains.py``
+    porque aquel módulo importa éste, y el import de vuelta cerraría el ciclo
+    — la misma razón que ``Properties.condition_to_q`` ya declara.
+    """
+    return condition_to_q(field_expr.replace('.', '__'), operator, value, self)
+
+
+def _field_condition_to_q_company(self, q, field_expr, operator, value,
+                                  model=None):
+    """Antepone ``columna IS NOT NULL`` para que el índice parcial sirva.
+
+    ≙ ``Field._condition_to_sql_company`` (``odoo19c: :1368-1377``).
+
+    **Qué hace, y por qué no cambia el conjunto de filas.** Un campo
+    dependiente de empresa guarda ``{empresa: valor}`` en una columna
+    ``jsonb``; la fila sin entrada propia responde el respaldo de
+    ``ir.default``. Cuando ese respaldo **no** satisface la condición, ninguna
+    fila con la columna nula la satisface tampoco — así que exigir
+    ``IS NOT NULL`` no descarta ninguna fila que debiera entrar, y deja que
+    PostgreSQL use el índice parcial ``WHERE columna IS NOT NULL`` que
+    ``registry.check_indexes()`` crea para ``index='btree_not_null'``.
+
+    Las cuatro condiciones son las de la fuente, verbatim en su orden:
+    ``company_dependent``, el índice parcial declarado, la exclusión de la
+    granularidad temporal (una fecha consultada por una parte suya —``:mes``—
+    no la admite), y que el respaldo devuelva ``False`` — **no** un valor
+    falso: ``None`` significa «no se puede decidir» y ahí la optimización no
+    se aplica.
+
+    *Métrica:* campos que declaran ``company_dependent=True`` **y**
+    ``index='btree_not_null'``, por recorrido AST sobre ``addons/`` y
+    ``odoo/addons/`` de la referencia, y por ``django.apps`` sobre el árbol
+    cargado. *Ciega a:* un campo que reciba el índice fuera de su declaración
+    —una migración a mano— y a un campo declarado en un addon que el árbol no
+    carga.
+
+    **Su población activadora es cero en los dos árboles**, medido: de los
+    **69** campos ``company_dependent`` de ``odoo19c`` ninguno declara además
+    ese índice, y aquí son **2 y 0**. Se porta porque el contrato de ``Field``
+    lo declara, no porque hoy tenga consumidor: declarar divergencia en vez de
+    portar es el camino barato que la norma prohíbe.
+    """
+    if model is None:
+        return q
+    if not (
+        self.company_dependent
+        and self.index == 'btree_not_null'
+        # la granularidad de agrupación temporal no la soporta
+        and not (self.type in ('datetime', 'date') and field_expr != self.name)
+    ):
+        return q
+    IrDefault = apps.get_model('base', 'IrDefault')
+    kept = IrDefault._evaluate_condition_with_fallback(
+        model_of(model)._meta.label, field_expr, operator, value)
+    if kept is False:
+        return models.Q(**{f'{self.name}__isnull': False}) & q
+    return q
+
+
+models.Field.condition_to_q = _field_condition_to_q
+models.Field._condition_to_q = _field_condition_to_q_body
+models.Field._condition_to_q_company = _field_condition_to_q_company
+
+
 # === expression_getter / filter_function ====================================
 #
 # El par que evalúa un dominio **en memoria**, sin ir al motor. La fuente los

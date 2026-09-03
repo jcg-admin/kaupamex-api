@@ -1215,14 +1215,46 @@ class DomainCondition(Domain):
         field = self._field(model)
         if operator in ('any', 'any!', 'not any', 'not any!'):
             return self._any_to_q(field, operator, value, model)
-        if isinstance(field, Properties) and parse_field_expr(field_expr)[1]:
-            # ≙ el despacho por tipo de campo de la fuente: su
-            # ``Field.condition_to_sql`` lo sobreescribe ``Properties``
-            # (``odoo19c: fields_properties.py:678``) porque una clave de JSON
-            # necesita la contención ``@>``/``<@`` además de la igualdad — el
-            # valor guardado puede ser una lista. Ver su docstring.
+        if isinstance(field, Properties) and not parse_field_expr(field_expr)[1]:
+            # DIVERGENCIA declarada. Allá ``Properties.condition_to_sql``
+            # **rechaza** la condición sin nombre de propiedad
+            # (``odoo19c: fields_properties.py:680-681``); aquí cae al cuerpo
+            # genérico, que trata la columna ``jsonb`` como un valor. Retirar
+            # el atajo cambia comportamiento observable y no cabe en el pase
+            # que porta la familia de la condición: queda como tarea #348.
+            return condition_to_q(
+                _django_path(field_expr), operator, value, field)
+
+        if isinstance(field, models.Field):
+            # ≙ ``:1096`` — la fuente llama **siempre** a la fachada del campo,
+            # nunca al cuerpo. Esa fachada compone el cuerpo con la
+            # optimización de índice del campo dependiente de empresa
+            # (``Field._condition_to_sql_company``) y es el punto en que un
+            # tipo de campo sobreescribe la forma entera: ``Properties`` lo
+            # hace en los dos árboles, porque una clave de JSON necesita la
+            # contención ``@>``/``<@`` además de la igualdad — el valor
+            # guardado puede ser una lista.
             return field.condition_to_q(field_expr, operator, value, model)
 
+        # La comprobación es ``isinstance``, no ``is not None``, y la
+        # diferencia la destapó una medición: ``_field()`` puede devolver un
+        # ``ForeignObjectRel`` —la **relación inversa** que Django fabrica del
+        # otro lado de una FK— y ése **no es un campo**. No hereda de
+        # ``models.Field``, así que no lleva ninguno de los métodos que este
+        # módulo le cuelga, y llamarle la fachada da
+        # ``AttributeError: 'OneToOneRel' object has no attribute
+        # 'condition_to_q'``. Medido sobre ``website.page``, que llega aquí por
+        # su herencia por delegación.
+        #
+        # En la fuente esa asimetría no existe: el lado inverso de una relación
+        # **también** es un ``Field`` (un ``One2many`` con su ``inverse_name``),
+        # así que responde al mismo contrato. Darle aquí el vocabulario de
+        # campo a la relación inversa es la tarea **#347**; hasta entonces cae
+        # al cuerpo, que es lo que hacía antes de este cableado.
+        # El campo se pasa **tal cual**, no como ``None``: el cuerpo lo consulta
+        # con ``is_not_null`` y ``falsy_value``, y sustituirlo cambiaría el
+        # ``Q`` compilado de estas condiciones. Aquí sólo se acota a quién se
+        # le llama la fachada.
         return condition_to_q(
             _django_path(field_expr), operator, value, field)
 
