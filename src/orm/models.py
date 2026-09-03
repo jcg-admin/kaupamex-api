@@ -86,6 +86,7 @@ from orm.utils import (FieldRegistryDescriptor, OriginIds, as_record_list,
                        check_object_name, model_field_registry,
                        parse_field_expr, record_ids)
 from service.db import Savepoint
+from tools.cache import ormcache
 from tools.misc import OrderedSet
 from tools.sql import SQL
 
@@ -3135,7 +3136,20 @@ Model.__setitem__ = _model_setitem
 
 
 def _model_of_records(records):
-    """La clase de modelo de ``records`` — instancia, lista o ``QuerySet``."""
+    """La clase de modelo de ``records`` — clase, instancia, lista o ``QuerySet``.
+
+    La rama de la CLASE existe porque la fuente llama a esta familia sobre un
+    recordset vacio del modelo (``self.env[nombre]``), que allá lleva su modelo
+    consigo. Aqui el equivalente que llega desde el eje de esquema es la propia
+    clase, y ``as_record_list`` no la puede recorrer: ``list(ModelBase)`` es un
+    ``TypeError``. Sus dos consumidores —``flush_model`` y
+    ``_recompute_model``— ya escribian la guarda
+    ``or (self if isinstance(self, type) else None)``, asi que **declaraban**
+    admitir la clase; lo que faltaba era que esta funcion llegara a devolverla
+    en vez de reventar antes.
+    """
+    if isinstance(records, type):
+        return records
     if isinstance(records, QuerySet):
         return records.model
     rows = as_record_list(records)
@@ -4019,3 +4033,91 @@ class ReversibleComparator:
     def __repr__(self):
         return (f"<ReversibleComparator {self.__item!r}"
                 f"{' reverse' if self.__reverse else ''}>")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# El esquema de una columna sobre filas que ya existen
+#     ≙ ``BaseModel._init_column`` (``odoo19c: odoo/orm/models.py:3137-3161``)
+#     y ``BaseModel._table_has_rows`` (``:3163-3168``)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Los dos son consumidores de ``Field.update_db_notnull``: cuando una columna
+# nace, o cuando un campo pasa a ser obligatorio, las filas que ya estaban ahí
+# tienen ``NULL`` y la restricción no las admite. La fuente resuelve eso en dos
+# pasos —¿hay filas? y, si las hay, siémbrales el default— y aquí igual.
+#
+# **Divergencia de enlace, declarada.** La fuente los declara métodos de
+# instancia porque allá un «modelo» es un recordset. Aquí el modelo es una
+# clase de Django, y quien los llama —``Field.update_db``— tiene la clase, no
+# una fila. Se enlazan como ``classmethod``: el contrato es el mismo y el
+# receptor es el que el llamador tiene. Es la misma puerta que
+# ``registry.Registry.is_an_ordinary_table`` ya declaró para el cursor.
+
+
+def _init_column(cls, column_name):
+    """Siembra el valor por defecto de una columna en las filas existentes.
+
+    Docstring de la fuente, verbatim: *"Initialize the value of the given
+    column for existing rows"*.
+
+    El default se obtiene del campo y **no** de ``default_get``: la fuente lo
+    explica en su comentario —*"ideally, we should use default_get(), but it
+    fails due to ir.default not being ready"*— y aquí vale igual, porque este
+    camino corre mientras el esquema se está construyendo.
+
+    La guarda de ``necessary`` es de la fuente y no es cosmética: un booleano
+    no obligatorio trata ``False`` y ``NULL`` como lo mismo, así que sembrarlo
+    costaría un ``UPDATE`` sobre toda la tabla sin cambiar nada observable. Si
+    es obligatorio sí se escribe, porque ahí el ``NOT NULL`` sí distingue.
+    """
+    field = model_field_registry(cls)[column_name]
+    #: **Divergencia de mecanismo, no de conducta.** La fuente escribe
+    #: ``if field.default: value = field.default(self)`` porque en su ORM el
+    #: default, cuando existe, es SIEMPRE un invocable. En Django es un valor
+    #: **o** un invocable, y el centinela de «sin default» no es la falsedad
+    #: sino ``NOT_PROVIDED``: con ``default=''`` —el caso de un ``TextField``
+    #: obligatorio— la guarda de la fuente daria falso y la columna nueva
+    #: quedaria sin sembrar, que es justo lo contrario de lo que ella hace.
+    #: El par que el stack declara para esto resuelve las dos formas:
+    #: ``has_default()`` (``fields/__init__.py:1013``) y ``get_default()``
+    #: (``:1021``, que envuelve el valor en un ``lambda`` cuando no es
+    #: invocable).
+    if field.has_default():
+        value = field.get_default()
+        value = field.convert_to_write(value, cls)
+        value = field.convert_to_column_insert(value, cls)
+    else:
+        value = None
+    necessary = (value is not None) if field.type != 'boolean' or field.required else value
+    if not necessary:
+        return
+    _logger.debug("Tabla '%s': valor por defecto de la columna nueva %s a %r",
+                  cls._table, column_name, value)
+    query = SQL(
+        "UPDATE %(table)s SET %(field)s = %(value)s WHERE %(field)s IS NULL",
+        table=SQL.identifier(cls._table),
+        field=SQL.identifier(field.column),
+        value=value,
+    )
+    with connections[DEFAULT_DB_ALIAS].cursor() as cr:
+        cr.execute(query.code, query.params)
+
+
+def _table_has_rows(cls) -> bool:
+    """Si la tabla del modelo tiene alguna fila.
+
+    Docstring de la fuente, verbatim: *"Return whether the model's table has
+    rows. This method should only be used when updating the database schema"*.
+
+    Memorizado con :class:`~tools.cache.ormcache` como allá: durante la
+    construcción del esquema se pregunta una vez por campo y la respuesta no
+    cambia dentro de ese pase. Quien siembre filas después invalida con
+    ``orm.registry.clear_cache()``.
+    """
+    with connections[DEFAULT_DB_ALIAS].cursor() as cr:
+        cr.execute(f'SELECT 1 FROM {cls._table} LIMIT 1')
+        return bool(cr.fetchone())
+
+
+Model._init_column = classmethod(_init_column)
+Model._table_has_rows = classmethod(ormcache()(_table_has_rows))

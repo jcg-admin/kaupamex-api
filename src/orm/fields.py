@@ -58,7 +58,7 @@ from typing import TypeVar
 
 from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist
-from django.db import models
+from django.db import DEFAULT_DB_ALIAS, connections, models
 from django.utils.timezone import localtime
 from psycopg.types.json import Jsonb
 
@@ -66,10 +66,12 @@ from orm.environments import (env as get_environment, get_current_company,
                              get_transaction, sudo as elevate_privileges)
 from tools.misc import SENTINEL, OrderedSet, remove_accents
 from tools.translate import _
-from orm.registry import (UNACCENT_ENABLED,
+from orm import registry as orm_registry
+from orm.registry import (UNACCENT_ENABLED, Registry,
                           field_computed as registry_field_computed,
                          field_depends_context, is_not_null)
-from tools.sql import SQL, pg_varchar, sql_order_by_type
+from tools.sql import (SQL, convert_column, create_column, drop_not_null,
+                       pg_varchar, set_not_null, sql_order_by_type)
 
 from orm.fields_binary import Binary, Image                    # noqa: F401
 from orm.fields_misc import Boolean, Json                      # noqa: F401
@@ -1677,8 +1679,15 @@ models.Field.is_editable = _field_is_editable
 #    una fila es una instancia de Django y el entorno es ambiente.
 # 2. ``record.env.company.id`` → :func:`~orm.environments.get_current_company`,
 #    la misma adaptación que ``CompanyDependent.value_for_current_company``.
-# 3. ``record._name`` → ``type(record)._meta.label``, la llave con que
-#    ``ir.default`` guarda sus filas en este árbol.
+# 3. ``record._name`` → ``model_of(record)._meta.label``, la llave con que
+#    ``ir.default`` guarda sus filas en este árbol. **No** ``type(record)``:
+#    el receptor no siempre es una fila. El eje de esquema lo llama desde
+#    ``_init_column``, que pasa la CLASE del modelo —allá es un recordset
+#    vacío, que responde ``_name`` igual—, y ``type(clase)`` da ``ModelBase``,
+#    que no tiene ``_meta``. Medido: el caso reventaba con
+#    ``AttributeError: type object 'ModelBase' has no attribute '_meta'`` antes
+#    de la corrección. :func:`~orm.utils.model_of` acepta las tres formas que
+#    este árbol produce —instancia, ``QuerySet`` y clase— y rehúsa el resto.
 # 4. ``self in record.env._field_depends_context`` →
 #    :func:`_has_context_buckets`, que ya responde lo mismo desde el mapa
 #    derivado del registro.
@@ -1735,7 +1744,8 @@ def _field_convert_to_column_insert(self, value, record, values=None, validate=T
         return value
     IrDefault = apps.get_model('base', 'IrDefault')
     fallback = IrDefault._get_model_defaults(
-        type(record)._meta.label, company_id=get_current_company()).get(self.name)
+        model_of(record)._meta.label,
+        company_id=get_current_company()).get(self.name)
     if value == self.convert_to_column(fallback, record):
         return None
     return Jsonb({get_current_company(): value})
@@ -1785,6 +1795,268 @@ def _field_get_column_update(self, record):
 
 
 models.Field.get_column_update = _field_get_column_update
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# El EJE DE ESQUEMA — cómo un campo lleva su forma a la tabla
+#     ≙ ``Field.update_db`` y su familia (``odoo19c: odoo/orm/fields.py:
+#     1094-1202``)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Cinco métodos que ``BaseModel._auto_init`` recorre por campo: crear la
+# columna, convertirla si su tipo divergió, poner o quitar el ``NOT NULL``, y
+# —cuando el campo es un ``related`` simple— llenarla de una vez en SQL en vez
+# de recomputarla fila a fila.
+#
+# **Ocho adaptaciones, todas medidas, ninguna recorta el contrato:**
+#
+# 1. ``model._table`` **existe** y vale lo mismo que ``Meta.db_table``, así que
+#    se usa directo — sin adaptación.
+# 2. ``model._fields`` no resuelve en toda clase de este árbol; el mapa lo da
+#    :func:`~orm.utils.model_field_registry`, que fusiona los campos de Django
+#    con los no persistidos.
+# 3. **El cursor.** La fuente escribe ``model.env.cr``; aquí ``env().cr`` es la
+#    *conexión* de Django, no un cursor, y el modelo es una clase sin entorno.
+#    Cada método abre el suyo desde el alias por omisión. Misma puerta que
+#    ``registry.Registry.is_an_ordinary_table`` ya declaró, y por eso la firma
+#    **no** gana un parámetro ``cr``: quien llama sigue pasando lo que la
+#    fuente pasa.
+# 4. ``model.pool`` no existe; el registro es :class:`~orm.registry.Registry`,
+#    que ya lleva ``post_init``, ``post_constraint`` y sus dos colas.
+# 5. **``self.name`` no es ``self.column``.** En la fuente el campo se llama
+#    igual que su columna, así que ambas formas coinciden y su DDL escribe el
+#    nombre. Aquí no: medido con ``django.apps`` sobre el árbol cargado, **747
+#    de 4291** campos con columna la declaran distinta (17.4 %) — todo
+#    ``ForeignKey`` la sufija ``_id``, entre otros. Por eso el DDL y el lookup
+#    en el mapa ``columns`` usan ``self.column``, y las búsquedas en el
+#    registro de campos siguen usando ``self.name``. Confundirlas crea una
+#    columna paralela con el nombre del campo y deja la real intacta, sin que
+#    nada falle.
+#    *Métrica:* ``column != name`` sobre ``_meta.get_fields()`` de
+#    ``apps.get_models()``.
+#    *Ciega a:* un campo cuya columna la fije una migración a mano divergiendo
+#    de ``db_column``.
+# 6. **El campo sin columna corta antes.** ``:1101`` corta con
+#    ``if not self.column_type: return False``, y ese corte llega por herencia
+#    a todo campo de la fuente. Aquí :class:`~orm.fields_nonstored.NonStored`
+#    **no desciende de** ``models.Field``, así que el enlace de estos cinco
+#    métodos no lo alcanza: declara su propio ``column_type = None`` y su
+#    propio ``update_db``, siguiendo el precedente que ese archivo ya
+#    documenta para ``inverse_related``. Se porta **el corte**, no los cinco:
+#    medido sobre todo ``$ODOO19C/odoo``, el único llamador externo de la
+#    familia es ``models.py:3228`` → ``update_db``; los otros cinco métodos
+#    sólo se alcanzan desde dentro de ``update_db`` o por ``super()``.
+# 7. **El receptor de ``flush_model`` va explícito.** ``models.Model`` recibe
+#    el método por asignación (``orm/models.py``), así que se liga como método
+#    de *instancia*: ``model.flush_model([...])`` sobre una CLASE devuelve la
+#    función sin ligar y pasa la lista como ``self``. Los dos métodos propios
+#    de esta familia —``_init_column`` y ``_table_has_rows``— lo resuelven
+#    declarándose ``classmethod``; en uno ajeno no se puede cambiar el enlace,
+#    así que se nombra el receptor: ``models.Model.flush_model(model, [...])``.
+#    En el mismo pase, ``_model_of_records`` ganó su rama de CLASE: sus dos
+#    consumidores ya escribían la guarda ``self if isinstance(self, type)``, o
+#    sea que **declaraban** admitirla, y la función reventaba antes de
+#    devolverla.
+# 8. **El contrato del default es el de Django, no la falsedad.** ``:3141``
+#    escribe ``if field.default:`` porque allá el default, cuando existe, es
+#    SIEMPRE un invocable. Aquí es un valor **o** un invocable, y el centinela
+#    de «sin default» no es la falsedad sino ``NOT_PROVIDED``: con
+#    ``default=''`` —un ``TextField`` obligatorio— la guarda de la fuente daría
+#    falso y la columna nueva quedaría sin sembrar, que es lo contrario de lo
+#    que ella hace. El par que el stack declara resuelve las dos formas:
+#    ``has_default()`` (``fields/__init__.py:1013``) y ``get_default()``
+#    (``:1021``, que envuelve el valor en un ``lambda`` cuando no es
+#    invocable).
+
+
+def _field_update_db(self, model, columns):
+    """≙ ``Field.update_db`` (``:1094``) — lleva el campo al esquema.
+
+    Docstring de la fuente, verbatim: *"Update the database schema to implement
+    this field"*; devuelve *"``True`` if the field must be recomputed on
+    existing rows"*.
+
+    El índice **no** se toca aquí: lo gobierna ``registry.check_indexes()``,
+    igual que allá.
+
+    La rama larga es la **optimización del related simple** (``foo_id.bar``):
+    cuando la columna nace y el campo es un related de un solo salto sobre un
+    ``many2one`` almacenado y sin cómputo, el valor se copia con un ``UPDATE
+    ... FROM`` diferido a ``post_init`` en vez de recomputarse registro a
+    registro. Por eso devuelve ``False``: el cómputo clásico se descarta.
+    """
+    if not self.column_type:
+        return False
+
+    column = columns.get(self.column)
+
+    # crea/actualiza la columna y su restricción de no-nulo; el índice lo
+    # gobierna registry.check_indexes()
+    self.update_db_column(model, column)
+    self.update_db_notnull(model, column)
+
+    # optimización para calcular related simples del tipo 'foo_id.bar'
+    if (
+        not column
+        and self.related and self.related.count('.') == 1
+        and self.related_field.store and not self.related_field.compute
+        and not (self.related_field.type == 'binary' and self.related_field.attachment)
+        and self.related_field.type not in ('one2many', 'many2many')
+    ):
+        join_field = model_field_registry(model)[self.related.split('.')[0]]
+        if (
+            join_field.type == 'many2one'
+            and join_field.store and not join_field.compute
+        ):
+            Registry(DEFAULT_DB_ALIAS).post_init(self.update_db_related, model)
+            # descarta el cálculo «clásico»
+            return False
+
+    return not column
+
+
+models.Field.update_db = _field_update_db
+
+
+def _field_update_db_column(self, model, column):
+    """≙ ``Field.update_db_column`` (``:1129``) — crea o actualiza la columna.
+
+    Docstring de la fuente, verbatim: *"Create/update the column corresponding
+    to ``self``"*. El parámetro ``column`` es la configuración de la columna
+    tal como la base la reporta, o ``None`` si aún no existe.
+
+    La comparación es contra ``column_type[0]`` —el ``udt_name`` de PostgreSQL,
+    no la declaración DDL— porque es lo que ``information_schema`` devuelve. Un
+    ``varchar(64)`` y un ``varchar`` comparten ``udt_name`` a propósito: lo que
+    esta rama vigila es el cambio de **tipo**, no el de longitud.
+    """
+    if not column:
+        # la columna no existe, se crea
+        with connections[DEFAULT_DB_ALIAS].cursor() as cr:
+            create_column(cr, model._table, self.column,
+                          self.column_type[1], self.string)
+        return
+    if column['udt_name'] == self.column_type[0]:
+        return
+    self._convert_db_column(model, column)
+
+
+models.Field.update_db_column = _field_update_db_column
+
+
+def _field_convert_db_column(self, model, column):
+    """≙ ``Field._convert_db_column`` (``:1143``).
+
+    Docstring de la fuente, verbatim: *"Convert the given database column to
+    the type of the field"*. Delega en :func:`~tools.sql.convert_column`, que
+    es quien retira las vistas dependientes cuando PostgreSQL rechaza el
+    ``ALTER``.
+    """
+    with connections[DEFAULT_DB_ALIAS].cursor() as cr:
+        convert_column(cr, model._table, self.column, self.column_type[1])
+
+
+models.Field._convert_db_column = _field_convert_db_column
+
+
+def _field_update_db_notnull(self, model, column):
+    """≙ ``Field.update_db_notnull`` (``:1147``) — pone o quita el ``NOT NULL``.
+
+    Docstring de la fuente, verbatim: *"Add or remove the NOT NULL constraint
+    on ``self``"*.
+
+    Tres caminos, los de la fuente:
+
+    - **la columna nace, o el campo pasa a obligatorio** — si la tabla ya tiene
+      filas, se les siembra el default con ``_init_column``; sin ese paso, las
+      filas viejas quedarían en ``NULL`` y la restricción las rechazaría.
+    - **el campo es obligatorio y la columna aún admite nulos** — la restricción
+      **no** se aplica en el acto: se difiere a ``post_init``. La razón es de la
+      fuente y está en su comentario: ``_init_column`` puede haber diferido
+      cómputos, así que el ``NOT NULL`` tiene que esperar a que se vacíen. El
+      cierre re-lee el campo del registro porque *"the model's ``_fields`` may
+      have been reset"* entre encolar y ejecutar.
+    - **el campo dejó de ser obligatorio** — se quita, y ahí termina.
+    """
+    has_notnull = column and column['is_nullable'] == 'NO'
+
+    if not column or (self.required and not has_notnull):
+        # la columna es nueva o pasa a obligatoria; se inicializan sus valores
+        if model._table_has_rows():
+            model._init_column(self.name)
+
+    if self.required and not has_notnull:
+        # _init_column puede diferir cómputos a la fase post-init
+        @Registry(DEFAULT_DB_ALIAS).post_init
+        def add_not_null():
+            # Cuando esta función se llama, los _fields del modelo pueden
+            # haberse reiniciado aunque la clase sea la misma. Se recupera el
+            # campo para ver si la restricción sigue aplicando.
+            field = model_field_registry(model)[self.name]
+            if not field.required or not field.store:
+                return
+            if field.compute:
+                query = SQL(
+                    "SELECT id FROM %s AS t WHERE %s IS NULL",
+                    SQL.identifier(model._table),
+                    SQL.identifier(field.column),
+                )
+                with connections[DEFAULT_DB_ALIAS].cursor() as cr:
+                    cr.execute(query.code, query.params)
+                    pending = [row[0] for row in cr.fetchall()]
+                get_environment().add_to_compute(field, pending)
+            # vacía los valores antes de añadir la restricción NOT NULL.
+            # El receptor va explícito: ``flush_model`` se cuelga de ``Model``
+            # como método de instancia (``orm/models.py:3549``) y su cuerpo ya
+            # contempla recibir la clase (``self if isinstance(self, type)``),
+            # pero ``model.flush_model([...])`` sobre una CLASE devuelve la
+            # función sin ligar y pasa la lista como ``self``. Es el mismo
+            # defecto de binding que ``_init_column`` y ``_table_has_rows``
+            # resuelven declarándose ``classmethod``; aquí no se puede cambiar
+            # el binding ajeno, así que se nombra el receptor.
+            models.Model.flush_model(model, [field.name])
+            registry = Registry(DEFAULT_DB_ALIAS)
+            with connections[DEFAULT_DB_ALIAS].cursor() as cr:
+                registry.post_constraint(
+                    cr,
+                    lambda cursor: set_not_null(cursor, model._table, field.column),
+                    key=f"add_not_null:{model._table}:{field.column}",
+                )
+
+    elif not self.required and has_notnull:
+        with connections[DEFAULT_DB_ALIAS].cursor() as cr:
+            drop_not_null(cr, model._table, self.column)
+
+
+models.Field.update_db_notnull = _field_update_db_notnull
+
+
+def _field_update_db_related(self, model):
+    """≙ ``Field.update_db_related`` (``:1190``).
+
+    Docstring de la fuente, verbatim: *"Compute a stored related field directly
+    in SQL"*. Un solo ``UPDATE ... FROM`` en vez de N lecturas: es la mitad que
+    justifica la rama de optimización de :func:`_field_update_db`.
+    """
+    comodel = model_of_field(self.related_field, orm_registry)
+    join_field, comodel_field = self.related.split('.')
+    query = SQL(
+        """ UPDATE %(model_table)s AS x
+            SET %(model_field)s = y.%(comodel_field)s
+            FROM %(comodel_table)s AS y
+            WHERE x.%(join_field)s = y.id """,
+        model_table=SQL.identifier(model._table),
+        model_field=SQL.identifier(self.column),
+        comodel_table=SQL.identifier(comodel._table),
+        comodel_field=SQL.identifier(
+            model_field_registry(comodel)[comodel_field].column),
+        join_field=SQL.identifier(model_field_registry(model)[join_field].column),
+    )
+    with connections[DEFAULT_DB_ALIAS].cursor() as cr:
+        cr.execute(query.code, query.params)
+
+
+models.Field.update_db_related = _field_update_db_related
 
 
 def _field_convert_to_cache(self, value, record, validate=True):

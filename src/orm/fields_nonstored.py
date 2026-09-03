@@ -225,6 +225,37 @@ class NonStored:
     def __delete__(self, instance):
         instance.__dict__.pop(self.name, None)
 
+    # -- eje de esquema ----------------------------------------------------
+
+    #: ≙ ``Field._column_type`` (``odoo19c: odoo/orm/fields.py:259``), que la
+    #: fuente declara ``None`` y expone por la property ``column_type``
+    #: (``:781``). Un campo sin columna **no tiene tipo de columna**: es lo
+    #: mismo que dice el nombre de esta clase, escrito donde el eje de
+    #: esquema lo lee.
+    column_type = None
+
+    def update_db(self, model, columns):
+        """No hay columna que llevar a la tabla — ≙ el corte de
+        ``Field.update_db`` (``odoo19c: odoo/orm/fields.py:1101``).
+
+        La fuente abre con ``if not self.column_type: return False``, así que
+        un campo sin columna sale por ahí y **nunca** alcanza los otros cuatro
+        del eje (``update_db_column``, ``_convert_db_column``,
+        ``update_db_notnull``, ``update_db_related``). Medido sobre todo
+        ``odoo19c/odoo``: la única puerta a esa familia es ``update_db``
+        (``models.py:3228``); los demás sólo se llaman desde su cuerpo o por
+        ``super()`` en una subclase. Por eso aquí se porta **el corte**, no
+        los cinco: declararlos sería inventar superficie que la fuente no
+        expone por esta vía.
+
+        Se declara en la clase por la misma razón que
+        :meth:`inverse_related`: :class:`NonStored` **no desciende de
+        ``models.Field``**, así que el enlace que ``orm.fields`` cuelga sobre
+        él nunca lo alcanza. Sin este método un campo sin columna respondía
+        ``AttributeError`` a una pregunta que la fuente contesta ``False``.
+        """
+        return False
+
     # -- protocolo de búsqueda ----------------------------------------------
 
     #: ``determine_domain`` lo instala :mod:`orm.fields` sobre esta clase, no
