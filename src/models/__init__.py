@@ -90,11 +90,13 @@ from orm.models import *
 from orm.models import (
     LOG_ACCESS_COLUMNS,
     MAGIC_COLUMNS,
+    AbstractModel,
     CopyMixin,
     DefaultGetMixin,
     Model,
     OriginMixin,
     fix_import_export_id_paths,
+    parse_read_group_spec,
     regex_order,
 )
 from orm.model_classes import is_model_class, is_model_definition
@@ -102,6 +104,7 @@ from orm.models_transient import TransientModel
 from orm.table_objects import Constraint, Index, UniqueIndex
 from orm.utils import (
     READ_GROUP_NUMBER_GRANULARITY,
+    check_method_name,
     check_object_name,
     check_pg_name,
 )

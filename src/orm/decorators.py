@@ -15,9 +15,27 @@ es quien realmente los llama.
 """
 
 __all__ = [
-    'depends', 'constrains', 'onchange', 'model', 'model_create_multi', 'returns',
-    'autovacuum',
+    'attrsetter', 'depends', 'constrains', 'onchange', 'model',
+    'model_create_multi', 'returns', 'autovacuum',
 ]
+
+
+def attrsetter(attr, value):
+    """Devuelve una función que fija ``attr`` en su argumento y lo devuelve.
+
+    ≙ ``attrsetter`` (``odoo19c: odoo/orm/decorators.py:73-79``). Docstring de
+    la fuente, verbatim: *"Return a function that sets ``attr`` on its argument
+    and returns it"*.
+
+    Devolver el argumento es lo que la hace componible: dos ``attrsetter``
+    apilados sobre el mismo método dejan las dos marcas, porque el de dentro
+    entrega al de fuera lo mismo que recibió.
+    """
+    def setter(method):
+        setattr(method, attr, value)
+        return method
+
+    return setter
 
 
 def depends(*fields):
@@ -50,8 +68,13 @@ def _mark(method, attr):
     método de nivel de modelo se escribe ``@api.model`` sobre un ``classmethod``
     (``addons/product/models/product_template.py:400``), forma que la referencia
     no tiene.
+
+    El cuerpo es :func:`attrsetter` con el valor fijo en ``True``; lo único
+    propio es **sobre qué** lo aplica. Escribir el ``setattr`` aquí otra vez
+    sería la segunda fuente de verdad que ``calibration-verified-numbers.md``
+    prohíbe, y divergiría el día que la fuente cambie el suyo.
     """
-    setattr(getattr(method, '__func__', method), attr, True)
+    attrsetter(attr, True)(getattr(method, '__func__', method))
     return method
 
 

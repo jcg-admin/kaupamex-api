@@ -17,11 +17,12 @@ sobre ``RawSQL`` (que exige ``params`` y no es un fragmento concatenable) daría
 objeto inservible; misma razón que los stubs de motor (environments/registry).
 """
 import re
+import warnings
 from collections.abc import Set as AbstractSet
 
 from django.db import models
 
-from exceptions import ValidationError
+from exceptions import AccessError, ValidationError
 from orm.fields_nonstored import non_stored_fields
 
 regex_object_name = re.compile(r'^[a-z0-9_.]+$')
@@ -46,6 +47,70 @@ READ_GROUP_NUMBER_GRANULARITY = {
     'minute_number': 'minute',
     'second_number': 'second',
 }
+
+
+#: ≙ ``regex_private`` (``odoo19c: odoo/orm/utils.py:14``). El nombre reservado
+#: del despacho remoto: el prefijo de guion bajo **y** ``init``, que no lo lleva
+#: y es igual de interno.
+regex_private = re.compile(r'^(_.*|init)$')
+
+
+def check_method_name(name):
+    """Levanta ``AccessError`` si ``name`` es un nombre de método privado.
+
+    ≙ ``check_method_name`` (``odoo19c: odoo/orm/utils.py:69-73``). Docstring de
+    la fuente, verbatim: *"Raise an ``AccessError`` if ``name`` is a private
+    method name"*.
+
+    **Se porta con su aviso de obsolescencia**, que es la mitad que informa: la
+    fuente la marcó obsoleta en 19.0 y redirige a ``service.model``. Aquí ese
+    sucesor ya existe y hace más —``get_public_method`` rechaza cinco formas,
+    no una— así que quien llame a ésta está midiendo un eje de los cinco.
+    Retirar el aviso dejaría de decírselo.
+    """
+    warnings.warn("Since 19.0, use service.model.get_public_method",
+                  DeprecationWarning)
+    if regex_private.match(name):
+        raise AccessError(
+            'Private methods (such as %s) cannot be called remotely.' % name)
+
+
+class OriginIds:
+    """Los ids de origen de una colección de ids, recorrible en los dos sentidos.
+
+    ≙ ``OriginIds`` (``odoo19c: odoo/orm/utils.py:129-146``). Docstring de la
+    fuente, verbatim: *"A reversible iterable returning the origin ids of a
+    collection of ``ids``.  Actual ids are returned as is, and ids without
+    origin are not returned"*.
+
+    Las dos mitades del contrato son igual de importantes, y la segunda es la
+    que se olvida: un :class:`~orm.identifiers.NewId` **sin** origen no se
+    emite. Es lo que hace que recorrer estos ids sea seguro contra la base —
+    todo lo que sale tiene fila.
+
+    El truco del cuerpo es el mismo de la fuente y conviene leerlo despacio:
+    ``id_ or getattr(id_, 'origin', None)`` se apoya en que ``NewId`` es falsy
+    (``identifiers.py``) mientras un id real no lo es. Así una sola expresión
+    despacha los dos casos sin preguntar por el tipo.
+
+    No es un generador: guarda la colección, no su recorrido, así que se puede
+    recorrer dos veces — que es justo lo que ``__reversed__`` necesita.
+    """
+
+    __slots__ = ['ids']
+
+    def __init__(self, ids):
+        self.ids = ids
+
+    def __iter__(self):
+        for id_ in self.ids:
+            if id_ := id_ or getattr(id_, 'origin', None):
+                yield id_
+
+    def __reversed__(self):
+        for id_ in reversed(self.ids):
+            if id_ := id_ or getattr(id_, 'origin', None):
+                yield id_
 
 
 def check_object_name(name):

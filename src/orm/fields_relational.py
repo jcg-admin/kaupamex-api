@@ -62,6 +62,7 @@ empresa, no una tabla intermedia.
 ``Many2one`` sí lo lleva, y es el tipo que más lo usa en la referencia: **35**
 de las 54 declaraciones de producto. Ver la rama en :func:`Many2one`.
 """
+import collections.abc
 import itertools
 
 from django.apps import apps
@@ -82,7 +83,8 @@ from orm.utils import model_of, record_ids
 from tools.misc import SENTINEL, unique
 from tools.sql import SQL
 
-__all__ = ['Many2one', 'One2many', 'Many2many', 'bypass_search_access']
+__all__ = ['Many2one', 'One2many', 'Many2many', 'bypass_search_access',
+           'PrefetchMany2one', 'PrefetchX2many']
 
 class One2many:
     """El conjunto de registros del comodelo cuyo inverso apunta a este — ≙ ``:843``.
@@ -835,3 +837,92 @@ models.ManyToManyField._update_cache = _relational_multi_update_cache
 #: de campo ni tiene dónde colgarlos. En la fuente sí es un ``_RelationalMulti``
 #: y los hereda. Su desenlace va con el porte del lado SQL del uno-a-muchos —
 #: tareas **#243** y **#244**.
+
+
+class PrefetchMany2one(collections.abc.Reversible):
+    """Los valores de un ``Many2one`` sobre el conjunto de prelectura.
+
+    ≙ ``PrefetchMany2one`` (``odoo19c: odoo/orm/fields_relational.py:1734-1754``).
+    Docstring de la fuente: *"Iterable for the values of a many2one field on
+    the prefetch set of a given record."*
+
+    Recorre los ids del conjunto de prelectura del registro, toma de la caché
+    del campo el id relacionado de cada uno, **descarta** el que no tenga valor
+    cacheado y **deduplica** conservando el orden — eso último lo aporta
+    :func:`~tools.misc.unique`.
+
+    **Divergencia de mecanismo:** la fuente pide la caché con
+    ``self.field._get_cache(self.record.env)``, donde ``env`` es un
+    ``__slots__`` del recordset; aquí una fila es una instancia de Django y el
+    entorno es ambiente, así que se toma con
+    :func:`~orm.environments.env`. Es la misma adaptación de
+    :class:`~orm.models.RecordCache`.
+
+    **Su consumidor real todavía no existe, y está medido.** ``_prefetch_ids``
+    es el tercer ``__slots__`` del recordset de la fuente
+    (``odoo19c: odoo/orm/models.py:362``), y este árbol no tiene recordset: 0
+    apariciones del nombre en ``src/``. La clase se porta entera contra ese
+    protocolo —lo único que consulta del registro es ese atributo— y el lote de
+    prelectura que lo poblará es la tarea **#306**.
+    """
+
+    __slots__ = ('field', 'record')
+
+    def __init__(self, record, field):
+        self.record = record
+        self.field = field
+
+    def __iter__(self):
+        field_cache = self.field._get_cache(get_environment())
+        return unique(
+            coid for id_ in self.record._prefetch_ids
+            if (coid := field_cache.get(id_)) is not None
+        )
+
+    def __reversed__(self):
+        field_cache = self.field._get_cache(get_environment())
+        return unique(
+            coid for id_ in reversed(self.record._prefetch_ids)
+            if (coid := field_cache.get(id_)) is not None
+        )
+
+
+class PrefetchX2many(collections.abc.Reversible):
+    """Los valores de un campo x2many sobre el conjunto de prelectura.
+
+    ≙ ``PrefetchX2many`` (``odoo19c: odoo/orm/fields_relational.py:1757-1779``).
+    Docstring de la fuente: *"Iterable for the values of an x2many field on the
+    prefetch set of a given record."*
+
+    Es la hermana de :class:`PrefetchMany2one` con una diferencia: la caché de
+    un campo múltiple guarda una **colección** por id, así que el recorrido la
+    aplana. El id que no está en caché no aporta nada —``field_cache.get(id_,
+    ())``—, y :func:`~tools.misc.unique` deduplica **a través** de las
+    colecciones, no dentro de cada una.
+
+    Su divergencia de mecanismo y su bloqueo son los mismos que los de la
+    hermana: entorno ambiente, y ``_prefetch_ids`` sin receptor hasta la tarea
+    **#306**.
+    """
+
+    __slots__ = ('field', 'record')
+
+    def __init__(self, record, field):
+        self.record = record
+        self.field = field
+
+    def __iter__(self):
+        field_cache = self.field._get_cache(get_environment())
+        return unique(
+            coid
+            for id_ in self.record._prefetch_ids
+            for coid in field_cache.get(id_, ())
+        )
+
+    def __reversed__(self):
+        field_cache = self.field._get_cache(get_environment())
+        return unique(
+            coid
+            for id_ in reversed(self.record._prefetch_ids)
+            for coid in field_cache.get(id_, ())
+        )

@@ -51,6 +51,7 @@ La forma es la misma que ``service/model.py`` ya usa para ``service/retry.py``.
 Ver :ref:`h-api-855` para el veredicto por archivo de las raíces espejadas.
 """
 import collections
+import collections.abc
 import functools
 import itertools
 import logging
@@ -1315,6 +1316,43 @@ def _delegated_origin(model, name):
 #: ≙ ``NO_ACCESS`` (``odoo19c: odoo/orm/models.py:122``). Valor sentinela de
 #: ``field.groups`` que prohíbe el campo a todo el mundo, elevación aparte.
 NO_ACCESS = '.'
+
+
+#: ≙ ``regex_read_group_spec`` (``odoo19c: odoo/orm/models.py:113``), verbatim.
+#: Parte una especificación de agrupamiento en sus tres piezas: el campo, el
+#: nombre de propiedad opcional tras el punto, y el agregado o granularidad
+#: opcional tras los dos puntos.
+regex_read_group_spec = re.compile(r'(\w+)(\.([\w\.]+))?(?::(\w+))?$')
+
+
+def parse_read_group_spec(spec):
+    """El triplete ``(campo, propiedad, agregado)`` de ``spec``.
+
+    ≙ ``parse_read_group_spec`` (``odoo19c: odoo/orm/models.py:125-136``).
+    Docstring de la fuente: *"Return a triplet corresponding to the given
+    field/property_name/aggregate specification."*
+
+    El patrón captura cuatro grupos y la fuente devuelve el 0, el 2 y el 3 —
+    el 1 es el punto con su contenido, que sólo existe para delimitar al 2.
+
+    La guarda **no es cosmética**: sin ella un ``spec`` que no parsea deja
+    ``res_match`` en ``None`` y el acceso a ``.groups()`` revienta con
+    ``AttributeError`` en vez del ``ValueError`` explicado que la fuente
+    promete a quien escribió el agrupamiento.
+    """
+    res_match = regex_read_group_spec.match(spec)
+    if not res_match:
+        raise ValueError(
+            f'Invalid aggregate/groupby specification {spec!r}.\n'
+            '- Valid aggregate specification looks like "<field_name>:<agg>" '
+            'example: "quantity:sum".\n'
+            '- Valid groupby specification looks like "<no_datish_field_name>" '
+            'or "<datish_field_name>:<granularity>" example: "date:month" or '
+            '"<properties_field_name>.<property>:<granularity>".'
+        )
+
+    groups = res_match.groups()
+    return groups[0], groups[2], groups[3]
 
 
 class FieldSqlMixin:
@@ -3554,3 +3592,183 @@ def _run_precompute(sender, instance, raw=False, **_ignored):
 
 
 Model._add_precomputed_values = _add_precomputed_values
+
+
+class RecordCache(collections.abc.Mapping):
+    """Los campos de una fila que están en caché, por nombre.
+
+    ≙ ``RecordCache`` (``odoo19c: odoo/orm/models.py:7012-7043``). Docstring de
+    la fuente: *"A mapping from field names to values, to read the cache of a
+    record."* Es la vista que ``record._cache`` devuelve allá.
+
+    **Dos divergencias de mecanismo, ninguna de contrato.**
+
+    1. *El entorno es ambiente.* La fuente lee ``record.env`` —un ``__slots__``
+       del recordset (``:362``)—; aquí una fila es una instancia de Django y no
+       lleva entorno, así que se toma el de la transacción en curso con
+       :func:`~orm.environments.env`. Es la misma adaptación que hace el resto
+       de ``src/orm``.
+    2. *La fila ya es una sola.* La fuente abre con ``assert len(record) == 1``
+       porque allá recibe un recordset que podría traer N. Aquí el tipo del
+       argumento **es** el registro único, así que ese assert no tiene qué
+       comprobar; se conserva su intención comprobando que no llegue una
+       colección.
+
+    ``_fields`` sí existe con el contrato de la fuente —el registro completo
+    del modelo, no sólo sus columnas (tareas #215 y #301)—, así que el
+    recorrido de :meth:`__iter__` es el mismo.
+    """
+
+    __slots__ = ['_record']
+
+    def __init__(self, record):
+        assert not isinstance(record, (list, tuple, set, QuerySet)), (
+            "Unexpected RecordCache(%s)" % (record,))
+        self._record = record
+
+    def __contains__(self, name):
+        """¿Tiene la fila un valor en caché para el campo ``name``?"""
+        record = self._record
+        field = record._fields[name]
+        return record.id in field._get_cache(env())
+
+    def __getitem__(self, name):
+        """El valor en caché del campo ``name`` para la fila."""
+        record = self._record
+        field = record._fields[name]
+        return field._get_cache(env())[record.id]
+
+    def __iter__(self):
+        """Los nombres de campo que tienen valor en caché.
+
+        **La guarda de ``_get_cache`` es la tercera divergencia**, y es del
+        contrato de ``_fields``, no de esta clase. Allá el mapa sólo contiene
+        objetos ``Field``, y todos tienen caché. Aquí lo provee ``_meta``, que
+        incluye además los descriptores de relación **inversa** de Django
+        —``ManyToOneRel``, ``OneToOneRel``, ``ManyToManyRel``—, que no son
+        campos y no tienen dónde cachear: la fuente los modela como
+        ``One2many``, que allá sí es un ``Field``.
+
+        *Métrica:* atributos de ``res.partner`` en ``_fields`` con
+        ``_get_cache``: **86 de 128**; los 42 restantes son 36 ``ManyToOneRel``,
+        4 ``OneToOneRel`` y 2 ``ManyToManyRel``.
+        *Ciega a:* un campo que tuviera caché y no la expusiera con ese nombre.
+        La guarda se retira cuando el uno-a-muchos sea un campo propio con su
+        caché — tareas **#243** y **#244**.
+        """
+        record = self._record
+        id_ = record.id
+        environment = env()
+        for name, field in record._fields.items():
+            if not hasattr(field, '_get_cache'):
+                continue
+            if id_ in field._get_cache(environment):
+                yield name
+
+    def __len__(self):
+        """Cuántos campos tienen valor en caché."""
+        return sum(1 for name in self)
+
+
+class AbstractModel:
+    """La base del registrante **sin tabla** — ≙ ``AbstractModel``.
+
+    La fuente lo declara como alias de su base (``AbstractModel = BaseModel``,
+    ``odoo19c: odoo/orm/models.py:7047``), que trae ``_auto = False``
+    (``:370``), ``_register = False`` (``:380``), ``_abstract = True``
+    (``:381``) y ``_name = None`` (``:392``). Los cuatro se declaran aquí
+    verbatim.
+
+    **Por qué no hereda de Django, que es lo que lo hace útil.** Un registrante
+    sin tabla es exactamente lo que
+    :func:`~orm.registry.registrants_without_table` aparta al comparar
+    ``_name`` con ``db_table``: clases que declaran nombre punteado y no tienen
+    ``_meta``. Heredar de ``models.Model`` les daría uno —con ``db_table``
+    derivado del ``app_label``— y las sacaría de esa cuenta, que es el
+    denominador que impide que un cero de divergencias se lea como «todo
+    cuadra» cuando en realidad no había nada que comparar.
+
+    **Sus dos consumidores están medidos** y hoy no lo adoptan:
+    ``IrFieldsConverter`` (``ir.fields.converter``) e ``IrTemplateExpressions``
+    (``ir.qweb``). Que pasen a heredar de aquí —y con ello dejen de repetir los
+    cuatro atributos por su cuenta— es la tarea **#329**.
+    """
+
+    _name = None            #: el nombre del modelo, en notación de punto
+    _auto = False           #: no crea tabla en la base
+    _register = False       #: no visible en el registro por nombre
+    _abstract = True        #: es abstracto
+
+
+#: ``Model`` — ≙ ``class Model(AbstractModel)`` (``odoo19c: odoo/orm/models.py:7049``).
+#:
+#: **Ya existe, y es el de Django**: este módulo re-exporta el ORM completo
+#: (``from django.db.models import *``, arriba), así que ``orm.models.Model``
+#: es ``django.db.models.Model`` — *"main super-class for regular
+#: database-persisted models"*, que es palabra por palabra lo que la fuente
+#: dice del suyo. Lo hereda todo el árbol, y ``orm/models_transient.py:36`` lo
+#: importa de aquí por su nombre.
+#:
+#: **Los tres atributos de clase que la fuente le declara NO se le cuelgan**, y
+#: la razón está medida, no supuesta:
+#:
+#: - ``_auto = True`` — su equivalente es ``Meta.managed``, que Django ya
+#:   declara por modelo (``atributos-de-clase-de-modelo.md``).
+#: - ``_abstract = False`` — su equivalente es ``Meta.abstract``, y colgarlo
+#:   como constante en la base **mentiría** sobre todo modelo que sí declara
+#:   ``abstract = True``: lo heredaría en ``False``.
+#: - ``_register = False`` — su equivalente es el registro por nombre
+#:   ``orm.registry.MODELS_BY_NAME``, que se puebla por ``_name`` declarado.
+#:
+#: Y colgarle atributos a ``models.Model`` alcanza a **toda** clase que lo
+#: hereda, incluidas las de Django (``auth``, ``contenttypes``, ``sessions``) y
+#: las de terceros — la misma colisión que :class:`FieldSqlMixin` ya declara al
+#: elegir mixin en vez de adjuntar, y que la tarea **#98** barre.
+
+
+@functools.total_ordering
+class ReversibleComparator:
+    """Clave de orden con dirección y política de nulos **en la clave**.
+
+    ≙ ``ReversibleComparator`` (``odoo19c: odoo/orm/models.py:7066-7094``).
+
+    Los dos ejes son independientes, y ahí está su razón de ser: ``reverse``
+    invierte la comparación entre dos valores presentes, y ``none_first``
+    decide dónde va el ausente **sin** invertirse con el anterior. Un
+    ``sorted(reverse=True)`` no puede expresarlo —invierte la lista entera,
+    nulos incluidos— ni permite mezclar columnas ascendentes y descendentes en
+    un mismo orden, que es para lo que la fuente lo usa.
+
+    ``@functools.total_ordering`` deriva ``<=``, ``>`` y ``>=`` de
+    :meth:`__lt__` y :meth:`__eq__`; la fuente cuenta con ello.
+    """
+
+    __slots__ = ('__item', '__none_first', '__reverse')
+
+    def __init__(self, item, reverse, none_first):
+        self.__item = item
+        self.__reverse = reverse
+        self.__none_first = none_first
+
+    def __lt__(self, other):
+        item = self.__item
+        item_cmp = other.__item
+        if item == item_cmp:
+            return False
+        if item is None:
+            return self.__none_first
+        if item_cmp is None:
+            return not self.__none_first
+        if self.__reverse:
+            item, item_cmp = item_cmp, item
+        return item < item_cmp
+
+    def __eq__(self, other):
+        return self.__item == other.__item
+
+    def __hash__(self):
+        return hash(self.__item)
+
+    def __repr__(self):
+        return (f"<ReversibleComparator {self.__item!r}"
+                f"{' reverse' if self.__reverse else ''}>")

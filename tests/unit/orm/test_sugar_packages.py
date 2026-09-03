@@ -45,7 +45,9 @@ PORTABLE_NOW = {
                'READ_GROUP_NUMBER_GRANULARITY', 'fix_import_export_id_paths',
                'regex_order', 'is_model_class', 'is_model_definition',
                'TransientModel', 'Constraint', 'Index', 'UniqueIndex',
-               'check_object_name', 'check_pg_name'),
+               'check_object_name', 'check_pg_name',
+               # Los tres que la tarea #328 porta y liga en el mismo pase.
+               'AbstractModel', 'parse_read_group_spec', 'check_method_name'),
 }
 
 #: Lo que la fachada de la referencia liga y ``src/orm`` todavia NO declara.
@@ -55,10 +57,10 @@ BLOCKED_BY_ITS_SYMBOL = {
     'api': ('depends_context', 'deprecated', 'ondelete', 'Self'),
     'fields': ('Id',),
     'models': ('READ_GROUP_DISPLAY_FORMAT', 'READ_GROUP_TIME_GRANULARITY',
-               'AbstractModel', 'BaseModel', 'MetaModel',
+               'BaseModel', 'MetaModel',
                'check_companies_domain_parent_of',
-               'check_company_domain_parent_of', 'parse_read_group_spec',
-               'to_record_ids', 'check_method_name'),
+               'check_company_domain_parent_of',
+               'to_record_ids'),
 }
 
 PACKAGES = {'api': api, 'fields': fields, 'models': models}
@@ -81,6 +83,8 @@ DECLARANTE = {
     'fix_import_export_id_paths': 'orm.models', 'regex_order': 'orm.models',
     'READ_GROUP_NUMBER_GRANULARITY': 'orm.utils',
     'check_object_name': 'orm.utils', 'check_pg_name': 'orm.utils',
+    'check_method_name': 'orm.utils',
+    'AbstractModel': 'orm.models', 'parse_read_group_spec': 'orm.models',
     'is_model_class': 'orm.model_classes',
     'is_model_definition': 'orm.model_classes',
     'TransientModel': 'orm.models_transient',
