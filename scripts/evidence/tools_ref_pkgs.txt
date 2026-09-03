@@ -1,0 +1,6 @@
+_vendor
+arabic_reshaper
+babel
+data
+pdf
+zeep

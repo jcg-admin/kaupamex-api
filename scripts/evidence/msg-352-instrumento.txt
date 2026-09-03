@@ -1,0 +1,26 @@
+Widen reference_flow to the whole tree by default
+
+Al usar el instrumento sobre el porte de odoo/tools aparecio un cero
+falso: parse_inline_template reportaba 0 llamadores, y su consumidor
+real vive en addons/mail/models/mail_render_mixin.py — fuera de las
+tres raices que el default estrecho medía. Un cero de un instrumento
+que no alcanza a quien busca no distingue "nadie lo llama" de "el
+alcance no llega", que es el verde que no discrimina del sub-patron D
+de metrica-decide-la-conclusion.
+
+El default pasa a ('odoo', 'addons') — el arbol entero. Lo hace viable
+un prefiltro por texto: un archivo que no escribe el nombre no puede
+declararlo, llamarlo ni heredarlo, asi que su AST no aporta arista.
+Medido sobre los 8476 .py de la referencia: 0.11 s de prefiltro contra
+0.01 s de AST sobre los 2 candidatos. Acotar sigue siendo posible con
+--root.
+
+El denominador pasa a llevar DOS cifras en un FlowScope propio:
+files_in_universe (cuanto abarca) y files_parsed (de cuantos se leyo el
+AST). Publicar solo la segunda diria "alcance medido: 2 archivos" de un
+barrido que cubrio 8476 — un encabezado unico sobre dos metricas
+distintas, el sub-patron A de la misma regla.
+
+19 passed en tests/unit/scripts/test_reference_flow.py.
+
+Refs: #352, #338

@@ -1,0 +1,131 @@
+universo de la referencia: 8476 archivos .py
+lectura de bytes: 0.1s
+  appdirs.py: 7 publicos, 2 con arista, 1 consumidores
+  cloc.py: 21 publicos, 11 con arista, 49 consumidores
+  gc.py: 3 publicos, 1 con arista, 3 consumidores
+  i18n.py: 3 publicos, 2 con arista, 18 consumidores
+  js_transpiler.py: 53 publicos, 2 con arista, 2 consumidores
+  mimetypes.py: 4 publicos, 2 con arista, 5 consumidores
+  osutil.py: 5 publicos, 3 con arista, 6 consumidores
+  populate.py: 16 publicos, 1 con arista, 1 consumidores
+  profiler.py: 33 publicos, 20 con arista, 550 consumidores
+  rendering_tools.py: 6 publicos, 3 con arista, 1 consumidores
+  sourcemap_generator.py: 6 publicos, 3 con arista, 3 consumidores
+  speedscope.py: 12 publicos, 8 con arista, 369 consumidores
+  test_reports.py: 2 publicos, 1 con arista, 1 consumidores
+  view_validation.py: 10 publicos, 5 con arista, 14 consumidores
+  which.py: 5 publicos, 1 con arista, 3 consumidores
+  xml_utils.py: 9 publicos, 4 con arista, 20 consumidores
+
+medido en 82.6s; 6230 archivos parseados de 8476
+
+archivo                   publicos  con arista  consumidores
+profiler.py                     33          20           550
+speedscope.py                   12           8           369
+cloc.py                         21          11            49
+xml_utils.py                     9           4            20
+i18n.py                          3           2            18
+view_validation.py              10           5            14
+osutil.py                        5           3             6
+mimetypes.py                     4           2             5
+sourcemap_generator.py           6           3             3
+which.py                         5           1             3
+gc.py                            3           1             3
+js_transpiler.py                53           2             2
+rendering_tools.py               6           3             1
+appdirs.py                       7           2             1
+test_reports.py                  2           1             1
+populate.py                     16           1             1
+
+--- consumidores por archivo (hasta 8) ---
+profiler.py:
+    addons/account/models/account_account.py
+    addons/account/models/account_bank_statement.py
+    addons/account/models/account_journal.py
+    addons/account/models/account_move.py
+    addons/account/models/account_move_line.py
+    addons/account/models/account_move_send.py
+    addons/account/models/account_report.py
+    addons/account/models/account_tax.py
+speedscope.py:
+    addons/account/models/account_account.py
+    addons/account/models/account_bank_statement.py
+    addons/account/models/account_journal.py
+    addons/account/models/account_move.py
+    addons/account/models/account_move_line.py
+    addons/account/models/account_move_send.py
+    addons/account/models/account_report.py
+    addons/account/models/account_tax.py
+cloc.py:
+    addons/account_peppol/models/res_company.py
+    addons/account_peppol/wizard/peppol_registration.py
+    addons/account_tax_python/tools/formula_utils.py
+    addons/base_import_module/models/ir_module.py
+    addons/base_import_module/tests/test_cloc.py
+    addons/google_calendar/models/calendar.py
+    addons/google_calendar/models/google_sync.py
+    addons/iot_drivers/iot_handlers/drivers/keyboard_usb_driver_L.py
+xml_utils.py:
+    addons/account/tools/dict_to_xml.py
+    addons/account_edi_ubl_cii/models/account_edi_common.py
+    addons/account_edi_ubl_cii/models/account_edi_xml_cii_facturx.py
+    addons/account_edi_ubl_cii/models/account_move_send.py
+    addons/l10n_es_edi_facturae/models/account_move.py
+    addons/l10n_es_edi_tbai/models/l10n_es_edi_tbai_document.py
+    addons/l10n_es_edi_tbai/models/xml_utils.py
+    addons/l10n_gr_edi/models/account_move.py
+i18n.py:
+    addons/account/models/account_move.py
+    addons/account/models/company.py
+    addons/account_peppol/models/account_edi_proxy_user.py
+    addons/account_peppol_response/models/account_edi_proxy_user.py
+    addons/api_doc/controllers/api_doc.py
+    addons/crm/models/res_config_settings.py
+    addons/hr_attendance/controllers/main.py
+    addons/l10n_fr_pdp/wizard/pdp_response_wizard.py
+view_validation.py:
+    addons/base_vat/models/res_partner.py
+    addons/l10n_ar/models/res_partner.py
+    addons/l10n_ar/models/res_partner_bank.py
+    addons/l10n_sa_edi/tests/test_edi_zatca.py
+    addons/l10n_se/models/account_move.py
+    addons/l10n_se/models/res_partner.py
+    addons/mail/wizard/mail_compose_message.py
+    addons/spreadsheet/utils/validate_data.py
+osutil.py:
+    addons/web/controllers/export.py
+    addons/web/controllers/pivot.py
+    odoo/addons/base/tests/test_cache.py
+    odoo/service/db.py
+    odoo/service/server.py
+    odoo/tools/profiler.py
+mimetypes.py:
+    addons/im_livechat/models/discuss_channel.py
+    addons/website_slides/models/slide_slide_resource.py
+    odoo/addons/base/models/ir_attachment.py
+    odoo/addons/base/models/ir_binary.py
+    odoo/addons/base/tests/test_mimetypes.py
+sourcemap_generator.py:
+    addons/mail/models/mail_thread.py
+    odoo/addons/base/models/assetsbundle.py
+    odoo/addons/base/tests/test_ir_mail_server.py
+which.py:
+    odoo/addons/base/tests/test_ir_mail_server_smtpd.py
+    odoo/addons/test_lint/tests/test_pylint.py
+    odoo/tools/misc.py
+gc.py:
+    odoo/orm/registry.py
+    odoo/service/server.py
+    odoo/tools/profiler.py
+js_transpiler.py:
+    odoo/addons/base/models/assetsbundle.py
+    odoo/addons/test_assetsbundle/tests/test_js_transpiler.py
+rendering_tools.py:
+    addons/mail/models/mail_render_mixin.py
+appdirs.py:
+    odoo/tools/config.py
+test_reports.py:
+    addons/hr_holidays/tests/test_holidays_flow.py
+populate.py:
+    odoo/cli/populate.py
+EXIT=0
