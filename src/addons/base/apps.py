@@ -24,7 +24,9 @@ from django.apps import AppConfig, apps
 
 from orm.inherits import ensure_inherits
 from orm.model_classes import (ensure_access_managers, ensure_base_urls,
-                               ensure_display_names, ensure_rec_names)
+                               ensure_display_names,
+                               ensure_model_class_attributes,
+                               ensure_rec_names)
 
 
 class BaseConfig(AppConfig):
@@ -77,6 +79,10 @@ class BaseConfig(AppConfig):
         sólo alcanza a 291 de los 389 modelos. Lo consume
         ``ir.actions.report._get_report_url``.
         """
+        # Antes que los demas: valida la especie heredada y rellena los
+        # defaults que el resto lee (``_description``, ``_table``, la
+        # fusion de ``_inherits`` a lo largo de la MRO). Tarea #332.
+        ensure_model_class_attributes()
         ensure_rec_names()
         ensure_access_managers()
         ensure_display_names()

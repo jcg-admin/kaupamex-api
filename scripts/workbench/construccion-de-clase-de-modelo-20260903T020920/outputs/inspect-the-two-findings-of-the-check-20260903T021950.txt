@@ -1,0 +1,7 @@
+=== 1. check_table_matches_name ya lo sabe? ===
+[('base.SystemParameter', 'ir.config_parameter', 'ir_config_parameter', 'system_parameter')]
+
+=== 2. website.searchable.mixin ===
+en MODELS_BY_NAME: False
+clase: <class 'addons.website.models.static_page.StaticPage'> meta abstract: False
+clase: <class 'addons.website.models.mixins.WebsiteSearchableMixin'> meta abstract: None

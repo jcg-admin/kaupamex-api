@@ -92,7 +92,8 @@ from django.dispatch import receiver
 from django.apps import apps
 
 from orm.method_chain import chain_method, wrap_method
-from orm.registry import MODELS_BY_NAME, field_depends, resolve_model_key
+from orm.registry import (MODELS_BY_NAME, clear_marked_methods,
+                          field_depends, resolve_model_key)
 from tools.misc import discardattr
 
 _logger = logging.getLogger(__name__)
@@ -104,6 +105,10 @@ __all__ = [
     'DEFAULT_PARENT_NAME', 'parent_name_of',
     'adopt_access_manager', 'ensure_access_managers',
     'add_field', 'pop_field',
+    'is_abstract', 'is_transient', 'check_model_bases',
+    'inherits_of', 'inherits_children',
+    '_init_model_class_attributes', '_prepare_setup',
+    'ensure_model_class_attributes',
 ]
 
 
@@ -534,6 +539,33 @@ def inherits_of(model_cls):
     return getattr(model_cls, '_inherits', {})
 
 
+def inherits_children(comodel_name):
+    """Los modelos que delegan EN ``comodel_name`` — la arista de vuelta.
+
+    ≙ ``registry[parent]._inherits_children`` (``odoo19c: odoo/orm/
+    model_classes.py:293-294``), que alla se mantiene **por escritura**: cada
+    ``_init_model_class_attributes`` anade el hijo al conjunto del padre.
+
+    Aqui se **deriva** del registro, con el mismo criterio que
+    ``orm.registry.field_depends`` ya toma para su eje: un mapa mantenido a
+    mano puede quedar con una entrada de un modelo que ya no delega, y no hay
+    quien lo note. Derivarlo no puede envejecer.
+
+    Lee por :func:`inherits_of`, que es el unico lector de ``_inherits`` del
+    arbol — un segundo lector seria la segunda fuente de verdad que
+    ``calibration-verified-numbers.md`` prohibe.
+
+    *Ciega a:* un modelo que declare ``_inherits`` y no llegue a
+    ``MODELS_BY_NAME`` por no declarar ``_name``; y al transitorio de
+    ``account`` que hoy declara delegacion y esta ausente del registro, que es
+    la tarea **#333**.
+    """
+    return frozenset(
+        model._name for model in MODELS_BY_NAME.values()
+        if comodel_name in inherits_of(model)
+    )
+
+
 def _inherits_field(model_cls, field_name):
     """El campo delegado, o ``None`` si el modelo no lo declara.
 
@@ -840,6 +872,210 @@ def extend_selection_choices(model, field_name, extra, ondelete=None):
         combined.update(policies)
         field.ondelete = combined
     return added
+
+
+def is_abstract(model_cls):
+    """El modelo no tiene tabla — ≙ ``_abstract`` (``odoo19c: odoo/orm/
+    models.py:381``).
+
+    Es un **lector**, no un atributo, y la razon esta medida: colgar
+    ``_abstract`` de ``models.Model`` alcanzaria a ``auth``, ``contenttypes``
+    y a todo modelo de tercero —la colision de la tarea **#98**— y ademas
+    **mentiria** sobre el modelo que si declara ``Meta.abstract = True``, que
+    lo heredaria en ``False`` (``orm/models.py:3846-3862``).
+
+    Lee las **dos** formas que este arbol si tiene: el ``Meta.abstract`` de
+    Django, que es el mecanismo del stack, y el ``_abstract`` declarado, que
+    es el de :class:`~orm.models.AbstractModel` para el registrante sin tabla.
+    """
+    meta = getattr(model_cls, '_meta', None)
+    if meta is not None and getattr(meta, 'abstract', False):
+        return True
+    return bool(getattr(model_cls, '_abstract', False))
+
+
+def is_transient(model_cls):
+    """El modelo se vacia solo — ≙ ``_transient`` (``odoo19c: odoo/orm/
+    models.py:382``).
+
+    Aqui **si** es un atributo de clase, porque su declarante es nuestro:
+    ``orm/models_transient.py:70``. El lector existe igual para que el check
+    de abajo lea las dos especies por la misma puerta, y para que el default
+    —``False``— viva en un solo sitio.
+    """
+    return bool(getattr(model_cls, '_transient', False))
+
+
+def _check_model_extension(model_cls, model_def):
+    """≙ ``_check_model_extension`` (``odoo19c: odoo/orm/model_classes.py:
+    233-250``) — «Check whether ``model_cls`` can be extended with
+    ``model_def``».
+
+    **De sus dos mitades, aqui solo tiene superficie la transitoria**, y no
+    por recorte: allá la mitad de ``_abstract`` existe porque ``_inherit``
+    FUNDE dos clases bajo un mismo ``_name``, y la segunda puede cambiarle la
+    especie a la primera. Aqui ``orm.registry._register`` **rechaza** el
+    ``_name`` duplicado (``registry.py:216-224``) — *"El nombre punteado
+    identifica un modelo, no una familia"*—, asi que esa fusion no ocurre y la
+    transformacion no tiene por donde entrar. Es una guarda mas estricta que
+    la de la fuente, no un hueco.
+
+    Los dos mensajes se portan **verbatim**: son lo que quien los lee busca
+    en la documentacion de la referencia.
+    """
+    if is_transient(model_cls) != is_transient(model_def):
+        if is_transient(model_cls):
+            raise TypeError(
+                f"{model_def} transforms the transient model "
+                f"{model_cls._name!r} into a non-transient model. "
+                "That class should either inherit from TransientModel, or set "
+                "a different '_name'."
+            )
+        raise TypeError(
+            f"{model_def} transforms the model {model_cls._name!r} into a "
+            "transient model. That class should either inherit from Model, or "
+            "set a different '_name'."
+        )
+
+
+def _check_model_parent_extension(model_cls, model_def, parent_cls):
+    """≙ ``_check_model_parent_extension`` (``:253-258``) — «Check whether
+    ``model_cls`` can inherit from ``parent_cls``».
+
+    Verbatim, mensaje incluido. Aqui el ``model_def`` de la firma es la propia
+    clase: no hay clase de definicion separada de la registrada, porque
+    ``ModelBase`` de Django ya construyo una sola.
+    """
+    if is_abstract(model_cls) and not is_abstract(parent_cls):
+        raise TypeError(
+            f"In {model_def}, abstract model {model_cls._name!r} cannot "
+            f"inherit from non-abstract model {parent_cls._name!r}."
+        )
+
+
+def check_model_bases(model_cls):
+    """Aplica los dos checks de la fuente sobre cada padre con ``_name``.
+
+    **Es lo unico nuestro de este bloque**, y cubre el hueco que deja la
+    ausencia de ``_base_classes__``: alla el recorrido lo hace
+    ``add_to_registry`` al fundir cada clase de definicion en la registrada
+    (``:225-229``), y aqui no hay fusion que recorrer — la jerarquia es la
+    MRO de Python, que ``ModelBase`` ya resolvio.
+
+    **Solo mide padres que declaren ``_name``**, como la fuente, que recorre
+    clases de definicion y no toda la cadena: un mixin sin nombre no es un
+    modelo y no tiene especie que contradecir.
+    """
+    for parent_cls in model_cls.__mro__[1:]:
+        if not getattr(parent_cls, '_name', None):
+            continue
+        _check_model_parent_extension(model_cls, model_cls, parent_cls)
+        _check_model_extension(parent_cls, model_cls)
+
+
+def _init_model_class_attributes(model_cls):
+    """≙ ``_init_model_class_attributes`` (``odoo19c: odoo/orm/model_classes.
+    py:261-298``) — «Initialize model class attributes».
+
+    Rellena los defaults que la fuente deriva del ``_name`` y funde el
+    ``_inherits`` declarado a lo largo de las bases.
+
+    **Tres divergencias, las tres medidas:**
+
+    - ``_log_access = _auto`` de la fuente no se cuelga: su equivalente aqui
+      es ``TimeStampedModel``, que declara las columnas de auditoria como
+      campos y no como una bandera (``atributos-de-clase-de-modelo.md``).
+    - ``_table`` se deja en el default derivado del ``_name``; quien manda
+      sobre la tabla real es ``Meta.db_table``, y que los dos coincidan lo
+      verifica ``orm.registry.check_table_matches_name()``.
+    - el recorrido es la **MRO**, no ``_base_classes__``. En orden inverso,
+      como la fuente, para que la declaracion propia gane sobre la de la base.
+
+    La fuente evita asignar un dict vacio *"to save memory"* (``:289-292``);
+    aqui el efecto observable es que la clase no gana un atributo que no
+    declaro, que es lo que :func:`inherits_of` lee.
+    """
+    # El ``_name`` DECLARADO, no el heredado: ``getattr`` recorre la MRO, y
+    # medido en el arbol hay un modelo —``addons/website/models/static_page.py:
+    # 30``, ``StaticPage``— que hereda el ``_name`` de un mixin sin declarar el
+    # suyo. Con ``getattr`` se le habrian escrito el ``_description`` y el
+    # ``_table`` del mixin. Es la misma lectura que ``orm.registry._register``
+    # ya hace (``registry.py:214``), y por la misma razon.
+    name = model_cls.__dict__.get('_name')
+    if not name:
+        return
+
+    if not model_cls.__dict__.get('_description'):
+        # El aviso de la fuente (``:271-272``), verbatim. Medido al portarlo:
+        # 0 de los 140 modelos registrados lo dispara — el arbol ya declara
+        # ``_description`` en todos, asi que entra sobre un baseline limpio.
+        _logger.warning("The model %s has no _description", name)
+        model_cls._description = name
+    if not model_cls.__dict__.get('_table'):
+        model_cls._table = name.replace('.', '_')
+
+    inherits = {}
+    for base in reversed(model_cls.__mro__):
+        inherits.update(base.__dict__.get('_inherits') or {})
+    if inherits:
+        model_cls._inherits = inherits
+
+
+def _prepare_setup(model_cls):
+    """≙ ``_prepare_setup`` (``odoo19c: odoo/orm/model_classes.py:329-346``) —
+    «Prepare the setup of the model».
+
+    Su unico trabajo es **olvidar** lo que el setup vuelve a calcular: los dos
+    atributos resueltos y los tres mapas de metodo marcado.
+
+    **Sin ``_setup_done__`` ni el cambio de bases** de la fuente (``:330-337``):
+    aquel guarda ``_base_classes__`` para poder reconstruir la clase, y aqui
+    ``ModelBase`` construyo una sola cuya MRO no se reescribe. Lo que queda es
+    el olvido, que es la mitad con consumidor.
+
+    Es el llamador que :func:`~orm.registry.clear_marked_methods` esperaba
+    desde la tarea **#334**: un colector que no se vacia hace invisible un
+    metodo anadido despues, y eso ya se midio
+    (``tests/unit/web/test_models_onchange.py``).
+    """
+    for attr in ('_rec_name', '_active_name'):
+        discardattr(model_cls, attr)
+    clear_marked_methods()
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.init_class_attributes')
+def _init_class_attributes_on_prepared(sender, **kwargs):
+    """Valida la especie heredada y rellena los defaults, clase por clase.
+
+    ``class_prepared`` dispara al final de ``ModelBase.__new__``, que es donde
+    la fuente corre los dos checks y ``_init_model_class_attributes``: al
+    fundir cada clase de definicion en la registrada
+    (``odoo19c: odoo/orm/model_classes.py:216-229``).
+
+    El orden importa y es el de la fuente: **primero se valida**, y solo
+    entonces se rellena. Rellenar una clase cuya especie contradice a su padre
+    seria dejar consistente un estado que no deberia existir.
+    """
+    check_model_bases(sender)
+    _init_model_class_attributes(sender)
+
+
+def ensure_model_class_attributes():
+    """Barrido para las clases preparadas ANTES de conectar el receptor.
+
+    Mismo hermano que :func:`ensure_rec_names` y :func:`ensure_access_managers`
+    ya tienen, y por la misma razon: ``class_prepared`` no dispara hacia atras,
+    asi que una clase construida antes de que este modulo se importara nunca
+    pasaria por el receptor. Corre desde ``AppConfig.ready()``.
+
+    Devuelve los nombres tocados, para que quien lo llame pueda medirlo.
+    """
+    tocados = []
+    for model_cls in list(MODELS_BY_NAME.values()):
+        check_model_bases(model_cls)
+        _init_model_class_attributes(model_cls)
+        tocados.append(model_cls._name)
+    return tocados
 
 
 def extend_model(*destino, campos=None, metodos=None, overrides=None,
