@@ -25,6 +25,8 @@ check_write_path = importlib.util.module_from_spec(_SPEC)
 sys.modules['check_write_path'] = check_write_path
 _SPEC.loader.exec_module(check_write_path)
 
+counterpart_body = sys.modules['counterpart_body']
+
 classify = check_write_path.classify
 Vocabulary = check_write_path.Vocabulary
 OURS = check_write_path.OURS
@@ -88,19 +90,74 @@ class TestTheDirectionIsNotSymmetric:
 
 
 class TestTheGateSeesTheRealPositive:
-    """Control positivo REAL: el metodo que #345 identifico a mano."""
+    """Control positivo REAL del arbol, no fabricado.
 
-    def test_it_flags_reflect_constraint(self):
+    Era ``_reflect_constraint``, el que #345 identifico a mano. Ese metodo
+    **se alineo** —hoy escribe con ``bulk_create``/``update``, como la fuente
+    escribe en SQL crudo— asi que ya no puede servir de positivo. El control
+    se muda a otro que sigue vivo, y el alineado pasa a ser el control de
+    regresion de abajo.
+    """
+
+    def test_it_flags_reschedule_asap(self):
         findings = check_write_path.scan([
-            pathlib.Path('src/addons/base/models/ir_model.py')])
+            pathlib.Path('src/addons/base/models/ir_cron.py')])
         flagged = {f.symbol for f in findings}
-        assert '_reflect_constraint' in flagged, sorted(flagged)
+        assert '_reschedule_asap' in flagged, sorted(flagged)
 
     def test_the_flagged_direction_is_the_dangerous_one(self):
         findings = check_write_path.scan([
-            pathlib.Path('src/addons/base/models/ir_model.py')])
-        one = next(f for f in findings if f.symbol == '_reflect_constraint')
+            pathlib.Path('src/addons/base/models/ir_cron.py')])
+        one = next(f for f in findings if f.symbol == '_reschedule_asap')
         assert one.direction == check_write_path.CROSSES_GUARD
+
+
+class TestTheAlignedReflectionsStayAligned:
+    """Control de regresion de #345 — que haria fallar a este control.
+
+    Los tres reflejos de ``ir_model.py`` cruzaban el enganche de ``save()``
+    donde la fuente escribe por SQL crudo. Se alinearon a ``bulk_create`` y
+    ``QuerySet.update()``. Si alguien devuelve un ``update_or_create`` o un
+    ``get_or_create`` a cualquiera de los tres, el gate vuelve a nombrarlo y
+    este caso se pone rojo — que es exactamente lo que tiene que pasar.
+    """
+
+    @pytest.mark.parametrize('symbol', [
+        '_reflect_constraint', '_reflect_relation', '_reflect_inherits'])
+    def test_no_longer_crosses_a_guard_the_source_avoids(self, symbol):
+        findings = check_write_path.scan([
+            pathlib.Path('src/addons/base/models/ir_model.py')])
+        flagged = {f.symbol for f in findings}
+        assert symbol not in flagged, sorted(flagged)
+
+
+class TestTheInstrumentDeclaresWhatItCannotDecide:
+    """``BOTH`` que contiene la categoria del otro NO es un desacuerdo.
+
+    La unidad de esta comparacion es el **metodo**, y un metodo puede escribir
+    por dos mecanismos para dos operaciones distintas: la fuente de
+    ``_update_selection`` inserta con ``query_insert`` —por debajo— y borra con
+    ``unlink`` —por el enganche—. Nosotros insertamos por debajo y borramos con
+    ``QuerySet.delete()``, que es el enganche de este stack. No hay divergencia,
+    y con la granularidad del metodo tampoco hay forma de afirmarlo: el
+    instrumento lo declara indeterminado en vez de inventar un hallazgo.
+    """
+
+    def test_a_contained_category_is_indeterminate_not_a_finding(self):
+        assert check_write_path.direction(
+            check_write_path.BELOW_ORM, check_write_path.MIXED) == (
+                counterpart_body.INDETERMINATE)
+        assert check_write_path.direction(
+            check_write_path.MIXED, check_write_path.VIA_ORM) == (
+                counterpart_body.INDETERMINATE)
+
+    def test_the_scope_counts_them_apart(self):
+        # Contarlos como acuerdo publicaria un verde que no discrimina.
+        findings, scope = check_write_path.scan_with_scope([
+            pathlib.Path('src/addons/base/models/ir_model.py')])
+        assert scope.pairs_indeterminate >= 2, scope
+        assert not [f for f in findings
+                    if f.direction == counterpart_body.INDETERMINATE]
 
 
 class TestTheGateDeclaresWhatItMeasured:

@@ -37,6 +37,13 @@ import reference_roots  # noqa: E402 — la raiz se declara una vez (H-API-335)
 ABSENT = 'sin senal'
 BOTH = 'ambas'
 
+#: El instrumento vio los dos lados y **no puede decidir** con su granularidad.
+#: No es un hallazgo —no hay defecto que nombrar— ni un acuerdo. Se cuenta
+#: aparte para que el denominador no lo esconda: un par indeterminado contado
+#: como acuerdo publica un verde que no discrimina (sub-patron D de
+#: ``metrica-decide-la-conclusion.md``).
+INDETERMINATE = 'indeterminado por granularidad de metodo'
+
 
 @dataclasses.dataclass(frozen=True)
 class Vocabulary:
@@ -94,13 +101,25 @@ def classify(node, vocabulary, axis):
 
 
 def direction(ours, theirs, axis):
-    """El nombre del desacuerdo, o ``None`` si no hay nada que reportar.
+    """El nombre del desacuerdo, ``None`` si coinciden, ``INDETERMINATE`` si el
+    instrumento no puede decidir.
 
-    Un lado sin senal no se compara: concluir ahi seria hablar de lo que el
-    instrumento no ve (``metrica-decide-la-conclusion.md``).
+    Tres desenlaces, no dos, y el tercero es el que evita un falso positivo:
+
+    - Un lado **sin senal** no se compara: concluir ahi seria hablar de lo que
+      el instrumento no ve (``metrica-decide-la-conclusion.md``).
+    - Un lado en ``BOTH`` que **contiene** la categoria del otro es
+      **indeterminado**, no un desacuerdo. La unidad de esta comparacion es el
+      **metodo**, y un metodo puede escribir por dos mecanismos para dos
+      operaciones distintas —insertar por debajo, borrar por el enganche—.
+      Con esa granularidad, que nosotros usemos uno de los dos que la fuente
+      usa no es evidencia de divergencia: es la resolucion del instrumento.
+    - Lo demas es desacuerdo, con el nombre que el eje le de.
     """
     if ABSENT in (ours, theirs) or ours == theirs:
         return None
+    if BOTH in (ours, theirs):
+        return INDETERMINATE
     return axis.directions.get((ours, theirs), 'categoria distinta')
 
 
@@ -124,6 +143,7 @@ class Scope:
     files_scanned: int
     files_with_counterpart: int
     pairs_compared: int
+    pairs_indeterminate: int = 0
 
 
 #: Las raices espejadas: el prefijo nuestro y su destino en la referencia. Las
@@ -161,7 +181,7 @@ def methods_of(path):
 def compare(paths, axis):
     """Los hallazgos del eje y el alcance sobre el que se midieron."""
     paths = list(paths)
-    findings, with_counterpart, pairs = [], 0, 0
+    findings, with_counterpart, pairs, indeterminate = [], 0, 0, 0
     for path in paths:
         reference = counterpart(path)
         if reference is None or not reference.is_file():
@@ -177,9 +197,11 @@ def compare(paths, axis):
                 continue
             pairs += 1
             verdict = direction(mine, yours, axis)
-            if verdict is not None:
+            if verdict == INDETERMINATE:
+                indeterminate += 1
+            elif verdict is not None:
                 findings.append(Finding(str(path), name, mine, yours, verdict))
-    return findings, Scope(len(paths), with_counterpart, pairs)
+    return findings, Scope(len(paths), with_counterpart, pairs, indeterminate)
 
 
 def tree_files(roots):

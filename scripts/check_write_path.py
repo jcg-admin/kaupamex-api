@@ -137,7 +137,9 @@ def main(argv=None):
           f'({len(findings)} en total; {len(baseline)} en baseline) '
           f'(alcance medido: {scope.pairs_compared} par(es) de metodo que '
           f'escriben en ambos lados, sobre {scope.files_with_counterpart} '
-          f'archivo(s) con contraparte de {scope.files_scanned} recorrido(s))')
+          f'archivo(s) con contraparte de {scope.files_scanned} recorrido(s); '
+          f'{scope.pairs_indeterminate} indeterminado(s) por granularidad de '
+          f'metodo)')
     return 1 if (args.strict and fresh) else 0
 
 

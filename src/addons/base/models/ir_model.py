@@ -210,6 +210,7 @@ import models
 from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db.models.fields import NOT_PROVIDED
+from django.utils import timezone
 
 from addons.base.models.ir_module import IrModule
 from addons.base.models.ir_ui_view import IrUiView
@@ -1771,23 +1772,39 @@ class IrModelInherit(models.Model):
         La fuente recorre ``type(model).mro()`` buscando definiciones de
         modelo; aquí es el mismo recorrido sobre el MRO de Django. Devuelve el
         número de aristas registradas.
+
+        **Escribe por debajo del ORM, como la fuente.** Allá la escritura es
+        ``upsert_en`` —``INSERT ... ON CONFLICT`` en SQL crudo (``:1480``)— y
+        la lectura previa un ``cr.execute`` (``:1463``): el reflejo nunca pasa
+        por ``create``. Aquí el equivalente es el mismo par —una consulta de
+        las aristas que ya existen y un ``bulk_create`` de las que faltan—,
+        que tampoco llama a :meth:`save`.
+
+        No es un rodeo a la guarda: es su frontera. Un ``get_or_create`` por
+        arista hacía pasar cada fila del árbol de herencia por ``pre_save`` y
+        ``post_save`` —y con ellos por el pase de precompute del ORM y por los
+        receptores sin ``sender`` de ``base_automation``, uno de los cuales
+        consulta la fila previa—, trabajo que el reflejo de la fuente no paga.
         """
         model = model_row.django_model
         if model is None:
             return 0
-        registered = 0
+        known = set(cls.objects.filter(model_id=model_row)
+                    .values_list('parent_id', flat=True))
+        new_edges = []
         for base in model.__mro__[1:]:
             meta = getattr(base, '_meta', None)
             if meta is None or base is models.Model:
                 continue
             label = f'{meta.app_label}.{meta.object_name}'
             parent = IrModel.objects.filter(model=label).first()
-            if parent is None:
+            if parent is None or parent.pk in known:
                 continue
-            _edge, was_created = cls.objects.get_or_create(
-                model_id=model_row, parent_id=parent)
-            registered += was_created
-        return registered
+            known.add(parent.pk)
+            new_edges.append(cls(model_id=model_row, parent_id=parent))
+        if new_edges:
+            cls.objects.bulk_create(new_edges)
+        return len(new_edges)
 
 
 class IrModelFieldsSelection(models.OriginMixin, TimeStampedModel):
@@ -2261,9 +2278,16 @@ class IrModelConstraint(models.CopyMixin, TimeStampedModel):
         y una fila que ya dice lo mismo **no se toca**, que es lo que hace
         distinguible «cambió» de «ya estaba».
 
-        La fuente lo escribe en SQL crudo con ``INSERT``/``UPDATE``; aquí es el
-        ORM. El ``message`` de allá es un ``jsonb`` por idioma porque su campo
-        es traducible; aquí es un ``Char`` y guarda el texto — el eje de
+        **Escribe por debajo del ORM, como la fuente.** Allá son
+        ``execute_query(SQL(...))`` con ``INSERT ... RETURNING`` y ``UPDATE``
+        (``:1948`` y ``:1966``): ni ``create`` ni ``write``, así que el reflejo
+        no dispara el camino interactivo. Aquí el equivalente son
+        ``bulk_create`` y ``QuerySet.update()``, los dos escritores de Django
+        que no llaman a :meth:`save` — la misma elección que ya documentan
+        :meth:`IrModel._reflect_models` y :meth:`IrModelFields._reflect_fields`.
+
+        El ``message`` de allá es un ``jsonb`` por idioma porque su campo es
+        traducible; aquí es un ``Char`` y guarda el texto — el eje de
         traducción del ORM es la tarea **#184**.
         """
         if not module:
@@ -2281,20 +2305,29 @@ class IrModelConstraint(models.CopyMixin, TimeStampedModel):
                 'No se puede registrar la restricción %s: el modelo %s no '
                 'está en ir_model' % (conname, label))
 
+        values = {
+            'type': constraint_type,
+            'definition': definition or '',
+            'message': message or '',
+        }
         row = cls.objects.using(using).filter(
             name=conname, module=module_row).first()
         if row is None:
-            return cls.objects.using(using).create(
-                name=conname, module=module_row, model=model_row,
-                type=constraint_type, definition=definition or '',
-                message=message or '')
+            [created] = cls.objects.using(using).bulk_create([
+                cls(name=conname, module=module_row, model=model_row,
+                    **values)])
+            return created
         if (row.type, row.definition, row.message) == (
-                constraint_type, definition or '', message or ''):
+                values['type'], values['definition'], values['message']):
             return None
-        row.type = constraint_type
-        row.definition = definition or ''
-        row.message = message or ''
-        row.save(using=using)
+        # ``updated_at`` explícito: ``QuerySet.update()`` no dispara el
+        # ``auto_now`` del campo, y la fuente sí refresca la marca —su
+        # ``UPDATE`` abre con ``SET write_date=now() AT TIME ZONE 'UTC'``
+        # (``odoo19c: :1968``). Omitirlo dejaría la fila con la fecha del alta.
+        cls.objects.using(using).filter(pk=row.pk).update(
+            updated_at=timezone.now(), **values)
+        for name, value in values.items():
+            setattr(row, name, value)
         return row
 
     @classmethod
@@ -2444,11 +2477,14 @@ class IrModelRelation(TimeStampedModel):
         :meth:`_module_data_uninstall` no sabe qué tablas intermedias dejó un
         módulo: la trazabilidad del Many2many empieza aquí.
 
-        La fuente lo escribe en SQL crudo con un ``SELECT`` de existencia y un
-        ``INSERT`` condicionado; aquí es ``get_or_create``, que es la misma
-        conducta —idempotente por ``(name, module)``— en el ORM. Y no hace
-        falta el ``invalidate_all`` de la primera línea de la fuente: ese vacía
-        su caché de registros, que aquí no existe.
+        **Escribe por debajo del ORM, como la fuente.** Allá son un ``SELECT``
+        de existencia y un ``INSERT`` condicionado por ``execute_query``
+        (``:2057`` y ``:2059``), nunca ``create``. Aquí el equivalente es el
+        mismo ``SELECT`` seguido de ``bulk_create``, que no llama a
+        :meth:`save`: la conducta es idéntica —idempotente por
+        ``(name, module)``— y ninguna de las dos formas dispara el camino
+        interactivo. Y no hace falta el ``invalidate_all`` de la primera línea
+        de la fuente: ese vacía su caché de registros, que aquí no existe.
 
         El módulo o el modelo que no estén en sus tablas **no se inventan**: la
         fuente los resuelve con dos subconsultas que dan ``NULL`` si faltan, y
@@ -2466,9 +2502,13 @@ class IrModelRelation(TimeStampedModel):
             raise ValueError(
                 'No se puede registrar la relación %s: el modelo %s no está '
                 'en ir_model' % (table, label))
-        row, _created = cls.objects.using(using).get_or_create(
-            name=table, module=module_row, defaults={'model': model_row})
-        return row
+        row = cls.objects.using(using).filter(
+            name=table, module=module_row).first()
+        if row is not None:
+            return row
+        [created] = cls.objects.using(using).bulk_create([
+            cls(name=table, module=module_row, model=model_row)])
+        return created
 
     @classmethod
     def _module_data_uninstall(cls, modules_to_remove, using=DEFAULT_DB_ALIAS):
