@@ -141,13 +141,23 @@ class SqlLike(models.Lookup):
 
 
 class SqlILike(models.Lookup):
-    """``ILIKE`` sin envoltura ni escape — hermano insensible a mayúsculas.
+    """``ILIKE`` sin escape, insensible a mayúsculas **y a acentos**.
 
-    **Divergencia declarada:** la fuente envuelve los dos lados con
-    ``registry.unaccent`` (``:1327-1329``), así que su ``ilike`` es además
-    insensible a acentos. Aquí no: el ``unaccent`` real es la tarea **#98**
-    (T-012 de la migración de motor), y hasta que exista este lookup compara
-    sin normalizar acentos.
+    Los dos lados van envueltos en ``unaccent(...)``, que es lo que la fuente
+    hace cuando la extensión está presente
+    (``odoo19c: odoo/orm/fields.py:1326-1327``)::
+
+        sql_left = model.env.registry.unaccent(sql_left)
+        sql_value = model.env.registry.unaccent(sql_value)
+
+    Envolver **los dos** no es simetría cosmética: normalizar sólo la columna
+    dejaría el patrón con su acento y «Ácme» no encontraría a «ácme».
+
+    La extensión que provee la función es ``unaccent``, el contrib de
+    PostgreSQL; la crea ``base/migrations/0084_unaccent_extension.py`` en toda
+    base que el ORM construya. El hermano sensible a mayúsculas
+    (:class:`SqlLike`) **no** la usa, igual que en la fuente: allá la
+    envoltura está dentro de ``if operator.endswith('ilike')``.
     """
 
     lookup_name = 'sql_ilike'
@@ -155,6 +165,9 @@ class SqlILike(models.Lookup):
     def as_sql(self, compiler, connection):
         lhs, lhs_params = self.process_lhs(compiler, connection)
         rhs, rhs_params = self.process_rhs(compiler, connection)
+        if UNACCENT_ENABLED:
+            return (f'unaccent({lhs}::text) ILIKE unaccent({rhs})',
+                    (*lhs_params, *rhs_params))
         return f'{lhs}::text ILIKE {rhs}', (*lhs_params, *rhs_params)
 
 
@@ -417,17 +430,23 @@ NEGATIVE_CONDITION_OPERATORS = frozenset([
 #: (``odoo19c: odoo/orm/registry.py:290``), que es ``remove_accents`` cuando la
 #: extensión ``unaccent`` está instalada y la identidad cuando no.
 #:
-#: **Aquí es falso, y es una medición, no una preferencia.** El lookup
-#: ``sql_ilike`` emite un ``ILIKE`` pelado (ver su docstring: el ``unaccent``
-#: real es la tarea **#98**), y la extensión no está instalada — medido sobre
-#: ``pg_extension``: ``pg_trgm`` y ``plpgsql``, nada más.
+#: **Aquí es verdadero desde 2026-09-03**, y con las dos vías encendidas a la
+#: vez. La extensión que lo permite es ``unaccent``, el contrib de PostgreSQL,
+#: y la crea ``base/migrations/0084_unaccent_extension.py``.
+#:
+#: Antes era falso, y su comentario lo declaraba como bloqueo: *"la extensión
+#: no está instalada"*. Medido al releerlo: ``pg_available_extensions`` la
+#: daba **disponible** con ``installed_version`` en ``NULL`` — nunca fue un
+#: impedimento, era un ``CREATE EXTENSION`` que nadie ejecutaba. El provisioner
+#: de ``db`` sí la declara; lo que faltaba era la vía por la que pytest
+#: construye sus bases, que son las migraciones.
 #:
 #: La bandera existe para que las **dos** vías de compilación decidan lo mismo.
 #: Sin ella el predicado en memoria encontraría «Ácme» buscando «acme» y el
-#: motor no, sobre el mismo dominio — y eso lo destapó el test que las contrasta,
-#: no una relectura. Cuando #98 instale la extensión, esto y ``SqlILike`` se
-#: encienden juntos: son una decisión, no dos.
-UNACCENT_ENABLED = False
+#: motor no, sobre el mismo dominio — y eso lo destapó el test que las
+#: contrasta, no una relectura. Por eso esto y :class:`SqlILike` se leen
+#: juntos: son una decisión, no dos.
+UNACCENT_ENABLED = True
 
 
 def convert_to_display_name(field, value, record):

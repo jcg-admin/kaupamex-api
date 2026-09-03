@@ -148,12 +148,22 @@ def _unaccent(x):
     ``SQL`` compuesto, un ``psycopg.sql.Composed``, y la interpolacion de
     cadena para el resto.
 
-    **Quien lo cablea.** El equivalente de ``Registry.unaccent`` —el
-    despachador que elige entre esto y la identidad segun
-    :func:`modules.db.has_unaccent`— espera a que la extension exista: hoy
-    ``pg_extension`` declara ``pg_trgm`` y ``plpgsql``, nada mas, y por eso
-    ``orm.fields.UNACCENT_ENABLED`` es ``False``. Instalarla y encender las
-    dos vias de compilacion a la vez es la tarea **#98**.
+    **Que extension.** La que provee la funcion es ``unaccent``, el contrib de
+    PostgreSQL. Se crea en toda base que el ORM construya
+    (``base/migrations/0084_unaccent_extension.py``) y tambien la declara el
+    provisioner (``db: provisioners/postgresql/db_setup.sh:194-195``); hacen
+    falta las dos, porque pytest levanta sus bases desde las migraciones y ahi
+    el provisioner no pasa.
+
+    Lo que la fuente pregunta, sin embargo, **no es la extension sino la
+    funcion**: ``modules.db.has_unaccent`` mira ``pg_proc``, asi que cualquier
+    homonima de un argumento sirve. El ``provolatile`` decide aparte si es
+    indexable.
+
+    **Quien lo cablea.** ``orm.fields.UNACCENT_ENABLED`` es ``True`` desde
+    2026-09-03, y con el las dos vias de compilacion a la vez: el lookup
+    ``SqlILike`` envuelve los dos lados y el predicado en memoria normaliza con
+    ``remove_accents``.
     """
     if isinstance(x, SQL):
         return SQL("unaccent(%s)", x)
