@@ -374,3 +374,30 @@ def model_of_field(field, registry_module):
         return model
     name = getattr(field, 'model_name', '')
     return registry_module.MODELS_BY_NAME.get(name) if name else None
+
+
+def display_name_of(record):
+    """La etiqueta de un registro — ≙ ``record.display_name``.
+
+    Vive aquí y no en ``orm/fields.py``, donde nació, por la misma razón que
+    :func:`model_of` una función más arriba: tiene consumidores que **no
+    pueden** importar aquel archivo. Son tres, y hasta este pase cada uno
+    llevaba su copia:
+
+    - ``orm/fields.py`` — el despachador de ``convert_to_display_name``;
+    - ``orm/fields_relational.py`` — la sobrecarga de ``Many2one``, que
+      ``orm/fields.py`` importa (``orm/fields.py:86``), así que el import
+      inverso sería un ciclo;
+    - ``orm/fields_properties.py`` — la etiqueta de un valor de propiedad
+      relacional, con el mismo ciclo.
+
+    Tres copias de dos líneas son la segunda fuente de verdad que
+    ``calibration-verified-numbers.md`` prohíbe: la tercera se iba a escribir
+    en este pase y en su lugar se unificaron las tres.
+
+    Un modelo que aún no adoptó el ``display_name`` universal —los de terceros
+    lo son por decisión, el adoptador de ``orm.model_classes`` no los toca—
+    cae a ``str(record)``, que es el ``__str__`` de Django.
+    """
+    label = getattr(record, 'display_name', None)
+    return label if label else str(record)

@@ -56,9 +56,11 @@ from decimal import Decimal
 from operator import attrgetter
 from typing import TypeVar
 
+from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models
 from django.utils.timezone import localtime
+from psycopg.types.json import Jsonb
 
 from orm.environments import (env as get_environment, get_current_company,
                              get_transaction, sudo as elevate_privileges)
@@ -450,60 +452,44 @@ def convert_to_display_name(field, value, record):
     ``fields_temporal.py:187`` y ``:291``). Es lo que ``_compute_display_name``
     aplica al campo que ``_rec_name`` nombra.
 
-    **Divergencia de forma, declarada y heredada:** allá es un método de la
-    clase del campo; aquí es una **función sobre el campo de Django**, por la
-    misma razón que ``falsy_value`` y ``condition_to_q``, que ya viven en este
-    archivo — nuestros campos son alias de los de Django
-    (``Integer = models.IntegerField``), así que no hay clase propia donde
-    colgar el método sin subclasar los veinte campos de Django. El **sitio** sí
-    es el de la fuente.
+    **Ya NO es la implementación: es la puerta.** El método vive donde la
+    fuente lo declara —``models.Field.convert_to_display_name`` y sus cinco
+    sobrecargas, adjuntas a la clase de campo que cada una especializa—, y esta
+    función **delega** en él. Se conserva por dos consumidores que no pueden
+    llamar al método:
 
-    Las cinco sobrecargas se portan como despacho por clase:
+    - ``orm/models.py:_compute_display_name``, que resuelve el campo por
+      ``_rec_name`` y puede no encontrarlo (``field is None``);
+    - una **relación inversa** de Django (``ManyToOneRel``, ``ManyToManyRel``),
+      que **no es un** ``Field`` y por tanto no recibe ningún método de campo.
+      Darle el vocabulario de campo de la fuente es la tarea **#347**; hasta
+      entonces su rama vive aquí.
+
+    Las cinco sobrecargas, y dónde vive cada una:
 
     - **relacional a uno** (``Many2one``, ``Reference``) → el ``display_name``
-      del registro apuntado. La fuente lo escribe igual en las dos.
-    - **relacional a muchos** (``Many2many``, ``One2many``) → la fuente lanza
-      ``NotImplementedError`` (``fields_relational.py:715``), y se porta
-      verbatim: un ``_rec_name`` que nombre una colección no tiene etiqueta
-      única, y devolver algo inventado ahí escondería el error de declaración.
-    - **fecha y fecha-hora** → su representación en texto. La fuente pasa la
-      fecha-hora a la zona del registro
-      (``Datetime.context_timestamp``); aquí lo hace ``localtime``, que lee la
-      zona activa del hilo — el mismo mecanismo que el resto del árbol usa.
-    - **el resto** → ``str(value) if value else False``, el default de la
-      fuente, con su ``False`` y no ``None``: es el valor que la fuente
-      devuelve para un campo vacío, y ``_compute_display_name`` lo distingue.
+      del registro apuntado — ``fields_relational.py``, sobre
+      ``models.ForeignKey`` y ``models.OneToOneField``.
+    - **relacional a muchos** (``Many2many``, ``One2many``) →
+      ``NotImplementedError`` verbatim de la fuente
+      (``odoo19c: fields_relational.py:715``): un ``_rec_name`` que nombre una
+      colección no tiene etiqueta única, y devolver algo inventado escondería
+      el error de declaración.
+    - **fecha y fecha-hora** → ``fields_temporal.py:410`` y ``:423``, ya
+      adjuntas desde el porte de esa categoría.
+    - **el resto** → el método base de este archivo,
+      ``str(value) if value else False``, con su ``False`` y no ``None``: es el
+      valor que la fuente devuelve para un campo vacío, y
+      ``_compute_display_name`` lo distingue.
     """
-    if field is None:
-        return str(value) if value else False
-    if isinstance(field, (models.ManyToManyField, models.ManyToOneRel,
-                          models.ManyToManyRel)):
+    if field is not None and hasattr(field, 'convert_to_display_name'):
+        return field.convert_to_display_name(value, record)
+    if isinstance(field, (models.ManyToOneRel, models.ManyToManyRel)):
         raise NotImplementedError(
             f'convert_to_display_name no aplica a {field!r}: una colección no '
             f'tiene etiqueta única')
-    if isinstance(field, (models.ForeignKey, models.OneToOneField)):
-        return display_name_of(value) if value else False
-    if isinstance(field, models.DateTimeField):
-        return localtime(value).strftime('%Y-%m-%d %H:%M:%S') if value else False
-    if isinstance(field, models.DateField):
-        return value.strftime('%Y-%m-%d') if value else False
     return str(value) if value else False
 
-
-def display_name_of(record):
-    """La etiqueta de un registro — ≙ ``record.display_name``.
-
-    Existe para que :func:`convert_to_display_name` no tenga que importar
-    ``orm.models``: ese módulo importa ``orm.environments``, que toca el
-    registro de apps, y este archivo se carga al definir los campos. Es la
-    misma causa que documenta ``adopt_access_manager``.
-
-    Un modelo que aún no adoptó el ``display_name`` universal —los de terceros
-    lo son por decisión— cae a ``str(record)``, que es el ``__str__`` de
-    Django.
-    """
-    etiqueta = getattr(record, 'display_name', None)
-    return etiqueta if etiqueta else str(record)
 
 _INEQUALITY_LOOKUP = {'<': 'lt', '>': 'gt', '<=': 'lte', '>=': 'gte'}
 
@@ -1661,6 +1647,234 @@ def _field_is_editable(self):
 models.Field.is_editable = _field_is_editable
 
 
+############################################################################
+#
+# Conversion of values — ≙ ``odoo19c: odoo/orm/fields.py:975-1081``
+#
+# El nombre de la sección es el de la fuente. Son nueve métodos y un contrato
+# de tres formatos que Django no separa: el suyo tiene ``to_python`` y
+# ``get_prep_value``, dos pasos entre «lo que escribió el usuario» y «lo que
+# va al placeholder». La fuente distingue cinco —columna, caché, registro,
+# lectura y exportación— porque un campo suyo puede guardar un mapa donde
+# expone un escalar (traducible, dependiente de empresa), y ahí los formatos
+# dejan de coincidir.
+#
+# Veredicto por el criterio de las dos categorías:
+#
+# - **el stack lo trae hecho**: el adaptador de ``jsonb``.
+#   ``psycopg.types.json.Jsonb`` es el ``PsycopgJson`` de la fuente traído a
+#   psycopg 3 —allá es ``from psycopg2.extras import Json as PsycopgJson``—, y
+#   la tabla de orden de columna, que ``tools/sql.py`` ya porta como
+#   :func:`~tools.sql.sql_order_by_type`.
+# - **el stack tiene con qué construirlo**: el contrato en sí, sobre el
+#   almacén que ``Transaction.field_data`` ya provee.
+#
+# Cuatro adaptaciones de firma, cada una con su causa, y valen para toda la
+# sección:
+#
+# 1. ``record.env.transaction.field_data`` → :func:`~orm.environments.get_transaction`
+#    y :func:`~orm.environments.env`. No hay ``env`` colgado de la fila: aquí
+#    una fila es una instancia de Django y el entorno es ambiente.
+# 2. ``record.env.company.id`` → :func:`~orm.environments.get_current_company`,
+#    la misma adaptación que ``CompanyDependent.value_for_current_company``.
+# 3. ``record._name`` → ``type(record)._meta.label``, la llave con que
+#    ``ir.default`` guarda sus filas en este árbol.
+# 4. ``self in record.env._field_depends_context`` →
+#    :func:`_has_context_buckets`, que ya responde lo mismo desde el mapa
+#    derivado del registro.
+#
+############################################################################
+
+
+def _field_convert_to_column(self, value, record, values=None, validate=True):
+    """≙ ``Field.convert_to_column`` (``:981``) — del formato de ``write`` al
+    parámetro SQL de una condición.
+
+    Cuerpo verbatim de la fuente, y sus cuatro ramas importan en ese orden:
+    ``None`` y ``False`` se descartan **por identidad**, así que la cadena
+    vacía y el ``0`` sobreviven; luego ``str`` pasa tal cual, ``bytes`` se
+    decodifica, y el resto se lleva a texto.
+
+    La comparación por identidad no es un detalle de estilo: con ``not value``
+    el cero de un ``Integer`` y la cadena vacía de un ``Char`` se guardarían
+    como ``NULL``, que es otro valor.
+    """
+    if value is None or value is False:
+        return None
+    if isinstance(value, str):
+        return value
+    elif isinstance(value, bytes):
+        return value.decode()
+    else:
+        return str(value)
+
+
+models.Field.convert_to_column = _field_convert_to_column
+
+
+def _field_convert_to_column_insert(self, value, record, values=None, validate=True):
+    """≙ ``Field.convert_to_column_insert`` (``:994``) — el parámetro de un
+    ``INSERT``, que es donde el campo dependiente de empresa se separa.
+
+    Sin ``company_dependent`` delega en :func:`_field_convert_to_column` y ahí
+    termina. Con él, el valor de la empresa activa se envuelve en un mapa
+    ``{empresa: valor}`` para la columna ``jsonb`` — **salvo** que coincida con
+    el default de ``ir.default``, en cuyo caso devuelve ``None`` y la fila
+    hereda el fallback en vez de repetirlo.
+
+    El default se lee **crudo**, sin pasarlo por ninguna conversión, y luego se
+    compara ya convertido. Es lo que la fuente hace, y por eso NO delega en
+    :meth:`~orm.fields_company_dependent.CompanyDependent.get_company_dependent_fallback`,
+    que sí aplica ``convert_to_cache``/``convert_to_record``
+    (``odoo19c: :794-801``): comparar un valor convertido contra otro
+    convertido dos veces daría falsos negativos en los tipos cuya conversión no
+    es idempotente.
+    """
+    value = self.convert_to_column(value, record, values, validate)
+    if not self.company_dependent:
+        return value
+    IrDefault = apps.get_model('base', 'IrDefault')
+    fallback = IrDefault._get_model_defaults(
+        type(record)._meta.label, company_id=get_current_company()).get(self.name)
+    if value == self.convert_to_column(fallback, record):
+        return None
+    return Jsonb({get_current_company(): value})
+
+
+models.Field.convert_to_column_insert = _field_convert_to_column_insert
+
+
+def _field_get_column_update(self, record):
+    """≙ ``Field.get_column_update`` (``:1008``) — el valor **de la caché**
+    como parámetro de un ``UPDATE``.
+
+    Lee ``field_data``, no el atributo de la instancia: lo que se escribe es lo
+    que el ORM tiene por bueno, y esos dos pueden diferir mientras haya un
+    cómputo pendiente. Tres caminos, los de la fuente:
+
+    - **dependiente de empresa** — recorre los cubos por clave de contexto y
+      arma el mapa ``{empresa: valor}`` con los que tengan valor; sin ninguno,
+      ``None``.
+    - **con contexto** — toma el **primer** valor establecido. La fuente lo
+      justifica en su comentario: más de uno es un error de diseño del modelo,
+      y como la columna sólo admite uno, elige al azar en vez de callar. Sin
+      ninguno levanta ``AssertionError``.
+    - **el caso común** — ``field_cache[record_id]``, con corchete y no
+      ``.get``: la ausencia es un ``KeyError``, no un ``None``. Un campo sin
+      valor en caché no sabe qué escribir, y decirlo es lo que impide que un
+      ``UPDATE`` ponga ``NULL`` donde había un valor.
+    """
+    field_cache = get_transaction().field_data[self]
+    record_id = record.pk
+    if self.company_dependent:
+        values = {}
+        for ctx_key, cache in field_cache.items():
+            if (value := cache.get(record_id, SENTINEL)) is not SENTINEL:
+                values[ctx_key[0]] = self.convert_to_column(value, record)
+        return Jsonb(values) if values else None
+    if _has_context_buckets(self):
+        for ctx_key, cache in field_cache.items():
+            if (value := cache.get(record_id, SENTINEL)) is not SENTINEL:
+                break
+        else:
+            raise AssertionError(
+                f"Value not in cache for field {self} and id={record_id}")
+    else:
+        value = field_cache[record_id]
+    return self.convert_to_column_insert(value, record, validate=False)
+
+
+models.Field.get_column_update = _field_get_column_update
+
+
+def _field_convert_to_cache(self, value, record, validate=True):
+    """≙ ``Field.convert_to_cache`` (``:1034``) — al formato de caché.
+
+    El ``Field`` base no transforma nada; son sus subclases las que dan
+    contenido a este método. Existe igual porque es el primer eslabón de
+    :func:`_field_convert_to_write`, y sin él la cadena no se puede escribir de
+    forma uniforme.
+    """
+    return value
+
+
+models.Field.convert_to_cache = _field_convert_to_cache
+
+
+def _field_convert_to_record(self, value, record):
+    """≙ ``Field.convert_to_record`` (``:1046``) — de la caché al registro.
+
+    ``False if value is None else value``: el vocabulario de la fuente para
+    «no establecido» es ``False``, no ``None``. Quien lee un campo vacío recibe
+    ``False``, y ``_compute_display_name`` y las condiciones de dominio
+    distinguen los dos.
+    """
+    return False if value is None else value
+
+
+models.Field.convert_to_record = _field_convert_to_record
+
+
+def _field_convert_to_read(self, value, record, use_display_name=True):
+    """≙ ``Field.convert_to_read`` (``:1053``) — del registro al formato de
+    ``read``.
+
+    ``use_display_name`` se conserva en la firma aunque el cuerpo base no lo
+    consulte: es el parámetro con que las sobrecargas relacionales deciden si
+    resuelven la etiqueta del registro apuntado, y quitarlo de la base rompería
+    la llamada polimórfica.
+    """
+    return False if value is None else value
+
+
+models.Field.convert_to_read = _field_convert_to_read
+
+
+def _field_convert_to_write(self, value, record):
+    """≙ ``Field.convert_to_write`` (``:1065``) — de cualquier formato al de
+    ``write``, encadenando los tres anteriores en ese orden."""
+    cache_value = self.convert_to_cache(value, record, validate=False)
+    record_value = self.convert_to_record(cache_value, record)
+    return self.convert_to_read(record_value, record)
+
+
+models.Field.convert_to_write = _field_convert_to_write
+
+
+def _field_convert_to_export(self, value, record):
+    """≙ ``Field.convert_to_export`` (``:1073``) — al formato de exportación.
+
+    Todo lo falso sale como cadena vacía, no como ``False``: el destino es una
+    celda de CSV o de hoja de cálculo, donde ``False`` se leería como el texto
+    ``False``.
+    """
+    if not value:
+        return ''
+    return value
+
+
+models.Field.convert_to_export = _field_convert_to_export
+
+
+def _field_convert_to_display_name(self, value, record):
+    """≙ ``Field.convert_to_display_name`` (``:1080``) — el valor como
+    etiqueta. ``str(value) if value else False``.
+
+    **Era sólo una función de módulo** (:func:`convert_to_display_name`, arriba
+    en este archivo) con despacho por ``isinstance``. La fuente lo declara
+    método de la clase del campo y sus cinco sobrecargas son métodos de su
+    clase; dos de ellas —las temporales— ya se adjuntaban así
+    (``fields_temporal.py:410`` y ``:423``), así que la base y las relacionales
+    eran las que faltaban. La función se conserva y **delega**: sigue siendo la
+    puerta para una relación inversa de Django, que no es un ``Field`` y no
+    puede recibir el método (tarea **#347**).
+    """
+    return str(value) if value else False
+
+
+models.Field.convert_to_display_name = _field_convert_to_display_name
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # El campo relacionado y la columna — ≙ ``odoo19c: :774-792``
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1712,7 +1926,42 @@ models.Field.column_type = _field_column_type
 #: ``model._fields.values()`` y filtra por ``field.column_type and field.store``
 #: —``odoo19c: odoo/orm/registry.py:814`` verbatim—. Sin esta linea el recorrido
 #: reventaba en el primer campo sin columna del modelo.
-NonStored.column_type = property(_field_column_type)
+#: Se adjunta **el objeto ya decorado**, no ``property(_field_column_type)``:
+#: la funcion de arriba lleva su propio ``@property``, asi que envolverla otra
+#: vez daba una property cuyo ``fget`` es otra property — y leerla reventaba
+#: con ``TypeError: 'property' object is not callable``. Ver :ref:`h-api-1062`.
+NonStored.column_type = _field_column_type
+
+
+@property
+def _field_column_order(self):
+    """≙ ``Field.column_order`` (``:1090``) — *"prescribed column order in
+    table"*. ``0`` si el campo no tiene columna; si la tiene, lo que la tabla
+    de la fuente diga de su tipo.
+
+    Ordena las columnas al crear la tabla para minimizar el relleno de
+    alineación de la fila: PostgreSQL alinea cada valor a su frontera natural,
+    así que un ``bool`` entre dos ``int8`` desperdicia siete bytes por fila.
+    La tabla vive en ``odoo19c: odoo/tools/sql.py:261`` y aquí la porta
+    :func:`~tools.sql.sql_order_by_type`, que resuelve el tipo desconocido al
+    mismo 16 de la fuente en vez de reventar con ``KeyError``.
+
+    **Sitio:** la fuente lo declara abriendo su sección «Update database
+    schema»; aquí va junto a ``column_type``, que es de quien depende y que en
+    este árbol se declara en esta sección. Un lector que busque «cómo se
+    resuelve la columna de un campo» encuentra los dos juntos.
+    """
+    return 0 if self.column_type is None else sql_order_by_type(self.column_type[0])
+
+
+models.Field.column_order = _field_column_order
+
+#: ``column_order`` también en el campo sin columna, por la misma razón que
+#: ``column_type`` una línea más arriba: en la fuente no hay dos clases, así
+#: que un ``store=False`` responde a ``column_order`` como cualquier otro
+#: campo — con el ``0`` que su propio cuerpo devuelve al ver ``column_type``
+#: en ``None``.
+NonStored.column_order = _field_column_order
 
 #: ``concrete`` es el nombre de Django para lo mismo que la fuente llama tener
 #: columna, y la equivalencia ya esta declarada arriba: *"``store``/
