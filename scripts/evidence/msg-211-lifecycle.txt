@@ -1,0 +1,47 @@
+Port the six lifecycle methods of Field
+
+La referencia declara seis metodos de ciclo de vida en ``Field`` y el
+puerto no tenia ninguno: un consumidor que los llamara recibia
+``AttributeError``. Ahora estan los seis, colgados de ``models.Field``
+con el mismo mecanismo que ``determine_domain`` y ``condition_to_q``.
+
+- ``read`` (``odoo19c: odoo/orm/fields.py:1486-1489``) — su cuerpo ES
+  la guarda: un campo sin ``column_type`` no sabe leerse y lo dice con
+  ``NotImplementedError``, en vez de devolver ``None``.
+- ``write`` (``:1501-1519``) — descarta el recomputo pendiente, filtra
+  las filas cuyo valor ya coincide, y marca sucias las que quedan.
+- ``create`` (``:1491-1499``) — sin logica propia: delega en ``write``
+  par a par.
+- ``_to_prefetch`` (``:1588-1593``) — la ventana de filas que acompanan
+  a la pedida, menos lo que la cache ya tiene, acotada al tope
+  declarado.
+- ``determine_group_expand`` (``:1936``) — delega en ``determine``, sin
+  guarda, igual que ``determine_inverse``.
+- ``get_company_dependent_fallback`` (``:1236-1247``) — el respaldo de
+  ``ir.default`` para la fila sin entrada propia en la columna jsonb.
+
+Los seis son CONSTRUYE, no TRAE: Django no tiene la nocion de un campo
+que se lee, se escribe y se preleta a si mismo. Pero cada primitivo que
+necesitan ya estaba en el arbol —``_filter_not_equal``,
+``_update_cache``, ``_get_cache``, ``expand_ids``, ``PREFETCH_MAX``,
+``determine``—, asi que el porte es cableado, no invencion.
+
+Dos divergencias de mecanismo, declaradas en el docstring:
+
+- ``Environment.remove_to_compute`` toma aqui ``(field, record_ids)``
+  —una coleccion de pk— mientras la fuente le pasa el recordset. Se
+  traduce con ``record_ids(records)``.
+- ``ir.default._get_model_defaults`` es un ``classmethod`` con firma
+  ``(model_name, condition, user_id, company_id, using)``; la fuente
+  encadena ``with_user(SUPERUSER_ID).with_company(...)``.
+
+El control discrimina, y su primera version NO lo hacia. Miraba la
+cache: escribir el mismo valor la deja igual con filtro y sin el, asi
+que el caso pasaba en ambos casos —el verde que no discrimina—. El
+observable correcto es ``transaction.field_dirty``. Con las dos guardas
+anuladas el archivo pasa de 20 passed a 2 failed, 18 passed, y caen
+exactamente los dos casos que dependen de ellas. Evidencia en
+scripts/evidence/.
+
+Suite completa (src/orm es raiz espejada): 10077 passed, 4 skipped.
+Sube de 10057 — los 20 casos del archivo nuevo, ninguna regresion.

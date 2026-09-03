@@ -64,6 +64,7 @@ from psycopg.types.json import Jsonb
 
 from orm.environments import (env as get_environment, get_current_company,
                              get_transaction, sudo as elevate_privileges)
+from tools.constants import PREFETCH_MAX
 from tools.misc import SENTINEL, OrderedSet, remove_accents, unique
 from tools.translate import _
 from orm import registry as orm_registry
@@ -90,7 +91,7 @@ from orm.fields_relational import Many2many, Many2one, One2many  # noqa: F401
 from orm.fields_selection import Selection                     # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
-from orm.utils import (COLLECTION_TYPES, as_record_list, browse,
+from orm.utils import (COLLECTION_TYPES, as_record_list, browse, expand_ids,
                        model_field_registry, model_of, model_of_field,
                        record_ids)
 
@@ -3040,6 +3041,154 @@ def determine_domain(field, records, operator, value):
 
 
 models.Field.determine_domain = determine_domain
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# El ciclo de vida del campo — leer, crear, escribir, prelectar
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Los cinco de esta sección más ``get_company_dependent_fallback`` son el
+# bloque que la referencia declara sobre ``Field`` y que este puerto no tenía.
+# Los seis son CONSTRUYE por el criterio de las dos categorías: Django no
+# concibe un campo que sepa leerse, escribirse y prelectar por sí mismo —su
+# ``Field`` describe una columna y delega en el ``QuerySet``—, pero ninguna
+# pieza viene de fuera: las primitivas (``convert_to_cache``,
+# ``_filter_not_equal``, ``_update_cache``, ``_get_cache``, ``expand_ids``,
+# ``PREFETCH_MAX``, ``determine``) ya están todas en el árbol.
+
+
+def _field_read(self, records):
+    """Lee el valor del campo sobre ``records`` y lo deja en caché.
+
+    ≙ ``Field.read`` (``odoo19c: odoo/orm/fields.py:1486-1489``). Docstring de
+    la fuente, verbatim: *"Read the value of ``self`` on ``records``, and store
+    it in cache."*
+
+    El cuerpo de la fuente **es** la guarda: un campo sin columna no sabe
+    leerse y lo dice con ``NotImplementedError``, en vez de devolver ``None``
+    y dejar que el consumidor lo confunda con un valor. Los subtipos que sí
+    tienen forma propia de leerse la sobreescriben.
+    """
+    if not self.column_type:
+        raise NotImplementedError("Method read() undefined on %s" % self)
+
+
+def _field_write(self, records, value):
+    """Escribe el valor del campo sobre ``records``.
+
+    ≙ ``Field.write`` (``:1501-1518``). Docstring de la fuente: *"Write the
+    value of ``self`` on ``records``. This method must update the cache and
+    prepare database updates."*
+
+    Los tres pasos son los de la fuente, en su orden: descartar el recálculo
+    pendiente, filtrar las filas cuyo valor ya coincide, y actualizar la
+    caché marcándola sucia.
+
+    **Divergencia de mecanismo, declarada.** ``Environment.remove_to_compute``
+    toma aquí ``(field, record_ids)`` —una colección de pk— mientras la fuente
+    le pasa el recordset. Se traduce con :func:`~orm.utils.record_ids`, que es
+    la misma traducción que toda esta familia aplica: lo descartado es lo
+    mismo, cambia por dónde se nombra.
+
+    El filtro por ``_filter_not_equal`` no es una optimización: sin él, una
+    escritura del valor que la fila ya tiene la marcaría sucia y forzaría un
+    UPDATE que no cambia nada.
+    """
+    get_environment().remove_to_compute(self, record_ids(records))
+
+    cache_value = self.convert_to_cache(value, records)
+    records = self._filter_not_equal(records, cache_value)
+    if not record_ids(records):
+        return
+
+    self._update_cache(records, cache_value, dirty=True)
+
+
+def _field_create(self, record_values):
+    """Escribe el campo sobre filas recién creadas.
+
+    ≙ ``Field.create`` (``:1491-1499``). Docstring de la fuente: *"Write the
+    value of ``self`` on the given records, which have just been created.
+    :param record_values: a list of pairs ``(record, value)``, where ``value``
+    is in the format of method :meth:`BaseModel.write`"*
+
+    Sin lógica propia: delega en :func:`_field_write` par a par, igual que la
+    fuente. Existe como símbolo aparte porque los subtipos que necesitan un
+    camino distinto al crear —una tabla intermedia, un adjunto— lo
+    sobreescriben sin tocar ``write``.
+    """
+    for record, value in record_values:
+        self.write(record, value)
+
+
+def _field_to_prefetch(self, record):
+    """La ventana de filas que acompañan a ``record`` al leer este campo.
+
+    ≙ ``Field._to_prefetch`` (``:1588-1593``). Docstring de la fuente: *"Return
+    a recordset including ``record`` to prefetch the field."*
+
+    Devuelve ``record`` y las filas de su lote de prelectura que **no** están
+    ya en la caché del campo, acotadas a ``PREFETCH_MAX``. Que la fila pedida
+    vaya primero es del contrato: ``expand_ids`` la emite antes que ninguna,
+    así que el recorte por el tope nunca la deja fuera.
+    """
+    ids = expand_ids(record.pk, getattr(record, '_prefetch_ids', ()) or ())
+    field_cache = self._get_cache(get_environment())
+    pending = (id_ for id_ in ids if id_ not in field_cache)
+    return browse(model_of(record), list(itertools.islice(pending, PREFETCH_MAX)))
+
+
+def _field_determine_group_expand(self, records, values, domain):
+    """El expansor de grupos declarado del campo.
+
+    ≙ ``Field.determine_group_expand`` (``:1930-1932``), cuyo cuerpo entero es
+    ``determine(self.group_expand, records, values, domain)``.
+
+    **Sin guarda, a propósito** — igual que :func:`determine_inverse`. La
+    fuente tampoco la tiene: sus llamadas agrupan antes por
+    ``field.group_expand``, así que sólo llega aquí un campo que lo declara.
+    Un campo sin expansor levanta ``TypeError`` desde :func:`determine`, que es
+    lo que distingue *"no lo declara"* de *"lo declara y no corrió"*.
+    """
+    return determine(self.group_expand, records, values, domain)
+
+
+def _field_get_company_dependent_fallback(self, records):
+    """El respaldo de ``ir.default`` para un campo dependiente de empresa.
+
+    ≙ ``Field.get_company_dependent_fallback`` (``:794-801``). Un campo
+    dependiente de empresa vive en una columna ``jsonb`` con
+    ``{empresa: valor}``; la fila sin entrada propia responde este respaldo.
+
+    La aserción es la de la fuente y no es ceremonia: llamar a este método
+    sobre un campo llano devolvería el default de otro mecanismo y lo haría
+    pasar por el de empresa.
+
+    **Divergencia de mecanismo.** La fuente encadena
+    ``records.env['ir.default'].with_user(SUPERUSER_ID).with_company(...)``;
+    aquí ``_get_model_defaults`` es un ``classmethod`` que recibe el modelo y
+    la empresa como argumentos, así que el encadenado se traduce a la llamada
+    directa. Lo consultado es lo mismo: el default de mayor prioridad para
+    ``self.name`` sobre el modelo de ``records``.
+    """
+    assert self.company_dependent
+    env = get_environment()
+    company = getattr(env, 'company', None)
+    defaults = orm_registry.MODELS_BY_NAME['ir.default']._get_model_defaults(
+        model_of(records)._name,
+        company_id=getattr(company, 'pk', None),
+    )
+    fallback = defaults.get(self.name)
+    fallback = self.convert_to_cache(fallback, records, validate=False)
+    return self.convert_to_record(fallback, records)
+
+
+models.Field.read = _field_read
+models.Field.write = _field_write
+models.Field.create = _field_create
+models.Field._to_prefetch = _field_to_prefetch
+models.Field.determine_group_expand = _field_determine_group_expand
+models.Field.get_company_dependent_fallback = _field_get_company_dependent_fallback
 NonStored.determine_domain = determine_domain
 models.Field.determine_inverse = determine_inverse
 NonStored.determine_inverse = determine_inverse
