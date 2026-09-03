@@ -60,10 +60,12 @@ PORTABLE_NOW = {
 BLOCKED_BY_ITS_SYMBOL = {
     'api': ('deprecated', 'Self'),
     'fields': ('Id',),
+    # ``check_company_domain_parent_of`` y su hermano plural salieron de aqui
+    # en la tarea #333: ``account.journal`` y ``res.partner.bank`` los declaran
+    # como ``_check_company_domain``, y el pase que porto esos dos atributos de
+    # clase construyo los dos simbolos, que es lo que esta lista describe.
     'models': ('READ_GROUP_DISPLAY_FORMAT', 'READ_GROUP_TIME_GRANULARITY',
-               'BaseModel', 'MetaModel',
-               'check_companies_domain_parent_of',
-               'check_company_domain_parent_of'),
+               'BaseModel', 'MetaModel'),
 }
 
 PACKAGES = {'api': api, 'fields': fields, 'models': models}

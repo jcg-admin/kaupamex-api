@@ -1043,6 +1043,109 @@ def _company_ids(companies):
     return ids
 
 
+def _ancestor_company_ids(companies):
+    """Los ids de ``companies`` **y de todos sus ancestros**.
+
+    ≙ el cuerpo comun de los dos ``*_parent_of`` de la fuente
+    (``odoo19c: odoo/orm/models.py:180-184`` y ``:196-200``), que recorre
+    ``rec.parent_path.split('/')[:-1]`` de cada empresa.
+
+    ``parent_path`` es la ruta materializada (``'1/4/9/'``) que
+    ``ResCompany._compute_parent_path`` mantiene: la lista de ancestros mas la
+    propia empresa, con separador final. El ``[:-1]`` de la fuente descarta el
+    hueco que deja ese separador, no un ancestro.
+
+    Una empresa sin ``parent_path`` poblado cae a su propio id: es la
+    respuesta correcta —una raiz es su unico ancestro— y evita que una fila
+    sin calcular desaparezca del dominio en silencio.
+    """
+    company_model = registry.MODELS_BY_NAME.get('res.company')
+    ids = _company_ids(companies)
+    if company_model is None or not ids:
+        return ids
+    ancestors = []
+    for company in company_model.objects.filter(pk__in=ids):
+        path = company.parent_path or ''
+        segments = [seg for seg in path.split('/')[:-1] if seg]
+        ancestors.extend(int(seg) for seg in segments) if segments \
+            else ancestors.append(company.pk)
+    return ancestors
+
+
+def check_company_domain_parent_of(cls, companies):
+    """Predicado de coherencia de empresa que admite a los **ancestros**.
+
+    ≙ ``check_company_domain_parent_of``
+    (``odoo19c: odoo/orm/models.py:169-184``). Docstring de la fuente,
+    verbatim: *"A `_check_company_domain` function that lets a record be used
+    if either: record.company_id = False (which implies that it is shared
+    between all companies), or record.company_id is a parent of any of the
+    given companies."*
+
+    Es la variante **jerarquica** de
+    :meth:`CheckCompanyMixin._check_company_domain`: aquella exige que la
+    empresa del registro este entre las dadas; esta admite ademas cualquier
+    ancestro suyo, que es como una matriz comparte catalogos con sus filiales.
+
+    Se declara como funcion de modulo —no como metodo— porque asi la declara
+    la fuente y asi la consumen los modelos:
+    ``_check_company_domain = models.check_company_domain_parent_of`` es una
+    **asignacion de atributo de clase**, no una sobreescritura. El primer
+    parametro se llama ``cls`` y no ``self`` porque en este arbol el consumidor
+    (:meth:`CheckCompanyMixin._check_company`) lo invoca sobre la clase.
+
+    Devuelve un ``Q`` y no un ``Domain`` por la misma razon que su hermano de
+    clase: el consumidor es un ``QuerySet``.
+
+    La rama ``isinstance(companies, str)`` de la fuente —el dominio simbolico
+    ``('company_id', 'parent_of', companies)``— **no se porta**: aqui el
+    operador ``parent_of`` sobre un nombre de campo es la tarea **#235**, y
+    hasta que exista un ``Q`` no puede expresarlo. Un ``str`` levanta
+    ``TypeError`` en vez de devolver un predicado que no discrimina.
+    """
+    if isinstance(companies, str):
+        raise TypeError(
+            'check_company_domain_parent_of no acepta un dominio simbolico: '
+            'el operador parent_of sobre un nombre de campo es la tarea #235'
+        )
+    name = _first_field_name(cls, COMPANY_FIELD_NAMES)
+    if name is None:
+        return None
+    ids = _ancestor_company_ids(companies)
+    if not ids:
+        return Q(**{f'{name}__isnull': True})
+    return Q(**{f'{name}__in': ids}) | Q(**{f'{name}__isnull': True})
+
+
+def check_companies_domain_parent_of(cls, companies):
+    """Su hermano plural, sobre el M2M de empresas.
+
+    ≙ ``check_companies_domain_parent_of``
+    (``odoo19c: odoo/orm/models.py:188-200``). Docstring de la fuente,
+    verbatim: *"A `_check_company_domain` function that lets a record be used
+    if any company in record.company_ids is a parent of any of the given
+    companies."*
+
+    **La diferencia con el singular no es cosmetica**: aqui NO hay rama de
+    «compartido entre todas». La fuente devuelve ``[]`` —dominio vacio, todo
+    pasa— cuando no se dan empresas, y un registro sin ninguna empresa en su
+    M2M no entra en el dominio. Se conserva: ``None`` significa «este modelo no
+    participa», que es otra cosa.
+    """
+    if isinstance(companies, str):
+        raise TypeError(
+            'check_companies_domain_parent_of no acepta un dominio simbolico: '
+            'el operador parent_of sobre un nombre de campo es la tarea #235'
+        )
+    name = _first_field_name(cls, COMPANIES_FIELD_NAMES)
+    if name is None:
+        return None
+    ids = _ancestor_company_ids(companies)
+    if not ids:
+        return Q()
+    return Q(**{f'{name}__in': ids})
+
+
 def _corecords(record, name):
     """Los registros que ``record.<name>`` apunta, siempre como lista.
 

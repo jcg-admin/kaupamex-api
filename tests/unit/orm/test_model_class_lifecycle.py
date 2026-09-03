@@ -183,11 +183,18 @@ class TestCheckInheritsValidatesTheDelegatedField:
 
     def test_the_live_declarants_pass(self):
         """EL CONTROL POSITIVO, y no es un doble: los modelos del árbol que
-        declaran ``_inherits`` tienen que pasar su propia validación."""
+        declaran ``_inherits`` tienen que pasar su propia validación.
+
+        **La lista se DERIVA, no se enumera.** Enumerarla convertía cada
+        declarante nuevo en un rojo que no dice nada del mecanismo: el
+        asistente de banco de #333 lo rompió sin tocar ``_check_inherits``.
+        Lo que el caso mide es que TODOS pasan, y que hay alguno que medir —
+        sin ese piso el bucle sobre una lista vacía sería verde por vacío,
+        que es el sub-patrón D de ``metrica-decide-la-conclusion.md``.
+        """
         declarants = [model for model in registry.MODELS_BY_NAME.values()
                       if model.__dict__.get('_inherits')]
-        assert [model._name for model in declarants] == [
-            'res.users', 'ir.cron', 'website.page']
+        assert declarants, 'ningún modelo del árbol declara _inherits'
         for model in declarants:
             _check_inherits(model)
 

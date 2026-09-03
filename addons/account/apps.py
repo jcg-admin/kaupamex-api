@@ -82,3 +82,18 @@ class AccountConfig(AppConfig):
         """
         for ruta in self._EXTENSIONES:
             importlib.import_module(ruta).apply_account_extensions()
+
+        # Django importa solo ``models.py`` de cada app; el paquete
+        # ``wizard/`` no entra por su cuenta, asi que sus modelos —entre ellos
+        # ``account.setup.bank.manual.config``— no existian todavia cuando
+        # ``base.ready()`` corrio ``ensure_inherits()``. Importarlo aqui es lo
+        # que hace observable al asistente: sin esta linea la clase se
+        # registraba tarde, cuando alguien la importaba, y ya nadie cableaba
+        # su delegacion.
+        importlib.import_module('addons.account.wizard')
+
+        # ``ensure_inherits()`` cablea la delegacion de todo modelo registrado
+        # que declare ``_inherits``. Es idempotente y cada app la llama en su
+        # ``ready()`` (ver su docstring). Es el tercer eslabon de la tarea
+        # #333, y no fallaba: la delegacion simplemente no estaba.
+        importlib.import_module('orm.inherits').ensure_inherits()
