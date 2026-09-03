@@ -1,0 +1,31 @@
+# Deuda heredada del camino de escritura, congelada.
+# Una entrada listada no bloquea; una nueva si. Se paga al tocar
+# el archivo (barrido: la tarea que el hallazgo declare).
+src/addons/base/models/ir_actions.py::_get_eval_context
+src/addons/base/models/ir_actions_report.py::_render_qweb_pdf
+src/addons/base/models/ir_attachment.py::generate_access_token
+src/addons/base/models/ir_cron.py::_reschedule_asap
+src/addons/base/models/ir_cron.py::_trigger_list
+src/addons/base/models/ir_model.py::_process_end
+src/addons/base/models/ir_model.py::_reflect_constraint
+src/addons/base/models/ir_model.py::_reflect_inherits
+src/addons/base/models/ir_model.py::_reflect_relation
+src/addons/base/models/ir_model.py::_update_selection
+src/addons/base/models/res_device.py::__update_revoked
+src/addons/base/models/res_device.py::_revoke
+src/addons/base/models/res_device.py::_update_device
+src/addons/base/models/res_groups.py::_ensure_xml_id
+src/addons/base/models/res_partner.py::_commercial_sync_from_company
+src/addons/base/models/res_partner.py::_commercial_sync_to_descendants
+src/addons/base/models/res_partner.py::_company_dependent_commercial_sync
+src/addons/base/models/res_partner.py::_create_contact_parent_company
+src/addons/base/models/res_partner.py::_fields_sync
+src/addons/base/models/res_partner.py::create_company
+src/addons/base/models/res_users.py::_generate
+src/addons/base/wizard/base_partner_merge.py::_process_query
+src/addons/base/wizard/base_partner_merge.py::_update_reference_fields_generic
+src/addons/base/wizard/base_partner_merge.py::action_update_all_process
+src/addons/base/wizard/base_partner_merge.py::parent_migration_process_cb
+src/orm/models.py::_add_missing_default_values
+src/tools/convert.py::_tag_delete
+src/tools/lru.py::snapshot

@@ -1,0 +1,17 @@
+# Control discriminante — camino-de-escritura
+# fecha:    2026-09-03T18:09:24
+# archivo:  scripts/check_write_path.py
+# anulado:  s/        return BELOW_ORM/        return VIA_ORM/
+# tests:    tests/unit/scripts/test_check_write_path.py
+
+## 1. Verde de partida (guarda presente)
+18 passed, 1 warning in 5.22s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/scripts/test_check_write_path.py::TestTheClassifierSeparatesTheTwoPaths::test_our_vocabulary[def f(self):\n    self.objects.bulk_create([x])-por debajo]
+FAILED tests/unit/scripts/test_check_write_path.py::TestTheClassifierSeparatesTheTwoPaths::test_our_vocabulary[def f(self):\n    Model.objects.filter(pk=1).update(a=2)-por debajo]
+FAILED tests/unit/scripts/test_check_write_path.py::TestTheClassifierSeparatesTheTwoPaths::test_reference_vocabulary[def f(self):\n    upsert_en(self, cols, rows, ["model"])-por debajo]
+FAILED tests/unit/scripts/test_check_write_path.py::TestTheClassifierSeparatesTheTwoPaths::test_reference_vocabulary[def f(self):\n    self.env.execute_query(SQL("UPDATE x"))-por debajo]
+FAILED tests/unit/scripts/test_check_write_path.py::TestTheGateSeesTheRealPositive::test_it_flags_reflect_constraint
+FAILED tests/unit/scripts/test_check_write_path.py::TestTheGateSeesTheRealPositive::test_the_flagged_direction_is_the_dangerous_one
+6 failed, 12 passed, 1 warning in 5.63s
