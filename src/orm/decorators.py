@@ -138,7 +138,16 @@ def ondelete(*, at_uninstall):
     desinstalar —el ejemplo de la fuente es no dejar borrar el idioma por
     defecto si no queda otro instalado—.
 
-    Su consumidor es ``_process_ondelete``, la tarea **#205**.
+    Su consumidor es :func:`~orm.models._run_ondelete_checks`, que la
+    senal ``pre_delete`` dispara — el equivalente del bloque que la fuente
+    corre dentro de ``unlink`` (``odoo19c: odoo/orm/models.py:4205-4208``).
+    Los metodos marcados los reune ``orm.registry.ondelete_methods``.
+
+    **No confundirlo con ``_process_ondelete``** (la tarea **#205**), que
+    esta linea nombraba como consumidor hasta la **#334** y es otro
+    mecanismo: aquel aplica la politica de borrado de un valor de
+    ``ir.model.fields.selection`` cuando el valor desaparece del catalogo.
+    Comparten la palabra ``ondelete`` y nada mas.
     """
     return attrsetter('_ondelete', at_uninstall)
 

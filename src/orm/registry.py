@@ -43,6 +43,7 @@ esto"*, sobre un modelo que declara ``_name`` y ``_description``. Vive en
 archivo propio**: tenerlo sería la divergencia de forma que :ref:`h-api-568`
 registra.
 """
+import inspect
 import logging
 import sys
 from collections import defaultdict
@@ -54,6 +55,14 @@ from django.db.models.signals import class_prepared
 from django.dispatch import receiver
 from psycopg import sql as pg_sql
 
+# El modulo, no el nombre: ``orm.environments`` importa este modulo (``:98``),
+# asi que ligar ``sudo`` aqui daria ImportError segun quien cargue primero.
+# Importar el MODULO liga el objeto ya presente en ``sys.modules`` aunque este
+# a medio inicializar, y el atributo se resuelve al llamar. Es un import de
+# nivel de modulo — no una excepcion a ``no-lazy-imports.md``.
+import orm.environments
+
+from orm.utils import model_field_registry
 from tools.lru import LRU
 from tools.misc import Collector, OrderedSet
 from tools.sql import SQL
@@ -69,6 +78,8 @@ __all__ = [
     'many2one_company_dependents', 'loaded_xmlids',
     'not_null_fields', 'is_not_null',
     '_unaccent',
+    'constraint_methods', 'ondelete_methods', 'onchange_methods',
+    'clear_marked_methods',
 ]
 
 #: ≙ ``Registry.loaded_xmlids`` — los identificadores externos que el cargador
@@ -559,6 +570,245 @@ field_depends = _DerivedCollector('_depends')
 
 #: ≙ ``Registry.field_depends_context`` (``:253``).
 field_depends_context = _DerivedCollector('_depends_context')
+
+
+class _MarkedMethodCollector:
+    """Metodos de un modelo que llevan un marcador, derivados y cacheados.
+
+    Es el hermano de :class:`_DerivedCollector` para el otro eje: aquel recorre
+    los CAMPOS de cada modelo buscando un marcador; este recorre los METODOS de
+    un modelo dado. Los dos derivan de lo declarado y los dos se invalidan
+    enteros.
+
+    **Donde vive el memo, y por que no en la clase.** La fuente declara los
+    tres como ``@property`` sobre ``BaseModel`` y memoiza el resultado EN LA
+    CLASE del modelo (``odoo19c: odoo/orm/models.py:544``, ``:556``, ``:592``:
+    *"optimization: memoize result on cls, it will not be recomputed"*). Aqui
+    ``BaseModel`` es el ``Model`` de Django: colgarle una ``property`` nuestra
+    alcanzaria a ``auth``, ``contenttypes`` y a todo modelo de tercero — la
+    colision que barre la tarea **#98**. El memo vive en este mapa, y el reset
+    que ``_prepare_setup`` hace reasignando la property (``model_classes.py:
+    344-346``) es aqui :func:`clear_marked_methods`.
+
+    **``getattr_static``, no ``getmembers``, y no es preferencia.** La fuente
+    usa ``inspect.getmembers``, que LEE cada atributo — alla eso es inocuo. Un
+    modelo de Django declara descriptores que se resuelven al leerlos
+    (``orm.fields_nonstored.NonStored`` calcula su default consultando el
+    registro), asi que recorrer la clase con ``getattr`` los ejecutaria.
+    ``getattr_static`` devuelve el objeto sin dispararlos. Es la misma razon
+    por la que ``addons/web/models/models.py`` ya lo hacia en su copia local.
+
+    *Metrica:* atributos de la clase, resueltos sin ejecutar descriptores, que
+    declaren el marcador.
+    *Ciega a:* un metodo que el modelo resuelva en un ``__getattr__`` propio —
+    no aparece en ``dir()``. Es la misma ceguera que ``_delegable_field_names``
+    declara para su eje.
+    """
+
+    def __init__(self, marker):
+        self.marker = marker
+        self._table = {}
+
+    def _marked(self, model_cls):
+        """Los metodos de ``model_cls`` que declaran el marcador.
+
+        ≙ el ``getmembers(cls, is_constraint)`` de la fuente (``:534``), cuyo
+        predicado es ``callable(func) and hasattr(func, '_constrains')``.
+        """
+        found = []
+        for name in dir(model_cls):
+            if name.startswith('__'):
+                continue
+            try:
+                attr = inspect.getattr_static(model_cls, name)
+            except AttributeError:
+                continue
+            func = getattr(attr, '__func__', attr)
+            if callable(func) and getattr(func, self.marker, None) is not None:
+                found.append((name, func))
+        found.sort()
+        return found
+
+    def __call__(self, model_cls):
+        if model_cls not in self._table:
+            self._table[model_cls] = self._build(model_cls)
+        return self._table[model_cls]
+
+    def clear(self):
+        """El reset de ``_prepare_setup`` (``model_classes.py:344-346``)."""
+        self._table = {}
+
+
+class _ConstraintMethods(_MarkedMethodCollector):
+    """≙ ``BaseModel._constraint_methods`` (``odoo19c: odoo/orm/models.py:
+    519-546``) — «Return a list of methods implementing Python constraints».
+
+    Devuelve una **tupla**, no la lista de la fuente: ningun consumidor la
+    muta, y es la forma que los colectores de este modulo ya tienen. Los
+    nombres declarados siguen en ``func._constrains``, que es donde
+    :func:`~orm.models._validate_fields` los lee.
+
+    **La forma invocable se envuelve, no se sobreescribe.** La fuente admite
+    ``@api.constrains(lambda self: self._get_plan_fnames())`` y resuelve la
+    llamada en un **proxy** con los nombres ya fijos (``:526-532``), dejando
+    intacto el ``_constrains`` invocable del metodo original. Medido en
+    ``odoo19c``: **5** declarantes, uno de ellos en ``base``
+    (``res_company.py:426``); aqui **0** todavia.
+
+    Reescribir el atributo sobre el propio metodo —que es lo que esta clase
+    hacia hasta la tarea **#334**— parece equivalente y no lo es: **destruye
+    el invocable en la primera lectura**. Tras un
+    :func:`clear_marked_methods` el metodo ya solo tendria la tupla de aquella
+    vez, asi que un ``lambda`` cuyo resultado dependa del estado —los cinco de
+    la fuente llaman a un metodo del modelo— quedaria congelado en su primera
+    respuesta. La fuente re-resuelve en cada reconstruccion porque nunca toca
+    el original.
+
+    **A quien se le pasa el invocable** es la unica divergencia: la fuente lo
+    llama con ``self.sudo()``, un recordset vacio y elevado. Aqui el analogo
+    de un recordset vacio es una **instancia sin guardar**, y la elevacion es
+    un gestor de contexto (``orm.environments.sudo``) en vez de un receptor
+    distinto — la misma asimetria que :func:`~orm.models._validate_fields`
+    declara para su eje.
+
+    **Los dos avisos se portan** (``:539-542``): un nombre que no es campo, y
+    un campo que no se puede escribir. Sin ellos un ``@api.constrains`` con
+    una errata queda mudo, que es justo lo que la fuente evita.
+    """
+
+    def __init__(self):
+        super().__init__('_constrains')
+
+    def _build(self, model_cls):
+        methods = []
+        for name, func in self._marked(model_cls):
+            if callable(func._constrains):
+                func = self._wrap(func, model_cls)
+            self._warn_about_declared_names(model_cls, name, func)
+            methods.append(func)
+        return tuple(methods)
+
+    @staticmethod
+    def _wrap(func, model_cls):
+        """El proxy de la fuente (``:526-532``), con los nombres ya resueltos.
+
+        Deja ``func._constrains`` invocable donde estaba: el proxy es otro
+        objeto, y el original sigue disponible para la proxima reconstruccion.
+        """
+        with orm.environments.sudo():
+            names = tuple(func._constrains(model_cls()))
+
+        def wrapper(self):
+            return func(self)
+
+        wrapper._constrains = names
+        wrapper.__name__ = getattr(func, '__name__', 'wrapper')
+        wrapper.__doc__ = func.__doc__
+        return wrapper
+
+    @staticmethod
+    def _warn_about_declared_names(model_cls, attr, func):
+        """≙ los dos avisos de la fuente (``odoo19c: odoo/orm/models.py:
+        539-542``), verbatim en su texto.
+
+        Lee el mapa con ``model_field_registry``, que es lo que ``_fields``
+        devuelve (``orm/models.py:1449``), y lo lee **de la clase**: aquel es
+        una property de instancia y fabricar una fila solo para leer su
+        registro seria trabajo por nada.
+
+        *Ciega a:* un nombre que el modelo resuelva fuera de ``_fields`` —
+        misma ceguera que ``_fields`` ya declara para su propio contrato— y a
+        una clase sin ``_meta``, que no es un modelo y por tanto no declara
+        campo alguno contra el que comparar.
+        """
+        if not hasattr(model_cls, '_meta'):
+            return
+        fields = model_field_registry(model_cls)
+        for name in func._constrains:
+            field = fields.get(name)
+            if not field:
+                _logger.warning(
+                    "method %s.%s: @constrains parameter %r is not a field name",
+                    getattr(model_cls, '_name', model_cls.__name__), attr, name)
+            elif not (getattr(field, 'store', False)
+                      or getattr(field, 'inverse', None)
+                      or getattr(field, 'inherited', False)):
+                _logger.warning(
+                    "method %s.%s: @constrains parameter %r is not writeable",
+                    getattr(model_cls, '_name', model_cls.__name__), attr, name)
+
+
+class _OndeleteMethods(_MarkedMethodCollector):
+    """≙ ``BaseModel._ondelete_methods`` (``models.py:548-558``) — «Return a
+    list of methods implementing checks before unlinking».
+
+    El valor del marcador **no es un booleano de presencia**: es el
+    ``at_uninstall`` que el decorador guarda, y ``unlink`` lo lee para decidir
+    si el metodo corre tambien al desinstalar el modulo (``:4207``: *"func.
+    _ondelete is True if it should be called during uninstallation"*). Por eso
+    el colector no puede filtrar por verdad — un ``at_uninstall=False`` es
+    ``False`` y sigue siendo un metodo marcado.
+    """
+
+    def __init__(self):
+        super().__init__('_ondelete')
+
+    def _build(self, model_cls):
+        return tuple(func for _name, func in self._marked(model_cls))
+
+
+class _OnchangeMethods(_MarkedMethodCollector):
+    """≙ ``BaseModel._onchange_methods`` (``models.py:560-593``) — «Return a
+    dictionary mapping field names to onchange methods».
+
+    Devuelve un ``dict`` de tuplas donde la fuente devuelve un
+    ``defaultdict(list)``. La diferencia es observable en un solo punto y a
+    favor: ``_has_onchange`` pregunta ``field.name in self._onchange_methods``
+    (``:6970``), y sobre un ``defaultdict`` una lectura previa por ``[]``
+    habria creado la clave. Con un ``dict`` la ausencia se mantiene ausente.
+
+    **La mitad de ``change_default`` no se porta todavia.** La fuente anade un
+    metodo sintetico por cada campo con ``change_default`` (``:583-589``), que
+    lee los valores por defecto de ``ir.default`` para la condicion
+    ``campo=valor``. Medido: **0** campos declaran ``change_default`` en este
+    arbol, asi que el bucle no tendria sobre que iterar. Queda como DESCONOCIDO
+    con condicion de cierre — se porta en cuanto el primer campo lo declare, y
+    su sucesor es la tarea **#335**.
+    """
+
+    def __init__(self):
+        super().__init__('_onchange')
+
+    def _build(self, model_cls):
+        methods = defaultdict(list)
+        for _name, func in self._marked(model_cls):
+            for field_name in func._onchange:
+                methods[field_name].append(func)
+        return {name: tuple(funcs) for name, funcs in methods.items()}
+
+
+#: ≙ ``BaseModel._constraint_methods`` (``odoo19c: odoo/orm/models.py:519``).
+constraint_methods = _ConstraintMethods()
+
+#: ≙ ``BaseModel._ondelete_methods`` (``:548``).
+ondelete_methods = _OndeleteMethods()
+
+#: ≙ ``BaseModel._onchange_methods`` (``:560``).
+onchange_methods = _OnchangeMethods()
+
+
+def clear_marked_methods():
+    """Vacia los tres mapas de metodo marcado.
+
+    ≙ el bloque de ``_prepare_setup`` que reasigna las tres propiedades
+    memoizadas (``odoo19c: odoo/orm/model_classes.py:343-346``: *"reset
+    properties memoized on model_cls"*). Alla el reset es por modelo porque el
+    memo vive en su clase; aqui el mapa es de modulo y se vacia entero, con el
+    mismo criterio que :func:`clear_field_depends` ya declara para su eje.
+    """
+    constraint_methods.clear()
+    ondelete_methods.clear()
+    onchange_methods.clear()
 
 
 class _ComputedGrouper:

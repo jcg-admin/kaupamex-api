@@ -63,7 +63,8 @@ from django.db.models import *          # noqa: F401,F403  (re-export ORM comple
 from django.db.models import (  # noqa: F401
     ForeignKey, Manager, Model, QuerySet,
 )
-from django.db.models.signals import post_init, pre_init, pre_save
+from django.db.models.signals import (post_init, pre_delete, pre_init,
+                                      pre_save)
 from django.dispatch import receiver
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
@@ -3643,7 +3644,91 @@ def _run_precompute(sender, instance, raw=False, **_ignored):
     _add_precomputed_values(instance)
 
 
+def _validate_fields(self, field_names, excluded_names=()):
+    """Corre las restricciones que nombran alguno de los campos tocados.
+
+    ≙ ``_validate_fields`` (``odoo19c: odoo/orm/models.py:1252-1268``).
+    Docstring de la fuente, verbatim: *"Invoke the constraint methods for which
+    at least one field name is in ``field_names`` and none is in
+    ``excluded_names``"*.
+
+    **Los dos filtros son de la fuente y los dos importan.** El primero acota:
+    una restriccion que no nombra ningun campo tocado no tiene por que correr.
+    El segundo veta: basta con que UNO de los nombres que la restriccion
+    declara este excluido para que no corra — el llamador excluye lo que sabe
+    que esta a medio escribir, y una restriccion que lo mire daria un falso
+    negativo.
+
+    **Divergencia de mecanismo, no de contrato.** Alla el mapa de metodos es
+    una ``@property`` memoizada en la clase (``:519-546``) y aqui es el
+    colector :data:`~orm.registry.constraint_methods`, por la razon que su
+    docstring declara. Y ``self.sudo()`` es alla un recordset elevado; aqui la
+    elevacion es un bloque de contexto (``orm.environments.sudo``), asi que se
+    envuelve la corrida en vez de recibir otro receptor.
+
+    El comentario de la fuente sobre por que se eleva se conserva porque es la
+    razon y no el como: *"run constrains just as sudoed computed-stored fields
+    — see Field.compute_value()"*.
+    """
+    methods = registry.constraint_methods(type(self))
+    if not methods:
+        return
+    field_names = set(field_names)
+    excluded_names = set(excluded_names)
+    with elevate_privileges():
+        for check in methods:
+            declared = check._constrains
+            if (not field_names.isdisjoint(declared)
+                    and excluded_names.isdisjoint(declared)):
+                check(self)
+
+
+def _run_ondelete_checks(self, at_uninstall=False):
+    """Corre las comprobaciones marcadas antes de borrar la fila.
+
+    ≙ el bloque de ``unlink`` que recorre ``self._ondelete_methods``
+    (``odoo19c: odoo/orm/models.py:4205-4208``), con su comentario verbatim:
+    *"func._ondelete is True if it should be called during uninstallation"*.
+
+    El marcador NO es una bandera de presencia: guarda el ``at_uninstall`` que
+    el decorador recibio. Un metodo con ``at_uninstall=False`` corre en el
+    borrado normal y **se salta** cuando quien borra es la desinstalacion de un
+    modulo — porque entonces todo lo que el modulo declaro se va de todas
+    formas, y un ``UserError`` de negocio ahi solo dejaria la base a medias.
+    Ese razonamiento es el del docstring de ``@api.ondelete``
+    (``odoo19c: odoo/orm/decorators.py:139-149``).
+
+    **Divergencia de mecanismo:** alla la bandera de desinstalacion viaja en el
+    contexto (``MODULE_UNINSTALL_FLAG``); aqui es el argumento de esta llamada,
+    porque quien borra es ``Model.delete()`` de Django y no hay contexto de
+    recordset que consultar.
+    """
+    for check in registry.ondelete_methods(type(self)):
+        if check._ondelete or not at_uninstall:
+            check(self)
+
+
+@receiver(pre_delete, dispatch_uid='orm.models.run_ondelete_checks')
+def _run_ondelete_on_delete(sender, instance, **_ignored):
+    """Dispara las comprobaciones marcadas justo antes del DELETE.
+
+    ``pre_delete`` corre dentro de la transaccion del borrado y antes de la
+    sentencia, que es donde la fuente las corre: un ``UserError`` levantado
+    aqui deja la fila intacta.
+
+    Su equivalente de ``MODULE_UNINSTALL_FLAG`` es la clave de contexto
+    ``module_uninstall``, que el desinstalador activa. Con el contexto vacio
+    —el caso normal— vale ``False`` y corren todas.
+    """
+    if not registry.ondelete_methods(sender):
+        return
+    _run_ondelete_checks(
+        instance, at_uninstall=bool(get_context().get('module_uninstall')))
+
+
 Model._add_precomputed_values = _add_precomputed_values
+Model._validate_fields = _validate_fields
+Model._run_ondelete_checks = _run_ondelete_checks
 
 
 class RecordCache(collections.abc.Mapping):

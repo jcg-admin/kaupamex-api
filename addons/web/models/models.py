@@ -267,7 +267,6 @@ que no escribe nada — un símbolo que el gate de porte contaría como presente
 y que no traduciría nada. Eso es un verde que no discrimina, así que se
 declara ausente con sus dos sucesores en vez de fabricarlo.
 """
-import inspect
 import re
 from collections import defaultdict
 from datetime import datetime
@@ -287,6 +286,7 @@ from addons.base.models.ir_model import Base as _BaseRoot
 from exceptions import UserError
 from orm.domains import AND as _domain_and
 from orm.domains import OR as _domain_or
+from orm import registry
 from tools import date_utils
 from tools.translate import _
 
@@ -1906,11 +1906,11 @@ class Base(_BaseRoot):
         while todo:
             visited = set()
             for name in todo:
-                for method_name in _onchange_methods_for(model, name):
-                    if method_name in visited:
+                for method in _onchange_methods_for(model, name):
+                    if method in visited:
                         continue
-                    _apply_onchange_method(record, method_name, result)
-                    visited.add(method_name)
+                    _apply_onchange_method(record, method, result)
+                    visited.add(method)
                 done.add(name)
             todo = [name for name in fields_spec
                     if name not in done and snapshot0.has_changed(name)]
@@ -2013,41 +2013,25 @@ def _assign(record, field_name, value):
 
 
 def _onchange_methods_for(model, field_name):
-    """Nombres de los ``@api.onchange`` registrados para un campo.
+    """Los ``@api.onchange`` registrados para un campo.
 
-    ≙ ``self._onchange_methods[field_name]`` de la referencia, que allá es un
-    mapa que el setup del registro construye una vez. Aquí se **deriva** de lo
-    declarado —``@api.onchange`` deja su tupla en ``func._onchange``
-    (``orm/decorators.py:37-41``)—, que es el mismo camino que
-    ``orm.registry.field_depends`` ya toma para ``@api.depends``.
+    Delega en ``orm.registry.onchange_methods``, que es el porte de
+    ``BaseModel._onchange_methods`` (``odoo19c: odoo/orm/models.py:
+    560-593``). Hasta la tarea **#334** este archivo llevaba su propia
+    copia del recorrido: mismo ``getattr_static``, mismo marcador, mismo
+    resultado. Dos copias del mismo mapa son la segunda fuente de verdad
+    que ``calibration-verified-numbers.md`` prohibe — la que diverge el
+    dia que una de las dos aprenda algo que la otra no.
 
-    **Sin caché, y es deliberado:** aquel mapa se cachea porque lo consulta
-    todo campo de todo modelo; éste lo consulta un puñado de campos de un solo
-    modelo cuando alguien edita un formulario. Una caché aquí exigiría una
-    invalidación que nada dispara, y haría invisible un método añadido en
-    caliente.
-
-    ``getattr_static`` en vez de ``getattr``: el modelo puede declarar
-    descriptores que se resuelven al leerlos (``orm.fields_nonstored.NonStored``
-    calcula su default llamando al registro), y recorrer la clase entera no
-    debe ejecutar ninguno.
+    Devuelve las **funciones**, no sus nombres. Aquella copia devolvia
+    nombres porque los resolvia con ``getattr(record, name)()``; el
+    colector guarda la funcion ya resuelta, y llamarla con el registro
+    por delante es lo mismo que hace ``_validate_fields`` con las suyas.
     """
-    found = []
-    for name in dir(model):
-        if name.startswith('__'):
-            continue
-        try:
-            attr = inspect.getattr_static(model, name)
-        except AttributeError:
-            continue
-        func = getattr(attr, '__func__', attr)
-        declared = getattr(func, '_onchange', None)
-        if declared and field_name in declared:
-            found.append(name)
-    return tuple(sorted(found))
+    return registry.onchange_methods(model).get(field_name, ())
 
 
-def _apply_onchange_method(record, method_name, result):
+def _apply_onchange_method(record, method, result):
     """≙ referencia ``_apply_onchange_methods``
     (``odoo19c: odoo/orm/models.py:6975-6994``), para **un** método.
 
@@ -2056,7 +2040,7 @@ def _apply_onchange_method(record, method_name, result):
     su mapa ya está construido; aquí el bucle vive en :meth:`Base.onchange`,
     que es quien decide el orden de las pasadas.
     """
-    res = getattr(record, method_name)()
+    res = method(record)
     if not res:
         return
     for key, value in (res.get('value') or {}).items():

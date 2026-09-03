@@ -12,10 +12,33 @@ src/orm/*.py src/addons/*/models/*.py`` → 0; hoy devuelve 1 y, sobre todo, el
 
 Ningún caso toca la base: ``onchange`` opera sobre una instancia en memoria.
 """
+import pytest
+
 import api
 
 from addons.crm.models.crm_stage import CrmStage
 from addons.web.models.models import Base, RecordSnapshot
+from orm import registry
+
+
+@pytest.fixture(autouse=True)
+def _reset_marked_methods():
+    """Vacia el memo de metodo marcado antes y despues de cada caso.
+
+    ``registry.onchange_methods`` memoiza por clase de modelo, igual que la
+    fuente memoiza ``_onchange_methods`` en la clase (``odoo19c: odoo/orm/
+    models.py:592``: *"optimization: memoize result on cls"*). Tres casos de
+    aqui cuelgan un ``@api.onchange`` con ``monkeypatch``, que es una mutacion
+    del registro en caliente — alla la haria observable ``_prepare_setup``
+    reasignando la property (``model_classes.py:344-346``); aqui la hace
+    observable su equivalente, :func:`~orm.registry.clear_marked_methods`.
+
+    Vacia **tambien al salir**: ``monkeypatch`` deshace el ``setattr`` pero no
+    el memo, y una entrada con el metodo del caso se filtraria al siguiente.
+    """
+    registry.clear_marked_methods()
+    yield
+    registry.clear_marked_methods()
 
 _SPEC = {'name': {}, 'is_won': {}, 'sequence': {}}
 
@@ -173,6 +196,7 @@ def test_onchange_returns_the_value_the_method_assigned(monkeypatch):
 
     monkeypatch.setattr(CrmStage, '_onchange_rename_when_won', _rename_when_won,
                         raising=False)
+    registry.clear_marked_methods()
 
     result = Base.onchange(_stage(), {'is_won': True}, ['is_won'], _SPEC)
 
@@ -230,6 +254,7 @@ def test_two_warnings_are_merged_into_one_dialog(monkeypatch):
 
     monkeypatch.setattr(CrmStage, '_onchange_second_warning', _second_warning,
                         raising=False)
+    registry.clear_marked_methods()
 
     result = Base.onchange(_stage(), {'is_won': True}, ['is_won'], _SPEC)
 
@@ -255,6 +280,7 @@ def test_recursive_pass_reaches_a_second_method(monkeypatch):
 
     monkeypatch.setattr(CrmStage, '_onchange_first', _first, raising=False)
     monkeypatch.setattr(CrmStage, '_onchange_second', _second, raising=False)
+    registry.clear_marked_methods()
 
     result = Base.onchange(_stage(), {'is_won': True}, ['is_won'], _SPEC)
 
