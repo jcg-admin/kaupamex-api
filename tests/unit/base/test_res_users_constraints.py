@@ -22,27 +22,43 @@ El control que puede fallar
 ---------------------------
 
 Anulando las tres guardas —``_check_disjoint_groups`` con ``return`` al
-entrar, ``_check_at_least_one_administrator`` igual, y ``delete()`` delegando
-sin comprobar— la suite pasa de **14 passed** a **7 failed, 7 passed**. Caen
-los siete que afirman que la restriccion **ocurre** (dos de clases disjuntas,
-uno del administrador, cuatro de datos maestros — el borrado esta
-parametrizado por login). Sobreviven los siete que miden las ramas negativas
-—una sola clase pasa, ninguna clase pasa, con administrador calla, sin xmlid
-no aplica, un usuario normal si se borra— y los dos ayudantes, que no son
-restricciones.
+entrar, ``_check_at_least_one_administrator`` igual, y el receptor
+``_forbid_deleting_master_data`` tambien— la suite pasa de **17 passed** a
+**9 failed, 8 passed**. Caen los nueve que afirman que la restriccion
+**ocurre**: dos de clases disjuntas, uno del administrador, cuatro de datos
+maestros por instancia (parametrizados por login) y dos de datos maestros por
+lote. Sobreviven los ocho que miden ramas negativas —una sola clase pasa,
+ninguna clase pasa, con administrador calla, sin xmlid no aplica, un usuario
+normal si se borra, un lote de usuarios normales tambien— mas los dos
+ayudantes, que no son restricciones.
 
-Lo que este archivo NO cubre, y esta declarado
------------------------------------------------
+*Metrica:* casos que caen al anular las tres guardas, sobre los 17 del
+archivo.
+*Ciega a:* una guarda que exista en el codigo y que ningun caso ejercite —
+anular lo que nadie mide no hace caer nada.
 
-El borrado **en lote** por ``QuerySet.delete()`` no pasa por el ``delete()``
-del modelo — limitacion de Django, no del porte, declarada en el docstring
-del metodo. Sucesor: tarea **#57**.
+El borrado en lote: cubierto desde la tarea #57
+------------------------------------------------
+
+Este archivo declaraba que el borrado **en lote** por ``QuerySet.delete()``
+quedaba fuera, porque no pasa por el ``delete()`` del modelo. Ya no: la
+guarda vive en un receptor de ``pre_delete``, que Django emite en los dos
+caminos. Los tres casos de lote estan al final del archivo.
+
+Consecuencia del mecanismo que los casos hacen visible: la senal se emite
+**dentro** de ``transaction.atomic`` (``django/db/models/deletion.py:459-466``),
+asi que al lanzar deja la transaccion en estado de rollback. Por eso los dos
+casos de rechazo envuelven el borrado en su propio ``transaction.atomic()``:
+sin ese savepoint no se puede consultar despues para comprobar que nadie se
+borro. Es mas fuerte que lo que hacia ``delete()`` —el lote entero revierte,
+no solo la fila infractora— y es la razon por la que el test tiene esa forma.
 """
 import pytest
 
 from addons.base.models import (IrModelData, ResGroups, ResPartner,
                                 ResUsers)
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from exceptions import UserError
 from orm.utils import SUPERUSER_ID
 
@@ -193,3 +209,40 @@ def test_the_group_ids_include_the_implied_ones(db):
     grupo = _make_group('Ventas')
     user.group_ids.add(grupo)
     assert grupo.pk in user._get_group_ids()
+
+
+def test_the_batch_delete_refuses_a_system_login(db):
+    """El caso que ``delete()`` no cubria — ≙ ``unlink`` invocando el gancho
+    con el recordset entero (``odoo19c: odoo/orm/models.py:4206-4209``).
+
+    ``QuerySet.delete()`` no pasa por ``Model.delete()``, asi que la guarda
+    escrita ahi dejaba salir el lote. Con el receptor de ``pre_delete`` el
+    lote entero revierte: la senal se emite dentro de ``transaction.atomic``
+    y antes de borrar (``django/db/models/deletion.py:459-466``).
+    """
+    sistema = _make_user('admin')
+    normal = _make_user('acompanante')
+    batch = ResUsers.objects.filter(pk__in=[sistema.pk, normal.pk])
+    with pytest.raises(UserError, match='Archívalo'):
+        with transaction.atomic():
+            batch.delete()
+    assert ResUsers.objects.filter(pk=sistema.pk).exists()
+    assert ResUsers.objects.filter(pk=normal.pk).exists()
+
+
+def test_the_batch_delete_refuses_the_superuser(db):
+    """El super-usuario tampoco sale por lote — ≙ ``:651-652``."""
+    user = _make_user('cualquier-login')
+    ResUsers.objects.filter(pk=user.pk).update(id=SUPERUSER_ID)
+    with pytest.raises(UserError, match='super-usuario'):
+        with transaction.atomic():
+            ResUsers.objects.filter(pk=SUPERUSER_ID).delete()
+    assert ResUsers.objects.filter(pk=SUPERUSER_ID).exists()
+
+
+def test_a_batch_of_plain_users_is_deleted(db):
+    """La rama negativa del lote: sin ella, un receptor que prohibiera todo
+    pasaria los dos casos de arriba."""
+    pks = [_make_user('lote-uno').pk, _make_user('lote-dos').pk]
+    ResUsers.objects.filter(pk__in=pks).delete()
+    assert not ResUsers.objects.filter(pk__in=pks).exists()

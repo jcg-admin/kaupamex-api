@@ -101,7 +101,7 @@ def _checkout(draft, shipping_cost=Decimal('0.00')):
                                shipping_cost=shipping_cost)
 
 
-class TestLineaDeEnvio:
+class TestLineOfShipping:
 
     def test_la_venta_nace_con_su_linea_de_envio(self, producto, metodo):
         draft = _draft(producto, carrier=metodo)

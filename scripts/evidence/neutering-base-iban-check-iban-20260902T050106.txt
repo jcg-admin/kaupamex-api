@@ -1,0 +1,14 @@
+# Control discriminante — base-iban-check-iban
+# fecha:    2026-09-02T05:01:06
+# archivo:  addons/base_iban/models/res_partner_bank.py
+# anulado:  s/^    if self\.acc_type == .iban.:$/    if False:/
+# tests:    tests/unit/base_iban/
+
+## 1. Verde de partida (guarda presente)
+34 passed, 1 warning in 4.90s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/base_iban/test_create_write_and_check.py::TestCheckIban::test_check_iban_rejects_a_row_marked_iban_with_a_broken_number
+FAILED tests/unit/base_iban/test_create_write_and_check.py::TestCheckIban::test_clean_delegates_to_check_iban
+FAILED tests/unit/base_iban/test_iban.py::TestResPartnerBankExtension::test_clean_rejects_an_account_marked_iban_with_a_broken_number
+3 failed, 31 passed, 1 warning in 5.20s

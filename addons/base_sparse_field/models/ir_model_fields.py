@@ -18,8 +18,9 @@ Símbolo de la referencia            Veredicto
 =================================== ==============================================
 ``IrModelFields.ttype`` (+serialized) portado — ``add_serialized_ttype()``
 ``IrModelFields.serialization_field_id`` portado — ``add_to_class`` desde ``ready()``
-``IrModelFields.write`` (guarda)      portado — encadenado sobre ``save``
-``IrModelFields._reflect_fields``     portado — encadenado sobre ``reflect_fields``
+``IrModelFields.write`` (guarda)      portado — ``write`` con su nombre, más el
+                                    mismo invariante encadenado sobre ``save``
+``IrModelFields._reflect_fields``     portado — encadenado sobre ``_reflect_fields``
 ``Sparse_FieldsTest``                 portado — ``models/sparse_fields_test.py``
 ``Base._valid_field_parameter``       divergencia de mecanismo (abajo)
 ``IrModelFields._instanciate_attrs``  divergencia de mecanismo (abajo)
@@ -69,7 +70,7 @@ de decidir::
     Serialized().get_internal_type()        -> 'JSONField'
     IrModelFields.ttype_for(Serialized())   -> 'json'
 
-Corregirlo dentro de ``reflect_fields`` no bastaría: ``reflect_fields`` es
+Corregirlo dentro de ``_reflect_fields`` no bastaría: ``_reflect_fields`` es
 quien escribe la fila, y su ``update_or_create`` volvería a poner ``json``
 cada vez que corriera. La corrección va donde nace el valor —``ttype_for``—
 encadenada con el relevo por ``None`` de ``orm/method_chain.py``: si el campo
@@ -83,6 +84,7 @@ from exceptions import UserError
 from addons.base.models.ir_model import STATE_BASE, IrModelFields
 from addons.base_sparse_field.models.fields import Serialized, Sparse
 from orm.method_chain import chain_method
+from orm.model_classes import extend_selection_choices
 
 #: Clave de tipo que la referencia añade al vocabulario de ``ttype``
 #: (``odoo19c: base_sparse_field/models/models.py:19-21``).
@@ -112,15 +114,25 @@ def add_serialized_ttype():
     ``serialized``.
 
     Se extiende el ``choices`` del campo vivo, que es donde Django valida.
-    ``ondelete={'serialized': 'cascade'}`` de la referencia no tiene
-    equivalente: es su política para las filas que quedan al DESinstalar el
-    módulo que aportó el valor, y aquí la instalación es ``INSTALLED_APPS``
-    —no hay desinstalación que dispare esa limpieza—.
+
+    **La política de borrado SÍ se porta** (tarea #205). Este docstring decía
+    que ``ondelete={'serialized': 'cascade'}`` *"no tiene equivalente"* porque
+    aquí no hay desinstalación de módulos. La premisa era correcta a medias:
+    la desinstalación no existe, pero borrar la fila de
+    ``ir.model.fields.selection`` sí es un camino vivo, y ahí la política
+    corre. El receptor lo construyó ``extend_selection_choices``.
+
+    ``ttype`` es ``required=True`` en la fuente
+    (``odoo19c: odoo/addons/base/models/ir_model.py:527``), así que la
+    política **no es opcional**: un valor nuevo sin ella dejaría filas
+    requeridas apuntando a nada, y la validación de la fuente lo rechaza.
+    La declaración está en ``odoo19c: base_sparse_field/models/models.py:21``
+    —otro archivo que el nuestro, ver la nota de sitio abajo—.
     """
-    ttype = IrModelFields._meta.get_field('ttype')
-    if any(key == SERIALIZED_TTYPE for key, _label in ttype.choices):
-        return
-    ttype.choices = list(ttype.choices) + [(SERIALIZED_TTYPE, SERIALIZED_TTYPE)]
+    extend_selection_choices(
+        IrModelFields, 'ttype',
+        [(SERIALIZED_TTYPE, SERIALIZED_TTYPE)],
+        ondelete={SERIALIZED_TTYPE: 'cascade'})
 
 
 def add_serialization_field():
@@ -171,6 +183,46 @@ def check_sparse_write(self, *args, **kwargs):
                     f'No se permite renombrar el campo disperso '
                     f'"{previous["name"]}".')
     return None
+
+
+def write(self, **vals):
+    """≙ ``write`` (``odoo19c: base_sparse_field/models/models.py:29-39``).
+
+    Conserva el nombre de la fuente. Es el punto que su comentario declara como
+    limitación explícita —*"renaming a sparse field or changing the storing
+    system is currently not allowed"*— y lo hace **sobre los valores que
+    entran**, antes de tocar la fila, igual que allá: su ``write`` recibe
+    ``vals`` y los compara contra el campo guardado.
+
+    Es la mitad que :func:`check_sparse_write` no puede cubrir sola. Aquélla
+    cuelga de ``save`` y tiene que releer la fila de la base, porque para
+    entonces la instancia ya trae los valores nuevos y el estado anterior se
+    perdió. Las dos coexisten a propósito: ésta atrapa el intento en la puerta
+    que la fuente vigila, y aquélla cubre el camino que no pasa por aquí
+    (``instance.name = x; instance.save()``).
+
+    La firma es ``**vals`` y el cuerpo es *comprobar, poner los atributos y
+    guardar* — el idioma ya establecido en este árbol para portar el ``write``
+    de la referencia sobre un modelo sin ``write`` previa
+    (``addons/stock/models/stock_location.py:575``). Devuelve ``self``.
+    """
+    if 'serialization_field_id' in vals or 'name' in vals:
+        entrante = vals.get('serialization_field_id')
+        entrante_id = getattr(entrante, 'pk', entrante)
+        if ('serialization_field_id' in vals
+                and self.serialization_field_id_id != entrante_id):
+            raise UserError(
+                f'No se permite cambiar el sistema de almacenamiento del '
+                f'campo "{self.name}".')
+        if (self.serialization_field_id_id
+                and 'name' in vals and self.name != vals['name']):
+            raise UserError(
+                f'No se permite renombrar el campo disperso "{self.name}".')
+
+    for name, value in vals.items():
+        setattr(self, name, value)
+    self.save()
+    return self
 
 
 def sparse_ttype_for(field):
@@ -257,20 +309,27 @@ def reflect_sparse_fields(cls, model_row):
                 'state': STATE_BASE,
             },
         )
-        _fila, fue_creada = cls.objects.update_or_create(
-            model=model_row.model, name=name,
-            defaults={
-                'model_id': model_row,
-                'ttype': _ttype_of_sparse(descriptor),
-                'field_description': name,
-                'help': descriptor.help_text or '',
-                'store': False,
-                'state': STATE_BASE,
-                'serialization_field_id': fila_contenedor,
-            },
-        )
-        creados += fue_creada
-        actualizados += not fue_creada
+        valores = {
+            'model_id': model_row,
+            'ttype': _ttype_of_sparse(descriptor),
+            'field_description': name,
+            'help': descriptor.help_text or '',
+            'store': False,
+            'state': STATE_BASE,
+            'serialization_field_id': fila_contenedor,
+        }
+        # Sin pasar por ``save``: estas filas describen campos **base**, y la
+        # guarda de escritura de ``IrModelFields`` cierra esa vía —igual que la
+        # de la fuente—. El reflejo es el otro camino, el que allá escribe con
+        # ``upsert_en``; ``update`` y ``bulk_create`` son sus equivalentes.
+        actualizadas = cls.objects.filter(
+            model=model_row.model, name=name).update(**valores)
+        if actualizadas:
+            actualizados += 1
+        else:
+            cls.objects.bulk_create([
+                cls(model=model_row.model, name=name, **valores)])
+            creados += 1
     return creados, actualizados
 
 
@@ -309,5 +368,6 @@ def apply_base_sparse_field_extensions():
     add_serialization_field()
     chain_method(IrModelFields, 'ttype_for', staticmethod(sparse_ttype_for))
     chain_method(IrModelFields, 'save', check_sparse_write)
-    chain_method(IrModelFields, 'reflect_fields',
+    chain_method(IrModelFields, 'write', write)
+    chain_method(IrModelFields, '_reflect_fields',
                  classmethod(reflect_sparse_fields), combine=sum_counters)

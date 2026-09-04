@@ -1,0 +1,21 @@
+addons medidos (los que este arbol porta): 120
+campos related= que la referencia declara en ellos: 597
+  de esos, con store=True (copia materializada): 45
+  sin store (proyeccion calculada al leer):      552
+
+los 15 addons con mas:
+  hr                           83
+  stock                        68
+  account                      58
+  mrp                          44
+  base                         28
+  account_peppol               27
+  mail                         25
+  loyalty                      18
+  web                          18
+  fleet                        17
+  purchase                     17
+  website                      16
+  product                      13
+  sale                         11
+  hr_skills                    10

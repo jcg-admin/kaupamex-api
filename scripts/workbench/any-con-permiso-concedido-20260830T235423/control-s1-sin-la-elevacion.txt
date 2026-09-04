@@ -1,0 +1,4 @@
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_domain_any_with_rights.py::TestTheElevationGrantsIt::test_an_any_becomes_any_bang_under_sudo
+FAILED tests/unit/orm/test_domain_any_with_rights.py::TestTheElevationGrantsIt::test_a_not_any_becomes_not_any_bang_under_sudo
+2 failed, 4 passed, 1 warning in 5.35s

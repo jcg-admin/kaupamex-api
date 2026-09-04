@@ -87,7 +87,7 @@ Divergencias declaradas
    vive donde la referencia lo declara: ``authz_passkey/models/res_users.py``,
    colgado de la cadena. Acota la passkey al usuario ya autenticado y delega
    en ``verify_webauthn_credential``, cuyo verificador es el mismo
-   ``PasskeyKey.verify_auth`` (≙ ``_verify_auth``) que usa el login.
+   ``PasskeyKey._verify_auth`` (≙ ``_verify_auth``) que usa el login.
 
    El ``auth_method`` que devuelve es ``passkey``, no ``webauthn``: la
    asimetría es de la fuente, que compara ``first_fa != auth["auth_method"]``
@@ -107,7 +107,7 @@ Divergencias declaradas
    fachada, no una ``APIException``; dejarlo salir daría un 500.
 
    ``request`` viaja en ``env`` porque el eslabón de passkey lo necesita: el
-   reto de WebAuthn vive en la sesión y ``PasskeyKey.verify_auth`` lo recibe
+   reto de WebAuthn vive en la sesión y ``PasskeyKey._verify_auth`` lo recibe
    explícito, donde la fuente lo lee de un hilo-local.
 """
 import logging

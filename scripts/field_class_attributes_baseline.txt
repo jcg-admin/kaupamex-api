@@ -1,0 +1,13 @@
+# Atributos de clase de campo que responden distinto de lo que la
+# fuente declara. Deuda heredada CONGELADA (tarea #245): uno
+# listado no bloquea, uno nuevo si. Se retira la linea al
+# corregirlo, o el baseline miente sobre deuda que ya no existe.
+_depends_context::BinaryField::Binary
+copy::Properties::Properties
+is_text::CharField::BaseString
+is_text::Html::Html(hereda BaseString)
+is_text::TextField::BaseString
+precompute::Properties::Properties
+write_sequence::DecimalField::Monetary
+write_sequence::ManyToManyField::Many2many(hereda _RelationalMulti)
+write_sequence::Properties::Properties

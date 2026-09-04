@@ -31,9 +31,10 @@ class MailingContact(TimeStampedModel):
         max_length=254, blank=True, default='',
         help_text='Correo (Odoo email).',
     )
-    country = fields.Many2one(
+    country_id = fields.Many2one(
         'base.ResCountry', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='mailing_contacts', help_text='Pais (Odoo country_id).',
+        db_column='country_id',
     )
     # De mail.thread.blacklist (Odoo): contador de rebotes + bandera de lista negra.
     message_bounce = fields.Integer(

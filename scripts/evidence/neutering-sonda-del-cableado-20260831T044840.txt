@@ -1,0 +1,14 @@
+# Control discriminante — sonda-del-cableado
+# fecha:    2026-08-31T04:48:40
+# archivo:  src/orm/registry.py
+# anulado:  s/if not getattr(field, 'concrete', False):/if False:/
+# tests:    tests/unit/orm/test_domain_in_required.py
+
+## 1. Verde de partida (guarda presente)
+19 passed, 1 warning in 8.14s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_domain_in_required.py::TestTheTwoWaysToAskForNotNullAgree::test_the_shortcut_agrees_with_the_walk_on_every_field
+FAILED tests/unit/orm/test_domain_in_required.py::TestTheTwoWaysToAskForNotNullAgree::test_a_many_to_many_is_not_a_not_null_column
+FAILED tests/unit/orm/test_domain_in_required.py::TestTheTwoWaysToAskForNotNullAgree::test_the_optimizer_leaves_a_many_to_many_alone
+3 failed, 16 passed, 1 warning in 4.66s

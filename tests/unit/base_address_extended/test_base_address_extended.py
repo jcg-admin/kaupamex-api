@@ -8,7 +8,7 @@ verifica un comportamiento del original:
   ``ADDRESS_REGEX``): descompone la calle en name/number/number2.
 - ``ResCity.__str__`` == ``_compute_display_name`` de Odoo (``name`` o
   ``name (zipcode)``).
-- ``ResCity.country`` requerido; ``state`` opcional.
+- ``ResCity.country_id`` requerido; ``state_id`` opcional.
 - ``CountryAddressPolicy`` OneToOne (RELATED de ``enforce_cities``, DEC-SALE-01).
 """
 import pytest
@@ -48,39 +48,48 @@ pytestmark = pytest.mark.django_db
 class TestResCity:
     def test_str_without_zipcode(self):
         mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
-        c = ResCity.objects.create(name='Guadalajara', country=mx)
+        c = ResCity.objects.create(name='Guadalajara', country_id=mx)
         assert str(c) == 'Guadalajara'
 
     def test_str_with_zipcode(self):
         mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
-        c = ResCity.objects.create(name='Guadalajara', country=mx, zipcode='44100')
+        c = ResCity.objects.create(name='Guadalajara', country_id=mx, zipcode='44100')
         assert str(c) == 'Guadalajara (44100)'
 
     def test_country_required_state_optional(self):
         mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         jal = ResCountryState.objects.create(country=mx, name='Jalisco', code='JAL')
-        c = ResCity.objects.create(name='Zapopan', country=mx, state=jal)
-        assert c.state == jal
-        c2 = ResCity.objects.create(name='Tlaquepaque', country=mx)
-        assert c2.state is None
+        c = ResCity.objects.create(name='Zapopan', country_id=mx, state_id=jal)
+        assert c.state_id == jal
+        c2 = ResCity.objects.create(name='Tlaquepaque', country_id=mx)
+        assert c2.state_id is None
 
     def test_state_set_null_on_delete(self):
         mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         jal = ResCountryState.objects.create(country=mx, name='Jalisco', code='JAL')
-        c = ResCity.objects.create(name='Zapopan', country=mx, state=jal)
+        c = ResCity.objects.create(name='Zapopan', country_id=mx, state_id=jal)
         jal.delete()
         c.refresh_from_db()
-        assert c.state is None
+        assert c.state_id is None
         assert ResCity.objects.filter(pk=c.pk).exists()
 
     def test_cities_reverse_on_country(self):
         mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
-        ResCity.objects.create(name='Guadalajara', country=mx)
-        ResCity.objects.create(name='Monterrey', country=mx)
+        ResCity.objects.create(name='Guadalajara', country_id=mx)
+        ResCity.objects.create(name='Monterrey', country_id=mx)
         assert mx.cities.count() == 2
 
 
 class TestCountryAddressPolicy:
+    def test_it_declares_which_model_it_extends(self):
+        """≙ ``_inherit = 'res.country'`` (``odoo19c: …/res_country.py:8``).
+
+        El almacén diverge —allá es una columna de ``res_country``, aquí una
+        tabla RELATED (DEC-SALE-01)— y el atributo es lo que impide que esa
+        divergencia borre a quién extiende la clase.
+        """
+        assert CountryAddressPolicy._inherit == 'res.country'
+
     def test_enforce_cities_defaults_false(self):
         mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         pol = CountryAddressPolicy.objects.create(country=mx)
@@ -109,26 +118,26 @@ def _make_partner(street='Av. Insurgentes Sur 1234 - 5B'):
 
 
 class TestAddressStructured:
-    def test_compute_from_street_splits_parts(self):
+    def test_compute_street_data_splits_parts(self):
         partner = _make_partner()
         st = AddressStructured(partner=partner)
-        st.compute_from_street(partner.street)
+        st._compute_street_data(partner.street)
         assert st.street_name == 'Av. Insurgentes Sur'
         assert st.street_number == '1234'
         assert st.street_number2 == '5B'
 
-    def test_inverse_to_street_roundtrip(self):
+    def test_inverse_street_data_roundtrip(self):
         partner = _make_partner()
         st = AddressStructured(partner=partner)
-        st.compute_from_street(partner.street)
+        st._compute_street_data(partner.street)
         # Odoo _inverse_street_data: 'name number - number2'.
-        assert st.inverse_to_street() == 'Av. Insurgentes Sur 1234 - 5B'
+        assert st._inverse_street_data() == 'Av. Insurgentes Sur 1234 - 5B'
 
     def test_get_street_split_returns_three_keys(self):
         partner = _make_partner('Main 12')
         st = AddressStructured(partner=partner)
-        st.compute_from_street(partner.street)
-        assert st.get_street_split() == {
+        st._compute_street_data(partner.street)
+        assert st._get_street_split() == {
             'street_name': 'Main', 'street_number': '12', 'street_number2': '',
         }
 
@@ -146,9 +155,9 @@ class TestAddressStructured:
     def test_country_enforce_cities_reads_policy(self):
         mx = ResCountry.objects.get_or_create(code='MX', defaults={'name': 'México'})[0]
         CountryAddressPolicy.objects.create(country=mx, enforce_cities=True)
-        city = ResCity.objects.create(name='CDMX', country=mx)
+        city = ResCity.objects.create(name='CDMX', country_id=mx)
         partner = _make_partner()
-        st = AddressStructured.objects.create(partner=partner, city=city)
+        st = AddressStructured.objects.create(partner=partner, city_id=city)
         assert st.country_enforce_cities is True
 
     def test_archiving_partner_keeps_structured_row(self):

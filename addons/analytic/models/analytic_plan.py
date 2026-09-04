@@ -50,11 +50,34 @@ Lo que NO se porta — **el sistema de columna dinámica por plan**
     Odoo, sin análogo en esta API) y ``_onchange_parent_id`` (onchange de
     formulario, sin análogo en DRF).
 
-``company_dependent`` (Odoo) en ``default_applicability``: Django no tiene
-"valor por defecto distinto por compañía activa" a nivel de campo (eso es
-infraestructura ``ir.property`` de Odoo). Se simplifica a un default fijo
-(``'optional'``) igual para todas las compañías — documentado, no fabricado
-como feature nueva.
+``company_dependent`` en ``default_applicability`` — construido (tarea #129)
+=============================================================================
+
+Hasta esta tarea el campo era un ``Selection`` escalar y este docstring decía
+*"Django no tiene valor por defecto distinto por compañía activa a nivel de
+campo"*. Eso describía el punto de partida y lo presentaba como cierre —
+exactamente lo que ``porte-completo-no-parcial.md`` prohíbe: *"la respuesta
+«este ORM no tiene ese constructor» no cierra nada"*.
+
+El mecanismo se construyó: ``orm/fields_company_dependent.py`` (tarea #111,
+la columna ``jsonb`` y la indirección de lectura) y los diez despachadores
+(tarea #129, entre ellos ``Selection``). El campo se declara ahora con la
+firma de la fuente (``odoo19c: analytic/models/analytic_plan.py:77-86``), sin
+``default=`` — la fuente tampoco lo tiene: su valor inicial lo pone el
+archivo de datos (``analytic/data/analytic_data.xml:16`` →
+``<field name="default_applicability">optional</field>``), y para una empresa
+sin valor propio responde ``ir.default``.
+
+Dos consecuencias medibles del cambio, y las dos son de la fuente:
+
+- **La columna deja de ser ``varchar``**: es ``jsonb`` con ``{empresa: valor}``,
+  así que ``choices`` ya no la restringe. La enumeración sigue siendo el
+  contrato del valor (``APPLICABILITY_CHOICES``, compartida con
+  ``AccountAnalyticApplicability.applicability``, que **sí** sigue escalar
+  porque allá tampoco es company_dependent).
+- **Leer sin empresa activa da el fallback**, no ``'optional'`` fijo. Antes el
+  default de columna respondía siempre lo mismo; ahora responde lo que la
+  empresa tenga, que es el punto del campo.
 """
 from random import randint
 
@@ -117,11 +140,11 @@ class AccountAnalyticPlan(models.Model):
     color = fields.Integer(default=_default_color, verbose_name='Color')
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     default_applicability = fields.Selection(
-        max_length=16, choices=APPLICABILITY_CHOICES, default='optional',
+        company_dependent=True, choices=APPLICABILITY_CHOICES,
         verbose_name='Aplicabilidad por defecto',
         help_text=(
-            'Odoo default_applicability; en la referencia es '
-            'company_dependent — aquí un default fijo (ver docstring).'
+            'Odoo default_applicability, company_dependent: cada empresa fija '
+            'la suya. Sin valor propio responde ir.default.'
         ),
     )
 
@@ -204,16 +227,18 @@ class AccountAnalyticApplicability(models.Model):
         verbose_name='Plan analítico',
     )
     business_domain = fields.Selection(
-        max_length=32,
+        max_length=32, required=True,
         choices=[('general', 'Miscelánea')],
         verbose_name='Dominio de negocio',
         help_text=(
-            'Odoo business_domain; único valor en la referencia base '
-            '(otros addons de Odoo extienden la selección — no aplica aquí).'
+            'Odoo business_domain; único valor que declara la raíz '
+            'analytic. Otros addons amplían el vocabulario con '
+            'extend_model(selection_add=…) ≙ selection_add: account suma '
+            'invoice y bill, sale suma sale_order.'
         ),
     )
     applicability = fields.Selection(
-        max_length=16, choices=APPLICABILITY_CHOICES,
+        max_length=16, choices=APPLICABILITY_CHOICES, required=True,
         verbose_name='Aplicabilidad',
     )
     company = fields.Many2one(

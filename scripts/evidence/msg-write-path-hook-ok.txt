@@ -1,0 +1,12 @@
+Publish the write-path denominator on green too
+
+El bloque del hook capturaba la salida del gate y solo la imprimia al
+fallar, asi que un commit limpio no dejaba rastro de que el gate hubiera
+corrido. Un OK mudo no distingue "no hay divergencias de camino" de "el
+gate no llego a ejecutarse" — el sub-patron D de
+metrica-decide-la-conclusion.md aplicado al propio cableado.
+
+Los otros nueve gates del pre-commit ya publican su linea con su
+denominador; este queda igual.
+
+Refs: #345

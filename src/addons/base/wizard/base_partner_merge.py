@@ -54,14 +54,23 @@ decide. Su **contenido** sí está portado y accesible: el destino que
 ``default_get`` calcula es ``_get_ordered_partner(ids)[-1]``, y la fusión que
 ``action_merge`` dispara es ``_merge``.
 
-**2. Los dos bloques ``company_dependent`` de ``_update_reference_fields_generic``
-(``:240-320``) quedan BLOQUEADOS.** Reasignan los valores por empresa que
-viven en un ``jsonb`` y en ``ir_default.json_value``. Medido: **0** apariciones
-de ``company_dependent`` en ``src/orm/`` — el campo dependiente de empresa no
-es un mecanismo de este ORM todavía. Su construcción es la tarea **#381**; en
-cuanto exista, estos dos bloques se portan verbatim (son SQL puro y el motor
-coincide). Hasta entonces no hay valores por empresa que reasignar, así que su
-ausencia no pierde dato: pierde una capacidad que aún no se tiene.
+**2. Los TRES bloques ``company_dependent`` de
+``_update_reference_fields_generic`` (``:241-315``) están portados**, en
+:meth:`_update_company_dependent_references`.
+
+> Esta divergencia los declaraba detenidos, con su medición de entonces
+> —*"0 apariciones de ``company_dependent`` en ``src/orm/``"*— y su sucesora.
+> El mecanismo se construyó en ``orm/fields_company_dependent.py`` (tarea
+> **#111**) y los tres se portaron verbatim: son SQL puro y el motor es el
+> mismo PostgreSQL. La divergencia se retira, no se actualiza — era estado
+> heredado correcto en su momento y falso hoy.
+
+Eran **tres**, no dos: el conteo viejo se saltaba el tercero, que es
+justamente el que aplica hoy (los campos dependientes de empresa **de** los
+fusionados, con ``res.partner.barcode`` como primer consumidor). Los otros dos
+—los que apuntan **a** los fusionados y su fallback en ``ir_default``— corren
+sobre conjunto vacío mientras ningún ``Many2one`` se declare dependiente de
+empresa (tarea **#129**): vacío por dato, no por construcción.
 
 **3. ``SET is_company = NULL`` se porta como ``= false``.** Dos consultas de
 cierre de la fuente anulan la columna (``:...``, en
@@ -92,7 +101,9 @@ from django.db import connection, transaction
 from django.db.utils import IntegrityError
 
 from exceptions import UserError
-from tools.sql import table_columns
+from orm import registry
+from orm.environments import execute_query
+from tools.sql import SQL, table_columns
 
 logger = logging.getLogger('kaupamex.base.partner.merge')
 
@@ -307,8 +318,9 @@ class PartnerMerge:
         Una FK la ve el catálogo y la arregla ``_update_foreign_keys_generic``;
         esto no, porque para PostgreSQL es un entero cualquiera.
 
-        Los dos bloques ``company_dependent`` de la fuente (``:240-320``) están
-        BLOQUEADOS por la tarea **#381** — ver la divergencia 2 del módulo.
+        Los TRES bloques ``company_dependent`` de la fuente (``:241-315``) los
+        corre :meth:`_update_company_dependent_references`, al final — ver la
+        divergencia 2 del módulo.
         """
         logger.debug('_update_reference_fields_generic destino=%s origenes=%r',
                      dst_record.pk, [r.pk for r in src_records])
@@ -316,26 +328,151 @@ class PartnerMerge:
         objetivos = list(GENERIC_REFERENCE_MODELS)
         objetivos += list(additional_update_records or ())
 
-        for app_label, clase, campo_modelo, campo_id in objetivos:
+        for app_label, clase, campo_modelo, field_id in objetivos:
             modelo = _resolve(app_label, clase)
             if modelo is None:
                 continue                 # ≙ ``if Model is None: return`` (:196)
             for registro in src_records:
                 filas = modelo.objects.filter(**{
                     campo_modelo: referenced_model,
-                    campo_id: registro.pk,
+                    field_id: registro.pk,
                 })
                 if not filas.exists():
                     continue
                 tabla = modelo._meta.db_table
-                if not cls._has_check_or_unique_constraint(tabla, campo_id):
-                    filas.update(**{campo_id: dst_record.pk})
+                if not cls._has_check_or_unique_constraint(tabla, field_id):
+                    filas.update(**{field_id: dst_record.pk})
                     continue
                 try:
                     with transaction.atomic():
-                        filas.update(**{campo_id: dst_record.pk})
+                        filas.update(**{field_id: dst_record.pk})
                 except IntegrityError:
                     filas.delete()
+
+        cls._update_company_dependent_references(src_records, dst_record)
+
+    @classmethod
+    def _update_company_dependent_references(cls, src_records, dst_record):
+        """Los TRES bloques ``company_dependent`` de la fuente (``:241-315``).
+
+        Se extraen a su propio método porque cada uno es una sentencia con su
+        propio criterio, y el cuerpo de :meth:`_update_reference_fields_generic`
+        ya recorría dos bucles anidados. La fuente los tiene en línea; aquí la
+        división es de forma, no de contenido — los tres corren en el mismo
+        punto y en el mismo orden.
+
+        > Hasta la tarea **#111** estaban detenidos y así lo declaraba la
+        > divergencia 2 del módulo: *"el campo dependiente de empresa no es un
+        > mecanismo de este ORM todavía"*. Lo es desde
+        > ``orm/fields_company_dependent.py``, y los tres se portan verbatim —
+        > son SQL puro y el motor es el mismo PostgreSQL.
+
+        Los tres, y qué repunta cada uno:
+
+        1. **Un ``Many2one`` por empresa que APUNTA a los fusionados.** Su id
+           vive como valor dentro de un ``jsonb``, así que el catálogo de FK no
+           lo ve y ``_update_foreign_keys_generic`` no lo alcanza. Hoy el
+           conjunto es vacío por dato (ningún ``Many2one`` se declara
+           dependiente de empresa todavía, tarea **#129**), no por
+           construcción: ``registry.many2one_company_dependents`` lo resuelve.
+        2. **El fallback de ``ir.default``** para esos mismos campos: el valor
+           por defecto también puede apuntar al contacto que desaparece.
+        3. **Los campos dependientes de empresa DE los fusionados** — el que
+           aplica hoy, con ``res.partner.barcode``. Los valores por empresa de
+           los orígenes rellenan las empresas que el destino no tenía, y el
+           valor propio del destino gana donde ya lo hubiera. El ``||`` de
+           PostgreSQL da esa precedencia con el operando derecho, que es por lo
+           que la fuente lo escribe en ese orden.
+        """
+        src_ids = [r.pk for r in src_records]
+        if not src_ids:
+            return
+
+        # 1. ``company_dependent`` fields referring the merged records.
+        for modelo, campo in registry.many2one_company_dependents(
+                type(dst_record)._meta.label):
+            execute_query(SQL(
+                """
+                UPDATE %(table)s
+                SET %(field)s = (
+                    SELECT jsonb_object_agg(key,
+                        CASE
+                            WHEN value::int = ANY(%(src_record_ids)s)
+                            THEN %(dest_record_id)s
+                            ELSE value::int
+                        END
+                    )
+                    FROM jsonb_each_text(%(field)s)
+                )
+                WHERE %(field)s IS NOT NULL
+                """,
+                table=SQL.identifier(modelo._meta.db_table),
+                field=SQL.identifier(campo.column),
+                src_record_ids=src_ids,
+                dest_record_id=dst_record.pk,
+            ))
+
+        # 2. Merge the fallback values for company dependent many2one fields.
+        #
+        # DIVERGENCIA DE UNION, y es la que ``ir_default.py`` ya declara: la
+        # fuente une por ``f.id = ir_default.field_id`` porque alli el campo
+        # objetivo es una FK a ``ir.model.fields``. Aqui esa FK se degrado a
+        # dos ``Char`` —``model`` y ``field``— con su razon escrita en aquel
+        # modulo, asi que la union equivalente es por el par de nombres. Es la
+        # misma fila la que se selecciona; cambia por donde se llega a ella.
+        execute_query(SQL(
+            """
+            UPDATE ir_default
+            SET json_value =
+                CASE
+                    WHEN json_value::int = ANY(%(src_record_ids)s)
+                    THEN %(dest_record_id)s
+                    ELSE json_value
+                END
+            FROM ir_model_fields f
+            WHERE f.model = ir_default.model
+            AND f.name = ir_default.field
+            AND f.company_dependent
+            AND f.relation = %(model_name)s
+            AND f.ttype = 'many2one'
+            AND json_value ~ '^[0-9]+$'
+            """,
+            src_record_ids=src_ids,
+            dest_record_id=str(dst_record.pk),
+            model_name=registry.name_of(type(dst_record)),
+        ))
+
+        # 3. ``company_dependent`` fields of the merged records.
+        tabla = type(dst_record)._meta.db_table
+        for campo in type(dst_record)._meta.get_fields():
+            if not getattr(campo, 'company_dependent', False):
+                continue
+            execute_query(SQL(
+                # Comentario de la fuente, verbatim: *"use the specific company
+                # dependent value of sources to fill the non-specific value of
+                # destination. Source values for rows with larger id have
+                # higher priority when aggregated"*.
+                """
+                WITH source AS (
+                    SELECT %(field)s
+                    FROM  %(table)s
+                    WHERE id = ANY(%(source_ids)s)
+                    ORDER BY id
+                ), source_agg AS (
+                    SELECT jsonb_object_agg(key, value) AS value
+                    FROM  source, jsonb_each(%(field)s)
+                )
+                UPDATE %(table)s
+                SET %(field)s = source_agg.value
+                    || COALESCE(%(table)s.%(field)s, '{}'::jsonb)
+                FROM source_agg
+                WHERE id = %(destination_id)s AND source_agg.value IS NOT NULL
+                """,
+                table=SQL.identifier(tabla),
+                field=SQL.identifier(campo.column),
+                destination_id=dst_record.pk,
+                source_ids=src_ids,
+            ))
 
     @classmethod
     def _update_foreign_keys(cls, src_partners, dst_partner):

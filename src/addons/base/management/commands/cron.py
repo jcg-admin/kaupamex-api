@@ -95,6 +95,7 @@ Gunicorn + systemd)
   aplicar; cada pasada recorre las bases en el mismo orden.
 """
 import logging
+import os
 import signal
 import time
 
@@ -148,6 +149,16 @@ class Command(BaseCommand):
         self._alive = True
         signal.signal(signal.SIGTERM, self._stop)
         signal.signal(signal.SIGINT, self._stop)
+        # Anuncio de disponibilidad — ≙ ``_logger.info("Worker %s (%s) alive")``
+        # (``odoo19c: odoo/service/server.py:1303``), que la referencia emite en
+        # ``Worker.start()`` por la misma razón: hasta esta línea el proceso
+        # existe pero NO atiende señales, así que un SIGTERM anterior lo mata
+        # con la disposición por defecto. Quien supervise al worker —un test,
+        # systemd, un operador— necesita el instante exacto, no una espera a
+        # ojo de N segundos que se cumple en una máquina ociosa y no en una
+        # cargada. Ver :ref:`h-api-841`.
+        self.stdout.write('cron: worker (%s) activo' % os.getpid())
+        self.stdout.flush()
 
         interval = options['interval']
         max_age = options['max_age']

@@ -130,12 +130,33 @@ from addons.base.models.res_bank import ResBank
 from addons.base.models.res_country import ResCountry
 from addons.base.models.res_currency import ResCurrency
 from addons.base.models.res_partner import ResPartner
-from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.base.models.res_bank import ResPartnerBank
 from addons.product.models.product_template import ProductTemplate
 from addons.uom.models.uom_uom import Uom
 from exceptions import UserError, ValidationError
 from orm.environments import get_current_companies
 from tools.translate import _
+
+
+#: ≙ el ``selection`` de ``tax_calculation_rounding_method`` (``odoo19c:
+#: account/models/company.py:129-132``). Los **valores** son los de la fuente;
+#: las etiquetas van en español por ``redaccion-tecnica-es.md``.
+TAX_CALCULATION_ROUNDING_METHODS = [
+    ('round_globally', 'Redondear por impuesto'),
+    ('round_per_line', 'Redondear por línea'),
+]
+
+#: ≙ el ``selection`` de ``terms_type`` (``odoo19c: company.py:172-173``).
+TERMS_TYPES = [
+    ('plain', 'Añadir una nota'),
+    ('html', 'Añadir un enlace a una página web'),
+]
+
+#: ≙ el ``selection`` de ``account_price_include`` (``odoo19c: :273``).
+ACCOUNT_PRICE_INCLUDES = [
+    ('tax_included', 'Impuesto incluido'),
+    ('tax_excluded', 'Impuesto excluido'),
+]
 
 
 def _default_tax(help_text, tax_use):
@@ -375,6 +396,21 @@ def validate_hard_lock_date_change(self, new_hard_lock_date):
             'Un nuevo candado duro debe ser posterior (o igual) al anterior.')
 
 
+def opening_move_posted(self):
+    """¿Esta empresa tiene asiento de apertura y esta publicado?
+
+    ≙ ``opening_move_posted`` (``odoo19c: account/models/company.py:829-831``),
+    docstring de la fuente verbatim: *"Returns true if this company has an
+    opening account move and this move is posted."*
+
+    Lo consume ``account.financial.year.op.opening_move_posted``, el campo
+    calculado del asistente de cierre fiscal: mientras el asiento no este
+    publicado la fecha de apertura sigue siendo editable.
+    """
+    move = self.account_opening_move
+    return bool(move) and move.state == 'posted'
+
+
 def compute_account_tax_fiscal_country(self):
     """El país fiscal cae al país de la empresa cuando nadie lo fijó — ≙
     ``compute_account_tax_fiscal_country`` (``odoo19c: company.py:387-390``).
@@ -535,6 +571,33 @@ def apply_account_extensions():
         'account_purchase_tax_id, company.py:127).',
         'purchase',
     ))
+    # Las dos cuentas por omisión de producto — ≙ ``odoo19c:
+    # company.py:282-293``. La factura de cliente cae en ``income_account_id``
+    # y la de proveedor en ``expense_account_id`` cuando ni el producto ni su
+    # categoría declaran la suya. ``_post_load_data`` las siembra como
+    # ``ir.default`` de ``product.category`` al cargar el plan.
+    #
+    # Forma **C** (ADR-029): símbolo y columna llevan el nombre de la fuente.
+    # Los campos de cuenta de arriba son forma A y están congelados en
+    # ``scripts/fk_naming_baseline.txt`` (#143); uno nuevo no hereda esa deuda.
+    for account_id_name, account_id_help in (
+        ('income_account_id',
+         'Cuenta de ingreso usada al validar una factura de cliente cuando '
+         'ni el producto ni su categoría declaran la suya (Odoo '
+         'income_account_id).'),
+        ('expense_account_id',
+         'Cuenta de gasto reconocida al validar una factura de proveedor, '
+         'salvo en contabilidad anglosajona con valoración perpetua de '
+         'inventario, donde el gasto se reconoce al validar la factura de '
+         'cliente (Odoo expense_account_id).'),
+    ):
+        _add_if_absent(ResCompany, account_id_name, fields.Many2one(
+            'account.AccountAccount', on_delete=dj_models.SET_NULL,
+            null=True, blank=True, related_name='+',
+            db_column=account_id_name,
+            help_text=account_id_help,
+        ))
+
     _add_if_absent(ResCompany, 'chart_template', fields.Char(
         max_length=64, null=True, blank=True,
         help_text='Código del plan contable cargado en esta empresa (Odoo '
@@ -606,10 +669,68 @@ def apply_account_extensions():
             help_text=lock_help,
         ))
 
+    # Los cuatro campos que los ``related=`` de ``sale.order`` leen de la
+    # empresa — ≙ ``odoo19c: company.py:129-132,157-158,172-173,272-278``.
+    #
+    # Llegan aquí y no a ``sale`` porque la referencia los declara en
+    # ``account``: ``sale/models/sale_order.py:298-317`` los consume con
+    # ``related='company_id.<campo>'``, y un ``related`` no puede inventar su
+    # destino. Portarlos en ``sale`` los habría puesto en el addon equivocado
+    # — el defecto de sitio que :ref:`h-api-578` registra.
+    _add_if_absent(ResCompany, 'tax_calculation_rounding_method',
+                   fields.Selection(
+        max_length=20, choices=TAX_CALCULATION_ROUNDING_METHODS,
+        default='round_globally',
+        verbose_name='Método de redondeo del cálculo de impuestos',
+        help_text='Si el impuesto se redondea una vez por impuesto sobre la '
+                  'base agregada, o línea por línea (Odoo '
+                  'tax_calculation_rounding_method).',
+    ))
+    _add_if_absent(ResCompany, 'account_use_credit_limit', fields.Boolean(
+        default=False, verbose_name='Límite de crédito en ventas',
+        help_text='Habilita el uso del límite de crédito en los contactos '
+                  '(Odoo account_use_credit_limit). Es el interruptor que '
+                  'gobierna el aviso de crédito de la orden de venta.',
+    ))
+    _add_if_absent(ResCompany, 'terms_type', fields.Selection(
+        max_length=10, choices=TERMS_TYPES, default='plain',
+        verbose_name='Formato de los términos y condiciones',
+        help_text='Si los términos y condiciones se añaden como nota al pie '
+                  'del documento o como enlace a una página web (Odoo '
+                  'terms_type).',
+    ))
+    # ``required=True`` en la fuente (``:276``) y ``default=`` presente: la
+    # columna nace poblada en toda empresa, así que no admite NULL.
+    _add_if_absent(ResCompany, 'account_price_include', fields.Selection(
+        max_length=20, choices=ACCOUNT_PRICE_INCLUDES,
+        default='tax_excluded',
+        verbose_name='Precio de venta con impuesto incluido por omisión',
+        help_text='Si el precio de venta que se captura en el producto y en '
+                  'las facturas de esta empresa incluye sus impuestos (Odoo '
+                  'account_price_include).',
+    ))
+
     # El interruptor del rastro de auditoría restringido — ≙ ``odoo19c:
     # company.py:257-262``. Es lo que vuelve OPERABLE la guarda que
     # ``addons/account/models/mail_message.py`` ya declaraba completa e inerte:
     # sin este campo, ``account_audit_log_restricted`` era siempre False.
+    # El asiento de apertura y su fecha — ≙ ``odoo19c: company.py:167-169``.
+    # Los desbloquea la tarea #333: ``account.financial.year.op`` declara
+    # ``opening_date`` como ``related`` a ``account_opening_date`` y computa
+    # ``opening_move_posted`` desde ``account_opening_move_id``; sin los dos
+    # campos el asistente no tenia a que apuntar.
+    _add_if_absent(ResCompany, 'account_opening_move', fields.Many2one(
+        'account.AccountMove', on_delete=dj_models.SET_NULL, null=True, blank=True,
+        related_name='opening_for_companies',
+        verbose_name='Opening Journal Entry',
+        help_text='Asiento con el saldo inicial de todas las cuentas de esta '
+                  'empresa (Odoo account_opening_move_id).',
+    ))
+    _add_if_absent(ResCompany, 'account_opening_date', fields.Date(
+        null=True, blank=True, verbose_name='Opening Entry',
+        help_text='Fecha del asiento de apertura; desde ella se lleva la '
+                  'contabilidad (Odoo account_opening_date).',
+    ))
     _add_if_absent(ResCompany, 'restrictive_audit_trail', fields.Boolean(
         default=False, verbose_name='Rastro de auditoría restrictivo',
         help_text='Impide borrar o mutar los mensajes del chatter que '
@@ -641,6 +762,7 @@ def apply_account_extensions():
         ('get_lock_date_violations', get_lock_date_violations),
         ('format_lock_dates', format_lock_dates),
         ('get_violated_lock_dates', get_violated_lock_dates),
+        ('opening_move_posted', opening_move_posted),
         ('validate_hard_lock_date_change', validate_hard_lock_date_change),
         ('compute_account_tax_fiscal_country',
          compute_account_tax_fiscal_country),

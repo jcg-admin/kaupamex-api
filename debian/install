@@ -1,0 +1,5 @@
+debian/kaupamex.conf /etc/kaupamex
+setup/kaupamex.service /lib/systemd/system
+setup/kaupamex-cron.service /lib/systemd/system
+setup/gunicorn.conf.py /etc/kaupamex
+README.md /usr/share/doc/kaupamex-api

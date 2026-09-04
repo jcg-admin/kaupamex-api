@@ -6,6 +6,7 @@ Portación fiel de ``account_move.py`` (Odoo 18/19). Campos núcleo: ``name``,
 ``amount_total``. Se porta la invariante de doble entrada (Odoo
 ``_check_balanced``): al postear, la suma de debe == suma de haber.
 """
+from contextlib import contextmanager
 from decimal import Decimal
 
 import api
@@ -16,6 +17,7 @@ import models
 from addons.account.models.account_partial_reconcile import AccountPartialReconcile
 from addons.account.models.sequence_mixin import SequenceMixin
 from exceptions import UserError
+from orm.environments import get_current_user
 from tools.translate import _
 
 
@@ -139,6 +141,73 @@ class AccountMove(SequenceMixin, models.Model):
     amount_total = fields.Monetary(
         max_digits=16, decimal_places=2, default=Decimal('0.00'),
         help_text='Total del asiento (Odoo amount_total, computado de líneas).',
+    )
+
+    # ------------------------------------------------------------------
+    # Las seis columnas que ``account.invoice.report`` lee de este asiento
+    # (tarea #989). Su forma sale de ``odoo19c: account/models/account_move.py``
+    # (LGPL-3: copia + adaptacion con atribucion). El nombre pierde el sufijo
+    # ``_id`` porque Django lo repone en la columna: ``invoice_user`` escribe
+    # ``invoice_user_id``, que es lo que la vista consulta.
+    # ------------------------------------------------------------------
+    invoice_date = fields.Date(
+        null=True, blank=True, db_index=True,
+        verbose_name='Fecha de factura',
+        help_text='Odoo invoice_date ("Invoice/Bill Date", account_move.py:374). '
+                  'Fecha del documento comercial, distinta de la fecha contable. '
+                  'El copy=False de la fuente no tiene analogo: este ORM no '
+                  'tiene copia de registro.',
+    )
+    invoice_date_due = fields.Date(
+        null=True, blank=True, db_index=True,
+        verbose_name='Fecha de vencimiento',
+        help_text='Odoo invoice_date_due ("Due Date", account_move.py:379). '
+                  'La calcula compute_invoice_date_due(), que save() invoca.',
+    )
+    invoice_user_id = fields.Many2one(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='invoiced_moves',
+        verbose_name='Vendedor',
+        db_column='invoice_user_id',
+        help_text='Odoo invoice_user_id ("Salesperson", account_move.py:678). '
+                  'El tracking=True de la fuente no aplica: este asiento no es '
+                  'un hilo de mail.thread en este arbol.',
+    )
+    commercial_partner_id = fields.Many2one(
+        'base.ResPartner', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='commercial_moves',
+        verbose_name='Entidad comercial',
+        db_column='commercial_partner_id',
+        help_text='Odoo commercial_partner_id ("Commercial Entity", '
+                  'account_move.py:430). La entidad que factura de verdad '
+                  'cuando el contacto es una direccion de una matriz. La '
+                  'calcula compute_commercial_partner().',
+    )
+    fiscal_position_id = fields.Many2one(
+        'account.AccountFiscalPosition', on_delete=models.PROTECT,
+        null=True, blank=True, related_name='moves',
+        verbose_name='Posicion fiscal',
+        db_column='fiscal_position_id',
+        help_text='Odoo fiscal_position_id ("Fiscal Position", '
+                  'account_move.py:456). Adapta impuestos y cuentas para un '
+                  'cliente o pedido concreto; su valor por omision viene del '
+                  'cliente.',
+    )
+    invoice_currency_rate = fields.Float(
+        default=0.0,
+        verbose_name='Tipo de cambio',
+        help_text='Odoo invoice_currency_rate ("Currency Rate", '
+                  'account_move.py:531). Tipo de cambio de la moneda de la '
+                  'empresa a la del documento. digits=0 en la fuente significa '
+                  'precision plena, que es lo que FloatField da aqui.',
+    )
+    direction_sign = fields.Integer(
+        default=1,
+        verbose_name='Signo de direccion',
+        help_text='Odoo direction_sign (account_move.py:541). Multiplicador '
+                  'segun el tipo de documento, para convertir un precio en un '
+                  'saldo. La calcula compute_direction_sign(), que save() '
+                  'invoca.',
     )
 
     class Meta:
@@ -398,3 +467,261 @@ class AccountMove(SequenceMixin, models.Model):
         self.state = 'cancel'
         self.save(update_fields=['state'])
         return True
+
+    # ------------------------------------------------------------------
+    # Los cinco compute que la fuente declara sobre las columnas de #989.
+    # Dos corren; tres estan bloqueados por un simbolo medido como ausente.
+    # ------------------------------------------------------------------
+
+    def _compute_commercial_partner_id(self):
+        """La entidad que factura de verdad -- ≙ ``odoo19c: :1008-1011``.
+
+        La fuente escribe ``move.partner_id.commercial_partner_id`` en un solo
+        salto porque su ``partner_id`` apunta a ``res.partner``. Aqui apunta al
+        modelo de usuario (``settings.AUTH_USER_MODEL``), asi que el mismo
+        recorrido pasa por la delegacion ``ResUsers.partner``. Medido:
+        ``ResUsers`` no expone ``commercial_partner`` por atributo, de modo que
+        el salto intermedio es explicito y no un descuido.
+
+        Ese desnivel es el eje que la tarea **#142** tiene abierto -- unificar
+        el eje partner de ``account``. Mientras dure, este metodo es el unico
+        sitio donde el rodeo esta escrito, y su correccion sera borrar un salto.
+        """
+        user = self.partner
+        party = getattr(user, 'partner', None) if user is not None else None
+        self.commercial_partner_id = getattr(party, 'commercial_partner_id', None) or party
+
+    def _compute_invoice_date_due(self):
+        """La fecha de vencimiento -- ≙ ``odoo19c: :1077-1084``.
+
+        La fuente toma el maximo ``date_maturity`` de ``needed_terms`` y, si no
+        hay ninguno, cae al valor ya escrito y de ahi a hoy. La rama del maximo
+        esta BLOQUEADO por ``needed_terms`` -- el reparto por plazo de pago no
+        existe en este arbol (medido: 0 declaraciones en
+        ``addons/account/models``), y su sucesor es la tarea **#116**.
+
+        La rama de respaldo si corre, y es la que la fuente ejecuta cuando el
+        documento no tiene plazos: ``move.invoice_date_due or today``.
+        """
+        self.invoice_date_due = self.invoice_date_due or fields.Date.context_today(self)
+
+    def _compute_invoice_default_sale_person(self):
+        """El vendedor por omision -- ≙ ``odoo19c: :803-817``.
+
+        DESBLOQUEADO por el porte de ``is_sale_document`` en este mismo pase.
+        El predicado que le faltaba ya esta declarado, asi que las dos ramas de
+        la fuente vuelven a distinguirse: un documento de venta hereda vendedor,
+        y uno que no lo es lo pierde.
+
+        El recorrido ``partner_id.user_id`` de la fuente pasa aqui por la
+        delegacion ``ResUsers.partner``, igual que en
+        ``_compute_commercial_partner_id`` -- es el eje que la tarea **#142**
+        tiene abierto, y su correccion sera borrar un salto.
+        """
+        if not self.is_sale_document(include_receipts=True):
+            self.invoice_user_id = None
+            return
+        if self.partner_id is None:
+            return
+        party = getattr(self.partner, 'partner', None)
+        commercial_party = getattr(party, 'commercial_partner_id', None) if party else None
+        self.invoice_user_id = (
+            self.invoice_user_id
+            or getattr(party, 'user', None)
+            or getattr(commercial_party, 'user', None)
+            or get_current_user()
+        )
+
+    def _compute_fiscal_position_id(self):
+        """La posicion fiscal -- ≙ ``odoo19c: :1022-1036``.
+
+        BLOQUEADO por ``_get_fiscal_position`` -- el resolutor que elige la
+        posicion a partir del contacto y su direccion de entrega. La fuente
+        ademas lee ``partner_shipping_id``, ``address_get`` y
+        ``account_purchase_receipt_fiscal_position_id``; ninguno existe aqui.
+        Sucesor: tarea **#142**, que unifica el eje partner del que cuelgan.
+        """
+        raise NotImplementedError(
+            'AccountMove._compute_fiscal_position_id esta BLOQUEADO por '
+            '``_get_fiscal_position`` -- el resolutor de posicion fiscal por '
+            'contacto y direccion de entrega no existe aqui. Sucesor: #142.')
+
+    def _compute_invoice_currency_rate(self):
+        """El tipo de cambio del documento -- ≙ ``odoo19c: :1137-1141``.
+
+        BLOQUEADO por ``expected_currency_rate`` -- la fuente copia ese campo
+        tal cual, y es quien resuelve la tasa contra la fecha del documento.
+        Medido: 0 declaraciones en ``addons/account/models``. Sucesor: tarea
+        **#114**, que cierra la conciliacion multi-divisa.
+        """
+        raise NotImplementedError(
+            'AccountMove._compute_invoice_currency_rate esta BLOQUEADO por '
+            '``expected_currency_rate`` -- la tasa esperada del documento no '
+            'se resuelve en este arbol. Sucesor: tarea #114.')
+
+    # ------------------------------------------------------------------
+    # Los once predicados de ``move_type`` -- ≙ ``odoo19c: :6468-6506``.
+    # Son ``@api.model`` en la fuente los que devuelven la lista de tipos, y
+    # de instancia los que preguntan por el asiento. Aqui la distincion se
+    # conserva con ``classmethod`` para los primeros.
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def get_sale_types(cls, include_receipts=False):
+        """Los tipos de documento de venta -- ≙ ``:6481-6482``."""
+        return ['out_invoice', 'out_refund'] + (include_receipts and ['out_receipt'] or [])
+
+    @classmethod
+    def get_purchase_types(cls, include_receipts=False):
+        """Los tipos de documento de compra -- ≙ ``:6488-6489``."""
+        return ['in_invoice', 'in_refund'] + (include_receipts and ['in_receipt'] or [])
+
+    @classmethod
+    def get_invoice_types(cls, include_receipts=False):
+        """Venta mas compra -- ≙ ``:6468-6469``."""
+        return cls.get_sale_types(include_receipts) + cls.get_purchase_types(include_receipts)
+
+    @classmethod
+    def get_inbound_types(cls, include_receipts=True):
+        """Los que hacen entrar dinero -- ≙ ``:6495-6496``."""
+        return ['out_invoice', 'in_refund'] + (include_receipts and ['out_receipt'] or [])
+
+    @classmethod
+    def get_outbound_types(cls, include_receipts=True):
+        """Los que hacen salir dinero -- ≙ ``:6502-6503``."""
+        return ['in_invoice', 'out_refund'] + (include_receipts and ['in_receipt'] or [])
+
+    def is_sale_document(self, include_receipts=False, move_type=False):
+        """≙ ``:6484-6485``."""
+        return (move_type or self.move_type) in self.get_sale_types(include_receipts)
+
+    def is_purchase_document(self, include_receipts=False, move_type=False):
+        """≙ ``:6491-6492``."""
+        return (move_type or self.move_type) in self.get_purchase_types(include_receipts)
+
+    def is_invoice(self, include_receipts=False):
+        """≙ ``:6471-6472``."""
+        return self.is_sale_document(include_receipts) or self.is_purchase_document(include_receipts)
+
+    def is_entry(self):
+        """≙ ``:6474-6475``."""
+        return self.move_type == 'entry'
+
+    def is_inbound(self, include_receipts=True):
+        """≙ ``:6498-6499``."""
+        return self.move_type in self.get_inbound_types(include_receipts)
+
+    def is_outbound(self, include_receipts=True):
+        """≙ ``:6505-6506``."""
+        return self.move_type in self.get_outbound_types(include_receipts)
+
+    def _compute_direction_sign(self):
+        """El multiplicador de direccion -- ≙ ``odoo19c: :1144-1149``."""
+        self.direction_sign = 1 if (self.move_type == 'entry' or self.is_outbound()) else -1
+
+    # ------------------------------------------------------------------
+    # Los ganchos de envío, cancelación y anticipo -- ≙ ``odoo19c:
+    # account_move.py:1975-1978`` y ``:7220-7278``.
+    #
+    # Los siete viven aquí, y no en ``sale``, porque es donde la referencia los
+    # declara: son puntos de extensión que ``account`` abre para que otro addon
+    # los reemplace. Cuatro tienen cuerpo vacío o de una línea en la fuente --
+    # eso NO es un porte incompleto, es el cuerpo que la fuente les da.
+    #
+    # ``ensure_one()`` de la fuente se omite en los cinco que lo declaran: un
+    # recordset de Odoo puede traer N filas y aquí una instancia de Django es
+    # siempre una. La guarda no tiene receptor; su ausencia no relaja nada.
+    # ------------------------------------------------------------------
+
+    def _action_invoice_ready_to_be_sent(self):
+        """Gancho: la factura pasa a estar lista para enviarse al cliente.
+
+        ≙ ``:7223-7226``. Cuerpo **vacío en la fuente**, con su docstring como
+        único contenido: *"Hook allowing custom code when an invoice becomes
+        ready to be sent by mail to the customer. For example, when an EDI
+        document must be sent to the government and be signed by it."*
+
+        ``sale`` lo reemplaza para disparar el ``ir.cron`` de envío.
+        """
+
+    def _is_ready_to_be_sent(self):
+        """¿El asiento está listo para enviarse por correo? -- ≙ ``:7228-7234``.
+
+        La fuente devuelve ``True`` siempre; quien tenga una condición la
+        introduce reemplazando este método (el EDI, por ejemplo).
+        """
+        return True
+
+    def _can_force_cancel(self):
+        """¿Se puede cancelar sin esperar a que la solicitud prospere?
+
+        ≙ ``:7236-7241``. La fuente devuelve ``False``: por omisión hay que
+        esperar. Lo reemplaza quien sepa que su canal admite el corte.
+        """
+        return False
+
+    @classmethod
+    @contextmanager
+    def _send_only_when_ready(cls, moves):
+        """Avisa a los que pasaron a estar listos DENTRO del bloque.
+
+        ≙ ``:7242-7252``. Recuerda cuáles no estaban listos al entrar y, al
+        salir, dispara :meth:`_action_invoice_ready_to_be_sent` sobre los que
+        sí lo están ahora. El ``finally`` es de la fuente: el aviso sale aunque
+        el cuerpo levante.
+
+        **Divergencia de forma declarada:** allá es un método de instancia
+        porque ``self`` es un recordset de N filas; aquí una instancia es una
+        sola fila, así que la población entra por parámetro. Es la misma
+        adaptación que ``account_analytic_account.move_lines_for`` ya hizo.
+        """
+        no_listos = [m for m in moves if not m._is_ready_to_be_sent()]
+        try:
+            yield
+        finally:
+            for move in no_listos:
+                if move._is_ready_to_be_sent():
+                    move._action_invoice_ready_to_be_sent()
+
+    def _invoice_paid_hook(self):
+        """Gancho: la factura pasa al estado pagado -- ≙ ``:7254-7255``.
+
+        Cuerpo **vacío en la fuente**. ``sale`` lo reemplaza para anotar en el
+        pedido de venta que su factura se pagó.
+        """
+
+    def _is_downpayment(self):
+        """¿Esta factura es un anticipo? -- ≙ ``:7274-7278``.
+
+        La fuente devuelve ``False`` y dice por qué: *"Down-payments can be
+        created from a sale order. This method is overridden in the sale order
+        module."* Sin ``sale`` instalado no hay anticipos que reconocer.
+        """
+        return False
+
+    def _get_partner_credit_warning_exclude_amount(self):
+        """Importe que NO cuenta para el aviso de límite de crédito.
+
+        ≙ ``:1975-1978``. La fuente devuelve ``0`` y su comentario nombra al
+        único addon que lo reemplaza: *"to extend in module 'sale'; see there
+        for details"* — el importe ya comprometido por un pedido de venta no
+        debe sumar dos veces al crédito del cliente.
+        """
+        return 0
+
+    def save(self, *args, **kwargs):
+        """Corre los dos compute almacenados que si tienen sus insumos.
+
+        Este ORM no tiene motor de ``@api.depends`` (decision abierta en la
+        tarea **#191**), asi que un campo ``store=True`` se recalcula donde el
+        arbol ya lo hace: en ``save()``. Es el mecanismo que
+        ``porte-completo-no-parcial.md`` pide construir cuando el stack no lo
+        trae, no una divergencia declarada.
+
+        Los tres bloqueados NO se invocan aqui: levantarian en cada guardado.
+        """
+        self._compute_commercial_partner_id()
+        self._compute_invoice_date_due()
+        self._compute_direction_sign()
+        self._compute_invoice_default_sale_person()
+        return super().save(*args, **kwargs)

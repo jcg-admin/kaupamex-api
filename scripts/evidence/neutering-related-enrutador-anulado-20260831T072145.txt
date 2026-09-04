@@ -1,0 +1,27 @@
+# Control discriminante — related-enrutador-anulado
+# fecha:    2026-08-31T07:21:45
+# archivo:  src/orm/fields_nonstored.py
+# anulado:  s/    if related and not related_attrs\['store'\]:/    if False:/
+# tests:    tests/unit/orm/test_related_in_every_field_type.py
+
+## 1. Verde de partida (guarda presente)
+34 passed, 1 warning in 5.12s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestTheChainResolvesForEachShape::test_a_one2many_chain_gives_the_manager_at_the_end
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_the_constructor_takes_related[Many2many-arguments1]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_the_constructor_takes_related[Properties-arguments8]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Many2many-arguments1]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[One2many-arguments2]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Binary-arguments3]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Image-arguments4]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Html-arguments5]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_without_store_the_carrier_is_the_non_stored_one[Properties-arguments8]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_the_four_defaults_of_the_source_apply[Many2many-arguments1]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_the_four_defaults_of_the_source_apply[One2many-arguments2]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_the_four_defaults_of_the_source_apply[Binary-arguments3]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_the_four_defaults_of_the_source_apply[Image-arguments4]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_the_four_defaults_of_the_source_apply[Html-arguments5]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestEveryConstructorAcceptsTheKey::test_the_four_defaults_of_the_source_apply[Properties-arguments8]
+FAILED tests/unit/orm/test_related_in_every_field_type.py::TestTheRelationalArgumentsBecomeOptional::test_many2many_needs_no_comodel_either
+16 failed, 18 passed, 1 warning in 5.09s

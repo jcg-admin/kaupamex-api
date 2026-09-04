@@ -145,7 +145,7 @@ class TestCreateReview:
         assert r.status_code == 201
         assert r.json()['status'] == 'PENDING_MODERATION'
 
-    def test_403_si_orden_es_de_otro_usuario(
+    def test_403_if_order_is_of_other_user(
         self, auth_client, prod_rev, db,
     ):
         other = get_user_model().objects.create_user(

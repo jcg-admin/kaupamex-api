@@ -75,22 +75,27 @@ class AvatarMixin(ImageMixin):
 
     @property
     def avatar_1920(self):
+        """≙ ``_compute_avatar_1920`` (``odoo19c: base/models/avatar_mixin.py``)."""
         return self._compute_avatar('image_1920')
 
     @property
     def avatar_1024(self):
+        """≙ ``_compute_avatar_1024`` (``odoo19c: base/models/avatar_mixin.py``)."""
         return self._compute_avatar('image_1024')
 
     @property
     def avatar_512(self):
+        """≙ ``_compute_avatar_512`` (``odoo19c: base/models/avatar_mixin.py``)."""
         return self._compute_avatar('image_512')
 
     @property
     def avatar_256(self):
+        """≙ ``_compute_avatar_256`` (``odoo19c: base/models/avatar_mixin.py``)."""
         return self._compute_avatar('image_256')
 
     @property
     def avatar_128(self):
+        """≙ ``_compute_avatar_128`` (``odoo19c: base/models/avatar_mixin.py``)."""
         return self._compute_avatar('image_128')
 
     def _avatar_generate_svg(self):

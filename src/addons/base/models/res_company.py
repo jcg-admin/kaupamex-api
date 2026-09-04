@@ -68,10 +68,14 @@ Detalles pequeños que un port ingenuo pierde
 Qué NO se porta, con su medición
 ================================
 
-- **``ZeepOrmCache``** — caché de WSDL para el cliente SOAP ``zeep``, que la
-  referencia usa en localizaciones fiscales. Medido:
-  ``grep -rn "zeep" src/ | grep -v res_company.py`` → **0**. No hay cliente
-  SOAP en este árbol.
+- **``ZeepOrmCache``** — **PORTADO** en este pase, junto con
+  ``_get_zeep_cache__`` y ``_get_zeep_client__``. Este bullet declinaba **uno**
+  de los tres símbolos y su razón era *"no hay cliente SOAP en este árbol"*,
+  que describe nuestro estado y no un impedimento — el anti-patrón que
+  ``porte-completo-no-parcial.md`` prohíbe. El cliente se construyó:
+  ``src/tools/zeep/`` porta el envoltorio de seguridad de la referencia
+  (``odoo19c: odoo/tools/zeep/``) sobre ``zeep==4.3.3``, ya declarado en
+  ``pyproject.toml``. Ver :ref:`h-api-990`.
 - **``install_l10n_modules`` / ``uninstalled_l10n_module_ids``** — instalan
   paquetes de localización en caliente. Es el instalador, cuya ausencia
   ``ir_module.py`` ya declara y justifica.
@@ -79,18 +83,60 @@ Qué NO se porta, con su medición
   vistas. **Actualizado** (porte de ``ir_ui_view.py``):
   ``grep -rn "^class IrUiView\b" src/`` → **1** clase. [PROVEN] La medición de
   **0** que sostenía la omisión dejó de ser cierta. El campo **sigue** sin
-  columna aquí: añadir la FK migra esta tabla y va en su propio pase, igual
-  que ``ir_filters.action_id``. ``_get_view`` sigue fuera por otra razón —
+  columna aquí y su desenlace es la tarea **#257**; el precedente que este
+  bullet citaba —``ir_filters.action_id``— **ya no difiere**: se convirtió en
+  ``base/migrations/0077`` (:ref:`h-api-982`). ``_get_view`` sigue fuera por
+  otra razón —
   depende del combinador de XML, que ``ir_ui_view.py`` deja fuera con su
   medición.
-- **``bank_ids``** — ``related`` a ``partner_id.bank_ids``; llega solo cuando
-  ``res_partner`` declare el reverso de ``res.bank``.
+
+Fechas del ejercicio fiscal — sitio divergente, declarado (tarea #207)
+========================================================================
+
+``fiscalyear_last_day``/``fiscalyear_last_month`` y
+``compute_fiscalyear_dates`` (``odoo19c: account/models/company.py:74-75,
+1114-1122``) desbloquean ``fiscal_year_search`` de
+``addons/analytic/models/analytic_line.py`` y los ``related`` que
+``account/wizard/setup_wizards.py`` declara pendientes.
+
+La referencia los pone en la extensión ``account`` de ``res.company``
+(``_inherit``); este árbol replica ese ``_inherit`` con
+``apply_account_extensions()`` en ``addons/account/models/res_company.py``,
+que ya cuelga los cinco candados de fecha por el mismo mecanismo
+(``_add_if_absent`` + ``ready()`` de ``AccountConfig``).
+
+**Aquí NO se usa ese sitio.** El alcance de la tarea #207 restringe la
+edición a este archivo — evita una carrera de escritura con otros agentes
+que tocan ``account/models/res_company.py`` en la misma tanda. Los dos
+campos y el método se declaran **directamente en la clase base**, con la
+divergencia citada aquí para que quien la lea sepa que no es la forma
+preferida del proyecto, sino la que el alcance de este pase permitía.
+Prospectivo: si ``account/models/res_company.py`` gana un tramo libre para
+este par, migrar ahí no cambia la firma pública (mismo nombre, mismo
+comportamiento) — es un rehome, no un rediseño.
+
+``_check_fiscalyear_last_day`` (``odoo19c: :330-343``) se porta como guard
+explícito —no auto-hooked a ``save()``—, mismo patrón que
+``validate_hard_lock_date_change`` en ``account/models/res_company.py``: la
+referencia la ancla a ``account_opening_date`` (asiento de apertura), campo
+que este árbol no porta (Bloque 1, tarea #137). Se resuelve con
+``getattr(self, 'account_opening_date', None)`` y cae al año en curso
+cuando no existe — es DIVERGENCIA DE MECANISMO, no un recorte: la fuente
+también cae al año en curso cuando no hay fecha de apertura.
 """
 import base64
+import calendar
 import logging
+from datetime import date
+
+from zeep.cache import Base as ZeepCache
 
 import fields
 import models
+from exceptions import ValidationError
+from tools import date_utils, zeep
+from tools.cache import ormcache
+from tools.translate import _
 from addons.base.models.report_paperformat import ReportPaperformat
 from addons.base.models.res_country import ResCountry, ResCountryState
 from addons.base.models.res_currency import ResCurrency
@@ -125,8 +171,41 @@ LAYOUT_BACKGROUND_CHOICES = [
     ('Custom', 'Personalizado'),
 ]
 
+#: ≙ ``MONTH_SELECTION`` (``odoo19c: account/models/company.py:17-30``) —
+#: el vocabulario de la fuente, verbatim y en el mismo orden (mismo criterio
+#: que ``ANNUAL_INVENTORY_MONTH_CHOICES`` de ``addons/stock/models/
+#: res_company.py``, que reutiliza esta misma lista de meses).
+MONTH_SELECTION = [
+    ('1', 'January'), ('2', 'February'), ('3', 'March'), ('4', 'April'),
+    ('5', 'May'), ('6', 'June'), ('7', 'July'), ('8', 'August'),
+    ('9', 'September'), ('10', 'October'), ('11', 'November'),
+    ('12', 'December'),
+]
 
-class ResCompanyManager(models.Manager):
+
+class ZeepOrmCache(ZeepCache):
+    """Caché de XSD/WSDL para ``zeep``, respaldada por la caché del ORM.
+
+    ≙ ``ZeepOrmCache`` (``odoo19c: res_company.py:18-27``).
+
+    ``zeep`` define el contrato en ``zeep.cache.Base``: ``add(url, content)``
+    y ``get(url)``. Su implementación por defecto es un SQLite en disco; ésta
+    la sustituye por el bucket que ``_get_zeep_cache__`` mantiene en la caché
+    ``stable`` del registro, por compañía. Así el WSDL de una autoridad
+    tributaria se descarga una vez por proceso y no una por petición.
+    """
+
+    def __init__(self, company):
+        self.company = company
+
+    def add(self, url, content):
+        self.company._get_zeep_cache__()[url] = content
+
+    def get(self, url):
+        return self.company._get_zeep_cache__().get(url)
+
+
+class ResCompanyManager(models.AccessManager):
     """El ``create`` de la fuente: la compañía nace CON su partner.
 
     ``odoo19c: res_company.py:296-300`` fabrica el ``res.partner``
@@ -168,11 +247,22 @@ class ResCompany(TimeStampedModel):
     referencia. Ver ``analisis-extension-de-company-tres-motores``.
     """
 
+    _name = 'res.company'
+    _description = 'Companies'
+    _order = 'sequence, name'
+    _inherit = ['format.address.mixin', 'format.vat.label.mixin']
+    _parent_store = True
+
     objects = ResCompanyManager()
 
     #: Campos que una sucursal hereda de su raíz. Es un método en la fuente
     #: para que un addon lo extienda; aquí, un ``classmethod`` por lo mismo.
-    _ROOT_DELEGATED_FIELDS = ('currency',)
+    #: ``fiscalyear_last_day``/``fiscalyear_last_month`` se suman aquí — ≙
+    #: ``_get_company_root_delegated_field_names`` de ``account``
+    #: (``odoo19c: company.py:311-316``): una sucursal no fija su propio
+    #: cierre de ejercicio, hereda el de su matriz.
+    _ROOT_DELEGATED_FIELDS = ('currency', 'fiscalyear_last_day',
+                              'fiscalyear_last_month')
 
     #: Campos de dirección que viven en el partner y se leen a través de él.
     _ADDRESS_FIELDS = (
@@ -184,6 +274,17 @@ class ResCompany(TimeStampedModel):
         related_name='companies', verbose_name='Partner',
         help_text='Odoo partner_id. La identidad de la compañía vive aquí.',
     )
+    #: ≙ ``bank_ids`` (``odoo19c: res_company.py:77``), verbatim salvo los
+    #: nombres de las FK —allá ``partner_id.bank_ids``, aquí
+    #: ``partner.bank_accounts``—. Sin ``store``, que es el defecto de la
+    #: fuente para un ``related``: no ocupa columna y navega al leerse.
+    #:
+    #: Su ``readonly=False`` no es adorno: dice que el conjunto se puede
+    #: escribir desde la empresa, y el inverso lo lleva al titular
+    #: (``NonStored.inverse_related``). Que el extremo sea un manager y no un
+    #: valor es justo lo que hacía falta construir (:ref:`h-api-979`).
+    bank_ids = fields.One2many(related='partner.bank_accounts',
+                               readonly=False)
     active = fields.Boolean(default=True, verbose_name='Activa')
     sequence = fields.Integer(
         default=10, verbose_name='Secuencia',
@@ -281,6 +382,24 @@ class ResCompany(TimeStampedModel):
         upload_to='company/layout/', null=True, blank=True,
         verbose_name='Imagen de fondo')
 
+    # === Ejercicio fiscal (Odoo account) ==================================
+    # ≙ ``fiscalyear_last_day``/``fiscalyear_last_month``
+    # (``odoo19c: account/models/company.py:74-75``). Sitio divergente
+    # declarado en el docstring del módulo: la referencia los pone en la
+    # extensión ``account`` de ``res.company``; aquí van directos en la
+    # clase base por el alcance de la tarea #207. Ver ese docstring.
+    fiscalyear_last_day = fields.Integer(
+        default=31, verbose_name='Último día del ejercicio fiscal',
+        help_text='Día del mes en que cierra el ejercicio fiscal de esta '
+                  'compañía (Odoo fiscalyear_last_day).',
+    )
+    fiscalyear_last_month = fields.Selection(
+        max_length=2, choices=MONTH_SELECTION, default='12',
+        verbose_name='Último mes del ejercicio fiscal',
+        help_text='Mes en que cierra el ejercicio fiscal de esta compañía '
+                  '(Odoo fiscalyear_last_month).',
+    )
+
     class Meta:
         db_table = 'res_company'
         # ``odoo19c: res_company.py:34`` declara ``_order = 'sequence, name'``.
@@ -360,8 +479,31 @@ class ResCompany(TimeStampedModel):
         return getattr(self.partner, fname, None)
 
     def _address_set(self, fname, value):
-        """El *inverse* de la fuente: escribir en la compañía escribe el partner."""
+        """El *inverse* de la fuente: escribir en la compañía escribe el partner.
+
+        **Y lo PERSISTE.** Hasta este commit el cuerpo era sólo el ``setattr``,
+        así que la escritura vivía en la instancia en memoria y se perdía al
+        releer: la compañía se guardaba, su partner no. Medido con una sonda
+        antes de corregirlo::
+
+            c.country = mexico; c.save()
+            c.country                        -> Mexico     (en memoria)
+            ResCompany.objects.get(pk=c.pk).country -> None (releído)
+
+        La fuente no tiene ese hueco porque su ``inverse`` escribe por el ORM,
+        que persiste por construcción (``odoo19c: base/models/res_company.py``,
+        los ``_inverse_*`` de dirección). Aquí la property tiene que hacerlo
+        explícito.
+
+        Se guarda el partner ENTERO, no ``update_fields=[fname]``: cambiar un
+        campo de dirección debe disparar ``ResPartner.save`` completo, que es
+        quien propaga la dirección a los hijos (``_fields_sync``) y recalcula
+        las columnas derivadas. Acotar los campos saltaría esa propagación —
+        el mismo efecto que la fuente sí produce al escribir.
+        """
         setattr(self.partner, fname, value)
+        if self.partner.pk:
+            self.partner.save()
 
     @property
     def street(self):
@@ -369,6 +511,7 @@ class ResCompany(TimeStampedModel):
 
     @street.setter
     def street(self, value):
+        """≙ ``_inverse_street`` (``odoo19c: base/models/res_company.py``)."""
         self._address_set('street', value)
 
     @property
@@ -377,6 +520,7 @@ class ResCompany(TimeStampedModel):
 
     @street2.setter
     def street2(self, value):
+        """≙ ``_inverse_street2`` (``odoo19c: base/models/res_company.py``)."""
         self._address_set('street2', value)
 
     @property
@@ -385,6 +529,7 @@ class ResCompany(TimeStampedModel):
 
     @zip.setter
     def zip(self, value):
+        """≙ ``_inverse_zip`` (``odoo19c: base/models/res_company.py``)."""
         self._address_set('zip', value)
 
     @property
@@ -393,6 +538,7 @@ class ResCompany(TimeStampedModel):
 
     @city.setter
     def city(self, value):
+        """≙ ``_inverse_city`` (``odoo19c: base/models/res_company.py``)."""
         self._address_set('city', value)
 
     @property
@@ -401,6 +547,7 @@ class ResCompany(TimeStampedModel):
 
     @state.setter
     def state(self, value):
+        """≙ ``_inverse_state`` (``odoo19c: base/models/res_company.py``)."""
         self._address_set('state', value)
 
     @property
@@ -409,6 +556,7 @@ class ResCompany(TimeStampedModel):
 
     @country.setter
     def country(self, value):
+        """≙ ``_inverse_country`` (``odoo19c: base/models/res_company.py``)."""
         self._address_set('country', value)
 
     @property
@@ -469,6 +617,8 @@ class ResCompany(TimeStampedModel):
 
         El respaldo ``id % 12`` de la fuente da un color **estable** por
         compañía en vez de un default fijo; 12 es el tamaño de la paleta.
+
+        ≙ ``_compute_color`` (``odoo19c: base/models/res_company.py``).
         """
         root = self.root_id
         declared = getattr(root.partner, 'color', None)
@@ -482,6 +632,8 @@ class ResCompany(TimeStampedModel):
 
         El ``(180, 0)`` de la fuente no significa "sin alto": significa el que
         resulte de preservar la proporción.
+
+        ≙ ``_compute_logo_web`` (``odoo19c: base/models/res_company.py``).
         """
         return getattr(self.partner, 'image_256', None) or self.logo
 
@@ -578,6 +730,59 @@ class ResCompany(TimeStampedModel):
         if country is not None and getattr(country, 'currency_id', None):
             self.currency = country.currency
 
+    # === Ejercicio fiscal (Odoo account) ==================================
+
+    def compute_fiscalyear_dates(self, current_date):
+        """El rango del ejercicio fiscal que contiene ``current_date``.
+
+        ≙ ``compute_fiscalyear_dates`` (``odoo19c:
+        account/models/company.py:1114-1122``), verbatim: delega en
+        ``tools.date_utils.get_fiscal_year`` — el mismo algoritmo que la
+        fuente porta como ``odoo/tools/date_utils.py::get_fiscal_year`` y
+        que este árbol ya tiene construido (``src/tools/date_utils.py``).
+
+        El ``self.ensure_one()`` de la fuente no se porta: aquí ``self`` es
+        **una** fila, no un conjunto de registros — la misma divergencia de
+        mecanismo que ``_get_zeep_client__`` ya declara para el mismo motivo.
+
+        :param current_date: una fecha del ejercicio a resolver.
+        :return: ``{'date_from': ..., 'date_to': ...}``, las fronteras del
+            ejercicio.
+        """
+        date_from, date_to = date_utils.get_fiscal_year(
+            current_date, day=self.fiscalyear_last_day,
+            month=int(self.fiscalyear_last_month))
+        return {'date_from': date_from, 'date_to': date_to}
+
+    def _check_fiscalyear_last_day(self):
+        """El día de cierre existe en el mes de cierre — ≙
+        ``_check_fiscalyear_last_day`` (``odoo19c: :330-343``).
+
+        Guard EXPLÍCITO, no auto-hooked a ``save()`` — mismo patrón que
+        ``validate_hard_lock_date_change`` (``account/models/
+        res_company.py``): quien escribe estos dos campos lo llama antes de
+        persistir.
+
+        El 29 de febrero se acepta siempre, verbatim del comentario de la
+        fuente: *"if the user explicitly chooses the 29th of February we
+        allow it: there is no 'fiscalyear_last_year' so we do not know his
+        intentions."*
+
+        DIVERGENCIA DE MECANISMO — ``account_opening_date`` (el año de
+        referencia de la fuente) no está portado en este árbol (Bloque 1,
+        tarea #137); se resuelve con ``getattr`` y cae al año en curso
+        cuando no existe, que es lo que la fuente hace cuando tampoco hay
+        fecha de apertura (``:337-338``, ``else: year = datetime.now()
+        .year``).
+        """
+        if self.fiscalyear_last_day == 29 and self.fiscalyear_last_month == '2':
+            return
+        opening_date = getattr(self, 'account_opening_date', None)
+        year = opening_date.year if opening_date else date.today().year
+        max_day = calendar.monthrange(year, int(self.fiscalyear_last_month))[1]
+        if self.fiscalyear_last_day <= 0 or self.fiscalyear_last_day > max_day:
+            raise ValidationError(_('Invalid fiscal year last day'))
+
     def save(self, *args, **kwargs):
         """Mantiene la ruta materializada, que allá mantiene el ORM."""
         super().save(*args, **kwargs)
@@ -585,6 +790,42 @@ class ResCompany(TimeStampedModel):
         if path != self.parent_path:
             self.parent_path = path
             super().save(update_fields=['parent_path'])
+
+    @ormcache('self.id', cache='stable')
+    def _get_zeep_cache__(self):
+        """El bucket que ``tools.zeep`` usa para XSD y WSDL.
+
+        ≙ ``_get_zeep_cache__`` (``odoo19c: res_company.py:511-514``).
+
+        Devuelve un ``dict`` vacío la primera vez y **el mismo** en las
+        siguientes: la caché ``stable`` guarda el objeto, no una copia, así
+        que ``ZeepOrmCache.add`` escribe en él y ``get`` lo relee. Por eso el
+        método es de instancia y su clave lleva ``self.id`` — el bucket es por
+        compañía, no del proceso.
+
+        El guion bajo doble del sufijo es el de la fuente y se conserva: marca
+        que el método existe para el mecanismo, no para llamarse desde una
+        vista.
+        """
+        return {}
+
+    def _get_zeep_client__(self, url, *args, **kwargs):
+        """Un ``Client`` de ``tools.zeep`` que cachea sus XSD y WSDL aquí.
+
+        ≙ ``_get_zeep_client__`` (``odoo19c: res_company.py:515-521``).
+
+        El transporte se toma de ``kwargs`` si viene, y sólo se le pone la
+        caché **si no trae una**: quien pase su propio transporte con caché
+        decide, y este método no se la pisa.
+
+        El ``ensure_one()`` de la fuente no se porta: aquí ``self`` es **una**
+        fila, no un conjunto de registros — la misma divergencia de mecanismo
+        ya declarada en ``res_partner.py:2423``.
+        """
+        transport = kwargs.setdefault('transport', zeep.Transport())
+        if not transport.cache:
+            transport.cache = ZeepOrmCache(self)
+        return zeep.Client(url, *args, **kwargs)
 
 
 class ResCompanyUsersRel(models.Model):

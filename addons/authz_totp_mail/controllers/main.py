@@ -22,7 +22,7 @@ from exceptions import AccessDenied, UserError
 from addons.authz.permissions import require_capability
 from addons.authz_totp_mail.models.res_users import (
     invite_users,
-    send_totp_mail_code,
+    _send_totp_mail_code,
     verify_totp_mail_code,
 )
 
@@ -43,12 +43,13 @@ class InviteSerializer(serializers.Serializer):
     summary='Enviar el código 2FA por correo al usuario autenticado',
     request=None,
     responses={202: OpenApiResponse(description='Código enviado'),
-               400: OpenApiResponse(description='TOTP_MAIL_SEND_FAILED')},
+               400: OpenApiResponse(description='TOTP_MAIL_SEND_FAILED'),
+               403: OpenApiResponse(description='TOTP_RATE_LIMITED')},
 )
 @api_view(['POST'])
 @require_capability(_CAP)
 def send_code(request):
-    """≙ ``auth_timeout/controllers/main.py::send_totp_mail_code`` (``:20-23``).
+    """≙ ``auth_timeout/controllers/main.py::_send_totp_mail_code`` (``:20-23``).
 
     **No lleva guarda de ``_mfa_type()``, y la fuente tampoco.** Es la
     respuesta medida a #719, que preguntaba si debía consultar un predicado
@@ -65,7 +66,17 @@ def send_code(request):
     caso de quien tiene 2FA de app y aun así quiere la vía por correo.
     """
     try:
-        send_totp_mail_code(request.user)
+        _send_totp_mail_code(request.user)
+    except AccessDenied as exc:
+        # El limitador de ``send_email`` (#85). Va ANTES del ``except
+        # UserError``, y no es cosmético: ``AccessDenied`` **hereda** de
+        # ``UserError``, así que el orden inverso lo tragaría y devolvería
+        # 400 TOTP_MAIL_SEND_FAILED — «el envío falló» — cuando lo que pasa es
+        # que la cuota se agotó. Un cliente que lee eso reintenta; uno que lee
+        # 403 espera, que es lo que el freno quiere que haga.
+        return Response(
+            {'codigo_error': 'TOTP_RATE_LIMITED', 'detail': str(exc)},
+            status=status.HTTP_403_FORBIDDEN)
     except UserError as exc:
         return Response(
             {'codigo_error': 'TOTP_MAIL_SEND_FAILED', 'detail': str(exc)},

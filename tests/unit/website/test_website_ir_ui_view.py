@@ -11,11 +11,15 @@ perdería:
 
 1. **Lo portado existe** — los 12 métodos y los campos, colgados sobre el
    ``ir.ui.view`` de ``base``.
-2. **Lo bloqueado NO existe como stub** — 23 de los 24 no portados no pueden
-   aparecer con el nombre de la fuente y un cuerpo vacío: eso convertiría una
-   arista honesta en una mentira. El vigésimo cuarto (``save``) se excluye
-   porque el nombre lo ocupa ``django.db.models.Model.save``, que no es el
-   símbolo de la fuente.
+2. **Lo bloqueado NO existe como stub de ``website``** — ninguno de los 23
+   puede aparecer con el nombre de la fuente y un cuerpo vacío: eso
+   convertiría una arista honesta en una mentira. El vigésimo cuarto
+   (``save``) se excluye porque el nombre lo ocupa
+   ``django.db.models.Model.save``, que no es el símbolo de la fuente.
+   **Que el nombre exista no basta para condenarlo**: hay dos proveedores
+   legítimos —el mecanismo del framework y el porte fiel de otro addon que la
+   referencia declara dueño del símbolo—, y el control los separa por el
+   módulo que **define** la función. Ver ``TestBlockedSurface``.
 3. **El comportamiento**, contra PostgreSQL real — la fila lateral, sus
    defectos, el par contraseña/hash, el invariante de ``visibility`` y el
    control de acceso.
@@ -23,6 +27,8 @@ perdería:
    ``base`` en vez de reemplazarlo, que es lo que un ``chain_method`` mal
    compuesto haría en silencio.
 """
+
+import inspect
 
 import pytest
 from django.contrib.auth import hashers
@@ -70,6 +76,58 @@ BLOCKED_METHODS = [
     '_save_oe_structure_hook', '_snippet_save_view_values_hook',
     '_get_allowed_root_attrs', '_set_noupdate', '_get_filter_xmlid_query',
 ]
+
+#: El mecanismo del framework: allá vive en ``BaseModel``, aquí viaja por
+#: mixin. Un nombre que lo declare una clase de aquí no es el símbolo de
+#: ``website``.
+FRAMEWORK_MODULE = 'orm.'
+
+#: Los siete que **``html_editor`` declara en la fuente**, medido por AST
+#: sobre ``odoo19c: addons/html_editor/models/ir_ui_view.py`` (25 métodos en
+#: su única clase ``IrUiView``). ``website`` los extiende —por eso están en
+#: ``BLOCKED_METHODS``, su tramo sigue sin portar— pero el nombre sobre
+#: ``ir.ui.view`` lo pone el porte fiel de ``html_editor``, que sí tiene
+#: cuerpo. Confundirlo con un stub haría fallar un porte correcto.
+HTML_EDITOR_PROVIDER = 'addons.html_editor.models.ir_ui_view'
+PROVIDED_BY_HTML_EDITOR = frozenset([
+    'get_related_views',
+    '_view_get_inherited_children',
+    'get_default_lang_code',
+    '_save_oe_structure_hook',
+    '_snippet_save_view_values_hook',
+    '_get_allowed_root_attrs',
+    '_set_noupdate',
+])
+
+
+def defining_modules(owner, name):
+    """Los módulos que definen cada eslabón instalado bajo ``name``.
+
+    ``chain_method`` usa ``functools.wraps``, así que el eslabón más nuevo
+    conserva su ``__module__`` y ``__wrapped__`` encadena hacia el previo. Se
+    recorre la cadena entera a propósito: mirar sólo el más externo haría que
+    el veredicto dependiera del **orden de instalación**, y un stub instalado
+    antes que un porte legítimo quedaría tapado.
+    """
+    try:
+        obj = inspect.getattr_static(owner, name)
+    except AttributeError:
+        return []
+    for attr in ('__func__', 'fget'):
+        obj = getattr(obj, attr, obj)
+    modules = []
+    while obj is not None:
+        modules.append(getattr(obj, '__module__', ''))
+        obj = getattr(obj, '__wrapped__', None)
+    return modules
+
+
+def foreign_providers(name, modules):
+    """Los módulos que no pueden justificar ese nombre — los stubs."""
+    permitted = {HTML_EDITOR_PROVIDER} if name in PROVIDED_BY_HTML_EDITOR else set()
+    return [m for m in modules
+            if not m.startswith(FRAMEWORK_MODULE) and m not in permitted]
+
 
 #: Los cuatro campos de la fuente que aquí viven en la fila lateral (D-1).
 SIDE_TABLE_FIELDS = ['website', 'track', 'visibility', 'visibility_password']
@@ -123,9 +181,64 @@ class TestBlockedSurface:
     """Lo bloqueado no aparece como stub — si apareciera, la arista miente."""
 
     def test_the_blocked_methods_are_absent(self):
-        stubbed = [name for name in BLOCKED_METHODS
-                   if hasattr(IrUiView, name)]
+        """Ausentes **como símbolo de ``website``**, no como nombre.
+
+        El control era ``hasattr`` y dejó de discriminar dos veces:
+
+        1. ``TimeStampedModel`` adoptó ``orm.models.RecordLoaderMixin`` (tarea
+           #115), así que todo modelo hereda ``write`` y ``hasattr`` pasó a
+           ser cierto sin que nadie hubiera stubbeado nada.
+        2. El porte de ``html_editor`` (tarea #287) colgó siete de estos
+           nombres sobre ``ir.ui.view`` **con cuerpo**, porque la referencia
+           declara ahí su dueño. Un ``hasattr`` los lee como stubs de
+           ``website``, que es exactamente lo contrario de lo que son.
+
+        Su sucesor —la primera clase del MRO que declara el nombre— arregló
+        el primer caso y **no puede ver el segundo**: ``extend_model`` hace
+        ``setattr`` sobre la clase **base**, así que el dueño en el MRO es
+        siempre ``addons.base.models.ir_ui_view`` sea quien sea el addon que
+        colgó el método. El discriminador que sí distingue es el módulo que
+        **define la función**, que ``functools.wraps`` conserva.
+
+        *Métrica:* los módulos de todos los eslabones instalados bajo cada
+        nombre, contra los dos proveedores que pueden justificarlo.
+        *Ciega a:* un stub escrito dentro del propio ``html_editor`` con uno
+        de esos siete nombres — ahí el módulo es legítimo y el cuerpo no se
+        mide. Lo cubre el gate de porte de ese addon, no este caso.
+        """
+        stubbed = []
+        for name in BLOCKED_METHODS:
+            foreign = foreign_providers(name, defining_modules(IrUiView, name))
+            if foreign:
+                stubbed.append('%s (definido en %s)' % (name, ', '.join(foreign)))
         assert stubbed == []
+
+    def test_a_stub_from_website_would_be_caught(self):
+        """El control del control: qué haría fallar al caso de arriba.
+
+        Sin esto, el veredicto no distingue «no hay stubs» de «el
+        clasificador absuelve a todo el mundo». Se ejerce el clasificador
+        directamente, con los tres orígenes posibles.
+
+        Medido con la guarda anulada —``foreign_providers`` devolviendo
+        siempre ``[]``, sustituida en memoria y restaurada por sha256, nunca
+        con ``git checkout``—: el módulo pasa de **40 passed** a **1 failed,
+        39 passed**, y el que cae es éste. Los otros treinta y nueve
+        sobreviven porque miden el árbol, no el clasificador.
+        """
+        website_module = 'addons.website.models.ir_ui_view'
+        # Un stub de ``website`` cae, tenga o no proveedor legítimo el nombre.
+        assert foreign_providers('_set_noupdate', [website_module])
+        assert foreign_providers('render_public_asset', [website_module])
+        # Y cae aunque se instale DEBAJO de un porte legítimo — el orden no
+        # decide el veredicto.
+        assert foreign_providers(
+            '_set_noupdate', [HTML_EDITOR_PROVIDER, website_module])
+        # Los dos orígenes que sí lo justifican.
+        assert foreign_providers('write', ['orm.models']) == []
+        assert foreign_providers('_set_noupdate', [HTML_EDITOR_PROVIDER]) == []
+        # Y el proveedor legítimo NO absuelve a un nombre que no es suyo.
+        assert foreign_providers('render_public_asset', [HTML_EDITOR_PROVIDER])
 
     def test_the_count_matches_the_measured_contract(self):
         # 12 portados + 23 aquí + ``save`` (nombre ocupado por Django) = 36,
@@ -200,7 +313,7 @@ def _make_website(slug='p565'):
 def _make_view(key='website.vista-565', **overrides):
     values = {
         'name': 'Vista 565',
-        'type': 'qweb',
+        'type': 'template',
         'key': key,
         'arch_db': '<t><div id="wrap"/></t>',
     }
@@ -262,7 +375,7 @@ class TestVisibilityPassword:
         assert WebsiteViewInfo.objects.get(view=view).visibility_password == ''
         assert view._get_pwd() == ''
 
-    def test_only_qweb_views_take_a_password(self):
+    def test_only_template_views_take_a_password(self):
         # ≙ ``if r.type == 'qweb'`` (``odoo19c: :44``).
         view = _make_view(key='website.form-565', type='form')
         view._set_pwd('secreto-565')

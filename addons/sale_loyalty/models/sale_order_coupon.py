@@ -89,7 +89,7 @@ class SaleOrderCoupon(TimeStampedModel):
     # legacy, donde el descuento se calculaba sobre el subtotal de productos.
     def discount_base(self) -> Decimal:
         lines = self.order.order_line.filter(is_delivery=False, is_reward=False)
-        return sum((line.price_subtotal() for line in lines), Decimal('0.00'))
+        return sum((line.price_subtotal for line in lines), Decimal('0.00'))
 
     def discount_amount(self) -> Decimal:
         if not self.voucher_id:

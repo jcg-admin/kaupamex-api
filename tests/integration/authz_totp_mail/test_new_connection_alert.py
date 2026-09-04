@@ -139,7 +139,7 @@ class TestNewConnectionAlert:
         alerts = _new_connection_alerts()
         assert len(alerts) == 1
         # El correo es el `login`: este árbol no declara un campo `email`
-        # aparte, igual que en `send_totp_mail_code` y en `../signals.py`.
+        # aparte, igual que en `_send_totp_mail_code` y en `../signals.py`.
         assert alerts[0].to == [totp_user.login]
 
     def test_remembered_cookie_silences_the_alert(self, api_client, totp_user):

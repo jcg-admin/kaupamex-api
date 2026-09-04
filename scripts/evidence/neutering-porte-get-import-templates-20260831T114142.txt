@@ -1,0 +1,14 @@
+# Control discriminante — porte-get-import-templates
+# fecha:    2026-08-31T11:41:42
+# archivo:  addons/product/models/product_supplierinfo.py
+# anulado:  s/def get_import_templates(cls)/def get_import_templates_neutralized(cls)/
+# tests:    tests/unit/product/test_product_models.py
+
+## 1. Verde de partida (guarda presente)
+35 passed, 1 warning in 7.11s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/product/test_product_models.py::TestGetImportTemplates::test_returns_one_template_entry
+FAILED tests/unit/product/test_product_models.py::TestGetImportTemplates::test_the_entry_carries_the_reference_label_and_path
+FAILED tests/unit/product/test_product_models.py::TestGetImportTemplates::test_the_shape_matches_the_two_sibling_providers
+3 failed, 32 passed, 1 warning in 6.28s

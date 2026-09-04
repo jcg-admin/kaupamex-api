@@ -29,8 +29,9 @@ from addons.base.report_template import InvalidReportTemplate
 from addons.base.report_catalog import ReportSpec, UnknownHelper
 from addons.base.models.ir_actions_report import (
     HELPER_DIR,
-    RENDERER_BY_TYPE,
+    RENDERER_PREFIX,
     REPORT_TYPE_CHOICES,
+    REPORT_TYPE_PDF,
     HelperFailed,
     HelperNotBuilt,
     IrActionsReport,
@@ -62,7 +63,7 @@ def texto_impreso(pdf: bytes) -> str:
     corrompido — que es exactamente cómo H-API-290 sobrevivió al primer
     test de esta suite.
     """
-    salida = []
+    output = []
     for bloque in re.finditer(rb'stream\r?\n(.*?)endstream', pdf, re.S):
         crudo = bloque.group(1)
         try:
@@ -82,7 +83,7 @@ def texto_impreso(pdf: bytes) -> str:
         # salto-de-línea-y-muestra que ``HPDF_Page_TextRect`` emite por cada
         # línea envuelta (T-004, medido en el stream).
         for hexado in re.findall(rb"<([0-9A-Fa-f]+)>\s*(?:Tj|')", crudo):
-            salida.append(
+            output.append(
                 bytes.fromhex(hexado.decode()).decode('utf-16-be', 'replace'))
         # Rama de la base-14 (WinAnsi), viva mientras algún texto no pase por
         # la fuente embebida. Si deja de haber literales, esto queda inerte —
@@ -90,8 +91,8 @@ def texto_impreso(pdf: bytes) -> str:
         for literal in re.findall(rb"\((.*?)\)\s*(?:Tj|')", crudo):
             byteado = _OCTAL.sub(
                 lambda m: bytes([int(m.group(1), 8)]), literal)
-            salida.append(byteado.decode('cp1252', errors='replace'))
-    return '\n'.join(salida)
+            output.append(byteado.decode('cp1252', errors='replace'))
+    return '\n'.join(output)
 
 
 def operadores(pdf: bytes) -> bytes:
@@ -156,7 +157,7 @@ def reporte_orden():
         name='Orden de venta',
         report_name='sale.report_saleorder',
         model='sale.SaleOrder',
-        report_type='pdf',
+        report_type=REPORT_TYPE_PDF,
     )
 
 
@@ -170,7 +171,7 @@ class TestCatalogo:
     def test_la_declaracion_apunta_a_su_modelo_y_helper(self):
         spec = report_catalog.get('sale.report_saleorder')
         assert spec.model == 'sale.SaleOrder'
-        assert spec.report_type == 'pdf'
+        assert spec.report_type == REPORT_TYPE_PDF
         assert spec.helper == 'pdf_receipt'
 
     def test_report_name_no_declarado_no_se_inventa(self):
@@ -201,8 +202,8 @@ class TestDescriptor:
         for item in descriptor['items']:
             assert isinstance(item['unit_price'], str)
             assert item['unit_price'].count('.') == 1
-        for valor in descriptor['totals'].values():
-            assert isinstance(valor, str)
+        for value in descriptor['totals'].values():
+            assert isinstance(value, str)
 
     def test_es_json_serializable(self, orden_con_lineas):
         """Si no lo es, el fallo aparecería recién dentro del subprocess."""
@@ -220,30 +221,98 @@ class TestDespacho:
 
     def test_report_name_sin_declarante_levanta(self, reporte_orden):
         reporte_orden.report_name = 'sale.report_fantasma'
+        reporte_orden.save()
         with pytest.raises(UnknownReport):
-            reporte_orden.render(None)
+            IrActionsReport._render(reporte_orden, [])
 
-    def test_tipo_sin_renderizador_devuelve_none(self, reporte_orden,
-                                                 orden_con_lineas):
+    def test_every_enum_value_reaches_its_renderer(self):
+        """La derivación de la fuente, medida sobre lo que el enum ofrece.
+
+        ``_render`` deriva el método del propio ``report_type`` en vez de
+        consultar un mapa. Aquí había un ``RENDERER_BY_TYPE`` explícito que la
+        sustituía; se retiró con el porte del bloque C, así que lo que este
+        caso mide es que la derivación **llega**: cada valor ofrecido nombra
+        un método que existe.
+
+        Es la invariante que aquel mapa protegía con
+        ``{v for v, _ in CHOICES} == set(RENDERER_BY_TYPE)``, ahora sobre el
+        mecanismo de la fuente. Qué lo haría fallar: añadir un valor al enum
+        sin su renderizador — el defecto que :ref:`h-api-291` cerró.
+        """
+        for value, _label in REPORT_TYPE_CHOICES:
+            method = RENDERER_PREFIX + value.lower().replace('-', '_')
+            assert hasattr(IrActionsReport, method), (value, method)
+
+    def test_the_enum_offers_the_three_formats_the_source_declares(self):
+        """El enum vuelve a los tres de la fuente (tarea #250).
+
+        Este caso afirmaba ``offered == {'pdf'}`` con el argumento de que la
+        condición de reingreso de :ref:`h-api-291` pedía además declarante y
+        test. De las cuatro exigencias que aquella condición acabó teniendo,
+        tres se cumplieron (renderizador, serializador y test) y la cuarta
+        —declarante— era **circular**: ``Selection`` es ``CharField(choices=…)``
+        y Django valida ``choices`` en ``full_clean``, así que ningún addon
+        podía declarar un valor que el enum no ofrecía.
+
+        Lo que aquel hallazgo quería impedir lo sostiene el caso de arriba:
+        todo valor ofrecido tiene su renderizador.
+        """
+        offered = {v for v, _ in REPORT_TYPE_CHOICES}
+        assert offered == {'html', 'pdf', 'text'}
+        for ported in ('_render_qweb_html', '_render_qweb_text'):
+            assert hasattr(IrActionsReport, ported), ported
+
+    def test_html_and_text_travel_the_whole_chain_and_come_out_different(
+            self, reporte_orden, orden_con_lineas):
+        """Los dos formatos nuevos, de punta a punta y sin helpers compilados.
+
+        Es el caso que discrimina: los dos recorren catálogo → contexto →
+        composición → despacho, y salen **distintos** sobre el mismo pedido.
+        Uno que sólo afirmara «devuelve algo» pasaría aunque los dos
+        devolvieran el dict crudo de ``_render_template``, que es el defecto
+        que :ref:`h-api-935` midió.
+
+        No lleva ``@helpers_built``, y no es olvido: el paso 5 —la conversión
+        por el helper en C— es del camino del PDF. ``html`` y ``text`` se
+        serializan en Python, así que su cadena está completa sin compilar
+        nada.
+        """
+        reporte_orden.report_type = 'html'
+        reporte_orden.save()
+        html, etiqueta_html = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
+
+        reporte_orden.report_type = 'text'
+        reporte_orden.save()
+        texto, etiqueta_texto = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
+
+        assert (etiqueta_html, etiqueta_texto) == ('html', 'text')
+        assert isinstance(html, bytes) and isinstance(texto, bytes)
+        # Cada uno lleva la marca de su formato, y ninguna es la del otro.
+        assert b'data-oe-model="sale.SaleOrder"' in html
+        assert b'<div' not in texto
+        assert html != texto
+
+    def test_a_type_without_a_renderer_returns_none(self, reporte_orden):
         """Contrato de ausencia de la referencia (``:1150``): ``None``, no error.
 
-        Se usa ``text`` a propósito, y no un string inventado: es el caso
-        **real** desde H-API-291 — el valor salió del enum por no tener quien
-        lo declarara, y una fila vieja podría traerlo. Así el test mide el
-        escenario que puede ocurrir, no uno imaginado.
-        """
-        reporte_orden.report_type = 'text'
-        assert reporte_orden.render(orden_con_lineas) is None
+        El caso es **real**, no un string inventado: ``qweb-pdf`` es el valor
+        que la migración 0005 convirtió a ``pdf``, y su conversión defensiva
+        existe precisamente para la fila que se le escape. La derivación
+        antepone :data:`RENDERER_PREFIX`, así que esa fila buscaría
+        ``_render_qweb_qweb_pdf`` — que no existe.
 
-    def test_el_enum_solo_declara_lo_que_hay_como_renderizador(self):
-        """Ningún formato ofrecido sin quien lo rinda — la invariante de H-API-291.
-
-        El defecto que cierra no es que ``text``/``html`` fueran erróneos: es
-        que se ofrecían como opción por venir del catálogo de la referencia,
-        sin nada aquí que los emitiera. Este caso lo vuelve mecánico.
+        **No sirve ``text`` ni ``html`` para medir esto**, y la razón importa:
+        sus renderizadores SÍ están portados, así que la derivación los
+        alcanza. Un caso de ausencia sólo discrimina si apunta a algo que de
+        verdad falta; con un valor que despacha, este test pasaría en verde sin
+        medir el contrato — el sub-patrón D de
+        ``metrica-decide-la-conclusion.md``.
         """
-        ofrecidos = {valor for valor, _label in REPORT_TYPE_CHOICES}
-        assert ofrecidos == set(RENDERER_BY_TYPE)
+        reporte_orden.report_type = 'qweb-pdf'
+        reporte_orden.save()
+        assert IrActionsReport._render(reporte_orden, []) is None
 
 
 @helpers_built
@@ -252,7 +321,8 @@ class TestConversion:
 
     def test_la_cadena_completa_produce_un_pdf(self, reporte_orden,
                                                orden_con_lineas):
-        contenido, extension = reporte_orden.render(orden_con_lineas)
+        contenido, extension = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         assert extension == 'pdf'
         assert contenido.startswith(b'%PDF')
         # Un PDF de una página con dos líneas no baja de 1 KB; por debajo de
@@ -281,7 +351,8 @@ class TestConversion:
         linea.name = acentuado
         linea.save(update_fields=['name'])
 
-        contenido, _ = reporte_orden.render(orden_con_lineas)
+        contenido, _ = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         assert acentuado in texto_impreso(contenido)
 
     def test_la_columna_recorta_por_ancho_no_por_bytes(self, reporte_orden,
@@ -303,7 +374,8 @@ class TestConversion:
         for letra in ('i', 'W'):
             linea.name = letra * 90
             linea.save(update_fields=['name'])
-            contenido, _ = reporte_orden.render(orden_con_lineas)
+            contenido, _ = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
             fila = next(t for t in texto_impreso(contenido).splitlines()
                         if t.startswith(letra * 3))
             dibujadas[letra] = len(fila)
@@ -335,12 +407,12 @@ class TestConversion:
             'items': [], 'totals': {'total': '0.00'},
         })
         impreso = texto_impreso(contenido)
-        lineas = impreso.splitlines()
+        lines = impreso.splitlines()
         # Nada se perdió: el final de la dirección llegó al papel...
         assert '14060' in impreso
         # ...y ninguna línea la contiene entera — se envolvió de verdad.
-        assert not any(direccion in linea for linea in lineas)
-        assert sum('Insurgentes' in l or '14060' in l for l in lineas) >= 2
+        assert not any(direccion in linea for linea in lines)
+        assert sum('Insurgentes' in l or '14060' in l for l in lines) >= 2
 
     def test_el_encabezado_lleva_banda_sombreada_sin_mover_el_texto(self):
         """T-005 — ``Rectangle`` + ``Fill`` sombrean el encabezado de tabla.
@@ -459,7 +531,7 @@ class TestPlantillaEnBD:
         # 16): el orden de resolución es priority,id y estos casos prueban
         # el mecanismo con SU plantilla, no con la del addon.
         return IrUiView.objects.create(
-            name='reporte de prueba', type='qweb',
+            name='reporte de prueba', type='template',
             key='sale.report_saleorder', arch_db=arch or self.ARCH,
             mode='primary', priority=1, **kwargs,
         )
@@ -467,7 +539,8 @@ class TestPlantillaEnBD:
     def test_la_vista_redefine_el_documento(self, reporte_orden,
                                             orden_con_lineas):
         self.make_template_view()
-        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         impreso = texto_impreso(contenido)
         # El emisor sale de la plantilla en BD, no del builder — y con acento,
         # porque el camino UTF-8 de T-002 también cubre esta vía.
@@ -484,7 +557,8 @@ class TestPlantillaEnBD:
         # restaura.
         IrUiView.objects.filter(inherit_id__isnull=False).delete()
         IrUiView.objects.filter(key='sale.report_saleorder').delete()
-        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         assert contenido.startswith(b'%PDF')
 
     def test_una_extension_xpath_agrega_su_campo(self, reporte_orden,
@@ -494,7 +568,7 @@ class TestPlantillaEnBD:
         # parcha el documento SIN tocar la plantilla base.
         base = self.make_template_view()
         IrUiView.objects.create(
-            name='extension incoterm', type='qweb',
+            name='extension incoterm', type='template',
             key='sale.report_saleorder_inherit_prueba',
             inherit_id=base, mode='extension',
             arch_db=('<xpath expr="//section[@name=\'issuer\']" '
@@ -502,14 +576,15 @@ class TestPlantillaEnBD:
                      '<field name="phone">Incoterm EXW</field>'
                      '</xpath>'),
         )
-        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         assert 'Incoterm EXW' in texto_impreso(contenido)
 
     def test_arch_fuera_de_vocabulario_levanta(self, reporte_orden,
                                                orden_con_lineas):
         self.make_template_view(arch='<html><body/></html>')
         with pytest.raises(InvalidReportTemplate):
-            reporte_orden.render(orden_con_lineas)
+            IrActionsReport._render(reporte_orden, [orden_con_lineas.pk])
 
 
 @helpers_built
@@ -542,12 +617,13 @@ class TestPlantillaSembrada:
         ignora lo que no dibuja, así que el subconjunto del builder es el
         contrato.
         """
-        del_builder = report_catalog.get(
+        of_builder = report_catalog.get(
             'sale.report_saleorder').builder(orden_con_lineas)
-        de_la_vista = reporte_orden._descriptor_from_view(
-            orden_con_lineas, {})
-        assert de_la_vista is not None
-        for clave, valor in del_builder.items():
+        intermedio = reporte_orden._render_template(
+            reporte_orden.report_name, {'docs': [orden_con_lineas]})
+        assert intermedio['html_ids'] == [orden_con_lineas.pk]
+        de_la_vista = intermedio['bodies'][0]
+        for clave, value in of_builder.items():
             if clave == 'date':
                 # Mismo instante con distinto traje: el filtro ``date:'c'``
                 # escribe en zona local y con microsegundos; ``isoformat``
@@ -555,18 +631,187 @@ class TestPlantillaSembrada:
                 # parseados y sin microsegundos.
                 assert (datetime.fromisoformat(
                             de_la_vista[clave]).replace(microsecond=0)
-                        == datetime.fromisoformat(valor))
+                        == datetime.fromisoformat(value))
             else:
-                assert de_la_vista[clave] == valor, clave
+                assert de_la_vista[clave] == value, clave
 
     def test_incoterm_de_sale_stock_llega_al_papel(self, reporte_orden,
                                                    orden_con_lineas):
         SaleOrderDelivery.objects.create(
             order=orden_con_lineas, incoterm_location='FOB Veracruz')
-        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         assert 'Incoterm: FOB Veracruz' in texto_impreso(contenido)
 
     def test_sin_incoterm_la_nota_no_se_dibuja(self, reporte_orden,
                                                orden_con_lineas):
-        contenido, _ext = reporte_orden.render(orden_con_lineas)
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
         assert 'Incoterm' not in texto_impreso(contenido)
+
+
+class TestCallBetweenTemplates:
+    """``<call key="…"/>`` resuelve contra ``ir.ui.view``, como el root.
+
+    La referencia usa **un solo resolutor** para las dos vías: su
+    ``_render_template`` delega en ``ir.ui.view._render_template``
+    (``odoo19c: ir_actions_report.py:769-789``), y el ``t-call`` del
+    compilador entra por el mismo ``_get_template_view``
+    (``odoo19c: ir_ui_view.py:1162``). Aquí el intérprete recibe ese
+    resolutor por parámetro —``interpret_descriptor(arch, ctx, resolve_key)``—
+    y hasta este pase el reporte no le pasaba ninguno: todo ``<call>`` en una
+    plantilla almacenada levantaba ``needs a resolve_key``.
+
+    Tarea **#194**, sucesora del cableado del descriptor.
+    """
+
+    BASE = (
+        '<descriptor>'
+        '<field name="order_number">{{ docs.pk }}</field>'
+        '<call key="base.report_common_footer"/>'
+        '</descriptor>'
+    )
+    FOOTER = (
+        '<descriptor>'
+        '<section name="issuer">'
+        '<field name="name">Pie compartido ñ</field>'
+        '</section>'
+        '</descriptor>'
+    )
+
+    def make_root(self, arch=None):
+        return IrUiView.objects.create(
+            name='reporte con call', type='template',
+            key='sale.report_saleorder', arch_db=arch or self.BASE,
+            mode='primary', priority=1,
+        )
+
+    def make_footer(self, arch=None, **kwargs):
+        return IrUiView.objects.create(
+            name='pie compartido', type='template',
+            key='base.report_common_footer', arch_db=arch or self.FOOTER,
+            mode='primary', **kwargs,
+        )
+
+    def test_the_call_grafts_the_children_of_the_called_descriptor(
+            self, reporte_orden, orden_con_lineas):
+        self.make_root()
+        self.make_footer()
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
+        assert 'Pie compartido ñ' in texto_impreso(contenido)
+
+    def test_a_key_that_no_view_declares_raises(
+            self, reporte_orden, orden_con_lineas):
+        # Sin la vista del pie: el intérprete NO omite el bloque en silencio
+        # —un documento al que le falta una sección entera saldría bien
+        # formado y equivocado—, levanta nombrando la clave.
+        self.make_root()
+        # El emparejador exige el mensaje de AUSENCIA, no sólo la clave: sin
+        # esa precisión el caso pasaba en verde por el mensaje anterior
+        # —``needs a resolve_key``—, que también nombra la clave. Un control
+        # que no distingue las dos causas no mide el cableado.
+        with pytest.raises(InvalidReportTemplate,
+                           match='base.report_common_footer.*does not exist'):
+            IrActionsReport._render(reporte_orden, [orden_con_lineas.pk])
+
+    def test_the_called_template_arrives_with_its_combined_arch(
+            self, reporte_orden, orden_con_lineas):
+        # El resolutor devuelve el arch COMBINADO, no el crudo: una extensión
+        # XPath sobre el pie tiene que llegar al papel igual que sobre el
+        # root. Es el mismo mecanismo de herencia (pieza 6 de DEC-FW-05).
+        self.make_root()
+        pie = self.make_footer()
+        IrUiView.objects.create(
+            name='extension del pie', type='template',
+            key='base.report_common_footer_inherit_prueba',
+            inherit_id=pie, mode='extension',
+            arch_db=('<xpath expr="//section[@name=\'issuer\']" '
+                     'position="inside">'
+                     '<field name="phone">Tel del pie</field>'
+                     '</xpath>'),
+        )
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
+        assert 'Tel del pie' in texto_impreso(contenido)
+
+    def test_priority_breaks_the_tie_as_it_does_in_the_root(
+            self, reporte_orden, orden_con_lineas):
+        # El root resuelve por ``priority, id`` y el call tiene que usar el
+        # MISMO resolutor — es lo que hace la referencia, que entra a los dos
+        # por ``_get_template_view``. Dos pies con la misma clave: gana el de
+        # menor prioridad, no el primero insertado.
+        self.make_root()
+        self.make_footer(priority=16)
+        self.make_footer(
+            arch=self.FOOTER.replace('Pie compartido ñ', 'Pie prioritario'),
+            priority=1)
+        contenido, _ext = IrActionsReport._render(
+            reporte_orden, [orden_con_lineas.pk])
+        impreso = texto_impreso(contenido)
+        assert 'Pie prioritario' in impreso
+        assert 'Pie compartido ñ' not in impreso
+
+
+def page_box(pdf: bytes) -> tuple[float, float]:
+    """El ancho y alto reales del papel, leídos del ``/MediaBox`` emitido.
+
+    Es el control que discrimina de verdad: si la geometría del descriptor no
+    llegara al helper, el documento saldría igual y en A4, y un test que sólo
+    mirara el descriptor no lo notaría.
+    """
+    box = re.search(rb'/MediaBox\s*\[\s*[\d.]+\s+[\d.]+\s+'
+                    rb'([\d.]+)\s+([\d.]+)', pdf)
+    assert box, 'el PDF no declara /MediaBox'
+    return float(box.group(1)), float(box.group(2))
+
+
+@helpers_built
+class TestTheDeclaredPaperReachesTheDrawing:
+    """Los ajustes de papel del descriptor gobiernan la página (H-API-946)."""
+
+    #: Un milímetro en puntos PostScript — la unidad del PDF.
+    MM = 72 / 25.4
+
+    def test_without_a_paperformat_the_historic_size_survives(self):
+        width, height = page_box(run_helper('pdf_report', {
+            'title': 'T', 'columns': ['a'], 'rows': [['1']]}))
+        # A4 apaisado: lo que este helper dibujaba antes de leer el descriptor.
+        assert round(width) == 842 and round(height) == 595
+
+    @pytest.mark.parametrize('width_mm, height_mm', [
+        (210, 297),   # A4 vertical
+        (420, 297),   # A3 apaisado
+        (80, 200),    # ticket estrecho, fuera de los 12 de HPDF_PageSizes
+    ])
+    def test_the_declared_geometry_is_the_one_drawn(self, width_mm, height_mm):
+        width, height = page_box(run_helper('pdf_report', {
+            'title': 'T', 'columns': ['a'], 'rows': [['1']],
+            'paperformat': {'page_width_mm': width_mm,
+                            'page_height_mm': height_mm},
+        }))
+        assert round(width) == round(width_mm * self.MM)
+        assert round(height) == round(height_mm * self.MM)
+
+    def test_the_receipt_also_obeys_its_ticket(self):
+        width, height = page_box(run_helper('pdf_receipt', {
+            'issuer': {'name': 'Kaupamex'}, 'order_number': 'A-1',
+            'items': [], 'totals': {'total': '0.00'},
+            'paperformat': {'page_width_mm': 80, 'page_height_mm': 200},
+        }))
+        assert round(width) == round(80 * self.MM)
+        assert round(height) == round(200 * self.MM)
+
+    def test_the_declared_margin_moves_the_text(self):
+        """Un margen ancho empuja el dibujo: la clave no se lee y se ignora."""
+        def indent(margin_mm):
+            pdf = run_helper('pdf_report', {
+                'title': 'Titulo', 'columns': ['a'], 'rows': [['1']],
+                'paperformat': {'page_width_mm': 210, 'page_height_mm': 297,
+                                'margin_left_mm': margin_mm},
+            })
+            position = re.search(rb'([\d.]+)\s+[\d.]+\s+Td', operadores(pdf))
+            assert position, 'el PDF no coloca ningún texto'
+            return float(position.group(1))
+
+        assert indent(60) > indent(10) + 100

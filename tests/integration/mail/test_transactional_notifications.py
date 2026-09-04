@@ -64,7 +64,7 @@ def order_stub(db, user):
 
 class TestNotifyOrderCreated:
     @override_settings(**LOCMEM_SETTINGS)
-    def test_crea_notification_in_app(self, db, user, order_stub):
+    def test_creates_notification_in_app(self, db, user, order_stub):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_order_created(order_stub, user, Decimal('580.00'))
         assert Notification.objects.filter(
@@ -138,7 +138,7 @@ class TestNotifyOrderStatusChanged:
 
 class TestNotifyShippingUpdated:
     @override_settings(**LOCMEM_SETTINGS)
-    def test_crea_notification_y_email(self, db, user, order_stub):
+    def test_creates_notification_and_email(self, db, user, order_stub):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_shipping_updated(
                 order_stub, user,
@@ -155,7 +155,7 @@ class TestNotifyShippingUpdated:
 class TestNotifyReturnProcessed:
     @override_settings(**LOCMEM_SETTINGS)
     @pytest.mark.parametrize('status', ['APPROVED', 'REJECTED'])
-    def test_crea_notification_y_email(self, db, user, order_stub, status):
+    def test_creates_notification_and_email(self, db, user, order_stub, status):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_return_processed(order_stub, user, status, reason='Producto dañado')
         assert Notification.objects.filter(user=user).exists()
@@ -166,7 +166,7 @@ class TestNotifyReturnProcessed:
 
 class TestNotifyRefundProcessed:
     @override_settings(**LOCMEM_SETTINGS)
-    def test_crea_notification_y_email(self, db, user, order_stub):
+    def test_creates_notification_and_email(self, db, user, order_stub):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_refund_processed(order_stub, user, Decimal('580.00'))
         assert Notification.objects.filter(user=user).exists()

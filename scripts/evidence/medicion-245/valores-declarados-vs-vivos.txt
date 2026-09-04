@@ -1,0 +1,45 @@
+atributo | Field (base de la fuente) | clase-fuente | declara | ClaseDjango | responde aqui
+----------------------------------------------------------------------------------------------------
+
+### readonly   —  base de la fuente: 'False'
+  MIENTE  Id                       declara True                     | AutoField            responde False
+  MIENTE  Id                       declara True                     | BigAutoField         responde False
+  MIENTE  Id                       declara True                     | SmallAutoField       responde False
+  OK   Properties               declara False                    | Properties           responde False
+  OK   PropertiesDefinition     declara False                    | PropertiesDefinition responde False
+  MIENTE  One2many                 hereda  False                    | One2many             responde <ausente>
+
+### string   —  base de la fuente: 'None'
+  MIENTE  Id                       declara 'ID'                     | AutoField            responde None
+  MIENTE  Id                       declara 'ID'                     | BigAutoField         responde None
+  MIENTE  Id                       declara 'ID'                     | SmallAutoField       responde None
+  MIENTE  One2many                 hereda  None                     | One2many             responde <ausente>
+
+### aggregator   —  base de la fuente: 'None'
+  MIENTE  Float                    declara 'sum'                    | FloatField           responde None
+  MIENTE  Integer                  declara 'sum'                    | IntegerField         responde None
+  OK   Many2oneReference        declara None                     | GenericForeignKey    responde None
+  MIENTE  Monetary                 declara 'sum'                    | DecimalField         responde None
+  MIENTE  One2many                 hereda  None                     | One2many             responde <ausente>
+
+### _column_type   —  base de la fuente: 'None'
+  MIENTE  Boolean                  declara ('bool', 'bool')         | BooleanField         responde None
+  OK   Date                     declara ('date', 'date')         | DateField            responde ('date', 'date')
+  OK   Datetime                 declara ('timestamp', 'timestamp') | DateTimeField        responde ('timestamp', 'timestamp')
+  MIENTE  Integer                  declara ('int4', 'int4')         | IntegerField         responde None
+  MIENTE  Json                     declara ('jsonb', 'jsonb')       | JSONField            responde None
+  MIENTE  Many2one                 declara ('int4', 'int4')         | ForeignKey           responde None
+  MIENTE  Monetary                 declara ('numeric', 'numeric')   | DecimalField         responde None
+  MIENTE  Properties               declara ('jsonb', 'jsonb')       | Properties           responde None
+  MIENTE  PropertiesDefinition     declara ('jsonb', 'jsonb')       | PropertiesDefinition responde None
+  MIENTE  Selection                declara ('varchar', pg_varchar()) | CharField            responde None
+  MIENTE  One2many                 hereda  None                     | One2many             responde <ausente>
+
+### prefetch   —  base de la fuente: 'True'
+  MIENTE  Binary                   declara False                    | BinaryField          responde True
+  MIENTE  Id                       declara False                    | AutoField            responde True
+  MIENTE  Id                       declara False                    | BigAutoField         responde True
+  MIENTE  Id                       declara False                    | SmallAutoField       responde True
+  MIENTE  Properties               declara False                    | Properties           responde True
+  OK   PropertiesDefinition     declara True                     | PropertiesDefinition responde True
+  MIENTE  One2many                 hereda  True                     | One2many             responde <ausente>

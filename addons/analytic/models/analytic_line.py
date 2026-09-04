@@ -12,25 +12,95 @@ unifica según el contexto (``analytic_plan_id``). Aquí se simplifica a una
 **FK única** ``account`` — la línea pertenece a UNA cuenta analítica (que a
 su vez pertenece a un plan jerárquico), no a "hasta N cuentas, una por plan".
 
-NO se portan (dependientes 100% de la columna dinámica):
+Dependientes de la columna dinámica — divergencia de MECANISMO
+--------------------------------------------------------------
+
+Los siete se apoyan en el conjunto de columnas ``x_planN_id`` que aquí no
+existe, porque la FK es única. No hay mecanismo que construir: la estructura
+que operan no está.
+
 ``_compute_auto_account``, ``_inverse_auto_account``, ``_search_auto_account``,
 ``_get_plan_fnames``, ``_get_mandatory_plans``, ``_get_plan_domain``,
-``_get_account_node_context``, ``default_get``, ``fields_get``, ``_get_view``,
-``_patch_view`` (las últimas cuatro son parcheo de vistas del cliente web de
-Odoo, sin análogo en una API DRF). ``category`` conserva sólo el valor
-``'other'`` de la referencia (otros addons de Odoo — ``hr_expense``,
-``sale`` — extienden esa selección; no aplica aquí). ``fiscal_year_search``
-(campo virtual sólo de filtro de vista) tampoco se porta.
+``_get_account_node_context``.
+
+Los cuatro del arch — su veredicto medido
+-------------------------------------------
+
+``default_get``, ``fields_get``, ``_get_view`` y ``_patch_view`` **no** son
+"sin análogo en una API DRF" — esa lectura estaba mal y era el camino barato.
+Medido contra el stack:
+
+===============  ==========  ==================================================
+Símbolo          Veredicto   Por qué
+===============  ==========  ==================================================
+``default_get``  **TRAE**    ya existe: ``orm/models.py:462``. Lo que falta es
+                             la mitad de esta clase, no el mecanismo.
+``fields_get``   CONSTRUYE   0 defs en el árbol; las primitivas están
+                             (``_meta.get_fields`` de Django + el serializer
+                             de DRF). Sin dependencia de fuera.
+``_get_view``    CONSTRUYE   el arch lo guarda ``ir.ui.view``; ver la arista
+``_patch_view``              de abajo.
+===============  ==========  ==================================================
+
+BLOQUEADO por ``get_views`` — el arch se lo entrega esa familia, que aún no se
+porta. Sucesor: tarea **#178**.
+
+``category`` — ya se amplía, y el docstring decía lo contrario
+---------------------------------------------------------------
+
+Decía *"otros addons de Odoo extienden esa selección; no aplica aquí"*. Es
+falso contra este mismo árbol: ``account/models/account_analytic_line.py``
+**ya** amplía el vocabulario con ``extend_selection_choices``, que es el
+receptor de ``selection_add`` (``orm/model_classes.py``).
+
+El campo se declara **sin** ``required``, y eso es fiel: la fuente tampoco lo
+declara (``odoo19c: analytic/models/analytic_line.py:218-221`` — un
+``fields.Selection`` pelado con ``default='other'``). Por eso los valores que
+otros addons le suman toman la política de borrado por defecto, ``'set null'``.
+
+``fiscal_year_search`` — PORTADO (tarea #207)
+----------------------------------------------
+
+No es "campo virtual sólo de filtro de vista": la fuente lo declara
+``store=False`` con ``search='_search_fiscal_date'``
+(``odoo19c: :222-226``), y su cuerpo (``:272-274``) es un filtro de dominio
+real sobre ``date``. Los dos mecanismos que lo bloqueaban ya están:
+
+``compute_fiscalyear_dates`` — el rango del ejercicio fiscal sale ahora de
+``res.company`` (``src/addons/base/models/res_company.py``, tarea #207,
+sitio divergente declarado en su propio docstring). Cerraba también el
+bloqueo de tarea #208.
+
+``search=`` sobre un campo sin columna — el enganche **ya existía**: es
+:class:`orm.fields_nonstored.NonStored` con su parámetro ``search``, en
+producción desde ``display_name`` (``src/orm/models.py``). El docstring de
+esta clase decía lo contrario porque nadie lo había vuelto a medir contra
+ese archivo — la corrección es de este mismo pase.
+
+``_search_fiscal_date`` se porta **verbatim** en lo que la fuente omite:
+ni ``operator`` ni ``value`` se leen, cualquier condición sobre
+``fiscal_year_search`` acota igual. Es un quirk de la fuente
+(``odoo19c: :272-274``), no un recorte de este puerto.
+
+DIVERGENCIA DE MECANISMO — ``self.env.company`` de la fuente es la
+compañía de la SESIÓN, no la del registro. Aquí se resuelve con
+``orm.environments.get_current_company()``, el mismo canal que
+``session_fiscal_country_codes`` ya usa para el eje gemelo
+(``addons/account/models/res_company.py``). Sin compañía activada el
+filtro no puede acotar nada: se devuelve ``[]`` (verdadero, no restringe),
+igual que ``_search_full_name`` cuando no hay nada que buscar.
 """
 import datetime
 from decimal import Decimal
 
+from dateutil.relativedelta import relativedelta
 from django.core.exceptions import ValidationError
 
 import fields
 import models
+from orm.environments import get_current_company
 
-from addons.base.models import DecimalPrecision
+from addons.base.models import DecimalPrecision, ResCompany
 
 
 class AnalyticPlanFieldsMixin(models.Model):
@@ -105,6 +175,14 @@ class AccountAnalyticLine(AnalyticPlanFieldsMixin, models.Model):
         max_length=16, choices=CATEGORIES, default='other',
         verbose_name='Categoría',
     )
+    #: ≙ ``fiscal_year_search`` (``odoo19c: :222-226``) — atajo de filtro sin
+    #: columna ni valor propio; buscarlo (con cualquier operador) acota a la
+    #: ventana fiscal vigente. Ver el docstring del módulo.
+    fiscal_year_search = fields.NonStored(
+        search='_search_fiscal_date',
+        help_text='Odoo fiscal_year_search — filtro por ejercicio fiscal '
+                  'vigente, sin valor propio que leer.',
+    )
 
     class Meta:
         db_table = 'account_analytic_line'
@@ -119,6 +197,25 @@ class AccountAnalyticLine(AnalyticPlanFieldsMixin, models.Model):
     def currency(self):
         """Odoo ``currency_id`` (``related="company_id.currency_id"``)."""
         return self.company.currency
+
+    @classmethod
+    def _search_fiscal_date(cls, operator, value):
+        """≙ ``_search_fiscal_date`` (``odoo19c:
+        analytic/models/analytic_line.py:272-274``), verbatim: ni
+        ``operator`` ni ``value`` se leen — ver el docstring del módulo.
+
+        La compañía es la de la SESIÓN (``self.env.company`` de la fuente),
+        no la del registro — divergencia de mecanismo declarada arriba.
+        """
+        company_id = get_current_company()
+        if company_id is None:
+            return []
+        company = ResCompany.objects.filter(pk=company_id).first()
+        if company is None:
+            return []
+        fiscal_range = company.compute_fiscalyear_dates(datetime.date.today())
+        return [('date', '>=',
+                fiscal_range['date_from'] - relativedelta(years=1))]
 
     @property
     def analytic_precision(self):

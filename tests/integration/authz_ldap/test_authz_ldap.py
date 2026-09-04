@@ -69,7 +69,7 @@ class TestLdapBackend:
         assert not User.objects.filter(login=login).exists()
 
         with patch.object(
-            CompanyLdap.objects.__class__, 'get_ldap_dicts',
+            CompanyLdap.objects.__class__, '_get_ldap_dicts',
             return_value=[_conf(company)],
         ), patch.object(
             CompanyLdap, '_authenticate', return_value=LDAP_ENTRY,
@@ -96,7 +96,7 @@ class TestLdapBackend:
     def test_create_user_false_no_crea(self, db, company):
         login = 'sin-alta@kaupamex.mx'
         with patch.object(
-            CompanyLdap.objects.__class__, 'get_ldap_dicts',
+            CompanyLdap.objects.__class__, '_get_ldap_dicts',
             return_value=[_conf(company, create_user=False)],
         ), patch.object(
             CompanyLdap, '_authenticate', return_value=LDAP_ENTRY,
@@ -113,7 +113,7 @@ class TestLdapBackend:
         user.save(update_fields=['password'])
 
         with patch.object(
-            CompanyLdap.objects.__class__, 'get_ldap_dicts',
+            CompanyLdap.objects.__class__, '_get_ldap_dicts',
             return_value=[_conf(company)],
         ), patch.object(
             CompanyLdap, '_authenticate', return_value=LDAP_ENTRY,
@@ -127,7 +127,7 @@ class TestLdapBackend:
         user.save(update_fields=['active'])
 
         with patch.object(
-            CompanyLdap.objects.__class__, 'get_ldap_dicts',
+            CompanyLdap.objects.__class__, '_get_ldap_dicts',
             return_value=[_conf(company)],
         ), patch.object(
             CompanyLdap, '_authenticate', return_value=LDAP_ENTRY,

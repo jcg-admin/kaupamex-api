@@ -116,7 +116,7 @@ def _make_website():
 
 def _make_page(website, **overrides):
     view = IrUiView.objects.create(
-        name='Página 561', type='qweb', key='website.pagina-561',
+        name='Página 561', type='template', key='website.pagina-561',
         arch_db='<t><div id="wrap"/></t>')
     values = {'url': '/pagina-561', 'view': view, 'website': website}
     values.update(overrides)

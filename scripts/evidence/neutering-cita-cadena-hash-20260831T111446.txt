@@ -1,0 +1,15 @@
+# Control discriminante — cita vigilada de la cadena de hash
+# fecha:    2026-08-31T11:14:46
+# archivo:  addons/account/report/account_hash_integrity_templates.py
+# control:  se INYECTA 'def _calculate_hashes' en account_move.py;
+#           el gate debe declarar el cero CADUCADO.
+
+## 1. Estado de partida (el simbolo NO existe)
+0 reclamo(s) de cero caducado(s) fuera del baseline  ·  en baseline: 0  (alcance medido: 1 cita(s) con comando; 1 re-ejecutable(s), 0 contra otro árbol, 0 que este guion no sabe correr)
+EXIT=0
+
+## 2. Con el simbolo INYECTADO — el gate debe marcar la prosa caducada
+addons/account/report/account_hash_integrity_templates.py:51  el reclamo dice 0 y hoy da 1
+    grep -c "def _calculate_hashes" addons/account/models/account_move.py
+1 reclamo(s) de cero caducado(s) fuera del baseline  ·  en baseline: 0  (alcance medido: 1 cita(s) con comando; 1 re-ejecutable(s), 0 contra otro árbol, 0 que este guion no sabe correr)
+EXIT=0

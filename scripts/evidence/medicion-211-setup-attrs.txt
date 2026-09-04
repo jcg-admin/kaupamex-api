@@ -1,0 +1,59 @@
+#211 — el bloque de setup de Field: __set_name__, _get_attrs, _setup_attrs__
+Medido 2026-09-03 sobre api@a0160ac3, PYTHONPATH=src, settings.testing.
+
+1. QUE QUEDA AUSENTE DEL CONTRATO (por conducta, no por literal)
+   El conteo literal `models.Field.X =` decia 22 ausentes; medido con
+   `hasattr` son 8, y de esos 3 estan portados con renombre declarado:
+   condition_to_sql/_condition_to_sql/_condition_to_sql_company ->
+   condition_to_q/_condition_to_q/_condition_to_q_company (el compilador
+   produce Q de Django, no SQL; divergencia declarada en fields.py:735-762).
+   Ausentes reales: __set_name__, _get_attrs, _setup_attrs__, __get__, __set__.
+
+2. __set_name__ ESTA MUERTO POR CONSTRUCCION EN ESTE ORM  [PROVEN]
+   Sonda: un CharField con __set_name__ y contribute_to_class propios,
+   declarado en el cuerpo de un models.Model. Salida:
+       ('contribute_to_class', 'campo', 'M', True)
+   __set_name__ NO se invoca. Causa en el codigo instalado,
+   django/db/models/base.py:116-122: ModelBase.__new__ separa en
+   `contributable_attrs` todo objeto con contribute_to_class y pasa solo
+   `new_attrs` a super_new. El campo nunca entra al namespace que
+   type.__new__ recibe, asi que Python jamas ejecuta el protocolo
+   __set_name__ sobre el; se lo entrega despues con add_to_class (:212).
+   CONSECUENCIA DE PORTE: el cuerpo de __set_name__ se porta a
+   contribute_to_class, que es el enganche equivalente vivo. Portarlo con
+   su nombre de la fuente seria codigo que nunca corre.
+
+3. EL SUSTRATO DE ENTRADA NO EXISTE
+   La fuente lee self._args__ (los kwargs de __init__). Aqui `_args__`
+   figura solo como default de clase en _FIELD_CLASS_ATTRIBUTES
+   (fields.py:1371) con valor None: 0 sitios lo pueblan. Sin el no se
+   distingue "lo declaro el autor" de "es el default de clase", que es
+   justo lo que _get_attrs necesita para rellenar SOLO lo no declarado.
+   La pieza tiene por tanto dos mitades: poblar _args__, y luego la
+   normalizacion.
+
+4. EL ROJO, CON SU POBLACION  [PROVEN]
+   django.apps sobre el arbol cargado:
+   - company_dependent: 2 campos, y los CUATRO derivados estan sin aplicar
+     en los dos:
+        ResPartner.barcode                  index=None copy=True prefetch=True _depends_context=None
+        AccountAnalyticPlan.default_applicability  index=None copy=True prefetch=True _depends_context=None
+     La fuente deriva (odoo19c: odoo/orm/fields.py:466-476):
+        index='btree_not_null', prefetch='company_dependent',
+        copy=False, _depends_context=('company',)
+   - compute: 41 campos. La fuente deriva store=False, compute_sudo=store,
+     copy=False salvo (store and not readonly), readonly=not inverse.
+   - related: 0 campos.
+
+5. POR QUE IMPORTA, Y NO ES COSMETICO
+   El caso test_condition_company_index.py::test_a_fallback_that_fails_
+   prepends_the_not_null tiene que fabricar la precondicion con
+   monkeypatch (`_indexed`), y su docstring lo dice: "Ningun campo del
+   arbol lo declara". La causa no es que nadie lo escriba: es que nadie
+   lo DERIVA. Portar _get_attrs cierra esa razon y da poblacion real a la
+   optimizacion de indice parcial.
+
+Metrica: hasattr sobre models.Field tras importar orm.fields; sonda de
+conducta sobre ModelBase; django.apps.get_models() sobre el arbol cargado.
+Ciega a: los campos de addons no instalados en settings.testing, y a un
+tipo que derive el default en su propio __init__ en vez de por _get_attrs.

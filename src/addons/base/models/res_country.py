@@ -52,7 +52,17 @@ class ResCountry(models.Model):
     Fiel a ``res_country.py`` (18:32-68 / 19 idéntico): ``name`` (requerido),
     ``code`` (ISO 3166-1 alpha-2, único), ``currency`` (FK res.currency),
     ``phone_code``. ``state_ids`` es el reverso de ``ResCountryState.country``.
+
+    Los cuatro atributos de clase son los que la fuente declara
+    (``atributos-de-clase-de-modelo.md``); se completaron en la tarea **#132**,
+    que necesita ``_name`` para que el registro por nombre pueda responder a la
+    guarda de modelo de ``IrFieldsConverter._xmlid_to_record_id``.
     """
+
+    _name = 'res.country'
+    _description = 'Country'
+    _order = 'name, id'
+    _rec_names_search = ['name', 'code']
 
     name        = fields.Char(
         max_length=120,
@@ -207,7 +217,15 @@ class ResCountryState(models.Model):
     Fiel a ``res_country.py`` (18:162-171 / 19 idéntico): ``country`` (FK,
     requerido), ``name`` (requerido), ``code`` (requerido). Único (country, code)
     replica el ``_sql_constraints`` ``name_code_uniq`` de Odoo.
+
+    Atributos de clase completados en la tarea **#132**, igual que en
+    :class:`ResCountry`.
     """
+
+    _name = 'res.country.state'
+    _description = 'Country state'
+    _order = 'code, id'
+    _rec_names_search = ['name', 'code']
 
     country = fields.Many2one(
         'base.ResCountry', on_delete=models.CASCADE, related_name='state_ids',

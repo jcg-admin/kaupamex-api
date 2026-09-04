@@ -47,6 +47,14 @@ class OnboardingOnboardingStep(models.Model):
     inercia de convención de proyecto.
     """
 
+    # Atributos de clase de modelo — los CUATRO que la fuente declara
+    # (``odoo19c: onboarding_onboarding_step.py:10-13``), verbatim. Conviven
+    # con su forma Django en ``Meta`` en vez de sustituirla.
+    _name = 'onboarding.onboarding.step'
+    _description = 'Onboarding Step'
+    _order = 'sequence asc, id asc'
+    _rec_name = 'title'
+
     # Odoo onboarding_ids (onboarding_onboarding_step.py:15) — declarado del
     # LADO de ``OnboardingOnboarding.steps`` (ver su docstring): Odoo declara
     # el M2M en AMBOS modelos (comodelos recíprocos), pero eso describe UNA
@@ -119,13 +127,25 @@ class OnboardingOnboardingStep(models.Model):
         return self.title or f'Step {self.pk}'
 
     def clean(self):
-        """``check_step_on_onboarding_has_action`` (línea 65-72).
+        """El punto donde Django corre las invariantes; el cuerpo no vive aquí.
 
-        En la referencia es un ``@api.constrains('onboarding_ids')`` (se
-        dispara al vincular). Aquí, ``onboardings`` (M2M inverso) requiere PK
-        existente, así que sólo se evalúa si el registro ya está guardado.
+        La referencia le da nombre propio al constrain
+        (``check_step_on_onboarding_has_action``) y ese nombre se conserva:
+        ``clean`` sólo lo invoca. Aplanar los dos borraría un símbolo que la
+        fuente declara.
         """
         super().clean()
+        self.check_step_on_onboarding_has_action()
+
+    def check_step_on_onboarding_has_action(self):
+        """≙ ``check_step_on_onboarding_has_action`` (línea 65-72).
+
+        En la referencia es un ``@api.constrains('onboarding_ids')`` — se
+        dispara al vincular. Aquí, ``onboardings`` (M2M inverso) requiere PK
+        existente, así que sólo se evalúa si el registro ya está guardado.
+
+        Sin guion bajo, como la fuente: es parte de su superficie pública.
+        """
         if self.pk and self.onboardings.exists() and not self.panel_step_open_action_name:
             raise ValidationError(
                 'Se requiere una "Acción de apertura" para vincular este '
@@ -173,23 +193,39 @@ class OnboardingOnboardingStep(models.Model):
             for progress in onboarding.progress_records.all():
                 progress.recompute_progress_step_ids()
 
-    def current_progress_step(self, company=None):
-        """``_compute_current_progress`` (línea 47-63), sólo la mitad del
-        step (``current_progress_step_id``); ``current_step_state`` está
-        abajo. ``company`` explícito o compañía ambiente (ver
-        ``onboarding_progress._resolve_company_id``)."""
+    def _compute_current_progress(self, company=None):
+        """≙ ``_compute_current_progress`` (línea 47-63).
+
+        La fuente llena DOS campos en un solo compute —
+        ``current_progress_step_id`` y ``current_step_state``— y aquí devuelve
+        la pareja por la misma razón: son una sola consulta, y separarlas la
+        haría dos veces.
+
+        ``company`` explícito o compañía ambiente (ver
+        ``onboarding_progress._resolve_company_id``). La fuente lo toma del
+        contexto con ``@api.depends_context('company')``; aquí es un argumento
+        porque este stack no tiene contexto de entorno.
+
+        :return: ``(progress_step, step_state)``.
+        """
         if not self.pk:
-            return None
+            return None, STATE_NOT_DONE
         context_company_id = _resolve_company_id(company)
-        return self.progress_step_records.filter(
+        progress_step = self.progress_step_records.filter(
             models.Q(company__isnull=True)
             | models.Q(company_id=context_company_id),
         ).first()
+        if progress_step is None:
+            return None, STATE_NOT_DONE
+        return progress_step, progress_step.step_state
+
+    def current_progress_step(self, company=None):
+        """El campo ``current_progress_step_id``, leído del compute."""
+        return self._compute_current_progress(company=company)[0]
 
     def current_step_state(self, company=None):
-        """``current_step_state`` — mitad del compute línea 47-63."""
-        progress_step = self.current_progress_step(company=company)
-        return progress_step.step_state if progress_step else STATE_NOT_DONE
+        """El campo ``current_step_state``, leído del mismo compute."""
+        return self._compute_current_progress(company=company)[1]
 
     def action_set_just_done(self, company=None):
         """``action_set_just_done`` (línea 94-98).
@@ -201,12 +237,12 @@ class OnboardingOnboardingStep(models.Model):
         """
         progress_step = self.current_progress_step(company=company)
         if progress_step is None:
-            progress_step = self._create_progress_step(company=company)
+            progress_step = self._create_progress_steps(company=company)
         changed = progress_step.action_set_just_done()
         return self if changed else None
 
     @classmethod
-    def action_validate_step_by_id(cls, step_id, company=None):
+    def action_validate_step(cls, step_id, company=None):
         """Adaptación de ``action_validate_step(xml_id)`` (línea 100-105).
 
         GAP de xmlid (documentado, no relleno): sin un cargador de datos
@@ -221,7 +257,26 @@ class OnboardingOnboardingStep(models.Model):
             return 'NOT_FOUND'
         return 'JUST_DONE' if step.action_set_just_done(company=company) else 'WAS_DONE'
 
-    def _create_progress_step(self, company=None):
+    def _get_placeholder_filename(self, field):
+        """≙ ``_get_placeholder_filename`` (línea 107-111).
+
+        La imagen de relleno de ``step_image`` cuando el paso no trae una.
+        Lo consulta ``IrBinary.get_image_response_from`` cuando el llamador no
+        pasa un ``placeholder`` explícito — el mismo despacho de la fuente
+        (``odoo19c: odoo/addons/base/models/ir_binary.py:212-213``).
+
+        DIVERGENCIA declarada: la fuente cierra con
+        ``return super()._get_placeholder_filename(field)``, que sube al
+        ``BaseModel``. Aquí ese eslabón no existe —ningún modelo del árbol lo
+        declara— así que devolver ``None`` cede al default de ``IrBinary``
+        (``DEFAULT_PLACEHOLDER_PATH``), que es donde la cadena de la fuente
+        termina de todos modos.
+        """
+        if field == 'step_image':
+            return 'base/static/img/onboarding_default.png'
+        return None
+
+    def _create_progress_steps(self, company=None):
         """``_create_progress_steps`` (línea 113-133), adaptado a un solo
         step (la referencia opera en recordset; ver docstring del módulo
         hermano ``onboarding_progress_step.py``).

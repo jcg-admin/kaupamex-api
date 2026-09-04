@@ -1,0 +1,4 @@
+# Reclamos de cero que un porte dejó falsos, congelados como deuda
+# heredada. Uno listado no bloquea; uno nuevo sí. Se paga al tocar
+# el archivo — el triaje es la tarea #250.
+# Clave: <archivo>::<comando citado>

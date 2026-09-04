@@ -64,6 +64,8 @@ la del ítem. Así lo siembra ``seed_menu``.
 from django.core.cache import cache
 from django.db import models
 
+from orm.models import AccessManager
+
 from addons.base.models.timestamped_mixin import TimeStampedModel
 
 _MENU_CACHE_PREFIX = 'ir_ui_menu:visible'
@@ -95,13 +97,16 @@ def _bump_menu_epoch():
         cache.set(_MENU_CACHE_EPOCH_KEY, 1, None)
 
 
-class CapabilityPrunedMenuManager(models.Manager):
+class CapabilityPrunedMenuManager(AccessManager):
     """Manager con el mecanismo de podado — el equivalente de los métodos de
     ``ir.ui.menu`` en la referencia.
 
-    Nombres alineados uno a uno: ``visible_menu_ids`` ≡ ``_visible_menu_ids``,
-    ``filter_visible_menus`` ≡ ``_filter_visible_menus``, ``load_menus`` ≡
-    ``load_menus``.
+    Nombres alineados uno a uno con la referencia, **guion bajo incluido**:
+    ``_visible_menu_ids``, ``_filter_visible_menus`` y ``load_menus``. Los
+    dos primeros nacieron aquí sin él —promoviendo a API pública lo que la
+    fuente reserva—; se corrigió al medir que Enterprise extiende
+    ``_visible_menu_ids`` por su nombre privado
+    (``porte-completo-no-parcial.md``, «el guion bajo se porta»).
 
     **Compartido entre los dos modelos de menú, y por qué.** La referencia
     tiene dos implementaciones distintas porque sus contextos difieren:
@@ -114,7 +119,37 @@ class CapabilityPrunedMenuManager(models.Manager):
     esconderse.
     """
 
-    def visible_menu_ids(self, user, capabilities, superadmin=False):
+    def _load_menus_blacklist(self):
+        """≙ ``_load_menus_blacklist`` (``odoo19c: ir_ui_menu.py:209-211``).
+
+        Los ids que **no** se sirven aunque el usuario los pudiera ver. La
+        fuente lo declara devolviendo ``[]`` y lo consume antes de filtrar por
+        visibilidad (``:237-241``): es un punto de extensión puro, cuyo cuerpo
+        aquí es el mismo vacío.
+
+        **Se declara aunque nadie lo extienda todavía.** Enterprise 19 lo
+        extiende **7 veces**, más que ningún otro símbolo de ``ir.ui.menu``
+        (tarea #67), y cada addon **suma** sus ids a los del ``super()``. Sin
+        base que extender, dos addons que lo declararan se pisarían — el mismo
+        defecto que ``SELF_READABLE_FIELDS`` tenía antes de :ref:`h-api-819`,
+        y por eso se cierra con él y no cuando aparezca el primer consumidor.
+
+        El punto está en el **queryset** porque el filtro que lo consume
+        también lo está; una extensión lo sobreescribe sobre la clase, igual
+        que ``hr`` hace con las listas de ``res.users``.
+
+        **La caché no lo ve, y hay que decirlo.** La clave de
+        :meth:`_visible_menu_ids` se compone de la generación y del conjunto de
+        capacidades; la lista negra **no** entra en ella. Es correcto mientras
+        sea estática por instalación —un addon la fija al cargarse— y deja de
+        serlo el día que alguien la calcule por usuario o por empresa. Ese día
+        la lista entra en la clave; hasta entonces, un cambio se propaga
+        renovando la generación, que es lo que ya hace cualquier escritura de
+        menú.
+        """
+        return []
+
+    def _visible_menu_ids(self, user, capabilities, superadmin=False):
         """Ids de los ítems visibles para ``user`` (``_visible_menu_ids``).
 
         Cacheado por **conjunto de capacidades**, no por usuario — igual que la
@@ -145,8 +180,12 @@ class CapabilityPrunedMenuManager(models.Manager):
         if cached is not None:
             return cached
 
+        # La fuente descuenta la lista negra ANTES de filtrar por
+        # visibilidad (``odoo19c: ir_ui_menu.py:237-241``): un id vetado no
+        # entra aunque el usuario tuviera la capacidad.
         items = list(
             self.filter(active=True)
+            .exclude(pk__in=self._load_menus_blacklist())
             .select_related('group')
             .order_by('parent_id', 'sequence', 'id')
         )
@@ -175,9 +214,9 @@ class CapabilityPrunedMenuManager(models.Manager):
         cache.set(key, visible, _MENU_CACHE_TTL)
         return visible
 
-    def filter_visible_menus(self, user, capabilities, superadmin=False):
+    def _filter_visible_menus(self, user, capabilities, superadmin=False):
         """Los ítems visibles, ya materializados (``_filter_visible_menus``)."""
-        visible = self.visible_menu_ids(user, capabilities, superadmin)
+        visible = self._visible_menu_ids(user, capabilities, superadmin)
         return list(
             self.filter(pk__in=visible)
             .select_related('group')
@@ -203,7 +242,7 @@ class CapabilityPrunedMenuManager(models.Manager):
         público, que se decide aparte y toca ``kaupamex-ui``; no se hace de
         rebote al adaptar el modelo.
         """
-        menus = self.filter_visible_menus(user, capabilities, superadmin)
+        menus = self._filter_visible_menus(user, capabilities, superadmin)
 
         children_by_parent = {}
         for menu in menus:
@@ -249,7 +288,7 @@ class CapabilityPrunedMenuManager(models.Manager):
         que el cliente OWL de la referencia indexa por id. Vive aquí, con el
         resto del mecanismo, para que el controlador siga siendo thin.
         """
-        menus = self.filter_visible_menus(user, capabilities, superadmin)
+        menus = self._filter_visible_menus(user, capabilities, superadmin)
 
         children_by_parent = {}
         for menu in menus:
@@ -276,7 +315,18 @@ class IrUiMenu(TimeStampedModel):
     El podado **no es cosmético**: un menú que se dibuja y luego se oculta en
     el cliente filtra la existencia de la funcionalidad; uno que no se envía,
     no.
+
+    Los atributos de clase son los cinco de la fuente
+    (``odoo19c: ir_ui_menu.py`` — ``atributos-de-clase-de-modelo.md``).
+    ``_parent_store`` declara el árbol materializado, cuyo ``parent_path`` aquí
+    lo mantiene ``save()``; ``_order`` convive con ``Meta.ordering``.
     """
+
+    _name = 'ir.ui.menu'
+    _description = 'Menu'
+    _order = 'sequence,id'
+    _parent_store = True
+    _allow_sudo_commands = False
 
     name = models.CharField(max_length=80, verbose_name='Menú')
     active = models.BooleanField(default=True, verbose_name='Activa')
@@ -338,7 +388,10 @@ class IrUiMenu(TimeStampedModel):
 
     @property
     def complete_name(self):
-        """Ruta completa del menú (``ir.ui.menu.complete_name``)."""
+        """Ruta completa del menú (``ir.ui.menu.complete_name``).
+
+        ≙ ``_compute_complete_name`` (``odoo19c: base/models/ir_ui_menu.py``).
+        """
         return self._get_full_name()
 
     def _get_full_name(self, level=6):

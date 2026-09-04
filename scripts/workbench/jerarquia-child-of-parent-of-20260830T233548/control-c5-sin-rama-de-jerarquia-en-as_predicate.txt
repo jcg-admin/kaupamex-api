@@ -1,0 +1,3 @@
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_filtered_domain.py::TestAsPredicate::test_the_hierarchy_goes_up_to_full_before_being_evaluated
+1 failed, 48 passed, 1 warning in 5.97s

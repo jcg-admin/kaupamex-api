@@ -82,7 +82,7 @@ class HrResumeLine(TimeStampedModel):
         null=True, blank=True, verbose_name='Descripción',
         help_text='Odoo description (translate=True en la fuente — sin '
                   'dispatcher de traducción en fields.Html, ver '
-                  'fields.Char.odoo_translate en la fachada).',
+                  'fields.Char.translate en la fachada).',
     )
     line_type = fields.Many2one(
         'hr_skills.HrResumeLineType', on_delete=models.SET_NULL,
@@ -111,6 +111,7 @@ class HrResumeLine(TimeStampedModel):
     )
     resume_line_properties = fields.Properties(
         null=True, blank=True, verbose_name='Propiedades',
+        definition='line_type.resume_line_type_properties_definition',
         help_text='Odoo resume_line_properties — esquema definido por '
                   'line_type_id.resume_line_type_properties_definition '
                   '(JSON en este árbol).',

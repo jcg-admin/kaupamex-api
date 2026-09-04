@@ -119,7 +119,7 @@ class TestInvocacionDirectaConProductoYUom:
         )
         assert formula_record._eval_tax_amount_formula(100.0, ctx) == 10
 
-    def test_max_con_producto_y_base(self, company):
+    def test_max_with_product_and_base(self, company):
         """≙ referencia :115-126: min/max anidados + rango de comparación
         encadenado sobre un campo de producto."""
         tax = _code_tax(
@@ -147,7 +147,7 @@ class TestInvocacionDirectaConProductoYUom:
         formula_record = tax.formula_record
         base = Uom.objects.create(name='Base', relative_factor=1.0)
         unidad = Uom.objects.create(
-            name='Prueba', relative_factor=42.0, relative_uom=base)
+            name='Prueba', relative_factor=42.0, relative_uom_id=base)
         ctx = AccountTaxFormula.build_evaluation_context(
             price_unit=100.0, quantity=1.0, product_uom=unidad,
             uom_fields=formula_record.formula_decoded_info['product_uom_fields'],
@@ -179,7 +179,7 @@ class TestInvocacionDirectaConProductoYUom:
 
 # -- formula_decoded_info / clean() -----------------------------------------
 
-class TestFormulaDecodedInfoYValidacion:
+class TestFormulaDecodedInfoANDValidation:
 
     def test_formula_decoded_info_none_si_no_es_code(self, company):
         tax = AccountTax.objects.create(
@@ -213,7 +213,7 @@ class TestFormulaDecodedInfoYValidacion:
 
 # -- hooks de AccountTaxQuerySet (monkeypatch de account_tax_extensions.py) --
 
-class TestHooksDeQuerySet:
+class TestHooksOfQuerySet:
 
     def test_prepare_product_fields_agrega_solo_de_impuestos_code(self, company):
         code_tax = _code_tax(company, 'product.volume * 0.1')

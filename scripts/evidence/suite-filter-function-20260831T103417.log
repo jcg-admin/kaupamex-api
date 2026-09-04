@@ -1,0 +1,1747 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  0%]
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+E....................................................................... [ 11%]
+..........E............................................................. [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+.........................E..............E............................... [ 15%]
+................................................................E....... [ 15%]
+.....E..........E................................E...................... [ 16%]
+........................................................................ [ 17%]
+....E................................................................... [ 18%]
+........................................................................ [ 19%]
+.......................................................E................ [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+.........E.....................................E........................ [ 28%]
+........................................................................ [ 29%]
+........................F.............F..........F...................... [ 30%]
+........................................................................ [ 31%]
+.F...................................................................... [ 31%]
+..E.....................................................................E [ 32%]
+........................................................................ [ 33%]
+..E......................E........................E............E........ [ 34%]
+..............................E......................................... [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+...........s.............................................s.............. [ 82%]
+...........................s............................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 87%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+...............................Exception ignored in: <function Transport.__del__ at 0x7f4fe070f060>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: 'object' object has no attribute 'close'
+...Exception ignored in: <function Transport.__del__ at 0x7f4fe070f060>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.12/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: 'object' object has no attribute 'close'
+...................................... [ 95%]
+................................................E....................... [ 96%]
+..............................E......................................... [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+.....................................                                    [100%]
+==================================== ERRORS ====================================
+_____ ERROR at setup of TestBuscarOrdenesAdmin.test_filtros_combinados_and _____
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9908 waits for ShareLock on transaction 8733327; blocked by process 9841.
+E   Process 9841 waits for ShareLock on transaction 8733295; blocked by process 9908.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,129) in relation "res_users_login_key"
+
+The above exception was the direct cause of the following exception:
+tests/conftest.py:219: in admin_user
+    u = User.objects.create_user(
+src/addons/base/models/res_users.py:439: in create_user
+    return self._create_user(login, password, **extra_fields)
+src/addons/base/models/res_users.py:428: in _create_user
+    user.save(using=self._db)
+src/orm/inherits.py:162: in save
+    return original_save(self, *args, **kwargs)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9908 waits for ShareLock on transaction 8733327; blocked by process 9841.
+E   Process 9841 waits for ShareLock on transaction 8733295; blocked by process 9908.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,129) in relation "res_users_login_key"
+_ ERROR at setup of TestBuscarOrdenesAdmin.test_admin_detalle_orden_inexistente_404 _
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9908 waits for ShareLock on transaction 8734015; blocked by process 9841.
+E   Process 9841 waits for ShareLock on transaction 8734097; blocked by process 9908.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,119) in relation "res_users_login_key"
+
+The above exception was the direct cause of the following exception:
+tests/conftest.py:219: in admin_user
+    u = User.objects.create_user(
+src/addons/base/models/res_users.py:439: in create_user
+    return self._create_user(login, password, **extra_fields)
+src/addons/base/models/res_users.py:428: in _create_user
+    user.save(using=self._db)
+src/orm/inherits.py:162: in save
+    return original_save(self, *args, **kwargs)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9908 waits for ShareLock on transaction 8734015; blocked by process 9841.
+E   Process 9841 waits for ShareLock on transaction 8734097; blocked by process 9908.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,119) in relation "res_users_login_key"
+______________ ERROR at setup of test_seed_splits_menus_by_model _______________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8738934; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8739076; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,91) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_account_menu.py:33: in seeded
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8738934; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8739076; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,91) in relation "authz_role_code_key"
+________________ ERROR at setup of test_buyer_sees_account_menu ________________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8739549; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8739922; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,96) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_account_menu.py:33: in seeded
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8739549; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8739922; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,96) in relation "authz_role_code_key"
+_______________ ERROR at setup of test_catalog_shape_for_manager _______________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8742008; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8742280; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (1,6) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_admin_role_permissions.py:53: in seeded
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8742008; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8742280; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (1,6) in relation "authz_role_code_key"
+__________________ ERROR at setup of test_put_role_not_found ___________________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8743015; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8743185; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (1,16) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_admin_role_permissions.py:53: in seeded
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8743015; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8743185; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (1,16) in relation "authz_role_code_key"
+______________ ERROR at setup of test_put_unknown_capability_400 _______________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8743511; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8743711; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (1,20) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_admin_role_permissions.py:53: in seeded
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8743511; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8743711; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (1,20) in relation "authz_role_code_key"
+_________ ERROR at setup of test_put_manager_cannot_grant_unheld_noun __________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8744012; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8744266; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (1,25) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_admin_role_permissions.py:53: in seeded
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8744012; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8744266; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (1,25) in relation "authz_role_code_key"
+______ ERROR at setup of test_put_manager_cannot_revoke_frozen_capability ______
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8745298; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8745658; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (1,38) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_admin_role_permissions.py:53: in seeded
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8745298; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8745658; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (1,38) in relation "authz_role_code_key"
+____________ ERROR at setup of test_superadmin_can_grant_superadmin ____________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8749186; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8749949; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (1,68) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_admin_roles.py:37: in seeded
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8749186; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8749949; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (1,68) in relation "authz_role_code_key"
+_____________________ ERROR at setup of test_reauth_close ______________________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8760888; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8761308; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,63) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_reauth_session.py:48: in seeded
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8760888; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8761308; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,63) in relation "authz_role_code_key"
+________ ERROR at setup of test_reading_sensitive_never_requires_reauth ________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8762712; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8763211; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,74) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_reauth_session.py:48: in seeded
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8762712; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8763211; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,74) in relation "authz_role_code_key"
+__________ ERROR at setup of test_confirm_wrong_code_does_not_enable ___________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8767816; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8767973; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,37) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_totp.py:49: in user
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8767816; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8767973; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,37) in relation "authz_role_code_key"
+______________ ERROR at setup of test_disable_requires_valid_code ______________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8768201; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8768350; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,42) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_totp.py:49: in user
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8768201; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8768350; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,42) in relation "authz_role_code_key"
+_______________ ERROR at setup of test_status_reports_remaining ________________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8768568; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8768699; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,47) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_totp_recovery.py:47: in user
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8768568; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8768699; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,47) in relation "authz_role_code_key"
+____________ ERROR at setup of test_regenerate_rejected_without_2fa ____________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8768862; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8768990; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,52) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_totp_recovery.py:47: in user
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8768862; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8768990; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,52) in relation "authz_role_code_key"
+_______ ERROR at setup of TestCompanyLdapEndpoint.test_sin_capacidad_403 _______
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8769400; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8769482; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,60) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz_ldap/test_authz_ldap.py:147: in seeded
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8769400; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8769482; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,60) in relation "authz_role_code_key"
+____ ERROR at setup of TestCompanyLdapEndpoint.test_password_ldap_no_vuelve ____
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8769752; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8769861; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,66) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz_ldap/test_authz_ldap.py:147: in seeded
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8769752; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8769861; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,66) in relation "authz_role_code_key"
+_____ ERROR at setup of TestPasskeyLogin.test_signin_con_passkey_conocida ______
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8770092; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8770297; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,72) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz_passkey/test_authz_passkey.py:34: in user
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8770092; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8770297; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,72) in relation "authz_role_code_key"
+_______________ ERROR at setup of test_drop_absent_returns_false _______________
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/service/test_db_provision.py:46: in _clean_company_dbs
+    drop_database(name)
+src/service/db.py:429: in drop_database
+    cursor.execute('DROP DATABASE %s' % ident)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InvalidCatalogName: database "company_9001_db" does not exist
+_____________ ERROR at setup of test_kill_connections_best_effort ______________
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/service/test_db_provision.py:46: in _clean_company_dbs
+    drop_database(name)
+src/service/db.py:429: in drop_database
+    cursor.execute('DROP DATABASE %s' % ident)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.InvalidCatalogName: database "company_9002_db" does not exist
+=================================== FAILURES ===================================
+____________________ test_sellable_modules_are_applications ____________________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8765125; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8765290; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,2) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_seed_module_catalog.py:31: in test_sellable_modules_are_applications
+    _seed()
+tests/integration/authz/test_seed_module_catalog.py:17: in _seed
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8765125; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8765290; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,2) in relation "authz_role_code_key"
+_____________________ test_seed_is_idempotent_for_catalog ______________________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8765937; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8766158; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,16) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_seed_module_catalog.py:92: in test_seed_is_idempotent_for_catalog
+    _seed()
+tests/integration/authz/test_seed_module_catalog.py:17: in _seed
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8765937; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8766158; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,16) in relation "authz_role_code_key"
+__________ TestSeededModuleDepends.test_seed_is_idempotent_on_depends __________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8766483; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8766750; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,23) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_seed_module_depends.py:38: in test_seed_is_idempotent_on_depends
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8766483; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8766750; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,23) in relation "authz_role_code_key"
+_______________ test_user_without_any_role_is_denied_own_profile _______________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+.venv/lib/python3.12/site-packages/django/db/models/query.py:987: in get_or_create
+    return self.get(**kwargs), False
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.authz.models.Role.DoesNotExist: Role matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.DeadlockDetected: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8766996; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8767449; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,32) in relation "authz_role_code_key"
+
+The above exception was the direct cause of the following exception:
+tests/integration/authz/test_self_account_caps.py:51: in test_user_without_any_role_is_denied_own_profile
+    call_command('seed_authz')
+.venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+/usr/lib/python3.12/contextlib.py:81: in inner
+    return func(*args, **kwds)
+addons/authz/management/commands/seed_authz.py:101: in handle
+    role, _ = Role.objects.get_or_create(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:994: in get_or_create
+    return self.create(**params), True
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:971: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.OperationalError: deadlock detected
+E   DETAIL:  Process 9906 waits for ShareLock on transaction 8766996; blocked by process 9840.
+E   Process 9840 waits for ShareLock on transaction 8767449; blocked by process 9906.
+E   HINT:  See server log for query details.
+E   CONTEXT:  while inserting index tuple (0,32) in relation "authz_role_code_key"
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /home/user/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/authz/test_seed_module_catalog.py::test_sellable_modules_are_applications
+FAILED tests/integration/authz/test_seed_module_catalog.py::test_seed_is_idempotent_for_catalog
+FAILED tests/integration/authz/test_seed_module_depends.py::TestSeededModuleDepends::test_seed_is_idempotent_on_depends
+FAILED tests/integration/authz/test_self_account_caps.py::test_user_without_any_role_is_denied_own_profile
+ERROR tests/integration/sale/test_admin_order_management.py::TestBuscarOrdenesAdmin::test_filtros_combinados_and
+ERROR tests/integration/sale/test_admin_order_management.py::TestBuscarOrdenesAdmin::test_admin_detalle_orden_inexistente_404
+ERROR tests/integration/authz/test_account_menu.py::test_seed_splits_menus_by_model
+ERROR tests/integration/authz/test_account_menu.py::test_buyer_sees_account_menu
+ERROR tests/integration/authz/test_admin_role_permissions.py::test_catalog_shape_for_manager
+ERROR tests/integration/authz/test_admin_role_permissions.py::test_put_role_not_found
+ERROR tests/integration/authz/test_admin_role_permissions.py::test_put_unknown_capability_400
+ERROR tests/integration/authz/test_admin_role_permissions.py::test_put_manager_cannot_grant_unheld_noun
+ERROR tests/integration/authz/test_admin_role_permissions.py::test_put_manager_cannot_revoke_frozen_capability
+ERROR tests/integration/authz/test_admin_roles.py::test_superadmin_can_grant_superadmin
+ERROR tests/integration/authz/test_reauth_session.py::test_reauth_close - dja...
+ERROR tests/integration/authz/test_reauth_session.py::test_reading_sensitive_never_requires_reauth
+ERROR tests/integration/authz/test_totp.py::test_confirm_wrong_code_does_not_enable
+ERROR tests/integration/authz/test_totp.py::test_disable_requires_valid_code
+ERROR tests/integration/authz/test_totp_recovery.py::test_status_reports_remaining
+ERROR tests/integration/authz/test_totp_recovery.py::test_regenerate_rejected_without_2fa
+ERROR tests/integration/authz_ldap/test_authz_ldap.py::TestCompanyLdapEndpoint::test_sin_capacidad_403
+ERROR tests/integration/authz_ldap/test_authz_ldap.py::TestCompanyLdapEndpoint::test_password_ldap_no_vuelve
+ERROR tests/integration/authz_passkey/test_authz_passkey.py::TestPasskeyLogin::test_signin_con_passkey_conocida
+ERROR tests/integration/service/test_db_provision.py::test_drop_absent_returns_false
+ERROR tests/integration/service/test_db_provision.py::test_kill_connections_best_effort
+4 failed, 8074 passed, 4 skipped, 5 warnings, 21 errors in 661.35s (0:11:01)
+EXIT=1

@@ -1,0 +1,10 @@
+Subconjunto derivado del cambio de capa B — comando:
+  grep -rl 'resolve_depends|field_triggers|field_inverses|model_field_registry|_fields|get_trigger_tree|is_modifying_relations' --include=*.py tests/
+Los cuatro directorios de mayor peso, mas los dos tocados directamente.
+
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/base/test_the_twenty_directives_land_where_the_split_says.py::TestTheListComesFromTheSourceNotFromHere::test_every_directive_of_the_source_has_a_landing
+1 failed, 4501 passed, 6 warnings in 155.68s (0:02:35)

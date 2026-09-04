@@ -1,0 +1,29 @@
+{
+  "question": "se dispara __set_name__ en el cuerpo de un modelo de Django, y que hay disponible en el owner cuando corre?",
+  "instrument": [
+    "dos sondas Python con django.setup() minimo, en probes/",
+    "una clase Python normal como control positivo, junto al modelo de Django"
+  ],
+  "metric": "si el protocolo se dispara (fired), con que nombre y sobre que owner; y que atributos existen en el owner en ese instante",
+  "blind_to": [
+    "el orden relativo entre __set_name__ y el resto del arranque de ModelBase: la sonda mide presencia de atributos, no secuencia",
+    "un modelo abstracto o proxy, que no se midieron",
+    "si el atributo sobrevive a una migracion: la sonda no toca la base"
+  ],
+  "destination": "api: src/orm/table_objects.py — el porte que la sonda desbloquea",
+  "source": [
+    "odoo19c: odoo/orm/table_objects.py — las cuatro clases y sus quince simbolos",
+    "django/db/models/base.py — ModelBase, el metaclase que construye el modelo"
+  ],
+  "reproducible": "PYTHONPATH=src uv run python scripts/workbench/table-object-naming-20260830T201048/probes/probe_set_name.py",
+  "control": "la clase Python normal es el control positivo: si el protocolo no se disparara en ella, la sonda estaria rota y no midiendo a Django",
+  "tasks": [
+    "#211"
+  ],
+  "findings": [
+    "H-API-957"
+  ],
+  "outputs": [
+    "set-name-20260830T201048.txt"
+  ]
+}

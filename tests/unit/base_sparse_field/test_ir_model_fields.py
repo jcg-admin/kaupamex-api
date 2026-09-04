@@ -11,7 +11,8 @@ real; los demás son de registro y no la tocan.
 import pytest
 from exceptions import UserError
 
-from addons.base.models.ir_model import STATE_BASE, IrModel, IrModelFields
+from addons.base.models.ir_model import (
+    STATE_BASE, STATE_MANUAL, IrModel, IrModelFields)
 from addons.base_sparse_field.models.fields import Serialized, Sparse
 from addons.base_sparse_field.models.ir_model_fields import (
     SERIALIZED_TTYPE,
@@ -124,14 +125,20 @@ def test_renaming_a_sparse_field_is_refused(serialized_row):
 
 @pytest.mark.django_db
 def test_renaming_a_field_that_is_not_sparse_is_allowed(serialized_row):
-    """La guarda es asimétrica a propósito: sólo protege a los dispersos."""
+    """La guarda es asimétrica a propósito: sólo protege a los dispersos.
+
+    El campo se declara **manual**, no base: desde la tarea #172 la guarda de
+    escritura de ``IrModelFields`` cierra la alteración de un campo base por
+    esta vía, como la fuente. Este caso mide la guarda del disperso, así que
+    la otra no debe intervenir.
+    """
     fila = IrModelFields.objects.create(
-        model=MODEL_LABEL, model_id=serialized_row.model_id, name='plain',
-        ttype='char', state=STATE_BASE)
-    fila.name = 'renamed'
+        model=MODEL_LABEL, model_id=serialized_row.model_id, name='x_plain',
+        ttype='char', state=STATE_MANUAL)
+    fila.name = 'x_renamed'
     fila.save()
     fila.refresh_from_db()
-    assert fila.name == 'renamed'
+    assert fila.name == 'x_renamed'
 
 
 # --- reflexión (≙ _reflect_fields) -----------------------------------------

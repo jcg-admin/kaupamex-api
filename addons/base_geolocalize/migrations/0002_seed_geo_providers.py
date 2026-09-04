@@ -21,7 +21,7 @@ from addons.base_geolocalize.data import GEO_PROVIDERS
 def sembrar(apps, schema_editor):
     """Crea los proveedores preservando el orden del ``data.xml``.
 
-    El orden **es** contrato: ``Geocoder._get_provider()`` cae en
+    El orden **es** contrato: ``BaseGeocoder._get_provider()`` cae en
     ``openstreetmap`` cuando el parámetro no está seteado, porque toma
     ``order_by('pk').first()``. Insertar al revés cambiaría el proveedor por
     defecto sin que nada lo declare.

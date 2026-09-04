@@ -52,6 +52,7 @@ Divergencias declaradas
 from addons.base.models import ResUsers
 from addons.hr_homeworking.models.hr_homeworking import DAYS
 from orm.method_chain import chain_method, extend_list
+from orm.model_classes import extend_property
 
 
 def _get_employee_fields_to_sync(self):
@@ -84,30 +85,18 @@ def _day_location_property(day_field_name):
     return property(getter, setter)
 
 
-def _extend_user_fields_property(cls, name):
-    """Envuelve la property ``SELF_*_FIELDS`` previa sumándole ``DAYS`` —
-    ≙ ``return super().SELF_*_FIELDS + DAYS`` (``:22-28``). Idempotente
-    por marca en el ``fget`` (``ready()`` puede correr dos veces)."""
-    previous = None
-    for klass in cls.__mro__:
-        if name in klass.__dict__:
-            previous = klass.__dict__[name]
-            break
-    if isinstance(previous, property):
-        if getattr(previous.fget, '_hr_homeworking_extended', False):
-            return
-        previous_fget = previous.fget
+def _add_the_days(self, anterior):
+    """≙ ``return super().SELF_*_FIELDS + DAYS`` (``:22-28``).
 
-        def fget(self):
-            return list(previous_fget(self)) + list(DAYS)
-    else:
-        # ``hr`` aún no instaló la suya (divergencia 3) — queda sólo la
-        # aportación propia, que es lo que ``super()`` daría sobre ausente.
-        def fget(self):
-            return list(DAYS)
-    fget.__name__ = name
-    fget._hr_homeworking_extended = True
-    setattr(cls, name, property(fget))
+    ``anterior`` es el ``super()``: lo entrega
+    :func:`orm.model_classes.extend_property`, que también aporta la
+    idempotencia (``ready()`` puede correr dos veces) y el caso de la property
+    ausente. **Era un ayudante privado de este archivo**, copiado de nadie y
+    duplicable por cada addon que quisiera sumar a una property; se subió al
+    ORM al descubrir que ``hr`` había resuelto lo mismo por otra vía y esa vía
+    no instalaba nada (:ref:`h-api-834`).
+    """
+    return list(anterior or []) + list(DAYS)
 
 
 def apply_hr_homeworking_res_users_extensions():
@@ -123,5 +112,5 @@ def apply_hr_homeworking_res_users_extensions():
                     _day_location_property(day_field_name))
     chain_method(ResUsers, '_get_employee_fields_to_sync',
                  _get_employee_fields_to_sync, combine=extend_list)
-    _extend_user_fields_property(ResUsers, 'SELF_READABLE_FIELDS')
-    _extend_user_fields_property(ResUsers, 'SELF_WRITEABLE_FIELDS')
+    extend_property(ResUsers, 'SELF_READABLE_FIELDS', _add_the_days)
+    extend_property(ResUsers, 'SELF_WRITEABLE_FIELDS', _add_the_days)

@@ -107,6 +107,27 @@ def source_files(paths):
     return sorted(found)
 
 
+#: La costura de una concatenación implícita de Python: la comilla que cierra
+#: un trozo, la sangría, y la que abre el siguiente. En el texto **no existe**
+#: —es sintaxis— así que al medir la forma se retira.
+SEAM = re.compile(r"""['"]\s+['"]""")
+
+
+def join_wrapped(line, following):
+    """Une la línea de la marca con su continuación, sin la costura.
+
+    Sin retirar la costura, un ``help_text`` partido mete unos veinte
+    caracteres de sangría y comillas entre la preposición y el code-span, y la
+    arista deja de casar por la ventana de :data:`EDGE` — que es estrecha a
+    propósito, para que no cuele prosa ajena entre las dos mitades.
+
+    Medido al cablearlo: dos marcas de ``addons/hr/models/hr_version.py``
+    estaban en la forma fija y el gate las reportaba igual, sólo por dónde caía
+    el corte de línea. La forma es del texto, no del ancho de la columna.
+    """
+    return SEAM.sub(' ', line.rstrip() + ' ' + following.strip())
+
+
 def offenders_in(path):
     """Marcas de bloqueo que no adoptan ninguna de las dos formas.
 
@@ -127,7 +148,7 @@ def offenders_in(path):
             continue
         # La arista puede envolverse a la línea siguiente; el destino sigue
         # siendo suyo. Se mide el par, no la línea suelta.
-        pair = line + ' ' + (lines[n] if n < len(lines) else '')
+        pair = join_wrapped(line, lines[n] if n < len(lines) else '')
         if EDGE.search(pair):
             continue
         bad.append((n, line.strip()))

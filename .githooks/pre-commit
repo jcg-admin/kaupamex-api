@@ -35,14 +35,26 @@ EXIT_CODE=0
 # entrypoints que fijan DJANGO_SETTINGS_MODULE antes de importar Django, así
 # que su import diferido es el constraint del framework — el propio template
 # `manage.py-tpl` de Django lo escribe así.
+#
+# El pathspec dice `src/***.py`, no `src/addons/***.py`, y la corrección es de
+# 2026-09-03 (#324): el guion ya declaraba `DEFAULT_ROOTS = ('src', 'addons',
+# 'tests')` desde las tareas #115 y #133, pero el hook seguía entregándole sólo
+# `src/addons`. Consecuencia medida: **85 archivos** de `src/orm` (29),
+# `src/tools` (38), `src/service` (7) y `src/config` (11) no llegaban a
+# NINGUNO de los gates de abajo al commitearse — las raíces de framework, que
+# es donde vive el ORM espejado. Es literalmente el defecto que el párrafo de
+# arriba describe para `addons/`, repetido un nivel más adentro: el guion sabía
+# medir y el hook no le pasaba qué medir. Los 85 se midieron limpios contra los
+# cuatro gates que corren sin base de datos antes de ensanchar el pathspec, así
+# que ensancharlo no introduce rojo; lo que introduce es cobertura.
 STAGED_PY=()
 while IFS= read -r line; do
     [[ -z "$line" ]] && continue
     STAGED_PY+=("$line")
 done < <(
     git diff --cached --name-only --diff-filter=ACM \
-        -- 'src/addons/***.py' 'addons/***.py' 'tests/***.py' 2>/dev/null \
-    | grep -vE 'migrations/|__pycache__' || true
+        -- 'src/***.py' 'addons/***.py' 'tests/***.py' 2>/dev/null \
+    | grep -vE 'migrations/|__pycache__|^src/manage\.py$' || true
 )
 
 if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
@@ -105,6 +117,25 @@ if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
     fi
 fi
 
+# ─── Gate 5: ningun identificador lleva el nombre de la referencia ───────────
+# Directiva del ejecutor 2026-09-02: "En nuestra api, ningun archivo, clase,
+# funcion o firma de funcion, debe de tener odoo-*". Este arbol ADAPTA la
+# referencia; un simbolo nuestro con su nombre hace pasar por prestada una
+# pieza que es del producto. El caso que lo motivo lo prueba: odoo_translate
+# convivia con models.Field.translate, que orm/fields.py ya declaraba con el
+# defecto de la fuente — dos nombres para lo mismo, y el prestado le ganaba el
+# sitio al fiel.
+# Nace SIN baseline: el arbol estaba en 0 al cablearlo.
+# Script: scripts/check_identifier_reference_name.py.
+if [[ "${#STAGED_PY[@]}" -gt 0 ]]; then
+    REFNAME_CHECKER="$REPO_ROOT/scripts/check_identifier_reference_name.py"
+    if [[ ! -f "$REFNAME_CHECKER" ]]; then
+        echo "pre-commit: $REFNAME_CHECKER no encontrado — skip refname gate" >&2
+    else
+        python3 "$REFNAME_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
 # ─── check_bloqueo_declarado: el simbolo no portado nombra su bloqueador ─────
 # "No lo porte porque falta que algo lo llame" es una ARISTA dirigida, y el
 # orden de lo que queda sale de recorrer ese grafo. Mientras la razon viva en
@@ -117,6 +148,24 @@ if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
         echo "pre-commit: $BLOQUEO_CHECKER no encontrado — skip bloqueo gate" >&2
     else
         python3 "$BLOQUEO_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
+# ─── check_bloqueo_vigente: la causa del bloqueo sigue sin existir ───────────
+# El gate de arriba mide la FORMA de la marca y declara su ceguera: no resuelve
+# el destino. Este lo resuelve. Una marca de bloqueo es una afirmacion de
+# estado fechada, asi que envejece sola y en silencio — y ademas saca el
+# simbolo de la lista de pendientes, porque el gate de porte la absuelve.
+# Episodio: image_shape de html_editor, bloqueado por tres simbolos que el
+# arbol ya tenia desde el cierre de #285 (H-API-1021).
+# Baseline de deuda heredada; una caducada nueva SI bloquea.
+# Script: scripts/check_bloqueo_vigente.py.
+if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
+    VIGENTE_CHECKER="$REPO_ROOT/scripts/check_bloqueo_vigente.py"
+    if [[ ! -f "$VIGENTE_CHECKER" ]]; then
+        echo "pre-commit: $VIGENTE_CHECKER no encontrado — skip vigencia gate" >&2
+    else
+        python3 "$VIGENTE_CHECKER" --strict "${STAGED_PY[@]}" || EXIT_CODE=1
     fi
 fi
 
@@ -149,6 +198,24 @@ if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
         echo "pre-commit: $LOOKUP_CHECKER no encontrado — skip lookup gate" >&2
     else
         python3 "$LOOKUP_CHECKER" "${STAGED_PY[@]}" || EXIT_CODE=1
+    fi
+fi
+
+# ─── check_chain_combine: el eslabon que ENRIQUECE lleva combine= ────────────
+# El relevo por defecto de chain_method invoca la previa solo si la nueva
+# devolvio None, y un contenedor vacio no lo es: el eslabon lo da por respuesta
+# buena y descarta lo que entrego la previa. Medido en res.users.settings, el
+# de `web` arrancaba en {} y el formato perdia id y user — sin excepcion y sin
+# simbolo ausente, con el gate de porte declarando el archivo completo.
+# El idioma lo decide la REFERENCIA (return super() vs res = super(); res[x]),
+# no el tipo de retorno. Baseline de deuda revisada; una llamada nueva SI
+# bloquea. Script: scripts/check_chain_combine.py.
+if [[ ${#STAGED_PY[@]} -gt 0 ]]; then
+    COMBINE_CHECKER="$REPO_ROOT/scripts/check_chain_combine.py"
+    if [[ ! -f "$COMBINE_CHECKER" ]]; then
+        echo "pre-commit: $COMBINE_CHECKER no encontrado — skip combine gate" >&2
+    else
+        python3 "$COMBINE_CHECKER" --strict "${STAGED_PY[@]}" || EXIT_CODE=1
     fi
 fi
 
@@ -293,6 +360,95 @@ if [ -f "$CHAIN_CHECKER" ]; then
         python3 "$CHAIN_CHECKER" --strict >&2
         echo "pre-commit: chain_method sin el dueno en depends — bloqueado" >&2
         exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Gate 12: una pieza de trabajo del banco declara donde aterriza lo que produce.
+# scripts/workbench/<slug>-<ISO>/ guarda el instrumento y su evidencia; el
+# documento publicable vive en docs. Sin manifest.json con sus cinco claves
+# —question, instrument, metric, blind_to, destination— el trabajo produce una
+# cifra que nadie puede situar, y una salida que nadie encuentra.
+# Nace SIN baseline: el directorio arranco vacio, asi que no hay deuda que
+# congelar (directiva del ejecutor 2026-08-30, tarea #219).
+# Script: scripts/check_workbench.py.
+BENCH_CHECKER="$REPO_ROOT/scripts/check_workbench.py"
+if [ -f "$BENCH_CHECKER" ]; then
+    if ! python3 "$BENCH_CHECKER" --strict >/dev/null 2>&1; then
+        python3 "$BENCH_CHECKER" --strict >&2
+        echo "pre-commit: pieza de trabajo sin manifiesto completo — bloqueado" >&2
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Gate 13: un atributo de clase de campo responde lo que la fuente declara.
+# `orm.fields` instala 45 atributos sobre `models.Field` con el defecto que la
+# fuente pone en su clase base. La fuente ademas los SOBRESCRIBE por clase
+# concreta, y si esas sobrescrituras no se instalan el atributo existe,
+# responde, y responde mal — ningun gate de porte lo ve ausente porque no lo
+# esta. Cayo asi `falsy_value` (h-api-970), y lo destapo un consumidor al
+# portarse, no una auditoria.
+#
+# Solo dispara si el commit toca el contrato de campo o el mapa de porte: es
+# el unico gate que arranca Django (~2.6 s), y cobrarselo a un commit de docs
+# es como se aprende a saltarse un hook.
+# Script: scripts/check_field_class_attributes.py (con baseline de deuda).
+ATTR_CHECKER="$REPO_ROOT/scripts/check_field_class_attributes.py"
+TOCA_CONTRATO=$(printf '%s\n' "${STAGED_PY[@]:-}" \
+    | grep -cE 'src/orm/fields(_[a-z]+)?\.py$' || true)
+if [ -f "$ATTR_CHECKER" ] && [ "$TOCA_CONTRATO" -gt 0 ]; then
+    if ! uv run python "$ATTR_CHECKER" --strict >/dev/null 2>&1; then
+        uv run python "$ATTR_CHECKER" --strict >&2
+        echo "pre-commit: un atributo de clase responde distinto de la fuente — bloqueado" >&2
+        exit 1
+    fi
+fi
+
+# --- Gate 20: un reclamo de cero que el porte dejo falso (#228) ---------------
+# Un docstring declina un porte citando su propio comando: `grep ... src/` -> 0.
+# Esa razon es correcta al escribirse y CADUCA SOLA: el dia que alguien porta
+# lo que el grep buscaba, la prosa sigue diciendo cero. Cuatro declinaciones
+# seguidas resultaron apoyarse en un cero caducado (H-API-981..984), y las
+# cuatro se encontraron leyendo archivo por archivo.
+#
+# El gate re-ejecuta el comando que el texto dice haber corrido. No adivina el
+# simbolo: corre la cita. Deuda heredada congelada en
+# scripts/stale_zero_claims_baseline.txt — una listada no bloquea, una nueva si.
+# Script: scripts/check_stale_zero_claims.py.
+STALE_CHECKER="$REPO_ROOT/scripts/check_stale_zero_claims.py"
+if [ -f "$STALE_CHECKER" ] && [ "${#STAGED_PY[@]}" -gt 0 ]; then
+    if ! python3 "$STALE_CHECKER" --strict "${STAGED_PY[@]}" >/dev/null 2>&1; then
+        python3 "$STALE_CHECKER" --strict "${STAGED_PY[@]}" >&2
+        echo "pre-commit: un reclamo de cero ya no vale — re-medir la razon, no borrarla" >&2
+        exit 1
+    fi
+fi
+
+# ─── check_write_path: el porte escribe por el mismo camino que la fuente ────
+# H-API-1058: un reflejo escribia con `update_or_create` —cruzando la guarda de
+# `save()`— donde la fuente escribe con SQL crudo a proposito. Ninguno de los
+# otros gates lo veia: miden presencia, cabecera, sitio o nombre, no el CUERPO.
+# Baseline de deuda heredada; una divergencia NUEVA de camino SI bloquea.
+# El gate rehusa sin la raiz de la referencia en vez de publicar un 0 falso, y
+# ese rehuse no debe bloquear un commit: se avisa y se sigue.
+# Script: scripts/check_write_path.py (eje sobre scripts/counterpart_body.py).
+WRITE_PATH_CHECKER="$REPO_ROOT/scripts/check_write_path.py"
+if [ -f "$WRITE_PATH_CHECKER" ] && [ "${#STAGED_PY[@]}" -gt 0 ]; then
+    WRITE_PATH_OUT=$(python3 "$WRITE_PATH_CHECKER" --strict "${STAGED_PY[@]}" 2>&1)
+    WRITE_PATH_RC=$?
+    if [ "$WRITE_PATH_RC" -eq 2 ]; then
+        echo "pre-commit: sin la raiz de la referencia no se mide el camino de escritura — skip" >&2
+    elif [ "$WRITE_PATH_RC" -eq 0 ]; then
+        # El denominador se publica tambien en verde: un OK mudo no distingue
+        # "no hay divergencias" de "el gate no llego a correr".
+        echo "$WRITE_PATH_OUT"
+    else
+        echo "$WRITE_PATH_OUT" >&2
+        echo "pre-commit: el porte escribe por otro camino que la fuente." >&2
+        echo "  Si la divergencia es deliberada, declararla en el docstring y" >&2
+        echo "  anadirla al baseline con --write-baseline; si no, corregir el camino." >&2
+        EXIT_CODE=1
     fi
 fi
 

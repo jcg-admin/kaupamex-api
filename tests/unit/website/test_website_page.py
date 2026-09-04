@@ -133,7 +133,7 @@ def _make_website(**overrides):
 def _make_page(website, url='/pagina-104', key='website.pagina-104',
                name='Página 104', **overrides):
     view = overrides.pop('view', None) or IrUiView.objects.create(
-        name=name, type='qweb', key=key, arch_db='<t><div id="wrap"/></t>')
+        name=name, type='template', key=key, arch_db='<t><div id="wrap"/></t>')
     values = {'url': url, 'view': view, 'website': website}
     values.update(overrides)
     return WebsitePage.objects.create(**values)
@@ -161,9 +161,9 @@ class TestMostSpecificPages:
     def test_the_site_page_wins_over_the_generic_twin(self):
         website = _make_website()
         generic_view = IrUiView.objects.create(
-            name='Gemela', type='qweb', key='website.gemela', arch_db='<t/>')
+            name='Gemela', type='template', key='website.gemela', arch_db='<t/>')
         specific_view = IrUiView.objects.create(
-            name='Gemela', type='qweb', key='website.gemela-w', arch_db='<t/>')
+            name='Gemela', type='template', key='website.gemela-w', arch_db='<t/>')
         generic = WebsitePage.objects.create(
             url='/gemela', view=generic_view, website=None)
         specific = WebsitePage.objects.create(
@@ -238,7 +238,7 @@ class TestCheckExistingPage:
 class TestNewPage:
     def _seed_template(self):
         return IrUiView.objects.create(
-            name='Default page', type='qweb', key='website.default_page',
+            name='Default page', type='template', key='website.default_page',
             arch_db='<t><div id="wrap"/></t>')
 
     def test_new_page_creates_view_page_and_menu(self):

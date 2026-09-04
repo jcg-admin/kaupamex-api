@@ -177,7 +177,10 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         'base.ResUsers', related_name='interviewing_applicants', blank=True,
         db_index=True, verbose_name='Entrevistadores',
     )
-    applicant_properties = fields.Properties(null=True, blank=True, verbose_name='Propiedades del candidato')
+    applicant_properties = fields.Properties(
+        null=True, blank=True, verbose_name='Propiedades del candidato',
+        definition='job.applicant_properties_definition',
+    )
     applicant_notes = fields.Html(blank=True, default='', verbose_name='Notas')
     refuse_date = fields.Datetime(null=True, blank=True, verbose_name='Fecha de rechazo')
     # Odoo talent_pool_ids: sin nombre de tabla explícito en la referencia,

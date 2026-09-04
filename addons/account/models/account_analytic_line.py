@@ -120,6 +120,7 @@ from django.core.exceptions import ValidationError
 from addons.analytic.models.analytic_line import AccountAnalyticLine
 from addons.product.models import ProductProduct
 from orm.method_chain import chain_method
+from orm.model_classes import extend_selection_choices
 
 #: ≙ ``selection_add=[('invoice', 'Customer Invoice'), ('vendor_bill',
 #: 'Vendor Bill')]`` (odoo19c: :48). Etiquetas en español por convención del
@@ -137,18 +138,18 @@ _ANALYTIC_PROFITABILITY_ASSET_TYPES = {
 
 
 def _extend_selection_choices(model, field_name, extra_choices):
-    """Amplía en sitio los ``choices`` de un campo ya declarado en ``model``.
+    """≙ ``selection_add=`` — delega en el mecanismo compartido.
 
-    Mismo helper que ``account_analytic_plan.py`` de este mismo tramo — no
-    genera migración, idempotente."""
-    field = model._meta.get_field(field_name)
-    already_present = {value for value, _label in field.choices}
-    for value, label in extra_choices:
-        if value not in already_present:
-            field.choices.append((value, label))
-            already_present.add(value)
+    Era una copia local de :func:`orm.model_classes.extend_selection_choices`,
+    una de cuatro idénticas en el árbol. Se retiran las cuatro: el compartido
+    hace lo mismo **y** acepta el ``ondelete`` que la fuente declara junto al
+    ``selection_add``, que es lo que la tarea **#205** construyó.
 
-
+    Este campo **no declara política** en la referencia
+    (``odoo19c: account/models/account_analytic_line.py:11-14``), así que sus valores nuevos toman la de
+    por defecto, ``'set null'`` — igual que allá (``:131-133``).
+    """
+    return extend_selection_choices(model, field_name, extra_choices)
 def _add_if_absent(model, name, field):
     """Idempotente — mismo helper que ``account/models/product.py``."""
     if not any(f.name == name for f in model._meta.get_fields()):

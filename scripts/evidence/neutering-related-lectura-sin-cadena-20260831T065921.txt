@@ -1,0 +1,14 @@
+# Control discriminante — related-lectura-sin-cadena
+# fecha:    2026-08-31T06:59:21
+# archivo:  src/orm/fields_nonstored.py
+# anulado:  s/if self\.related:/if False:/
+# tests:    tests/unit/orm/test_related_field_declaration.py
+
+## 1. Verde de partida (guarda presente)
+13 passed, 1 warning in 5.28s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_related_field_declaration.py::TestReadingWalksTheChain::test_reading_the_related_gives_the_value_at_the_end
+FAILED tests/unit/orm/test_related_field_declaration.py::TestTheFourDeclaredInResBank::test_the_account_reads_the_name_and_the_bic_of_its_bank
+FAILED tests/unit/orm/test_related_field_declaration.py::TestTheFourDeclaredInResBank::test_the_chain_of_two_links_resolves_end_to_end
+3 failed, 10 passed, 1 warning in 4.97s

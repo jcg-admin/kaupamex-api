@@ -1,0 +1,42 @@
+{
+  "question": "Que hace falta medir en el arbol vivo antes de portar la construccion de la clase de modelo de odoo19c: odoo/orm/model_classes.py — sus tres reglas de especie, el aviso de _description ausente y la derivacion de _table desde _name? De esas cuatro mediciones depende si el porte se instala sobre un baseline limpio o destapa deuda previa, y cual de las reglas de la fuente tiene superficie aqui.",
+  "instrument": [
+    "measure_inherited_model_kind.py — las tres reglas de especie sobre MODELS_BY_NAME",
+    "probes/count_models_without_description.py — el denominador del aviso portado",
+    "probes/list_tables_that_diverge_from_the_name.py — _table declarado contra el derivado de _name",
+    "probes/inspect_the_two_findings_of_the_check.py — los dos casos que el check destapo al correr",
+    "PYTHONPATH=src DJANGO_SETTINGS_MODULE=config.settings.testing uv run python <cada uno>",
+    "scripts/neutralize_and_measure.sh — el control de cada guarda, cinco corridas en scripts/evidence/neutering-332-*"
+  ],
+  "metric": "Cuatro conteos sobre los modelos de orm.registry.MODELS_BY_NAME con la base de pruebas cargada: (1) los que heredan de un padre CON _name declarado que difiere en especie, por cada una de las tres reglas de odoo19c: odoo/orm/model_classes.py:233-258; (2) los que no declaran _description en su propio __dict__; (3) los cuyo _table declarado difiere de _name.replace('.', '_'); (4) las divergencias que check_table_matches_name() ya publicaba antes del porte.",
+  "blind_to": [
+    "Un padre que declare su especie sin _name: el recorrido lo salta a proposito, porque la fuente recorre clases de definicion y no toda la MRO de Python.",
+    "Un modelo que nunca llega a MODELS_BY_NAME por no declarar _name: 290 del arbol estan asi hasta que se toquen.",
+    "La especie que un modelo adquiriria por una extension tardia via extend_model, que no crea clase y por tanto no pasa por class_prepared.",
+    "La mitad de _abstract de _check_model_extension, que aqui no tiene superficie: orm.registry._register rechaza el _name duplicado, asi que dos clases nunca se funden bajo un mismo nombre.",
+    "El conteo de _description es ciego a un modelo que lo herede de un mixin sin declararlo: se lee __dict__ y no getattr, que es exactamente la distincion que el aviso portado destapo en el codigo propio.",
+    "La derivacion de _table no dice si la tabla real existe en PostgreSQL — mide la cadena declarada contra la derivada, no el catalogo."
+  ],
+  "destination": [
+    "src/orm/model_classes.py — is_abstract, is_transient, _check_model_extension, _check_model_parent_extension, check_model_bases, inherits_of, inherits_children, _init_model_class_attributes, _prepare_setup, ensure_model_class_attributes",
+    "src/addons/base/apps.py — la llamada a ensure_model_class_attributes antes de ensure_rec_names",
+    "tests/unit/orm/test_model_class_construction.py — el control positivo sobre el arbol vivo mas los doubles por regla",
+    "scripts/evidence/neutering-332-*.txt — el control de cada guarda",
+    "docs: source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/"
+  ],
+  "control": "Cada guarda portada se anula con scripts/neutralize_and_measure.sh y se mide cuantos casos caen; una guarda cuyo control no discrimina no es una red. Cinco corridas fechadas en scripts/evidence/. El propio arbol es ademas el control positivo del check de especie: con 0 violaciones medidas, un check que rechazara de mas caeria sobre los 140 modelos registrados.",
+  "corrected_premise": {
+    "asumido": "El _name de un modelo se lee con getattr, como cualquier atributo de clase.",
+    "medido": "getattr recorre la MRO: addons/website/models/static_page.py:30 hereda el _name de WebsiteSearchableMixin sin declarar el suyo, asi que _init_model_class_attributes le habria escrito el _description y el _table del mixin. Se lee model_cls.__dict__.get('_name'), igual que orm.registry._register (registry.py:214).",
+    "lo_destapo": "El aviso de _description ausente que la propia fuente porta — disparo sobre website.searchable.mixin en la primera corrida."
+  },
+  "source": "odoo19c @ odoo-tools; arbol de api en la rama feature/kaupamex-l3",
+  "reproducible": "Los cuatro comandos de instrument; sus salidas fechadas en outputs/.",
+  "outputs": [
+    "outputs/censo-20260903T020920.txt",
+    "outputs/count-models-without-description-20260903T021950.txt",
+    "outputs/list-tables-that-diverge-from-the-name-20260903T021950.txt",
+    "outputs/inspect-the-two-findings-of-the-check-20260903T021950.txt"
+  ],
+  "tasks": ["#332"]
+}

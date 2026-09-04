@@ -1,0 +1,7 @@
+slugify_one('!!!') = ''
+slugify_one('---') = ''
+slugify_one('   ') = ''
+slugify_one('### $$$') = ''
+slugify_one('ok') = 'ok'
+name: name
+display_name declarado en ProductTemplate: True

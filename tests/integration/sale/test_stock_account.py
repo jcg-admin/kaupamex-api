@@ -67,7 +67,7 @@ def test_fifo_costing_consumes_oldest_layers(db):
     assert out.value == Decimal('-2000.00')
     assert out.unit_cost == Decimal('133.3333')
     # Primera capa agotada, segunda con saldo 5 @200 = 1000.
-    layers = StockValuationLayer.objects.filter(product=product, quantity__gt=0).order_by('id')
+    layers = StockValuationLayer.objects.filter(product_id=product, quantity__gt=0).order_by('id')
     assert layers[0].remaining_qty == Decimal('0.00')
     assert layers[1].remaining_qty == Decimal('5.00')
     assert layers[1].remaining_value == Decimal('1000.00')
@@ -97,7 +97,7 @@ def test_value_move_receipt_then_delivery(db):
     in_layer = valuation.value_move(in_move, unit_cost=Decimal('120.00'))
     assert in_layer.quantity == Decimal('4.00')
     assert in_layer.value == Decimal('480.00')
-    assert in_layer.stock_move_id == in_move.id
+    assert in_layer.stock_move_id_id == in_move.id
     # Movimiento de salida (interno → cliente): usa el AVCO (=120).
     out_move = StockMove.objects.create(
         product=product, product_uom_qty=Decimal('2'), quantity=Decimal('2'),
@@ -106,7 +106,7 @@ def test_value_move_receipt_then_delivery(db):
     out_layer = valuation.value_move(out_move)
     assert out_layer.unit_cost == Decimal('120.0000')
     assert out_layer.value == Decimal('-240.00')
-    assert out_layer.stock_move_id == out_move.id
+    assert out_layer.stock_move_id_id == out_move.id
 
 
 def test_value_move_internal_transfer_no_layer(db):
@@ -119,4 +119,4 @@ def test_value_move_internal_transfer_no_layer(db):
     )
     # Transferencia interna → interna: sin cambio de valor.
     assert valuation.value_move(move) is None
-    assert StockValuationLayer.objects.filter(product=product).count() == 0
+    assert StockValuationLayer.objects.filter(product_id=product).count() == 0

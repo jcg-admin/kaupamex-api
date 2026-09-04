@@ -53,22 +53,32 @@ Qué se porta y qué no
 =====================
 
 Se portan las **nueve clases** del AST con sus 84 símbolos, el parseo de la
-notación polaca, el álgebra booleana, el empuje de la negación a las hojas y la
-compilación. Quedan fuera, declarados:
+notación polaca, el álgebra booleana, el empuje de la negación a las hojas, la
+compilación y el **registro de optimizadores**: los cuatro registradores
+(:func:`operator_optimization`, :func:`field_type_optimization`,
+:func:`nary_optimization`, :func:`nary_condition_optimization`), la llave de
+orden :func:`_optimize_nary_sort_key`, sus dos mapas y el despacho en los dos
+``_optimize_step``. Quedan fuera, declarados:
 
-- **Los 39 optimizadores de módulo** (``_operator_equal_as_in``,
-  ``_optimize_in_set``, ``_optimize_like_str``, la jerarquía ``child_of``…).
-  Su veredicto por función es la tarea **#373**. Consecuencia visible: la
-  normalización de ``=``/``!=`` a ``in``/``not in`` que allá hace
-  ``_operator_equal_as_in`` aquí ocurre en ``DomainCondition._to_q``, en el
-  paso de compilación, porque sin ella el compilador de hoja no recibiría el
-  operador que la fuente le promete.
+- **Los optimizadores concretos** que se registran con él. El porte avanza
+  por familias: la de **operador** —``_operator_equal_if_value``,
+  ``_operator_different``, ``_operator_equals``, ``_operator_equal_as_in``,
+  ``_optimize_in_set``, ``_optimize_like_str``— y la de **tipo de campo**
+  —``_optimize_boolean_in``, ``_optimize_boolean_in_all``— ya están. Faltan la
+  de fecha, la relacional, la de propiedades, la jerarquía ``child_of`` y las
+  de fusión n-aria. **Cuáles y cuántas viven en el tablero**, no aquí: una
+  cuenta transcrita a este docstring envejece con cada porte sin que nadie
+  toque el archivo.
 - **Los seis** ``_as_predicate`` y ``DomainCondition._optimize_field_search_method``
-  — siete símbolos. Su consumidor en la fuente es ``Model.filtered_domain``
-  (filtrar en memoria en vez de en SQL), que **no existe en este árbol**:
-  ``grep -rn "filtered_domain" src/ addons/`` da 0. Portarlos exigiría antes
-  ``Field.filter_function`` y ``Field.expression_getter``, también ausentes.
-  Sucesor: tarea **#373** los cubre junto al resto de la capa.
+  — siete símbolos. **Portados.** Este renglón decía que su consumidor
+  ``Model.filtered_domain`` *"no existe en este árbol"*, con su ``grep`` en 0,
+  y que portarlos exigiría antes ``Field.filter_function`` y
+  ``Field.expression_getter``, *"también ausentes"*. Las tres partes caducaron:
+  el porte de ``ir_default`` construyó ``filtered_domain`` —``orm/models.py``
+  lo declara como función de módulo y como método de ``AccessQuerySet``— y
+  ``orm/fields.py`` declara los otros dos. La prosa siguió describiendo el
+  árbol de antes hasta que ``check_stale_zero_claims.py`` volvió a correr el
+  comando (:ref:`h-api-992`).
 
 La adaptación de forma, declarada
 ==================================
@@ -79,16 +89,37 @@ compone el ORM a partir del ``Q``, así que ni el alias ni la query viajan por
 esta capa. El nombre cambia porque el tipo de retorno cambia — llamarlo
 ``_to_sql`` y devolver un ``Q`` sería peor que renombrarlo.
 """
+import collections
 import enum
 import functools
+import inspect
 import itertools
+import logging
 import operator as operator_module
+import warnings
+from datetime import date, datetime, time, timedelta, timezone
 
 from django.core.exceptions import FieldDoesNotExist
+from django.db import models
 from django.db.models import Q
 
-from orm.fields import condition_to_q, falsy_value
+from orm.fields_nonstored import NonStored
+from orm.fields import (
+    NEGATIVE_CONDITION_OPERATORS as _FIELDS_NEGATIVE_OPERATORS,
+    condition_to_q,
+    falsy_value,
+    walk_related_chain,
+)
+from orm.fields_properties import Properties
+from orm.environments import get_current_tz, is_su
+from orm.model_classes import parent_name_of
+from orm.utils import COLLECTION_TYPES, parse_field_expr
+from orm import registry
+from tools.date_utils import parse_date, parse_iso_date, utc
 from tools.func import classproperty
+from tools.misc import OrderedSet, partition, str2bool
+from tools.query import Query
+from tools.sql import SQL
 
 __all__ = [
     'Domain', 'DomainBool', 'DomainNot', 'DomainNary', 'DomainAnd', 'DomainOr',
@@ -111,10 +142,11 @@ STANDARD_CONDITION_OPERATORS = frozenset([
 CONDITION_OPERATORS = set(STANDARD_CONDITION_OPERATORS) | {'=', '!=', '<>', '=='}
 """Los aceptados al construir. Los cuatro extra los normaliza la compilación.
 
-La fuente los admite igual y los reduce con optimizadores de módulo
-(``_operator_equal_as_in``, ``_operator_different``, ``_operator_equals``);
-mientras esa capa no exista (tarea **#373**) la reducción vive en
-``DomainCondition._to_q``.
+La fuente los admite igual y los reduce con optimizadores de módulo, y aquí
+también desde ``api@04ac6b64``: los declara cada ``@operator_optimization``,
+no esta constante. La reducción de respaldo que vive en
+``DomainCondition._to_q`` se conserva para la condición que llega sin pasar
+por ``optimize()`` — compilar es la única puerta que no se puede saltar.
 """
 
 INTERNAL_CONDITION_OPERATORS = frozenset(('any!', 'not any!'))
@@ -166,7 +198,7 @@ _INVERSE_INEQUALITY = {
 _TRUE_LEAF = (1, '=', 1)
 _FALSE_LEAF = (0, '=', 1)
 
-_COLLECTION_TYPES = (list, tuple, set, frozenset)
+_logger = logging.getLogger(__name__)
 
 MAX_OPTIMIZE_ITERATIONS = 1000
 
@@ -181,6 +213,25 @@ def _django_path(field_expr):
     sigue siendo conservador con las rutas (ver su docstring).
     """
     return field_expr.replace('.', '__')
+
+
+def _non_stored_field(model, name):
+    """El campo sin columna que ``_meta`` no conoce, o ``None``.
+
+    **La divergencia es de reparto, no de alcance.** La fuente guarda todos sus
+    campos en un solo ``_fields``, tengan columna o no
+    (``odoo19c: odoo/orm/models.py:473`` declara ``display_name`` ahí junto a
+    los demás). Django los separa: los que tienen columna viven en ``_meta`` y
+    los que no —los :class:`orm.fields_nonstored.NonStored`— son atributos de
+    clase. Resolver un campo, entonces, es mirar en los dos sitios; mirar sólo
+    en el primero deja fuera exactamente a los que necesitan ``search=``.
+
+    Se busca en la clase y no en la instancia: ``getattr`` sobre la clase
+    devuelve el descriptor mismo, que es lo que hay que inspeccionar, mientras
+    que sobre una instancia devolvería el **valor** que el descriptor calcula.
+    """
+    descriptor = inspect.getattr_static(model, name, None)
+    return descriptor if isinstance(descriptor, NonStored) else None
 
 
 class OptimizationLevel(enum.IntEnum):
@@ -281,9 +332,12 @@ class Domain:
         """Un dominio a medida — ≙ ``Domain.custom`` (``:289``).
 
         :param to_q: invocable ``(model) -> Q`` que implementa ``_to_q``.
-        :param predicate: invocable ``(record) -> bool``; se conserva el
-            parámetro para que la firma se lea contra la de la fuente, pero su
-            consumidor (``filtered_domain``) no existe aquí.
+        :param predicate: invocable ``(record) -> bool``. **Tiene consumidor**:
+            ``DomainCustom._as_predicate`` lo devuelve y ``filtered_domain``
+            llega hasta ahí. Sin él el dominio a medida no se puede evaluar en
+            memoria y ``_as_predicate`` lo dice levantando, en vez de inventar
+            un predicado. Esta línea decía *"su consumidor no existe aquí"*,
+            que el propio ``:794`` ya contradecía en el mismo archivo.
         """
         return DomainCustom(to_q, predicate)
 
@@ -374,9 +428,13 @@ class Domain:
         """Optimizaciones básicas — ≙ ``:418``.
 
         Reescribe el dominio en uno lógicamente equivalente y más canónico. En
-        este árbol la única reescritura viva es el **empuje de la negación a
-        las hojas** más el aplanado de los n-arios; el resto de la capa es la
-        tarea **#373**.
+        este árbol las reescrituras vivas son el **empuje de la negación a las
+        hojas**, el aplanado de los n-arios, el **orden** de sus hijos y el
+        despacho de los optimizadores **registrados**. El porte de los
+        concretos avanza por familias —la de operador y la de tipo de campo ya
+        están— y su estado vive en el tablero, no en este docstring: una cuenta
+        transcrita aquí envejece con cada porte sin que nadie toque el
+        archivo.
         """
         return self._optimize(model, OptimizationLevel.BASIC)
 
@@ -397,12 +455,34 @@ class Domain:
                 object.__setattr__(domain, '_opt_level', next_level)
         return domain
 
+
     def _optimize_step(self, model, level):
         """Un nivel de optimización — ≙ ``:466``."""
         return self
 
     def _to_q(self, model=None):
         """El filtro ``Q`` de este dominio — ≙ ``_to_sql`` (``:470``)."""
+        raise NotImplementedError
+
+    def _as_predicate(self, model=None):
+        """Este dominio como función ``(registro) -> bool`` — ≙ ``:409``.
+
+        El gemelo en memoria de :meth:`_to_q`: aquélla compila el dominio a un
+        ``Q`` para que lo resuelva PostgreSQL, ésta lo compila a una función de
+        Python para evaluarlo sobre registros que ya están en mano.
+
+        **Para qué hace falta si el motor ya sabe filtrar.** Hay valores que no
+        están en ninguna fila: el de respaldo de un campo dependiente de
+        empresa es el que el campo responde *cuando la empresa no tiene el
+        suyo*, así que preguntarle al ``WHERE`` si lo satisface no tiene
+        sentido — no hay fila que devolver. Su consumidor es
+        ``ir.default._evaluate_condition_with_fallback``.
+
+        La divergencia de firma, declarada: allá recibe ``records`` (un
+        recordset, del que saca modelo y entorno); aquí recibe el **modelo**,
+        igual que :meth:`_to_q`, porque en este stack el entorno no viaja con
+        el recordset.
+        """
         raise NotImplementedError
 
 
@@ -457,6 +537,11 @@ class DomainBool(Domain):
         entero. Es el defecto que :ref:`h-api-606` registró.
         """
         return Q() if self.value else Q(pk__in=[])
+
+    def _as_predicate(self, model=None):
+        """La constante, sin mirar el registro — ≙ ``:519``."""
+        value = self.value
+        return lambda record: value
 
 
 # singletons, accesibles por Domain.TRUE y Domain.FALSE
@@ -519,6 +604,11 @@ class DomainNot(Domain):
         sobre ruta con punto o un ``DomainCustom``.
         """
         return ~self.child._to_q(model)
+
+    def _as_predicate(self, model=None):
+        """La negación del predicado del hijo — ≙ ``:567``."""
+        predicate = self.child._as_predicate(model)
+        return lambda record: not predicate(record)
 
 
 class DomainNary(Domain):
@@ -593,13 +683,21 @@ class DomainNary(Domain):
         return self.apply(child.map_conditions(function) for child in self.children)
 
     def _optimize_step(self, model, level):
-        """Optimiza los hijos y aplana — ≙ ``:652``.
+        """Optimiza los hijos, los ordena y los fusiona — ≙ ``:652-669``.
 
-        La fuente además ordena los hijos y corre ``_MERGE_OPTIMIZATIONS`` para
-        fusionar condiciones del mismo campo. Esa capa es la tarea **#373**; sin
-        ella el aplanado sigue siendo correcto, sólo menos compacto.
+        Los tres pasos van en este orden y no es intercambiable: la fusión
+        recibe hijos **ya optimizados y ya ordenados**, que es lo que permite a
+        :func:`nary_condition_optimization` recorrerlos por bloques contiguos
+        del mismo campo en vez de por parejas.
+
+        Si nada cambió se devuelve ``self``, comparando por **identidad**: es
+        lo que corta el bucle de :meth:`Domain._optimize`, que repite hasta
+        punto fijo.
         """
         children = self._flatten(child._optimize(model, level) for child in self.children)
+        children.sort(key=_optimize_nary_sort_key)
+        for merge in _MERGE_OPTIMIZATIONS:
+            children = merge(type(self), children, model)
         if (len(self.children) == len(children)
                 and all(map(operator_module.is_, self.children, children))):
             return self
@@ -610,6 +708,23 @@ class DomainNary(Domain):
         parts = [child._to_q(model) for child in self.children]
         return functools.reduce(self.Q_OPERATOR, parts)
 
+    def _as_predicate(self, model=None):
+        """Combina los predicados de los hijos con ``all``/``any``.
+
+        ≙ ``DomainAnd._as_predicate`` (``:695``) y ``DomainOr`` (``:725``).
+        La fuente escribe los dos por separado; aquí uno solo, con
+        :attr:`PREDICATE_COMBINE` como la clase lo declara — el mismo patrón
+        que :attr:`Q_OPERATOR` ya usa para la compilación a ``Q``.
+
+        Los predicados se construyen **una vez** y la combinación se evalúa
+        por registro, igual que allá: el generador de la fuente es perezoso en
+        la construcción, no en la evaluación.
+        """
+        predicates = [child._as_predicate(model) for child in self.children]
+        combine = self.PREDICATE_COMBINE
+        return lambda record: combine(
+            predicate(record) for predicate in predicates)
+
 
 class DomainAnd(DomainNary):
     """AND con varios hijos — ≙ ``:678``."""
@@ -617,6 +732,7 @@ class DomainAnd(DomainNary):
     __slots__ = ()
     OPERATOR = '&'
     Q_OPERATOR = operator_module.and_
+    PREDICATE_COMBINE = all
     ZERO = _TRUE_DOMAIN
 
     @classproperty
@@ -635,6 +751,7 @@ class DomainOr(DomainNary):
     __slots__ = ()
     OPERATOR = '|'
     Q_OPERATOR = operator_module.or_
+    PREDICATE_COMBINE = any
     ZERO = _FALSE_DOMAIN
 
     @classproperty
@@ -674,6 +791,21 @@ class DomainCustom(Domain):
 
     def _to_q(self, model=None):
         return self._q(model)
+
+    def _as_predicate(self, model=None):
+        """El predicado que se le pasó al construirlo — ≙ ``:763``.
+
+        Hasta hoy ``Domain.custom`` aceptaba ``predicate=`` *"para que la firma
+        se lea contra la de la fuente"* y lo guardaba sin consumidor. Ya lo
+        tiene: ``filtered_domain`` llega hasta aquí. Sin él el dominio a medida
+        no se puede evaluar en memoria, y decirlo es más útil que devolver un
+        predicado inventado.
+        """
+        if self._filtered is None:
+            raise ValueError(
+                'este Domain.custom no declaró predicate=; sin él no se puede '
+                'evaluar en memoria (sólo compilar a Q)')
+        return self._filtered
 
 
 class DomainCondition(Domain):
@@ -737,7 +869,7 @@ class DomainCondition(Domain):
 
     def __iter__(self):
         field_expr, operator, value = self.field_expr, self.operator, self.value
-        if isinstance(value, (*_COLLECTION_TYPES, Domain)):
+        if isinstance(value, (*COLLECTION_TYPES, Domain)):
             value = list(value)
         yield (field_expr, operator, value)
 
@@ -786,24 +918,275 @@ class DomainCondition(Domain):
         current, field = model, None
         for part in self.field_expr.split('.'):
             if current is None:
+                if isinstance(field, Properties):
+                    # ``props.color`` NO es una travesía de relación: lo que
+                    # sigue al punto es el nombre de una **propiedad** dentro
+                    # del JSON, y el campo que gobierna la condición es el
+                    # ``Properties`` mismo. La fuente lo separa antes con
+                    # ``parse_field_expr`` y despacha a
+                    # ``Properties.condition_to_sql`` (``odoo19c:
+                    # fields_properties.py:678``); aquí el corte ocurre en la
+                    # resolución y el compilador de hoja recibe el campo.
+                    break
                 self._raise('Ruta que atraviesa un campo no relacional')
             try:
                 field = current._meta.get_field(part)
             except FieldDoesNotExist:
-                self._raise('Campo inválido %s.%s', current._meta.label, part)
-            current = field.related_model if field.is_relation else None
+                field = _non_stored_field(current, part)
+                if field is None:
+                    self._raise('Campo inválido %s.%s',
+                                current._meta.label, part)
+            current = (field.related_model
+                       if getattr(field, 'is_relation', False) else None)
         object.__setattr__(self, '_field_instance', field)
         return field
 
-    def _optimize_step(self, model, level):
-        """≙ ``:922``, reducido a marcar el nivel.
+    def _optimize_field_search_method(self, model):
+        """El dominio con que el propio campo sustituye a esta condición.
 
-        La fuente despacha aquí los 39 optimizadores registrados por operador y
-        por tipo de campo. Ninguno está portado (tarea **#373**), así que la
-        condición se devuelve tal cual y la normalización mínima que la
-        compilación necesita la hace ``_to_q``.
+        ≙ ``DomainCondition._optimize_field_search_method``
+        (``odoo19c: odoo/orm/domains.py:986-1035``). Se porta la escalera
+        entera, que son cuatro peldaños y en ese orden:
+
+        1. **El operador tal cual.** Si el ``search`` del campo lo entiende,
+           su dominio sustituye a la condición y ahí termina.
+        2. **El operador inverso, negado.** Un ``search`` que sabe ``ilike``
+           pero no ``not ilike`` responde igual: se le pregunta por el
+           positivo y se niega el resultado. La fuente sólo lo intenta si el
+           primer peldaño no levantó — un error real no se reintenta.
+        3. **La descomposición de ``in``/``not in``.** Un ``search`` que sólo
+           implementa ``=`` atiende una lista como la disyunción de sus
+           valores, y ``not in`` como la conjunción de las negaciones. Es
+           retrocompatibilidad declarada de la fuente, no una invención.
+        4. **El error, nombrando el campo y el modelo.** Si ningún peldaño
+           dio dominio, la condición no se puede satisfacer y callar sería
+           devolver un resultado que nadie puede justificar.
+
+        DIVERGENCIA DE MECANISMO — dos, las dos de vía:
+
+        - **El error es ``ValueError``, no ``UserError``.** Es el mismo que
+          :meth:`_raise` usa en todo este archivo para una condición mal
+          formada, y el que sus llamadores ya atienden; introducir aquí una
+          jerarquía distinta partiría el contrato de error del módulo.
+        - **El peldaño ``any!`` de la fuente no se porta.** Allá reintenta la
+          condición con ``model.sudo()``, es decir elevando el permiso; aquí
+          el acotamiento por fila lo aplica ``AccessQuerySet`` cuando el
+          llamador lo pide, y elevarlo desde el optimizador concedería un
+          permiso que nadie otorgó. Es la misma divergencia que
+          ``name_search`` ya declara para el ``.sudo()`` de su cierre.
         """
+        field = self._field(model)
+        operator, value = self.operator, self.value
+        error_original = None
+        try:
+            computed = field.determine_domain(model, operator, value)
+        except (NotImplementedError, ValueError) as error:
+            computed = NotImplemented
+            error_original = error
+        else:
+            if computed is not NotImplemented:
+                return Domain(computed)
+        if error_original is None:
+            inverso = _INVERSE_OPERATOR.get(operator)
+            if inverso is not None:
+                computed = field.determine_domain(model, inverso, value)
+                if computed is not NotImplemented:
+                    return ~Domain(computed)
+        try:
+            if operator == 'in':
+                return Domain.OR([
+                    Domain(field.determine_domain(model, '=', item))
+                    for item in value])
+            if operator == 'not in':
+                return Domain.AND([
+                    Domain(field.determine_domain(model, '!=', item))
+                    for item in value])
+        except (NotImplementedError, ValueError) as error:
+            if error_original is None:
+                error_original = error
+        if error_original is not None:
+            raise error_original
+        self._raise('Operador no soportado sobre %s de %s',
+                    self.field_expr, model._meta.label)
+
+    def _optimize_step(self, model, level):
+        """Despacha los optimizadores registrados — ≙ ``:969-984``.
+
+        Dos consultas al mismo mapa, en este orden: primero por **operador**,
+        después por **tipo de campo**. La primera que devuelva un dominio
+        distinto gana y corta — la fuente lo hace igual, y el corte importa: sin
+        él, el segundo optimizador vería una condición que el primero ya
+        sustituyó, y el resultado dependería del orden de registro en vez del
+        contrato.
+
+        El tipo de campo sólo se consulta cuando hay modelo contra el que
+        resolverlo. Sin modelo, la condición se optimiza por operador y nada
+        más — es la misma frontera que ``_field`` ya impone.
+        """
+        if model is not None:
+            field = self._field(model)
+            # El campo que sabe buscarse a sí mismo va ANTES que el registro
+            # — ≙ ``:956-967``. No es preferencia: un campo sin columna no
+            # tiene nada que un optimizador por tipo pueda reescribir, y su
+            # ``search`` devuelve un dominio sobre campos que sí la tienen,
+            # que es lo que el registro sabe optimizar después.
+            #
+            # ``field.name == self.field_expr`` descarta la travesía de
+            # relación: en ``partner_id.display_name`` el ``search`` que
+            # aplica es el del otro modelo, y quien lo alcanza es el
+            # optimizador de ``any``, no éste.
+            if (getattr(field, 'search', None) is not None
+                    and getattr(field, 'name', None) == self.field_expr):
+                domain = self._optimize_field_search_method(model)
+                domain = domain.optimize(model)
+                if domain != self:
+                    return domain
+        optimizations = _OPTIMIZATIONS_FOR[level]
+        for opt in optimizations.get(self.operator, ()):
+            domain = opt(self, model)
+            if domain != self:
+                return domain
+        if model is not None:
+            field_type = getattr(field, 'type', None)
+            if field_type is not None:
+                for opt in optimizations.get(field_type, ()):
+                    domain = opt(self, model)
+                    if domain != self:
+                        return domain
         return self
+
+    def _normalized(self):
+        """La condición reducida a lo que un compilador de hoja admite.
+
+        Devuelve ``(field_expr, operator, value, constant)``. Cuando
+        ``constant`` no es ``None`` la condición colapsó a ``TRUE``/``FALSE``
+        y las otras tres no valen.
+
+        Existe porque **dos** compiladores la necesitan igual —:meth:`_to_q`
+        para PostgreSQL y :meth:`_as_predicate` para memoria— y en la fuente
+        ese trabajo lo hacen los optimizadores registrados, antes de que
+        ninguno de los dos corra. Aquí esa capa no está portada (tarea
+        **#225**), así que la normalización ocurre en la compilación; tenerla
+        una vez es lo que impide que los dos compiladores diverjan sobre el
+        mismo dominio.
+        """
+        field_expr, operator, value = self.field_expr, self.operator, self.value
+
+        if operator in ('==', '<>'):
+            operator = '=' if operator == '==' else '!='
+        if operator in ('=', '!='):
+            operator = 'in' if operator == '=' else 'not in'
+            if isinstance(value, COLLECTION_TYPES):
+                # una colección vacía compara contra «no establecido»
+                value = tuple(value) or (False,)
+            else:
+                value = (value,)
+
+        if (operator in ('in', 'not in')
+                and isinstance(value, COLLECTION_TYPES) and not value):
+            constant = _FALSE_DOMAIN if operator == 'in' else _TRUE_DOMAIN
+            return field_expr, operator, value, constant
+
+        if operator not in STANDARD_CONDITION_OPERATORS:
+            self._raise('Operador no soportado al compilar')
+
+        return field_expr, operator, value, None
+
+    def _as_predicate(self, model=None):
+        """La condición como función ``(registro) -> bool`` — ≙ ``:1037``.
+
+        La fuente delega en ``Field.filter_function`` tras reducir el operador
+        a su forma positiva, y aquí igual: la negación se aplica encima, para
+        no duplicar cada rama en el compilador de hoja.
+
+        **Lo que NO admite**, y son los tres casos que la fuente resuelve y
+        aquí no tienen con qué:
+
+        - ``any``/``any!`` sobre una relación — su predicado exige recorrer los
+          corregistros y volver a filtrar, que es ``Many2one.filter_function``
+          (``odoo19c: odoo/orm/fields_relational.py:174``). Sin él la travesía
+          no se puede evaluar en memoria.
+        - un ``value`` que sea ``Query`` o ``SQL`` — la fuente lo resuelve
+          yendo al motor a materializar los ids; eso es ir a la base, que es
+          justo lo que este camino evita.
+        Los dos **levantan**, no devuelven un predicado silenciosamente
+        permisivo: un ``lambda _: True`` ahí sería el verde que no discrimina.
+
+        ``child_of``/``parent_of`` **sí** llegan aquí desde ``api@24b9b12c``:
+        ``_operator_hierarchy`` los registró en ``CONDITION_OPERATORS``, así
+        que ``checked()`` ya no los rechaza. Se resuelven como la fuente
+        (``odoo19c: :1045``) — subiendo a ``FULL``, que es donde su optimizador
+        los reescribe a un dominio simple, y evaluando el resultado::
+
+            if operator in ('child_of', 'parent_of'):
+                return self._optimize(records, OptimizationLevel.FULL)\
+                           ._as_predicate(records)
+
+        La fuente anota ahí *"TODO have a specific implementation for these"*:
+        el rodeo por el optimizador materializa los ids de la jerarquía contra
+        la base, así que **no es una evaluación en memoria** — es la única que
+        hay hasta que exista esa implementación específica.
+        """
+        if self.operator in ('child_of', 'parent_of'):
+            # ≙ ``:1045-1047``, con su TODO: no hay implementación específica,
+            # se sube a FULL —donde ``_operator_hierarchy`` la reescribe— y se
+            # evalúa el resultado. Va ANTES de ``_normalized`` porque el
+            # operador aún no es de los que el compilador de hoja admite.
+            return self._optimize(model, OptimizationLevel.FULL)._as_predicate(model)
+
+        field_expr, operator, value, constant = self._normalized()
+        if constant is not None:
+            return constant._as_predicate(model)
+
+        positive_operator = NEGATIVE_CONDITION_OPERATORS.get(operator, operator)
+        if positive_operator in ('any', 'any!'):
+            self._raise('La travesía de relación no se evalúa en memoria '
+                        '(tarea #225)', error=NotImplementedError)
+        if isinstance(value, (Domain, Query, SQL)):
+            self._raise('Un valor de tipo consulta exige ir al motor',
+                        error=NotImplementedError)
+
+        field = self._field(model)
+        if field is None:
+            self._raise('Sin modelo no se puede resolver el campo del predicado',
+                        error=ValueError)
+
+        function = field.filter_function(model, field_expr, positive_operator,
+                                         value)
+        if positive_operator == operator:
+            return function
+        return lambda record: not function(record)
+
+    def _any_to_q(self, field, operator, value, model):
+        """La subconsulta de un ``any`` sobre una relación — ≙ ``:1096-1112``.
+
+        La fuente emite ``columna IN (SELECT id FROM comodelo WHERE <sub>)``, y
+        eso es lo que se construye aquí: el subdominio se compila **contra el
+        comodelo** y se envuelve en el ``pk`` de sus filas.
+
+        **Por qué la subconsulta y no la travesía de Django.** ``privilege__name
+        = X`` daría el mismo conjunto para un many2one, pero sobre un x2many
+        emite un JOIN que **repite la fila** una vez por línea coincidente, y el
+        conteo del ``QuerySet`` deja de ser el número de registros. La
+        subconsulta no tiene ese efecto y además es la forma de la fuente.
+
+        Hasta ``api@707b3e28`` esta rama no existía: ``condition_to_q`` recibía
+        el ``Domain`` como si fuera una colección de valores y producía
+        ``privilege__in=[('name', 'in', ['X'])]`` — un ``Q`` que **se construye
+        sin error** y revienta al consultar con ``invalid literal for int()``.
+        Un verde en la construcción que no distingue «compila» de «el
+        compilador no conoce el operador».
+        """
+        if field is None or not getattr(field, 'is_relation', False):
+            self._raise("No se puede usar '%s' sobre un campo no relacional",
+                        operator)
+        comodel = field.related_model
+        if comodel is None:
+            self._raise("No se puede determinar el modelo de la relación")
+        subdomain = value if isinstance(value, Domain) else Domain(value)
+        rows = comodel.objects.filter(subdomain._to_q(comodel)).values('pk')
+        q = Q(**{f'{_django_path(self.field_expr)}__in': rows})
+        return ~q if operator.startswith('not ') else q
 
     def _to_q(self, model=None):
         """El filtro ``Q`` de la condición — ≙ ``_to_sql`` (``:1087``).
@@ -811,10 +1194,11 @@ class DomainCondition(Domain):
         Dos cosas ocurren antes de delegar en ``condition_to_q``:
 
         1. **``=``/``!=`` se normalizan a ``in``/``not in``** de un elemento.
-           Allá lo hace el optimizador ``_operator_equal_as_in`` (``:1280``);
-           aquí ocurre en el paso de compilación porque esa capa no existe
-           todavía (tarea **#373**). Sin esta normalización el compilador de
-           hoja recibiría un operador que la fuente le promete ya reducido.
+           Allá lo hace el optimizador ``_operator_equal_as_in`` (``:1280``), y
+           aquí también desde ``api@04ac6b64``. Esta normalización se conserva
+           como **respaldo**: una condición que llega sin haber pasado por
+           ``optimize()`` no la recibió, y el compilador de hoja espera el
+           operador que la fuente le promete ya reducido.
         2. **La colección vacía colapsa a constante** — ``in []`` es FALSO y
            ``not in []`` es VERDADERO. Es ``_optimize_in_set`` (``:1315``), y
            sin ella el compilador de hoja se queda sin nada que emitir: la
@@ -824,26 +1208,55 @@ class DomainCondition(Domain):
            ``a__b``). Es lo que :ref:`h-api-614` registró: el mapa anterior la
            pasaba tal cual y Django no resuelve el punto.
         """
-        field_expr, operator, value = self.field_expr, self.operator, self.value
+        field_expr, operator, value, constant = self._normalized()
+        if constant is not None:
+            return constant._to_q(model)
 
-        if operator in ('==', '<>'):
-            operator = '=' if operator == '==' else '!='
-        if operator in ('=', '!='):
-            operator = 'in' if operator == '=' else 'not in'
-            if isinstance(value, _COLLECTION_TYPES):
-                # una colección vacía compara contra «no establecido»
-                value = tuple(value) or (False,)
-            else:
-                value = (value,)
+        field = self._field(model)
+        if operator in ('any', 'any!', 'not any', 'not any!'):
+            return self._any_to_q(field, operator, value, model)
+        if isinstance(field, Properties) and not parse_field_expr(field_expr)[1]:
+            # DIVERGENCIA declarada. Allá ``Properties.condition_to_sql``
+            # **rechaza** la condición sin nombre de propiedad
+            # (``odoo19c: fields_properties.py:680-681``); aquí cae al cuerpo
+            # genérico, que trata la columna ``jsonb`` como un valor. Retirar
+            # el atajo cambia comportamiento observable y no cabe en el pase
+            # que porta la familia de la condición: queda como tarea #348.
+            return condition_to_q(
+                _django_path(field_expr), operator, value, field)
 
-        if operator in ('in', 'not in') and isinstance(value, _COLLECTION_TYPES) and not value:
-            return (_FALSE_DOMAIN if operator == 'in' else _TRUE_DOMAIN)._to_q(model)
+        if isinstance(field, models.Field):
+            # ≙ ``:1096`` — la fuente llama **siempre** a la fachada del campo,
+            # nunca al cuerpo. Esa fachada compone el cuerpo con la
+            # optimización de índice del campo dependiente de empresa
+            # (``Field._condition_to_sql_company``) y es el punto en que un
+            # tipo de campo sobreescribe la forma entera: ``Properties`` lo
+            # hace en los dos árboles, porque una clave de JSON necesita la
+            # contención ``@>``/``<@`` además de la igualdad — el valor
+            # guardado puede ser una lista.
+            return field.condition_to_q(field_expr, operator, value, model)
 
-        if operator not in STANDARD_CONDITION_OPERATORS:
-            self._raise('Operador no soportado al compilar')
-
+        # La comprobación es ``isinstance``, no ``is not None``, y la
+        # diferencia la destapó una medición: ``_field()`` puede devolver un
+        # ``ForeignObjectRel`` —la **relación inversa** que Django fabrica del
+        # otro lado de una FK— y ése **no es un campo**. No hereda de
+        # ``models.Field``, así que no lleva ninguno de los métodos que este
+        # módulo le cuelga, y llamarle la fachada da
+        # ``AttributeError: 'OneToOneRel' object has no attribute
+        # 'condition_to_q'``. Medido sobre ``website.page``, que llega aquí por
+        # su herencia por delegación.
+        #
+        # En la fuente esa asimetría no existe: el lado inverso de una relación
+        # **también** es un ``Field`` (un ``One2many`` con su ``inverse_name``),
+        # así que responde al mismo contrato. Darle aquí el vocabulario de
+        # campo a la relación inversa es la tarea **#347**; hasta entonces cae
+        # al cuerpo, que es lo que hacía antes de este cableado.
+        # El campo se pasa **tal cual**, no como ``None``: el cuerpo lo consulta
+        # con ``is_not_null`` y ``falsy_value``, y sustituirlo cambiaría el
+        # ``Q`` compilado de estas condiciones. Aquí sólo se acota a quién se
+        # le llama la fachada.
         return condition_to_q(
-            _django_path(field_expr), operator, value, self._field(model))
+            _django_path(field_expr), operator, value, field)
 
 
 # ==========================================================================
@@ -866,6 +1279,1324 @@ TRUE_DOMAIN = Q()
 #: colapsa a «ninguna fila», así que su negación colapsa a «sin cláusula
 #: ``WHERE``» — el queryset entero.
 FALSE_DOMAIN = Q(pk__in=[])
+
+
+# ---------------------------------------------------------------------------
+# Optimizaciones: el registro
+# ≙ ``odoo19c: odoo/orm/domains.py:1099-1245``
+# ---------------------------------------------------------------------------
+
+_OPTIMIZATIONS_FOR = {
+    level: collections.defaultdict(list)
+    for level in OptimizationLevel if level != OptimizationLevel.NONE
+}
+"""Los optimizadores de condición, por nivel y por clave.
+
+La clave es **un operador o un tipo de campo**, indistintamente: el despacho de
+:meth:`DomainCondition._optimize_step` consulta primero por operador y luego por
+tipo, y los dos salen del mismo mapa. ``NONE`` no tiene entrada — es el nivel
+del dominio sin optimizar, así que no hay nada que correr en él.
+"""
+
+_MERGE_OPTIMIZATIONS = []
+"""Los optimizadores que fusionan los hijos ya optimizados de un n-ario."""
+
+
+def operator_optimization(operators, level=OptimizationLevel.BASIC):
+    """≙ ``operator_optimization`` (``odoo19c: :1114-1125``).
+
+    Docstring de la fuente, verbatim: *"Register a condition operator
+    optimization for (condition, model)"*.
+
+    Registrar un operador lo **declara construible**: entra en
+    :data:`CONDITION_OPERATORS`, así que ``Domain('campo', operador, valor)``
+    deja de rechazarlo. Es la razón de que los cuatro extra del árbol —``=``,
+    ``!=``, ``<>``, ``==``— estén hoy en esa constante escritos a mano: sus
+    optimizadores todavía no existen y sin ellos el constructor los rechazaría.
+    """
+    assert operators, "Falta el operador a registrar"
+    CONDITION_OPERATORS.update(operators)
+
+    def register(optimization):
+        mapping = _OPTIMIZATIONS_FOR[level]
+        for operator in operators:
+            mapping[operator].append(optimization)
+        return optimization
+
+    return register
+
+
+def field_type_optimization(field_types, level=OptimizationLevel.BASIC):
+    """≙ ``field_type_optimization`` (``odoo19c: :1128-1136``).
+
+    Docstring de la fuente, verbatim: *"Register a condition optimization by
+    field type for (condition, model)"*.
+
+    A diferencia de :func:`operator_optimization`, **no declara nada
+    construible**: un tipo de campo no es un operador.
+    """
+    def register(optimization):
+        mapping = _OPTIMIZATIONS_FOR[level]
+        for field_type in field_types:
+            mapping[field_type].append(optimization)
+        return optimization
+
+    return register
+
+
+def _optimize_nary_sort_key(domain):
+    """≙ ``_optimize_nary_sort_key`` (``odoo19c: :1139-1170``).
+
+    Docstring de la fuente, verbatim: *"Sorting key for nary domains so that
+    similar operators are grouped together"*, por (1) nombre de campo, (2)
+    familia de operador y (3) operador.
+
+    La fuente declara las tres razones de ordenar, y la tercera no es
+    cosmética: *"The generated SQL will be ordered by field name so that
+    database caching can be applied more frequently"*. Las otras dos son que
+    dos dominios equivalentes optimicen al mismo resultado, y que al depurar
+    las condiciones de un campo salgan juntas.
+
+    El ``'~'`` de las dos últimas ramas es deliberado, y la fuente lo comenta:
+    *"in python; '~' > any letter"* — lo que no es condición va al final.
+    """
+    if isinstance(domain, DomainCondition):
+        # El mismo campo y el mismo operador, juntos.
+        operator = domain.operator
+        positive_op = NEGATIVE_CONDITION_OPERATORS.get(operator, operator)
+        if positive_op == 'in':
+            order = "0in"
+        elif positive_op == 'any':
+            order = "1any"
+        elif positive_op == 'any!':
+            order = "2any"
+        elif positive_op.endswith('like'):
+            order = "like"
+        else:
+            order = positive_op
+        return domain.field_expr, order, operator
+    elif hasattr(domain, 'OPERATOR') and isinstance(domain.OPERATOR, str):
+        return '~', '', domain.OPERATOR
+    else:
+        return '~', '~', domain.__class__.__name__
+
+
+def nary_optimization(optimization):
+    """≙ ``nary_optimization`` (``odoo19c: :1173-1190``).
+
+    Docstring de la fuente, verbatim: *"Register an optimization to a list of
+    children of an nary domain. The function will take an iterable containing
+    optimized children of a n-ary domain and returns optimized domains"*.
+
+    Y su invariante, también verbatim: *"you always need to optimize both AND
+    and OR domains. It is always possible because if you can optimize ``a & b``
+    then you can optimize ``a | b`` because it is optimizing ``~(~a & ~b)``"*.
+    De ahí que cada optimización se escriba en espejo, decidiendo por
+    ``cls.ZERO.value``.
+    """
+    _MERGE_OPTIMIZATIONS.append(optimization)
+    return optimization
+
+
+def _block_matches_field_types(condition, model, field_types):
+    """Si el bloque cae dentro del alcance de tipos de la optimización.
+
+    Divergencia declarada, hermana de la de ``DomainCondition._optimize_step``:
+    la fuente resuelve el campo siempre porque su ``model`` es un recordset;
+    aquí ``_field(None)`` devuelve ``None`` —es un **desconocido**, no una
+    ausencia— y una optimización acotada por tipo **no puede decidir** sin él,
+    así que no aplica.
+
+    Que esto sea una función y no una condición en línea tiene su motivo: el
+    caso llegó en la primera ejecución con optimizaciones reales acotadas por
+    tipo registradas. Mientras ``_MERGE_OPTIMIZATIONS`` estaba vacía la rama
+    sólo la ejercitaba un doble de test, que sí traía modelo; el ``AttributeError``
+    estaba ahí desde que se escribió el adaptador y **nada podía verlo**.
+    """
+    if field_types is None:
+        return True
+    field = condition._field(model)
+    return field is not None and field.type in field_types
+
+
+def nary_condition_optimization(operators, field_types=None):
+    """≙ ``nary_condition_optimization`` (``odoo19c: :1193-1245``).
+
+    Docstring de la fuente, verbatim: *"Register an optimization for condition
+    children of an nary domain. The function will take a list of domain
+    conditions of the same field and returns optimized domains"*.
+
+    Es un **adaptador** sobre :func:`nary_optimization`: recorre los hijos ya
+    ordenados y entrega bloques contiguos de condiciones que comparten campo y
+    cuyo operador está en ``operators``. Un bloque de **una sola** condición no
+    se entrega — no hay nada que fusionar.
+
+    El recorrido usa un centinela para que la última vuelta cierre el bloque
+    abierto, y ``result`` permanece ``None`` hasta que alguna optimización
+    aplica: así una lista que nadie toca se devuelve **la misma**, y el
+    ``_optimize_step`` del n-ario puede compararla por identidad.
+    """
+    def register(optimization):
+        @nary_optimization
+        def optimizer(cls, domains, model):
+            # ``result`` sigue en None hasta que una optimización aplica; desde
+            # ahí es la optimización de ``domains[:index]``.
+            result = None
+            # Cuando no es None, ``domains[block:index]`` son condiciones del
+            # mismo ``field_expr``.
+            block = None
+
+            domains_iterator = enumerate(domains)
+            stop_item = (len(domains), None)
+            while True:
+                # El centinela cierra el último bloque y corta la iteración.
+                index, domain = next(domains_iterator, stop_item)
+                matching = (isinstance(domain, DomainCondition)
+                            and domain.operator in operators)
+
+                if block is not None and not (
+                        matching and domain.field_expr == domains[block].field_expr):
+                    if block < index - 1 and _block_matches_field_types(
+                            domains[block], model, field_types):
+                        if result is None:
+                            result = domains[:block]
+                        result.extend(optimization(cls, domains[block:index], model))
+                    elif result is not None:
+                        result.extend(domains[block:index])
+                    block = None
+
+                if domain is None:
+                    break
+                if matching:
+                    if block is None:
+                        block = index
+                elif result is not None:
+                    result.append(domain)
+
+            return domains if result is None else result
+
+        return optimization
+
+    return register
+
+
+# ---------------------------------------------------------------------------
+# Optimizaciones: condiciones — la familia del operador
+# ≙ ``odoo19c: odoo/orm/domains.py:1250-1319``
+# ---------------------------------------------------------------------------
+
+ANY_TYPES = (Domain, Query, SQL)
+"""Los valores que hacen de una condición una **travesía de relación**.
+
+Un dominio, una consulta o un SQL en el lado del valor no son pertenencia: son
+otra búsqueda. ``_optimize_in_set`` los reconoce y cambia el operador a
+``any``/``not any``, que es donde el compilador sabe atravesar.
+"""
+
+
+@operator_optimization(['=?'])
+def _operator_equal_if_value(condition, _):
+    """≙ ``_operator_equal_if_value`` (``odoo19c: :1256-1260``).
+
+    Docstring de la fuente, verbatim: *"a =? b  <=>  not b or a = b"*.
+
+    Es el operador del valor **opcional**: con un valor vacío la condición no
+    filtra nada, así que colapsa a verdadero en vez de comparar contra falso.
+    """
+    if not condition.value:
+        return _TRUE_DOMAIN
+    return DomainCondition(condition.field_expr, '=', condition.value)
+
+
+@operator_optimization(['<>'])
+def _operator_different(condition, _):
+    """≙ ``_operator_different`` (``odoo19c: :1264-1268``).
+
+    Docstring de la fuente, verbatim: *"a <> b  =>  a != b"*, y su comentario:
+    *"already a rewrite-rule"*.
+    """
+    warnings.warn(
+        "El operador '<>' está obsoleto desde 19.0; usar '!=' directamente",
+        DeprecationWarning, stacklevel=2)
+    return DomainCondition(condition.field_expr, '!=', condition.value)
+
+
+@operator_optimization(['=='])
+def _operator_equals(condition, _):
+    """≙ ``_operator_equals`` (``odoo19c: :1272-1276``).
+
+    Docstring de la fuente, verbatim: *"a == b  =>  a = b"*.
+    """
+    warnings.warn(
+        "El operador '==' está obsoleto desde 19.0; usar '=' directamente",
+        DeprecationWarning, stacklevel=2)
+    return DomainCondition(condition.field_expr, '=', condition.value)
+
+
+@operator_optimization(['=', '!='])
+def _operator_equal_as_in(condition, _):
+    """≙ ``_operator_equal_as_in`` (``odoo19c: :1280-1300``).
+
+    Docstring de la fuente, verbatim: *"Equality operators. Validation for some
+    types and translate collection into 'in'"*.
+
+    **Es el optimizador que retira la deuda de** ``_normalized``: hasta ahora
+    esta reducción vivía en el paso de compilación porque esta capa no existía.
+    Ahora ocurre donde la fuente la pone, antes de que ningún compilador corra.
+
+    El caso de la colección vacía lo comenta la fuente verbatim: *"views
+    sometimes use ``('user_ids', '!=', [])`` to indicate the user is set"* — por
+    eso compara contra ``False`` en vez de colapsar.
+    """
+    value = condition.value
+    operator = 'in' if condition.operator == '=' else 'not in'
+    if isinstance(value, COLLECTION_TYPES):
+        if not value:
+            _logger.debug(
+                "La condición %r debería comparar contra False.", condition)
+            value = OrderedSet([False])
+        else:
+            _logger.debug(
+                "La condición %r debería usar el operador 'in' o 'not in'.",
+                condition)
+            value = OrderedSet(value)
+    elif isinstance(value, SQL):
+        # '=' SQL("x") pasa a 'in' SQL("(x)") — la pertenencia exige paréntesis.
+        value = SQL("(%s)", value)
+    else:
+        value = OrderedSet((value,))
+    return DomainCondition(condition.field_expr, operator, value)
+
+
+@operator_optimization(['in', 'not in'])
+def _optimize_in_set(condition, _model):
+    """≙ ``_optimize_in_set`` (``odoo19c: :1304-1319``).
+
+    Docstring de la fuente, verbatim: *"Make sure the value is an OrderedSet or
+    use 'any' operator"*.
+
+    Devuelve la **misma** condición cuando el valor ya es un ``OrderedSet`` no
+    vacío — la fuente lo comenta: *"very common case, just skip creation of a
+    new Domain instance"*. Esa identidad es lo que corta el bucle de
+    :meth:`Domain._optimize`, que compara por ``is``.
+    """
+    value = condition.value
+    if isinstance(value, OrderedSet) and value:
+        return condition
+    if isinstance(value, ANY_TYPES):
+        operator = 'any' if condition.operator == 'in' else 'not any'
+        return DomainCondition(condition.field_expr, operator, value)
+    if not value:
+        return _FALSE_DOMAIN if condition.operator == 'in' else _TRUE_DOMAIN
+    if not isinstance(value, COLLECTION_TYPES):
+        _logger.debug("La condición %r debería tener un valor de lista.", condition)
+        value = [value]
+    return DomainCondition(condition.field_expr, condition.operator, OrderedSet(value))
+
+
+@operator_optimization(['in', 'not in'])
+def _optimize_in_required(condition, model):
+    """≙ ``_optimize_in_required`` (``odoo19c: :1322-1338``).
+
+    Docstring de la fuente, verbatim: *"Remove checks against a null value for
+    required fields"*.
+
+    Un campo cuya columna rechaza el nulo no puede valer ``False``, así que
+    compararlo contra ``False`` es trabajo que la base nunca va a satisfacer.
+    Retirarlo del conjunto reduce la condición sin cambiar su resultado.
+
+    **La divergencia de mecanismo, declarada, y son tres:**
+
+    1. La fuente pide **dos** guardas —``field.required`` (del ORM) y
+       ``field in registry.not_null_fields`` (de la base)— porque allá pueden
+       discrepar: el campo se declara obligatorio y la columna todavía admite
+       nulo hasta que el DDL corre. Aquí **son la misma**: ``null=False`` es lo
+       que Django declara y lo que emite. Por eso la guarda es una sola,
+       :func:`~orm.registry.is_not_null`, que es el lado de la base — el
+       conservador de los dos. Con ese colapso el disyunto
+       ``field.name == 'id'`` queda **subsumido**: existe allá porque
+       ``Id`` no se declara ``required`` y aun así su columna es NOT NULL,
+       y aquí la clave primaria ya es ``null=False``. Escribirlo como
+       ``or name == 'id'`` no lo conserva — lo **ensancha**, porque
+       admitiría un campo nulable llamado ``id`` que la fuente rechaza.
+    2. ``all(model._ids)`` acota la optimización a que no haya ``NewId`` en el
+       recordset. Aquí ``model`` es la **clase**, no un recordset, y este ORM
+       no tiene identificadores en vuelo: la guarda es vacuamente cierta y no
+       tiene con qué evaluarse.
+    3. ``field.falsy_value`` **también es un atributo de clase aquí**, como
+       allá: el defecto lo instala ``_FIELD_CLASS_ATTRIBUTES``
+       (``orm/fields.py``) sobre ``models.Field``, y las sobrescrituras por
+       tipo las instala ``install_class_attribute_overrides()``. La función
+       ``orm.fields.falsy_value`` que este optimizador llama es un lector
+       tolerante a ``field is None``, no un mecanismo aparte.
+
+       La única divergencia real está en la clave primaria: la fuente declara
+       ``class Id(Field)`` —**no** subclase de ``Integer``, así que su falsy
+       es ``None``— y en Django ``BigAutoField`` sí desciende de
+       ``IntegerField``. Lo que los emparenta con ``AutoField`` es el
+       ``__subclasscheck__`` de su metaclase, que gobierna ``isinstance`` y
+       **no** la búsqueda de atributos, así que las tres clases concretas de
+       clave primaria se nombran una a una. Lo mide
+       ``tests/unit/orm/test_domain_in_required.py``.
+    """
+    value = condition.value
+    field = condition._field(model)
+    if falsy_value(field) is None and registry.is_not_null(field):
+        value = OrderedSet(v for v in value if v is not False)
+    if len(value) == len(condition.value):
+        return condition
+    return DomainCondition(condition.field_expr, condition.operator, value)
+
+
+@operator_optimization([op for op in CONDITION_OPERATORS if op.endswith('like')])
+def _optimize_like_str(condition, model):
+    """≙ ``_optimize_like_str`` (``odoo19c: :1391-1409``).
+
+    Docstring de la fuente, verbatim: *"Validate value for pattern matching,
+    must be a str"*.
+
+    El ramal del patrón vacío es el que consume ``field.relational``, y por eso
+    este optimizador no se pudo portar hasta ``api@85168364``: hasta entonces
+    el atributo valía ``False`` en todo campo, incluido un ``ForeignKey``
+    (:ref:`h-api-961`), así que la salida escalar se aplicaba a los dos.
+
+    Con patrón vacío hay dos desenlaces, y la fuente los separa:
+
+    - un campo **escalar** con un ``like`` a secas casa con todo, así que la
+      condición colapsa a un booleano sin mirar la columna;
+    - un campo **relacional**, o cualquier campo con un ``=like`` —que casa
+      sólo con la cadena vacía—, se traduce a una comparación contra la
+      columna, porque el resultado depende de si hay valor o no.
+    """
+    value = condition.value
+    if not value:
+        # ``=like`` casa sólo con la cadena vacía (invierte la condición)
+        result = ((condition.operator in NEGATIVE_CONDITION_OPERATORS)
+                  == ('=' in condition.operator))
+        field = condition._field(model)
+        # los campos relacionales y los no relacionales se comportan distinto
+        if (field is not None and field.relational) or '=' in condition.operator:
+            return DomainCondition(
+                condition.field_expr, '!=' if result else '=', False)
+        return Domain(result)
+    if isinstance(value, str):
+        return condition
+    if isinstance(value, SQL):
+        warnings.warn(
+            "Desde 19.0, usar Domain.custom(to_sql=lambda model, alias, "
+            "query: SQL(...))", DeprecationWarning)
+        return condition
+    if '=' in condition.operator:
+        condition._raise("El patrón a buscar debe ser una cadena",
+                         error=TypeError)
+    return DomainCondition(
+        condition.field_expr, condition.operator, str(value))
+
+
+@field_type_optimization(['many2one', 'one2many', 'many2many'])
+def _optimize_relational_name_search(condition, model):
+    """Un relacional comparado con texto se busca por su etiqueta — ≙ ``:1413``.
+
+    Docstring de la fuente, verbatim: *"Search relational using display_name.
+    When a relational field is compared to a string, we actually want to make a
+    condition on the display_name field. Negative conditions are translated
+    into a 'not any' for consistency."*
+
+    Es el consumidor real de ``search=`` en el campo sin columna: sin él,
+    ``Domain('display_name', ...)`` no resolvía y este optimizador no se podía
+    portar (:ref:`h-api-965`).
+    """
+    operator = condition.operator
+    value = condition.value
+    positive_operator = NEGATIVE_CONDITION_OPERATORS.get(operator, operator)
+    any_operator = 'any' if positive_operator == operator else 'not any'
+    if operator.endswith('like'):
+        return DomainCondition(
+            condition.field_expr,
+            any_operator,
+            DomainCondition('display_name', positive_operator, value),
+        )
+    if operator[0] in ('<', '>') and isinstance(value, str):
+        condition._raise('Desigualdad no soportada sobre un campo relacional '
+                         'comparado con texto', error=TypeError)
+    if positive_operator != 'in' or not isinstance(value, COLLECTION_TYPES):
+        return condition
+    str_values, other_values = partition(lambda item: isinstance(item, str),
+                                         value)
+    if not str_values:
+        return condition
+    domain = DomainCondition(
+        condition.field_expr,
+        any_operator,
+        DomainCondition('display_name', positive_operator, str_values),
+    )
+    if other_values:
+        if positive_operator == operator:
+            domain |= DomainCondition(condition.field_expr, operator,
+                                      other_values)
+        else:
+            domain &= DomainCondition(condition.field_expr, operator,
+                                      other_values)
+    return domain
+
+
+@field_type_optimization(['many2one'], level=OptimizationLevel.FULL)
+def _optimize_m2o_bypass_comodel_id_lookup(condition, model):
+    """La subconsulta que no hace falta — ≙ ``:1839``.
+
+    Docstring de la fuente, verbatim: *"Avoid comodel's subquery, if it can be
+    compared with the field directly"*.
+
+    La equivalencia vale porque el ``id`` del comodelo **es** la columna del
+    many2one. Sólo aplica a los operadores con ``!`` —los que ya saltaron el
+    permiso— porque con el permiso vigente la subconsulta es lo que lo aplica,
+    y saltársela se lo saltaría con él.
+
+    Las ocho equivalencias, verbatim de la fuente::
+
+        a ANY (id IN X)       =>  a IN (X - {False})
+        a ANY (id NOT IN X)   =>  a NOT IN (X | {False})
+        a ANY (id ANY X)      =>  a ANY X
+        a ANY (id NOT ANY X)  =>  a != False AND a NOT ANY X
+
+    y sus cuatro negadas. El ``False`` entra y sale porque un relacional vacío
+    no designa ninguna fila del comodelo: en el positivo sobra, y en el negado
+    hace falta para que una fila sin relación no pase el filtro.
+    """
+    operator = condition.operator
+    subdomain = condition.value
+    if not (operator in ('any!', 'not any!')
+            and isinstance(subdomain, DomainCondition)
+            and subdomain.field_expr == 'id'
+            and subdomain.operator in ('in', 'not in', 'any!', 'not any!')):
+        return condition
+    suboperator, val = subdomain.operator, subdomain.value
+    if suboperator == 'in':
+        domain = DomainCondition(condition.field_expr, 'in',
+                                 set(val) - {False})
+    elif suboperator == 'not in':
+        domain = DomainCondition(condition.field_expr, 'not in',
+                                 set(val) | {False})
+    elif suboperator == 'any!':
+        domain = DomainCondition(condition.field_expr, 'any!', val)
+    else:
+        domain = (DomainCondition(condition.field_expr, '!=', False)
+                  & DomainCondition(condition.field_expr, 'not any!', val))
+    return ~domain if operator == 'not any!' else domain
+
+
+@field_type_optimization(['boolean'])
+def _optimize_boolean_in(condition, model):
+    """≙ ``_optimize_boolean_in`` (``odoo19c: :1453-1474``).
+
+    Docstring de la fuente, verbatim: *"b in boolean_values"*.
+
+    Normaliza el valor a booleanos y, cuando queda un solo valor falso,
+    **invierte el operador** para comparar siempre contra ``[True]``. La fuente
+    declara el motivo: *"it eases the implementation of search methods"* — un
+    solo caso que atender en el compilador, en vez de dos simétricos.
+    """
+    value = condition.value
+    operator = condition.operator
+    if operator not in ('in', 'not in') or not isinstance(value, COLLECTION_TYPES):
+        condition._raise(
+            "No se puede comparar %r con %s, que no es una colección de longitud 1",
+            condition.field_expr, type(value))
+    if not all(isinstance(v, bool) for v in value):
+        # se interpretan los valores
+        if any(isinstance(v, str) for v in value):
+            _logger.debug("Comparando un booleano con una cadena en %s", condition)
+        value = {
+            str2bool(v.lower(), False) if isinstance(v, str) else bool(v)
+            for v in value
+        }
+    if len(value) == 1 and not any(value):
+        # al comparar booleanos, comparar siempre contra [True] si se puede
+        operator = _INVERSE_OPERATOR[operator]
+        value = [True]
+    return DomainCondition(condition.field_expr, operator, value)
+
+
+@field_type_optimization(['boolean'], OptimizationLevel.FULL)
+def _optimize_boolean_in_all(condition, model):
+    """≙ ``_optimize_boolean_in_all`` (``odoo19c: :1477-1485``).
+
+    Docstring de la fuente, verbatim: *"b in [True, False]  =>  True"*.
+
+    Acotado a ``FULL`` **a propósito**, y la fuente lo comenta: la
+    simplificación *"removes fields (like active) from the domain"*, así que
+    hacerla en un nivel anterior la aplicaría también a un subdominio, donde
+    ese campo todavía hace falta.
+    """
+    if (isinstance(condition.value, COLLECTION_TYPES)
+            and set(condition.value) == {False, True}):
+        # la tautología se simplifica a un booleano
+        return Domain(condition.operator == 'in')
+    return condition
+
+
+def _value_to_date(value, iso_only=False):
+    """≙ ``_value_to_date`` (``odoo19c: :1488-1511``).
+
+    Convierte el valor —o cada elemento de la colección— a ``date``. Las seis
+    ramas de la fuente se portan en su orden, y el orden importa: ``datetime``
+    va **primero** porque es subclase de ``date``, y comprobarlo después
+    devolvería el instante entero donde se espera el día.
+
+    **La divergencia de firma, declarada:** allá recibe ``env`` y se lo pasa a
+    ``parse_date``; aquí :func:`~tools.date_utils.parse_date` no lo lleva —la
+    zona y el idioma los resuelve ``orm.environments``— y esa divergencia ya
+    está declarada en el docstring de aquella función.
+    """
+    # el datetime va primero: es subclase de date
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date) or value is False:
+        return value
+    if isinstance(value, str):
+        if iso_only:
+            try:
+                value = parse_iso_date(value)
+            except ValueError:
+                # se comprueba el formato y se devuelve la cadena
+                parse_date(value)
+                return value
+        else:
+            value = parse_date(value)
+        return _value_to_date(value)
+    if isinstance(value, COLLECTION_TYPES):
+        return OrderedSet(_value_to_date(v, iso_only=iso_only) for v in value)
+    if isinstance(value, SQL):
+        warnings.warn("Desde 19.0, usar Domain.custom(to_sql=lambda model, alias, "
+                      "query: SQL(...))", DeprecationWarning)
+        return value
+    raise ValueError(f'No se pudo convertir {value!r} a una fecha')
+
+
+@field_type_optimization(['date'])
+def _optimize_type_date(condition, model):
+    """≙ ``_optimize_type_date`` (``odoo19c: :1513-1527``).
+
+    Docstring de la fuente, verbatim: *"Make sure we have a date type in the
+    value"*.
+
+    La comparación contra ``False`` con un operador de desigualdad da el
+    dominio vacío: una columna sin valor no es ni mayor ni menor que nada.
+    """
+    operator = condition.operator
+    if (
+        operator not in ('in', 'not in', '>', '<', '<=', '>=')
+        or "." in condition.field_expr
+    ):
+        return condition
+    value = _value_to_date(condition.value, iso_only=True)
+    if value is False and operator[0] in ('<', '>'):
+        # comparar contra False da un dominio vacío
+        return _FALSE_DOMAIN
+    return DomainCondition(condition.field_expr, operator, value)
+
+
+@field_type_optimization(['date'], level=OptimizationLevel.DYNAMIC_VALUES)
+def _optimize_type_date_relative(condition, model):
+    """≙ ``_optimize_type_date_relative`` (``odoo19c: :1529-1539``).
+
+    La fecha **relativa** —``'+3d'``, ``'=week_start'``— sólo se resuelve en
+    ``DYNAMIC_VALUES``: su valor depende de cuándo se evalúe, así que fijarlo
+    en ``BASIC`` congelaría un dominio que el llamador guarda para después.
+    """
+    operator = condition.operator
+    if (
+        operator not in ('in', 'not in', '>', '<', '<=', '>=')
+        or "." in condition.field_expr
+        or not isinstance(condition.value, (str, OrderedSet))
+    ):
+        return condition
+    value = _value_to_date(condition.value)
+    return DomainCondition(condition.field_expr, operator, value)
+
+
+def _value_to_datetime(value, iso_only=False):
+    """≙ ``_value_to_datetime`` (``odoo19c: :1542-1589``).
+
+    Docstring de la fuente, verbatim: *"Convert a value(s) to datetime.
+    :returns: A tuple containing the converted value and a boolean indicating
+    that all input values were dates. These are handled differently during
+    rewrites."*
+
+    Ese segundo miembro no es adorno: :func:`_optimize_type_datetime` suma un
+    día cuando la entrada era una **fecha** y un segundo cuando era un
+    **instante**, y sin el booleano no puede distinguirlos.
+
+    **Las dos divergencias de mecanismo, declaradas:**
+
+    1. ``env.tz`` lo resuelve :func:`~orm.environments.get_current_tz`, que es
+       el mismo dato por el camino de este árbol.
+    2. La fuente usa ``tz.localize(...)`` —API de ``pytz``, con su rodeo para
+       evitar el desplazamiento LMT— y aquí la zona es un
+       :class:`~zoneinfo.ZoneInfo`, donde ``datetime.combine(fecha, time.min,
+       tz)`` ya entrega el desplazamiento correcto sin rodeo. Es la misma
+       adaptación que ``get_current_tz`` declara.
+    """
+    if isinstance(value, datetime):
+        if value.tzinfo:
+            # se degrada a un datetime ingenuo, como la fuente
+            warnings.warn("Usar datetimes ingenuos en los dominios")
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value, False
+    if value is False:
+        return False, True
+    if isinstance(value, str):
+        if iso_only:
+            try:
+                value = parse_iso_date(value)
+            except ValueError:
+                # se comprueba el formato y se devuelve la cadena
+                _dt, is_date = _value_to_datetime(parse_date(value))
+                return value, is_date
+        else:
+            value = parse_date(value)
+        return _value_to_datetime(value)
+    if isinstance(value, date):
+        if value.year in (1, 9999):
+            # evita el desbordamiento: se trata como UTC
+            tz = None
+        elif (tz := get_current_tz()) == utc:
+            tz = None
+        value = datetime.combine(value, time.min, tz)
+        if tz is not None:
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value, True
+    if isinstance(value, COLLECTION_TYPES):
+        value, is_date = zip(*(_value_to_datetime(v, iso_only=iso_only)
+                               for v in value))
+        return OrderedSet(value), all(is_date)
+    if isinstance(value, SQL):
+        warnings.warn("Desde 19.0, usar Domain.custom(to_sql=lambda model, alias, "
+                      "query: SQL(...))", DeprecationWarning)
+        return value, False
+    raise ValueError(f'No se pudo convertir {value!r} a un datetime')
+
+
+@field_type_optimization(['datetime'])
+def _optimize_type_datetime(condition, model):
+    """≙ ``_optimize_type_datetime`` (``odoo19c: :1590-1646``).
+
+    Docstring de la fuente, verbatim: *"Make sure we have a datetime type in
+    the value"*.
+
+    **No es una optimización de eficiencia: es semántica.** Una columna
+    ``datetime`` comparada contra la fecha ``2024-01-01`` tiene que casar con
+    todo el día, no con su medianoche exacta; y comparada contra un instante,
+    con todo el segundo. Sin esta reescritura la comparación devuelve
+    resultados **equivocados**, no lentos. Por eso el rango se abre en los dos
+    lados: ``>= v`` y ``< v + delta``, con el delta de un día o de un segundo
+    según de qué venga el valor.
+
+    El desbordamiento tiene sus dos ramas, y no son la misma: por arriba
+    (``>``) el dominio queda vacío, porque nada es mayor que el máximo; por
+    abajo (``<=``) queda *"el campo tiene valor"*, porque todo lo que exista
+    es menor o igual.
+    """
+    field_expr = condition.field_expr
+    operator = condition.operator
+    if (
+        operator not in ('in', 'not in', '>', '<', '<=', '>=')
+        or "." in field_expr
+    ):
+        return condition
+    value, is_date = _value_to_datetime(condition.value, iso_only=True)
+
+    # la desigualdad
+    if operator[0] in ('<', '>'):
+        if value is False:
+            return _FALSE_DOMAIN
+        if not isinstance(value, datetime):
+            return condition
+        if value.microsecond:
+            assert not is_date, "una fecha no tiene microsegundos"
+            value = value.replace(microsecond=0)
+        delta = timedelta(days=1) if is_date else timedelta(seconds=1)
+        if operator == '>':
+            try:
+                value += delta
+            except OverflowError:
+                # por encima del máximo: imposible
+                return _FALSE_DOMAIN
+            operator = '>='
+        elif operator == '<=':
+            try:
+                value += delta
+            except OverflowError:
+                # por debajo del máximo: basta con que el campo tenga valor
+                return DomainCondition(field_expr, '!=', False)
+            operator = '<'
+
+    # la igualdad: se compara contra el segundo entero
+    if (
+        operator in ('in', 'not in')
+        and isinstance(value, COLLECTION_TYPES)
+        and any(isinstance(v, datetime) for v in value)
+    ):
+        delta = timedelta(seconds=1)
+        domain = DomainOr.apply(
+            DomainCondition(field_expr, '>=', v.replace(microsecond=0))
+            & DomainCondition(field_expr, '<', v.replace(microsecond=0) + delta)
+            if isinstance(v, datetime) else DomainCondition(field_expr, '=', v)
+            for v in value
+        )
+        if operator == 'not in':
+            domain = ~domain
+        return domain
+
+    return DomainCondition(field_expr, operator, value)
+
+
+@field_type_optimization(['datetime'], level=OptimizationLevel.DYNAMIC_VALUES)
+def _optimize_type_datetime_relative(condition, model):
+    """≙ ``_optimize_type_datetime_relative`` (``odoo19c: :1647-1658``).
+
+    El hermano de :func:`_optimize_type_date_relative` para el instante, y por
+    la misma razón: el valor relativo depende del momento de evaluación.
+    """
+    operator = condition.operator
+    if (
+        operator not in ('in', 'not in', '>', '<', '<=', '>=')
+        or "." in condition.field_expr
+        or not isinstance(condition.value, (str, OrderedSet))
+    ):
+        return condition
+    value, _is_date = _value_to_datetime(condition.value)
+    return DomainCondition(condition.field_expr, operator, value)
+
+
+@field_type_optimization(['properties'], level=OptimizationLevel.DYNAMIC_VALUES)
+def _optimize_properties_date_datetime(condition, model):
+    """≙ ``_optimize_properties_date_datetime`` (``odoo19c: :1660-1688``).
+
+    Una propiedad no declara su tipo en la columna —el contenedor entero es un
+    ``jsonb``—, así que el tipo se pregunta a la definición antes de convertir.
+    Y el valor convertido se **serializa a cadena**: dentro del JSON no hay
+    tipo de fecha, así que comparar contra un ``date`` de Python no casaría con
+    nada.
+
+    **La divergencia de mecanismo, declarada:** allá ``model`` es un recordset
+    vacío y ``model.get_property_definition`` se llama sobre él; aquí ``model``
+    es la **clase** de Django, y su análogo del recordset vacío es una
+    instancia sin guardar. Es el mismo objeto que
+    :meth:`~orm.models.FieldSqlMixin.get_property_definition` espera, y la
+    definición que devuelve **no depende del registro** — se resuelve por
+    modelo, igual que allá.
+    """
+    operator = condition.operator
+    if (
+        operator not in ('in', 'not in', '>', '<', '<=', '>=')
+        or condition.field_expr.count('.') != 1
+        or not isinstance(condition.value, (str, OrderedSet))
+    ):
+        return condition
+    definition = model().get_property_definition(condition.field_expr)
+    property_type = definition.get('type')
+
+    if property_type == 'date':
+        value = _value_to_date(condition.value)
+    elif property_type == 'datetime':
+        value, _is_date = _value_to_datetime(condition.value)
+    else:
+        return condition
+    # dentro del JSON no hay tipo de fecha: se compara contra su cadena
+    if isinstance(value, COLLECTION_TYPES):
+        value = OrderedSet(
+            str(item) if isinstance(item, (date, datetime)) else item
+            for item in value
+        )
+    elif isinstance(value, (date, datetime)):
+        value = str(value)
+
+    return DomainCondition(condition.field_expr, operator, value)
+
+
+@field_type_optimization(['binary'])
+def _optimize_type_binary_attachment(condition, model):
+    """≙ ``_optimize_type_binary_attachment`` (``odoo19c: :1690-1704``).
+
+    Un binario guardado en ``ir.attachment`` no tiene columna que consultar:
+    su valor vive en otra tabla. La fuente sólo admite la **comprobación de
+    existencia** sobre él y descarta el resto de la condición devolviendo el
+    dominio verdadero, con el error registrado en el log — no levantado, para
+    no reventar una búsqueda entera por un filtro que el cliente no debió
+    mandar.
+
+    La segunda mitad sí levanta: ``like`` sobre un binario no es un filtro mal
+    dirigido sino una operación que la columna no soporta.
+    """
+    field = condition._field(model)
+    operator = condition.operator
+    value = condition.value
+    if getattr(field, 'attachment', False) and not (
+            operator in ('in', 'not in') and set(value) == {False}):
+        try:
+            condition._raise('El binario se guarda como adjunto: sólo admite '
+                             'comprobación de existencia; se descarta el dominio')
+        except ValueError:
+            # se registra con su traza, como la fuente
+            _logger.exception("Operador inválido sobre un campo binario")
+        return _TRUE_DOMAIN
+    if operator.endswith('like'):
+        condition._raise('No se pueden usar operadores like sobre un campo '
+                         'binario', error=NotImplementedError)
+    return condition
+
+
+@operator_optimization(['any', 'not any', 'any!', 'not any!'])
+def _optimize_any_domain(condition, model):
+    """≙ ``_optimize_any_domain`` (``odoo19c: :1340-1358``).
+
+    Docstring de la fuente, verbatim: *"Make sure the value is an optimized
+    domain (or Query or SQL)"*.
+
+    Resuelve además la equivalencia sobre la clave primaria, que la fuente
+    escribe así::
+
+        id ANY domain      <=>  domain
+        id NOT ANY domain  <=>  ~domain
+
+    No hay relación que atravesar: la subconsulta sobre la propia tabla es el
+    dominio mismo.
+    """
+    value = condition.value
+    if isinstance(value, ANY_TYPES) and not isinstance(value, Domain):
+        if condition.operator in ('any', 'not any'):
+            # el operador pasa a su forma interna 'any!'
+            return DomainCondition(
+                condition.field_expr, condition.operator + '!', condition.value)
+        return condition
+    domain = Domain(value)
+    field = condition._field(model)
+    if field is not None and field.name == 'id':
+        return domain if condition.operator in ('any', 'any!') else ~domain
+    if value is domain:
+        # se evita recrear la misma condición
+        return condition
+    return DomainCondition(condition.field_expr, condition.operator, domain)
+
+
+def _optimize_any_domain_at_level(level, condition, model):
+    """≙ ``_optimize_any_domain_at_level`` (``:1362-1389``).
+
+    Optimiza el subdominio **contra el comodelo**, no contra este modelo: las
+    condiciones de dentro hablan del otro lado de la relación.
+
+    **Divergencia de mecanismo declarada.** La fuente resuelve el comodelo con
+    ``model.env[field.comodel_name]``; aquí no hay ``env`` sobre una clase de
+    Django —medido: ``IrRule.env`` levanta ``AttributeError``— y no hace falta,
+    porque Django lo trae en el propio campo: ``field.related_model`` es la
+    clase del otro modelo, que es exactamente lo que ``_optimize`` espera. El
+    alcance no cambia; cambia de dónde sale el comodelo.
+    """
+    domain = condition.value
+    if not isinstance(domain, Domain):
+        return condition
+    field = condition._field(model)
+    if field is None:
+        # sin modelo el campo es un desconocido — misma frontera que
+        # ``_optimize_step``: no se puede resolver el comodelo, no se optimiza
+        return condition
+    if not field.relational:
+        condition._raise("No se puede usar 'any' con un campo no relacional")
+    comodel = field.related_model
+    if comodel is None:
+        condition._raise("No se puede determinar el modelo de la relación")
+    domain = domain._optimize(comodel, level)
+    # si el subdominio es falso, la condición entera es constante
+    if domain.is_false():
+        return (_FALSE_DOMAIN if condition.operator in ('any', 'any!')
+                else _TRUE_DOMAIN)
+    if domain is condition.value:
+        # se evita recrear la misma condición
+        return condition
+    return DomainCondition(condition.field_expr, condition.operator, domain)
+
+
+#: Se registra y se liga en los cuatro niveles — ≙ ``:1392-1396``.
+[
+    operator_optimization(
+        ('any', 'not any', 'any!', 'not any!'), _level)(
+            functools.partial(_optimize_any_domain_at_level, _level))
+    for _level in OptimizationLevel
+    if _level > OptimizationLevel.NONE
+]
+
+
+@operator_optimization(['parent_of', 'child_of'], OptimizationLevel.FULL)
+def _operator_hierarchy(condition, model):
+    """La jerarquía se reescribe a un dominio simple — ≙ ``:1707-1778``.
+
+    Docstring de la fuente, verbatim en su semántica: *"``field`` is either
+    'id' to indicate to use the default parent relation (``_parent_name``) or
+    it is a field where the comodel is the same as the model. The value is
+    used to search a set of ``related_records``. We start from the given value,
+    which can be ids, a name (for searching by name), etc. Then we follow up
+    the relation; forward in case of ``parent_of`` and backward in case of
+    ``child_of``"*.
+
+    Los dos operadores **no existían en este árbol**: no estaban en
+    :data:`CONDITION_OPERATORS`, así que ``checked()`` los rechazaba al
+    construir. Registrarlos aquí los declara construibles — es lo que hace
+    :func:`operator_optimization`.
+
+    Divergencias de mecanismo, declaradas:
+
+    - ``model.env[field.comodel_name]`` es ``field.related_model``: aquí un
+      modelo es una clase de Django, no una entrada del registro del entorno.
+    - ``.sudo()`` no viaja en el recordset. La elevación es **ambiental**
+      (``orm.environments.sudo``), como en el resto del árbol, así que el
+      recorrido no la lleva colgada.
+    - ``.with_context(active_test=False)`` y ``field.context`` no tienen
+      receptor: el filtro por ``active`` no lo aplica un manager por defecto,
+      lo aplica el dominio. El recorrido ve las filas archivadas igual que la
+      fuente pide, pero por ausencia del filtro y no por desactivarlo.
+    - la fuente recibe un **recordset** y aquí es un ``QuerySet``, que es su
+      análogo: un conjunto perezoso de filas de un modelo. La firma de los dos
+      constructores se conserva.
+    """
+    if condition.operator == 'parent_of':
+        hierarchy = _operator_parent_of_domain
+    else:
+        hierarchy = _operator_child_of_domain
+    value = condition.value
+    if value is False:
+        return _FALSE_DOMAIN
+
+    field = condition._field(model)
+    if field is None:
+        condition._raise('Sin modelo no se puede resolver la jerarquía',
+                         error=ValueError)
+    field_type = getattr(field, 'type', None)
+    if field_type in ('many2one', 'one2many', 'many2many'):
+        comodel = field.related_model
+    elif field.name == 'id':
+        comodel = model
+    else:
+        condition._raise(
+            f'No se puede ejecutar {condition.operator} sobre {field.name}: '
+            'sólo funciona sobre campos relacionales')
+
+    parent = parent_name_of(comodel)
+    result_field = field.name
+    if comodel is model:
+        if condition.field_expr != 'id':
+            parent = condition.field_expr
+        if field_type == 'many2one':
+            # el dominio resultante habla de la clave primaria, no del enlace
+            result_field = 'id'
+
+    if isinstance(value, (int, str)):
+        value = [value]
+    elif not isinstance(value, COLLECTION_TYPES):
+        condition._raise(f'Un valor de tipo {type(value)} no está soportado')
+    coids, other_values = partition(lambda v: isinstance(v, int), value)
+
+    search_domain = _FALSE_DOMAIN
+    if field_type == 'many2many':
+        # en un many2many siempre se busca: el valor no designa la fila padre
+        search_domain |= DomainCondition('id', 'in', coids)
+        coids = []
+    if other_values:
+        search_domain |= Domain.OR(
+            Domain('display_name', 'ilike', v) for v in other_values)
+    if search_domain != _FALSE_DOMAIN:
+        # ``to_q`` y no ``_to_q``: la fuente resuelve aquí con
+        # ``comodel.search(search_domain)`` (``:1770``), que optimiza antes de
+        # emitir. Compilar en crudo salta ``_optimize_field_search_method`` y
+        # ``display_name`` —que en este árbol es un campo sin columna con
+        # ``search=``— llega al compilador de hoja sin sustituir.
+        coids = list(coids) + list(
+            comodel.objects.filter(to_q(search_domain, comodel))
+            .order_by('pk').values_list('pk', flat=True))
+    if not coids:
+        return _FALSE_DOMAIN
+
+    result = hierarchy(comodel.objects.filter(pk__in=coids), parent)
+    if isinstance(result, Domain):
+        if result_field == 'id':
+            return result
+        return DomainCondition(result_field, 'any!', result)
+    return DomainCondition(result_field, 'in', result)
+
+
+@operator_optimization(['any', 'not any'], level=OptimizationLevel.FULL)
+def _optimize_any_with_rights(condition, model):
+    """El permiso del comodelo, cuando ya está concedido — ≙ ``:1832-1836``.
+
+    La fuente son dos líneas y deciden algo grande: si la subconsulta del
+    comodelo aplica sus reglas de fila o no. Su ``any`` pasa a ``any!`` —la
+    forma que las salta— en dos situaciones y sólo en esas dos: el contexto
+    está elevado, o el propio campo declara ``bypass_search_access``.
+
+    **Divergencia de mecanismo, declarada:** ``model.env.su`` no tiene receptor
+    aquí. La elevación de este árbol es **ambiental** y no viaja en el
+    recordset — ``orm/environments.py:177`` la publica como ``is_su()``, y
+    ``model.env`` sobre una clase de modelo es ``None``. La condición que se
+    evalúa es la misma; lo que cambia es de dónde se lee.
+
+    Ir por ``is_su()`` y no por un ``Environment`` construido al vuelo es
+    deliberado: el que decide es el **contexto de la llamada**, que es
+    exactamente lo que la fuente consulta con ``env.su``.
+    """
+    if is_su() or condition._field(model).bypass_search_access:
+        return DomainCondition(condition.field_expr,
+                               condition.operator + '!', condition.value)
+    return condition
+
+
+def _operator_child_of_domain(comodel, parent):
+    """Los descendientes del conjunto dado — ≙ ``:1780-1802``.
+
+    Docstring de la fuente, verbatim: *"Return a set of ids or a domain to find
+    all children of given model"*.
+
+    Dos ramas, y devuelven cosas distintas a propósito: con ruta materializada
+    devuelve un **dominio** —el prefijo de ``parent_path`` lo resuelve el
+    motor en una sola pasada—; sin ella, el conjunto de ids que sale de
+    recorrer nivel por nivel.
+
+    El ``MissingError`` que la fuente atrapa **no tiene receptor aquí**: un
+    ``QuerySet`` no puede contener ids que ya no existan, porque no guarda
+    ids — guarda la consulta que los produce.
+    """
+    model = comodel.model
+    if getattr(model, '_parent_store', False) and parent == parent_name_of(model):
+        return Domain.OR(
+            DomainCondition('parent_path', '=like', path + '%')
+            for path in comodel.values_list('parent_path', flat=True) if path)
+    # sin ruta materializada, se baja nivel por nivel con la elevación
+    # ambiental; el filtrado de las filas prohibidas lo hace el resto del
+    # dominio, como declara la fuente
+    child_ids = OrderedSet()
+    while comodel.exists():
+        level_ids = list(comodel.values_list('pk', flat=True))
+        child_ids.update(level_ids)
+        next_ids = set(
+            model.objects.filter(**{f'{parent}__in': level_ids})
+            .values_list('pk', flat=True)) - set(child_ids)
+        comodel = model.objects.filter(pk__in=next_ids)
+    return child_ids
+
+
+def _operator_parent_of_domain(comodel, parent):
+    """Los ancestros del conjunto dado — ≙ ``:1804-1830``.
+
+    Docstring de la fuente, verbatim: *"Return a set of ids or a domain to find
+    all parents of given model"*.
+
+    Devuelve **siempre** un conjunto de ids, también en la rama de ruta
+    materializada: ahí los ancestros se leen de la propia ``parent_path``
+    (``'1/4/9/'`` → ``1, 4, 9``), sin consultar. El nodo de partida entra en el
+    resultado por las dos ramas — el ``[:-1]`` de la fuente descarta la cadena
+    vacía que deja el separador final, no al propio nodo.
+    """
+    model = comodel.model
+    if getattr(model, '_parent_store', False) and parent == parent_name_of(model):
+        return OrderedSet(
+            int(label)
+            for path in comodel.values_list('parent_path', flat=True) if path
+            for label in path.split('/')[:-1])
+    parent_ids = OrderedSet()
+    while comodel.exists():
+        level_ids = list(comodel.values_list('pk', flat=True))
+        parent_ids.update(level_ids)
+        next_ids = {
+            pk for pk in model.objects.filter(pk__in=level_ids)
+            .values_list(parent, flat=True) if pk is not None
+        } - set(parent_ids)
+        comodel = model.objects.filter(pk__in=next_ids)
+    return parent_ids
+
+
+def _merge_set_conditions(cls, conditions):
+    """≙ ``_merge_set_conditions`` (``odoo19c: :1881-1908``).
+
+    Docstring de la fuente, verbatim: *"Base function to merge equality
+    conditions. Combine the 'in' and 'not in' conditions to a single set of
+    values"*, con sus dos ejemplos::
+
+        a in {1} or a in {2}              <=>  a in {1, 2}
+        a in {1, 2} and a not in {2, 5}   =>   a in {1}
+
+    No está registrada: es la **base** de las tres fusiones de conjunto, que
+    la llaman tras decidir si su caso admite la fusión.
+    """
+    assert all(isinstance(cond.value, OrderedSet) for cond in conditions)
+
+    # los conjuntos de las condiciones 'in' y 'not in'
+    in_sets = [c.value for c in conditions if c.operator == 'in']
+    not_in_sets = [c.value for c in conditions if c.operator == 'not in']
+
+    # se combinan
+    field_expr = conditions[0].field_expr
+    if cls.OPERATOR == '&':
+        if in_sets:
+            return [DomainCondition(
+                field_expr, 'in', intersection(in_sets) - union(not_in_sets))]
+        return [DomainCondition(field_expr, 'not in', union(not_in_sets))]
+    if not_in_sets:
+        return [DomainCondition(
+            field_expr, 'not in', intersection(not_in_sets) - union(in_sets))]
+    return [DomainCondition(field_expr, 'in', union(in_sets))]
+
+
+def intersection(sets):
+    """Intersección de una lista de ``OrderedSet`` — ≙ ``:1911-1913``."""
+    return functools.reduce(operator_module.and_, sets)
+
+
+def union(sets):
+    """Unión de una lista de ``OrderedSet`` — ≙ ``:1916-1918``.
+
+    Se construye por comprensión y no con ``|`` acumulado para conservar el
+    **orden de inserción**, que es lo que distingue un ``OrderedSet`` de un
+    ``set`` y lo que llega al SQL emitido.
+    """
+    return OrderedSet(elem for s in sets for elem in s)
+
+
+@nary_condition_optimization(operators=('in', 'not in'))
+def _optimize_merge_set_conditions_mono_value(cls, conditions, model):
+    """≙ ``_optimize_merge_set_conditions_mono_value`` (``:1921-1936``).
+
+    Docstring de la fuente, verbatim: *"Merge equality conditions … Do not
+    touch x2many fields which have a different semantic"*.
+
+    La exclusión no es una cautela: sobre un x2many ``a in {1} and a in {2}``
+    **puede** tener solución —un registro con las dos líneas— mientras que
+    sobre un escalar no. Fusionarlos con la misma regla cambiaría el conjunto
+    de filas que la consulta devuelve.
+    """
+    field = conditions[0]._field(model)
+    if field is None or field.type in ('many2many', 'one2many', 'properties'):
+        return conditions
+    return _merge_set_conditions(cls, conditions)
+
+
+@nary_condition_optimization(operators=('in',),
+                             field_types=['many2many', 'one2many'])
+def _optimize_merge_set_conditions_x2many_in(cls, conditions, model):
+    """≙ ``_optimize_merge_set_conditions_x2many_in`` (``:1939-1945``).
+
+    Docstring de la fuente, verbatim: *"Merge domains of 'in' conditions for
+    x2many fields like for 'any' operator"*.
+
+    Sólo bajo ``OR``: la unión es equivalente. Bajo ``AND`` la condición se
+    deja intacta, por la semántica que el optimizador anterior describe.
+    """
+    if cls is DomainAnd:
+        return conditions
+    return _merge_set_conditions(cls, conditions)
+
+
+@nary_condition_optimization(operators=('not in',),
+                             field_types=['many2many', 'one2many'])
+def _optimize_merge_set_conditions_x2many_not_in(cls, conditions, model):
+    """≙ ``_optimize_merge_set_conditions_x2many_not_in`` (``:1948-1954``).
+
+    Docstring de la fuente, verbatim: *"Merge domains of 'not in' conditions
+    for x2many fields like for 'not any' operator"*.
+
+    El espejo del anterior: sólo bajo ``AND``.
+    """
+    if cls is DomainOr:
+        return conditions
+    return _merge_set_conditions(cls, conditions)
+
+
+@nary_condition_optimization(['any'], ['many2one', 'one2many', 'many2many'])
+@nary_condition_optimization(['any!'], ['many2one', 'one2many', 'many2many'])
+def _optimize_merge_any(cls, conditions, model):
+    """≙ ``_optimize_merge_any`` (``:1957-1975``).
+
+    Docstring de la fuente, verbatim: *"Merge domains of 'any' conditions for
+    relational fields. This will lead to a smaller number of sub-queries which
+    are equivalent"*::
+
+        a any (f = 8) or a any (g = 5)   <=>  a any (f = 8 or g = 5)
+        a any (f = 8) and a any (g = 5)  <=>  a any (f = 8 and g = 5)
+
+    La segunda equivalencia vale **sólo para many2one**: con un x2many las dos
+    condiciones pueden satisfacerse en líneas distintas, y una sola subconsulta
+    exigiría que una misma línea cumpla las dos.
+    """
+    field = conditions[0]._field(model)
+    if (field is None or field.type != 'many2one') and cls is DomainAnd:
+        return conditions
+    merge_conditions, other_conditions = partition(
+        lambda c: isinstance(c.value, Domain), conditions)
+    if len(merge_conditions) < 2:
+        return conditions
+    base = merge_conditions[0]
+    sub_domain = cls(tuple(c.value for c in merge_conditions))
+    return [DomainCondition(base.field_expr, base.operator, sub_domain),
+            *other_conditions]
+
+
+@nary_condition_optimization(['not any'], ['many2one', 'one2many', 'many2many'])
+@nary_condition_optimization(['not any!'], ['many2one', 'one2many', 'many2many'])
+def _optimize_merge_not_any(cls, conditions, model):
+    """≙ ``_optimize_merge_not_any`` (``:1979-1998``).
+
+    Docstring de la fuente, verbatim: *"Merge domains of 'not any' conditions
+    for relational fields"*::
+
+        a not any (f = 1) or a not any (g = 5)   => a not any (f = 1 and g = 5)
+        a not any (f = 1) and a not any (g = 5)  => a not any (f = 1 or g = 5)
+
+    El subdominio se combina con ``cls.INVERSE`` —no con ``cls``— porque la
+    negación de la condición invierte el conector: es De Morgan aplicado al
+    interior de la subconsulta.
+    """
+    field = conditions[0]._field(model)
+    if (field is None or field.type != 'many2one') and cls is DomainOr:
+        return conditions
+    merge_conditions, other_conditions = partition(
+        lambda c: isinstance(c.value, Domain), conditions)
+    if len(merge_conditions) < 2:
+        return conditions
+    base = merge_conditions[0]
+    sub_domain = cls.INVERSE(tuple(c.value for c in merge_conditions))
+    return [DomainCondition(base.field_expr, base.operator, sub_domain),
+            *other_conditions]
+
+
+@nary_optimization
+def _optimize_same_conditions(cls, conditions, model):
+    """≙ ``_optimize_same_conditions`` (``:2001-2023``).
+
+    Docstring de la fuente, verbatim: *"Merge (adjacent) conditions that are
+    the same. Quick optimization for some conditions, just compare if we have
+    the same condition twice"*.
+
+    Sólo mira **adyacentes**, y basta: ``_optimize_nary_sort_key`` ya ordenó
+    los hijos, así que dos condiciones iguales quedan juntas.
+
+    El primer recorrido no construye nada — busca si hay algún duplicado. Sin
+    él, una lista sin duplicados devolvería una copia y el ``_optimize_step``
+    del n-ario, que compara por identidad, no podría cortar el punto fijo.
+    """
+    prev = None
+    for condition in conditions:
+        if prev == condition:
+            break
+        prev = condition
+    else:
+        return conditions
+
+    # se evita toda llamada a función, y se usa la semántica de la pila para
+    # la comparación con ``prev``
+    prev = None
+    return [
+        condition
+        for condition in conditions
+        if prev != (prev := condition)
+    ]
 
 
 def AND(domains):
@@ -899,5 +2630,84 @@ def to_q(domain, model=None):
     la columna y el valor *falsy* del campo, que es lo que decide si una
     condición negada suma su rama ``OR campo IS NULL``. Sin él se asumen los
     defectos de la fuente, que son los conservadores.
+
+    **Optimiza a FULL, no a BASIC**, porque compilar es lo que la fuente exige
+    plenamente optimizado. Su ``_to_sql`` lo declara con un ``assert``
+    (``odoo19c: odoo/orm/domains.py:1091``)::
+
+        assert self._opt_level >= OptimizationLevel.FULL, \
+            "Must fully optimize before generating the query ..."
+
+    y sus dos llamadas del camino de búsqueda lo satisfacen antes de emitir
+    nada: ``odoo19c: odoo/orm/models.py:5366`` y ``:5377``. ``to_q`` es aquí
+    ese punto —el único que compila; los ``_to_q`` internos son recursión
+    sobre un árbol ya optimizado—, así que el nivel se sube aquí y no en cada
+    consumidor.
+
+    Hasta ``api@24b9b12c`` decía ``optimize(model)``, que es BASIC, y con eso
+    los optimizadores registrados a nivel ``FULL`` **nunca corrían al
+    compilar**: ``child_of``/``parent_of`` llegaban al compilador de hoja con
+    su operador intacto y morían en ``_normalized`` con *"Operador no
+    soportado al compilar"*. Ver :ref:`h-api-967`.
     """
-    return Domain(domain).optimize(model)._to_q(model)
+    return Domain(domain).optimize_full(model)._to_q(model)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ``_search_related`` — la búsqueda de un campo ``related=``
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Vive aquí y no en ``orm/fields.py`` porque construye un ``Domain``, y aquel
+# módulo no puede importarlo sin cerrar el ciclo (``domains`` ya importa de
+# ``fields``). Es la misma vía por la que ``determine_domain`` se instala
+# sobre ``NonStored`` desde el módulo que sí ve a los dos.
+
+def _field_search_related(self, records, operator, value):
+    """≙ ``Field._search_related`` (``:735-772``) — el dominio que sustituye a
+    una condición sobre el campo proyectado.
+
+    ``('x.y.z', op, v)`` se reescribe como ``('x', 'any', [('y', 'any',
+    [('z', op, v)])])``, y la cadena se construye **hacia atrás** desde el
+    último eslabón.
+
+    El quinto lector de ``falsy_value`` (``:744``), y su razón: si el valor
+    buscado *es* el que cuenta como «sin establecer», la fila cuyo eslabón
+    many2one está vacío también satisface la condición — allá no hay registro
+    que mirar, y su ausencia **es** ese valor. Sin esta rama, buscar
+    ``country_code = False`` perdería todas las filas sin país.
+    """
+    null_value = falsy_value(self)
+    if isinstance(value, COLLECTION_TYPES):
+        value_is_null = any(v is False or v is None or v == null_value
+                            for v in value)
+    else:
+        value_is_null = value is False or value is None or value == null_value
+    can_be_null = (operator not in NEGATIVE_CONDITION_OPERATORS) == value_is_null
+
+    if operator in NEGATIVE_CONDITION_OPERATORS and not value_is_null:
+        #: ``:752-755`` verbatim: se devuelve al despachador para que lo
+        #: reintente con el operador positivo, en vez de emitir un dominio
+        #: que negaría la cadena entera.
+        return NotImplemented
+
+    field_seq = walk_related_chain(self, records)
+
+    domain = Domain(field_seq[-1].name, operator, value)
+    for field in reversed(field_seq[:-1]):
+        domain = Domain(
+            field.name,
+            'any!' if self.compute_sudo else 'any',
+            domain)
+        #: ``:770`` dice ``field.type == 'many2one' and not field.required``.
+        #: Aquí el eslabón nulable se lee por ``null``, que es de dónde sale
+        #: la verdad en este stack: ``required`` está instalado como atributo
+        #: de clase con defecto ``False`` y **no** se deriva de ``null``
+        #: (medido: 0 derivaciones en ``orm/fields.py``), así que leerlo
+        #: llamaría nulable a toda FK. Derivarlo es la tarea **#251**.
+        if (can_be_null and isinstance(field, models.ForeignKey)
+                and field.null):
+            domain |= Domain(field.name, '=', False)
+    return domain
+
+
+models.Field._search_related = _field_search_related

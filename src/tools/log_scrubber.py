@@ -16,9 +16,18 @@ Funcion pura, sin dependencias de Django ni de DB: se puede aplicar en el
 handler, el middleware o el exception_handler antes de insertar.
 
 Movido desde ``core.log_scrubber`` en el slice 5 de
-``adoptar-arquitectura-server-service-odoo`` (DEC-10): utilidad de logging
-sin modelo Django, fiel a Odoo la ubica en ``tools/`` (netsvc/logging
-utilities), junto a ``tools/logging_context.py`` y ``tools/logging_handlers.py``.
+``adoptar-arquitectura-server-service-odoo`` (DEC-10).
+
+**Corregido: la referencia no redacta el texto del log.** Esta linea decia
+*"fiel a Odoo la ubica en ``tools/`` (netsvc/logging utilities)"*, mezclando
+dos sitios distintos —``tools/`` y ``netsvc.py``— y atribuyendo a la fuente una
+decision que no toma. Medido 2026-08-28: **0** funciones de
+scrub/redact/mask sobre texto de log en ``odoo/tools/*.py`` y en
+``odoo/netsvc.py``; lo unico proximo es ``email_anonymize``
+(``odoo19c: odoo/tools/mail.py:891``), que anonimiza un correo para envio, no
+redacta un secreto de un traceback. El scrubber es mecanismo **propio**
+—lo exige DEC-LOG-03, no la referencia—; su sitio lo elegimos nosotros.
+Ver :ref:`h-api-855`.
 """
 import re
 

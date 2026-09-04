@@ -21,6 +21,12 @@ from addons.base.models import TimeStampedModel
 class CrmTeam(TimeStampedModel):
     """``crm.team`` — equipo de venta (Sales Team)."""
 
+    # Atributos de clase de modelo — los que la fuente declara
+    # (``odoo19c: sales_team/models/crm_team.py:13-15``), verbatim.
+    _name = 'crm.team'
+    _description = "Sales Team"
+    _order = "sequence ASC, create_date DESC, id DESC"
+
     # Odoo crm.team.name (crm_team.py:85, required, translate).
     name        = fields.Char(
         max_length=150, help_text='Nombre del equipo (Odoo crm.team.name).',
@@ -35,20 +41,22 @@ class CrmTeam(TimeStampedModel):
         help_text='Archivar el equipo sin borrarlo (Odoo crm.team.active).',
     )
     # Odoo company_id — equipo por ResCompany (L1 tenant). Multi-company.
-    company     = fields.Many2one(
+    company_id  = fields.Many2one(
         'base.ResCompany', null=True, blank=True,
         on_delete=models.CASCADE, related_name='sales_teams',
         help_text='ResCompany propietaria (Odoo crm.team.company_id).',
+        db_column='company_id',
     )
     # Odoo user_id (crm_team.py:93) — líder del equipo (Team Leader).
-    leader      = fields.Many2one(
+    user_id     = fields.Many2one(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='led_sales_teams',
         help_text='Líder del equipo (Odoo crm.team.user_id).',
+        db_column='leader_id',
     )
     # Odoo member_ids (crm_team.py:98) — Many2many a res.users vía la
     # tabla intermedia crm.team.member (through model explícito, como Odoo).
-    members     = fields.Many2many(
+    member_ids  = fields.Many2many(
         settings.AUTH_USER_MODEL, through='sales_team.CrmTeamMember',
         related_name='sales_teams', blank=True,
         help_text='Vendedores del equipo (Odoo crm.team.member_ids).',
@@ -64,6 +72,77 @@ class CrmTeam(TimeStampedModel):
         ordering = ['sequence', '-created_at', '-id']
         verbose_name = 'Equipo de venta'
         verbose_name_plural = 'Equipos de venta'
+
+    @classmethod
+    def _get_default_team_id(cls, user_id=False, domain=None, default_team=None):
+        """≙ ``_get_default_team_id`` (crm_team.py:17-79).
+
+        Equipo por defecto de un documento de venta. La heurística es la de la
+        fuente, en su orden, y cuando varios encajan gana el del contexto o el
+        primero por ``_order``:
+
+        1. cualquiera de MIS equipos (miembro O responsable) que cumpla el
+           dominio, del contexto o por ``_order``;
+        2. cualquiera de mis equipos, del contexto o por ``_order``;
+        3. el del contexto;
+        4. cualquiera de mi empresa que cumpla el dominio;
+        5. cualquiera de mi empresa.
+
+        :param user_id: vendedor al que apuntar.
+        :param domain: filtro opcional sobre el equipo, p. ej.
+          ``{'use_leads': True}``.
+        :param default_team: el ``default_team_id`` que la fuente lee del
+          contexto; aquí llega por argumento, que es lo que este stack tiene
+          en su lugar.
+        """
+        ResUsers = models.apps.get_model('base', 'ResUsers')
+        user = ResUsers.objects.filter(pk=user_id).first() if user_id else None
+        valid_company_ids = [None]
+        if user is not None:
+            valid_company_ids += list(user.company_ids.values_list('pk', flat=True))
+
+        # 1- entre mis membresías. Si quien busca está en C1 y el vendedor en
+        # C1/C2, sólo salen los de C1.
+        mine = cls.objects.filter(
+            models.Q(company_id__in=[c for c in valid_company_ids if c])
+            | models.Q(company_id__isnull=True)
+        )
+        if user is not None:
+            mine = mine.filter(models.Q(user_id=user.pk) | models.Q(member_ids=user.pk))
+        mine = mine.distinct()
+
+        team = None
+        if domain:
+            filtered = mine.filter(**domain)
+            if default_team is not None and filtered.filter(pk=default_team.pk).exists():
+                team = default_team
+            else:
+                team = filtered.first()
+
+        # 2- cualquiera de mis equipos
+        if team is None:
+            if default_team is not None and mine.filter(pk=default_team.pk).exists():
+                team = default_team
+            else:
+                team = mine.first()
+
+        # 3- el del contexto
+        if team is None and default_team is not None:
+            team = default_team
+
+        if team is None:
+            company_teams = cls.objects.filter(
+                models.Q(company_id__in=[c for c in valid_company_ids if c])
+                | models.Q(company_id__isnull=True)
+            ).distinct()
+            # 4- por regla de empresa, el primero que cumpla el dominio
+            if domain:
+                team = company_teams.filter(**domain).first()
+            # 5- por regla de empresa, el primero
+            if team is None:
+                team = company_teams.first()
+
+        return team
 
     def __str__(self) -> str:
         return self.name

@@ -264,15 +264,19 @@ class TestMailThreadConsumers:
         assert issubclass(ReturnRequest, MailThread)
 
     def test_crm_lead_gains_chatter(self, db, user):
+        # ``crm.lead`` y no ``crm.CrmLead``: desde que el modelo declara su
+        # ``_name``, ``_mail_thread_res_model`` devuelve el nombre de la fuente
+        # en vez del respaldo (el label Django). Es lo que la referencia guarda
+        # en ``mail_message.model``.
         lead = CrmLead.objects.create(name='Prospecto ACME')
         msg = lead.message_post(body='Primer contacto', author=user)
-        assert msg.model == 'crm.CrmLead'
+        assert msg.model == 'crm.lead'
         assert msg.res_id == lead.pk
         assert lead.message_ids.count() == 1
         lead.message_subscribe(user)
         assert lead.message_is_follower(user)
         act = lead.activity_schedule(summary='Llamar', user=user)
-        assert act.res_model == 'crm.CrmLead' and lead.activity_ids.count() == 1
+        assert act.res_model == 'crm.lead' and lead.activity_ids.count() == 1
 
     def test_res_model_label_distinct_per_consumer(self, db, user, ticket):
         lead = CrmLead.objects.create(name='X')
@@ -281,8 +285,11 @@ class TestMailThreadConsumers:
         # aislamiento por (model,res_id): cada consumidor ve solo lo suyo
         assert ticket.message_ids.count() == 1
         assert lead.message_ids.count() == 1
+        # los dos lados del contraste: ``SupportTicket`` no declara ``_name``
+        # y cae al label Django; ``crm.lead`` sí lo declara. El aislamiento se
+        # sostiene igual, y ahora una de las dos etiquetas es la de la fuente.
         assert ticket.message_ids.first().model == 'helpdesk.SupportTicket'
-        assert lead.message_ids.first().model == 'crm.CrmLead'
+        assert lead.message_ids.first().model == 'crm.lead'
 
 
 class TestMailNotification:

@@ -1,0 +1,25 @@
+Measure the four reference aliases, not one root
+
+La pieza media una sola raiz de odoo-tools y concluia sobre «la
+referencia». Son cuatro alias, y los declara scripts/reference_roots.py:
+el instrumento ahora los consume de ahi en vez de recibir rutas
+literales, que es la segunda fuente de verdad que ese modulo prohibe.
+
+Al medir los cuatro salio una premisa falsa: odoo18c no tiene 21857
+archivos .py sino 7988. Su raiz 18.x/odoo-18 CONTIENE enterprise/ con
+13869 dentro — una tercera copia de Enterprise 18, distinta de la de
+odoo18e (11989). Contarla inflaba Community 18 en 2.7x. El instrumento
+la excluye y lo DECLARA en el reporte: una exclusion silenciosa es la
+misma ventana que no dice lo que dejo fuera.
+
+Con las cinco poblaciones medidas el criterio se sostiene igual en
+todas: entre el 95.9 % (el nuestro, 281 de 293) y el 99.4 % de los
+archivos cabe en 1500 lineas o menos, donde el veredicto es leerlo
+entero. El mayor de todos es un test de nomina de odoo18e con 10746
+lineas; del lado que se porta, odoo19c: odoo/orm/models.py con 7130.
+
+Las salidas pasan a llevar el ISO de su ejecucion, no el del directorio
+de la pieza, y se retira el reporte de una sola raiz para no dejar dos
+cifras contradictorias.
+
+Refs: H-API-1072, H-API-1073, #352, #357

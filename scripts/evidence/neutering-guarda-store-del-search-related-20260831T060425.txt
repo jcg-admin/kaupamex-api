@@ -1,0 +1,12 @@
+# Control discriminante — guarda-store-del-search-related
+# fecha:    2026-08-31T06:04:25
+# archivo:  src/orm/fields.py
+# anulado:  s/if not self\.store and all(f\._description_searchable for f in field_seq):/if False:/
+# tests:    tests/unit/orm/test_related_field_setup.py
+
+## 1. Verde de partida (guarda presente)
+12 passed, 1 warning in 4.88s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_related_field_setup.py::TestTheSetupWiresTheThreeFunctions::test_it_wires_compute_inverse_and_search
+1 failed, 11 passed, 1 warning in 5.38s

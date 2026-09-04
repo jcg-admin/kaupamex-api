@@ -152,7 +152,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from addons.authz.services import is_superadmin
-from addons.base.models import IrModule, ResLang, ResUsers
+from addons.base.models import IrHttp, IrModule, ResLang, ResUsers
 from addons.web.controllers.serializers import (
     CredentialSerializer, LangSerializer, SessionInfoSerializer,
 )
@@ -350,6 +350,7 @@ def session_info(request):
 def session_destroy(request):
     """≙ ``/web/session/destroy`` — exige sesión, como la referencia."""
     logout(request)
+    IrHttp._post_logout()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -370,6 +371,7 @@ def session_logout(request):
     sesión caducó justo cuando quiere deshacerse de ella.
     """
     logout(request)
+    IrHttp._post_logout()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 

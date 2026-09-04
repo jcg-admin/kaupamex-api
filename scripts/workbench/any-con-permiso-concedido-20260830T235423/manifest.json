@@ -1,0 +1,37 @@
+{
+  "question": "un any pierde el permiso del comodelo exactamente cuando la fuente dice, y no en otro caso?",
+  "instrument": [
+    "uv run pytest sobre la suite completa, -n 4 --reuse-db",
+    "sabotaje por comportamiento sobre src/orm/domains.py y src/orm/inherits.py, restaurado por md5 y no por git checkout"
+  ],
+  "metric": "casos passed / failed, y cuales caen con cada comportamiento anulado",
+  "blind_to": [
+    "las filas devueltas: los casos miden que operador queda tras la reescritura, no que registros llegan. En una base de pruebas sin reglas de fila sembradas any y any! devuelven lo mismo, asi que medir filas no distinguiria el permiso concedido del permiso ausente",
+    "el efecto sobre los 759 campos relacionales del arbol: el atributo se declara con default False, asi que ninguno cambia de conducta hasta que algo lo marque; cuales de las 48 declaraciones de la referencia hay que trasladar es la tarea #236",
+    "si algun modelo con _inherits pierde el filtrado que si debia aplicarse: la implicacion se porta porque la fuente la declara, y ningun caso mide un modelo delegante contra reglas de fila reales",
+    "el orden entre este optimizador y _optimize_m2o_bypass_comodel_id_lookup: los dos corren a nivel FULL y el segundo solo actua sobre los que llevan !, pero ningun caso fija que el primero corra antes"
+  ],
+  "destination": [
+    "src/orm/domains.py",
+    "src/orm/fields_relational.py",
+    "src/orm/inherits.py",
+    "tests/unit/orm/test_domain_any_with_rights.py",
+    "tests/unit/tools/test_date_utils.py",
+    "docs: source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/hallazgos/"
+  ],
+  "source": "odoo19c: odoo/orm/domains.py:1832-1836 (_optimize_any_with_rights); odoo19c: odoo/orm/fields_relational.py:39 (bypass_search_access) y :257-259 (la implicacion de delegate); odoo19c: odoo/orm/environments.py (env.su, aqui is_su)",
+  "reproducible": "uv run pytest tests/unit/orm/test_domain_any_with_rights.py tests/unit/tools/test_date_utils.py -q --reuse-db",
+  "outputs": [
+    "domains.py.intacto",
+    "inherits.py.intacto",
+    "control-s1-sin-la-elevacion.txt",
+    "control-s2-sin-el-atributo-de-campo.txt",
+    "control-s3-la-delegacion-no-lo-implica.txt",
+    "pytest-suite-completa-2026-08-30T23-55-06.log",
+    "pytest-suite-completa-cierre-2026-08-31T00-02-54.log"
+  ],
+  "control": "tres sabotajes, cada uno sobre una de las tres condiciones. S1 retira la elevacion: caen los dos casos de sudo. S2 retira el atributo de campo: cae el suyo. S3 quita la implicacion en apply_inherits: cae el de delegacion. Ninguno arrastra a los demas, asi que las tres condiciones se miden por separado. Cierre 7832 passed, 4 skipped, EXIT=0",
+  "corrected_premise": "el rojo de test_parse_date_pins_june NO era del cambio: afirmaba que el dia del mes sobrevive siempre al fijado, y relativedelta recorta al ultimo dia valido, asi que pasaba los 28 primeros dias de cada mes y fallaba justo el 31 de agosto. Corregido a medir contra fechas fijadas, con el recorte como caso propio",
+  "tasks": ["#225", "#227", "#236"],
+  "findings": ["H-API-968"]
+}

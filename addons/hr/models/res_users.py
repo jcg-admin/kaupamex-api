@@ -128,7 +128,7 @@ from addons.hr.models.hr_employee import HrEmployee
 from addons.hr.models.hr_employee_category import HrEmployeeCategory
 from exceptions import UserError
 from orm.environments import get_current_companies, get_current_company
-from orm.model_classes import extend_model
+from orm.model_classes import extend_model, extend_property
 from tools.translate import _
 
 #: ≙ ``HR_READABLE_FIELDS`` (``odoo19c: hr/models/res_users.py:15-25``) —
@@ -237,15 +237,33 @@ def employee_count(self):
     return self._compute_employee_count()
 
 
-def SELF_READABLE_FIELDS(self):
-    """≙ ``SELF_READABLE_FIELDS`` (``:124-127``) — la aportación de ``hr``
-    (sin base que extender, ver docstring del módulo)."""
-    return HR_READABLE_FIELDS + HR_WRITABLE_FIELDS
+def SELF_READABLE_FIELDS(self, anterior):
+    """≙ ``SELF_READABLE_FIELDS`` (``:124-127``) — la aportación de ``hr``,
+    **sumada** a la de ``base``.
+
+    La fuente lo hace con ``super().SELF_READABLE_FIELDS + [...]``; aquí
+    ``anterior`` **es** ese ``super()``, y lo entrega
+    :func:`orm.model_classes.extend_property`.
+
+    Dos correcciones, y la segunda no se veía
+    ------------------------------------------
+
+    #66 arregló que devolviera **sólo** lo de ``hr`` —sin sumar, dos addons que
+    declaren la propiedad se pisan y gana el último—. Pero la suma se instalaba
+    por ``extend_model(propiedades=…)``, que **no pisa una existente** a
+    propósito, así que ``base`` ya la tenía declarada y esta función **nunca se
+    instalaba**: medido, los 32 campos de ``hr`` estaban ausentes del modelo.
+
+    Su test tampoco lo veía porque llamaba a la **función** en vez de a la
+    property instalada — el sub-patrón D de ``metrica-decide-la-conclusion.md``
+    dentro del control que #66 dejó. Ver :ref:`h-api-834`.
+    """
+    return list(anterior or []) + HR_READABLE_FIELDS + HR_WRITABLE_FIELDS
 
 
-def SELF_WRITEABLE_FIELDS(self):
-    """≙ ``SELF_WRITEABLE_FIELDS`` (``:129-131``)."""
-    return HR_WRITABLE_FIELDS
+def SELF_WRITEABLE_FIELDS(self, anterior):
+    """≙ ``SELF_WRITEABLE_FIELDS`` (``:129-131``) — sumada a la de ``base``."""
+    return list(anterior or []) + HR_WRITABLE_FIELDS
 
 
 def _bind_employee(self, employee_to_bind):
@@ -544,6 +562,12 @@ def employee_resource_calendar(self):
     return owner.resource_calendar if owner is not None and owner.resource_calendar_id else None
 
 
+def _extend_self_field_lists(model):
+    """Suma las dos listas de ``hr`` a las que ``base`` declara."""
+    extend_property(model, 'SELF_READABLE_FIELDS', SELF_READABLE_FIELDS)
+    extend_property(model, 'SELF_WRITEABLE_FIELDS', SELF_WRITEABLE_FIELDS)
+
+
 def apply_hr_res_users_extensions():
     """Cuelga sobre ``res.users`` lo que ``hr`` le añade — ≙ ``_inherit``."""
     extend_model(
@@ -565,8 +589,6 @@ def apply_hr_res_users_extensions():
             'employee': employee,
             'is_hr_user': is_hr_user,
             'employee_count': employee_count,
-            'SELF_READABLE_FIELDS': SELF_READABLE_FIELDS,
-            'SELF_WRITEABLE_FIELDS': SELF_WRITEABLE_FIELDS,
             'job_title': job_title,
             'work_phone': work_phone,
             'mobile_phone': mobile_phone,
@@ -594,4 +616,9 @@ def apply_hr_res_users_extensions():
             'pin': pin,
             'employee_resource_calendar': employee_resource_calendar,
         },
+        # Las dos listas de la cuenta propia van por ``luego`` y no por
+        # ``propiedades``: ``base`` ya las declara, y ``propiedades`` no pisa
+        # una existente — por diseño, para que dos addons no se borren entre
+        # sí. Sumar a la que hay es lo que hace ``extend_property``.
+        luego=_extend_self_field_lists,
     )

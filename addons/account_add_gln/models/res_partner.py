@@ -36,6 +36,7 @@ class PartnerGln(models.Model):
     UBL/CII (mismo uso que documenta el ``summary`` del manifiesto de la
     referencia).
     """
+    _inherit = 'res.partner'
 
     partner = models.OneToOneField(
         'base.ResPartner', on_delete=models.CASCADE, related_name='gln',

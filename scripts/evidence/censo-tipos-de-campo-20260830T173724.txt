@@ -1,0 +1,853 @@
+=== Char → Char (fields_textual.py) ===
+  cadena en la referencia: Char ← BaseString
+  contrato: 40 simbolos (11 atributos + 29 metodos)
+  Django YA responde: 1
+  hay que CONSTRUIR: 39
+    _cache_missing_ids
+    _column_type
+    _convert_db_column
+    _description_size
+    _description_translate
+    _description_trim
+    _get_cache_impl
+    _get_stored_translations
+    _insert_cache
+    _related_size
+    _related_translate
+    _related_trim
+    _setup_attrs__
+    _to_prefetch
+    _update_cache
+    condition_to_sql
+    convert_to_cache
+    convert_to_column
+    convert_to_column_insert
+    convert_to_record
+    convert_to_write
+    expression_getter
+    falsy_value
+    get_column_update
+    get_depends
+    get_text_content
+    get_trans_terms
+    get_translation_dictionary
+    get_translation_fallback_langs
+    is_text
+    setup_related
+    size
+    to_sql
+    translate
+    translation_lang
+    trim
+    type
+    update_db_column
+    write
+
+=== Text → Text (fields_textual.py) ===
+  cadena en la referencia: Text ← BaseString
+  contrato: 33 simbolos (7 atributos + 26 metodos)
+  Django YA responde: 1
+  hay que CONSTRUIR: 32
+    _cache_missing_ids
+    _column_type
+    _convert_db_column
+    _description_translate
+    _get_cache_impl
+    _get_stored_translations
+    _insert_cache
+    _related_translate
+    _to_prefetch
+    _update_cache
+    condition_to_sql
+    convert_to_cache
+    convert_to_column
+    convert_to_column_insert
+    convert_to_record
+    convert_to_write
+    expression_getter
+    falsy_value
+    get_column_update
+    get_depends
+    get_text_content
+    get_trans_terms
+    get_translation_dictionary
+    get_translation_fallback_langs
+    is_text
+    setup_related
+    size
+    to_sql
+    translate
+    translation_lang
+    type
+    write
+
+=== Html → Html (fields_textual.py) ===
+  cadena en la referencia: Html ← BaseString
+  contrato: 62 simbolos (33 atributos + 29 metodos)
+  Django YA responde: 8
+  hay que CONSTRUIR: 54
+    _cache_missing_ids
+    _convert
+    _convert_db_column
+    _description_sanitize
+    _description_sanitize_attributes
+    _description_sanitize_style
+    _description_sanitize_tags
+    _description_strip_classes
+    _description_strip_style
+    _description_translate
+    _get_attrs
+    _get_cache_impl
+    _get_stored_translations
+    _insert_cache
+    _related_sanitize
+    _related_sanitize_attributes
+    _related_sanitize_style
+    _related_sanitize_tags
+    _related_strip_classes
+    _related_strip_style
+    _related_translate
+    _to_prefetch
+    _update_cache
+    condition_to_sql
+    convert_to_cache
+    convert_to_column
+    convert_to_column_insert
+    convert_to_read
+    convert_to_record
+    convert_to_write
+    escape
+    from_plaintext
+    get_column_update
+    get_depends
+    get_text_content
+    get_trans_terms
+    get_translation_dictionary
+    get_translation_fallback_langs
+    is_empty
+    sanitize
+    sanitize_attributes
+    sanitize_conditional_comments
+    sanitize_form
+    sanitize_output_method
+    sanitize_overridable
+    sanitize_style
+    sanitize_tags
+    setup_related
+    size
+    strip_classes
+    strip_style
+    to_plaintext
+    translation_lang
+    write
+
+=== Integer → Integer (fields_numeric.py) ===
+  cadena en la referencia: Integer
+  contrato: 11 simbolos (4 atributos + 7 metodos)
+  Django YA responde: 0
+  hay que CONSTRUIR: 11
+    _column_type
+    _get_attrs
+    _update_inverse
+    aggregator
+    convert_to_cache
+    convert_to_column
+    convert_to_export
+    convert_to_read
+    convert_to_record
+    falsy_value
+    type
+
+=== Float → Float (fields_numeric.py) ===
+  cadena en la referencia: Float
+  contrato: 19 simbolos (9 atributos + 10 metodos)
+  Django YA responde: 1
+  hay que CONSTRUIR: 18
+    _column_type
+    _description_digits
+    _description_min_display_digits
+    _digits
+    _min_display_digits
+    _related__digits
+    aggregator
+    compare
+    convert_to_cache
+    convert_to_column
+    convert_to_export
+    convert_to_record
+    falsy_value
+    get_digits
+    get_min_display_digits
+    is_zero
+    round
+    type
+
+=== Monetary → Monetary (fields_numeric.py) ===
+  cadena en la referencia: Monetary
+  contrato: 19 simbolos (6 atributos + 13 metodos)
+  Django YA responde: 1
+  hay que CONSTRUIR: 18
+    _column_type
+    _description_aggregator
+    _description_currency_field
+    _filter_not_equal
+    aggregator
+    convert_to_cache
+    convert_to_column_insert
+    convert_to_export
+    convert_to_read
+    convert_to_record
+    convert_to_write
+    currency_field
+    falsy_value
+    get_currency_field
+    setup_nonrelated
+    setup_related
+    type
+    write_sequence
+
+=== Date → Date (fields_temporal.py) ===
+  cadena en la referencia: Date
+  contrato: 10 simbolos (3 atributos + 7 metodos)
+  Django YA responde: 5
+  hay que CONSTRUIR: 5
+    _column_type
+    convert_to_cache
+    convert_to_display_name
+    convert_to_export
+    type
+
+=== Datetime → Datetime (fields_temporal.py) ===
+  cadena en la referencia: Datetime
+  contrato: 12 simbolos (3 atributos + 9 metodos)
+  Django YA responde: 6
+  hay que CONSTRUIR: 6
+    _column_type
+    convert_to_cache
+    convert_to_display_name
+    convert_to_export
+    expression_getter
+    type
+
+=== Selection → Selection (fields_selection.py) ===
+  cadena en la referencia: Selection
+  contrato: 17 simbolos (5 atributos + 12 metodos)
+  Django YA responde: 1
+  hay que CONSTRUIR: 16
+    _column_type
+    _default_group_expand
+    _description_selection
+    _get_attrs
+    _selection_modules
+    _setup_attrs__
+    convert_to_cache
+    convert_to_column
+    convert_to_export
+    get_values
+    ondelete
+    selection
+    setup_nonrelated
+    setup_related
+    type
+    validate
+
+=== Many2one → Many2one (fields_relational.py) ===
+  cadena en la referencia: Many2one ← _Relational
+  contrato: 42 simbolos (13 atributos + 29 metodos)
+  Django YA responde: 2
+  hay que CONSTRUIR: 40
+    _column_type
+    _description_allow_hierachy_operators
+    _description_context
+    _description_domain
+    _description_relation
+    _internal_description_domain_raw
+    _related_context
+    _related_domain
+    _remove_inverses
+    _setup_attrs__
+    _update_inverse
+    _update_inverses
+    bypass_search_access
+    check_company
+    comodel_name
+    condition_to_sql
+    context
+    convert_to_cache
+    convert_to_column
+    convert_to_display_name
+    convert_to_export
+    convert_to_read
+    convert_to_record
+    convert_to_record_multi
+    convert_to_write
+    delegate
+    domain
+    filter_function
+    get_comodel_domain
+    join
+    ondelete
+    relational
+    setup_inverses
+    setup_nonrelated
+    to_sql
+    type
+    update_db
+    update_db_column
+    update_db_foreign_key
+    write
+
+=== One2many — NO ligado a ninguna clase en orm.fields; hueco del arbol ===
+
+=== Many2many → Many2many (fields_relational.py) ===
+  cadena en la referencia: Many2many ← _RelationalMulti ← _Relational
+  contrato: 48 simbolos (16 atributos + 32 metodos)
+  Django YA responde: 2
+  hay que CONSTRUIR: 46
+    _check_sudo_commands
+    _condition_to_sql_relational
+    _description_allow_hierachy_operators
+    _description_context
+    _description_domain
+    _description_relation
+    _explicit
+    _get_query_for_condition_value
+    _internal_description_domain_raw
+    _related_context
+    _related_domain
+    _update_cache
+    _update_inverse
+    bypass_search_access
+    check_company
+    column1
+    column2
+    comodel_name
+    condition_to_sql
+    context
+    convert_to_cache
+    convert_to_display_name
+    convert_to_export
+    convert_to_read
+    convert_to_record
+    convert_to_record_multi
+    convert_to_write
+    create
+    domain
+    filter_function
+    get_comodel_domain
+    get_depends
+    ondelete
+    read
+    relation
+    relational
+    setup_inverses
+    setup_nonrelated
+    type
+    update_db
+    update_db_foreign_keys
+    write
+    write_batch
+    write_new
+    write_real
+    write_sequence
+
+=== Binary → BinaryField (fields_binary.py) ===
+  cadena en la referencia: Binary ← Field
+  contrato: 142 simbolos (70 atributos + 72 metodos)
+  Django YA responde: 56
+  hay que CONSTRUIR: 86
+    __get__
+    __set__
+    __set_name__
+    _cache_missing_ids
+    _compute_related
+    _condition_to_sql
+    _condition_to_sql_company
+    _convert_db_column
+    _description_aggregator
+    _description_attachment
+    _description_change_default
+    _description_company_dependent
+    _description_default_export_compatible
+    _description_depends
+    _description_exportable
+    _description_falsy_value_label
+    _description_groupable
+    _description_groups
+    _description_help
+    _description_manual
+    _description_name
+    _description_readonly
+    _description_related
+    _description_required
+    _description_searchable
+    _description_sortable
+    _description_store
+    _description_string
+    _description_type
+    _filter_not_equal
+    _get_all_cache_ids
+    _get_attrs
+    _get_cache
+    _get_cache_impl
+    _insert_cache
+    _invalidate_cache
+    _inverse_related
+    _process_related
+    _related_aggregator
+    _related_comodel_name
+    _related_groups
+    _related_help
+    _related_string
+    _search_related
+    _sequence
+    _setup_attrs__
+    _to_prefetch
+    _update_cache
+    attachment
+    base_field
+    column_order
+    column_type
+    compute_value
+    condition_to_sql
+    convert_to_cache
+    convert_to_column
+    convert_to_column_insert
+    convert_to_display_name
+    convert_to_export
+    convert_to_read
+    convert_to_record
+    convert_to_write
+    create
+    default
+    determine_domain
+    determine_group_expand
+    determine_inverse
+    get_column_update
+    get_company_dependent_fallback
+    get_depends
+    get_description
+    is_editable
+    name
+    prepare_setup
+    read
+    recompute
+    resolve_depends
+    setup
+    setup_nonrelated
+    setup_related
+    traverse_related
+    update_db
+    update_db_column
+    update_db_notnull
+    update_db_related
+    write
+
+=== Image → ImageField (fields_binary.py) ===
+  cadena en la referencia: Image ← Binary ← Field
+  contrato: 146 simbolos (73 atributos + 73 metodos)
+  Django YA responde: 56
+  hay que CONSTRUIR: 90
+    __get__
+    __set__
+    __set_name__
+    _cache_missing_ids
+    _compute_related
+    _condition_to_sql
+    _condition_to_sql_company
+    _convert_db_column
+    _description_aggregator
+    _description_attachment
+    _description_change_default
+    _description_company_dependent
+    _description_default_export_compatible
+    _description_depends
+    _description_exportable
+    _description_falsy_value_label
+    _description_groupable
+    _description_groups
+    _description_help
+    _description_manual
+    _description_name
+    _description_readonly
+    _description_related
+    _description_required
+    _description_searchable
+    _description_sortable
+    _description_store
+    _description_string
+    _description_type
+    _filter_not_equal
+    _get_all_cache_ids
+    _get_attrs
+    _get_cache
+    _get_cache_impl
+    _image_process
+    _insert_cache
+    _invalidate_cache
+    _inverse_related
+    _process_related
+    _related_aggregator
+    _related_comodel_name
+    _related_groups
+    _related_help
+    _related_string
+    _search_related
+    _sequence
+    _setup_attrs__
+    _to_prefetch
+    _update_cache
+    attachment
+    base_field
+    column_order
+    column_type
+    compute_value
+    condition_to_sql
+    convert_to_cache
+    convert_to_column
+    convert_to_column_insert
+    convert_to_display_name
+    convert_to_export
+    convert_to_read
+    convert_to_record
+    convert_to_write
+    create
+    default
+    determine_domain
+    determine_group_expand
+    determine_inverse
+    get_column_update
+    get_company_dependent_fallback
+    get_depends
+    get_description
+    is_editable
+    max_height
+    max_width
+    name
+    prepare_setup
+    read
+    recompute
+    resolve_depends
+    setup
+    setup_nonrelated
+    setup_related
+    traverse_related
+    update_db
+    update_db_column
+    update_db_notnull
+    update_db_related
+    verify_resolution
+    write
+
+=== Boolean → Boolean (fields_misc.py) ===
+  cadena en la referencia: Boolean
+  contrato: 7 simbolos (3 atributos + 4 metodos)
+  Django YA responde: 0
+  hay que CONSTRUIR: 7
+    _column_type
+    _condition_to_sql
+    convert_to_cache
+    convert_to_column
+    convert_to_export
+    falsy_value
+    type
+
+=== Json → JSONField (fields_misc.py) ===
+  cadena en la referencia: Json ← Field
+  contrato: 140 simbolos (68 atributos + 72 metodos)
+  Django YA responde: 56
+  hay que CONSTRUIR: 84
+    __get__
+    __set__
+    __set_name__
+    _cache_missing_ids
+    _compute_related
+    _condition_to_sql
+    _condition_to_sql_company
+    _convert_db_column
+    _description_aggregator
+    _description_change_default
+    _description_company_dependent
+    _description_default_export_compatible
+    _description_depends
+    _description_exportable
+    _description_falsy_value_label
+    _description_groupable
+    _description_groups
+    _description_help
+    _description_manual
+    _description_name
+    _description_readonly
+    _description_related
+    _description_required
+    _description_searchable
+    _description_sortable
+    _description_store
+    _description_string
+    _description_type
+    _filter_not_equal
+    _get_all_cache_ids
+    _get_attrs
+    _get_cache
+    _get_cache_impl
+    _insert_cache
+    _invalidate_cache
+    _inverse_related
+    _process_related
+    _related_aggregator
+    _related_comodel_name
+    _related_groups
+    _related_help
+    _related_string
+    _search_related
+    _sequence
+    _setup_attrs__
+    _to_prefetch
+    _update_cache
+    base_field
+    column_order
+    column_type
+    compute_value
+    condition_to_sql
+    convert_to_cache
+    convert_to_column
+    convert_to_column_insert
+    convert_to_display_name
+    convert_to_export
+    convert_to_read
+    convert_to_record
+    convert_to_write
+    create
+    default
+    determine_domain
+    determine_group_expand
+    determine_inverse
+    get_column_update
+    get_company_dependent_fallback
+    get_depends
+    get_description
+    is_editable
+    name
+    prepare_setup
+    read
+    recompute
+    resolve_depends
+    setup
+    setup_nonrelated
+    setup_related
+    traverse_related
+    update_db
+    update_db_column
+    update_db_notnull
+    update_db_related
+    write
+
+=== Reference → GenericForeignKey (fields_reference.py) ===
+  cadena en la referencia: Reference ← Selection
+  contrato: 20 simbolos (5 atributos + 15 metodos)
+  Django YA responde: 4
+  hay que CONSTRUIR: 16
+    _default_group_expand
+    _description_selection
+    _get_attrs
+    _selection_modules
+    _setup_attrs__
+    convert_to_cache
+    convert_to_column
+    convert_to_display_name
+    convert_to_export
+    convert_to_read
+    convert_to_record
+    get_values
+    ondelete
+    selection
+    setup_nonrelated
+    setup_related
+
+=== Many2oneReference → GenericForeignKey (fields_reference.py) ===
+  cadena en la referencia: Many2oneReference ← Integer
+  contrato: 16 simbolos (7 atributos + 9 metodos)
+  Django YA responde: 4
+  hay que CONSTRUIR: 12
+    _description_model_field
+    _get_attrs
+    _record_ids_per_res_model
+    _related_model_field
+    _update_inverse
+    _update_inverses
+    convert_to_cache
+    convert_to_column
+    convert_to_export
+    convert_to_read
+    convert_to_record
+    model_field
+
+=== Properties → Properties (fields_properties.py) ===
+  cadena en la referencia: Properties ← Field
+  contrato: 159 simbolos (75 atributos + 84 metodos)
+  Django YA responde: 82
+  hay que CONSTRUIR: 77
+    HTML_SANITIZE_OPTIONS
+    __get__
+    __set__
+    __set_name__
+    _cache_missing_ids
+    _compute_related
+    _condition_to_sql
+    _condition_to_sql_company
+    _convert_db_column
+    _description_aggregator
+    _description_change_default
+    _description_company_dependent
+    _description_default_export_compatible
+    _description_definition_record
+    _description_definition_record_field
+    _description_depends
+    _description_exportable
+    _description_falsy_value_label
+    _description_groupable
+    _description_groups
+    _description_help
+    _description_manual
+    _description_name
+    _description_readonly
+    _description_related
+    _description_required
+    _description_searchable
+    _description_sortable
+    _description_store
+    _description_string
+    _description_type
+    _filter_not_equal
+    _get_all_cache_ids
+    _get_attrs
+    _get_cache
+    _get_cache_impl
+    _insert_cache
+    _invalidate_cache
+    _inverse_related
+    _process_related
+    _related_aggregator
+    _related_comodel_name
+    _related_groups
+    _related_help
+    _related_string
+    _search_related
+    _sequence
+    _to_prefetch
+    _update_cache
+    base_field
+    column_order
+    column_type
+    compute_value
+    condition_to_sql
+    convert_to_column_insert
+    convert_to_display_name
+    create
+    default
+    determine_domain
+    determine_group_expand
+    determine_inverse
+    get_column_update
+    get_company_dependent_fallback
+    get_depends
+    get_description
+    is_editable
+    name
+    prepare_setup
+    read
+    recompute
+    resolve_depends
+    setup_nonrelated
+    traverse_related
+    update_db
+    update_db_column
+    update_db_notnull
+    update_db_related
+
+=== PropertiesDefinition → PropertiesDefinition (fields_properties.py) ===
+  cadena en la referencia: PropertiesDefinition ← Field
+  contrato: 145 simbolos (72 atributos + 73 metodos)
+  Django YA responde: 66
+  hay que CONSTRUIR: 79
+    __get__
+    __set__
+    __set_name__
+    _cache_missing_ids
+    _compute_related
+    _condition_to_sql
+    _condition_to_sql_company
+    _convert_db_column
+    _description_aggregator
+    _description_change_default
+    _description_company_dependent
+    _description_default_export_compatible
+    _description_depends
+    _description_exportable
+    _description_falsy_value_label
+    _description_groupable
+    _description_groups
+    _description_help
+    _description_manual
+    _description_name
+    _description_readonly
+    _description_related
+    _description_required
+    _description_searchable
+    _description_sortable
+    _description_store
+    _description_string
+    _description_type
+    _filter_not_equal
+    _get_all_cache_ids
+    _get_attrs
+    _get_cache
+    _get_cache_impl
+    _insert_cache
+    _invalidate_cache
+    _inverse_related
+    _process_related
+    _related_aggregator
+    _related_comodel_name
+    _related_groups
+    _related_help
+    _related_string
+    _search_related
+    _sequence
+    _setup_attrs__
+    _to_prefetch
+    _update_cache
+    base_field
+    column_order
+    column_type
+    compute_value
+    condition_to_sql
+    convert_to_column_insert
+    convert_to_display_name
+    convert_to_export
+    create
+    default
+    determine_domain
+    determine_group_expand
+    determine_inverse
+    get_column_update
+    get_company_dependent_fallback
+    get_depends
+    get_description
+    is_editable
+    name
+    prepare_setup
+    read
+    recompute
+    resolve_depends
+    setup
+    setup_nonrelated
+    setup_related
+    traverse_related
+    update_db
+    update_db_column
+    update_db_notnull
+    update_db_related
+    write
+
+### TOTAL a construir sobre Django: 736 simbolos ###

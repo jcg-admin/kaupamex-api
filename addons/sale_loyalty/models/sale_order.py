@@ -60,6 +60,6 @@ def amount_reward(order):
     las superficies de salida presentan el descuento como cantidad positiva
     (igual que hacía ``OrderValue.discount``), así que aquí se invierte.
     """
-    return -sum((line.price_total()
+    return -sum((line.price_total
                  for line in order.order_line.filter(is_reward=True)),
                 Decimal('0.00'))

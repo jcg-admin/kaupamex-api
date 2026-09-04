@@ -44,10 +44,10 @@ que los agrupe por naturaleza.
   ``django.core.mail`` vía ``addons/mail``).
 - ``res_config.py`` → ``ResConfig`` + ``ResConfigSettings`` (motor de
   configuración por convención de nombre de campo; abstractos, sin tabla).
-- ``ir_qweb.py`` → ``IrQweb`` + ``MALICIOUS_SCHEMES`` + ``keep_query``
+- ``ir_template_expressions.py`` → ``IrTemplateExpressions`` + ``MALICIOUS_SCHEMES`` + ``keep_query``
   (vocabulario y primitivas de QWeb; el compilador NO se porta — este árbol
   renderiza en el cliente).
-- ``ir_qweb_fields.py`` → los conversores ``ir.qweb.field.*`` (cómo se
+- ``ir_field_converters.py`` → los conversores ``ir.qweb.field.*`` (cómo se
   escribe un valor para que lo lea una persona; valen sin QWeb).
 - ``ir_ui_view.py`` → ``IrUiView`` + ``IrUiViewCustom`` + ``ResetViewArchWizard``
   (registro de vistas y reglas de herencia; el combinador de XML no se porta).
@@ -94,16 +94,11 @@ from .soft_delete_mixin import (
 )
 from .image_mixin import ImageMixin
 from .avatar_mixin import AvatarMixin
-from .properties_base_definition import (
-    PropertiesBaseDefinition,
-    _clear_definition_cache,
-)
+from .properties_base_definition import PropertiesBaseDefinition
 from .properties_base_definition_mixin import PropertiesBaseDefinitionMixin
 from .decimal_precision import DecimalPrecision
 from .ir_config_parameter import (
     _DEFAULT_PARAMETERS,
-    _PARAM_CACHE,
-    _clear_cache,
     SystemParameter,
 )
 from .assetsbundle import (
@@ -123,18 +118,18 @@ from .ir_fields import IrFieldsConverter
 from .ir_demo import IrDemo
 from .ir_demo_failure import IrDemoFailure, IrDemoFailureWizard
 from .ir_profile import IrProfile, BaseEnableProfilingWizard
-from .ir_qweb import (
-    IrQweb,
-    QWebError,
-    QWebErrorInfo,
+from .ir_template_expressions import (
+    IrTemplateExpressions,
+    TemplateError,
+    TemplateErrorInfo,
     MALICIOUS_SCHEMES,
     VOID_ELEMENTS,
     keep_query,
 )
-from .ir_qweb_fields import (
-    IrQwebField,
-    IrQwebFieldDuration,
-    IrQwebFieldFloat_Time,
+from .ir_field_converters import (
+    IrFieldConverter,
+    IrFieldConverterDuration,
+    IrFieldConverterFloat_Time,
     TIMEDELTA_UNITS,
     format_duration_digital,
     nl2br,
@@ -195,7 +190,8 @@ from .ir_mail_server import (
     is_ascii,
 )
 from .ir_exports import IrExports, IrExportsLine
-from .ir_module import IrModule, IrModuleCategory, IrModuleDependency
+from .ir_module import (IrModule, IrModuleCategory, IrModuleDependency,
+                        IrModuleExclusion)
 from .ir_ui_menu import IrUiMenu
 from .report_layout import ReportLayout
 from .report_paperformat import ReportPaperformat, PAPER_SIZES
@@ -205,8 +201,7 @@ from .company_setting import CompanySetting
 from .res_company import ResCompany
 from .ir_sequence import IrSequence
 from .report_export_job import ExportJob
-from .res_bank import ResBank
-from .res_partner_bank import ResPartnerBank, sanitize_account_number
+from .res_bank import ResBank, ResPartnerBank, sanitize_account_number
 from .res_country import ResCountry, ResCountryState
 from .res_country_group import ResCountryGroup
 from .res_partner import ResPartner
@@ -214,8 +209,8 @@ from .res_users import ResUsers, ResUsersLog
 from .res_device import ResDeviceLog
 from .res_users_deletion import ResUsersDeletion
 from .res_users_settings import ResUsersSettings
-from .res_currency import ResCurrency
-from .res_currency_rate import ResCurrencyRate
+from .res_currency import ResCurrency, ResCurrencyRate
+
 from .res_lang import ResLang
 
 __all__ = [
@@ -227,8 +222,6 @@ __all__ = [
     'SoftDeleteManager',
     'AllObjectsManager',
     '_DEFAULT_PARAMETERS',
-    '_PARAM_CACHE',
-    '_clear_cache',
     'SystemParameter',
     'IrLogging',
     'IrAttachment',
@@ -253,6 +246,7 @@ __all__ = [
     'DecimalPrecision',
     'IrModule',
     'IrModuleDependency',
+    'IrModuleExclusion',
     'AvatarMixin',
     'ImageMixin',
     'IrExports',
@@ -273,15 +267,15 @@ __all__ = [
     'IrActionsServer',
     'IrActionsTodo',
     'IrActionsReport',
-    'IrQweb',
-    'QWebError',
-    'QWebErrorInfo',
+    'IrTemplateExpressions',
+    'TemplateError',
+    'TemplateErrorInfo',
     'MALICIOUS_SCHEMES',
     'VOID_ELEMENTS',
     'keep_query',
-    'IrQwebField',
-    'IrQwebFieldDuration',
-    'IrQwebFieldFloat_Time',
+    'IrFieldConverter',
+    'IrFieldConverterDuration',
+    'IrFieldConverterFloat_Time',
     'TIMEDELTA_UNITS',
     'format_duration_digital',
     'nl2br',
@@ -295,7 +289,6 @@ __all__ = [
     'EXTENSION_TO_WEB_MIMETYPES',
     'PropertiesBaseDefinition',
     'PropertiesBaseDefinitionMixin',
-    '_clear_definition_cache',
     'ANY_UNIQUE',
     'AssetError',
     'AssetNotFound',

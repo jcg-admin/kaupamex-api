@@ -161,6 +161,7 @@ import models
 from django.contrib.auth import hashers
 
 from addons.base.models import TimeStampedModel
+from addons.base.models.ir_ui_view import VIEW_TYPE_TEMPLATE
 from addons.base.models.ir_http import get_current_request
 from addons.website.models.website import Website
 from exceptions import AccessError, MissingError
@@ -357,7 +358,8 @@ def _set_pwd(self, value):
     """≙ ``_set_pwd`` (``odoo19c: :41-46``) — el ``inverse`` del par.
 
     Guarda el **hash** de lo que se escribió en el campo de presentación, y
-    sólo para vistas QWeb, verbatim el ``if r.type == 'qweb'`` de la fuente.
+    sólo para vistas de plantilla, ≙ el ``if r.type == 'qweb'`` de la fuente
+    (aquí el valor se llama ``template``; ver ``ir_ui_view.VIEW_TYPE_TEMPLATE``).
     Un valor vacío borra el hash.
 
     Divergencias: **D-4** (el valor llega explícito, no por el caché de
@@ -367,7 +369,7 @@ def _set_pwd(self, value):
     disparar el control de acceso por grupo del ORM al escribir, y ese motor
     es #467; una asignación a sí mismo sin él sería una línea sin conducta.
     """
-    if self.type != 'qweb':
+    if self.type != VIEW_TYPE_TEMPLATE:
         return
     info = _info_for_write(self)
     info.visibility_password = hashers.make_password(value) if value else ''

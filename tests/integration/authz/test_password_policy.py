@@ -15,7 +15,8 @@ import pytest
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
-from addons.base.models import SystemParameter, _clear_cache
+from addons.base.models import SystemParameter
+from orm.registry import clear_cache
 from addons.authz_password_policy.validators import (
     ConfigurablePasswordPolicyValidator,
     get_password_policy,
@@ -29,9 +30,9 @@ def _reset_param_cache():
     """El caché de ``SystemParameter`` es global de proceso (no transaccional);
     limpiarlo evita fugas entre tests cuando el rollback restaura la BD pero no
     el caché."""
-    _clear_cache()
+    clear_cache('stable')
     yield
-    _clear_cache()
+    clear_cache('stable')
 
 
 def test_policy_seeded_to_8_not_hardcoded():

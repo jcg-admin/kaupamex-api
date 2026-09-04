@@ -1222,10 +1222,10 @@ class StockMove(TimeStampedModel):
         toca_cantidad = campos is None or bool(
             {'product_uom_qty', 'product_uom', 'product'} & set(campos))
         if toca_cantidad and self.product_uom_id and self.product_id:
-            en_producto = self.product_uom.compute_quantity(
+            in_product = self.product_uom.compute_quantity(
                 float(self.product_uom_qty or 0), self.product.uom,
                 rounding_method='HALF-UP')
-            self.product_qty = Decimal(str(en_producto))
+            self.product_qty = Decimal(str(in_product))
             if campos is not None:
                 kwargs['update_fields'] = list(
                     dict.fromkeys([*campos, 'product_qty']))
@@ -1363,8 +1363,7 @@ class StockMove(TimeStampedModel):
         if not self.reference_ids.exists() and self.picking_id:
             self.reference_ids.set(self.picking.reference_ids)
 
-    @property
-    def display_name(self):
+    def _compute_display_name(self):
         """≙ ``display_name`` / ``_compute_display_name`` (``odoo19c: :786-792``).
 
         ``origen/código: ubicación>destino``, con los dos primeros tramos
@@ -1634,13 +1633,13 @@ class StockMove(TimeStampedModel):
         }
         if quantity:
             redondeo = DecimalPrecision.precision_get('Product Unit')
-            en_uom = self.product.uom.compute_quantity(
+            in_uom = self.product.uom.compute_quantity(
                 quantity, self.product_uom, rounding_method='HALF-UP')
-            en_uom = float_round(en_uom, precision_digits=redondeo)
+            in_uom = float_round(in_uom, precision_digits=redondeo)
             de_vuelta = self.product_uom.compute_quantity(
-                en_uom, self.product.uom, rounding_method='HALF-UP')
+                in_uom, self.product.uom, rounding_method='HALF-UP')
             if float_compare(quantity, de_vuelta, precision_digits=redondeo) == 0:
-                vals = dict(vals, quantity=en_uom)
+                vals = dict(vals, quantity=in_uom)
             else:
                 vals = dict(vals, quantity=quantity, product_uom=self.product.uom)
         if reserved_quant is not None:
@@ -1711,15 +1710,15 @@ class StockMove(TimeStampedModel):
                 (quant.location_id, quant.lot_id, quant.package_id, quant.owner_id))
             exacta = False
             if actualizable is not None:
-                en_uom = self.product.uom.compute_quantity(
+                in_uom = self.product.uom.compute_quantity(
                     cantidad, actualizable.product_uom, rounding_method='HALF-UP')
-                en_uom = float_round(en_uom, precision_digits=redondeo)
+                in_uom = float_round(in_uom, precision_digits=redondeo)
                 de_vuelta = actualizable.product_uom.compute_quantity(
-                    en_uom, self.product.uom, rounding_method='HALF-UP')
+                    in_uom, self.product.uom, rounding_method='HALF-UP')
                 exacta = float_compare(cantidad, de_vuelta,
                                        precision_digits=redondeo) == 0
             if actualizable is not None and exacta:
-                actualizable.quantity += Decimal(str(en_uom))
+                actualizable.quantity += Decimal(str(in_uom))
                 actualizable.save(update_fields=['quantity', 'updated_at'])
             elif (self.product.tracking == 'serial' and self.picking_type_id
                   and (self.picking_type.use_create_lots
@@ -2022,12 +2021,12 @@ class StockMove(TimeStampedModel):
         decimales = {c for c in campos if c in ('price_unit',)}
         precision = {}
         if 'price_unit' in decimales:
-            del_precio = DecimalPrecision.precision_get('Product Price')
+            of_price = DecimalPrecision.precision_get('Product Price')
             divisas = [m.company.currency for m in [self]
                        if m.company_id and m.company.currency_id]
             de_divisa = min((d.decimal_places for d in divisas), default=None)
-            precision['price_unit'] = (min(de_divisa, del_precio)
-                                       if de_divisa is not None else del_precio)
+            precision['price_unit'] = (min(de_divisa, of_price)
+                                       if de_divisa is not None else of_price)
 
         def valor(move, campo):
             leido = getattr(move, campo, None)
@@ -2076,7 +2075,7 @@ class StockMove(TimeStampedModel):
         excluidos = self._prepare_merge_negative_moves_excluded_distinct_fields()
         key_of = self._merge_move_itemgetter(distintos)
         clave_limitada = self._merge_move_itemgetter(distintos, excluidos)
-        del_precio = DecimalPrecision.precision_get('Product Price')
+        of_price = DecimalPrecision.precision_get('Product Price')
 
         por_borrar, fusionados, por_cancelar = [], [], []
         negativos = [m for m in conjunto if m.product_uom_qty < 0]
@@ -2108,13 +2107,13 @@ class StockMove(TimeStampedModel):
 
         for negativo in negativos:
             for positivo in por_clave_limitada.get(clave_limitada(negativo), []):
-                valor_total = (positivo.product_qty * positivo.price_unit
+                total_value = (positivo.product_qty * positivo.price_unit
                                + negativo.product_qty * negativo.price_unit)
                 if positivo.product_uom_qty >= abs(negativo.product_uom_qty):
                     positivo.product_uom_qty += negativo.product_uom_qty
                     positivo.price_unit = (
-                        float_round(valor_total / positivo.product_qty,
-                                    precision_digits=del_precio)
+                        float_round(total_value / positivo.product_qty,
+                                    precision_digits=of_price)
                         if positivo.product_qty else Decimal('0'))
                     positivo.move_dest_ids.add(*[
                         d for d in negativo.move_dest_ids.all()
@@ -2131,7 +2130,7 @@ class StockMove(TimeStampedModel):
                     break
                 negativo.product_uom_qty += positivo.product_uom_qty
                 negativo.price_unit = float_round(
-                    valor_total / negativo.product_qty, precision_digits=del_precio)
+                    total_value / negativo.product_qty, precision_digits=of_price)
                 negativo.save(update_fields=['product_uom_qty', 'price_unit',
                                              'updated_at'])
                 positivo.product_uom_qty = Decimal('0')
@@ -2420,12 +2419,12 @@ class StockMove(TimeStampedModel):
         # fuente y trabajan en coma flotante; las columnas son ``Decimal``. La
         # conversión va aquí, en la frontera (H-API-588, tarea **#344**).
         redondeo = DecimalPrecision.precision_get('Product Unit')
-        en_uom = self.product.uom.compute_quantity(
+        in_uom = self.product.uom.compute_quantity(
             float(qty), self.product_uom, rounding_method='HALF-UP')
         de_vuelta = self.product_uom.compute_quantity(
-            en_uom, self.product.uom, rounding_method='HALF-UP')
+            in_uom, self.product.uom, rounding_method='HALF-UP')
         if float_compare(float(qty), de_vuelta, precision_digits=redondeo) == 0:
-            valores = self._prepare_move_split_vals(Decimal(str(en_uom)))
+            valores = self._prepare_move_split_vals(Decimal(str(in_uom)))
         else:
             valores = self._prepare_move_split_vals(
                 qty, force_split_uom=self.product.uom)
@@ -2518,10 +2517,10 @@ class StockMove(TimeStampedModel):
         sin_reserva = self._should_bypass_reservation()
         # Una línea por lote: la reserva base es 1 y lo que sobre se reparte.
         extra_uom_qty = free_uom_qty - len({lot.pk for lot in lots} - asignados)
-        quants_por_lote = {}
+        quants_by_lot = {}
         if not sin_reserva:
             for quant in StockQuant._gather(product, self.location):
-                quants_por_lote.setdefault(quant.lot_id, []).append(quant)
+                quants_by_lot.setdefault(quant.lot_id, []).append(quant)
 
         for lote in lots:
             if lote.pk in asignados:
@@ -2550,7 +2549,7 @@ class StockMove(TimeStampedModel):
                     ordenes.append(('create', None, vals))
             else:
                 reservado = False
-                for quant in quants_por_lote.get(lote.pk, []):
+                for quant in quants_by_lot.get(lote.pk, []):
                     if reservado and product.uom.compare(extra_uom_qty, 0.0) <= 0:
                         break
                     disponible = float(quant.available_quantity or 0)
@@ -2588,9 +2587,9 @@ class StockMove(TimeStampedModel):
             for linea in libres:
                 if product.uom.compare(extra_uom_qty, 0.0) <= 0:
                     break
-                en_producto = linea.product_uom.compute_quantity(
+                in_product = linea.product_uom.compute_quantity(
                     float(linea.quantity or 0), product.uom)
-                reservar = min(en_producto, extra_uom_qty)
+                reservar = min(in_product, extra_uom_qty)
                 ordenes.append(('create', None, {
                     'move': self, 'product': linea.product,
                     'product_uom': linea.product_uom,
@@ -2671,7 +2670,7 @@ class StockMove(TimeStampedModel):
         se puede interpretar, **no se adivina**: el renglón entero pasa a ser el
         nombre del lote.
         """
-        salto, separador = '\n', '\t'
+        salto, separator = '\n', '\t'
         opciones = False
         if not lots:
             return []
@@ -2680,7 +2679,7 @@ class StockMove(TimeStampedModel):
         valores = []
         for texto in renglones:
             vals = {'lot_name': texto, 'quantity': 1}
-            partes = texto.replace(';', separador).split(separador)
+            partes = texto.replace(';', separator).split(separator)
             opciones = opciones or cls._get_formating_options(partes[1:])
             for extra in partes[1:]:
                 datos = cls._convert_string_into_field_data(extra, opciones)
@@ -2724,19 +2723,19 @@ class StockMove(TimeStampedModel):
         libres = [l for l in self.move_line_ids.all()
                   if not l.lot_id and not l.lot_name]
         ordenes = []
-        por_ubicacion = defaultdict(float)
+        by_location = defaultdict(float)
         for vals in field_data:
             cantidad = vals['quantity']
             if libres:
                 linea = libres.pop(0)
                 ordenes.append(('update', linea, dict(vals)))
-                por_ubicacion[linea.location_dest_id] += cantidad
+                by_location[linea.location_dest_id] += cantidad
             else:
                 donde = destino or self.location_dest._get_putaway_strategy(
                     self.product, quantity=cantidad,
-                    additional_qty=por_ubicacion)
+                    additional_qty=by_location)
                 ordenes.append(('create', {**base, **vals, 'location_dest': donde}))
-                por_ubicacion[donde.pk if donde is not None else None] += cantidad
+                by_location[donde.pk if donde is not None else None] += cantidad
         return ordenes
 
     def _generate_serial_numbers(self, next_serial, next_serial_count=False,
@@ -2796,14 +2795,14 @@ class StockMove(TimeStampedModel):
         sin_lote = 0
         nuevos = OrderedSet(lot.name for lot in lots if lot.name)
         for linea in self.move_line_ids.all():
-            en_uom = linea.product_uom.compute_quantity(
+            in_uom = linea.product_uom.compute_quantity(
                 float(linea.quantity or 0), self.product_uom)
             nombre = linea.lot.name if linea.lot_id else linea.lot_name
             if not nombre:
-                asignable += en_uom
+                asignable += in_uom
                 sin_lote += 1
             elif nombre in nuevos:
-                asignada += en_uom
+                asignada += in_uom
 
         if previous_lots is None:
             previous_lots = self.lot_ids

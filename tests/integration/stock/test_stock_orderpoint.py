@@ -16,6 +16,7 @@ from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 
 from addons.base.models import ResCompany
+from addons.base.models.ir_autovacuum import IrAutovacuum
 from addons.stock.models import (
     StockLocation,
     StockMove,
@@ -25,7 +26,7 @@ from addons.stock.models import (
     StockWarehouseOrderpoint,
 )
 from exceptions import UserError
-from orm.environments import set_current_company
+from orm.environments import context_scope, set_current_company
 from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
@@ -337,3 +338,69 @@ def test_the_notification_stays_silent_inside_the_same_warehouse(
         location=warehouse.lot_stock, location_dest=warehouse.lot_stock,
         picking=picking, orderpoint=orderpoint)
     assert orderpoint._get_replenishment_order_notification() is False
+
+
+# === ``@api.autovacuum`` sobre ``_unlink_processed_orderpoints`` (#250) ======
+#
+# La declinación anterior decía que el decorador «no existe aquí». Ya existe
+# (``orm/decorators.py``); estos dos tests discriminan que el colector
+# realmente lo encuentra y que, al correr, borra lo que debe y sólo eso.
+
+
+def test_ir_autovacuum_collects_the_orderpoint_sweep():
+    """Wiring: sin el decorador este tuple no aparece — es el control.
+
+    Qué lo haría fallar: quitar ``@api.autovacuum`` de
+    ``_unlink_processed_orderpoints`` (o dejarlo sin ``@classmethod``, que
+    rompe el contrato con el que ``IrAutovacuum`` lo llama).
+    """
+    found = [
+        (model, attribute)
+        for model, attribute, _function in IrAutovacuum._collect_methods()
+        if model is StockWarehouseOrderpoint]
+    assert found == [
+        (StockWarehouseOrderpoint, '_unlink_processed_orderpoints')]
+
+
+def test_the_real_sweep_deletes_only_the_manual_rule_with_nothing_left_to_order(
+        monkeypatch, company, warehouse):
+    """El barrido real, no la llamada directa al método.
+
+    Tres reglas que discriminan las dos condiciones del filtro:
+
+    - manual + agotada (``qty_to_order <= 0``) — la única que debe borrarse.
+    - manual + con pendiente (``qty_to_order > 0``) — sobrevive: aún pide.
+    - auto + agotada — sobrevive: ``trigger='manual'`` la excluye del todo.
+
+    Se aísla el censo de ``IrAutovacuum`` al único método bajo prueba (mismo
+    patrón que ``test_ir_autovacuum_commits_progress.py``): el colector real
+    recorre TODOS los modelos con ``@api.autovacuum`` de la app, y barrer los
+    demás (logs de dispositivo, sesiones revocadas, …) no es lo que este test
+    mide.
+    """
+    manual_depleted = _orderpoint(
+        company, warehouse, trigger='manual',
+        product=make_product(name='Manual agotada'),
+        qty_to_order_computed=0.0)
+    manual_pending = _orderpoint(
+        company, warehouse, trigger='manual',
+        product=make_product(name='Manual pendiente'),
+        qty_to_order_computed=5.0)
+    auto_depleted = _orderpoint(
+        company, warehouse, trigger='auto',
+        product=make_product(name='Auto agotada'),
+        qty_to_order_computed=0.0)
+
+    monkeypatch.setattr(
+        IrAutovacuum, '_collect_methods', staticmethod(lambda: [
+            (StockWarehouseOrderpoint, '_unlink_processed_orderpoints',
+             StockWarehouseOrderpoint._unlink_processed_orderpoints)]))
+
+    with context_scope(cron_id=1):
+        IrAutovacuum._run_vacuum_cleaner()
+
+    survivors = set(StockWarehouseOrderpoint.objects.filter(
+        pk__in=[manual_depleted.pk, manual_pending.pk, auto_depleted.pk]
+    ).values_list('pk', flat=True))
+    assert survivors == {manual_pending.pk, auto_depleted.pk}, (
+        'sólo la manual agotada debía desaparecer del barrido real')

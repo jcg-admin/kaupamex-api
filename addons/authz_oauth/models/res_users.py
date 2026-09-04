@@ -15,9 +15,17 @@ Métodos de la referencia → aquí:
 - ``_check_credentials`` (token almacenado como credencial) →
   ``../backends.py`` (``OauthTokenBackend``).
 - ``_compute_has_oauth_access_token`` / ``remove_oauth_access_token`` /
-  ``SELF_READABLE_FIELDS`` / ``_get_session_token_fields`` → NO portados:
-  sirven a la UI de usuarios y a la rotación de session token de Odoo; el
-  primero que tenga consumidor aquí se porta con él.
+  ``SELF_READABLE_FIELDS`` / ``_get_session_token_fields`` → **NO portados**,
+  4 de 10 símbolos. Sirven a la UI de usuarios de la referencia y a la
+  rotación de su session token, que deriva el token de campos del usuario —
+  la sesión de Django no lo hace, así que los dos últimos no tienen conducta
+  que replicar aquí. Los dos primeros sí la tendrían el día que exista la UI
+  que los consuma. Sucesor registrado: tarea #83.
+
+  El guion bajo de ``_auth_oauth_rpc`` / ``_auth_oauth_validate`` /
+  ``_generate_signup_values`` / ``_auth_oauth_signin`` se restauró el
+  2026-08-27: los cuatro se habían portado sin él, y quitarlo no renombra —
+  promueve el símbolo a API pública (H-API-581).
 """
 import json
 import logging
@@ -96,7 +104,7 @@ def _parse_bearer_challenge(header):
     return out
 
 
-def auth_oauth_rpc(endpoint, access_token):
+def _auth_oauth_rpc(endpoint, access_token):
     """≙ ``_auth_oauth_rpc`` (res_users.py:47-60)."""
     if SystemParameter.get_param(PARAM_AUTHORIZATION_HEADER, ''):
         response = requests.get(
@@ -117,16 +125,16 @@ def auth_oauth_rpc(endpoint, access_token):
     return {'error': 'invalid_request'}
 
 
-def auth_oauth_validate(provider_id, access_token):
+def _auth_oauth_validate(provider_id, access_token):
     """≙ ``_auth_oauth_validate`` (res_users.py:62-87): devuelve los datos de
     validación del token, con la clave de sujeto unificada en ``user_id``."""
     oauth_provider = OauthProvider.objects.get(pk=provider_id)
-    validation = auth_oauth_rpc(
+    validation = _auth_oauth_rpc(
         oauth_provider.validation_endpoint, access_token)
     if validation.get('error'):
         raise UserError(validation['error'])
     if oauth_provider.data_endpoint:
-        data = auth_oauth_rpc(oauth_provider.data_endpoint, access_token)
+        data = _auth_oauth_rpc(oauth_provider.data_endpoint, access_token)
         validation.update(data)
     # unify subject key — mismo orden que la referencia: sub (estándar), id
     # (google v1 / facebook opengraph), user_id (google tokeninfo).
@@ -140,7 +148,7 @@ def auth_oauth_validate(provider_id, access_token):
     return validation
 
 
-def generate_signup_values(provider_id, validation, params):
+def _generate_signup_values(provider_id, validation, params):
     """≙ ``_generate_signup_values`` (res_users.py:89-102)."""
     oauth_uid = validation['user_id']
     email = validation.get(
@@ -157,7 +165,7 @@ def generate_signup_values(provider_id, validation, params):
     }
 
 
-def auth_oauth_signin(provider_id, validation, params):
+def _auth_oauth_signin(provider_id, validation, params):
     """≙ ``_auth_oauth_signin`` (res_users.py:104-133): recupera (o da de
     alta) al usuario del proveedor+uid validados y devuelve su login.
 
@@ -181,7 +189,7 @@ def auth_oauth_signin(provider_id, validation, params):
         raise AccessDenied(
             'OAuth signin failed and signup is not allowed')
 
-    values = generate_signup_values(provider_id, validation, params)
+    values = _generate_signup_values(provider_id, validation, params)
     ResUsers = django_apps.get_model('base', 'ResUsers')
     user = ResUsers.objects.create_user(
         login=values['login'], name=values['name'],
@@ -201,8 +209,8 @@ def auth_oauth(provider_id, params):
     usuario. Devuelve ``(login, access_token)`` — la referencia antepone el
     dbname porque su sesión es multi-BD; aquí no aplica."""
     access_token = params.get('access_token')
-    validation = auth_oauth_validate(provider_id, access_token)
-    login = auth_oauth_signin(provider_id, validation, params)
+    validation = _auth_oauth_validate(provider_id, access_token)
+    login = _auth_oauth_signin(provider_id, validation, params)
     if not login:
         raise AccessDenied('OAuth signin returned no login')
     return (login, access_token)

@@ -1,0 +1,35 @@
+{
+  "question": "el cliente Claude Code —y los cuatro repos de referencia de AI— tienen un mecanismo analogo a .claude/eventos/, y COMO lo manejan?",
+  "instrument": [
+    "strings -n 4 sobre /opt/claude-code/bin/claude",
+    "grep -aoE sobre el volcado, por literal y por contexto"
+  ],
+  "metric": "lineas del volcado de cadenas que contienen cada literal (grep -ac), y ocurrencias con su contexto para desambiguar el sentido",
+  "blind_to": [
+    "un mecanismo que el cliente resuelva sin literal, construyendo el nombre en tiempo de ejecucion",
+    "la documentacion web de Anthropic, que no se midio: el cero de un literal acota lo que se puede afirmar del ejecutable, no lo que Anthropic describe",
+    "si un literal declarado esta cableado a algo — un nombre presente no prueba un mecanismo vivo",
+    "un mecanismo que un repo de referencia tenga sin nombrarlo en un .md, .json o .rs — la segunda poblacion se midio por nombre de directorio y por literal, no leyendo cada repo"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/hallazgos/",
+  "source": [
+    "docs: tools/claude-code-bin/2.1.251/claude_strings.txt — volcado versionado de /opt/claude-code/bin/claude 2.1.251 (214326616 bytes), vendorizado en este mismo trabajo",
+    "/home/user/{skills,agency-agents,claw-code,coreutils} — los cuatro repos de referencia de AI, solo lectura"
+  ],
+  "reproducible": "grep -ac <literal> docs: tools/claude-code-bin/2.1.251/claude_strings.txt",
+  "corrected_premise": {
+    "afirmado_antes": "workbench da 0 hits en el ejecutable",
+    "medido_ahora": "da 4, y los cuatro son una sola cadena de VS Code (workbench.action.terminal.sendSequence)",
+    "por_que_divergen": "la primera medicion uso un patron entrecomillado (\"workbench\"|'workbench'|workbench:) contra el binario crudo; la segunda usa \\bworkbench\\b sobre el volcado. El instrumento decidia la conclusion — sub-patron A",
+    "cambia_el_veredicto": false
+  },
+  "tasks": [
+    "#220"
+  ],
+  "outputs": [
+    "client-mechanism-20260830T192922.txt",
+    "counts-20260830T192922.txt"
+  ],
+  "control": "el sentido de cada literal se lee en su contexto de 70 caracteres, no por su conteo: los 4 de workbench son de VS Code y un conteo pelado los habria leido como vocabulario del cliente",
+  "findings": []
+}

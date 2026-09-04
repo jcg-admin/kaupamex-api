@@ -1,0 +1,16 @@
+{
+  "question": "la mitad n-aria del registro de optimizadores estaba vacia: que hace falta para poblarla, y cambia la conducta?",
+  "instrument": ["uv run pytest -n 4 -q --reuse-db sobre el arbol completo, y el subconjunto de tests/unit/orm/ con los tres sabotajes"],
+  "metric": "casos passed/failed de la suite completa, y del subconjunto bajo cada sabotaje",
+  "blind_to": [
+    "el SQL emitido: los casos miden el dominio optimizado, no la consulta que sale de el. Dos dominios equivalentes pueden compilar a SQL distinto y ninguno de estos casos lo veria",
+    "el rendimiento: la fusion existe para reducir subconsultas y ningun caso mide cuantas se emiten",
+    "un campo x2many con semantica propia fuera de many2many y one2many — la exclusion se lee por field.type, no por conducta"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/hallazgos/",
+  "source": ["src/orm/domains.py", "src/tools/misc.py"],
+  "reproducible": "uv run pytest tests/unit/orm/test_domain_nary_merges.py -q --reuse-db",
+  "outputs": ["suite-*.log"],
+  "control": "tres sabotajes, uno por comportamiento nuevo: la exclusion de x2many retirada, union sin orden de insercion, y el primer recorrido de _optimize_same_conditions eliminado. Las cifras se publican en el hallazgo, no aqui",
+  "findings": ["H-API-963"]
+}

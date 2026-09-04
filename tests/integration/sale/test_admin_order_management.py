@@ -182,7 +182,7 @@ class TestBuscarOrdenesAdmin:
         assert first['user_email'] == user.email
         assert first['user_username'] == user.email
 
-    def test_admin_detalle_de_orden(self, admin_client, user, prod_adm, db):
+    def test_admin_detail_of_order(self, admin_client, user, prod_adm, db):
         order = _make_order(user, prod_adm)
         res = admin_client.get(ADMIN_DETAIL_URL(order.name))
         assert res.status_code == 200

@@ -198,6 +198,7 @@ from addons.account_peppol.exceptions import get_peppol_error_message
 from addons.account_peppol.tools.peppol_iap_connector import PEPPOL_PROXY_URLS
 from exceptions import UserError
 from orm.method_chain import chain_method
+from orm.model_classes import extend_selection_choices
 from tools.translate import _
 
 _logger = logging.getLogger(__name__)
@@ -218,18 +219,20 @@ WEBHOOK_SIGNING_SALT = 'account_peppol_webhook'
 
 
 def _extend_selection_choices(model, field_name, extra_choices):
-    """Amplía en sitio los ``choices`` de un campo ya declarado en ``model``.
+    """≙ ``selection_add=`` con su ``ondelete=`` — delega en el compartido.
 
-    Mismo helper que ``account/models/account_analytic_line.py:139`` — no
-    genera migración, idempotente."""
-    field = model._meta.get_field(field_name)
-    already_present = {value for value, _label in field.choices}
-    for value, label in extra_choices:
-        if value not in already_present:
-            field.choices.append((value, label))
-            already_present.add(value)
+    Era una copia local de :func:`orm.model_classes.extend_selection_choices`,
+    una de cuatro idénticas en el árbol. Se retiran las cuatro: el compartido
+    hace lo mismo **y** acepta el ``ondelete`` que la fuente declara junto al
+    ``selection_add``, que es lo que la tarea **#205** construyó.
 
-
+    La política es la medida en ``odoo19c: account_peppol/models/account_edi_proxy_user.py``:
+    ``{'peppol': 'cascade'}``. Sin ella los registros que
+    guardaban el valor quedaban huérfanos al borrarlo.
+    """
+    return extend_selection_choices(
+        model, field_name, extra_choices,
+        ondelete={'peppol': 'cascade'})
 def _merge_with_previous(new, previous):
     """``combine`` para hooks que aportan claves a un dict — ≙
     ``urls = super()...; urls['peppol'] = ...``."""
@@ -319,13 +322,13 @@ def _call_peppol_proxy(self, endpoint, params=None):
         if (
             e.code == 'no_such_user'
             and not self.active
-            and not self.company.account_edi_proxy_client_ids.filter(
+            and not self.company_id.account_edi_proxy_client_ids.filter(
                 proxy_type=self.proxy_type,
             ).exists()
         ):
-            self.company.account_peppol_proxy_state = 'not_registered'
-            self.company.account_peppol_migration_key = ''
-            self.company.save(update_fields=[
+            self.company_id.account_peppol_proxy_state = 'not_registered'
+            self.company_id.account_peppol_migration_key = ''
+            self.company_id.save(update_fields=[
                 'account_peppol_proxy_state', 'account_peppol_migration_key',
             ])
             raise UserError(_(
@@ -402,7 +405,7 @@ def _peppol_out_of_sync_reconnect_this_database(self):
 def _peppol_out_of_sync_disconnect_this_database(self):
     """≙ ``_peppol_out_of_sync_disconnect_this_database`` (``odoo19c: :154-160``)."""
     assert self.is_token_out_of_sync
-    self.company._reset_peppol_configuration(soft=True)
+    self.company_id._reset_peppol_configuration(soft=True)
     self.delete()
 
 
@@ -517,12 +520,12 @@ def _peppol_process_participant_status(self, proxy_user):
     }.get(proxy_user.get('peppol_state'))
 
     if local_state == 'not_registered':
-        self.company._reset_peppol_configuration()
+        self.company_id._reset_peppol_configuration()
         self.active = False
         self.save(update_fields=['active'])
     elif local_state:
-        self.company.account_peppol_proxy_state = local_state
-        self.company.save(update_fields=['account_peppol_proxy_state'])
+        self.company_id.account_peppol_proxy_state = local_state
+        self.company_id.save(update_fields=['account_peppol_proxy_state'])
     else:
         _logger.warning(
             "Estado Peppol desconocido '%s' para el usuario de proxy EDI id=%s",
@@ -545,7 +548,7 @@ def _peppol_get_participant_status(self):
         proxy_user = self._make_request(f'{self._get_server_url()}{endpoint}')
     except AccountEdiProxyError as e:
         if e.code == 'client_gone':
-            self.company._reset_peppol_configuration()
+            self.company_id._reset_peppol_configuration()
             self.active = False
             self.save(update_fields=['active'])
         else:
@@ -572,7 +575,7 @@ def _peppol_register_sender_as_receiver(self):
     Sin el ``_trigger`` horario del cron (divergencia 5) y leyendo la etiqueta
     del estado de los ``choices`` del campo (divergencia 6).
     """
-    company = self.company
+    company = self.company_id
 
     if company.account_peppol_proxy_state != 'sender':
         etiquetas = dict(type(company)._meta.get_field(
@@ -638,22 +641,22 @@ def _peppol_deregister_participant(self):
             endpoint=self._get_peppol_proxy_endpoint('1/cancel_peppol_registration'),
         )
 
-    self.company._reset_peppol_configuration()
+    self.company_id._reset_peppol_configuration()
     self.delete()
 
 
 def _peppol_deregister_participant_to_sender(self):
     """≙ ``_peppol_deregister_participant_to_sender`` (``odoo19c: :534-547``)
     — baja de receptor a emisor, conservando la conexión."""
-    if self.company.account_peppol_proxy_state == 'receiver':
+    if self.company_id.account_peppol_proxy_state == 'receiver':
         type(self)._cron_peppol_get_message_status()
         type(self)._cron_peppol_get_new_documents()
 
     self._call_peppol_proxy(
         endpoint=self._get_peppol_proxy_endpoint('1/unregister_to_sender'),
     )
-    self.company.account_peppol_proxy_state = 'sender'
-    self.company.save(update_fields=['account_peppol_proxy_state'])
+    self.company_id.account_peppol_proxy_state = 'sender'
+    self.company_id.save(update_fields=['account_peppol_proxy_state'])
 
 
 def _peppol_get_services(self):
@@ -698,7 +701,7 @@ def _get_user_from_token(cls, token, url):
     if not url.startswith(endpoint):
         return None
 
-    company_model = AccountEdiProxyUser._meta.get_field('company').related_model
+    company_model = AccountEdiProxyUser._meta.get_field('company_id').related_model
     company = company_model.objects.filter(pk=identifier).first()
     if company is not None and company.account_peppol_edi_user is not None:
         return company.account_peppol_edi_user
@@ -710,8 +713,8 @@ def _peppol_reset_webhook(self):
     self._call_peppol_proxy(
         self._get_peppol_proxy_endpoint('2/set_webhook'),
         params={
-            'webhook_url': self.company._get_peppol_webhook_endpoint(),
-            'token': type(self)._generate_webhook_token(self.company),
+            'webhook_url': self.company_id._get_peppol_webhook_endpoint(),
+            'token': type(self)._generate_webhook_token(self.company_id),
         },
     )
 

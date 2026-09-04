@@ -60,6 +60,12 @@ make check-canon                                         # canon-idioma (cross-s
 
 # Hooks: pre-commit local valida lazy + canon + silent-OKs sobre .py staged
 bash scripts/install-hooks.sh                            # make install-hooks
+
+# La referencia se consulta por ALIAS, nunca tecleando la ruta. Las cuatro
+# raíces se declaran UNA vez en scripts/reference_roots.py; --env las exporta:
+eval "$(python3 scripts/reference_roots.py --env)"       # ODOO19C ODOO19E ODOO18C ODOO18E
+grep -c "PostgreSQLHandler" "$ODOO19C/odoo/netsvc.py"    # ya sin la ruta larga
+python3 scripts/reference_roots.py                       # las cuatro, con su conteo de addons
 ```
 
 Targets de Makefile: `help check-lazy[-ci] check-canon[-ci] test test-coverage
@@ -86,6 +92,15 @@ install-hooks db-up ci-test ci-test-fast` (`make help`).
   (docs/operaciones.md); pytest aplica migraciones nuevas con `--reuse-db`.
 - **Canon error key = `codigo_error`** (no `error_code`). El gate canon-idioma
   lo vigila.
+- **La ruta de la referencia NO se teclea.** El árbol está triplicado en
+  `odoo-tools` (`19.x/odoo-19.0/odoo-19.0/odoo-19.0/`) — artefacto de
+  empaquetado, candidato a aplanarse. Nueve guiones lo codificaban a mano, con
+  diez literales; hoy lo declara `scripts/reference_roots.py` y lo consultan
+  todos. Es el gemelo de `scripts/addons_roots.py`, que ya lo hacía para
+  **nuestras** raíces leyéndolas de `src/modules/module.py`. Un gate con su
+  copia de la ruta es la segunda fuente de verdad que
+  `calibration-verified-numbers.md` prohíbe, y falla en silencio: apuntado a
+  una raíz vacía publica `0 incumplidores` y parece sano (H-API-335).
 - **Zero lazy imports**: imports al top del módulo; el pre-commit lo bloquea.
 
 ### Vistas DRF — invariante de seguridad (detalle en el skill `backend-drf`)

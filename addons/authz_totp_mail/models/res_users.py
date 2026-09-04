@@ -8,7 +8,7 @@ funciones sobre el usuario (no hay ``_inherit``), mismo criterio que
 Métodos de la referencia → aquí:
 
 - ``_get_totp_mail_key`` / ``_get_totp_mail_code`` / ``_send_totp_mail_code``
-  → ``totp_mail_key`` / ``totp_mail_code`` / ``send_totp_mail_code``.
+  → ``_get_totp_mail_key`` / ``_get_totp_mail_code`` / ``_send_totp_mail_code``.
 - ``_check_credentials`` (type ``totp_mail``) → portado abajo **con su nombre**
   y encadenado sobre ``res.users``; ``verify_totp_mail_code`` queda como el
   verificador que consume, reutilizable por la vista del segundo paso. Es el
@@ -42,13 +42,16 @@ Métodos de la referencia → aquí:
   entre sus cuatro backends. Lo que **sí** se unificó (#722) es la mitad de
   verificación: ``_check_credentials`` existe como cadena sobre ``res.users``,
   con este addon de tercer eslabón.
-- ``_rpc_api_keys_only`` / ``action_open_my_account_settings`` → NO
-  portados: RPC keys y acción de ventana del backoffice Odoo.
+- ``_rpc_api_keys_only`` → portado abajo (#85), encadenado con
+  ``combine=first_truthy`` sobre los eslabones de ``authz_totp`` y ``base``.
+  ``action_open_my_account_settings`` sigue sin portar: es una acción de
+  ventana del backoffice Odoo.
 
-**Rate limit (divergencia declarada):** la referencia llama
-``_totp_rate_limit('code_check'|'send_email')`` de ``auth_totp``, que
-persiste en ``auth_totp_rate_limit_log`` — modelo NO portado (mismo gap).
-Hasta portarlo, estos flujos quedan sin rate limit propio.
+**Límite de tasa:** portado en **#85** (:ref:`h-api-833`). Los dos métodos y
+su tabla viven en ``authz_totp`` —donde la fuente los declara— y este addon los
+llama en los tres sitios que la referencia declara: el freno de ``code_check``
+al verificar, la purga de los dos contadores al acertar, y el freno de
+``send_email`` al enviar.
 """
 import logging
 from datetime import datetime
@@ -56,7 +59,7 @@ from datetime import datetime
 from django.apps import apps as django_apps
 
 from exceptions import AccessDenied, UserError
-from orm.method_chain import chain_method, keep_previous
+from orm.method_chain import chain_method, first_truthy, keep_previous
 from orm.model_classes import extend_model
 from tools.misc import hmac as tools_hmac
 
@@ -101,7 +104,7 @@ NEW_CONNECTION_CONTENT = 'A new device was used to sign in to your account.'
 TOTP_MAIL_SECOND_STEP_URL = '/login/totp'
 
 
-def totp_mail_key(user):
+def _get_totp_mail_key(user):
     """≙ ``_get_totp_mail_key`` (res_users.py:160-162): clave HMAC derivada
     del secreto del despliegue + identidad y último login del usuario (el
     ``login_date`` de la referencia invalida los códigos al re-loguear)."""
@@ -109,13 +112,13 @@ def totp_mail_key(user):
     return tools_hmac('auth_totp_mail-code', message).encode()
 
 
-def totp_mail_code(user):
+def _get_totp_mail_code(user):
     """≙ ``_get_totp_mail_code`` (res_users.py:164-182): ``(code, segundos)``.
 
     El guard de sesión pre-auth de la referencia (``request.session.pre_uid``)
     pertenece a su flujo de login web; aquí el llamador controla el contexto.
     """
-    key = totp_mail_key(user)
+    key = _get_totp_mail_key(user)
     counter = int(datetime.now().timestamp() / TOTP_MAIL_TIMESTEP)
     code = hotp(key, counter)
     return str(code).zfill(6), TOTP_MAIL_WINDOW
@@ -133,7 +136,7 @@ def verify_totp_mail_code(user, code):
         token = None
     match = None
     if token is not None:
-        match = TOTP(totp_mail_key(user)).match(
+        match = TOTP(_get_totp_mail_key(user)).match(
             token, window=TOTP_MAIL_WINDOW, timestep=TOTP_MAIL_TIMESTEP)
     if match is None:
         _logger.info('2FA check (mail): FAIL for %r', user.login)
@@ -143,13 +146,20 @@ def verify_totp_mail_code(user, code):
     return True
 
 
-def send_totp_mail_code(user):
+def _send_totp_mail_code(user):
     """≙ ``_send_totp_mail_code`` (res_users.py:184-216): renderiza la
-    plantilla del código y la despacha al email del usuario."""
+    plantilla del código y la despacha al email del usuario.
+
+    El freno de ``send_email`` es la **primera** línea, igual que en la fuente
+    (``:183``): va antes incluso de comprobar que el usuario tenga correo. Sin
+    él, este endpoint es un generador de correo ilimitado contra la bandeja de
+    cualquier cuenta cuyo ``login`` se conozca.
+    """
+    user._totp_rate_limit('send_email')
     if not user.login:
         raise UserError(
             'Cannot send email: user %s has no email address.' % user)
-    code, expiration = totp_mail_code(user)
+    code, expiration = _get_totp_mail_code(user)
     template = MailTemplate.objects.filter(
         name=TEMPLATE_TOTP_MAIL_CODE).first()
     if template is None:
@@ -211,6 +221,16 @@ def _mfa_url(self):
         return TOTP_MAIL_SECOND_STEP_URL
 
 
+def _rpc_api_keys_only(self):
+    """≙ ``_rpc_api_keys_only`` (``:135-136``) — el eslabón externo.
+
+    ``self._mfa_type() == 'totp_mail'`` es la forma de la fuente, y usarla
+    —en vez de un predicado propio— es lo que #719 dejó fijado: la pregunta
+    compuesta se hace **sobre el resultado de la cadena**, no antes.
+    """
+    return self._mfa_type() == 'totp_mail'
+
+
 def _check_credentials(self, credential, env):
     """≙ ``_check_credentials`` tipo ``totp_mail`` (``:138-156``).
 
@@ -229,15 +249,20 @@ def _check_credentials(self, credential, env):
     fuente, así que aquí no se traduce nada: el rechazo atraviesa la cadena
     entera sin que ningún eslabón lo atienda, que es el contrato.
 
-    **Divergencia declarada — el límite de tasa.** La fuente llama
-    ``_totp_rate_limit('code_check')`` al entrar y purga dos contadores al
-    acertar (``:140``, ``:149-150``). Ese mecanismo persiste en
-    ``auth_totp_rate_limit_log``, modelo **no portado** (gap ya nombrado en el
-    docstring del módulo y en H-API-232). Se porta con el modelo.
+    **El límite de tasa está cableado** en sus tres sitios de la fuente: el
+    freno al entrar (``:140``) y la purga de los **dos** contadores al acertar
+    (``:149-150``). Los métodos los hereda de ``authz_totp``, que es donde la
+    fuente los declara.
     """
     if credential.get('type') != 'totp_mail':
         return None
+    self._totp_rate_limit('code_check')
     verify_totp_mail_code(self, credential.get('token') or '')
+    # La fuente purga los DOS contadores al acertar (``:149-150``), no sólo el
+    # que acaba de gastar. Es deliberado: quien demuestra tener el correo ya no
+    # necesita que se le racione el envío de códigos a ese mismo correo.
+    self._totp_rate_limit_purge('code_check')
+    self._totp_rate_limit_purge('send_email')
     return {'uid': self.pk, 'auth_method': 'totp_mail', 'mfa': 'default'}
 
 
@@ -256,7 +281,7 @@ def _notify_security_new_connection(self, request):
     al titular. Moverlo al final del flujo lo dejaría mudo justo en ese caso.
 
     Aquí el correo es ``login`` (este árbol no declara un campo ``email``
-    aparte), igual que en ``send_totp_mail_code`` y en ``../signals.py``.
+    aparte), igual que en ``_send_totp_mail_code`` y en ``../signals.py``.
     """
     if request is None or not self.login or not self._mfa_type():
         return
@@ -292,6 +317,8 @@ def _chain_res_users(model):
     chain_method(model, '_notify_security_new_connection',
                  _notify_security_new_connection)
     chain_method(model, '_check_credentials', _check_credentials)
+    chain_method(model, '_rpc_api_keys_only', _rpc_api_keys_only,
+                 combine=first_truthy)
 
 
 def apply_authz_totp_mail_res_users_extensions():

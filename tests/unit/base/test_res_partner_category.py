@@ -30,6 +30,7 @@ from addons.base.models.res_partner import (FormatAddressMixin,
                                             ResPartnerCategory)
 from addons.base.models.res_country import ResCountry
 from exceptions import ValidationError
+from tests.conftest import matching_by_display_name
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -102,8 +103,8 @@ def test_searching_by_name_brings_the_descendants():
     espera tambien "Clientes / Mayoristas"."""
     root = ResPartnerCategory.objects.create(name='Clientes')
     ResPartnerCategory.objects.create(name='Mayoristas', parent=root)
-    condition = ResPartnerCategory._search_display_name('like', 'Clientes')
-    assert ResPartnerCategory.objects.filter(condition).count() == 2
+    found = matching_by_display_name(ResPartnerCategory, 'like', 'Clientes')
+    assert found.count() == 2
 
 
 def test_a_negated_search_is_refused():
@@ -132,11 +133,20 @@ def test_the_vat_label_comes_from_the_country():
 
 
 def test_the_address_order_follows_the_country_format():
-    """``FormatAddressMixin`` (``:61-136``) — el orden de aparicion en la
-    line que contiene la ciudad, que es lo que la fuente saca antes de mover
-    nodos XML."""
+    """``FormatAddressMixin`` (``:61-136``) — el orden de la linea que
+    contiene la ciudad, con los dos derivados ya mapeados a su campo real.
+
+    La version anterior de este caso afirmaba ``['city', 'zip',
+    'state_code']`` y era fiel a lo que el porte entregaba entonces: la linea
+    en crudo. Lo que la fuente hace ademas —mapear ``state_code`` a
+    ``state_id`` (``:112``, ``:120``) y colocar al final lo que el formato no
+    nombra (``:119-124``)— faltaba, y este caso lo daba por bueno.
+
+    El desglose de la conducta completa vive en
+    ``tests/integration/base/test_format_address_and_vat_label.py``.
+    """
     country = ResCountry.objects.create(
         name='Probeland', code='PB',
         address_format='%(street)s\n%(city)s %(zip)s %(state_code)s\n%(country_name)s')
     assert FormatAddressMixin.field_order_for(country) == [
-        'city', 'zip', 'state_code']
+        'city', 'zip', 'state_id']

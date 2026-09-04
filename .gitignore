@@ -31,3 +31,7 @@ test-results/
 # tareas/logs, sin informacion sensible que no este ya en docs.
 .claude/agent-results/*
 !.claude/agent-results/agent_store.sqlite3
+
+# Copias del control discriminante (scripts/neutralize_and_measure.sh).
+# La EVIDENCIA se versiona en scripts/evidence/; la copia transitoria no.
+.neutering/

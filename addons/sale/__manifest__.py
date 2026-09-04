@@ -26,6 +26,14 @@
     # por duplicado. Ver :ref:`h-api-754`.
     'depends': [
         'account',
+        # QUINTA entrada, añadida 2026-08-29 con el bloque 3a de #976:
+        # `sale_order_line.py` importa AnalyticMixin directo
+        # (`from addons.analytic.models.analytic_mixin import AnalyticMixin`)
+        # para portar el `_inherit = ['analytic.mixin']` de la fuente. Llegaba
+        # transitivamente por `account`, igual que en la referencia —donde
+        # `sale` tampoco lo declara y lo hereda por `account_payment`—, pero un
+        # `import` directo es acoplamiento propio y el `depends` lo mide.
+        'analytic',
         'authz',
         'base',
         'loyalty',

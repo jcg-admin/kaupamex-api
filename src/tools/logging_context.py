@@ -7,8 +7,15 @@ Se expone via contextvars para que cualquier capa (handler de logging, señales
 de negocio) lo lea sin propagarlo por parametro.
 
 Movido desde ``core.logging_context`` en el slice 5 de
-``adoptar-arquitectura-server-service-odoo`` (DEC-10): utilidad de logging sin
-modelo Django, fiel a Odoo la ubica en ``tools/``.
+``adoptar-arquitectura-server-service-odoo`` (DEC-10).
+
+**Corregido: la referencia no ubica esto en ninguna parte.** Esta linea decia
+*"fiel a Odoo la ubica en ``tools/``"*, y eso describia un sitio que nadie
+midio. Medido 2026-08-28: **0** ``ContextVar`` en el camino de logging de la
+referencia (``odoo/netsvc.py``, ``odoo/logging.py``, ``odoo/http.py``). El
+correlation_id por request es mecanismo **propio** de esta plataforma, no un
+porte — su sitio lo elegimos nosotros, y ``tools/`` es una eleccion valida
+mientras se declare como tal. Ver :ref:`h-api-855`.
 
 **El error de la request ya no se sella aqui (DEC-AF-11).** Este modulo
 declaraba ademas ``set_request_error``/``get_request_error``: el

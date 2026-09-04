@@ -372,10 +372,16 @@ def save_guarding_factor(self, *args, **kwargs):
     """
     if self.pk is None:
         return None
+    # Los dos lados de la comparación tienen que estar en el MISMO eje.
+    # ``values('relative_uom_id')`` devuelve la clave ajena en crudo; el
+    # atributo homónimo, desde ADR-029, es el **registro**. El eje crudo del
+    # símbolo ``relative_uom_id`` es su ``attname``, que Django construye
+    # añadiendo otro ``_id``. Comparar el crudo contra el registro da siempre
+    # distinto y dispara la guarda en cada repropagación (H-API-882).
     previous = type(self).objects.filter(pk=self.pk).values(
         'relative_factor', 'relative_uom_id').first()
     if previous and (previous['relative_factor'] != self.relative_factor
-                     or previous['relative_uom_id'] != self.relative_uom_id):
+                     or previous['relative_uom_id'] != self.relative_uom_id_id):
         self.check_factor_not_in_use()
     return None
 
@@ -738,7 +744,15 @@ def _compute_quantities(cls, products, **kwargs):
 
 
 def _quantity_for(self, key, **kwargs):
-    """El valor de un campo de cantidad para ESTE producto."""
+    """El valor de un campo de cantidad para ESTE producto.
+
+    Las cinco ``property`` de cantidad lo llaman sin contexto; el planificador
+    de reabastecimiento lo llama **con** contexto (``location``, ``to_date``:
+    ``stock_orderpoint._get_product_context``), así que además de ayudante de
+    módulo se cuelga de ``ProductProduct`` como método ligado — hasta #277 no
+    se colgaba y ``_run_scheduler_tasks`` moría con ``AttributeError`` en el
+    primer orderpoint.
+    """
     return type(self)._compute_quantities([self], **kwargs).get(
         self.pk, {}).get(key, 0.0)
 
@@ -894,9 +908,9 @@ def _filter_to_unlink(cls, products):
     """
     StockLot = apps.get_model('stock', 'StockLot')
     products = list(products)
-    con_lote = set(StockLot.objects.filter(product__in=products)
+    with_lot = set(StockLot.objects.filter(product__in=products)
                    .values_list('product_id', flat=True))
-    return [p for p in products if p.pk not in con_lote]
+    return [p for p in products if p.pk not in with_lot]
 
 
 def _count_returned_sn_products(cls, sn_lot, or_domains=()):
@@ -1308,6 +1322,7 @@ def apply_stock_product_extensions():
         if not hasattr(ProductProduct, name):
             setattr(ProductProduct, name, property(function))
     for name, function in (
+        ('_quantity_for', _quantity_for),
         ('get_components', get_components),
         ('_get_quantity_in_progress', _get_quantity_in_progress),
         ('_update_uom', _update_uom),

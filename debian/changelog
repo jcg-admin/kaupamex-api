@@ -1,0 +1,7 @@
+kaupamex-api (0.1.0-1) unstable; urgency=medium
+
+  * Primer empaquetado del producto L0. Espejo de `odoo19c: debian/`
+    (odoo-tools@abe4040ec1), con las divergencias declaradas archivo a
+    archivo en COBERTURA.md.
+
+ -- Equipo Kaupamex <dev@kaupamex.com>  Sat, 29 Aug 2026 02:07:54 +0000

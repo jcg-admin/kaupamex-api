@@ -123,7 +123,7 @@ import re
 import unicodedata
 
 import fields
-from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.base.models.res_bank import ResPartnerBank
 from orm.method_chain import chain_method, extend_list
 from tools.translate import _
 

@@ -29,10 +29,17 @@ Por qué este archivo cierra la divergencia D-5 de ``stock_rule``
 =================================================================
 
 ``stock_rule.py:353-369`` declara ``_orderpoint_model()``, que devuelve ``None``
-**con un aviso en el log** porque el modelo no existía. Medido antes de este
-pase: ``grep -rn "class .*Orderpoint" addons/ src/ --include=*.py`` → **0**. Con
-este archivo, la primera de las tres tareas del planificador
-(``_run_scheduler_tasks``) deja de omitirse.
+**con un aviso en el log** cuando el modelo no está portado. Antes de este
+archivo la clase no existía en el árbol — una medición de un momento, no una
+declinación vigente, y por eso va como bloque literal y no como cita en línea:
+
+.. code-block:: text
+
+    grep -rn "class .*Orderpoint" addons/ src/ --include=*.py  → 0
+
+Hoy el mismo comando encuentra la clase que este archivo declara (más abajo)
+y sus propias citas en prosa. Con este archivo, la primera de las tres tareas
+del planificador (``_run_scheduler_tasks``) deja de omitirse.
 
 El contrato que ese llamador ya fijó, y que este porte cumple:
 
@@ -161,20 +168,31 @@ Lo que este archivo NO cierra
 
 - **``stock.replenishment.info``** — el modelo transitorio que
   ``action_stock_replenishment_info`` crea (``:336-338``) no existe en este
-  árbol (medido: ``grep -rn "replenishment.info" addons/ src/`` → 0). El método
-  devuelve su descriptor **sin** crear el registro y lo declara en su docstring.
-  Sucesor: tarea **#330**.
-- **``StockMove.orderpoint_id``** — ``stock_move.py:29-31`` declara que la FK
-  quedó fuera porque este modelo no existía. Ahora existe; añadirla es la tarea
-  **#382**, que se hace con su migración y sus consumidores
-  (``_prepare_procurement_values`` ya la pasa en ``values``).
-- **``@api.autovacuum``** sobre ``_unlink_processed_orderpoints`` (``:669``) — el
-  decorador que lo cuelga del vaciado periódico no existe aquí; el método se
-  porta entero y queda invocable. Sucesor: tarea **#124** (sembrar los crons).
+  árbol. El cero se mide por **declaración**, no por mención — la mención del
+  término sube con cada archivo que documenta la ausencia (hoy **21**, todas
+  prosa) —, y el patrón va **anclado a inicio de línea** para no confundir las
+  dos: ``grep -rn "^class .*Replenishment" addons/ src/ --include=*.py`` →
+  **0**. El método devuelve su descriptor **sin** crear el registro y lo
+  declara en su docstring. Sucesor: tarea **#330**.
+
+Dos ítems que esta sección declinaba con una razón hoy caducada, retirados de
+la lista para no repetir el defecto que motivó este barrido (#250):
+
+- **``StockMove.orderpoint``** — ``stock_move.py`` marcaba la FK pendiente por
+  la tarea #382 «porque este modelo no existía»; el modelo ya existe desde
+  este archivo y la FK, su migración y sus consumidores están cerrados
+  (``stock_move.py:648``, «El paso 5 está cerrado (tarea #382)»).
+- **``@api.autovacuum``** sobre ``_unlink_processed_orderpoints`` — el
+  decorador ya está aplicado (ver el docstring del propio método, más abajo).
+  El barrido lo recorre el cron único de ``ir.autovacuum``
+  (``base/migrations/0032_seed_cron_autovacuum.py``), así que la tarea
+  **#124** («sembrar los crons») no necesitaba una migración propia de este
+  addon.
 """
 from collections import defaultdict
 from datetime import datetime, time, timedelta
 
+import api
 import fields
 import models
 from django.apps import apps
@@ -538,10 +556,10 @@ class StockWarehouseOrderpoint(TimeStampedModel):
             return 0.0, 0.0
         contexto = self._get_product_context()
         producto = self.product
-        existencia = producto._quantity_for('qty_available', **contexto)
+        stock = producto._quantity_for('qty_available', **contexto)
         pronostico = producto._quantity_for('virtual_available', **contexto)
         en_progreso = type(self)._quantity_in_progress([self]).get(self.pk, 0.0)
-        return existencia, pronostico + en_progreso
+        return stock, pronostico + en_progreso
 
     @property
     def qty_to_order(self):
@@ -557,6 +575,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
 
     @qty_to_order.setter
     def qty_to_order(self, value):
+        """≙ ``_inverse_qty_to_order`` (``odoo19c: stock/models/stock_orderpoint.py``)."""
         self._qty_to_order_assigned = value
         self._inverse_qty_to_order()
 
@@ -718,10 +737,10 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         for orderpoint in por_calcular:
             por_empresa[orderpoint.company].append(orderpoint)
 
-        for empresa, del_grupo in por_empresa.items():
+        for empresa, of_group in por_empresa.items():
             horizonte = _today() + timedelta(
-                days=int(cls.get_horizon_days(del_grupo)))
-            productos = [o.product for o in del_grupo if o.product is not None]
+                days=int(cls.get_horizon_days(of_group)))
+            productos = [o.product for o in of_group if o.product is not None]
             _q_quant, q_entra, q_sale = product_model._get_domain_locations()
 
             entradas = (move_model.objects
@@ -737,26 +756,26 @@ class StockWarehouseOrderpoint(TimeStampedModel):
                        .values('product', 'location', 'date__date')
                        .annotate(total=Sum('product_qty')))
 
-            por_producto_ubicacion = {}
+            by_product_location = {}
             for fila in entradas:
                 clave = (fila['product'], fila['location_dest'])
-                por_producto_ubicacion.setdefault(clave, defaultdict(float))
-                por_producto_ubicacion[clave][fila['date__date']] += float(
+                by_product_location.setdefault(clave, defaultdict(float))
+                by_product_location[clave][fila['date__date']] += float(
                     fila['total'] or 0)
             for fila in salidas:
                 clave = (fila['product'], fila['location'])
-                por_producto_ubicacion.setdefault(clave, defaultdict(float))
-                por_producto_ubicacion[clave][fila['date__date']] -= float(
+                by_product_location.setdefault(clave, defaultdict(float))
+                by_product_location[clave][fila['date__date']] -= float(
                     fila['total'] or 0)
 
-            for orderpoint in del_grupo:
-                existencia = orderpoint.qty_on_hand
+            for orderpoint in of_group:
+                stock = orderpoint.qty_on_hand
                 tentativa = horizonte
-                movimientos = por_producto_ubicacion.get(
+                movimientos = by_product_location.get(
                     (orderpoint.product_id, orderpoint.location_id), {})
                 for fecha, cantidad in sorted(movimientos.items()):
-                    existencia += cantidad
-                    if existencia < orderpoint.product_min_qty:
+                    stock += cantidad
+                    if stock < orderpoint.product_min_qty:
                         tentativa = fecha - timedelta(days=orderpoint.lead_days)
                         break
                 orderpoint.deadline_date = (
@@ -800,15 +819,15 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         caliente. La fuente lo verifica en los dos métodos; aquí, en el único
         punto por el que pasan ambos.
         """
-        creando = self.pk is None
+        creating = self.pk is None
         if self.snoozed_until and self.trigger == 'auto':
             raise UserError(_(
                 'You can only snooze manual orderpoints. You should rather '
                 "archive 'auto-trigger' orderpoints if you do not want them to "
-                'be triggered.') if not creando else _(
+                'be triggered.') if not creating else _(
                 'You can not create a snoozed orderpoint that is not manually '
                 'triggered.'))
-        if not creando:
+        if not creating:
             anterior = type(self).objects.filter(pk=self.pk).values(
                 'company_id').first()
             if anterior and anterior['company_id'] != self.company_id:
@@ -899,7 +918,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         cls._procure_orderpoint_confirm(
             orderpoints, company_id=get_current_company())
 
-        notificacion = (orderpoints[0]._get_replenishment_order_notification()
+        notification = (orderpoints[0]._get_replenishment_order_notification()
                         if len(orderpoints) == 1 else False)
         cls.action_remove_manual_qty_to_order(orderpoints)
         cls._compute_qty_to_order_computed(orderpoints)
@@ -907,7 +926,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
                     if o.qty_to_order <= 0.0 and o.trigger == 'manual']
         if a_borrar:
             cls.objects.filter(pk__in=a_borrar).delete()
-        return notificacion
+        return notification
 
     @classmethod
     def action_replenish_auto(cls, orderpoints):
@@ -1159,8 +1178,8 @@ class StockWarehouseOrderpoint(TimeStampedModel):
 
         # Se recalcula el pronóstico con el plazo de cada grupo.
         hoy = timezone.now().replace(hour=23, minute=59, second=59)
-        for (dias, ubicacion_id), producto_ids in por_plazo.items():
-            for producto in product_model.objects.filter(pk__in=producto_ids):
+        for (dias, ubicacion_id), product_ids in por_plazo.items():
+            for producto in product_model.objects.filter(pk__in=product_ids):
                 pronostico = producto._quantity_for(
                     'virtual_available', location=ubicacion_id,
                     to_date=hoy + timedelta(days=dias))
@@ -1171,13 +1190,13 @@ class StockWarehouseOrderpoint(TimeStampedModel):
 
         # Se descuenta lo que ya viene por otra vía (una orden de compra, p.ej.)
         # y lo que otras reglas de la misma ubicación ya piden.
-        producto_ids = sorted({p for p, _u in a_reponer})
+        product_ids = sorted({p for p, _u in a_reponer})
         ubicacion_ids = sorted({u for _p, u in a_reponer})
-        en_progreso = product_model.objects.filter(pk__in=producto_ids).first()
+        en_progreso = product_model.objects.filter(pk__in=product_ids).first()
         en_progreso = (en_progreso._get_quantity_in_progress(
             location_ids=ubicacion_ids)[0] if en_progreso is not None else {})
         ya_pedido = defaultdict(float)
-        for orderpoint in orderpoints.filter(product__in=producto_ids):
+        for orderpoint in orderpoints.filter(product__in=product_ids):
             ya_pedido[(orderpoint.product_id, orderpoint.location_id)] += (
                 orderpoint.qty_to_order)
         for clave, cantidad in list(a_reponer.items()):
@@ -1187,7 +1206,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         a_reponer = {k: v for k, v in a_reponer.items() if v < 0.0}
 
         existentes = {(o.product_id, o.location_id)
-                      for o in orderpoints.filter(product__in=producto_ids)}
+                      for o in orderpoints.filter(product__in=product_ids)}
         nuevas = []
         for (producto_id, ubicacion_id), cantidad in a_reponer.items():
             if (producto_id, ubicacion_id) in existentes:
@@ -1264,13 +1283,26 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         return {o.pk: 0.0 for o in orderpoints}
 
     @classmethod
+    @api.autovacuum
     def _unlink_processed_orderpoints(cls, orderpoints=None):
         """≙ ``_unlink_processed_orderpoints`` (``odoo19c: :672-686``).
 
         Borra las reglas **manuales creadas por el sistema** que ya no piden
         nada: son las que el reporte de reabastecimiento fabrica, y dejarlas
         ensuciaría la lista. La fuente lo cuelga de ``@api.autovacuum``; aquí
-        queda invocable y su cron es la tarea **#124**.
+        también. Es ``classmethod`` porque el colector
+        (``IrAutovacuum._run_vacuum_cleaner``) lo llama sin argumentos sobre la
+        clase — el mismo contrato que ``_compute_qty_to_order_computed`` y sus
+        hermanos ya cumplen — así que no hizo falta cambiar la firma para
+        decorarlo, sólo colgar el decorador. Sin argumento barre **todas** las
+        reglas manuales agotadas; con ``orderpoints`` acota el barrido a un
+        subconjunto, como lo llama ``_get_orderpoint_action``.
+
+        El cron que lo descubre ya estaba sembrado antes de este método
+        existir — es el único ``ir.autovacuum`` de ``base``
+        (``base/migrations/0032_seed_cron_autovacuum.py``), que recorre
+        ``apps.get_models()`` buscando cualquier método marcado. La tarea
+        **#124** («sembrar los crons») no pedía uno propio para este addon.
         """
         candidatas = cls.objects.filter(trigger='manual')
         if orderpoints is not None:
@@ -1335,9 +1367,9 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         rule_model = apps.get_model('stock', 'StockRule')
 
         orderpoints = list(orderpoints)
-        for lote_ids in split_every(1000, [o.pk for o in orderpoints]):
-            lote = [o for o in orderpoints if o.pk in set(lote_ids)]
-            excepciones = []
+        for lot_ids in split_every(1000, [o.pk for o in orderpoints]):
+            lote = [o for o in orderpoints if o.pk in set(lot_ids)]
+            exceptions = []
             while lote:
                 procurements = []
                 for orderpoint in lote:
@@ -1359,7 +1391,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
                                    raise_user_error=raise_user_error)
                 except ProcurementException as error:
                     fallidos = _failed_orderpoints(error)
-                    excepciones += fallidos
+                    exceptions += fallidos
                     culpables = {o.pk for o, _msg in fallidos if o is not None}
                     if not culpables:
                         break
@@ -1370,7 +1402,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
 
             # La fuente registra una actividad de aviso sobre la plantilla del
             # producto por cada regla que falló, sin duplicar el mismo mensaje.
-            for orderpoint, mensaje in excepciones:
+            for orderpoint, mensaje in exceptions:
                 if orderpoint is None or orderpoint.product is None:
                     continue
                 plantilla = orderpoint.product.product_tmpl

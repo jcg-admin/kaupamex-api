@@ -1,0 +1,5 @@
+/var/log/kaupamex/*.log {
+    copytruncate
+    missingok
+    notifempty
+}

@@ -1,0 +1,30 @@
+{
+  "question": "los dos optimizadores relacionales del registro se comportan como la fuente, y su salida compila a una consulta que corre?",
+  "instrument": [
+    "uv run pytest sobre el subconjunto derivado, -n 4 --reuse-db",
+    "sabotaje por comportamiento sobre src/orm/domains.py, restaurado por md5 y no por git checkout"
+  ],
+  "metric": "casos passed / failed, y cuales caen con cada comportamiento anulado",
+  "blind_to": [
+    "el SQL emitido: los casos miden las filas devueltas, no el plan; dos dominios equivalentes pueden compilar distinto sin que ningun caso lo vea",
+    "el rendimiento de la subconsulta frente a la travesia, que es para lo que el bypass de many2one existe y ningun caso cuenta subconsultas",
+    "el caso negativo del campo no relacional no discrimina su guarda: sin la rama any el compilador de hoja tambien levanta, por otra causa (tarea #233)"
+  ],
+  "destination": [
+    "src/orm/domains.py",
+    "src/addons/base/models/res_groups.py",
+    "tests/unit/orm/test_domain_relational_optimizers.py",
+    "docs: source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/hallazgos/"
+  ],
+  "source": "odoo19c: odoo/orm/domains.py:1412 (_optimize_relational_name_search), :1839 (_optimize_m2o_bypass_comodel_id_lookup), :1096-1112 (la subconsulta de any); odoo19c: addons/base/models/res_groups.py:131-165 (_search_full_name)",
+  "reproducible": "uv run pytest tests/unit/orm/test_domain_relational_optimizers.py tests/integration/base/test_res_groups_port.py -q --reuse-db",
+  "outputs": [
+    "domains.py.intacto",
+    "domains.py.con-any",
+    "pytest-subconjunto-derivado-2026-08-30T23-06-14.log",
+    "pytest-derivado-cierre-2026-08-30T23-15-24.log"
+  ],
+  "control": "tres sabotajes sobre los dos optimizadores: 5 de 14 caen, restaurado 14 passed. Un cuarto sobre la rama any del compilador de hoja: 6 de 45 caen (2 que ejecutan any mas 4 de full_name), restaurado 45 passed",
+  "tasks": ["#225", "#232", "#233"],
+  "findings": ["H-API-966"]
+}

@@ -1,0 +1,34 @@
+# Control discriminante del clasificador — 2026-09-02T13:51:58
+# Se anula la guarda de vuelta oculta (remote.hidden) y se mide QUE cae.
+# Lo que un control tiene que probar: que puede fallar, y por que causa.
+
+== ANTES (guarda intacta) ==
+test_measure_trigger_graph: 7 aserciones OK — censo 0 arista(s), 44 metodo(s) con @api.depends, 0 campo(s) con compute=
+
+== CON LA GUARDA ANULADA ==
+FALLA: inverse_of(hidden_side) devolvio '+', esperaba None
+FALLA: una cadena con vuelta oculta no es BY_SEARCH
+
+# Caen 2 de 7: las que dependen de la guarda. Sobreviven las 5 que
+# miden otra cosa (accesor visible, no-relacion, coherencia del censo).
+
+== RESTAURADA ==
+test_measure_trigger_graph: 7 aserciones OK — censo 0 arista(s), 44 metodo(s) con @api.depends, 0 campo(s) con compute=
+
+== EL CENSO, con su diagnostico ==
+=== grafo de disparo — 0 arista(s) ===
+  metodos que declaran @api.depends :    44
+  campos que declaran compute=      :     0
+  campos que field_depends resuelve :     0
+
+  El cero NO dice «no hay dependencias»: dice que las dos declaraciones
+  no estan unidas. @api.depends marca el METODO; el CAMPO tiene que
+  nombrarlo con compute= para que _DerivedCollector las junte.
+  SAME_MODEL         0  (0.0 %)
+  BY_INVERSE         0  (0.0 %)
+  BY_SEARCH          0  (0.0 %)
+
+Metrica: edges que Field.resolve_depends devuelve sobre apps.get_models(), por como se recorre su vuelta.
+Ciega a: el domain del inverso, el coste real de la consulta, y toda dependencia que resolve_depends no resuelve (ver manifest.json).
+
+git diff --stat del instrumento (vacio = restaurado byte a byte):

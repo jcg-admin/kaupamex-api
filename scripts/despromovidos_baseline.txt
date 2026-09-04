@@ -1,0 +1,157 @@
+# Metodos DESPROMOVIDOS heredados — congelados, no absueltos.
+#
+# La referencia declara `_foo` y aqui esta como `foo`. Eso no es un renombre:
+# **promueve el simbolo a API publica**. PEP 8 lo fija — `_nombre` significa
+# "uso interno; no lo llames desde fuera" — y la referencia usa esa frontera a
+# proposito (`activity_schedule` junto a `_activity_schedule_with_view`, mismo
+# archivo). Ver `porte-completo-no-parcial.md` y H-API-581.
+#
+# El gate era CIEGO a este eje hasta hoy, y su propia documentacion decia lo
+# contrario: `normaliza()` hace `.strip('_')`, asi que `_foo` y `foo` caen en
+# la misma llave, y el docstring de `class_key` afirmaba que no tocarlo
+# "preservaba la distincion que otro gate vigila". Sub-patron D de
+# `metrica-decide-la-conclusion.md`: un verde que no discrimina, con un
+# comentario que garantiza lo que no cumple.
+#
+# Una linea de aqui NO bloquea; una nueva SI. Se paga al tocar el archivo,
+# como el baseline de idioma y el grifo de los guiones — no en un barrido que
+# compite con la implementacion. Al corregir uno, borrar su linea: un baseline
+# que miente sobre deuda que ya no existe es peor que no tenerlo.
+#
+# Metrica: nombres de metodo por AST, en clases que el gate logro emparejar.
+# Ciega a: la despromocion que ademas cambia el sufijo
+# (`_search_activity_user_id` -> `search_activity_user`), que ningun
+# emparejamiento por nombre alcanza. Es una cota inferior.
+#
+# Poblacion al congelarlo: 129 lineas aqui, sobre 1087 archivos con
+# contraparte. Un barrido crudo archivo-a-archivo (sin exigir que la clase
+# empareje) da 150 en 47 archivos: los 21 de diferencia viven en clases que el
+# gate no pudo emparejar y que por tanto ya reporta con otra categoria.
+#
+AccountAccount::_search_new_account_code
+AccountAccountTag::_get_tax_tags
+AccountAccountTag::_get_tax_tags_domain
+AccountChartTemplate::_create_outstanding_accounts
+AccountChartTemplate::_deref_account_tags
+AccountChartTemplate::_get_account_journal
+AccountChartTemplate::_get_account_reconcile_model
+AccountChartTemplate::_get_accounts_data_values
+AccountChartTemplate::_get_bank_fees_reco_account
+AccountChartTemplate::_get_chart_template_data
+AccountChartTemplate::_get_chart_template_mapping
+AccountChartTemplate::_get_chart_template_model_data
+AccountChartTemplate::_get_parent_template
+AccountChartTemplate::_get_property_accounts
+AccountChartTemplate::_get_tag_mapper
+AccountChartTemplate::_guess_chart_template
+AccountChartTemplate::_load
+AccountChartTemplate::_parse_csv
+AccountChartTemplate::_post_load_data
+AccountChartTemplate::_select_chart_template
+AccountChartTemplate::_setup_utility_bank_accounts
+AccountMove::_compute_payment_state
+AccountMove::_get_last_sequence_domain
+AccountMove::_get_starting_sequence
+AccountMove::_post
+AccountReconcileModel::_compute_can_be_proposed
+AccountReportExpression::_create_tax_tags
+AccountReportExpression::_get_tags_create_vals
+BaseEnableProfilingWizard::_compute_expiration
+DigestDigest::_compute_kpis
+FleetVehicle::_compute_vehicle_name
+HrApplicant::_check_interviewer_access
+HrApplicant::_check_talent_pool_required
+HrApplicant::_compute_company
+HrApplicant::_compute_date_closed
+HrApplicant::_compute_department
+HrApplicant::_compute_stage
+HrApplicant::_compute_user
+HrApplicant::_get_employee_create_vals
+HrApplicant::_search_application_status
+HrVersion::_is_fully_flexible
+IrActionsReport::_get_report_from_name
+IrActionsReport::_render
+IrBinary::_find_record
+IrBinary::_placeholder
+IrHttp::_sanitize_cookies
+IrHttp::_slug
+IrHttp::_slugify
+IrHttp::_slugify_one
+IrHttp::_unslug
+IrMail_Server::_find_mail_server
+IrMail_Server::_get_default_from_address
+IrMail_Server::_get_default_from_filter
+IrMail_Server::_get_max_email_size
+IrMail_Server::_get_test_email_from
+IrMail_Server::_match_from_filter
+IrMail_Server::_parse_from_filter
+IrModel::_reflect_models
+IrModel::_view_ids
+IrModelFields::_reflect_fields
+IrModelInherit::_reflect_inherits
+IrTemplateExpressions::_directives_eval_order
+IrTemplateExpressions::_render
+IrSequenceDate_Range::_alter_sequence
+MailAlias::_sanitize_alias_name
+MailAliasDomain::_find_aliases
+MailAliasDomain::_sanitize_configuration
+OnboardingProgress::_get_and_update_onboarding_state
+OnboardingProgress::_recompute_progress_step_ids
+ProductTemplate::_get_length_uom_id_from_ir_config_parameter
+ProductTemplate::_get_length_uom_name_from_ir_config_parameter
+ProductTemplate::_get_volume_uom_id_from_ir_config_parameter
+ProductTemplate::_get_volume_uom_name_from_ir_config_parameter
+ProductTemplate::_get_weight_uom_id_from_ir_config_parameter
+ProductTemplate::_get_weight_uom_name_from_ir_config_parameter
+ResCompany::_get_company_root_delegated_field_names
+ResCompany::_get_main_company
+ResCompany::_onchange_state
+ResCountry::_phone_code_for
+ResGroups::_apply_group
+ResGroups::_check_user_disjoint_groups
+ResGroups::_remove_group
+ResUsers::_set_password
+ResourceCalendarAttendance::_is_work_period
+ResourceResource::_is_flexible
+ResourceResource::_is_fully_flexible
+SequenceMixin::_constrains_date_sequence
+SequenceMixin::_deduce_sequence_number_reset
+SequenceMixin::_get_last_sequence_domain
+SequenceMixin::_get_next_sequence_format
+SequenceMixin::_get_sequence_cache
+SequenceMixin::_get_sequence_date_range
+SequenceMixin::_get_sequence_format_param
+SequenceMixin::_get_starting_sequence
+SequenceMixin::_is_end_of_seq_chain
+SequenceMixin::_is_last_from_seq_chain
+SequenceMixin::_sequence_matches_date
+SequenceMixin::_set_next_sequence
+StockLocation::_check_access_putaway
+StockLocation::_check_can_be_used
+StockLocation::_check_replenish_location
+StockLocation::_check_scrap_location
+StockLocation::_child_of
+StockLocation::_compute_complete_name
+StockLocation::_compute_next_inventory_date
+StockLocation::_compute_replenish_location
+StockLocation::_get_next_inventory_date
+StockLocation::_get_weight
+StockLocation::_is_outgoing
+StockLocation::_search_is_empty
+StockPackage::_apply_dest_to_package
+StockPackage::_compute_complete_name
+StockPackage::_compute_package_info
+StockPackage::_get_all_children_package_dest_ids
+StockPackage::_get_all_package_dest_ids
+StockPackage::_get_weight
+StockPackage::_has_issues
+StockPackage::_post_put_in_pack_hook
+StockPackage::_pre_put_in_pack_hook
+StockPackageType::_get_default_length_uom
+StockPackageType::_get_default_weight_uom
+StockPicking::_has_scrap_move
+StockPutawayRule::_compute_storage_category
+StockPutawayRule::_get_last_used_location
+StockPutawayRule::_get_last_used_search_domain
+StockPutawayRule::_get_putaway_location
+StockRoute::_check_company_consistency

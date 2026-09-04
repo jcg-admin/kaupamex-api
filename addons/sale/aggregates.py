@@ -18,7 +18,7 @@ queda el motor genérico parametrizable:
 - ``sale_loyalty/aggregates.py`` → importe de recompensa (``Q(is_reward=True)``).
 
 **Paridad exacta con el método Python, no aproximada.**
-``price_total()`` cuantiza **por línea** antes de sumar
+``price_total`` cuantiza **por línea** antes de sumar
 (``sale_order_line.py:85-88``); esta expresión hace ``ROUND(..., 2)`` por línea
 por la misma razón. Sumar exacto y redondear al final daría diferencias de
 centavos contra el total que el comprador vio — inaceptable en un reporte de
@@ -43,7 +43,7 @@ from .models import SaleOrderLine
 MONEY = DecimalField(max_digits=12, decimal_places=2)
 
 # Total de una línea: price_unit * qty * (1 - discount/100), redondeado a
-# centavos. Espejo SQL de ``SaleOrderLine.price_total()``.
+# centavos. Espejo SQL de ``SaleOrderLine._compute_amount``.
 LINE_TOTAL = Round(
     F('price_unit') * F('product_uom_qty')
     * (Value(Decimal('1')) - F('discount') / Value(Decimal('100'))),

@@ -15,9 +15,25 @@ son puro algoritmo y valen en cualquier stack.
 ``slugify`` — la diferencia con el de Django, que sí importa
 ===========================================================
 
-Es la pieza con más valor del archivo, y **no la duplica** nada del árbol:
-``grep -rn "def slugify\\|from django.utils.text import" src/`` → **0**
-[PROVEN].
+Es la pieza con más valor del archivo, y hoy **no la duplica** nada del
+árbol de aplicación:
+``grep -rn "def slugify\\|from django.utils.text import" src/ addons/ --include=*.py | grep -v "^src/addons/base/models/ir_http.py:"``
+→ **0** [PROVEN, 2026-08-31].
+
+*Métrica:* declaraciones de ``slugify`` e importaciones del de Django, en las
+dos raíces de aplicación, **excluyendo este archivo** — que es quien lo
+declara.
+*Ciega a:* un duplicador que llame al de Django por otro camino
+(``django.utils.text.slugify(...)`` sin ``from``), y a los tests.
+
+> **Corregido 2026-08-31 (:ref:`h-api-993`).** Esta cita decía ``src/`` → 0 y
+> el instrumento tenía dos defectos que se anulaban entre sí: **medía este
+> mismo archivo** —sus dos ``def slugify…`` hacen que el comando devuelva
+> hits en cuanto el porte existe— y **no miraba** ``addons/``, que es donde
+> vivía el duplicador real: ``website_sale/controllers/serializers.py``
+> importaba ``django.utils.text.slugify`` y lo usaba para el slug de
+> producto, con un docstring que decía «≙ ``ir.http._slug``». Medido sobre
+> siete nombres, los dos algoritmos divergen en cinco.
 
 Django trae ``django.utils.text.slugify``, pero por defecto
 (``allow_unicode=False``) **descarta todo lo que no sea ASCII**: un título en
@@ -184,6 +200,25 @@ class IrHttp(models.Model):
 
     class Meta:
         abstract = True
+
+    @classmethod
+    def _post_logout(cls):
+        """≙ ``_post_logout`` (``odoo19c: ir_http.py:362-364``).
+
+        El cuerpo de la fuente es ``pass``, y eso **es** el porte: existe sólo
+        para que un addon corra algo al cerrar sesión —limpiar una caché por
+        usuario, cerrar una llamada, soltar un bloqueo— sin tocar el endpoint.
+        Enterprise 19 lo hereda en dos clases con ``_inherit = 'ir.http'``.
+
+        Lo invocan los dos cierres de ``web``: ``session_destroy`` y
+        ``session_logout``. Sin ese par de llamadas el método sería un
+        símbolo sin consumidor, que es el defecto que :ref:`h-api-346`
+        registró — un enganche que nadie llama no engancha nada.
+
+        Corre **después** del ``logout()`` de Django, igual que en la fuente,
+        que lo llama tras destruir la sesión: quien enganche aquí ya no tiene
+        usuario en la petición, y eso es deliberado.
+        """
 
     @classmethod
     def slugify_one(cls, value, max_length=None):

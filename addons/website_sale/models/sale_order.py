@@ -204,10 +204,11 @@ class WebsiteSaleOrderInfo(TimeStampedModel):
         help_text='Pedido al que pertenece esta información (Odoo _inherit '
                   'sale.order).',
     )
-    website = fields.Many2one(
+    website_id = fields.Many2one(
         Website, on_delete=models.CASCADE, related_name='sale_orders',
         help_text='Sitio por el que se hizo el pedido (Odoo website_id, '
                   'readonly).',
+        db_column='website_id',
     )
     cart_recovery_email_sent = fields.Boolean(
         default=False,
@@ -273,7 +274,7 @@ def _compute_abandoned_cart(self):
     # un salto más arriba— en vez de contra su partner.
     return bool(
         self.date_order <= abandoned_datetime
-        and self.partner_id != info.website.user_id
+        and self.partner_id != info.website_id.user_id
         and self.order_line.exists()
     )
 
@@ -301,7 +302,7 @@ def _search_abandoned_cart(cls, operator, value):
         deadline = timezone.now() - timedelta(
             hours=delays.get(website.pk, 1.0))
         condition |= (
-            models.Q(website_sale_info__website=website.pk)
+            models.Q(website_sale_info__website_id=website.pk)
             & models.Q(date_order__lte=deadline)
             # ``~Q(partner_id=X)`` descartaría también las filas con
             # ``partner_id`` NULL, que son los carritos anónimos y sí cuentan
@@ -332,7 +333,7 @@ def _get_cart_recovery_template(self):
     """
     info = _info_of(self)
     settings = _settings_of(info.website_id) if info and info.website_id else None
-    template = settings.cart_recovery_mail_template if settings else None
+    template = settings.cart_recovery_mail_template_id if settings else None
     return template or IrModelData.ref(CART_RECOVERY_TEMPLATE_XMLID,
                                        raise_if_not_found=False)
 
@@ -412,7 +413,7 @@ def _filter_can_send_abandoned_cart_mail(cls, orders):
         state='sale',
         partner_id__in=buyers,
         created_at__gte=abandoned_datetime,
-        website_sale_info__website=website_id,
+        website_sale_info__website_id=website_id,
     )
     latest_create_date_per_buyer = {}
     for sale in orders:

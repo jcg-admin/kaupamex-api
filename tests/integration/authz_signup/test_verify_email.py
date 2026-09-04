@@ -115,7 +115,7 @@ class TestVerifyEmailEndpoint:
         """Un token de ``reset`` no debe servir de llave de activación."""
         unverified_user.active = True
         unverified_user.save(update_fields=['active', 'updated_at'])
-        token = su.send_reset_password(unverified_user)
+        token = su._action_reset_password(unverified_user)
 
         response = api_client.post(VERIFY_URL, {'token': token},
                                    format='json')

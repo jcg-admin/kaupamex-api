@@ -157,18 +157,24 @@ mismo esbozo se sigue que 15 de las 22 claves del diccionario no tienen columna
 clave descartada, con el nombre del modelo. No es un filtro silencioso.
 Sucesor: la tarea **#330**, cuyo siguiente archivo es ``stock_move.py``.
 
-**D-5 — el planificador corre sin orderpoint ni barra de progreso.**
+**D-5 — parcialmente cerrada: el orderpoint ya está, la barra de progreso no.**
 ``_run_scheduler_tasks`` (``:691-724``) hace tres cosas: recalcular los puntos
-de pedido, asignar los movimientos confirmados y fusionar quants. La segunda y
-la tercera se portan enteras. La primera necesita
-``stock.warehouse.orderpoint``, que **no existe en este árbol** —medido:
-``grep -rn "StockWarehouseOrderpoint" addons/ src/`` → 0—, así que el bloque
-registra un ``warning`` con el nombre del modelo ausente en vez de fallar en
-silencio. Y ``ir.cron._commit_progress``, que la referencia usa para la barra
-de progreso del cliente, tampoco existe (medido igual: 0 hits); el parámetro
-``use_new_cursor`` se conserva en la firma y los puntos de commit quedan como
-``debug``. Sucesor: la tarea **#330** para el orderpoint (``stock_orderpoint``
-es uno de sus 25 archivos) y la **#124** para el contador de progreso.
+de pedido, asignar los movimientos confirmados y fusionar quants. Las tres se
+portan enteras. En un momento anterior de este árbol la primera se omitía
+porque ``stock.warehouse.orderpoint`` no estaba portado — medición de
+entonces, ya histórica:
+
+.. code-block:: text
+
+    grep -rn "StockWarehouseOrderpoint" addons/ src/  → 0
+
+Ese mismo comando encuentra hoy la clase (``stock_orderpoint.py``, tarea
+**#330**), así que la primera tarea ya no se salta — ver ``_orderpoint_model``
+y ``_run_scheduler_tasks`` más abajo. Lo que sigue abierto es
+``ir.cron._commit_progress``, la barra de progreso del cliente Odoo, que
+tampoco existe en este árbol; el parámetro ``use_new_cursor`` se conserva en
+la firma y los puntos de commit quedan como ``debug``. Sucesor: la tarea
+**#124** para el contador de progreso.
 
 **D-6 — ``relativedelta`` → ``datetime.timedelta``.** La referencia desplaza las
 fechas con ``relativedelta(days=…)`` (``:331``, ``:335``), de ``python-dateutil``,
@@ -351,22 +357,26 @@ def _create_move(values):
 
 
 def _orderpoint_model():
-    """Devuelve ``stock.warehouse.orderpoint`` si existe, o ``None`` con aviso.
+    """Devuelve ``stock.warehouse.orderpoint`` — cierre de la divergencia D-5.
 
-    **No es un símbolo de la referencia**: es la divergencia D-5 hecha
-    explícita. El planificador de la fuente arranca por los puntos de pedido, y
-    ese modelo todavía no está en el árbol; devolver ``None`` **con un
-    ``warning``** deja el hueco visible en el log en vez de esconderlo dentro de
-    un ``try`` mudo.
+    **No es un símbolo de la referencia**: la fuente accede al modelo
+    directamente (``self.env['stock.warehouse.orderpoint']``,
+    ``odoo19c: :437, :697``) y no declara ningún camino alterno para el caso
+    en que falte. Este ayudante existía porque, en un momento anterior de
+    este árbol, el modelo no estaba portado — medido entonces:
+
+    .. code-block:: text
+
+        grep -rn "StockWarehouseOrderpoint" addons/ src/ --include=*.py  → 0
+
+    Hoy el mismo comando encuentra la clase (``stock_orderpoint.py:248``,
+    registrada en ``addons/stock/models/__init__.py`` y consumida además por
+    ``stock_move.py`` y ``purchase_stock``), así que la divergencia D-5 está
+    cerrada: no queda rama muerta que portar, y este ayudante ya no necesita
+    el ``try``/``except`` ni el ``warning`` — se limita a resolver el modelo
+    por nombre, igual que ``stock_move.py:1401``.
     """
-    try:
-        return apps.get_model('stock', 'StockWarehouseOrderpoint')
-    except LookupError:
-        _logger.warning(
-            'stock.rule: el planificador omite el recálculo de puntos de pedido '
-            '— stock.warehouse.orderpoint no está portado (divergencia D-5, '
-            'tarea #330)')
-        return None
+    return apps.get_model('stock', 'StockWarehouseOrderpoint')
 
 
 class StockRule(TimeStampedModel):
@@ -420,7 +430,8 @@ class StockRule(TimeStampedModel):
         help_text='Si se desmarca, la regla se oculta sin borrarla (Odoo active).',
     )
     action                   = fields.Selection(
-        max_length=16, choices=ACTION_CHOICES, default=ACTION_PULL, db_index=True,
+        max_length=16, choices=ACTION_CHOICES, default=ACTION_PULL,
+        db_index=True, required=True,
         help_text='Dirección de la regla (Odoo action).',
     )
     sequence                 = fields.Integer(
@@ -1025,9 +1036,7 @@ class StockRule(TimeStampedModel):
         if values.get('bypass_global_horizon_days'):
             return delays, delay_description
 
-        orderpoint_model = _orderpoint_model()
-        global_horizon_days = (orderpoint_model.get_horizon_days()
-                               if orderpoint_model is not None else 0)
+        global_horizon_days = _orderpoint_model().get_horizon_days()
         if global_horizon_days:
             delays['horizon_time'] += global_horizon_days
             if not bypass_delay_description:
@@ -1417,11 +1426,11 @@ class StockRule(TimeStampedModel):
         aprovisionamientos, reservar los movimientos confirmados, y fusionar los
         quants duplicados.
 
-        **Divergencia D-5:** la primera tarea necesita
-        ``stock.warehouse.orderpoint``, que no está portado; el bloque registra
-        un ``warning`` nombrando el modelo ausente. Los puntos de
-        ``_commit_progress`` de la fuente —la barra de progreso del cliente
-        Odoo— quedan como ``debug``: ``ir.cron`` no expone ese contador aquí.
+        **Divergencia D-5 — cerrada.** ``stock.warehouse.orderpoint`` está
+        portado (``stock_orderpoint.py``); la primera tarea ya no se omite. Los
+        puntos de ``_commit_progress`` de la fuente —la barra de progreso del
+        cliente Odoo— siguen como ``debug``: ``ir.cron`` no expone ese contador
+        aquí (esa mitad de D-5 sigue abierta, sucesor tarea **#124**).
         """
         move_model = apps.get_model('stock', 'StockMove')
         quant_model = apps.get_model('stock', 'StockQuant')
@@ -1432,14 +1441,13 @@ class StockRule(TimeStampedModel):
 
         # 1. Puntos de pedido.
         orderpoint_model = _orderpoint_model()
-        if orderpoint_model is not None:
-            domain = cls._get_orderpoint_domain(company_id=company_id)
-            orderpoints = orderpoint_model.objects.filter(domain)
-            orderpoint_model._compute_qty_to_order_computed(orderpoints)
-            orderpoint_model._compute_deadline_date(orderpoints)
-            orderpoint_model._procure_orderpoint_confirm(
-                orderpoints, use_new_cursor=use_new_cursor,
-                company_id=company_id, raise_user_error=False)
+        domain = cls._get_orderpoint_domain(company_id=company_id)
+        orderpoints = orderpoint_model.objects.filter(domain)
+        orderpoint_model._compute_qty_to_order_computed(orderpoints)
+        orderpoint_model._compute_deadline_date(orderpoints)
+        orderpoint_model._procure_orderpoint_confirm(
+            orderpoints, use_new_cursor=use_new_cursor,
+            company_id=company_id, raise_user_error=False)
 
         # 2. Reservar lo confirmado, en lotes de 1000.
         domain = cls._get_moves_to_assign_domain(company_id)

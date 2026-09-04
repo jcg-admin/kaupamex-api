@@ -32,6 +32,7 @@ from collections import defaultdict
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from addons_roots import addon_dirs
+from graph_components import cyclic_components
 
 # {nombre: ruta} sobre las DOS raices — un addon vive en una u otra.
 DIRS = {p.name: str(p) for p in addon_dirs()}
@@ -105,48 +106,15 @@ def build_graph():
 
 
 def componentes_ciclicos(addons, edges):
-    """Tarjan iterativo; devuelve los componentes de tamaño > 1."""
-    index, bajo, en_pila, pila, contador, output = {}, {}, {}, [], [0], []
+    """Los ciclos del grafo — el algoritmo vive en ``graph_components``.
 
-    def recorrer(inicio):
-        trabajo = [(inicio, 0)]
-        while trabajo:
-            node, i = trabajo[-1]
-            if i == 0:
-                index[node] = bajo[node] = contador[0]
-                contador[0] += 1
-                pila.append(node)
-                en_pila[node] = True
-            descendio = False
-            vecinos = sorted(edges[node])
-            for j in range(i, len(vecinos)):
-                vecino = vecinos[j]
-                if vecino not in index:
-                    trabajo[-1] = (node, j + 1)
-                    trabajo.append((vecino, 0))
-                    descendio = True
-                    break
-                if en_pila.get(vecino):
-                    bajo[node] = min(bajo[node], index[vecino])
-            if descendio:
-                continue
-            if bajo[node] == index[node]:
-                component = []
-                while True:
-                    w = pila.pop()
-                    en_pila[w] = False
-                    component.append(w)
-                    if w == node:
-                        break
-                output.append(component)
-            trabajo.pop()
-            if trabajo:
-                bajo[trabajo[-1][0]] = min(bajo[trabajo[-1][0]], bajo[node])
-
-    for addon in addons:
-        if addon not in index:
-            recorrer(addon)
-    return [c for c in output if len(c) > 1]
+    Tarjan iterativo nacio aqui y se extrajo a un modulo compartido cuando el
+    orden de porte (#217) necesito el mismo recorrido. Copiarlo habria creado
+    la segunda fuente de verdad que ``calibration-verified-numbers.md``
+    prohibe: dos copias del mismo algoritmo divergen sin que nadie lo note,
+    porque las dos siguen dando un numero.
+    """
+    return cyclic_components(list(addons), edges)
 
 
 def main():

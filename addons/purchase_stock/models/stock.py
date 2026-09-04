@@ -164,13 +164,13 @@ relación que la referencia no declara.
      - ídem
    * - ``_search_available_vendor`` (``:223-228``)
      - **bloqueado**
-     - ídem; además ``_prepare_sellers`` → 0 hits
+     - ídem (``_prepare_sellers`` ya está portado; lo que falta es el otro)
    * - ``action_view_purchase`` (``:237-250``)
      - **bloqueado**
      - ``_for_xml_id`` → 0 definiciones
-   * - ``_get_replenishment_multiple_alternative`` (``:304-320``)
-     - **bloqueado**
-     - ``_select_seller`` → 0 hits
+   * - ``_get_replenishment_multiple_alternative`` (``odoo19c: purchase_stock/models/stock.py:304-320``)
+     - portado
+     - relevo por ruta de compra; D-5 sin ``with_company`` (#267)
    * - ``_quantity_in_progress`` (``:322-329``)
      - **bloqueado**
      - depende de ``product._get_quantity_in_progress``, bloqueado en ``product.py``
@@ -204,8 +204,12 @@ que lee y *setter* que escribe la relación, con los nombres de la fuente en los
 dos métodos (``_compute_buy_to_resupply`` / ``_inverse_buy_to_resupply``).
 
 **D-3 — sin ``relativedelta``.** Sólo la necesitaba
-``_get_replenishment_multiple_alternative``, que queda bloqueado por otra
-razón. No hay nada que sustituir aquí.
+``_get_replenishment_multiple_alternative`` (``odoo19c: :312``), y sólo con
+``days=``: ``relativedelta(days=N)`` y ``timedelta(days=N)`` son la misma
+operación cuando el único argumento es días — no hay mes ni año que
+recortar (a diferencia de ``product.py:_get_monthly_demand_range``, que sí
+necesita la aritmética de calendario propia porque ahí el desplazamiento es
+en meses). ``timedelta`` del ``stdlib`` basta.
 
 **D-4 — los descriptores de acción no llevan URL de Odoo.** El
 ``_get_replenishment_order_notification`` de la fuente arma un enlace
@@ -214,8 +218,20 @@ el descriptor conserva la estructura y el ``label``, y deja la ``url`` con la
 ruta del recurso (``/purchase/order/{id}``) — misma información, el
 enrutamiento lo decide el cliente. Mismo criterio que
 ``addons/stock/models/res_partner.py`` ya fijó para ``action_view_stock_serial``.
+
+**D-5 — sin ``with_company`` en ``_get_replenishment_multiple_alternative``.**
+La fuente resuelve el proveedor con
+``self.product_id.with_company(self.company_id)._select_seller(...)``.
+``with_company`` no existe en este árbol (medido:
+``grep -rn "def with_company" src/ addons/`` → 0 definiciones). El mismo
+efecto —fijar la empresa contra la que se resuelve la tarifa y su
+conversión de moneda— ya lo da el kwarg ``company=`` que
+``_select_seller`` acepta desde su firma
+(``addons/product/models/product_product.py:474``); es el mismo puente que
+``stock_rule.py:_get_matching_supplier`` ya usa para el mismo método.
 """
 from collections import defaultdict
+from datetime import timedelta
 
 from django.apps import apps
 from django.utils import timezone
@@ -278,7 +294,7 @@ def picking_purchase(self):
     aquí se hace explícito con ``.first()``.
     """
     move = self.move_ids.exclude(purchase_line__isnull=True).first()
-    return move.purchase_line.order if move is not None else None
+    return move.purchase_line.order_id if move is not None else None
 
 
 def _compute_effective_date(self):
@@ -334,10 +350,10 @@ def _search_delay_pass(cls, operator, value):
     """≙ ``_search_delay_pass`` (``odoo19c: :36-38``) — verbatim.
 
     ``purchase_id.date_order`` de la fuente es aquí
-    ``move_ids.purchase_line.order.date_order``: el camino completo, porque
+    ``move_ids.purchase_line.order_id.date_order``: el camino completo, porque
     ``purchase`` es una ``property`` y no una relación navegable.
     """
-    return [('move_ids.purchase_line.order.date_order', operator, value)]
+    return [('move_ids.purchase_line.order_id.date_order', operator, value)]
 
 
 # =========================================================================
@@ -663,7 +679,7 @@ def _get_replenishment_order_notification(self):
     line = queryset.first()
     if line is None:
         return None
-    order = line.order
+    order = line.order_id
     return {
         'type': 'ir.actions.client',
         'tag': 'display_notification',
@@ -678,6 +694,65 @@ def _get_replenishment_order_notification(self):
             'next': {'type': 'ir.actions.act_window_close'},
         },
     }
+
+
+def _get_replenishment_multiple_alternative(self, qty_to_order):
+    """≙ ``_get_replenishment_multiple_alternative``
+    (``odoo19c: purchase_stock/models/stock.py:304-320``).
+
+    El múltiplo de reabastecimiento cuando nadie lo fijó a mano, sólo cuando
+    el punto de pedido resuelve por una ruta de compra — si no, se relega
+    (``return None``) en la implementación previa
+    (``addons/stock/models/stock_orderpoint.py:_get_replenishment_multiple_alternative``,
+    que siempre devuelve ``False``: el mismo desenlace que la fuente obtiene
+    llamando a ``super()`` en su rama de escape).
+
+    Con ruta de compra: la fecha límite de la que sale el plazo del
+    proveedor (``_get_orderpoint_procurement_date`` menos el horizonte
+    global, D-3), y con ella la unidad del proveedor elegido —el ya fijado a
+    mano, o el que ``_select_seller`` resuelva para la cantidad pedida—. Sin
+    ningún proveedor resuelto se devuelve ``False`` explícito (no ``None``):
+    es un resultado propio de esta rama, no una relegación al método previo
+    — ``chain_method`` sólo relega por ``None``
+    (``src/orm/method_chain.py:192``).
+
+    D-5: sin ``with_company``, ``company=`` explícito en su lugar.
+    """
+    routes = self.effective_route
+    if routes is not None:
+        route_pks = {routes.pk}
+    elif self.product_id is not None:
+        route_pks = set(self.product.route_ids.values_list('pk', flat=True))
+    else:
+        route_pks = set()
+
+    if not (self.product_id is not None
+            and _buy_rules().filter(route__in=route_pks).exists()):
+        return None
+
+    planned_date = self._get_orderpoint_procurement_date()
+    global_horizon_days = self.get_horizon_days([self])
+    if global_horizon_days:
+        planned_date = planned_date - timedelta(days=int(global_horizon_days))
+    date_deadline = planned_date or timezone.now().date()
+
+    ProductProduct = apps.get_model('product', 'ProductProduct')
+    dates_info = ProductProduct._get_dates_info(
+        self.product, date_deadline, self.location,
+        route_ids=[self.route] if self.route is not None else ())
+
+    if self.supplier_id:
+        chosen = self.supplier
+    else:
+        elegidas = self.product._select_seller(
+            quantity=qty_to_order,
+            date=max(dates_info['date_order'].date(), timezone.now().date()),
+            uom_id=self.product_uom,
+            company=self.company,
+        )
+        chosen = elegidas[0] if elegidas else None
+
+    return chosen.product_uom if chosen is not None else False
 
 
 # =========================================================================
@@ -757,7 +832,7 @@ def _install_warehouse(model):
 
 
 def _install_orderpoint(model):
-    """Los cinco ganchos del punto de pedido; dos acumulan diccionarios."""
+    """Los seis ganchos del punto de pedido; dos acumulan diccionarios."""
     chain_method(model, '_inverse_route_id', _inverse_route_id)
     chain_method(model, '_get_default_route', _get_default_route)
     chain_method(model, '_get_lead_days_values', _get_lead_days_values,
@@ -766,6 +841,8 @@ def _install_orderpoint(model):
                  _prepare_procurement_values, combine=_merge_vals)
     chain_method(model, '_get_replenishment_order_notification',
                  _get_replenishment_order_notification)
+    chain_method(model, '_get_replenishment_multiple_alternative',
+                 _get_replenishment_multiple_alternative)
 
 
 def apply_purchase_stock_stock_extensions():

@@ -9,6 +9,11 @@ los controladores ``/web/content`` y ``/web/image`` devuelven.
 Por qué esta portación cambia de forma, y qué se conserva
 =========================================================
 
+Esa divergencia cubre los **2 enganches** que Enterprise 19 usa sobre este
+modelo —``_get_stream_from`` y ``_record_to_stream``—: los dos devuelven un
+``Stream``, el objeto que aquí no se porta porque Django ya lo tiene. Tarea
+#78, :ref:`h-api-819`.
+
 El ``Stream`` de la referencia es una clase de ``odoo.http`` que envuelve
 werkzeug y sabe emitir por ruta, por datos o por URL, con ETag y
 ``last_modified``. Django ya tiene ese objeto: ``FileResponse`` sobre el
@@ -229,6 +234,14 @@ class IrBinary:
         """
         file = cls._field_file(record, field_name)
         if file is None:
+            # ≙ ``odoo19c: odoo/addons/base/models/ir_binary.py:212-213``: sin
+            # marcador explicito, se le pregunta AL REGISTRO por el suyo. Es el
+            # despacho que hace util a ``_get_placeholder_filename`` — sin el,
+            # un modelo podia declararlo y nadie lo leia nunca.
+            if not placeholder:
+                obtener = getattr(record, '_get_placeholder_filename', None)
+                if obtener is not None:
+                    placeholder = obtener(field_name)
             data = cls.placeholder(placeholder)
             response = FileResponse(
                 iter([data]), as_attachment=False,

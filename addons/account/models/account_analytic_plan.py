@@ -63,6 +63,7 @@ from addons.account.models.account_account import AccountAccount
 from addons.analytic.models.analytic_plan import AccountAnalyticApplicability
 from addons.product.models import ProductCategory, ProductProduct
 from orm.method_chain import chain_method
+from orm.model_classes import extend_selection_choices
 from tools.translate import _
 
 #: ≙ ``selection_add=[('invoice', 'Invoice'), ('bill', 'Vendor Bill')]``
@@ -79,22 +80,20 @@ _ACCOUNT_PREFIX_SPLIT = re.compile(r'[,;]')
 
 
 def _extend_selection_choices(model, field_name, extra_choices):
-    """Amplía en sitio los ``choices`` de un campo ya declarado en ``model``.
+    """≙ ``selection_add=`` con su ``ondelete=`` — delega en el compartido.
 
-    Ver docstring del módulo: no genera migración (no es una columna nueva),
-    y ``field.choices`` es una lista mutable normal que ``Field.validate()``
-    consulta en cada llamada — la ampliación es efectiva de inmediato.
-    Idempotente: no duplica un valor ya presente (``ready()`` puede correr
-    más de una vez en tests que recargan el registro de apps).
+    Era una copia local de :func:`orm.model_classes.extend_selection_choices`,
+    una de cuatro idénticas en el árbol. Se retiran las cuatro: el compartido
+    hace lo mismo **y** acepta el ``ondelete`` que la fuente declara junto al
+    ``selection_add``, que es lo que la tarea **#205** construyó.
+
+    La política es la medida en ``odoo19c: account/models/account_analytic_plan.py:15-18``:
+    ``{'invoice': 'cascade', 'bill': 'cascade'}``. Sin ella los registros que
+    guardaban el valor quedaban huérfanos al borrarlo.
     """
-    field = model._meta.get_field(field_name)
-    already_present = {value for value, _label in field.choices}
-    for value, label in extra_choices:
-        if value not in already_present:
-            field.choices.append((value, label))
-            already_present.add(value)
-
-
+    return extend_selection_choices(
+        model, field_name, extra_choices,
+        ondelete={'invoice': 'cascade', 'bill': 'cascade'})
 def _add_if_absent(model, name, field):
     """Idempotente — mismo helper que ``account/models/product.py``."""
     if not any(f.name == name for f in model._meta.get_fields()):

@@ -1,0 +1,23 @@
+Record the setup-block measurement of Field
+
+El bloque de setup de ``Field`` —``__set_name__``, ``_get_attrs`` y
+``_setup_attrs__``— es la siguiente pieza de #211, y su analisis produce
+tres resultados que cambian el plan de porte:
+
+- El conteo literal ``models.Field.X =`` decia 22 simbolos ausentes; por
+  conducta (``hasattr`` tras importar ``orm.fields``) son 8, y tres de
+  esos estan portados con renombre declarado (``condition_to_sql`` ->
+  ``condition_to_q``). Ausentes reales: cinco.
+- ``__set_name__`` esta muerto por construccion en este ORM. Django
+  separa en ``contributable_attrs`` todo objeto con
+  ``contribute_to_class`` y no lo pasa al ``type.__new__``, asi que
+  Python nunca ejecuta el protocolo sobre un campo de modelo. El cuerpo
+  se porta a ``contribute_to_class``, el enganche equivalente vivo.
+- El sustrato ``_args__`` no existe: figura como default de clase y cero
+  sitios lo pueblan. Sin el no se distingue lo declarado del defecto,
+  que es lo que ``_get_attrs`` necesita.
+
+El rojo con poblacion: los dos campos ``company_dependent`` del arbol
+tienen los cuatro derivados sin aplicar. Es la razon por la que
+``test_condition_company_index.py`` fabrica su precondicion con
+``monkeypatch``.

@@ -329,12 +329,12 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         efecto difiere sólo cuando la empresa del producto es ancestro de la
         activa sin estar ella misma activada.
         """
-        del_producto = getattr(self.product, 'company', None)
+        of_product = getattr(self.product, 'company', None)
         activas = get_current_companies()
-        if del_producto is not None and del_producto.pk not in {c.pk for c in activas}:
+        if of_product is not None and of_product.pk not in {c.pk for c in activas}:
             self.company = get_current_company()
         else:
-            self.company = del_producto
+            self.company = of_product
 
     def _compute_single_location(self):
         """≙ ``_compute_single_location`` (``odoo19c: :169-173``).
@@ -436,6 +436,8 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
     @property
     def delivery_ids(self):
         """≙ el campo ``delivery_ids`` (``odoo19c: :56``) — las entregas del
+
+        ≙ ``_compute_delivery_ids`` (``odoo19c: stock/models/stock_lot.py``).
         lote, incluidas las de los lotes que lo consumieron."""
         return self._find_delivery_ids_by_lot_iterative().get(self.pk, [])
 
@@ -453,6 +455,8 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         Contactos que recibieron el lote — en entrega directa, o vía los
         lotes que lo consumieron en producción. Sigue el mismo camino que
         ``delivery_ids``: primero las entregas, luego el contacto de cada una.
+
+        ≙ ``_compute_partner_ids`` (``odoo19c: stock/models/stock_lot.py``).
         """
         return self._compute_partner_ids()
 
@@ -664,15 +668,15 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         )
         por_lote = quants.values('lot').annotate(total=Sum('quantity'))
 
-        con_quants, cumplen = [], []
+        with_quants, cumplen = [], []
         for fila in por_lote:
-            con_quants.append(fila['lot'])
+            with_quants.append(fila['lot'])
             if op(float(fila['total'] or 0), value):
                 cumplen.append(fila['lot'])
 
         if op(0.0, value):
             # El cero cumple: los lotes sin quants entran también.
-            return Q(pk__in=cumplen) | ~Q(pk__in=con_quants)
+            return Q(pk__in=cumplen) | ~Q(pk__in=with_quants)
         return Q(pk__in=cumplen)
 
     @classmethod
@@ -721,13 +725,13 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
             ])
         criterio = to_q(condition) & cls._get_outgoing_domain()
 
-        modelo_linea = apps.get_model('stock', 'StockMoveLine')
-        ids_lote = set(
-            modelo_linea.objects.filter(criterio).values_list('lot_id', flat=True))
+        line_model = apps.get_model('stock', 'StockMoveLine')
+        lot_ids = set(
+            line_model.objects.filter(criterio).values_list('lot_id', flat=True))
 
         if es_sin_contacto:
-            return ~Q(pk__in=ids_lote)
-        return Q(pk__in=ids_lote)
+            return ~Q(pk__in=lot_ids)
+        return Q(pk__in=lot_ids)
 
     @classmethod
     def ids_matching_partner_ids(cls, operator, value):
@@ -772,7 +776,7 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         consulta la puede usar.
         """
         rel = apps.get_model('stock', 'StockMoveLineConsumeRel')
-        en_produccion = set(
+        in_production = set(
             rel.objects.values_list('produce_line_id', flat=True)
         ) | set(
             rel.objects.values_list('consume_line_id', flat=True)
@@ -780,7 +784,7 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         return (
             Q(picking__picking_type__code='outgoing')
             | Q(move__picking_type__code='outgoing')
-            | Q(pk__in=en_produccion)
+            | Q(pk__in=in_production)
         )
 
     def _find_delivery_ids_by_lot(self, lot_path=None, delivery_by_lot=None):
@@ -837,10 +841,10 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         esteriles = defaultdict(set)
         padres = defaultdict(set)
 
-        modelo_linea = apps.get_model('stock', 'StockMoveLine')
+        line_model = apps.get_model('stock', 'StockMoveLine')
         cola = [self.pk]
         while cola:
-            lineas = modelo_linea.objects.filter(
+            lineas = line_model.objects.filter(
                 self._get_outgoing_domain(), lot__in=cola, state='done').distinct()
             cola = []
             for linea in lineas:
@@ -863,7 +867,7 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
             if not ids:
                 continue
             delivery_by_lot[lote_id].update(
-                modelo_linea.objects.filter(pk__in=ids, picking__isnull=False)
+                line_model.objects.filter(pk__in=ids, picking__isnull=False)
                 .values_list('picking_id', flat=True))
             por_propagar.add(lote_id)
 

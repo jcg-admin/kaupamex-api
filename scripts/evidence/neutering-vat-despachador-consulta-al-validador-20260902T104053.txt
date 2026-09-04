@@ -1,0 +1,13 @@
+# Control discriminante — vat-despachador-consulta-al-validador
+# fecha:    2026-09-02T10:40:53
+# archivo:  addons/base_vat/models/res_partner.py
+# anulado:  s/    return check_func(vat_number) if check_func else True/    return True/
+# tests:    tests/unit/base_vat/
+
+## 1. Verde de partida (guarda presente)
+56 passed, 1 warning in 5.14s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/base_vat/test_check_vat_country.py::test_dispatcher_prefers_our_own_checker_over_stdnum
+FAILED tests/unit/base_vat/test_check_vat_country.py::test_dispatcher_falls_back_to_stdnum_when_no_own_checker
+2 failed, 54 passed, 1 warning in 5.95s

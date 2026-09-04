@@ -23,7 +23,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 def page_view(db):
     """Una vista QWeb mínima — el mismo esqueleto de los tests de IrUiView."""
     return IrUiView.objects.create(
-        name='configurator feature page', type='qweb',
+        name='configurator feature page', type='template',
         key='website.test_configurator_feature_page', arch_db='<data/>',
     )
 

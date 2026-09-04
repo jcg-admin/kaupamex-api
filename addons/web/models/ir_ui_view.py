@@ -30,7 +30,11 @@ concreto en la referencia (se invocan sobre un recordset vacío,
 modelo. Se instalan aquí como ``classmethod``, igual que
 ``ir_model.py::apply_web_extensions`` hace con sus cuatro extensiones.
 """
-from addons.base.models.ir_ui_view import VIEW_TYPE_CHOICES, IrUiView
+from addons.base.models.ir_ui_view import (
+    VIEW_TYPE_CHOICES,
+    VIEW_TYPE_TEMPLATE,
+    IrUiView,
+)
 from orm.method_chain import chain_method
 
 
@@ -56,8 +60,10 @@ def get_view_info(cls):
 
     Combina el icono de ``_get_view_info`` con el nombre visible de
     ``VIEW_TYPE_CHOICES`` (el ``choices=`` real del campo ``type``, ver el
-    docstring del módulo) — excluye ``qweb`` igual que la referencia, que no
-    es un tipo seleccionable por el usuario.
+    docstring del módulo) — excluye el tipo de plantilla igual que la
+    referencia excluye ``qweb``: no es un tipo seleccionable por el usuario.
+    Sobre por qué aquí ese valor se llama ``template``, ver
+    ``ir_ui_view.VIEW_TYPE_TEMPLATE``.
     """
     view_info = _get_view_info(cls)
     return {
@@ -67,7 +73,7 @@ def get_view_info(cls):
             'multi_record': view_info[type_].get('multi_record', True),
         }
         for type_, display_name in VIEW_TYPE_CHOICES
-        if type_ != 'qweb' and type_ in view_info
+        if type_ != VIEW_TYPE_TEMPLATE and type_ in view_info
     }
 
 

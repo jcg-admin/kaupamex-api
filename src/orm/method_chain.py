@@ -61,6 +61,27 @@ destruyendo el descriptor: ``Cls.metodo(x)`` pasaría ``x`` como ``self``. Por
 eso la implementación previa se resuelve **cruda** recorriendo el ``__mro__``
 (``cls.__dict__``), nunca con ``getattr``, y se reinstala envuelta en el mismo
 descriptor que tenía.
+
+Este archivo NO existe en la referencia, y ``src/orm`` es una raíz espejada
+==========================================================================
+
+Medido contra ``odoo19c: odoo/orm/`` — ``find`` por nombre y ``grep`` por
+símbolo, los dos a **0**. La referencia no lo necesita: su ``_inherit`` construye una MRO real y cada override llama a ``super()``. Este mecanismo existe porque el idioma de extensión por ``setattr`` de este árbol no tiene ``super()``.
+
+Eso lo hace legítimo como **mecanismo construido**
+(``porte-completo-no-parcial.md``: *si el stack no trae el mecanismo, se
+construye*) y a la vez lo deja **fuera de sitio**: ``src/orm`` es la raíz
+espejada de ``odoo/orm``, y ``atributos-de-clase-de-modelo.md`` §2 manda listar
+la raíz de la referencia antes de crear un archivo ahí.
+
+``check_porte_completo`` **no puede verlo**: compara símbolos dentro de un par
+de archivos, y un archivo que la referencia no tiene no entra en ninguna
+comparación. Cinco archivos de ``src/orm`` están en esta situación —
+``checks``, ``fields_nonstored``, ``inherits``, ``method_chain``, ``routers``—
+y hasta este pase sólo ``checks`` lo declaraba.
+
+El veredicto por archivo —quedarse aquí con la divergencia declarada, o mudarse
+a una raíz propia como ``src/core``— es la tarea **#121**.
 """
 import functools
 import types
@@ -177,6 +198,94 @@ def chain_method(cls, name, func, combine=None):
     setattr(cls, name, wrapper(chained) if wrapper else chained)
 
 
+
+def wrap_method(cls, name, func):
+    """Instala ``func`` con la implementación previa EN LA MANO — ≙ ``super()``.
+
+    Es la tercera semántica de este módulo, y la que las otras dos no pueden
+    expresar. :func:`chain_method` decide **por el resultado** cuándo invocar
+    la previa: relevo perezoso si la nueva devolvió ``None``, o ``combine`` que
+    invoca las dos y funde. En los dos casos el orden lo fija el mecanismo, y
+    la nueva corre **primero**.
+
+    La referencia tiene una familia entera donde eso no sirve, porque el
+    override necesita el resultado de ``super()`` **como insumo**::
+
+        # odoo19c: sale/models/ir_config_parameter.py:12-15
+        def create(self, vals_list):
+            configs = super().create(vals_list)
+            configs._sale_sync_linked_crons()
+            return configs
+
+    Aquí ``super()`` va primero y lo que sigue opera sobre lo que devolvió. Y
+    tres líneas más abajo, en el mismo archivo, el orden es el contrario::
+
+        # odoo19c: sale/models/ir_config_parameter.py:22-24
+        def unlink(self):
+            self._sale_sync_linked_crons(unlink=True)
+            return super().unlink()
+
+    Dos órdenes distintos en dos métodos del mismo override: ningún mecanismo
+    que fije el orden puede replicar los dos. Lo único que los cubre es
+    entregarle a ``func`` la previa y dejar que la llame donde su fuente llama
+    a ``super()``.
+
+    **La firma de ``func`` lleva ``previous`` justo después del primer
+    argumento**, y llega ya ligada al receptor: el cuerpo la invoca con los
+    mismos argumentos que la fuente le pasa a ``super()``, sin repetir ``self``::
+
+        def create(cls, previous, vals_list, using=DEFAULT_DB_ALIAS):
+            configs = previous(vals_list, using=using)   # ≙ super().create(…)
+            ...
+
+    Para un ``@staticmethod`` no hay receptor y ``previous`` es el primer
+    argumento.
+
+    Es idempotente por el mismo recorrido de marcas que :func:`chain_method`, y
+    preserva el descriptor previo igual que él.
+
+    :raises TypeError: si no hay implementación previa. ``super()`` sobre un
+        método que la base no declara es un error en la fuente también; callarlo
+        dejaría a ``func`` con una ``previous`` que revienta al invocarse, y el
+        fallo aparecería lejos de su causa.
+    """
+    new_wrapper = None
+    if isinstance(func, (classmethod, staticmethod)):
+        new_wrapper = type(func)
+        func = func.__func__
+
+    previous, wrapper = _previous_of(cls, name)
+    if _already_in_chain(previous, func):
+        return
+    if previous is None:
+        raise TypeError(
+            f'{cls.__name__}.{name} no tiene implementación previa: '
+            f'wrap_method entrega un super() y aquí no hay a quién entregar. '
+            f'Si el método es nuevo, va por chain_method.')
+    if new_wrapper is not None and new_wrapper is not wrapper:
+        raise TypeError(
+            f'{cls.__name__}.{name} está declarado como '
+            f'{wrapper.__name__ if wrapper else "método de instancia"} y func '
+            f'llega como {new_wrapper.__name__}: la firma no coincidiría.')
+
+    if wrapper is staticmethod:
+        @functools.wraps(func)
+        def wrapped(*args, **kwargs):
+            return func(previous, *args, **kwargs)
+    else:
+        # ``first`` es ``self`` o ``cls`` según el descriptor; ``previous``
+        # llega ligada a él para que el cuerpo escriba ``previous(args)`` allí
+        # donde la fuente escribe ``super().metodo(args)``.
+        @functools.wraps(func)
+        def wrapped(first, *args, **kwargs):
+            return func(first, functools.partial(previous, first),
+                        *args, **kwargs)
+
+    setattr(wrapped, _ORIGIN, func)
+    setattr(wrapped, _PREVIOUS, previous)
+    setattr(cls, name, wrapper(wrapped) if wrapper else wrapped)
+
+
 def extend_list(new, previous):
     """``combine`` para hooks que acumulan — ≙ ``super()[...] + [propio]``.
 
@@ -184,6 +293,35 @@ def extend_list(new, previous):
     que aporta el addon que se instala.
     """
     return list(previous or []) + list(new or [])
+
+
+def first_truthy(new, previous):
+    """``combine`` de disyunción — ≙ ``return <lo propio> or super().metodo()``.
+
+    Es el idioma de los **predicados** de la referencia: cada eslabón aporta su
+    razón para decir que sí, y basta una para que el conjunto la diga. Medido
+    sobre ``odoo19c``: **43** métodos lo escriben así, entre ellos los dos de
+    ``_rpc_api_keys_only`` que la familia del 2FA declara::
+
+        # odoo19c: auth_totp_mail/models/res_users.py:136
+        def _rpc_api_keys_only(self):
+            return self._mfa_type() == 'totp_mail' or super()._rpc_api_keys_only()
+
+    **Sin él, el relevo por defecto rompe la cadena de tres.** Ese relevo sólo
+    cae en el eslabón previo cuando el nuevo devuelve ``None``, y aquí el
+    valor de «no por mi parte» es ``False``: un usuario con 2FA de app y sin
+    política de correo obtendría ``False`` del eslabón externo y el interno
+    —el que sí tiene razón para decir que sí— nunca se consultaría.
+
+    **Divergencia de mecanismo, declarada:** el ``or`` de la fuente
+    cortocircuita y aquí **los dos eslabones se evalúan**, porque
+    :func:`chain_method` llama a ``previous`` antes de pasar su valor al
+    ``combine``. Es la forma del mecanismo, compartida con ``keep_previous`` y
+    ``extend_list``; para un predicado sin efectos —que es lo que la familia
+    de los 43 usa— la diferencia es coste, no conducta. Un eslabón con efectos
+    laterales NO debe encadenarse con este ``combine``.
+    """
+    return new or previous
 
 
 def keep_previous(new, previous):
@@ -220,3 +358,23 @@ def keep_previous(new, previous):
     contraria.
     """
     return previous if previous is not None else new
+
+
+def merge_dict(new, previous):
+    """``combine`` para el override que ENRIQUECE un diccionario.
+
+    ≙ el idioma ``res = super()._format_settings(...); res['x'] = ...; return
+    res`` (``odoo19c: addons/web/models/res_users_settings.py:9-14``): el
+    eslabón externo no reemplaza el formato, le añade su clave.
+
+    El relevo por defecto no sirve para esta familia y el modo de fallo es
+    silencioso: un diccionario vacío **no es ``None``**, así que
+    :func:`chain_method` lo da por respuesta buena y nunca invoca la previa.
+    Medido en ``res.users.settings``: el eslabón de ``web`` arrancaba en
+    ``{}`` y el formato perdía ``id`` y ``user`` — el porte de base entregaba
+    los cinco métodos y su resultado no llegaba a ningún llamador.
+
+    Las claves de ``new`` ganan sobre las de ``previous``, que es el orden del
+    idioma que replica: el override escribe **después** de leer a ``super()``.
+    """
+    return {**(previous or {}), **(new or {})}

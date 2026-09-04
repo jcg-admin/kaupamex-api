@@ -47,13 +47,13 @@ def test_modelo_no_registrado_queda_en_cola():
     modelo que aún no se cargó sería un ``LookupError``.
     """
     clave = ('stock', 'modeloquenoexisteparalaprueba')
-    corridas = []
+    runs = []
 
     assert clave not in apps._pending_operations, 'la clave debe empezar limpia'
     try:
-        apps.lazy_model_operation(corridas.append, clave)
+        apps.lazy_model_operation(runs.append, clave)
 
-        assert corridas == [], 'sin el modelo registrado la función no corre'
+        assert runs == [], 'sin el modelo registrado la función no corre'
         assert clave in apps._pending_operations
         assert len(apps._pending_operations[clave]) == 1
     finally:
@@ -164,7 +164,7 @@ def test_con_el_destino_ausente_la_mayuscula_cuelga_la_operacion():
     única defensa contra un bug que sólo aparece al reordenar la lista de apps.
     """
     clave_camel = ('stock', 'ModeloAusenteCamel')
-    corridas = []
+    runs = []
 
     class _MetaNormalizada:
         # Como Django la registra de verdad: ``model_name`` va en minúscula.
@@ -174,12 +174,12 @@ def test_con_el_destino_ausente_la_mayuscula_cuelga_la_operacion():
         _meta = _MetaNormalizada()
 
     try:
-        apps.lazy_model_operation(corridas.append, clave_camel)
+        apps.lazy_model_operation(runs.append, clave_camel)
         assert clave_camel in apps._pending_operations, 'se encoló verbatim'
 
         apps.do_pending_operations(_ModeloTardio)
 
-        assert corridas == [], (
+        assert runs == [], (
             'con caja alta la extensión NO corre al registrarse el destino'
         )
         assert clave_camel in apps._pending_operations, (
@@ -243,14 +243,14 @@ def test_extend_model_normaliza_la_clave_y_por_eso_no_se_cuelga():
     class _Destino:
         _meta = _Meta()
 
-    por_el_adaptador, por_django_crudo = [], []
+    by_the_adapter, por_django_crudo = [], []
     try:
-        extend_model(*camel, luego=por_el_adaptador.append)
+        extend_model(*camel, luego=by_the_adapter.append)
         assert normal in apps._pending_operations, 'se encoló normalizada'
         assert camel not in apps._pending_operations, 'no se encoló verbatim'
 
         apps.do_pending_operations(_Destino)
-        assert por_el_adaptador == [_Destino], 'el adaptador SÍ corre'
+        assert by_the_adapter == [_Destino], 'el adaptador SÍ corre'
 
         # Control negativo: la misma clave sin normalizar queda muda.
         apps.lazy_model_operation(por_django_crudo.append, camel)

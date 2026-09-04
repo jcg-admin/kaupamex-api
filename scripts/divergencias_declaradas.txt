@@ -86,3 +86,1276 @@
 # no tiene conducta que replicar.
 # Declarado en: addons/base_sparse_field/models/ir_model_fields.py:29-42
 base_sparse_field/models/models.py::Base::_valid_field_parameter
+
+# `_instanciate_attrs` traduce UNA FILA de `ir_model_fields` en los atributos
+# con que la referencia instancia un campo EN CALIENTE, y anade
+# `attrs['sparse'] = <nombre>`. Su unico llamador es la maquinaria de campos
+# manuales (`_add_manual_models` / `_instanciate`), que
+# `src/addons/base/models/ir_model.py:120` ya declara NO portada con su
+# medicion: Django construye su registro al importar y lo congela en
+# `apps.populate`, asi que no hay campo que instanciar en caliente al que
+# pasarle los atributos.
+#
+# Medido 2026-09-02 sobre este arbol:
+#   grep -rn "def _instanciate_attrs" --include=*.py src/ addons/  -> 0
+#   grep -rn "def _add_manual_models" --include=*.py src/ addons/  -> 0
+#
+# No es "dificil ni pendiente": no hay receptor. La consecuencia declarada es
+# que aqui `serialization_field_id` es REGISTRO y no insumo — se escribe para
+# que el catalogo diga la verdad, y nadie lo lee para reconstruir un campo.
+# Si algun dia se porta la maquinaria de campos manuales, esta entrada se
+# retira y el metodo se porta con ella.
+# Declarado en: addons/base_sparse_field/models/ir_model_fields.py:44-59
+base_sparse_field/models/models.py::IrModelFields::_instanciate_attrs
+
+# --- res_device.py (tarea #71) -------------------------------------------
+# El porte esta cerrado: los 15 metodos de la fuente tienen contraparte. Lo
+# que sigue son las divergencias de FORMA que el docstring del modulo declara
+# una por una, y que el gate —que compara por nombre y por clase— no puede
+# ver.
+#
+# El `display_name` que su ORM da a todo modelo es aqui `__str__`.
+base/models/res_device.py::ResDeviceLog::_compute_display_name
+# Su `compute` lee la peticion de un global; aqui `ResDevice.is_current(request)`
+# la recibe explicita.
+base/models/res_device.py::ResDeviceLog::_compute_is_current
+# Django no tiene punto de extension de campo-a-SQL en el orden:
+# `ResDeviceQuerySet.order_by_is_current` expone la misma capacidad.
+base/models/res_device.py::ResDeviceLog::_order_field_to_sql
+# El DDL de la vista vive en la migracion `base.0004_resdevice`, no en el
+# modelo: en la referencia el modelo crea su propia vista al cargar.
+base/models/res_device.py::ResDevice::_select
+# Idem — parte del mismo `CREATE OR REPLACE VIEW`.
+base/models/res_device.py::ResDevice::_from
+# Idem — parte del mismo `CREATE OR REPLACE VIEW`.
+base/models/res_device.py::ResDevice::_where
+# Idem — parte del mismo `CREATE OR REPLACE VIEW`.
+base/models/res_device.py::ResDevice::_query
+# Fuera de sitio: la fuente lo declara sobre `res.device.log` y `res.device` lo
+# hereda con `_inherit`; aqui esa herencia es la base abstracta
+# `_ResDeviceFields`, que es donde vive.
+base/models/res_device.py::ResDeviceLog::_is_mobile
+# Idem — en `_ResDeviceFields`, por la misma adaptacion del `_inherit`.
+base/models/res_device.py::ResDeviceLog::_compute_linked_ip_addresses
+# El recordset de la referencia es aqui un `QuerySet`, y ahi vive.
+base/models/res_device.py::ResDevice::_revoke
+# Idem — el par publico/interno colapsa en un cuerpo (la identidad fresca la
+# exige `authz_reauth.assert_session_fresh` desde la vista, DEC-12).
+base/models/res_device.py::ResDevice::revoke
+# El `init()` que crea la vista es aqui la migracion `base.0004_resdevice`.
+base/models/res_device.py::ResDevice::init
+
+# --- authz_ldap / authz_oauth: la familia de autorizacion ---------------------
+#
+# Triadas al cerrar la tarea #81, cuando el mapa de renombre de addon (#80) puso
+# la familia dentro del alcance del gate por primera vez. Las tres tienen su
+# motivo medido y su prueba en el mapa de porte del `models/__init__.py` del
+# addon, que nombra archivo por archivo el destino de cada uno.
+#
+# El One2many `ldaps` de res.company ES el reverso de la FK en Django:
+# `related_name='ldaps'` en CompanyLdap.company (migrations/0001_initial.py:101).
+# La conducta existe; lo que no existe es un archivo que la declare, y crearlo
+# seria fabricar un stub vacio.
+authz_ldap/models/res_company.py
+#
+# `_get_ldap_dicts` consulta el conjunto, no un registro: en la referencia eso
+# es un metodo de modelo porque un recordset ES el conjunto, y aqui vive en el
+# manager (`CompanyLdap.objects._get_ldap_dicts()`,
+# models/res_company_ldap.py:74). Divergencia de la separacion manager/modelo
+# de Django, no un simbolo ausente: el guion bajo se le restauro en el mismo
+# pase, porque quitarlo lo promovia a API publica (H-API-581).
+authz_ldap/models/res_company_ldap.py::ResCompanyLdap::_get_ldap_dicts
+#
+# El unico contenido del archivo de la referencia fija el client_id del
+# proveedor Odoo.com al database.uuid: es la integracion de cuentas de la casa
+# Odoo, y no hay conducta que replicar en un arbol que no se conecta a ella.
+authz_oauth/models/ir_config_parameter.py
+#
+# El wizard transient `auth.passkey.key.create` y la confirmacion de identidad
+# por passkey SI estan portados; lo que diverge es su FORMA. La referencia los
+# resuelve como wizard con vista; aqui son endpoints REST — el POST de registro
+# en los controllers del addon, y el despacho de `webauthn` a
+# `verify_webauthn_credential` (../backends.py) desde authz_timeout. Declarado
+# archivo por archivo en el mapa de porte de `models/__init__.py`.
+authz_passkey/models/res_users_identitycheck.py
+#
+# La politica de contrasena vive en un VALIDADOR de Django
+# (`validators.py` + `data.py`, cableados por AUTH_PASSWORD_VALIDATORS), que es
+# el mecanismo del stack para esto y corre en TODOS los caminos de cambio de
+# contrasena. La referencia la cuelga de res.users porque su ORM no tiene esa
+# capa. Por eso este addon no tiene paquete `models/`: es una decision, y su
+# prueba es el docstring de `validators.py`, que cita el codigo de la fuente.
+authz_password_policy/models/res_users.py
+#
+# `res.users` NO se puede extender por herencia entre apps de Django, asi que
+# los cuatro simbolos de este archivo conservan su CONTENIDO con la mecanica
+# nativa y cambian de SITIO, cada uno declarado en el docstring del archivo:
+# `_login`/`_check_credentials` son `LdapBackend.authenticate` (../backends.py)
+# porque AUTHENTICATION_BACKENDS ES la cadena de `super()._login` de la
+# referencia —el backend local intenta primero y este es el fallback, igual que
+# su `except AccessDenied`—; `change_password` y `_set_empty_password` son
+# funciones de modulo que el flujo de `account.password` invoca antes de tocar
+# el password local. El guion bajo de `_set_empty_password` se restauro en el
+# mismo pase (H-API-581).
+authz_ldap/models/res_users.py
+#
+# Mismo caso que `authz_ldap/models/res_users.py`: `res.users` no se extiende
+# por herencia entre apps. Los cinco `@api.model` de la referencia —que no
+# llevan estado del recordset— son funciones de este archivo; el
+# `_check_credentials` que valida el token almacenado es `OauthTokenBackend`
+# (../backends.py); y los campos viven en tabla propia `OauthAccount`
+# (OneToOne), porque en la referencia un usuario tiene UN proveedor. Los cuatro
+# simbolos que NO se portan estan contados y declarados en el docstring del
+# archivo, con su sucesor. Guiones bajos restaurados en el mismo pase.
+authz_oauth/models/res_users.py
+#
+# Los seis simbolos de `auth.passkey.key` que no llevan contraparte de nombre
+# tienen su conducta en la superficie REST del addon, y cada uno lo declara con
+# su `=` en `controllers/main.py`:
+#
+#   action_delete_passkey + unlink -> PasskeyViewSet.perform_destroy (la misma
+#     comprobacion de identidad, el mismo log, y el borrado); el acotado a las
+#     propias es get_queryset, = su `create_uid == env.user`.
+#   action_rename_passkey -> el PATCH del viewset: en la referencia devuelve un
+#     `ir.actions.act_window` que abre un formulario, que es UI, no conducta.
+#   AuthPasskeyKeyCreate.make_key -> la accion `register`, que es el POST del
+#     flujo WebAuthn. El wizard transient de la referencia ES ese POST.
+#   _compute_public_key / _inverse_public_key / init -> `public_key` es una
+#     columna declarada del modelo (auth_passkey_key.py:73). La referencia
+#     necesita el compute y el `ALTER TABLE` de `init` porque su ORM no la
+#     puede declarar; aqui la declara el campo y la crea la migracion, asi que
+#     no hay compute que replicar: leer el atributo ES leer la columna.
+#   _compute_public_key -> `public_key` es una columna declarada del modelo
+#     (auth_passkey_key.py:73). La referencia necesita el compute y el `ALTER
+#     TABLE` de `init` porque su ORM no la puede declarar; aqui la declara el
+#     campo y la crea la migracion, asi que no hay compute que replicar: leer el
+#     atributo ES leer la columna.
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::_compute_public_key
+#   _inverse_public_key -> `public_key` es una columna declarada del modelo
+#     (auth_passkey_key.py:73). La referencia necesita el compute y el `ALTER
+#     TABLE` de `init` porque su ORM no la puede declarar; aqui la declara el
+#     campo y la crea la migracion, asi que no hay compute que replicar: leer el
+#     atributo ES leer la columna.
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::_inverse_public_key
+#   init -> `public_key` es una columna declarada del modelo
+#     (auth_passkey_key.py:73). La referencia necesita el compute y el `ALTER
+#     TABLE` de `init` porque su ORM no la puede declarar; aqui la declara el
+#     campo y la crea la migracion, asi que no hay compute que replicar: leer el
+#     atributo ES leer la columna.
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::init
+#   unlink -> PasskeyViewSet.perform_destroy (la misma comprobacion de
+#     identidad, el mismo log, y el borrado); el acotado a las propias es
+#     get_queryset, = su `create_uid == env.user`.
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::unlink
+#   action_delete_passkey -> PasskeyViewSet.perform_destroy (la misma
+#     comprobacion de identidad, el mismo log, y el borrado); el acotado a las
+#     propias es get_queryset, = su `create_uid == env.user`.
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::action_delete_passkey
+#   action_rename_passkey -> el PATCH del viewset: en la referencia devuelve
+#     un `ir.actions.act_window` que abre un formulario, que es UI, no conducta.
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKey::action_rename_passkey
+#   AuthPasskeyKeyCreate -> el wizard transient entero ES el POST de registro
+#     del flujo WebAuthn (controllers/main.py: registration_options + register).
+authz_passkey/models/auth_passkey_key.py::AuthPasskeyKeyCreate
+#
+# Cuatro de los cinco de `res.users` en authz_passkey, cada uno con su renglon
+# en la tabla del docstring del archivo. `SELF_READABLE_FIELDS` NO entra: sigue
+# contado como deuda, y ya no por el motivo que decia —base la declara desde
+# #66 y `extend_property` da la via de suma (H-API-834)—, sino porque este
+# addon todavia no la declara. Es TRABAJO, no divergencia.
+#
+#   action_create_passkey -> la accion de ventana del backoffice es aqui el
+#     endpoint de registro (controllers/main.py: registration_options + register).
+#   _login -> backends.PasskeyBackend.authenticate, el camino de login con la
+#     busqueda global por credential_identifier; AUTHENTICATION_BACKENDS ES la
+#     cadena de super()._login.
+#   _get_session_token_fields / _get_session_token_query_params -> el token de
+#     sesion de Django NO se deriva de campos del usuario, asi que no hay nada
+#     que extender: no es trabajo pendiente, es conducta que no existe aqui.
+#   action_create_passkey -> la accion de ventana del backoffice es aqui el
+#     endpoint de registro (controllers/main.py: registration_options +
+#     register).
+authz_passkey/models/res_users.py::ResUsers::action_create_passkey
+#   _login -> backends.PasskeyBackend.authenticate, el camino de login con la
+#     busqueda global por credential_identifier; AUTHENTICATION_BACKENDS ES la
+#     cadena de super()._login.
+authz_passkey/models/res_users.py::ResUsers::_login
+#   _get_session_token_fields -> el token de sesion de Django NO se deriva de
+#     campos del usuario, asi que no hay nada que extender: no es trabajo
+#     pendiente, es conducta que no existe aqui.
+authz_passkey/models/res_users.py::ResUsers::_get_session_token_fields
+#   _get_session_token_query_params -> el token de sesion de Django NO se
+#     deriva de campos del usuario, asi que no hay nada que extender: no es
+#     trabajo pendiente, es conducta que no existe aqui.
+authz_passkey/models/res_users.py::ResUsers::_get_session_token_query_params
+#
+# --- authz_totp: 12 de 14, cada uno con su renglon en la tabla del archivo ----
+#
+# El 2FA por app no puede colgar de `res.users` por herencia, asi que su
+# superficie se reparte entre `services.py`, los controllers y una tabla
+# lateral.
+#
+# Eran CUATRO bloqueos hasta #85 y hoy no queda ninguno; ninguno se mudo de
+# desenlace: los cuatro salieron del denominador porque se portaron.
+#   _totp_rate_limit / _purge -> su tabla decia faltar, y faltaba; lo que no
+#     decia es por que — el TransientModel de este arbol declara
+#     `managed = False` y no crea tabla (H-API-833).
+#   _rpc_api_keys_only -> decia que el canal RPC por clave de API no estaba
+#     construido; la premisa caduco al portarse #85 (H-API-835).
+#   SELF_READABLE_FIELDS -> decia que base no declaraba la lista blanca; la
+#     declara desde #66, y lo que faltaba era la via para sumar a una property
+#     ya instalada: `extend_property` (H-API-834).
+#
+#   init -> la columna la crea una migracion de Django, no un ALTER TABLE.
+#   _compute_totp_enabled -> `property` del modulo: = el compute sin `store`.
+#   _get_session_token_fields -> el token de sesion de este arbol NO se compone
+#     por campos del usuario; no hay nada que extender.
+#   _totp_try_setting -> services.confirm_setup.
+#   action_totp_disable -> services.disable + controllers.main.totp_disable.
+#   action_totp_enable_wizard -> services.begin_setup + controllers.main.totp_setup.
+#   revoke_all_devices / _revoke_all_devices -> auth_totp.revoke_all_devices, UNA
+#     funcion y no dos: la identidad fresca que alla pone @check_identity la
+#     exige aqui la vista (DEC-12), asi que los dos cuerpos coinciden.
+#   change_password -> su cuerpo entero es revocar y delegar en super(); el
+#     cambio de contrasena vive en `authz` y llama a revoke_all_devices.
+#   _compute_totp_secret / _inverse_token -> el secreto es una FILA (tabla
+#     lateral OneToOne), no un campo calculado sobre la del usuario.
+#   _totp_enable_search -> se busca por `totp_secret__confirmed=True`, que es
+#     el mismo predicado sobre la relacion.
+#   init -> la columna la crea una migracion de Django, no un ALTER TABLE.
+authz_totp/models/res_users.py::ResUsers::init
+#   _compute_totp_enabled -> `property` del modulo: = el compute sin `store`.
+authz_totp/models/res_users.py::ResUsers::_compute_totp_enabled
+#   _get_session_token_fields -> el token de sesion de este arbol NO se
+#     compone por campos del usuario; no hay nada que extender.
+authz_totp/models/res_users.py::ResUsers::_get_session_token_fields
+#   _totp_try_setting -> services.confirm_setup.
+authz_totp/models/res_users.py::ResUsers::_totp_try_setting
+#   action_totp_disable -> services.disable + controllers.main.totp_disable.
+authz_totp/models/res_users.py::ResUsers::action_totp_disable
+#   action_totp_enable_wizard -> services.begin_setup +
+#     controllers.main.totp_setup.
+authz_totp/models/res_users.py::ResUsers::action_totp_enable_wizard
+#   revoke_all_devices -> auth_totp.revoke_all_devices, UNA funcion y no dos:
+#     la identidad fresca que alla pone @check_identity la exige aqui la vista
+#     (DEC-12), asi que los dos cuerpos coinciden.
+authz_totp/models/res_users.py::ResUsers::revoke_all_devices
+#   _revoke_all_devices -> auth_totp.revoke_all_devices, UNA funcion y no dos:
+#     la identidad fresca que alla pone @check_identity la exige aqui la vista
+#     (DEC-12), asi que los dos cuerpos coinciden.
+authz_totp/models/res_users.py::ResUsers::_revoke_all_devices
+#   change_password -> su cuerpo entero es revocar y delegar en super(); el
+#     cambio de contrasena vive en `authz` y llama a revoke_all_devices.
+authz_totp/models/res_users.py::ResUsers::change_password
+#   _compute_totp_secret -> el secreto es una FILA (tabla lateral OneToOne),
+#     no un campo calculado sobre la del usuario.
+authz_totp/models/res_users.py::ResUsers::_compute_totp_secret
+#   _inverse_token -> el secreto es una FILA (tabla lateral OneToOne), no un
+#     campo calculado sobre la del usuario.
+authz_totp/models/res_users.py::ResUsers::_inverse_token
+#   _totp_enable_search -> se busca por `totp_secret__confirmed=True`, que es
+#     el mismo predicado sobre la relacion.
+authz_totp/models/res_users.py::ResUsers::_totp_enable_search
+
+# --- authz_totp_mail/models/res_users.py -----------------------------------
+# El addon NO usa `_inherit`: la referencia extiende `res.users` y aqui son
+# FUNCIONES sobre el usuario (mismo criterio que authz_ldap.models.res_users).
+# El gate compara METODOS DE CLASE, asi que una funcion de modulo con el nombre
+# fiel le sale igual de ausente que una omitida. Las siete primeras SI estan
+# portadas, con su nombre; las tres ultimas son divergencia de mecanismo.
+#
+# Portadas como funcion de modulo, con el nombre de la fuente:
+#   _get_totp_mail_key / _get_totp_mail_code / _send_totp_mail_code
+#     -> res_users.py:104,112,146. El guion bajo se restauro en este pase:
+#        estaban como `totp_mail_key` / `totp_mail_code`, que promovia a API
+#        publica lo que la fuente reserva (H-API-581).
+#   get_totp_invite_url -> res_users.py:305, como config L2.
+#   write -> ../signals.py, como senal sobre TotpSecret (no hay _inherit que
+#        envolver; el evento equivalente es la transicion de `confirmed`).
+#   action_totp_invite -> `invite_users` (res_users.py:311). Renombre
+#        deliberado: la fuente devuelve una accion de cliente `display_
+#        notification` del backoffice; aqui devuelve la lista de invitados y
+#        la vista decide como mostrarla.
+#
+# Divergencia de mecanismo:
+#   authenticate -> la fuente concentra ahi el chequeo, la fecha de login y el
+#     auth_info; aqui eso lo reparte Django entre sus cuatro backends. La
+#     mitad de verificacion SI se unifico: `_check_credentials` existe como
+#     cadena sobre res.users, con este addon de tercer eslabon.
+#   action_open_my_account_settings -> devuelve un `ir.actions.act_window`
+#     sobre una vista de formulario del backoffice; el SPA tiene su ruta.
+#   _notify_security_setting_update_prepare_values -> prepara los valores de la
+#     plantilla QWeb `mail.account_security_alert` con su `suggest_2fa`. Esa
+#     plantilla es capa de presentacion del backoffice y no se porta; el correo
+#     va directo por `dispatch_email`.
+#   _get_totp_mail_key -> portado CON SU NOMBRE como funcion de modulo; el
+#     gate lo ve ausente porque busca una clase `ResUsers`, que aqui no existe.
+authz_totp_mail/models/res_users.py::ResUsers::_get_totp_mail_key
+#   _get_totp_mail_code -> portado CON SU NOMBRE como funcion de modulo
+#     (idem).
+authz_totp_mail/models/res_users.py::ResUsers::_get_totp_mail_code
+#   _send_totp_mail_code -> portado CON SU NOMBRE como funcion de modulo
+#     (idem).
+authz_totp_mail/models/res_users.py::ResUsers::_send_totp_mail_code
+#   get_totp_invite_url -> res_users.py:305, como config L2.
+authz_totp_mail/models/res_users.py::ResUsers::get_totp_invite_url
+#   action_totp_invite -> `invite_users` (res_users.py:311). Renombre
+authz_totp_mail/models/res_users.py::ResUsers::action_totp_invite
+#   authenticate -> la fuente concentra ahi el chequeo, la fecha de login y el
+#     auth_info; aqui eso lo reparte Django entre sus cuatro backends. La mitad
+#     de verificacion SI se unifico: `_check_credentials` existe como cadena
+#     sobre res.users, con este addon de tercer eslabon.
+authz_totp_mail/models/res_users.py::ResUsers::authenticate
+#   action_open_my_account_settings -> devuelve un `ir.actions.act_window`
+#     sobre una vista de formulario del backoffice; el SPA tiene su ruta.
+authz_totp_mail/models/res_users.py::ResUsers::action_open_my_account_settings
+#   _notify_security_setting_update_prepare_values -> prepara los valores de
+#     la plantilla QWeb `mail.account_security_alert` con su `suggest_2fa`. Esa
+#     plantilla es capa de presentacion del backoffice y no se porta; el correo
+#     va directo por `dispatch_email`.
+authz_totp_mail/models/res_users.py::ResUsers::_notify_security_setting_update_prepare_values
+
+# --- authz_totp_mail/models/auth_totp_device.py ----------------------------
+# Sus DOS simbolos portados en ../signals.py: `unlink` -> notify_device_removed
+# (pre_delete + on_commit) y `_classify_by_user` -> _classify_by_user, con el
+# nombre de la fuente. La premisa que decia que no se podia portar era falsa
+# (H-API-830).
+authz_totp_mail/models/auth_totp_device.py
+
+# --- authz_timeout/models/ir_http.py ---------------------------------------
+# 8 de 8 defs portadas, cada una CON SU NOMBRE, como funciones de modulo mas
+# `CheckIdentityMiddleware`. La referencia las cuelga de una clase `ir.http`
+# por _inherit; aqui el despachador es Django y el enganche es un middleware,
+# asi que no hay clase `IrHttp` que el gate pueda casar. Divergencia de stack,
+# no simbolos ausentes — el docstring del archivo lleva la tabla simbolo a
+# simbolo y las cuatro divergencias (create_time por senal de login;
+# _authenticate levanta y _handle_error responde dentro del middleware;
+# _set_session_inactivity sin productor de presencia; session_info consumido
+# por el endpoint del addon y no por `web`).
+#
+# La linea de `models/__init__.py` que decia "PENDIENTE: 8 simbolos de la
+# referencia sin contraparte" era FALSA: se escribio transcribiendo la salida
+# del gate ("CLASE AUSENTE (8)") sin abrir el archivo. Corregida (H-API-831).
+authz_timeout/models/ir_http.py::IrHttp
+
+# --- authz_timeout/models/res_groups.py ------------------------------------
+# Los tres lados de escritura existen en la fuente SOLO para invalidar la
+# cache de `_get_lock_timeouts`, y Django no separa alta de modificacion:
+# ambas son `save()`. Son 3 simbolos de la fuente contra 2 nuestros
+# (`save` + `delete`), instalados por `extend_model(metodos=...)`, que va por
+# `chain_method` (model_classes.py:169-170) y por tanto relevan.
+# Divergencia 2 del docstring del archivo.
+#   create -> Django no separa alta de modificacion: las dos son `save()`, que
+#     este addon encadena para invalidar la cache de `_get_lock_timeouts`.
+authz_timeout/models/res_groups.py::ResGroups::create
+#   unlink -> `delete()`, encadenado por el mismo motivo que `save()`.
+authz_timeout/models/res_groups.py::ResGroups::unlink
+
+# --- authz_signup/models/res_partner.py -------------------------------------
+# El addon NO usa `_inherit`: son funciones sobre el partner. El docstring del
+# archivo lleva el mapa simbolo a simbolo; aqui solo lo que NO se porta.
+#
+#   _get_signup_url / _get_signup_url_for_action -> arman la URL
+#     `/web/reset_password` del frontend QWeb; el SPA arma la suya con el token
+#     que devuelven `_signup_retrieve_info` / `signup_get_auth_param`.
+#   action_signup_prepare -> su cuerpo entero es `return self.signup_prepare()`,
+#     alias para un boton del backoffice. Sin ese formulario no envuelve nada.
+#   random_token -> divergencia de mecanismo: la fuente genera 20 caracteres al
+#     azar y los GUARDA en la fila; aqui el token es una carga firmada
+#     (`../token.py`), sin cadena aleatoria ni columna donde ponerla.
+#   now -> `datetime.now() + timedelta(**kwargs)`, ayudante de una linea que
+#     existe porque su ORM compara fechas en el dominio. Aqui la validez se
+#     mide en segundos de edad de la firma (`_validity_seconds`).
+#
+# `SignupError` de la fuente vive en `../exceptions.py` — de ahi el hallazgo
+# CLASE FUERA DE SITIO, que es donde le corresponde estar.
+#   _get_signup_url -> arman la URL `/web/reset_password` del frontend QWeb;
+#     el SPA arma la suya con el token que devuelven `_signup_retrieve_info` /
+#     `signup_get_auth_param`.
+authz_signup/models/res_partner.py::ResPartner::_get_signup_url
+#   _get_signup_url_for_action -> arman la URL `/web/reset_password` del
+#     frontend QWeb; el SPA arma la suya con el token que devuelven
+#     `_signup_retrieve_info` / `signup_get_auth_param`.
+authz_signup/models/res_partner.py::ResPartner::_get_signup_url_for_action
+#   action_signup_prepare -> su cuerpo entero es `return
+#     self.signup_prepare()`, alias para un boton del backoffice. Sin ese
+#     formulario no envuelve nada.
+authz_signup/models/res_partner.py::ResPartner::action_signup_prepare
+#   SignupError -> vive en `../exceptions.py`, que es donde le corresponde —
+#     de ahi el hallazgo CLASE FUERA DE SITIO.
+authz_signup/models/res_partner.py::SignupError
+#
+# Y los 8 que SI estan portados, cada uno con su nombre, como funcion de
+# modulo — el gate los ve ausentes porque busca una clase `ResPartner`, que
+# aqui no existe: Django no admite `_inherit`. Se listan uno a uno y no por
+# clase a proposito: asi un simbolo NUEVO de la referencia si saldria como
+# hallazgo en vez de quedar absuelto por arrastre.
+#   _generate_signup_token -> portado CON SU NOMBRE como funcion de modulo; se
+#     lista uno a uno para que un simbolo NUEVO de la referencia salga como
+#     hallazgo.
+authz_signup/models/res_partner.py::ResPartner::_generate_signup_token
+#   _get_login_date -> portado CON SU NOMBRE como funcion de modulo; se lista
+#     uno a uno para que un simbolo NUEVO de la referencia salga como hallazgo.
+authz_signup/models/res_partner.py::ResPartner::_get_login_date
+#   _get_partner_from_token -> portado CON SU NOMBRE como funcion de modulo;
+#     se lista uno a uno para que un simbolo NUEVO de la referencia salga como
+#     hallazgo.
+authz_signup/models/res_partner.py::ResPartner::_get_partner_from_token
+#   _signup_retrieve_info -> portado CON SU NOMBRE como funcion de modulo; se
+#     lista uno a uno para que un simbolo NUEVO de la referencia salga como
+#     hallazgo.
+authz_signup/models/res_partner.py::ResPartner::_signup_retrieve_info
+#   _signup_retrieve_partner -> portado CON SU NOMBRE como funcion de modulo;
+#     se lista uno a uno para que un simbolo NUEVO de la referencia salga como
+#     hallazgo.
+authz_signup/models/res_partner.py::ResPartner::_signup_retrieve_partner
+#   signup_cancel -> portado CON SU NOMBRE como funcion de modulo; se lista
+#     uno a uno para que un simbolo NUEVO de la referencia salga como hallazgo.
+authz_signup/models/res_partner.py::ResPartner::signup_cancel
+#   signup_get_auth_param -> portado CON SU NOMBRE como funcion de modulo; se
+#     lista uno a uno para que un simbolo NUEVO de la referencia salga como
+#     hallazgo.
+authz_signup/models/res_partner.py::ResPartner::signup_get_auth_param
+#   signup_prepare -> portado CON SU NOMBRE como funcion de modulo; se lista
+#     uno a uno para que un simbolo NUEVO de la referencia salga como hallazgo.
+authz_signup/models/res_partner.py::ResPartner::signup_prepare
+
+# --- authz_signup/models/res_users.py ---------------------------------------
+# Funciones sobre el usuario; el docstring del archivo lleva el mapa completo.
+#
+# Portados CON SU NOMBRE (el gate los ve ausentes porque busca una clase
+# `ResUsers`, que aqui no existe — Django no admite `_inherit`):
+#   signup -> portado CON SU NOMBRE como funcion de modulo; el gate lo ve
+#     ausente porque busca una clase `ResUsers`, que aqui no existe.
+authz_signup/models/res_users.py::ResUsers::signup
+#   _signup_create_user -> portado CON SU NOMBRE como funcion de modulo; el
+#     gate lo ve ausente porque busca una clase `ResUsers`, que aqui no existe.
+authz_signup/models/res_users.py::ResUsers::_signup_create_user
+#   reset_password -> portado CON SU NOMBRE como funcion de modulo; el gate lo
+#     ve ausente porque busca una clase `ResUsers`, que aqui no existe.
+authz_signup/models/res_users.py::ResUsers::reset_password
+#   _action_reset_password -> portado CON SU NOMBRE como funcion de modulo; el
+#     gate lo ve ausente porque busca una clase `ResUsers`, que aqui no existe.
+authz_signup/models/res_users.py::ResUsers::_action_reset_password
+# `write` (rama de desactivacion) y `_ondelete_signup_cancel` -> ../signals.py,
+# dos senales con el mismo cuerpo:
+#   _ondelete_signup_cancel -> portado en `../signals.py` como receptor de
+#     `post_delete`.
+authz_signup/models/res_users.py::ResUsers::_ondelete_signup_cancel
+#
+# Divergencia de mecanismo:
+#   _get_signup_invitation_scope -> policy.signup_open. La fuente lee un enum
+#     ('b2b'/'b2c') y su unico consumidor compara `!= 'b2c'`: un enum de dos
+#     valores usado como bandera. Aqui es booleano, y el nombre cambia con la
+#     codificacion — `_get_signup_invitation_scope` prometeria un ambito.
+#   _create_user_from_template -> no se copia un template user; el alta pasa
+#     por `create_user` con password inutilizable hasta fijarlo con el token.
+#   _compute_state / _search_state -> el campo `state` (new/active) es de la
+#     lista de usuarios del backoffice.
+#   web_create_users / send_unregistered_user_reminder -> UI de usuarios del
+#     backoffice y cron de recordatorio.
+#   create -> la invitacion automatica en cada alta; aqui se dispara
+#     explicitamente con `_action_reset_password`.
+#   action_reset_password -> envoltorio publico que traduce
+#     MailDeliveryException a UserError para el formulario del backoffice; el
+#     fallo de `dispatch_email` lo sella el manejador central (ADR-019).
+#   copy -> evita el correo de reset al DUPLICAR un usuario, accion del
+#     backoffice que aqui no existe.
+#   _get_signup_invitation_scope -> policy.signup_open. La fuente lee un enum
+#     ('b2b'/'b2c') y su unico consumidor compara `!= 'b2c'`: un enum de dos
+#     valores usado como bandera. Aqui es booleano, y el nombre cambia con la
+#     codificacion — `_get_signup_invitation_scope` prometeria un ambito.
+authz_signup/models/res_users.py::ResUsers::_get_signup_invitation_scope
+#   _create_user_from_template -> no se copia un template user; el alta pasa
+#     por `create_user` con password inutilizable hasta fijarlo con el token.
+authz_signup/models/res_users.py::ResUsers::_create_user_from_template
+#   _compute_state -> el campo `state` (new/active) es de la lista de usuarios
+#     del backoffice.
+authz_signup/models/res_users.py::ResUsers::_compute_state
+#   _search_state -> el campo `state` (new/active) es de la lista de usuarios
+#     del backoffice.
+authz_signup/models/res_users.py::ResUsers::_search_state
+#   web_create_users -> UI de usuarios del backoffice y cron de recordatorio.
+authz_signup/models/res_users.py::ResUsers::web_create_users
+#   send_unregistered_user_reminder -> UI de usuarios del backoffice y cron de
+#     recordatorio.
+authz_signup/models/res_users.py::ResUsers::send_unregistered_user_reminder
+#   create -> la invitacion automatica en cada alta; aqui se dispara
+#     explicitamente con `_action_reset_password`.
+authz_signup/models/res_users.py::ResUsers::create
+#   action_reset_password -> envoltorio publico que traduce
+#     MailDeliveryException a UserError para el formulario del backoffice; el
+#     fallo de `dispatch_email` lo sella el manejador central (ADR-019).
+authz_signup/models/res_users.py::ResUsers::action_reset_password
+#   copy -> evita el correo de reset al DUPLICAR un usuario, accion del
+#     backoffice que aqui no existe.
+authz_signup/models/res_users.py::ResUsers::copy
+
+# --- authz_signup/models/ir_http.py ------------------------------------------
+# Un solo simbolo, `_pre_dispatch`, que inyecta la config de signup en la
+# sesion del frontend QWeb. El SPA lee esa config por su propio endpoint, asi
+# que no hay despachador de paginas donde inyectarla. Declarado en el
+# `models/__init__.py` del addon.
+authz_signup/models/ir_http.py
+
+# --- ir_ui_view: el combinador de XML, 70 simbolos -------------------------
+#
+# El modulo lo declara en su docstring desde que se porto: «se porta el
+# registro y las reglas de herencia; no el combinador de XML». Esa prosa no la
+# ve ningun gate, asi que los 70 seguian contados como porte pendiente.
+#
+# Que los hace divergencia y no deuda: en la referencia una vista ES un arbol
+# XML que el servidor combina, valida, post-procesa y envia al cliente. Aqui
+# la pantalla la dibuja React contra el contrato DRF, y `arch_db` es un Text
+# que este archivo NO interpreta. No hay conducta que replicar — no es que sea
+# dificil, es que no hay arbol.
+#
+# Lo que NO entra aqui, a proposito: `create`, `write`, `unlink`, `copy_data`
+# (clausula anti-abuso), los cuatro computos de `arch`/`arch_base`, los tres de
+# `xml_id`/`model_data_id`, los dos de `model_id`, `_check_groups` y
+# `_check_view_access`. Esos siguen contados: son trabajo, no divergencia.
+#
+# valida el XML contra el modelo — aqui el arch no describe formularios, los
+# describe el front en React, asi que no hay arbol que validar
+#   _check_xml -> reparsea el arch y valida cada etiqueta contra los campos.
+base/models/ir_ui_view.py::IrUiView::_check_xml
+#   _check_field_paths -> resuelve rutas de campo dentro del XML.
+base/models/ir_ui_view.py::IrUiView::_check_field_paths
+#   _check_dropdown_menu -> valida la estructura de un menu desplegable.
+base/models/ir_ui_view.py::IrUiView::_check_dropdown_menu
+#   _check_progress_bar -> valida los atributos de una barra de progreso.
+base/models/ir_ui_view.py::IrUiView::_check_progress_bar
+#   _validate_view -> entrada del validador de un arbol XML.
+base/models/ir_ui_view.py::IrUiView::_validate_view
+#   _validate_module_views -> valida todas las vistas de un modulo al instalar.
+base/models/ir_ui_view.py::IrUiView::_validate_module_views
+#   _validate_custom_views -> valida las vistas personalizadas de un modelo.
+base/models/ir_ui_view.py::IrUiView::_validate_custom_views
+#   _validate_attributes -> valida atributos sueltos de un nodo XML.
+base/models/ir_ui_view.py::IrUiView::_validate_attributes
+#   _validate_classes -> valida las clases CSS declaradas en el XML.
+base/models/ir_ui_view.py::IrUiView::_validate_classes
+#   _validate_expression -> evalua una expresion Python incrustada en el XML.
+base/models/ir_ui_view.py::IrUiView::_validate_expression
+#   _validate_domain_identifiers -> valida los identificadores de un dominio del XML.
+base/models/ir_ui_view.py::IrUiView::_validate_domain_identifiers
+#   _validate_qweb_directive -> valida una directiva t-* de QWeb.
+base/models/ir_ui_view.py::IrUiView::_validate_qweb_directive
+#   _validate_fa_class_accessibility -> valida la accesibilidad de un icono Font Awesome.
+base/models/ir_ui_view.py::IrUiView::_validate_fa_class_accessibility
+#   _validate_xml_encoding -> comprueba la codificacion declarada del XML.
+base/models/ir_ui_view.py::IrUiView::_validate_xml_encoding
+#   _compute_invalid_locators -> lista los xpath que no resuelven en el arbol.
+base/models/ir_ui_view.py::IrUiView::_compute_invalid_locators
+#   _compute_warning_info -> compone el aviso que el editor muestra sobre el arbol.
+base/models/ir_ui_view.py::IrUiView::_compute_warning_info
+#   _add_validation_flag -> marca el nodo XML como ya validado.
+base/models/ir_ui_view.py::IrUiView::_add_validation_flag
+#   _raise_view_error -> levanta el error del validador con su nodo.
+base/models/ir_ui_view.py::IrUiView::_raise_view_error
+#   _log_view_warning -> registra el aviso del validador con su nodo.
+base/models/ir_ui_view.py::IrUiView::_log_view_warning
+#
+# valida UNA etiqueta concreta del XML; su contraparte aqui es el componente
+# React que dibuja ese control, no una funcion de este modelo
+#   _validate_tag_a -> valida la etiqueta <a> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_a
+#   _validate_tag_button -> valida la etiqueta <button> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_button
+#   _validate_tag_calendar -> valida la etiqueta <calendar> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_calendar
+#   _validate_tag_div -> valida la etiqueta <div> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_div
+#   _validate_tag_field -> valida la etiqueta <field> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_field
+#   _validate_tag_filter -> valida la etiqueta <filter> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_filter
+#   _validate_tag_form -> valida la etiqueta <form> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_form
+#   _validate_tag_graph -> valida la etiqueta <graph> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_graph
+#   _validate_tag_groupby -> valida la etiqueta <groupby> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_groupby
+#   _validate_tag_img -> valida la etiqueta <img> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_img
+#   _validate_tag_label -> valida la etiqueta <label> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_label
+#   _validate_tag_list -> valida la etiqueta <list> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_list
+#   _validate_tag_page -> valida la etiqueta <page> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_page
+#   _validate_tag_search -> valida la etiqueta <search> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_search
+#   _validate_tag_searchpanel -> valida la etiqueta <searchpanel> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_searchpanel
+#   _validate_tag_ul -> valida la etiqueta <ul> del arbol.
+base/models/ir_ui_view.py::IrUiView::_validate_tag_ul
+#
+# post-procesa el arbol XML ya combinado — reescribe nodos antes de enviarlo
+# al cliente. Sin arbol no hay post-proceso
+#   _postprocess_view -> entrada del post-proceso de un arbol.
+base/models/ir_ui_view.py::IrUiView::_postprocess_view
+#   _postprocess_attributes -> reescribe los atributos de cada nodo.
+base/models/ir_ui_view.py::IrUiView::_postprocess_attributes
+#   _postprocess_on_change -> inyecta los on_change que el cliente necesita.
+base/models/ir_ui_view.py::IrUiView::_postprocess_on_change
+#   _postprocess_access_rights -> poda del arbol lo que el usuario no puede ver.
+base/models/ir_ui_view.py::IrUiView::_postprocess_access_rights
+#   _postprocess_debug -> anade al arbol la informacion del modo depuracion.
+base/models/ir_ui_view.py::IrUiView::_postprocess_debug
+#   _postprocess_debug_to_cache -> memoriza el resultado del anterior.
+base/models/ir_ui_view.py::IrUiView::_postprocess_debug_to_cache
+#   _modifiers_from_model -> deriva readonly/invisible desde el modelo al nodo.
+base/models/ir_ui_view.py::IrUiView::_modifiers_from_model
+#   _get_x2many_missing_view_archs -> completa el arch de las vistas anidadas.
+base/models/ir_ui_view.py::IrUiView::_get_x2many_missing_view_archs
+#
+# post-procesa una etiqueta concreta del arbol combinado
+#   _postprocess_tag_calendar -> post-procesa <calendar> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_calendar
+#   _postprocess_tag_field -> post-procesa <field> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_field
+#   _postprocess_tag_form -> post-procesa <form> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_form
+#   _postprocess_tag_groupby -> post-procesa <groupby> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_groupby
+#   _postprocess_tag_label -> post-procesa <label> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_label
+#   _postprocess_tag_list -> post-procesa <list> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_list
+#   _postprocess_tag_search -> post-procesa <search> del arbol combinado.
+base/models/ir_ui_view.py::IrUiView::_postprocess_tag_search
+#
+# marca el arbol con atributos data-oe-* para que el editor web sepa que
+# nodo corresponde a que registro. Aqui no hay editor sobre el XML
+#   distribute_branding -> reparte las marcas data-oe-* por el arbol.
+base/models/ir_ui_view.py::IrUiView::distribute_branding
+#   inherit_branding -> marca los nodos que llegan por herencia.
+base/models/ir_ui_view.py::IrUiView::inherit_branding
+#   is_node_branded -> dice si un nodo ya lleva marca.
+base/models/ir_ui_view.py::IrUiView::is_node_branded
+#   _contains_branded -> dice si un subarbol contiene algun nodo marcado.
+base/models/ir_ui_view.py::IrUiView::_contains_branded
+#   _pop_view_branding -> retira las marcas antes de guardar.
+base/models/ir_ui_view.py::IrUiView::_pop_view_branding
+#
+# decide si un nodo del XML es editable desde el editor web
+#   _editable_node -> entrada de la decision, por tipo de nodo.
+base/models/ir_ui_view.py::IrUiView::_editable_node
+#   _editable_tag_form -> la variante de <form>.
+base/models/ir_ui_view.py::IrUiView::_editable_tag_form
+#   _editable_tag_list -> la variante de <list>.
+base/models/ir_ui_view.py::IrUiView::_editable_tag_list
+#   _editable_tag_field -> la variante de <field>.
+base/models/ir_ui_view.py::IrUiView::_editable_tag_field
+#   _onchange_able_view -> dice si la vista admite on_change.
+base/models/ir_ui_view.py::IrUiView::_onchange_able_view
+#   _onchange_able_view_form -> la variante de <form>.
+base/models/ir_ui_view.py::IrUiView::_onchange_able_view_form
+#   _onchange_able_view_list -> la variante de <list>.
+base/models/ir_ui_view.py::IrUiView::_onchange_able_view_list
+#   _onchange_able_view_kanban -> la variante de <kanban>.
+base/models/ir_ui_view.py::IrUiView::_onchange_able_view_kanban
+#
+# opera sobre el arbol lxml: lo obtiene, lo recorre o lo renderiza
+#   _get_view_etrees -> devuelve el arbol lxml de cada vista.
+base/models/ir_ui_view.py::IrUiView::_get_view_etrees
+#   locate_node -> localiza un nodo por su especificacion de herencia.
+base/models/ir_ui_view.py::IrUiView::locate_node
+#   postprocess_and_fields -> combina, post-procesa y devuelve el arbol y sus campos.
+base/models/ir_ui_view.py::IrUiView::postprocess_and_fields
+#   _render_template -> renderiza una plantilla QWeb a HTML.
+base/models/ir_ui_view.py::IrUiView::_render_template
+#   _add_missing_fields -> anade al arbol los campos que el cliente necesita.
+base/models/ir_ui_view.py::IrUiView::_add_missing_fields
+#   _valid_inheritance -> comprueba que la herencia no use un atributo traducido como selector.
+base/models/ir_ui_view.py::IrUiView::_valid_inheritance
+#   _is_qweb_based_view -> dice si el arbol es QWeb mirando su etiqueta raiz.
+base/models/ir_ui_view.py::IrUiView::_is_qweb_based_view
+
+# --- ir_ui_view: la API que SIRVE el arch, 37 simbolos --------------------
+#
+# `NameManager` es la libreta del validador: acumula que campos y acciones
+# nombra el arbol para comprobarlos contra el modelo al terminar. Es del
+# combinador entero, asi que va por CLASE y no simbolo a simbolo.
+#
+#   la clase entera -> libreta del validador de XML; sin arbol no hay nada que
+#     apuntar ni contra que comprobarlo.
+base/models/ir_ui_view.py::NameManager
+#
+# La clase `Base` de este archivo es la extension que la referencia cuelga de
+# TODOS los modelos para servirles su vista: `get_view` devuelve el arch ya
+# combinado y post-procesado, y los `_get_default_*_view` FABRICAN un arch
+# minimo cuando el modelo no declara ninguno.
+#
+# Aqui esa superficie la cubre otra cosa, y esta construida: el contrato lo
+# publica drf-spectacular (`/api/schema/`) y la pantalla la arma React contra
+# el. No es que falte el equivalente — es que el equivalente no es un metodo
+# de este modelo.
+#   get_view -> devuelve el arch combinado y post-procesado de un modelo.
+base/models/ir_ui_view.py::Base::get_view
+#   get_views -> lo mismo para varias vistas en una llamada.
+base/models/ir_ui_view.py::Base::get_views
+#   _get_view -> el escalon interno de get_view.
+base/models/ir_ui_view.py::Base::_get_view
+#   _get_view_cache -> memoriza el arch servido.
+base/models/ir_ui_view.py::Base::_get_view_cache
+#   _get_view_cache_key -> compone la llave de esa memoria.
+base/models/ir_ui_view.py::Base::_get_view_cache_key
+#   _get_view_postprocessed -> devuelve el arch ya post-procesado.
+base/models/ir_ui_view.py::Base::_get_view_postprocessed
+#   _get_view_fields -> los campos que el arch nombra.
+base/models/ir_ui_view.py::Base::_get_view_fields
+#   _get_view_field_attributes -> los atributos que cada campo lleva en el arch.
+base/models/ir_ui_view.py::Base::_get_view_field_attributes
+#   _get_fields_spec -> la especificacion de campos que el cliente pide.
+base/models/ir_ui_view.py::Base::_get_fields_spec
+#   _onchange_spec -> que on_change dispara cada campo del arch.
+base/models/ir_ui_view.py::Base::_onchange_spec
+#   get_empty_list_help -> el HTML de ayuda cuando la lista sale vacia.
+base/models/ir_ui_view.py::Base::get_empty_list_help
+#   view_header_get -> el titulo que la vista muestra.
+base/models/ir_ui_view.py::Base::view_header_get
+#   get_formview_id -> el id de la vista de formulario de un registro.
+base/models/ir_ui_view.py::Base::get_formview_id
+#   get_formview_action -> la accion de ventana que abre ese formulario.
+base/models/ir_ui_view.py::Base::get_formview_action
+#   _get_access_action -> la accion que abre un registro desde un enlace.
+base/models/ir_ui_view.py::Base::_get_access_action
+#   _get_records_action -> la accion de ventana sobre un conjunto de registros.
+base/models/ir_ui_view.py::Base::_get_records_action
+#   _get_default_form_view -> fabrica un arch <form> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_form_view
+#   _get_default_list_view -> fabrica un arch <list> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_list_view
+#   _get_default_search_view -> fabrica un arch <search> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_search_view
+#   _get_default_kanban_view -> fabrica un arch <kanban> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_kanban_view
+#   _get_default_calendar_view -> fabrica un arch <calendar> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_calendar_view
+#   _get_default_graph_view -> fabrica un arch <graph> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_graph_view
+#   _get_default_pivot_view -> fabrica un arch <pivot> minimo cuando el modelo no declara vista.
+base/models/ir_ui_view.py::Base::_get_default_pivot_view
+#
+# Y el diff del asistente, que su propio docstring ya declaraba:
+#
+#   _compute_arch_diff -> compara dos arch y devuelve el HTML de diferencias;
+#     el diff visual es del backoffice. La DECISION de los tres modos si esta
+#     portada, en `source_arch_for`.
+base/models/ir_ui_view.py::ResetViewArchWizard::_compute_arch_diff
+
+# --- ir_qweb: el compilador de plantillas, 82 simbolos ---------------------
+#
+# El docstring del modulo lo declara con DOS mediciones independientes, y
+# cada una bastaria: en este arbol hay **0** archivos `.xml` y **0**
+# plantillas con directivas `t-*`; el HTML lo genera React en el cliente y el
+# backend sirve JSON por DRF. Un compilador de plantillas sin plantillas no es
+# una pieza dificil: es una pieza muerta.
+#
+# Lo que SI se porta y se queda contado: el vocabulario y las primitivas del
+# motor. Lo de abajo es el compilador y su empaquetado de assets.
+#   __prepare_globals -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::__prepare_globals
+#   _append_text -> acumula el texto que el compilador emite entre directivas.
+base/models/ir_qweb.py::IrQweb::_append_text
+#   _compile -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile
+#   _compile_bool -> etapa del compilador de plantillas.
+#   _compile_directive -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_directive
+#   _compile_directive_as -> compila la directiva `t-as` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_as
+#   _compile_directive_att -> compila la directiva `t-att` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_att
+#   _compile_directive_call -> compila la directiva `t-call` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_call
+#   _compile_directive_call_assets -> compila la directiva `t-call_assets` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_call_assets
+#   _compile_directive_consumed_options -> compila la directiva `t-consumed_options` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_consumed_options
+#   _compile_directive_debug -> compila la directiva `t-debug` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_debug
+#   _compile_directive_elif -> compila la directiva `t-elif` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_elif
+#   _compile_directive_else -> compila la directiva `t-else` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_else
+#   _compile_directive_esc -> compila la directiva `t-esc` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_esc
+#   _compile_directive_field -> compila la directiva `t-field` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_field
+#   _compile_directive_foreach -> compila la directiva `t-foreach` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_foreach
+#   _compile_directive_groups -> compila la directiva `t-groups` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_groups
+#   _compile_directive_if -> compila la directiva `t-if` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_if
+#   _compile_directive_inner_content -> compila la directiva `t-inner_content` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_inner_content
+#   _compile_directive_lang -> compila la directiva `t-lang` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_lang
+#   _compile_directive_options -> compila la directiva `t-options` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_options
+#   _compile_directive_out -> compila la directiva `t-out` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_out
+#   _compile_directive_raw -> compila la directiva `t-raw` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_raw
+#   _compile_directive_set -> compila la directiva `t-set` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_set
+#   _compile_directive_tag_close -> compila la directiva `t-tag_close` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_tag_close
+#   _compile_directive_tag_open -> compila la directiva `t-tag_open` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_tag_open
+#   _compile_directive_value -> compila la directiva `t-value` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_value
+#   _compile_directive_valuef -> compila la directiva `t-valuef` a codigo Python.
+base/models/ir_qweb.py::IrQweb::_compile_directive_valuef
+#   _compile_directives -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_directives
+#   _compile_expr -> etapa del compilador de plantillas.
+#   _compile_expr_tokens -> etapa del compilador de plantillas.
+#   _compile_format -> etapa del compilador de plantillas.
+#   _compile_node -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_node
+#   _compile_static_node -> etapa del compilador de plantillas.
+base/models/ir_qweb.py::IrQweb::_compile_static_node
+#   _compile_to_str -> etapa del compilador de plantillas.
+#   _debug_trace -> ata el error del compilador al nodo XML que lo produjo.
+base/models/ir_qweb.py::IrQweb::_debug_trace
+#   _flush_text -> acumula el texto que el compilador emite entre directivas.
+base/models/ir_qweb.py::IrQweb::_flush_text
+#   _generate_asset_links -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_generate_asset_links
+#   _generate_asset_links_cache -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_generate_asset_links_cache
+#   _generate_code -> genera el codigo Python de una plantilla ya compilada.
+base/models/ir_qweb.py::IrQweb::_generate_code
+#   _generate_code_cached -> genera el codigo Python de una plantilla ya compilada.
+base/models/ir_qweb.py::IrQweb::_generate_code_cached
+#   _generate_code_uncached -> genera el codigo Python de una plantilla ya compilada.
+base/models/ir_qweb.py::IrQweb::_generate_code_uncached
+#   _get_asset_bundle -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_asset_bundle
+#   _get_asset_content -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_asset_content
+#   _get_asset_link_urls -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_asset_link_urls
+#   _get_asset_links -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_asset_links
+#   _get_asset_nodes -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_asset_nodes
+#   _get_bundles_from_views -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_bundles_from_views
+#   _get_bundles_to_pregenarate -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_bundles_to_pregenarate
+#   _get_converted_image_data_uri -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_get_converted_image_data_uri
+#   _get_error_info -> ata el error del compilador al nodo XML que lo produjo.
+base/models/ir_qweb.py::IrQweb::_get_error_info
+#   _get_field -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_get_field
+#   _get_lazy_bundles_from_js -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_get_lazy_bundles_from_js
+#   _get_preload_attribute_xmlids -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_get_preload_attribute_xmlids
+#   _get_template -> resuelve y memoriza la plantilla que el compilador va a compilar.
+base/models/ir_qweb.py::IrQweb::_get_template
+#   _get_template_cache_keys -> resuelve y memoriza la plantilla que el compilador va a compilar.
+base/models/ir_qweb.py::IrQweb::_get_template_cache_keys
+#   _get_template_info -> resuelve y memoriza la plantilla que el compilador va a compilar.
+base/models/ir_qweb.py::IrQweb::_get_template_info
+#   _get_widget -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_get_widget
+#   _is_static_node -> primitiva interna del compilador.
+#   _link_to_node -> ata el error del compilador al nodo XML que lo produjo.
+base/models/ir_qweb.py::IrQweb::_link_to_node
+#   _links_to_nodes -> ata el error del compilador al nodo XML que lo produjo.
+base/models/ir_qweb.py::IrQweb::_links_to_nodes
+#   _post_processing_att -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_post_processing_att
+#   _pregenerate_assets_bundles -> empaqueta y enlaza los assets que la plantilla declara; aqui los empaqueta Webpack.
+base/models/ir_qweb.py::IrQweb::_pregenerate_assets_bundles
+#   _preload_trees -> resuelve y memoriza la plantilla que el compilador va a compilar.
+base/models/ir_qweb.py::IrQweb::_preload_trees
+#   _prepare_environment -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_prepare_environment
+#   _render_iterall -> primitiva interna del compilador.
+base/models/ir_qweb.py::IrQweb::_render_iterall
+#   _rstrip_text -> acumula el texto que el compilador emite entre directivas.
+base/models/ir_qweb.py::IrQweb::_rstrip_text
+#
+# Y las tres clases de apoyo del compilador, por clase:
+#
+#   QwebContent -> el envoltorio de salida que el codigo generado acumula;
+#     sin codigo generado no hay nada que acumular.
+base/models/ir_qweb.py::QwebContent
+#   QwebCallParameters -> los parametros de un `t-call`, que es una directiva.
+base/models/ir_qweb.py::QwebCallParameters
+#   QwebStackFrame -> un marco de la pila del compilador, para el rastro de error.
+base/models/ir_qweb.py::QwebStackFrame
+#   QwebJSON -> el serializador JSON que sabe volcar un QwebContent; sin
+#     QwebContent no hay caso que tratar de forma especial.
+base/models/ir_qweb.py::QwebJSON
+
+# --- base/models/res_currency.py :: ResCurrencyRate ------------------------
+#
+# NINGUNA. Este bloque declaraba tres divergencias y las tres eran falsas; se
+# retiran en el mismo pase que las corrige.
+#
+# `_get_view` / `_get_view_cache_key` decian «este stack no tiene vistas
+# declarativas», que describe el MECANISMO de la referencia y no nuestra
+# diferencia. La CONDUCTA —calcular dos etiquetas desde la moneda de la empresa,
+# y hacer que la representacion cacheada varie con ella— si existe aqui, y se
+# porto. Lo que diverge es el destino: un mapa que consume el serializer en vez
+# de un xpath sobre un arbol XML, y eso va en el docstring del metodo.
+#
+# `_search_display_name` decia «pertenece a la capa DRF». El propio arbol lo
+# desmiente: `res_bank.py:102` y `res_partner.py:2521` lo portan como metodo del
+# modelo. Su insumo, `parse_date`, no existia en `src/tools` y se construyo
+# sobre `django.utils.formats` — que es la misma capacidad que la fuente saca de
+# babel, por la via del stack.
+#
+# `create` / `write` de esta clase siguen CONTADOS, y ahora porque estan
+# PORTADOS con su nombre (ver el modelo), no por la clausula de `write`.
+
+# --- base/models/res_groups.py :: ResGroups --------------------------------
+# Los tres lados de escritura de la fuente contra los dos de Django. La fuente
+# los declara para invalidar la cache del grafo de grupos (`_get_group_ids`,
+# `_get_group_definitions`) y para correr las guardas de borrado; aqui esos dos
+# trabajos los hacen `save()` y `delete()`, que son los enganches equivalentes.
+# Es la misma divergencia que este mismo archivo ya declara en
+# `authz_timeout/models/res_groups.py`, con la misma razon medida.
+#
+# Se declaran DOS de los tres. `write` NO, y no por olvido: la clausula
+# anti-abuso lo prohibe — sale ausente noventa veces en el arbol y un alias
+# convertiria noventa preguntas abiertas en noventa absoluciones
+# silenciosas. Lo vigila `tests/unit/scripts/test_divergencias_declaradas.py`,
+# que lo atrapo al declararlo aqui. Queda como deuda CONTADA en este
+# archivo, igual que en los otros ochenta y nueve sitios.
+#   create -> Django no separa alta de modificacion: las dos son `save()`, que
+#     invalida la cache `groups` con `registry.clear_cache('groups')`.
+base/models/res_groups.py::ResGroups::create
+#   unlink -> `delete()`, que ademas llama a `_unlink_except_settings_group`
+#     antes de borrar — el `@api.ondelete` de la fuente.
+base/models/res_groups.py::ResGroups::unlink
+
+# --- base/models/res_users.py ----------------------------------------------
+#
+# Los simbolos de este archivo ya estaban triados UNO POR UNO en su propio
+# docstring (seccion «Los 73 simbolos que este porte NO trae, y su desenlace»,
+# tareas #35/#51/#59). El triaje vivia en prosa, asi que el gate no podia
+# verlo y lo contaba entero como deuda. Aqui se lleva a la forma que el
+# instrumento recorre: no se absuelve nada nuevo — se hace legible lo decidido.
+#
+# `write` NO entra, aunque el docstring lo agrupe con los ganchos del ciclo de
+# vida: la clausula anti-abuso del registro lo prohibe, y con razon — sale
+# ausente 90 veces en el arbol y declararlo aqui convertiria noventa preguntas
+# abiertas en noventa absoluciones. Sigue contado.
+#
+# ---- 1. La capa de vista de su cliente OWL. DIVERGENCIA DE STACK ----------
+#
+# El despacho de `@api.onchange` de su ORM: recalcula un formulario abierto.
+base/models/res_users.py::ResUsers::onchange
+# El onchange del campo `login`; aqui lo valida el serializer al escribir.
+base/models/res_users.py::ResUsers::on_change_login
+# El onchange del partner delegado; misma via, el serializer.
+base/models/res_users.py::ResUsers::onchange_parent_id
+# El onchange del rol; el rol se asigna por el CRUD de authz, no por formulario.
+base/models/res_users.py::ResUsers::_onchange_role
+# Describe los campos para pintar el formulario; aqui lo hace drf-spectacular.
+base/models/res_users.py::ResUsers::fields_get
+# Post-procesa el arbol XML de la vista; este arbol no tiene vistas XML.
+base/models/res_users.py::ResUsers::_get_view_postprocessed
+# El default del selector de jerarquia de grupos, que es un widget suyo.
+base/models/res_users.py::ResUsers::_default_view_group_hierarchy
+# El constructor de diccionarios «abre esta vista» del que cuelgan las action_*.
+base/models/res_users.py::ResUsers::_action_show
+# Abre la vista de grupos; aqui el frontend ya conoce su URL.
+base/models/res_users.py::ResUsers::action_show_groups
+# Abre la vista de accesos; idem.
+base/models/res_users.py::ResUsers::action_show_accesses
+# Abre la vista de reglas de registro; idem.
+base/models/res_users.py::ResUsers::action_show_rules
+# Devuelve la accion de ventana del propio usuario; idem.
+base/models/res_users.py::ResUsers::action_get
+# Abre el asistente de cambio de contrasena; aqui es un endpoint DRF (#30).
+base/models/res_users.py::ResUsers::action_change_password_wizard
+# Abre el asistente de clave de API; aqui es el endpoint de `res.users.apikeys`.
+base/models/res_users.py::ResUsers::api_key_wizard
+# Guarda las preferencias desde su formulario de perfil.
+base/models/res_users.py::ResUsers::preference_save
+# Lanza el cambio de contrasena desde ese mismo formulario.
+base/models/res_users.py::ResUsers::preference_change_password
+# Calcula el texto de ayuda del dominio de correo, que es adorno de formulario.
+base/models/res_users.py::ResUsers::_compute_email_domain_placeholder
+# Compone la firma HTML por defecto para su editor de correo.
+base/models/res_users.py::ResUsers::_compute_signature
+# Deriva el rol mostrado en el formulario a partir de los grupos.
+base/models/res_users.py::ResUsers::_compute_role
+# Prepara los valores del duplicado que su cliente abre en un formulario nuevo.
+base/models/res_users.py::ResUsers::copy_data
+# El default del M2M de grupos que su formulario necesita al abrir en blanco.
+base/models/res_users.py::ResUsers::_default_groups
+#
+# ---- 2. Ganchos del ciclo de vida de su ORM. DIVERGENCIA DE MECANISMO -----
+#
+# Su gancho de alta; en Django es `save()` con `_state.adding`.
+base/models/res_users.py::ResUsers::create
+# Su lectura por lista de campos; en Django es el queryset con `only()`.
+base/models/res_users.py::ResUsers::read
+# Crea indices al cargar el modulo; en Django eso son las migraciones.
+base/models/res_users.py::ResUsers::init
+# Engancha al arranque del registro; en Django es `AppConfig.ready()`.
+base/models/res_users.py::ResUsers::_register_hook
+# La busqueda por nombre de su widget many2one; aqui la resuelve el endpoint.
+base/models/res_users.py::ResUsers::name_search
+# El lado de busqueda del campo calculado `display_name`; aqui un `annotate()`.
+base/models/res_users.py::ResUsers::_search_display_name
+# El lado de busqueda de `all_group_ids`; aqui un `annotate()` sobre el M2M.
+base/models/res_users.py::ResUsers::_search_all_group_ids
+# El lado de busqueda de los ajustes de usuario; aqui una FK inversa normal.
+base/models/res_users.py::ResUsers::_search_res_users_settings_id
+# El calculo perezoso de esa misma FK; aqui la relacion se navega directo.
+base/models/res_users.py::ResUsers::_compute_res_users_settings_id
+#
+# ---- 3. Contabilidad de su vista de ajustes. DIVERGENCIA DE MECANISMO -----
+#
+# Cuenta empresas para un badge de su formulario; aqui lo cuenta el serializer.
+base/models/res_users.py::ResUsers::_compute_companies_count
+# Cuenta accesos para el mismo badge; idem.
+base/models/res_users.py::ResUsers::_compute_accesses_count
+# Formatea el desfase horario para mostrarlo; el endpoint entrega `tz` cruda.
+base/models/res_users.py::ResUsers::_compute_tz_offset
+# Valida el campo *home action*, que este arbol no declara: nada que validar.
+base/models/res_users.py::ResUsers::_check_action_id
+#
+# ---- 4. La superficie de cuenta propia. DIVERGENCIA DE MECANISMO ---------
+#
+# El enganche del control de acceso POR CAMPO de su ORM; aqui ese control lo
+# ejerce el serializer con su `Meta.fields` explicito mas `HasCapability`.
+base/models/res_users.py::ResUsers::_has_field_access
+# Compone el contexto de sesion de su ORM; aqui es `request.user` mas
+# `orm.environments`.
+base/models/res_users.py::ResUsers::context_get
+#
+# ---- 5. Su cifrador de contrasenas: PORTADO, ya no se declara ------------
+#
+# `CryptContext` y `_crypt_context` se portaron con su motor: `passlib` es
+# ahora dependencia declarada de este arbol. Las dos lineas que estaban aqui
+# dejaron de ser ciertas y se retiran — un registro que absuelve lo ya portado
+# miente sobre la deuda.
+#
+# ---- 6. La memorizacion del token de sesion. DIVERGENCIA DE STACK --------
+#
+# Memoriza el token; aqui lo calcula Django (ver `_get_session_token_fields`).
+base/models/res_users.py::ResUsers::_compute_session_token
+# El SQL crudo con que ese calculo lee sus columnas; aqui es el ORM.
+base/models/res_users.py::ResUsers::_get_session_token_query_params
+#
+# ---- 7. Tres del triaje uno-por-uno (tarea #59) --------------------------
+#
+# Existe alla porque su `password` es un campo compute/inverse que nunca guarda
+# lo que se le asigna; aqui es la columna de Django y el cifrado es explicito
+# (`set_password`), asi que no hay inverse que colgar ni valor que blanquear.
+base/models/res_users.py::ResUsers::_compute_password
+# Migra un token del formato viejo DENTRO de su propio almacen de sesiones; aqui
+# las sesiones son de Django y no hay corpus heredado que convertir.
+base/models/res_users.py::ResUsers::_legacy_session_token_hash_compute
+# SI esta portado — como `delete`, porque el gancho equivalente de Django es
+# sobrescribir ese metodo y no un `@api.ondelete`. El gate lo cuenta ausente
+# por literal, no por conducta.
+base/models/res_users.py::ResUsers::_unlink_except_master_data
+#
+# ---- 8. Los asistentes de contrasena y el control de identidad -----------
+#
+# DIVERGENCIA DE STACK, con su desenlace ya escrito en h-api-801: son
+# formularios transitorios de su cliente OWL. La conducta la ejerce aqui el
+# endpoint DRF de cambio de contrasena, que delega en `_change_password`
+# (tarea #30), mas la re-autenticacion de DEC-12.
+#
+# El control de identidad previo a una accion sensible.
+base/models/res_users.py::ResUsersIdentitycheck
+# El asistente que un administrador abre para varios usuarios.
+base/models/res_users.py::ChangePasswordWizard
+# Cada linea de ese asistente.
+base/models/res_users.py::ChangePasswordUser
+# El asistente con que un usuario cambia la suya.
+base/models/res_users.py::ChangePasswordOwn
+#
+# ---- 9. `UsersMultiCompany` — PORTADO bajo otra forma (tarea #68) --------
+#
+# Sus tres simbolos (`create`, `write`, `new`) son el MISMO cuerpo colgado de
+# tres ganchos de su ORM. Aqui es un receptor de `m2m_changed`
+# (`_sync_multi_company_group`), porque en Django el M2M nunca se escribe en el
+# `save()`: va siempre por su propio camino, que es justo la condicion que su
+# `write` comprueba a mano con `if 'company_ids' not in vals`.
+base/models/res_users.py::UsersMultiCompany
+#
+# ---- 10. `ResUsersApikeysDescription` -----------------------------------
+#
+# Su desenlace esta declarado en el docstring de `_ResUsersApikeysBase`, punto
+# 5, con sucesor #490: la mitad de presentacion diverge por stack (es un
+# asistente OWL) y la que no lo es quedo medida aparte.
+base/models/res_users.py::ResUsersApikeysDescription
+#
+# ---- 11. `ResUsersApikeys::init` — DIVERGENCIA DE MECANISMO -------------
+#
+# `init` es el gancho con que su ORM crea indices al cargar el modulo; aqui eso
+# son las migraciones de Django, y el indice equivalente vive en `Meta.indexes`
+# (mismo criterio que la tarea #70 aplico a `res_device_log`).
+base/models/res_users.py::ResUsersApikeys::init
+#
+# ---- 12. `_get_default_color` — DIVERGENCIA DE MECANISMO ----------------
+#
+# La fuente lo declara DENTRO de la clase y lo pasa como `default=` del campo
+# de color. Aqui no puede ir ahi, y no es preferencia: Django serializa un
+# `default` callable **por su ruta de import** al escribir la migracion, y una
+# funcion del cuerpo de una clase no tiene ninguna.
+#
+# Medido, no supuesto: al moverlo dentro de la clase, la migracion ya escrita
+# deja de resolverlo y el arbol entero cae —435 errores en el subconjunto
+# derivado— con `AttributeError: module ... has no attribute
+# _get_default_color`. Se devolvio a nivel de modulo por eso.
+#
+# Mismo rango que la fuente (1 a 11 inclusive) y mismo nombre; lo unico que
+# cambia es el sitio, y el sitio lo impone el serializador de migraciones.
+crm/models/crm_lead_scoring_frequency.py::CrmLeadScoringFrequencyField::_get_default_color
+#
+# Segunda entrada de la misma divergencia: `crm.tag` la comparte palabra por
+# palabra —mismo simbolo, mismo rango 1..11, mismo `default=` en el campo de
+# color— y por tanto el mismo impedimento del serializador de migraciones.
+sales_team/models/crm_tag.py::CrmTag::_get_default_color
+#
+# ---- 13. `create` de `certificate` — DIVERGENCIA DE MECANISMO -----------
+#
+# Su gancho de alta; en Django es `save()` con `_state.adding`. Mismo motivo,
+# palabra por palabra, que `base/models/res_users.py::ResUsers::create` en el
+# bloque 2 de arriba.
+#
+# `write` NO entra aqui, y no por descuido: la clausula anti-abuso lo prohibe
+# —lo vigila `test_the_anti_abuse_clause_is_honoured_in_the_registry`— porque
+# sale ausente 90 veces en el arbol y declararlo convertiria noventa preguntas
+# abiertas en noventa absoluciones silenciosas. El primer intento de esta
+# entrada SI lo colaba, con el argumento de que `save()` cubre las dos ramas;
+# ese argumento es exactamente el que la clausula existe para rechazar. En
+# `certificate` queda como deuda contada, igual que en los otros noventa.
+certificate/models/certificate.py::CertificateCertificate::create
+
+# --- ir_actions.py, IrActionsServer (tarea #117) -------------------------
+# AQUI NO ENTRAN `create` NI `write`, y conviene decir por que: sus cuerpos SI
+# estan portados —el ORM de la fuente separa alta y escritura en dos metodos y
+# el de Django los une en `save()`, que llama a los cuatro ganchos que aquellos
+# declaran: `_check_children`, `_check_python_code`, `_compute_name` y
+# `_record_code_revision`—, pero declararlos aqui abre la puerta que la clausula
+# anti-abuso de este registro existe para cerrar.
+#
+# Medido: el gate reporta `create` ausente **113** veces y `write` **110** en el
+# arbol. Una entrada por `IrActionsServer` seria el precedente para las otras
+# 222, y el par create/write -> save() es una decision de forma que gobierna a
+# todo el porte, no una divergencia de un modelo. Su hogar es la tarea **#77**,
+# no este archivo. `tests/unit/scripts/test_divergencias_declaradas.py` lo
+# vigila por nombre y este intento fue justamente lo que atrapo.
+#
+# El modo `code` NO se evalua en este arbol: es la misma divergencia declarada
+# que `ir_rule.domain_force` y que la rama `equation` de `_eval_value`. Su
+# corredor levanta con el motivo en vez de callar; ver el bloque "El motor de
+# ejecucion (#117)" del propio archivo.
+base/models/ir_actions.py::IrActionsServer::_run_action_code_multi
+
+# ===========================================================================
+# base/models/ir_model.py  (tarea #172)
+# ===========================================================================
+#
+# `create`, `write` y `unlink` de las cinco clases NO se declaran aqui, y es
+# deliberado: la clausula anti-abuso del gate los deja como deuda contada
+# —`write` sale ausente noventa veces en el arbol— para que nadie convierta
+# noventa preguntas abiertas en noventa absoluciones. Su comportamiento SI
+# esta portado, en `save` y `delete`, y cada uno lo declara en su docstring
+# citando la linea de la fuente de la que viene cada mitad.
+
+# `_drop_table` emite `DROP TABLE` y `DROP VIEW` sobre el esquema vivo al
+# desinstalar un modulo. Aqui el esquema lo gobiernan las migraciones de
+# Django, y DDL fuera de ellas deja `django_migrations` mintiendo.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModel::_drop_table
+# `_drop_column` es su hermano por columna: `ALTER TABLE ... DROP COLUMN`.
+# Misma razon, mismo desenlace.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModelFields::_drop_column
+
+# `_default_field_id` da a un modelo recien creado su campo `x_name`, que solo
+# tiene sentido si el modelo se construye desde filas. Aqui un modelo se
+# declara en Python y sus campos vienen con el.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModel::_default_field_id
+# `_instanciate_attrs` construye la clase de modelo EN CALIENTE desde una fila
+# de `ir_model`. Django construye su registro al importar y lo congela
+# (`apps.populate`); montar el equivalente seria un metaregistro paralelo.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModel::_instanciate_attrs
+# Su hermano por campo: arma el descriptor desde una fila de
+# `ir_model_fields`. Misma razon.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModelFields::_instanciate_attrs
+# `_all_manual_field_data` alimenta a `_instanciate_attrs`: agrupa por modelo
+# las filas de campos manuales. Sin consumidor, no tiene conducta que
+# replicar.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModelFields::_all_manual_field_data
+# Idem, para un solo modelo.
+# Declarado en: src/addons/base/models/ir_model.py, seccion «Que NO se porta».
+base/models/ir_model.py::IrModelFields::_get_manual_field_data
+
+# ===========================================================================
+# hr_recruitment_skills (tarea #62)
+# ===========================================================================
+
+# `action_search_matching_applicants` envuelve el queryset de candidatos en
+# un `ir.actions.act_window` con `views`/`context`/`Markup` de ayuda. Este
+# backend no tiene action de ventana, ni vistas XML, ni motor de navegacion
+# de cliente -- 0 mecanismo, no solo aqui (mismo criterio que `hr_fleet`,
+# `authz_passkey`, ya declarados en este archivo). El dato SI se porto:
+# `_search_matching_applicants(self)` construye el mismo queryset
+# (`HrApplicant.objects.exclude(job_id=self.pk).filter(skill_ids__in=...)`)
+# y tiene test propio.
+# Declarado en: addons/hr_recruitment_skills/models/hr_job.py, docstring del
+# modulo, Divergencia 4.
+hr_recruitment_skills/models/hr_job.py::HrJob::action_search_matching_applicants
+
+# --- base_automation/models/base_automation.py (tarea #281) ---------------
+# `_register_hook` / `_unregister_hook` parchean EN CALIENTE los metodos
+# `create`/`write`/`unlink`/`_compute_field_value` de cada modelo objetivo,
+# con closures (`make_create`, `make_write`, ...) y `.origin` para llamar al
+# original. Ese mecanismo es del registro de la referencia: un registro
+# mutable que se puede reconstruir en caliente.
+#
+# Medido 2026-09-02 sobre este arbol:
+#   grep -rnE "def _register_hook|def _unregister_hook" --include=*.py src/ addons/  -> 0
+#   grep -rn "class Registry" --include=*.py src/orm/*.py                            -> 0
+#   grep -rnE "\.origin\b" --include=*.py src/orm/                                   -> 9
+#   grep -c "@receiver" addons/base_automation/models/signals.py                     -> 3
+#
+# El sustituto NO es "no se porta": es OTRO mecanismo, construido y en pie.
+# Django trae el bus que la referencia se fabrica parcheando —
+# `django.db.models.signals`, que emite `pre_save`/`post_save`/`pre_delete`
+# para TODO modelo sin tocar ninguna clase—, y `models/signals.py` cuelga
+# tres receptores GLOBALES (`sender=None`) que consultan las reglas vivas en
+# cada disparo. Eso cubre lo que los dos metodos existen para conseguir, y
+# ademas hace innecesario re-registrar nada cuando una regla cambia: por eso
+# `_update_registry` es un no-op declarado y no un hueco.
+#
+# La guarda de reentrancia de la referencia (`__action_done`) tambien tiene
+# sustituto: un `set` en un `threading.local()` con el par
+# `(automation_pk, pk)`, en el mismo `signals.py`.
+#
+# Si algun dia este arbol tuviera un registro reconstruible en caliente, esta
+# entrada se retira y los dos metodos se portan con el.
+# Declarado en: addons/base_automation/models/base_automation.py:13-30
+base_automation/models/base_automation.py::BaseAutomation::_register_hook
+# Misma razon, mismo bloque de arriba: sin registro reconstruible en caliente
+# no hay nada que desenganchar. El gate exige el motivo encima de CADA entrada,
+# no una vez por bloque — por eso se repite en vez de heredarse.
+# Declarado en: addons/base_automation/models/base_automation.py:13-30
+base_automation/models/base_automation.py::BaseAutomation::_unregister_hook
+

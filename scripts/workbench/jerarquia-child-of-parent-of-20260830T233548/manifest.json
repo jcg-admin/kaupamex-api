@@ -1,0 +1,40 @@
+{
+  "question": "child_of y parent_of se comportan como la fuente, y llegan a su optimizador desde el compilador?",
+  "instrument": [
+    "uv run pytest sobre el subconjunto derivado, -n 4 --reuse-db",
+    "sabotaje por comportamiento sobre src/orm/domains.py, restaurado por md5 y no por git checkout"
+  ],
+  "metric": "casos passed / failed, y cuales caen con cada comportamiento anulado",
+  "blind_to": [
+    "el numero de consultas de las ramas que no lo afirman: solo parent_of sobre ruta materializada lo cuenta; child_of se mide por la FORMA del retorno (Domain contra conjunto de ids) porque las dos ramas devuelven las mismas filas",
+    "la profundidad del arbol: los casos usan tres niveles, asi que un recorrido que se detuviera antes de agotar la cadena pasaria si el arbol fuera mas hondo",
+    "el rendimiento real del prefijo =like sobre parent_path contra el recorrido: ningun caso mide tiempo ni plan de consulta",
+    "los consumidores que llegan a to_q por herencia sin nombrarlo en su test, que es lo que el subconjunto derivado no puede ver",
+    "si el predicado en memoria consulta la base: el rodeo por FULL materializa ids, y ningun caso cuenta sus consultas (tarea #235)"
+  ],
+  "destination": [
+    "src/orm/domains.py",
+    "src/orm/model_classes.py",
+    "tests/unit/orm/test_domain_hierarchy.py",
+    "tests/unit/orm/test_filtered_domain.py",
+    "docs: source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/hallazgos/"
+  ],
+  "source": "odoo19c: odoo/orm/domains.py:1707-1778 (_operator_hierarchy), :1780-1802 (_operator_child_of_domain), :1804-1830 (_operator_parent_of_domain), :1045-1047 (la rama de jerarquia de _as_predicate), :1091 (el assert de nivel FULL de _to_sql); odoo19c: odoo/orm/models.py:5366 y :5377 (sus dos llamadas a optimize_full); odoo19c: odoo/orm/models.py:435 (_parent_name por defecto)",
+  "reproducible": "uv run pytest tests/unit/orm/test_domain_hierarchy.py tests/unit/orm/test_filtered_domain.py -q --reuse-db",
+  "outputs": [
+    "domains.py.intacto",
+    "domains.py.c1-to_q-en-basic",
+    "domains.py.c2-sin-guarda-no-relacional",
+    "domains.py.c3-child_of-sin-ruta-materializada",
+    "control-c1-to_q-en-basic.txt",
+    "control-c2-sin-guarda-no-relacional.txt",
+    "control-c3-child_of-sin-ruta-materializada.txt",
+    "control-c4-parent_of-sin-ruta-materializada.txt",
+    "control-c5-sin-rama-de-jerarquia-en-as_predicate.txt",
+    "pytest-subconjunto-derivado-2026-08-30T23-40-28.log",
+    "pytest-derivado-cierre-2026-08-30T23-44-47.log"
+  ],
+  "control": "cinco sabotajes. C1 devuelve to_q a BASIC: 10 de 11 caen, y el que sobrevive es el negativo, que asi se midio ciego a su guarda. C2 retira la guarda del campo no relacional: cae exactamente ese caso, que ya discrimina. C3 y C4 anulan la rama de ruta materializada de cada recorrido: con los casos de forma y de conteo de consultas cae uno cada uno; sin ellos los once seguian en verde. C5 anula la rama de jerarquia de _as_predicate: cae su caso. Restaurado por md5, 14 passed en el archivo de jerarquia y 49 con el de predicado",
+  "tasks": ["#225", "#234", "#235"],
+  "findings": ["H-API-967"]
+}

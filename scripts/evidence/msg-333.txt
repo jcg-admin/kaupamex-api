@@ -1,0 +1,38 @@
+Wire the account wizards into the model registry
+
+El asistente ``account.setup.bank.manual.config`` declaraba
+``_inherits`` y su delegacion nunca se cableaba: al leer
+``acc_number`` levantaba AttributeError. La causa era una cadena de
+tres eslabones, no un fallo de ``ensure_inherits()``.
+
+Primero, ``ResPartnerBank`` y ``AccountJournal`` no declaraban
+``_name``, asi que ``orm.registry.MODELS_BY_NAME`` no los conocia y
+el comodelo de la delegacion quedaba sin resolver. Se les portan
+todos los atributos de clase que la referencia declara — cinco y
+siete respectivamente — incluido
+``_check_company_domain``, que exige construir
+``check_company_domain_parent_of`` y su hermano de plural en
+``src/orm/models.py``: la referencia asigna la funcion pelada
+porque su consumidor es un recordset; aqui el contrato hermano es
+``classmethod``, y la divergencia queda declarada en ambos modelos.
+
+Segundo, Django solo importa ``models.py`` de cada app: el paquete
+``wizard/`` no entraba por su cuenta, asi que sus clases se
+registraban tarde. ``AccountConfig.ready()`` lo importa y vuelve a
+correr ``ensure_inherits()``, que es idempotente.
+
+Tercero, los dos asistentes se declaraban sin tabla. La fuente los
+declara ``TransientModel`` con ``_auto = True``: tienen tabla, y
+ahora la tienen aqui con su migracion. Con eso, los cinco bloqueos
+que el docstring del archivo declaraba resultaron caducados o
+construibles, y ``setup_wizards.py`` se porta entero — sus dos
+clases y sus dieciseis metodos.
+
+``check_porte_completo --addon account`` no reporta ningun hallazgo
+sobre ``setup_wizards.py``. Los 73 que quedan en el addon son
+previos y pertenecen a #76.
+
+Subconjunto derivado (15 directorios, ``-n 4``): 4717 passed,
+4 skipped. El rojo de ``test_incoterm_de_sale_stock_llega_al_papel``
+es previo — reproducido en HEAD con un worktree de control — y se
+registra como #340.

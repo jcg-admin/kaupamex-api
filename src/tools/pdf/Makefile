@@ -1,8 +1,8 @@
-# Makefile — PracticaYoruba PDF helpers (UC-PAY-10, UC-RPT-04/UC-REP-05; ADR-017).
+# Makefile — PDF helpers
 #
 # Construye los dos helpers basados en libharu:
-#   pdf_receipt — recibo de compra (UC-PAY-10)
-#   pdf_report  — export de tabla de reporte (UC-RPT-04 / UC-REP-05)
+#   pdf_receipt — recibo de compra
+#   pdf_report  — export de tabla de reporte
 #
 # libharu 2.4.6 va VENDORIZADO en vendor/libharu (licencia ZLIB; ver
 # vendor/README.md). No se instala `libhpdf-dev` del sistema: el producto es

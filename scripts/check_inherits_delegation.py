@@ -30,17 +30,19 @@ import sys
 
 # Raíz de la referencia. La convención la fija
 # docs: source/normativa/.../convencion-cita-referencia-odoo.rst (alias odoo19c:).
-DEFAULT_ODOO19C = (
-    '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0'
-)
+import sys as _s, os.path as _op
+_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+from reference_roots import addons_de as _addons_de, tree as _tree
+
+DEFAULT_REFERENCE_19C = str(_tree('odoo19c'))
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from addons_roots import py_files
 
 
-def clase_esperada(modelo_odoo):
+def clase_esperada(model_name):
     """``ir.actions.server`` → ``IrActionsServer`` (CamelCase por segmento)."""
-    return ''.join(p.capitalize() for p in re.split(r'[._]', modelo_odoo))
+    return ''.join(p.capitalize() for p in re.split(r'[._]', model_name))
 
 
 def pares_inherits(raiz):
@@ -50,8 +52,7 @@ def pares_inherits(raiz):
     de su ``_name``; si la clase no lo declara, se usa el nombre del archivo.
     """
     fuera = []
-    for base in ('addons', 'odoo/addons'):
-        d = raiz / base
+    for d in _addons_de('odoo19c'):
         if d.is_dir():
             fuera.extend(d.glob('*/models/*.py'))
     pares = []
@@ -127,7 +128,7 @@ def localizar(nombre_clase):
 
 def main():
     estricto = '--strict' in sys.argv
-    raiz = pathlib.Path(os.environ.get('ODOO19C', DEFAULT_ODOO19C))
+    raiz = pathlib.Path(os.environ.get('ODOO19C', DEFAULT_REFERENCE_19C))
     if not raiz.is_dir():
         print(f'check_inherits_delegation: referencia ausente ({raiz}) — gate omitido.')
         return 0

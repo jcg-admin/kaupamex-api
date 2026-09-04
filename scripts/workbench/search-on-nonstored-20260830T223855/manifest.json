@@ -1,0 +1,16 @@
+{
+  "question": "un campo sin columna puede declarar search= y sustituir la condicion por un dominio, como en la referencia?",
+  "instrument": ["sonda de conducta por implementacion x operador", "el subconjunto derivado de pytest"],
+  "metric": "pares (implementacion, operador) que resuelven sin excepcion; casos passed/failed bajo cada sabotaje",
+  "blind_to": [
+    "el SQL que sale del dominio sustituido: los casos miden el dominio, no el WHERE",
+    "una sobrescritura de _search_display_name fuera de base y website: la sonda enumera las tres medidas, no un censo del arbol",
+    "el camino related=: Field._search_related no se ejercita en ninguna forma"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/hallazgos/",
+  "source": ["src/orm/fields_nonstored.py", "src/orm/fields.py", "src/orm/domains.py", "src/orm/models.py"],
+  "reproducible": "uv run pytest tests/unit/orm/test_field_search_method.py -q --reuse-db",
+  "outputs": ["suite-208-*.log"],
+  "control": "tres sabotajes sobre domains.py: el respaldo al descriptor sin columna, el gancho de search, y el peldano del operador inverso. Las cifras se publican en el hallazgo, no aqui",
+  "findings": ["H-API-965"]
+}

@@ -25,17 +25,24 @@ los dominios son otro módulo. Por eso aquí se importa **de cada módulo que
 define**, en su orden, y no con un ``import *`` sobre un agregador: el agregador
 esconde la procedencia y congela la superficie (ver la nota de ``Serialized``).
 
-Los cinco nombres de la fachada de la referencia que aquí faltan, con su
-veredicto medido (``porte-completo-no-parcial.md`` exige uno de tres, no el
-silencio):
+Los cinco nombres de la fachada de la referencia que este archivo tuvo que
+resolver, con su veredicto medido (``porte-completo-no-parcial.md`` exige uno de
+tres, no el silencio). **Cuatro ya se exportan**; el quinto, ``Id``, es
+divergencia de mecanismo declarada:
 
 - ``parse_field_expr`` — **RESUELTO**: el símbolo ya existía en ``orm/utils.py``
   y es idéntico al de la fuente; lo que faltaba era su exportación. Se exporta
   aquí. La referencia también lo consume por la fachada
   (``odoo19c: addons/base/models/ir_default.py:244`` →
   ``fields.parse_field_expr(...)``).
-- ``Field`` — la clase base del ORM de la fuente. Es el núcleo de
-  :ref:`iniciativa-completar-primitiva-fields`, no una omisión.
+- ``Field`` — **RESUELTO**: ``orm/fields.py:1229`` liga ``Field =
+  models.Field``, el nombre de la fuente sobre la base real de este árbol, con
+  los 66 atributos de clase de la referencia instalados encima. Su
+  ``__module__`` dice ``django.db.models.fields`` y aun así **es** el porte:
+  ``isinstance(campo, Field)`` es cierto para los veinte tipos exportados,
+  igual que allá. Lo que faltaba era su exportación por la fachada, que es como
+  lo consume un addon (``odoo19c: addons/base/models/ir_model.py`` →
+  ``fields.Field``).
 - ``Id`` — **divergencia de mecanismo declarada.** Allá ``Id`` es un descriptor
   propio porque un *recordset* envuelve N ids (``odoo19c:
   odoo/orm/fields_misc.py:103-114`` lanza si ``len(ids) > 1``). Aquí una
@@ -43,12 +50,20 @@ silencio):
   ``pk = property(_get_pk_val, _set_pk_val)``
   (``django/db/models/base.py:686``). Portarlo sería duplicar lo que el stack
   da por construcción.
-- ``NO_ACCESS`` — **bloqueado por algo medido.** Es el centinela de
-  ``Field.groups`` (``odoo19c: odoo/orm/fields.py:299``), el ACL a nivel de
-  campo que consume ``is_field_accessible`` (``orm/models.py:3379``). Sin la
-  clase ``Field`` el centinela es una cadena sin consumidor; su bloqueo es el
-  porte de ``Field``.
-- ``Domain`` — sucesor registrado: tarea **#356**.
+- ``NO_ACCESS`` — **RESUELTO**: su bloqueo era el porte de ``Field``, y ése ya
+  no existe. Es el centinela de ``Field.groups`` (``odoo19c:
+  odoo/orm/fields.py:299``), el ACL a nivel de campo que consume
+  ``is_field_accessible`` (``orm/models.py:3379``); se declara en
+  ``orm/models.py:1316`` y se exporta aquí.
+
+  Su bloqueo caducado es justo lo que ``avisar cuando la causa de un bloqueo
+  declarado ya no exista`` (#289) existe para atrapar: un bloqueo declarado que
+  nadie vuelve a mirar sobrevive a su causa y se lee como si siguiera cierto.
+- ``Domain`` — **RESUELTO**: la clase ya vivía en ``orm/domains.py`` con sus
+  ocho subclases y sus helpers (``AND``/``OR``/``NOT``/``to_q``); lo que
+  faltaba era su exportación por la fachada, que es como la consume un
+  addon (``odoo19c: addons/base/models/ir_actions.py:18`` →
+  ``from odoo.fields import Command, Domain``). Se exporta aquí.
 """
 # ruff: noqa: F401
 # Exporta las capacidades del ORM a quien escribe un addon.
@@ -67,6 +82,9 @@ from orm.fields_properties import Properties, PropertiesDefinition
 from orm.fields_binary import Binary, Image
 
 from orm.commands import Command
+from orm.domains import Domain
+from orm.fields import Field
+from orm.models import NO_ACCESS
 from orm.utils import parse_field_expr
 
 # ``NonStored`` es campo NUESTRO —la referencia no lo tiene— pero es **un

@@ -1,0 +1,38 @@
+Read the reference flow before porting a symbol
+
+El defecto que H-API-1072 registro es que el contrato que gobierna a un
+simbolo vive FUERA de su cuerpo: en una base, en quien lo llama, o en un
+hermano que declara el mismo nombre. Ningun gate del arbol lo ve — los
+29 miden presencia, cabecera, sitio o nombre, nunca el vecindario. El
+porte sale coherente consigo mismo y divergente del flujo real.
+
+``reference_flow.py`` publica las cinco unidades de lectura juntas: el
+simbolo, sus bases, sus llamadores, sus hermanos, y el instrumento con
+lo que NO puede ver. Se construye SOBRE ``counterpart_body`` y no al
+lado: ese modulo ya posee el mapa de raices espejadas, el extractor de
+llamadas y el denominador. Un recorrido paralelo duplicaria el mapa de
+rutas, que es la segunda fuente de verdad que H-API-335 ya cobro.
+
+El motor gana ``declarations_of``, que ``methods_of`` no podia dar: sin
+colapsar nombres (los hermanos necesitan los duplicados), con funciones
+de modulo —dominantes en ``odoo/tools``— y con clases y asignaciones.
+Sin eso el informe decia "no se declara" de una clase que si existe.
+
+El rendimiento manda la unica decision no obvia: la arista de vuelta es
+cuadratica y la referencia tiene cientos de miles de archivos, asi que
+el alcance se declara y se acota, y el informe imprime siempre sobre
+cuantos archivos midio. Una raiz inexistente rehusa con exit 2 sin
+emitir informe: un "0 llamadores" sobre alcance vacio seria un verde
+falso.
+
+Los 16 casos usan positivos reales de la referencia. Tres son controles
+de regresion de los defectos que el guion tuvo al escribirse — la clase
+como cero falso, la clase contada como llamadora de sus propios
+metodos, y los hermanos colapsando a cero. Medido con la guarda de
+clase anulada: los sitios de ``frozendict`` pasan de 6 a 9, y los tres
+que aparecen son ``Environment``, ``Property`` y ``BaseModel``.
+
+Se versionan tambien los tres mensajes de commit previos que quedaban
+sin seguir en ``scripts/evidence/``.
+
+Refs: #352, #354, #355, #356, #357

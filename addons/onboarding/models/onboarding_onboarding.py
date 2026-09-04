@@ -167,11 +167,11 @@ class OnboardingOnboarding(TimeStampedModel):
             progress.action_close()
 
     @classmethod
-    def action_close_panel_by_id(cls, onboarding_id):
+    def action_close_panel(cls, onboarding_id):
         """``action_close_panel(xmlid)`` (línea 83-90).
 
         GAP de xmlid (documentado, no relleno) — ver el mismo gap descrito
-        en ``OnboardingOnboardingStep.action_validate_step_by_id``. Se recibe
+        en ``OnboardingOnboardingStep.action_validate_step``. Se recibe
         el ``pk`` en vez del xmlid; "quietly do nothing" si no existe, igual
         que la fuente.
         """
@@ -198,7 +198,7 @@ class OnboardingOnboarding(TimeStampedModel):
         if progress is not None:
             progress.action_toggle_visibility()
 
-    def search_or_create_progress(self, company=None):
+    def _search_or_create_progress(self, company=None):
         """``_search_or_create_progress`` (línea 107-111)."""
         progress = self.get_current_progress(company=company)
         if progress is None:
@@ -221,7 +221,7 @@ class OnboardingOnboarding(TimeStampedModel):
         progress.progress_steps.set(linked_step_progress)
         return progress
 
-    def prepare_rendering_values(self):
+    def _prepare_rendering_values(self):
         """``_prepare_rendering_values`` (línea 125-136).
 
         Se porta el CÁLCULO (contrato de datos del panel), no el renderizado

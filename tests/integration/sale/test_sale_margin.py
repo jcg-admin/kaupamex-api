@@ -24,7 +24,7 @@ def test_margin_from_product_cost(producto):
     line = SaleOrderLine.objects.create(order=so, product=producto, product_uom_qty=2, price_unit=Decimal('100.00'))
     m = SaleOrderLineMargin.objects.create(line=line)
     # subtotal (untaxed) de 2×100 IVA-incl 16% = 172.41; costo 60×2 = 120
-    assert line.price_subtotal() == Decimal('172.41')
+    assert line.price_subtotal == Decimal('172.41')
     assert m.margin() == Decimal('52.41')
     assert m.margin_percent() == Decimal('30.40')
 

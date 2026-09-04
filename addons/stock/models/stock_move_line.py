@@ -619,14 +619,14 @@ class StockMoveLine(TimeStampedModel):
             movimiento.product_uom_qty, uom_linea, rounding_method='HALF-UP')
         hecho = movimiento.product_uom.compute_quantity(
             visible, uom_linea, rounding_method='HALF-UP')
-        del_quant = uom_producto.compute_quantity(
+        of_quant = uom_producto.compute_quantity(
             quant.available_qty(quant.product, quant.location), uom_linea,
             rounding_method='HALF-UP')
 
         if uom_linea.compare(demanda, hecho) > 0:
-            self.quantity = max(0, min(del_quant, demanda - hecho))
+            self.quantity = max(0, min(of_quant, demanda - hecho))
         else:
-            self.quantity = max(0, del_quant)
+            self.quantity = max(0, of_quant)
 
     def _compute_quantity_product_uom(self):
         """≙ ``_compute_quantity_product_uom`` (``odoo19c: :173-176``)."""
@@ -1537,10 +1537,10 @@ class StockMoveLine(TimeStampedModel):
         línea pertenece a ella o a una hija — si no, queda global.
         """
         vals = {'name': self.lot_name, 'product_id': self.product_id}
-        empresa_producto = getattr(self.product, 'company', None)
-        if empresa_producto is not None:
-            hijas = {empresa_producto.pk}
-            hijas.update(getattr(empresa_producto, 'all_child_ids', []) or [])
+        product_company = getattr(self.product, 'company', None)
+        if product_company is not None:
+            hijas = {product_company.pk}
+            hijas.update(getattr(product_company, 'all_child_ids', []) or [])
             if self.company_id in hijas:
                 vals['company_id'] = self.company_id
         return vals
@@ -1557,16 +1557,16 @@ class StockMoveLine(TimeStampedModel):
         lot_model = apps.get_model('stock', 'StockLot')
         indice_por_clave = {}
         lineas_por_clave = defaultdict(list)
-        vals_lotes = []
+        lots_vals = []
 
         for ml in lines:
             clave = (ml.product_id, ml.lot_name)
             lineas_por_clave[clave].append(ml)
             if ml.tracking != 'lot' or clave not in indice_por_clave:
-                indice_por_clave[clave] = len(vals_lotes)
-                vals_lotes.append(ml._prepare_new_lot_vals())
+                indice_por_clave[clave] = len(lots_vals)
+                lots_vals.append(ml._prepare_new_lot_vals())
 
-        lotes = [lot_model.objects.create(**vals) for vals in vals_lotes]
+        lotes = [lot_model.objects.create(**vals) for vals in lots_vals]
         for clave, grupo in lineas_por_clave.items():
             lote = lotes[indice_por_clave[clave]]
             cls.objects.filter(pk__in=[l.pk for l in grupo]).update(lot=lote)

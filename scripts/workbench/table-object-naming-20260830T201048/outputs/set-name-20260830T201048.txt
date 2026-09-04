@@ -1,0 +1,8 @@
+clase Python normal:
+  fired=True name='_probe' owner='_Plain'
+modelo de Django:
+  fired=True name='_probe' owner='_DjangoModel'
+  el atributo sobrevive en la clase: True
+  Meta.constraints por defecto: []
+_probe: {'tiene__meta': False, 'tiene_pool': False, 'bases': ['Model', 'AltersData']}
+tras construir la clase, _meta existe: True

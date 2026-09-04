@@ -195,7 +195,17 @@ def test_unknown_path_is_skipped_never_falls_back_to_sweep_all(tmp_path, monkeyp
 
 def test_addon_roots_skips_an_l0_only_addon(tmp_path, monkeypatch):
     """Un addon nuestro sin par en la referencia (p. ej. ``authz``) no es una
-    raíz espejada — no hay "sitio correcto" que comparar contra la nada."""
+    raíz espejada — no hay "sitio correcto" que comparar contra la nada.
+
+    Se parcha ``_addon_root``, **no** ``REFERENCE_ROOT``. Desde H-DOCS-507 la
+    resolución del addon de la referencia ya no compone
+    ``REFERENCE_ROOT / 'addons'``: la delega en ``reference_roots.addon_root``,
+    porque Community reparte sus addons en DOS raíces y componer una sola
+    dejaba fuera del barrido a todo addon cuya contraparte viva en
+    ``odoo/addons/``. Parchar la constante dejó de gobernar la resolución, así
+    que este caso medía el árbol real en vez de su propio fixture — y pasaba a
+    rojo sin que ninguna aserción lo explicara. Ver :ref:`h-api-901`.
+    """
     repo = tmp_path / 'repo'
     reference = tmp_path / 'reference'
     (repo / 'addons' / 'shared').mkdir(parents=True)
@@ -204,7 +214,8 @@ def test_addon_roots_skips_an_l0_only_addon(tmp_path, monkeypatch):
     # 'l0_only' NO existe del lado de la referencia — a propósito.
 
     monkeypatch.setattr(gate, 'REPO', repo)
-    monkeypatch.setattr(gate, 'REFERENCE_ROOT', reference)
+    monkeypatch.setattr(gate, '_addon_root',
+                        lambda name, alias: reference / 'addons' / name)
 
     labels = sorted(label for label, _, _ in gate.addon_roots())
 

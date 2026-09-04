@@ -1,0 +1,13 @@
+# Control discriminante — base-sparse-field-save-guard
+# fecha:    2026-09-02T05:10:09
+# archivo:  addons/base_sparse_field/models/ir_model_fields.py
+# anulado:  s/^    if self\.pk:$/    if False:/
+# tests:    tests/unit/base_sparse_field/
+
+## 1. Verde de partida (guarda presente)
+41 passed, 1 warning in 4.98s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/base_sparse_field/test_ir_model_fields.py::test_changing_the_storing_system_is_refused
+FAILED tests/unit/base_sparse_field/test_ir_model_fields.py::test_renaming_a_sparse_field_is_refused
+2 failed, 39 passed, 1 warning in 5.12s

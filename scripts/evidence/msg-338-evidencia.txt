@@ -1,0 +1,19 @@
+Record the measurement that ordered the tools port
+
+Los cuatro modulos portados en el commit anterior no se eligieron por
+lectura: salieron de medir el flujo de la referencia con el propio
+instrumento de #352. Nadie en NUESTRO arbol invoca todavia a los 16
+ausentes de src/tools —los unicos hits por AST son homonimos genericos
+como add o run—, asi que el orden no puede salir de nuestra demanda:
+sale de cuantos archivos de la referencia consumen cada uno.
+
+Medido sobre los 8476 .py de la referencia, 6230 parseados tras el
+prefiltro, en 82.6 s. El log conserva las tres cifras por archivo
+(publicos, con arista, consumidores) que produjeron el orden.
+
+Se versiona el guion que lo produjo, su log, y los cuatro censos de
+partida (los 16 ausentes, los tres paquetes, y las listas de la
+referencia y nuestras). La evidencia de una medicion es tan durable
+como el contenedor si no se versiona.
+
+Refs: #338, #352

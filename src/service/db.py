@@ -33,11 +33,63 @@ from contextlib import contextmanager
 import psycopg
 from django.conf import settings
 from django.core.management import call_command
-from django.db import DEFAULT_DB_ALIAS, connections
+from django.db import DEFAULT_DB_ALIAS, connections, transaction
 
 from tools import config
+from tools.misc import find_pg_tool
 
 _logger = logging.getLogger(__name__)
+
+
+class Savepoint:
+    """≙ ``Savepoint`` (``odoo19c: odoo/sql_db.py:87-129``).
+
+    «Reifies an active breakpoint, allows ``BaseCursor.savepoint`` users to
+    internally rollback the savepoint (as many times as they want) without
+    having to implement their own savepointing, or triggering exceptions.»
+
+    Lo consume :meth:`orm.models.RecordLoaderMixin.load`: abre uno al empezar y
+    **vuelve a él** cada vez que una fila del archivo revienta. Sin ese retorno
+    la transacción de PostgreSQL queda en estado abortado y el resto del
+    archivo ya no se puede importar — de ahí que el cargador lo necesite y no
+    le baste con capturar la excepción.
+
+    DIVERGENCIA DE MECANISMO, declarada: la fuente emite ``SAVEPOINT "<uuid>"``
+    a mano sobre su cursor. Aquí lo emite la **API pública de Django**
+    (``transaction.savepoint`` / ``savepoint_rollback`` / ``savepoint_commit``),
+    que hace exactamente eso mismo y además mantiene coherente el estado que
+    ``atomic`` lleva de la conexión. El nombre del punto lo genera Django y se
+    guarda en :attr:`name`, igual que allá.
+
+    ``_FlushingSavepoint`` de la fuente **no tiene contraparte**: allá envuelve
+    el ``flush()`` del cursor —vaciar a la base lo que el ORM tiene en memoria—
+    y aquí Django escribe cada ``save()`` en el acto, así que no hay cola que
+    vaciar antes de abrir el punto.
+    """
+
+    def __init__(self, connection):
+        self._connection = connection
+        self.name = transaction.savepoint(using=connection.alias)
+        self.closed = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close(rollback=exc_type is not None)
+
+    def close(self, *, rollback=True):
+        if not self.closed:
+            self._close(rollback)
+
+    def rollback(self):
+        transaction.savepoint_rollback(self.name, using=self._connection.alias)
+
+    def _close(self, rollback):
+        if rollback:
+            self.rollback()
+        transaction.savepoint_commit(self.name, using=self._connection.alias)
+        self.closed = True
 
 
 class DatabaseManagementDisabled(Exception):
@@ -517,7 +569,7 @@ def dump_database(db_name, using=DEFAULT_DB_ALIAS):
     ensure_management_enabled()
     if not database_exists(db_name, using):
         raise ValueError('la base %r no existe' % (db_name,))
-    cmd = ['pg_dump', '--no-owner', '--format=c', db_name]
+    cmd = [find_pg_tool('pg_dump'), '--no-owner', '--format=c', db_name]
     proc = subprocess.Popen(
         cmd, env=_pg_env(using), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)
     return _DumpStream(proc)
@@ -543,7 +595,8 @@ def restore_database(db_name, dump_path, using=DEFAULT_DB_ALIAS):
     if database_exists(db_name, using):
         raise DatabaseExists('la base %r ya existe' % (db_name,))
     create_empty_database(db_name, using)
-    cmd = ['pg_restore', '--no-owner', '--dbname=' + db_name, dump_path]
+    cmd = [find_pg_tool('pg_restore'), '--no-owner',
+           '--dbname=' + db_name, dump_path]
     result = subprocess.run(
         cmd, env=_pg_env(using),
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

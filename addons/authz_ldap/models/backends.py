@@ -59,14 +59,14 @@ class LdapBackend(BaseBackend):
             # sólo usuarios activos.
             if not user.active:
                 return None
-            for conf in CompanyLdap.objects.get_ldap_dicts():
+            for conf in CompanyLdap.objects._get_ldap_dicts():
                 if CompanyLdap._authenticate(conf, user.login, password):
                     return user
             return None
 
         # Camino _login (res_users.py:13-32): no hay usuario local — bind y,
         # si la configuración lo permite, alta federada.
-        for conf in CompanyLdap.objects.get_ldap_dicts():
+        for conf in CompanyLdap.objects._get_ldap_dicts():
             entry = CompanyLdap._authenticate(conf, login, password)
             if entry:
                 try:

@@ -73,7 +73,7 @@ class SubscriptionInvoice(TimeStampedModel):
         verbose_name='Asiento contable',
     )
 
-    objects = models.Manager()               # default: cross-company (L0)
+    objects = models.AccessManager()         # default: cross-company (L0)
     scoped = RuleScopedManager()             # L3: record rules (ir_rule)
 
     class Meta:

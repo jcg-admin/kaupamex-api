@@ -38,7 +38,7 @@ def internal_user(internal_group):
 
 @pytest.fixture
 def digest(company):
-    return DigestDigest.objects.create(name='Digest diario', company=company)
+    return DigestDigest.objects.create(name='Digest diario', company_id=company)
 
 
 class TestDigestNextRunDate:
@@ -48,7 +48,7 @@ class TestDigestNextRunDate:
     def test_next_run_date_respects_explicit_value(self, company):
         explicit = timezone.localdate() + timedelta(days=30)
         digest = DigestDigest.objects.create(
-            name='Digest con fecha fija', company=company, next_run_date=explicit,
+            name='Digest con fecha fija', company_id=company, next_run_date=explicit,
         )
         assert digest.next_run_date == explicit
 
@@ -122,7 +122,7 @@ class TestDigestCurrency:
         assert digest.currency == company.currency
 
     def test_currency_property_none_without_company(self):
-        digest = DigestDigest.objects.create(name='Sin compañía', company=None)
+        digest = DigestDigest.objects.create(name='Sin compañía', company_id=None)
         assert digest.currency is None
 
 

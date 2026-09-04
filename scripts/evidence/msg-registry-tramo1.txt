@@ -1,0 +1,75 @@
+Port Registry as a class, not a module registry
+
+El docstring de src/orm/registry.py declaraba "por eso este archivo es un
+stub delgado documentado, no una reimplementacion" y argumentaba que recrear
+Registry duplicaria django.apps. Es el camino barato: declarar divergencia en
+vez de portar. La referencia declara class Registry(Mapping[str,
+type[BaseModel]]) con 43 metodos en 1103 lineas (odoo19c:
+odoo/orm/registry.py:84-1186), y aqui habia 12 nombres como funciones de
+modulo y 31 ausentes.
+
+Este es el tramo 1 de la tarea #342: lo que hace de Registry una clase.
+
+  _lock (RLock) · _saved_lock · registries (LRU de 42) · __new__ · new ·
+  init · delete · delete_all · __len__ · __iter__ · __getitem__ ·
+  __setitem__ · __delitem__ · descendants
+
+Tres decisiones, y las tres salen de medir el stack contra la fuente:
+
+1. Que designa una base. La fuente indexa por el nombre que le pasa a
+   psycopg; aqui lo que designa una base es el ALIAS de connections, y su
+   nombre vive en settings. La clase acepta los dos y los resuelve en
+   _alias(), asi que el llamador no tiene que saber cual le toca.
+
+2. Por que models no es MODELS_BY_NAME. En Django la clase de modelo
+   pertenece al proceso y cual base lee lo decide el router por consulta; en
+   la fuente pertenece a la base, porque cada base tiene sus modulos. El
+   equivalente honesto es que cada registro arranque con una vista propia y
+   pueda estrecharla — que es lo que la fuente hace al cargar su grafo. Por
+   eso __setitem__ y __delitem__ escriben en el diccionario del registro:
+   dos registros no se pisan, y un caso lo mide.
+
+3. UNACCENT_ENABLED se muda al registro. Portar la clase destapo un ciclo de
+   import: registry no puede importar orm.fields porque fields importa de
+   environments, que importa registry. La direccion correcta la da la fuente
+   —fields.py:1326 lee model.env.registry.unaccent, no al reves— asi que la
+   bandera pasa a orm/registry.py y fields la re-exporta. El ciclo no era un
+   obstaculo: era la senal de que estaba en el archivo equivocado.
+
+descendants recorre los dos ejes. El eje _inherits se DERIVA aqui en vez de
+mantenerse, por la razon que model_classes.py ya declara: un mapa escrito a
+mano puede quedar nombrando un modelo que ya no delega y nadie lo nota. Si la
+clase declara el atributo, se respeta el declarado.
+
+new porta su estructura entera —los siete parametros, el orden, la anulacion
+de los tres puntos de entrada en la instancia, el registro ANTES de cargar
+porque la carga vuelve a pedir Registry(db), y el descarte si revienta— y
+delega la carga de modulos en _ensure_seeded. Los cinco parametros de modulo
+se GUARDAN en la instancia sin consumirse: el tramo 3 los lee de ahi.
+
+29 casos escritos antes del porte. El control que discrimina es
+test_the_lock_is_reentrant: new toma el cerrojo y llama a delete, que tambien
+lo toma; con un threading.Lock el caso cuelga. Sin el, un cerrojo mal elegido
+no lo delataria ninguno de los otros 28.
+
+Un caso se corrigio contra la fuente, no contra el codigo: afirmaba que un
+registro recien construido declara ready False, y eso es el estado
+INTERMEDIO — new lo cierra antes de volver (:209-211), asi que no es
+observable desde Registry(db).
+
+La suite completa —src/orm es raiz espejada— da 9838 passed, 3 failed. Dos de
+los tres son controles PROPIOS detectando este mismo porte, que es lo que un
+control existe para hacer:
+
+  - test_what_is_genuinely_absent_stays_absent: Registry salio de la lista de
+    genuinamente ausentes. Se le anade su caso inverso, porque sin el borrar
+    un nombre de la lista pasaria verde tanto si se porto como si nadie miro.
+  - test_a_shell_glob_is_expanded: afirmaba 0 sobre 'def new(' en src/orm y
+    ahora hay 1. Lo que el caso prueba es la EXPANSION del glob, no el cero,
+    asi que la asercion pasa a la que discrimina — mismo arreglo que ya se le
+    hizo arriba al caso de stdnum.
+
+El tercero es test_incoterm_de_sale_stock_llega_al_papel, pre-existente y
+medido en HEAD sobre worktree limpio (tarea #340).
+
+Refs: #342, #209, #98

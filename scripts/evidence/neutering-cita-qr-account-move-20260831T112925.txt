@@ -1,0 +1,22 @@
+# Control discriminante — la cita vigilada del bloque QR de account.move
+# fecha:    2026-08-31T11:29:25
+# archivo:  addons/account/report/account_invoice_report.py
+# cita:     grep -c display_qr_code addons/account/models/account_move.py  ->  da **0**
+# inyeccion: se declara display_qr_code en el AccountMove de nuestro arbol
+
+## 1. Estado de partida (el campo NO existe)
+0 reclamo(s) de cero caducado(s) fuera del baseline  ·  en baseline: 13  (alcance medido: 36 cita(s) con comando; 32 re-ejecutable(s), 3 contra otro árbol, 1 que este guion no sabe correr)
+EXIT=0
+
+## 2. Con el campo INYECTADO — el gate debe marcar la prosa caducada
+0 reclamo(s) de cero caducado(s) fuera del baseline  ·  en baseline: 13  (alcance medido: 36 cita(s) con comando; 32 re-ejecutable(s), 3 contra otro árbol, 1 que este guion no sabe correr)
+EXIT_INYECTADO=0
+
+## VEREDICTO: este control NO discrimina — la inyeccion nunca aterrizo
+La sonda buscaba el ancla '    move_type =' y la declaracion real es
+'    move_type    = fields.Selection(' (columnas alineadas), asi que el
+python3 murio con ValueError y el paso 2 midio el arbol SIN inyectar.
+Los dos pasos dan 0 por la misma razon: no hubo cambio que medir.
+Se conserva como episodio — un verde que no distingue "no caduco" de
+"no pude inyectar" es el sub-patron D de metrica-decide-la-conclusion.
+El control que SI discrimina es el hermano de las 11:29:45.

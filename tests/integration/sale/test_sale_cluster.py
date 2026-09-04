@@ -43,10 +43,10 @@ def test_line_amount_breakdown_iva_incluido(producto):
     line = SaleOrderLine.objects.create(
         order=so, product=producto, product_uom_qty=2, price_unit=Decimal('100.00'),
     )
-    assert line.price_total() == Decimal('200.00')
+    assert line.price_total == Decimal('200.00')
     # IVA MX 16% incluido: tax = total*rate/(1+rate) = 200*0.16/1.16 = 27.59
-    assert line.price_tax() == Decimal('27.59')
-    assert line.price_subtotal() == Decimal('172.41')
+    assert line.price_tax == Decimal('27.59')
+    assert line.price_subtotal == Decimal('172.41')
 
 
 def test_line_discount_percentage(producto):
@@ -56,7 +56,7 @@ def test_line_discount_percentage(producto):
         order=so, product=producto, product_uom_qty=1, price_unit=Decimal('100.00'),
         discount=Decimal('10.00'),
     )
-    assert line.price_total() == Decimal('90.00')
+    assert line.price_total == Decimal('90.00')
 
 
 def test_order_amounts_sum_lines(producto):
@@ -110,12 +110,12 @@ def test_draft_reopens_from_cancel(db):
 def test_crm_team_and_membership(db, django_user_model):
     team = CrmTeam.objects.create(name='Ventas MX', sequence=5, color=3)
     u = django_user_model.objects.create_user(login='v1@practicayoruba.mx', password='x')
-    CrmTeamMember.objects.create(crm_team=team, user=u)
-    assert team.members.count() == 1
+    CrmTeamMember.objects.create(crm_team_id=team, user_id=u)
+    assert team.member_ids.count() == 1
     assert list(CrmTeam.objects.all()) == [team]  # _order sequence
     # unique(crm_team, user)
     with pytest.raises(Exception):
-        CrmTeamMember.objects.create(crm_team=team, user=u)
+        CrmTeamMember.objects.create(crm_team_id=team, user_id=u)
 
 
 def test_crm_tag_unique(db):

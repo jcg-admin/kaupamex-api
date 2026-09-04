@@ -346,6 +346,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         IrModel, on_delete=models.CASCADE, db_index=True,
         related_name='base_automations', verbose_name='Modelo',
         help_text='Modelo objetivo (Odoo model_id, domain abstract=False).',
+        db_column='model_id',
     )
     # Odoo model_name (related="model_id.model", inverse="_inverse_model_name",
     # store implícito). Columna real sincronizada en save() — mismo criterio
@@ -380,9 +381,10 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         max_length=32, choices=TRIGGER_CHOICES, blank=True, default='',
         verbose_name='Disparador',
     )
-    trg_selection_field = fields.Many2one(
+    trg_selection_field_id = fields.Many2one(
         IrModelFieldsSelection, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='base_automations', verbose_name='Campo de selección disparador',
+        db_column='trg_selection_field_id',
     )
     trg_field_ref_model_name = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Modelo de referencia',
@@ -396,6 +398,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         IrModelFields, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='+', verbose_name='Campo de fecha disparador',
         help_text='Cuándo evaluar la condición (Odoo trg_date_id).',
+        db_column='trg_date_id',
     )
     trg_date_range = fields.Integer(null=True, blank=True, verbose_name='Retraso')
     trg_date_range_mode = fields.Selection(
@@ -406,11 +409,12 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         max_length=8, choices=RANGE_TYPE_CHOICES, blank=True, default='',
         verbose_name='Unidad del retraso',
     )
-    trg_date_calendar = fields.Many2one(
+    trg_date_calendar_id = fields.Many2one(
         ResourceCalendar, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='base_automations', verbose_name='Calendario laboral',
         help_text='GAP — ResourceCalendar.plan_days no está portado; ver '
                   'docstring del módulo.',
+        db_column='trg_date_calendar_id',
     )
     filter_pre_domain = fields.Char(
         max_length=2048, blank=True, default='', verbose_name='Dominio antes',
@@ -427,13 +431,19 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         help_text='Debe cumplirse para ejecutar la regla (Odoo filter_domain).',
     )
     last_run = fields.Datetime(null=True, blank=True, verbose_name='Última corrida')
+    #: Los dos ≙ ``odoo19c: base_automation.py:240-252``, que la fuente declara
+    #: ``compute=..., readonly=False, store=True``. Los tres se portan; el
+    #: volcado del M2M lo hace ``orm.models._flush_m2m``, porque Django prohíbe
+    #: el ``setattr`` sobre el lado directo de un muchos-a-muchos (#313).
     on_change_field_ids = fields.Many2many(
         IrModelFields, blank=True, related_name='+',
+        compute='_compute_on_change_field_ids', store=True, readonly=False,
         verbose_name='Campos disparadores de onchange',
         help_text='Poblado por dominio; dispatch bloqueado (ver docstring).',
     )
     trigger_field_ids = fields.Many2many(
         IrModelFields, blank=True, related_name='automations_watching',
+        compute='_compute_trigger_field_ids', store=True, readonly=False,
         verbose_name='Campos disparadores',
         help_text='Si vacío, se vigilan todos los campos (Odoo trigger_field_ids).',
     )
@@ -452,6 +462,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         """≙ ``action_server_ids`` de la referencia — vía la tabla-liga
         ``BaseAutomationAction`` (ver "Decisión de mecanismo" del
         docstring del módulo). Requiere ``pk`` (accede al reverso
+
+        ≙ ``_compute_action_server_ids`` (``odoo19c: base_automation/models/base_automation.py``).
         ``action_links``, que no existe sobre una instancia sin guardar)."""
         if self.pk is None:
             return IrActionsServer.objects.none()
@@ -459,8 +471,31 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
 
     # -- Sincronización de campos derivados (≙ cadena de @api.depends) ------
 
+    def _compute_model_name(self):
+        """≙ el lado LECTOR de ``related="model_id.model"`` (``:134``).
+
+        La declaración del campo decía *"sincronizado desde ``model_id.model``
+        en ``save()``"* y **eso no ocurría**: la única travesía escrita era la
+        inversa (:meth:`_inverse_model_name`, de nombre a FK). Medido con una
+        regla creada con ``model_id`` y sin ``model_name``: la columna quedaba
+        en ``''``, así que el ``Char`` almacenado mentía sobre su origen y todo
+        lo que lee ``model_name`` —el dispatch de ``signals.py``, la
+        comparación de ``_compute_action_server_ids``— quedaba ciego.
+
+        Un ``related`` de la fuente tiene dos sentidos: lee del extremo y
+        escribe hacia él por su ``inverse``. Aquí el sentido lector va en la
+        cadena de ``_recompute_dependent_fields`` —el punto de entrada único
+        que este puerto usa en vez del motor ``@api.depends``— y el escritor
+        sigue en ``_inverse_model_name``, con el nombre que la fuente le da.
+
+        No pisa un ``model_name`` puesto a mano cuando todavía no hay FK: ése
+        es el insumo del sentido inverso, y ``save()`` lo resuelve antes.
+        """
+        if self.model_id is not None:
+            self.model_name = self.model_id.model
+
     def _inverse_model_name(self):
-        """≙ ``_inverse_model_name`` de la referencia."""
+        """≙ ``_inverse_model_name`` de la referencia — el lado ESCRITOR."""
         if self.model_name:
             self.model_id = IrModel.objects.filter(model=self.model_name).first()
 
@@ -565,7 +600,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         """≙ ``_compute_trg_date_calendar_id``."""
         if (self.trigger not in TIME_TRIGGERS or not self.trg_date_id
                 or self.trg_date_range_type != 'day'):
-            self.trg_date_calendar = None
+            self.trg_date_calendar_id = None
 
     def _compute_trg_selection_field_id(self):
         """≙ ``_compute_trg_selection_field_id`` — ver nota de la sección:
@@ -608,8 +643,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         if not field_row:
             return
         if self.trigger in ('on_state_set', 'on_priority_set'):
-            value = (self.trg_selection_field.value
-                     if self.trg_selection_field else None)
+            value = (self.trg_selection_field_id.value
+                     if self.trg_selection_field_id else None)
             self.filter_domain = repr([(field_row.name, '=', value)]) if value else ''
         elif self.trigger == 'on_stage_set':
             value = self.trg_field_ref
@@ -629,6 +664,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         sobre ESTA instancia, antes de persistir — reemplaza el motor
         ``@api.depends`` (sin equivalente genérico en este ORM): el punto
         de entrada único es ``save()``."""
+        self._compute_model_name()
         self._compute_trigger()
         self._compute_trg_date_id()
         self._compute_trg_date_range_data()
@@ -853,6 +889,76 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         self._update_cron()
         self._update_registry()
         return result
+
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create`` (``odoo19c: base_automation.py:491-498``).
+
+        Conserva el nombre de la fuente. Es la puerta que allá vigila la
+        creación de reglas —crear una regla cambia lo que el cron tiene que
+        mirar y lo que el dispatch tiene que enganchar—, y aquí esa mitad la
+        hacía sólo ``save()``. Las dos coexisten a propósito, igual que en
+        ``addons/base_sparse_field/models/ir_model_fields.py``: ésta es la
+        puerta que la fuente vigila, y ``save()`` cubre el camino de Django
+        (``instance.campo = x; instance.save()``).
+
+        Acepta un ``dict`` suelto además de la lista, como el
+        ``@api.model_create_multi`` de la fuente. Devuelve la lista de reglas
+        creadas.
+
+        La invalidación de caché de plantillas de la fuente
+        (``registry.clear_cache('templates')`` tras ``_has_trigger_onchange``)
+        **no tiene receptor aquí**: no hay motor de onchange que memorice
+        atributos de plantilla —la divergencia está declarada en el docstring
+        del módulo— así que se conserva la consulta y no su efecto, que es lo
+        que ``save()`` ya hacía.
+        """
+        if isinstance(vals_list, dict):
+            vals_list = [vals_list]
+        automations = [cls.objects.create(**vals) for vals in vals_list]
+        for automation in automations:
+            automation._update_cron()
+            automation._update_registry()
+            automation._has_trigger_onchange()
+        return automations
+
+    def write(self, **vals):
+        """≙ ``write`` (``odoo19c: base_automation.py:500-511``).
+
+        Conserva el nombre y, con él, la asimetría que la fuente escribe: un
+        cambio en ``CRITICAL_FIELDS`` actualiza cron **y** dispatch; uno que
+        sólo toca ``RANGE_FIELDS`` actualiza **sólo** el cron. ``save()`` no
+        puede distinguirlas —para cuando corre, la instancia ya trae los
+        valores nuevos y no sabe cuáles entraron—, así que esa mitad del
+        comportamiento sólo existe por esta puerta.
+
+        La firma es ``**vals`` y el cuerpo es *poner los atributos y guardar*,
+        el idioma ya fijado por ``addons/stock/models/stock_location.py:575``.
+        Devuelve ``self``.
+        """
+        entrantes = set(vals)
+        for name, value in vals.items():
+            setattr(self, name, value)
+        super().save()
+        if entrantes.intersection(self.CRITICAL_FIELDS):
+            self._update_cron()
+            self._update_registry()
+            self._has_trigger_onchange()
+        elif entrantes.intersection(self.RANGE_FIELDS):
+            self._update_cron()
+        self._critical_snapshot = self._current_critical_snapshot()
+        return self
+
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: base_automation.py:513-521``).
+
+        Conserva el nombre; el cuerpo delega en :meth:`delete`, que es donde
+        vive la actualización de cron y dispatch. Existe para que el símbolo de
+        la fuente se pueda llamar por su nombre desde un puerto hermano, sin
+        que quien lea la referencia tenga que saber que aquí se llama de otra
+        forma.
+        """
+        return self.delete()
 
     def _current_critical_snapshot(self):
         return tuple(getattr(self, f, None) for f in self.CRITICAL_FIELDS)
@@ -1129,7 +1235,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         ``record`` con calendario propio que priorizar (esa variante
         tampoco está portada — ver ``ResourceCalendar.plan_days`` en el
         docstring del módulo)."""
-        return self.trg_date_calendar
+        return self.trg_date_calendar_id
 
     def _search_time_based_automation_records(self, model_cls, until):
         """≙ ``_search_time_based_automation_records``.
@@ -1138,7 +1244,7 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         ``trg_date_range_type == 'day'``) DEGRADADA — ``ResourceCalendar.
         plan_days`` no está portado (ver docstring del módulo): cae al
         cálculo de fecha simple sin ajuste por días laborables."""
-        if self.trg_date_calendar_id is not None and self.trg_date_range_type == 'day':
+        if self.trg_date_calendar_id_id is not None and self.trg_date_range_type == 'day':
             _logger.warning(
                 'base.automation %s: trg_date_calendar_id fijado pero '
                 'ResourceCalendar.plan_days no está portado; usando '

@@ -1,0 +1,13 @@
+# Control discriminante — 334-constrains-callable-sin-resolver
+# fecha:    2026-09-03T01:55:52
+# archivo:  src/orm/registry.py
+# anulado:  s/if callable(func._constrains):/if False:/
+# tests:    tests/unit/orm/test_marked_method_collectors.py
+
+## 1. Verde de partida (guarda presente)
+23 passed, 1 warning in 4.50s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_marked_method_collectors.py::TestTheCallableFormIsResolvedWithoutDestroyingIt::test_the_resolved_names_come_from_calling_it
+FAILED tests/unit/orm/test_marked_method_collectors.py::TestTheCallableFormIsResolvedWithoutDestroyingIt::test_it_re_resolves_after_the_reset
+2 failed, 21 passed, 1 warning in 4.73s

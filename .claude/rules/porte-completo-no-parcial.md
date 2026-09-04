@@ -14,6 +14,36 @@ de Django/DRF leídos en el paquete instalado, luego PostgreSQL nativo vía
 `SQL()`/`Query`. *"Este ORM no tiene ese constructor"* describe el punto de
 partida, no cierra nada.
 
+## La licencia cambia el MECANISMO, nunca la fidelidad
+
+| Licencia | Mecanismo |
+|---|---|
+| **LGPL-3** (Community) | copia + adaptación con atribución; porte casi literal permitido |
+| **AGPL-3** (p. ej. pretix) | reimplementación fiel del patrón; copiar verbatim es decisión del ejecutor (copyleft fuerte) |
+| **OEEL-1 / OPL-1** (Enterprise) | reimplementación nativa del patrón y del contrato, sin pegar el texto propietario |
+
+El derecho de autor protege el **texto literal**, no el modelo de datos, el API
+ni el comportamiento. Un porte nativo replica los mismos modelos, campos, flujo
+y comportamiento con código nuestro: **funcionalmente idéntico**.
+
+**«Es propietario» NO autoriza a portar menos.** Mismo nombre, misma firma,
+mismos atributos de clase, mismo comportamiento — sólo cambia que el cuerpo se
+escribe en vez de copiarse. Recortar alcance citando la licencia es el camino
+barato con otra coartada.
+
+**La postura se lee POR MANIFIESTO.** «Enterprise es propietario» no es
+uniforme: medido 2026-08-29, **599 de 1171** addons de `odoo18e` son LGPL-3, y
+**5 de 649** de `odoo18c` son OEEL-1.
+
+```bash
+grep -oP "'license'\s*:\s*'\K[^']+" \
+  "$(python3 -c "import sys;sys.path.insert(0,'scripts');import reference_roots as R
+print(R.addon_root('<addon>','<alias>'))")/__manifest__.py"
+```
+
+El mecanismo empleado se declara en el docstring del puerto, junto a la
+procedencia.
+
 ## El guion bajo se porta — es el contrato (H-API-581)
 
 **Un método que la referencia declara `_foo` se porta como `_foo`.** Quitar el

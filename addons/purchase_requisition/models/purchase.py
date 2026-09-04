@@ -17,14 +17,28 @@ Qué añade, y son dos ejes independientes:
    grupo, como su propia descripción dice: *«Technical model to group PO for
    call to tenders»*.
 
-Porte símbolo por símbolo — 8 de 22
-====================================
+Porte símbolo por símbolo — 12 de 22
+=====================================
 
 *Métrica:* entradas del cuerpo de las tres clases contadas por AST sobre la
 fuente, descontando los atributos de clase de modelo. ``PurchaseOrderGroup``:
 1 campo + 1 método. ``PurchaseOrder``: 4 campos + 10 métodos.
 ``PurchaseOrderLine``: 2 campos + 4 métodos. Total **22**.
 *Ciega a:* si un símbolo portado se comporta igual en ejecución.
+
+.. note::
+
+   **Corregido — tarea #266.** Esta cabecera decía *"8 de 22"*, contando
+   **filas de la tabla** en vez de **símbolos**: la fila de
+   ``PurchaseOrderGroup`` bundlea dos (``order_ids`` + ``write``), así que 8
+   filas eran **9** símbolos, no 8. Verificado por AST sobre los
+   ``extend_model(...)`` de este archivo:
+   ``campos={requisition, purchase_group}`` + ``propiedades={requisition_type,
+   alternative_po_ids}`` + ``metodos={get_tender_best_lines,
+   action_clear_quantities}`` + ``button_confirm`` (vía ``luego``) = 7, más
+   los 2 propios de ``PurchaseOrderGroup`` = **9**. Esta tarea añade
+   ``price_total_cc``, ``company_currency_id`` y ``_compute_price_total_cc``
+   (los tres de ``PurchaseOrderLine``): **12 de 22**.
 
 Lo portado
 ------------
@@ -48,19 +62,39 @@ Lo portado
    * - ``PurchaseOrder.button_confirm`` (``:95-110``)
      - ``chain_method`` — la guarda de alternativas abiertas
    * - ``PurchaseOrder.get_tender_best_lines`` (``:192-235``)
-     - método homónimo, con D-3
+     - método homónimo — D-3a CERRADA (tarea #266), D-3b sigue abierta
    * - ``PurchaseOrderLine.action_clear_quantities`` (``:295-308``)
      - método homónimo, con D-4
+   * - ``PurchaseOrderLine.price_total_cc`` (``:257``)
+     - campo homónimo — tarea #266, Causa D CERRADA
+   * - ``PurchaseOrderLine.company_currency_id`` (``:258``)
+     - ``property`` (era ``related=`` sin ``store``) — tarea #266
+   * - ``PurchaseOrderLine._compute_price_total_cc`` (``:260-263``)
+     - método homónimo, invocado en ``save()`` — tarea #266
 
 Lo NO portado, por causa
 --------------------------
 
-**Causa A — la orden de compra de este árbol tiene cinco campos.** Los mismos
-que ``purchase_stock`` ya midió: sin ``company_id``, ``currency_id``,
-``user_id``, ``origin``, ``payment_term_id``, ``fiscal_position_id`` ni
-``date_planned`` no hay dónde escribir. Caen ``_onchange_requisition_id``
-(``:36-93``, que escribe **ocho** de ellos), ``create`` (``:112-129``) y
-``write`` (``:131-160``) — los dos últimos además publican en la bitácora.
+**Causa A — parcialmente cerrada por la tarea #266; sigue bloqueando.** Decía:
+*"la orden de compra de este árbol tiene cinco campos… sin ``company_id``,
+``currency_id``, ``user_id``, ``origin``, ``payment_term_id``,
+``fiscal_position_id`` ni ``date_planned`` no hay dónde escribir"*.
+``company_id`` y ``currency_id`` **ya existen** — se portaron en
+``api: addons/purchase/models/purchase_order.py`` (tarea #266). De los ocho
+campos que ``_onchange_requisition_id`` escribe (``:36-93``), cinco tienen
+ya dónde escribir —``partner_id``, ``note``, ``date_order``, ``company_id``,
+``currency_id``— y **tres siguen sin campo**: ``fiscal_position_id``,
+``payment_term_id``, ``origin``. Esos tres —ninguno del alcance de la tarea
+#266— siguen bloqueando ``_onchange_requisition_id`` (``:36-93``), ``create``
+(``:112-129``) y ``write`` (``:131-160``) — los dos últimos además publican
+en la bitácora.
+
+*Métrica:* comparación por AST de los ocho ``self.<campo> = …`` de
+``_onchange_requisition_id`` contra los campos declarados en
+``api: addons/purchase/models/purchase_order.py`` tras la tarea #266.
+*Ciega a:* si portar los tres restantes exige también ``account.fiscal
+.position``/``account.payment.term`` con receptor propio — no medido en
+este pase.
 
 **Causa B — el método al que encadenan no existe.** Medido sobre ``addons/`` +
 ``src/``:
@@ -83,11 +117,24 @@ un ``view_id`` sembrado por datos XML. Este árbol no siembra vistas (misma
 ausencia que ``_for_xml_id``, 0 definiciones). Los dos son descriptores de
 acción para el cliente web de Odoo, no lógica de negocio.
 
-**Causa D — la línea de compra no tiene moneda ni tasa.** ``price_total_cc``
-(``:257``) y ``company_currency_id`` (``:258``) más su
-``_compute_price_total_cc`` (``:260-263``) dividen el subtotal entre
-``order_id.currency_rate``. Medido: ``grep -rn "currency_rate" addons/ src/
---include=*.py`` → **0**. Sin tasa no hay conversión a moneda de la empresa.
+**Causa D — CERRADA (tarea #266).** Decía: *"la cabecera de
+``purchase.order`` es un esqueleto — ``price_total_cc`` (``:257``) y
+``company_currency_id`` (``:258``) más su ``_compute_price_total_cc``
+(``:260-263``) dividen el subtotal entre ``order_id.currency_rate``, y ese
+campo no existía"*. Se cerró portando la cabecera —``company_id``,
+``currency_id``, ``currency_rate``— en
+``api: addons/purchase/models/purchase_order.py`` (docstring del módulo, con
+la tabla de forma de cada campo) y, en este archivo, los tres símbolos de
+``PurchaseOrderLine`` que dependían de ella: ``price_total_cc``,
+``company_currency_id`` (``@property``) y ``_compute_price_total_cc``.
+
+**Divergencia de tipo heredada de la cabecera.** La fuente declara
+``currency_field="company_currency_id"`` en ``price_total_cc`` —
+``fields.Monetary`` en este ORM no acepta ``currency_field=`` porque no hay
+columna de moneda por campo (mismo mecanismo que ``HrEmployee.hourly_cost``,
+``api: addons/hr_hourly_cost/models/hr_employee.py:32-39``); la moneda ya se
+resuelve por ``company_currency_id``, que es exactamente lo que
+``currency_field=`` apuntaba a hacer.
 
 **Causa E — depende de lo anterior.** ``action_choose`` (``:310-322``) llama a
 ``action_clear_quantities`` sobre las líneas de las alternativas, y necesita
@@ -114,17 +161,31 @@ sobre ``delete``… al revés: se porta como un método ``_implode_if_alone`` qu
 el llamador invoca tras enlazar, porque en la fuente lo dispara ``write`` sobre
 el propio grupo y aquí el enlace se escribe en la **orden**, no en el grupo.
 
-**D-3 — ``get_tender_best_lines`` compara por subtotal de línea, no por
-``price_total_cc``.** La fuente compara en **moneda de la empresa** para que
-dos cotizaciones en divisas distintas sean comparables. Sin ``currency_rate``
-(Causa D) eso no se puede hacer, así que se compara con
-``line.price_subtotal()`` —el método que la línea de este árbol ya tiene— y se
-declara: **el resultado sólo es correcto si todas las alternativas están en la
-misma moneda**. Es una degradación nombrada, no una equivalencia.
+**D-3a — CERRADA (tarea #266).** Decía: *"``get_tender_best_lines`` compara
+por subtotal de línea, no por ``price_total_cc``… el resultado sólo es
+correcto si todas las alternativas están en la misma moneda"*. Con la Causa D
+cerrada, ``get_tender_best_lines`` compara por ``line.price_total_cc`` —moneda
+de la empresa—, igual que la fuente (``odoo19c: :197-217``): dos cotizaciones
+en divisas distintas ya son comparables. Test discriminante:
+``tests/unit/purchase_requisition/test_get_tender_best_lines_currency.py::
+TestGetTenderBestLinesD3a::
+test_prefers_the_cheaper_line_in_company_currency_not_the_smaller_raw_number``
+— dos alternativas del mismo producto, una en pesos y otra en dólares con un
+número crudo menor pero equivalente a más pesos al convertir; con
+``PurchaseOrder._compute_currency_rate`` neutralizado a 1.0 fijo (control del
+sub-patrón D de ``metrica-decide-la-conclusion.md``,
+``scripts/evidence/neutering-purchase-currency-rate-266-*.txt``) el mismo
+caso cae — de 1 passed a 1 failed.
 
-Y la comparación por fecha (``:220-223``) queda fuera: ``date_planned`` no
-existe en la línea. El método devuelve la tripleta de la fuente con la lista de
-fechas **vacía**, para que su contrato no cambie.
+**D-3b — sigue abierta.** La comparación por fecha (``:220-223``,
+``date_planned``) queda fuera: ``date_planned`` **no existe** en
+``purchase.order.line`` de este árbol —campo distinto de los tres que la
+tarea #266 porta (``company_id``/``currency_id``/``currency_rate``)—. El
+método sigue devolviendo la tripleta de la fuente con la lista de mejores
+fechas **vacía**, para que su contrato no cambie. Condición de cierre:
+portar ``date_planned`` a la línea (bloqueo medido, no "no se puede";
+sucesor: nueva tarea a abrir cuando se porte ``date_planned``, aún sin
+número).
 
 **D-4 — ``action_clear_quantities`` no filtra por estado de línea.** La fuente
 excluye las líneas ``cancel``/``purchase``; aquí el estado vive en la **orden**
@@ -133,6 +194,8 @@ Es la misma intención —no tocar lo ya comprometido— sobre el campo que sí
 existe.
 """
 from collections import defaultdict
+
+from decimal import Decimal
 
 import fields
 import models
@@ -242,7 +305,7 @@ def button_confirm(self):
 
 
 def get_tender_best_lines(self):
-    """≙ ``get_tender_best_lines`` (``odoo19c: :192-235``) — D-3 del docstring.
+    """≙ ``get_tender_best_lines`` (``odoo19c: :192-235``).
 
     Entre esta orden y sus alternativas, marca por producto: la línea de mejor
     **subtotal**, la de mejor **fecha** y la de mejor **precio unitario**. Son
@@ -252,9 +315,12 @@ def get_tender_best_lines(self):
     Los empates **acumulan**: la fuente usa ``|=`` para que dos líneas con el
     mismo precio queden ambas marcadas. Se conserva.
 
-    D-3: se compara con ``price_subtotal()`` en vez de ``price_total_cc``, y la
-    lista de mejores fechas sale **vacía** porque la línea no tiene
-    ``date_planned``. El contrato —una tripleta de listas de ids— no cambia.
+    D-3a CERRADA (tarea #266): compara con ``price_total_cc`` —moneda de la
+    empresa— en vez de ``price_subtotal()``, igual que la fuente
+    (``odoo19c: :197-217``). Ya no exige que las alternativas compartan
+    divisa. D-3b sigue abierta: la lista de mejores fechas sale **vacía**
+    porque ``date_planned`` no existe en la línea de este árbol — ver
+    docstring del módulo.
     """
     best_subtotal = defaultdict(list)
     best_unit_price = defaultdict(list)
@@ -264,9 +330,9 @@ def get_tender_best_lines(self):
         if order_rec.state in (type(self).STATE_CANCEL, type(self).STATE_PURCHASE):
             continue
         for line in order_rec.order_line.all():
-            if not line.product_qty:
+            if not line.product_qty or not line.price_total_cc:
                 continue
-            subtotal = line.price_subtotal()
+            subtotal = line.price_total_cc
             unit_price = subtotal / line.product_qty
             key = line.product_id
 
@@ -275,9 +341,9 @@ def get_tender_best_lines(self):
                 best_unit_price[key] = [line]
                 continue
 
-            current_subtotal = best_subtotal[key][0].price_subtotal()
+            current_subtotal = best_subtotal[key][0].price_total_cc
             reference_line = best_unit_price[key][0]
-            current_unit_price = (reference_line.price_subtotal()
+            current_unit_price = (reference_line.price_total_cc
                                / reference_line.product_qty)
             if current_subtotal > subtotal:
                 best_subtotal[key] = [line]
@@ -290,9 +356,53 @@ def get_tender_best_lines(self):
 
     best_price_ids = {l.pk for lines in best_subtotal.values() for l in lines}
     best_price_unit_ids = {l.pk for lines in best_unit_price.values() for l in lines}
-    # D-3: sin ``date_planned`` en la línea no hay mejor fecha que calcular.
+    # D-3b: sin ``date_planned`` en la línea no hay mejor fecha que calcular.
     best_date_ids = []
     return list(best_price_ids), best_date_ids, list(best_price_unit_ids)
+
+
+def company_currency_id(self):
+    """≙ ``company_currency_id`` (``odoo19c: :258``) —
+    ``related="company_id.currency_id"``, sin ``store``.
+
+    Divergencia de mecanismo: ``currency_field=`` de ``price_total_cc`` no
+    tiene receptor en ``fields.Monetary`` — ver docstring del módulo (mismo
+    criterio que ``HrEmployee.hourly_cost``).
+    """
+    return self.company_id.currency if self.company_id_id else None
+
+
+def _compute_price_total_cc(self):
+    """≙ ``_compute_price_total_cc`` (``odoo19c: :260-263``).
+
+    Divide el subtotal de la línea entre la tasa de la orden — de ahí que
+    ``PurchaseOrder.currency_rate`` sea ``fields.Monetary`` (``Decimal``) y
+    no ``fields.Float`` como en la fuente: ``Decimal / float`` levanta
+    ``TypeError`` en Python (ver docstring de
+    ``api: addons/purchase/models/purchase_order.py``).
+    """
+    order = self.order_id
+    rate = order.currency_rate if order is not None and order.currency_rate else Decimal('1.0')
+    self.price_total_cc = (self.price_subtotal() / rate).quantize(Decimal('0.01'))
+
+
+def save_price_total_cc(self, previous, *args, **kwargs):
+    """Recompila ``price_total_cc`` antes de persistir — este ORM no dispara
+    ``@api.depends`` (tarea #191).
+
+    Instalado con ``wrap_method`` (no ``chain_method``): la previa llega **en
+    la mano**, ligada al receptor, porque necesito mutar ``update_fields`` y
+    pasárselo yo mismo — con ``chain_method`` la mutación de ``kwargs`` no
+    llega a la previa (cada llamada con ``**kwargs`` empaqueta un ``dict``
+    nuevo en el frame receptor; medido al escribir esto, no supuesto). La
+    previa es ``PurchaseOrderLine.save()`` de ``purchase`` (sincroniza
+    ``company_id``) y, tras ella, el ``save()`` de Django.
+    """
+    self._compute_price_total_cc()
+    update_fields = kwargs.get('update_fields')
+    if update_fields is not None and 'price_total_cc' not in update_fields:
+        kwargs['update_fields'] = [*update_fields, 'price_total_cc']
+    return previous(*args, **kwargs)
 
 
 # --- purchase.order.line ---------------------------------------------------
@@ -311,7 +421,7 @@ def action_clear_quantities(self):
     quien limpie varias líneas itera. El aviso de «algunas no se limpiaron» lo
     devuelve la línea que no se pudo limpiar, que es la información útil.
     """
-    order = self.order
+    order = self.order_id
     if order is not None and order.state in (type(order).STATE_CANCEL,
                                              type(order).STATE_PURCHASE):
         return {
@@ -370,5 +480,21 @@ def apply_purchase_requisition_purchase_extensions():
 
     extend_model(
         'purchase', 'PurchaseOrderLine',
-        metodos={'action_clear_quantities': action_clear_quantities},
+        campos={
+            'price_total_cc': fields.Monetary(
+                null=True, blank=True, max_digits=12, decimal_places=2,
+                default=Decimal('0.00'),
+                verbose_name='Subtotal en moneda de la empresa',
+                help_text='Odoo price_total_cc ("Company Subtotal", compute, '
+                          "store=True, currency_field='company_currency_id' "
+                          '— sin receptor aquí, ver docstring del módulo). '
+                          '``price_subtotal`` / ``order_id.currency_rate``.',
+            ),
+        },
+        propiedades={'company_currency_id': company_currency_id},
+        metodos={
+            'action_clear_quantities': action_clear_quantities,
+            '_compute_price_total_cc': _compute_price_total_cc,
+        },
+        overrides={'save': save_price_total_cc},
     )

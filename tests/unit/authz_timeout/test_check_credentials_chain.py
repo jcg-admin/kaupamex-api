@@ -14,7 +14,7 @@ Dos capas, y el archivo las separa a propósito:
   corresponde el **401 ``CHECK_IDENTITY_FAILED``**.
 
 Lo que se mide es el **despacho** y el **predicado de búsqueda**, no la
-criptografía. La capa WebAuthn (``PasskeyKey.verify_auth``) se mockea, igual
+criptografía. La capa WebAuthn (``PasskeyKey._verify_auth``) se mockea, igual
 que en los tests hermanos de ``authz_passkey``: sus respuestas grabadas están
 atadas al rp_id y a los orígenes de la referencia y no son portables.
 
@@ -38,7 +38,7 @@ from webauthn.helpers.exceptions import InvalidAuthenticationResponse
 
 
 #: El reto vive en la sesión, así que el envoltorio recibe la petición y la
-#: pasa por ``env`` al eslabón de passkey. Con ``verify_auth`` mockeado nada la
+#: pasa por ``env`` al eslabón de passkey. Con ``_verify_auth`` mockeado nada la
 #: lee, pero no puede ser ``None``: ese valor es el corto-circuito de "sin
 #: sesión".
 REQUEST = object()
@@ -79,7 +79,7 @@ def test_a_passkey_of_the_user_confirms_identity(owner, passkey):
     La asimetría ``type='webauthn'`` → ``auth_method='passkey'`` también es de
     la fuente (``:69``); ver :ref:`h-api-779`.
     """
-    with patch.object(PasskeyKey, 'verify_auth', return_value=4):
+    with patch.object(PasskeyKey, '_verify_auth', return_value=4):
         auth = _check_credential(owner, _credential(), REQUEST)
 
     assert auth == {'uid': owner.pk, 'auth_method': 'passkey', 'mfa': 'skip'}
@@ -96,7 +96,7 @@ def test_a_passkey_of_another_user_is_rejected(owner, passkey, django_user_model
     """
     intruder = django_user_model.objects.create_user(login='otro@kaupamex.test')
 
-    with patch.object(PasskeyKey, 'verify_auth', return_value=4) as verify:
+    with patch.object(PasskeyKey, '_verify_auth', return_value=4) as verify:
         auth = _check_credential(intruder, _credential(), REQUEST)
 
     assert auth is None
@@ -112,7 +112,7 @@ def test_an_invalid_assertion_does_not_advance_the_counter(owner, passkey):
     El eslabón levanta ``AccessDenied`` —como la fuente— y el envoltorio lo
     traduce; la vista lee ``None`` y sella 401 ``CHECK_IDENTITY_FAILED``.
     """
-    with patch.object(PasskeyKey, 'verify_auth',
+    with patch.object(PasskeyKey, '_verify_auth',
                       side_effect=InvalidAuthenticationResponse('mala firma')):
         auth = _check_credential(owner, _credential(), REQUEST)
 
@@ -126,10 +126,10 @@ def test_an_invalid_assertion_does_not_advance_the_counter(owner, passkey):
 def test_the_new_sign_count_is_persisted(owner, passkey):
     """Sin el asiento, la misma aserción capturada volvería a valer.
 
-    El autenticador incrementa el contador en cada uso y ``verify_auth``
+    El autenticador incrementa el contador en cada uso y ``_verify_auth``
     rechaza uno que no supere al guardado — pero sólo si el guardado avanzó.
     """
-    with patch.object(PasskeyKey, 'verify_auth', return_value=9):
+    with patch.object(PasskeyKey, '_verify_auth', return_value=9):
         _check_credential(owner, _credential(), REQUEST)
 
     passkey.refresh_from_db()
@@ -234,7 +234,7 @@ def test_only_the_passkey_declares_skip(owner, passkey):
     los dos de arriba caen. Sin él, un cambio que devolviera ``'skip'`` en los
     cuatro pasaría por correcto.
     """
-    with patch.object(PasskeyKey, 'verify_auth', return_value=4):
+    with patch.object(PasskeyKey, '_verify_auth', return_value=4):
         passkey_auth = _check_credential(owner, _credential(), REQUEST)
     password_auth = _check_credential(
         owner, {'type': 'password', 'password': 'contraseña-de-prueba'},

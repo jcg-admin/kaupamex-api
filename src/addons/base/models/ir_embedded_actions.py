@@ -211,7 +211,10 @@ class IrEmbeddedActions(TimeStampedModel):
 
     @property
     def is_deletable(self):
-        """¿Se puede borrar? — una acción de sistema, no."""
+        """¿Se puede borrar? — una acción de sistema, no.
+
+        ≙ ``_compute_is_deletable`` (``odoo19c: base/models/ir_embedded_actions.py``).
+        """
         return not self.system
 
     def check_deletable(self):

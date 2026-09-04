@@ -58,6 +58,10 @@ from orm.method_chain import chain_method
 from addons.base.models.res_partner import ResPartner
 
 
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
+
+
 def _vcard_escape(value):
     """Escapa ``,`` ``;`` ``\\`` y saltos de línea — RFC 6350 §3.4.
 

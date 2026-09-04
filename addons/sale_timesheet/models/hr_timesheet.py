@@ -75,8 +75,8 @@ Porte símbolo por símbolo
        ``task_id.partner_id`` **o** ``project_id.partner_id``;
        ``project.ProjectTask`` de este árbol no declara ``partner`` (0 hits),
        así que sólo la segunda mitad es alcanzable.
-       ``ResPartner.commercial_partner`` sí existe
-       (``api: src/addons/base/models/res_partner.py:281``).
+       ``ResPartner.commercial_partner_id`` sí existe, y desde #314 como
+       **columna** (``api: src/addons/base/models/res_partner.py:445``).
    * - ``so_line`` (:39-41)
      - **BLOQUEADO** — ver "El bloqueo raíz" arriba.
    * - ``allow_billable`` (:45)
@@ -128,7 +128,9 @@ Porte símbolo por símbolo
      - BLOQUEADO por ``so_line`` **y** por
        ``sale.order.line._sellable_lines_domain`` (0 hits).
    * - ``_compute_commercial_partner`` (:48-51)
-     - portado dentro de la property ``commercial_partner``.
+     - portado dentro de la property ``commercial_partner``. Que aquí siga
+       siendo property y no columna es la divergencia de forma que la tarea
+       **#302** barre; #314 sólo cerró la de ``res.partner``.
    * - ``_compute_so_line`` (:79-82)
      - BLOQUEADO por ``so_line``.
    * - ``_compute_partner_id`` (:84-86) / ``_compute_project_id`` (:88-90)
@@ -227,7 +229,7 @@ def commercial_partner(self):
     declara ``partner`` (medido: 0 hits), así que sólo queda la segunda mitad.
     """
     if self.project_id and self.project.partner_id:
-        return self.project.partner.commercial_partner
+        return self.project.partner.commercial_partner_id
     return None
 
 

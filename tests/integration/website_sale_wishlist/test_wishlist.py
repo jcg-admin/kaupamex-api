@@ -150,8 +150,8 @@ class TestWishlist:
     def test_delete_item(self, auth_client, prod_s14, db):
         res = auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         item_id = res.json()['id']
-        del_res = auth_client.delete(f'{WISH_URL}{item_id}/')
-        assert del_res.status_code == 204
+        of_res = auth_client.delete(f'{WISH_URL}{item_id}/')
+        assert of_res.status_code == 204
         assert auth_client.get(WISH_URL).json()['results'] == []
 
     def test_delete_is_soft(self, auth_client, prod_s14, db):

@@ -1,0 +1,18 @@
+=== CONTROL 1 — la FK del formulario sin tabla vuelve a PROTECT ===
+=========================== short test summary info ============================
+FAILED tests/integration/base_setup/test_company_delete_with_a_tableless_form.py::TestDeletingACompany::test_it_does_not_query_the_form_without_a_table
+FAILED tests/integration/base/test_migration_seeds_survive_flush.py::TestRestauracionDeLaEmpresaDeBootstrap::test_borrar_y_re_sembrar_restaura_la_empresa_declarada
+FAILED tests/integration/base_setup/test_company_delete_with_a_tableless_form.py::TestTheDeclarationSaysWhy::test_the_company_link_is_not_collected
+3 failed, 6 passed, 1 warning in 5.82s
+restaurado: identico
+
+=== CONTROL 2 — _fields vuelve a ser solo _meta ===
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/base/test_res_partner_field_registry.py::TestTheRegistryHoldsEveryDeclaredField::test_it_holds_the_field_without_a_column
+FAILED tests/integration/base/test_res_partner_field_registry.py::TestTheRegistryHoldsEveryDeclaredField::test_every_address_field_is_in_the_registry
+FAILED tests/integration/base/test_res_partner_field_registry.py::TestTheOneToManyGuardSurvives::test_the_field_without_a_column_goes_through
+FAILED tests/integration/base/test_res_partner_field_registry.py::TestWritingTheFieldWithoutAColumn::test_the_address_values_carry_it
+4 failed, 6 passed, 1 warning in 5.18s
+restaurado: identico

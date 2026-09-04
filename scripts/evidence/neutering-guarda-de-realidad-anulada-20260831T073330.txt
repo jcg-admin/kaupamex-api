@@ -1,0 +1,12 @@
+# Control discriminante — guarda-de-realidad-anulada
+# fecha:    2026-08-31T07:33:30
+# archivo:  src/orm/fields_nonstored.py
+# anulado:  s/        if bool(getattr(target, 'pk', None)) != bool(getattr(instance, 'pk',/        if False and bool(getattr(target, 'pk', None)) != bool(getattr(instance, 'pk',/
+# tests:    tests/unit/orm/test_related_write_reaches_the_far_end.py
+
+## 1. Verde de partida (guarda presente)
+9 passed, 1 warning in 5.48s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_related_write_reaches_the_far_end.py::TestTheGuardOfTheSource::test_an_unsaved_record_does_not_write_into_a_saved_one
+1 failed, 8 passed, 1 warning in 7.50s

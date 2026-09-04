@@ -14,7 +14,7 @@ pytestmark = pytest.mark.django_db
 class TestHrEmployeeCategoryColor:
     """≙ ``_get_default_color``: ``randint(1, 11)``."""
 
-    def test_default_color_is_within_the_odoo_range(self):
+    def test_default_color_is_within_the_reference_range(self):
         category = HrEmployeeCategory.objects.create(name='Freelance')
         assert 1 <= category.color <= 11
 

@@ -15,3 +15,8 @@ No hay resolutor que registrar — el comportamiento por defecto del mixin
 referencia lo tiene y porque esta explicación es lo que se perdería al no
 tenerlo.
 """
+
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_name = 'res.partner'
+_inherit = ['res.partner', 'bus.listener.mixin']
+

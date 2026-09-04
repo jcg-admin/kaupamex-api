@@ -1,0 +1,34 @@
+{
+  "question": "El slug del escaparate coincide con ir.http._slug de la fuente, o dos serializers hermanos producen dos slugs distintos para el mismo nombre?",
+  "instrument": [
+    "probes/probe_two_slugifiers.py — los dos slugify sobre siete nombres, incluidos tres sin ASCII",
+    "probes/probe_empty_branch.py — que devuelve IrHttp.slugify_one ante un nombre sin caracteres de palabra",
+    "probes/probe_display_name_vs_name.py — si display_name difiere de name en ProductTemplate hoy",
+    "scripts/neutralize_and_measure.sh — anula la guarda del slug vacio y mide que casos caen",
+    "uv run pytest tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py -q --reuse-db"
+  ],
+  "metric": "nombres en que los dos slugify divergen (5 de 7; 3 dan cadena vacia con el de Django), y casos que caen al anular la guarda del slug vacio (4 de 15, exactamente los de esa clase)",
+  "blind_to": [
+    "un duplicador que llame al slugify de Django por otro camino — django.utils.text.slugify(...) sin from — y la raiz tests/, que el comando citado no barre",
+    "la composicion completa de _slug: la fuente la declara en addons/http_routing, que no esta portado, asi que el SITIO diverge y solo se porta el algoritmo",
+    "el override de website.IrHttp._slug, que prefiere seo_name: 0 hits en este arbol, no medido en conducta"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/hallazgo-H-API-993-el-slug-del-escaparate-no-era-el-de-la-fuente.rst",
+  "source": [
+    "odoo19c: addons/http_routing/models/ir_http.py — _slug y _slugify (odoo-tools, solo lectura)",
+    "src/addons/base/models/ir_http.py:224,247 — slugify_one y slugify, el algoritmo ya portado",
+    "addons/website_sale/controllers/serializers.py — el consumidor que llamaba al de Django"
+  ],
+  "reproducible": "bash scripts/neutralize_and_measure.sh (ver scripts/evidence/neutering-guard-slug-vacio-20260831T105404.txt)",
+  "corrected_premise": {
+    "afirmado_antes": "nada del arbol de aplicacion duplica slugify — grep sobre src/ da 0",
+    "medido_ahora": "el comando medía el archivo que lo declara y no miraba addons/, donde website_sale importaba el slugify de Django",
+    "por_que_divergen": "dos defectos del instrumento que se anulaban entre si: la auto-coincidencia inflaba y la raiz ausente ocultaba",
+    "cambia_el_veredicto": true
+  },
+  "tasks": [
+    "#250",
+    "#261"
+  ],
+  "outputs": []
+}

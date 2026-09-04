@@ -255,9 +255,9 @@ class TestSaleOrderLineMethodsV2:
         total = Decimal('200.00')
         expected_tax = (total * rate / (Decimal('1') + rate)).quantize(
             Decimal('0.01'))
-        assert line.price_total() == total
-        assert line.price_tax() == expected_tax
-        assert line.price_subtotal() == total - expected_tax
+        assert line.price_total == total
+        assert line.price_tax == expected_tax
+        assert line.price_subtotal == total - expected_tax
 
     def test_current_price_and_availability(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())

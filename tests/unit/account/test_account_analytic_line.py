@@ -221,17 +221,37 @@ class TestWhatStaysBlockedBySecondOrderCause:
         names = {f.name for f in AccountAnalyticLine._meta.get_fields()}
         assert 'journal' not in names
 
-    def test_account_move_line_has_no_partner_nor_journal_field(self):
-        """Segundo orden: ``account.move.line`` (fuera de alcance) no
-        declara ``partner`` ni ``journal`` — bloquea ``_compute_partner_id``
-        y ``journal`` respectivamente."""
-        names = {f.name for f in AccountMoveLine._meta.get_fields()}
-        assert 'partner' not in names
-        assert 'journal' not in names
+    def test_account_move_line_now_declares_partner_and_journal(self):
+        """El bloqueo de segundo orden CAMBIÓ DE DUEÑO — tarea #989.
 
-    def test_analytic_line_has_no_update_analytic_distribution_consumer(self, company, move_line):
-        """``create``/``write``/``unlink`` (BLOQUEADO): el campo que
-        recibirían, ``analytic_distribution``, no existe en
-        ``account.move.line``."""
+        Este caso afirmaba lo contrario, y era correcto al escribirse: el
+        apunte no declaraba ``partner`` ni ``journal``, así que la línea
+        analítica quedaba bloqueada por ellos. Las dos columnas se portaron
+        con las otras doce que la vista ``account.invoice.report`` lee.
+
+        Lo que sigue bloqueando a ``journal`` de la línea analítica ya no es
+        el apunte: es que el ``related`` de la fuente no se ha tendido. El
+        caso hermano de arriba lo mide, y su sucesor sigue siendo el mismo.
+
+        Los dos símbolos llevan el sufijo de la referencia porque ADR-029
+        gobierna la forma C: ``partner_id``/``journal_id`` con ``db_column``
+        del mismo nombre, no ``partner``/``journal``.
+        """
         names = {f.name for f in AccountMoveLine._meta.get_fields()}
-        assert 'analytic_distribution' not in names
+        assert 'partner_id' in names
+        assert 'journal_id' in names
+
+    def test_the_analytic_distribution_consumer_is_no_longer_blocked(self, company, move_line):
+        """Reescrito, no ajustado: antes exigía la ausencia del campo.
+
+        ``create``/``write``/``unlink`` de la fuente actualizan el reparto
+        analítico del apunte. Su bloqueo era que el campo no existía; desde la
+        tarea #526 existe, y llega por herencia de ``analytic.mixin``.
+
+        Lo que este caso NO afirma es que los tres métodos estén portados: mide
+        que su bloqueador cayó, que es un hecho distinto. El porte de los tres
+        es la tarea #992.
+        """
+        names = {f.name for f in AccountMoveLine._meta.get_fields()}
+        assert 'analytic_distribution' in names
+        assert move_line.analytic_distribution in (None, {})

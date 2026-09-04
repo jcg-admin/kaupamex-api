@@ -6,6 +6,8 @@ settings ``MULTIDB_*`` de Django, centralizadas en accesores tipados para no
 esparcir ``getattr(settings, ...)`` por el código (== ``odoo.tools.config`` como
 punto único de acceso a la configuración).
 """
+from pathlib import Path
+
 from django.conf import settings
 
 # Encoding y plantilla canónicos del proyecto (== ``config['db_template']`` de
@@ -59,3 +61,60 @@ def db_template():
     ``template1`` PostgreSQL los hereda y rechaza el override.
     """
     return getattr(settings, 'MULTIDB_DB_TEMPLATE', _DEFAULT_TEMPLATE)
+
+
+def root_path():
+    """Raíz del paquete del producto — ≙ ``config.root_path`` de la referencia.
+
+    Allá es el directorio del paquete ``odoo/``; aquí es ``src/``, que es la
+    misma relación (ver el comentario de ``modules.module.ADDONS_PATHS``, donde
+    esa correspondencia ya se declara). La consume el cargador de datos para
+    localizar ``import_xml.rng``, igual que ``convert_xml_import`` allá.
+    """
+    return str(Path(__file__).resolve().parent.parent)
+
+
+def test_enable():
+    """≙ ``config['test_enable']`` — ¿corre la aplicación bajo pruebas?
+
+    La fuente lo lee de su bandera de línea de comandos; aquí el equivalente
+    es que el módulo de settings cargado sea el de pruebas
+    (``config.settings.testing``), que es la única forma en que este árbol
+    entra en modo de prueba.
+    """
+    return settings.SETTINGS_MODULE.endswith('.testing')
+
+
+def dev_mode():
+    """≙ ``config['dev_mode']`` — la lista de modos de desarrollo activos.
+
+    La fuente la puebla desde ``--dev=qweb,reload,…``; aquí la única fuente de
+    verdad del modo de desarrollo es ``DEBUG``, así que la lista es ``['qweb']``
+    con ``DEBUG`` encendido y vacía en producción. Se devuelve una lista y no
+    un booleano para conservar el contrato (``'qweb' in config['dev_mode']``).
+    """
+    return ['qweb'] if settings.DEBUG else []
+
+
+def bin_path():
+    """≙ ``config['bin_path']`` — directorio extra donde buscar binarios externos.
+
+    La fuente lo añade al ``PATH`` heredado antes de resolver un ejecutable
+    (``odoo19c: odoo/tools/misc.py:find_in_path``), para el despliegue donde el
+    binario auxiliar no vive en una ruta del sistema. Aquí el equivalente es la
+    setting ``BIN_PATH``; vacía significa "sólo el ``PATH`` del proceso".
+    """
+    return getattr(settings, 'BIN_PATH', '') or ''
+
+
+def pg_path():
+    """≙ ``config['pg_path']`` — directorio de las herramientas de PostgreSQL.
+
+    Gobierna dónde se busca ``pg_dump``/``pg_restore``
+    (``odoo19c: odoo/tools/misc.py:find_pg_tool``). Con un cluster instalado por
+    el gestor de paquetes los binarios están en el ``PATH`` y esta setting sobra;
+    hace falta cuando conviven varias versiones de PostgreSQL y el volcado debe
+    salir de una en concreto — un ``pg_dump`` más viejo que el servidor rehúsa
+    con ``server version mismatch``.
+    """
+    return getattr(settings, 'PG_PATH', '') or ''

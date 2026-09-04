@@ -33,10 +33,10 @@ _spec = importlib.util.spec_from_file_location(
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 
-_HAS_REFERENCE_TREE = gate.ODOO19C.is_dir()
+_HAS_REFERENCE_TREE = gate.REFERENCE_19C.is_dir()
 requires_reference_tree = pytest.mark.skipif(
     not _HAS_REFERENCE_TREE,
-    reason=f'árbol de referencia no montado en {gate.ODOO19C}')
+    reason=f'árbol de referencia no montado en {gate.REFERENCE_19C}')
 
 
 def _class_def(source, name='C'):

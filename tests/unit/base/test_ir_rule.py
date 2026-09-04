@@ -23,6 +23,8 @@ from addons.base.models.ir_rule import IrRule
 from addons.base.models.res_groups import ResGroups
 from addons.sale_subscription.models import CompanyModuleSubscription
 from orm.environments import company_scope, sudo
+from django.core.exceptions import ValidationError
+
 from tools.safe_eval import safe_eval
 
 pytestmark = pytest.mark.django_db
@@ -44,7 +46,7 @@ _CODES = ('alfa', 'beta', 'gama')
 
 
 def _visible(group_ids=()):
-    q = IrRule.compute_domain(MODEL, mode='read', group_ids=group_ids)
+    q = IrRule._compute_domain(MODEL, mode='read', group_ids=group_ids)
     return set(ResCompany.objects.filter(code__in=_CODES).filter(q)
                .values_list('code', flat=True))
 
@@ -95,7 +97,7 @@ class TestComputeDomain:
 
     def test_modo_invalido_revienta(self):
         with pytest.raises(ValueError):
-            IrRule.get_rules(MODEL, mode='browse')
+            IrRule._get_rules(MODEL, mode='browse')
 
 
 class TestBuildDomain:
@@ -103,23 +105,60 @@ class TestBuildDomain:
         alfa = ResCompany.objects.get(code='alfa')
         rule = _rule('mc', "[('id', 'in', company_ids)]")
         with company_scope(alfa.pk):
-            q = rule.build_domain(IrRule.eval_context())
+            q = rule._build_domain(IrRule._eval_context())
         assert set(ResCompany.objects.filter(q)) == {alfa}
 
     def test_leaf_verdadero_de_la_fuente(self, tres_companias):
         # ``[(1, '=', 1)]`` — el TRUE de ``base_security.xml``.
         rule = _rule('true', "[(1, '=', 1)]")
-        q = rule.build_domain({})
+        q = rule._build_domain({})
         assert ResCompany.objects.filter(code__in=_CODES).filter(q).count() == 3
 
-    def test_codigo_arbitrario_se_rechaza_antes_de_evaluar(self):
-        rule = _rule('mala', "__import__('os').system('id')")
-        with pytest.raises(ValueError):
-            rule.build_domain({})
+    def test_arbitrary_code_is_rejected_on_save(self):
+        """El rechazo se adelantó al ``save``, que es donde la fuente lo pone.
 
-    def test_safe_eval_bloquea_atributos_privados(self):
-        with pytest.raises(ValueError):
+        Antes este caso creaba la regla y comprobaba que ``_build_domain``
+        reventaba **al evaluarla**. Ahora ni se guarda: ``_check_domain`` es el
+        ``@api.constrains('active', 'domain_force', 'model_id')`` de la fuente
+        (``odoo19c: ir_rule.py:64-73``), y una regla con dominio roto rompería
+        toda consulta sobre su modelo — lejos de donde se escribió.
+        """
+        with pytest.raises(ValidationError):
+            _rule('mala', "__import__('os').system('id')")
+
+    def test_the_evaluator_still_rejects_it_unsaved(self):
+        """La guarda de ``safe_eval`` no se movió: se le añadió una anterior.
+
+        Qué haría fallar al caso: que ``_build_domain`` dejara de validar
+        confiando en que ``_check_domain`` ya lo hizo. Una fila escrita por SQL
+        crudo —una migración, una siembra— no pasa por el ``save``.
+
+        La excepción es ``NameError``, no ``ValueError``: con el porte completo
+        de ``safe_eval`` (tarea #140) la guarda que para esta expresión es
+        ``assert_no_dunder_name`` —``__import__`` contiene ``__``—, que corre
+        antes que la de opcodes. Se afirma la que se mide, no la union de las
+        dos: la union no distinguiria cual de las dos guardas actua, que es
+        justo lo que este caso existe para comprobar.
+        """
+        rule = IrRule(name='mala', model_name=MODEL,
+                      domain_force="__import__('os').system('id')")
+        with pytest.raises(NameError, match='forbidden name'):
+            rule._build_domain({})
+
+    def test_the_evaluator_blocks_traversal_to_the_class(self):
+        with pytest.raises(NameError, match='forbidden name'):
             safe_eval("[('a', '=', user.__class__)]", {'user': object()})
+
+    def test_a_plain_domain_over_the_same_context_still_evaluates(self):
+        """Control positivo de los dos casos de arriba.
+
+        Sin el, un verde no distingue «la guarda rechaza lo prohibido» de «el
+        evaluador rechaza todo». Este dominio usa el MISMO nombre del contexto
+        y si tiene que evaluarse.
+        """
+        assert safe_eval("[('company_id', 'in', company_ids)]",
+                         {'company_ids': [1, 2]}) == [
+            ('company_id', 'in', [1, 2])]
 
 
 class TestRuleScopedManagerSemantica:

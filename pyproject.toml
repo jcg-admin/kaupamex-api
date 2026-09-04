@@ -50,7 +50,55 @@ dependencies = [
     # odoo19c: setup/odoo-wsgi.example.py (odoo-tools@622ddc2a).
     "gunicorn>=23.0.0",
     "lxml>=6.1.1",
+    # Aritmetica de calendario para el cargador de datos XML: el contexto de
+    # evaluacion de `tools/convert.py` expone `relativedelta` a las expresiones
+    # de un archivo de datos, tal cual la referencia
+    # (odoo19c: odoo/tools/convert.py:20). Ni stdlib ni Django lo traen —
+    # `timedelta` no sabe de meses ni de anios.
+    "python-dateutil>=2.9.0",
     "paramiko>=3.4.0",
+    "passlib>=1.7.4",
+    # Formateo de fecha/hora sensible a la localizacion. Lo importa la
+    # referencia y lo consume `ir.actions.server.history._compute_display_name`
+    # (odoo19c: odoo/addons/base/models/ir_actions.py:519-524), que etiqueta
+    # cada revision con la fecha en el idioma del lector. Ni stdlib ni Django
+    # dan `format_datetime(locale=...)`: `django.utils.formats` formatea con el
+    # idioma ACTIVO del proceso, no con uno pedido por argumento.
+    "babel>=2.14.0",
+    # Zonas horarias con su base de datos propia. La referencia la importa en
+    # `odoo/tools/safe_eval.py:496` y la EXPONE al espacio de nombres de toda
+    # expresion almacenada (`pytz.timezone(...)`), asi que sin ella el porte de
+    # `safe_eval` no puede ofrecer el mismo contrato. No sustituye a `zoneinfo`
+    # —que es lo que usa el resto del arbol y lo que Django 6 espera—: convive
+    # con el, acotada al espacio de `safe_eval` y a los seis sitios que hoy
+    # declaran divergencia por su ausencia.
+    "pytz>=2024.1",
+    # Escapado seguro de HTML. Lo importa la referencia en
+    # `odoo/tools/json.py:8` para que `scriptsafe.dumps` devuelva una cadena
+    # que sabe escaparse al incrustarse en una plantilla (`__html__`). Es la
+    # dependencia de Jinja2/Flask, no de Werkzeug: no entra en la exclusion
+    # del stack (usamos gunicorn, no Werkzeug).
+    "markupsafe>=2.1.0",
+    "python-barcode>=0.15.1",
+    "qrcode>=7.4",
+    "zeep>=4.3.3",
+    # Validacion de identificadores fiscales por pais. La referencia la
+    # importa al top de `base_vat/models/res_partner.py:8` y su despachador
+    # central resuelve el validador por defecto de CADA pais con
+    # `stdnum.util.get_cc_module(cc, 'vat').is_valid`
+    # (odoo19c: addons/base_vat/models/res_partner.py:345): los `check_vat_xx`
+    # propios son la excepcion, no la regla. Medido sobre odoo19c: 27 archivos
+    # en 19 addons la importan, 48 usos solo en ese archivo, y ningun manifest
+    # la declara — es dependencia real aunque no este en external_dependencies.
+    #
+    # No se reimplementa. La regla de construir lo que el stack no trae es para
+    # MECANISMOS que Django no tiene (related=, company_dependent, el campo sin
+    # columna); esto es una tabla de algoritmos de ~100 paises, y escribirla
+    # aqui seria fabricar una segunda fuente de verdad para el RFC mexicano y
+    # noventa mas, sin nadie que la mantenga. LGPL-2.1+, sin dependencias
+    # obligatorias propias (`zeep` solo como extra, y ya esta en esta lista).
+    "python-stdnum>=2.0",
+    "psutil>=5.9.8",
 ]
 
 [project.optional-dependencies]
@@ -76,6 +124,12 @@ test = [
     "pytest==7.4.4",
     "pytest-django==4.7.0",
     "factory-boy==3.3.0",
+    # Reparto por proceso, con una base por worker. pytest-django lo resuelve
+    # en django_db_modify_db_settings_xdist_suffix: sufija TEST.NAME con el
+    # workerid, asi que la base compartida nunca se toca. Medido 2.54x con
+    # cuatro workers en cuatro CPUs, equilibrio en la tercera ejecucion sobre
+    # las mismas bases. Ver H-API-804.
+    "pytest-xdist==3.6.1",
 ]
 dev = [
     # Herramientas de desarrollo (shell_plus, graph_models, etc.) + todo test.

@@ -69,9 +69,9 @@ class LDAPWrapper:
         self.__obj__.unbind(*args, **kwargs)
 
 
-class CompanyLdapManager(models.Manager):
+class CompanyLdapManager(models.AccessManager):
 
-    def get_ldap_dicts(self):
+    def _get_ldap_dicts(self):
         """≙ ``_get_ldap_dicts`` (res_company_ldap.py:74-95): configuraciones
         en formato dict, ordenadas por ``sequence``."""
         return list(

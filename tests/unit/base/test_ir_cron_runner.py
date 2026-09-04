@@ -20,10 +20,12 @@ Verifica, en los dos sentidos donde aplica:
 Toca DB → django_db (algunas, ``transaction=True`` para el test de
 concurrencia real entre hilos).
 """
+import select
 import signal
 import subprocess
 import sys
 import threading
+import time
 from datetime import timedelta
 from pathlib import Path
 
@@ -256,6 +258,36 @@ def _correr_cron_subproceso(*extra_args):
     )
 
 
+def _wait_until_it_handles_signals(proc, timeout=60):
+    """Espera a que el worker anuncie que ya instaló sus handlers.
+
+    Espera **la condición**, no una duración. La versión anterior de este
+    archivo hacía ``proc.wait(timeout=2)`` y mandaba SIGTERM al expirar; esos
+    2 s son el arranque de Django, que en una máquina ociosa sobran y bajo
+    carga no alcanzan. Cuando no alcanzan, la señal llega **antes** de que el
+    handler exista, el proceso muere con la disposición por defecto
+    (``returncode`` −15) y el test se pone rojo sin que el código haya
+    cambiado: un rojo que no distingue «el apagado limpio está roto» de «la
+    máquina estaba ocupada». Ver :ref:`h-api-841`.
+
+    :returns: la línea de disponibilidad ya consumida de ``stdout``.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            rest = proc.stdout.read()
+            pytest.fail('cron termino solo antes de estar listo '
+                        f'(returncode={proc.returncode}, stdout={rest!r})')
+        ready, _, _ = select.select([proc.stdout], [], [], 0.5)
+        if not ready:
+            continue
+        line = proc.stdout.readline()
+        if 'worker' in line and 'activo' in line:
+            return line
+    proc.kill()
+    pytest.fail(f'cron no anuncio disponibilidad en {timeout}s')
+
+
 @pytest.mark.django_db(transaction=True)
 def test_cron_command_una_pasada_sale_0():
     """``--once``: procesa una pasada sobre todas las bases y sale — sanity
@@ -276,21 +308,9 @@ def test_cron_command_sale_limpio_ante_sigterm():
     dormido cuando llega SIGTERM — y salir en segundos, no esperar el
     intervalo completo (30s)."""
     proc = _correr_cron_subproceso('--interval', '30')
-    try:
-        # Deja tiempo para que Django arranque, corra la primera pasada
-        # (rapida, sin jobs listos) y entre a dormir.
-        proc.wait(timeout=2)
-        pytest.fail(
-            'cron termino solo antes de recibir la señal '
-            f'(returncode={proc.returncode})'
-        )
-    except subprocess.TimeoutExpired:
-        # silent OK because el timeout ES la aserción: que `wait` expire
-        # significa que el proceso sigue vivo y durmiendo, que es justo lo
-        # que este test comprueba antes de mandarle SIGTERM. El caso de
-        # fallo lo cubre el pytest.fail de arriba, al que se llega si el
-        # proceso terminó solo.
-        pass
+    # La señal se manda cuando el worker DICE que ya la atiende, no tras una
+    # espera fija — la precondición del caso es que el handler exista.
+    _wait_until_it_handles_signals(proc)
 
     proc.send_signal(signal.SIGTERM)
     try:

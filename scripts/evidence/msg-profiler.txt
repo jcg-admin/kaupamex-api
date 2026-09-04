@@ -1,0 +1,65 @@
+Port tools/profiler, the execution recorder
+
+Tercer bloque de la tarea #338. profiler.py es el modulo con mas
+consumidores medidos de odoo/tools y el unico llamador directo de
+speedscope.py, portado en api@9bb9b3e1: cerrarlo aqui completa el par.
+
+Es el grabador de ejecucion: colectores que muestrean la pila por hilo
+(PeriodicCollector), registran cada consulta SQL (SQLCollector), miden
+el uso de memoria y sincronizan trazas; el Profiler los orquesta como
+context manager y persiste el perfil en ir_profile.
+
+41 de 41 simbolos de odoo19c: odoo/tools/profiler.py, medidos por AST
+sobre el recorrido completo; ninguno ausente y ninguno nuestro que
+sobre. El cuerpo se copia y adapta con atribucion (LGPL-3 declarado en
+el manifiesto del nucleo, DEC-KX-03); los comentarios y docstrings
+pasan a espanol, los identificadores se conservan.
+
+Dos divergencias de mecanismo, ambas declaradas en el codigo:
+
+- El INSERT del perfil. La referencia pasa la fila entera como UNA
+  tupla a un solo %s: psycopg2 la adapta a la lista (a,b,c) de un
+  VALUES, psycopg3 la adapta a un literal de tipo compuesto —medido:
+  VALUES '(persistido,"2026-...")', error de sintaxis—. Aqui cada
+  valor lleva su propio marcador via SQL(",").join(values.values()).
+- Las columnas NOT NULL de nuestro ir_profile. updated_at no existe en
+  la referencia (es la segunda columna de auditoria de
+  TimeStampedModel) y las cinco de traza son nullables alla porque su
+  default vive en el modelo. Se siembran —updated_at igual a
+  created_at, las de traza vacias— antes del bucle de colectores.
+
+install_runbot_level() se construye en tools/logging_handlers.py: el
+nivel RUNBOT=25 vive en odoo19c: odoo/netsvc.py:339-341,365-367, que no
+es un modulo de tools. Es idempotente y se invoca al importar profiler.
+
+psutil entra como dependencia porque la referencia la declara en su
+propio requirements.txt:57-59 y setup.py:49; MemoryCollector la usa
+para leer el RSS del proceso.
+
+Los dos controles que discriminan, medidos con la guarda anulada y
+registrados en scripts/evidence/profiler-controles.log:
+
+- La guarda del marco en PeriodicCollector.add. Sustituida por
+  if False cae exactamente 1 caso de 79: el que mide el hilo sin marco.
+  La medicion destapo que su comentario en la referencia no describe lo
+  que el codigo hace: el bloque de congelamiento limpia last_frame,
+  asi que la comparacion nunca ve el marco anterior. El porte se deja
+  verbatim y el test afirma la conducta medida.
+- El salto de los marcos del propio archivo en get_current_frame. Con
+  while False caen exactamente 2 de 79. El archivo vuelve byte a byte
+  tras restaurar: mismo sha256.
+
+79 casos nuevos. La suite derivada del simbolo tocado es
+tests/unit/tools, derivada con grep -rl sobre tests/: 911 passed en
+9.74 s. Gates estaticos en verde: sin lazy imports (2586 archivos), sin
+silencios de excepcion injustificados (2586), canon-idioma sin
+violaciones e identificadores en ingles (3 archivos).
+
+El gate de idioma marco 7 identificadores en espanol en el archivo de
+test; se renombraron esos y los demas locales de la misma clase con
+scripts/evidence/rename_test_profiler_ids.py, que reemplaza por
+POSICION sobre los nodos que el AST declara identificador y avisa de
+toda colision con un nombre ya ligado en la misma funcion. Asi la prosa
+de docstrings y comentarios, que va en espanol, queda intacta.
+
+Refs: #338

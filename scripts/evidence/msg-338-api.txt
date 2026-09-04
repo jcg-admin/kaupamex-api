@@ -1,0 +1,40 @@
+Port four absent modules of odoo/tools with tests
+
+La raiz espejada src/tools no tenia which, gc, osutil ni i18n, que la
+referencia declara en odoo/tools y de los que cuelgan consumidores ya
+portados: find_in_path resuelve un binario externo, el registro y el
+perfilador apagan el recolector, el volcado de una base comprime su
+filestore, y el formateo de una lista pide el conector del idioma.
+
+Los cuatro se portan enteros — medido contra $ODOO19C/odoo/tools por
+comparacion de simbolos: which 13/13, gc 16/16, osutil 16/16 e i18n
+7/7, sin ausentes. Se anaden config.bin_path() y config.pg_path(), que
+son los ajustes que find_in_path y find_pg_tool consultan, y
+service/db.py deja de fijar a mano la ruta de pg_dump y pg_restore.
+
+Los tests cierran el sub-patron D de metrica-decide-la-conclusion: un
+control tiene que poder fallar.
+
+- El caso negativo de modo de which no se porta verbatim. La fuente usa
+  mode=W_OK con el comentario "not running as root, are you?"; aqui el
+  proceso corre como uid 0 y os.access(..., W_OK) da True, asi que ese
+  caso pasaria por la razon contraria a la que dice medir. Se sustituye
+  por un control de X_OK sobre un archivo que EXISTE y no es ejecutable,
+  que root si respeta.
+- El confinamiento de zip_dir se midio con la guarda anulada: con el
+  predicado commonpath sustituido por un os.path.isfile pelado, el
+  subconjunto pasa de 32 passed a 1 failed, 31 passed, y el que cae es
+  exactamente el enlace que apunta fuera del arbol. Restaurada la
+  guarda, 32 passed.
+- El callback de gc se lee por el modulo y no por un nombre importado:
+  gc_set_timing REASIGNA _gc_timings, asi que un nombre atado en el
+  import seguiria apuntando a la lista vieja y sumaria cero siempre.
+
+Al escribir los casos de i18n aparecieron dos huecos de fidelidad en el
+puerto, corregidos contra la fuente: faltaba la anotacion Literal[...]
+de los siete estilos, y format_list consultaba res.lang aun con un
+lang_code explicito — la fuente corta con lang_code or get_lang(env).
+
+797 passed en tests/unit/tools.
+
+Refs: #338

@@ -147,21 +147,17 @@ archivos línea a línea, no asumida:
 6. **``_compute_owner_id`` → property ``owner`` (:409).** Mismo mecanismo —
    ``owner_id`` → ``owner``. Cuerpo idéntico: sólo hay dueño si todos los
    quants coinciden.
-7. **``_compute_display_name`` — divergencia real, no ceguera del gate.** La
-   referencia computa el campo ``display_name`` leyendo tres claves de
-   ``self.env.context`` (``is_done``/``show_src_package``/
-   ``show_dest_package``) que pone su cliente web al abrir el formulario
-   (``odoo19c: :72-90``). Este stack no tiene ese contexto implícito de
-   petición — no hay `` env.context`` que leer en un método de modelo — así
-   que la rama por defecto vive en ``__str__`` (:198) y las tres explícitas en
-   ``display_name(self, is_done=False, show_src_package=False,
-   show_dest_package=False, formatted=False)`` (:209), con los mismos
-   parámetros como argumentos en vez de contexto ambiental. No es property
-   porque toma argumentos —Python no permite parametrizar un ``property``—,
-   así que el gate no la absuelve nunca por esta vía. Es la misma decisión de
-   diseño que ya declaran los tres ``_default_*`` de
-   ``product_strategy.py::StockPutawayRule`` (contexto por parámetro
-   explícito, no ambiental).
+7. **``_compute_display_name`` — portado, y la divergencia se cerró.** Esta
+   entrada declaraba que el stack «no tiene ese contexto implícito de
+   petición», así que las cuatro claves de la referencia
+   (``is_done``/``show_dest_package``/``show_src_package``/
+   ``formatted_display_name``) viajaban como **parámetros** de un
+   ``display_name(self, is_done=False, …)``. **La premisa caducó:** el
+   contexto existe —``orm.environments.get_context``— y ya lo consumen
+   ``ResPartner._compute_display_name`` y
+   ``ProductSupplierinfo._compute_display_name``. El método toma el nombre y
+   la firma de la fuente, lee el contexto, y ``__str__`` conserva la rama por
+   defecto para el ``str()`` de Python.
 
 Deuda saldada al tocar el archivo (2026-08-18)
 ================================================
@@ -189,6 +185,7 @@ from django.db.models import Sum
 
 from addons.base.models import TimeStampedModel
 from exceptions import UserError, ValidationError
+from orm.environments import get_context
 from tools.barcode import check_barcode_encoding
 from tools.translate import _
 
@@ -279,25 +276,32 @@ class StockPackage(TimeStampedModel):
         """
         return self.name
 
-    def display_name(self, is_done=False, show_src_package=False,
-                     show_dest_package=False, formatted=False):
-        """≙ ``_compute_display_name`` completo (``odoo19c: :72-90``).
+    def _compute_display_name(self):
+        """≙ ``_compute_display_name`` (``odoo19c: stock_package.py:71-89``).
 
-        Las tres ramas del contexto de la referencia, como parámetros. Con
-        ``formatted`` y un tipo de paquete dimensionado, añade el sufijo
-        ``\t--largo x ancho x alto--``, igual que la referencia.
+        Las cuatro claves de contexto de la referencia, leídas del contexto —
+        ``is_done``, ``show_dest_package``, ``show_src_package`` y
+        ``formatted_display_name``—, no como parámetros: el mecanismo de
+        contexto ya existe (``orm.environments.get_context``) y es el mismo que
+        consumen ``ResPartner._compute_display_name`` y
+        ``ProductSupplierinfo._compute_display_name``.
+
+        El orden de las ramas es el de la fuente y no es intercambiable: un
+        albarán validado (``is_done``) muestra el nombre corto aunque la vista
+        pida el contenedor de destino.
         """
-        if is_done:
+        contexto = get_context()
+        if contexto.get('is_done'):
             nombre = self.name
-        elif show_dest_package:
+        elif contexto.get('show_dest_package'):
             nombre = self.dest_complete_name
-        elif show_src_package:
+        elif contexto.get('show_src_package'):
             nombre = self.complete_name
         else:
             nombre = self.name
         tipo = self.package_type
-        if (formatted and tipo is not None and tipo.packaging_length
-                and tipo.width and tipo.height):
+        if (contexto.get('formatted_display_name') and tipo is not None
+                and tipo.packaging_length and tipo.width and tipo.height):
             return (f'{nombre}\t--{tipo.packaging_length} x '
                     f'{tipo.width} x {tipo.height}--')
         return nombre

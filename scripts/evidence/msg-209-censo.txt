@@ -1,0 +1,37 @@
+Answer presence by binding, not by declaring form
+
+El censo de ``odoo/orm`` publicaba **26 de 142** simbolos como
+ausentes de este arbol, y la cifra estaba mal: de los 27 nombres que
+listaba, **12 existian**. Su columna ``aqui`` se calculaba con
+``top_level_symbols()``, que solo recoge ``ClassDef`` y
+``FunctionDef`` — y este arbol declara los tipos de campo como
+**asignacion** de nivel superior (``Boolean = make_dispatcher(...)``)
+o los re-exporta con un ``import``. Ninguna de las dos formas tiene
+nodo que ver.
+
+Es el sub-patron C de ``metrica-decide-la-conclusion.md``: el
+instrumento mide la FORMA de la declaracion y se concluia sobre la
+PRESENCIA del simbolo. El coste no era teorico — la lista falsa era
+la premisa con que se elegia el siguiente porte.
+
+El arreglo NO es ensanchar ``top_level_symbols``: ese lado enumera
+los **nodos que se ordenan**, y meterle las asignaciones traeria las
+constantes de modulo de la referencia y moveria los niveles, que es
+lo que el guion existe para calcular. Son dos preguntas distintas, y
+ahora las responden dos funciones distintas — la nueva
+``declared_here()`` cuenta clase, funcion, asignacion, asignacion
+anotada y re-export por su nombre local.
+
+Medido tras el arreglo: **127 de 142**. Los **15** que quedan estan
+ausentes de verdad y son dos grupos — las bases abstractas de la
+jerarquia de campo (``BaseDate``, ``BaseString``, ``Id``,
+``_Relational``, ``_RelationalMulti``) y el nucleo de modelo y
+registro (``BaseModel``, ``MetaModel``, ``Registry``,
+``add_to_registry``, ``setup_model_classes``, ``_setup``,
+``_setup_fields``, ``_add_manual_fields``, ``_add_inherited_fields``,
+``_add_manual_models``).
+
+El guion no tenia prueba. Ahora la tiene, con los dos controles que
+la hacen discriminar: que ``declared_here`` vea **estrictamente mas**
+que la enumeracion de nodos, y que **no absuelva** a los que faltan
+de verdad. Los diez casos nuevos fallaban antes del arreglo.

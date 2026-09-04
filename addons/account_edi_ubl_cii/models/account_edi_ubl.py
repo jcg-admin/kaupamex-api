@@ -101,13 +101,15 @@ _logger = logging.getLogger(__name__)
 def _be_vat_compact(number):
     """≙ ``stdnum.be.vat.compact`` — vendorizado.
 
-    ``stdnum`` no es dependencia de este árbol (medido:
-    ``grep -ic stdnum uv.lock`` → **0**), y su único consumidor aquí
-    —``_ubl_add_party_legal_entity_nodes_iso_6523_icd``— **sí** se porta, así
-    que la función se trae con su algoritmo: quitar espacios, puntos y
-    guiones, mayúsculas, retirar el prefijo de país ``BE`` y rellenar con un
-    cero a la izquierda el número de nueve dígitos (los NIF belgas anteriores
-    a 2008 tenían nueve; el formato vigente tiene diez).
+    Se vendorizó cuando ``stdnum`` no era dependencia de este árbol. **Ya lo
+    es** (``python-stdnum>=2.0`` en ``pyproject.toml``, ``api@414b286f``), así
+    que esta copia dejó de ser necesaria y pasó a ser una segunda fuente de
+    verdad: delegar en ``stdnum.be.vat.compact`` es la tarea **#292**.
+
+    El algoritmo que replica: quitar espacios, puntos y guiones, mayúsculas,
+    retirar el prefijo de país ``BE`` y rellenar con un cero a la izquierda el
+    número de nueve dígitos (los NIF belgas anteriores a 2008 tenían nueve; el
+    formato vigente tiene diez).
     """
     if not number:
         return number

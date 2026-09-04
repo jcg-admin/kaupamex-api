@@ -11,6 +11,7 @@ from django.db import connection
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.cache import cache
+from orm.domains import to_q
 
 from addons.authz_password_policy.data import seed as password_policy_seed
 from addons.authz_signup.data import seed as signup_flags_seed
@@ -19,10 +20,13 @@ from addons.authz.models import Role, RoleAssignment
 from addons.authz.services import SUPERADMIN_ROLE_CODE
 from addons.base.models import SystemParameter
 from addons.base.security.base_security import seed as base_rules_seed
+from addons.base.security.ir_model_access import seed as base_acl_seed
 from addons.base.data.res_country_data import seed as countries_seed
 from addons.base.data.res_lang_data import seed as langs_seed
 from addons.base.data.res_groups_data import seed as base_groups_seed
 from addons.base_geolocalize.data import seed as geo_providers_seed
+from addons.base_install_request.data import (
+    seed as install_request_template_seed)
 from addons.hr.data.hr_departure_reason_data import (
     seed as departure_reasons_seed,
 )
@@ -49,7 +53,7 @@ from addons.website_sale.models.website import CRON_SEND_ABANDONED_CART_EMAIL
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 
 import pytest
-from addons.base.models.ir_config_parameter import _clear_cache as _clear_param_cache
+from orm.registry import clear_cache
 from pytest_django.plugin import blocking_manager_key
 
 # ─── PostgreSQL keepalive (ADR-028) ──────────────────────────────────────────
@@ -285,7 +289,7 @@ def clear_rate_limit_cache():
 def _reset_system_parameter_cache():
     """Aísla la caché de parámetros entre tests.
 
-    ``SystemParameter`` cachea a nivel de módulo (``_PARAM_CACHE``, el
+    ``SystemParameter`` memoriza con ``ormcache`` en la familia ``stable`` (el
     equivalente del ``ormcache`` de Odoo). La caché es per-proceso: el
     rollback de la transacción del test revierte la FILA, pero no el valor
     ya cacheado, así que un test que escribe un parámetro se lo filtra a
@@ -296,9 +300,9 @@ def _reset_system_parameter_cache():
     seis tests de ``sale`` calculaban su IVA con ese valor. Sin el reset,
     ``sale/`` da 8 fallos tras ``config/`` y 2 en solitario.
     """
-    _clear_param_cache()
+    clear_cache('stable')
     yield
-    _clear_param_cache()
+    clear_cache('stable')
 
 
 # ─── Catálogo de semillas restauradas (H-API-22) ─────────────────────────────
@@ -358,9 +362,11 @@ _SEEDERS = (
     totp_params_seed,           # authz_totp/0001 + 0002
     mail_subtypes_seed,         # mail/0002
     geo_providers_seed,         # base_geolocalize/0002
+    install_request_template_seed,  # base_install_request/0002
     departure_reasons_seed,     # hr/0003 (3 motivos de baja maestros)
     bootstrap_company_seed,     # BOOTSTRAP_COMPANY_CODE (no-op si no se declara)
     base_rules_seed,            # base/security (record rules multi-company)
+    base_acl_seed,              # base/security (ir.model.access, 23 filas)
     sale_rules_seed,            # sale/security/ir_rules
     subscription_rules_seed,    # sale_subscription/security/ir_rules
     sale_report_view_seed,      # sale/0002 (plantilla del documento)
@@ -433,3 +439,27 @@ def pytest_runtest_teardown(item):
 # El fixture no se sustituye por nada: sin objetos que instalar no hay paso que
 # dar. Si vuelve a hacer falta una vista de reporte, se declara como modelo
 # Python en el addon dueño, y entonces la crea la migración — no un fixture.
+
+
+def matching_by_search_method(model_cls, method_name, operator, value):
+    """Los registros que el método ``search=`` de un campo selecciona.
+
+    Un campo sin columna declara su buscador con ``search='_search_x'``, y ese
+    método devuelve un ``Domain`` —como la fuente—, no un ``QuerySet``: un
+    dominio se compone dentro de un ``any`` y un ``QuerySet`` no. Los casos que
+    quieren afirmar **qué filas** salen necesitan el paso intermedio, y es el
+    mismo que da el optimizador cuando sustituye la condición: ``to_q`` contra
+    el modelo.
+
+    Está parametrizado por el nombre del método porque ya son dos las familias
+    que lo necesitan —``_search_display_name`` y ``_search_full_name``— y el
+    tercer campo con ``search=`` no debería traer un helper propio.
+    """
+    domain = getattr(model_cls, method_name)(operator, value)
+    return model_cls.objects.filter(to_q(domain, model_cls))
+
+
+def matching_by_display_name(model_cls, operator, value):
+    """El caso particular de ``_search_display_name``, que es el más usado."""
+    return matching_by_search_method(
+        model_cls, '_search_display_name', operator, value)

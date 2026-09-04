@@ -51,20 +51,21 @@ según el paso**. Un port que devolviera sólo el servidor haría que el correo
 saliera con un ``From`` que su servidor no acepta, que es exactamente lo que
 la cascada evita.
 
-Normalizadores de correo — provisionales, con su hogar declarado
-================================================================
+Normalizadores de correo — ya en su hogar canónico
+=================================================
 
 ``_match_from_filter`` depende de ``email_normalize`` /
 ``email_domain_extract`` / ``email_domain_normalize``, que en la referencia
-viven en ``odoo/tools/mail.py`` — **otro archivo**, no éste. Medido:
-``ls src/tools/`` → no hay ``mail.py``; ``grep -rn "def email_normalize" src/``
-→ **0**. [PROVEN]
+viven en ``odoo/tools/mail.py`` — **otro archivo**, no éste.
 
-Se implementan aquí como funciones **privadas** (prefijo ``_``) y se declara
-que su hogar canónico es ``tools/mail.py``: cuando ese archivo se porte, estas
-tres se borran y se importan de allá. Ponerlas aquí sin decirlo sería crear un
-segundo hogar para una utilidad compartida — el error que el monolito modular
-existe para evitar.
+Este archivo las implementó como privadas propias mientras ``tools/mail.py``
+no existía, y declaró que se borrarían al portarse. Cumplido: las tres se
+importan de ``tools.mail`` y aquí no queda ninguna copia. Un segundo hogar
+para una utilidad compartida es el error que el monolito modular existe para
+evitar, y el intercambio cambia además el valor falso —de ``''`` a ``False``,
+que es lo que la fuente devuelve—, así que va cubierto por
+``tests/unit/base/test_ir_mail_server_from_filter.py``: los mismos 14 casos
+pasan antes y después.
 
 Qué NO se porta, con su medición
 ================================
@@ -120,6 +121,11 @@ from django.core.exceptions import ValidationError
 
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from tools.mail import (
+    email_domain_extract,
+    email_domain_normalize,
+    email_normalize,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -188,32 +194,6 @@ def extract_rfc2822_addresses(text):
         except (UnicodeEncodeError, UnicodeError):
             continue
     return valid_addresses
-
-
-# --- Normalizadores de correo -------------------------------------------
-# Provisionales: su hogar canónico es ``tools/mail.py`` (≙ ``odoo/tools/
-# mail.py``), archivo aún sin portar. Ver el docstring del módulo.
-
-def _email_normalize(text):
-    """Dirección normalizada en minúsculas, o ``''`` si no hay una válida."""
-    addresses = extract_rfc2822_addresses(text)
-    if len(addresses) != 1:
-        return ''
-    return addresses[0].strip('<>').lower()
-
-
-def _email_domain_extract(normalized_email):
-    """Dominio de un correo ya normalizado, o ``''``."""
-    if not normalized_email or '@' not in normalized_email:
-        return ''
-    return normalized_email.rsplit('@', 1)[1]
-
-
-def _email_domain_normalize(text):
-    """Dominio normalizado; ``''`` si el texto trae un ``@`` (no es dominio)."""
-    if not text or '@' in text:
-        return ''
-    return text.lower().strip()
 
 
 class IrMailServer(TimeStampedModel):
@@ -484,13 +464,13 @@ class IrMailServer(TimeStampedModel):
         """
         if not from_filter:
             return True
-        normalized_from = _email_normalize(email_from)
-        normalized_domain = _email_domain_extract(normalized_from)
+        normalized_from = email_normalize(email_from)
+        normalized_domain = email_domain_extract(normalized_from)
         for part in cls.parse_from_filter(from_filter):
             if '@' in part:
-                if _email_normalize(part) == normalized_from:
+                if email_normalize(part) == normalized_from:
                     return True
-            elif _email_domain_normalize(part) == normalized_domain:
+            elif email_domain_normalize(part) == normalized_domain:
                 return True
         return False
 
@@ -515,11 +495,11 @@ class IrMailServer(TimeStampedModel):
         (``EMAIL_*``), que es lo que la fuente expresa como "los argumentos de
         odoo-bin".
         """
-        normalized_from = _email_normalize(email_from)
-        from_domain = _email_domain_extract(normalized_from)
+        normalized_from = email_normalize(email_from)
+        from_domain = email_domain_extract(normalized_from)
         if notifications_email is None:
-            notifications_email = _email_normalize(cls.get_default_from_address())
-        notifications_domain = _email_domain_extract(notifications_email)
+            notifications_email = email_normalize(cls.get_default_from_address())
+        notifications_domain = email_domain_extract(notifications_email)
 
         if servers is None:
             servers = list(cls.objects.order_by('sequence', 'id'))
@@ -539,10 +519,10 @@ class IrMailServer(TimeStampedModel):
 
         # 1-2. Contra el remitente pedido: correo exacto, luego dominio.
         if normalized_from:
-            server = first_match(normalized_from, _email_normalize)
+            server = first_match(normalized_from, email_normalize)
             if server is not None:
                 return server, email_from
-            server = first_match(from_domain, _email_domain_normalize)
+            server = first_match(from_domain, email_domain_normalize)
             if server is not None:
                 return server, email_from
 
@@ -550,10 +530,10 @@ class IrMailServer(TimeStampedModel):
 
         # 3. Contra el correo de notificaciones: correo exacto, luego dominio.
         if notifications_email:
-            server = first_match(notifications_email, _email_normalize)
+            server = first_match(notifications_email, email_normalize)
             if server is not None:
                 return server, notifications_email
-            server = first_match(notifications_domain, _email_domain_normalize)
+            server = first_match(notifications_domain, email_domain_normalize)
             if server is not None:
                 return server, notifications_email
 

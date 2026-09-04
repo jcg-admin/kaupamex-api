@@ -247,6 +247,7 @@ class StockPickingType(TimeStampedModel):
         'base.IrSequence', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='picking_types',
         help_text='Secuencia de referencia (Odoo sequence_id).',
+        db_column='sequence_id',
     )
     sequence_code            = fields.Char(
         'Sequence Prefix', max_length=32, required=True,
@@ -591,10 +592,10 @@ class StockPickingType(TimeStampedModel):
         if user is None:
             return queryset.order_by('sequence', 'id')
         rel = apps.get_model('stock', 'PickingTypeFavoriteUserRel')
-        marcado = Exists(rel.objects.filter(
+        marked = Exists(rel.objects.filter(
             picking_type_id=OuterRef('pk'), user_id=user.pk))
         return queryset.annotate(
-            is_favorite=marcado).order_by('-is_favorite', 'sequence', 'id')
+            is_favorite=marked).order_by('-is_favorite', 'sequence', 'id')
 
     # -- los conteos del tablero: sin columna, se calculan al leerse (D-2) --
 
@@ -910,14 +911,14 @@ class StockPickingType(TimeStampedModel):
         """
         stock_picking = apps.get_model('stock', 'StockPicking')
         ids = [t.pk for t in picking_types]
-        por_tipo = {i: [] for i in ids}
+        by_type = {i: [] for i in ids}
         abiertas = stock_picking.objects.filter(
             picking_type_id__in=ids,
             state__in=('assigned', 'waiting', 'confirmed'),
         ).values_list('picking_type_id', 'scheduled_date')
         for tipo_id, fecha in abiertas:
-            por_tipo[tipo_id].append(fecha)
-        return [(i, f, _('Transferencias')) for i, f in por_tipo.items()]
+            by_type[tipo_id].append(fecha)
+        return [(i, f, _('Transferencias')) for i, f in by_type.items()]
 
     @classmethod
     def _prepare_graph_data(cls, summaries):
@@ -1461,9 +1462,9 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         ``readonly=False``— así que se deriva siempre. Ver :ref:`h-api-687`.
         """
         campos = kwargs.get('update_fields')
-        insertando = self._state.adding
+        inserting = self._state.adding
         cambio_tipo = campos is not None and 'picking_type' in campos
-        if (insertando or cambio_tipo) and self.picking_type_id:
+        if (inserting or cambio_tipo) and self.picking_type_id:
             tocados = ['company']
             self.company = self.picking_type.company
             if cambio_tipo or not self.move_type:
@@ -1701,13 +1702,19 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
 
     @property
     def use_create_lots(self) -> bool:
-        """≙ ``use_create_lots`` (``odoo19c: :629``, ``related``)."""
+        """≙ ``use_create_lots`` (``odoo19c: :629``, ``related``).
+
+        ≙ ``_compute_use_create_lots`` (``odoo19c: stock/models/stock_picking.py``).
+        """
         return bool(
             self.picking_type is not None and self.picking_type.use_create_lots)
 
     @property
     def use_existing_lots(self) -> bool:
-        """≙ ``use_existing_lots`` (``odoo19c: :630``, ``related``)."""
+        """≙ ``use_existing_lots`` (``odoo19c: :630``, ``related``).
+
+        ≙ ``_compute_use_existing_lots`` (``odoo19c: stock/models/stock_picking.py``).
+        """
         return bool(
             self.picking_type is not None
             and self.picking_type.use_existing_lots)
@@ -2028,7 +2035,7 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
         """≙ ``get_empty_list_help`` (``odoo19c: :1079-1084``).
 
         **Divergencia declarada:** sin motor QWeb (``ir.ui.view.
-        _render_template`` no existe en este stack — ver ``ir_qweb.py``), el
+        _render_template`` no existe en este stack — ver ``ir_template_expressions.py``), el
         mensaje se arma como texto plano equivalente por tipo de operación.
         """
         if help_message:
@@ -2188,7 +2195,7 @@ class StockPicking(MailThread, MailActivityMixin, TimeStampedModel):
 
         **Divergencia declarada:** el render QWeb de la referencia
         (plantilla ``stock.exception_on_picking``) no existe en este stack
-        (sin compilador QWeb activo — ver ``ir_qweb.py``); la nota se arma
+        (sin compilador QWeb activo — ver ``ir_template_expressions.py``); la nota se arma
         como texto plano equivalente.
         """
         def keys_in_groupby(move):

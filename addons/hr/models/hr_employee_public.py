@@ -295,12 +295,18 @@ class HrEmployeePublic(models.Model):
 
     @property
     def country_code(self):
-        """≙ ``country_code`` — ver DIVERGENCIA (``company_country_code``)."""
+        """≙ ``country_code`` — ver DIVERGENCIA (``company_country_code``).
+
+        ≙ ``_compute_country_code`` (``odoo19c: hr/models/hr_employee_public.py``).
+        """
         return self.employee_id.company_country_code if self.employee_id_id else ''
 
     @property
     def newly_hired(self):
-        """≙ ``newly_hired``."""
+        """≙ ``newly_hired``.
+
+        ≙ ``_compute_newly_hired`` (``odoo19c: hr/models/hr_employee_public.py``).
+        """
         return bool(self.employee_id_id and self.employee_id.newly_hired)
 
     # Las diez columnas de imagen/avatar delegan al AvatarMixin del empleado.

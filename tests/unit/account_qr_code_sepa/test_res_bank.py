@@ -36,7 +36,7 @@ from addons.account_qr_code_sepa.models.res_bank import (
     apply_account_qr_code_sepa_extensions,
 )
 from addons.base.models import ResBank, ResCurrency, ResPartner
-from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.base.models.res_bank import ResPartnerBank
 
 pytestmark = pytest.mark.django_db
 
@@ -59,7 +59,7 @@ def usd():
 
 
 @pytest.fixture
-def cuenta_sepa(titular):
+def account_sepa(titular):
     # BE15001559627230 — mismo IBAN belga que usa el test de la referencia
     # (odoo19c: account_qr_code_sepa/tests/test_sepa_qr.py, acc_sepa_iban).
     return ResPartnerBank.objects.create(
@@ -112,18 +112,18 @@ class TestExtensionWiring:
 class TestGetQrVals:
     """≙ ``_get_qr_vals`` (``odoo19c: res_bank.py:11-36``)."""
 
-    def test_devuelve_none_para_metodo_no_soportado(self, cuenta_sepa, eur):
-        assert cuenta_sepa._get_qr_vals(
+    def test_devuelve_none_para_metodo_no_soportado(self, account_sepa, eur):
+        assert account_sepa._get_qr_vals(
             'otro_metodo', amount=100.0, currency=eur, debtor_partner=None,
             free_communication='', structured_communication='',
         ) is None
 
     def test_comunicacion_no_estructurada_va_en_comentario_libre(
-            self, cuenta_sepa, eur):
+            self, account_sepa, eur):
         """≙ primer vector de ``test_get_qr_vals_communication``: una
         comunicación de texto libre no valida como referencia estructurada,
         así que viaja en el campo de comunicación libre."""
-        result = cuenta_sepa._get_qr_vals(
+        result = account_sepa._get_qr_vals(
             qr_method='sct_qr', amount=100.0, currency=eur,
             debtor_partner=None,
             free_communication='A free communication',
@@ -142,10 +142,10 @@ class TestGetQrVals:
         ]
 
     def test_comunicacion_estructurada_valida_se_saniza(
-            self, cuenta_sepa, eur):
+            self, account_sepa, eur):
         """≙ segundo vector: la referencia NL válida se saniza y viaja en
         el campo estructurado; el comentario libre queda vacío."""
-        result = cuenta_sepa._get_qr_vals(
+        result = account_sepa._get_qr_vals(
             qr_method='sct_qr', amount=100.0, currency=eur,
             debtor_partner=None,
             free_communication=' 5 000 0567 89012345 ',
@@ -163,19 +163,19 @@ class TestGetQrVals:
             '',
         ]
 
-    def test_bic_viene_del_banco_relacionado(self, cuenta_sepa, eur):
+    def test_bic_viene_del_banco_relacionado(self, account_sepa, eur):
         banco = ResBank.objects.create(name='BNP Paribas Fortis', bic='GEBABEBB')
-        cuenta_sepa.bank = banco
-        cuenta_sepa.save(update_fields=['bank'])
-        result = cuenta_sepa._get_qr_vals(
+        account_sepa.bank = banco
+        account_sepa.save(update_fields=['bank'])
+        result = account_sepa._get_qr_vals(
             qr_method='sct_qr', amount=100.0, currency=eur,
             debtor_partner=None, free_communication='',
             structured_communication='',
         )
         assert result[4] == 'GEBABEBB'
 
-    def test_sin_banco_relacionado_el_bic_es_vacio(self, cuenta_sepa, eur):
-        result = cuenta_sepa._get_qr_vals(
+    def test_sin_banco_relacionado_el_bic_es_vacio(self, account_sepa, eur):
+        result = account_sepa._get_qr_vals(
             qr_method='sct_qr', amount=100.0, currency=eur,
             debtor_partner=None, free_communication='',
             structured_communication='',
@@ -183,10 +183,10 @@ class TestGetQrVals:
         assert result[4] == ''
 
     def test_prefiere_acc_holder_name_sobre_el_nombre_del_partner(
-            self, cuenta_sepa, eur):
-        cuenta_sepa.acc_holder_name = 'Titular Distinto'
-        cuenta_sepa.save(update_fields=['acc_holder_name'])
-        result = cuenta_sepa._get_qr_vals(
+            self, account_sepa, eur):
+        account_sepa.acc_holder_name = 'Titular Distinto'
+        account_sepa.save(update_fields=['acc_holder_name'])
+        result = account_sepa._get_qr_vals(
             qr_method='sct_qr', amount=100.0, currency=eur,
             debtor_partner=None, free_communication='',
             structured_communication='',
@@ -206,8 +206,8 @@ class TestGetQrVals:
         assert len(result[5]) == 71
 
     def test_comentario_libre_se_trunca_a_141_caracteres(
-            self, cuenta_sepa, eur):
-        result = cuenta_sepa._get_qr_vals(
+            self, account_sepa, eur):
+        result = account_sepa._get_qr_vals(
             qr_method='sct_qr', amount=100.0, currency=eur,
             debtor_partner=None,
             free_communication='Y' * 200,
@@ -219,8 +219,8 @@ class TestGetQrVals:
 class TestGetQrCodeGenerationParams:
     """≙ ``_get_qr_code_generation_params`` (``odoo19c: res_bank.py:38-48``)."""
 
-    def test_devuelve_parametros_barcode_para_sct_qr(self, cuenta_sepa, eur):
-        params = cuenta_sepa._get_qr_code_generation_params(
+    def test_devuelve_parametros_barcode_para_sct_qr(self, account_sepa, eur):
+        params = account_sepa._get_qr_code_generation_params(
             qr_method='sct_qr', amount=100.0, currency=eur,
             debtor_partner=None, free_communication='',
             structured_communication='',
@@ -233,9 +233,9 @@ class TestGetQrCodeGenerationParams:
         assert 'BCD\n002\n1\nSCT' in params['value']
 
     def test_alza_notimplementederror_para_otro_metodo(
-            self, cuenta_sepa, eur):
+            self, account_sepa, eur):
         with pytest.raises(NotImplementedError):
-            cuenta_sepa._get_qr_code_generation_params(
+            account_sepa._get_qr_code_generation_params(
                 qr_method='otro_metodo', amount=100.0, currency=eur,
                 debtor_partner=None, free_communication='',
                 structured_communication='',
@@ -245,12 +245,12 @@ class TestGetQrCodeGenerationParams:
 class TestGetErrorMessagesForQr:
     """≙ ``_get_error_messages_for_qr`` (``odoo19c: res_bank.py:50-67``)."""
 
-    def test_devuelve_none_para_metodo_no_soportado(self, cuenta_sepa, eur):
-        assert cuenta_sepa._get_error_messages_for_qr(
+    def test_devuelve_none_para_metodo_no_soportado(self, account_sepa, eur):
+        assert account_sepa._get_error_messages_for_qr(
             'otro_metodo', debtor_partner=None, currency=eur) is None
 
-    def test_rechaza_divisa_distinta_de_eur(self, cuenta_sepa, usd):
-        mensaje = cuenta_sepa._get_error_messages_for_qr(
+    def test_rechaza_divisa_distinta_de_eur(self, account_sepa, usd):
+        mensaje = account_sepa._get_error_messages_for_qr(
             'sct_qr', debtor_partner=None, currency=usd)
         assert mensaje is not None
         assert 'USD' in mensaje
@@ -270,14 +270,14 @@ class TestGetErrorMessagesForQr:
         assert mensaje is not None
         assert "isn't IBAN" in mensaje
 
-    def test_acepta_el_tipo_de_cuenta_de_un_iban_sepa(self, cuenta_sepa, eur):
+    def test_acepta_el_tipo_de_cuenta_de_un_iban_sepa(self, account_sepa, eur):
         """El contrapunto: un IBAN de la zona SEPA no dispara ningún mensaje.
 
         Es la prueba de que ``base_iban`` está cableado — sin él, ``acc_type``
         sería ``'bank'`` y esta cuenta rechazaría por el segundo check.
         """
-        assert cuenta_sepa.acc_type == 'iban'
-        assert cuenta_sepa._get_error_messages_for_qr(
+        assert account_sepa.acc_type == 'iban'
+        assert account_sepa._get_error_messages_for_qr(
             'sct_qr', debtor_partner=None, currency=eur) is None
 
     def test_rechaza_iban_fuera_de_zona_sepa(self, cuenta_no_sepa, eur):
@@ -303,8 +303,8 @@ class TestGetErrorMessagesForQr:
 class TestCheckForQrCodeErrors:
     """≙ ``_check_for_qr_code_errors`` (``odoo19c: res_bank.py:69-74``)."""
 
-    def test_devuelve_none_para_metodo_no_soportado(self, cuenta_sepa, eur):
-        assert cuenta_sepa._check_for_qr_code_errors(
+    def test_devuelve_none_para_metodo_no_soportado(self, account_sepa, eur):
+        assert account_sepa._check_for_qr_code_errors(
             'otro_metodo', amount=100.0, currency=eur, debtor_partner=None,
             free_communication='', structured_communication='',
         ) is None
@@ -331,8 +331,8 @@ class TestCheckForQrCodeErrors:
             free_communication='', structured_communication='',
         ) is None
 
-    def test_acepta_con_nombre_del_partner(self, cuenta_sepa, eur):
-        assert cuenta_sepa._check_for_qr_code_errors(
+    def test_acepta_con_nombre_del_partner(self, account_sepa, eur):
+        assert account_sepa._check_for_qr_code_errors(
             'sct_qr', amount=100.0, currency=eur, debtor_partner=None,
             free_communication='', structured_communication='',
         ) is None
@@ -341,7 +341,7 @@ class TestCheckForQrCodeErrors:
 class TestGetAvailableQrMethods:
     """≙ ``_get_available_qr_methods`` (``odoo19c: res_bank.py:76-80``)."""
 
-    def test_incluye_sct_qr_con_secuencia_20(self, cuenta_sepa):
-        metodos = cuenta_sepa._get_available_qr_methods()
-        codigos = {codigo: secuencia for codigo, _nombre, secuencia in metodos}
+    def test_incluye_sct_qr_con_secuencia_20(self, account_sepa):
+        metodos = account_sepa._get_available_qr_methods()
+        codigos = {codigo: secuencia for codigo, _name, secuencia in metodos}
         assert codigos.get('sct_qr') == 20

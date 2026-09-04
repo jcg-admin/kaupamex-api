@@ -34,16 +34,16 @@ def change_password(user, old_passwd, new_passwd):
     decide el fallback — mismo orden, sin herencia.
     """
     if new_passwd:
-        for conf in CompanyLdap.objects.get_ldap_dicts():
+        for conf in CompanyLdap.objects._get_ldap_dicts():
             changed = CompanyLdap._change_password(
                 conf, user.login, old_passwd, new_passwd)
             if changed:
-                set_empty_password(user)
+                _set_empty_password(user)
                 return True
     return False
 
 
-def set_empty_password(user):
+def _set_empty_password(user):
     """≙ ``_set_empty_password`` (res_users.py:63-69).
 
     La referencia pone ``password=NULL`` con SQL directo; el mecanismo

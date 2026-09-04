@@ -42,15 +42,18 @@ Alcance de esta portación — deliberadamente NO se porta:
   (``embedded_action`` FK + ``embedded_parent_res_id``). Se conserva el
   registro de que estuvieron diferidos —y por qué— en vez de borrarlo: era
   dependencia ausente, no decisión de scope, y el destino estaba fechado.
-- **``action_id`` degradado a Integer plano, sin FK**: Odoo lo declara
-  Many2one a ``ir.actions.actions``. **Actualizado** (porte de
-  ``ir_actions.py``): ese modelo **ya existe**
-  (``grep -rn "^class IrActionsActions" src/`` → **1**), así que el Integer
-  plano es ahora deuda cerrable — el FK real cabe. Se deja el cambio para su
-  propio pase porque toca la migración de esta tabla, no de rebote desde
-  ``ir_actions``. Mientras tanto sigue siendo campo de control mínimo (mismo
-  criterio que ``res_id`` en ``ir_attachment``) en vez de omitirse, porque el
-  invariante "un filtro por defecto por acción" lo referencia.
+- **``action_id`` degradado a Integer plano, sin FK** — **CERRADO** en
+  ``base/migrations/0077``. El campo es ahora ``action``, un ``Many2one`` real
+  a ``base.IrActionsActions`` con ``on_delete=CASCADE``, como la fuente
+  (``:19``). Este bullet decía que el cambio *«se deja para su propio pase
+  porque toca la migración de esta tabla»*; eso es diferir, y
+  ``hallazgo-abierto-genera-sucesor.md`` no lo admite como bloqueo. Ver
+  :ref:`h-api-982`.
+
+  Con la FK entraron los **tres objetos de tabla** que la referencia declara
+  (``:26-40``) y este porte tampoco traía: ``_get_filters_index``,
+  ``_check_res_id_only_when_embedded_action`` y ``_check_sort_json``. Los tres
+  viven en ``Meta`` con su nombre conservado.
 - **``company_id``**: NO existe en ``ir.filters`` en ninguna de las dos
   fuentes (18 ni 19) — verificado leyendo el modelo completo. El campo
   especulado en el brief de esta tarea se OMITE por ausencia real en Odoo,
@@ -82,9 +85,29 @@ NULL = filtro compartido/global, igual semántica que Odoo 18 — set = filtro
 privado de ese usuario).
 """
 from django.conf import settings
+from django.db.models.lookups import Exact
 
 import fields
 import models
+
+
+class JsonbTypeOf(models.Func):
+    """``jsonb_typeof(<expr>::jsonb)`` — el tipo JSON de una columna de texto.
+
+    La referencia no necesita un ayudante: su ``models.Constraint`` recibe el
+    SQL como cadena (``odoo19c: ir_filters.py:37-40``). Aquí la restricción se
+    declara con el ORM, así que el ``::jsonb`` y la llamada se expresan como
+    ``Func``.
+
+    Vive aquí, junto a su **único** consumidor —medido: ``grep -rn
+    jsonb_typeof src/ addons/`` daba 0 antes de este porte—. Si aparece un
+    segundo, su hogar pasa a ser ``src/tools/sql.py``, que es donde la
+    referencia guarda los ayudantes de SQL.
+    """
+
+    function = 'jsonb_typeof'
+    template = '%(function)s(%(expressions)s::jsonb)'
+    output_field = models.CharField()
 
 
 class IrFilters(models.Model):
@@ -119,14 +142,18 @@ class IrFilters(models.Model):
     is_default = fields.Boolean(
         default=False, help_text='Filtro por defecto para el alcance modelo+usuario (Odoo is_default).',
     )
-    action_id = fields.Integer(
-        null=True, blank=True,
+    #: Forma **C** de ADR-029 (#141): el símbolo lleva el nombre que la
+    #: referencia declara (``action_id``) y ``db_column`` mantiene la columna
+    #: en ``action_id`` — sin él Django la llamaría ``action_id_id``.
+    action_id = fields.Many2one(
+        'base.IrActionsActions', on_delete=models.CASCADE, db_column='action_id',
+        null=True, blank=True, db_index=True, related_name='filter_ids',
+        verbose_name='Acción',
         help_text=(
-            'ID de la acción/menú al que aplica el filtro (Odoo action_id — '
-            'Many2one a ir.actions.actions). NULL = aplica a todos los menús '
-            'del modelo. Sigue siendo Integer plano: ir.actions.actions ya '
-            'está portado, así que el FK real cabe, pero cambiarlo migra esta '
-            'tabla y va en su propio pase.'
+            'Acción/menú al que aplica el filtro (Odoo action_id). NULL = '
+            'aplica a todos los menús del modelo. Docstring de la fuente, '
+            'verbatim: "The menu action this filter applies to. When left '
+            'empty the filter applies to all menus for this model."'
         ),
     )
     # Cierra los dos campos que este archivo dejó diferidos: la referencia
@@ -150,10 +177,40 @@ class IrFilters(models.Model):
         ordering = ['model_id', 'name', '-id']
         verbose_name = 'Filtro'
         verbose_name_plural = 'Filtros'
+        #: ≙ ``_get_filters_index`` (``odoo19c: ir_filters.py:26-28``), con
+        #: su nombre conservado. Es la consulta que ``get_filters`` hace en
+        #: cada apertura de vista.
+        indexes = [
+            models.Index(
+                fields=['model_id', 'action_id', 'embedded_action',
+                        'embedded_parent_res_id'],
+                name='ir_filters_get_filters_index',
+            ),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=['model_id', 'user', 'action_id', 'name'],
                 name='uq_ir_filters_model_user_action_name',
+            ),
+            #: ≙ ``_check_res_id_only_when_embedded_action`` (``:33-36``).
+            #: Comentario de la fuente, verbatim: *"The embedded_parent_res_id
+            #: can only be defined when the embedded_action_id field is set."*
+            models.CheckConstraint(
+                condition=~models.Q(embedded_parent_res_id__isnull=False,
+                                    embedded_action__isnull=True),
+                name='ir_filters_check_res_id_only_when_embedded_action',
+            ),
+            #: ≙ ``_check_sort_json`` (``:37-40``) — el ``sort`` se
+            #: deserializa como lista, así que un objeto o un escalar
+            #: revientan en el lector, lejos de aquí. La condición emite el
+            #: SQL de la fuente palabra por palabra:
+            #: ``CHECK ("sort" IS NULL OR jsonb_typeof("sort"::jsonb) =
+            #: 'array')``.
+            models.CheckConstraint(
+                condition=(models.Q(sort__isnull=True)
+                           | models.Q(Exact(JsonbTypeOf('sort'),
+                                            models.Value('array')))),
+                name='ir_filters_check_sort_json',
             ),
         ]
 
@@ -165,7 +222,25 @@ class IrFilters(models.Model):
         por defecto del mismo alcance modelo+usuario — versión simplificada de
         ``_check_global_default``/``create_or_replace`` de Odoo (ver docstring
         del módulo: aquí sobre-escribe silenciosamente en vez de distinguir
-        error-en-alcance-global vs sobre-escritura-en-alcance-personal)."""
+        error-en-alcance-global vs sobre-escritura-en-alcance-personal).
+
+        Y descarta el cero de ``embedded_parent_res_id`` antes de escribir,
+        que es el guardián que la fuente pone en el mismo sitio
+        (``odoo19c: odoo/addons/base/models/ir_filters.py:54-57``), con su
+        comentario apuntando a la restricción::
+
+            # check_res_id_only_when_embedded_action
+                if vals.get('embedded_parent_res_id') == 0:
+                    del vals['embedded_parent_res_id']
+
+        Hace falta porque el conversor de columna de ``Integer`` lleva la
+        ausencia al cero (``fields_numeric.py:32-33``: ``int(value or 0)``) y
+        la restricción de tabla exige ``NULL`` mientras no haya acción
+        embebida. La fuente resuelve la tensión aquí, en el modelo, y no
+        relajando el conversor.
+        """
+        if self.embedded_parent_res_id == 0:
+            self.embedded_parent_res_id = None
         super().save(*args, **kwargs)
         if self.is_default:
             type(self).objects.filter(

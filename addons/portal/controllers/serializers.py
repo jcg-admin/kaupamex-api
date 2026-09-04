@@ -57,7 +57,7 @@ class PortalAccountSerializer(serializers.ModelSerializer):
 
     Sólo expone y acepta ``CAMPOS_EDITABLES``. Dos campos llevan además una
     guarda que depende del partner concreto (``can_edit_vat`` /
-    ``can_edit_country``): vive en la **vista**, no aquí — ver el porqué en
+    ``_can_edit_country``): vive en la **vista**, no aquí — ver el porqué en
     la nota de ``main.py`` sobre la forma del error.
     """
 

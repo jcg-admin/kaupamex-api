@@ -1,0 +1,16 @@
+# Control discriminante — acceso-por-clave-sin-instalar
+# fecha:    2026-08-30T18:23:24
+# archivo:  src/orm/models.py
+# anulado:  s/^Model.__getitem__ = _model_getitem$//
+# tests:    tests/unit/orm/test_models_item_access.py
+
+## 1. Verde de partida (guarda presente)
+7 passed, 1 warning in 5.77s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/orm/test_models_item_access.py::TestTheKeyAccess::test_it_reads_the_field_by_name
+FAILED tests/unit/orm/test_models_item_access.py::TestTheKeyAccess::test_it_goes_through_the_descriptor_not_the_dict
+FAILED tests/unit/orm/test_models_item_access.py::TestTheKeyAccess::test_an_unknown_name_raises_key_error
+FAILED tests/unit/orm/test_models_item_access.py::TestTheKeyAccess::test_a_non_string_key_says_where_the_container_is
+FAILED tests/unit/orm/test_models_item_access.py::TestWhatWasNotPorted::test_the_model_class_itself_answers
+5 failed, 2 passed, 1 warning in 5.89s

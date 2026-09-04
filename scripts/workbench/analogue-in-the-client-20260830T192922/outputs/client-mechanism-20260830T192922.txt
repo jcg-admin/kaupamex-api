@@ -1,0 +1,61 @@
+# Como el cliente maneja lo que nosotros hacemos en .claude/eventos/
+# Fuente: docs: tools/claude-code-bin/2.1.251/claude_strings.txt
+
+## Los 19 namespaces del directorio de sesion
+     42 transcript
+     13 task
+     13 job
+     10 sidecar
+     10 memory
+      8 daemon
+      5 log
+      4 session
+      4 scratch
+      3 state
+      3 settings
+      3 recording
+      3 plan
+      3 paste
+      3 mailbox
+      2 cache
+      1 team
+      1 identity
+      1 history
+      1 azure
+
+## Las claves de scope que forman la identidad
+     26 scope.projectKey
+     26 scope.namespace
+     21 scope.relPath
+     17 scope.agentRelPath
+     15 scope.sessionId
+     10 scope.version
+      8 scope.toName
+      8 scope.angles
+      7 scope.mode
+      7 scope.jobId
+      6 scope.name
+      4 scope.x
+
+## Los aislamientos que el validador DECLARA (verbatim)
+requires scope.agentType: an agent-memory relPath narrows one agent directory
+requires scope.jobId: a job relPath narrows one job directory, and no cross-job prefix filter exists
+requires scope.jobId: a job relPath narrows one job directory, and no cross-job prefix filter existsk
+requires scope.marketplace: a plugin narrows one marketplace folder
+requires scope.plugin: a version narrows one plugin folder
+requires scope.projectKey and scope.sessionId: an agentRelPath narrows the subagents/ tree of one session dire
+requires scope.projectKey: a session narrows one project folder, and no cross-project session filter exists
+requires scope.sessionId: a scratch relPath narrows one session directory, and no cross-session prefix filter 
+requires scope.version: a relPath narrows one version folder
+requires scope.version: a relPath narrows one version folderd
+
+## El journal de una corrida de Workflow
+     31 journalEtag
+     10 journalGeneration
+      4 journalNegotiations
+      3 journalUnavailable
+      2 journalPosOrd
+      2 journalPos
+
+## La reanudacion, verbatim
+Completed agent() calls with unchanged (prompt, opts) return their cached results instantly; only edited or new calls 

@@ -21,7 +21,7 @@ El nombre técnico es el ``label`` de Django
 
 La referencia lo identifica con ``_name = 'sparse_fields.test'``. Aquí la
 identidad de un modelo es ``app_label.ObjectName``, que es lo que
-``IrModel.reflect_models`` escribe en el catálogo — no hay ``_name`` en este
+``IrModel._reflect_models`` escribe en el catálogo — no hay ``_name`` en este
 árbol (medido: 0 declaraciones fuera de docstrings que citan la referencia).
 Así que este modelo se llama ``base_sparse_field.SparseFieldsTest``, y no se
 inventa un atributo que ningún consumidor lee.

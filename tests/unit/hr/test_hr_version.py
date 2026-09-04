@@ -193,7 +193,7 @@ class TestHrVersionCheckContractFinished:
 class TestHrVersionMaritalStatusSelection:
     """≙ ``_get_marital_status_selection`` (``:655-663``)."""
 
-    def test_returns_the_five_odoo_options(self):
+    def test_returns_the_five_reference_options(self):
         options = HrVersion._get_marital_status_selection()
         codes = {code for code, _label in options}
         assert codes == {'single', 'married', 'cohabitant', 'widower', 'divorced'}

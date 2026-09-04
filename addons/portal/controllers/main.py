@@ -66,7 +66,7 @@ from addons.authz_ldap.models.res_users import change_password as ldap_change_pa
 from addons.authz_password_policy.validators import get_password_policy
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.res_partner import ResPartner
-from addons.base.models.res_users_deletion import ResUsersDeletion
+from addons.base.models.res_users import ResUsers
 from addons.portal.controllers.serializers import (
     DeactivateAccountSerializer,
     PasswordChangeSerializer,
@@ -75,8 +75,6 @@ from addons.portal.controllers.serializers import (
 )
 from addons.portal.models.res_partner import (
     can_be_edited_by,
-    can_edit_country,
-    can_edit_vat,
     current_partner,
 )
 
@@ -141,13 +139,13 @@ class PortalAccountView(APIView):
                                              partial=True)
         serializer.is_valid(raise_exception=True)
         datos = serializer.validated_data
-        if 'vat' in datos and not can_edit_vat(partner):
+        if 'vat' in datos and not partner.can_edit_vat():
             return Response(
                 {'codigo_error': 'VAT_NOT_EDITABLE',
                  'detail': 'Sólo la entidad comercial puede editar el RFC.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if 'country' in datos and not can_edit_country(partner):
+        if 'country' in datos and not partner._can_edit_country():
             return Response(
                 {'codigo_error': 'COUNTRY_NOT_EDITABLE',
                  'detail': 'No se puede cambiar el país de este contacto.'},
@@ -180,13 +178,13 @@ class PortalAddressListView(APIView):
         partner = current_partner(request.user)
         if partner is None:
             return Response([])
-        direcciones = ResPartner.objects.filter(
+        addresses = ResPartner.objects.filter(
             parent=partner, active=True,
             type__in=[ResPartner.TYPE_INVOICE, ResPartner.TYPE_DELIVERY,
                       ResPartner.TYPE_OTHER],
         ).select_related('state', 'country').order_by('id')
         datos = [PortalAddressSerializer(partner).data]
-        datos += PortalAddressSerializer(direcciones, many=True).data
+        datos += PortalAddressSerializer(addresses, many=True).data
         return Response(datos)
 
 
@@ -407,8 +405,15 @@ class PortalDeactivationView(APIView):
             )
 
         with transaction.atomic():
-            user.active = False
-            user.save(update_fields=['active'])
-            ResUsersDeletion.objects.create(user=user, user_int=user.pk)
+            # Delega en el recordset — ≙ ``request.env.user
+            # ._deactivate_portal_user()`` de la fuente
+            # (``odoo19c: addons/portal/controllers/portal.py``). Antes esta
+            # vista abría el método a mano y sólo hacía dos de sus seis
+            # mitades: archivaba y encolaba. Faltaban la guarda de clase, la
+            # ofuscación del login, la inutilización de la contraseña, el
+            # retiro de las claves de API, el archivado del partner y la causa
+            # ``deactivated_reason``, sin la cual la reactivación por email no
+            # distingue una baja voluntaria de una suspensión.
+            ResUsers.objects.filter(pk=user.pk)._deactivate_portal_user()
             logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)

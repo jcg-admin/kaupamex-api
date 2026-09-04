@@ -107,13 +107,13 @@ def product(db):
 @pytest.fixture
 def team(company):
     """El equipo que **sí** es salesteam de un sitio."""
-    return CrmTeam.objects.create(name='Ventas web', company=company)
+    return CrmTeam.objects.create(name='Ventas web', company_id=company)
 
 
 @pytest.fixture
 def other_team(company):
     """El equipo de control: existe, tiene carritos, y no es salesteam."""
-    return CrmTeam.objects.create(name='Ventas mostrador', company=company)
+    return CrmTeam.objects.create(name='Ventas mostrador', company_id=company)
 
 
 @pytest.fixture
@@ -125,7 +125,7 @@ def settings_row(website, team):
     """
     return WebsiteSaleSettings.objects.create(
         website=website, cart_abandoned_delay=10.0,
-        send_abandoned_cart_email=True, salesteam=team)
+        send_abandoned_cart_email=True, salesteam_id=team)
 
 
 def assign(order, team):
@@ -285,7 +285,7 @@ def test_salesteam_field_attributes():
     ``porte-completo-no-parcial.md``: portar el nombre y perder los atributos
     es un porte parcial que ningún gate de campos mira.
     """
-    field = WebsiteSaleSettings._meta.get_field('salesteam')
+    field = WebsiteSaleSettings._meta.get_field('salesteam_id')
 
     assert field.related_model is CrmTeam            # comodel_name='crm.team'
     assert field.remote_field.on_delete.__name__ == 'SET_NULL'   # ondelete
@@ -303,8 +303,8 @@ def test_salesteam_index_is_partial():
     index = next(i for i in WebsiteSaleSettings._meta.indexes
                  if i.name == 'website_sale_salesteam_nn')
 
-    assert index.fields == ['salesteam']
-    assert index.condition == Q(salesteam__isnull=False)
+    assert index.fields == ['salesteam_id']
+    assert index.condition == Q(salesteam_id__isnull=False)
 
 
 def test_salesteam_default_is_none_while_xmlid_is_unseeded():
@@ -329,7 +329,7 @@ def test_archived_team_is_not_defaulted(company, monkeypatch):
     devolvería, porque la siembra no existe todavía. Sin este caso, el
     ``and team.active`` podría perderse sin que nada lo notara.
     """
-    archived = CrmTeam.objects.create(name='Web (archivado)', company=company,
+    archived = CrmTeam.objects.create(name='Web (archivado)', company_id=company,
                                       active=False)
     monkeypatch.setattr(website_module.IrModelData, 'ref',
                         classmethod(lambda cls, xmlid, **kw: archived))

@@ -6,10 +6,10 @@ filtrando por ``Domain('state', '=', 'draft')``). Estos serializers no
 declaran un modelo propio: proyectan esa orden y sus líneas al contrato que
 el SPA ya consume.
 """
-from django.utils.text import slugify
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from addons.base.models.ir_http import IrHttp
 from addons.product.models import ProductCategory, ProductTemplate
 
 
@@ -35,12 +35,29 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.CharField())
     def get_slug(self, obj):
-        """≙ ``ir.http._slug``: ``<nombre-slugificado>-<id>``.
+        """``_slug`` del producto — ``<nombre-slugificado>-<id>``.
 
         El id al final es lo que resuelve el registro; el texto es
         legibilidad y SEO.
+
+        **Ya no se recompone aquí.** Este método construía
+        ``f'{slugname}-{obj.pk}'`` a mano sobre ``IrHttp.slugify_one`` y
+        declaraba su divergencia de SITIO con sucesor #261: en la referencia
+        la composición vive en ``http_routing``, addon que este árbol no
+        portaba. Ese addon existe desde #261, así que la composición se llama
+        donde la fuente la declara — ``IrHttp._slug``
+        (``odoo19c: addons/http_routing/models/ir_http.py:54-66``) — y este
+        serializer vuelve a ser lo que era, un proyector.
+
+        Lo que el cambio conserva, porque es la conducta que
+        ``tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py``
+        fija: el ``slugify`` es el portado y no el de Django (un producto
+        llamado ``手工皂`` conserva su nombre en la URL, ver :ref:`h-api-993`),
+        el nombre se lee de ``display_name``, y un nombre sin caracteres de
+        palabra devuelve **sólo el id**, no ``-42``. Las tres las hace ahora
+        ``_slug``, que es de donde salían.
         """
-        return f'{slugify(obj.name)}-{obj.pk}'
+        return IrHttp._slug(obj)
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_image(self, obj):

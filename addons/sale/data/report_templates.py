@@ -23,7 +23,7 @@ Notas de forma:
   helper dibuja cada valor no vacío del objeto como una línea.
 """
 
-from addons.base.models.ir_ui_view import IrUiView
+from addons.base.models.ir_ui_view import VIEW_TYPE_TEMPLATE, IrUiView
 
 #: ``key`` de la vista = ``report_name`` del reporte — la resolución de
 #: ``_descriptor_from_view`` espeja ``_get_template_view`` de la referencia.
@@ -75,7 +75,7 @@ def seed(using=None):
         return
     manager.create(
         name='Orden de venta (plantilla del documento)',
-        type='qweb', key=REPORT_SALEORDER_KEY,
+        type=VIEW_TYPE_TEMPLATE, key=REPORT_SALEORDER_KEY,
         mode='primary', active=True,
         arch_db=REPORT_SALEORDER_ARCH,
     )

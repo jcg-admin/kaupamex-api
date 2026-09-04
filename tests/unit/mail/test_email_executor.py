@@ -4,7 +4,7 @@ import importlib.util
 import addons.mail.models.email_executor as mailmod
 
 
-def test_dispatch_email_importable_desde_addons_mail():
+def test_dispatch_email_importable_from_addons_mail():
     assert callable(mailmod.dispatch_email)
     # hogar canónico (capa de modelos del addon mail, ≙ models/mail_mail.py):
     assert mailmod.dispatch_email.__module__ == 'addons.mail.models.email_executor'

@@ -1,0 +1,12 @@
+# Control discriminante — digest-kpis-actions-group-use-lead
+# fecha:    2026-09-02T04:30:05
+# archivo:  addons/crm/models/digest.py
+# anulado:  s/if user is not None and user\.has_group(GROUP_USE_LEAD):/if False:  # NEUTERED-for-evidence/
+# tests:    tests/unit/crm/test_digest_kpi_actions.py
+
+## 1. Verde de partida (guarda presente)
+8 passed, 1 warning in 8.88s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/crm/test_digest_kpi_actions.py::TestGroupUseLeadBranch::test_switches_lead_action_when_user_has_the_group
+1 failed, 7 passed, 1 warning in 8.77s

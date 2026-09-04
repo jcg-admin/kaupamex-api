@@ -398,7 +398,7 @@ class TestAccountBankStatement:
         inválido (``balance_start`` no coincide con el ``balance_end_real``
         del estado anterior), cubriendo ambos caminos: el directo
         (``_compute_is_valid``, odoo19c:196-207) y el buscable/lote con
-        ventana ``LAG`` (``_get_invalid_statement_ids``/``search_is_valid``,
+        ventana ``LAG`` (``_get_invalid_statement_ids``/``_search_is_valid``,
         odoo19c:219-223,242-275)."""
         move1 = AccountMove.objects.create(
             company=company, journal=journal, date='2026-03-01',
@@ -425,15 +425,35 @@ class TestAccountBankStatement:
         statement2.save()
         assert statement2.is_valid is False
 
-        invalid_ids = set(AccountBankStatement._get_invalid_statement_ids())
+        invalid_ids = set(AccountBankStatement._get_invalid_statement_ids(
+            all_statements=True))
         assert statement2.pk in invalid_ids
         assert statement1.pk not in invalid_ids
 
         valid_pks = set(
-            AccountBankStatement.search_is_valid(True)
+            AccountBankStatement._search_is_valid('in', True)
             .values_list('pk', flat=True))
         assert statement1.pk in valid_pks
         assert statement2.pk not in valid_pks
+
+        # La otra rama: `is_valid in [False]` devuelve los invalidos. La
+        # referencia no la tiene —siempre devuelve `not in invalid_ids`— y
+        # por eso esta declarada como divergencia en el docstring del metodo.
+        invalid_pks = set(
+            AccountBankStatement._search_is_valid('in', False)
+            .values_list('pk', flat=True))
+        assert statement2.pk in invalid_pks
+        assert statement1.pk not in invalid_pks
+
+    def test_search_is_valid_refuses_an_operator_it_cannot_honour(self):
+        """La guarda de la fuente (``odoo19c: :220-221``): solo ``in``.
+
+        Devolver un queryset ante un operador que no sabemos resolver seria
+        peor que rehusar — pareceria una respuesta. La referencia devuelve
+        ``NotImplemented`` y aqui igual.
+        """
+        assert AccountBankStatement._search_is_valid('=') is NotImplemented
+        assert AccountBankStatement._search_is_valid('not in') is NotImplemented
 
     def test_the_three_line_indexes_exist(self):
         """Los tres índices que dependen de ``internal_index``

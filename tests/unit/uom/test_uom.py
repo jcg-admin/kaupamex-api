@@ -34,10 +34,10 @@ def precision_product_unit():
 def unidades(precision_product_unit):
     """Las unidades del seed de la referencia (``uom/data/uom_data.xml``)."""
     gram = Uom.objects.create(name='g', relative_factor=1.0)
-    kgm = Uom.objects.create(name='kg', relative_factor=1000, relative_uom=gram)
-    ton = Uom.objects.create(name='Ton', relative_factor=1000, relative_uom=kgm)
+    kgm = Uom.objects.create(name='kg', relative_factor=1000, relative_uom_id=gram)
+    ton = Uom.objects.create(name='Ton', relative_factor=1000, relative_uom_id=kgm)
     unit = Uom.objects.create(name='Units', relative_factor=1.0)
-    dozen = Uom.objects.create(name='Dozens', relative_factor=12, relative_uom=unit)
+    dozen = Uom.objects.create(name='Dozens', relative_factor=12, relative_uom_id=unit)
     return {
         'gram': gram, 'kgm': kgm, 'ton': ton, 'unit': unit, 'dozen': dozen,
     }
@@ -70,7 +70,7 @@ def test_gramo_a_kilogramo_redondea_a_la_precision_del_destino(unidades):
 
 def test_redondea_hacia_arriba_con_cero_decimales(unidades, precision_product_unit):
     score = Uom.objects.create(
-        name='Score', relative_factor=20, relative_uom=unidades['unit'],
+        name='Score', relative_factor=20, relative_uom_id=unidades['unit'],
     )
     precision_product_unit.digits = 0
     precision_product_unit.save()

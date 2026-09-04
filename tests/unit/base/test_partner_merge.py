@@ -9,7 +9,7 @@ from django.db import connection
 
 from addons.base.wizard.base_partner_merge import MergeGroup, PartnerMerge
 from addons.base.models.res_partner import ResPartner
-from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.base.models.res_bank import ResPartnerBank
 from exceptions import UserError
 
 pytestmark = pytest.mark.django_db

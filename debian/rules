@@ -1,0 +1,105 @@
+#!/usr/bin/make -f
+# Receta de construccion del paquete.
+#
+# Adaptacion de `odoo19c: debian/rules` (odoo-tools@abe4040ec1).
+#
+# DIVERGENCIA DECLARADA — la referencia construye con `pybuild` y deja el
+# arbol en `/usr/lib/python3/dist-packages/odoo/`, resolviendo sus 40
+# dependencias con paquetes `python3-*` de Debian. Aqui NO: `pyproject.toml`
+# fija 21 dependencias con version exacta y `uv.lock` congela el grafo entero.
+# Instalarlas desde Debian romperia ese anclaje —Debian sirve la version que
+# tenga, no la que el lock declara—, asi que el paquete envia el arbol mas su
+# entorno virtual bajo /opt/kaupamex/api, que es la ruta que las dos unidades
+# systemd ya declaran (`setup/kaupamex.service:ExecStart`).
+#
+# El anclaje al lock se materializa AQUI, no en `postinst`. La referencia tiene
+# `setup.py` con `install_requires` y `setup.cfg`, y por eso su `rules` puede
+# construir con `pybuild`. Nosotros NO tenemos ninguno de los dos: el proyecto
+# se declara aplicacion, no distribuible (`pyproject.toml:121`,
+# `[tool.uv] package = false`). Sin metadata de empaquetado no hay backend que
+# invocar, asi que lo que viaja en el paquete es el arbol mas el grafo
+# resuelto, exportado del lock en tiempo de construccion.
+#
+# `uv` es requisito de la MAQUINA DE CONSTRUCCION y no figura en
+# `Build-Depends:` porque no existe como paquete de Debian (medido:
+# `apt-cache policy uv` no devuelve candidato en Ubuntu 24.04). Se declara
+# aqui, que es donde se consume.
+#
+# DIVERGENCIA DECLARADA — la referencia copia `addons/*` dentro de
+# `odoo/addons/` en tiempo de construccion (`override_dh_auto_build`). Aqui
+# `addons/` es hermano de `src/` y las apps se declaran en INSTALLED_APPS
+# (tarea #318), asi que no hay copia que hacer: el arbol se instala como esta.
+
+export DH_VERBOSE = 1
+
+DESTINO = debian/kaupamex-api/opt/kaupamex/api
+
+%:
+	dh ${@}
+
+# El arbol se copia tal cual. Se excluye lo que no pertenece a una
+# instalacion: control de versiones, cache de Python, pruebas y el entorno
+# virtual de desarrollo (el del paquete se construye en postinst, contra el
+# interprete de la maquina destino).
+#
+# `src/.env` se excluye por SEGURIDAD, y es la exclusion mas importante de la
+# lista. No esta versionado —lo produce cada maquina— pero rsync no mira el
+# .gitignore: lee el disco. Medido antes de esta linea: el .env de la maquina
+# de construccion viajaba dentro del paquete con SECRET_KEY, DB_PASSWORD y
+# ADMIN_PASSWORD en claro, legibles con `dpkg-deb -c`.
+#
+# Y ademas rompia el mecanismo de configuracion: `postinst` enlaza
+# src/.env -> /etc/kaupamex/kaupamex.conf sólo `if [ ! -e ]`, asi que con el
+# archivo ya presente el enlace NUNCA se creaba y la instalacion arrancaba
+# leyendo la configuracion de OTRA maquina. Los dos defectos se refuerzan: el
+# segundo esconde al primero, porque el producto arranca y parece sano.
+#
+# `.env.example` y `.env.example.dev` SI viajan: son plantillas, no secretos.
+# Ver H-API-898.
+override_dh_auto_install:
+	mkdir -p $(DESTINO)
+	rsync -a \
+	    --exclude='.git' --exclude='.venv' --exclude='__pycache__' \
+	    --exclude='tests' --exclude='debian' --exclude='.github' \
+	    --exclude='src/tools/pdf/build' \
+	    --exclude='.claude' --exclude='.gitignore' --exclude='.gitattributes' \
+	    --exclude='src/.env' \
+	    --exclude='.githooks' \
+	    ./ $(DESTINO)/
+	chmod 0755 $(DESTINO)/kaupamex-bin
+	install -m 0644 debian/requirements.lock.txt $(DESTINO)/requirements.lock.txt
+
+# Dos artefactos que producir.
+#
+# 1. El MOTOR PDF. Va vendorizado (libharu 2.4.6, ADR-017) y produce dos
+#    ejecutables ELF, `pdf_report` y `pdf_receipt`, que las vistas invocan por
+#    subprocess. Se compilan AQUI y no en `postinst`: compilar en tiempo de
+#    instalacion obligaria a que las cabeceras de desarrollo —zlib1g-dev,
+#    libpng-dev, el compilador— fueran `Depends:` de tiempo de EJECUCION, que
+#    es justo lo que un paquete binario existe para evitar. Es tambien la razon
+#    de que `Architecture:` sea `any` y no `all`.
+#
+#    CORREGIDO — la version anterior de este comentario decia que el motor «se
+#    construye en postinst, donde ya existen el interprete y las cabeceras que
+#    Depends: garantiza». Las dos mitades eran falsas: `Depends:` declaraba
+#    zlib1g y libpng16-16, que son las de EJECUCION, no las cabeceras; y
+#    `Build-Depends:` no declaraba ninguna. Ver H-API-894.
+#
+# 2. El grafo de dependencias de Python resuelto.
+#
+# `--frozen` obliga a leer `uv.lock` sin re-resolver: si el lock no concuerda
+# con `pyproject.toml`, el comando falla y la construccion se detiene. Es lo
+# que convierte el anclaje en una condicion verificable en vez de una
+# intencion escrita en un comentario. `--no-emit-project` excluye al propio
+# proyecto, coherente con `package = false`.
+override_dh_auto_build:
+	$(MAKE) -C src/tools/pdf
+	uv export --frozen --no-dev --no-emit-project --format requirements-txt \
+	    -o debian/requirements.lock.txt
+
+override_dh_auto_test:
+
+override_dh_auto_clean:
+	rm -rf debian/kaupamex-api
+	rm -f debian/requirements.lock.txt
+	$(MAKE) -C src/tools/pdf clean || true

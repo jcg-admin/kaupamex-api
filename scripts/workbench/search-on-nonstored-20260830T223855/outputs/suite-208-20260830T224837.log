@@ -1,0 +1,186 @@
+bringing up nodes...
+bringing up nodes...
+
+......F................................................................. [  1%]
+.........................................................F.F.FF.FF....... [  2%]
+........................................................................ [  4%]
+......................................................................... [  5%]
+......................................................................... [  7%]
+........................................................................ [  8%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 19%]
+........................................................................ [ 20%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 25%]
+......................................................................... [ 26%]
+........................................................................ [ 28%]
+......................................................................... [ 29%]
+........................................................................ [ 31%]
+...............................FFFF..................................... [ 32%]
+...........................................................F............ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 43%]
+..................................F..................................... [ 44%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 80%]
+......................................................................... [ 81%]
+........................................................................ [ 83%]
+......................................................................... [ 84%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+....................                                                     [100%]
+=================================== FAILURES ===================================
+_________ TestSearchDisplayName.test_an_empty_value_matches_everything _________
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/base/test_res_bank.py:118: in test_an_empty_value_matches_everything
+    assert banks['bbva'] in found and banks['banorte'] in found
+E   AssertionError: assert (<ResBank: BBVA - BCMRMXMM> in [(1, '=', 1)])
+_______ TestSearchDisplayName.test_a_typed_localized_date_finds_the_rate _______
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/base/test_res_currency_rate.py:528: in test_a_typed_localized_date_finds_the_rate
+    assert [r.name for r in found] == [date(2026, 3, 15)]
+E   AttributeError: 'tuple' object has no attribute 'name'
+__________ TestSearchDisplayName.test_the_day_comes_before_the_month ___________
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/base/test_res_currency_rate.py:543: in test_the_day_comes_before_the_month
+    assert [r.name for r in found] == [date(2026, 4, 5)]
+E   AttributeError: 'tuple' object has no attribute 'name'
+______________ TestSearchDisplayName.test_an_iso_date_also_parses ______________
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/base/test_res_currency_rate.py:550: in test_an_iso_date_also_parses
+    assert [r.name for r in found] == [date(2026, 3, 15)]
+E   AttributeError: 'tuple' object has no attribute 'name'
+____________ TestSearchDisplayName.test_a_number_searches_the_rate _____________
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/base/test_res_currency_rate.py:562: in test_a_number_searches_the_rate
+    assert [r.rate for r in found] == [Decimal('4.000000000000')]
+E   AttributeError: 'tuple' object has no attribute 'rate'
+_______ TestSearchDisplayName.test_a_value_that_is_neither_finds_nothing _______
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/base/test_res_currency_rate.py:570: in test_a_value_that_is_neither_finds_nothing
+    assert not ResCurrencyRate._search_display_name('ilike', 'BBVA').exists()
+E   AttributeError: 'DomainBool' object has no attribute 'exists'
+___________ TestSearchDisplayName.test_the_negated_operator_excludes ___________
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/base/test_res_currency_rate.py:581: in test_the_negated_operator_excludes
+    assert [r.name for r in excluded] == [date(2026, 3, 16)]
+E   AttributeError: 'tuple' object has no attribute 'name'
+____________ TestSearchDisplayName.test_the_name_matches_by_content ____________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/base/test_res_bank.py:95: in test_the_name_matches_by_content
+    assert list(found) == [banks['banorte']]
+E   AssertionError: assert ['|', ('bic',...ike', 'orte')] == [<ResBank: Ba...e - MENOMXMT>]
+E     At index 0 diff: '|' != <ResBank: Banorte - MENOMXMT>
+E     Left contains 2 more items, first extra item: ('bic', '=ilike', 'orte%')
+E     Use -v to get more diff
+_____________ TestSearchDisplayName.test_the_bic_matches_by_prefix _____________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/base/test_res_bank.py:99: in test_the_bic_matches_by_prefix
+    assert list(found) == [banks['bbva']]
+E   AssertionError: assert ['|', ('bic',...ike', 'BCMR')] == [<ResBank: BBVA - BCMRMXMM>]
+E     At index 0 diff: '|' != <ResBank: BBVA - BCMRMXMM>
+E     Left contains 2 more items, first extra item: ('bic', '=ilike', 'BCMR%')
+E     Use -v to get more diff
+_______ TestSearchDisplayName.test_the_bic_does_not_match_in_the_middle ________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/base/test_res_bank.py:108: in test_the_bic_does_not_match_in_the_middle
+    assert not ResBank._search_display_name('ilike', 'RMXMM')
+E   AssertionError: assert not ['|', ('bic', '=ilike', 'RMXMM%'), ('name', 'ilike', 'RMXMM')]
+E    +  where ['|', ('bic', '=ilike', 'RMXMM%'), ('name', 'ilike', 'RMXMM')] = <bound method ResBank._search_display_name of <class 'addons.base.models.res_bank.ResBank'>>('ilike', 'RMXMM')
+E    +    where <bound method ResBank._search_display_name of <class 'addons.base.models.res_bank.ResBank'>> = ResBank._search_display_name
+_________ TestSearchDisplayName.test_not_ilike_returns_the_complement __________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/base/test_res_bank.py:113: in test_not_ilike_returns_the_complement
+    assert banks['banorte'] in found
+E   AssertionError: assert <ResBank: Banorte - MENOMXMT> in ['&', ('bic', 'not =ilike', 'BCMR%'), ('name', 'not ilike', 'BCMR')]
+________________ test_searching_by_name_brings_the_descendants _________________
+[gw1] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/base/test_res_partner_category.py:106: in test_searching_by_name_brings_the_descendants
+    assert ResPartnerCategory.objects.filter(condition).count() == 2
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1542: in filter
+    return self._filter_or_exclude(False, args, kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1560: in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:1570: in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+.venv/lib/python3.12/site-packages/django/db/models/sql/query.py:1676: in add_q
+    clause, _ = self._add_q(q_object, can_reuse)
+.venv/lib/python3.12/site-packages/django/db/models/sql/query.py:1708: in _add_q
+    child_clause, needed_inner = self.build_filter(
+.venv/lib/python3.12/site-packages/django/db/models/sql/query.py:1553: in build_filter
+    arg, value = filter_expr
+E   ValueError: too many values to unpack (expected 2)
+_ TestSearchDisplayNameReturnsADomain.test_the_empty_like_short_circuit_is_kept _
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/orm/test_field_search_method.py:121: in test_the_empty_like_short_circuit_is_kept
+    assert config_parameter._search_display_name('ilike', '') is TRUE_DOMAIN
+E   AssertionError: assert [(1, '=', 1)] is <Q: (AND: )>
+E    +  where [(1, '=', 1)] = <bound method DisplayNameMixin._search_display_name of <class 'addons.base.models.ir_config_parameter.SystemParameter'>>('ilike', '')
+E    +    where <bound method DisplayNameMixin._search_display_name of <class 'addons.base.models.ir_config_parameter.SystemParameter'>> = <class 'addons.base.models.ir_config_parameter.SystemParameter'>._search_display_name
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /home/user/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/base/test_res_bank.py::TestSearchDisplayName::test_an_empty_value_matches_everything
+FAILED tests/integration/base/test_res_currency_rate.py::TestSearchDisplayName::test_a_typed_localized_date_finds_the_rate
+FAILED tests/integration/base/test_res_currency_rate.py::TestSearchDisplayName::test_the_day_comes_before_the_month
+FAILED tests/integration/base/test_res_currency_rate.py::TestSearchDisplayName::test_an_iso_date_also_parses
+FAILED tests/integration/base/test_res_currency_rate.py::TestSearchDisplayName::test_a_number_searches_the_rate
+FAILED tests/integration/base/test_res_currency_rate.py::TestSearchDisplayName::test_a_value_that_is_neither_finds_nothing
+FAILED tests/integration/base/test_res_currency_rate.py::TestSearchDisplayName::test_the_negated_operator_excludes
+FAILED tests/integration/base/test_res_bank.py::TestSearchDisplayName::test_the_name_matches_by_content
+FAILED tests/integration/base/test_res_bank.py::TestSearchDisplayName::test_the_bic_matches_by_prefix
+FAILED tests/integration/base/test_res_bank.py::TestSearchDisplayName::test_the_bic_does_not_match_in_the_middle
+FAILED tests/integration/base/test_res_bank.py::TestSearchDisplayName::test_not_ilike_returns_the_complement
+FAILED tests/unit/base/test_res_partner_category.py::test_searching_by_name_brings_the_descendants
+FAILED tests/unit/orm/test_field_search_method.py::TestSearchDisplayNameReturnsADomain::test_the_empty_like_short_circuit_is_kept
+13 failed, 4838 passed, 5 warnings in 185.58s (0:03:05)

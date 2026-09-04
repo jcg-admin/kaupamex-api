@@ -12,7 +12,8 @@ comportamiento cableado en las vistas. Verifica:
 import pytest
 from rest_framework.test import APIClient
 
-from addons.base.models import SystemParameter, _clear_cache
+from addons.base.models import SystemParameter
+from orm.registry import clear_cache
 from addons.authz_signup.models.policy import password_reset_enabled, signup_open
 
 pytestmark = pytest.mark.django_db
@@ -27,9 +28,9 @@ RESET_URL = '/api/v2/authz/request-reset/'
 
 @pytest.fixture(autouse=True)
 def _reset_param_cache():
-    _clear_cache()
+    clear_cache('stable')
     yield
-    _clear_cache()
+    clear_cache('stable')
 
 
 def test_defaults_seeded_open_not_hardcoded():

@@ -149,7 +149,7 @@ class ConfigWarning(ValidationError):
         self.menu_ref = menu_ref
 
 
-class ResConfig(models.Model):
+class ResConfig(models.CopyMixin, models.Model):
     """``res.config`` — un paso de configuración.
 
     Transitorio en la fuente (``TransientModel``): no persiste, es el estado
@@ -294,7 +294,7 @@ class ResConfigSettings(ResConfig):
         values = {}
 
         for name, model, field in classified['default']:
-            stored = IrDefault.get_default(model, field)
+            stored = IrDefault._get(model, field)
             if stored is not None:
                 values[name] = stored
 
@@ -359,7 +359,7 @@ class ResConfigSettings(ResConfig):
         for name, model, field in classified['default']:
             value = getattr(self, name)
             if current.get(name) != value:
-                IrDefault.set_default(model, field, value)
+                IrDefault.set(model, field, value)
 
         # Ordenar por el valor, como la fuente: aplicar antes de quitar deja
         # el conjunto de grupos en el mismo estado con independencia del
@@ -394,8 +394,14 @@ class ResConfigSettings(ResConfig):
 
         self.set_values()
 
-    def copy(self, *args, **kwargs):
-        """``copy`` — un formulario de ajustes no se duplica."""
+    def copy(self, default=None):
+        """≙ ``copy`` (``odoo19c: res_config.py:159-160``).
+
+        Un formulario de ajustes no se duplica. La firma es la de la fuente
+        —``default`` y nada más—; antes era ``*args, **kwargs``, que aceptaba
+        cualquier cosa y por tanto no documentaba nada. Ahora hay una base con
+        esa firma (``models.CopyMixin``) contra la que leerla.
+        """
         raise ValidationError('No se puede duplicar una configuración.')
 
     # --- Mensajes de aviso ------------------------------------------------

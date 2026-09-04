@@ -15,10 +15,17 @@
 #     hereda res.users.apikeys)     `_ResUsersApikeysBase` (base abstracta de
 #                                   `res.users.apikeys`), que es la forma
 #                                   Django de la herencia por prototipo
-#   auth_totp_rate_limit_log.py   → NO portado: rate-limit de intentos TOTP
-#                                   (gap nombrado en el mismo hallazgo)
+#   auth_totp_rate_limit_log.py   → auth_totp_rate_limit_log.py — la tabla que
+#                                   cuenta los intentos de 2FA. Portada como
+#                                   modelo REAL: el TransientModel de este
+#                                   arbol declara `managed = False` y no crea
+#                                   tabla, y un limitador sin almacen no
+#                                   limita nada (#85, :ref:`h-api-833`)
 #   (sin contraparte)             → totp_recovery_code.py — endurecimiento
 #                                   propio (0 hits de "recovery" en la ref)
 from addons.authz_totp.models.auth_totp import AuthTotpDevice  # noqa: F401
+from addons.authz_totp.models.auth_totp_rate_limit_log import (  # noqa: F401
+    AuthTotpRateLimitLog,
+)
 from addons.authz_totp.models.totp_recovery_code import TotpRecoveryCode  # noqa: F401
 from addons.authz_totp.models.totp_secret import TotpSecret  # noqa: F401

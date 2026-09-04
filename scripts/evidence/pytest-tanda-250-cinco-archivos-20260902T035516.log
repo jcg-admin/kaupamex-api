@@ -1,0 +1,109 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  1%]
+........................................................................ [  3%]
+........................................................................ [  5%]
+........................................................................ [  7%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 12%]
+........................................................................ [ 14%]
+........................................................................ [ 16%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 21%]
+........................................................................ [ 23%]
+........................................................................ [ 25%]
+........................................................................ [ 27%]
+...........................................F............................ [ 28%]
+........................................................................ [ 30%]
+........................................................................ [ 32%]
+........................................................................ [ 34%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 39%]
+........................................................................ [ 41%]
+........................................................................ [ 43%]
+........................................................................ [ 45%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 50%]
+........................................................................ [ 52%]
+........................................................................ [ 54%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 59%]
+........................................................................ [ 61%]
+........................................................................ [ 63%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 68%]
+........................................................................ [ 70%]
+.................................F...................................... [ 72%]
+........................................................................ [ 74%]
+......................................................................... [ 75%]
+........................................................................ [ 77%]
+........................................................................ [ 79%]
+........................................................................ [ 81%]
+........................................................................ [ 83%]
+........................................................................ [ 85%]
+......................................................................... [ 86%]
+........................................................................ [ 88%]
+........................................................................ [ 90%]
+........................................................................ [ 92%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+...........................................................F............ [ 97%]
+........................................................................ [ 99%]
+.................                                                        [100%]
+=================================== FAILURES ===================================
+_ TestTheClassAttributesMatchTheReference.test_the_table_derives_from_the_name _
+[gw2] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/base/test_report_paperformat_class_attributes.py:50: in test_the_table_derives_from_the_name
+    == ReportPaperformat._name.replace('.', '_'))
+E   AttributeError: type object 'ReportPaperformat' has no attribute 'Meta'. Did you mean: '_meta'?
+__________________ test_no_addon_crosses_the_facade_boundary ___________________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/orm/test_fields_facade.py:116: in test_no_addon_crosses_the_facade_boundary
+    assert prohibidos == [], (
+E   AssertionError: 1 cruce(s) de la frontera sobre 1538 archivos medidos: ['web/models/models.py: orm.commands']
+E   assert ['web/models/...orm.commands'] == []
+E     Left contains one more item: 'web/models/models.py: orm.commands'
+E     Use -v to get more diff
+_________________________ test_the_whole_tree_is_clean _________________________
+[gw0] linux -- Python 3.12.3 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/scripts/test_check_escape_sequences.py:110: in test_the_whole_tree_is_clean
+    assert process.returncode == 0, process.stderr
+E   AssertionError: ERROR: 1 secuencia(s) de escape inválida(s):
+E       addons/web/models/ir_http.py:1 — invalid escape sequence '\.'
+E     
+E     Arreglo: prefijo r en la cadena (r"""..."""), NO duplicar la barra.
+E     (alcance medido: 2897 archivos del árbol)
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['/home/user/kaupamex-api/.venv/bin/python', 'scripts/check_escape_sequences.py'], returncode=1,...'\n\nArreglo: prefijo r en la cadena (r"""..."""), NO duplicar la barra.\n(alcance medido: 2897 archivos del árbol)\n').returncode
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /home/user/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/orm/test_fields_facade.py: 1 warning
+tests/unit/scripts/test_check_chain_method_depends.py: 8 warnings
+tests/unit/scripts/test_check_fk_naming.py: 3 warnings
+  <unknown>:1: SyntaxWarning: invalid escape sequence '\.'
+
+tests/unit/scripts/test_check_no_lazy_imports.py::TestTheGateDiscriminates::test_the_tree_as_it_stands_has_no_lazy_import
+  /home/user/kaupamex-api/addons/web/models/ir_http.py:1: SyntaxWarning: invalid escape sequence '\.'
+    """``ir.http`` extendido por ``web`` — detección de bots, cookie de compañías
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/base/test_report_paperformat_class_attributes.py::TestTheClassAttributesMatchTheReference::test_the_table_derives_from_the_name
+FAILED tests/unit/orm/test_fields_facade.py::test_no_addon_crosses_the_facade_boundary
+FAILED tests/unit/scripts/test_check_escape_sequences.py::test_the_whole_tree_is_clean
+3 failed, 3976 passed, 18 warnings in 146.30s (0:02:26)

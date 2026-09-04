@@ -41,9 +41,9 @@ def _declare(model_name, module_name):
 
 def test_object_find_returns_the_models_the_module_declares(module):
     """``:11-16``: los ``ir.model`` cuyo ``ir.model.data`` cita al módulo."""
-    pedido = _declare('sale.order', 'sale')
+    order = _declare('sale.order', 'sale')
     encontrados = ReportBaseReportIrmodulereference._object_find(module)
-    assert list(encontrados) == [pedido]
+    assert list(encontrados) == [order]
 
 
 def test_object_find_ignores_models_of_another_module(module, other_module):
@@ -88,10 +88,10 @@ def test_report_values_expose_both_finders_as_callables(module):
 
 def test_the_exposed_finder_is_the_working_one(module):
     """``findobj`` no es un envoltorio: es el método que ya se ejercitó."""
-    pedido = _declare('sale.order', 'sale')
+    order = _declare('sale.order', 'sale')
     valores = ReportBaseReportIrmodulereference._get_report_values(
         [module.pk])
-    assert list(valores['findobj'](module)) == [pedido]
+    assert list(valores['findobj'](module)) == [order]
 
 
 def test_doc_model_is_none_while_the_report_spec_is_not_declared(module):

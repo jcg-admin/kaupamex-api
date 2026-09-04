@@ -381,7 +381,7 @@ class Migration(migrations.Migration):
                     "description",
                     models.TextField(
                         blank=True,
-                        help_text="Odoo description (translate=True en la fuente — sin dispatcher de traducción en fields.Html, ver fields.Char.odoo_translate en la fachada).",
+                        help_text="Odoo description (translate=True en la fuente — sin dispatcher de traducción en fields.Html, ver fields.Char.translate en la fachada).",
                         null=True,
                         verbose_name="Descripción",
                     ),

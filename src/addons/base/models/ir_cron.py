@@ -166,7 +166,7 @@ del método invocado devuelve el ``user`` del cron, que es lo que consumen
 ``bus/ir_attachment.py``, ``bus/bus_listener_mixin.py`` y
 ``digest/digest.py``.
 
-**Lo que esto NO alcanza todavía:** ``IrRule.eval_context`` (``ir_rule.py:161``)
+**Lo que esto NO alcanza todavía:** ``IrRule._eval_context`` (``ir_rule.py:161``)
 recibe ``user`` como parámetro explícito y **no** cae a ``get_current_user()``
 cuando el llamador no lo pasa. Así que un cron con ``user`` puesto tiene el
 usuario disponible en el contexto, pero las record rules evaluadas dentro no
@@ -200,6 +200,7 @@ from addons.base.models.ir_module import IrModule
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import LockError, UserError
 from orm.environments import context_scope, get_context, user_scope
+from tools.constants import GC_UNLINK_LIMIT
 
 _logger = logging.getLogger(__name__)
 
@@ -233,9 +234,6 @@ NOTIFY_FUNCTION = os.getenv('KAUPAMEX_NOTIFY_FUNCTION', 'pg_notify')
 #: su siguiente sondeo, que es justo lo que la variable existe para evitar.
 NOTIFY_CRON_CHANGES = bool(os.getenv('KAUPAMEX_NOTIFY_CRON_CHANGES'))
 
-#: Tope de filas por pasada de recoleccion — ``GC_UNLINK_LIMIT`` de
-#: ``odoo.tools.constants``. Local, igual que en ``ir_profile.py:83``.
-GC_UNLINK_LIMIT = 100_000
 
 
 class BadVersion(Exception):
@@ -382,7 +380,7 @@ def _add_interval(dt, number, interval_type):
     return avanzar(dt, number)
 
 
-class IrCron(models.Model):
+class IrCron(models.DefaultGetMixin, models.Model):
     """``ir.cron`` — registro de horario de una tarea programada + runner.
 
     El registro de horario (qué ejecutar + cada cuánto + próxima corrida)
@@ -400,7 +398,15 @@ class IrCron(models.Model):
     _order = 'cron_name, id'
     _description = 'Scheduled Actions'
     _allow_sudo_commands = False
-    _inherits = {'ir.actions.server': 'ir_actions_server_id'}
+    #: La clave nombra el campo de ESTE arbol, no el de la fuente. Alla es
+    #: ``ir_actions_server_id`` porque la FK lleva el sufijo; aqui la FK se
+    #: llama ``ir_actions_server`` (decision #141) y ``_inherits`` la sigue,
+    #: como ya hacen ``ResUsers`` (``{'res.partner': 'partner'}``) y
+    #: ``WebsitePage`` (``{'ir.ui.view': 'view'}``). Hasta hoy este declaraba
+    #: el nombre de la fuente, asi que ``ensure_inherits`` no encontraba el
+    #: campo y la delegacion nunca se cableaba: la FK no llevaba ``delegate``
+    #: y ``_check_inherits`` la rechaza. Ver :ref:`h-api-1052`.
+    _inherits = {'ir.actions.server': 'ir_actions_server'}
 
     #: Las cuatro columnas que el ``LEFT JOIN last_cron_progress`` de
     #: ``_acquire_one_job`` (``odoo19c: ir_cron.py:355-370``) cuelga del job.
@@ -550,21 +556,28 @@ class IrCron(models.Model):
     def default_get(cls, fields_wanted=None):
         """≙ ``default_get`` (``odoo19c: ir_cron.py:142-148``).
 
-        La fuente fuerza ``default_state='code'`` porque en Odoo un cron solo
-        admite ese modo de accion servidor. Aqui el equivalente del ``code``
-        es ``method_name`` (ver ``ir_actions.py``), asi que el default que se
-        siembra es el ``usage`` que ``save()`` fija, y el estado no aplica.
+        El cuerpo de la fuente es de dos lineas y hace una sola cosa: mete
+        ``default_state='code'`` en el contexto si el llamador no trajo uno, y
+        delega. Su comentario lo explica: *"only 'code' state is supported for
+        cron job so set it as default"*.
 
-        DIVERGENCIA DE MECANISMO, declarada: Django no tiene ``default_get``
-        —los defaults viven en el campo— asi que este metodo no lo llama el
-        framework. Se porta porque un addon adaptado puede invocarlo, y
-        porque su ausencia dejaba el simbolo declarado ausente sin razon.
+        Ese modo **si** existe aqui: ``'code'`` es una de las seis
+        ``IrActionsServer.STATE_CHOICES`` (``ir_actions.py:565``), y ``state``
+        llega a ``ir.cron`` por el mismo ``_inherits`` que alla. Asi que se
+        porta tal cual, sin adaptacion.
+
+        > **Actualizado (tarea #113).** Este cuerpo declaraba cuatro defaults
+        > propios —``interval_number``, ``interval_type``, ``priority``,
+        > ``active``— y **no llamaba a ``super()``**, porque no habia base a
+        > la que llamar. Los cuatro ya los declara su campo con ``default=``,
+        > que es donde la fuente tambien los pone, asi que la base los
+        > responde sola; el dict duplicado ademas **pisaba al contexto**, que
+        > es justo lo contrario del orden que la fuente fija. Y el docstring
+        > decia que el estado *"no aplica"*: era falso, el modo esta portado.
         """
-        defaults = {'interval_number': 1, 'interval_type': 'months',
-                    'priority': 5, 'active': True}
-        if fields_wanted is None:
-            return defaults
-        return {k: v for k, v in defaults.items() if k in fields_wanted}
+        with context_scope(**({} if get_context().get('default_state')
+                              else {'default_state': 'code'})):
+            return super().default_get(fields_wanted or [])
 
     @classmethod
     def _get_ready_sql_condition(cls):
@@ -641,7 +654,36 @@ class IrCron(models.Model):
         con jobs atascados mas de ``MAX_FAIL_TIME`` la fuente deja de
         bloquear. Aqui esa rama es inalcanzable mientras ``cambios`` sea cero;
         se declara asi en vez de omitirla, para que el dia que ``ir.module``
-        gane sus estados el metodo ya este completo. Sucesor: tarea #46.
+        gane sus estados el metodo ya este completo.
+
+        **Veredicto de la tarea #46 (2026-08-27): los estados transitorios NO
+        se portan, y la divergencia queda cerrada.** La tarea pedia decidir si
+        este arbol tiene una fase en que la fila queda a medias. Medido: no la
+        tiene. ``_derive_state`` (``update_module_list``) es funcion pura de
+        ``(manifest, INSTALLED_APPS)``, ``INSTALLED_APPS`` se congela en
+        ``django.setup()`` y el comando escribe el estado final dentro de una
+        transaccion — no hay escritor incremental que pueda dejar un ``to %``.
+
+        Y el peligro que la fuente protege —no correr crons mientras el schema
+        muta— **si esta cubierto en este arbol**, por el hermano
+        ``_check_version``: una migracion sin aplicar levanta ``BadVersion``.
+        No falta proteccion; el mismo riesgo se detecta por otra senal, y esa
+        senal ya esta portada. Implementar estados que nadie puede escribir
+        seria inventar una capacidad.
+
+        **La tercera rama de la fuente NO se porta, y se declara aqui.** Tras
+        superar el umbral la fuente llama a ``reset_modules_state(cr.dbname)``
+        (``odoo19c: ir_cron.py:279-281``) para limpiar los estados zombis. Aqui
+        no hay estado que resetear —es la misma ausencia de arriba—, asi que el
+        porte llega hasta *dejar de bloquear* y para. Se nombra en vez de
+        omitirse: un simbolo de la fuente que no aparece ni en el codigo ni en
+        la declaracion es porte parcial silencioso.
+
+        Cobertura: ``tests/unit/base/test_ir_cron_guardas_de_arranque.py``
+        ejercita la rama del umbral **inyectando a mano** la fila que el arbol
+        no sabe producir, que es la unica forma de saber si la logica del
+        umbral funciona o es decorado. Control con la guarda anulada: caen 2 de
+        6, los dos que esperan bloqueo.
         """
         # Medido: ``IrModule.STATES`` declara TRES estados —``uninstallable``,
         # ``uninstalled``, ``installed``— y ninguno empieza con ``'to '``. La

@@ -39,10 +39,10 @@ def _unlink_except_government_document(sender, instance, **kwargs):
     documento EDI ya enviado al gobierno a través de un formato con
     web-service."""
     linked_documents = AccountEdiDocument.objects.filter(
-        attachment=instance,
-    ).select_related('edi_format')
+        attachment_id=instance,
+    ).select_related('edi_format_id')
     linked_with_web_services = [
-        d for d in linked_documents if d.edi_format._needs_web_services()
+        d for d in linked_documents if d.edi_format_id._needs_web_services()
     ]
     if linked_with_web_services:
         raise UserError(_(

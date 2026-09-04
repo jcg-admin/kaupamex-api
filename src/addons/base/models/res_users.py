@@ -65,6 +65,7 @@ import hashlib
 import ipaddress
 import logging
 import os
+import time
 from dataclasses import dataclass
 from datetime import timedelta
 from zoneinfo import available_timezones
@@ -77,18 +78,23 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import authenticate as django_authenticate
 from django.contrib.auth import hashers
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db.models import F, Q
 from django.db.models.functions import Length
 from django.db.models.lookups import Exact
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_delete
+from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
+from passlib.context import CryptContext as _CryptContext
 
 from addons.base.models import signals
 from addons.base.models.ir_http import get_current_request
 from addons.base.models.res_device import _client_ip
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import AccessDenied, AccessError, UserError
+from orm import registry
 from orm.environments import get_current_company, get_current_user, is_su
 from orm.utils import SUPERUSER_ID
 
@@ -98,6 +104,130 @@ from orm.utils import SUPERUSER_ID
 #: lo usan el bloque de claves de API, el enfriamiento de acceso Y el cambio de
 #: contraseña. El nombre acotado sugería que cada bloque traía el suyo.
 _logger = logging.getLogger(__name__)
+
+
+class CryptContext:
+    """≙ ``CryptContext`` (``odoo19c: res_users.py:33-76``).
+
+    La envoltura que la fuente pone delante de ``passlib`` para poder copiar
+    un contexto con la misma configuración. Se porta con su archivo, su
+    clase, sus métodos y sus firmas — y con su motor: ``passlib`` es una
+    dependencia declarada de este árbol (``pyproject.toml``), igual que en la
+    fuente, así que aquí no hay nada que sustituir.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.__obj__ = _CryptContext(*args, **kwargs)
+
+    def copy(self):
+        """Un contexto nuevo con la configuración del original.
+
+        Su docstring de la fuente, verbatim: *"The copy method must create a
+        new instance of the ``CryptContext`` wrapper with the same
+        configuration as the original (``__obj__``). There are no need to
+        manage the case where kwargs are passed to the ``copy`` method. It is
+        necessary to load the original ``CryptContext`` in the new instance of
+        the original ``CryptContext`` with ``load`` to get the same
+        configuration."*
+        """
+        other_wrapper = CryptContext(_autoload=False)
+        other_wrapper.__obj__.load(self.__obj__)
+        return other_wrapper
+
+    @property
+    def hash(self):
+        return self.__obj__.hash
+
+    @property
+    def identify(self):
+        return self.__obj__.identify
+
+    @property
+    def verify(self):
+        return self.__obj__.verify
+
+    @property
+    def verify_and_update(self):
+        return self.__obj__.verify_and_update
+
+    def schemes(self):
+        return self.__obj__.schemes()
+
+    def update(self, **kwargs):
+        if kwargs.get("schemes"):
+            assert isinstance(kwargs["schemes"], str) or all(isinstance(s, str) for s in kwargs["schemes"])
+        return self.__obj__.update(**kwargs)
+
+
+#: ≙ ``MIN_ROUNDS`` (``odoo19c: res_users.py:79``). Piso del factor de trabajo
+#: del cifrador: la configuración puede subirlo, nunca bajarlo.
+MIN_ROUNDS = 600_000
+
+#: Prefijo de la clave con que se memoriza la clausura de grupos de un usuario.
+#:
+#: ≙ el ``@tools.ormcache('self.id')`` que la referencia cuelga de
+#: ``_get_group_ids`` (``odoo19c: res_users.py:1098``). Su ``ormcache`` es un
+#: diccionario por registro y por base; aquí el equivalente es el backend de
+#: caché configurado, y la clave lleva **dos** ejes porque hay dos cosas que
+#: pueden cambiar el resultado: el usuario y el grafo de implicación.
+_GROUP_IDS_CACHE_PREFIX = 'base:group_ids'
+
+#: Clave del contador de generación del grafo de implicación.
+#:
+#: El grafo de ``res.groups`` es **compartido**: reescribir un ``implied_ids``
+#: cambia la clausura de todos los usuarios a la vez, no la de uno. Purgar por
+#: usuario exigiría enumerarlos —lo que no escala y la propia fuente evita en
+#: ``check_user_disjoint_groups``—, así que el invalidador de grafo incrementa
+#: esta generación y con ello **jubila todas las claves vivas de golpe**.
+#:
+#: Es la adaptación de lo que la fuente resuelve con ``registry.clear_cache()``
+#: (``odoo19c: res_users.py:643``), que purga el registro entero. Aquí un
+#: ``cache.clear()`` sería más ancho todavía: barrería también las capacidades
+#: de ``addons.authz.resolution``, que no dependen de este grafo.
+_GROUP_GRAPH_GENERATION_KEY = 'base:group_graph_generation'
+
+#: Vigencia del memo, en segundos. Es un techo, no el mecanismo de corrección:
+#: quien corrige es el invalidador. El TTL sólo acota la ventana de una
+#: escritura que ocurriera fuera de los descriptores del ORM —SQL crudo, o un
+#: ``bulk_create`` sobre la tabla intermedia—, que no emite señal.
+_GROUP_IDS_CACHE_TTL = 300
+
+
+def _group_graph_generation():
+    """La generación vigente del grafo de implicación.
+
+    ``cache.get_or_set`` en vez de ``get`` con respaldo: si la clave se cayó
+    —desalojo, reinicio del proceso— la generación arranca de nuevo en 1, y
+    eso es **seguro por construcción**: las claves de la generación anterior
+    quedan huérfanas y nadie vuelve a leerlas.
+    """
+    return cache.get_or_set(_GROUP_GRAPH_GENERATION_KEY, 1, None)
+
+
+def _group_ids_cache_key(user_pk):
+    return f'{_GROUP_IDS_CACHE_PREFIX}:{_group_graph_generation()}:{user_pk}'
+
+
+def _invalidate_group_ids(user_pks=None):
+    """Purga el memo de la clausura de grupos.
+
+    Sin argumento, **jubila la generación entera**: es el caso del grafo de
+    implicación, cuyo cambio afecta a todos los usuarios. Con una lista de PKs,
+    purga sólo a ésos: es el caso de un usuario que gana o pierde un grupo.
+
+    Las dos vías comparten nombre a propósito — anularlo con un ``return`` al
+    entrar desactiva la invalidación completa, que es el control de
+    ``metrica-decide-la-conclusion.md`` sub-patrón D que la suite ejercita.
+    """
+    if user_pks is None:
+        try:
+            cache.incr(_GROUP_GRAPH_GENERATION_KEY)
+        except ValueError:
+            # La clave no existe todavía: sembrarla ya jubila lo que hubiera.
+            cache.set(_GROUP_GRAPH_GENERATION_KEY, 2, None)
+        return
+    cache.delete_many([_group_ids_cache_key(pk) for pk in user_pks if pk])
+
 
 #: Contador de intentos fallidos por origen, para el enfriamiento de acceso.
 #:
@@ -143,7 +273,101 @@ GROUP_ERP_MANAGER_XMLID = 'base.group_erp_manager'
 _SYSTEM_LOGINS = frozenset({'admin', 'public', '__system__'})
 
 
-class ResUsersManager(models.Manager):
+class ResUsersQuerySet(models.AccessQuerySet):
+    """El **recordset** de la credencial.
+
+    La referencia declara sobre el recordset los métodos que actúan sobre un
+    conjunto (``self.filtered(...)``, un ``for user in self``); aquí el
+    recordset es el ``QuerySet``, no la instancia. Declararlos en el modelo
+    obligaría a quien llama a iterar por su cuenta, y con eso se perdería la
+    guarda que la fuente aplica **al conjunto entero antes de tocar nada**.
+    """
+
+    def _deactivate_portal_user(self, **post):
+        """≙ ``_deactivate_portal_user`` (``odoo19c: res_users.py:934-987``).
+
+        Su docstring de la fuente dice para qué existe: *"This is used to give
+        the opportunity to portal users to de-activate their accounts. Indeed,
+        as the portal users can easily create accounts, they will sometimes
+        wish it removed because they don't use this Odoo portal anymore."*
+
+        Seis efectos, en el orden de la fuente:
+
+        1. **La guarda de clase, sobre el conjunto entero.** Si algún usuario
+           del recordset no es de portal, no se da de baja a **ninguno** —
+           ``AccessDenied`` antes del primer ``save()``. La fuente hace lo
+           mismo con ``self.filtered(lambda user: not user.share)``.
+        2. **El login se ofusca** a ``__deleted_user_<pk>_<epoch>``: libera el
+           correo para que la persona pueda volver a registrarse, y deja la
+           fila trazable mientras la cola de borrado la procesa.
+        3. **La contraseña queda inutilizable.** La fuente escribe ``''``;
+           aquí ``set_unusable_password()`` es la forma del stack, y es más
+           estricta — un hash con prefijo ``!`` que ningún hasher valida.
+        4. **Se retiran las claves de API** con ``_remove()``, que **sigue
+           exigiendo identidad**: la baja la pide el propio usuario, así que
+           el actor es él. Es la misma condición que la fuente impone
+           (``env.is_system()`` o ser el dueño), y no se relaja aquí.
+        5. **Se archivan el usuario y su partner.** La fuente envuelve las dos
+           en ``try/except`` porque su ``action_archive`` puede fallar por una
+           restricción de integridad (*"if the partner is related to an
+           invoice e.g."*); aquí son escrituras de campo y no lanzan, así que
+           el ``except`` no se porta — no hay excepción que tragar.
+        6. **Se encola la fila de ``res.users.deletion``** en estado ``todo``,
+           que es lo que la fuente hace al final.
+
+        DIVERGENCIA, y es un **añadido** de este árbol: se escribe además
+        ``deactivated_reason = DEACTIVATION_SELF_DELETED`` con su
+        ``deactivated_at``. La fuente no lo necesita porque su ``active`` es un
+        booleano sin motivo; aquí el flujo de reactivación por email decide
+        con esa causa, y sin ella una baja voluntaria es indistinguible de una
+        suspensión administrativa.
+
+        :raises AccessDenied: si algún usuario del recordset no es de portal.
+        """
+        users = list(self)
+        if not users:
+            return
+        no_portal = [user for user in users if not user.share]
+        if no_portal:
+            raise AccessDenied(
+                'Sólo los usuarios de portal pueden dar de baja su cuenta. '
+                'No se puede dar de baja a: %s'
+                % ', '.join(user.login for user in no_portal))
+
+        request = get_current_request()
+        origen = _client_ip(request) if request is not None else 'n/a'
+        ahora = timezone.now()
+        model = self.model
+        deletion = apps.get_model('base', 'ResUsersDeletion')
+
+        for user in users:
+            _logger.info(
+                'Baja de cuenta solicitada para %r (#%s) desde %s. '
+                'Se archiva al usuario y se retira su información de acceso.',
+                user.login, user.pk, origen)
+
+            user.login = '__deleted_user_%s_%s' % (user.pk, time.time())
+            user.set_unusable_password()
+            user.active = False
+            user.deactivated_reason = model.DEACTIVATION_SELF_DELETED
+            user.deactivated_at = ahora
+            user.save(update_fields=[
+                'login', 'password', 'active',
+                'deactivated_reason', 'deactivated_at',
+            ])
+
+            for clave in list(user.api_keys.all()):
+                clave._remove()
+
+            if user.partner_id is not None:
+                user.partner.active = False
+                user.partner.save(update_fields=['active'])
+
+            deletion.objects.create(
+                user=user, user_int=user.pk, state=deletion.STATE_TODO)
+
+
+class ResUsersManager(models.AccessManager):
     """Manager de la credencial. Replica lo que el framework consume.
 
     No hereda ``BaseUserManager`` por la misma razón que el modelo no hereda
@@ -152,6 +376,14 @@ class ResUsersManager(models.Manager):
     """
 
     use_in_migrations = True
+
+    def get_queryset(self):
+        return ResUsersQuerySet(self.model, using=self._db)
+
+    def _deactivate_portal_user(self, **post):
+        """Delegación al recordset — ver
+        :meth:`ResUsersQuerySet._deactivate_portal_user`."""
+        return self.get_queryset()._deactivate_portal_user(**post)
 
     @staticmethod
     def normalize_email(email):
@@ -233,7 +465,7 @@ def _partner_model():
     return apps.get_model('base', 'ResPartner')
 
 
-class ResUsers(TimeStampedModel):
+class ResUsers(models.DefaultGetMixin, TimeStampedModel):
     """``res.users`` — credencial de acceso, delegando identidad al partner.
 
     Fiel a ``odoo19c: odoo/addons/base/models/res_users.py:163-257`` en lo
@@ -276,7 +508,7 @@ class ResUsers(TimeStampedModel):
     — verificado con ``pg_constraint``. No hace falta un ``Meta.constraints``
     para renombrarlo.
 
-    Los 73 símbolos que este porte NO trae, y su desenlace
+    Los 64 símbolos que este porte NO trae, y su desenlace
     -------------------------------------------------------
 
     Medido con ``check_porte_completo`` contra
@@ -328,44 +560,113 @@ class ResUsers(TimeStampedModel):
     action*, que este árbol no tiene: BLOQUEADO por ``action_id`` — no hay
     campo que validar.
 
-    **4. La superficie RPC de integración externa — 6 símbolos.** BLOQUEADO
-    por ``canal RPC crudo`` — no está construido; sucesor **#490**.
-    ``_rpc_api_keys_only``,
-    ``SELF_READABLE_FIELDS``, ``SELF_WRITEABLE_FIELDS``,
-    ``_self_accessible_fields``, ``_has_field_access``, ``context_get``. Son
-    el control de qué campos puede leerse y escribirse un usuario **a sí
-    mismo por RPC**. Aquí ese control lo ejerce el serializer con su
-    ``Meta.fields`` explícito y la autorización por capacidad (DEC-11), que es
-    fail-closed; el canal RPC crudo no está construido.
+    **4. La superficie de cuenta propia — 4 de 6 portados, 2 divergen.**
+    Son el control de qué campos puede leerse y escribirse un usuario **a sí
+    mismo**. El grupo entero se declaraba detenido *"por canal RPC crudo — no
+    está construido"*, y esa premisa **caducó**: el canal existe desde #85
+    (:ref:`h-api-835`). La marca se retira porque ya no hay bloqueo que
+    declarar, no porque se reescriba su forma.
 
-    **5. Su cifrador de contraseñas — 9 símbolos.** DIVERGENCIA DE STACK.
-    ``CryptContext`` entera —``__init__``, ``copy``, ``hash``, ``identify``,
-    ``verify``, ``verify_and_update``, ``schemes``, ``update``— más
-    ``_crypt_context``. Es su envoltura
-    de ``passlib``; aquí el equivalente son los ``PASSWORD_HASHERS`` de Django,
-    que ``set_password``/``check_password`` ya consumen — incluido el rehash
-    automático que su ``verify_and_update`` hace a mano.
+    Portados: ``_rpc_api_keys_only`` (#85), ``SELF_READABLE_FIELDS`` y
+    ``SELF_WRITEABLE_FIELDS`` (#66 y #85, extensibles con
+    ``orm.model_classes.extend_property`` — :ref:`h-api-834`), y
+    ``_self_accessible_fields``, que deriva las dos listas.
 
-    **6. La caché de autorización — 3 símbolos.** ``_get_invalidation_fields``,
-    ``_compute_session_token``, ``_get_session_token_query_params``. Los dos
-    últimos son la memorización y el SQL crudo de un token que aquí calcula
-    Django (ver :meth:`_get_session_token_fields`); el primero es el
-    invalidador, y su ausencia es **la razón declarada** de que
-    :meth:`_get_group_ids` no memorice. Sucesor: tarea **#58**.
+    DIVERGENCIA DE MECANISMO, los dos que quedan. ``_has_field_access`` es el
+    enganche del control de acceso **por campo** de su ORM; aquí ese control
+    lo ejerce el serializer con su ``Meta.fields`` explícito más la
+    autorización por capacidad (DEC-11), que es fail-closed — no hay un
+    despacho por campo al que engancharse. ``context_get`` compone el contexto
+    de sesión de su ORM, que este árbol no tiene: el equivalente es
+    ``request.user`` más ``orm.environments``.
 
-    **7. Lo que sigue pendiente de portar, con tarea propia — 18 símbolos.**
-    ``_set_password``, ``_set_encrypted_password``, ``_compute_password``,
-    ``_set_new_password``, ``_deactivate_portal_user``,
-    ``_action_revoke_all_devices``, ``_legacy_session_token_hash_compute``,
-    ``UsersMultiCompany`` (``create``, ``write``, ``new``), los cuatro de los
-    asistentes de contraseña (``_default_user_ids``,
-    ``change_password_button``, ``_check_password_confirmation``,
-    ``run_check``) y los cinco de ``ResUsersApikeysDescription``
-    (``_selection_duration``, ``_compute_expiration_date``,
-    ``_onchange_expiration_date``, ``create``, ``make_key``). Los wizards
-    divergen en forma y
-    su desenlace está en :ref:`h-api-801`; el resto es trabajo, no divergencia.
-    Sucesor: tarea **#59**.
+    **5. Su cifrador de contraseñas — PORTADO (9 símbolos).** Este bloque
+    decía *"DIVERGENCIA DE STACK"* y ofrecía los ``PASSWORD_HASHERS`` de
+    Django como equivalente. Era el camino barato: la envoltura
+    ``CryptContext`` —``__init__``, ``copy``, ``hash``, ``identify``,
+    ``verify``, ``verify_and_update``, ``schemes``, ``update``— y su accesor
+    ``_crypt_context`` **se portan**, con su archivo, su clase, sus métodos y
+    sus firmas, y con su motor: ``passlib`` es ahora una dependencia declarada
+    de este árbol.
+
+    Con ellos se porta lo que cuelga: :data:`MIN_ROUNDS`,
+    :data:`KEY_CRYPT_CONTEXT` y las dos mitades de ``_check_credentials`` que
+    lo consumen —``verify_and_update`` y el reemplazo por
+    :meth:`_set_encrypted_password`—, hoy en :meth:`check_password`.
+
+    Dos consecuencias medidas, y las dos son del porte, no accidentes:
+
+    - la columna ``password`` deja de llevar ``max_length=128``. Ese tope no
+      venía de la fuente —que declara ``fields.Char`` sin tamaño— sino de
+      ``AbstractBaseUser``, y no cabe el MCF de ``pbkdf2_sha512``
+      (migración ``0055``).
+    - un hash escrito por **otro** cifrador ya no entra por
+      :meth:`_set_encrypted_password`: la guarda pregunta
+      ``identify(pw) != 'plaintext'`` contra ESTE contexto, que es lo que la
+      fuente afirma. No hay corpus heredado que convertir — la contraseña se
+      escribe siempre por :meth:`set_password`, que usa el mismo contexto.
+
+    **6. La caché de autorización — 3 símbolos.**
+    ``_get_invalidation_fields`` está **portado** (tarea #58), y con él
+    :meth:`_get_group_ids` memoriza como en la fuente: el bloque de módulo
+    ``_group_ids_cache_key`` / ``_invalidate_group_ids`` y sus cuatro
+    receptores son la forma que toma aquí el ``registry.clear_cache()`` que
+    allá se dispara desde ``write``.
+
+    Los otros dos —``_compute_session_token`` y
+    ``_get_session_token_query_params``— son la memorización y el SQL crudo de
+    un token que aquí calcula Django (ver :meth:`_get_session_token_fields`).
+    Quedan como **divergencia de stack declarada**, no como trabajo.
+
+    **7. El resto, triado uno por uno — 19 símbolos.** Este bloque decía
+    *"18"* y listaba **19**; el conteo se corrigió al triarlos (tarea #59),
+    y con él la afirmación de que *"el resto es trabajo, no divergencia"* —
+    medido, nueve de los diecinueve ya tenían su desenlace declarado en
+    **este mismo archivo**, y listarlos aquí como pendientes contradecía esa
+    declaración.
+
+    *Portados — 7:*
+
+    - ``_deactivate_portal_user`` (``:934-987``) → :meth:`ResUsersQuerySet
+      ._deactivate_portal_user`. Su consumidor **ya existía** y hacía dos de
+      sus seis mitades a mano.
+    - ``_set_encrypted_password`` (``:299-306``) y ``_set_new_password``
+      (``:414-426``) → los dos aquí abajo, con sus guardas.
+    - ``UsersMultiCompany`` — sus tres símbolos (``create``, ``write``,
+      ``new``) son **el mismo cuerpo colgado de tres ganchos** de su ORM.
+      Aquí es **un** receptor de ``m2m_changed``
+      (:func:`_sync_multi_company_group`, al final del archivo), porque en
+      Django el M2M nunca se escribe en el ``save()``: va siempre por su
+      propio camino, y ese camino es justo la condición que su ``write``
+      comprueba a mano con ``if 'company_ids' not in vals``. Tarea **#68**.
+    - ``_action_revoke_all_devices`` (``:1028-1031``) →
+      :meth:`_action_revoke_all_devices`. Estuvo BLOQUEADO por
+      ``ResDevice._revoke``, que se portó en la tarea **#69**; el bloqueo era
+      real y se cerró desbloqueándolo, no rebajándolo.
+
+    *Divergencia declarada — 3:*
+
+    - ``_set_password`` y ``_compute_password``: existen porque su ``password``
+      es un campo **compute/inverse** que nunca guarda lo que se le asigna.
+      Aquí es la columna de Django y el cifrado es explícito
+      (:meth:`set_password`), así que no hay *inverse* que colgar ni valor que
+      blanquear al leer.
+    - ``_legacy_session_token_hash_compute`` (``:886-896``): su único
+      consumidor es ``odoo19c: odoo/service/security.py:27-32``, que migra un
+      token de sesión del formato viejo al nuevo **dentro de su propio
+      almacén de sesiones**. Aquí las sesiones son de Django y no hay corpus
+      heredado que convertir: portarlo daría un método sin quién lo llame.
+
+    *Con desenlace ya declarado en este archivo — 9:*
+
+    - los cuatro de los asistentes de contraseña (``_default_user_ids``,
+      ``change_password_button``, ``_check_password_confirmation``,
+      ``run_check``) → :ref:`h-api-801`;
+    - los cinco de ``ResUsersApikeysDescription`` (``_selection_duration``,
+      ``_compute_expiration_date``, ``_onchange_expiration_date``, ``create``,
+      ``make_key``) → declarados en el docstring de
+      :class:`_ResUsersApikeysBase`, punto 5, con su sucesor **#490** y con la
+      mitad que **no** es presentación ya medida aparte.
     """
 
     _name                 = 'res.users'
@@ -402,7 +703,13 @@ class ResUsers(TimeStampedModel):
         max_length=254, unique=True, db_index=True,
         help_text='Identificador de acceso (Odoo login). Aquí es el email.',
     )
-    password      = fields.Char(max_length=128, verbose_name='Contraseña')
+    #: ≙ ``password`` (``odoo19c: res_users.py:217-219``), que se declara
+    #: ``fields.Char`` **sin tamaño** — ``varchar`` sin límite. El
+    #: ``max_length=128`` que había aquí no venía de la fuente: era el de
+    #: ``AbstractBaseUser``, y no cabe el MCF de ``pbkdf2_sha512`` que
+    #: :meth:`_crypt_context` produce (medido: 133 caracteres con la sal de
+    #: 16 bytes que passlib usa por defecto).
+    password      = fields.Char(verbose_name='Contraseña')
     active        = fields.Boolean(
         default=True, db_index=True,
         help_text='Cuenta operativa (Odoo active).',
@@ -488,23 +795,68 @@ class ResUsers(TimeStampedModel):
         return (self.get_username(),)
 
     def set_password(self, raw_password):
-        self.password = hashers.make_password(raw_password)
+        """Cifra con el contexto del modelo — ≙ ``_set_password`` (``:359-362``).
+
+        La fuente lo hace en el *inverse* de su campo ``password``:
+        ``ctx = self._crypt_context(); ... ctx.hash(user.password)``. Aquí la
+        columna es de Django y el cifrado es explícito, pero **el cifrador es
+        el mismo**: :meth:`_crypt_context`, no el registro global
+        ``PASSWORD_HASHERS``. Es lo que hace que
+        :meth:`_set_encrypted_password` pueda afirmar su precondición con
+        ``identify`` — un hash escrito por otro cifrador no sería reconocible
+        por este contexto, y su guarda lo rechazaría.
+        """
+        if raw_password is None:
+            # ≙ el ``help`` del campo en la fuente: *"Keep empty if you don't
+            # want the user to be able to connect on the system."* Un contexto
+            # no cifra ``None``; la forma de «sin credencial» en este stack es
+            # el prefijo ``!`` que ningún esquema reconoce.
+            self.set_unusable_password()
+            self._password = None
+            return
+        self.password = self._crypt_context().hash(raw_password)
         self._password = raw_password
 
     def check_password(self, raw_password):
-        """Verifica el password y re-hashea si el hasher quedó obsoleto."""
-        def setter(raw):
-            self.set_password(raw)
-            # Evita disparar la señal de cambio en el re-hash.
+        """Verifica y re-cifra si el esquema quedó obsoleto.
+
+        ≙ la mitad de credencial de ``_check_credentials``
+        (``odoo19c: res_users.py:368-372``): ``valid, replacement =
+        self._crypt_context().verify_and_update(...)`` y, si hay reemplazo,
+        ``self._set_encrypted_password(...)``. Las dos mitades se portan
+        verbatim; lo que cambia es de dónde sale el hash guardado —de la
+        columna del modelo, no de un ``SELECT`` crudo.
+        """
+        context = self._crypt_context()
+        valid, replacement = context.verify_and_update(
+            raw_password, self.password or '')
+        if valid and replacement is not None:
+            self._set_encrypted_password(self.pk, replacement)
+            self.password = replacement
+            # Evita disparar la señal de cambio en el re-cifrado.
             self._password = None
-            self.save(update_fields=['password'])
-        return hashers.check_password(raw_password, self.password, setter)
+        return valid
 
     def set_unusable_password(self):
         self.password = hashers.make_password(None)
 
     def has_usable_password(self):
         return hashers.is_password_usable(self.password)
+
+    def _rpc_api_keys_only(self):
+        """≙ ``_rpc_api_keys_only`` (``odoo19c: res_users.py:308-310``).
+
+        Su docstring de la fuente, verbatim: *"To be overridden if RPC access
+        needs to be restricted to API keys, e.g. for 2FA"*.
+
+        Es el eslabón **vacío** de una cadena de tres, igual que ``_mfa_type``:
+        ``base`` dice que no y cada addon de 2FA aporta su razón para decir que
+        sí. Se encadena con ``combine=first_truthy`` porque la forma de la
+        fuente es ``<lo propio> or super()`` — con el relevo por defecto, un
+        ``False`` del eslabón externo cortaría la cadena y el interno nunca
+        respondería.
+        """
+        return False
 
     def _check_credentials(self, credential, env):
         """≙ ``_check_credentials`` (``odoo19c: res_users.py:312-405``).
@@ -528,15 +880,20 @@ class ResUsers(TimeStampedModel):
         «es mío y está mal»— el despacho no puede separar las dos, que es
         exactamente el defecto que la orquestación a mano tenía (#722).
 
-        **Divergencia declarada — la rama no interactiva.** La fuente, cuando
-        ``env['interactive']`` es falso, acepta además una clave de API
-        (``res.users.apikeys._check_credentials(scope='rpc', key=…)``) y
-        consulta ``_rpc_api_keys_only`` para negar la contraseña cuando hay
-        2FA. Aquí esa rama **no se porta**, por la misma razón medida con que
-        ``authz_totp`` no portó ``_rpc_api_keys_only``: el canal de claves de
-        API para integración externa no está construido, y una guarda que
-        niega el acceso a un canal inexistente no niega nada. Se porta cuando
-        exista el canal. Sucesor: **#490**.
+        **La rama no interactiva, portada (#85).** Cuando ``env['interactive']``
+        es falso, este método es el canal RPC: acepta una **clave de API** en
+        el lugar de la contraseña, y consulta ``_rpc_api_keys_only`` para
+        negar la contraseña cuando el usuario tiene 2FA. Las dos mitades son
+        de la fuente (``:356`` y ``:387-400``) y las dos son necesarias: sin la
+        primera no hay canal, y sin la segunda el 2FA se rodea presentando la
+        contraseña por RPC.
+
+        Su bloqueo decía que el canal *"no está construido"*, y esa premisa
+        **caducó sin que este archivo cambiara**: el modelo ``res.users.apikeys``
+        se portó entero —``_check_credentials(scope, key)``, ``_generate``,
+        ``revoke``, ``_assert_can_auth``— en las tareas #23, #26 y #34. Lo
+        único que faltaba era esta rama. Es la sexta vez que una divergencia
+        declarada caduca así (:ref:`h-api-835`).
 
         **Divergencia de mecanismo — el rehash.** La fuente hace
         ``verify_and_update`` y, si el algoritmo cambió, reescribe el hash y
@@ -563,13 +920,43 @@ class ResUsers(TimeStampedModel):
                 'login interactivo. Revisar llamadores y extensiones.'
             )
 
-        if not self.check_password(credential['password']):
-            raise AccessDenied()
-        return {
-            'uid': self.pk,
-            'auth_method': 'password',
-            'mfa': 'default',
-        }
+        # ≙ ``:356`` — la contraseña sólo se mira si el login es interactivo o
+        # si el usuario no exige clave de API. Con 2FA activo, un RPC por
+        # contraseña rodearía el segundo factor entero.
+        interactive = env.get('interactive', True)
+        if interactive or not self._rpc_api_keys_only():
+            if self.check_password(credential['password']):
+                return {
+                    'uid': self.pk,
+                    'auth_method': 'password',
+                    'mfa': 'default',
+                }
+
+        if not interactive:
+            # ≙ ``:387-394``, con su comentario: *"'rpc' scope does not really
+            # exist, we basically require a global key (scope NULL)"*. La clave
+            # viaja en el campo de la contraseña, que es el canal de la fuente
+            # — no una cabecera propia.
+            ResUsersApikeys = apps.get_model('base', 'ResUsersApikeys')
+            if ResUsersApikeys._check_credentials(
+                    scope='rpc', key=credential['password']) == self.pk:
+                return {
+                    'uid': self.pk,
+                    'auth_method': 'apikey',
+                    'mfa': 'default',
+                }
+
+            if self._rpc_api_keys_only():
+                # ≙ ``:396-400`` verbatim. El registro distingue este rechazo
+                # del de credencial errónea; la respuesta al cliente NO, y
+                # ésa es la mitad que protege: decirle que su contraseña es
+                # correcta pero el canal exige clave le confirma la contraseña.
+                _logger.info(
+                    'Invalid API key or password-based authentication '
+                    'attempted for a non-interactive (API) context that '
+                    'requires API key authentication only.')
+
+        raise AccessDenied()
 
     def change_password(self, old_passwd, new_passwd):
         """≙ ``change_password`` (``odoo19c: res_users.py:899-917``).
@@ -620,7 +1007,7 @@ class ResUsers(TimeStampedModel):
 
         DIVERGENCIA DE MECANISMO, declarada: la fuente asigna
         ``self.password = new_passwd`` y su ORM cifra en el ``write``. Aquí el
-        cifrado es explícito —``set_password`` llama a ``hashers.make_password``—
+        cifrado es explícito —``set_password`` llama a ``_crypt_context().hash``—
         y hay que **persistir**: el modelo de la fuente escribe en la asignación
         y el de Django no.
         """
@@ -641,6 +1028,107 @@ class ResUsers(TimeStampedModel):
 
         self.set_password(new_passwd)
         self.save(update_fields=['password'])
+
+    @classmethod
+    def _set_encrypted_password(cls, uid, pw):
+        """≙ ``_set_encrypted_password`` (``odoo19c: res_users.py:299-306``).
+
+        Escribe una contraseña **ya cifrada**, sin volver a pasarla por el
+        cifrador. Es la vía por la que entra una credencial que se hasheó en
+        otra parte —una importación, un directorio LDAP—: asignarla por
+        :meth:`set_password` la hashearía otra vez y dejaría de validar.
+
+        La fuente baja a SQL crudo (``UPDATE res_users SET password=%s``) por
+        la misma razón por la que aquí se usa ``QuerySet.update()``: el camino
+        normal de escritura del ORM cifraría lo que ya está cifrado. Ninguno de
+        los dos pasa por el modelo.
+
+        DIVERGENCIA DE MECANISMO, declarada, y es la única: la fuente afirma la
+        precondición con ``assert self._crypt_context().identify(pw) !=
+        'plaintext'``. Aquí es un ``UserError``, no un ``assert`` — un ``assert``
+        desaparece con ``python -O`` y éste guarda una credencial: con la
+        aserción compilada fuera, un texto plano entraría a la columna de
+        contraseña y **validaría contra nada**. Quién identifica el hash es el
+        mismo de la fuente: ``_crypt_context().identify``, que reconoce los
+        esquemas que ese contexto declara y llama ``plaintext`` a todo lo
+        demás.
+
+        :raises UserError: si ``pw`` no es un hash que la instalación reconozca.
+        """
+        if cls._crypt_context().identify(pw) == 'plaintext':
+            raise UserError(
+                'Sólo se admite una contraseña ya cifrada por esta vía: el '
+                'valor recibido no lo reconoce el cifrador del modelo. Para '
+                'una contraseña en claro va set_password.')
+        cls.objects.filter(pk=uid).update(password=pw)
+
+    def _set_new_password(self, new_password):
+        """≙ ``_set_new_password`` (``odoo19c: res_users.py:414-426``).
+
+        Fija la contraseña de **otra** persona — un administrador sobre la
+        cuenta que administra. Dos reglas, las dos de la fuente:
+
+        1. **Un valor vacío se ignora en silencio** (``:416-419``): *"Do not
+           update the password if no value is provided, ignore silently. For
+           example web client submits False values for all empty fields."*
+        2. **Nadie cambia la suya por aquí** (``:421-424``). El comentario de
+           la fuente da la razón, y vale igual: *"To change their own password,
+           users must use the client-specific change password wizard, so that
+           the new password is immediately used for further RPC requests,
+           otherwise the user will face unexpected 'Access Denied'
+           exceptions."* La vía propia es :meth:`change_password`, que exige la
+           anterior y por eso no depende de re-autenticación.
+
+        DIVERGENCIA DE MECANISMO, declarada: la fuente es el *inverse* del
+        campo ``new_password`` de su formulario, así que su ORM la invoca al
+        escribir y ella asigna ``user.password``, que su propio ``write``
+        cifra. Aquí no hay campo de formulario ni cifrado implícito: es un
+        método que se llama y que cifra y persiste explícitamente. Lo que se
+        porta es la **regla**, no el gancho.
+
+        :raises UserError: si el sujeto es el usuario en curso.
+        """
+        if not new_password:
+            return
+        actor = get_current_user()
+        if getattr(actor, 'pk', None) == self.pk:
+            raise UserError(
+                'Para cambiar tu propia contraseña usa el cambio de '
+                'contraseña con la anterior: por esta vía la sesión en curso '
+                'se quedaría con la credencial vieja.')
+        self._change_password(new_password)
+
+    def _action_revoke_all_devices(self, request=None):
+        """≙ ``_action_revoke_all_devices`` (``odoo19c: res_users.py:1028-1031``).
+
+        Cierra **todas** las sesiones de esta persona menos la que está usando
+        ahora: si también cerrara la actual, el gesto de «expulsar al intruso»
+        expulsaría a quien lo pide.
+
+        **Un solo cuerpo donde la fuente tiene dos.** Su ``action_revoke_all
+        _devices`` (``:1021-1025``) es el público con ``@check_identity`` y
+        éste el interno sin él; aquí la identidad fresca la exige
+        ``authz_reauth.assert_session_fresh`` desde la vista (DEC-12), así que
+        el gate lo pone quien lo exponga. Misma resolución que
+        ``authz_totp.revoke_all_devices`` y que
+        :meth:`ResDeviceQuerySet._revoke`.
+
+        DIVERGENCIA DE MECANISMO, declarada en el retorno: la fuente devuelve
+        ``{'type': 'ir.actions.client', 'tag': 'reload'}`` — una orden para su
+        cliente web, no un dato. Aquí no hay tal cliente: devuelve **cuántas
+        filas de log quedaron revocadas**, que es lo que el llamador puede
+        verificar.
+
+        :param request: la petición en curso; por defecto la del contexto. Es
+            la que decide cuál dispositivo es el actual.
+        """
+        request = request if request is not None else get_current_request()
+        device = apps.get_model('base', 'ResDevice')
+        devices = device.objects.filter(user_id=self.pk)
+        if request is not None:
+            devices = devices.exclude(
+                pk__in=[d.pk for d in devices if d.is_current(request)])
+        return devices._revoke(request)
 
     @classmethod
     def _get_session_token_fields(cls):
@@ -866,24 +1354,16 @@ class ResUsers(TimeStampedModel):
         su asistente de invitación, y este árbol invita por endpoint, así que
         esa fila no existe. No es omisión: no hay a quién proteger.
 
-        DIVERGENCIA DE MECANISMO, declarada: la fuente lo cuelga de
-        ``@api.ondelete(at_uninstall=True)``, un gancho de su ORM. Aquí el
-        gancho equivalente es sobrescribir ``delete()``, que es por donde pasa
-        tanto la instancia como el ``QuerySet.delete()`` cuando se llama sobre
-        el objeto. El borrado en lote por ``QuerySet`` **no** pasa por aquí —
-        es una limitación conocida de Django, y la misma que su
-        ``@api.ondelete`` no tiene. Sucesor: tarea #57.
+        El cuerpo de la guarda **no vive aquí**: vive en
+        :func:`_forbid_deleting_master_data`, un receptor de ``pre_delete``.
+        Sobrescribir ``delete()`` sólo cubría la instancia, y el borrado en
+        lote por ``QuerySet.delete()`` se saltaba la protección — que es
+        justo lo que ``@api.ondelete`` **no** deja pasar en la fuente.
+
+        Este método se conserva porque el árbol lo llama y porque su docstring
+        es donde vive la razón de cada usuario protegido; la verificación la
+        hace la señal, en los dos caminos.
         """
-        if self.pk == SUPERUSER_ID:
-            raise UserError(
-                'No se puede eliminar al super-usuario: es quien crea los '
-                'recursos internos (actualizaciones, instalación de módulos). '
-                'Archívalo en su lugar.')
-        if self.login in _SYSTEM_LOGINS:
-            raise UserError(
-                'No se puede eliminar al usuario %r: se usa en la '
-                'configuración de seguridad y en el acceso anónimo. '
-                'Archívalo en su lugar.' % self.login)
         return super().delete(*args, **kwargs)
 
     @classmethod
@@ -909,6 +1389,90 @@ class ResUsers(TimeStampedModel):
             ids = [getattr(c, 'pk', c) for c in companies]
         return Q(company_ids__in=ids)
 
+    # ------------------------------------------------------------------
+    # El punto de enganche de la cuenta propia — ``odoo19c: res_users.py:
+    # 175-196``. Enterprise 19 lo extiende **13 veces** en 7 addons, más que
+    # ningún otro símbolo de ``base`` (tarea #67); es el punto de extensión
+    # más usado de este modelo y por eso existe como propiedad y no como
+    # constante.
+    # ------------------------------------------------------------------
+    @property
+    def SELF_READABLE_FIELDS(self):
+        """≙ ``SELF_READABLE_FIELDS`` (``odoo19c: res_users.py:175-186``).
+
+        Los campos que un usuario puede leer de **su propio** registro. La
+        fuente lo dice en su docstring: *"In order to add fields, please
+        override this property on model extensions"* — es un punto de
+        extensión, y el modo de extenderlo es sumar a lo que devuelve
+        ``super()``, nunca reemplazarlo.
+
+        **Se declara aquí aunque el canal RPC crudo no exista.** El docstring
+        de este archivo lo daba por bloqueado por esa razón, y era una
+        afirmación falsa sobre el árbol: ``addons/hr`` ya lo implementaba
+        —``hr/models/res_users.py:240``— con la nota *"sin base que extender"*.
+        Dos referentes que se contradecían, y el coste no era teórico: sin base
+        que extender, **dos addons que lo declararan se pisarían**, porque cada
+        uno devuelve su lista entera en vez de sumarla. Ver la tarea #66.
+
+        La lista se porta verbatim salvo los campos que este árbol no tiene, y
+        cada ausencia se nombra: ``tz_offset`` (derivado que no declaramos),
+        ``action_id`` (BLOQUEADO por ``ir.actions.act_window``, ver el bloque 3
+        del docstring de este archivo) y ``share`` (su noción de usuario
+        compartido, que aquí resuelve ``_is_portal``).
+        """
+        return [
+            'signature', 'company_id', 'login', 'email', 'name',
+            'image_1920', 'image_1024', 'image_512', 'image_256', 'image_128',
+            'lang', 'tz', 'group_ids', 'partner_id', 'write_date',
+            'avatar_1920', 'avatar_1024', 'avatar_512', 'avatar_256',
+            'avatar_128', 'device_ids', 'api_key_ids', 'phone', 'display_name',
+        ]
+
+    @property
+    def SELF_WRITEABLE_FIELDS(self):
+        """≙ ``SELF_WRITEABLE_FIELDS`` (``odoo19c: res_users.py:188-193``).
+
+        Los que puede **escribir**. Subconjunto propio, no derivado del de
+        lectura: la fuente los declara por separado y un campo legible no es
+        por ello escribible.
+        """
+        return ['signature', 'company_id', 'email', 'name', 'image_1920',
+                'lang', 'tz', 'api_key_ids', 'phone']
+
+    @classmethod
+    def _self_accessible_fields(cls):
+        """≙ ``_self_accessible_fields`` (``odoo19c: res_users.py:195-201``).
+
+        Los dos conjuntos, congelados. La fuente lo memoriza con su
+        ``ormcache``; aquí no hay memo porque el cálculo son dos listas
+        literales y sus extensiones — el costo que su caché amortiza es el de
+        su ORM resolviendo la herencia, no el de construir la lista.
+        """
+        probe = cls()
+        return (frozenset(probe.SELF_READABLE_FIELDS),
+                frozenset(probe.SELF_WRITEABLE_FIELDS))
+
+    @classmethod
+    def _get_invalidation_fields(cls):
+        """≙ ``_get_invalidation_fields`` (``odoo19c: res_users.py:735-740``).
+
+        Los campos cuyo cambio jubila lo memorizado del usuario. La fuente los
+        cruza contra las claves escritas en su ``write`` —``if
+        invalidation_fields & vals.keys(): registry.clear_cache()``
+        (``:641-643``)— y con eso purga el registro entero.
+
+        Se portan **los seis que declara** más los de sesión, aunque aquí sólo
+        ``group_ids`` entre en el cómputo de la clausura: el conjunto es un
+        **punto de extensión**, igual que :meth:`_get_session_token_fields`, y
+        recortarlo a lo que hoy se usa lo convertiría en una lista privada de
+        este memo. ``lang``, ``tz`` y las dos de empresa gobiernan otras
+        memorizaciones que la fuente tiene y este árbol todavía no.
+        """
+        return {
+            'group_ids', 'active', 'lang', 'tz', 'company_id', 'company_ids',
+            *cls._get_session_token_fields(),
+        }
+
     def _get_group_ids(self):
         """≙ ``_get_group_ids`` (``odoo19c: res_users.py:1098-1104``).
 
@@ -917,13 +1481,26 @@ class ResUsers(TimeStampedModel):
         fuente declara las dos formas porque su ``ormcache`` guarda ids, no
         recordsets.
 
-        DIVERGENCIA DE MECANISMO, declarada: la fuente lo memoriza con
-        ``@tools.ormcache('self.id')``. Aquí no — el árbol no tiene todavía el
-        invalidador que la fuente cuelga de ``_get_invalidation_fields``, y una
-        caché de autorización sin invalidación es peor que ninguna: mantendría
-        vivo un permiso ya retirado. Sucesor: tarea #58.
+        **Memorizado**, como allá. Lo que aquí es distinto es la forma del
+        invalidador, no su existencia: la fuente purga el registro entero desde
+        su ``write``; aquí purgan las señales del ORM —``post_save`` del
+        usuario, ``m2m_changed`` de ``group_ids`` por los dos lados— y el
+        contador de generación del grafo de implicación (ver
+        ``_invalidate_group_ids``).
+
+        **Sin PK no se memoriza.** Es la misma decisión que la fuente escribe
+        en el consumidor: *"for new record don't fill the ormcache"*
+        (``:1095-1096``). Una clave con ``None`` colisionaría entre todos los
+        usuarios sin guardar.
         """
-        return list(self.all_group_ids.values_list('pk', flat=True))
+        if self.pk is None:
+            return []
+        key = _group_ids_cache_key(self.pk)
+        ids = cache.get(key)
+        if ids is None:
+            ids = list(self.all_group_ids.values_list('pk', flat=True))
+            cache.set(key, ids, _GROUP_IDS_CACHE_TTL)
+        return ids
 
     # --- Presentación ---
     def get_full_name(self):
@@ -944,19 +1521,20 @@ class ResUsers(TimeStampedModel):
     # --- Pertenencia a grupo por identificador externo (≙ :1034-1096) ---
     #
     # La referencia resuelve el xmlid contra
-    # ``res.groups._get_group_definitions().get_id(...)``, una caché del grafo
-    # de grupos que este árbol no tiene. Aquí la resolución va por
-    # ``ir.model.data`` —el mismo camino que ``env.ref`` toma allá— y la
-    # clausura transitiva sale de ``ResGroups.all_implied_by_ids``, que ya
-    # estaba portada.
+    # ``res.groups._get_group_definitions().get_id(...)``, y **eso es lo que
+    # este árbol hace ahora**: la tarea #204 portó ``tools/set_expression.py``
+    # y con él el constructor del grafo, así que la resolución ya no va por
+    # ``ir.model.data`` en cada llamada. El comentario anterior decía que era
+    # «una caché del grafo de grupos que este árbol no tiene», y describía un
+    # bloqueo, no una divergencia.
     #
-    # El puente entre ambas es una identidad, no una aproximación: la fuente
-    # pregunta ``group_id in user.all_group_ids`` con
+    # Se conserva el argumento de identidad que aquel rodeo necesitaba, porque
+    # sigue explicando por qué ``ResGroups.all_user_ids`` y ``all_group_ids``
+    # calculan lo mismo desde los dos extremos: la fuente pregunta
+    # ``group_id in user.all_group_ids`` con
     # ``all_group_ids = group_ids.all_implied_ids`` (``:447-449``), es decir
     # «¿algún grupo mío implica a G?». Leída desde G, esa misma arista es
-    # ``G.all_implied_by_ids``. Es exactamente el cómputo que
-    # ``ResGroups.all_user_ids`` ya hacía en este árbol, visto desde el
-    # usuario en vez de desde el grupo.
+    # ``G.all_implied_by_ids``.
     #
     # ``ResGroups`` se resuelve por el registro de apps y no por import:
     # ``res_groups.py`` importa ``ResUsers`` para declarar su M2M, así que un
@@ -1112,19 +1690,25 @@ class ResUsers(TimeStampedModel):
            transitivamente).
 
         Devuelve ``False`` —en vez de fallar— cuando el identificador no
-        resuelve, resuelve a algo que no es un grupo, o el usuario todavía no
-        tiene PK. Es la misma postura fail-closed que la fuente da a un
-        ``group_id`` ausente de ``all_group_ids``: un grupo que no existe no
-        otorga pertenencia.
+        resuelve o el usuario todavía no tiene PK. Es la misma postura
+        fail-closed que la fuente da a un ``group_id`` ausente de
+        ``all_group_ids``: ``get_id`` devuelve ``None`` para lo que no está en
+        el grafo, y ``None`` nunca es uno de los ids del usuario. Un xmlid que
+        apunte a algo que no es grupo cae por la misma vía: el grafo sólo
+        contiene grupos, así que no es una clave suya.
+
+        **Las dos mitades son las de la fuente** (``:1094-1096``): el xmlid se
+        resuelve con ``_get_group_definitions().get_id(...)`` y la pertenencia
+        se pregunta contra :meth:`_get_group_ids`. La resolución por
+        ``ir.model.data.ref`` que había aquí era el rodeo de cuando el grafo no
+        existía; hoy existe (tarea #204) y cuesta una lectura del memo en vez
+        de una consulta por llamada.
         """
         if self.pk is None:
             return False
-        data_model = apps.get_model('base', 'IrModelData')
-        group = data_model.ref(group_ext_id, raise_if_not_found=False)
-        if not isinstance(group, apps.get_model('base', 'ResGroups')):
-            return False
-        implying = list(group.all_implied_by_ids.values_list('pk', flat=True))
-        return self.group_ids.filter(pk__in=implying).exists()
+        groups = apps.get_model('base', 'ResGroups')
+        group_id = groups._get_group_definitions().get_id(group_ext_id)
+        return group_id in self._get_group_ids()
 
     # --- Eje interno / portal / público (≙ res_users.py:1165-1179) ---
     #
@@ -1211,6 +1795,48 @@ class ResUsers(TimeStampedModel):
         """
         company = get_current_company()
         return getattr(getattr(company, 'currency', None), 'pk', None)
+
+    @classmethod
+    def _crypt_context(cls):
+        """≙ ``_crypt_context`` (``odoo19c: res_users.py:1193-1212``).
+
+        Su docstring de la fuente, verbatim: *"Passlib CryptContext instance
+        used to encrypt and verify passwords. Can be overridden if technical,
+        legal or political matters require different kdfs than the provided
+        default. The work factor of the default KDF can be configured using
+        the ``password.hashing.rounds`` ICP."*
+
+        Los tres argumentos son los de la fuente, con sus comentarios:
+        la lista de kdf que el contexto sabe verificar —el primero es el que
+        cifra—, ``deprecated=['auto']`` para que *"deprecated algorithms are
+        still verified as usual, but ``needs_update`` will indicate that the
+        stored hash should be replaced by a more recent algorithm"*, y el
+        número de rondas, que nunca baja de :data:`MIN_ROUNDS`.
+
+        DIVERGENCIA DE ENLACE, y es la única: la fuente lo declara método de
+        recordset (``def _crypt_context(self)``) porque allá todo cuelga de
+        uno. Aquí es ``classmethod`` porque su consumidor
+        :meth:`_set_encrypted_password` también lo es —escribe por ``uid``,
+        sin instancia—. La forma de la llamada no cambia: ``self._crypt_context()``
+        sigue resolviendo desde una instancia, así que los sitios que la
+        fuente escribe con ``self`` se portan verbatim.
+
+        La memorización (``@tools.ormcache(cache='stable')``) no se replica:
+        el objeto lleva un hasher vivo, y pasarlo por el backend de caché
+        —que serializa— costaría más que la única lectura indexada de
+        ``ir.config_parameter`` que este método hace.
+        """
+        config = apps.get_model('base', 'SystemParameter')  # ≙ ir.config_parameter
+        return CryptContext(
+            # kdf que el contexto sabe verificar. El primero de la lista es
+            # el que cifra.
+            ['pbkdf2_sha512', 'plaintext'],
+            # los algoritmos obsoletos se siguen verificando; lo que cambia
+            # es que verify_and_update devuelve un reemplazo.
+            deprecated=['auto'],
+            pbkdf2_sha512__rounds=max(
+                MIN_ROUNDS, int(config.get_param('password.hashing.rounds', 0))),
+        )
 
     @property
     def share(self):
@@ -1528,9 +2154,10 @@ class ResUsers(TimeStampedModel):
         ``orm/inherits.py``. Dejarlo en línea escondería esa indirección.
 
         DIVERGENCIA DE STACK, declarada: la fuente valida contra
-        ``pytz.all_timezones``; ``pytz`` no está instalado —medido— y el
-        equivalente de la biblioteca estándar es
+        ``pytz.all_timezones``; aquí contra
         ``zoneinfo.available_timezones()``, que lee la misma base de datos IANA.
+        Corregido 2026-08-29 — decía *«``pytz`` no está instalado —medido—»*.
+        ``pytz`` **sí** está instalado desde el porte de ``tools/safe_eval`` —la fuente lo expone a toda expresión almacenada (``safe_eval.py:498``) y sin él ese porte no cierra—, pero **no** es el mecanismo de husos de este árbol: Django 6 lo abandonó y su propio ``django.utils.timezone`` resuelve por ``zoneinfo``, que lee la misma base de datos IANA.
 
         Y ``not user.login_date`` de la fuente se lee aquí sobre
         ``res.users.log``: allá ``login_date`` es un campo **relacionado** a la
@@ -1597,10 +2224,15 @@ class ResUsers(TimeStampedModel):
 
         DIVERGENCIA DE MECANISMO, declarada: la fuente memoriza el resultado con
         ``@tools.ormcache('uid', 'passwd')`` para no rehashear en cada llamada
-        RPC. Aquí NO se memoriza: guardar en caché un par (id, contraseña) es
-        guardar la contraseña en claro en memoria del proceso, y el canal que
-        justificaba el coste —el RPC de integración externa— no está construido
-        (misma medición que ``_rpc_api_keys_only``, sucesor **#490**).
+        RPC. Aquí NO se memoriza, y la razón es de seguridad, no de alcance:
+        guardar en caché un par (id, contraseña) es guardar la contraseña en
+        claro en la memoria del proceso durante la vida de la entrada.
+
+        Su segunda razón —*"el canal RPC de integración externa no está
+        construido"*— **caducó al portarse #85** y se retira: el canal existe.
+        Lo que no cambia es la primera, que es la que sostiene la divergencia.
+        El coste del rehash por llamada queda como lo que es: el precio de no
+        tener la contraseña en memoria.
         """
         if not passwd:
             raise AccessDenied()
@@ -1735,37 +2367,37 @@ def index_name_for(table):
             table.encode()).hexdigest()[:8]
     return name
 
-#: ≙ ``KEY_CRYPT_CONTEXT`` (``:1521-1526``).
+#: ≙ ``KEY_CRYPT_CONTEXT`` (``odoo19c: res_users.py:1510-1515``).
 #:
-#: La referencia usa ``passlib.CryptContext(['pbkdf2_sha512'],
-#: pbkdf2_sha512__rounds=6000)`` y explica la elección: *"default is 29000
-#: rounds which is 25~50ms, which is probably unnecessary given in this case
-#: all the keys are completely random data: dictionary attacks on API keys
-#: isn't much of a concern"*.
+#: Los comentarios son los de la fuente, verbatim: *"default is 29000 rounds
+#: which is 25~50ms, which is probably unnecessary given in this case all the
+#: keys are completely random data: dictionary attacks on API keys isn't much
+#: of a concern"*.
 #:
-#: ``passlib`` no está en este árbol (medido: 0 en ``pyproject.toml``); el
-#: mecanismo equivalente son los *hashers* de Django, que este archivo ya usa
-#: para la contraseña. Se instancia la clase directamente en vez de
-#: registrarla en ``PASSWORD_HASHERS``: así el número de rondas queda atado a
-#: **este** uso y no cambia el coste de verificar una contraseña.
-#:
-#: La familia cambia de ``sha512`` a ``sha256`` porque es la que Django trae;
-#: el argumento de la referencia —entropía completa, no hay ataque de
-#: diccionario— no distingue entre las dos.
-KEY_HASHER = hashers.PBKDF2PasswordHasher()
-KEY_HASHER_ITERATIONS = 6000
+#: Es un contexto **aparte** del de la contraseña, con su propio coste. Por eso
+#: el cifrador vive en la instancia y no en el registro global
+#: ``PASSWORD_HASHERS``: dos costes distintos no caben en un registro único.
+KEY_CRYPT_CONTEXT = CryptContext(
+    # default is 29000 rounds which is 25~50ms, which is probably unnecessary
+    # given in this case all the keys are completely random data: dictionary
+    # attacks on API keys isn't much of a concern
+    ['pbkdf2_sha512'], pbkdf2_sha512__rounds=6000,
+)
 
 
 def _hash_api_key(key):
-    """Codifica una clave con :data:`KEY_HASHER` — ≙ ``KEY_CRYPT_CONTEXT.hash``."""
-    hasher = hashers.PBKDF2PasswordHasher()
-    hasher.iterations = KEY_HASHER_ITERATIONS
-    return hasher.encode(key, hasher.salt())
+    """≙ ``KEY_CRYPT_CONTEXT.hash(k)`` (``odoo19c: res_users.py:1600``).
+
+    La fuente lo llama en línea dentro de ``_generate``; aquí es una función
+    con nombre porque la escritura de la clave pasa por tres sitios y el
+    nombre los ata al mismo contexto.
+    """
+    return KEY_CRYPT_CONTEXT.hash(key)
 
 
 def _verify_api_key(key, encoded):
-    """≙ ``KEY_CRYPT_CONTEXT.verify`` — comparación en tiempo constante."""
-    return hashers.check_password(key, encoded)
+    """≙ ``KEY_CRYPT_CONTEXT.verify(key, ...)`` (``odoo19c: res_users.py:1628``)."""
+    return KEY_CRYPT_CONTEXT.verify(key, encoded)
 
 
 class _ResUsersApikeysBase(TimeStampedModel):
@@ -2424,3 +3056,239 @@ class IdentityCheck:
                 'Contraseña incorrecta. Vuelve a intentarlo, o restablece '
                 'tu contraseña si la olvidaste.'
             ) from None
+
+
+@receiver(pre_delete, sender=ResUsers, dispatch_uid='base.res_users.master_data')
+def _forbid_deleting_master_data(sender, instance, **kwargs):
+    """≙ ``_unlink_except_master_data`` (``odoo19c: res_users.py:647-660``).
+
+    Los usuarios de sistema no se borran, ni de uno en uno ni en lote.
+
+    **Por qué una señal y no un ``delete()``.** El gancho de la fuente es
+    ``@api.ondelete(at_uninstall=True)``, y su ``unlink`` lo invoca **una vez
+    con el recordset entero**, antes de tocar la base
+    (``odoo19c: odoo/orm/models.py:4206-4209`` — ``func(self)``). Por eso allá
+    da igual borrar uno o mil: el gancho ve el lote completo.
+
+    En este ORM ``Model.delete()`` **no** es ese punto: ``QuerySet.delete()``
+    no pasa por él, así que la guarda escrita ahí protegía la instancia y
+    dejaba pasar el lote. El equivalente real es ``pre_delete``, medido en el
+    paquete instalado:
+
+    - ``Collector.can_fast_delete`` (``django/db/models/deletion.py:186``)
+      exige que el modelo **no tenga listeners**; registrar este receptor
+      desactiva el borrado rápido y fuerza a Django a instanciar las filas.
+    - ``Collector.delete`` (``:459-466``) emite ``pre_delete`` por instancia
+      **dentro de** ``transaction.atomic`` y **antes** de cualquier borrado, así
+      que si esto lanza, el lote entero revierte.
+
+    DIVERGENCIA DE MECANISMO, declarada: la fuente valida **el lote de una
+    vez**; aquí se valida **una instancia por emisión**. El efecto es el mismo
+    —un solo usuario de sistema aborta todo el lote, porque comparten
+    transacción— pero el mensaje nombra al primer infractor que Django emita,
+    no a todos.
+
+    **Qué protege, y contra qué población.** Gobierna ``odoo19c``, que declara
+    cuatro; se conservan los tres que este árbol tiene:
+
+    - el **super-usuario** — *"it is used internally for resources created by
+      Odoo (updates, module installation, ...)"*;
+    - el **administrador** — *"it is utilized in various places (such as
+      security configurations,...). Instead, archive it."*;
+    - el **usuario público** — *"Deleting the public user is not allowed."*
+
+    El cuarto de 19 no se porta, y no es omisión: DIVERGENCIA DE MECANISMO
+    declarada. ``base.template_portal_user_id`` es la plantilla del asistente
+    de invitación de la fuente; este árbol invita por endpoint, así que esa
+    fila no existe y no hay a quién proteger.
+
+    Medido también en 18, porque 19 sola no lo mostraba:
+
+    - ``odoo18c: res_users.py:810-823`` protege **además** ``base.default_user``
+      junto a la plantilla portal. **19 lo retiró**, y gobierna 19: no se porta.
+    - ``odoo18e`` (misma versión, otra edición) **no** protege ``public_user``.
+      Las dos ediciones de 18 no coinciden entre sí, así que citar «18» sin
+      decir cuál mezclaría dos poblaciones.
+    - ``odoo19e`` **no participa**: no trae el núcleo — no existe ahí
+      ``addons/base/models/res_users.py``. Es un árbol de addons sobre
+      Community, a diferencia de ``odoo18e``, que sí lleva su propia copia del
+      núcleo. Y de sus addons que extienden ``res.users``, **ninguno** declara
+      ``@api.ondelete``: Enterprise 19 no añade ni quita guardas.
+
+    Cuatro poblaciones medidas, entonces, y el veredicto no cambia: gobierna
+    ``odoo19c``.
+
+    Lo que la fuente hace y aquí no: ``self.env.registry.clear_cache()`` en
+    mitad del gancho. DIVERGENCIA DE STACK — ese registro es el suyo, y su
+    equivalente aquí se invalida por otra vía.
+    """
+    if instance.pk == SUPERUSER_ID:
+        raise UserError(
+            'No se puede eliminar al super-usuario: es quien crea los '
+            'recursos internos (actualizaciones, instalación de módulos). '
+            'Archívalo en su lugar.')
+    if instance.login in _SYSTEM_LOGINS:
+        raise UserError(
+            'No se puede eliminar al usuario %r: se usa en la '
+            'configuración de seguridad y en el acceso anónimo. '
+            'Archívalo en su lugar.' % instance.login)
+
+
+@receiver(m2m_changed, sender='base.ResCompanyUsersRel',
+          dispatch_uid='base.res_users.multi_company')
+def _sync_multi_company_group(sender, instance, action, reverse, pk_set,
+                              **kwargs):
+    """≙ ``UsersMultiCompany`` (``odoo19c: res_users.py:1352-1397``).
+
+    Un usuario con más de una empresa pertenece a ``base.group_multi_company``;
+    con una o ninguna, no. La pertenencia se **deriva del conteo**: no se
+    escribe a mano en ningún sitio.
+
+    **Por qué un gancho y no tres.** La fuente cuelga el mismo cuerpo de
+    ``create``, ``write`` y ``new`` porque su ORM escribe el M2M **dentro** de
+    los dos primeros — de ahí su ``if 'company_ids' not in vals: return``, que
+    es literalmente «actúa sólo cuando la escritura tocó el M2M».
+
+    En Django un M2M **nunca** se escribe en el ``save()``: va siempre por su
+    propio camino, y ese camino emite ``m2m_changed``. Así que esta señal es
+    exactamente la condición que su ``write`` comprueba a mano, y cubre por
+    construcción los dos ganchos de escritura. El tercero, ``new``, no tiene
+    contraparte: construye un recordset **en memoria** que su cliente web
+    consulta antes de guardar, y aquí no hay tal objeto.
+
+    **Los dos lados del M2M.** ``company.user_ids`` es el lado directo
+    (``reverse=False``: los usuarios afectados vienen en ``pk_set``);
+    ``user.company_ids`` es el inverso (``reverse=True``: el afectado es
+    ``instance``). La señal reporta ambos, así que la pertenencia se mantiene
+    se escriba por donde se escriba.
+
+    **El ``clear()`` desde la empresa** llega con ``pk_set = None`` — Django no
+    dice a quién vació. Por eso se anota la membresía en ``pre_clear``, que aún
+    la ve, y se recalcula en ``post_clear``. Es MÁS completo que la fuente: su
+    ``write`` de ``res.users`` no se entera de un ``company.user_ids = [(5,)]``
+    escrito del lado de la empresa.
+
+    **Ciego a** una escritura de la tabla intermedia por SQL crudo o por
+    ``ResCompanyUsersRel.objects.create()``, que no pasan por el descriptor y
+    no emiten la señal. La fuente tiene el mismo hueco con su ``cr.execute``.
+    """
+    if action == 'pre_clear' and not reverse:
+        instance._multi_company_cleared = list(
+            instance.user_ids.values_list('pk', flat=True))
+        return
+
+    if action not in ('post_add', 'post_remove', 'post_clear'):
+        return
+
+    group_id = apps.get_model('base', 'IrModelData')._xmlid_to_res_id(
+        'base.group_multi_company', raise_if_not_found=False)
+    if not group_id:
+        # ≙ el ``if group_multi_company_id:`` de la fuente — mientras la
+        # siembra no haya dejado el xmlid, la pregunta no tiene sentido.
+        return
+
+    if reverse:
+        user_ids = [instance.pk]
+    elif action == 'post_clear':
+        user_ids = getattr(instance, '_multi_company_cleared', [])
+    else:
+        user_ids = list(pk_set or ())
+
+    for user in ResUsers.objects.filter(pk__in=user_ids):
+        company_count = user.company_ids.count()
+        belongs = user.group_ids.filter(pk=group_id).exists()
+        if company_count <= 1 and belongs:
+            user.group_ids.remove(group_id)
+        elif company_count > 1 and not belongs:
+            user.group_ids.add(group_id)
+
+
+# ---------------------------------------------------------------------------
+# El invalidador del memo de grupos (≙ ``_get_invalidation_fields`` + el
+# ``registry.clear_cache()`` que la fuente dispara desde su ``write``).
+#
+# La fuente tiene **un** punto de purga porque su ORM hace pasar toda
+# escritura por ``write``. Aquí no: un M2M nunca se escribe en el ``save()``
+# —va por su descriptor, que emite ``m2m_changed``— así que el invalidador se
+# reparte entre las señales que sí cubren cada camino. Son cuatro receptores
+# porque hay cuatro caminos, no cuatro reglas.
+# ---------------------------------------------------------------------------
+
+@receiver(post_save, sender='base.ResUsers',
+          dispatch_uid='base.res_users.invalidate_group_ids')
+def _invalidate_on_user_save(sender, instance, **kwargs):
+    """Purga al guardar el usuario, si tocó un campo del invalidador.
+
+    ``update_fields`` es ``None`` cuando quien guarda no lo declara — el caso
+    común de ``obj.save()``. Ahí se purga **siempre**: es la postura
+    conservadora, y equivale a lo que la fuente hace con su
+    ``registry.clear_cache()``, que tampoco distingue por usuario.
+    """
+    campos = kwargs.get('update_fields')
+    if campos is None or set(campos) & ResUsers._get_invalidation_fields():
+        _invalidate_group_ids([instance.pk])
+
+
+@receiver(m2m_changed, sender='base.ResGroups_user_ids',
+          dispatch_uid='base.res_users.invalidate_group_ids_m2m')
+def _invalidate_on_groups_changed(sender, instance, action, reverse, pk_set,
+                                  **kwargs):
+    """Purga cuando cambia la pertenencia, desde cualquiera de los dos lados.
+
+    ``post_clear`` llega con ``pk_set = None`` —Django no dice a quién vació—
+    y desde el lado del grupo el conjunto afectado son **sus** usuarios, que ya
+    no se pueden enumerar después del vaciado. Por eso ese caso jubila la
+    generación entera en vez de intentar una purga por usuario: es más ancho
+    de lo necesario y **nunca deja un permiso retirado vivo**, que es la única
+    dirección en la que un error aquí importa.
+    """
+    if action not in ('post_add', 'post_remove', 'post_clear'):
+        return
+    if action == 'post_clear':
+        _invalidate_group_ids()
+        return
+    _invalidate_group_ids([instance.pk] if reverse else list(pk_set or ()))
+
+
+@receiver(m2m_changed, sender='base.ResGroups_implied_ids',
+          dispatch_uid='base.res_groups.invalidate_group_graph')
+def _invalidate_on_implication_changed(sender, action, **kwargs):
+    """Purga TODO cuando cambia el grafo de implicación.
+
+    Una arista nueva entre dos grupos cambia la clausura de cualquier usuario
+    que alcance el origen, y quiénes son ésos es justamente lo que el memo
+    guarda. Enumerarlos exigiría recorrer todos los usuarios — la operación
+    que ``ResGroups.check_user_disjoint_groups`` evita por escala, siguiendo el
+    comentario de la propia fuente.
+
+    Purga **dos** memos, no uno. El de la clausura por usuario, que es el que
+    este receptor ya cuidaba; y la familia ``groups`` del registry, donde vive
+    el grafo de ``ResGroups._get_group_definitions`` — ≙ el
+    ``clear_cache('groups')`` que la fuente hace en ``write`` cuando cambian
+    ``implied_ids``/``implied_by_ids`` (``odoo19c: res_groups.py:197-199``) y
+    en ``_check_disjoint_groups`` (``:85``). Sin esta segunda línea el grafo
+    conserva una implicación ya retirada, y ``_get_access_groups`` concede por
+    una arista que ya no existe.
+    """
+    if action in ('post_add', 'post_remove', 'post_clear'):
+        _invalidate_group_ids()
+        registry.clear_cache('groups')
+
+
+@receiver(post_delete, sender='base.ResGroups',
+          dispatch_uid='base.res_groups.invalidate_group_graph_delete')
+def _invalidate_on_group_deleted(sender, **kwargs):
+    """Un grupo borrado desaparece de la clausura de quien lo tuviera.
+
+    Django emite ``m2m_changed`` al vaciar las tablas intermedias en cascada,
+    pero **no está garantizado** para todo camino de borrado (un
+    ``QuerySet.delete()`` con borrado rápido no instancia las filas). Este
+    receptor cierra el hueco por el lado que sí es fiable.
+
+    Purga los mismos dos memos que el receptor de arriba, y por lo mismo: el
+    grafo de ``_get_group_definitions`` tiene una hoja por grupo, así que uno
+    borrado lo deja mintiendo. ≙ el ``clear_cache('groups')`` de ``unlink``
+    (``odoo19c: res_groups.py:303-305``).
+    """
+    _invalidate_group_ids()
+    registry.clear_cache('groups')

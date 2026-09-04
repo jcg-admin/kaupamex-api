@@ -23,8 +23,17 @@ denegaron, se rehúsa y se eleva al ejecutor: es *cross-session permission laund
 
 **Los tres caps del binario (2026-08-19, :ref:`h-docs-211`):** la **anchura** del
 tool `Agent` la acota `hip()` (default 20 en 2.1.235); la de `parallel()` dentro
-de `Workflow` es OTRO mecanismo, `min(16, CPUs−2)` — aquí 2; y la **profundidad**
+de `Workflow` es OTRO mecanismo, y su valor lo publica
+`python3 .claude/scripts/report_client_caps.py` (tiene piso); y la **profundidad**
 (`MW()`) vale **1** en este entorno, que es la causa por código de que un
 subagente no pueda lanzar subagentes. Una tanda de N con cap C es una **cola**:
 reloj de pared ≈ Σtᵢ/C, no max(tᵢ). Desglose y comandos de re-medición en la
 regla canónica.
+
+**Tres sobres, no dos (2026-08-27, :ref:`h-docs-478`):** el ejecutable declara
+`agent-message`, `cross-session-message` (con `from` adyacente — el envoltorio
+SÍ existe) y **`teammate-message`** con `teammate_id`, que ninguna regla
+nombraba. El corpus `ccb` bloquea con un test que su formateador de buzón **no
+escapa el cuerpo**: un par que emite la etiqueta de cierre parte el envoltorio.
+Nuestro caso es DESCONOCIDO — exige sonda de conducta (#921); el censo del
+canal es la #922. Censo: `.claude/scripts/censo_sobres_mensaje.py` (en docs).

@@ -1,0 +1,49 @@
+Port model class construction and prerequisites
+
+odoo19c: odoo/orm/model_classes.py declara la construccion de la clase
+de modelo y el censo la dejaba sin contraparte: sus tres reglas de
+especie, la derivacion de _description y _table desde _name, y el
+vaciado de colectores de _prepare_setup. #331 los dejo bloqueados por
+los colectores, que #334 ya cerro.
+
+Se portan con su nombre y su firma: is_abstract, is_transient,
+_check_model_extension, _check_model_parent_extension, inherits_of,
+inherits_children, _init_model_class_attributes y _prepare_setup. Lo
+unico nuestro es check_model_bases — el recorrido que aplica los dos
+checks sobre la MRO. Alla lo hace add_to_registry al fundir cada clase
+de definicion; aqui ModelBase de Django ya construyo una y su lista de
+bases es __mro__, asi que no hay fusion que recorrer.
+
+La mitad de _abstract de _check_model_extension NO tiene superficie
+aqui, y la razon esta construida: orm.registry._register rechaza el
+_name duplicado (registry.py:216-224), asi que dos clases nunca se
+funden bajo un mismo nombre y la transformacion de especie no tiene
+por donde entrar. Es una guarda mas estricta, no un hueco.
+
+El _name se lee de model_cls.__dict__, no con getattr. getattr
+recorre la MRO, y addons/website/models/static_page.py:30 hereda su
+_name de un mixin sin declarar el suyo: leido asi se le habrian
+escrito el
+_description y el _table del mixin. Lo destapo el aviso de _description
+ausente que la propia fuente porta, en su primera corrida. Es la misma
+lectura que _register ya hace (registry.py:214), y por la misma razon.
+
+El disparador es la senal class_prepared, y la funcion
+ensure_model_class_attributes barre lo ya registrado desde base.apps
+antes de ensure_rec_names, para
+que un modelo cargado antes de conectar la senal no quede sin cabecera.
+
+Medido sobre el arbol vivo antes de instalar el check: 140 modelos
+registrados, 0 abstractos, 4 transitorios, 0 violaciones de especie y 0
+sin _description. Las dos divergencias de _table (ir.actions.server,
+ir.actions.report) son declaradas y coinciden verbatim con la fuente.
+La de ir.config_parameter es previa y ya la publicaba
+check_table_matches_name().
+
+Cada guarda se midio con la guarda anulada — cinco corridas en
+scripts/evidence/neutering-332-* — y cada una hace caer exactamente
+los casos que dependen de ella. La pieza de trabajo, con su manifest
+y sus cuatro mediciones, en
+scripts/workbench/construccion-de-clase-de-modelo-20260903T020920/.
+
+Refs: #332

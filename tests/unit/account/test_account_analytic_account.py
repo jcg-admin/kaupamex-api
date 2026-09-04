@@ -19,6 +19,7 @@ from addons.account.models.account_analytic_account import apply_account_extensi
 from addons.account.models.account_move import AccountMove
 from addons.account.models.account_move_line import AccountMoveLine
 from addons.analytic.models import AccountAnalyticAccount
+from addons.analytic.models.analytic_mixin import AnalyticMixin
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -38,16 +39,38 @@ class TestTheNoOpIsSafe:
 
 
 class TestThePremiseOfTheBlockIsStillTrue:
-    """Si cualquiera de estas dos falla, el archivo bloqueado quedó obsoleto."""
+    """Los DOS bloqueadores cayeron — el archivo ya no esta bloqueado.
 
-    def test_account_move_has_no_get_sale_types_nor_get_purchase_types(self):
+    El archivo citaba dos piezas ausentes. Los predicados de tipo de asiento se
+    portaron primero (``account_move.py``, ≙ ``odoo19c: :6468-6506``), y
+    ``analytic_distribution`` en la tarea #526: el apunte hereda
+    ``analytic.mixin`` tal como la fuente lo declara (``odoo19c:
+    account_move_line.py:21``).
+
+    Los dos casos se REESCRIBEN, no se retiran: cada uno afirmaba una ausencia
+    que era correcta al escribirse, y su valor esta en medir que el estado
+    cambio. El nombre de la clase se conserva porque lo que sigue siendo cierto
+    es la premisa del bloque, sólo que ahora en su forma desbloqueada.
+    """
+
+    def test_the_move_type_predicates_are_no_longer_missing(self):
+        """Reescrito, no ajustado: antes exigía su ausencia."""
         names = {name for name, _ in inspect.getmembers(AccountMove)}
-        assert 'get_sale_types' not in names
-        assert 'get_purchase_types' not in names
+        assert 'get_sale_types' in names
+        assert 'get_purchase_types' in names
+        assert AccountMove.get_sale_types(True)[-1] == 'out_receipt'
 
-    def test_account_move_line_has_no_analytic_distribution_field(self):
+    def test_account_move_line_now_declares_analytic_distribution(self):
+        """Reescrito, no ajustado: antes exigía su ausencia (tarea #526).
+
+        El campo no se declara suelto: llega por herencia de ``analytic.mixin``,
+        que es como la fuente lo tiende. Por eso el caso mide las dos cosas —
+        la columna y su procedencia.
+        """
         names = {f.name for f in AccountMoveLine._meta.get_fields()}
-        assert 'analytic_distribution' not in names
+        assert 'analytic_distribution' in names
+        assert AnalyticMixin in AccountMoveLine.__mro__
+        assert AccountMoveLine._inherit == ['analytic.mixin']
 
     def test_account_move_still_declares_sale_and_purchase_move_types(self):
         """La mitad que NO bloquea: los tipos existen, sólo faltan los

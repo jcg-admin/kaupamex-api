@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name="allocated_hours",
             field=models.FloatField(
                 default=0.0,
-                help_text="Odoo allocated_hours. tracking=True BLOQUEADO — ver docstring del módulo.",
+                help_text="Odoo allocated_hours. BLOQUEADO por ``el motor de tracking`` — tracking=True lo exige; ver docstring del módulo.",
             ),
         ),
         migrations.AddField(

@@ -22,8 +22,11 @@ globales de la instancia, no per-empresa (eso es L3 = ``Company``/
 """
 from django.apps import AppConfig, apps
 
-from orm.inherits import apply_inherits
-from orm.registry import MODELS_BY_NAME
+from orm.inherits import ensure_inherits
+from orm.model_classes import (ensure_access_managers, ensure_base_urls,
+                               ensure_display_names,
+                               ensure_model_class_attributes,
+                               ensure_rec_names)
 
 
 class BaseConfig(AppConfig):
@@ -52,11 +55,40 @@ class BaseConfig(AppConfig):
         ``ResUsers._inherits``, que es donde la referencia lo declara. Así el
         cableado no puede divergir de la cabecera: cambiar el atributo cambia
         la delegación.
+
+        Antes de eso corre ``ensure_rec_names()``, el barrido que resuelve el
+        ``_rec_name`` de todo modelo ya cargado — el paso 5 de
+        ``_init_model_class_attributes`` de la fuente
+        (``odoo19c: odoo/orm/model_classes.py:433-441``). La señal
+        ``class_prepared`` cubre lo que llega después; este barrido cubre lo
+        que ya estaba, que es la misma pareja de vías que ``H-API-577``.
+
+        Y con él ``ensure_access_managers()``, que da las cuatro formas de
+        permiso de la fuente a todo modelo nuestro que no declare manager
+        propio (tarea #96). Misma pareja de vías, mismo motivo.
+
+        Y ``ensure_display_names()``, que da la etiqueta —``display_name`` y su
+        bloque de cuatro métodos— a todo modelo nuestro. En la fuente cuelga de
+        ``BaseModel`` (``odoo19c: odoo/orm/models.py:473``), así que **todo**
+        modelo la tiene; aquí la base común sólo cubre 285 de los 375 modelos
+        concretos nuestros, y los 90 restantes la reciben por esta vía.
+
+        Y ``ensure_base_urls()``, que da ``get_base_url`` por la misma razón y
+        con el mismo mecanismo: en la fuente cuelga de ``BaseModel``
+        (``odoo19c: odoo/orm/models.py:3985``) y aquí ``TimeStampedModel``
+        sólo alcanza a 291 de los 389 modelos. Lo consume
+        ``ir.actions.report._get_report_url``.
         """
-        users = apps.get_model('base', 'ResUsers')
-        for model_name, fk_name in users._inherits.items():
-            apply_inherits(
-                users,
-                MODELS_BY_NAME[model_name],
-                fk_name,
-            )
+        # Antes que los demas: valida la especie heredada y rellena los
+        # defaults que el resto lee (``_description``, ``_table``, la
+        # fusion de ``_inherits`` a lo largo de la MRO). Tarea #332.
+        ensure_model_class_attributes()
+        ensure_rec_names()
+        ensure_access_managers()
+        ensure_display_names()
+        ensure_base_urls()
+        # Y ``ensure_inherits()``, que cablea la delegacion de TODO modelo
+        # registrado que declare ``_inherits`` — no solo ``ResUsers``. El
+        # bucle escrito a mano que habia aqui dejaba fuera a ``ir.cron``, que
+        # declara la suya en este mismo addon.
+        ensure_inherits()

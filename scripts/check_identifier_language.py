@@ -143,18 +143,68 @@ def _technical_suffix(name):
             and re.search(r'[a-z][A-Z]', head) is not None)
 
 
-def spanish_words_in(name):
-    """Palabras españolas del identificador, o lista vacía."""
+#: Cuantos hermanos hacen falta para que un sufijo de dos letras sea un
+#: codigo y no una preposicion. Tres es el minimo que descarta la
+#: coincidencia: un archivo con `orden_de`, `orden_en` y `orden_por` seria el
+#: falso positivo de esta regla, y no existe — medido, 0 en el arbol.
+FAMILIA_MINIMA = 3
+
+
+def code_suffix_families(names):
+    """Los prefijos que un archivo declara como familia de codigos de dos letras.
+
+    ``check_vat_de`` no es espanol: ``de`` es el ISO-3166 de Alemania, y el
+    nombre es el CONTRATO del despachador de la fuente —
+    ``getattr(self, 'check_vat_' + cc.lower(), None)``—, asi que renombrarlo
+    rompe la validacion del IVA aleman.
+
+    Lo que lo distingue de una preposicion no es el token, que es identico,
+    sino **la familia**: el mismo archivo declara cuarenta hermanos
+    ``check_vat_XX`` con otros codigos. Esa evidencia se deriva del archivo, no
+    de una tabla ISO copiada aqui — que ademas no discriminaria, porque ``de``
+    es a la vez pais y preposicion.
+
+    ``_technical_suffix`` cubre el caso hermano en CamelCase
+    (``AccountEdiXmlUbl_De``) y declara que el espanol se escribe en snake_case
+    puro. ``check_vat_de`` es el hueco de ese razonamiento: es snake_case puro
+    Y su cola es un codigo.
+
+    *Metrica:* prefijos con >= FAMILIA_MINIMA identificadores del mismo archivo
+    que comparten prefijo y difieren en una cola de exactamente dos letras.
+    *Ciega a:* una familia repartida entre varios archivos — cada archivo se
+    mide solo, que es el lado seguro: sin hermanos, el sufijo vuelve a contar
+    como preposicion.
+    """
+    por_prefijo = {}
+    for name in names:
+        head, sep, tail = name.rpartition('_')
+        if sep and len(tail) == 2 and tail.isalpha():
+            por_prefijo.setdefault(head.lower(), set()).add(tail.lower())
+    return {prefijo for prefijo, colas in por_prefijo.items()
+            if len(colas) >= FAMILIA_MINIMA}
+
+
+def spanish_words_in(name, code_families=frozenset()):
+    """Palabras españolas del identificador, o lista vacía.
+
+    ``code_families`` son los prefijos que el ARCHIVO declara como familia de
+    codigos de dos letras (ver :func:`code_suffix_families`). Es opcional para
+    que el gate hermano de ``docs`` —que mide nombres de archivo sueltos, sin
+    archivo que dé contexto— siga llamando con un solo argumento.
+    """
     words = split_words(name)
     hits = [w for w in words
             if w in SPANISH_WORDS
             or (len(w) > 5 and SPANISH_MORPHOLOGY.search(w))]
     if len(words) >= 2:
-        # Las dos exenciones se miden contra el baseline entero antes de
-        # entrar: ninguna de las dos pierde un solo caso de español real.
+        # Las tres exenciones se miden contra el baseline entero antes de
+        # entrar: ninguna pierde un solo caso de español real.
         tecnicas = _particles_before_digits(name)
         if _technical_suffix(name):
             tecnicas.add(name.rpartition('_')[2].lower())
+        head, sep, tail = name.rpartition('_')
+        if sep and head.lower() in code_families:
+            tecnicas.add(tail.lower())
         hits += [w for w in words
                  if w in SPANISH_PARTICLES and w not in tecnicas]
     return sorted(set(hits))
@@ -194,10 +244,12 @@ def scan(paths):
             continue
         measured += 1
         seen = set()
-        for name, lineno in declared_identifiers(tree):
+        declarados = list(declared_identifiers(tree))
+        familias = code_suffix_families(n for n, _ in declarados)
+        for name, lineno in declarados:
             if name in seen:
                 continue
-            hits = spanish_words_in(name)
+            hits = spanish_words_in(name, familias)
             if hits:
                 seen.add(name)
                 findings.append((str(path), name, lineno, hits))

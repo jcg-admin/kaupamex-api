@@ -1,0 +1,18 @@
+Control que discrimina — get_depends (tarea #211)
+=================================================
+
+Sub-patron D de metrica-decide-la-conclusion.md: se anulan las dos guardas y
+se comprueba que caen EXACTAMENTE los casos que dependen de ellas.
+
+Guardas anuladas:
+  registry.py  _declared_by_the_field  -> return None
+  fields.py    resolve_mro(...)        -> [getattr(model, self.compute, None)]
+
+Con las guardas puestas:   13 passed
+Con las guardas anuladas:  2 failed, 11 passed
+
+    FAILED TestTheComputeBranch::test_a_compute_overridden_in_a_subclass_accumulates_both
+    FAILED TestTheCollectorConsumesTheProducer::test_the_collector_asks_the_field
+
+Los 11 que sobreviven miden las otras ramas —_depends explicito, related, el
+caso vacio— que no dependen de las guardas anuladas. Restaurado y verificado.

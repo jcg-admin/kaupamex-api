@@ -83,7 +83,7 @@
     #   pase no porta (#715).
     # - `authz_totp_mail` SÍ, desde que `models/ir_http.py` importa
     #   `verify_totp_mail_code` y `controllers/main.py` importa
-    #   `send_totp_mail_code`. La fuente la declara por la misma razón.
+    #   `_send_totp_mail_code`. La fuente la declara por la misma razón.
     # - `authz_passkey` SÍ: `_get_auth_methods` lee `user.passkeys`
     #   (models/res_users.py), el reverso del M2M que declara
     #   `authz_passkey/models/auth_passkey_key.py:83`.
@@ -104,7 +104,7 @@
         'base',              # ResGroups (el candado) y ResUsers (su lectura)
         'authz',             # TRANSITORIA (#20/#322) — require_capability, DEC-11
         'authz_totp',        # _mfa_type y services.verify_code
-        'authz_totp_mail',   # verify_totp_mail_code y send_totp_mail_code
+        'authz_totp_mail',   # verify_totp_mail_code y _send_totp_mail_code
         'authz_passkey',     # user.passkeys — el segundo factor WebAuthn
     ],
     'author': 'Odoo S.A.',

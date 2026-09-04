@@ -1,0 +1,12 @@
+# Control discriminante — setup-session-info-exige-usuario-interno
+# fecha:    2026-09-02T09:53:14
+# archivo:  addons/base_setup/models/ir_http.py
+# anulado:  s/and user\._is_internal()/and True/
+# tests:    tests/unit/base_setup/
+
+## 1. Verde de partida (guarda presente)
+32 passed, 1 warning in 6.53s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/base_setup/test_extensions.py::TestIrHttpSessionInfo::test_a_user_without_an_internal_group_gets_no_flag
+1 failed, 31 passed, 1 warning in 6.43s

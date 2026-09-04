@@ -47,7 +47,7 @@ class _Anonimo:
     is_authenticated = False
 
 
-def _peticion(ua=UA_CHROME_LINUX, ip='203.0.113.7', usuario=None):
+def _request(ua=UA_CHROME_LINUX, ip='203.0.113.7', usuario=None):
     request = RequestFactory().get('/', HTTP_USER_AGENT=ua, REMOTE_ADDR=ip)
     request.session = _Sesion()
     if usuario is not None:
@@ -74,7 +74,7 @@ def _log(usuario, **kwargs):
 # ----------------------------------------------------------------------
 
 def test_primera_peticion_crea_traza():
-    request = _peticion()
+    request = _request()
     traza = update_trace(request)
     assert traza['platform'] == 'linux' and traza['browser'] == 'chrome'
     assert traza['ip_address'] == '203.0.113.7'
@@ -84,13 +84,13 @@ def test_primera_peticion_crea_traza():
 
 def test_segunda_peticion_dentro_de_la_hora_no_traza():
     """``if bool(now - last_activity >= 3600)`` — antes de la hora, ``None``."""
-    request = _peticion()
+    request = _request()
     update_trace(request)
     assert update_trace(request) is None
 
 
 def test_pasada_la_hora_refresca_y_devuelve_la_misma_traza():
-    request = _peticion()
+    request = _request()
     primera = update_trace(request)
     request.session[TRACE_SESSION_KEY][0]['last_activity'] -= TRACE_MAX_IDLE_SECONDS
     segunda = update_trace(request)
@@ -101,7 +101,7 @@ def test_pasada_la_hora_refresca_y_devuelve_la_misma_traza():
 
 def test_otra_terna_es_otro_dispositivo():
     """La identidad es (platform, browser, ip): cambiar uno abre traza nueva."""
-    request = _peticion()
+    request = _request()
     update_trace(request)
     request.META['HTTP_USER_AGENT'] = UA_SAFARI_IPHONE
     assert update_trace(request) is not None
@@ -110,13 +110,13 @@ def test_otra_terna_es_otro_dispositivo():
 
 def test_trace_disable_apaga_el_registro():
     """Reservado a sesiones técnicas (``odoo19c: odoo/http.py:1305-1313``)."""
-    request = _peticion()
+    request = _request()
     request.session[TRACE_DISABLE_KEY] = True
     assert update_trace(request) is None
 
 
 def test_el_proxy_inverso_manda_sobre_remote_addr():
-    request = _peticion()
+    request = _request()
     request.META['HTTP_X_FORWARDED_FOR'] = '198.51.100.9, 10.0.0.1'
     assert update_trace(request)['ip_address'] == '198.51.100.9'
 
@@ -126,7 +126,7 @@ def test_el_proxy_inverso_manda_sobre_remote_addr():
 # ----------------------------------------------------------------------
 
 def test_update_device_inserta_una_fila(usuario):
-    fila = ResDeviceLog._update_device(_peticion(usuario=usuario))
+    fila = ResDeviceLog._update_device(_request(usuario=usuario))
     assert fila.user_id == usuario.pk
     assert (fila.platform, fila.browser) == ('linux', 'chrome')
     assert fila.device_type == ResDeviceLog.DEVICE_COMPUTER
@@ -134,7 +134,7 @@ def test_update_device_inserta_una_fila(usuario):
 
 
 def test_update_device_no_reinserta_dentro_de_la_hora(usuario):
-    request = _peticion(usuario=usuario)
+    request = _request(usuario=usuario)
     ResDeviceLog._update_device(request)
     assert ResDeviceLog._update_device(request) is None
     assert ResDeviceLog.objects.filter(user=usuario).count() == 1
@@ -142,21 +142,21 @@ def test_update_device_no_reinserta_dentro_de_la_hora(usuario):
 
 def test_movil_se_clasifica_como_movil(usuario):
     """``_is_mobile`` (``odoo19c: res_device.py:70-75``) sobre ``iphone``."""
-    fila = ResDeviceLog._update_device(_peticion(ua=UA_SAFARI_IPHONE, usuario=usuario))
+    fila = ResDeviceLog._update_device(_request(ua=UA_SAFARI_IPHONE, usuario=usuario))
     assert fila.platform == 'iphone'
     assert fila.device_type == ResDeviceLog.DEVICE_MOBILE
 
 
 def test_solo_se_guarda_el_prefijo_del_identificador_de_sesion(usuario):
     """Nunca el sid completo — ``sid[:STORED_SESSION_BYTES]`` en la fuente."""
-    request = _peticion(usuario=usuario)
+    request = _request(usuario=usuario)
     request.session.session_key = 'k' * 90
     fila = ResDeviceLog._update_device(request)
     assert len(fila.session_identifier) == STORED_SESSION_BYTES
 
 
 def test_middleware_ignora_al_anonimo(db):
-    DeviceLogMiddleware(lambda r: 'respuesta')(_peticion(usuario=_Anonimo()))
+    DeviceLogMiddleware(lambda r: 'respuesta')(_request(usuario=_Anonimo()))
     assert ResDeviceLog.objects.count() == 0
 
 
@@ -164,7 +164,7 @@ def test_middleware_no_rompe_la_respuesta_si_falla_el_trazado(usuario, monkeypat
     monkeypatch.setattr(ResDeviceLog, '_update_device',
                         classmethod(lambda cls, request: 1 / 0))
     assert DeviceLogMiddleware(lambda r: 'respuesta')(
-        _peticion(usuario=usuario)) == 'respuesta'
+        _request(usuario=usuario)) == 'respuesta'
 
 
 # ----------------------------------------------------------------------
@@ -194,7 +194,7 @@ def test_dos_dispositivos_distintos_son_dos_filas(usuario):
 def test_is_current_compara_contra_la_sesion_de_la_peticion(usuario):
     _log(usuario, last_activity=timezone.now(), session_identifier='abc')
     device = ResDevice.objects.get(user_id=usuario.pk)
-    request = _peticion()
+    request = _request()
     request.session.session_key = 'abcdef' + 'x' * 26
     assert device.is_current(request) is True
     request.session.session_key = 'zzz' + 'x' * 29

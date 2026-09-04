@@ -8,6 +8,25 @@ sobre el árbol del padre.
 
 Se porta el **registro y las reglas de herencia**; no el combinador de XML.
 
+Esa divergencia estuvo **sólo en esta prosa** desde que el archivo se portó,
+y ningún gate la ve. Desde #76 sus **95 símbolos** están enumerados uno a uno
+en ``scripts/divergencias_declaradas.txt`` —70 del combinador, 24 de la API
+que sirve el arch, ``NameManager`` entera— cada uno con su motivo. Lo que NO
+entró ahí sigue contado como trabajo: ``create``/``write``/``unlink``/
+``copy_data``, los cuatro cómputos de ``arch``/``arch_base``, los tres de
+``xml_id``/``model_data_id``, los dos de ``model_id``, ``_check_groups`` y
+``_check_view_access``.
+
+Esa divergencia cubre también **12 puntos de enganche** que Enterprise 19 usa
+sobre este modelo y que aquí no existen —``_get_default_view_domain`` (3),
+``_postprocess_attributes``, ``_postprocess_debug``, ``_validate_tag_button``,
+``_contains_branded``, ``is_node_branded``, ``_get_x2many_missing_view_archs``,
+``_postprocess_access_rights``, ``_is_qweb_based_view``,
+``_postprocess_debug_to_cache``—: los diez son del combinador, y operan sobre un
+árbol XML que este producto no tiene. No son deuda de porte sino la misma
+divergencia vista desde el otro lado. Medido en la tarea #78,
+:ref:`h-api-819`.
+
 Qué desbloquea
 ==============
 
@@ -21,9 +40,11 @@ Cuatro archivos ya portados dejaron anotado que esperaban a éste:
 
 De esos, **sólo el de ``res_groups`` se cierra solo**: llega por el
 ``related_name`` del M2M de aquí. Los otros cuatro llevan una columna ``Char``
-o una propiedad ausente y su conversión migra su propia tabla, así que va en
-su pase — mismo criterio que ``ir_filters.action_id``. Sus mediciones sí se
-corrigen en este commit (regla de H-API-149).
+o una propiedad ausente y su conversión migra su propia tabla; su desenlace es
+la tarea **#257**. El criterio que esta frase citaba —``ir_filters.action_id``,
+diferido «a su pase»— **ya no existe**: se convirtió en
+``base/migrations/0077`` (:ref:`h-api-982`). Sus mediciones sí se corrigen en
+este commit (regla de H-API-149).
 
 Las tres reglas de herencia que el registro codifica
 ====================================================
@@ -81,11 +102,18 @@ Qué NO se porta, con su medición
   términos XML. Se portan las **columnas** (``arch_db``, ``arch_fs``,
   ``arch_prev``, ``arch_updated``) — que son el dato— y no los cómputos, que
   dependen del lector de archivos y del mecanismo de traducción de Odoo.
+
+  **Portar la columna no basta si nadie la escribe** (#76, :ref:`h-api-836`).
+  ``arch_prev`` estuvo aquí como columna y **sin un solo escritor**, mientras
+  ``ResetViewArchWizard.source_arch_for(view, 'soft')`` la leía: el reinicio
+  suave devolvía siempre la cadena vacía, que se lee como *"no había nada
+  previo"*. Ahora la escriben ``save`` —≙ ``create:626`` y ``write:657-658``,
+  los dos únicos sitios que la fuente toca— y la limpia ``reset_arch``.
 - **``get_view_arch_from_file``** y ``_hasclass``: lectura de la vista desde
   su archivo fuente y una extensión XPath. Ambos son del combinador.
 - **``xml_id`` / ``model_data_id``**: dependen de ``ir.model.data``. ``key``
   **sí** se porta: es el identificador estable de una vista QWeb y no pasa por
-  esa tabla. (La tabla ya tiene resolutor — ``IrModelData.xmlid_lookup`` y
+  esa tabla. (La tabla ya tiene resolutor — ``IrModelData._xmlid_lookup`` y
   hermanos, :ref:`h-api-347` — y la resolución de plantillas de abajo lo usa
   como segundo escalón, igual que la fuente.)
 
@@ -100,8 +128,34 @@ invalidación compartida entre procesos: un caché por-proceso de contenido
 **mutable** (las vistas se editan y se archivan en caliente) serviría vistas
 viejas en 3 de 4 workers tras cada edición, sin error que lo delatara. La
 fuente puede permitírselo porque su registry invalida el ormcache en cada
-``write``; este árbol no tiene ese mecanismo, así que el desenlace correcto es
-resolver contra la base en cada llamada. Consecuencias declaradas:
+``write`` **y lo señala a los demás procesos**; aquí sólo existe la primera
+mitad, así que el desenlace correcto es resolver contra la base en cada
+llamada.
+
+.. note:: Corregido 2026-08-31 (:ref:`h-api-980`) — esta razón decía *«este
+   árbol no tiene ese mecanismo»*, y de las dos mitades sólo una era cierta.
+
+   **La invalidación local SÍ existe**: ``registry.clear_cache(*nombres)``
+   (``orm/registry.py:121``), portada de ``Registry.clear_cache``, y
+   ``res_groups.py`` la usa en tres sitios como invalidador de su caché
+   ``groups``.
+
+   **La señalización entre procesos NO**: ``signal_changes`` /
+   ``check_signaling`` (``odoo19c: odoo/orm/registry.py:1076-1140``) escriben
+   y leen una secuencia por caché en tablas ``orm_signaling_<nombre>``, y de
+   eso hay **0** en este árbol. Medido con un ``grep -rn`` sobre ``src/`` y
+   ``addons/`` de los cinco símbolos —``signal_changes``, ``check_signaling``,
+   ``orm_signaling``, ``cache_sequences``, ``get_sequences``—, cuyo único
+   acierto es la declinación que ``ir_autovacuum.py`` ya declara.
+
+   Con ``workers = 4`` (``setup/gunicorn.conf.py:93``), esa mitad ausente es
+   la que hace que un caché de contenido mutable sirva vistas viejas en 3 de 4
+   procesos. La conclusión de este bloque **no cambia** por la corrección: sin
+   la segunda mitad, no adoptar la caché sigue siendo lo correcto. Lo que
+   cambia es que la razón ahora nombra qué falta y qué no, que es lo que
+   permite cerrarla — la tarea **#256**.
+
+Consecuencias declaradas:
 
 - ``_get_template_minimal_cache_keys`` **no se porta**: su único consumidor es
   la clave del decorador retirado.
@@ -142,7 +196,42 @@ MOVABLE_BRANDING = [
 #: Los cuatro modificadores que una vista puede declarar sobre un campo.
 VIEW_MODIFIERS = ('column_invisible', 'invisible', 'readonly', 'required')
 
-#: Los ocho tipos de vista, verbatim de la fuente.
+#: El octavo tipo de vista **NO copia el valor de la fuente**, y es la única
+#: divergencia de los ocho: donde ``odoo19c: base/models/ir_ui_view.py:120``
+#: escribe ``('qweb', 'QWeb')``, aquí se escribe
+#: ``('template', 'Plantilla')`` (DEC-FW-05, pieza 5 de 8).
+#:
+#: **Por qué diverge.** Los otros siete nombran *qué es* la vista —lista,
+#: formulario, gráfica, tabla dinámica, calendario, kanban, búsqueda—. El
+#: octavo nombraba *su intérprete*. Es el mismo par (intérprete, cosa) que
+#: ``report_type`` ya resolvió en ``ir_actions_report.py:146-152``: allí el
+#: prefijo ``qweb-`` se retiró porque *"afirmaría un sustrato que este árbol
+#: no tiene"*. Aquí el par no tiene segundo término: el valor **era** el
+#: intérprete y nada más.
+#:
+#: **Por qué ``template`` y no otra palabra — no se inventa.** Es el nombre
+#: que la propia referencia usa en la superficie que un humano escribe: su
+#: azúcar XML es ``<template id="...">``, con manejador ``_tag_template``
+#: (``odoo19c: odoo/tools/convert.py:469,655``), y sólo el valor almacenado
+#: dice ``qweb``. Nuestro ``tools/convert.py`` hace la misma sustitución. El
+#: renombre no cambia el concepto: alinea el dato con el nombre que la fuente
+#: ya le da donde se escribe.
+#:
+#: **Qué es este tipo, medido por sus tres consumidores** — es el único que:
+#: (a) el registro de vistas del cliente **excluye** (``addons/web``, porque
+#: no es una vista que el cliente dibuje); (b) **exige clave**, porque se
+#: resuelve por clave y no por (modelo, tipo) — la restricción de abajo; y
+#: (c) puede llevar contraseña de visibilidad en ``addons/website``, porque
+#: es una página servida. Los tres describen lo mismo: una **plantilla de
+#: documento**, no una disposición de interfaz.
+#:
+#: **Lo que el stack aporta para hacerlo** (criterio de las dos categorías):
+#: TRAE el mecanismo entero y no hay nada que construir — ``choices`` del
+#: ``CharField``, ``AlterField`` y ``RunPython`` para renombrar el dato ya
+#: guardado, y ``CheckConstraint`` para la restricción. El renombre es
+#: cableado, no construcción; por eso su costo no es argumento para
+#: conservar el valor viejo.
+VIEW_TYPE_TEMPLATE = 'template'
 VIEW_TYPE_CHOICES = [
     ('list', 'Lista'),
     ('form', 'Formulario'),
@@ -151,7 +240,7 @@ VIEW_TYPE_CHOICES = [
     ('calendar', 'Calendario'),
     ('kanban', 'Kanban'),
     ('search', 'Búsqueda'),
-    ('qweb', 'QWeb'),
+    (VIEW_TYPE_TEMPLATE, 'Plantilla'),
 ]
 
 MODE_PRIMARY = 'primary'
@@ -263,10 +352,11 @@ class IrUiView(TimeStampedModel):
                 ),
                 name='ir_ui_view_inheritance_mode',
             ),
-            # ``_qweb_required_key``: una vista QWeb necesita su clave.
+            # ``_qweb_required_key``: una vista de plantilla necesita su
+            # clave — es el único tipo que se resuelve por clave.
             models.CheckConstraint(
-                condition=~models.Q(type='qweb') | ~models.Q(key=''),
-                name='ir_ui_view_qweb_required_key',
+                condition=~models.Q(type=VIEW_TYPE_TEMPLATE) | ~models.Q(key=''),
+                name='ir_ui_view_template_required_key',
             ),
         ]
         indexes = [
@@ -274,6 +364,27 @@ class IrUiView(TimeStampedModel):
             models.Index(fields=['model', 'inherit_id'],
                          name='ir_ui_view_model_inherit'),
         ]
+
+    def _check_groups(self):
+        """Una vista heredada no declara grupos en el registro.
+
+        ≙ ``_check_groups`` (``odoo19c: ir_ui_view.py:537-543``), su
+        ``@api.constrains('group_ids')`` — que aquí es el campo ``groups``,
+        el nombre que este árbol le dio al M2M. Los grupos de una vista **de
+        extensión** van dentro del propio arch, en el atributo ``groups=`` del
+        nodo: declararlos en el registro los aplicaría a la vista entera, no al
+        fragmento que la extensión aporta, que es lo contrario de lo que quien
+        los escribe pretende.
+
+        DIVERGENCIA DE ENLACE, la del archivo: allá es un ``@api.constrains``
+        que el ORM dispara al escribir; aquí lo llama
+        ``ResGroups._check_inherited_view_groups`` —su otro llamador en la
+        fuente— y se puede invocar a mano.
+        """
+        if self.groups.exists() and self.inherit_id_id and self.mode != 'primary':
+            raise ValidationError(
+                "Una vista heredada no puede declarar 'groups' en el registro. "
+                "Use el atributo 'groups' dentro de la definición de la vista.")
 
     def __str__(self):
         return self.name
@@ -294,6 +405,113 @@ class IrUiView(TimeStampedModel):
                     'No se pueden crear vistas heredadas recursivas.')
             seen.add(node.pk)
             node = node.inherit_id
+
+    def save(self, *args, from_file=False, save_prev=True, **kwargs):
+        """≙ ``create:626`` + ``write:640-658`` — el ciclo de vida del arch.
+
+        La fuente reparte en dos metodos lo que aqui hace uno, y lo que hacen
+        son tres cosas:
+
+        #. **La copia previa** — ``arch_prev`` guarda el ``arch_db`` que habia
+           antes de esta escritura. Al crear, la fuente la fija al arch que
+           entra (``:626``); al escribir, al que estaba en la base
+           (``:657-658``).
+        #. **La marca de editado** — ``arch_updated`` distingue *"lo edito una
+           persona"* de *"lo trajo el archivo"*. La fuente lo decide por la
+           presencia de ``install_filename`` en su contexto; aqui por el
+           argumento ``from_file``, que es el mismo dato sin contexto global.
+        #. **La limpieza** — las personalizaciones de ``ir.ui.view.custom``
+           mueren con cada escritura, *"otherwise not all users would see the
+           updated views"* (``:650-653``, comentario verbatim).
+
+        ``save_prev=False`` ≙ ``no_save_prev`` de la fuente: se usa al
+        reiniciar, donde el arch que se descarta esta roto y guardarlo como
+        copia lo dejaria como unico destino del proximo reinicio.
+
+        **Por que hacia falta.** ``arch_prev`` era una columna que nadie
+        escribia, y ``ResetViewArchWizard.source_arch_for(view, 'soft')`` la
+        leia: el reinicio suave devolvia siempre la cadena vacia, que se lee
+        como *"no habia nada previous"*. Misma forma que :ref:`h-api-833`.
+
+        **Divergencia declarada:** la fuente escribe ``arch_prev`` tambien
+        desde ``arch`` y ``arch_base``, sus dos campos calculados con
+        traduccion. Aqui el unico dato es ``arch_db`` —la traduccion por campo
+        no se porta, ver el docstring del modulo—, asi que la copia se toma de
+        el.
+        """
+        is_new = self.pk is None
+        previous = None
+        if not is_new:
+            previous = (type(self).objects.filter(pk=self.pk)
+                        .values_list('arch_db', flat=True).first())
+
+        the_arch_changes = is_new or (previous is not None
+                                      and previous != self.arch_db)
+
+        if is_new:
+            self.arch_prev = self.arch_db or ''
+        elif the_arch_changes and save_prev:
+            self.arch_prev = previous or ''
+
+        if the_arch_changes and not is_new and not from_file:
+            self.arch_updated = True
+
+        result = super().save(*args, **kwargs)
+        # La fuente las borra en CADA write, no solo cuando cambia el arch.
+        IrUiViewCustom.objects.filter(ref_id=self.pk).delete()
+        return result
+
+    def reset_arch(self, mode=RESET_SOFT, arch=None):
+        """≙ ``reset_arch`` (``:281-293``) — vuelve al arch anterior o al del archivo.
+
+        - ``soft`` — de ``arch_prev``. Si esta vacio no hace nada, como la
+          fuente: su ``if arch:`` protege de reiniciar a la nada.
+        - ``hard`` — del archivo de origen. **La lectura del disco no vive
+          aqui**: este arbol no tiene el cargador de addons de la referencia,
+          asi que el arch leido entra por el argumento ``arch`` y la
+          **decision** —que columnas se tocan— se conserva verbatim:
+          ``arch_prev`` a vacio y ``arch_updated`` a falso. Es la misma
+          frontera que ``ResetViewArchWizard.source_arch_for``, que para el
+          modo duro devuelve la RUTA y no el contenido.
+
+        Devuelve ``True`` si hubo reinicio y ``False`` si no habia a que
+        volver — la fuente no devuelve nada y decide por el mismo ``if``.
+        """
+        if mode == RESET_SOFT:
+            if not self.arch_prev:
+                return False
+            self.arch_db = self.arch_prev
+        elif mode == RESET_HARD:
+            if not (self.arch_fs and arch):
+                return False
+            self.arch_db = arch
+            self.arch_prev = ''
+            self.arch_updated = False
+        else:
+            raise ValidationError(f'Modo de reinicio desconocido: {mode!r}.')
+        self.save(save_prev=False, from_file=(mode == RESET_HARD))
+        return True
+
+    @classmethod
+    def default_view(cls, model, view_type):
+        """≙ ``default_view`` — la primaria de menor prioridad del par.
+
+        Su docstring de la fuente, verbatim: *"Fetches the default view for the
+        provided (model, view_type) pair: primary view with the lowest
+        priority"*.
+
+        El filtro ``mode='primary'`` de ``_get_default_view_domain`` es lo que
+        hace la funcion: sin el, una vista de **extension** con prioridad menor
+        ganaria, y una extension no es una pantalla — es un parche sobre otra.
+
+        Devuelve el ``pk``, o ``None`` si no hay ninguna. La fuente devuelve
+        ``False``; aqui el ausente de una consulta es ``None``, que es lo que
+        el resto del arbol comprueba.
+        """
+        return (cls.objects
+                .filter(model=model, type=view_type, mode=MODE_PRIMARY)
+                .order_by('priority', 'name', 'id')
+                .values_list('pk', flat=True).first())
 
     @property
     def root_view(self):

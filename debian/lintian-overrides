@@ -1,0 +1,13 @@
+# La politica de Debian reserva /opt para software NO empaquetado por la
+# distribucion (Policy 9.1.1, FHS 3.13). Este paquete no se distribuye por el
+# archivo de Debian: es el producto propio, y /opt/kaupamex/api es
+# precisamente el uso que el FHS reserva para «add-on application software
+# packages». La ruta ademas no es negociable — las dos unidades systemd ya la
+# declaran (setup/kaupamex.service:WorkingDirectory y ExecStart).
+kaupamex-api: dir-or-file-in-opt
+
+# Las fuentes Liberation viajan vendorizadas junto al motor PDF (ADR-017): el
+# helper en C las abre por ruta relativa a su propio arbol, no consulta
+# fontconfig. Depender de fonts-liberation haria que un recibo dejara de
+# emitirse si esa dependencia se retira de la maquina.
+kaupamex-api: duplicate-font-file

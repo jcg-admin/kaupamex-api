@@ -89,7 +89,7 @@ class PasskeyViewSet(CapabilityRequiredMixin, ListModelMixin,
         """≙ ``_start_registration`` via ``action_create_passkey``
         (``@check_identity``)."""
         _check_identity(request)
-        return Response(PasskeyKey.start_registration(request, request.user))
+        return Response(PasskeyKey._start_registration(request, request.user))
 
     @extend_schema(
         summary='Registrar la passkey (respuesta del navegador)',
@@ -107,7 +107,7 @@ class PasskeyViewSet(CapabilityRequiredMixin, ListModelMixin,
         serializer = PasskeyRegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            verification = PasskeyKey.verify_registration_options(
+            verification = PasskeyKey._verify_registration_options(
                 request, serializer.validated_data['registration'])
         except Exception as exc:  # AccessDenied (challenge) o error webauthn
             _logger.info('Passkey registration failed for %r: %s',
@@ -144,7 +144,7 @@ class PasskeyViewSet(CapabilityRequiredMixin, ListModelMixin,
 @permission_classes([AllowAny])
 def auth_options(request):
     """≙ ``_start_auth`` — pre-auth."""
-    return Response(PasskeyKey.start_auth(request))
+    return Response(PasskeyKey._start_auth(request))
 
 
 #: Exenta del candado por tiempo — ≙

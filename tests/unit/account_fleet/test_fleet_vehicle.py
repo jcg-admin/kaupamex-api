@@ -49,7 +49,7 @@ class TestSimbolosColgados:
     def test_bill_count_es_property(self):
         assert isinstance(FleetVehicle.__dict__.get('bill_count'), property)
 
-    def test_compute_move_ids_es_metodo(self):
+    def test_compute_move_ids_is_method(self):
         assert hasattr(FleetVehicle, '_compute_move_ids')
 
     def test_apply_extensions_es_idempotente(self):

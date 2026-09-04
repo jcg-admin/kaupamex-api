@@ -26,7 +26,7 @@ Dos símbolos, los 2 portados
 ``sudo()`` — divergencia uniforme del módulo
 ==================================================
 
-``doc.sudo().attachment_id`` de la referencia → ``doc.attachment`` directo,
+``doc.sudo().attachment_id`` de la referencia → ``doc.attachment_id`` directo,
 mismo criterio que el resto de este dominio (``account_edi_document.py``,
 ``ir_attachment.py``): sin ACL de campo que saltarse en este puerto.
 """
@@ -43,7 +43,7 @@ def _get_mail_attachment_from_doc(cls, doc):
     addons/account/models/account_move_send.py`` → 0 hits), así que
     ``chain_method`` lo instala tal cual (rama ``previous is None``).
     """
-    attachment = doc.attachment
+    attachment = doc.attachment_id
     if attachment and attachment.res_model and attachment.res_id:
         return attachment
     return None

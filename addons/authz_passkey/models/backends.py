@@ -39,13 +39,13 @@ def _consume_assertion(request, passkey, webauthn_response):
     ``sign_count``. Devuelve ``True`` si la aserción es válida.
 
     El contador es lo que impide reproducir una aserción capturada: el
-    autenticador lo incrementa en cada uso, y ``verify_auth`` rechaza uno que
+    autenticador lo incrementa en cada uso, y ``_verify_auth`` rechaza uno que
     no supere al guardado. Por eso el asiento va **aquí** y no en cada
     llamador — un camino que verificara sin asentar dejaría la passkey
     reutilizable por el mismo valor.
     """
     try:
-        new_sign_count = PasskeyKey.verify_auth(
+        new_sign_count = PasskeyKey._verify_auth(
             request, webauthn_response, passkey.public_key,
             passkey.sign_count)
     except InvalidAuthenticationResponse as exc:

@@ -1,0 +1,36 @@
+Align three ir_model reflections with the source
+
+Los tres reflejos de ``ir_model.py`` escribian con ``update_or_create``
+y ``get_or_create``: pasan por ``save()``, y por tanto por la guarda de
+los cuatro campos inmodificables. La fuente escribe esas mismas filas en
+SQL crudo, fuera del alcance de su ``write``
+(``odoo19c: odoo/addons/base/models/ir_model.py:1948,1966,2057,1480``),
+asi que nuestro puerto cruzaba una guarda que la referencia esquiva a
+proposito.
+
+``_reflect_constraint`` y ``_reflect_relation`` pasan a
+``filter().first()`` mas ``bulk_create`` o ``QuerySet.update()``, y
+``_reflect_inherits`` a una diferencia de conjuntos con un solo
+``bulk_create``. Ese constructor si dispara ``pre_save(add=True)``, asi
+que ``created_at`` se llena; ``QuerySet.update()`` no lo dispara, por
+eso ``updated_at`` va explicito con ``timezone.now()``.
+
+El instrumento gana un tercer desenlace. Un lado ``MIXED`` que
+*contiene* la categoria del otro no es un desacuerdo: la unidad de la
+comparacion es el metodo, y un metodo puede escribir por dos mecanismos
+para dos operaciones distintas — la fuente de ``_update_selection``
+inserta con ``query_insert`` y borra con ``unlink``. ``INDETERMINATE``
+lo declara y ``Scope.pairs_indeterminate`` lo cuenta aparte, para que el
+denominador no lo esconda como acuerdo.
+
+Baseline del eje: 28 -> 17 entradas. Ocho eran ese falso positivo de
+granularidad y tres son la alineacion real; la copia previa queda en
+``scripts/evidence/write_path_baseline.previo.txt``.
+
+Metrica: pares de metodo con contraparte en la referencia, clasificados
+por el vocabulario de escritura de cada lado.
+Ciega a: un metodo que escriba por una via que el vocabulario no
+enumera, y a si el mecanismo alineado produce el mismo estado — eso lo
+mide la suite, no el gate.
+
+Refs: #345, #358

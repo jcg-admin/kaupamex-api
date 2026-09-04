@@ -1,0 +1,17 @@
+# Control discriminante de la capa 0 — 2026-09-02T14:13:06
+# Se anula el bloque compute de la fuente y se mide QUE cae.
+# Subconjunto: el contrato nuevo MAS los vecinos de related, que es
+# donde el primer intento rompio seis casos por vaciar kwargs de mas.
+
+== ANTES ==
+71 passed, 1 warning in 6.58s
+
+== CON EL BLOQUE COMPUTE ANULADO ==
+casos caidos: 23
+23 failed, 48 passed, 3 warnings in 6.51s
+
+== RESTAURADO ==
+71 passed, 1 warning in 6.29s
+
+La restauracion la prueba el conteo de arriba, no un git diff: la
+implementacion aun no esta commiteada.

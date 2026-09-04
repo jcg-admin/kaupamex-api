@@ -25,34 +25,61 @@ filas de un mismo modelo comparten exactamente la misma definición.
 
 Guardarlo como columna sería replicar el mismo id en cada fila y abrir la
 puerta a que dos filas del mismo modelo apunten a definiciones distintas —un
-estado que el modelo no admite—. Aquí es una **propiedad** derivada, que es lo
-que un ``compute`` sin ``store`` significa.
+estado que el modelo no admite—. Aquí se declara con el mismo nombre y en el
+mismo sitio que la fuente, usando ``fields.Many2one(..., store=False)``: el
+despachador de ``orm/fields_relational.py`` devuelve un campo sin columna, que
+es lo que un ``compute`` sin ``store`` significa.
 
 Su ``_search_properties_base_definition_id`` lo confirma: no filtra fila por
-fila, devuelve ``TRUE`` o ``FALSE`` **para todo el modelo** según si el id
-buscado es el suyo.
+fila, devuelve ``Domain.TRUE`` o ``Domain.FALSE`` **para todo el modelo**
+según si el id buscado es el suyo.
 
-Qué NO se porta, con su medición
-================================
+Los cuatro símbolos
+===================
 
-- **``_field_to_sql``**: enseña al motor de consultas de Odoo a emitir el id
-  de la definición como constante para que la exportación funcione. Es una
-  optimización atada a su constructor de SQL; en Django la propiedad se lee
-  en Python y no hay consulta que reescribir.
-- **``create`` inyectando ``properties_base_definition_id`` en los valores**:
-  allá hace falta para que el ORM aplique los valores por defecto de las
-  propiedades al crear. Aquí el vínculo es derivado y siempre está disponible,
-  así que no hay nada que inyectar; lo que sí se porta es
-  ``ensure_definition()``, que garantiza que la fila de definición exista.
+Los cuatro métodos de la referencia se portan **con su nombre y su firma**:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Referencia
+     - Estado aquí
+   * - ``_compute_properties_base_definition_id``
+     - portado; lo consume el ``default`` del campo sin columna
+   * - ``_search_properties_base_definition_id``
+     - portado; devuelve ``Domain.TRUE``/``Domain.FALSE``/``NotImplemented``
+   * - ``create``
+     - portado; siembra la definición antes de insertar, y ``save`` delega
+   * - ``_field_to_sql``
+     - portado; su rama propia emite el id como constante ``SQL``
+
+``_field_to_sql`` — entero, con su base ya portada
+=================================================
+
+La rama propia —emitir el id de la definición como constante para que la
+exportación funcione— se porta con ``tools.sql.SQL``; la otra delega en
+``super()``, igual que la fuente.
+
+Ese ``super()`` estuvo bloqueado: hasta la tarea **#127**
+``BaseModel._field_to_sql`` no existía en ``src/orm`` —medido entonces:
+``grep -rn "def _field_to_sql" src/orm/`` → 0— y la mitad de delegación
+levantaba ``NotImplementedError`` citando la tarea. Hoy existe como
+``orm.models.FieldSqlMixin``, que esta clase adopta, y con él llegaron sus
+tres dependencias: ``_traverse_related_sql``, ``_check_field_access`` y el par
+``field.to_sql``/``field.property_to_sql`` de ``orm/fields.py``.
 """
 import logging
 
 import fields
 import models
+from tools.sql import SQL
 
 from addons.base.models.properties_base_definition import (
     PropertiesBaseDefinition,
 )
+from orm.domains import Domain
+from orm.utils import COLLECTION_TYPES
+from orm.models import FieldSqlMixin
 
 _logger = logging.getLogger(__name__)
 
@@ -61,14 +88,28 @@ _logger = logging.getLogger(__name__)
 PROPERTIES_FIELD_NAME = 'properties'
 
 
-class PropertiesBaseDefinitionMixin(models.Model):
+def _definition_default(record):
+    """``default`` del campo sin columna — delega en el cómputo de la fuente."""
+    return record._compute_properties_base_definition_id()
+
+
+class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
     """Mixin que añade propiedades **sin padre** a un modelo."""
 
-    properties = fields.Json(
+    _name = 'properties.base.definition.mixin'
+    _description = 'Properties Base Definition Mixin'
+
+    properties = fields.Properties(
         default=dict, blank=True, verbose_name='Propiedades',
+        definition='properties_base_definition_id.properties_definition',
         help_text='Pares clave/valor definidos por el usuario. Su esquema vive '
                   'en properties.base.definition, resuelto por (modelo, '
                   'campo) — no por registro.',
+    )
+    properties_base_definition_id = fields.Many2one(
+        PropertiesBaseDefinition, store=False, default=_definition_default,
+        help_text='Derivado de (modelo, campo), no del registro: todas las '
+                  'filas de este modelo comparten la misma definición.',
     )
 
     class Meta:
@@ -76,40 +117,95 @@ class PropertiesBaseDefinitionMixin(models.Model):
 
     @classmethod
     def properties_model_label(cls):
-        """El nombre técnico del modelo, tal como lo guarda ``ir.model.fields``."""
+        """El nombre técnico del modelo, tal como lo guarda ``ir.model.fields``.
+
+        La fuente usa ``self._name``; aquí el nombre del modelo en el catálogo
+        es la etiqueta de Django, que es la que ``ir.model.fields`` almacena.
+        """
         return f'{cls._meta.app_label}.{cls._meta.object_name}'
 
-    @classmethod
-    def ensure_definition(cls):
-        """La fila de definición de este modelo, creándola si falta.
-
-        Equivale a lo que el ``create`` de la fuente garantiza al insertar:
-        que exista una definición a la que referirse. Aquí no hace falta
-        inyectarla en cada registro — ver el docstring del módulo.
-        """
-        return PropertiesBaseDefinition.definition_for(
-            cls.properties_model_label(), PROPERTIES_FIELD_NAME)
-
-    @property
-    def properties_base_definition(self):
+    def _compute_properties_base_definition_id(self):
         """``_compute_properties_base_definition_id`` — derivado, no columna.
 
-        La definición depende de *(modelo, campo)*, no del registro: todas las
-        filas de este modelo comparten la misma. Ver el docstring del módulo
-        sobre por qué guardarla sería un error.
+        ≙ ``odoo19c: properties_base_definition_mixin.py:27-29``. La definición
+        depende de *(modelo, campo)*, no del registro: todas las filas de este
+        modelo comparten la misma. Ver el docstring del módulo sobre por qué
+        guardarla sería un error.
         """
-        return type(self).ensure_definition()
+        return PropertiesBaseDefinition._get_definition_for_property_field(
+            type(self).properties_model_label(), PROPERTIES_FIELD_NAME)
 
     @classmethod
-    def matches_definition(cls, definition_ids):
+    def _search_properties_base_definition_id(cls, operator, value):
         """``_search_properties_base_definition_id`` — para todo el modelo.
 
-        No filtra fila por fila: devuelve si la definición de **este modelo**
-        está entre las buscadas. Es lo que hace la fuente devolviendo
-        ``Domain.TRUE`` o ``Domain.FALSE``.
+        ≙ ``odoo19c: properties_base_definition_mixin.py:31-40``. No filtra
+        fila por fila: devuelve si la definición de **este modelo** está entre
+        las buscadas. Con un operador que no sea ``in`` devuelve
+        ``NotImplemented``, igual que la fuente.
         """
-        if not isinstance(definition_ids, (list, tuple, set, frozenset)):
-            definition_ids = (definition_ids,)
-        own = PropertiesBaseDefinition.definition_id_for(
+        if operator != 'in':
+            return NotImplemented
+
+        properties_base_definition_id = (
+            PropertiesBaseDefinition._get_definition_id_for_property_field(
+                cls.properties_model_label(), PROPERTIES_FIELD_NAME))
+
+        if not isinstance(value, COLLECTION_TYPES):
+            value = (value,)
+        return (Domain.TRUE if properties_base_definition_id in value
+                else Domain.FALSE)
+
+    @classmethod
+    def create(cls, vals_list):
+        """``create`` — siembra la definición antes de insertar.
+
+        ≙ ``odoo19c: properties_base_definition_mixin.py:42-48``. La fuente
+        inyecta ``properties_base_definition_id`` en cada ``vals`` para que el
+        ORM aplique los valores por defecto de las propiedades. Aquí el
+        vínculo es derivado, así que lo que la inyección garantiza —que la
+        fila de definición **exista**— se hace llamando al mismo método que
+        ella llama.
+        """
+        if isinstance(vals_list, dict):
+            vals_list = [vals_list]
+        parent = PropertiesBaseDefinition._get_definition_id_for_property_field(
             cls.properties_model_label(), PROPERTIES_FIELD_NAME)
-        return own in definition_ids
+        created = []
+        for vals in vals_list:
+            record = cls.objects.create(**vals)
+            record.properties_base_definition_id = parent
+            created.append(record)
+        return created
+
+    def save(self, *args, **kwargs):
+        """Enganche de Django — garantiza la definición al insertar.
+
+        Es lo que ``create`` de la fuente asegura; se pone en ``save`` para
+        que también lo cumpla quien inserte por la vía del ORM de Django.
+        """
+        if self._state.adding:
+            PropertiesBaseDefinition._get_definition_id_for_property_field(
+                type(self).properties_model_label(), PROPERTIES_FIELD_NAME)
+        return super().save(*args, **kwargs)
+
+    def _field_to_sql(self, alias, fname, query=None):
+        """``_field_to_sql`` — el id de la definición como constante.
+
+        ≙ ``odoo19c: properties_base_definition_mixin.py:50-56``. Permite que
+        la exportación funcione: el campo no tiene columna, así que el motor
+        de consultas necesita un valor literal en su lugar.
+
+        El ``super()`` es ``FieldSqlMixin._field_to_sql`` (``orm/models.py``),
+        el porte de ``BaseModel._field_to_sql`` de la fuente (``odoo19c:
+        odoo/orm/models.py:2910-2932``). Estuvo bloqueado hasta la tarea #127;
+        desde entonces la delegación es la de la fuente, palabra por palabra.
+        """
+        if fname == 'properties_base_definition_id':
+            parent = (
+                PropertiesBaseDefinition._get_definition_id_for_property_field(
+                    type(self).properties_model_label(),
+                    PROPERTIES_FIELD_NAME))
+            return SQL("%s", parent)
+
+        return super()._field_to_sql(alias, fname, query)

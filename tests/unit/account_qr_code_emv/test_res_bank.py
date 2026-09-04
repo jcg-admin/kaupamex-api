@@ -174,7 +174,7 @@ class TestCrc16:
 # -- los 4 hooks de extensión (terminal del puente, sin localización) ----
 
 
-class TestHooksDeExtension:
+class TestHooksOfExtension:
     def test_get_merchant_account_info(self, bank):
         assert bank._get_merchant_account_info() == (None, None)
 
@@ -272,7 +272,7 @@ class TestGetQrVals:
         assert qr == self.QR_ESPERADO
         assert qr.endswith('6304D1DA')
 
-    def test_otro_metodo_es_none(self, bank, currency_mxn, partner):
+    def test_other_method_is_none(self, bank, currency_mxn, partner):
         """Terminal del ``super()`` ausente (divergencia 3 del módulo)."""
         assert bank._get_qr_vals(
             'pix_qr', Decimal('1'), currency_mxn, partner, None, None

@@ -1,0 +1,25 @@
+# Control discriminante — tools/set_expression.py contra la fuente
+# archivo:  src/tools/set_expression.py
+# tests:    tests/unit/tools/test_set_expression{,_against_the_reference}.py
+# restaurado siempre desde .neutering_setexpr.bak, nunca con git checkout (#177)
+
+## 0. Verde de partida
+tests/unit/tools/  ->  535 passed
+diferencial        ->  978 expresiones, 258 225 comparaciones, 0 divergencias
+
+## 1. La bateria PRIMERA daba un verde falso
+Emparejando solo hojas positivas con combinations, y sin referencias no
+declaradas, la sonda daba 0 divergencias sobre 116 640 comparaciones CON la
+rama self.negative de Leaf.isdisjoint invertida a mano. La rama no se
+visitaba: 56 llamadas 'ambas positivas', 51 'other.negative', 0 'self.negative'.
+
+## 2. Bateria corregida — permutaciones, negaciones como semilla, y dos
+##    referencias no declaradas. Tres sabotajes, los dos archivos:
+
+sabotaje                                  a mano      diferencial
+isdisjoint.self.negative invertido        6 failed    1 failed
+UnknownId.__lt__ siempre True             2 failed    1 failed
+_union_merge salta other <= self          7 failed    1 failed
+
+Con la bateria primera, el sabotaje de UnknownId daba 0 failed en el
+diferencial: era ciego justo donde el escrito a mano veia.

@@ -25,10 +25,19 @@ Reparto de los cuatro símbolos de la fuente
      - ``related_name='passkeys'`` de la FK que declara ``auth_passkey_key.py``.
        En Django el One2many no se declara: es el reverso del Many2one
    * - ``SELF_READABLE_FIELDS`` (``:17``)
-     - **NO portado** — ``base.ResUsers`` no declara la lista blanca que extiende
+     - **NO portado, y es un BLOQUEO, no una divergencia**: se podría portar el
+       día que ``base.ResUsers`` declare la lista blanca que la referencia
+       extiende. BLOQUEADO por ``base.ResUsers.SELF_READABLE_FIELDS`` — 0 hits
+       en el árbol. Sigue contado como deuda; sucesor: tarea **#85**, que es
+       donde vive ese porte — es el mismo bloqueo que ``authz_totp`` declara
+       sobre el mismo símbolo. Citaba #83 (el porte de la familia), que se
+       cierra sin haberlo tocado porque no depende de este addon.
    * - ``action_create_passkey`` (``:21``)
      - divergencia de mecanismo: la acción de ventana del backoffice es aquí el
-       endpoint de registro (``../views.py``)
+       endpoint de registro — ``controllers/main.py``
+       (``PasskeyViewSet.registration_options`` + ``register``). Este renglón
+       citaba ``../views.py``, que no existe en el addon (corregido
+       2026-08-27, mismo pase que H-API-827).
    * - ``_login`` (``:34``)
      - ``backends.PasskeyBackend.authenticate`` — el camino de login, con
        búsqueda global por ``credential_identifier``
@@ -44,7 +53,7 @@ Divergencia declarada — ``request`` viaja en ``env``
 ====================================================
 
 La fuente lee la petición de un hilo-local (su ``request`` global), así que su
-``_check_credentials`` no la recibe. Aquí ``PasskeyKey.verify_auth`` la toma
+``_check_credentials`` no la recibe. Aquí ``PasskeyKey._verify_auth`` la toma
 explícita —el reto de WebAuthn vive en la sesión— y el único canal que la
 cadena ofrece es ``env``. Por eso el llamador pasa
 ``{'interactive': True, 'request': request}`` y este eslabón lo lee de ahí.

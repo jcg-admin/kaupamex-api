@@ -1,0 +1,14 @@
+# Control discriminante — orden-sin-el-resto
+# fecha:    2026-08-31T07:59:02
+# archivo:  src/addons/base/models/res_partner.py
+# anulado:  s/^        for name in sorted(set(cls.PLACED_FIELDS) - set(order)):/        for name in []:/
+# tests:    tests/integration/base/test_format_address_and_vat_label.py
+
+## 1. Verde de partida (guarda presente)
+16 passed, 1 warning in 5.51s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/integration/base/test_format_address_and_vat_label.py::TestTheAddressFieldOrder::test_the_fields_the_format_omits_go_at_the_end
+FAILED tests/integration/base/test_format_address_and_vat_label.py::TestTheAddressFieldOrder::test_a_field_outside_the_three_keeps_its_place
+FAILED tests/integration/base/test_format_address_and_vat_label.py::TestTheAddressViewDecision::test_the_form_view_carries_the_order
+3 failed, 13 passed, 1 warning in 5.19s

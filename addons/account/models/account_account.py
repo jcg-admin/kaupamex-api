@@ -66,10 +66,29 @@ class AccountAccount(models.Model):
     account_type   = fields.Selection(
         max_length=32, choices=ACCOUNT_TYPES,
         help_text='Tipo de cuenta (Odoo account_type, requerido).',
+        compute='_compute_account_type', store=True,
+        readonly=False, precompute=True,
     )
+    #: DIVERGENCIA DECLARADA — la fuente NO le da columna: la declara
+    #: ``compute="_compute_internal_group", search="_search_internal_group"``
+    #: sin ``store`` (``odoo19c: account_account.py:76-87``), mas el ayudante
+    #: ``_get_internal_group`` (``:648-649``).
+    #:
+    #: Aqui lleva columna desde ``0001_initial`` y **no se puede retirar hoy**.
+    #: Medido: el compilador de Django no resuelve un campo sin columna ni en
+    #: el modelo directo —``FieldError: Cannot resolve keyword ... into
+    #: field``, probado sobre tres campos vivos de ``ResPartner``— y el
+    #: consumidor de esta columna atraviesa una FK:
+    #: ``digest.py:133`` filtra ``account__internal_group='income'``. Con
+    #: ``store=False`` ese filtro deja de compilar.
+    #:
+    #: El enlace automatico de ``search=`` cubre hoy solo el campo ``related``
+    #: (``orm/fields_nonstored.py:521``), no el calculado. Sucesor con su
+    #: condicion de cierre: tarea #310.
     internal_group = fields.Selection(
         max_length=16, choices=INTERNAL_GROUPS, blank=True, default='',
         help_text='Grupo interno derivado de account_type (Odoo internal_group).',
+        compute='_compute_internal_group', store=True,
     )
     reconcile      = fields.Boolean(
         default=False,
@@ -90,9 +109,21 @@ class AccountAccount(models.Model):
     note           = fields.Text(
         blank=True, default='', help_text='Notas internas (Odoo note).',
     )
+    #: ≙ ``tag_ids`` (``odoo19c: account_account.py:104-112``), que la fuente
+    #: declara ``compute='_compute_account_tags', readonly=False, store=True,
+    #: precompute=True``.
+    #:
+    #: Los tres primeros se portan verbatim. El cuarto **no se puede**: una
+    #: tabla intermedia necesita el ``pk`` de una fila que antes del ``INSERT``
+    #: no existe. La fuente no tiene el problema porque su ORM asigna el id
+    #: antes de ejecutar la cola de recálculo. El motor lo apaga con su aviso
+    #: (``orm/fields_nonstored.py:_apply_precompute_block``) en vez de
+    #: aceptarlo en silencio, así que declararlo aquí sería declarar algo que
+    #: no ocurre. Sucesor del adelanto: tarea **#312**.
     tags           = fields.Many2many(
         'account.AccountAccountTag', blank=True, related_name='accounts',
         db_table='account_account_account_tag',
+        compute='_compute_account_tags', store=True, readonly=False,
         help_text='Etiquetas de reporte de la cuenta (Odoo tag_ids). Una '
                   'cuenta sin etiqueta propia hereda las de la cuenta de '
                   'código inmediatamente anterior.',

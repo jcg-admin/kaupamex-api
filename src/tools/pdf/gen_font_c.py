@@ -47,7 +47,7 @@ def main(argv: list[str]) -> int:
     partes = [
         '/* GENERADO por gen_font_c.py — no editar; editar el .ttf del vendor. */\n'
     ]
-    declaraciones = []
+    declarations = []
 
     for spec in argv[2:]:
         simbolo, _, ruta = spec.partition('=')
@@ -59,7 +59,7 @@ def main(argv: list[str]) -> int:
             sys.stderr.write(f'{ruta} está vacío\n')
             return 1
         partes.append(emitir(simbolo, datos))
-        declaraciones.append(
+        declarations.append(
             f'extern const unsigned char {simbolo}[];\n'
             f'extern const unsigned int {simbolo}_len;\n'
         )
@@ -68,7 +68,7 @@ def main(argv: list[str]) -> int:
     salida.with_suffix('.h').write_text(
         '/* GENERADO por gen_font_c.py — no editar. */\n'
         '#ifndef PDF_FONTS_H\n#define PDF_FONTS_H\n\n'
-        + '\n'.join(declaraciones)
+        + '\n'.join(declarations)
         + '\n#endif\n'
     )
     return 0

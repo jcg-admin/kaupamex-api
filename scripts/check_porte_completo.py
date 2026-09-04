@@ -134,14 +134,15 @@ import os
 import pathlib
 import sys
 
+import sys as _s, os.path as _op
+_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+from reference_roots import ADDON_ALIAS, addon_root as reference_root, tree as _tree
+
 #: Raíz del árbol que gobierna (``odoo19c``). Ver
 #: ``referencia-odoo-gobierna-las-decisiones.md``: 19 desempata, y las rutas de
 #: una versión NO son válidas en la otra.
-ODOO19C = pathlib.Path(
-    os.environ.get(
-        'ODOO19C',
-        '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0',
-    )
+REFERENCE_19C = pathlib.Path(
+    _tree('odoo19c')
 )
 
 import sys as _sys, os as _os
@@ -149,26 +150,11 @@ _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from addons_roots import addon_dirs, addon_path
 
 
-def reference_root(addon):
-    """Raiz de un addon en la referencia, que NO tiene una sola forma.
-
-    La referencia reparte sus addons en dos raices: ``addons/`` (629
-    directorios) y ``odoo/addons/`` (24), y ``base`` —el addon del que depende
-    el arranque— vive en la segunda. Una version anterior de este gate probaba
-    solo la primera, asi que ``base`` quedaba fuera del alcance medido: 49
-    pares de archivo invisibles, todos con contraparte aqui.
-
-    Y el gate no lo delataba, porque un addon sin pares emite ``0 hallazgos``,
-    que se lee igual que un porte completo. Es el sub-patron D de
-    ``metrica-decide-la-conclusion.md``: un verde que no discrimina entre
-    "no falta nada" y "no se miro". El denominador ya se publicaba
-    (``alcance medido: N pares``) y decia ``0`` — la cifra estaba a la vista.
-    """
-    for root in (ODOO19C / 'addons', ODOO19C / 'odoo' / 'addons'):
-        candidate = root / addon
-        if candidate.is_dir():
-            return candidate
-    return ODOO19C / 'addons' / addon
+#: ``ADDON_ALIAS`` y ``reference_root`` viven en ``reference_roots.py`` —
+#: el modulo que ya declara las raices de la referencia. Tenerlos aqui era
+#: la segunda fuente de verdad que ``calibration-verified-numbers.md``
+#: prohibe: ``check_fk_naming`` necesita la misma resolucion, y copiarla
+#: habria dejado dos mapas de alias que nadie sincroniza.
 
 #: Renombres declarados: ``nombre en la referencia -> nombre aquí``. Cada
 #: entrada es una decisión, no una conveniencia — si el nombre cambió sin
@@ -194,6 +180,46 @@ PORTE_ALIAS = {
     'IrConfig_Parameter': 'SystemParameter',        # _name = ir.config_parameter
     'IrModuleModule': 'IrModule',                   # _name = ir.module.module
     'IrModuleModuleDependency': 'IrModuleDependency',  # _name = ir.module.module.dependency
+    'IrModuleModuleExclusion': 'IrModuleExclusion',    # _name = ir.module.module.exclusion
+    # La familia de QWeb: el archivo y las clases se renombraron por lo que
+    # SON aquí, no por el motor de la referencia — directiva del ejecutor
+    # 2026-08-29: *"tenemos que quitar el nombre, porque puedes estar tentado a
+    # seguir pensando que usamos QWeb"*. El ``_name`` se conserva (``ir.qweb``
+    # y ``ir.qweb.field.*``) y es la prueba de que son la misma entidad, igual
+    # que en ``SystemParameter``. El prefijo ``Ir`` se mantiene porque es la
+    # convención de ``base/models/``.
+    'IrQweb': 'IrTemplateExpressions',               # _name = ir.qweb
+    'IrQwebField': 'IrFieldConverter',               # _name = ir.qweb.field
+    'IrQwebFieldQweb': 'IrFieldConverterTemplate',   # _name = ir.qweb.field.qweb
+    'QWebError': 'TemplateError',
+    'QWebErrorInfo': 'TemplateErrorInfo',
+    'IrQwebFieldBarcode': 'IrFieldConverterBarcode',
+    'IrQwebFieldContact': 'IrFieldConverterContact',
+    'IrQwebFieldDate': 'IrFieldConverterDate',
+    'IrQwebFieldDatetime': 'IrFieldConverterDatetime',
+    'IrQwebFieldDuration': 'IrFieldConverterDuration',
+    'IrQwebFieldFloat': 'IrFieldConverterFloat',
+    'IrQwebFieldFloat_Time': 'IrFieldConverterFloat_Time',
+    'IrQwebFieldHtml': 'IrFieldConverterHtml',
+    'IrQwebFieldImage': 'IrFieldConverterImage',
+    'IrQwebFieldImage_Url': 'IrFieldConverterImage_Url',
+    'IrQwebFieldInteger': 'IrFieldConverterInteger',
+    'IrQwebFieldMany2many': 'IrFieldConverterMany2many',
+    'IrQwebFieldMany2one': 'IrFieldConverterMany2one',
+    'IrQwebFieldMonetary': 'IrFieldConverterMonetary',
+    'IrQwebFieldOne2many': 'IrFieldConverterOne2many',
+    'IrQwebFieldRelative': 'IrFieldConverterRelative',
+    'IrQwebFieldSelection': 'IrFieldConverterSelection',
+    'IrQwebFieldText': 'IrFieldConverterText',
+    'IrQwebFieldTime': 'IrFieldConverterTime',
+    # La familia authz_*: el nombre de la clase suelta el prefijo del addon,
+    # que aqui lo lleva el paquete. Los dos se verificaron simbolo a simbolo,
+    # no por parecido — 9 de 9 en el primero, y el segundo no declara metodos
+    # en la referencia (solo campos). Declarados en el mapa de porte de su
+    # ``models/__init__.py``, que nombra el archivo destino de cada uno.
+    'ResCompanyLdap': 'CompanyLdap',                # _name = res.company.ldap
+    'AuthOauthProvider': 'OauthProvider',           # _name = auth.oauth.provider
+    'AuthPasskeyKey': 'PasskeyKey',                 # _name = auth.passkey.key
 }
 
 
@@ -259,6 +285,78 @@ def split_declared(all_findings, declared_keys):
 _RECEPTOR_NO_RESOLUBLE = frozenset({'model', 'modelo', 'cls', 'self'})
 
 
+def _extend_model_class(nodo):
+    """El nombre de clase que nombra un ``extend_model(...)``, o ``None``.
+
+    ``extend_model`` es la CUARTA forma de instalacion del arbol, y la unica
+    que nombra su destino con un literal — mas resoluble que las otras tres, no
+    menos. Sus dos formas (``src/orm/model_classes.py``)::
+
+        extend_model('product.removal', campos={...})       # el _name portado
+        extend_model('stock', 'ProductRemoval', luego=...)  # el par de Django
+
+    El nombre punteado se convierte al de la clase con la misma regla mecanica
+    que declara ``class_key``: la referencia deriva el nombre de su ``_name``
+    conservando el separador, y este arbol escribe lo mismo en PascalCase.
+    """
+    f = nodo.func
+    name = f.id if isinstance(f, ast.Name) else (
+        f.attr if isinstance(f, ast.Attribute) else None)
+    if name != 'extend_model' or not nodo.args:
+        return None
+    literales = [a.value for a in nodo.args
+                 if isinstance(a, ast.Constant) and isinstance(a.value, str)]
+    if not literales:
+        return None
+    if len(literales) >= 2:
+        return literales[1]
+    return ''.join(parte.capitalize() for parte in literales[0].split('.'))
+
+
+def _extend_model_symbols(nodo, funcs):
+    """Los simbolos que un ``extend_model`` instala sobre su destino.
+
+    Tres vienen de los diccionarios literales —``campos``, ``metodos``,
+    ``propiedades``—; el cuarto viene de ``luego=<funcion>``, la escotilla que
+    usan los addons cuyo enganche necesita ``combine=`` (``extend_model`` no lo
+    expone). Ahi el destino es el PARAMETRO de esa funcion, asi que sus
+    ``chain_method(model, 'x', ...)`` no se pueden atribuir mirando la llamada:
+    hay que seguir el ``luego``.
+
+    Medido antes de escribir esto: 104 llamadas en 25 addons, y las de
+    ``authz_totp`` publicaban sus tres enganches como *receptor no resoluble*
+    mientras el archivo entero salia como CLASE AUSENTE con 19 simbolos.
+    """
+    salida, nodos = set(), set()
+    for k in nodo.keywords:
+        if (k.arg in ('campos', 'metodos', 'propiedades', 'overrides')
+                and isinstance(k.value, ast.Dict)):
+            salida |= {c.value for c in k.value.keys
+                       if isinstance(c, ast.Constant) and isinstance(c.value, str)}
+        if k.arg != 'luego':
+            continue
+        # ``luego=`` llega de dos formas: una funcion con nombre y un lambda
+        # en linea. Las dos nombran su destino igual —el primer parametro—,
+        # asi que el mismo recorrido sirve para ambas.
+        if isinstance(k.value, ast.Name):
+            fn = funcs.get(k.value.id)
+        elif isinstance(k.value, ast.Lambda):
+            fn = k.value
+        else:
+            fn = None
+        if fn is None or not fn.args.args:
+            continue
+        param = fn.args.args[0].arg
+        for sub in ast.walk(fn):
+            if not isinstance(sub, ast.Call):
+                continue
+            destino, clave = _destino_y_clave(sub)
+            if clave is not None and destino == param:
+                salida.add(clave)
+                nodos.add(id(sub))
+    return salida, nodos
+
+
 def addon_installations(raiz):
     """``{clase_destino: {símbolos instalados}}`` — la extensión cross-app.
 
@@ -288,6 +386,24 @@ def addon_installations(raiz):
             arbol = ast.parse(py.read_text())
         except (SyntaxError, UnicodeDecodeError):
             continue
+        funcs = {n.name: n for n in arbol.body if isinstance(n, ast.FunctionDef)}
+        # ``extend_model`` primero: sus ``luego=`` atribuyen enganches que el
+        # recorrido plano contaria como receptor no resoluble.
+        atribuidos = set()
+        for nodo in ast.walk(arbol):
+            if not isinstance(nodo, ast.Call):
+                continue
+            klass = _extend_model_class(nodo)
+            if klass is None:
+                continue
+            simbolos_ext, nodos_ext = _extend_model_symbols(nodo, funcs)
+            mapa.setdefault(normaliza(klass), set()).update(simbolos_ext)
+            atribuidos |= nodos_ext
+        for nodo in ast.walk(arbol):
+            for klass, clave in _loop_installations(nodo):
+                mapa.setdefault(normaliza(klass), set()).add(clave)
+        in_loop = {id(n) for nodo in ast.walk(arbol)
+                    for n in _loop_resolved_nodes(nodo)}
         for nodo in ast.walk(arbol):
             if not isinstance(nodo, ast.Call):
                 continue
@@ -295,24 +411,87 @@ def addon_installations(raiz):
             if clave is None:
                 continue
             if destino is None or destino in _RECEPTOR_NO_RESOLUBLE:
-                no_resolubles += 1
+                if id(nodo) not in atribuidos and id(nodo) not in in_loop:
+                    no_resolubles += 1
                 continue
             mapa.setdefault(normaliza(destino), set()).add(clave)
     return mapa, no_resolubles
 
 
+def _loop_iterable_classes(nodo):
+    """Las clases que un ``for`` recorre, si su iterable las nombra.
+
+    Forma medida en el arbol: ``for model, funcion in ((ResPartnerBank, f1),
+    (Uom, f2), ...): model.add_to_class('campo', ...)``. El receptor de la
+    llamada es la variable del bucle, pero el iterable **si** nombra las
+    clases, asi que la instalacion es atribuible a todas ellas.
+    """
+    salida = []
+    for elt in ast.walk(nodo.iter):
+        if isinstance(elt, ast.Tuple):
+            for x in elt.elts:
+                if isinstance(x, ast.Name) and x.id[:1].isupper():
+                    salida.append(x.id)
+        elif isinstance(elt, ast.Name) and elt.id[:1].isupper():
+            salida.append(elt.id)
+    return salida
+
+
+def _loop_vars(nodo):
+    objetivo = nodo.target
+    if isinstance(objetivo, ast.Name):
+        return {objetivo.id}
+    return {x.id for x in ast.walk(objetivo) if isinstance(x, ast.Name)}
+
+
+def _loop_installations(nodo):
+    """``(clase, simbolo)`` de las instalaciones dentro de un ``for`` cuyo
+    iterable nombra las clases."""
+    if not isinstance(nodo, ast.For):
+        return []
+    clases = _loop_iterable_classes(nodo)
+    if not clases:
+        return []
+    variables = _loop_vars(nodo)
+    salida = []
+    for sub in ast.walk(nodo):
+        if not isinstance(sub, ast.Call):
+            continue
+        destino, clave = _destino_y_clave(sub)
+        if clave is not None and destino in variables:
+            salida += [(c, clave) for c in clases]
+    return salida
+
+
+def _loop_resolved_nodes(nodo):
+    """Los nodos de llamada que ``_loop_installations`` ya atribuyo."""
+    if not isinstance(nodo, ast.For) or not _loop_iterable_classes(nodo):
+        return []
+    variables = _loop_vars(nodo)
+    return [sub for sub in ast.walk(nodo) if isinstance(sub, ast.Call)
+            and _destino_y_clave(sub)[1] is not None
+            and _destino_y_clave(sub)[0] in variables]
+
+
 def _destino_y_clave(nodo):
     """``(clase, símbolo)`` de una llamada de instalación, o ``(None, None)``.
 
-    Reconoce las tres formas que el árbol usa hoy: ``chain_method(C, 'x', …)``,
-    ``C.add_to_class('x', …)`` y el ayudante ``_add_if_absent(C, 'x', …)`` que
-    tres addons repiten para hacer idempotente el ``add_to_class``.
+    Reconoce las cuatro formas que el árbol usa hoy: ``chain_method(C, 'x', …)``,
+    ``wrap_method(C, 'x', …)``, ``C.add_to_class('x', …)`` y el ayudante
+    ``_add_if_absent(C, 'x', …)`` que tres addons repiten para hacer idempotente
+    el ``add_to_class``.
+
+    ``wrap_method`` se añadió 2026-09-02: es la TERCERA semántica de
+    ``orm/method_chain.py`` —la que entrega el ``super()`` en la mano— y este
+    recorrido no la veía, así que un símbolo portado con ella salía como
+    ausente. Medido al añadirla: **5** llamadas en ``addons/`` y ``src/`` fuera
+    del propio ``method_chain.py``.
     """
     f = nodo.func
     name = f.id if isinstance(f, ast.Name) else (
         f.attr if isinstance(f, ast.Attribute) else None)
 
-    if name in ('chain_method', '_add_if_absent') and len(nodo.args) >= 2:
+    if name in ('chain_method', 'wrap_method', '_add_if_absent') and len(nodo.args) >= 2:
         destino, clave = nodo.args[0], nodo.args[1]
     elif name == 'add_to_class' and nodo.args:
         # El receptor es el destino: ``ResBank.add_to_class('campo', …)``.
@@ -480,9 +659,107 @@ def addon_classes(raiz):
     return by_class
 
 
+#: Los despromovidos HEREDADOS, congelados. Uno listado no bloquea; uno nuevo
+#: si. Mismo criterio prospectivo que `identifier_language_baseline.txt` y que
+#: el grifo cerrado de los guiones: la deuda se paga al tocar el archivo, no en
+#: un barrido que compite con la implementacion.
+DESPROMOVIDOS_BASELINE_PATH = pathlib.Path(__file__).with_name(
+    'despromovidos_baseline.txt')
+
+
+def _cargar_despromovidos_baseline():
+    """Las lineas ``Clase::_metodo`` del baseline, o vacio si no existe."""
+    if not DESPROMOVIDOS_BASELINE_PATH.exists():
+        return set()
+    return {
+        line.strip() for line in
+        DESPROMOVIDOS_BASELINE_PATH.read_text().splitlines()
+        if line.strip() and not line.lstrip().startswith('#')
+    }
+
+
+DESPROMOVIDOS_BASELINE = _cargar_despromovidos_baseline()
+
+
+def _despromovido(ref_name, ref_methods, our_methods):
+    """¿La referencia lo declara ``_foo`` y nosotros lo publicamos como ``foo``?
+
+    Quitar el guion bajo no renombra: **promueve el simbolo a API publica**.
+    PEP 8 lo fija — ``_nombre`` significa *"uso interno; no lo llames desde
+    fuera"*— y la referencia usa esa frontera a proposito, declarando
+    ``activity_schedule`` junto a ``_activity_schedule_with_view`` en el mismo
+    archivo. Ver `porte-completo-no-parcial.md` y :ref:`h-api-581`.
+
+    NO cuenta como despromovido, y por eso los dos descartes:
+
+    - que la referencia declare **ambos** (``action_done`` y ``_action_done``):
+      ahi tener solo el public_name es porte **parcial**, que el gate ya mide con
+      otro instrumento y contarlo dos veces inflaria el hallazgo;
+    - que nosotros declaremos **ambos**: entonces el privado esta portado y lo
+      public_name es un anadido nuestro, no una promocion.
+
+    *Metrica:* nombres de metodo declarados en una clase, por AST.
+    *Ciega a:* la despromocion que ademas cambia el sufijo
+    (``_search_activity_user_id`` -> ``search_activity_user``), que ningun
+    emparejamiento por nombre alcanza. Es una **cota inferior**.
+    """
+    if not ref_name.startswith('_'):
+        return False
+    public_name = ref_name.lstrip('_')
+    return (public_name not in ref_methods
+            and public_name in our_methods
+            and ref_name not in our_methods)
+
+
+#: Renombres que valen en UN SITIO y no en el arbol: la llave es
+#: ``(archivo de la referencia, clase, simbolo)``, no el nombre suelto.
+#:
+#: ``PORTE_ALIAS`` es global, y por eso no sirve para una **colision con el
+#: stack**: aliasar ``save`` -> ``save_from_html`` en todo el arbol absolveria
+#: las ~90 ausencias de ``write``/``save`` que hoy son preguntas abiertas —el
+#: mismo argumento que el docstring de este modulo ya da para no aliasar
+#: ``write``—. Aqui el alias sale del sitio, asi que absuelve exactamente uno.
+#:
+#: El criterio para entrar: el nombre de la fuente **ya esta ocupado por otro
+#: contrato en la misma clase**, asi que el renombre lo fuerza el stack y no
+#: el gusto. Un metodo que hace lo mismo con otro nombre por preferencia NO
+#: entra aqui — eso se arregla renombrando el metodo.
+PORTE_ALIAS_POR_SITIO = {
+    # ``ir.ui.view.save(value, xpath=None)`` de la fuente actualiza una seccion
+    # de vista. Aqui ``save`` es el metodo de persistencia de Django, y este
+    # arbol ya lo declara como el puerto de ``create`` + ``write``: colgar
+    # encima la funcion de la fuente rompe toda escritura de vista, incluido
+    # el cargador de datos. El simbolo se porta con el nombre de la fuente
+    # —``def save(self, value, xpath=None)`` existe en el archivo— y se
+    # INSTALA como ``save_from_html``. Los dos metodos conviven y ninguno
+    # sustituye al otro. Declarado en el docstring de
+    # ``addons/html_editor/models/ir_ui_view.py``, Divergencia 2.
+    # El barrido de esta familia de colisiones es la tarea #98.
+    ('ir_ui_view.py', 'IrUiView', 'save'): 'save_from_html',
+}
+
+
 def normaliza(name):
     """El nombre comparable: alias declarado, y sin guiones bajos de borde."""
     return PORTE_ALIAS.get(name, name).strip('_')
+
+
+def normaliza_en(file_path, klass, name):
+    """El nombre comparable EN UN SITIO: primero el alias del sitio, luego el global.
+
+    El sitio se identifica por ``(archivo, clase, simbolo)`` con el archivo
+    tal como lo nombra la referencia y la clase por su ``class_key`` —la misma
+    llave con que se casan las clases, para que ``IrMail_Server`` y
+    ``IrMailServer`` no fallen el emparejamiento por el separador.
+
+    *Metrica:* la entrada de ``PORTE_ALIAS_POR_SITIO`` cuya llave case con los
+    tres campos; si no hay, el resultado es identico al de ``normaliza``.
+    *Ciega a:* dos clases con el mismo nombre en archivos distintos del mismo
+    addon — la llave lleva archivo, asi que las separa; y a un homonimo dentro
+    del MISMO archivo y la MISMA clase, que no puede existir.
+    """
+    alias = PORTE_ALIAS_POR_SITIO.get((file_path, class_key(klass), name))
+    return normaliza(alias if alias is not None else name)
 
 
 def class_key(name):
@@ -495,12 +772,22 @@ def class_key(name):
     Es una diferencia **formal y mecanica**, no un renombre: comparar el
     literal declaraba ausentes nueve clases que estan portadas, 96 simbolos.
 
-    Por eso NO se toca ``normaliza``: para un metodo el guion bajo es el
-    contrato —``_foo`` es interno y ``foo`` es publico, y despromoverlo es un
-    defecto propio (:ref:`h-api-581`)—, asi que aplanar guiones alli borraria
-    la distincion que otro gate vigila. Aqui no hay tal contrato: una clase
-    ``_Privada`` conserva su guion de borde, que es lo unico que ``strip``
-    quita.
+    Aqui no hay contrato de visibilidad: una clase ``_Privada`` conserva su
+    guion de borde, que es lo unico que ``strip`` quita.
+
+    .. note:: **Corregido.** Este parrafo decia *"por eso NO se toca
+       ``normaliza``: ... aplanar guiones alli borraria la distincion que otro
+       gate vigila"*, y afirmaba justo lo contrario de lo que el codigo hace:
+       ``normaliza`` **si** aplana los guiones de borde, asi que ``_foo`` y
+       ``foo`` colisionan en la misma llave. La consecuencia no era teorica —
+       medido sobre 1087 archivos con contraparte, el gate no veia **150**
+       metodos despromovidos en 47 archivos, y su propia documentacion decia
+       que si. Es el sub-patron D de `metrica-decide-la-conclusion.md`: un
+       control cuyo verde no discrimina, con un comentario que garantiza lo
+       que no cumple.
+
+       El aplanamiento se queda —hace falta para casar la clase— y la
+       distincion la mide ahora ``_despromovido`` como categoria propia.
 
     *Metrica:* colisiones de la llave dentro de cada arbol. Medido sobre el
     addon ``base``: **0** en 150 clases nuestras y **0** en 442 de la
@@ -546,7 +833,7 @@ def _class_without_counterpart(addon, file_path, klass, metodos, instalado,
     tipo = 'CLASE AUSENTE' if puestos is None else 'CLASE EXTENDIDA'
     pendientes, absolutions = [], 0
     for m in sorted(metodos):
-        n = normaliza(m)
+        n = normaliza_en(file_path, klass, m)
         if n in ya:
             continue
         if n in absueltos:
@@ -621,7 +908,7 @@ def compara(addon):
                     continue
                 aqui_norm = {normaliza(m) for m in aqui}
                 faltan = [m for m in sorted(metodos)
-                          if normaliza(m) not in aqui_norm]
+                          if normaliza_en(ref_py.name, klass, m) not in aqui_norm]
                 if faltan:
                     hallazgos.append(
                         (addon, ref_py.name, klass, 'MÉTODOS AUSENTES', faltan))
@@ -664,10 +951,19 @@ def compara(addon):
                     (addon, ref_py.name, klass, 'CLASE FUERA DE SITIO',
                      [f'portada fuera de {ref_py.name}']))
             aqui_norm = {normaliza(m) for m in aqui}
-            faltan, out_of_place = [], []
+            faltan, out_of_place, despromovidos = [], [], []
             for m in sorted(metodos):
-                n = normaliza(m)
+                n = normaliza_en(ref_py.name, klass, m)
                 if n in aqui_norm:
+                    # El nombre esta, pero puede haber perdido su guion bajo:
+                    # `normaliza` los aplana, asi que `_foo` y `foo` colisionan
+                    # en la misma llave y el gate no distinguia uno de otro.
+                    if _despromovido(m, metodos, aqui):
+                        if f'{klass}::{m}' in DESPROMOVIDOS_BASELINE \
+                                or m in DESPROMOVIDOS_BASELINE:
+                            absolutions += 1
+                        else:
+                            despromovidos.append(f'{m} -> {m.lstrip("_")}')
                     continue
                 if n in absueltos:
                     absolutions += 1
@@ -686,10 +982,18 @@ def compara(addon):
                 hallazgos.append(
                     (addon, ref_py.name, klass, 'FUERA DE SITIO',
                      out_of_place))
+            if despromovidos:
+                hallazgos.append(
+                    (addon, ref_py.name, klass, 'DESPROMOVIDOS',
+                     despromovidos))
     return pares, hallazgos, no_resolubles, absolutions
 
 
-def main():
+def main(argv=None):
+    """``argv`` explícito para que un test pueda medir el gate sin subproceso.
+
+    ``None`` lee ``sys.argv``, que es lo que hace el intérprete al invocarlo.
+    """
     p = argparse.ArgumentParser()
     p.add_argument('--addon', help='medir sólo este addon')
     p.add_argument('--mapa', action='store_true',
@@ -700,10 +1004,10 @@ def main():
                    help='listar el registro de divergencias declaradas con su '
                         'estado (viva si sigue cubriendo un hallazgo, MUERTA '
                         'si ya no cubre nada)')
-    args = p.parse_args()
+    args = p.parse_args(argv)
 
-    if not ODOO19C.is_dir():
-        print(f'AVISO: no está el árbol de referencia en {ODOO19C}; '
+    if not REFERENCE_19C.is_dir():
+        print(f'AVISO: no está el árbol de referencia en {REFERENCE_19C}; '
               'sin él este gate no puede medir nada.')
         return 0
 
@@ -724,7 +1028,22 @@ def main():
     # el defecto que la poda del baseline de vocabulario cerro (H-DOCS-441).
     declared_keys = load_divergences()
     todos, declared, used = split_declared(todos, declared_keys)
-    dead = sorted(declared_keys - used)
+    # Una entrada "muerta" es la que el registro declara y el recorrido no
+    # tocó. Ese cálculo sólo tiene sentido cuando el recorrido cubre el
+    # registro entero: con `--addon X`, TODA entrada de otro addon sale muerta
+    # sin serlo.
+    #
+    # Medido: `--addon base` reportaba **70 MUERTAS**, todas de `authz_*`, y
+    # dos de las tres que se verificaron a mano seguían siendo divergencias
+    # legítimas con su símbolo ausente. Sin `--addon`, **248 de 248 vivas**.
+    # Actuar sobre ese informe —borrar las 70— habría retirado en silencio
+    # setenta declaraciones válidas.
+    #
+    # Es el defecto que `metrica-decide-la-conclusion.md` llama denominador
+    # oculto: el conteo se computa sobre el alcance del recorrido y el texto lo
+    # presenta como el universo del registro. Se resuelve declarando cuál es.
+    scoped = bool(args.addon)
+    dead = [] if scoped else sorted(declared_keys - used)
     declared_symbols = sum(len(h[4]) for h in declared)
 
     if args.divergencias:
@@ -786,9 +1105,14 @@ def main():
         # El registro va en su propio renglon y con su propio conteo: lo
         # declarado NO se suma a la deuda ni se calla. Y una entrada muerta se
         # nombra aqui aunque nadie pida `--divergencias`.
+        alcance_registro = (
+            f'{len(used)} entrada(s) tocadas por el recorrido de '
+            f'`--addon {args.addon}`; las MUERTAS no se calculan en un '
+            f'recorrido acotado'
+            if scoped else
+            f'{len(used)} de {len(declared_keys)} entrada(s) vivas')
         print(f'divergencias declaradas: {len(declared)} hallazgo(s), '
-              f'{declared_symbols} simbolo(s), '
-              f'{len(used)} de {len(declared_keys)} entrada(s) vivas'
+              f'{declared_symbols} simbolo(s), {alcance_registro}'
               + (f' — MUERTAS: {", ".join(dead)}' if dead else ''))
     return 1 if (args.strict and todos) else 0
 

@@ -98,7 +98,7 @@ def test_produce_values_finished_at_raw_plus_labor(db):
     assert mo.state == MrpProduction.STATE_DONE
     # El terminado quedó valuado a 135: la SVL de entrada del terminado.
     fin_move = mo.move_finished_ids().first()
-    fin_layer = StockValuationLayer.objects.get(stock_move=fin_move, quantity__gt=0)
+    fin_layer = StockValuationLayer.objects.get(stock_move_id=fin_move, quantity__gt=0)
     assert fin_layer.unit_cost == Decimal('135.0000')
     assert fin_layer.value == Decimal('270.00')
     # La materia prima se descontó del stock (salidas valuadas).

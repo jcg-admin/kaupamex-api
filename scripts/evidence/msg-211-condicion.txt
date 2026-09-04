@@ -1,0 +1,47 @@
+Port the SQL condition family of Field
+
+La referencia parte la condicion de un campo en tres simbolos y el
+puerto solo tenia el cuerpo, como funcion libre. Ahora estan los tres,
+colgados de ``models.Field`` con el mismo mecanismo que ``to_sql`` y
+``property_to_sql``:
+
+- ``condition_to_q`` — la fachada de dos pasos (cuerpo + la
+  optimizacion), unico simbolo que ``Domain`` llama
+  (odoo19c: odoo/orm/domains.py:1096).
+- ``_condition_to_q`` — el cuerpo; delega en la funcion libre que ya
+  existia, asi que su comportamiento no cambia.
+- ``_condition_to_q_company`` — antepone ``columna IS NOT NULL``
+  cuando el campo depende de empresa, declara
+  ``index='btree_not_null'`` y el respaldo de ``ir.default`` NO
+  satisface la condicion. No cambia el
+  conjunto de filas: si el respaldo falla, ninguna fila con la columna
+  nula puede satisfacerla.
+
+Su poblacion activadora es CERO en los dos arboles, medido: de los 69
+campos ``company_dependent`` de odoo19c ninguno declara ademas ese
+indice (recorrido AST), y aqui son 2 y 0 (django.apps). Se porta igual
+porque el contrato de ``Field`` lo declara, no porque hoy tenga
+consumidor.
+
+``DomainCondition._to_q`` enruta ahora por la fachada, con la guarda
+``isinstance(field, models.Field)``. La comprobacion no es
+``is not None`` porque ``_field()`` puede devolver un
+``ForeignObjectRel`` —el objeto del otro lado de una FK—, que no
+hereda de ``models.Field`` y no lleva ninguno de los metodos
+colgados: con la guarda floja saltaron dos rojos reales en
+tests/unit/website/test_website_page.py::TestPageSearch. La relacion
+inversa cae al cuerpo y recibe ``field`` tal cual, no ``None``: el
+cuerpo lo consulta con ``is_not_null`` y ``falsy_value``, y sustituirlo
+cambiaria el ``Q`` compilado.
+
+Dos controles que discriminan, ambos corridos:
+
+- Django APLANA al componer dos ``Q`` con el mismo conector, asi que
+  ``Q(...) in q.children`` es SIEMPRE False y un caso escrito asi
+  fallaria con la implementacion correcta. Los casos miden la tupla.
+- Con la guarda de empresa anulada el subconjunto pasa de 7 passed a
+  4 failed, 3 passed — caen exactamente los cuatro que dependen de
+  ella. Evidencia en scripts/evidence/.
+
+Subconjunto derivado (10 directorios, -n 4): 6064 passed.
+Suite completa (src/orm es raiz espejada): 10044 passed, 4 skipped.

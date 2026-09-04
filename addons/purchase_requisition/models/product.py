@@ -40,7 +40,7 @@ fuente, descontando ``_inherit``. Son **3**: 2 campos en
 Encadena un ``super()._prepare_sellers(params=params)`` que no existe en este
 árbol. Lo declara ``product`` en la referencia; el ``product`` de este árbol
 resuelve la selección de proveedor con
-``ProductSupplierinfo.filtered_suppliers``
+``ProductSupplierinfo._get_filtered_supplier``
 (``addons/product/models/product_supplierinfo.py:302-322``), que es **otro
 mecanismo**: filtra por empresa, proveedor activo y variante, y no acepta el
 ``params`` con la orden de compra del que este método depende.

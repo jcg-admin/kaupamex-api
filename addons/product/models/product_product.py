@@ -95,13 +95,16 @@ Qué NO se porta, con su medición
 """
 import fields
 import models
+from django.apps import apps
 
+from addons.base.models import DecimalPrecision
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_document import ProductDocument
 from addons.product.models.product_template import ProductTemplate
 from addons.product.models.product_template_attribute_value import (
     ProductTemplateAttributeValue,
 )
+from tools.float_utils import float_compare
 
 #: Separador de la clave de combinación, verbatim de ``_ids2str``.
 COMBINATION_SEPARATOR = ','
@@ -281,8 +284,7 @@ class ProductProduct(TimeStampedModel):
             self.product_template_attribute_values.all())
         return self.combination_indices
 
-    @property
-    def display_name(self):
+    def _compute_display_name(self):
         """≙ ``display_name`` / ``_compute_display_name`` (``:813-872``), que
         delega en ``_get_combination_name`` — nombre de la ficha más su
         combinación.
@@ -369,6 +371,154 @@ class ProductProduct(TimeStampedModel):
             code = self.code_for(partner)
             return f'[{code}] {name}' if code else name
         return self.display_name
+
+    # === SELECCIÓN DE TARIFA DE PROVEEDOR ==================================
+    #
+    # Las tres de ``#=== BUSINESS METHODS ===#``
+    # (``odoo19c: addons/product/models/product_product.py:1016-1071``), que
+    # responden juntas a una sola pregunta: **de todas las tarifas que un
+    # proveedor tiene para este producto, cuál aplica a esta compra**.
+    #
+    # DIVERGENCIA DE MECANISMO, declarada una vez para las tres: la fuente
+    # lee la empresa activa de la sesión (``self.env.company``) y aquí no hay
+    # ``env``, así que ``company`` entra como parámetro con ``None`` por
+    # defecto. Es la misma sustitución que ``ResCurrency._convert`` ya hace
+    # (``src/addons/base/models/res_currency.py:480``). El resto de la firma
+    # —``partner_id``, ``quantity``, ``date``, ``uom_id``, ``ordered_by``,
+    # ``params``— se porta verbatim, nombre por nombre.
+
+    def _prepare_sellers(self, params=False, company=None):
+        """≙ ``_prepare_sellers`` (``odoo19c: :1016-1018``).
+
+        Las tarifas del proveedor que sirven a esta variante, **en el orden
+        de la fuente**: secuencia, luego cantidad mínima descendente, luego
+        precio, luego id. Ese orden importa porque ``_select_seller`` corta
+        por el primer proveedor y se apoya en él para desempatar.
+
+        El ``sudo()`` de la fuente no tiene contraparte: el filtro por fila
+        de este árbol lo aplica ``AccessManager``, no un cambio de sujeto
+        dentro del método.
+        """
+        ProductSupplierinfo = apps.get_model('product', 'ProductSupplierinfo')
+        sellers = ProductSupplierinfo._get_filtered_supplier(
+            self.product_tmpl.seller_ids.all(),
+            company if company is not None else self.company,
+            self,
+            params,
+        )
+        return sorted(
+            sellers,
+            key=lambda s: (s.sequence, -s.min_qty, s.price, s.pk),
+        )
+
+    def _get_filtered_sellers(self, partner_id=False, quantity=0.0, date=None,
+                              uom_id=False, params=False, company=None):
+        """≙ ``_get_filtered_sellers`` (``odoo19c: :1020-1045``).
+
+        Las seis condiciones de la fuente, en su orden y con su semántica:
+
+        1. la cantidad se traduce **a la unidad del proveedor** antes de
+           compararla con su mínimo — comparar 12 unidades contra un mínimo
+           expresado en cajas daría un veredicto falso;
+        2. y 3. la tarifa está vigente en ``date``;
+        4. con ``params['force_uom']``, la tarifa cuya unidad no sea ni la
+           pedida ni la del producto queda fuera;
+        5. el proveedor pedido, o **su empresa madre** — una tarifa firmada
+           con la matriz sirve a la sucursal;
+        6. la cantidad alcanza el mínimo, medida a la precisión declarada de
+           ``'Product Unit'``;
+        7. la tarifa no es específica de **otra** variante.
+
+        La comparación de cantidad usa ``float_compare`` y no ``<``: dos
+        cantidades que difieren por debajo de la precisión declarada son la
+        misma cantidad, y un ``<`` desnudo las separaría por ruido binario.
+        """
+        if not date:
+            date = fields.Date.context_today(self)
+        precision = DecimalPrecision.precision_get('Product Unit')
+
+        # ``partner_id`` entra como instancia o como pk; la madre sólo se
+        # puede leer de la instancia, y con un pk queda en ``None``, que es
+        # el mismo desenlace que un proveedor sin madre.
+        partner_pk = getattr(partner_id, 'pk', partner_id)
+        parent_pk = getattr(getattr(partner_id, 'parent', None), 'pk', None)
+
+        sellers_filtered = self._prepare_sellers(params, company=company)
+        sellers = []
+        for seller in sellers_filtered:
+            # La cantidad, en la unidad del proveedor.
+            quantity_uom_seller = quantity
+            if quantity_uom_seller and uom_id and uom_id != seller.product_uom:
+                quantity_uom_seller = uom_id.compute_quantity(
+                    quantity_uom_seller, seller.product_uom)
+
+            if seller.date_start and seller.date_start > date:
+                continue
+            if seller.date_end and seller.date_end < date:
+                continue
+            if params and params.get('force_uom') \
+                    and seller.product_uom != uom_id \
+                    and seller.product_uom != self.uom:
+                continue
+            if partner_pk and seller.partner_id not in (partner_pk, parent_pk):
+                continue
+            if quantity is not None and float_compare(
+                    quantity_uom_seller, seller.min_qty,
+                    precision_digits=precision) == -1:
+                continue
+            if seller.product_id and seller.product_id != self.pk:
+                continue
+            sellers.append(seller)
+        return sellers
+
+    def _select_seller(self, partner_id=False, quantity=0.0, date=None,
+                       uom_id=False, ordered_by='price_discounted',
+                       params=False, company=None):
+        """≙ ``_select_seller`` (``odoo19c: :1047-1071``).
+
+        **La** tarifa que aplica, o nada. Dos pasos que la fuente separa a
+        propósito:
+
+        1. **se corta por proveedor** — del conjunto filtrado se conservan
+           sólo las filas del *primer* proveedor que aparece. Como
+           ``_prepare_sellers`` ordena por secuencia, "el primero" es el
+           preferido; un segundo proveedor más barato **no** compite;
+        2. **dentro de ése, gana el precio** ya convertido a la moneda de la
+           empresa, para que dos tarifas en monedas distintas se comparen.
+
+        ``ordered_by`` antepone otro campo sin quitar el precio del criterio:
+        pasa a desempatar. ``round=False`` en la conversión se porta verbatim
+        — redondear antes de comparar volvería a juntar precios que difieren.
+        """
+        # Siempre se ordena por precio con descuento; ``ordered_by`` puede
+        # tomar la primacía, verbatim de la fuente.
+        sort_key = ('price_discounted', 'sequence', 'pk')
+        if ordered_by != 'price_discounted':
+            sort_key = (ordered_by, 'price_discounted', 'sequence', 'pk')
+
+        owner = company if company is not None else self.company
+        owner_currency = getattr(owner, 'currency', None)
+        moment = date or fields.Date.context_today(self)
+
+        def sort_function(record):
+            vals = {}
+            if record.currency is not None and owner_currency is not None:
+                vals['price_discounted'] = record.currency._convert(
+                    record.price_discounted, owner_currency, owner, moment,
+                    round=False,
+                )
+            else:
+                vals['price_discounted'] = record.price_discounted
+            return [vals.get(key, getattr(record, key)) for key in sort_key]
+
+        sellers = self._get_filtered_sellers(
+            partner_id=partner_id, quantity=quantity, date=date,
+            uom_id=uom_id, params=params, company=company)
+        res = []
+        for seller in sellers:
+            if not res or res[0].partner_id == seller.partner_id:
+                res.append(seller)
+        return sorted(res, key=sort_function)[:1] if res else []
 
     def clean(self):
         """Sin invariantes propias de la variante frente a su ficha.

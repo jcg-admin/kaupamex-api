@@ -1,0 +1,2 @@
+ir.actions.server: _table='ir_act_server' esperado='ir_actions_server' db_table='ir_act_server' declara_table=True
+ir.actions.report: _table='ir_act_report_xml' esperado='ir_actions_report' db_table='ir_act_report_xml' declara_table=True

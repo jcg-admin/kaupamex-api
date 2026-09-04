@@ -138,6 +138,9 @@ from addons.base.models.res_partner import ResPartner
 from orm.method_chain import chain_method
 from orm.model_classes import add_field_if_absent
 
+#: ≙ la cabecera que la fuente declara en su clase (la extensión aquí no es clase).
+_inherit = 'res.partner'
+
 _logger = logging.getLogger(__name__)
 
 TIMEOUT = 10

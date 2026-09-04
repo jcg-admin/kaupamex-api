@@ -78,13 +78,13 @@ class TestLaExtensionSeAplico:
         # El denominador va en el assert: un glob vacío daría verde sin medir
         # nada — el "cero falso" que H-DOCS-21 registró.
         assert len(medidos) > 10, f'alcance sospechoso: {len(medidos)} archivos'
-        con_account = [
+        with_account = [
             py.name for py in medidos if 'addons.account' in py.read_text()
         ]
-        assert con_account == []
+        assert with_account == []
 
 
-class TestResolucionDeCuenta:
+class TestResolutionOfAccount:
     """Los dos escalones portados de ``_get_product_accounts``."""
 
     def test_la_cuenta_del_producto_gana(self, cuentas):
@@ -149,7 +149,7 @@ class TestResolucionDeCuenta:
         assert variante._get_product_accounts()['income'] == ingreso
 
 
-class TestPosicionFiscal:
+class TestPositionFiscal:
     def test_remapea_la_cuenta_resuelta(self, cuentas, company):
         """El punto donde un cliente de otro régimen imputa a otra cuenta.
 

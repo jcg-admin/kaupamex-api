@@ -368,12 +368,12 @@ class SequenceMixin(models.Model):
         de cada grupo sean consecutivos hasta el máximo, y sólo entonces
         acepta.
         """
-        por_serie = {}
+        by_series = {}
         for r in records:
             if not getattr(r, r.sequence_field, None):
                 continue
-            por_serie.setdefault(r.sequence_prefix, []).append(r)
-        for prefijo, grupo in por_serie.items():
+            by_series.setdefault(r.sequence_prefix, []).append(r)
+        for prefijo, grupo in by_series.items():
             numeros = sorted(r.sequence_number for r in grupo)
             ultimo = grupo[0].get_last_sequence_number(with_prefix=prefijo)
             if ultimo is None:

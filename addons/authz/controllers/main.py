@@ -91,7 +91,7 @@ class MyMenuView(APIView):
         # con ``Cache-Control: no-store``. Es seguridad, no rendimiento: el menú
         # depende del perfil, así que un proxy que lo cachee se lo serviría a
         # otro usuario con otras capacidades. El caché vive del lado del
-        # servidor y por conjunto de capacidades (``visible_menu_ids``).
+        # servidor y por conjunto de capacidades (``_visible_menu_ids``).
         response['Cache-Control'] = 'no-store'
         return response
 

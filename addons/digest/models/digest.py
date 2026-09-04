@@ -8,11 +8,11 @@ Divergencias declaradas
 ========================
 
 1. **``currency_id``/``company_id`` no son ``related=``/``default=lambda
-   self: ...`` resueltos en tiempo de lectura por el ORM.** ``company`` es
+   self: ...`` resueltos en tiempo de lectura por el ORM.** ``company_id`` es
    una columna real con ``default=get_current_company`` (el análogo de
    ``env.company.id`` — ``orm.environments``, mismo mecanismo ya usado por
    ``CompanySetting``); ``currency`` se expone como ``@property`` de sólo
-   lectura que delega a ``self.company.currency`` — mismo patrón de
+   lectura que delega a ``self.company_id.currency`` — mismo patrón de
    passthrough usado en ``fleet_vehicle_log_services.py`` (``self.vehicle.
    model.brand``, sin denormalizar).
 
@@ -33,7 +33,7 @@ Divergencias declaradas
    declara su propia migración con una columna ``kpi_<nombre>`` y esta
    introspección la recoge sin tocar este archivo.
 
-4. **Los dos KPIs base escalan por compañía vía ``company.user_ids``/
+4. **Los dos KPIs base escalan por compañía vía ``company_id.user_ids``/
    ``author__in``, no por el ``_calculate_company_based_kpi`` genérico de la
    referencia** (que combina el conjunto de compañías visibles del usuario
    con ``env.company`` cuando el digest no tiene compañía). Ninguno de los
@@ -54,12 +54,13 @@ Divergencias declaradas
    (recalcular ``next_run_date`` al cambiar la periodicidad) se logra
    llamando ``action_set_periodicity``, que sí persiste.
 
-7. **El envío queda PENDIENTE DE INTEGRAR, no diferido por alcance** —
+7. **El envío queda PENDIENTE DE INTEGRAR, salvo el gancho de acciones
+   (portado en este pase, tarea #158)** —
    ``action_send``/``action_send_manual``/``_action_send``/
    ``_action_send_to_user``/``_cron_send_digest_email``/
-   ``_get_unsubscribe_token``/``_compute_tips``/``_compute_kpis_actions``/
+   ``_get_unsubscribe_token``/``_compute_tips``/
    ``_compute_preferences``/``_check_daily_logs``/``_format_currency_amount``
-   (los ~230 LOC de ``digest.py:130-484`` que no aparecen abajo).
+   (10 símbolos, dentro de ``digest.py:130-484``).
 
    La redacción previa lo llamaba "gap de alcance" y era falsa en su mitad
    principal: **tres de las cuatro piezas del envío ya existen** (H-API-302,
@@ -86,11 +87,79 @@ Divergencias declaradas
    de cómputo** (KPIs + periodicidad + suscripción), consumible tal cual por
    ese cableado sin reabrir este archivo.
 
+   ``_compute_kpis_actions`` (``odoo19c: digest.py:330-337``, 8 líneas) **SÍ
+   se porta en este pase** — a diferencia del resto del bloque, no depende
+   de la familia ``mail``: su contrato es un diccionario puro
+   (``{kpi_name: xml_id}``), sin plantilla ni cola que resolver. Es el punto
+   de extensión que cada addon con KPI cuelga con ``overrides=``
+   (:mod:`orm.method_chain`) para enlazar su acción — ver el método más
+   abajo, y las divergencias que declara sobre el ``menu_id`` de la
+   referencia.
+
+   Medición AST de antes/después de este pase, sobre los símbolos que este
+   punto listaba:
+
+   .. code-block:: text
+
+       $ python3 -c "
+       import ast
+       ref = '$ODOO19C/addons/digest/models/digest.py'
+       tree = ast.parse(open(ref).read())
+       names = {'action_send', 'action_send_manual', '_action_send',
+                '_action_send_to_user', '_cron_send_digest_email',
+                '_get_unsubscribe_token', '_compute_tips',
+                '_compute_kpis_actions', '_compute_preferences',
+                '_check_daily_logs', '_format_currency_amount'}
+       total = sum(n.end_lineno - n.lineno + 1 for n in ast.walk(tree)
+                   if isinstance(n, ast.FunctionDef) and n.name in names)
+       print(total)"
+       185
+
+   antes del pase: **185 líneas AST, 11 símbolos**. Después (retirado
+   ``_compute_kpis_actions``, 8 líneas): **177 líneas AST, 10 símbolos**.
+
+   Métrica: suma de ``end_lineno - lineno + 1`` por ``ast.FunctionDef`` de
+   la referencia, sobre el conjunto de nombres que este punto declara
+   pendiente.
+   Ciega a: comentarios y líneas en blanco internos al cuerpo (cuentan
+   igual que código — no es LOC lógico); y a los ``_compute_kpis``
+   (≙ ``compute_kpis``)/``_compute_timeframes``/``_calculate_company_
+   based_kpi``/``_get_company_field``/``_get_kpi_fields``
+   (≙ ``_get_kpi_field_names``)/``_get_margin_value``/``_get_next_run_
+   date``/``_get_next_periodicity`` que también viven en el span
+   ``130-484`` y **no** entran en esta cuenta porque ya estaban portados
+   antes de este pase.
+
+   Desbloqueó a ``crm/models/digest.py::_compute_kpis_actions`` y
+   ``hr_recruitment/models/digest.py::_compute_kpis_actions`` — los dos
+   consumían este símbolo, tarea #158.
+   ``account/models/digest.py::_compute_kpis_actions`` **NO** se
+   desbloqueó por esta vía, y es un hallazgo cross-archivo medido en este
+   pase (fuera de los tres archivos de la tarea #158, así que se deja
+   documentado y no se toca): su enganche usa
+   ``if not hasattr(DigestDigest, name): setattr(DigestDigest, name,
+   function)`` (``addons/account/models/digest.py:181-187``) en vez de
+   ``chain_method``/``overrides=``. Con el método base definido en el
+   **cuerpo de la clase** (no vía ``extend_model``), ``hasattr(DigestDigest,
+   '_compute_kpis_actions')`` es verdadero desde que este módulo se
+   importa — antes de que corra ningún ``AppConfig.ready()`` —, así que el
+   ``setattr`` de ``account`` se salta en silencio: el
+   ``NotImplementedError`` que declaraba su función deja de dispararse, y
+   con él desaparece SIN AVISO la contribución de ``account`` al
+   diccionario de acciones (nunca se agrega la clave
+   ``kpi_account_total_revenue``). Es la forma silenciosa del defecto que
+   ``orm/method_chain.py`` documenta como causa de H-API-364 — ahí eran
+   dos extensiones ``hasattr`` pisándose; aquí es una guarda que se
+   auto-desactiva en cuanto la base existe. Sucesor: migrar
+   ``account/models/digest.py`` a ``overrides=`` — pendiente de
+   asignación de tarea.
+
 8. **``ensure_one()`` no aplica** — Django no tiene recordsets; cada método
    opera sobre una única instancia.
 """
 from datetime import timedelta
 
+from django.db.models import Sum
 from django.utils import timezone
 
 import fields
@@ -100,6 +169,7 @@ from exceptions import ValidationError
 from addons.base.models import ResUsersLog, TimeStampedModel
 from addons.base.models.ir_cron import _add_months
 from addons.mail.models import MailMessage
+from orm import registry
 from orm.environments import get_current_company, get_current_user
 
 
@@ -150,11 +220,12 @@ class DigestDigest(TimeStampedModel):
         null=True, blank=True, verbose_name='Próximo envío',
         help_text='Se calcula en save() si no se da explícitamente (Odoo create()).',
     )
-    company = fields.Many2one(
+    company_id = fields.Many2one(
         'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='digests', default=get_current_company,
         verbose_name='Compañía',
         help_text='Odoo company_id (default=env.company.id → get_current_company()).',
+        db_column='company_id',
     )
     state = fields.Selection(
         max_length=12, choices=DigestState.choices,
@@ -182,8 +253,8 @@ class DigestDigest(TimeStampedModel):
     def currency(self):
         """≙ ``currency_id`` (``related="company_id.currency_id"``,
         ``digest.py:34``). Divergencia 1: propiedad de sólo lectura, sin
-        columna — passthrough a ``self.company.currency``."""
-        return self.company.currency if self.company_id else None
+        columna — passthrough a ``self.company_id.currency``."""
+        return self.company_id.currency if self.company_id else None
 
     def save(self, *args, **kwargs):
         """Calcula ``next_run_date`` al crear si no se dio explícitamente —
@@ -338,10 +409,10 @@ class DigestDigest(TimeStampedModel):
         """≙ ``_compute_kpi_res_users_connected_value`` (``digest.py:71-76``,
         delega en ``_calculate_company_based_kpi`` con ``date_field=
         'login_date'``). Divergencia 4: ``ResUsersLog`` no tiene FK a
-        compañía — se filtra por ``user__in company.user_ids``."""
+        compañía — se filtra por ``user__in company_id.user_ids``."""
         qs = ResUsersLog.objects.filter(created_at__gte=start, created_at__lt=end)
         if self.company_id:
-            qs = qs.filter(user__in=self.company.user_ids.all())
+            qs = qs.filter(user__in=self.company_id.user_ids.all())
         return qs.count()
 
     def _compute_kpi_mail_message_total_value(self, start, end):
@@ -352,7 +423,61 @@ class DigestDigest(TimeStampedModel):
         acotado por compañía vía el autor."""
         qs = MailMessage.objects.filter(created_at__gte=start, created_at__lt=end)
         if self.company_id:
-            qs = qs.filter(author__in=self.company.user_ids.all())
+            qs = qs.filter(author__in=self.company_id.user_ids.all())
+        return qs.count()
+
+    def _get_company_field(self, model):
+        """≙ ``_get_company_field`` (``digest.py:437-438``).
+
+        Devuelve el nombre del campo por el que ese modelo se acota a empresa.
+        ``res.users`` usa el plural porque su pertenencia es múltiple; el resto,
+        el singular. Verbatim de la fuente, con el nombre de modelo de este
+        árbol (``_name``, no la etiqueta de Django).
+        """
+        return 'company_ids' if model in ['res.users'] else 'company_id'
+
+    def _calculate_company_based_kpi(self, model, start, end,
+                                     date_field='created_at',
+                                     additional_domain=None, sum_field=None):
+        """≙ ``_calculate_company_based_kpi`` (``digest.py:401-435``).
+
+        Cuenta (o suma ``sum_field``) los registros de ``model`` en la ventana,
+        acotados a la empresa del digest. Es el genérico que la referencia usa
+        para todo KPI cuyo modelo tenga campo de empresa.
+
+        Tres divergencias de FORMA, ninguna de alcance:
+
+        1. **Devuelve el valor**; la fuente lo escribe en ``digest[campo]``. Es
+           la forma que este archivo ya establece para sus dos KPIs base y que
+           ``compute_kpi_value`` espera.
+        2. **``start``/``end`` llegan por parámetro** en vez de salir de
+           ``_get_kpi_compute_parameters``: aquí la ventana la reparte
+           ``compute_kpis`` desde ``_compute_timeframes``, que es el mismo
+           dato calculado una vez para las tres columnas.
+        3. **``date_field`` por defecto es ``created_at``**, el nombre de la
+           columna de auditoría de este árbol (la fuente dice ``create_date``).
+        4. **``additional_domain`` es un dict de lookups de Django**, no una
+           lista de tuplas: el motor de dominios no interviene en un filtro que
+           se construye aquí mismo. El álgebra es la misma conjunción.
+
+        El modelo se resuelve por su ``_name``, no por su etiqueta de Django —
+        así el llamador escribe ``'crm.lead'`` como la fuente.
+        """
+        model_cls = registry.model_by_name(model)
+        if model_cls is None:
+            return 0
+        company_field = self._get_company_field(model)
+        filtros = {
+            f'{date_field}__gte': start,
+            f'{date_field}__lt': end,
+        }
+        if self.company_id:
+            filtros[f'{company_field}__in'] = [self.company_id.pk]
+        qs = model_cls.objects.filter(**filtros)
+        if additional_domain:
+            qs = qs.filter(**additional_domain)
+        if sum_field:
+            return qs.aggregate(total=Sum(sum_field))['total'] or 0
         return qs.count()
 
     def compute_kpi_value(self, field_name, start, end):
@@ -396,3 +521,38 @@ class DigestDigest(TimeStampedModel):
                 }
             kpis.append(kpi)
         return kpis
+
+    def _compute_kpis_actions(self, company, user):
+        """≙ ``_compute_kpis_actions`` (``odoo19c: digest.py:330-337``).
+
+        Punto de extensión: cada addon que agrega un KPI cuelga aquí, con
+        ``overrides=`` (:mod:`orm.method_chain`), la acción que el correo
+        debería enlazar para ese KPI. La base no aporta ninguna — devuelve
+        ``{}``, igual que la fuente.
+
+        ``overrides=`` y no ``metodos=`` porque el patrón de la fuente
+        (``res = super()._compute_kpis_actions(...); res['kpi_x'] = ...;
+        return res``) necesita el diccionario **ya devuelto** por la
+        implementación previa para mutarlo, no un resultado con el que
+        combinar el propio — es el mismo caso que documenta
+        ``orm.method_chain.wrap_method``.
+
+        :param company: la ``ResCompany`` del digest. Sin uso en la base;
+            las extensiones que acotan su acción por compañía lo reciben
+            para eso.
+        :param user: el ``ResUsers`` destinatario del correo. Las
+            extensiones lo usan para condicionar la acción por grupo
+            (``user.has_group(...)``), igual que la fuente.
+        :returns: ``{kpi_name: accion}``. ``accion`` es el xml_id **sin
+            resolver** del ``ir.actions.act_window`` a abrir — la fuente
+            concatena ``?menu_id=<id>`` porque el correo enlaza al cliente
+            web de Odoo, que resuelve el menú al navegar; este árbol no
+            tiene ese cliente, así que no hay ``menu_id`` que resolver.
+            Misma forma de xml_id-sin-resolver que ya usan
+            ``CrmLostReason.action_lost_leads`` y
+            ``UtmCampaign.action_redirect_to_leads_opportunities``
+            (``addons/crm/models/crm_lost_reason.py``,
+            ``addons/crm/models/utm.py``).
+        :rtype: dict
+        """
+        return {}

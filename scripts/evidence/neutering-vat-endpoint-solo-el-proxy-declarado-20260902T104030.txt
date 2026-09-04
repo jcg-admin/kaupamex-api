@@ -1,0 +1,12 @@
+# Control discriminante — vat-endpoint-solo-el-proxy-declarado
+# fecha:    2026-09-02T10:40:30
+# archivo:  addons/base_vat/models/res_partner.py
+# anulado:  s/if endpoint not in IAP_VIES_ENDPOINTS:/if False:/
+# tests:    tests/unit/base_vat/
+
+## 1. Verde de partida (guarda presente)
+56 passed, 1 warning in 5.16s
+
+## 2. Con la guarda ANULADA — deben caer exactamente los casos que dependen de ella
+FAILED tests/unit/base_vat/test_vies_and_iap.py::test_iap_endpoint_rejects_a_third_party_host
+1 failed, 55 passed, 1 warning in 5.54s

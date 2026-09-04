@@ -1,0 +1,22 @@
+{
+  "question": "que campos del arbol declaran precompute=True, en que orden hay que calcularlos, y donde se enganchan sin envenenar el cache de una fila sin pk?",
+  "instrument": "probes/census_precompute_fields.py — recorre el registro de campos por modelo y lista los que declaran precompute=True con su compute y su readonly. probes/probe_init_signals.py mide que entrega cada senal de Django (pre_init da los kwargs verbatim; los posicionales mapean a _meta.concrete_fields en orden; post_init llega con la instancia ya construida). probes/probe_precompute_pass.py corre la pasada sobre una fila sin guardar y observa si el cache del campo recibe una clave None",
+  "metric": "campos con precompute=True por modelo, y para cada uno: el nombre de su metodo de computo, su readonly, y la posicion que le asigna el recorrido por registry.field_depends frente a su posicion de declaracion",
+  "blind_to": [
+    "un campo cuyo precompute se apague en tiempo de arranque por resolve_depends — el censo lee el atributo ya resuelto, asi que un campo apagado no aparece y no se distingue de uno que nunca lo pidio",
+    "un computo que lea un campo de OTRO modelo: registry.field_depends resuelve el primer segmento del dotted path y la pasada solo ordena computos del mismo modelo",
+    "el coste de la pasada sobre un create en lote — se midio fila a fila, no con bulk_create, que no dispara pre_save",
+    "un valor que el llamador entregue por una via que ni pre_init ni post_init observen (deserializacion desde la base, que llega por from_db)"
+  ],
+  "destination": "docs: source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/",
+  "source": [
+    "odoo19c: odoo/orm/models.py:4786-4791 (_prepare_create_values), :4814-4846 (_add_precomputed_values)",
+    "django: db/models/base.py:491 (pre_init), :496 (posicionales sobre concrete_fields), :595 (post_init), :946 (pre_save)",
+    "api: src/orm/fields.py:2181-2189 (resolve_depends apaga el adelanto)",
+    "api: src/orm/fields_nonstored.py:369-406 (_apply_precompute_block)"
+  ],
+  "tasks": ["#312"],
+  "control": "scripts/evidence/control_312_guards.py — anula cada una de las tres guardas sobre una copia en memoria, corre la clase que la mide y restaura; cierra por sha256 y por git diff --stat contra si mismo",
+  "reproducible": "python3 scripts/workbench/precompute-antes-del-insert-*/probes/census_precompute_fields.py",
+  "outputs": ["suite-completa-20260902T192620.log"]
+}

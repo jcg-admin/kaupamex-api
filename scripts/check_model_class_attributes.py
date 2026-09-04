@@ -92,30 +92,26 @@ from addons_roots import ADDONS_PATHS, addon_dirs, addon_path  # noqa: E402, F40
 
 #: Raíz del árbol que gobierna (``odoo19c``). Ver
 #: ``referencia-odoo-gobierna-las-decisiones.md``: 19 desempata.
-ODOO19C = pathlib.Path(
-    os.environ.get(
-        'ODOO19C',
-        '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0',
-    )
-)
+import sys as _s, os.path as _op
+_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+from reference_roots import addon_root as _addon_root, tree as _tree
+REFERENCE_19C = _tree('odoo19c')
 
 BASELINE = pathlib.Path(__file__).with_name('model_class_attributes_baseline.txt')
 
-#: ``base`` y los addons ``test_*`` viven empaquetados DENTRO de ``odoo/``
-#: (``odoo19c: odoo/addons/base``), no bajo la raíz ``addons/`` de los demás
-#: (``odoo19c: addons/stock``). Medido: 24 addons bajo ``odoo/addons/`` en
-#: este árbol, ``base`` entre ellos. Sin este segundo candidato, ``base`` —el
-#: addon del positivo real medido en H-API-668— no resuelve nunca.
-_REFERENCE_ADDON_ROOTS = ('addons', 'odoo/addons')
-
-
 def ref_addon_dir(addon):
-    """El directorio del addon en la referencia, probando ambas raíces conocidas."""
-    for prefix in _REFERENCE_ADDON_ROOTS:
-        candidate = ODOO19C / prefix / addon
-        if candidate.is_dir():
-            return candidate
-    return None
+    """El directorio del addon en la referencia, probando TODAS sus raíces.
+
+    ``base`` y los addons ``test_*`` viven empaquetados dentro de ``odoo/``
+    (``odoo19c: odoo/addons/base``), no bajo la raíz ``addons/`` de los demás.
+    Cuál es cuál lo decide ``reference_roots.addon_root()``, que lo declara
+    una vez; duplicar la lista aquí es la segunda fuente de verdad que
+    ``calibration-verified-numbers.md`` prohíbe, y su modo de fallo es
+    silencioso: sin el segundo candidato, ``base`` —el addon del positivo
+    real medido en H-API-668— no resuelve nunca.
+    """
+    candidato = _addon_root(addon, 'odoo19c')
+    return candidato if candidato.is_dir() else None
 
 
 #: El universo de atributos de ORM que un modelo declara, medido en
@@ -364,8 +360,8 @@ def main():
                          help='congela el estado actual como deuda heredada')
     args = parser.parse_args()
 
-    if not ODOO19C.is_dir():
-        print(f'AVISO: no está el árbol de referencia en {ODOO19C}; '
+    if not REFERENCE_19C.is_dir():
+        print(f'AVISO: no está el árbol de referencia en {REFERENCE_19C}; '
               'sin él este gate no puede medir nada.')
         return 0
 

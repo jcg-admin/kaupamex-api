@@ -30,6 +30,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
+from addons.base.models.ir_binary import IrBinary
 from addons.base.models.res_company import ResCompany
 from addons.onboarding.models import (
     OnboardingOnboarding,
@@ -127,7 +128,7 @@ class TestIsPerCompany:
         acme = _company('acme-onb-1')
         step = _step('Step ipc 2')
         onboarding = _onboarding('route_ipc_2', steps=[step])
-        onboarding.search_or_create_progress(company=acme)
+        onboarding._search_or_create_progress(company=acme)
         # Odoo: _compute_is_per_company línea 45-54 — una vez que existe
         # progreso CON compañía, se mantiene per-company aunque los steps
         # dejen de serlo.
@@ -138,15 +139,15 @@ class TestProgressLifecycle:
     def test_search_or_create_progress_is_idempotent(self):
         step = _step('Step progreso 1')
         onboarding = _onboarding('route_progress_1', steps=[step])
-        first = onboarding.search_or_create_progress()
-        second = onboarding.search_or_create_progress()
+        first = onboarding._search_or_create_progress()
+        second = onboarding._search_or_create_progress()
         assert first.pk == second.pk
 
     def test_state_not_done_until_all_steps_just_done(self):
         step1 = _step('Step a')
         step2 = _step('Step b')
         onboarding = _onboarding('route_progress_2', steps=[step1, step2])
-        progress = onboarding.search_or_create_progress()
+        progress = onboarding._search_or_create_progress()
         assert progress.onboarding_state == 'not_done'
 
         changed = step1.action_set_just_done()
@@ -166,7 +167,7 @@ class TestProgressLifecycle:
 
     def test_empty_onboarding_is_trivially_done(self):
         onboarding = _onboarding('route_progress_4')
-        progress = onboarding.search_or_create_progress()
+        progress = onboarding._search_or_create_progress()
         assert progress.onboarding_state == 'done'
 
 
@@ -175,27 +176,27 @@ class TestActionValidateStepById:
     xmlid documentado en ``OnboardingOnboardingStep``)."""
 
     def test_not_found_for_unknown_pk(self):
-        assert OnboardingOnboardingStep.action_validate_step_by_id(999999) == 'NOT_FOUND'
+        assert OnboardingOnboardingStep.action_validate_step(999999) == 'NOT_FOUND'
 
     def test_just_done_on_first_call_was_done_on_second(self):
         step = _step('Step validate')
         _onboarding('route_validate_1', steps=[step])
-        assert OnboardingOnboardingStep.action_validate_step_by_id(step.pk) == 'JUST_DONE'
-        assert OnboardingOnboardingStep.action_validate_step_by_id(step.pk) == 'WAS_DONE'
+        assert OnboardingOnboardingStep.action_validate_step(step.pk) == 'JUST_DONE'
+        assert OnboardingOnboardingStep.action_validate_step(step.pk) == 'WAS_DONE'
 
 
-class TestActionClosePanelById:
+class TestActionClosePanel:
     """Adaptación de ``action_close_panel(xmlid)`` — recibe pk."""
 
     def test_closes_current_progress(self):
         step = _step('Step close')
         onboarding = _onboarding('route_close_1', steps=[step])
-        onboarding.search_or_create_progress()
-        OnboardingOnboarding.action_close_panel_by_id(onboarding.pk)
+        onboarding._search_or_create_progress()
+        OnboardingOnboarding.action_close_panel(onboarding.pk)
         assert onboarding.is_current_progress_closed is True
 
     def test_quietly_does_nothing_for_unknown_pk(self):
-        OnboardingOnboarding.action_close_panel_by_id(999999)  # no debe lanzar
+        OnboardingOnboarding.action_close_panel(999999)  # no debe lanzar
 
 
 class TestCompanyScopedProgress:
@@ -206,8 +207,8 @@ class TestCompanyScopedProgress:
         onboarding = _onboarding('route_company_1', steps=[step])
         onboarding.set_steps([step])
         # forzar per-company vinculando un progreso con compañía
-        progress_acme = onboarding.search_or_create_progress(company=acme)
-        progress_globex = onboarding.search_or_create_progress(company=globex)
+        progress_acme = onboarding._search_or_create_progress(company=acme)
+        progress_globex = onboarding._search_or_create_progress(company=globex)
         assert progress_acme.pk != progress_globex.pk
         assert onboarding.get_current_progress(company=acme).pk == progress_acme.pk
         assert onboarding.get_current_progress(company=globex).pk == progress_globex.pk
@@ -216,7 +217,7 @@ class TestCompanyScopedProgress:
         acme = _company('acme-onb-3')
         step = _step('Step ambient')
         onboarding = _onboarding('route_company_2', steps=[step])
-        onboarding.search_or_create_progress(company=acme)
+        onboarding._search_or_create_progress(company=acme)
         with company_scope(acme.pk):
             current = onboarding.get_current_progress()
         assert current is not None
@@ -274,3 +275,68 @@ class TestConsolidateJustDone:
         assert count == 1
         assert row_a.step_state == 'done'
         assert row_b.step_state == 'not_done'
+
+
+class TestStepImagePlaceholder:
+    """``_get_placeholder_filename`` y su despacho desde ``IrBinary``.
+
+    Los dos son una sola cosa: el metodo declara QUE imagen de relleno le toca
+    a ``step_image``, y ``IrBinary.get_image_response_from`` es quien pregunta
+    (``odoo19c: odoo/addons/base/models/ir_binary.py:212-213``). Sin el
+    despacho, un modelo podia declarar el metodo y nadie lo leia — que es
+    exactamente el estado del que salio este porte.
+    """
+
+    def test_the_step_image_field_names_its_own_placeholder(self):
+        step = _step('Placeholder A')
+        assert step._get_placeholder_filename('step_image') == \
+            'base/static/img/onboarding_default.png'
+
+    def test_any_other_field_falls_back_to_the_default(self):
+        """La fuente cierra con ``super()``, que sube al ``BaseModel``. Aqui
+        ese eslabon no existe, asi que ``None`` cede al default de
+        ``IrBinary`` — el mismo sitio donde la cadena de la fuente termina."""
+        step = _step('Placeholder B')
+        assert step._get_placeholder_filename('otro_campo') is None
+
+    def test_ir_binary_asks_the_record_when_no_placeholder_is_given(self):
+        """El despacho, medido de punta a punta: sin ``placeholder`` explicito
+        y sin imagen en la fila, ``IrBinary`` termina pidiendo el del modelo.
+
+        Se observa por el argumento con que ``IrBinary.placeholder`` es
+        llamado, que es donde el valor del modelo aterriza."""
+        step = _step('Placeholder C')
+        visto = []
+        original = IrBinary.placeholder
+
+        def espia(path=None):
+            visto.append(path)
+            return b''
+
+        IrBinary.placeholder = staticmethod(espia)
+        try:
+            IrBinary.get_image_response_from(step, field_name='step_image')
+        finally:
+            IrBinary.placeholder = original
+
+        assert visto == ['base/static/img/onboarding_default.png']
+
+    def test_an_explicit_placeholder_wins_over_the_record(self):
+        """La guarda ``if not placeholder`` de la fuente: quien pasa uno
+        explicito manda, y al modelo no se le pregunta."""
+        step = _step('Placeholder D')
+        visto = []
+        original = IrBinary.placeholder
+
+        def espia(path=None):
+            visto.append(path)
+            return b''
+
+        IrBinary.placeholder = staticmethod(espia)
+        try:
+            IrBinary.get_image_response_from(
+                step, field_name='step_image', placeholder='otra/ruta.png')
+        finally:
+            IrBinary.placeholder = original
+
+        assert visto == ['otra/ruta.png']

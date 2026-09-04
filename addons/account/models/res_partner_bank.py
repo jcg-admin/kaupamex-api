@@ -61,7 +61,7 @@ cambio de comportamiento.
 """
 from urllib.parse import urlencode
 
-from addons.base.models.res_partner_bank import ResPartnerBank
+from addons.base.models.res_bank import ResPartnerBank
 from exceptions import UserError
 from orm.method_chain import chain_method
 from tools.translate import _

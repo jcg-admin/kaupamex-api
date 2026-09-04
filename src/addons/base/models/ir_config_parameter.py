@@ -23,16 +23,32 @@ Correspondencia Odoo -> Django (adaptación sin azúcar sintáctica):
   especulado). Una clave está protegida ssi pertenece a este dict.
 - ``get_param``/``set_param``/``init`` (``@api.model``) -> ``classmethod`` s
   (``seed`` == ``init``).
-- ``@ormcache('key', cache='stable')`` + ``clear_cache('stable')`` -> caché
-  módulo-nivel ``_PARAM_CACHE`` invalidada en toda mutación (H-CFG-IMPL-02).
+- ``@ormcache('key', cache='stable')`` + ``clear_cache('stable')`` -> los
+  MISMOS (H-API-864). Hasta ``api@c636e68c`` este archivo construía un
+  ``_PARAM_CACHE`` de módulo con su propio ``_clear_cache()``, y lo declaraba
+  como el equivalente del decorador «porque el stack no lo trae». Esa razón
+  dejó de ser cierta: ``tools/cache.py``, ``tools/lru.py`` y los contenedores
+  de ``orm/registry.py`` existen, así que se adopta el mecanismo y la
+  invalidación deja de ser global para ser la de la familia ``stable``.
 - ``write`` rechaza renombrar una clave protegida; ``unlink_default_parameters``
-  (``@api.ondelete``) rechaza borrar una clave protegida -> guards en ``save``
-  y ``delete``.
+  (``@api.ondelete``) rechaza borrar una clave protegida. Los dos se portan con
+  su nombre, y los enganches de Django (``save``/``delete``) delegan en ellos:
+  así la guarda protege también a quien escriba por la vía del ORM de Django.
+
+DIVERGENCIA DE CLAVE, declarada: la referencia decora con
+``@ormcache('key', cache='stable')`` y **no** nombra la base, porque su
+``Registry`` es por base de datos y esa dimensión va implícita en él. Aquí el
+registry es el módulo (divergencia de enlace declarada en ``tools/cache.py``),
+así que el alias entra en la clave: ``@ormcache('key', 'using', ...)``. Sin él
+dos bases compartirían entrada, que es un defecto que la fuente no tiene.
 """
 import uuid
 
 from django.core.exceptions import ValidationError
 from django.db import DEFAULT_DB_ALIAS, models
+
+from orm import registry
+from tools.cache import ormcache
 
 # Parámetros sembrados al inicializar la instancia (Odoo ``_default_parameters``,
 # líneas 18-25 de ir_config_parameter.py, v19/v18 idénticas). Pertenecer a este
@@ -53,20 +69,6 @@ _DEFAULT_PARAMETERS = {
     'authz.reauth_ttl': lambda: '900',
     'backup.alert_email': lambda: 'admin@kaupamex.com',
 }
-
-# Caché por-proceso, equivalente a ``ormcache('key', cache='stable')`` de Odoo.
-# Clave: ``(using, key)`` -> value (o ``None`` para "clave ausente", igual que
-# Odoo cachea el resultado del SELECT incluyendo la ausencia). Invalidación
-# global en cada mutación (Odoo ``clear_cache('stable')``). H-CFG-IMPL-02: como
-# ormcache, es per-proceso; la invalidación cross-worker (registry signaling de
-# Odoo) queda fuera de scope de esta slice.
-_PARAM_CACHE = {}
-
-
-def _clear_cache():
-    """Invalida toda la caché (Odoo ``clear_cache('stable')`` — namespace entero)."""
-    _PARAM_CACHE.clear()
-
 
 class SystemParameter(models.Model):
     """Almacén per-instancia de pares clave/valor de configuración (L2 global).
@@ -141,20 +143,23 @@ class SystemParameter(models.Model):
         return cls._get_param(key, using=using) or default
 
     @classmethod
+    @ormcache('key', 'using', cache='stable')
     def _get_param(cls, key, using=DEFAULT_DB_ALIAS):
-        """Lee el valor crudo con caché. Odoo bypassa el ORM con SQL directo
-        (líneas 73-79) porque ``get_param`` se usa en ``@api.depends`` con el ORM
-        a medio inicializar; Django no tiene esa restricción, así que se usa el
-        ORM normal (H-CFG-IMPL-04). Cachea también la ausencia (``None``)."""
-        ckey = (using, key)
-        if ckey in _PARAM_CACHE:
-            return _PARAM_CACHE[ckey]
-        value = (cls.objects.using(using)
-                 .filter(key=key)
-                 .values_list('value', flat=True)
-                 .first())
-        _PARAM_CACHE[ckey] = value
-        return value
+        """Lee el valor crudo, memorizado en la familia ``stable``.
+
+        ≙ ``odoo19c: ir_config_parameter.py:68-77``. Odoo bypassa el ORM con SQL
+        directo porque ``get_param`` se usa en ``@api.depends`` con el ORM a
+        medio inicializar; Django no tiene esa restricción, así que se usa el
+        ORM normal (H-CFG-IMPL-04). Cachea también la ausencia (``None``), igual
+        que la fuente cachea el resultado del SELECT incluyendo el vacío.
+
+        El decorador nombra ``using`` además de ``key`` — ver la divergencia de
+        clave declarada en la cabecera del módulo.
+        """
+        return (cls.objects.using(using)
+                .filter(key=key)
+                .values_list('value', flat=True)
+                .first())
 
     # -- Escritura (Odoo set_param) -----------------------------------------
 
@@ -162,31 +167,83 @@ class SystemParameter(models.Model):
     def set_param(cls, key, value, using=DEFAULT_DB_ALIAS):
         """Fija el valor de ``key``; devuelve el valor previo (o ``None``).
 
-        Fiel a Odoo ``set_param`` (líneas 82-103): si la clave existe y el valor
-        es *None/False* -> borra; si cambió -> actualiza; devuelve el valor
-        previo. Si no existe y el valor no es *None/False* -> crea; devuelve
-        ``None`` (Odoo devuelve ``False``).
+        ≙ ``odoo19c: ir_config_parameter.py:79-99``: si la clave existe y el
+        valor es *None/False* -> borra; si cambió -> actualiza; devuelve el
+        valor previo. Si no existe y el valor no es *None/False* -> crea;
+        devuelve ``None`` (la fuente devuelve ``False``).
+
+        No invalida por su cuenta: delega en ``write``/``unlink``/``create``,
+        que son quienes vacían la familia — igual que la fuente.
         """
         param = cls.objects.using(using).filter(key=key).first()
         if param is not None:
             old = param.value
             if value is not None and value is not False:
                 if str(value) != old:
-                    param.value = str(value)
-                    param.save(using=using)  # save() invalida la caché
+                    param.write({'value': str(value)}, using=using)
             else:
-                param.delete(using=using)    # delete() invalida la caché
+                param.unlink(using=using)
             return old
         if value is not None and value is not False:
-            cls.objects.using(using).create(key=key, value=str(value))
-            _clear_cache()
+            cls.create({'key': key, 'value': str(value)}, using=using)
         return None
+
+    # -- Los cuatro enganches de mutación de la referencia -------------------
+
+    @classmethod
+    def create(cls, vals_list, using=DEFAULT_DB_ALIAS):
+        """≙ ``odoo19c: ir_config_parameter.py:101-104`` (``@api.model_create_multi``).
+
+        Vacía la familia ``stable`` y delega. Admite un dict o una lista de
+        dicts, como el decorador de la fuente; devuelve la lista de instancias.
+        """
+        if isinstance(vals_list, dict):
+            vals_list = [vals_list]
+        registry.clear_cache('stable')
+        return [cls.objects.using(using).create(**vals) for vals in vals_list]
+
+    def write(self, vals, using=None):
+        """≙ ``odoo19c: ir_config_parameter.py:106-112``.
+
+        Si ``vals`` cambia ``key`` y la clave actual está protegida, rechaza
+        nombrándola. Después vacía la familia ``stable`` y persiste.
+        """
+        using = using or self._state.db or DEFAULT_DB_ALIAS
+        if 'key' in vals:
+            illegal = _DEFAULT_PARAMETERS.keys() & {self.key}
+            if illegal:
+                raise ValidationError(
+                    'No se pueden renombrar los parámetros de configuración '
+                    'con claves %s.' % ', '.join(sorted(illegal)))
+        for field, value in vals.items():
+            setattr(self, field, value)
+        # ``save`` es quien vacía la familia; no se duplica aquí ni se bypassa
+        # el enganche, para que un mixin futuro siga entrando en la cadena.
+        return self.save(using=using)
+
+    def unlink(self, using=None):
+        """≙ ``odoo19c: ir_config_parameter.py:114-116``.
+
+        Corre la guarda de ``@api.ondelete``, vacía la familia y borra.
+        """
+        using = using or self._state.db or DEFAULT_DB_ALIAS
+        # ``delete`` corre la guarda y vacía la familia; aquí sólo se delega.
+        return self.delete(using=using)
+
+    def unlink_default_parameters(self):
+        """≙ ``odoo19c: ir_config_parameter.py:118-121`` (``@api.ondelete``).
+
+        Una clave de ``_DEFAULT_PARAMETERS`` no se puede eliminar.
+        """
+        if self.key in _DEFAULT_PARAMETERS:
+            raise ValidationError(
+                'No se puede eliminar el registro %s.' % self.key)
 
     # -- Sembrado (Odoo init) -----------------------------------------------
 
     @classmethod
-    def seed(cls, force=False, using=DEFAULT_DB_ALIAS):
-        """Siembra ``_DEFAULT_PARAMETERS`` (Odoo ``init``, líneas 44-57).
+    def init(cls, force=False, using=DEFAULT_DB_ALIAS):
+        """Siembra ``_DEFAULT_PARAMETERS`` ≙ ``odoo19c: ir_config_parameter.py:43-56``.
 
         Idempotente: sólo crea las claves ausentes; ``force=True`` sobreescribe
         las existentes.
@@ -196,36 +253,36 @@ class SystemParameter(models.Model):
             if force or not exists:
                 cls.set_param(key, func(), using=using)
 
-    # -- Guards de protección (Odoo write / unlink_default_parameters) ------
+    #: Alias histórico de :meth:`init`. El nombre de la referencia es ``init``;
+    #: ``seed`` es como se llamó al portarlo y lo consumen la sembradora de
+    #: ``conftest`` y las migraciones de datos. Se conserva como alias en vez de
+    #: renombrar sus llamadores en este pase — no es un símbolo omitido: ``init``
+    #: existe con el nombre de la fuente y es quien lleva el cuerpo.
+    seed = init
+
+    # -- Enganches de Django: delegan en los métodos de la referencia --------
 
     def save(self, *args, **kwargs):
-        """Invalida la caché e impide renombrar una clave protegida.
-
-        Fiel a Odoo ``write`` (líneas 110-116): si se cambia ``key`` a/desde una
-        clave de ``_DEFAULT_PARAMETERS``, rechaza. Sólo aplica a updates (pk no
-        nulo); las inserciones no renombran nada.
-        """
+        """Enganche de Django. Corre la guarda de rename de :meth:`write` y
+        vacía la familia ``stable``, para que escribir por la vía del ORM de
+        Django quede igual de protegido que por :meth:`write`."""
         if self.pk is not None:
             using = kwargs.get('using') or self._state.db or DEFAULT_DB_ALIAS
-            old_key = (type(self).objects.using(using)
-                       .filter(pk=self.pk)
-                       .values_list('key', flat=True)
-                       .first())
-            if (old_key is not None and old_key != self.key
-                    and old_key in _DEFAULT_PARAMETERS):
+            previous_key = (type(self).objects.using(using)
+                            .filter(pk=self.pk)
+                            .values_list('key', flat=True)
+                            .first())
+            if (previous_key is not None and previous_key != self.key
+                    and previous_key in _DEFAULT_PARAMETERS):
                 raise ValidationError(
-                    'No se puede renombrar el parámetro protegido "%s".' % old_key)
-        _clear_cache()
+                    'No se pueden renombrar los parámetros de configuración '
+                    'con claves %s.' % previous_key)
+        registry.clear_cache('stable')
         return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        """Invalida la caché e impide borrar una clave protegida.
-
-        Fiel a Odoo ``unlink_default_parameters`` (``@api.ondelete``, líneas
-        122-125): una clave de ``_DEFAULT_PARAMETERS`` no se puede eliminar.
-        """
-        if self.key in _DEFAULT_PARAMETERS:
-            raise ValidationError(
-                'No se puede eliminar el parámetro protegido "%s".' % self.key)
-        _clear_cache()
+        """Enganche de Django. Corre :meth:`unlink_default_parameters` y vacía
+        la familia ``stable``."""
+        self.unlink_default_parameters()
+        registry.clear_cache('stable')
         return super().delete(*args, **kwargs)

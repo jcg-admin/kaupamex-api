@@ -1,4 +1,4 @@
-"""``ir.autovacuum`` — barrido periódico de los métodos ``@api.autovacuum``.
+r"""``ir.autovacuum`` — barrido periódico de los métodos ``@api.autovacuum``.
 
 Adaptación fiel de ``odoo/addons/base/models/ir_autovacuum.py``
 (``odoo-tools@bf077302``, ``odoo19c:``). Es el colector que recorre el
@@ -36,15 +36,29 @@ resuelve un problema real y no son intercambiables:
   Aquí los métodos de barrido son ``classmethod`` — operan sobre la tabla
   entera, no sobre una fila—, así que ``inspect.getmembers`` los devuelve ya
   ligados a su clase y llamarlos con un argumento extra reventaría.
-- ``self.env['ir.cron']._commit_progress()`` **no se porta**: pertenece al
-  *runner* del cron, que ``ir_cron.py`` declara explícitamente como diferido
-  (*"el runner del cron — DIFERIDO"*). Cuando ese runner exista, esta llamada
-  entra con él.
-- ``_gc_orm_signaling`` **no se porta**: barre las tablas
-  ``orm_signaling_<señal>`` del invalidador de caché multi-proceso de Odoo.
-  Medido con ``grep -rl orm_signaling src/ | grep -v ir_autovacuum.py`` → **0**
-  archivos (el filtro excluye esta propia mención). No hay tablas que barrer;
-  portarlo sería declarar una capacidad inexistente.
+- ``self.env['ir.cron']._commit_progress()`` **SÍ se porta**, desde este pase.
+  Este bullet decía que *"pertenece al runner del cron, que ``ir_cron.py``
+  declara explícitamente como diferido"*; medido, ``ir_cron.py:62`` dice **"El
+  runner del cron — PORTADO COMPLETO (2026-08-26)"** y ``_commit_progress``
+  está en ``:1130``. Ver :ref:`h-api-984`.
+- ``_gc_orm_signaling`` **SÍ se porta, desde este pase**. Este bullet decía
+  *"no se porta TODAVÍA … no hay tablas que barrer; portarlo sería declarar una
+  capacidad inexistente. Construir esas tablas es la tarea #256, y este método
+  entra con ellas"*. Las tablas existen: las crea
+  ``base/migrations/0085_orm_signaling_tables.py`` y las consume el eje de
+  señalización de ``orm.registry`` (``setup_signaling``, ``get_sequences``,
+  ``check_signaling``, ``signal_changes``). La declinación era correcta y su
+  condición de cierre se cumplió, así que el método entra con ellas.
+
+  El cero que la declinación citaba —el patrón anclado de ``db_table`` y de las
+  dos declaraciones del eje— hoy mide **2**: las dos ``def`` de
+  ``orm/registry.py``. Ese ascenso es exactamente lo que la cita prometía
+  observar cuando el mecanismo llegara, así que la cita **se retira** en vez de
+  actualizarse: un reclamo de cero cuya condición se cumplió ya no mide nada.
+
+  Lo delató el gate ``check_stale_zero_claims``, no una relectura — un reclamo
+  de cero es una afirmación fechada y el gate la re-ejecuta, que es la única
+  razón por la que este método no se quedó declinado tras construir sus tablas.
 """
 import collections
 import inspect
@@ -53,10 +67,15 @@ import random
 import time
 
 from django.apps import apps
+from django.db import connection
 from django.db import models as django_models
 from django.db import transaction
 
+from addons.base.models.ir_cron import IrCron
+from orm.decorators import autovacuum
 from orm.environments import get_context
+from orm.registry import signaling_table_names
+from tools.sql import SQL
 
 _logger = logging.getLogger(__name__)
 
@@ -136,6 +155,12 @@ class IrAutovacuum(django_models.Model):
                 start_time = time.monotonic()
                 # Ligado a su clase (classmethod) — sin argumento de modelo.
                 result = func()
+                # ≙ ``self.env['ir.cron']._commit_progress()`` (``:50``).
+                # Va AQUI, entre la llamada y el reparto del resultado: un
+                # metodo que revienta salta al ``except`` sin pasar por aqui,
+                # y su trabajo a medias se descarta. Comitearlo antes de
+                # llamar, o en un ``finally``, asentaria ese trabajo parcial.
+                IrCron._commit_progress()
                 if isinstance(result, tuple) and len(result) == 2:
                     func_done, func_remaining = result
                     _logger.debug(
@@ -150,3 +175,40 @@ class IrAutovacuum(django_models.Model):
                 # Un método roto no cancela el resto — se registra y se sigue.
                 _logger.exception('Falló %s.%s()', model, attr)
                 transaction.rollback()
+
+
+    @classmethod
+    @autovacuum
+    def _gc_orm_signaling(cls):
+        """Poda las tablas de señalización — ≙ ``:64-75``.
+
+        Comentario de la fuente, verbatim: *"keep the last 10 entries for each
+        signal, and all entries from the last hour. This keeps the signaling
+        tables small enough for performance, but also gives a useful glimpse
+        into the recent signaling history, including the timestamps of the
+        increments"*. Las dos condiciones se conjugan con ``AND``: una fila
+        sobrevive si está entre las diez últimas **o** si es de la última hora.
+
+        Las tablas son de sólo-inserción y cada invalidación añade una fila, así
+        que sin este barrido crecen sin techo — y son las que
+        ``Registry.get_sequences`` lee en **cada** petición con un ``max(id)``
+        por tabla.
+
+        **Divergencias de puerta, no de contenido:**
+
+        - La lista de tablas sale de ``signaling_table_names()``, que ya la
+          declara una vez para el eje y la migración; la fuente reconstruye
+          ``['registry', *_CACHES_BY_KEY]`` aquí por tercera vez.
+        - El cursor sale de ``connection`` y no de ``self.env.cr``: aquí el
+          método es ``classmethod`` por el contrato del runner del cron (ver el
+          docstring de :meth:`_run_vacuum_cleaner`), así que no hay ``self`` del
+          que colgar un entorno.
+        """
+        with connection.cursor() as cr:
+            for table in signaling_table_names():
+                query = SQL(
+                    "DELETE FROM %s WHERE id < (SELECT max(id)-9 FROM %s) "
+                    "AND date < NOW() - interval '1 hours'",
+                    SQL.identifier(table), SQL.identifier(table),
+                )
+                cr.execute(query.code, query.params)

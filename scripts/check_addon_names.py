@@ -65,17 +65,13 @@ import sys
 # ``addons/``. Los empaquetados sin alias de Enterprise 18 quedan fuera a
 # propósito: son la misma población que ``odoo18e:`` y contarlos dos veces
 # infla el universo (H-API-76).
+import sys as _s, os.path as _op
+_s.path.insert(0, _op.dirname(_op.abspath(__file__)))
+from reference_roots import addons_de as _addons_de, tree as _tree
+
 REFERENCE_ROOTS = {
-    'odoo19c': [
-        '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons',
-        '/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons',
-    ],
-    'odoo19e': [
-        '/home/user/odoo-tools/19.x/odoo19-enterprise-main/'
-        'odoo19-enterprise-main/odoo19-enterprise-main',
-    ],
-    'odoo18c': ['/home/user/odoo-tools/18.x/odoo-18/addons'],
-    'odoo18e': ['/home/user/odoo-tools/18.x/odoo.enterprise'],
+    alias: [str(p) for p in _addons_de(alias)]
+    for alias in ('odoo19c', 'odoo19e', 'odoo18c', 'odoo18e')
 }
 
 # Renames forzados por el entorno, no elegidos. El nombre de la referencia se

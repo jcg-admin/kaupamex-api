@@ -33,13 +33,24 @@ fila que acotar por compañía; y el canal de elevación (``su``) tampoco se
 usa: el gate es la capacidad ``settings``, sensible en el catálogo de
 ``base``.
 """
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from addons.authz.permissions import HasCapability
-from addons.base_setup.controllers.serializers import SiteSettingsSerializer
+from addons.base.models.ir_module import IrModule
+from addons.base.models.res_users import ResUsers, ResUsersLog
+from addons.base_setup.controllers.serializers import (
+    BaseSetupDataSerializer,
+    SiteSettingsSerializer,
+)
+from orm.environments import sudo
+
+#: ≙ ``LIMIT 10`` de la consulta de ``base_setup_data`` (``odoo19c:
+#: controllers/main.py:40``) — cuántos usuarios pending se listan.
+PENDING_USERS_LIMIT = 10
 
 
 class SiteSettingsView(APIView):
@@ -70,3 +81,90 @@ class SiteSettingsView(APIView):
         serializer = SiteSettingsSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         return Response(SiteSettingsSerializer.apply(dict(serializer.validated_data)))
+
+
+class BaseSetupDataView(APIView):
+    """≙ ``BaseSetup.base_setup_data`` (``odoo19c: controllers/main.py:10-51``).
+
+    El panel de arranque: cuántos usuarios internos active_users hay, cuántos de
+    ellos **nunca han entrado**, y quiénes son los diez últimos.
+
+    Divergencias declaradas
+    =======================
+
+    - **La ruta y el transporte.** La fuente declara
+      ``@http.route('/base_setup/data', type='jsonrpc', auth='user')``; aquí
+      la superficie es REST y vive bajo el prefijo del addon
+      (``/api/v2/config/``), como el resto de este controlador.
+    - **El gate.** La fuente comprueba
+      ``has_group('base.group_erp_manager')`` y levanta ``AccessError``. Aquí
+      la autorización es por CAPACIDAD (DEC-11) y el análogo declarado del
+      grupo de administración de ajustes es ``settings.edit`` — la misma que
+      ya gatea :class:`SiteSettingsView`. Es fail-closed: sin capacidad, 403.
+    - **Las tres consultas van por el ORM, no por ``cr.execute``.** La fuente
+      baja a SQL crudo porque su ORM no sabe expresar el ``NOT EXISTS``; el de
+      Django sí (``~Exists(...)``), así que el rodeo no tiene motivo. La
+      población es la misma.
+    - **``share=false`` se filtra en Python.** ``ResUsers.share`` aquí es una
+      **propiedad** —la negación de ``_is_internal()``
+      (``src/addons/base/models/res_users.py:1842``)—, no una columna, así que
+      no puede viajar al ``WHERE``. Misma población, distinto sitio de
+      evaluación.
+    - **``action_pending_users`` NO se emite** —
+      BLOQUEADO por ``res.users._action_show`` — razón: el método no existe en
+      este árbol (medido: ``grep -rn "def _action_show" src/`` → 0), y su hogar
+      es ``base``, no este addon: portarlo aquí sería el defecto de sitio que
+      :ref:`h-api-568` registra. Sucesor: tarea **#456**, que porta
+      ``_action_show`` sobre ``res.users`` junto con el resto de acciones de
+      ese archivo.
+    """
+
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.edit'
+
+    @extend_schema(
+        summary='Panel de arranque: usuarios active_users y pending',
+        tags=['config'],
+        responses={200: BaseSetupDataSerializer},
+    )
+    def get(self, request):
+        with sudo():
+            active_users = [user for user in ResUsers.objects.filter(active=True)
+                       if not user.share]
+            with_access = set(
+                ResUsersLog.objects.values_list('user_id', flat=True))
+        pending = [user for user in active_users if user.pk not in with_access]
+        pending.sort(key=lambda user: user.pk, reverse=True)
+        return Response(BaseSetupDataSerializer({
+            'active_users': len(active_users),
+            'pending_count': len(pending),
+            'pending_users': [[user.pk, user.login]
+                              for user in pending[:PENDING_USERS_LIMIT]],
+        }).data)
+
+
+class BaseSetupDemoActiveView(APIView):
+    """≙ ``BaseSetup.base_setup_is_demo`` (``odoo19c: controllers/main.py:53-59``).
+
+    Comentario de la fuente, verbatim: *"We assume that if there's at least one
+    module with demo data active, then the db was initialized with demo=True or
+    it has been force-activated by the `Load demo data` button in the settings
+    dashboard."*
+
+    Divergencia: la fuente la declara ``auth='user'`` a secas. DEC-11 no admite
+    una vista sin capacidad declarada —``IsAuthenticated`` solo **salta** el
+    modelo de capacidades—, así que se gatea con ``settings.edit``, que es la
+    del panel al que este dato pertenece. El gate es más estrecho que el de la
+    fuente, nunca más ancho.
+    """
+
+    permission_classes = [IsAuthenticated, HasCapability]
+    required_capability = 'settings.edit'
+
+    @extend_schema(
+        summary='¿La base tiene datos de demostración active_users?',
+        tags=['config'],
+        responses={200: OpenApiTypes.BOOL},
+    )
+    def get(self, request):
+        return Response(bool(IrModule.objects.filter(demo=True).count()))

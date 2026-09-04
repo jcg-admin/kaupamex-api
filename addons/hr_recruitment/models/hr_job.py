@@ -286,7 +286,10 @@ def apply_hr_recruitment_hr_job_extensions():
                 null=True, blank=True, related_name='jobs',
                 verbose_name='Grado esperado',
             ),
-            'job_properties': fields.Properties(null=True, blank=True, verbose_name='Propiedades del puesto'),
+            'job_properties': fields.Properties(
+                null=True, blank=True, verbose_name='Propiedades del puesto',
+                definition='company.job_properties_definition',
+            ),
             'applicant_properties_definition': fields.PropertiesDefinition(
                 null=True, blank=True, verbose_name='Definición de propiedades de candidato',
             ),

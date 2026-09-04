@@ -64,11 +64,11 @@ class SaleOrderLineMargin(TimeStampedModel):
     # margin = price_subtotal - purchase_price * qty (Odoo _compute_margin).
     def margin(self) -> Decimal:
         cost_total = self._cost_snapshot() * self.line.product_uom_qty
-        return (self.line.price_subtotal() - cost_total).quantize(Decimal('0.01'))
+        return (self.line.price_subtotal - cost_total).quantize(Decimal('0.01'))
 
     # margin_percent = margin / price_subtotal (0 si subtotal 0).
     def margin_percent(self) -> Decimal:
-        subtotal = self.line.price_subtotal()
+        subtotal = self.line.price_subtotal
         if subtotal == 0:
             return Decimal('0.00')
         return (self.margin() / subtotal * 100).quantize(Decimal('0.01'))

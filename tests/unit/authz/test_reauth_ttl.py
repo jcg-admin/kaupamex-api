@@ -9,7 +9,8 @@ caliente y sembrado por la migración de datos de ``addons.base``.
 import pytest
 
 from addons.authz.services import _reauth_ttl
-from addons.base.models import _PARAM_CACHE, SystemParameter
+from addons.base.models import SystemParameter
+from orm.registry import clear_cache
 
 pytestmark = pytest.mark.django_db
 
@@ -23,10 +24,10 @@ def _clear_param_cache(db):
     multi-DB SOL-091) hace ``flush`` de ``system_parameter`` sin re-correr la
     data-migration, así que ``test_lee_el_default_sembrado`` sería
     order-dependent sin restaurar la fila sembrada."""
-    _PARAM_CACHE.clear()
+    clear_cache('stable')
     SystemParameter.seed()
     yield
-    _PARAM_CACHE.clear()
+    clear_cache('stable')
 
 
 class TestReauthTtl:

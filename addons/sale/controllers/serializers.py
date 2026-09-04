@@ -81,7 +81,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     ``product_name``/``unit_price``/``quantity``/``subtotal`` son las claves
     que el consumidor ya lee; en la canónica viven en ``name``/``price_unit``/
-    ``product_uom_qty`` y en el método ``price_total()``.
+    ``product_uom_qty`` y en el campo ``price_total``.
     """
     product_name  = serializers.CharField(source='name', read_only=True)
     sku           = serializers.SerializerMethodField()
@@ -109,7 +109,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
     def get_subtotal(self, obj):
         # Bruto de la línea (IVA incluido, como el precio de catálogo): la suma
         # de las partidas tiene que cuadrar con el total que el comprador pagó.
-        return obj.price_total()
+        return obj.price_total
 
     @extend_schema_field(OpenApiTypes.URI)
     def get_image_url(self, obj) -> str | None:

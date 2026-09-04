@@ -123,7 +123,7 @@ def make_cart(website, buyer, product, *, hours_ago=24.0,
             order=order, product=product, product_uom_qty=1,
             price_unit=Decimal('250.00') if price is None else price)
     if attach_info:
-        WebsiteSaleOrderInfo.objects.create(sale_order=order, website=website)
+        WebsiteSaleOrderInfo.objects.create(sale_order=order, website_id=website)
     return order
 
 
@@ -150,7 +150,7 @@ def test_is_abandoned_cart_has_no_column():
 def test_stored_half_lives_in_the_side_table():
     """``website_id`` y ``cart_recovery_email_sent`` — D-1."""
     names = {f.name for f in WebsiteSaleOrderInfo._meta.get_fields()}
-    assert {'website', 'cart_recovery_email_sent', 'sale_order'} <= names
+    assert {'website_id', 'cart_recovery_email_sent', 'sale_order'} <= names
 
 
 # ── 2. los cuatro predicados del compute ────────────────────────────────────
@@ -282,7 +282,7 @@ def test_filter_drops_cart_without_buyer_email(settings_row, website, product):
     SaleOrderLine.objects.create(order=cart, product=product,
                                  product_uom_qty=1,
                                  price_unit=Decimal('250.00'))
-    WebsiteSaleOrderInfo.objects.create(sale_order=cart, website=website)
+    WebsiteSaleOrderInfo.objects.create(sale_order=cart, website_id=website)
     kept = SaleOrder._filter_can_send_abandoned_cart_mail(
         SaleOrder.objects.filter(pk=cart.pk))
     assert kept == []

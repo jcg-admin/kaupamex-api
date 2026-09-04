@@ -118,16 +118,16 @@ class Command(BaseCommand):
         vacia ``seed()`` es un no-op. La referencia tampoco nombra una empresa
         real al arrancar.
         """
-        for comando in ('migrate', 'createcachetable'):
+        for command in ('migrate', 'createcachetable'):
             try:
-                call_command(comando, verbosity=0)
+                call_command(command, verbosity=0)
             except DatabaseError as err:
                 # INFO a proposito, igual que la referencia: un entorno con
                 # acceso restringido a la base no deberia llenar el arranque de
                 # advertencias por algo que puede ser correcto en su despliegue.
                 _logger.info(
-                    'No se pudo preparar la base con %s, se omite: %s', comando, err,
+                    'No se pudo preparar la base con %s, se omite: %s', command, err,
                 )
-                self.stdout.write(f'{comando}: omitido ({err})')
+                self.stdout.write(f'{command}: omitido ({err})')
             else:
-                self.stdout.write(f'{comando}: ok')
+                self.stdout.write(f'{command}: ok')

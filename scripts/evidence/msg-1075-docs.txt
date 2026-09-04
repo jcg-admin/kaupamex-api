@@ -1,0 +1,20 @@
+Register H-API-1075: three more reflections crossed the guard
+
+El gate del eje de escritura —construido en :ref:`h-api-1074`— marco en su
+primera pasada los otros tres reflejos de ``ir_model.py``:
+``_reflect_constraint``, ``_reflect_relation`` y ``_reflect_inherits``
+escribian por ``save()`` donde la fuente escribe en SQL crudo. El hallazgo
+registra la premisa medida, la correccion y la frontera de enganche de
+Django de la que depende: ``bulk_create`` dispara ``pre_save``,
+``QuerySet.update()`` no, ``QuerySet.delete()`` si emite las senales.
+
+Registra tambien el tercer desenlace del instrumento. Los dos hallazgos
+que quedaban como ``categoria distinta`` no eran divergencias: la fuente
+usa los dos mecanismos para dos operaciones distintas, y con la
+granularidad del metodo no se puede afirmar desacuerdo. ``INDETERMINATE``
+lo declara y el alcance lo cuenta aparte del denominador.
+
+Baseline del eje 28 -> 17; la deuda que sobrevive queda como #358 y el
+porte completo de ``ir_model.py`` como #172.
+
+Codigo en ``api@340f3f35``.
