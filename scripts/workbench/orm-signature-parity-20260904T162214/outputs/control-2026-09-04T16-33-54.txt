@@ -1,0 +1,37 @@
+# control — pieza de paridad de firma (tarea #367)
+# fecha: 2026-09-04T16:33:58
+# api:   c4b4628e
+# ref:   odoo19c @ abe4040ec1
+# comando: bash scripts/workbench/orm-signature-parity-20260904T162214/neutralize_and_measure.sh
+
+== con classify() intacto ==
+  clear_all_caches marcado: True   (se exige True)
+  init_models      marcado: False   (se exige False)
+
+== con classify() anulado a «nunca diverge» ==
+  clear_all_caches marcado: False   <- CAE: el control discrimina
+  init_models      marcado: False   <- sobrevive: mide otra cosa
+  divergencias del archivo: 2 -> 0
+
+== la suite bajo la misma anulacion ==
+.....FFFFFFF....F..F                                                     [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /home/user/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED scripts/workbench/orm-signature-parity-20260904T162214/tests/test_signature_parity.py::TestTheComparison::test_a_renamed_parameter_is_reported
+FAILED scripts/workbench/orm-signature-parity-20260904T162214/tests/test_signature_parity.py::TestTheComparison::test_a_missing_parameter_is_reported
+FAILED scripts/workbench/orm-signature-parity-20260904T162214/tests/test_signature_parity.py::TestTheComparison::test_an_extra_parameter_is_reported
+FAILED scripts/workbench/orm-signature-parity-20260904T162214/tests/test_signature_parity.py::TestTheComparison::test_a_reordering_is_reported_and_is_not_a_rename
+FAILED scripts/workbench/orm-signature-parity-20260904T162214/tests/test_signature_parity.py::TestTheComparison::test_a_lost_default_is_reported
+FAILED scripts/workbench/orm-signature-parity-20260904T162214/tests/test_signature_parity.py::TestTheComparison::test_an_added_default_is_reported
+FAILED scripts/workbench/orm-signature-parity-20260904T162214/tests/test_signature_parity.py::TestTheComparison::test_a_dropped_kwargs_is_reported
+FAILED scripts/workbench/orm-signature-parity-20260904T162214/tests/test_signature_parity.py::TestTheControlCanFail::test_a_known_real_divergence_is_flagged
+FAILED scripts/workbench/orm-signature-parity-20260904T162214/tests/test_signature_parity.py::TestTheInstrumentDeclaresItsScope::test_a_divergence_carries_both_sides
+9 failed, 11 passed, 1 warning in 0.21s
+  exit de pytest: 1   (se exige != 0: con el comparador anulado la suite DEBE caer)
+
+EXIT=0
