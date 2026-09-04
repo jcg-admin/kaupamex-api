@@ -9,18 +9,23 @@ nombre (``check_object_name``, ``check_pg_name``, ``parse_field_expr``) son
 Django el equivalente es ``is_superuser`` en el modelo de usuario, pero el **id**
 1 se preserva como constante fiel para paridad con seeds y referencias Odoo.
 
-Se **omite** ``SQL_OPERATORS`` de Odoo: es plumbing del query-builder de Odoo
-(mapea operador → fragmento SQL concatenable de ``odoo.tools.SQL``). Aquí el
-compilador de queries es el ORM de Django (``QuerySet``/``Q``, ≙ ``orm/domains``),
-que construye el SQL nativo — no se concatenan fragmentos a mano. Portar el dict
-sobre ``RawSQL`` (que exige ``params`` y no es un fragmento concatenable) daría un
-objeto inservible; misma razón que los stubs de motor (environments/registry).
+``SQL_OPERATORS`` **se porta**, y su omisión anterior era estado incorrecto
+heredado. La nota que la justificaba decía que aquí sólo había ``RawSQL`` —que
+exige ``params`` y no compone—, y eso dejó de ser cierto: ``tools.sql.SQL``
+existe (``src/tools/sql.py:166``) con ``.code``/``.params``/``.join()``, y
+``SQL(' = ')`` da ``code=' = '`` con ``params=[]``, exactamente como la fuente.
+Un fragmento con espacios a los lados no es plumbing de un compilador ajeno: es
+el vocabulario con que se arma un ``WHERE`` compuesto, y quien lo necesite ya
+no tiene que escribirlo a mano en cada sitio.
 """
 import re
 import warnings
 from collections.abc import Set as AbstractSet
 
+import dateutil.relativedelta
 from django.db import models
+
+from tools.sql import SQL
 
 from exceptions import AccessError, ValidationError
 from orm.fields_nonstored import non_stored_fields
@@ -34,6 +39,27 @@ COLLECTION_TYPES = (list, tuple, AbstractSet)
 # ``is_superuser``; el id 1 se preserva para paridad con seeds/refs Odoo.
 SUPERUSER_ID = 1
 
+#: ≙ ``READ_GROUP_TIME_GRANULARITY`` (``odoo19c: odoo/orm/utils.py:22-30``).
+#: El **paso** con que ``_read_group`` avanza de un cubo temporal al siguiente:
+#: el nombre de la granularidad → el delta que hay que sumar.
+#:
+#: ``week`` es ``days=7``, **no** ``weeks=1``. Los dos valen lo mismo para
+#: ``relativedelta`` —``weeks`` es azúcar que se normaliza a días—, pero se
+#: porta la forma de la fuente: un porte que "mejora" la escritura deja de ser
+#: comparable símbolo a símbolo.
+#:
+#: Es el eje **temporal**, distinto del de abajo: aquí el valor es un delta que
+#: se suma a una fecha; allá es el token que PostgreSQL recibe en un
+#: ``EXTRACT``. Comparten prefijo y no comparten tipo.
+READ_GROUP_TIME_GRANULARITY = {
+    'hour': dateutil.relativedelta.relativedelta(hours=1),
+    'day': dateutil.relativedelta.relativedelta(days=1),
+    'week': dateutil.relativedelta.relativedelta(days=7),
+    'month': dateutil.relativedelta.relativedelta(months=1),
+    'quarter': dateutil.relativedelta.relativedelta(months=3),
+    'year': dateutil.relativedelta.relativedelta(years=1),
+}
+
 # granularidades de ``_read_group`` — fiel a Odoo 19 (nombres → token SQL).
 READ_GROUP_NUMBER_GRANULARITY = {
     'year_number': 'year',
@@ -46,6 +72,48 @@ READ_GROUP_NUMBER_GRANULARITY = {
     'hour_number': 'hour',
     'minute_number': 'minute',
     'second_number': 'second',
+}
+
+
+#: ≙ ``READ_GROUP_ALL_TIME_GRANULARITY`` (``odoo19c: odoo/orm/utils.py:44``).
+#: La unión de los dos ejes, que es lo que ``_read_group`` usa para decidir si
+#: una granularidad pedida existe. Se declara como unión y no como literal por
+#: la misma razón que la fuente: una granularidad añadida a cualquiera de los
+#: dos dicts entra aquí sola, y una escrita a mano se olvidaría.
+READ_GROUP_ALL_TIME_GRANULARITY = READ_GROUP_TIME_GRANULARITY | READ_GROUP_NUMBER_GRANULARITY
+
+
+#: ≙ ``SQL_OPERATORS`` (``odoo19c: odoo/orm/utils.py:47-67``). El operador de un
+#: dominio → su fragmento SQL, **con espacios a los lados**, listo para
+#: concatenar entre el lado izquierdo y el derecho de una condición.
+#:
+#: Los espacios y el literal en mayúsculas están fijos a propósito: el
+#: comentario de la fuente lo dice —*"hardcoded to avoid changing SQL injection
+#: linting"*—. Un fragmento construido con ``SQL(f' {op} ')`` sería
+#: indistinguible para un analizador de inyección; uno literal, no.
+#:
+#: Cuatro entradas mapean a **tres** literales distintos y no es un descuido:
+#: ``=like`` y ``like`` comparten ``LIKE`` porque su diferencia no está en el
+#: operador sino en el patrón —``like`` envuelve el valor en ``%…%`` y
+#: ``=like`` lo pasa verbatim—. Ese envoltorio lo pone quien construye el lado
+#: derecho, no este dict.
+SQL_OPERATORS = {
+    '=': SQL(' = '),
+    '!=': SQL(' != '),
+    'in': SQL(' IN '),
+    'not in': SQL(' NOT IN '),
+    '<': SQL(' < '),
+    '>': SQL(' > '),
+    '<=': SQL(' <= '),
+    '>=': SQL(' >= '),
+    'like': SQL(' LIKE '),
+    'ilike': SQL(' ILIKE '),
+    '=like': SQL(' LIKE '),
+    '=ilike': SQL(' ILIKE '),
+    'not like': SQL(' NOT LIKE '),
+    'not ilike': SQL(' NOT ILIKE '),
+    'not =like': SQL(' NOT LIKE '),
+    'not =ilike': SQL(' NOT ILIKE '),
 }
 
 
@@ -111,6 +179,28 @@ class OriginIds:
         for id_ in reversed(self.ids):
             if id_ := id_ or getattr(id_, 'origin', None):
                 yield id_
+
+
+#: ≙ ``origin_ids`` (``odoo19c: odoo/orm/utils.py:149``). El alias en minúsculas
+#: de la clase de arriba. Es el **mismo objeto**, no una subclase ni un
+#: envoltorio: ``origin_ids is OriginIds``.
+#:
+#: **La fuente no lo llama por este nombre en ningún sitio.** Sus tres usos van
+#: por la clase —``OriginIds(self._ids)`` en ``odoo19c: odoo/orm/models.py``
+#: :5909, :6467 y :6468— y las dos apariciones del identificador en minúsculas
+#: (``odoo19c: odoo/orm/fields_binary.py:338,342``) son una **variable local**
+#: de ``_compute_related_full``: ese archivo no importa nada de ``utils``.
+#:
+#: Se porta igual, por fidelidad: el alias existe en el contrato del módulo y un
+#: consumidor externo puede depender de él. Lo que no se hace es inventarle un
+#: uso — una primera redacción de esta nota afirmaba que la fuente lo invoca
+#: así, y era un ejemplo fabricado (:ref:`h-api-829`).
+#:
+#: *Métrica:* ``git grep -n 'origin_ids\|OriginIds'`` sobre ``odoo/`` de
+#: ``odoo19c``.
+#: *Ciega a:* un consumidor fuera de ``odoo/`` —los addons no se midieron— y a
+#: uno que llegue por ``getattr`` con el nombre en una cadena.
+origin_ids = OriginIds
 
 
 def check_object_name(name):

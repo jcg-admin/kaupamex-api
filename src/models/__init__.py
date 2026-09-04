@@ -59,18 +59,27 @@ usos reales del lado de Django. Las 17 menciones de ``models.Constraint`` que
 un grep de texto encuentra están todas en prosa que describe la referencia — la
 distinción la hace el AST, no el grep.
 
-Los ocho que faltan, con su veredicto
+Los tres que faltan, con su veredicto
 =====================================
 
 **Bloqueo medido**: ``orm/`` todavía no los declara, y ligar un nombre
 inexistente rompe el import del paquete. Cada uno entra con el pase que porta su
 símbolo, que es el mismo pase y no un barrido posterior:
 
-- ``BaseModel``, ``AbstractModel``, ``MetaModel`` — la jerarquía de la fuente
+- ``BaseModel``, ``MetaModel`` — la jerarquía de la fuente
   (``odoo19c: odoo/orm/models.py``). Es #211 y #209.
-- ``READ_GROUP_DISPLAY_FORMAT``, ``READ_GROUP_TIME_GRANULARITY``,
-  ``parse_read_group_spec`` — la familia de ``read_group``.
-- ``check_method_name`` — es #205.
+- ``READ_GROUP_DISPLAY_FORMAT`` — la familia de ``read_group``.
+
+Esta lista decía **ocho** y su cifra llevaba tres nombres de más. Medido al
+portar ``READ_GROUP_TIME_GRANULARITY``: ``AbstractModel``,
+``parse_read_group_spec`` y ``check_method_name`` ya se declaran y ya los
+re-exporta el bloque de abajo — el propio archivo se contradecía, porque el
+tercero aparece nombrado como ausente y como importado con doce líneas de
+diferencia. Y el cuarto, ``READ_GROUP_TIME_GRANULARITY``, dejó de faltar en
+este pase.
+
+Una lista de pendientes que envejece hacia arriba es peor que ninguna: da por
+bloqueado un trabajo que ya está hecho, y el siguiente pase lo re-agenda.
 
 Divergencia de sitio declarada: la referencia saca
 ``READ_GROUP_NUMBER_GRANULARITY`` de ``odoo/orm/models.py`` y aquí sale de
@@ -105,6 +114,7 @@ from orm.models_transient import TransientModel
 from orm.table_objects import Constraint, Index, UniqueIndex
 from orm.utils import (
     READ_GROUP_NUMBER_GRANULARITY,
+    READ_GROUP_TIME_GRANULARITY,
     check_method_name,
     check_object_name,
     check_pg_name,
