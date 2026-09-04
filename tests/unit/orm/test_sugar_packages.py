@@ -64,8 +64,11 @@ BLOCKED_BY_ITS_SYMBOL = {
     # en la tarea #333: ``account.journal`` y ``res.partner.bank`` los declaran
     # como ``_check_company_domain``, y el pase que porto esos dos atributos de
     # clase construyo los dos simbolos, que es lo que esta lista describe.
-    'models': ('READ_GROUP_DISPLAY_FORMAT', 'READ_GROUP_TIME_GRANULARITY',
-               'BaseModel', 'MetaModel'),
+    # ``READ_GROUP_TIME_GRANULARITY`` salio de aqui al portarse en
+    # ``orm/utils.py``, junto a su hermano de numero. La fuente lo
+    # re-exporta desde ``odoo.orm.utils`` (``odoo/models/__init__.py:27``),
+    # asi que la fachada lo liga por el mismo bloque.
+    'models': ('READ_GROUP_DISPLAY_FORMAT', 'BaseModel', 'MetaModel'),
 }
 
 PACKAGES = {'api': api, 'fields': fields, 'models': models}
@@ -87,6 +90,7 @@ DECLARANTE = {
     'LOG_ACCESS_COLUMNS': 'orm.models', 'MAGIC_COLUMNS': 'orm.models',
     'fix_import_export_id_paths': 'orm.models', 'regex_order': 'orm.models',
     'READ_GROUP_NUMBER_GRANULARITY': 'orm.utils',
+    'READ_GROUP_TIME_GRANULARITY': 'orm.utils',
     'check_object_name': 'orm.utils', 'check_pg_name': 'orm.utils',
     'depends_context': 'orm.decorators', 'ondelete': 'orm.decorators',
     'check_method_name': 'orm.utils',
