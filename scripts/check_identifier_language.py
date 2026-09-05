@@ -18,7 +18,7 @@ es la convención, no el defecto.
 Cómo decide que una palabra es española
 ========================================
 
-Dos criterios, los dos derivados de medir el árbol, no de memoria:
+Tres criterios, los tres derivados de medir el árbol, no de memoria:
 
 1. **Morfología exclusiva** — sufijos que el inglés no produce (``-ción``,
    ``-dad``, ``-mente``, ``-ando``, ``-iendo``, ``-ador``, ``-encia``). Sólo
@@ -26,6 +26,12 @@ Dos criterios, los dos derivados de medir el árbol, no de memoria:
 2. **Partículas de alta precisión** en un identificador de **dos o más**
    palabras. El umbral importa: una variable llamada ``y`` o ``la`` es una letra
    suelta, no una frase en español; ``devuelve_el_metodo`` sí lo es.
+3. **Léxico cerrado** (``SPANISH_WORDS``) — las palabras de contenido que los
+   dos anteriores no ven: un infinitivo (``esperar``, ``verificar``) o un
+   sustantivo llano (``tablero``, ``hallazgo``) no tienen sufijo exclusivo ni
+   partícula. Se derivó midiendo los nombres reales del árbol (TASK-DB-0003),
+   no de memoria, y es la ÚNICA lista: el gate de nombres de ``docs`` la reusa
+   por ruta en vez de copiarla.
 
 Se excluyen a propósito las partículas ambiguas con el inglés (``no``, ``son``,
 ``a``, ``un``, ``es``) y ``sin``, que es una función trigonométrica.
@@ -90,6 +96,34 @@ SPANISH_WORDS = frozenset({
     # el español es defecto. En PROSA el veredicto puede ser el opuesto.
     'corrida', 'corridas', 'tanda', 'tandas', 'guion', 'guiones',
     'lote', 'lotes',
+    # TASK-DB-0003 (b): infinitivos y sustantivos llanos que la morfología no
+    # atrapa, derivados de los NOMBRES DE ARCHIVO reales de los cinco repos —
+    # el banco de la mitad (a) es
+    # docs: .claude/eventos/derivar-lexico-cerrado-de-nombres-20260905T062807/
+    # (salidas/lexico-derivado-2026-09-05T06-40-22.txt; triaje en el mismo
+    # directorio). Es UNA lista, no una segunda fuente: el gate de nombres de
+    # docs reusa `spanish_words_in`, así que extender aquí sirve a los tres
+    # ejes (identificador en api, nombre de archivo, identificador en .claude).
+    'activos', 'agente', 'agentes', 'agrupar', 'antes', 'apertura',
+    'arrancar', 'arranque', 'artefacto', 'artefactos', 'asignadas', 'aviso',
+    'bloqueo', 'buscar', 'campos', 'carrete', 'cascara', 'censar', 'censo',
+    'cerrar', 'cifra', 'clasificar', 'clon', 'columnas', 'como', 'compara',
+    'completo', 'conserva', 'contraparte', 'contrato', 'costo', 'decidir',
+    'declarada', 'declaradas', 'declarado', 'dependencias', 'derivar',
+    'desactualizado', 'despachar', 'destino', 'dia', 'directorio',
+    'discrimina', 'disparo', 'divergencias', 'documentales', 'documento',
+    'documentos', 'drenar', 'duplicados', 'emisores', 'enlace', 'escotilla',
+    'escribir', 'espera', 'esperar', 'eventos', 'extraer', 'familia',
+    'fidelidad', 'fuente', 'gana', 'grupo', 'guardas', 'hallazgo',
+    'hallazgos', 'idioma', 'instalar', 'mapa', 'materializa', 'medir',
+    'mensaje', 'minimos', 'modelos', 'mutante', 'objetos', 'paridad',
+    'pendiente', 'pendientes', 'porte', 'prefijo', 'premisa', 'prosa',
+    'proyectos', 'publicar', 'queda', 'ramas', 'reconciliar', 'recupera',
+    'referencias', 'refrescar', 'renumerar', 'reporte', 'requerido',
+    'rutas', 'salida', 'sesion', 'sincronizar', 'sintaxis', 'sobres',
+    'subagentes', 'submodulo', 'sucesor', 'superficies', 'tabla', 'tablero',
+    'tardia', 'tareas', 'tipos', 'trabajo', 'tres', 'varada', 'vecinos',
+    'veredicto', 'verificar', 'vigente', 'vivo', 'vocabulario', 'volcar',
 })
 
 
