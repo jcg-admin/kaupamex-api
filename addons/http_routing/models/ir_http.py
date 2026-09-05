@@ -112,7 +112,7 @@ Lo que la fuente trae y NO es Python
 
 Medido en este árbol antes de decidir:
 ``find addons/ src/ -name "*.xml" | wc -l`` → **0**. Ningún addon de este
-monorepo declara vistas XML; omitirlas aquí es coherencia con el árbol, no un
+multi-repo declara vistas XML; omitirlas aquí es coherencia con el árbol, no un
 recorte de este pase.
 
 - ``views/http_routing_template.xml`` — las **10 plantillas QWeb** de la

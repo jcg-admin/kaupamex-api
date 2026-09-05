@@ -10,7 +10,7 @@ no distribuye el *esquema* entre apps (una columna nueva sólo la puede
 declarar el addon dueño de la clase — aquí, ``base``), así que los
 **métodos** se asignan sobre ``ResCompany`` al importarse — mismo patrón que
 ``sale_subscription/models/res_company.py`` (precedente ya en este
-monorepo).
+multi-repo).
 
 Divergencia declarada
 ======================
