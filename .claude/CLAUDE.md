@@ -291,11 +291,20 @@ Agent(description="ANÁLISIS DE COBERTURA...", ...)
 
 ## Configuración del Proyecto
 
-adr_path_doc: docs/source/gestion/decisiones/        # DEC-DOC: decisiones de documentacion
-adr_path_api: docs/source/backend/adr/               # ADRs de producto, capa backend
-adr_path_ui:  docs/source/frontend/adr/              # ADRs de producto, capa frontend
-pm_root:      docs/source/gestion/pm/                # Project management raiz; subdivide por submodulo
-submodulos:   [api, db, docs, server, ui]            # Cada uno tiene su gestion bajo pm_root/<submodulo>/
+adr_path_doc:    docs/source/gestion/decisiones/     # DEC-DOC: decisiones de documentacion
+adr_path_api:    docs/source/backend/adr/           # ADRs de producto, capa backend
+adr_path_ui:     docs/source/frontend/adr/          # ADRs de producto, capa frontend
+adr_path_thyrox: docs/source/thyrox/adr/            # ADRs de la IMPLEMENTACION de THYROX (ADR-THYROX-001)
+pm_root:         docs/source/gestion/pm/            # Project management raiz; subdivide por raiz de trabajo
+submodulos:      [api, db, docs, server, ui, thyrox] # Cada una tiene su gestion bajo pm_root/<raiz>/
+
+# La clave `submodulos:` nombra mal lo que enumera, y se declara la deuda en vez
+# de pagarla aqui. Ninguna de las seis es un submodulo: no hay superproyecto
+# desde 2026-08-07 (`gitlink-bump-gate.md`), asi que no hay gitlink que las haga
+# submodulos de nada — son clones hermanos. Y `thyrox` ademas no es una capa del
+# producto: es su PROVEEDOR de metodologia, y los cinco kaupamex-* son sus
+# consumidores. Lo que la clave enumera de verdad son las RAICES DE TRABAJO que
+# el arbol de docs documenta. Ver ADR-THYROX-001; el renombre es la tarea #169.
 
 ## Glosario
 
