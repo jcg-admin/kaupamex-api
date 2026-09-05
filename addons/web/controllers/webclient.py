@@ -117,7 +117,7 @@ Instalar la ruta con una respuesta vacía o parcial (``{"modules": {},
 ``web/models/ir_http.py`` ya nombró para ``get_frontend_session_info``:
 *"un stub que aparenta cobertura"*. Ninguno de los 6 tiene consumidor real
 en ``kaupamex-ui`` (que resuelve i18n, bundling y testing por su cuenta) ni
-en ningún otro repo del monorepo.
+en ningún otro repo del multi-repo.
 
 Correspondencia con la referencia (``odoo-tools@622ddc2a``)
 ===============================================================

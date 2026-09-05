@@ -1,6 +1,6 @@
 # CLAUDE.md — api (cheat-sheet local)
 
-Submódulo `api` del monorepo PracticaYoruba (repo GitHub `jcg-admin/kaupamex-api`).
+Submódulo `api` del multi-repo PracticaYoruba (repo GitHub `jcg-admin/kaupamex-api`).
 Backend Django 6 + DRF, gestionado con `uv`, tests con pytest contra PostgreSQL.
 El operador de plataforma (L0) es **Kaupamex**: las bases son `kaupamex_core`
 (prod/dev) y `kaupamex_core_qa` (tests), con el rol `django_user`. **PracticaYoruba**

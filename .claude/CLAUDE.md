@@ -139,7 +139,7 @@ es buscable, indexable y publicable.
 
 ## Tech-stack — Stack confirmado
 
-Stack del monorepo (parent + 5 submodulos):
+Stack del multi-repo (5 repositorios hermanos):
 
 - **api/**: Django 6.0.5 + DRF 3.16.1, psycopg[binary] >=3.2, simplejwt 5.5.1,
   drf-spectacular 0.29.0, pytest + pytest-django + factory-boy, mercadopago SDK.

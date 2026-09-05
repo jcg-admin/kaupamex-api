@@ -1,6 +1,6 @@
 ---
 name: Audit Coherence
-description: Auditoría crítica de COHERENCIA del repo/monorepo (no de completitud de un WP — eso es /thyrox:audit→workflow-audit). Patrón Command → Script + Agente: corre los gates mecánicos (.claude/scripts/thyrox-audit.sh) y delega el juicio cualitativo en increment-acceptor. No corrige — documenta. El reporte va a docs/source/**.
+description: Auditoría crítica de COHERENCIA del repo / multi-repo (no de completitud de un WP — eso es /thyrox:audit→workflow-audit). Patrón Command → Script + Agente: corre los gates mecánicos (.claude/scripts/thyrox-audit.sh) y delega el juicio cualitativo en increment-acceptor. No corrige — documenta. El reporte va a docs/source/**.
 argument-hint: "[repo | submodulos]"
 ---
 
