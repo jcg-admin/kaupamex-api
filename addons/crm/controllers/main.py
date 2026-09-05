@@ -42,10 +42,11 @@ from addons.crm.controllers.serializers import (
 # Buzones de contacto — L3 per-empresa (SOL-090 slice 3, CompanySetting).
 # Antes eran ``settings.CONTACT_FROM_EMAIL``/``CONTACT_NOTIFY_EMAIL`` con
 # ``default=`` cableado. Ese default NO era stale — es la config L1 correcta
-# del L1 de ejemplo Kaupamex (Kaupamex es L0, no Kaupamex); la
+# de la empresa L1 inicial (Kaupamex es el operador L0, no un L1); la
 # migración ``company/0006_seed_founder_settings`` lo siembra como su propio
 # ``CompanySetting``. Las constantes de abajo son el fallback **neutral**
-# (nivel Kaupamex, no de Kaupamex) que usa ``get_setting`` cuando no
+# (nivel Kaupamex, no de una empresa L1 concreta) que usa ``get_setting``
+# cuando no
 # hay empresa en contexto (request anónimo, pre resolutor subdominio→company
 # UC-PLT-06) o la empresa activa no fijó su propio buzón — cierra
 # H-CFG-IMPL-10.

@@ -25,8 +25,7 @@ producto del ejecutor 2026-08-05 lo cambió):
 - `CONTACT`: `'Equipo Kaupamex' / 'soporte@kaupamex.com'` — es el **operador L0 de
   la plataforma**, no el buzón del L1 de ejemplo (DEC-KX-05, follow-up #199). El
   `TITLE`/`DESCRIPTION` nombran ahora al operador L0 (Kaupamex): la API es una
-  sola y sirve a todas las Company, no sólo a Kaupamex (el L1 de
-  ejemplo). Guardado por regresión en `tests/integration/test_schema.py`. Ver
+  sola y sirve a todas las Company, no sólo a una empresa L1. Guardado por regresión en `tests/integration/test_schema.py`. Ver
   `backend-drf/references/schema.md`.
 
 ## Comportamiento del generador

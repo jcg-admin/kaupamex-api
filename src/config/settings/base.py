@@ -502,8 +502,8 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'Kaupamex API',
     'DESCRIPTION': (
         'API REST de Kaupamex — plataforma multi-company de comercio\n'
-        'electrónico. Kaupamex es su L1 de ejemplo, no la\n'
-        'plataforma.\n\n'
+        'electrónico. Cada empresa cliente es un L1; Kaupamex\n'
+        'es la plataforma que las hospeda.\n\n'
         'Autenticación: sesión de servidor (cookie HttpOnly) via '
         'POST /api/v2/auth/login/\n'
         'Todos los endpoints bajo el prefijo /api/v2/'
