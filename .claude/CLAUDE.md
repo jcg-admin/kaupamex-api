@@ -50,12 +50,25 @@ Ver DEC-KX-05 (iniciativa `plataforma-kaupamex`).
 **El barrido del 2026-09-05 retiro el nombre del L1 de los cinco repos** —
 3972 sustituciones, por directiva del ejecutor. Lo unico que lo conserva, a
 proposito, es la **evidencia fechada** (hallazgos, analisis, progreso, audits,
-lecciones) y los **24 archivos cuyo slug de iniciativa lo lleva**
-(`crear-practicayoruba-db`, `integrar-practicayoruba-db-api`,
-`configurar-red-dmz-practicayoruba-server`,
-`analizar-impacto-renombrar-practicayoruba-a-src`). Esos slugs **no son
-legacy**: renombrarlos rompe rutas y `:ref:` vivos, y es un cambio estructural
-aparte. Fuera de esos dos casos, el nombre del L1 no aparece.
+lecciones) y las **cinco iniciativas cuyo slug lo lleva** —
+`crear-practicayoruba-db`, `integrar-practicayoruba-db-api`,
+`crear-practicayoruba-server`, `configurar-red-dmz-practicayoruba-server` y
+`analizar-impacto-renombrar-practicayoruba-a-src`— con **37 archivos** que lo
+llevan en el nombre. Fuera de esos dos casos, el nombre del L1 no aparece.
+
+**Esas cinco NO se renombran: se marcan `deprecated`** (directiva del ejecutor
+2026-09-05; el identificador va en ingles, igual que el `DEPRECATED:` de los
+guiones). Cada `index.rst` abre con `.. deprecated:: 2026-09-05`, que declara
+que **lo deprecated es el slug, no el trabajo**: las cinco quedaron
+`completada` y siguen vigentes. No se abre trabajo nuevo bajo ellas; una
+sucesora se nombra segun `terminologia-l0-company`.
+
+Renombrarlas romperia **17 `:doc:` alojados en `audits/`**, que es evidencia
+congelada — medido, no supuesto: los toctree de iniciativas usan `:glob:` (0
+entradas por nombre) y **ninguna** de sus 35 etiquetas se cita con `:ref:`
+desde fuera. La version anterior de este parrafo decia "4 slugs", "24
+archivos" y "renombrarlos rompe rutas y `:ref:` vivos": las dos cifras y la
+razon eran falsas. Ver H-DOCS-1051.
 
 **Nota de adaptacion (2026-05-19):** este archivo proviene del template
 THYROX usado en IACT-docs. Para kaupamex se decidio **no importar**
