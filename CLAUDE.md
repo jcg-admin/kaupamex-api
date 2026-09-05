@@ -1,10 +1,11 @@
 # CLAUDE.md — api (cheat-sheet local)
 
-Submódulo `api` del multi-repo PracticaYoruba (repo GitHub `jcg-admin/kaupamex-api`).
+Submódulo `api` del multi-repo Kaupamex (repo GitHub `jcg-admin/kaupamex-api`).
 Backend Django 6 + DRF, gestionado con `uv`, tests con pytest contra PostgreSQL.
 El operador de plataforma (L0) es **Kaupamex**: las bases son `kaupamex_core`
-(prod/dev) y `kaupamex_core_qa` (tests), con el rol `django_user`. **PracticaYoruba**
-es el L1 de ejemplo (insignia), no el nombre del producto ni de la base.
+(prod/dev) y `kaupamex_core_qa` (tests), con el rol `django_user`. Las **empresas
+cliente son L1**: la plataforma las hospeda, y ninguna da nombre al producto ni a
+la base. El L1 inicial se declara en config (`BOOTSTRAP_COMPANY_CODE`), no en código.
 
 Este archivo es **solo un cheat-sheet local** — NO redefine gobernanza.
 

@@ -19,17 +19,19 @@ updated_at: 2026-07-17 19:33:06
 - **Producto / plataforma: Kaupamex.** Es el **operador L0**: un SaaS
   multi-empresa que hospeda a empresas cliente para gestionar su ecommerce +
   ERP + CRM, con cobro por modulo + renta mensual. El nombre del repo coincide
-  con el operador L0 a proposito. Dentro del codigo: bases `kaupamex_core` /
-  `kaupamex_core_qa`, rol `django_user`, `SYSTEM_COMPANY_CODE = 'kaupamex_global'`,
+  con el operador L0 a proposito. Dentro del codigo: bases `kaupamex_db` /
+  `kaupamex_qa`, rol `django_user`, `SYSTEM_COMPANY_CODE = 'kaupamex_global'`,
   env files en `src/.env`, punto de entrada `kaupamex-bin`.
 
-- **PracticaYoruba es UNA empresa L1, no el producto.** Es el L1 de ejemplo
-  (insignia), no el operador de plataforma ni "el producto" como un todo.
+- **Una empresa L1 no es el producto.** Un L1 es una `Company` cliente que
+  la plataforma hospeda, no el operador ni "el producto" como un todo.
   **En prosa no se usa "founder"** — implica que fundo u opera la plataforma,
   que es exactamente lo contrario (ver `terminologia-l0-company.md`).
+  **El L1 tampoco se nombra en prosa** desde el barrido del 2026-09-05: se
+  dice "la empresa L1", sin nombre propio.
 
 **El L1 ya no se nombra en codigo (DEC-3 de `tenants-sin-clases-en-codigo`,
-2026-08-05).** La constante `FOUNDER_COMPANY_CODE = 'practicayoruba'` **fue
+2026-08-05).** La constante `FOUNDER_COMPANY_CODE`, cuyo valor nombraba al L1, **fue
 retirada**: la empresa inicial se declara en config (`BOOTSTRAP_COMPANY_CODE`
 / `BOOTSTRAP_COMPANY_NAME`, ambas con `default=''`) y la crea
 `kaupamex-bin company_create`. Con esas claves vacias no se siembra ninguna
@@ -45,11 +47,15 @@ Regla de clasificacion de config: infra/ops → L0 (Kaupamex); per-empresa
 (contacto, newsletter, remitente transaccional) → L1/L3 (`CompanySetting`).
 Ver DEC-KX-05 (iniciativa `plataforma-kaupamex`).
 
-Una iniciativa cuyo slug contiene `practicayoruba` (ej.
-`crear-practicayoruba-db`) **no es legacy** — documenta trabajo sobre esa
-empresa L1. Lo que **si** es drift, y se corrige al encontrarlo, es
-`practicayoruba` en **infraestructura**: nombres de base, rutas de despliegue,
-dominios de plataforma. Esos son L0 y llevan `kaupamex`.
+**El barrido del 2026-09-05 retiro el nombre del L1 de los cinco repos** —
+3972 sustituciones, por directiva del ejecutor. Lo unico que lo conserva, a
+proposito, es la **evidencia fechada** (hallazgos, analisis, progreso, audits,
+lecciones) y los **24 archivos cuyo slug de iniciativa lo lleva**
+(`crear-practicayoruba-db`, `integrar-practicayoruba-db-api`,
+`configurar-red-dmz-practicayoruba-server`,
+`analizar-impacto-renombrar-practicayoruba-a-src`). Esos slugs **no son
+legacy**: renombrarlos rompe rutas y `:ref:` vivos, y es un cambio estructural
+aparte. Fuera de esos dos casos, el nombre del L1 no aparece.
 
 **Nota de adaptacion (2026-05-19):** este archivo proviene del template
 THYROX usado en IACT-docs. Para kaupamex se decidio **no importar**

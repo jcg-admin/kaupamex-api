@@ -117,8 +117,9 @@ automaticamente sobre staged files. Skip manual:
 ## Iniciativas relacionadas
 
 - `docs/source/gestion/pm/api/iniciativas/eliminar-lazy-imports-pep8/`
-  — refactor de 164 imports en `practicayoruba/apps/**` + 593 en
-  `tests/**`. Estado: COMPLETADA.
+  — refactor de 164 imports en el árbol de apps + 593 en `tests/**`.
+  Estado: COMPLETADA. (Las cifras son de 2026-05-20; ese árbol se llamaba
+  entonces de otra forma y hoy es `src/addons/`.)
 - `docs/source/gestion/pm/ui/iniciativas/eliminar-lazy-imports-ui/`
   — equivalente para ui (FU-LAZY-2). Estado: EN EJECUCION.
 
