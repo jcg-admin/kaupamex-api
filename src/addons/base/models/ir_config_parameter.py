@@ -60,7 +60,7 @@ from tools.cache import ormcache
 # cierra el drift H-API-CFG-01/02 de
 # :ref:`hallazgos-estrategia-configuracion-kaupamex`): eran tunables globales
 # con ``default=`` cableado en código (el de ``backup.alert_email`` además
-# stale — ``practicayoruba.com`` tras el rename L0 a Kaupamex, SOL-087). Se
+# stale — ``kaupamex.com`` tras el rename L0 a Kaupamex, SOL-087). Se
 # preserva el valor operativo previo (900 s) y se corrige el dominio del
 # email a ``kaupamex.com``.
 _DEFAULT_PARAMETERS = {

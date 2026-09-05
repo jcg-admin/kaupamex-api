@@ -11,7 +11,7 @@ código del framework.
 
 **La primera empresa L1 ya no se nombra aquí** (DEC-3 de
 ``tenants-sin-clases-en-codigo``, directiva del ejecutor 2026-08-05). Antes
-este módulo declaraba ``FOUNDER_COMPANY_CODE = 'practicayoruba'`` y sus cuatro
+este módulo declaraba ``FOUNDER_COMPANY_CODE = 'kaupamex'`` y sus cuatro
 remitentes de correo como constantes, y ``ResCompany.get_founder()`` la
 fabricaba bajo demanda: eso hacía que la app conociera "el founder" por código
 en runtime, cuando el L1 de ejemplo es una empresa entre potencialmente varias.

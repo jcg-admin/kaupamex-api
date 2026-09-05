@@ -34,7 +34,7 @@ echo "--- Gate autoritativo: spectacular --validate (0 errores + 0 warnings) ---
 
 # --skip-checks evita el system check payments.E001 (MERCADOPAGO gateway),
 # drift de entorno conocido (H-INV-RESTOCK-01) ortogonal al schema.
-cd "$PROJECT_ROOT/practicayoruba"
+cd "$PROJECT_ROOT/kaupamex"
 if uv run python manage.py spectacular --validate --skip-checks \
         --file "$SCHEMA_OUT" > "$LOG" 2>&1; then
     SPEC_RC=0

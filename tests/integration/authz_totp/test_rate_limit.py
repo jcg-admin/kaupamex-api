@@ -122,7 +122,7 @@ def _wrong_code(secret):
 def enrolled(db):
     """Usuario con 2FA de app confirmado; devuelve ``(user, secret)``."""
     user = User.objects.create_user(
-        login='con.freno@practicayoruba.mx', password=PASSWORD,
+        login='con.freno@kaupamex.mx', password=PASSWORD,
         name='Usuario Con Freno')
     secret, _uri = begin_setup(user)
     assert confirm_setup(user, _code_for(secret, offset=-1)), 'el alta falló'
@@ -220,7 +220,7 @@ class TestMailCode:
     def mail_user(self, db):
         seed_totp_mail()
         user = User.objects.create_user(
-            login='freno.correo@practicayoruba.mx', password=PASSWORD,
+            login='freno.correo@kaupamex.mx', password=PASSWORD,
             name='Usuario Con Freno De Correo')
         django_mail.outbox.clear()
         return user
@@ -295,7 +295,7 @@ class TestSendCodeEndpoint:
         """CONTROL — el orden de los dos ``except`` de la vista."""
         seed_totp_mail()
         user = User.objects.create_user(
-            login='freno.vista@practicayoruba.mx', password=PASSWORD,
+            login='freno.vista@kaupamex.mx', password=PASSWORD,
             name='Usuario Del Endpoint Con Freno')
         # account.security viaja en los roles sembrados (DEC-ENF-01), igual
         # que en ``tests/integration/authz_totp_mail/test_authz_totp_mail.py``.

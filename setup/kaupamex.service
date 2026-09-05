@@ -50,7 +50,7 @@ WorkingDirectory=/opt/kaupamex/api
 
 # El binario resuelve `src/` por sí mismo (`kaupamex-bin:25`), así que NO se
 # arma PYTHONPATH a mano — ver H-API-385, donde el que había apuntaba a
-# `practicayoruba/`, un directorio que dejó de existir con el rename a `src/`.
+# `kaupamex/`, un directorio que dejó de existir con el rename a `src/`.
 #
 # Se invoca el intérprete del venv EXPLÍCITAMENTE: el shebang de kaupamex-bin
 # es `#!/usr/bin/env python3` y resolvería al Python del sistema, sin las

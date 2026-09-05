@@ -47,7 +47,7 @@ def digest(company):
 @pytest.fixture
 def recruiter():
     """Un usuario dentro de ``hr_recruitment.group_hr_recruitment_user``."""
-    user = UserFactory(login='reclutamiento@practicayoruba.mx')
+    user = UserFactory(login='reclutamiento@kaupamex.mx')
     group = ResGroups.objects.create(name='Reclutamiento (fixture)')
     IrModelData.set_xmlid(group, GROUP_HR_RECRUITMENT_USER)
     user.group_ids.add(group)
@@ -56,7 +56,7 @@ def recruiter():
 
 @pytest.fixture
 def outsider():
-    return UserFactory(login='ajeno-hr@practicayoruba.mx')
+    return UserFactory(login='ajeno-hr@kaupamex.mx')
 
 
 class TestNewColleaguesCountsEmployeesOfTheCompany:

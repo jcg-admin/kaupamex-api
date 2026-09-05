@@ -246,7 +246,7 @@ phase_migrations() {
 
     # kaupamex-bin es el punto de entrada del producto (equivalente de
     # odoo-bin). Resuelve el src-layout por si mismo, asi que NO se arma un
-    # PYTHONPATH a mano — el que habia aqui apuntaba a practicayoruba/, un
+    # PYTHONPATH a mano — el que habia aqui apuntaba a kaupamex/, un
     # directorio que dejo de existir con el rename a src/ (H-API-385).
     # Se invoca con el python del venv: su shebang es /usr/bin/env python3,
     # que resolveria al interprete del sistema, sin las dependencias.

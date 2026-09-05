@@ -33,7 +33,7 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def user():
     return User.objects.create_user(
-        login='candado-metodos@practicayoruba.mx',
+        login='candado-metodos@kaupamex.mx',
         password='CandadoPass123!',
         name='Candado Metodos',
     )

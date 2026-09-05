@@ -100,7 +100,7 @@ class TestCancellationParity:
 
     def test_cancelacion_administrativa_registra_quien(self, draft):
         admin = User.objects.create_user(
-            login='admin.e1@practicayoruba.mx', password='x')
+            login='admin.e1@kaupamex.mx', password='x')
         draft.state = SaleOrder.STATE_CANCEL
         draft.admin_cancelled_by = admin
         draft.cancellation_reason = 'Sin inventario'
@@ -116,7 +116,7 @@ class TestCancellationParity:
     def test_borrar_al_admin_conserva_la_orden_cancelada(self, draft):
         """El historial de la venta sobrevive a la baja de la cuenta."""
         admin = User.objects.create_user(
-            login='baja.e1@practicayoruba.mx', password='x')
+            login='baja.e1@kaupamex.mx', password='x')
         draft.state = SaleOrder.STATE_CANCEL
         draft.admin_cancelled_by = admin
         draft.cancellation_reason = 'Fraude'

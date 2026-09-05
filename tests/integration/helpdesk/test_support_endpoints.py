@@ -43,7 +43,7 @@ class TestSupportCapabilityGate:
 
     def test_requires_account_support(self, api_client, db):
         u = get_user_model().objects.create_user(
-            login='norole-support@practicayoruba.mx', password='TestPass123!')
+            login='norole-support@kaupamex.mx', password='TestPass123!')
         api_client.force_login(u)
         assert api_client.get(TICKETS_URL).status_code == 403
 
@@ -660,7 +660,7 @@ class CierreIdempotenteAutoCloseTest(TestCase):
     def setUp(self):
         User = get_user_model()
         self.buyer = User.objects.create_user(
-            login='buyer-supp04-t018@practicayoruba.mx',
+            login='buyer-supp04-t018@kaupamex.mx',
             password='BuyerPass123!',
         )
 

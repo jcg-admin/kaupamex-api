@@ -83,7 +83,7 @@ def seeded(db):
 
 
 def test_deactivating_a_user_cancels_the_pending_signup(seeded):
-    partner, user = _invited('desactivada@practicayoruba.mx', 'Desactivada')
+    partner, user = _invited('desactivada@kaupamex.mx', 'Desactivada')
     assert _pending(partner), 'el alta no dejó signup pendiente'
 
     user.active = False
@@ -93,7 +93,7 @@ def test_deactivating_a_user_cancels_the_pending_signup(seeded):
 
 
 def test_deleting_a_user_cancels_the_pending_signup(seeded):
-    partner, user = _invited('borrada@practicayoruba.mx', 'Borrada')
+    partner, user = _invited('borrada@kaupamex.mx', 'Borrada')
     assert _pending(partner)
 
     user.delete()
@@ -102,7 +102,7 @@ def test_deleting_a_user_cancels_the_pending_signup(seeded):
 
 
 def test_an_ordinary_save_does_not_cancel_anything(seeded):
-    partner, user = _invited('guardada@practicayoruba.mx', 'Guardada')
+    partner, user = _invited('guardada@kaupamex.mx', 'Guardada')
     user.active = False
     user.save(update_fields=['active'])
     # Se vuelve a preparar el signup con el usuario YA inactivo: un save
@@ -116,7 +116,7 @@ def test_an_ordinary_save_does_not_cancel_anything(seeded):
 
 
 def test_a_rolled_back_deletion_keeps_the_signup(seeded):
-    partner, user = _invited('revertida@practicayoruba.mx', 'Revertida')
+    partner, user = _invited('revertida@kaupamex.mx', 'Revertida')
 
     class _Abortar(Exception):
         pass

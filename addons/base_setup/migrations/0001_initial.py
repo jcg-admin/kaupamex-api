@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 ("order_timeout_minutes", models.PositiveIntegerField(default=60)),
                 (
                     "site_name",
-                    models.CharField(default="PracticaYoruba", max_length=100),
+                    models.CharField(default="Kaupamex", max_length=100),
                 ),
                 (
                     "iva_rate",

@@ -43,7 +43,7 @@ PARAM = 'auth_totp.trusted_device_age'
 @pytest.fixture
 def user():
     return User.objects.create_user(
-        login='confianza@practicayoruba.mx',
+        login='confianza@kaupamex.mx',
         password='ConfianzaPass123!',
         name='Duena del Dispositivo',
     )
@@ -52,7 +52,7 @@ def user():
 @pytest.fixture
 def other_user():
     return User.objects.create_user(
-        login='ajena@practicayoruba.mx',
+        login='ajena@kaupamex.mx',
         password='AjenaPass123!',
         name='Usuaria Ajena',
     )

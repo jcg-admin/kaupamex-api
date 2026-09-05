@@ -50,7 +50,7 @@ Requiere:
 
 El formato canónico ordena la conversación en tres columnas. Es intercambiable con la variante "qué salió bien / qué mejorar / acciones", siempre que termine en acciones:
 
-| Columna | Pregunta | Ejemplo (PracticaYoruba) |
+| Columna | Pregunta | Ejemplo (Kaupamex) |
 |---------|----------|--------------------------|
 | **Start** (empezar) | ¿Qué deberíamos empezar a hacer? | "Pair programming en los módulos de pago" |
 | **Stop** (dejar) | ¿Qué deberíamos dejar de hacer? | "Dejar de comprometer items sin Definition of Ready" |

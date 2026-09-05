@@ -77,7 +77,7 @@ class TestComposedResolver:
 
     def test_without_model_permission_every_row_is_forbidden(
             self, three_companies):
-        who = _user('acqs.sin.modelo@practicayoruba.mx')
+        who = _user('acqs.sin.modelo@kaupamex.mx')
         forbidden, make_error = _rows()._check_access('read', user=who)
         assert forbidden.count() == 3, 'sin permiso de modelo, todas'
         assert isinstance(make_error(), AccessError)
@@ -85,7 +85,7 @@ class TestComposedResolver:
     def test_with_model_permission_and_no_rule_nothing_is_forbidden(
             self, three_companies):
         _grant('read')
-        who = _user('acqs.con.modelo@practicayoruba.mx')
+        who = _user('acqs.con.modelo@kaupamex.mx')
         assert _rows()._check_access('read', user=who) is None
 
     def test_with_model_permission_the_rules_still_narrow(
@@ -95,7 +95,7 @@ class TestComposedResolver:
         IrRule.objects.create(
             name='acqs sólo alfa', model_name=MODEL_LABEL,
             domain_force="[('code', '=', 'acqs-alfa')]")
-        who = _user('acqs.regla@practicayoruba.mx')
+        who = _user('acqs.regla@kaupamex.mx')
         forbidden, _ = _rows()._check_access('read', user=who)
         assert set(forbidden.values_list('code', flat=True)) == {
             'acqs-beta', 'acqs-gama'}
@@ -106,7 +106,7 @@ class TestComposedResolver:
         IrRule.objects.create(
             name='acqs sólo alfa (sin acl)', model_name=MODEL_LABEL,
             domain_force="[('code', '=', 'acqs-alfa')]")
-        who = _user('acqs.orden@practicayoruba.mx')
+        who = _user('acqs.orden@kaupamex.mx')
         forbidden, _ = _rows()._check_access('read', user=who)
         assert forbidden.count() == 3
 
@@ -116,23 +116,23 @@ class TestForms:
 
     def test_has_access_is_false_without_model_permission(
             self, three_companies):
-        who = _user('acqs.has.no@practicayoruba.mx')
+        who = _user('acqs.has.no@kaupamex.mx')
         assert _rows().has_access('read', user=who) is False
 
     def test_has_access_is_true_with_it(self, three_companies):
         _grant('read')
-        who = _user('acqs.has.si@practicayoruba.mx')
+        who = _user('acqs.has.si@kaupamex.mx')
         assert _rows().has_access('read', user=who) is True
 
     def test_check_access_raises_and_names_the_model(self, three_companies):
-        who = _user('acqs.check@practicayoruba.mx')
+        who = _user('acqs.check@kaupamex.mx')
         with pytest.raises(AccessError) as caught:
             _rows().check_access('write', user=who)
         assert MODEL_LABEL in str(caught.value)
 
     def test_check_access_is_silent_when_allowed(self, three_companies):
         _grant('write')
-        who = _user('acqs.check.ok@practicayoruba.mx')
+        who = _user('acqs.check.ok@kaupamex.mx')
         assert _rows().check_access('write', user=who) is None
 
     def test_filtered_access_returns_the_subset_the_rules_allow(
@@ -141,13 +141,13 @@ class TestForms:
         IrRule.objects.create(
             name='acqs filtra a beta', model_name=MODEL_LABEL,
             domain_force="[('code', '=', 'acqs-beta')]")
-        who = _user('acqs.filtra@practicayoruba.mx')
+        who = _user('acqs.filtra@kaupamex.mx')
         allowed = _rows()._filtered_access('read', user=who)
         assert set(allowed.values_list('code', flat=True)) == {'acqs-beta'}
 
     def test_filtered_access_returns_nothing_without_model_permission(
             self, three_companies):
-        who = _user('acqs.filtra.no@practicayoruba.mx')
+        who = _user('acqs.filtra.no@kaupamex.mx')
         assert _rows()._filtered_access('read', user=who).count() == 0
 
     def test_under_su_the_three_forms_allow_everything(self, three_companies):
@@ -155,7 +155,7 @@ class TestForms:
         IrRule.objects.create(
             name='acqs nada pasa', model_name=MODEL_LABEL,
             domain_force="[('code', '=', 'no-existe')]")
-        who = _user('acqs.su@practicayoruba.mx')
+        who = _user('acqs.su@kaupamex.mx')
         with sudo():
             assert _rows().has_access('read', user=who) is True
             assert _rows().check_access('read', user=who) is None
@@ -165,7 +165,7 @@ class TestForms:
         group = ResGroups.objects.create(name='lectores de compañía',
                                          user_type='internal')
         _grant('read', group=group)
-        who = _user('acqs.grupo@practicayoruba.mx')
+        who = _user('acqs.grupo@kaupamex.mx')
         assert _rows().has_access('read', user=who) is False, 'sin el grupo, no'
         who.group_ids.add(group)
         assert _rows().has_access('read', user=who) is True

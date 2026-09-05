@@ -51,7 +51,7 @@ def seeded(db):
 @pytest.fixture
 def superadmin(seeded):
     u = User.objects.create_user(
-        login='reauth-admin@practicayoruba.mx', password=PASSWORD,
+        login='reauth-admin@kaupamex.mx', password=PASSWORD,
         name='Reauth Admin')
     # ``EmployeeProfile`` no existe en la referencia: el empleado es el campo
     # booleano ``employee`` de ``res.partner``.

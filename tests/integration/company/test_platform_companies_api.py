@@ -58,7 +58,7 @@ class TestPlatformCompaniesGate:
         ResCompany.objects.create(code='acme', name='Acme')
         ResCompany.objects.create(code='globex', name='Globex')
         operator = _user_with_caps(
-            'l0_operator@practicayoruba.mx', ['platform.view'],
+            'l0_operator@kaupamex.mx', ['platform.view'],
         )
         api_client.force_login(operator)
         res = api_client.get(COMPANIES_URL)
@@ -70,7 +70,7 @@ class TestPlatformCompaniesGate:
     def test_operator_can_retrieve_company_detail(self, api_client, db):
         t = ResCompany.objects.create(code='acme', name='Acme')
         operator = _user_with_caps(
-            'l0_detail@practicayoruba.mx', ['platform.view'],
+            'l0_detail@kaupamex.mx', ['platform.view'],
         )
         api_client.force_login(operator)
         res = api_client.get(f'{COMPANIES_URL}{t.pk}/')
@@ -84,7 +84,7 @@ class TestPlatformCompaniesGate:
         # Camino NEGATIVO: autenticado sin la capacidad de lectura → 403.
         ResCompany.objects.create(code='acme', name='Acme')
         outsider = _user_with_caps(
-            'l0_outsider@practicayoruba.mx', ['reports.view'],
+            'l0_outsider@kaupamex.mx', ['reports.view'],
         )
         api_client.force_login(outsider)
         res = api_client.get(COMPANIES_URL)
@@ -101,7 +101,7 @@ class TestPlatformCompaniesLifecycle:
     gobernada por ``platform.provision``."""
 
     def test_operator_can_create_tenant_as_trial(self, api_client, db):
-        operator = _user_with_caps('l0_create@practicayoruba.mx', ['platform.provision'])
+        operator = _user_with_caps('l0_create@kaupamex.mx', ['platform.provision'])
         api_client.force_login(operator)
         res = api_client.post(COMPANIES_URL, {
             'code': 'zapateria-dos', 'name': 'Zapatería DOS',
@@ -113,7 +113,7 @@ class TestPlatformCompaniesLifecycle:
         assert company.status == ResCompany.Status.TRIAL
 
     def test_create_forces_trial_even_if_status_sent(self, api_client, db):
-        operator = _user_with_caps('l0_create2@practicayoruba.mx', ['platform.provision'])
+        operator = _user_with_caps('l0_create2@kaupamex.mx', ['platform.provision'])
         api_client.force_login(operator)
         res = api_client.post(COMPANIES_URL, {
             'code': 'tienda-x', 'name': 'Tienda X', 'status': 'active',
@@ -122,7 +122,7 @@ class TestPlatformCompaniesLifecycle:
         assert ResCompany.objects.get(code='tienda-x').status == ResCompany.Status.TRIAL
 
     def test_read_only_operator_cannot_create(self, api_client, db):
-        viewer = _user_with_caps('l0_ro_create@practicayoruba.mx', ['platform.view'])
+        viewer = _user_with_caps('l0_ro_create@kaupamex.mx', ['platform.view'])
         api_client.force_login(viewer)
         res = api_client.post(COMPANIES_URL, {'code': 'nope', 'name': 'Nope'}, format='json')
         assert res.status_code == 403
@@ -131,7 +131,7 @@ class TestPlatformCompaniesLifecycle:
         company = ResCompany.objects.create(
             code='acme', name='Acme', status=ResCompany.Status.ACTIVE,
         )
-        operator = _user_with_caps('l0_susp@practicayoruba.mx', ['platform.provision'])
+        operator = _user_with_caps('l0_susp@kaupamex.mx', ['platform.provision'])
         api_client.force_login(operator)
         res = api_client.post(f'{COMPANIES_URL}{company.pk}/suspend/')
         assert res.status_code == 200, res.data
@@ -147,7 +147,7 @@ class TestPlatformCompaniesLifecycle:
             code='kaupamex_global', name='Kaupamex', is_system=True,
             status=ResCompany.Status.ACTIVE,
         )
-        operator = _user_with_caps('l0_sys@practicayoruba.mx', ['platform.provision'])
+        operator = _user_with_caps('l0_sys@kaupamex.mx', ['platform.provision'])
         api_client.force_login(operator)
         res = api_client.post(f'{COMPANIES_URL}{system.pk}/suspend/')
         assert res.status_code == 400
@@ -158,7 +158,7 @@ class TestPlatformCompaniesLifecycle:
         company = ResCompany.objects.create(
             code='acme2', name='Acme2', status=ResCompany.Status.ACTIVE,
         )
-        operator = _user_with_caps('l0_react@practicayoruba.mx', ['platform.provision'])
+        operator = _user_with_caps('l0_react@kaupamex.mx', ['platform.provision'])
         api_client.force_login(operator)
         res = api_client.post(f'{COMPANIES_URL}{company.pk}/reactivate/')
         assert res.status_code == 400
@@ -167,7 +167,7 @@ class TestPlatformCompaniesLifecycle:
         company = ResCompany.objects.create(
             code='acme3', name='Acme3', status=ResCompany.Status.ACTIVE,
         )
-        viewer = _user_with_caps('l0_ro_susp@practicayoruba.mx', ['platform.view'])
+        viewer = _user_with_caps('l0_ro_susp@kaupamex.mx', ['platform.view'])
         api_client.force_login(viewer)
         res = api_client.post(f'{COMPANIES_URL}{company.pk}/suspend/')
         assert res.status_code == 403

@@ -36,7 +36,7 @@ contrato:
 
 - `TITLE`: ``'Kaupamex API'`` · `VERSION`: ``'1.0.0'`` · `LICENSE`:
   ``'Propietario'``. (PROVEN 2026-08-12, `base.py:495` — decisión de producto
-  del ejecutor 2026-08-05 cambió el valor desde `'PracticaYoruba API'`;
+  del ejecutor 2026-08-05 cambió el valor desde `'Kaupamex API'`;
   guardado por regresión en `tests/integration/test_schema.py`.)
 - `DESCRIPTION`: declara la **auth de sesión** (cookie HttpOnly via
   ``POST /api/v2/auth/login/``) y el prefijo ``/api/v2/`` — coherente con
@@ -46,7 +46,7 @@ contrato:
   de plataforma (un solo codebase Django sirve a todas las Company), evaluada
   estáticamente al generar — sin dimensión de empresa (DEC-KX-05, follow-up
   #199). El `TITLE`/`DESCRIPTION` nombran al operador L0 (Kaupamex), no al L1
-  de ejemplo (PracticaYoruba); cambiarlos es decisión de producto aparte, no de
+  de ejemplo (Kaupamex); cambiarlos es decisión de producto aparte, no de
   clasificación de config.
 - `SERVE_PUBLIC: True` + `SERVE_PERMISSIONS: ['AllowAny']`: el schema se sirve
   público. `SERVE_INCLUDE_SCHEMA: False`: el propio `/api/schema/` no aparece

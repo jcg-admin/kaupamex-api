@@ -221,7 +221,7 @@ class TestAclPermission:
     def test_a_global_acl_opens_it_to_everyone(self, db):
         self._acl(group_id=None)
         who = get_user_model().objects.create_user(
-            login='acl.global@practicayoruba.mx', password='AclPrueba123!')
+            login='acl.global@kaupamex.mx', password='AclPrueba123!')
         assert IrAttachment._can_write_views(who) is True
 
     def test_an_acl_of_a_group_opens_it_to_its_members(self, db):
@@ -229,7 +229,7 @@ class TestAclPermission:
                                          user_type='internal')
         self._acl(group_id=group)
         who = get_user_model().objects.create_user(
-            login='acl.grupo@practicayoruba.mx', password='AclPrueba123!')
+            login='acl.grupo@kaupamex.mx', password='AclPrueba123!')
         assert IrAttachment._can_write_views(who) is False, 'sin el grupo, no'
         who.group_ids.add(group)
         assert IrAttachment._can_write_views(who) is True
@@ -240,7 +240,7 @@ class TestAclPermission:
                                          user_type='internal')
         self._acl(group_id=group)
         fuera = get_user_model().objects.create_user(
-            login='acl.fuera@practicayoruba.mx', password='AclPrueba123!')
+            login='acl.fuera@kaupamex.mx', password='AclPrueba123!')
         values = IrAttachment._check_contents({'name': 'x.svg'},
                                               user=fuera)
         assert values['mimetype'] == 'text/plain'
@@ -250,7 +250,7 @@ class TestAclPermission:
                                          user_type='internal')
         self._acl(group_id=group)
         dentro = get_user_model().objects.create_user(
-            login='acl.dentro@practicayoruba.mx', password='AclPrueba123!')
+            login='acl.dentro@kaupamex.mx', password='AclPrueba123!')
         dentro.group_ids.add(group)
         values = IrAttachment._check_contents({'name': 'x.svg'},
                                               user=dentro)

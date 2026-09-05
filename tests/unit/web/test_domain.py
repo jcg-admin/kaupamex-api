@@ -45,7 +45,7 @@ class TestDomainValidateGate:
 
     def test_user_without_capability_is_denied(self, api_client, db):
         outsider = get_user_model().objects.create_user(
-            login='outsider@practicayoruba.mx', password='TestPass123!')
+            login='outsider@kaupamex.mx', password='TestPass123!')
         api_client.force_login(outsider)
         res = api_client.post(
             VALIDATE_URL,
@@ -59,7 +59,7 @@ class TestDomainValidateResult:
 
     def test_valid_domain_returns_true(self, api_client, db):
         operator = _user_with_capability(
-            'validator@practicayoruba.mx', 'web.domain.validate')
+            'validator@kaupamex.mx', 'web.domain.validate')
         api_client.force_login(operator)
         res = api_client.post(
             VALIDATE_URL,
@@ -71,7 +71,7 @@ class TestDomainValidateResult:
     def test_empty_domain_is_valid(self, api_client, db):
         """Un dominio vacío es el dominio TRUE — siempre válido."""
         operator = _user_with_capability(
-            'validator2@practicayoruba.mx', 'web.domain.validate')
+            'validator2@kaupamex.mx', 'web.domain.validate')
         api_client.force_login(operator)
         res = api_client.post(
             VALIDATE_URL, {'model': 'base.ResPartner', 'domain': []},
@@ -84,7 +84,7 @@ class TestDomainValidateResult:
         ``valid: False``, no un 500 — mismo contrato que la referencia
         (``except Exception: return False``)."""
         operator = _user_with_capability(
-            'validator3@practicayoruba.mx', 'web.domain.validate')
+            'validator3@kaupamex.mx', 'web.domain.validate')
         api_client.force_login(operator)
         res = api_client.post(
             VALIDATE_URL,
@@ -96,7 +96,7 @@ class TestDomainValidateResult:
 
     def test_unknown_field_returns_false(self, api_client, db):
         operator = _user_with_capability(
-            'validator4@practicayoruba.mx', 'web.domain.validate')
+            'validator4@kaupamex.mx', 'web.domain.validate')
         api_client.force_login(operator)
         res = api_client.post(
             VALIDATE_URL,
@@ -108,7 +108,7 @@ class TestDomainValidateResult:
 
     def test_unknown_model_returns_400(self, api_client, db):
         operator = _user_with_capability(
-            'validator5@practicayoruba.mx', 'web.domain.validate')
+            'validator5@kaupamex.mx', 'web.domain.validate')
         api_client.force_login(operator)
         res = api_client.post(
             VALIDATE_URL,

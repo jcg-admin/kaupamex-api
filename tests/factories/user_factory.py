@@ -71,7 +71,7 @@ class UserFactory(factory.django.DjangoModelFactory):
         model = User
         skip_postgeneration_save = True
 
-    login = factory.Sequence(lambda n: f'user_{n}@practicayoruba.mx')
+    login = factory.Sequence(lambda n: f'user_{n}@kaupamex.mx')
     password = factory.django.Password('TestPass123!')
     active = True
 
@@ -157,7 +157,7 @@ class AdminUserFactory(UserFactory):
     o el seed de authz según lo que verifique.
     """
 
-    login = factory.Sequence(lambda n: f'admin_{n}@practicayoruba.mx')
+    login = factory.Sequence(lambda n: f'admin_{n}@kaupamex.mx')
 
     @factory.post_generation
     def employee(self, create, extracted, **kwargs):

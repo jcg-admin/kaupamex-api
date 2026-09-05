@@ -129,7 +129,7 @@ class TestPerCompanyIsolation:
 class TestBootstrapCompanySeeding:
     """El remitente de una L1 es DATO del deployment, no constante de código.
 
-    Antes existía ``FOUNDER_COMPANY_CODE = 'practicayoruba'`` con sus cuatro
+    Antes existía ``FOUNDER_COMPANY_CODE = 'kaupamex'`` con sus cuatro
     remitentes cableados en ``sale_subscription/data``, y esta clase afirmaba
     esos valores literales. DEC-3 (``tenants-sin-clases-en-codigo``) los
     eliminó: la empresa inicial se declara en config

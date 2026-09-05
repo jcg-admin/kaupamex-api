@@ -1,15 +1,15 @@
 openapi: 3.0.3
 info:
-  title: PracticaYoruba API
+  title: Kaupamex API
   version: 1.0.0
   description: |-
-    API REST de PracticaYoruba — plataforma e-commerce de productos Yoruba.
+    API REST de Kaupamex — plataforma e-commerce de productos Yoruba.
 
     Autenticación: JWT Bearer token via POST /api/v1/auth/login/
     Todos los endpoints bajo el prefijo /api/v1/
   contact:
-    name: Equipo PracticaYoruba
-    email: dev@practicayoruba.mx
+    name: Equipo Kaupamex
+    email: dev@kaupamex.mx
   license:
     name: Propietario
 paths:

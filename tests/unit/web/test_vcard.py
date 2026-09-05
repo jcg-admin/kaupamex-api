@@ -44,7 +44,7 @@ class TestVcardDownloadGate:
 
     def test_user_without_capability_is_denied(self, api_client, db, user):
         outsider = get_user_model().objects.create_user(
-            login='vcard_outsider@practicayoruba.mx', password='TestPass123!')
+            login='vcard_outsider@kaupamex.mx', password='TestPass123!')
         api_client.force_login(outsider)
         res = api_client.get(VCARD_URL, {'partner_ids': str(user.partner.pk)})
         assert res.status_code == 403
@@ -55,7 +55,7 @@ class TestVcardDownloadResult:
 
     def test_single_partner_returns_vcf(self, api_client, db, user):
         operator = _user_with_capability(
-            'vcard_operator@practicayoruba.mx', 'web.vcard.download')
+            'vcard_operator@kaupamex.mx', 'web.vcard.download')
         api_client.force_login(operator)
         res = api_client.get(VCARD_URL, {'partner_ids': str(user.partner.pk)})
         assert res.status_code == 200
@@ -68,7 +68,7 @@ class TestVcardDownloadResult:
     def test_multiple_partners_return_zip(self, api_client, db, user):
         second = ResPartner.objects.create(name='Segundo Contacto')
         operator = _user_with_capability(
-            'vcard_operator2@practicayoruba.mx', 'web.vcard.download')
+            'vcard_operator2@kaupamex.mx', 'web.vcard.download')
         api_client.force_login(operator)
         res = api_client.get(
             VCARD_URL,
@@ -80,7 +80,7 @@ class TestVcardDownloadResult:
 
     def test_missing_partner_ids_returns_400(self, api_client, db):
         operator = _user_with_capability(
-            'vcard_operator3@practicayoruba.mx', 'web.vcard.download')
+            'vcard_operator3@kaupamex.mx', 'web.vcard.download')
         api_client.force_login(operator)
         res = api_client.get(VCARD_URL)
         assert res.status_code == 400
@@ -88,7 +88,7 @@ class TestVcardDownloadResult:
 
     def test_unknown_partner_id_returns_404(self, api_client, db):
         operator = _user_with_capability(
-            'vcard_operator4@practicayoruba.mx', 'web.vcard.download')
+            'vcard_operator4@kaupamex.mx', 'web.vcard.download')
         api_client.force_login(operator)
         res = api_client.get(VCARD_URL, {'partner_ids': '999999999'})
         assert res.status_code == 404

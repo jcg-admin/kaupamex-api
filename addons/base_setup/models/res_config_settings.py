@@ -469,7 +469,7 @@ class SiteConfigSettings(ResConfigSettings):
     order_timeout_minutes = models.PositiveIntegerField(default=60)
 
     # — L1: configuración del tenant → CompanySetting —
-    #: Sin default de tenant: ``PracticaYoruba`` es el L1 de ejemplo, no el
+    #: Sin default de tenant: ``Kaupamex`` es el L1 de ejemplo, no el
     #: nombre de la plataforma. Vacío = lo pone cada Company (en la
     #: referencia el nombre sale de ``res.company.name``).
     site_name = models.CharField(max_length=100, blank=True, default='')

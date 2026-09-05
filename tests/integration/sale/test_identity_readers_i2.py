@@ -87,7 +87,7 @@ class TestReembolsoNotificaDesdeLaCanonica:
         E4-pre): un pago sólo-canónico caía al ``except`` y el email se
         perdía en silencio. Ahora notifica desde la canónica."""
         comprador = User.objects.create_user(
-            login='refund.i2@practicayoruba.mx', password='x')
+            login='refund.i2@kaupamex.mx', password='x')
         draft = SaleOrder.objects.create(
             state=SaleOrder.STATE_DRAFT, partner=comprador)
         SaleOrderLine.objects.create(

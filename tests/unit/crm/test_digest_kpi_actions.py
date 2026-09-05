@@ -57,7 +57,7 @@ class TestChainsWithThePrevious:
 
 class TestDefaultActions:
     def test_both_kpis_point_to_the_pipeline_by_default(self):
-        user = UserFactory(login='vendedor@practicayoruba.mx')
+        user = UserFactory(login='vendedor@kaupamex.mx')
         res = _compute_kpis_actions(None, _previous(), None, user)
         assert res['kpi_crm_lead_created'] == ACTION_PIPELINE
         assert res['kpi_crm_opportunities_won'] == ACTION_PIPELINE
@@ -73,7 +73,7 @@ class TestGroupUseLeadBranch:
         return group
 
     def test_switches_lead_action_when_user_has_the_group(self, lead_group):
-        user = UserFactory(login='lead-user@practicayoruba.mx')
+        user = UserFactory(login='lead-user@kaupamex.mx')
         user.group_ids.add(lead_group)
         res = _compute_kpis_actions(None, _previous(), None, user)
         assert res['kpi_crm_lead_created'] == ACTION_ALL_LEADS
@@ -81,13 +81,13 @@ class TestGroupUseLeadBranch:
     def test_opportunities_action_never_switches(self, lead_group):
         """Discriminante: sólo ``kpi_crm_lead_created`` depende del grupo.
         Si el código condicionara las DOS claves por error, esto caería."""
-        user = UserFactory(login='lead-user-2@practicayoruba.mx')
+        user = UserFactory(login='lead-user-2@kaupamex.mx')
         user.group_ids.add(lead_group)
         res = _compute_kpis_actions(None, _previous(), None, user)
         assert res['kpi_crm_opportunities_won'] == ACTION_PIPELINE
 
     def test_does_not_switch_without_the_group(self):
-        user = UserFactory(login='sin-grupo@practicayoruba.mx')
+        user = UserFactory(login='sin-grupo@kaupamex.mx')
         res = _compute_kpis_actions(None, _previous(), None, user)
         assert res['kpi_crm_lead_created'] == ACTION_PIPELINE
 
@@ -98,7 +98,7 @@ class TestGroupUseLeadBranch:
         detectaría."""
         other = ResGroups.objects.create(name='Otro grupo cualquiera')
         IrModelData.set_xmlid(other, 'crm.group_otro_cualquiera')
-        user = UserFactory(login='otro-grupo@practicayoruba.mx')
+        user = UserFactory(login='otro-grupo@kaupamex.mx')
         user.group_ids.add(other)
         res = _compute_kpis_actions(None, _previous(), None, user)
         assert res['kpi_crm_lead_created'] == ACTION_PIPELINE

@@ -37,7 +37,7 @@ Sin ``num2words`` en el lockfile (medido: ``grep -n "num2words" uv.lock`` →
 **0 hits** [PROVEN]) y sin autorización para tocar ``pyproject.toml`` (fuera
 de ``account_check_printing/``), el conversor de número a letras se
 construye aquí, en español — este producto es un e-commerce mexicano
-(Kaupamex/PracticaYoruba), y el formato que un talonario mexicano espera es
+(Kaupamex/Kaupamex), y el formato que un talonario mexicano espera es
 ``"<MONTO EN LETRA> PESOS NN/100 M.N."``, no el inglés
 ``"One hundred Dollars and Fifty Cents"`` de la referencia. Misma
 capacidad (montos infalsificables en el talón, cifra y letra coinciden),

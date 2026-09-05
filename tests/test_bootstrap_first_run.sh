@@ -30,10 +30,10 @@ else
 fi
 # H-API-385: el PYTHONPATH a practicayoruba/ murio con el rename a src/.
 # kaupamex-bin resuelve el src-layout por si mismo.
-if grep -qE 'PROJECT_ROOT\}/practicayoruba' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
-    fail "bootstrap.sh arma PYTHONPATH a practicayoruba/ (directorio inexistente)"
+if grep -qE 'PROJECT_ROOT\}/kaupamex' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
+    fail "bootstrap.sh arma PYTHONPATH a kaupamex/ (directorio inexistente)"
 else
-    pass "bootstrap.sh no usa el path muerto practicayoruba/"
+    pass "bootstrap.sh no usa el path muerto kaupamex/"
 fi
 
 if grep -qE '"\$kbin"' "$PROJECT_ROOT/scripts/bootstrap.sh"; then
@@ -154,7 +154,7 @@ else
 fi
 
 # H-API-310 / H-API-385: el addon `cart` se retiro — su carrito vive en
-# `sale`. Las dos afirmaciones H-27 median practicayoruba/apps/cart/models.py,
+# `sale`. Las dos afirmaciones H-27 median kaupamex/apps/cart/models.py,
 # un archivo que no existe desde el rename a src/ ni desde la retirada del
 # addon; grep imprimia "No such file" y una de ellas pasaba por vacio.
 if [[ -d "$PROJECT_ROOT/src/addons/cart" ]]; then
@@ -199,7 +199,7 @@ fi
 # H-UID-2: el default vive ahora en config/settings/options.py (registro
 # conf[]-style, T-022) — production.py delega en opt('UI_DIST') en vez de
 # declarar el default inline. El centinela sigue siendo '' (desactiva
-# serve_spa), NO el path obsoleto /opt/practicayoruba.
+# serve_spa), NO el path obsoleto /opt/kaupamex.
 if grep -qE "'UI_DIST':.*default=''" "$PROJECT_ROOT/src/config/settings/options.py"; then
     pass "options.py UI_DIST default='' (centinela, H-UID-2)"
 else
@@ -210,7 +210,7 @@ if grep -qE "^UI_DIST = opt\('UI_DIST'\)" "$PROJECT_ROOT/src/config/settings/pro
 else
     fail "production.py UI_DIST no delega en opt() (H-UID-2 regresion)"
 fi
-if grep -qE "/opt/practicayoruba" "$PROJECT_ROOT/src/config/settings/options.py" \
+if grep -qE "/opt/kaupamex" "$PROJECT_ROOT/src/config/settings/options.py" \
         "$PROJECT_ROOT/src/config/settings/production.py" 2>/dev/null; then
     fail "UI_DIST/options.py todavia citan /opt/practicayoruba obsoleto (H-UID-2 regresion)"
 else

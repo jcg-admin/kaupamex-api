@@ -357,7 +357,7 @@ DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 
 # Destinatario de alertas operativas (UC-ADM-05: backup fallido). Migrado a
 # SystemParameter L2 ('backup.alert_email', H-API-CFG-01) — tenia default=
-# stale (practicayoruba.com); ahora editable en caliente. Ver
+# stale (kaupamex.com); ahora editable en caliente. Ver
 # addons.auto_backup.controllers.main._notify_backup_failed().
 #
 # Buzones por propósito en VM2 (Postfix + Cyrus). Contacto y newsletter usan
@@ -502,7 +502,7 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'Kaupamex API',
     'DESCRIPTION': (
         'API REST de Kaupamex — plataforma multi-company de comercio\n'
-        'electrónico. PracticaYoruba es su L1 de ejemplo, no la\n'
+        'electrónico. Kaupamex es su L1 de ejemplo, no la\n'
         'plataforma.\n\n'
         'Autenticación: sesión de servidor (cookie HttpOnly) via '
         'POST /api/v2/auth/login/\n'
@@ -513,10 +513,10 @@ SPECTACULAR_SETTINGS = {
     # la API es infraestructura de plataforma (un solo codebase Django sirve a
     # todos los tenants), evaluada estáticamente al generar el schema — sin
     # dimensión de empresa. Antes reusaba el buzón L1 de ejemplo
-    # (``hola@practicayoruba.com``); es config de plataforma, no per-tenant
+    # (``hola@kaupamex.com``); es config de plataforma, no per-tenant
     # (DEC-KX-05, follow-up #199). El TITLE/DESCRIPTION **ya no** llevan el
     # branding del L1: la API publicada es la de la plataforma, y llamarla
-    # "PracticaYoruba API" la confundía con su tenant de ejemplo. La decisión
+    # "Kaupamex API" la confundía con su tenant de ejemplo. La decisión
     # de producto que este comentario dejaba pendiente la tomó el ejecutor el
     # 2026-08-06; el schema QA ya se llamaba ``kaupamex_core_qa``, así que el
     # título era el último resto del nombre viejo en la superficie publicada.

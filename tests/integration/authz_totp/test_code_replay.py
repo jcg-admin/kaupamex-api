@@ -83,7 +83,7 @@ def _code_for(secret, offset=0):
 def enrolled(db):
     """Usuario con 2FA activo; devuelve ``(user, secret)``."""
     user = User.objects.create_user(
-        login='codigo.unico@practicayoruba.mx', password=PASSWORD,
+        login='codigo.unico@kaupamex.mx', password=PASSWORD,
         name='Usuario Con Codigo Unico')
     secret, _uri = begin_setup(user)
     # El alta consume el intervalo MÁS VIEJO de la ventana. ``match`` recorre
@@ -139,7 +139,7 @@ class TestEnrollment:
         viene detrás; sin asentarlo, sirve para las dos cosas.
         """
         user = User.objects.create_user(
-            login='alta.y.login@practicayoruba.mx', password=PASSWORD,
+            login='alta.y.login@kaupamex.mx', password=PASSWORD,
             name='Usuario Recien Dado De Alta')
         secret, _uri = begin_setup(user)
         code = _code_for(secret)
@@ -164,7 +164,7 @@ class TestEnrollment:
         del secreto retirado rechazaría códigos legítimos del nuevo.
         """
         user = User.objects.create_user(
-            login='secreto.nuevo@practicayoruba.mx', password=PASSWORD,
+            login='secreto.nuevo@kaupamex.mx', password=PASSWORD,
             name='Usuario Que Reinicia Su Secreto')
         begin_setup(user)
         # Un umbral del futuro lejano: si se heredara, ningún código de hoy

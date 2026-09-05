@@ -42,7 +42,7 @@ class TestSendPendingEmails:
     def test_envia_pendiente_y_marca_sent(self, db):
         mail.outbox = []
         m = MailMail.enqueue(
-            to='dest@practicayoruba.mx',
+            to='dest@kaupamex.mx',
             subject='Confirmacion de orden',
             body_html='Gracias por tu compra.',
         )
@@ -51,13 +51,13 @@ class TestSendPendingEmails:
         assert m.state == MailMail.STATE_SENT
         assert m.attempts == 1
         assert len(mail.outbox) == 1
-        assert mail.outbox[0].to == ['dest@practicayoruba.mx']
+        assert mail.outbox[0].to == ['dest@kaupamex.mx']
 
     def test_no_procesa_tarea_futura(self, db):
         """scheduled_date en el futuro => no se toca (backoff aun pendiente)."""
         mail.outbox = []
         m = MailMail.enqueue(
-            to='futuro@practicayoruba.mx', subject='S', body_html='B',
+            to='futuro@kaupamex.mx', subject='S', body_html='B',
             scheduled_date=timezone.now() + timedelta(hours=1),
         )
         _run()
@@ -70,7 +70,7 @@ class TestSendPendingEmails:
         """Si send_mail lanza, el correo sigue outgoing y reprograma scheduled_date."""
         settings.EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
         m = MailMail.enqueue(
-            to='falla@practicayoruba.mx', subject='S', body_html='B',
+            to='falla@kaupamex.mx', subject='S', body_html='B',
             max_attempts=3,
         )
         before = timezone.now()
@@ -92,7 +92,7 @@ class TestSendPendingEmails:
     def test_agota_reintentos_marca_failed(self, db):
         """Tras max_attempts fallos, el correo queda exception (no se reintenta mas)."""
         m = MailMail.enqueue(
-            to='maxed@practicayoruba.mx', subject='S', body_html='B',
+            to='maxed@kaupamex.mx', subject='S', body_html='B',
             max_attempts=2,
         )
         MailMail.objects.filter(pk=m.pk).update(attempts=1)
@@ -112,7 +112,7 @@ class TestSendPendingEmails:
     def test_no_reintenta_tarea_ya_enviada(self, db):
         mail.outbox = []
         m = MailMail.enqueue(
-            to='ya@practicayoruba.mx', subject='S', body_html='B',
+            to='ya@kaupamex.mx', subject='S', body_html='B',
         )
         m.mark_sent()
         _run()

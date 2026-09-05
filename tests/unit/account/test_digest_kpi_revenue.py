@@ -49,7 +49,7 @@ def digest(company):
 @pytest.fixture
 def invoicing_user():
     """Un usuario dentro de ``account.group_account_invoice``."""
-    user = UserFactory(login='facturacion@practicayoruba.mx')
+    user = UserFactory(login='facturacion@kaupamex.mx')
     group = ResGroups.objects.create(name='Facturación (fixture)')
     IrModelData.set_xmlid(group, GROUP_ACCOUNT_INVOICE)
     user.group_ids.add(group)
@@ -58,7 +58,7 @@ def invoicing_user():
 
 @pytest.fixture
 def outsider():
-    return UserFactory(login='ajeno@practicayoruba.mx')
+    return UserFactory(login='ajeno@kaupamex.mx')
 
 
 def _post_income(company, amount, on=None, post=True, account_type='income'):

@@ -31,14 +31,14 @@ def company_b():
 
 @pytest.fixture
 def user_a(company_a):
-    user = UserFactory(login='usuario-a@practicayoruba.mx')
+    user = UserFactory(login='usuario-a@kaupamex.mx')
     company_a.user_ids.add(user)
     return user
 
 
 @pytest.fixture
 def user_b(company_b):
-    user = UserFactory(login='usuario-b@practicayoruba.mx')
+    user = UserFactory(login='usuario-b@kaupamex.mx')
     company_b.user_ids.add(user)
     return user
 

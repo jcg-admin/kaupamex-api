@@ -74,7 +74,7 @@ class TestGetOrCreateDraftOrderS2:
 
     def test_authenticated_user_gets_single_draft(self):
         user = User.objects.create_user(
-            login='draft-s2@practicayoruba.mx', password='x')
+            login='draft-s2@kaupamex.mx', password='x')
         a, created_a = get_or_create_draft_order(user=user)
         b, created_b = get_or_create_draft_order(user=user)
         assert created_a is True and created_b is False
@@ -110,7 +110,7 @@ class TestUnDraftPorPartnerEnLaBase:
 
     def test_segundo_draft_del_mismo_partner_es_rechazado(self):
         user = User.objects.create_user(
-            login='h309-dup@practicayoruba.mx', password='x')
+            login='h309-dup@kaupamex.mx', password='x')
         SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_DRAFT)
         with pytest.raises(IntegrityError):
             SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_DRAFT)
@@ -119,7 +119,7 @@ class TestUnDraftPorPartnerEnLaBase:
         """El índice sólo cubre ``draft``: confirmar no bloquea el siguiente
         carrito, que es justo el flujo normal del comprador recurrente."""
         user = User.objects.create_user(
-            login='h309-sale@practicayoruba.mx', password='x')
+            login='h309-sale@kaupamex.mx', password='x')
         SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_SALE)
         SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_SALE)
         draft = SaleOrder.objects.create(
@@ -135,9 +135,9 @@ class TestUnDraftPorPartnerEnLaBase:
 
     def test_dos_partners_distintos_tienen_su_propio_draft(self):
         u1 = User.objects.create_user(
-            login='h309-u1@practicayoruba.mx', password='x')
+            login='h309-u1@kaupamex.mx', password='x')
         u2 = User.objects.create_user(
-            login='h309-u2@practicayoruba.mx', password='x')
+            login='h309-u2@kaupamex.mx', password='x')
         SaleOrder.objects.create(partner=u1, state=SaleOrder.STATE_DRAFT)
         SaleOrder.objects.create(partner=u2, state=SaleOrder.STATE_DRAFT)
         assert SaleOrder.objects.filter(
@@ -288,7 +288,7 @@ class TestMergeDraftOrdersS2c2b:
 
     def test_merge_moves_items_and_deletes_anon_draft(self, draft_product):
         user = User.objects.create_user(
-            login='merge-s2c@practicayoruba.mx', password='x')
+            login='merge-s2c@kaupamex.mx', password='x')
         token = uuid.uuid4()
         anon, _ = get_or_create_draft_order(cart_token=token)
         add_item_to_draft(anon, draft_product, quantity=2)
@@ -302,7 +302,7 @@ class TestMergeDraftOrdersS2c2b:
 
     def test_merge_caps_quantity_to_stock(self, draft_product):
         user = User.objects.create_user(
-            login='merge-cap@practicayoruba.mx', password='x')
+            login='merge-cap@kaupamex.mx', password='x')
         auth, _ = get_or_create_draft_order(user=user)
         add_item_to_draft(auth, draft_product, quantity=4)
         token = uuid.uuid4()
@@ -316,7 +316,7 @@ class TestMergeDraftOrdersS2c2b:
 
     def test_merge_skips_out_of_stock(self, draft_product):
         user = User.objects.create_user(
-            login='merge-skip@practicayoruba.mx', password='x')
+            login='merge-skip@kaupamex.mx', password='x')
         token = uuid.uuid4()
         anon, _ = get_or_create_draft_order(cart_token=token)
         add_item_to_draft(anon, draft_product, quantity=1)
@@ -330,7 +330,7 @@ class TestMergeDraftOrdersS2c2b:
 
     def test_merge_without_anon_draft_returns_auth_draft(self):
         user = User.objects.create_user(
-            login='merge-noop@practicayoruba.mx', password='x')
+            login='merge-noop@kaupamex.mx', password='x')
         order, skipped = merge_draft_orders(user, uuid.uuid4())
         assert order.partner_id == user.pk
         assert skipped == []

@@ -202,7 +202,7 @@ class TestTheClosureSearches:
         padre = ResGroups.objects.create(name='Padre con usuario 204')
         hijo = ResGroups.objects.create(name='Hijo con usuario 204')
         hijo.implied_ids.add(padre)
-        who = _user('grupos.busqueda@practicayoruba.mx')
+        who = _user('grupos.busqueda@kaupamex.mx')
         who.group_ids.add(hijo)
         found = ResGroups._search_all_user_ids([who])
         assert hijo in found
@@ -241,7 +241,7 @@ class TestInverseAllUserIds:
 
     def test_it_adds_the_missing_users(self, db):
         group = ResGroups.objects.create(name='Destino 204')
-        who = _user('grupos.inverso.alta@practicayoruba.mx')
+        who = _user('grupos.inverso.alta@kaupamex.mx')
         group._inverse_all_user_ids([who])
         assert who in group.user_ids.all()
 
@@ -249,7 +249,7 @@ class TestInverseAllUserIds:
         padre = ResGroups.objects.create(name='Padre implicante 204')
         hijo = ResGroups.objects.create(name='Hijo implicante 204')
         hijo.implied_ids.add(padre)
-        who = _user('grupos.inverso.implicado@practicayoruba.mx')
+        who = _user('grupos.inverso.implicado@kaupamex.mx')
         who.group_ids.add(hijo)
         assert who in padre.all_user_ids
         with pytest.raises(UserError):

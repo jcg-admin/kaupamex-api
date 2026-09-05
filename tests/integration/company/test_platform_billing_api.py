@@ -78,11 +78,11 @@ class TestBillingRunsEndpoint:
     def test_list_runs_requires_platform_view(self, api_client, db):
         SubscriptionBillingRun.objects.create(period='2026-08')
         # Sin capacidad → 403 (fail-closed).
-        nobody = _user_with_caps('nobody@practicayoruba.mx', ['account.overview'])
+        nobody = _user_with_caps('nobody@kaupamex.mx', ['account.overview'])
         api_client.force_login(nobody)
         assert api_client.get(RUNS_URL).status_code == 403
         # Con platform.view → 200.
-        operator = _user_with_caps('viewer@practicayoruba.mx', ['platform.view'])
+        operator = _user_with_caps('viewer@kaupamex.mx', ['platform.view'])
         api_client.force_login(operator)
         res = api_client.get(RUNS_URL)
         assert res.status_code == 200
@@ -93,12 +93,12 @@ class TestBillingRunsEndpoint:
         c = ResCompany.objects.create(code='acme', name='Acme')
         _active_priced_sub(c, 'catalogue', '199.00')
         # platform.view NO alcanza para disparar el cobro.
-        viewer = _user_with_caps('viewer2@practicayoruba.mx', ['platform.view'])
+        viewer = _user_with_caps('viewer2@kaupamex.mx', ['platform.view'])
         api_client.force_login(viewer)
         assert api_client.post(RUNS_URL, {'period': '2026-08'},
                                format='json').status_code == 403
         # platform.billing → 202 + emite la factura del periodo.
-        biller = _user_with_caps('biller@practicayoruba.mx', ['platform.billing'])
+        biller = _user_with_caps('biller@kaupamex.mx', ['platform.billing'])
         api_client.force_login(biller)
         res = api_client.post(RUNS_URL, {'period': '2026-08'}, format='json')
         assert res.status_code == 202
@@ -119,11 +119,11 @@ class TestCompanyInvoicesEndpoint:
             amount=sub.price,
         )
         # Sin capacidad → 403.
-        nobody = _user_with_caps('n2@practicayoruba.mx', ['account.overview'])
+        nobody = _user_with_caps('n2@kaupamex.mx', ['account.overview'])
         api_client.force_login(nobody)
         assert api_client.get(_invoices_url(c.id)).status_code == 403
         # platform.view → 200, sólo las de esa company.
-        operator = _user_with_caps('v3@practicayoruba.mx', ['platform.view'])
+        operator = _user_with_caps('v3@kaupamex.mx', ['platform.view'])
         api_client.force_login(operator)
         res = api_client.get(_invoices_url(c.id))
         assert res.status_code == 200
@@ -148,7 +148,7 @@ class TestRetryInvoiceEndpoint:
     def test_retry_requires_platform_billing(self, api_client, db):
         c = ResCompany.objects.create(code='acme', name='Acme')
         inv = self._failed_invoice(c)
-        viewer = _user_with_caps('v4@practicayoruba.mx', ['platform.view'])
+        viewer = _user_with_caps('v4@kaupamex.mx', ['platform.view'])
         api_client.force_login(viewer)
         assert api_client.post(_retry_url(inv.id)).status_code == 403
 
@@ -157,7 +157,7 @@ class TestRetryInvoiceEndpoint:
         c = ResCompany.objects.create(code='acme', name='Acme')
         inv = self._failed_invoice(c)
         monkeypatch.setattr(services, 'charge_invoice', lambda invoice: True)
-        biller = _user_with_caps('b2@practicayoruba.mx', ['platform.billing'])
+        biller = _user_with_caps('b2@kaupamex.mx', ['platform.billing'])
         api_client.force_login(biller)
         res = api_client.post(_retry_url(inv.id))
         assert res.status_code == 200
@@ -170,14 +170,14 @@ class TestRetryInvoiceEndpoint:
         inv = self._failed_invoice(c)
         inv.status = SubscriptionInvoice.Status.PAID
         inv.save(update_fields=['status', 'updated_at'])
-        biller = _user_with_caps('b3@practicayoruba.mx', ['platform.billing'])
+        biller = _user_with_caps('b3@kaupamex.mx', ['platform.billing'])
         api_client.force_login(biller)
         res = api_client.post(_retry_url(inv.id))
         assert res.status_code == 409
         assert res.data['codigo_error'] == 'INVOICE_NOT_RETRYABLE'
 
     def test_retry_missing_invoice_is_404(self, api_client, db):
-        biller = _user_with_caps('b4@practicayoruba.mx', ['platform.billing'])
+        biller = _user_with_caps('b4@kaupamex.mx', ['platform.billing'])
         api_client.force_login(biller)
         res = api_client.post(_retry_url(999999))
         assert res.status_code == 404

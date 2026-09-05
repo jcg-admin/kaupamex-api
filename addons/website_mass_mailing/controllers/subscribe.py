@@ -20,7 +20,7 @@ from addons.mass_mailing import services as mm
 from .serializers import SubscribeSerializer
 
 # Buzón de newsletter — L3 per-empresa (SOL-090 slice 3, CompanySetting). La
-# constante es el fallback **neutral** (nivel Kaupamex, no PracticaYoruba) que
+# constante es el fallback **neutral** (nivel Kaupamex, no Kaupamex) que
 # usa ``get_setting`` cuando no hay empresa en contexto o la empresa activa no
 # fijó su propio buzón — cierra H-CFG-IMPL-10.
 NEWSLETTER_FROM_EMAIL_DEFAULT = 'newsletter@kaupamex.com'

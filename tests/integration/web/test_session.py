@@ -55,7 +55,7 @@ class TestSessionAuthenticate:
         """Mismo código que la contraseña errónea — no revela qué logins existen."""
         r = api_client.post(
             AUTHENTICATE,
-            {'login': 'nobody@practicayoruba.mx', 'password': 'TestPass123!'},
+            {'login': 'nobody@kaupamex.mx', 'password': 'TestPass123!'},
             format='json')
         assert r.status_code == 401
         assert r.data['codigo_error'] == 'INVALID_CREDENTIAL'

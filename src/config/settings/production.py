@@ -57,7 +57,7 @@ SECURE_HSTS_PRELOAD = True
 # de redirects 301 porque Django no puede detectar que la conexión
 # original era HTTPS. Apache debe setear el header correspondiente:
 #   RequestHeader set X-Forwarded-Proto "https"
-# (ver config/apache/practicayoruba-https.conf en kaupamex-server)
+# (ver config/apache/kaupamex-https.conf en kaupamex-server)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # H-CICLO81-02: habilitar USE_X_FORWARDED_HOST para que Django use el
@@ -67,7 +67,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # rompiendo los download_url de importacion de inventario y cualquier
 # enlace absoluto construido por la API. Apache debe enviar el header:
 #   RequestHeader set X-Forwarded-Host "%{HTTP_HOST}s"
-# (ya documentado en practicayoruba-https.conf).
+# (ya documentado en kaupamex-https.conf).
 USE_X_FORWARDED_HOST = True
 
 # --- Hosts permitidos -------------------------------------------------------

@@ -37,7 +37,7 @@ Si no hay UCs ni fuente de requisitos clara, no se inventan historias: se docume
 - De forma continua durante el Sprint (no como evento único): una sesión de refinamiento recurrente por Sprint para preparar los items del próximo.
 - Cuando el tope del Product Backlog tiene items demasiado grandes (épicas, historias de 13+ puntos) que no caben en un Sprint.
 - Cuando una historia llega a Sprint Planning sin cumplir DoR — se devuelve aquí en lugar de forzarla al Sprint.
-- En el e-commerce PracticaYoruba: al desglosar una épica de checkout o catálogo en historias `historias-usuario/`, cada una trazada a su `UC-XXX`.
+- En el e-commerce Kaupamex: al desglosar una épica de checkout o catálogo en historias `historias-usuario/`, cada una trazada a su `UC-XXX`.
 
 ## Cuándo NO usar este paso
 
@@ -81,7 +81,7 @@ Una historia que falla **E** o **S** se devuelve a desglose; una que falla **T**
 
 Una épica se parte en historias verticales (cada una entrega valor end-to-end), no en capas técnicas:
 
-| Patrón | Cómo | Ejemplo PracticaYoruba |
+| Patrón | Cómo | Ejemplo Kaupamex |
 |--------|------|------------------------|
 | **Por pasos del workflow** | Una historia por etapa del flujo | Checkout: ver carrito → ingresar envío → pagar → confirmar |
 | **Por reglas de negocio** | Separar la variante simple de las reglas complejas | "Pagar con tarjeta" antes de "pagar en cuotas (MSI)" |

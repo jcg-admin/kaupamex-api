@@ -1,4 +1,4 @@
-"""Seed canonical PracticaYoruba category tree.
+"""Seed canonical Kaupamex category tree.
 
 Run via:
 

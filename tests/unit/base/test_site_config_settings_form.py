@@ -55,7 +55,7 @@ class TestValoresPorDefecto:
         assert get_setting('free_shipping_threshold') == Decimal('999.00')
 
     def test_site_name_no_trae_nombre_de_tenant(self, db):
-        """PracticaYoruba es el L1 de ejemplo, no el default de la plataforma."""
+        """Kaupamex es el L1 de ejemplo, no el default de la plataforma."""
         assert get_setting('site_name') == ''
 
 

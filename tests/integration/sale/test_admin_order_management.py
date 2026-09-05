@@ -103,7 +103,7 @@ class TestBuscarOrdenesAdmin:
     ):
         User = get_user_model()
         other = User.objects.create_user(
-            login='oa@practicayoruba.mx', password='pass'
+            login='oa@kaupamex.mx', password='pass'
         )
         _make_order(user, prod_adm)
         _make_order(other, prod_adm)

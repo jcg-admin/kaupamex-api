@@ -74,20 +74,20 @@ class TestAllowedModels:
     """≙ ``_get_allowed_models`` — el conjunto, no el veredicto."""
 
     def test_a_model_without_any_acl_row_is_denied(self, db):
-        who = _user('acl.sin.fila@practicayoruba.mx')
+        who = _user('acl.sin.fila@kaupamex.mx')
         assert MODEL_LABEL not in IrModelAccess._get_allowed_models(
             'read', user=who)
 
     def test_a_global_row_puts_the_model_in_the_set(self, db):
         _acl('read', group=None)
-        who = _user('acl.global.set@practicayoruba.mx')
+        who = _user('acl.global.set@kaupamex.mx')
         assert MODEL_LABEL in IrModelAccess._get_allowed_models(
             'read', user=who)
 
     def test_a_group_row_only_counts_for_its_members(self, db):
         group = ResGroups.objects.create(name='lectores', user_type='internal')
         _acl('read', group=group)
-        outside = _user('acl.fuera.set@practicayoruba.mx')
+        outside = _user('acl.fuera.set@kaupamex.mx')
         assert MODEL_LABEL not in IrModelAccess._get_allowed_models(
             'read', user=outside)
         outside.group_ids.add(group)
@@ -117,7 +117,7 @@ class TestTheCacheIsInvalidatedByItsOwnTable:
     """
 
     def test_a_row_created_after_a_negative_read_grants(self, db):
-        who = _user('acl.cache.alta@practicayoruba.mx')
+        who = _user('acl.cache.alta@kaupamex.mx')
         assert MODEL_LABEL not in IrModelAccess._get_allowed_models(
             'read', user=who)
         _acl('read', group=None)
@@ -126,7 +126,7 @@ class TestTheCacheIsInvalidatedByItsOwnTable:
 
     def test_a_row_deleted_after_a_positive_read_stops_granting(self, db):
         row = _acl('read', group=None)
-        who = _user('acl.cache.baja@practicayoruba.mx')
+        who = _user('acl.cache.baja@kaupamex.mx')
         assert MODEL_LABEL in IrModelAccess._get_allowed_models(
             'read', user=who)
         row.delete()
@@ -138,24 +138,24 @@ class TestCheck:
     """≙ ``check(model, mode, raise_exception)`` — el veredicto."""
 
     def test_a_model_without_any_acl_row_is_denied(self, db):
-        who = _user('acl.check.sin@practicayoruba.mx')
+        who = _user('acl.check.sin@kaupamex.mx')
         assert IrModelAccess.check(
             MODEL_LABEL, 'read', raise_exception=False, user=who) is False
 
     def test_it_raises_by_default(self, db):
-        who = _user('acl.check.raise@practicayoruba.mx')
+        who = _user('acl.check.raise@kaupamex.mx')
         with pytest.raises(AccessError):
             IrModelAccess.check(MODEL_LABEL, 'read', user=who)
 
     def test_a_global_row_grants_it(self, db):
         _acl('read', group=None)
-        who = _user('acl.check.global@practicayoruba.mx')
+        who = _user('acl.check.global@kaupamex.mx')
         assert IrModelAccess.check(MODEL_LABEL, 'read', user=who) is True
 
     def test_a_row_for_another_mode_does_not_grant_this_one(self, db):
         """CONTROL — sin él, ignorar ``perm_<mode>`` pasaría igual."""
         _acl('write', group=None)
-        who = _user('acl.check.otromodo@practicayoruba.mx')
+        who = _user('acl.check.otromodo@kaupamex.mx')
         assert IrModelAccess.check(
             MODEL_LABEL, 'read', raise_exception=False, user=who) is False
         assert IrModelAccess.check(MODEL_LABEL, 'write', user=who) is True
@@ -163,13 +163,13 @@ class TestCheck:
     def test_an_inactive_row_grants_nothing(self, db):
         """CONTROL — ``active`` es columna portada; alguien tiene que leerla."""
         _acl('read', group=None, active=False)
-        who = _user('acl.check.inactiva@practicayoruba.mx')
+        who = _user('acl.check.inactiva@kaupamex.mx')
         assert IrModelAccess.check(
             MODEL_LABEL, 'read', raise_exception=False, user=who) is False
 
     def test_under_su_everything_is_allowed(self, db):
         """CONTROL del bypass — la fuente ni consulta la tabla bajo ``su``."""
-        who = _user('acl.check.su@practicayoruba.mx')
+        who = _user('acl.check.su@kaupamex.mx')
         with sudo():
             assert IrModelAccess.check(MODEL_LABEL, 'unlink', user=who) is True
 
@@ -183,7 +183,7 @@ class TestCheck:
         dos y leer igual que su fuente.
         """
         _acl('read', group=None)
-        who = _user('acl.check.punteado@practicayoruba.mx')
+        who = _user('acl.check.punteado@kaupamex.mx')
         assert IrModelAccess.check(MODEL_DOTTED, 'read', user=who) is True
 
     def test_without_a_user_only_global_rows_apply(self, db):
@@ -198,7 +198,7 @@ class TestCheck:
     def test_the_user_comes_from_the_environment_when_not_given(self, db):
         """≙ ``self.env.user`` — el llamador no tiene que pasarlo."""
         _acl('read', group=None)
-        who = _user('acl.check.entorno@practicayoruba.mx')
+        who = _user('acl.check.entorno@kaupamex.mx')
         with user_scope(who.pk):
             assert IrModelAccess.check(MODEL_LABEL, 'read') is True
 
@@ -207,7 +207,7 @@ class TestAccessError:
     """≙ ``_make_access_error`` — el mensaje que explica el rechazo."""
 
     def test_the_message_names_the_model_and_the_operation(self, db):
-        who = _user('acl.error.nombra@practicayoruba.mx')
+        who = _user('acl.error.nombra@kaupamex.mx')
         with pytest.raises(AccessError) as caught:
             IrModelAccess.check(MODEL_LABEL, 'write', user=who)
         message = str(caught.value)
@@ -218,14 +218,14 @@ class TestAccessError:
         group = ResGroups.objects.create(
             name='editores de vista', user_type='internal')
         _acl('write', group=group)
-        who = _user('acl.error.grupos@practicayoruba.mx')
+        who = _user('acl.error.grupos@kaupamex.mx')
         with pytest.raises(AccessError) as caught:
             IrModelAccess.check(MODEL_LABEL, 'write', user=who)
         assert 'editores de vista' in str(caught.value)
 
     def test_it_says_so_when_no_group_allows_it(self, db):
         """CONTROL — la fuente distingue los dos mensajes."""
-        who = _user('acl.error.ninguno@practicayoruba.mx')
+        who = _user('acl.error.ninguno@kaupamex.mx')
         with pytest.raises(AccessError) as caught:
             IrModelAccess.check(MODEL_LABEL, 'write', user=who)
         assert 'ningún grupo' in str(caught.value).lower()
@@ -241,7 +241,7 @@ class TestSeededAcl:
     """
 
     def test_a_plain_user_cannot_write_views(self, db):
-        who = _user('acl.vista.llano@practicayoruba.mx')
+        who = _user('acl.vista.llano@kaupamex.mx')
         assert IrModelAccess.check(
             'ir.ui.view', 'write', raise_exception=False, user=who) is False
 
@@ -249,7 +249,7 @@ class TestSeededAcl:
         system = apps.get_model('base', 'IrModelData').objects.filter(
             module='base', name='group_system').first()
         assert system is not None, 'la semilla de grupos no corrió'
-        who = _user('acl.vista.sistema@practicayoruba.mx')
+        who = _user('acl.vista.sistema@kaupamex.mx')
         who.group_ids.add(ResGroups.objects.get(pk=system.res_id))
         assert IrModelAccess.check('ir.ui.view', 'write', user=who) is True
 
@@ -261,7 +261,7 @@ class TestSeededAcl:
         ``perm_read=True`` —el reflejo de *«leer una vista lo puede todo el
         mundo»*— pasaría los otros dos casos de esta clase igual, y aquí falla.
         """
-        who = _user('acl.vista.lectura@practicayoruba.mx')
+        who = _user('acl.vista.lectura@kaupamex.mx')
         assert IrModelAccess.check(
             'ir.ui.view', 'read', raise_exception=False, user=who) is False
 
@@ -285,6 +285,6 @@ class TestDjangoCheckHook:
 
     def test_calling_it_with_a_model_still_resolves_permission(self, db):
         """CONTROL — el despacho no puede tragarse el camino de la fuente."""
-        who = _user('acl.hook.permiso@practicayoruba.mx')
+        who = _user('acl.hook.permiso@kaupamex.mx')
         assert IrModelAccess.check(
             MODEL_LABEL, 'read', raise_exception=False, user=who) is False

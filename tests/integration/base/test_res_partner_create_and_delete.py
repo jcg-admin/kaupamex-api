@@ -75,10 +75,10 @@ class TestNameCreate:
 
     def test_it_splits_the_name_and_the_email(self, db):
         """El eje."""
-        pk, _display = ResPartner.name_create('Ana Lopez <ana@practicayoruba.mx>')
+        pk, _display = ResPartner.name_create('Ana Lopez <ana@kaupamex.mx>')
         who = ResPartner.objects.get(pk=pk)
         assert who.name == 'Ana Lopez'
-        assert who.email == 'ana@practicayoruba.mx'
+        assert who.email == 'ana@kaupamex.mx'
 
     def test_with_only_an_email_the_name_is_the_email(self, db):
         """CONTROL de ``name or email_normalized``.
@@ -88,10 +88,10 @@ class TestNameCreate:
         Qué lo haría fallar: dejar el nombre vacío, que es una fila sin nada
         legible en ninguna lista.
         """
-        pk, _display = ResPartner.name_create('sola@practicayoruba.mx')
+        pk, _display = ResPartner.name_create('sola@kaupamex.mx')
         who = ResPartner.objects.get(pk=pk)
-        assert who.name == 'sola@practicayoruba.mx'
-        assert who.email == 'sola@practicayoruba.mx'
+        assert who.name == 'sola@kaupamex.mx'
+        assert who.email == 'sola@kaupamex.mx'
 
     def test_without_an_email_the_partner_has_none(self, db):
         """Un texto sin correo no deja basura en el campo.
@@ -131,14 +131,14 @@ class TestNameCreate:
         anterior.
         """
         with context_scope(force_email=True):
-            pk, _display = ResPartner.name_create('con@practicayoruba.mx')
-        assert ResPartner.objects.get(pk=pk).email == 'con@practicayoruba.mx'
+            pk, _display = ResPartner.name_create('con@kaupamex.mx')
+        assert ResPartner.objects.get(pk=pk).email == 'con@kaupamex.mx'
 
     def test_it_returns_the_pair_id_and_display_name(self, db):
         """CONTROL de la forma del retorno — la fuente devuelve una tupla."""
-        result = ResPartner.name_create('Ana <ana2@practicayoruba.mx>')
+        result = ResPartner.name_create('Ana <ana2@kaupamex.mx>')
         assert isinstance(result, tuple) and len(result) == 2
-        assert result[0] == ResPartner.objects.get(email='ana2@practicayoruba.mx').pk
+        assert result[0] == ResPartner.objects.get(email='ana2@kaupamex.mx').pk
         assert result[1]
 
 
@@ -148,8 +148,8 @@ class TestFindOrCreate:
     def test_it_finds_the_existing_one(self, db):
         """El eje: no duplica."""
         existing = ResPartner.objects.create(name='Ya esta',
-                                             email='ya@practicayoruba.mx')
-        found = ResPartner.find_or_create('Otro nombre <ya@practicayoruba.mx>')
+                                             email='ya@kaupamex.mx')
+        found = ResPartner.find_or_create('Otro nombre <ya@kaupamex.mx>')
         assert found.pk == existing.pk
         assert found.name == 'Ya esta', 'encuentra, no reescribe'
 
@@ -161,13 +161,13 @@ class TestFindOrCreate:
         que este método existe para evitar.
         """
         existing = ResPartner.objects.create(name='Mayusculas',
-                                             email='MAY@practicayoruba.mx')
-        found = ResPartner.find_or_create('may@practicayoruba.mx')
+                                             email='MAY@kaupamex.mx')
+        found = ResPartner.find_or_create('may@kaupamex.mx')
         assert found.pk == existing.pk
 
     def test_it_creates_when_there_is_none(self, db):
         """CONTROL de la otra mitad del nombre del método."""
-        found = ResPartner.find_or_create('Nueva <nueva@practicayoruba.mx>')
+        found = ResPartner.find_or_create('Nueva <nueva@kaupamex.mx>')
         assert found.pk is not None
         assert found.name == 'Nueva'
 
@@ -255,7 +255,7 @@ class TestUnlinkExceptUser:
 
     def test_a_partner_with_an_active_user_is_not_deleted(self, db):
         """El eje. Qué lo haría fallar: no consultar las cuentas."""
-        account = User.objects.create_user(login='borrar@practicayoruba.mx',
+        account = User.objects.create_user(login='borrar@kaupamex.mx',
                                            password=PASSWORD)
         with pytest.raises(RedirectWarning):
             account.partner.delete()
@@ -280,8 +280,8 @@ class TestUnlinkExceptUser:
         rather archive them after archiving their associated user"*— no se
         puede seguir.
         """
-        account = User.objects.create_user(login='nombrado@practicayoruba.mx',
+        account = User.objects.create_user(login='nombrado@kaupamex.mx',
                                            password=PASSWORD)
         with pytest.raises(RedirectWarning) as exc:
             account.partner.delete()
-        assert 'nombrado@practicayoruba.mx' in str(exc.value)
+        assert 'nombrado@kaupamex.mx' in str(exc.value)

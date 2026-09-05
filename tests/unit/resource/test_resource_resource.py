@@ -52,7 +52,7 @@ class TestResourceResourceDefaults:
     def test_save_falls_back_to_calendar_tz_when_user_has_no_tz(
             self, company, calendar):
         """Sin ``tz`` en el partner del usuario, gana el del calendario."""
-        user = ResUsers.objects.create_user(login='ana@practicayoruba.mx')
+        user = ResUsers.objects.create_user(login='ana@kaupamex.mx')
         assert not user.tz, 'el partner recién creado no debería traer tz'
         resource = ResourceResource.objects.create(
             name='Ana', company=company, user=user,
@@ -68,7 +68,7 @@ class TestResourceResourceDefaults:
         ``_inherits`` (``orm/inherits.py``) la restituye sin tocar este
         modelo — ``self.user.tz`` ahora resuelve al partner.
         """
-        user = ResUsers.objects.create_user(login='beto@practicayoruba.mx')
+        user = ResUsers.objects.create_user(login='beto@kaupamex.mx')
         user.tz = 'America/Mexico_City'
         user.save()
         resource = ResourceResource.objects.create(
@@ -109,7 +109,7 @@ class TestResourceResourceFlexibility:
 
 class TestResourceUserExtension:
     def test_resource_resources_reverse_accessor(self, company, calendar):
-        user = ResUsers.objects.create_user(login='beto@practicayoruba.mx')
+        user = ResUsers.objects.create_user(login='beto@kaupamex.mx')
         resource = ResourceResource.objects.create(
             name='Beto', company=company, calendar=calendar, user=user, tz='UTC',
         )
@@ -117,7 +117,7 @@ class TestResourceUserExtension:
         assert user.resource_calendar.pk == calendar.pk
 
     def test_resource_calendar_property_none_without_resource(self):
-        user = ResUsers.objects.create_user(login='sinrecurso@practicayoruba.mx')
+        user = ResUsers.objects.create_user(login='sinrecurso@kaupamex.mx')
         assert user.resource_calendar is None
 
 

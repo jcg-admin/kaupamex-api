@@ -99,7 +99,7 @@ def _new_connection_alerts():
 @pytest.fixture
 def totp_user(db):
     seed_totp_mail()
-    user, secret = _with_totp('nuevo.dispositivo@practicayoruba.mx',
+    user, secret = _with_totp('nuevo.dispositivo@kaupamex.mx',
                               'Usuario Con Segundo Factor')
     user.totp_secret_value = secret
     return user
@@ -154,7 +154,7 @@ class TestNewConnectionAlert:
     def test_cookie_of_another_user_still_alerts(self, api_client, totp_user):
         """CONTROL — la clave es de su dueño, no de quien la presente."""
         key = _remembered_cookie(api_client, totp_user)
-        intruder, secret = _with_totp('intruso.aviso@practicayoruba.mx',
+        intruder, secret = _with_totp('intruso.aviso@kaupamex.mx',
                                       'Usuario Distinto')
         intruder.totp_secret_value = secret
 
@@ -171,7 +171,7 @@ class TestNewConnectionAlert:
         """≙ *"Not enabled -> no alert"* — la tercera guarda de la fuente."""
         seed_totp_mail()
         plain = User.objects.create_user(
-            login='sin.segundo.factor@practicayoruba.mx',
+            login='sin.segundo.factor@kaupamex.mx',
             password=PASSWORD, name='Usuario Sin Segundo Factor')
         r = api_client.post(
             AUTHENTICATE, {'login': plain.login, 'password': PASSWORD},

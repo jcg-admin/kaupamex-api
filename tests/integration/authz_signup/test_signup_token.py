@@ -195,7 +195,7 @@ class TestSignupRetrievePartner:
 
     def test_resolves_a_valid_token_to_its_partner(self, seeded):
         partner = ResPartner.objects.create(
-            name='Invitada Valida', email='invitada.valida@practicayoruba.mx')
+            name='Invitada Valida', email='invitada.valida@kaupamex.mx')
         pp.signup_prepare(partner)
         token = pp._generate_signup_token(partner)
 
@@ -213,7 +213,7 @@ class TestSignupRetrievePartner:
     def test_a_token_invalidated_by_login_raises_too(self, seeded):
         partner = ResPartner.objects.create(
             name='Invitada Que Entra',
-            email='invitada.entra@practicayoruba.mx')
+            email='invitada.entra@kaupamex.mx')
         pp.signup_prepare(partner)
         token = pp._generate_signup_token(partner)
         # El token es real y su firma sigue siendo buena; lo que cambia es el

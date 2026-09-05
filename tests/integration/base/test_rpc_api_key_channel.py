@@ -105,7 +105,7 @@ def _enable_totp(user):
 
 @pytest.fixture
 def user(db):
-    return _internal('canal.rpc@practicayoruba.mx')
+    return _internal('canal.rpc@kaupamex.mx')
 
 
 class TestChannel:
@@ -120,7 +120,7 @@ class TestChannel:
     def test_the_key_of_another_user_is_refused(self, user):
         """CONTROL — la clave es de su dueño, no de quien la presente."""
         clave = _key_for(user)
-        otro = _internal('otro.canal@practicayoruba.mx')
+        otro = _internal('otro.canal@kaupamex.mx')
         with pytest.raises(AccessDenied):
             otro._check_credentials(_credential(clave), RPC)
 

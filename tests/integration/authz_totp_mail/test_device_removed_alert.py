@@ -97,7 +97,7 @@ def _add_device(user, name):
 @pytest.fixture
 def owner(db):
     seed_totp_mail()
-    user = _make_user('retiro.dispositivo@practicayoruba.mx', 'Titular')
+    user = _make_user('retiro.dispositivo@kaupamex.mx', 'Titular')
     django_mail.outbox.clear()
     return user
 
@@ -135,7 +135,7 @@ def test_revoking_all_devices_sends_one_mail_with_every_name(
 
 def test_each_owner_gets_only_their_own_devices(
         owner, django_capture_on_commit_callbacks):
-    vecino = _make_user('vecino.dispositivo@practicayoruba.mx', 'Vecino')
+    vecino = _make_user('vecino.dispositivo@kaupamex.mx', 'Vecino')
     _add_device(owner, 'Chrome on Windows')
     _add_device(vecino, 'Safari on Macos')
     django_mail.outbox.clear()

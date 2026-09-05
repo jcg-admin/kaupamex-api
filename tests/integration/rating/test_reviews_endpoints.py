@@ -35,7 +35,7 @@ class TestReviewsCapabilityGate:
 
     def _authed_without_capability(self, api_client):
         u = get_user_model().objects.create_user(
-            login='norole-reviews@practicayoruba.mx', password='TestPass123!',
+            login='norole-reviews@kaupamex.mx', password='TestPass123!',
         )
         api_client.force_login(u)
         return u

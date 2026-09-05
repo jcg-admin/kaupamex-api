@@ -53,7 +53,7 @@ class TestPivotExportGate:
 
     def test_user_without_capability_is_denied(self, api_client, db):
         outsider = get_user_model().objects.create_user(
-            login='pivot_outsider@practicayoruba.mx', password='TestPass123!')
+            login='pivot_outsider@kaupamex.mx', password='TestPass123!')
         api_client.force_login(outsider)
         res = api_client.get(EXPORT_URL, {'data': json.dumps(_JDATA)})
         assert res.status_code == 403
@@ -64,7 +64,7 @@ class TestPivotExportResult:
 
     def test_returns_a_valid_xlsx(self, api_client, db):
         operator = _user_with_capability(
-            'pivot_exporter@practicayoruba.mx', 'web.pivot.export')
+            'pivot_exporter@kaupamex.mx', 'web.pivot.export')
         api_client.force_login(operator)
         res = api_client.get(EXPORT_URL, {'data': json.dumps(_JDATA)})
         assert res.status_code == 200
@@ -77,7 +77,7 @@ class TestPivotExportResult:
 
     def test_missing_data_returns_400(self, api_client, db):
         operator = _user_with_capability(
-            'pivot_exporter2@practicayoruba.mx', 'web.pivot.export')
+            'pivot_exporter2@kaupamex.mx', 'web.pivot.export')
         api_client.force_login(operator)
         res = api_client.get(EXPORT_URL)
         assert res.status_code == 400
@@ -85,7 +85,7 @@ class TestPivotExportResult:
 
     def test_invalid_json_returns_400(self, api_client, db):
         operator = _user_with_capability(
-            'pivot_exporter3@practicayoruba.mx', 'web.pivot.export')
+            'pivot_exporter3@kaupamex.mx', 'web.pivot.export')
         api_client.force_login(operator)
         res = api_client.get(EXPORT_URL, {'data': '{not json'})
         assert res.status_code == 400
@@ -93,7 +93,7 @@ class TestPivotExportResult:
 
     def test_empty_data_returns_400(self, api_client, db):
         operator = _user_with_capability(
-            'pivot_exporter4@practicayoruba.mx', 'web.pivot.export')
+            'pivot_exporter4@kaupamex.mx', 'web.pivot.export')
         api_client.force_login(operator)
         res = api_client.get(EXPORT_URL, {'data': json.dumps({})})
         assert res.status_code == 400

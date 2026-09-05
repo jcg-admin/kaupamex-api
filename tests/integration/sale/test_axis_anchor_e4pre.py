@@ -92,7 +92,7 @@ class TestResenaAncladaAlCanonico:
 
     def test_una_resena_prueba_la_compra_con_la_canonica(self, venta):
         usuario = User.objects.create_user(
-            login='rev.e4pre@practicayoruba.mx', password='x')
+            login='rev.e4pre@kaupamex.mx', password='x')
         cat = make_category(name='Cat E4pre')
         prod = make_product(name='Prod E4pre', price=Decimal('50.00'), categ=cat)
 

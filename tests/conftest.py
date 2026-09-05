@@ -196,7 +196,7 @@ def user(db):
     """
     User = get_user_model()
     u = User.objects.create_user(
-        login='test@practicayoruba.mx', password='TestPass123!',
+        login='test@kaupamex.mx', password='TestPass123!',
         name='Test User',
     )
     return make_buyer(u)
@@ -207,7 +207,7 @@ def auth_user(db):
     """Usuario independiente usado en tests de payment y sale."""
     User = get_user_model()
     u = User.objects.create_user(
-        login='auth@practicayoruba.mx', password='AuthPass123!',
+        login='auth@kaupamex.mx', password='AuthPass123!',
         name='Auth User',
     )
     return make_buyer(u)
@@ -219,7 +219,7 @@ def admin_user(db):
     se le asigna el rol superadmin (bypass del resolver, DEC-01=B)."""
     User = get_user_model()
     u = User.objects.create_user(
-        login='admin@practicayoruba.mx', password='AdminPass123!',
+        login='admin@kaupamex.mx', password='AdminPass123!',
         name='Admin User',
     )
     # ``EmployeeProfile`` no existe en la referencia: el empleado es el campo

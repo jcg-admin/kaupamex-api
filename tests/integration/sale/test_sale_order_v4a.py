@@ -39,7 +39,7 @@ def product_v4(db):
 
 @pytest.fixture
 def confirmed_order(product_v4):
-    user = User.objects.create_user(login='v4a@practicayoruba.mx', password='x')
+    user = User.objects.create_user(login='v4a@kaupamex.mx', password='x')
     draft = SaleOrder.objects.create(partner=user, state=SaleOrder.STATE_DRAFT)
     add_item_to_draft(draft, product_v4, quantity=1)
     order = confirm_draft_order(draft, address_data=dict(ADDR))

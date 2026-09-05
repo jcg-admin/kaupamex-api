@@ -109,7 +109,7 @@ class TestComputeUserId:
 
     def test_a_person_takes_the_salesperson_of_its_parent(self, db):
         """El eje."""
-        seller = _user('vendedor.eje@practicayoruba.mx')
+        seller = _user('vendedor.eje@kaupamex.mx')
         parent = ResPartner.objects.create(name='Matriz', is_company=True,
                                            user=seller)
         who = ResPartner.objects.create(name='Persona', parent=parent)
@@ -121,7 +121,7 @@ class TestComputeUserId:
         Una filial es una entidad comercial propia: su vendedor no se hereda.
         Qué lo haría fallar: quitar la comprobación del tipo.
         """
-        seller = _user('vendedor.filial@practicayoruba.mx')
+        seller = _user('vendedor.filial@kaupamex.mx')
         parent = ResPartner.objects.create(name='Matriz', is_company=True,
                                            user=seller)
         who = ResPartner.objects.create(name='Filial', is_company=True,
@@ -134,8 +134,8 @@ class TestComputeUserId:
         Qué lo haría fallar: asignar el del padre siempre. El comercial que
         reasigna una cuenta a mano la perdería en la siguiente escritura.
         """
-        from_parent = _user('vendedor.padre@practicayoruba.mx')
-        own = _user('vendedor.own@practicayoruba.mx')
+        from_parent = _user('vendedor.padre@kaupamex.mx')
+        own = _user('vendedor.own@kaupamex.mx')
         parent = ResPartner.objects.create(name='Matriz', is_company=True,
                                            user=from_parent)
         who = ResPartner.objects.create(name='Persona', parent=parent,
@@ -153,7 +153,7 @@ class TestComputeMainUser:
 
     def test_the_only_active_user_is_the_main_one(self, db):
         """El eje."""
-        account = _user('principal.unico@practicayoruba.mx')
+        account = _user('principal.unico@kaupamex.mx')
         assert account.partner.main_user == account.pk
 
     def test_an_internal_user_beats_a_shared_one(self, db):
@@ -162,9 +162,9 @@ class TestComputeMainUser:
         Qué lo haría fallar: ordenar sólo por id. El compartido se creó
         primero, así que con el id solo ganaría él.
         """
-        shared = _user('principal.shared@practicayoruba.mx',
+        shared = _user('principal.shared@kaupamex.mx',
                            internal=False)
-        internal = _user('principal.internal@practicayoruba.mx')
+        internal = _user('principal.internal@kaupamex.mx')
         who = shared.partner
         internal.partner = who
         internal.save()
@@ -176,8 +176,8 @@ class TestComputeMainUser:
         Qué lo haría fallar: quedarse con el último. La fuente prefiere la
         cuenta **más antigua**, que es la que lleva el histórico.
         """
-        first = _user('principal.first@practicayoruba.mx')
-        second = _user('principal.second@practicayoruba.mx')
+        first = _user('principal.first@kaupamex.mx')
+        second = _user('principal.second@kaupamex.mx')
         who = first.partner
         second.partner = who
         second.save()
@@ -189,8 +189,8 @@ class TestComputeMainUser:
         Qué lo haría fallar: no filtrar. Una cuenta archivada seguiría siendo
         la principal y el correo iría a quien ya no está.
         """
-        archived = _user('principal.archived@practicayoruba.mx')
-        alive = _user('principal.alive@practicayoruba.mx')
+        archived = _user('principal.archived@kaupamex.mx')
+        alive = _user('principal.alive@kaupamex.mx')
         who = archived.partner
         alive.partner = who
         alive.save()
@@ -207,8 +207,8 @@ class TestComputeMainUser:
 
         Qué lo haría fallar: caer directo al orden, que elegiría al primero.
         """
-        first = _user('principal.otro@practicayoruba.mx')
-        viewer = _user('principal.yo@practicayoruba.mx')
+        first = _user('principal.otro@kaupamex.mx')
+        viewer = _user('principal.yo@kaupamex.mx')
         who = first.partner
         viewer.partner = who
         viewer.save()
@@ -233,7 +233,7 @@ class TestComputeMainUser:
             # construye. Saltarlo dejaria la rama sin control ninguno, que es
             # justo lo que el sub-patron D prohibe.
             root = User.objects.create_user(
-                login='raiz@practicayoruba.mx', password=PASSWORD)
+                login='raiz@kaupamex.mx', password=PASSWORD)
             User.objects.filter(pk=root.pk).update(id=SUPERUSER_ID)
             root = User.objects.get(pk=SUPERUSER_ID)
         assert root.partner_id is not None, 'la cuenta raiz tiene partner'

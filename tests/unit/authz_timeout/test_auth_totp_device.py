@@ -71,7 +71,7 @@ def clean_cache():
 @pytest.fixture
 def user():
     return User.objects.create_user(
-        login='estrechamiento@practicayoruba.mx',
+        login='estrechamiento@kaupamex.mx',
         password='EstrechaPass123!',
         name='Sujeto del Candado',
     )

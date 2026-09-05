@@ -39,7 +39,7 @@ class TestWishlistCapabilityGate:
 
     def test_requires_account_wishlist(self, api_client, db):
         u = get_user_model().objects.create_user(
-            login='norole-wishlist@practicayoruba.mx', password='TestPass123!')
+            login='norole-wishlist@kaupamex.mx', password='TestPass123!')
         api_client.force_login(u)
         assert api_client.get(WISH_URL).status_code == 403
 

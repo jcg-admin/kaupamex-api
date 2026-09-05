@@ -43,7 +43,7 @@ class TestPlatformModulesCatalog:
         )
         inventory = Module.objects.create(code='inventory', name='Inventario', is_application=True)
         inventory.depends.set([catalogue])
-        operator = _user_with_caps('l0_modules@practicayoruba.mx', ['platform.view'])
+        operator = _user_with_caps('l0_modules@kaupamex.mx', ['platform.view'])
         api_client.force_login(operator)
 
         res = api_client.get(MODULES_URL)
@@ -57,13 +57,13 @@ class TestPlatformModulesCatalog:
         assert by_code['inventory']['depends'] == ['catalogue']
 
     def test_catalog_is_read_only(self, api_client, db):
-        operator = _user_with_caps('l0_ro@practicayoruba.mx', ['platform.view'])
+        operator = _user_with_caps('l0_ro@kaupamex.mx', ['platform.view'])
         api_client.force_login(operator)
         res = api_client.post(MODULES_URL, {'code': 'x', 'name': 'X'}, format='json')
         assert res.status_code == 405
 
     def test_without_platform_view_denied(self, api_client, db):
-        nobody = _user_with_caps('l0_none@practicayoruba.mx', ['account.view'])
+        nobody = _user_with_caps('l0_none@kaupamex.mx', ['account.view'])
         api_client.force_login(nobody)
         res = api_client.get(MODULES_URL)
         assert res.status_code == 403

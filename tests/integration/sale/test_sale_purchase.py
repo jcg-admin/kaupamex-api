@@ -20,7 +20,7 @@ _vendor_seq = [0]
 def _vendor():
     _vendor_seq[0] += 1
     return User.objects.create_user(
-        login=f'prov{_vendor_seq[0]}@practicayoruba.mx', password='x')
+        login=f'prov{_vendor_seq[0]}@kaupamex.mx', password='x')
 
 
 def test_purchase_order_confirm_state_machine(db):

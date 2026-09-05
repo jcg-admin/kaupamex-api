@@ -27,10 +27,10 @@ class TestCredentialCreation:
 
     def test_create_user_with_login(self, db):
         user = User.objects.create_user(
-            login='nestor@practicayoruba.mx', password='Pass1234!',
+            login='nestor@kaupamex.mx', password='Pass1234!',
         )
         assert user.pk is not None
-        assert user.login == 'nestor@practicayoruba.mx'
+        assert user.login == 'nestor@kaupamex.mx'
         assert user.active is True
 
     def test_username_field_is_login(self, db):
@@ -38,25 +38,25 @@ class TestCredentialCreation:
 
     def test_create_user_stores_hashed_password(self, db):
         user = User.objects.create_user(
-            login='a@practicayoruba.mx', password='Pass1234!',
+            login='a@kaupamex.mx', password='Pass1234!',
         )
         assert user.password != 'Pass1234!'
         assert user.check_password('Pass1234!') is True
 
     def test_str_returns_login(self, db):
         user = User.objects.create_user(
-            login='str@practicayoruba.mx', password='Pass1234!',
+            login='str@kaupamex.mx', password='Pass1234!',
         )
-        assert str(user) == 'str@practicayoruba.mx'
+        assert str(user) == 'str@kaupamex.mx'
 
     def test_create_user_creates_partner_when_missing(self, db):
         """El manager crea el partner minimo cuando no se pasa uno
         (Odoo res.users.create, replicado en ResUsersManager._create_user)."""
         user = User.objects.create_user(
-            login='sinpartner@practicayoruba.mx', password='Pass1234!',
+            login='sinpartner@kaupamex.mx', password='Pass1234!',
         )
         assert user.partner_id is not None
-        assert user.partner.email == 'sinpartner@practicayoruba.mx'
+        assert user.partner.email == 'sinpartner@kaupamex.mx'
 
 
 class TestPartnerDelegation:
@@ -64,7 +64,7 @@ class TestPartnerDelegation:
 
     def test_name_delegates_to_partner(self, db):
         user = User.objects.create_user(
-            login='wp@practicayoruba.mx', password='Pass1234!',
+            login='wp@kaupamex.mx', password='Pass1234!',
             name='Nestor Garcia',
         )
         assert user.name == 'Nestor Garcia'
@@ -72,7 +72,7 @@ class TestPartnerDelegation:
 
     def test_phone_delegates_to_partner(self, db):
         user = User.objects.create_user(
-            login='ph@practicayoruba.mx', password='Pass1234!',
+            login='ph@kaupamex.mx', password='Pass1234!',
         )
         user.partner.phone = '5512345678'
         user.partner.save(update_fields=['phone'])
@@ -82,15 +82,15 @@ class TestPartnerDelegation:
         """La referencia relaciona ``email`` al del partner (res_users.py:253);
         aqui el login sirve de fallback cuando el partner no trae uno."""
         user = User.objects.create_user(
-            login='fallback@practicayoruba.mx', password='Pass1234!',
+            login='fallback@kaupamex.mx', password='Pass1234!',
         )
         user.partner.email = ''
         user.partner.save(update_fields=['email'])
-        assert user.email == 'fallback@practicayoruba.mx'
+        assert user.email == 'fallback@kaupamex.mx'
 
     def test_get_short_name_returns_first_word(self, db):
         user = User.objects.create_user(
-            login='short@practicayoruba.mx', password='Pass1234!',
+            login='short@kaupamex.mx', password='Pass1234!',
             name='Nestor Garcia',
         )
         assert user.get_short_name() == 'Nestor'
@@ -102,7 +102,7 @@ class TestDeactivation:
 
     def test_deactivate_sets_active_false_and_reason(self, db):
         user = User.objects.create_user(
-            login='deact@practicayoruba.mx', password='Pass1234!',
+            login='deact@kaupamex.mx', password='Pass1234!',
         )
         user.deactivate(User.DEACTIVATION_SUSPENDED)
         user.refresh_from_db()

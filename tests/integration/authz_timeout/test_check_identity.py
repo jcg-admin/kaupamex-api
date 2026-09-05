@@ -69,7 +69,7 @@ def user(db):
     """
     call_command('seed_authz')
     user = User.objects.create_user(
-        login='candado-http@practicayoruba.mx', password=PASSWORD,
+        login='candado-http@kaupamex.mx', password=PASSWORD,
         name='Candado HTTP')
     role = Role.objects.create(code='candado-tiempo', name='Candado Tiempo')
     call_command('seed_authz')      # siembra account.* en el rol recién creado

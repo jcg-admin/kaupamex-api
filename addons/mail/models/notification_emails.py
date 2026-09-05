@@ -66,7 +66,7 @@ def _frontend_url():
 
 def send_order_confirmation_email(user_email, user_name, order_number, order_total):
     """UC-NOT-01: confirmacion de orden creada (HTML nativo, T-K)."""
-    subject = f'Orden confirmada #{order_number} — PracticaYoruba'
+    subject = f'Orden confirmada #{order_number} — Kaupamex'
     order_url = f'{_frontend_url()}/account/orders/{order_number}'
     message = (
         f'Hola {user_name},\n\n'
@@ -75,7 +75,7 @@ def send_order_confirmation_email(user_email, user_name, order_number, order_tot
         f'Puedes ver el estado en:\n'
         f'{order_url}\n\n'
         f'Te notificaremos cuando tu pedido sea procesado.\n\n'
-        f'— Equipo PracticaYoruba'
+        f'— Equipo Kaupamex'
     )
     html_body = _render_transactional(
         heading=f'Orden confirmada #{order_number}',
@@ -111,14 +111,14 @@ def send_order_status_email(user_email, user_name, order_number, new_status, tra
     title, detail = _labels.get(new_status, ('Actualizacion de orden', f'Estado: {new_status}'))
     if new_status == 'SHIPPED' and tracking_number:
         detail += f' Numero de rastreo: {tracking_number}.'
-    subject = f'{title} — #{order_number} — PracticaYoruba'
+    subject = f'{title} — #{order_number} — Kaupamex'
     order_url = f'{_frontend_url()}/account/orders/{order_number}'
     message = (
         f'Hola {user_name},\n\n'
         f'{detail}\n\n'
         f'Ve el detalle en:\n'
         f'{order_url}\n\n'
-        f'— Equipo PracticaYoruba'
+        f'— Equipo Kaupamex'
     )
     html_body = _render_transactional(
         heading=title,
@@ -138,7 +138,7 @@ def send_order_status_email(user_email, user_name, order_number, new_status, tra
 
 def send_shipping_update_email(user_email, user_name, order_number, tracking_number=None, event_description=None):
     """UC-NOT-03: actualizacion de envio."""
-    subject = f'Actualizacion de envio #{order_number} — PracticaYoruba'
+    subject = f'Actualizacion de envio #{order_number} — Kaupamex'
     detail = event_description or 'Hay una actualizacion sobre el envio de tu pedido.'
     tracking_line = f'Numero de rastreo: {tracking_number}\n\n' if tracking_number else ''
     order_url = f'{_frontend_url()}/account/orders/{order_number}'
@@ -148,7 +148,7 @@ def send_shipping_update_email(user_email, user_name, order_number, tracking_num
         f'{tracking_line}'
         f'Ve el detalle en:\n'
         f'{order_url}\n\n'
-        f'— Equipo PracticaYoruba'
+        f'— Equipo Kaupamex'
     )
     paragraphs = [f'Hola {user_name},', detail]
     if tracking_number:
@@ -181,14 +181,14 @@ def send_return_processed_email(user_email, user_name, order_number, return_stat
         detail = f'Tu solicitud de devolucion para la orden #{order_number} fue rechazada.{reason_text}'
     else:
         detail = f'Actualizacion sobre tu devolucion de la orden #{order_number}: {return_status}.'
-    subject = f'Actualizacion de devolucion #{order_number} — PracticaYoruba'
+    subject = f'Actualizacion de devolucion #{order_number} — Kaupamex'
     returns_url = f'{_frontend_url()}/account/returns/'
     message = (
         f'Hola {user_name},\n\n'
         f'{detail}\n\n'
         f'Ve el detalle en:\n'
         f'{returns_url}\n\n'
-        f'— Equipo PracticaYoruba'
+        f'— Equipo Kaupamex'
     )
     html_body = _render_transactional(
         heading='Actualización de tu devolución',
@@ -208,14 +208,14 @@ def send_return_processed_email(user_email, user_name, order_number, return_stat
 
 def send_refund_email(user_email, user_name, order_number, amount_refunded):
     """UC-NOT-05: reembolso procesado."""
-    subject = f'Reembolso procesado #{order_number} — PracticaYoruba'
+    subject = f'Reembolso procesado #{order_number} — Kaupamex'
     order_url = f'{_frontend_url()}/account/orders/{order_number}'
     message = (
         f'Hola {user_name},\n\n'
         f'Tu reembolso de ${amount_refunded} para la orden #{order_number} '
         f'ha sido procesado.\n\n'
         f'El monto aparecera en tu cuenta en 3-5 dias habiles.\n\n'
-        f'— Equipo PracticaYoruba'
+        f'— Equipo Kaupamex'
     )
     html_body = _render_transactional(
         heading='Reembolso procesado',
@@ -247,14 +247,14 @@ def send_support_closed_email(user_email, user_name, ticket_id, ticket_subject, 
         )
     else:
         detail = f'Tu ticket #{ticket_id} "{ticket_subject}" ha sido cerrado.'
-    subject = f'Ticket de soporte #{ticket_id} cerrado — PracticaYoruba'
+    subject = f'Ticket de soporte #{ticket_id} cerrado — Kaupamex'
     new_ticket_url = f'{_frontend_url()}/support/tickets/new'
     message = (
         f'Hola {user_name},\n\n'
         f'{detail}\n\n'
         f'Si necesitas mas ayuda puedes abrir un nuevo ticket en:\n'
         f'{new_ticket_url}\n\n'
-        f'— Equipo PracticaYoruba'
+        f'— Equipo Kaupamex'
     )
     html_body = _render_transactional(
         heading=f'Ticket #{ticket_id} cerrado',
@@ -278,7 +278,7 @@ def send_support_closed_email(user_email, user_name, ticket_id, ticket_subject, 
 
 def send_support_created_email(user_email, user_name, ticket_id, ticket_subject):
     """UC-SUPP-01 (POST-02/7.2): confirmacion de creacion de ticket (HTML nativo, T-K)."""
-    subject = f'Ticket de soporte #{ticket_id} creado — PracticaYoruba'
+    subject = f'Ticket de soporte #{ticket_id} creado — Kaupamex'
     ticket_url = f'{_frontend_url()}/support/tickets/{ticket_id}'
     message = (
         f'Hola {user_name},\n\n'
@@ -286,7 +286,7 @@ def send_support_created_email(user_email, user_name, ticket_id, ticket_subject)
         f'de soporte lo revisara y te respondera a la brevedad.\n\n'
         f'Puedes seguir la conversacion en:\n'
         f'{ticket_url}\n\n'
-        f'— Equipo PracticaYoruba'
+        f'— Equipo Kaupamex'
     )
     html_body = _render_transactional(
         heading=f'Ticket #{ticket_id} creado',
@@ -317,11 +317,11 @@ def send_card_verification_email(user_email, user_name, verification_token, last
     El token expira implícitamente cuando la tarjeta es activada o eliminada.
     """
     verify_url = f'{_frontend_url()}/account/cards/verify/{verification_token}'
-    subject = 'Activa tu tarjeta guardada — PracticaYoruba'
+    subject = 'Activa tu tarjeta guardada — Kaupamex'
     message = (
         f'Hola {user_name},\n\n'
         f'Recibimos una solicitud para guardar la tarjeta terminada en {last_four} '
-        f'en tu cuenta de PracticaYoruba.\n\n'
+        f'en tu cuenta de Kaupamex.\n\n'
         f'Para activarla y usarla en tus próximos pagos, haz clic en el '
         f'siguiente enlace:\n\n'
         f'  {verify_url}\n\n'
@@ -329,14 +329,14 @@ def send_card_verification_email(user_email, user_name, verification_token, last
         f'será activada y puedes continuar usando tu cuenta con normalidad.\n\n'
         f'Por seguridad, este enlace es de un solo uso. Una vez activada la '
         f'tarjeta, el enlace dejará de funcionar.\n\n'
-        f'— Equipo PracticaYoruba'
+        f'— Equipo Kaupamex'
     )
     html_body = _render_transactional(
         heading='Activa tu tarjeta guardada',
         paragraphs=[
             f'Hola {user_name},',
             f'Recibimos una solicitud para guardar la tarjeta terminada en '
-            f'{last_four} en tu cuenta de PracticaYoruba.',
+            f'{last_four} en tu cuenta de Kaupamex.',
             'Si no reconoces esta acción, ignora este mensaje: tu tarjeta no '
             'será activada. Por seguridad, este enlace es de un solo uso.',
         ],

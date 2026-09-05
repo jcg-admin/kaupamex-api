@@ -149,7 +149,7 @@ content_type='text/html')`` (``:236``), sin plantillado por request;
 ``extractSessionInfo`` no encontraría nada que extraer. Nota de corrección:
 una medición previa de este mismo archivo declaraba el bloqueo por "origen
 cruzado" (UI y API en dominios distintos); releído hoy el vhost de
-producción (``server: config/apache/practicayoruba-https.conf:78``,
+producción (``server: config/apache/kaupamex-https.conf:78``,
 ``ServerName %%DOMAIN%%`` — un solo ``VirtualHost``), **UI y API comparten
 el mismo dominio** (Django montado en raíz vía ``WSGIScriptAlias /``,
 ``:199``, el mismo mecanismo que expone ``serve_spa`` en

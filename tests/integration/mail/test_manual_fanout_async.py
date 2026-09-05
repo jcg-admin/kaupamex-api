@@ -34,7 +34,7 @@ def _create_buyers(n):
     user_ids = []
     for i in range(n):
         u = User.objects.create_user(
-            login=f'syncbuyer{i}@practicayoruba.mx',
+            login=f'syncbuyer{i}@kaupamex.mx',
             password='Pw123456!',
         )
         order = make_order(user=u)

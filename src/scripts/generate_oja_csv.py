@@ -10,8 +10,8 @@ donde image_files es una lista separada por punto y coma de los nombres
 de archivo de imagen (sin ruta), listos para copiarse a MEDIA_ROOT/products/images/.
 
 Uso:
-  python practicayoruba/scripts/generate_oja_csv.py
-  python practicayoruba/scripts/generate_oja_csv.py \\
+  python kaupamex/scripts/generate_oja_csv.py
+  python kaupamex/scripts/generate_oja_csv.py \\
     --catalog-dir /tmp/references/oja/oja/productos/ \\
     --output /tmp/catalogo_oja.csv
 

@@ -51,8 +51,8 @@ def _internal(name='WH/Stock'):
 def test_bom_type_subcontract_with_subcontractors(db):
     finished = _product()
     bom = _bom(finished, product_qty=Decimal('1'), type=MrpBom.TYPE_SUBCONTRACT)
-    sub_a = _partner('subA@practicayoruba.mx')
-    sub_b = _partner('subB@practicayoruba.mx')
+    sub_a = _partner('subA@kaupamex.mx')
+    sub_b = _partner('subB@kaupamex.mx')
     BomSubcontractor.objects.create(bom=bom, subcontractor=sub_a)
     BomSubcontractor.objects.create(bom=bom, subcontractor=sub_b)
     assert bom.type == 'subcontract'
@@ -71,7 +71,7 @@ def test_subcontracting_location_must_be_internal(db):
 
 
 def test_subcontractor_profile_holds_its_location(db):
-    partner = _partner('sub@practicayoruba.mx')
+    partner = _partner('sub@kaupamex.mx')
     loc = _internal('WH/Subc')
     prof = Subcontractor.objects.create(partner=partner, location=loc)
     assert prof.is_subcontractor is True
@@ -81,7 +81,7 @@ def test_subcontractor_profile_holds_its_location(db):
 
 def test_bom_subcontractor_unique(db):
     bom = _bom(_product(), type=MrpBom.TYPE_SUBCONTRACT)
-    sub = _partner('dup@practicayoruba.mx')
+    sub = _partner('dup@kaupamex.mx')
     BomSubcontractor.objects.create(bom=bom, subcontractor=sub)
     with pytest.raises(IntegrityError):
         with transaction.atomic():
@@ -126,6 +126,6 @@ def test_subcontract_production_links_subcontractor(db):
     mo = MrpProduction.objects.create(
         product=_product(), product_qty=Decimal('1'),
         bom=_bom(_product(), type=MrpBom.TYPE_SUBCONTRACT))
-    sub = _partner('link@practicayoruba.mx')
+    sub = _partner('link@kaupamex.mx')
     SubcontractProduction.objects.create(production=mo, subcontractor=sub)
     assert mo.subcontract.subcontractor == sub

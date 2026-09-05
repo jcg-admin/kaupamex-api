@@ -21,7 +21,7 @@
 #
 # Dos nombres, no tres. ``kaupamex-db`` es el clon hermano (el remote real es
 # ``jcg-admin/kaupamex-db``); ``db`` es la ruta del submódulo cuando se trabaja
-# desde el superproyecto. ``PracticaYoruba-db`` NO se acepta: es un nombre de
+# desde el superproyecto. ``Kaupamex-db`` NO se acepta: es un nombre de
 # repositorio muerto desde el rename del 2026-07-23 (DEC-KX-06) y aceptarlo
 # arrastra branding retirado en el mismo pase que lo elimina.
 db_repo_root() {

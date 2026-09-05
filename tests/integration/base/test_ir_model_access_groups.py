@@ -145,8 +145,8 @@ class TestTheExpressionAnswersMembership:
     def test_the_expression_answers_membership_through_matches(self, db):
         group = ResGroups.objects.create(name='con acceso')
         _acl('read', group=group)
-        inside = _user('grupos.dentro@practicayoruba.mx')
-        outside = _user('grupos.fuera@practicayoruba.mx')
+        inside = _user('grupos.dentro@kaupamex.mx')
+        outside = _user('grupos.fuera@kaupamex.mx')
         inside.group_ids.add(group)
         registry.clear_cache('stable')
 
@@ -159,7 +159,7 @@ class TestTheExpressionAnswersMembership:
         child = ResGroups.objects.create(name='hijo que lo implica')
         child.implied_ids.add(parent)
         _acl('read', group=parent)
-        who = _user('grupos.implicado@practicayoruba.mx')
+        who = _user('grupos.implicado@kaupamex.mx')
         who.group_ids.add(child)
         registry.clear_cache('stable')
 
@@ -218,7 +218,7 @@ class TestHasGroupGoesThroughTheGraph:
         data_model = apps.get_model('base', 'IrModelData')
         group = ResGroups.objects.create(name='grupo direccionable')
         data_model.set_xmlid(group, 'base.group_direccionable_204')
-        who = _user('grupos.xmlid@practicayoruba.mx')
+        who = _user('grupos.xmlid@kaupamex.mx')
         registry.clear_cache('stable')
 
         assert not who._has_group('base.group_direccionable_204')
@@ -227,5 +227,5 @@ class TestHasGroupGoesThroughTheGraph:
         assert who._has_group('base.group_direccionable_204')
 
     def test_an_unknown_external_id_is_false_not_an_error(self, db):
-        who = _user('grupos.desconocido@practicayoruba.mx')
+        who = _user('grupos.desconocido@kaupamex.mx')
         assert who._has_group('base.group_que_no_existe_204') is False

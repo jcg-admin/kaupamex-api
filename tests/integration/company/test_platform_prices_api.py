@@ -47,7 +47,7 @@ def _user_with_caps(email, codes):
 class TestModulePricesApi:
     def test_operator_seeds_a_tariff(self, api_client, db):
         m = Module.objects.create(code='catalogue', name='Catálogo')
-        operator = _user_with_caps('l0_pset@practicayoruba.mx', ['platform.provision'])
+        operator = _user_with_caps('l0_pset@kaupamex.mx', ['platform.provision'])
         api_client.force_login(operator)
         res = api_client.post(PRICES_URL, {
             'module': m.pk, 'billing_cycle': 'monthly', 'price': '199.00',
@@ -62,7 +62,7 @@ class TestModulePricesApi:
             module=m, billing_cycle=ModulePrice.BillingCycle.MONTHLY,
             price=Decimal('199.00'), effective_from=timezone.now() - timedelta(days=1),
         )
-        reader = _user_with_caps('l0_pread@practicayoruba.mx', ['platform.view'])
+        reader = _user_with_caps('l0_pread@kaupamex.mx', ['platform.view'])
         api_client.force_login(reader)
         res = api_client.get(PRICES_URL)
         assert res.status_code == 200
@@ -73,7 +73,7 @@ class TestModulePricesApi:
 
     def test_reader_cannot_write(self, api_client, db):
         m = Module.objects.create(code='catalogue', name='Catálogo')
-        reader = _user_with_caps('l0_prw@practicayoruba.mx', ['platform.view'])
+        reader = _user_with_caps('l0_prw@kaupamex.mx', ['platform.view'])
         api_client.force_login(reader)
         res = api_client.post(PRICES_URL, {
             'module': m.pk, 'billing_cycle': 'monthly', 'price': '9.00',

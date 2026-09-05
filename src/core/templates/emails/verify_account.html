@@ -5,12 +5,12 @@ Correo de verificacion de cuenta (UC-AUTH-10). Contexto:
 - verify_url : enlace de activacion (con token, y next opcional)
 - ttl_hours  : horas de validez del enlace
 {% endcomment %}
-{% block title %}Activa tu cuenta — PracticaYoruba{% endblock %}
-{% block preheader %}Activa tu cuenta de PracticaYoruba; el enlace vence en {{ ttl_hours }} horas.{% endblock %}
+{% block title %}Activa tu cuenta — Kaupamex{% endblock %}
+{% block preheader %}Activa tu cuenta de Kaupamex; el enlace vence en {{ ttl_hours }} horas.{% endblock %}
 {% block content %}
 <p style="margin:0 0 16px;">Hola {{ nombre }},</p>
 <p style="margin:0 0 24px;">
-  Gracias por registrarte en <strong>PracticaYoruba</strong>. Para activar tu
+  Gracias por registrarte en <strong>Kaupamex</strong>. Para activar tu
   cuenta, confirma tu correo con el siguiente botón. El enlace es válido por
   {{ ttl_hours }} horas.
 </p>
@@ -28,6 +28,6 @@ Correo de verificacion de cuenta (UC-AUTH-10). Contexto:
   <a href="{{ verify_url }}" style="color:#4a1e1e;">{{ verify_url }}</a>
 </p>
 <p style="margin:0; color:#6a6a6a; font-size:13px;">
-  Si no te registraste en PracticaYoruba, ignora este mensaje.
+  Si no te registraste en Kaupamex, ignora este mensaje.
 </p>
 {% endblock %}

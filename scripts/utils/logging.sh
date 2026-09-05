@@ -32,7 +32,7 @@ _LOG_FILE=""
 
 # -----------------------------------------------------------------------------
 # init_log <nombre>
-#   Inicializa el archivo de log en PROJECT_ROOT/practicayoruba/logs/<nombre>.log
+#   Inicializa el archivo de log en PROJECT_ROOT/kaupamex/logs/<nombre>.log
 # -----------------------------------------------------------------------------
 init_log() {
     local name="${1:-bootstrap}"

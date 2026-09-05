@@ -81,7 +81,7 @@ def _enable_totp(user):
 @pytest.fixture
 def totp_user(db):
     user = User.objects.create_user(
-        login='segundo.paso@practicayoruba.mx',
+        login='segundo.paso@kaupamex.mx',
         password=PASSWORD,
         name='Usuario Con Segundo Factor',
     )
@@ -299,7 +299,7 @@ class TestTrustedDeviceCookie:
         api_client.logout()
 
         intruder = django_user_model.objects.create_user(
-            login='intruso@practicayoruba.mx',
+            login='intruso@kaupamex.mx',
             password=PASSWORD,
             name='Usuario Distinto',
         )

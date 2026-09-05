@@ -67,9 +67,9 @@ class TestAudienciaCompradoresCanonica:
     """``PRODUCT_BUYERS`` se resuelve desde ``SaleOrderLine``."""
 
     def test_compradores_confirmados_cuentan(self, producto):
-        u1 = User.objects.create_user(login='b1.e2c@practicayoruba.mx',
+        u1 = User.objects.create_user(login='b1.e2c@kaupamex.mx',
                                       password='x')
-        u2 = User.objects.create_user(login='b2.e2c@practicayoruba.mx',
+        u2 = User.objects.create_user(login='b2.e2c@kaupamex.mx',
                                       password='x')
         _venta(producto, u1)
         _venta(producto, u2)
@@ -83,7 +83,7 @@ class TestAudienciaCompradoresCanonica:
 
     def test_un_carrito_draft_no_es_comprador(self, producto):
         """La sutileza del re-anclaje: la línea existe desde el draft."""
-        mirón = User.objects.create_user(login='cart.e2c@practicayoruba.mx',
+        mirón = User.objects.create_user(login='cart.e2c@kaupamex.mx',
                                          password='x')
         _venta(producto, mirón, confirmar=False)
 
@@ -94,7 +94,7 @@ class TestAudienciaCompradoresCanonica:
     def test_una_orden_cancelada_post_confirm_sigue_contando(self, producto):
         """Paridad con el espejo: OrderItem persistía tras la cancelación."""
         arrepentido = User.objects.create_user(
-            login='cancel.e2c@practicayoruba.mx', password='x')
+            login='cancel.e2c@kaupamex.mx', password='x')
         orden = _venta(producto, arrepentido)
         orden.action_cancel()
 

@@ -67,7 +67,7 @@ def digest(company):
 
 @pytest.fixture
 def recipient():
-    return UserFactory(login='destinatario@practicayoruba.mx')
+    return UserFactory(login='destinatario@kaupamex.mx')
 
 
 @pytest.fixture

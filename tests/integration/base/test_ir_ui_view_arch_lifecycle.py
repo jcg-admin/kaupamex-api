@@ -168,7 +168,7 @@ class TestCustomCleanup:
     def test_writing_the_arch_drops_the_customisations(self, db):
         view = _view()
         who = get_user_model().objects.create_user(
-            login='custom.uno@practicayoruba.mx', password='ViewCustom123!')
+            login='custom.uno@kaupamex.mx', password='ViewCustom123!')
         custom = IrUiViewCustom(ref_id=view, user=who, arch='<form/>')
         custom.save()
         view.arch_db = FORM_V2
@@ -179,7 +179,7 @@ class TestCustomCleanup:
         """CONTROL — la fuente las borra en CADA write; medido, tambien aqui."""
         view = _view()
         who = get_user_model().objects.create_user(
-            login='custom.dos@practicayoruba.mx', password='ViewCustom123!')
+            login='custom.dos@kaupamex.mx', password='ViewCustom123!')
         custom = IrUiViewCustom(ref_id=view, user=who, arch='<form/>')
         custom.save()
         view.name = 'otro nombre'

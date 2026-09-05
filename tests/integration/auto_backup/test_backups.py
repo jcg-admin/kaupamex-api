@@ -209,7 +209,7 @@ class TestBackupFailAlert:
         assert len(mailoutbox) == 1
         seeded = SystemParameter.get_param('backup.alert_email')
         assert seeded is not None
-        assert 'practicayoruba.com' not in seeded
+        assert 'kaupamex.com' not in seeded
         assert mailoutbox[0].to == [seeded]
 
 

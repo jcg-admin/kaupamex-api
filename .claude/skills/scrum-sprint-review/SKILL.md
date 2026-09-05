@@ -37,7 +37,7 @@ Sin un Increment Done, no hay Sprint Review en sentido pleno: se muestra lo que 
 
 - Al final de cada Sprint, antes de la Retrospective, para inspeccionar el producto con los stakeholders.
 - Cuando hay que decidir, con feedback real, qué entra al Product Backlog y cómo se re-prioriza para el próximo Sprint.
-- En PracticaYoruba: para demostrar un incremento del checkout, catálogo o panel de administración a quien representa al comprador o al negocio, y recoger qué ajustar.
+- En Kaupamex: para demostrar un incremento del checkout, catálogo o panel de administración a quien representa al comprador o al negocio, y recoger qué ajustar.
 
 ## Cuándo NO usar este paso
 

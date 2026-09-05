@@ -36,7 +36,7 @@ Sin backlog priorizado y refinado, no hay Sprint Planning: regresar a `scrum-bac
 
 - Al inicio de cada Sprint, una vez que el Sprint anterior cerró (Sprint Review + Retrospective).
 - Cuando el equipo necesita convertir el tope del Product Backlog en un compromiso concreto con objetivo.
-- En el e-commerce PracticaYoruba: al planificar un Sprint que entregará un incremento del checkout, catálogo o panel de administración basado en historias de `historias-usuario/`.
+- En el e-commerce Kaupamex: al planificar un Sprint que entregará un incremento del checkout, catálogo o panel de administración basado en historias de `historias-usuario/`.
 
 ## Cuándo NO usar este paso
 
@@ -82,7 +82,7 @@ El Sprint Goal NO es la lista de items; es el **por qué** que los une. Debe ser
 - **Medible** — se puede verificar si se cumplió o no al final del Sprint.
 - **De negocio** — expresado en valor para el usuario/producto, no en tareas técnicas.
 
-Ejemplo (PracticaYoruba): *"El comprador puede completar una compra de extremo a extremo pagando con Mercado Pago"* — medible (la compra se completa o no), de negocio (valor para el comprador), y une las historias de carrito, checkout y pago bajo un solo objetivo.
+Ejemplo (Kaupamex): *"El comprador puede completar una compra de extremo a extremo pagando con Mercado Pago"* — medible (la compra se completa o no), de negocio (valor para el comprador), y une las historias de carrito, checkout y pago bajo un solo objetivo.
 
 ---
 

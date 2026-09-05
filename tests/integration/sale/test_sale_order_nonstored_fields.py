@@ -52,7 +52,7 @@ def _make_customer(login):
     del árbol, registrada como :ref:`h-api-905`; estos tests usan lo que el
     modelo declara hoy, no lo que debería declarar.
     """
-    return UserFactory(login=f'{login}@practicayoruba.mx')
+    return UserFactory(login=f'{login}@kaupamex.mx')
 
 
 @pytest.fixture

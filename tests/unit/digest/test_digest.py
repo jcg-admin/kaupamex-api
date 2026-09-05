@@ -31,7 +31,7 @@ def internal_group():
 
 @pytest.fixture
 def internal_user(internal_group):
-    user = UserFactory(login='ana@practicayoruba.mx')
+    user = UserFactory(login='ana@kaupamex.mx')
     internal_group.user_ids.add(user)
     return user
 
@@ -104,7 +104,7 @@ class TestDigestSubscription:
             assert digest.is_subscribed is True
 
     def test_action_subscribe_noop_for_share_user(self, digest):
-        share_user = UserFactory(login='publico@practicayoruba.mx')
+        share_user = UserFactory(login='publico@kaupamex.mx')
         assert share_user.share is True
         with user_scope(share_user.pk):
             digest.action_subscribe()

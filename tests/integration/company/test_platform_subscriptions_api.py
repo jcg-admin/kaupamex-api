@@ -51,7 +51,7 @@ class TestPlatformSubscriptionsGate:
     def test_operator_can_assign_a_module(self, api_client, db):
         company = ResCompany.objects.create(code='acme', name='Acme')
         cat = Module.objects.create(code='catalogue', name='Catálogo')
-        operator = _user_with_caps('l0_prov@practicayoruba.mx', ['platform.provision'])
+        operator = _user_with_caps('l0_prov@kaupamex.mx', ['platform.provision'])
         api_client.force_login(operator)
         res = api_client.post(SUBS_URL, {
             'company': company.pk, 'module': cat.pk, 'status': 'active',
@@ -69,7 +69,7 @@ class TestPlatformSubscriptionsGate:
             price=Decimal('199.00'),
             effective_from=timezone.now() - timedelta(days=1),
         )
-        operator = _user_with_caps('l0_price@practicayoruba.mx', ['platform.provision'])
+        operator = _user_with_caps('l0_price@kaupamex.mx', ['platform.provision'])
         api_client.force_login(operator)
         res = api_client.post(SUBS_URL, {
             'company': company.pk, 'module': cat.pk, 'status': 'active',
@@ -85,7 +85,7 @@ class TestPlatformSubscriptionsGate:
         cat = Module.objects.create(code='catalogue', name='Catálogo')
         pos = Module.objects.create(code='pos', name='POS')
         pos.depends.set([cat])  # pos requires catalogue active
-        operator = _user_with_caps('l0_prov2@practicayoruba.mx', ['platform.provision'])
+        operator = _user_with_caps('l0_prov2@kaupamex.mx', ['platform.provision'])
         api_client.force_login(operator)
         res = api_client.post(SUBS_URL, {
             'company': company.pk, 'module': pos.pk, 'status': 'active',
@@ -96,7 +96,7 @@ class TestPlatformSubscriptionsGate:
     def test_read_only_operator_cannot_write(self, api_client, db):
         company = ResCompany.objects.create(code='acme', name='Acme')
         cat = Module.objects.create(code='catalogue', name='Catálogo')
-        viewer = _user_with_caps('l0_view@practicayoruba.mx', ['platform.view'])
+        viewer = _user_with_caps('l0_view@kaupamex.mx', ['platform.view'])
         api_client.force_login(viewer)
         res = api_client.post(SUBS_URL, {
             'company': company.pk, 'module': cat.pk, 'status': 'active',
@@ -110,7 +110,7 @@ class TestPlatformSubscriptionsGate:
             company=company, module=cat,
             status=CompanyModuleSubscription.Status.ACTIVE,
         )
-        viewer = _user_with_caps('l0_list@practicayoruba.mx', ['platform.view'])
+        viewer = _user_with_caps('l0_list@kaupamex.mx', ['platform.view'])
         api_client.force_login(viewer)
         res = api_client.get(SUBS_URL)
         assert res.status_code == 200
@@ -132,7 +132,7 @@ class TestPlatformSubscriptionsGate:
             company=globex, module=inv,
             status=CompanyModuleSubscription.Status.ACTIVE,
         )
-        viewer = _user_with_caps('l0_filter@practicayoruba.mx', ['platform.view'])
+        viewer = _user_with_caps('l0_filter@kaupamex.mx', ['platform.view'])
         api_client.force_login(viewer)
         res = api_client.get(SUBS_URL, {'company': acme.pk})
         assert res.status_code == 200
