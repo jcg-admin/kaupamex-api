@@ -36,8 +36,11 @@ def find_agents(paths: list[str]) -> list[Path]:
             else:
                 print(f"Warning: path not found — {p}", file=sys.stderr)
         return files
-    # Default: .claude/agents/*.md relative to cwd
-    agents_dir = Path(".claude/agents")
+    # Default: el .claude/agents/ del clon que aloja este guion. Se ancla en
+    # __file__ y no en el cwd: bajo el harness remoto el proceso corre en
+    # /home/user, donde esa ruta relativa no existe — el guion salía con
+    # exit 2 y el `|| true` del hook lo leía como verde (:ref:`h-docs-1056`).
+    agents_dir = Path(__file__).resolve().parents[2] / ".claude/agents"
     if not agents_dir.exists():
         print(f"Error: directory not found — {agents_dir}", file=sys.stderr)
         sys.exit(2)
