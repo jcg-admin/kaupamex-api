@@ -20,10 +20,11 @@
   "outputs": [
     "outputs/control-2026-09-04T16-33-54.txt",
     "outputs/parity-2026-09-04T16-33-54.txt",
-    "outputs/suite-2026-09-04T16-33-54.txt"
+    "outputs/suite-2026-09-04T16-33-54.txt",
+    "outputs/parity-20260913T075508.txt"
   ],
   "tasks": [
-    "#367"
+    "TASK-API-0391"
   ],
   "corrected_premise": {
     "decia": "El censo de raiz declara la firma como ceguera y check_porte_completo tampoco la compara, asi que un puerto con el nombre correcto y otros parametros pasa los dos gates.",
