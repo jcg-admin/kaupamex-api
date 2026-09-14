@@ -1,0 +1,4 @@
+{
+  "instrument": "uv run pytest --tb=short -q",
+  "started_at": "2026-09-14T01:22:43+00:00"
+}
