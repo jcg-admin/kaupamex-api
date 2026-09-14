@@ -1,6 +1,6 @@
 # La firma: el cuarto eje que ningun instrumento del arbol medía
 
-Nace de la tarea **#367**. La directiva del ejecutor enumera cuatro cosas que se
+Nace de la tarea **TASK-API-0391**. La directiva del ejecutor enumera cuatro cosas que se
 portan —**archivos, clases, funciones y firmas de funcion**— y los dos censos
 del eje ORM cubren las tres primeras. La cuarta esta declarada como ceguera,
 verbatim, en el manifiesto del censo de raiz:
@@ -20,7 +20,7 @@ cd /home/user/kaupamex-api
 eval "$(python3 scripts/reference_roots.py --env)"
 
 python3 scripts/workbench/orm-signature-parity-20260904T162214/signature_parity.py
-python3 scripts/workbench/orm-signature-parity-20260904T162214/signature_parity.py --detalle
+python3 scripts/workbench/orm-signature-parity-20260904T162214/signature_parity.py --detail
 uv run pytest scripts/workbench/orm-signature-parity-20260904T162214/tests/ -q
 bash scripts/workbench/orm-signature-parity-20260904T162214/neutralize_and_measure.sh
 ```
@@ -73,5 +73,5 @@ El simbolo **ausente** aqui no es asunto de este instrumento: lo mide el censo
 de raiz, y sumar las dos cifras inflaria el eje de firma con deuda que ya tiene
 su propio cubo. Los 83 nombres ambiguos exigen calificar por clase, que este
 arbol no puede en `models.py` mientras `BaseModel` no exista aqui como clase
-—tarea **#365**—. Y el alcance es `odoo/orm` ↔ `src/orm`: extenderlo a las
+—tarea **TASK-API-0397**—. Y el alcance es `odoo/orm` ↔ `src/orm`: extenderlo a las
 demas raices espejadas es trabajo aparte.
