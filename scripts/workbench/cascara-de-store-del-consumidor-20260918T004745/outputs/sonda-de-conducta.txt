@@ -1,0 +1,26 @@
+# Sonda de conducta v2 — TODOS por bin/, ninguno por ruta al fuente
+# cwd = /home/user/kaupamex-api, cascara apartada
+
+--- $ bash $T/bin/board_sync reconciliar-todo
+    exit=0   reconciliar-todo: raiz /root/.claude/tasks
+    no la recreo
+--- $ bash $T/bin/agent_store censo-medicion
+    exit=0   filas en agent_sessions: 1745
+    no la recreo
+--- $ bash $T/bin/reconcile_store --dry-run
+    exit=0   transcripts en disco: 139 · ya en el store: 139 · faltan: 0 · a rep
+    no la recreo
+--- $ bash $T/bin/task_ids cita 168b0fdf-bfe4-590b-b6c0-b6be124c124a 464
+    exit=2   «464» es ambiguo: nombra una fila del store Y una tarjeta del board,
+    no la recreo
+--- $ bash $T/bin/hallazgo_ids acunar THYROX
+    exit=0   H-THYROX-75
+    no la recreo
+--- $ bash $T/bin/census_open_tasks
+    exit=2   usage: census_open_tasks.py [-h] --layer {api,db,docs,server,thyrox,ui
+    no la recreo
+--- $ bash $T/bin/writer_census
+    exit=0   censo de escritores (alcance medido: 1508 archivo(s); raices src, bin)
+    no la recreo
+
+VEREDICTO: 7 mecanismos por bin/, ninguno recrea la cascara del consumidor.

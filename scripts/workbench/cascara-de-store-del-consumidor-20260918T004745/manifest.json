@@ -1,0 +1,9 @@
+{
+  "question": "La cascara de agent_store.sqlite3 versionada en kaupamex-api, ¿tiene dato que integrar al unico store del PROVEEDOR, y algo la recrea?",
+  "instrument": "Tres instrumentos independientes: conteo directo sobre la copia; 'git log --all' de su unica version en el historial; y 'bin/merge_stores --dry-run' contra el store del proveedor. Mas una sonda de conducta de 7 mecanismos invocados por bin/ desde el cwd de api.",
+  "metric": "Filas por tabla y freelist de la cascara; filas cambiadas en el destino que reporta merge_stores; y recreacion del archivo tras invocar cada mecanismo.",
+  "blind_to": "Un escritor que solo actuara bajo una variable de entorno no fijada en esta sesion, y uno que viviera fuera de bin/. La sonda mide los mecanismos que bin/ expone, no todo proceso posible. Y merge_stores publicaba su 0 con un defecto general — recorria solo las tablas del destino, corregido en thyrox@f741495b; las 3 tablas de la cascara existen en el destino, asi que el veredicto de ESTE sujeto no cambia.",
+  "destination": "Retiro de la cascara en kaupamex-api (git rm --cached + entrada de ignore) y hallazgo H-THYROX-74. El directorio .claude/agent-results/ se conserva: inject_drf_skill_gate.py escribe ahi otro archivo.",
+  "fecha": "2026-09-18T00:55:43",
+  "tarea": "TASK-THYROX-0156"
+}

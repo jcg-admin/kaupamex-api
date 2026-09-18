@@ -14,7 +14,7 @@ distingue «murió» de «timeout». Los cuatro viven en
 
 ```bash
 T="${THYROX_ROOT:-/home/user/thyrox}"
-printf '%s\n' "cmd1" "cmd2" "cmd3" | bash "$T/src/session/run-task-pool.sh" -
+printf '%s\n' "cmd1" "cmd2" "cmd3" | bash "$T/bin/run-task-pool" -
 ```
 
 El criterio de despacho está medido, no es estético: un trabajo en segundo

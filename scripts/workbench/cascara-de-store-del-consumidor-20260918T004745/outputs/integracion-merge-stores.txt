@@ -1,0 +1,12 @@
+# Integracion: ¿hay algo de la cascara del CONSUMIDOR que llevar al PROVEEDOR?
+# Instrumento: bin/merge_stores --dry-run  (union, nunca sobrescritura ciega)
+
+$ bash $T/bin/merge_stores --dry-run <cascara-api> <store-proveedor>
+merge-stores SIMULACION (rollback): /home/user/kaupamex-api/.claude/agent-results/agent_store.sqlite3 -> /home/user/thyrox/agent-results/agent_store.sqlite3
+  agent_sessions           +0     ~0     =0      destino_mas_nuevo=0     [newest_wins]
+  cleared_tool_results     omitida: no existe en el origen
+  documents                omitida: no existe en el origen
+  findings_history         +0     ~0     =0      destino_mas_nuevo=0     [newest_wins]
+  tasks                    omitida: no existe en el origen
+  filas cambiadas en el destino: 0
+  exit=0

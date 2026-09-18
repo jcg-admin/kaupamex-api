@@ -165,7 +165,7 @@ a la sesión en vez de a un subagente, y lo mismo que `build-logs.md` ya exige
 para una prueba: el `.log` es tan durable como el contenedor.
 
 Análisis completo, con el coste de los dos caminos en tokens equivalentes:
-`docs: source/gestion/pm/docs/iniciativas/construir-harness-propio/`
+`docs: source/gestion/pm/thyrox/iniciativas/construir-harness-propio/`
 `analisis-que-pasa-si-no-se-comprime-la-sesion.rst`.
 
 ## Señal de violación
