@@ -35,3 +35,9 @@ test-results/
 # Copias del control discriminante (scripts/neutralize_and_measure.sh).
 # La EVIDENCIA se versiona en scripts/evidence/; la copia transitoria no.
 .neutering/
+
+# El store de agentes vive SOLO en el PROVEEDOR (thyrox/agent-results/).
+# Esta era una cascara de 0 filas que nunca tuvo ninguna: su unica version en el
+# historial (6a181546) ya venia vacia. La retira TASK-THYROX-0156.
+# El directorio se queda: inject_drf_skill_gate.py escribe ahi huella-payload-hook.jsonl.
+.claude/agent-results/agent_store.sqlite3
