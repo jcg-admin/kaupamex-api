@@ -11,7 +11,7 @@ notebook. Escribir un archivo entero (`Write`) es la misma operación que
 `cat > archivo`: se mira antes con `test -e` si ya existía.
 
 **Gate:** `thyrox: src/hooks/detect_dedicated_tool_usage.py`, sexto detector
-de `pretooluse_dispatch.py`. Avisa (no bloquea) vía `additionalContext` sobre
+de `tool_use_preflight.py`. Avisa (no bloquea) vía `additionalContext` sobre
 `Write`/`Edit`/`Read` de texto plano, con el equivalente Bash exacto. Sus dos
 mitades de juicio (extensión binaria/de medio; colisión de delimitador EOF)
 se probaron por anulación — retirar cada una hace caer exactamente 3 de 13
