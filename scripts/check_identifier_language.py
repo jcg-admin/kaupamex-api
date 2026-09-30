@@ -97,6 +97,14 @@ def main(argv):
     # (p. ej. para probar contra otro archivo), esa declaración manda.
     env.setdefault('IDENTIFIER_LANGUAGE_BASELINE',
                     str(HERE / 'identifier_language_baseline.txt'))
+    # El gate importa los paquetes de su árbol por nombre (`from paths.reach
+    # import ...`) y ya no se abre el camino solo: su `sys.path.insert` se
+    # retiró en TASK-THYROX-0018. Quien lo invoca declara `<thyrox>/src`, igual
+    # que hace el envoltorio `bin/` del proveedor.
+    provider_src = str(gate.parent.parent)
+    inherited = env.get('PYTHONPATH')
+    env['PYTHONPATH'] = (provider_src + os.pathsep + inherited
+                         if inherited else provider_src)
     interpreter = provider_interpreter(gate)
     if interpreter is None:
         return 2
