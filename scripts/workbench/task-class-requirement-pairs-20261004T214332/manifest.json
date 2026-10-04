@@ -1,0 +1,31 @@
+{
+  "question": "¿Qué cambia para api al corregir las clases de tarea del proveedor a cuatro requisitos —mechanical, analysis, adversarial, max— en los que analysis y adversarial comparten el esfuerzo high y se separan por el rango mínimo, y sigue siendo correcta la escala de esfuerzo none < low < medium < high < xhigh < max?",
+  "instrument": [
+    "thyrox@c44439bee — src/packages/model-artifacts/__tests__/taskClassIdentifiers.test.ts (6 casos: valores canónicos, alias en español, frontier → max, valor desconocido, lectura y reescritura del almacén)",
+    "thyrox@c44439bee — src/packages/provider/__tests__/cost.test.ts, caso «una clase es un requisito, no un nivel»",
+    "rg sobre este clon: llamadas a --task-class, taskClass, headless-pool y agent-recommend (outputs/api-task-class-call-sites.txt)"
+  ],
+  "metric": "pares (minAdvisorRank, effort) de TASK_REQUIREMENTS: mechanical (1, low), analysis (3, high), adversarial (4, high), max (5, max); y número de archivos de api que invocan una clase de tarea: 0.",
+  "blind_to": [
+    "una invocación de api que componga el nombre de la clase en tiempo de ejecución, sin el literal: el rg mide el texto, no la conducta",
+    "las cualificaciones ya guardadas con nombres anteriores: se leen normalizadas, y este banco no las reescribe",
+    "la traducción del esfuerzo a `think` de Ollama, que todavía no existe en el proveedor (Ollama 0.35.0 acepta low, medium, high, max, true o false: sin xhigh ni none)"
+  ],
+  "control": "anulación en el proveedor: con adversarial en xhigh cae sólo el caso del par compartido (25 pasan, 1 falla); sin el alias frontier cae sólo su caso (5 pasan, 1 falla).",
+  "reproducible": "cd /home/user/thyrox/src/packages/model-artifacts && bun test __tests__/taskClassIdentifiers.test.ts; cd /home/user/thyrox/src/packages/provider && bun test __tests__/cost.test.ts",
+  "outputs": [
+    "outputs/api-task-class-call-sites.txt"
+  ],
+  "source": [
+    "thyrox: src/packages/provider/src/cost/policy.ts — TASK_REQUIREMENTS",
+    "thyrox: src/packages/model-artifacts/modelQualification.ts — LOCAL_TASK_CLASSES y normalizeTaskClass",
+    "thyrox: src/packages/agent/effortLevels.ts — EFFORT_LEVELS",
+    "thyrox: _references/claude-code-bin/2.1.286/bunfs-root/chunk-mme39h2r.js — [\"low\",\"medium\",\"high\",\"xhigh\",\"max\"]",
+    "thyrox: src/packages/provider/src/connections.ts:131 — supportedEfforts con none",
+    "thyrox: .claude/workbench/ollama-artifact-acceptance-20261002T081928/contract.md:43,56-62 — decisión G7, clases de esfuerzo"
+  ],
+  "tasks": ["TASK-THYROX-0959"],
+  "findings": ["H-THYROX-517"],
+  "destination": "docs: source/gestion/pm/docs/iniciativas/actualizar-agentic-ai-thyrox/ — la clase de tarea como requisito (rango, esfuerzo) del proveedor; api no la invoca hoy",
+  "measured_at": "2026-10-04T21:43:32"
+}
