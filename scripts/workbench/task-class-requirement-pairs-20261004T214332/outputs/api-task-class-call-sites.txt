@@ -1,0 +1,2 @@
+# rg -n -g '!scripts/workbench/task-class-requirement-pairs-20261004T214332/**' -- '--task-class|taskClass|headless-pool|agent-recommend' . (kaupamex-api@acc785c, 2026-10-04T21:43:32Z)
+# archivos con coincidencia: 0
