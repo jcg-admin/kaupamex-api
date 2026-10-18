@@ -11,7 +11,13 @@ Este archivo es **solo un cheat-sheet local** — NO redefine gobernanza.
 
 ## Gobernanza
 
-La gobernanza vive en el superproyecto, no aquí:
+
+La entrada efectiva para Codex es `AGENTS.md` en este repositorio. El
+superproyecto `../kaupamex/` no está montado en este workspace. Las reglas
+locales de `.claude/rules/` se consultan según el componente y no dependen de
+una carga automática del padre. Los enlaces históricos siguientes al
+superproyecto están sin resolver; no deben tratarse como instrucciones
+cargadas ni como requisito implícito para trabajar:
 
 - **`../kaupamex/.claude/CLAUDE.md`** — identidad, flujo de sesión, glosario.
 - **`../kaupamex/.claude/rules/`** — reglas no negociables cargadas en cada
