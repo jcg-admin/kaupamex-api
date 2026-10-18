@@ -1,6 +1,6 @@
 # kaupamex-api: instrucciones de Codex
 
-Backend Django/DRF y contrato ORM de Kaupamex. Ejecuta el trabajo desde `/workspace/kaupamex-api`.
+Backend Django/DRF y contrato ORM de Kaupamex. Trabaja desde la raíz real del checkout, obtenida con `git rev-parse --show-toplevel`.
 
 ## Alcance y precedencia
 
@@ -15,7 +15,7 @@ sin necesidad o solicitud explícita, ni borres los existentes.
 
 Consulta `CLAUDE.md`, `.claude/rules/git-workflow.md`, `.claude/rules/commit-conventions.md` y las reglas locales pertinentes. Para ORM, consulta expresamente la iniciativa `completar-raiz-orm` en `../kaupamex-docs/source/gestion/pm/api/iniciativas/completar-raiz-orm/`; Docs conserva la autoridad documental, API posee el código.
 
-El superproyecto `/workspace/kaupamex` no está montado. Las referencias históricas
+El superproyecto `../kaupamex` puede no estar montado. Las referencias históricas
 a `../kaupamex/.claude/` no resuelven y no son una dependencia operativa implícita.
 No se consideran equivalentes documentos contradictorios: registra la brecha y
 usa las reglas locales vigentes y el contrato específico del componente.
@@ -33,7 +33,7 @@ del autor humano y la política local de committer; no inventes autores.
 
 ## Validación
 
-Python >=3.12,<3.15; `UV_CACHE_DIR=/workspace/.cache/uv uv sync --frozen`. PostgreSQL >=14, nunca SQLite como sustituto. Usa los tests focalizados y los checkers existentes. El entorno de pruebas requiere configurar la DB antes de ejecutar pytest con su conftest global.
+Python >=3.12,<3.15; `uv sync --frozen`. PostgreSQL >=14, nunca SQLite como sustituto. Usa los tests focalizados y los checkers existentes. El entorno de pruebas requiere configurar la DB antes de ejecutar pytest con su conftest global.
 
 Separa PASS, FAIL, BLOCKED y no ejecutado. Compara fallo heredado y regresión.
 Un proceso vivo o una declaración de un modelo no acredita aceptación.
@@ -49,8 +49,8 @@ No agregues secretos, bases de datos o temporales a Git automáticamente.
 
 Thyrox es Provider; este repositorio es Consumer. Usa interfaces existentes y
 sus parámetros, no otro TaskStore, scheduler, mailbox o numeración. Selecciona
-la revisión cualificada de `feature/fresh-clone-bootstrap`, no develop por
-omisión. La presencia del clon no acredita runtime, modelo o gate cualificado.
+la revisión declarada de `feature/fresh-clone-bootstrap`, no develop por
+omisión, y verifica su cualificación antes de usar capacidades. La presencia del clon no acredita runtime, modelo o gate cualificado.
 Para agentes gestionados por Thyrox sólo se permite inferencia local, sin
 fallback externo. Codex puede continuar ingeniería autorizada independiente;
 no la describas como ejecución de un modelo local de Thyrox.

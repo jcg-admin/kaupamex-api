@@ -2,7 +2,8 @@
   "question": "De los simbolos que la referencia declara en odoo/orm/, cuales estan aqui en el archivo que les corresponde, cuales viven en otro archivo, y cuales faltan — para saber si el porte del ORM esta cerrado antes de portar Cache y Starred.",
   "instrument": [
     "census_orm_root.py",
-    "uv run python scripts/workbench/orm-root-census-20260902T203712/census_orm_root.py --detalle"
+    "uv run python scripts/workbench/orm-root-census-20260902T203712/census_orm_root.py --detalle",
+    "probe_resolve_mro.py (ODOO19C declarado): comparación de cuerpo y mutación aislada, no un censo funcional global"
   ],
   "metric": "Simbolos declarados por AST en cada archivo de odoo/orm/ (clases, funciones de modulo y metodos a cualquier profundidad, deduplicados por archivo), repartidos en cinco cubos contra el archivo homonimo de src/orm/: present, misplaced, dissolved, missing_classes y missing. El alcance de resolucion es EL ARCHIVO, no la raiz.",
   "blind_to": [
@@ -26,5 +27,12 @@
   "source": "odoo19c @ odoo-tools abe4040ec1 (solo lectura); arbol propio src/orm en la rama feature/kaupamex-l3",
   "tasks": [
     "#209"
-  ]
+  ],
+  "behavior_probe": {
+    "unit": "orm.fields.resolve_mro",
+    "reference": "odoo19c@abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "preconditions": "Registro Django mínimo contenttypes, PostgreSQL sin conexión y orm.models importado primero",
+    "measures": "5 casos contra el cuerpo de referencia y 10 casos API clase/instancia; mutación break->continue detectada",
+    "blind_to": "Registro de addons, persistencia, MRO de modelos compuestos reales y completitud de BaseModel"
+  }
 }
