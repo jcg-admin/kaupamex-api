@@ -921,7 +921,8 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
         db_column='relation_field_id',
     )
     field_description = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Etiqueta del campo')
+        max_length=255, blank=True, default='', translate=True,
+        verbose_name='Etiqueta del campo')
     help = fields.Text(blank=True, default='', verbose_name='Ayuda del campo')
     ttype = fields.Selection(
         max_length=32, choices=FIELD_TYPES, required=True,
