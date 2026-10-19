@@ -1,0 +1,9 @@
+{
+  "file": "scripts/workbench/registry-field-axis-support-20260903T053330/outputs/verdicts.json",
+  "instrument_main_wrote_tracked_output": true,
+  "initial_worktree_clean": true,
+  "new_output_preserved": "outputs/registry-field-support-current-verdicts.json",
+  "restored_exact_HEAD_blob": true,
+  "historical_sha256": "caad13e7f44ab9ff9eebb890fe530858d9ce849db690c8c2b724af3934208e56",
+  "new_sha256": "86345a3386118b722d315355241f0c41a860e8a6a97e64be5886b4c942693645"
+}

@@ -1,0 +1,19 @@
+{
+  "total": 8,
+  "buckets": {
+    "READY": [
+      "field_inverses"
+    ],
+    "BUILDABLE": [
+      "field_computed",
+      "get_trigger_tree",
+      "get_dependent_fields",
+      "_discard_fields",
+      "get_field_trigger_tree",
+      "_field_triggers",
+      "is_modifying_relations"
+    ],
+    "BLOCKED": []
+  },
+  "missing": {}
+}
