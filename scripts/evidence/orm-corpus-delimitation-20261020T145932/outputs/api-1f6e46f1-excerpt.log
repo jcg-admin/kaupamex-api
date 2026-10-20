@@ -1,0 +1,66 @@
+2026-10-20T05:46:23.7908882Z _ ERROR at setup of TestTimeStampedModelHerencia.test_todos_los_modelos_heredan_de_timestampedmodel _
+2026-10-20T05:46:23.7910293Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+2026-10-20T05:46:23.7911182Z     return self.cursor.execute(sql)
+2026-10-20T05:46:23.7911925Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T05:46:23.7912713Z     raise ex.with_traceback(None)
+2026-10-20T05:46:23.7913457Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2026-10-20T05:46:23.7914059Z 
+2026-10-20T05:46:23.7914651Z The above exception was the direct cause of the following exception:
+2026-10-20T05:46:23.7915649Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+2026-10-20T05:46:23.7916224Z     db_cfg = setup_databases(
+2026-10-20T05:46:34.0217965Z  2026-10-20 05:22:02.241 UTC [129] ERROR:  database "kaupamex_qa" already exists
+2026-10-20T05:46:34.0218137Z  2026-10-20 05:22:02.241 UTC [129] STATEMENT:  CREATE DATABASE "kaupamex_qa" 
+2026-10-20T05:46:34.0218397Z  2026-10-20 05:22:02.242 UTC [63] LOG:  checkpoint starting: immediate force wait
+2026-10-20T05:46:34.0219185Z  2026-10-20 05:22:02.247 UTC [63] LOG:  checkpoint complete: wrote 43 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.006 s; sync files=12, longest=0.001 s, average=0.001 s; distance=239 kB, estimate=239 kB; lsn=0/195B038, redo lsn=0/195B000
+2026-10-20T05:46:34.0219457Z  2026-10-20 05:22:02.813 UTC [130] ERROR:  relation "res_users" does not exist
+2026-10-20T05:46:34.0220306Z  2026-10-20 05:22:02.813 UTC [130] STATEMENT:  ALTER TABLE "test_orm_testormdiscussion" ADD CONSTRAINT "test_orm_testormdisc_moderator_id_85ba696f_fk_res_users" FOREIGN KEY ("moderator_id") REFERENCES "res_users" ("id") DEFERRABLE INITIALLY DEFERRED
+2026-10-20T05:46:34.0220698Z  2026-10-20 05:27:02.319 UTC [63] LOG:  checkpoint starting: time
+2026-10-20T05:46:34.0221567Z  2026-10-20 05:28:39.564 UTC [63] LOG:  checkpoint complete: wrote 972 buffers (5.9%); 1 WAL file(s) added, 0 removed, 0 recycled; write=97.229 s, sync=0.002 s, total=97.245 s; sync files=328, longest=0.001 s, average=0.001 s; distance=4550 kB, estimate=4550 kB; lsn=0/1DCC928, redo lsn=0/1DCC8F0
+2026-10-20T05:46:34.0221903Z  2026-10-20 05:36:18.269 UTC [130] ERROR:  current transaction is aborted, commands ignored until end of transaction block
+2026-10-20T05:46:34.0222295Z  2026-10-20 05:36:18.269 UTC [130] STATEMENT:  SELECT 1 AS "a" FROM "system_parameter" WHERE "system_parameter"."key" = 'database.uuid' LIMIT 1
+2026-10-20T05:46:23.7916729Z .venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+2026-10-20T05:46:23.7917538Z     connection.creation.create_test_db(
+2026-10-20T05:46:23.7918131Z .venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+2026-10-20T05:46:23.7920595Z .venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+2026-10-20T05:46:23.7921500Z     output = self.handle(*args, **options)
+2026-10-20T05:46:23.7922194Z .venv/lib/python3.12/site-packages/django/core/management/base.py:111: in wrapper
+2026-10-20T05:46:23.7922901Z     res = handle_func(*args, **kwargs)
+2026-10-20T05:46:23.7923645Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:319: in handle
+2026-10-20T05:46:23.7924758Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+2026-10-20T05:46:23.7925370Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+2026-10-20T05:46:23.7925881Z     with connection.schema_editor() as editor:
+2026-10-20T05:46:23.7926509Z .venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:170: in __exit__
+2026-10-20T05:46:23.7926963Z     self.execute(sql, None)
+2026-10-20T05:46:33.7743340Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheEmptySlugBranchOfTheSource::test_the_guard_is_not_reached_by_an_ordinary_name - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T05:46:33.7744174Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_the_showcase_slug_starts_with_the_wishlist_one[\u624b\u5de5\u7682] - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T05:46:33.7745252Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_the_showcase_slug_starts_with_the_wishlist_one[Caf\xe9 Org\xe1nico] - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T05:46:33.7746060Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_the_showcase_slug_starts_with_the_wishlist_one[Camisa Azul] - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T05:46:33.7746857Z ERROR tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py::TestTheTwoSerializersAgreeOnTheSameName::test_both_come_from_the_ported_slugify - django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T05:46:33.7747050Z 26 skipped, 1 xfailed, 18 warnings, 10617 errors in 1479.94s (0:24:39)
+2026-10-20T05:46:33.7757235Z ##[error]Process completed with exit code 1.
+2026-10-20T05:46:33.7876265Z Post job cleanup.
+2026-10-20T05:46:33.8749661Z [command]/usr/bin/git version
+2026-10-20T05:46:33.8798757Z git version 2.55.0
+2026-10-20T05:46:25.9510034Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+2026-10-20T05:46:25.9510130Z     return self.cursor.execute(sql)
+2026-10-20T05:46:25.9510309Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T05:46:25.9510405Z     raise ex.with_traceback(None)
+2026-10-20T05:46:25.9510592Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist
+2026-10-20T05:46:25.9510600Z 
+2026-10-20T05:46:25.9510780Z The above exception was the direct cause of the following exception:
+2026-10-20T05:46:25.9511004Z .venv/lib/python3.12/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+2026-10-20T05:46:25.9511103Z     db_cfg = setup_databases(
+2026-10-20T05:46:25.9511308Z .venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+2026-10-20T05:46:29.6244940Z _ ERROR at teardown of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+2026-10-20T05:46:29.6245163Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+2026-10-20T05:46:29.6245279Z     return self.cursor.execute(sql, params)
+2026-10-20T05:46:29.6245456Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T05:46:29.6245556Z     raise ex.with_traceback(None)
+2026-10-20T05:46:29.6245940Z E   psycopg.errors.InFailedSqlTransaction: current transaction is aborted, commands ignored until end of transaction block
+2026-10-20T05:46:29.6245948Z 
+2026-10-20T05:46:29.6246205Z The above exception was the direct cause of the following exception:
+2026-10-20T05:46:29.6246350Z tests/conftest.py:428: in pytest_runtest_teardown
+2026-10-20T05:46:29.6246425Z     seed()
+2026-10-20T05:46:29.6246582Z src/addons/base/models/ir_config_parameter.py:252: in init
+2026-10-20T05:46:29.6246737Z     exists = cls.objects.using(using).filter(key=key).exists()
+2026-10-20T05:46:29.6246947Z .venv/lib/python3.12/site-packages/django/db/models/query.py:1337: in exists

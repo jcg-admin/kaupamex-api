@@ -1,0 +1,290 @@
+[
+  {
+    "scope": "core19",
+    "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm?ref=abe4040ec1a45beee90fb694e4eae4453e46b389"
+    ],
+    "exit_code": 0,
+    "entries": [
+      {
+        "name": "__init__.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/__init__.py",
+        "git_blob": "547344c4ebc65e8b83fa4dfe7749ae2861ead7f7",
+        "local_present": true,
+        "local_git_blob": "547344c4ebc65e8b83fa4dfe7749ae2861ead7f7",
+        "matches": true
+      },
+      {
+        "name": "commands.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/commands.py",
+        "git_blob": "534da767658a4d49a1c82f54533a7b10883025a3",
+        "local_present": true,
+        "local_git_blob": "534da767658a4d49a1c82f54533a7b10883025a3",
+        "matches": true
+      },
+      {
+        "name": "decorators.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/decorators.py",
+        "git_blob": "e570a4345571b9b7cabfa88a175f5e8f2cc75535",
+        "local_present": true,
+        "local_git_blob": "e570a4345571b9b7cabfa88a175f5e8f2cc75535",
+        "matches": true
+      },
+      {
+        "name": "domains.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/domains.py",
+        "git_blob": "70fd1d85f53f9d2457d96bd6a13a13702a825fb0",
+        "local_present": true,
+        "local_git_blob": "70fd1d85f53f9d2457d96bd6a13a13702a825fb0",
+        "matches": true
+      },
+      {
+        "name": "environments.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/environments.py",
+        "git_blob": "ec6b89fc3b752d3c52eb220e95437dbd4db134fd",
+        "local_present": true,
+        "local_git_blob": "ec6b89fc3b752d3c52eb220e95437dbd4db134fd",
+        "matches": true
+      },
+      {
+        "name": "fields.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+        "git_blob": "1a0e41eae9d14c0872483ff60393c45271402849",
+        "local_present": true,
+        "local_git_blob": "1a0e41eae9d14c0872483ff60393c45271402849",
+        "matches": true
+      },
+      {
+        "name": "fields_binary.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields_binary.py",
+        "git_blob": "800b57fb3ac076e8e0bc4ee9a9c59a3e81b7f0aa",
+        "local_present": true,
+        "local_git_blob": "800b57fb3ac076e8e0bc4ee9a9c59a3e81b7f0aa",
+        "matches": true
+      },
+      {
+        "name": "fields_misc.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields_misc.py",
+        "git_blob": "cb298dcc07f8bfd08379b844738e63fde5b3f8ec",
+        "local_present": true,
+        "local_git_blob": "cb298dcc07f8bfd08379b844738e63fde5b3f8ec",
+        "matches": true
+      },
+      {
+        "name": "fields_numeric.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields_numeric.py",
+        "git_blob": "2b66211fd0af9f5f844d910678355cbc76497c36",
+        "local_present": true,
+        "local_git_blob": "2b66211fd0af9f5f844d910678355cbc76497c36",
+        "matches": true
+      },
+      {
+        "name": "fields_properties.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields_properties.py",
+        "git_blob": "e4dd1c2754dd97fa61bce6ecb7220afb08b9ef9c",
+        "local_present": true,
+        "local_git_blob": "e4dd1c2754dd97fa61bce6ecb7220afb08b9ef9c",
+        "matches": true
+      },
+      {
+        "name": "fields_reference.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields_reference.py",
+        "git_blob": "a16f4d5d0431ea92ccc4b64bc909ed2fed5b81c2",
+        "local_present": true,
+        "local_git_blob": "a16f4d5d0431ea92ccc4b64bc909ed2fed5b81c2",
+        "matches": true
+      },
+      {
+        "name": "fields_relational.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields_relational.py",
+        "git_blob": "ffe5147b482aac2b18c0b2a957b41f16998e45a4",
+        "local_present": true,
+        "local_git_blob": "ffe5147b482aac2b18c0b2a957b41f16998e45a4",
+        "matches": true
+      },
+      {
+        "name": "fields_selection.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields_selection.py",
+        "git_blob": "3d8b3b61fcbc646574f723759f494965ee5f0acf",
+        "local_present": true,
+        "local_git_blob": "3d8b3b61fcbc646574f723759f494965ee5f0acf",
+        "matches": true
+      },
+      {
+        "name": "fields_temporal.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields_temporal.py",
+        "git_blob": "834bcae503b15b166d1bb1c3be868721a8130a06",
+        "local_present": true,
+        "local_git_blob": "834bcae503b15b166d1bb1c3be868721a8130a06",
+        "matches": true
+      },
+      {
+        "name": "fields_textual.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields_textual.py",
+        "git_blob": "b21d35b266045bd46639d3ad388232ed524247e3",
+        "local_present": true,
+        "local_git_blob": "b21d35b266045bd46639d3ad388232ed524247e3",
+        "matches": true
+      },
+      {
+        "name": "identifiers.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/identifiers.py",
+        "git_blob": "01f7343f52c8e518e073775ed1c20bcf5be955bd",
+        "local_present": true,
+        "local_git_blob": "01f7343f52c8e518e073775ed1c20bcf5be955bd",
+        "matches": true
+      },
+      {
+        "name": "model_classes.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/model_classes.py",
+        "git_blob": "12d52f3276664c424523c4e348a006fdb11f1ab7",
+        "local_present": true,
+        "local_git_blob": "12d52f3276664c424523c4e348a006fdb11f1ab7",
+        "matches": true
+      },
+      {
+        "name": "models.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/models.py",
+        "git_blob": "ded016c79e5042860e25f16abeb2e294e63d80d2",
+        "local_present": true,
+        "local_git_blob": "ded016c79e5042860e25f16abeb2e294e63d80d2",
+        "matches": true
+      },
+      {
+        "name": "models_transient.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/models_transient.py",
+        "git_blob": "4e929cf962ff48c2e8daeab3bff1348ec030586a",
+        "local_present": true,
+        "local_git_blob": "4e929cf962ff48c2e8daeab3bff1348ec030586a",
+        "matches": true
+      },
+      {
+        "name": "registry.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py",
+        "git_blob": "afcf4b17300f55dc085b893c1b4c8501376403be",
+        "local_present": true,
+        "local_git_blob": "afcf4b17300f55dc085b893c1b4c8501376403be",
+        "matches": true
+      },
+      {
+        "name": "table_objects.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/table_objects.py",
+        "git_blob": "b29a7f7f314660d62bd14c34864c623c138a2b9a",
+        "local_present": true,
+        "local_git_blob": "b29a7f7f314660d62bd14c34864c623c138a2b9a",
+        "matches": true
+      },
+      {
+        "name": "types.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/types.py",
+        "git_blob": "c56e18cea41a0ad98adb725ae201290c91b4b8f6",
+        "local_present": true,
+        "local_git_blob": "c56e18cea41a0ad98adb725ae201290c91b4b8f6",
+        "matches": true
+      },
+      {
+        "name": "utils.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/utils.py",
+        "git_blob": "06f6ef71772858462e5f0923941a0450ac662749",
+        "local_present": true,
+        "local_git_blob": "06f6ef71772858462e5f0923941a0450ac662749",
+        "matches": true
+      }
+    ],
+    "all_remote_files_present_and_match": true,
+    "remote_file_count": 23
+  },
+  {
+    "scope": "package18",
+    "path": "18.x/odoo-18/odoo",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/18.x/odoo-18/odoo?ref=abe4040ec1a45beee90fb694e4eae4453e46b389"
+    ],
+    "exit_code": 0,
+    "selected_entries": [
+      {
+        "name": "addons",
+        "path": "18.x/odoo-18/odoo/addons",
+        "sha": "b9659f4317e5c03108cf65af4052d2b3f74250f1",
+        "type": "dir",
+        "size": 0
+      },
+      {
+        "name": "api.py",
+        "path": "18.x/odoo-18/odoo/api.py",
+        "sha": "864b1084d2d6a7c18f3d98e534c14a648d795ab5",
+        "type": "file",
+        "size": 63252
+      },
+      {
+        "name": "fields.py",
+        "path": "18.x/odoo-18/odoo/fields.py",
+        "sha": "6fbb5e1c304badcad836e00a5d8dcc09b4eb402b",
+        "type": "file",
+        "size": 238876
+      },
+      {
+        "name": "models.py",
+        "path": "18.x/odoo-18/odoo/models.py",
+        "sha": "a2ff8a1521a9c9448a1e01db96f4c6cc62b75a1a",
+        "type": "file",
+        "size": 341059
+      }
+    ]
+  },
+  {
+    "scope": "core_addons19",
+    "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons?ref=abe4040ec1a45beee90fb694e4eae4453e46b389"
+    ],
+    "exit_code": 0,
+    "selected_entries": [
+      {
+        "name": "base",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons/base",
+        "sha": "1ce7eadc2fa571c009eb4ae618391802ede6cf80",
+        "type": "dir",
+        "size": 0
+      },
+      {
+        "name": "test_orm",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons/test_orm",
+        "sha": "4364e0104ab7421751822bc8c6f6bbad96ea298e",
+        "type": "dir",
+        "size": 0
+      }
+    ]
+  },
+  {
+    "scope": "enterprise18_odoo",
+    "path": "18.x/odoo.enterprise/odoo",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/18.x/odoo.enterprise/odoo?ref=abe4040ec1a45beee90fb694e4eae4453e46b389"
+    ],
+    "exit_code": 1,
+    "stderr": "gh: Not Found (HTTP 404)\n",
+    "stdout": "{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/repos/contents#get-repository-content\",\"status\":\"404\"}"
+  },
+  {
+    "scope": "enterprise19_odoo",
+    "path": "19.x/odoo19-enterprise-main/odoo19-enterprise-main/odoo19-enterprise-main/odoo",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/19.x/odoo19-enterprise-main/odoo19-enterprise-main/odoo19-enterprise-main/odoo?ref=abe4040ec1a45beee90fb694e4eae4453e46b389"
+    ],
+    "exit_code": 1,
+    "stderr": "gh: Not Found (HTTP 404)\n",
+    "stdout": "{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/repos/contents#get-repository-content\",\"status\":\"404\"}"
+  }
+]

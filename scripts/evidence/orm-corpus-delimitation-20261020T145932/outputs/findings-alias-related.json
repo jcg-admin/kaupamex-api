@@ -1,0 +1,21 @@
+{
+  "queries": {
+    "reference_flow": [
+      {
+        "finding_id": "H-API-1076",
+        "submodule": "api",
+        "initiative": "completar-primitiva-fields",
+        "severity": "ALTA",
+        "summary": "el flujo de la referencia se lee ANTES de portar, no despues de fallar",
+        "content": "=================================================================================== - **Severidad:** ALTA - **Fecha:** 2026-09-03T18:54:01 - **Archivos:** ``api: scripts/reference_flow.py`` (nuevo), ``api: scripts/counterpart_body.py``, ``api: tests/unit/scripts/test_reference_flow.py`` (nuevo) - **Estado:** RESUELTO en ``api@973a6fff`` Premisa verificada ------------------ :ref:`h-api-1072` regis",
+        "source_ref": "source/gestion/pm/api/iniciativas/completar-primitiva-fields/hallazgos/hallazgo-H-API-1076-leer-el-flujo-antes-de-portar.rst",
+        "session_id": null,
+        "updated_at": "2026-09-19T20:54:06"
+      }
+    ],
+    "resolve_roots": [],
+    "H-API-632": []
+  },
+  "read_only": true,
+  "limit": "Matches are historical findings, not proof of exact current defect equivalence; zero matches do not prove absence."
+}
