@@ -1,0 +1,119 @@
+[
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "383",
+      "--board",
+      "/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a"
+    ],
+    "exit_code": 0,
+    "stdout": "TASK-API-0216  Gate: orm.fields.__all__ sólo contiene clases de campo\n",
+    "stderr": "aviso: board no alcanzable (/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a); no puedo descartar que «383» sea un ordinal del board y no un task_id del store.\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "1167",
+      "--board",
+      "/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a"
+    ],
+    "exit_code": 0,
+    "stdout": "TASK-API-0397  Construir BaseModel propio desde el contrato medido de la re\n",
+    "stderr": "aviso: board no alcanzable (/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a); no puedo descartar que «1167» sea un ordinal del board y no un task_id del store.\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "1168",
+      "--board",
+      "/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a"
+    ],
+    "exit_code": 0,
+    "stdout": "TASK-API-0398  Verificar contrato por contrato los 21 del cubo TRAE de Base\n",
+    "stderr": "aviso: board no alcanzable (/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a); no puedo descartar que «1168» sea un ordinal del board y no un task_id del store.\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "1192",
+      "--board",
+      "/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a"
+    ],
+    "exit_code": 0,
+    "stdout": "TASK-API-0417  Retirar el enrutado de las fachadas: la costura decide, no e\n",
+    "stderr": "aviso: board no alcanzable (/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a); no puedo descartar que «1192» sea un ordinal del board y no un task_id del store.\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "1193",
+      "--board",
+      "/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a"
+    ],
+    "exit_code": 0,
+    "stdout": "TASK-API-0418  Retirar NonStored como clase: el eje es store, no el tipo\n",
+    "stderr": "aviso: board no alcanzable (/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a); no puedo descartar que «1193» sea un ordinal del board y no un task_id del store.\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "1194",
+      "--board",
+      "/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a"
+    ],
+    "exit_code": 0,
+    "stdout": "TASK-API-0419  Reconstruir un campo relacional desde _args__: to y on_delet\n",
+    "stderr": "aviso: board no alcanzable (/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a); no puedo descartar que «1194» sea un ordinal del board y no un task_id del store.\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "1199",
+      "--board",
+      "/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a"
+    ],
+    "exit_code": 0,
+    "stdout": "TASK-API-0424  El campo sin columna de una cadena related no es buscable: e\n",
+    "stderr": "aviso: board no alcanzable (/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a); no puedo descartar que «1199» sea un ordinal del board y no un task_id del store.\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "333",
+      "--board",
+      "/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a"
+    ],
+    "exit_code": 0,
+    "stdout": "TASK-GEN-0060  Construir el almacenamiento jsonb de translate=True\n",
+    "stderr": "aviso: board no alcanzable (/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a); no puedo descartar que «333» sea un ordinal del board y no un task_id del store.\n"
+  },
+  {
+    "command": [
+      "bin/task_ids",
+      "lookup",
+      "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "400",
+      "--board",
+      "/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a"
+    ],
+    "exit_code": 0,
+    "stdout": "TASK-GEN-0062  Construir el motor de traducción: import/export de .po\n",
+    "stderr": "aviso: board no alcanzable (/workspace/kaupamex-docs/.claude/tasks/168b0fdf-bfe4-590b-b6c0-b6be124c124a); no puedo descartar que «400» sea un ordinal del board y no un task_id del store.\n"
+  }
+]

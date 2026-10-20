@@ -1,0 +1,77 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "cases": {
+    "default_flush": {
+      "reference": {
+        "events": [
+          "flush_all",
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "consumer": {
+        "events": [
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "equivalent_observation": false
+    },
+    "explicit_true": {
+      "reference": {
+        "events": [
+          "flush_all",
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "consumer": {
+        "events": [
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "equivalent_observation": false
+    },
+    "explicit_false": {
+      "reference": {
+        "events": [
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "consumer": {
+        "events": [
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "equivalent_observation": true
+    },
+    "flush_failure": {
+      "reference": {
+        "events": [
+          "flush_all"
+        ],
+        "return": null,
+        "exception": "intentional-flush-failure"
+      },
+      "consumer": {
+        "events": [
+          "invalidate_field_data"
+        ],
+        "return": null,
+        "exception": null
+      },
+      "equivalent_observation": false
+    }
+  },
+  "negative_control_detected": true,
+  "evidence": "/workspace/scratch/orm-flow-audit-contracts/invalidate-all-observations.json"
+}

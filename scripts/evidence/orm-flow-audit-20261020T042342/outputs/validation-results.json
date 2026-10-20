@@ -1,0 +1,42 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "checks": [
+    {
+      "interface": "checkWorkbench(run)",
+      "command": "PATH=/workspace/.cache/toolchains/bin:$PATH bun --eval \"import {checkWorkbench} from './src/packages/workbench/manifest.ts';const p=checkWorkbench('/workspace/kaupamex-api/scripts/evidence/orm-flow-audit-20261020T042342');console.log(JSON.stringify({problems:p}));process.exit(p.length?1:0);\"",
+      "exit_code": 0,
+      "problems": [],
+      "scope": "Native structural gate; not proof of contract acceptance",
+      "cwd": "/workspace/thyrox"
+    },
+    {
+      "command": "PATH=/workspace/thyrox/.venv/bin:/workspace/.cache/toolchains/bin:$PATH PYTHONPATH=/workspace/thyrox/src /workspace/thyrox/bin/check_rst_sintaxis --strict source/gestion/pm/api/iniciativas/completar-raiz-orm/analisis-contrato-de-basemodel-trae-o-construye.rst",
+      "exit_code": 0,
+      "errors": 0,
+      "files_measured": 1,
+      "cwd": "/workspace/kaupamex-docs"
+    },
+    {
+      "command": "PATH=/workspace/thyrox/.venv/bin:/workspace/.cache/toolchains/bin:$PATH PYTHONPATH=/workspace/thyrox/src /workspace/thyrox/bin/check_vocabulario_prosa --strict source/gestion/pm/api/iniciativas/completar-raiz-orm/analisis-contrato-de-basemodel-trae-o-construye.rst",
+      "exit_code": 0,
+      "new_findings": 0,
+      "baseline": 820,
+      "cwd": "/workspace/kaupamex-docs"
+    },
+    {
+      "command": "THYROX_CONSUMER=/workspace/kaupamex-api ODOO_TOOLS=/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389 UV_CACHE_DIR=/workspace/.cache/uv uv run --frozen python /workspace/scratch/orm-flow-audit-contracts/probe_invalidate_all.py",
+      "exit_code": 0,
+      "meaning": "Four case assertions and mutant discriminate the behavioral gap; not contract PASS",
+      "cwd": "/workspace/kaupamex-api",
+      "published_instrument": "outputs/probe_invalidate_all_flow.py; same bytes as verified scratch instrument"
+    }
+  ],
+  "not_run": [
+    "Full pytest",
+    "Full Sphinx build",
+    "Reference Odoo suite",
+    "Functional TASK execution",
+    "Local model inference",
+    "Taxonomy migration"
+  ]
+}
