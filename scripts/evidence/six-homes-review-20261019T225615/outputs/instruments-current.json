@@ -1,0 +1,14 @@
+[
+  {
+    "instrument": "costura-de-fusion-de-campo-20260911T172315/probe_merge_seam.py",
+    "exit_code": 0
+  },
+  {
+    "instrument": "recoleccion-de-definiciones-20260911T175852/probe_declarations_survive.py",
+    "exit_code": 0
+  },
+  {
+    "instrument": "fetch-contract-20260911T093329/probes/probe_fetch_dependencies.py",
+    "exit_code": 0
+  }
+]

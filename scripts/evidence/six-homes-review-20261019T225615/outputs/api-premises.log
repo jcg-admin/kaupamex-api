@@ -1,0 +1,112 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+verify-premise: índice de 9616 símbolos sobre 2421 archivos
+verify-premise: 50 premisa(s) medida(s)
+
+banco:analogue-in-the-client-20260830T192922 [pieza] /workspace/kaupamex-api/scripts/workbench/analogue-in-the-client
+   veredicto: premisa firme
+banco:any-con-permiso-concedido-20260830T235423 [pieza] /workspace/kaupamex-api/scripts/workbench/any-con-permiso-conced
+   veredicto: premisa firme
+banco:any-optimizers-20260830T221227 [pieza] /workspace/kaupamex-api/scripts/workbench/any-optimizers-2026083
+   veredicto: premisa firme
+banco:atributos-de-clase-paridad-20260910T085330 [pieza] /workspace/kaupamex-api/scripts/workbench/atributos-de-clase-par
+   veredicto: premisa firme
+banco:background-task-capacity-20260902T171637 [pieza] /workspace/kaupamex-api/scripts/workbench/background-task-capaci
+   veredicto: premisa firme
+banco:basemodel-contract-20260911T030334 [pieza] /workspace/kaupamex-api/scripts/workbench/basemodel-contract-202
+   veredicto: premisa firme
+banco:basemodel-id-access-20260911T035612 [pieza] /workspace/kaupamex-api/scripts/workbench/basemodel-id-access-20
+   veredicto: premisa firme
+banco:basemodel-trae-contracts-20260911T050421 [pieza] /workspace/kaupamex-api/scripts/workbench/basemodel-trae-contrac
+   veredicto: premisa firme
+banco:campo-sin-columna-20260911T184129 [pieza] /workspace/kaupamex-api/scripts/workbench/campo-sin-columna-2026
+   veredicto: premisa firme
+banco:cascara-de-store-del-consumidor-20260918T004745 [pieza] /workspace/kaupamex-api/scripts/workbench/cascara-de-store-del-c
+   veredicto: premisa firme
+banco:census-open-api-tasks-20260912T111025 [pieza] /workspace/kaupamex-api/scripts/workbench/census-open-api-tasks-
+   veredicto: RE-ENCUADRAR
+   S2  la ruta citada no existe: scripts/evidence/census_open_api_tasks.js
+banco:compute-que-escribe-m2m-20260902T183544 [pieza] /workspace/kaupamex-api/scripts/workbench/compute-que-escribe-m2
+   veredicto: premisa firme
+banco:construccion-de-clase-de-modelo-20260903T020920 [pieza] /workspace/kaupamex-api/scripts/workbench/construccion-de-clase-
+   veredicto: premisa firme
+banco:convencion-sufijo-id-20260902T180313 [pieza] /workspace/kaupamex-api/scripts/workbench/convencion-sufijo-id-2
+   veredicto: premisa firme
+banco:costura-de-fusion-de-campo-20260911T172315 [pieza] /workspace/kaupamex-api/scripts/workbench/costura-de-fusion-de-c
+   veredicto: premisa firme
+banco:create-por-contenido-20260911T221144 [pieza] /workspace/kaupamex-api/scripts/workbench/create-por-contenido-2
+   veredicto: premisa firme
+banco:deferred-routing-20260911T181509 [pieza] /workspace/kaupamex-api/scripts/workbench/deferred-routing-20260
+   veredicto: premisa firme
+banco:deuda-identificadores-en-espanol-20260903T050800 [pieza] /workspace/kaupamex-api/scripts/workbench/deuda-identificadores-
+   veredicto: premisa firme
+banco:fachadas-construyen-una-vez-20260911T193801 [pieza] /workspace/kaupamex-api/scripts/workbench/fachadas-construyen-un
+   veredicto: RE-ENCUADRAR
+   S1  «setup_related» ya está declarado (def/class) — /workspace/kaupamex-api/src/orm/fields_properties.py:415
+   S1  «_compute_address» ya está declarado (def/class) — /workspace/kaupamex-api/src/addons/base/models/res_company.py:555 (+1 más)
+   S2  la ruta citada no existe: addons/base/models/res_company.py
+banco:fetch-contract-20260911T093329 [pieza] /workspace/kaupamex-api/scripts/workbench/fetch-contract-2026091
+   veredicto: premisa firme
+banco:field-type-vocabulary-20260830T211552 [pieza] /workspace/kaupamex-api/scripts/workbench/field-type-vocabulary-
+   veredicto: premisa firme
+banco:filter-function-de-properties-20260831T102803 [pieza] /workspace/kaupamex-api/scripts/workbench/filter-function-de-pro
+   veredicto: RE-ENCUADRAR
+   S1  «filter_function» ya está declarado (def/class) — /workspace/kaupamex-api/src/orm/fields_properties.py:979
+banco:frontera-orm-20260911T174036 [pieza] /workspace/kaupamex-api/scripts/workbench/frontera-orm-20260911T
+   veredicto: premisa firme
+banco:fusion-de-declaraciones-de-campo-20260911T122051 [pieza] /workspace/kaupamex-api/scripts/workbench/fusion-de-declaracione
+   veredicto: premisa firme
+banco:identifier-gate-interpreter-verdict-20260910T192542 [pieza] /workspace/kaupamex-api/scripts/workbench/identifier-gate-interp
+   veredicto: premisa firme
+banco:jerarquia-child-of-parent-of-20260830T233548 [pieza] /workspace/kaupamex-api/scripts/workbench/jerarquia-child-of-par
+   veredicto: premisa firme
+banco:nary-merges-20260830T215257 [pieza] /workspace/kaupamex-api/scripts/workbench/nary-merges-20260830T2
+   veredicto: premisa firme
+banco:odoo-orm-reference-inventory-20260910T181517 [pieza] /workspace/kaupamex-api/scripts/workbench/odoo-orm-reference-inv
+   veredicto: premisa firme
+banco:openapi-contract-20260902T202807 [pieza] /workspace/kaupamex-api/scripts/workbench/openapi-contract-20260
+   veredicto: premisa firme
+banco:operator-optimizers-suite-20260830T205315 [pieza] /workspace/kaupamex-api/scripts/workbench/operator-optimizers-su
+   veredicto: premisa firme
+banco:optimizadores-relacionales-20260830T230512 [pieza] /workspace/kaupamex-api/scripts/workbench/optimizadores-relacion
+   veredicto: premisa firme
+banco:orm-body-axis-blindness-20260911T021435 [pieza] /workspace/kaupamex-api/scripts/workbench/orm-body-axis-blindnes
+   veredicto: premisa firme
+banco:orm-inventory-axis-20260902T205231 [pieza] /workspace/kaupamex-api/scripts/workbench/orm-inventory-axis-202
+   veredicto: premisa firme
+banco:orm-rename-resolution-20260910T083919 [pieza] /workspace/kaupamex-api/scripts/workbench/orm-rename-resolution-
+   veredicto: premisa firme
+banco:orm-root-census-20260902T203712 [pieza] /workspace/kaupamex-api/scripts/workbench/orm-root-census-202609
+   veredicto: premisa firme
+banco:orm-signature-parity-20260904T162214 [pieza] /workspace/kaupamex-api/scripts/workbench/orm-signature-parity-2
+   veredicto: premisa firme
+banco:orm-symbol-presence-census-20260910T175850 [pieza] /workspace/kaupamex-api/scripts/workbench/orm-symbol-presence-ce
+   veredicto: premisa firme
+banco:precompute-antes-del-insert-20260902T190605 [pieza] /workspace/kaupamex-api/scripts/workbench/precompute-antes-del-i
+   veredicto: premisa firme
+banco:rec-name-attname-display-name-20260910T090509 [pieza] /workspace/kaupamex-api/scripts/workbench/rec-name-attname-displ
+   veredicto: premisa firme
+banco:recoleccion-de-definiciones-20260911T175852 [pieza] /workspace/kaupamex-api/scripts/workbench/recoleccion-de-definic
+   veredicto: premisa firme
+banco:registry-field-axis-support-20260903T053330 [pieza] /workspace/kaupamex-api/scripts/workbench/registry-field-axis-su
+   veredicto: premisa firme
+banco:registry-signaling-axis-support-20260903T063526 [pieza] /workspace/kaupamex-api/scripts/workbench/registry-signaling-axi
+   veredicto: premisa firme
+banco:resolucion-de-nombre-de-modelo-20260911T104904 [pieza] /workspace/kaupamex-api/scripts/workbench/resolucion-de-nombre-d
+   veredicto: premisa firme
+banco:search-on-nonstored-20260830T223855 [pieza] /workspace/kaupamex-api/scripts/workbench/search-on-nonstored-20
+   veredicto: premisa firme
+banco:slug-de-producto-20260831T105114 [pieza] /workspace/kaupamex-api/scripts/workbench/slug-de-producto-20260
+   veredicto: premisa firme
+banco:table-object-naming-20260830T201048 [pieza] /workspace/kaupamex-api/scripts/workbench/table-object-naming-20
+   veredicto: premisa firme
+banco:task-class-requirement-pairs-20261004T214332 [pieza] /workspace/kaupamex-api/scripts/workbench/task-class-requirement
+   veredicto: premisa firme
+banco:trigger-graph-of-fields-20260902T134137 [pieza] /workspace/kaupamex-api/scripts/workbench/trigger-graph-of-field
+   veredicto: premisa firme
+banco:two-caches-descriptor-20260911T053450 [pieza] /workspace/kaupamex-api/scripts/workbench/two-caches-descriptor-
+   veredicto: premisa firme
+banco:ventana-de-lectura-20260903T174426 [pieza] /workspace/kaupamex-api/scripts/workbench/ventana-de-lectura-202
+   veredicto: premisa firme
+
+3 de 50 premisa(s) piden re-encuadre antes de despachar
+   (en una pieza YA cerrada del banco, una señal S1 es la huella de su propio trabajo — ver «Ciega a» en el docstring)

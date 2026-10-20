@@ -1,0 +1,4 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+...................                                                      [100%]
+19 passed, 2 deselected in 0.07s
+CONNECTION_ATTEMPTS []

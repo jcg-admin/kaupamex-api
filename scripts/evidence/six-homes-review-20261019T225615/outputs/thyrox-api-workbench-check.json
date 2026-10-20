@@ -1,0 +1,253 @@
+[
+  {
+    "run": "analogue-in-the-client-20260830T192922",
+    "problems": []
+  },
+  {
+    "run": "any-con-permiso-concedido-20260830T235423",
+    "problems": []
+  },
+  {
+    "run": "any-optimizers-20260830T221227",
+    "problems": []
+  },
+  {
+    "run": "atributos-de-clase-paridad-20260910T085330",
+    "problems": []
+  },
+  {
+    "run": "background-task-capacity-20260902T171637",
+    "problems": []
+  },
+  {
+    "run": "basemodel-contract-20260911T030334",
+    "problems": []
+  },
+  {
+    "run": "basemodel-id-access-20260911T035612",
+    "problems": []
+  },
+  {
+    "run": "basemodel-trae-contracts-20260911T050421",
+    "problems": [
+      {
+        "key": "instrument",
+        "problem": "el instrumento 'scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/probe_who_declares.py' no existe en el run"
+      },
+      {
+        "key": "instrument",
+        "problem": "el instrumento 'scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/extract_both_sides.py' no existe en el run"
+      }
+    ]
+  },
+  {
+    "run": "campo-sin-columna-20260911T184129",
+    "problems": []
+  },
+  {
+    "run": "cascara-de-store-del-consumidor-20260918T004745",
+    "problems": [
+      {
+        "key": "question",
+        "problem": "question: ausente o vacía"
+      },
+      {
+        "key": "instrument",
+        "problem": "instrument: ausente o vacía"
+      },
+      {
+        "key": "metric",
+        "problem": "metric: ausente o vacía"
+      },
+      {
+        "key": "blind_to",
+        "problem": "blind_to: ausente o vacía"
+      },
+      {
+        "key": "destination",
+        "problem": "destination: ausente o vacía"
+      }
+    ]
+  },
+  {
+    "run": "census-open-api-tasks-20260912T111025",
+    "problems": []
+  },
+  {
+    "run": "compute-que-escribe-m2m-20260902T183544",
+    "problems": []
+  },
+  {
+    "run": "construccion-de-clase-de-modelo-20260903T020920",
+    "problems": []
+  },
+  {
+    "run": "convencion-sufijo-id-20260902T180313",
+    "problems": []
+  },
+  {
+    "run": "costura-de-fusion-de-campo-20260911T172315",
+    "problems": []
+  },
+  {
+    "run": "create-por-contenido-20260911T221144",
+    "problems": []
+  },
+  {
+    "run": "deferred-routing-20260911T181509",
+    "problems": []
+  },
+  {
+    "run": "deuda-identificadores-en-espanol-20260903T050800",
+    "problems": []
+  },
+  {
+    "run": "fachadas-construyen-una-vez-20260911T193801",
+    "problems": []
+  },
+  {
+    "run": "fetch-contract-20260911T093329",
+    "problems": [
+      {
+        "key": "instrument",
+        "problem": "el instrumento 'scripts/workbench/fetch-contract-20260911T093329/probes/probe_fetch_dependencies.py' no existe en el run"
+      },
+      {
+        "problem": "tests/ lo exige la forma 'measurement'"
+      }
+    ]
+  },
+  {
+    "run": "field-type-vocabulary-20260830T211552",
+    "problems": []
+  },
+  {
+    "run": "filter-function-de-properties-20260831T102803",
+    "problems": []
+  },
+  {
+    "run": "frontera-orm-20260911T174036",
+    "problems": []
+  },
+  {
+    "run": "fusion-de-declaraciones-de-campo-20260911T122051",
+    "problems": []
+  },
+  {
+    "run": "identifier-gate-interpreter-verdict-20260910T192542",
+    "problems": []
+  },
+  {
+    "run": "jerarquia-child-of-parent-of-20260830T233548",
+    "problems": []
+  },
+  {
+    "run": "nary-merges-20260830T215257",
+    "problems": []
+  },
+  {
+    "run": "odoo-orm-reference-inventory-20260910T181517",
+    "problems": []
+  },
+  {
+    "run": "openapi-contract-20260902T202807",
+    "problems": []
+  },
+  {
+    "run": "operator-optimizers-suite-20260830T205315",
+    "problems": []
+  },
+  {
+    "run": "optimizadores-relacionales-20260830T230512",
+    "problems": []
+  },
+  {
+    "run": "orm-body-axis-blindness-20260911T021435",
+    "problems": []
+  },
+  {
+    "run": "orm-inventory-axis-20260902T205231",
+    "problems": []
+  },
+  {
+    "run": "orm-rename-resolution-20260910T083919",
+    "problems": []
+  },
+  {
+    "run": "orm-root-census-20260902T203712",
+    "problems": []
+  },
+  {
+    "run": "orm-signature-parity-20260904T162214",
+    "problems": []
+  },
+  {
+    "run": "orm-symbol-presence-census-20260910T175850",
+    "problems": []
+  },
+  {
+    "run": "precompute-antes-del-insert-20260902T190605",
+    "problems": []
+  },
+  {
+    "run": "rec-name-attname-display-name-20260910T090509",
+    "problems": []
+  },
+  {
+    "run": "recoleccion-de-definiciones-20260911T175852",
+    "problems": []
+  },
+  {
+    "run": "registry-field-axis-support-20260903T053330",
+    "problems": []
+  },
+  {
+    "run": "registry-signaling-axis-support-20260903T063526",
+    "problems": []
+  },
+  {
+    "run": "resolucion-de-nombre-de-modelo-20260911T104904",
+    "problems": []
+  },
+  {
+    "run": "search-on-nonstored-20260830T223855",
+    "problems": []
+  },
+  {
+    "run": "slug-de-producto-20260831T105114",
+    "problems": []
+  },
+  {
+    "run": "table-object-naming-20260830T201048",
+    "problems": []
+  },
+  {
+    "run": "task-class-requirement-pairs-20261004T214332",
+    "problems": []
+  },
+  {
+    "run": "trigger-graph-of-fields-20260902T134137",
+    "problems": []
+  },
+  {
+    "run": "two-caches-descriptor-20260911T053450",
+    "problems": [
+      {
+        "key": "instrument",
+        "problem": "el instrumento 'scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_descriptor_cost.py' no existe en el run"
+      },
+      {
+        "key": "instrument",
+        "problem": "el instrumento 'scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_orm_cache_outlives_environment.py' no existe en el run"
+      },
+      {
+        "key": "instrument",
+        "problem": "el instrumento 'scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py' no existe en el run"
+      }
+    ]
+  },
+  {
+    "run": "ventana-de-lectura-20260903T174426",
+    "problems": []
+  }
+]
