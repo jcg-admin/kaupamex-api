@@ -14,3 +14,5 @@
 {"id":"c-8266b8ac-d398-4fac-944d-abe9a7c7cb18","op":"release","path":"scripts/evidence/orm-contract-continuation-20261020T045110","owner":"codex-contract-continuation","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T05:19:48.472Z"}
 {"id":"c-a8b56b8b-4326-45ca-b321-0c4ace7ca3c7","op":"claim","path":"scripts/evidence/orm-corpus-delimitation-20261020T145932","owner":"codex-corpus-audit","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T15:00:35.228Z"}
 {"id":"c-0cf3df0f-2e5c-440e-ac26-49acfa389526","op":"release","path":"scripts/evidence/orm-corpus-delimitation-20261020T145932","owner":"codex-corpus-audit","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T15:09:58.869Z"}
+{"id":"c-a7c1f241-46e9-479a-8542-8145966de87a","op":"claim","path":"scripts/evidence/orm-contract-plan","owner":"codex-orm-planning","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T20:20:38.473Z"}
+{"id":"c-3b500540-77a6-492c-8897-1db2176d7ff3","op":"release","path":"scripts/evidence/orm-contract-plan","owner":"codex-orm-planning","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T20:24:04.849Z"}
