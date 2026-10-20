@@ -1,0 +1,190 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "cases": {
+    "multiple_models": {
+      "reference": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "flush:b",
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 0
+      },
+      "consumer": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "flush:b",
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 0
+      }
+    },
+    "second_wave": {
+      "reference": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:b",
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 0
+      },
+      "consumer": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:b",
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 0
+      }
+    },
+    "recompute_exception": {
+      "reference": {
+        "events": [
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": "intentional-recompute-error",
+        "return": null,
+        "remaining_dirty_entries": 1
+      },
+      "consumer": {
+        "events": [
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": "intentional-recompute-error",
+        "return": null,
+        "remaining_dirty_entries": 1
+      }
+    },
+    "flush_exception": {
+      "reference": {
+        "events": [
+          "recompute",
+          "flush:a"
+        ],
+        "warnings": [],
+        "exception": "intentional-flush-model-error",
+        "return": null,
+        "remaining_dirty_entries": 1
+      },
+      "consumer": {
+        "events": [
+          "recompute",
+          "flush:a"
+        ],
+        "warnings": [],
+        "exception": "intentional-flush-model-error",
+        "return": null,
+        "remaining_dirty_entries": 1
+      }
+    },
+    "sticky_ceiling": {
+      "reference": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a"
+        ],
+        "warnings": [
+          "Too many iterations for flushing fields!"
+        ],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 1
+      },
+      "consumer": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a",
+          "recompute",
+          "flush:a"
+        ],
+        "warnings": [
+          "Too many iterations for flushing fields!"
+        ],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 1
+      }
+    },
+    "empty_dirty_entry": {
+      "reference": {
+        "events": [
+          "recompute",
+          "flush:a",
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 0
+      },
+      "consumer": {
+        "events": [
+          "recompute"
+        ],
+        "warnings": [],
+        "exception": null,
+        "return": null,
+        "remaining_dirty_entries": 1
+      }
+    }
+  },
+  "negative_controls": {
+    "omitting_recompute_detected": true,
+    "omitting_ceiling_warning_detected": true
+  },
+  "evidence": "/workspace/scratch/orm-cache-continuation/flush-fixpoint-observations.json"
+}

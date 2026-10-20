@@ -1,0 +1,31 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+== invalidate_all
+   declara      : odoo/orm/environments.py:357  Environment.invalidate_all
+   bases con el : 0
+   lo llaman    : 2
+                  odoo/orm/models.py:4194  BaseModel.unlink
+                  odoo/orm/registry.py:383  Registry._setup_models__
+   hermanos     : 1  ['Environment']
+== flush_all
+   declara      : odoo/orm/environments.py:380  Environment.flush_all
+   bases con el : 0
+   lo llaman    : 6
+                  odoo/orm/environments.py:357  Environment.invalidate_all
+                  odoo/orm/environments.py:589  Transaction.flush
+                  odoo/orm/models.py:4194  BaseModel.unlink
+                  odoo/orm/registry.py:383  Registry._setup_models__
+                  odoo/orm/registry.py:723  Registry.init_models
+                  odoo/orm/registry.py:945  Registry.check_tables_exist
+   hermanos     : 1  ['Environment']
+== invalidate_field_data
+   declara      : odoo/orm/environments.py:620  Transaction.invalidate_field_data
+   bases con el : 0
+   lo llaman    : 4
+                  odoo/orm/environments.py:357  Environment.invalidate_all
+                  odoo/orm/environments.py:600  Transaction.clear
+                  odoo/orm/environments.py:877  Cache.invalidate
+                  odoo/orm/environments.py:898  Cache.clear
+   hermanos     : 1  ['Transaction']
+
+reference_flow: 3 simbolo(s) (alcance medido: 25 archivo(s) .py sobre 2 raiz(ces): odoo/orm, odoo/addons/base/tests; 4 parseado(s) tras el prefiltro por nombre)
+Ciega a: la llamada dinamica (getattr, despacho por cadena) no deja arista; la llamada desde XML, CSV o data no se lee: el alcance es .py; el receptor de una llamada por atributo no se resuelve a su clase, asi que un homonimo de otra clase cuenta como llamador; un llamador fuera de las raices medidas no aparece.

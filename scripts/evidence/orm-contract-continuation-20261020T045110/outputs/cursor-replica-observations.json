@@ -1,0 +1,276 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "consumer_revision": "90cc7b78ecf727c352c5edd602b0fdf199198069",
+  "extractor": "scripts/workbench/basemodel-trae-contracts-20260911T050421/probes/extract_both_sides.py",
+  "extractor_sha256": "31ebea85ca9c3ed4af15eef14b951e0092d950c7cb30d30c0477499a569d4097",
+  "dependencies": {
+    "python": "3.12.14",
+    "django": "6.0.5",
+    "psycopg": "3.3.4",
+    "reference_exception_protocol": "Isolated DatabaseError/OperationalError/ProgrammingError classes; psycopg2 runtime is not installed."
+  },
+  "retry_seconds_from_reference": 1200,
+  "sources": {
+    "reference": {
+      "path": "/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py",
+      "start": 1165,
+      "end": 1186,
+      "body": "def cursor(self, /, readonly: bool = False) -> BaseCursor:\n    \"\"\" Return a new cursor for the database. The cursor itself may be used\n        as a context manager to commit/rollback and close automatically.\n\n        :param readonly: Attempt to acquire a cursor on a replica database.\n            Acquire a read/write cursor on the primary database in case no\n            replica exists or that no readonly cursor could be acquired.\n    \"\"\"\n    if readonly and self._db_readonly is not None:\n        if (\n            self._db_readonly_failed_time is None\n            or time.monotonic() > self._db_readonly_failed_time + _REPLICA_RETRY_TIME\n        ):\n            try:\n                cr = self._db_readonly.cursor()\n                self._db_readonly_failed_time = None\n                return cr\n            except psycopg2.OperationalError:\n                self._db_readonly_failed_time = time.monotonic()\n                _logger.warning(\"Failed to open a readonly cursor, falling back to read-write cursor for %dmin %dsec\", *divmod(_REPLICA_RETRY_TIME, 60))\n        threading.current_thread().cursor_mode = 'ro->rw'\n    return self._db.cursor()",
+      "file_sha256": "b97c87be3c90948f3b28aed599863aa1b6480fcf65eeb17bc3e7c05c88092695",
+      "body_sha256": "e4931ad421020d3e3a08c516ce8c921473b8e5af08c358d6866e61745c546488"
+    },
+    "consumer": {
+      "path": "/workspace/kaupamex-api/src/orm/registry.py",
+      "start": 2585,
+      "end": 2612,
+      "body": "def cursor(self, /, readonly=False):\n    \"\"\"Un cursor nuevo sobre la base — ≙ ``:1165-1186``.\n\n    Docstring de la fuente, verbatim: *\"Return a new cursor for the\n    database. The cursor itself may be used as a context manager to\n    commit/rollback and close automatically\"*, y sobre el parametro:\n    *\"Attempt to acquire a cursor on a replica database. Acquire a\n    read/write cursor on the primary database in case no replica exists or\n    that no readonly cursor could be acquired\"*.\n\n    **La replica se busca por alias, no por atributo.** La fuente guarda\n    dos conexiones (``self._db`` y ``self._db_readonly``); aqui las\n    conexiones las declara ``DATABASES``, asi que la replica es el alias\n    ``<alias>_readonly`` si esta declarado. Sin el, el fallback de la\n    fuente es el camino unico — que es lo que este arbol tiene hoy, y por\n    eso ``readonly=True`` devuelve el cursor de escritura.\n    \"\"\"\n    alias = self._alias()\n    if readonly:\n        replica = f'{alias}_readonly'\n        if replica in connections:\n            try:\n                return connections[replica].cursor()\n            except DatabaseError:\n                _logger.warning(\n                    \"Failed to open a readonly cursor, falling back to \"\n                    \"read-write cursor\")\n    return connections[alias].cursor()",
+      "file_sha256": "b4e17b664218b989255f88c6e5ae9f4ed60c4979c71a3a4a136797912521e4df",
+      "body_sha256": "4a595b025a8e328ca42c42eb02540fa8254e5c2a3d3ce13e535d60395776684f"
+    }
+  },
+  "cases": {
+    "writable_bypasses_replica": {
+      "reference": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 0,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ],
+      "consumer": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 0,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ]
+    },
+    "readonly_no_replica": {
+      "reference": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 0,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ],
+      "consumer": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 0,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ]
+    },
+    "replica_success": {
+      "reference": [
+        {
+          "time": 100.0,
+          "returned": "replica-cursor",
+          "error": null,
+          "primary_attempts": 0,
+          "replica_attempts": 1,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ],
+      "consumer": [
+        {
+          "time": 100.0,
+          "returned": "replica-cursor",
+          "error": null,
+          "primary_attempts": 0,
+          "replica_attempts": 1,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ]
+    },
+    "operational_then_retry": {
+      "reference": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 1,
+          "failed_time": 100.0,
+          "thread_cursor_mode": "ro->rw",
+          "warning_count": 1
+        },
+        {
+          "time": 101.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 2,
+          "replica_attempts": 1,
+          "failed_time": 100.0,
+          "thread_cursor_mode": "ro->rw",
+          "warning_count": 1
+        },
+        {
+          "time": 1300.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 3,
+          "replica_attempts": 1,
+          "failed_time": 100.0,
+          "thread_cursor_mode": "ro->rw",
+          "warning_count": 1
+        },
+        {
+          "time": 1300.001,
+          "returned": "replica-cursor",
+          "error": null,
+          "primary_attempts": 3,
+          "replica_attempts": 2,
+          "failed_time": null,
+          "thread_cursor_mode": "ro->rw",
+          "warning_count": 1
+        }
+      ],
+      "consumer": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 1,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 1
+        },
+        {
+          "time": 101.0,
+          "returned": "replica-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 2,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 1
+        },
+        {
+          "time": 1300.0,
+          "returned": "replica-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 3,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 1
+        },
+        {
+          "time": 1300.001,
+          "returned": "replica-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 4,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 1
+        }
+      ]
+    },
+    "programming_error": {
+      "reference": [
+        {
+          "time": 100.0,
+          "returned": null,
+          "error": {
+            "class": "ProgrammingError",
+            "message": "replica:programming"
+          },
+          "primary_attempts": 0,
+          "replica_attempts": 1,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ],
+      "consumer": [
+        {
+          "time": 100.0,
+          "returned": "primary-cursor",
+          "error": null,
+          "primary_attempts": 1,
+          "replica_attempts": 1,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 1
+        }
+      ]
+    },
+    "primary_error": {
+      "reference": [
+        {
+          "time": 100.0,
+          "returned": null,
+          "error": {
+            "class": "OperationalError",
+            "message": "primary:operational"
+          },
+          "primary_attempts": 1,
+          "replica_attempts": 0,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ],
+      "consumer": [
+        {
+          "time": 100.0,
+          "returned": null,
+          "error": {
+            "class": "OperationalError",
+            "message": "primary:operational"
+          },
+          "primary_attempts": 1,
+          "replica_attempts": 0,
+          "failed_time": null,
+          "thread_cursor_mode": null,
+          "warning_count": 0
+        }
+      ]
+    }
+  },
+  "negative_controls": {
+    "cooldown_removed_detected": true,
+    "exception_broadened_detected": true
+  },
+  "scope": "Exact extracted Registry.cursor bodies with deterministic endpoints, clock, logger, thread protocols; real Consumer Django exception classes and explicitly isolated reference exception protocol.",
+  "result": "Differences characterized for retry suppression, failure timestamp/thread mode, and error propagation. Shared positive branches agree.",
+  "not_verified": [
+    "psycopg2 runtime and real exception translation",
+    "Real replica/read-only connections",
+    "PostgreSQL behavior",
+    "Pool lifecycle",
+    "Concurrent thread isolation",
+    "SQL hooks",
+    "Nested transactions",
+    "Production caller acceptance",
+    "Reference runtime tests"
+  ],
+  "reproduction": "THYROX_CONSUMER=<API checkout> ODOO_TOOLS=<verified reference checkout> UV_CACHE_DIR=<cache> uv run --frozen python <probe_cursor_replica_flow.py>"
+}

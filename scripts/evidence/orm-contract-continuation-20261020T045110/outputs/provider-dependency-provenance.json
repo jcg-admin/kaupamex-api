@@ -1,0 +1,57 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "files": {
+    "src/task/task_source.py": {
+      "git_blob": "793987dba93a1de3229e70bf7df3d6c72f01f172",
+      "sha256": "8882c56440af44a0d5086d82bb93aa8751f1a82f093de242c6a42f9619a27491"
+    },
+    "src/task/implementation_order.py": {
+      "git_blob": "980ac5223e48a1f63b76818b77a6ff9dc018e468",
+      "sha256": "c10a1d8b0491e5b41e8c95eb85e62cdccf7b56101a024fa8fe3d3c0c69b6cd16"
+    },
+    "src/session/task_continuation.py": {
+      "git_blob": "9ffee5e4824b2ae72af4435bfba1efcc8a0add30",
+      "sha256": "c7c760ccfe452cf818085110304d852e2dfdd4c1eebd4758b5e2901a7bb2fe39"
+    },
+    "src/session/continuation_frontier.py": {
+      "git_blob": "0343f4fc4d9ac97c376704cbb1e798023e32b805",
+      "sha256": "3776f2f9ba283b9bbb09e03b74aba74c57ced37cc58443bd3221ebdb8a44a4e1"
+    },
+    "src/packages/task/schema.ts": {
+      "git_blob": "6b16e6704df71cc96a4f6873ddd65f37c7bd522d",
+      "sha256": "af2a5e4488f75616c14a558b68216979574f1291aff81670211fb5bb94501ace"
+    },
+    "src/packages/agent/tasks.ts": {
+      "git_blob": "345cf111e6b823011e96765f0b2f0fab068639c8",
+      "sha256": "1885668eb5d7bd9150ed5375d374a3e08f967cc7a472781a20ed13b1a1295f17"
+    },
+    "src/packages/tools/src/tasks.ts": {
+      "git_blob": "bd142a148c7a0b790d6ffcd211a802aafddcc549",
+      "sha256": "aeec5f5a2f8f584c4f3227ceb1c2f0c37632da843c50e7c2072ee37cb662e42c"
+    },
+    "src/packages/task/rst.ts": {
+      "git_blob": "b268443bb3370656d6dda7dd7a9f3541fb2edaba",
+      "sha256": "317bd2d7c55a47367fdfe922471a40051fe76210d4a2c6173caf697f4cb1e7aa"
+    },
+    "src/packages/task/premises.ts": {
+      "git_blob": "b84d1aae5e4dc6b0db1b06ce66e2b50094227409",
+      "sha256": "e53ddb3d743ee77b0c416389e7a7ef792366424c411d3c0ef34f3a34fa068e53"
+    },
+    "tests/task/test_task_source_store.py": {
+      "git_blob": "ff42fa4d3bc327a4f8df5ec714aec135c01505ea",
+      "sha256": "9b651b6240f914bdc6404315fe06aed66e4e0e7bb8c7b956732953b24afa867d"
+    }
+  },
+  "commands": [
+    {
+      "command": "PYTHONPATH=/workspace/thyrox/src UV_CACHE_DIR=/workspace/.cache/uv uv run --frozen python (readonly interface queries and task_ids.lookup)",
+      "exit_code": 0
+    },
+    {
+      "command": "task.task_source.records_from_store(hogar, layer=\"gen\") observational assertion on existing GEN0062",
+      "exit_code": 0
+    }
+  ],
+  "no_product_changes": true,
+  "no_store_writes": true
+}

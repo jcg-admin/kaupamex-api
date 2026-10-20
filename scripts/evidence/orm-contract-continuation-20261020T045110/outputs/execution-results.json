@@ -1,0 +1,63 @@
+{
+  "cursor": {
+    "command": "THYROX_CONSUMER=/workspace/kaupamex-api ODOO_TOOLS=/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389 UV_CACHE_DIR=/workspace/.cache/uv uv run --frozen python /workspace/scratch/orm-cursor-continuation/probe_cursor_replica_flow.py",
+    "exit_code": 0,
+    "published_instrument": "outputs/probe_cursor_fallback.py",
+    "initial_failed_attempt": {
+      "exit_code": 1,
+      "reason": "psycopg2 absent",
+      "log": "cursor-replica-missing-reference-runtime.log"
+    }
+  },
+  "flush": {
+    "command": "THYROX_CONSUMER=/workspace/kaupamex-api ODOO_TOOLS=/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389 UV_CACHE_DIR=/workspace/.cache/uv uv run --frozen python /workspace/scratch/orm-cache-continuation/probe_flush_fixpoint.py",
+    "exit_code": 0,
+    "published_instrument": "outputs/probe_flush_fixpoint.py"
+  },
+  "reference_flow": {
+    "command": "ODOO_TOOLS=/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389 UV_CACHE_DIR=/workspace/.cache/uv uv run --frozen python scripts/reference_flow.py --symbol invalidate_all --symbol flush_all --symbol invalidate_field_data --root odoo/orm --root odoo/addons/base/tests",
+    "exit_code": 0,
+    "scope": "25files partial extraction,4parsed"
+  },
+  "checkWorkbench": {
+    "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+    "command": "PATH=/workspace/.cache/toolchains/bin:$PATH bun --eval \"import {checkWorkbench} from './src/packages/workbench/manifest.ts';const problems=checkWorkbench('/workspace/kaupamex-api/scripts/evidence/orm-contract-continuation-20261020T045110');console.log(JSON.stringify({problems}));process.exit(problems.length?1:0);\"",
+    "cwd": "/workspace/thyrox",
+    "interface": "checkWorkbench(dir:string):WorkbenchProblem[]",
+    "exit_code": 0,
+    "problems": []
+  },
+  "RST_syntax": {
+    "command": "PATH=/workspace/thyrox/.venv/bin:/workspace/.cache/toolchains/bin:$PATH PYTHONPATH=/workspace/thyrox/src /workspace/thyrox/bin/check_rst_sintaxis --strict source/gestion/pm/api/iniciativas/completar-raiz-orm/analisis-contrato-de-basemodel-trae-o-construye.rst",
+    "exit_code": 0,
+    "log": "rst-syntax.log"
+  },
+  "RST_vocabulary": {
+    "command": "PATH=/workspace/thyrox/.venv/bin:/workspace/.cache/toolchains/bin:$PATH PYTHONPATH=/workspace/thyrox/src /workspace/thyrox/bin/check_vocabulario_prosa --strict source/gestion/pm/api/iniciativas/completar-raiz-orm/analisis-contrato-de-basemodel-trae-o-construye.rst",
+    "exit_code": 0,
+    "log": "rst-vocabulary.log"
+  },
+  "postgres": {
+    "command": [
+      "docker",
+      "exec",
+      "-u",
+      "postgres",
+      "kaupamex-postgres-cloud",
+      "psql",
+      "-X",
+      "-d",
+      "postgres",
+      "-Atc",
+      "SELECT datname,usename,state,count(*) FROM pg_stat_activity WHERE backend_type='client backend' AND pid<>pg_backend_pid() GROUP BY datname,usename,state;"
+    ],
+    "exit_code": 0,
+    "observed_rows": 0,
+    "container_status": "Up5hours,127.0.0.1:5432",
+    "no_db_writes": true
+  },
+  "collection_failure": {
+    "exit_code": 1,
+    "reason": "SyntaxError in first evidence-summary heredoc; no source or store executed; corrected without changing experiments"
+  }
+}

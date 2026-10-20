@@ -1,0 +1,30 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+== invalidate_all
+   declara      : src/orm/environments.py:1438  Environment.invalidate_all
+   bases con el : 0
+   lo llaman    : 1
+                  tests/unit/orm/test_sorted_order_to_function.py:100  ambient
+   hermanos     : 1  ['Environment']
+== flush_all
+   declara      : src/orm/environments.py:1274  Environment.flush_all
+   bases con el : 0
+   lo llaman    : 4
+                  src/orm/environments.py:509  Transaction.flush
+                  tests/unit/orm/test_environments_pooling_and_flush.py:298  TestTheModelScopedFlush.test_flush_all_reaches_every_dirty_model
+                  tests/unit/orm/test_environments_pooling_and_flush.py:305  TestTheModelScopedFlush.test_the_flush_empties_the_dirty_map
+                  tests/unit/orm/test_environments_pooling_and_flush.py:311  TestTheModelScopedFlush.test_a_clean_transaction_flushes_without_writing
+   hermanos     : 1  ['Environment']
+== invalidate_field_data
+   declara      : src/orm/environments.py:483  Transaction.invalidate_field_data
+   bases con el : 0
+   lo llaman    : 7
+                  src/orm/environments.py:554  Transaction.clear
+                  src/orm/environments.py:1438  Environment.invalidate_all
+                  src/orm/environments.py:1796  Cache.invalidate
+                  src/orm/environments.py:1818  Cache.clear
+                  tests/unit/orm/test_environments_transaction.py:167  TestTheTransaction.test_invalidate_without_spec_empties_everything
+                  tests/unit/orm/test_environments_transaction.py:174  TestTheTransaction.test_invalidate_with_spec_only_touches_what_it_names
+                  tests/unit/orm/test_environments_transaction.py:184  TestTheTransaction.test_invalidate_with_none_ids_empties_that_field
+   hermanos     : 1  ['Transaction']
+Consumer scoped universe 131 files; AST parsed 7
+Scope excludes other addons/dynamic dispatch; no equivalence claim from names.

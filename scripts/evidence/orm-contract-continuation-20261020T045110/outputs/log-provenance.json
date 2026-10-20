@@ -1,0 +1,12 @@
+{
+  "observed_at_utc": "2026-10-20T05:15:36.211559+00:00",
+  "command": "gh api repos/jcg-admin/kaupamex-api/actions/runs/39369826270/logs",
+  "exit_code": 0,
+  "run": 39369826270,
+  "head": "90cc7b78ecf727c352c5edd602b0fdf199198069",
+  "zip_bytes": 6844808,
+  "zip_sha256": "0f59270457a0f8f331a2bc13663ddc7e5679aa39e0851823ed5ae4894a648ca2",
+  "member": "0_test.txt",
+  "log_bytes": 43735944,
+  "log_sha256": "1da7ea50f13bf91808228985360bf0a0e089738d73d2c5640b724af2011130f3"
+}
