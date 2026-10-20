@@ -16,3 +16,5 @@
 {"id":"c-0cf3df0f-2e5c-440e-ac26-49acfa389526","op":"release","path":"scripts/evidence/orm-corpus-delimitation-20261020T145932","owner":"codex-corpus-audit","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T15:09:58.869Z"}
 {"id":"c-a7c1f241-46e9-479a-8542-8145966de87a","op":"claim","path":"scripts/evidence/orm-contract-plan","owner":"codex-orm-planning","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T20:20:38.473Z"}
 {"id":"c-3b500540-77a6-492c-8897-1db2176d7ff3","op":"release","path":"scripts/evidence/orm-contract-plan","owner":"codex-orm-planning","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T20:24:04.849Z"}
+{"id":"c-d4e208f7-64c6-43be-b248-2f142264e94e","op":"claim","path":"scripts/evidence/orm-contract-plan-testorm","owner":"codex-orm-planning","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T20:26:05.165Z"}
+{"id":"c-e6374a46-3209-440a-bb4c-31503396fac4","op":"release","path":"scripts/evidence/orm-contract-plan-testorm","owner":"codex-orm-planning","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T20:39:31.482Z"}

@@ -1,0 +1,1530 @@
+{
+  "kind": "READ_ONLY_REFERENCE_OBLIGATION_EXTENSION_NOT_EXECUTABLE_PLAN",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_root": "/workspace/.cache/references/odoo-tools/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons/test_orm",
+  "history_first": {
+    "inventory": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/inventory-odoo19c.json inventories odoo/orm only",
+    "corpus": "orm-corpus-delimitation recognized remote addon but materialized base/tests/test_orm.py, not this module",
+    "consumer_manifest": "Historical 604/602 claim is not executable coverage. Manifest cites TASK-API-0406 for web_tour, but current native lookup resolves to negative-assertion census, an unrelated subject; citation cannot authorize/admit web_tour work."
+  },
+  "coverage_rows": [
+    {
+      "file": "tests/test_attributes.py",
+      "family": "Recordsets",
+      "obligation": "record_attribute_boundary",
+      "selected_test": "test_we_cannot_add_attributes",
+      "line_range": [
+        6,
+        11
+      ],
+      "body_read": true,
+      "behavior": "New instance rejects undeclared attribute assignment with AttributeError.",
+      "consumer_candidate": "src/orm/models.py",
+      "consumer_path_exists": true,
+      "scope_limit": "core; class/instance storage adaptation requires explicit contract decision",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "eac9bef7872c72a1250618b6235019d213acf6254d1bae64f2fd7955ac49c91f"
+    },
+    {
+      "file": "tests/test_autovacuum.py",
+      "family": "Lifecycle",
+      "obligation": "autovacuum_expiration",
+      "selected_test": "test_api_autovacuum",
+      "line_range": [
+        7,
+        17
+      ],
+      "body_read": true,
+      "behavior": "Expired record exists before scheduled autovacuum, disappears after cron trigger.",
+      "consumer_candidate": "src/addons/base/models/ir_autovacuum.py",
+      "consumer_path_exists": true,
+      "scope_limit": "integration; cron scheduling is not global ORM precondition",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "14243b9ab337b29a3772c834dd8a6e47b200b2d3f816b7455729f0a6c82ac1d0"
+    },
+    {
+      "file": "tests/test_company_checks.py",
+      "family": "Environment/Security",
+      "obligation": "company_relation_consistency",
+      "selected_test": "test_company_and_different_company",
+      "line_range": [
+        54,
+        67
+      ],
+      "body_read": true,
+      "behavior": "Reject relation creation to incompatible company for Many2one and x2many; also inspect allowed-company context.",
+      "consumer_candidate": "src/orm/models.py",
+      "consumer_path_exists": true,
+      "scope_limit": "core consumer integration; capabilities versus company consistency must be distinguished",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "8ca7697a8a8d74f30a866b28a6f62d3edacef22df16bfbe945928009c6747812"
+    },
+    {
+      "file": "tests/test_domain.py",
+      "family": "Domain/Search",
+      "obligation": "domain_null_boolean_partition",
+      "selected_test": "test_00_test_bool_undefined",
+      "line_range": [
+        19,
+        49
+      ],
+      "body_read": true,
+      "behavior": "False includes undefined SQL values; True and False searches partition rows consistently, including dynamically added boolean.",
+      "consumer_candidate": "src/orm/domains.py",
+      "consumer_path_exists": true,
+      "scope_limit": "core; predicate any-rights evidence does not cover this behavior",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "254cd1a27805498396c79aa0f18dfac2caa6f9c00c2f3e3f5faedf4e4ed39db0"
+    },
+    {
+      "file": "tests/test_fields.py",
+      "family": "Fields/Recompute",
+      "obligation": "protected_compute_scope",
+      "selected_test": "test_11_stored_protected",
+      "line_range": [
+        367,
+        405
+      ],
+      "body_read": true,
+      "behavior": "Nested and duplicate field protection suppresses recompute for target records, not other records, and ends at context exit.",
+      "consumer_candidate": "src/orm/environments.py",
+      "consumer_path_exists": true,
+      "scope_limit": "core; existing trigger/protocol proofs are not real persistence evidence",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "a97110371e961bec55a796e8a7f6247860e9bc1be0e388bdab3c100402d6ffd3"
+    },
+    {
+      "file": "tests/test_index_method.py",
+      "family": "Registry/Schema",
+      "obligation": "index_method_reconciliation",
+      "selected_test": "test_index_rebuilt_when_method_changes",
+      "line_range": [
+        24,
+        48
+      ],
+      "body_read": true,
+      "behavior": "Existing convention-named btree is rebuilt as gin when trigram requested, conditional pg_trgm availability.",
+      "consumer_candidate": "src/orm/registry.py",
+      "consumer_path_exists": true,
+      "scope_limit": "conditional schema lifecycle; no schema change authorized",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "f408f8390702f308d08943081d5bc3f7deb33cc492d697ebdf4013d7bfe3ee47"
+    },
+    {
+      "file": "tests/test_indexed_translation.py",
+      "family": "Translation/Search",
+      "obligation": "translated_record_storage_query",
+      "selected_test": "test_search_ilike",
+      "line_range": [
+        15,
+        65
+      ],
+      "body_read": true,
+      "behavior": "Language-specific reads and searches preserve SQL wildcard escaping and fallback over jsonb.",
+      "consumer_candidate": "src/orm/fields_textual.py",
+      "consumer_path_exists": true,
+      "scope_limit": "existing selected obligation extended, not duplicate new obligation",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "e7720fd01522b9632c990e586f227207c6ce08df75651dce2e0a9aae7963bce7"
+    },
+    {
+      "file": "tests/test_json_field.py",
+      "family": "Fields/Cache/Persistence",
+      "obligation": "json_value_isolation_roundtrip",
+      "selected_test": "test_json_field_read_write",
+      "line_range": [
+        13,
+        36
+      ],
+      "body_read": true,
+      "behavior": "JSON field read is not cache object; reassignment survives flush; tuple serializes to list.",
+      "consumer_candidate": "src/fields/__init__.py",
+      "consumer_path_exists": true,
+      "scope_limit": "core selected scalar family; not all JSON mutation semantics",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "b419b54f942b592106c586035903754bb6e7fa3f27f2445b7c3d47d27a056c76"
+    },
+    {
+      "file": "tests/test_many2many.py",
+      "family": "Relations/Domain",
+      "obligation": "relation_command_membership",
+      "selected_test": "test_not_in_relation",
+      "line_range": [
+        23,
+        26
+      ],
+      "body_read": true,
+      "behavior": "not-in relation search returns only nonlinked record; separate command and access scenarios remain.",
+      "consumer_candidate": "src/orm/fields_relational.py",
+      "consumer_path_exists": true,
+      "scope_limit": "composed relation/search obligation, not alias for predicate optimization",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "29800a672cea1cc198d02c3a75bc27d675208f0eed8eeadb80d36d5097f3f048"
+    },
+    {
+      "file": "tests/test_onchange.py",
+      "family": "Virtual records/Web",
+      "obligation": "virtual_onchange_delta",
+      "selected_test": "test_onchange",
+      "line_range": [
+        55,
+        110
+      ],
+      "body_read": true,
+      "behavior": "Onchange recomputes declared dependent values and returns only changed values; unrelated inconsistent name not recomputed on body change.",
+      "consumer_candidate": "addons/web/models/models.py",
+      "consumer_path_exists": true,
+      "scope_limit": "Consumer-specific web seam; Form and web helpers prerequisite only to these scenarios",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "41d0f78b9f60e2d9e8bd4b4c56f91ce2b0e6188d89e9f8ed8a8bc02c074cb7e8"
+    },
+    {
+      "file": "tests/test_one2many.py",
+      "family": "Relations/Cache",
+      "obligation": "relation_command_membership",
+      "selected_test": "test_create_with_commands",
+      "line_range": [
+        281,
+        305
+      ],
+      "body_read": true,
+      "behavior": "Command.set reparents existing children and invalidates previous owner membership; exact SQL count is separate adaptation criterion.",
+      "consumer_candidate": "src/orm/fields_relational.py",
+      "consumer_path_exists": true,
+      "scope_limit": "core relation persistence; includes paired cache invalidation scenario",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "4cffa7e5d2e452cb3e14be6da3c0a2ed3324126438c9e057841ddf2e074ddf67"
+    },
+    {
+      "file": "tests/test_performance.py",
+      "family": "Prefetch/Performance",
+      "obligation": "prefetch_batch_reuse",
+      "selected_test": "test_read_base",
+      "line_range": [
+        50,
+        68
+      ],
+      "body_read": true,
+      "behavior": "Traversal performs bounded initial reads, then cached traversal and value_pc access issue no extra query.",
+      "consumer_candidate": "src/orm/models.py",
+      "consumer_path_exists": true,
+      "scope_limit": "performance acceptance needs matched fixtures/backend, not literal global Odoo query count",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "ca0d9abd93b3d812df62e6d18623442aca0ce1cb176c724ddbe3787e95af4503"
+    },
+    {
+      "file": "tests/test_properties.py",
+      "family": "Properties/Security",
+      "obligation": "property_definition_authority",
+      "selected_test": "test_base_properties_model_access",
+      "line_range": [
+        122,
+        153
+      ],
+      "body_read": true,
+      "behavior": "Property definitions resist unauthorized creation/deletion and privileged field reassignment; definition identity and unique field linkage survive batch writes.",
+      "consumer_candidate": "src/orm/fields_properties.py",
+      "consumer_path_exists": true,
+      "scope_limit": "extended field family; not all properties grouping/search/UI obligations",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "890f0844ed3fbc8e4fefbb3df24a73634bbdaa219f5d96e87a9bfda9838b98d1"
+    },
+    {
+      "file": "tests/test_qweb_float.py",
+      "family": "Rendering consumer",
+      "obligation": "float_render_precision",
+      "selected_test": "test_basic_float",
+      "line_range": [
+        14,
+        37
+      ],
+      "body_read": true,
+      "behavior": "Float conversion respects default/custom digits and explicit precision formatting.",
+      "consumer_candidate": "src/addons/base/models/ir_qweb_fields.py",
+      "consumer_path_exists": false,
+      "scope_limit": "consumer conformance, not global core blocker",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "276136acd7573df75918a0807e11254ade6b2e9d7c3e610e3aebe0f4ec9e2834"
+    },
+    {
+      "file": "tests/test_related_translation.py",
+      "family": "Translation/Related",
+      "obligation": "translated_record_storage_query",
+      "selected_test": "test_read",
+      "line_range": [
+        45,
+        51
+      ],
+      "body_read": true,
+      "behavior": "Related chain returns expected values in en_US and fr_FR at each level.",
+      "consumer_candidate": "src/orm/fields_textual.py",
+      "consumer_path_exists": true,
+      "scope_limit": "existing obligation extended; write/import/new-record cases remain unverified",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "f40995e9def222eb51549ec38c4186a3c7c54df20992e559063f989d227ac83d"
+    },
+    {
+      "file": "tests/test_schema.py",
+      "family": "Fields/Schema",
+      "obligation": "field_storage_reflection",
+      "selected_test": "test_10_many2one",
+      "line_range": [
+        595,
+        621
+      ],
+      "body_read": true,
+      "behavior": "Many2one column integer nullable and FK targets currency with SET NULL.",
+      "consumer_candidate": "src/orm/fields_relational.py",
+      "consumer_path_exists": true,
+      "scope_limit": "adaptation maps Django naming/schema; reference public schema not automatic mandate Observed Odoo int4 representation is not an automatic Consumer mandate; PK/FK type needs architecture reconciliation.",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "91552d6b77cc3563d3553d2c55d35c57723acfa55ab413ba367cf432d2299462"
+    },
+    {
+      "file": "tests/test_search.py",
+      "family": "Search/SQL",
+      "obligation": "relational_domain_query_semantics",
+      "selected_test": "test_and_many2one_with_subfield",
+      "line_range": [
+        10,
+        25
+      ],
+      "body_read": true,
+      "behavior": "Selected source test asserts SQL shape (join, non-null guard, conjunctive related predicates and order), not actual returned rows; Consumer behavior not executed.",
+      "consumer_candidate": "src/orm/domains.py",
+      "consumer_path_exists": true,
+      "scope_limit": "result semantics and security primary; exact SQL text requires adaptation criterion",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "58fde001df7137f7f9dbf77526ed76e7fe2adc45919a80f905bb0aef42821e22"
+    },
+    {
+      "file": "tests/test_sort.py",
+      "family": "Recordsets",
+      "obligation": "recordset_sort_order",
+      "selected_test": "test_basic",
+      "line_range": [
+        27,
+        37
+      ],
+      "body_read": true,
+      "behavior": "Default sorted aligns database order, reverse and mapped result; query reuse is separate bound.",
+      "consumer_candidate": "src/orm/models.py",
+      "consumer_path_exists": true,
+      "scope_limit": "TASK-API-0400 historical implementation exists, no reopening from inventory",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "3333629b6432899ba8f5a3a02bc5f96b2112129a45cabde8c64d166499acdbd0"
+    },
+    {
+      "file": "tests/test_timeit.py",
+      "family": "Performance",
+      "obligation": "prefetch_batch_reuse",
+      "selected_test": "test_perf_field_get",
+      "line_range": [
+        135,
+        136
+      ],
+      "body_read": true,
+      "behavior": "Timed field-get benchmark provides comparable runtime observation under large prepared fixture.",
+      "consumer_candidate": "src/orm/fields.py",
+      "consumer_path_exists": true,
+      "scope_limit": "benchmark only, not standalone functional acceptance or global blocker",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "cfbc5d845f1980f8a2a23017d36e654277ce943a1131c7d05fbbc430c2eae908"
+    },
+    {
+      "file": "tests/test_ui.py",
+      "family": "Browser integration",
+      "obligation": "browser_x2many_constraint_integration",
+      "selected_test": "test_01_admin_widget_x2many",
+      "line_range": [
+        10,
+        19
+      ],
+      "body_read": true,
+      "behavior": "x2many and SQL-constraint tours require browser/tour assets and installed web_tour.",
+      "consumer_candidate": "addons/web",
+      "consumer_path_exists": true,
+      "scope_limit": "web_tour unavailable; manifest TASK-API-0406 citation contradicts current native identity. No valid tour-successor TASK identity established.",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "d5f664b723d5b549c0d5890d3210d3df3f1000bebe1e6c5b22bb515dc94bf28d"
+    },
+    {
+      "file": "tests/test_unity_read.py",
+      "family": "Web/Security",
+      "obligation": "web_projection_access",
+      "selected_test": "test_read_many2one_throws_if_it_cannot_read_extra_fields",
+      "line_range": [
+        87,
+        96
+      ],
+      "body_read": true,
+      "behavior": "Projection of related write_date with insufficient access raises AccessError; minimal id/display-name cases have distinct rules.",
+      "consumer_candidate": "addons/web/models/models.py",
+      "consumer_path_exists": true,
+      "scope_limit": "authority reconciliation: helper delegates row security to DRF according to local docstring; no automatic defect",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "5a8d43d621b7301dfb50e7abb55827848d20011247dd69d502896236c8b99939"
+    },
+    {
+      "file": "tests/test_views.py",
+      "family": "View integration",
+      "obligation": "default_view_field_projection",
+      "selected_test": "test_default_form_view",
+      "line_range": [
+        11,
+        23
+      ],
+      "body_read": true,
+      "behavior": "Default view chooses/structures model fields including inherited and mixed fields.",
+      "consumer_candidate": "src/addons/base/models/ir_ui_view.py",
+      "consumer_path_exists": true,
+      "scope_limit": "consumer-level view contract; literal XML may be adaptation-specific",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "0edb2d8063618a9804c855ecfce1fe01b61862770e0ff43fff39b8c0c7e3c874"
+    },
+    {
+      "file": "tests/test_web_save.py",
+      "family": "CRUD/Web",
+      "obligation": "web_projection_access",
+      "selected_test": "test_web_save_create",
+      "line_range": [
+        8,
+        23
+      ],
+      "body_read": true,
+      "behavior": "web_save creates persisted person and returns id-only or requested display_name projection.",
+      "consumer_candidate": "addons/web/models/models.py",
+      "consumer_path_exists": true,
+      "scope_limit": "composed CRUD/projection; write/multi/binary remain unverified",
+      "remaining_file_contracts": "not_verified: additional tests were indexed by AST but not exhaustively traced to Consumers, TASKs or acceptance",
+      "status": "SOURCE_ANALYZED_NOT_EXECUTED",
+      "sha256": "9c72397371f83fbb7eb74ec77e851968cc72c453b04795fe179b38df7fb2336f"
+    }
+  ],
+  "new_or_refined_obligations": [
+    {
+      "label": "company_relation_consistency",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_company_checks.py",
+          "test": "test_company_and_different_company",
+          "lines": [
+            54,
+            67
+          ]
+        }
+      ],
+      "behavior": [
+        "Reject relation creation to incompatible company for Many2one and x2many; also inspect allowed-company context."
+      ],
+      "execution_flow": "create/write → company fields → consistency validation or error",
+      "inputs_outputs": "company values and M2O/x2many targets → accepted record or UserError",
+      "side_effects": "Reject inconsistent assignment before accepted persistence",
+      "dependencies": "res.company/res.users fixtures and allowed-company environments",
+      "consumers": "models/test_orm.py company-parent-child declarations; test setup creates A/B/C companies",
+      "installed_mechanism": "src/orm/models.py::_check_company:1231; _check_company_domain:1205; _check_company_fields:1290",
+      "existing_adaptation": "src/orm/models.py::_check_company:1231; _check_company_domain:1205; _check_company_fields:1290",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_company_checks.py",
+            "test": "test_company_and_different_company",
+            "lines": [
+              54,
+              67
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "equivalence": "not_verified",
+      "limitations": "Representative bounded obligation; additional assertions in same test file and end-to-end Consumer path remain not_verified.",
+      "integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "existing_task_relationships": "no exact existing TASK identity verified",
+      "acceptance": "Positive same-company/shared-company assignments succeed; incompatible M2O/x2many targets are rejected in the actual Consumer create/write path without persisted partial changes. Resolve allowed-company policy and authority first."
+    },
+    {
+      "label": "domain_null_boolean_partition",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_domain.py",
+          "test": "test_00_test_bool_undefined",
+          "lines": [
+            19,
+            49
+          ]
+        }
+      ],
+      "behavior": [
+        "False includes undefined SQL values; True and False searches partition rows consistently, including dynamically added boolean."
+      ],
+      "execution_flow": "domain construction → field conversion → SQL predicate → result recordsets",
+      "inputs_outputs": "True/False/undefined and dynamic field → complementary recordsets",
+      "side_effects": "Schema reflection and query execution in reference fixture",
+      "dependencies": "ir.model.fields dynamic-field setup and domain.bool fixture",
+      "consumers": "models/test_orm.py::DomainBool:405; data/test_orm_data.xml bool_1..bool_4",
+      "installed_mechanism": "src/orm/domains.py; existing test_filtered_domain.py is related, not equivalence proof",
+      "existing_adaptation": "src/orm/domains.py; existing test_filtered_domain.py is related, not equivalence proof",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_domain.py",
+            "test": "test_00_test_bool_undefined",
+            "lines": [
+              19,
+              49
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "equivalence": "not_verified",
+      "limitations": "Representative bounded obligation; additional assertions in same test file and end-to-end Consumer path remain not_verified.",
+      "integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "existing_task_relationships": "no exact TASK identity verified; do not relabel domain_any_rights_optimization",
+      "acceptance": "On a fixture containing true, false and unset values, query results implement the agreed false/unset semantics and complement true results. Dynamic-field capability is separately admitted; no raw SQL spelling requirement."
+    },
+    {
+      "label": "protected_compute_scope",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_fields.py",
+          "test": "test_11_stored_protected",
+          "lines": [
+            367,
+            405
+          ]
+        }
+      ],
+      "behavior": [
+        "Nested and duplicate field protection suppresses recompute for target records, not other records, and ends at context exit."
+      ],
+      "execution_flow": "write source → enqueue dependent compute → protection check → recompute after scope",
+      "inputs_outputs": "field/record nesting scopes → unchanged protected value and recomputed unprotected value",
+      "side_effects": "Persistence writes and cache values; scope counters must unwind",
+      "dependencies": "Environment.protecting, compute descriptor and real records",
+      "consumers": "models/test_orm.py::TestOrmComputeReadonly:530 and TestOrmRecursive:751",
+      "installed_mechanism": "src/orm/environments.py protection APIs; src/orm/models.py modified/recompute mechanisms",
+      "existing_adaptation": "src/orm/environments.py protection APIs; src/orm/models.py modified/recompute mechanisms",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_fields.py",
+            "test": "test_11_stored_protected",
+            "lines": [
+              367,
+              405
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "equivalence": "not_verified",
+      "limitations": "Representative bounded obligation; additional assertions in same test file and end-to-end Consumer path remain not_verified.",
+      "integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "existing_task_relationships": "existing recompute_dependent_record_discovery expands; TASK-API-0424/GEN0558/0559 are related subcontracts, not exact identity",
+      "acceptance": "Protect exactly targeted field/record pairs through nested and duplicate scopes; unprotected records recompute, scopes unwind on success/error, and agreed post-scope computation is verified with persisted rows."
+    },
+    {
+      "label": "json_value_isolation_roundtrip",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_json_field.py",
+          "test": "test_json_field_read_write",
+          "lines": [
+            13,
+            36
+          ]
+        }
+      ],
+      "behavior": [
+        "JSON field read is not cache object; reassignment survives flush; tuple serializes to list."
+      ],
+      "execution_flow": "read JSON → record conversion → assign → flush_recordset → read",
+      "inputs_outputs": "dict/list/tuple → isolated dict/list representation",
+      "side_effects": "DB write, dirty cache and value conversion",
+      "dependencies": "Json field conversion and persistence; discussion fixture",
+      "consumers": "models/test_orm.py::TestOrmDiscussion.history and data/discussion_0",
+      "installed_mechanism": "src/fields facade and Django JSONField mechanisms; exact isolation adaptation not proven",
+      "existing_adaptation": "src/fields facade and Django JSONField mechanisms; exact isolation adaptation not proven",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_json_field.py",
+            "test": "test_json_field_read_write",
+            "lines": [
+              13,
+              36
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "equivalence": "not_verified",
+      "limitations": "Representative bounded obligation; additional assertions in same test file and end-to-end Consumer path remain not_verified.",
+      "integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "existing_task_relationships": "no exact existing TASK identity verified",
+      "acceptance": "Mutation of a returned JSON value must follow agreed isolation semantics without silently mutating cache/persistence; reassignment survives flush/reload and tuple/list normalization is verified. Distinguish mutable default TASK0420 from this contract."
+    },
+    {
+      "label": "relation_command_membership",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_many2many.py",
+          "test": "test_not_in_relation",
+          "lines": [
+            23,
+            26
+          ]
+        },
+        {
+          "file": "tests/test_one2many.py",
+          "test": "test_create_with_commands",
+          "lines": [
+            281,
+            305
+          ]
+        }
+      ],
+      "behavior": [
+        "not-in relation search returns only nonlinked record; separate command and access scenarios remain.",
+        "Command.set reparents existing children and invalidates previous owner membership; exact SQL count is separate adaptation criterion."
+      ],
+      "execution_flow": "Command.create/set/link → inverse relation write → membership cache/query",
+      "inputs_outputs": "existing child ids and new owner → exclusive O2M membership; M2M nonmembership search",
+      "side_effects": "Child foreign keys and inverse caches updated",
+      "dependencies": "commands.py, relational fields, create/write and query machinery",
+      "consumers": "models/test_orm.py::TestOrmOrder:680/TestOrmOrderLine:688; attachment host fixtures; pirate/ship setup",
+      "installed_mechanism": "src/orm/commands.py and fields_relational.py; existing one2many/ondelete/update_inverse suites",
+      "existing_adaptation": "src/orm/commands.py and fields_relational.py; existing one2many/ondelete/update_inverse suites",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_many2many.py",
+            "test": "test_not_in_relation",
+            "lines": [
+              23,
+              26
+            ]
+          },
+          {
+            "file": "tests/test_one2many.py",
+            "test": "test_create_with_commands",
+            "lines": [
+              281,
+              305
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "equivalence": "not_verified",
+      "limitations": "Representative bounded obligation; additional assertions in same test file and end-to-end Consumer path remain not_verified.",
+      "integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "existing_task_relationships": "TASK-API-0417→0418→0419 reconstruct relation metadata, related prerequisite for affected paths only; exact command task not verified",
+      "acceptance": "Command.set moves existing O2M children and refreshes both owners; M2M exclusion returns nonmembers. Check positive, empty, missing and denied targets under independent verifier; SQL counts separately analyzed."
+    },
+    {
+      "label": "virtual_onchange_delta",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_onchange.py",
+          "test": "test_onchange",
+          "lines": [
+            55,
+            110
+          ]
+        }
+      ],
+      "behavior": [
+        "Onchange recomputes declared dependent values and returns only changed values; unrelated inconsistent name not recomputed on body change."
+      ],
+      "execution_flow": "values → virtual record/cache → onchange dispatch → dependent compute → delta",
+      "inputs_outputs": "field_names/spec/values → value delta without unrelated fields",
+      "side_effects": "Transient cache updates; no implicit persistence acceptance",
+      "dependencies": "new virtual record and web Form/spec helpers",
+      "consumers": "models/test_orm.py::_onchange_name:116/_onchange_messages:134; message compute_size:203",
+      "installed_mechanism": "addons/web/models/models.py::onchange:1826; src/orm/decorators.py::onchange",
+      "existing_adaptation": "addons/web/models/models.py::onchange:1826; src/orm/decorators.py::onchange",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_onchange.py",
+            "test": "test_onchange",
+            "lines": [
+              55,
+              110
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "equivalence": "not_verified",
+      "limitations": "Representative bounded obligation; additional assertions in same test file and end-to-end Consumer path remain not_verified.",
+      "integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "existing_task_relationships": "no exact existing TASK identity verified",
+      "acceptance": "The actual Consumer virtual onchange path returns only specified dependent changes, preserves unrelated values and does not persist transient edits. Verify positive and no-change cases with mapped helpers."
+    },
+    {
+      "label": "prefetch_batch_reuse",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_performance.py",
+          "test": "test_read_base",
+          "lines": [
+            50,
+            68
+          ]
+        },
+        {
+          "file": "tests/test_timeit.py",
+          "test": "test_perf_field_get",
+          "lines": [
+            135,
+            136
+          ]
+        }
+      ],
+      "behavior": [
+        "Traversal performs bounded initial reads, then cached traversal and value_pc access issue no extra query.",
+        "Timed field-get benchmark provides comparable runtime observation under large prepared fixture."
+      ],
+      "execution_flow": "search records → relational traversal → prefetch/cache → repeat read",
+      "inputs_outputs": "fixture recordset → values with bounded queries then zero additional queries",
+      "side_effects": "Cache warm-up and potentially query batching",
+      "dependencies": "cache, fetch, record iteration, relational resolution; matched backend fixtures",
+      "consumers": "models/test_performance.py and test_performance.py setup; test_timeit fixture",
+      "installed_mechanism": "src/orm/models.py; tests/unit/orm/test_read_path_mechanism.py related",
+      "existing_adaptation": "src/orm/models.py; tests/unit/orm/test_read_path_mechanism.py related",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_performance.py",
+            "test": "test_read_base",
+            "lines": [
+              50,
+              68
+            ]
+          },
+          {
+            "file": "tests/test_timeit.py",
+            "test": "test_perf_field_get",
+            "lines": [
+              135,
+              136
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "equivalence": "not_verified",
+      "limitations": "Representative bounded obligation; additional assertions in same test file and end-to-end Consumer path remain not_verified.",
+      "integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "existing_task_relationships": "TASK-API-0399 fetch historically related; no exact current ownership/admission verified",
+      "acceptance": "Under a comparable prepared fixture, repeated relation traversal returns equal values without additional reads after warm-up where the agreed cache contract requires it. Timing and exact initial query counts need separate backend-specific bounds."
+    },
+    {
+      "label": "property_definition_authority",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_properties.py",
+          "test": "test_base_properties_model_access",
+          "lines": [
+            122,
+            153
+          ]
+        }
+      ],
+      "behavior": [
+        "Property definitions resist unauthorized creation/deletion and privileged field reassignment; definition identity and unique field linkage survive batch writes."
+      ],
+      "execution_flow": "create/write properties → resolve shared definition → authorize definition update",
+      "inputs_outputs": "property payload/user → accepted definition or AccessError/UniqueViolation",
+      "side_effects": "Definition creation/update and record linkage, transactional uniqueness",
+      "dependencies": "properties field/type conversion, base definition model, user capabilities/row policy",
+      "consumers": "test_properties.py::TestPropertiesMixin.setUpClass, base definition fixtures",
+      "installed_mechanism": "src/orm/fields_properties.py::Properties:96,PropertiesDefinition:1143; properties_base_definition.py",
+      "existing_adaptation": "src/orm/fields_properties.py::Properties:96,PropertiesDefinition:1143; properties_base_definition.py",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_properties.py",
+            "test": "test_base_properties_model_access",
+            "lines": [
+              122,
+              153
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "equivalence": "not_verified",
+      "limitations": "Representative bounded obligation; additional assertions in same test file and end-to-end Consumer path remain not_verified.",
+      "integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "existing_task_relationships": "no exact existing TASK identity verified",
+      "acceptance": "Authorized definition changes and record linkage succeed; unauthorized creation/deletion or privileged reassignment fails without partial persistence. Resolve capability/row-rule policy and uniqueness representation before comparing backend exception classes."
+    },
+    {
+      "label": "field_storage_reflection",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_schema.py",
+          "test": "test_10_many2one",
+          "lines": [
+            595,
+            621
+          ]
+        }
+      ],
+      "behavior": [
+        "Many2one column integer nullable and FK targets currency with SET NULL."
+      ],
+      "execution_flow": "model registration → field schema setup → inspect information_schema/FKs",
+      "inputs_outputs": "Many2one definition → int column, nullability, target FK/SET NULL",
+      "side_effects": "Schema reflection; implementation needs migration authority separately",
+      "dependencies": "registry schema machinery and PostgreSQL catalogs",
+      "consumers": "models/test_orm.py::TestOrmMixed:362 and res.currency",
+      "installed_mechanism": "src/orm/fields_relational.py and registry.py; test_fk_column_naming.py/test_field_update_db.py related",
+      "existing_adaptation": "src/orm/fields_relational.py and registry.py; test_fk_column_naming.py/test_field_update_db.py related",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_schema.py",
+            "test": "test_10_many2one",
+            "lines": [
+              595,
+              621
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "equivalence": "not_verified",
+      "limitations": "Representative bounded obligation; additional assertions in same test file and end-to-end Consumer path remain not_verified. Reference integer/int4 storage is an observed Odoo SQL assertion, not automatic Consumer storage requirement: actual PK type, representation and schema naming require explicit architecture decision.",
+      "integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "existing_task_relationships": "existing relation reconstruction tasks related; no new schema TASK inferred",
+      "acceptance": "Verify referenced model/key, nullability and agreed on-delete effect from an isolated PostgreSQL schema and actual record deletion. Odoo int4, physical index names and DDL spelling are observations, not automatic requirements for different Consumer key types."
+    },
+    {
+      "label": "relational_domain_query_semantics",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_search.py",
+          "test": "test_and_many2one_with_subfield",
+          "lines": [
+            10,
+            25
+          ]
+        }
+      ],
+      "behavior": "Reference SQL-shape assertion for conjunctive related subfields: LEFT JOIN, same-related-row name/phone conditions, non-null guard and id ordering. Semantic equivalence requires separate result-based Consumer verification.",
+      "execution_flow": "relational dotted domain → join/exists compilation → SQL results",
+      "inputs_outputs": "partner name/phone conjunction → records satisfying same related row",
+      "side_effects": "SQL query generation/execution and security context",
+      "dependencies": "domain optimizer, query builder, relation metadata, model ordering",
+      "consumers": "models/test_orm.py::TestOrmMulti:271; test_search.py::TestSubqueries",
+      "installed_mechanism": "src/orm/domains.py and models search/query adaptations; test_domain_any_matches_rules.py related narrow proof",
+      "existing_adaptation": "src/orm/domains.py and models search/query adaptations; test_domain_any_matches_rules.py related narrow proof",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_search.py",
+            "test": "test_and_many2one_with_subfield",
+            "lines": [
+              10,
+              25
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment.",
+        "source_assertion_type": "Selected test_and_many2one_with_subfield asserts exact SQL shape through assertQueries; it does not assert returned rowset values in that selected body."
+      },
+      "equivalence": "not_verified",
+      "limitations": "Representative bounded obligation; additional assertions in same test file and end-to-end Consumer path remain not_verified. The referenced source body establishes SQL-shape expectation only; Consumer SQL generation and actual result/security semantics were not executed or shown equivalent.",
+      "integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "existing_task_relationships": "no exact existing TASK identity verified; any-rights contract remains separate",
+      "acceptance": "Establish expected same-related-row/null semantics from reference fixtures, then verify returned Consumer rows/order with positive and negative domains. The selected Odoo test asserts SQL shape; it does not itself execute or prove these result cases here."
+    },
+    {
+      "label": "recordset_sort_order",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_sort.py",
+          "test": "test_basic",
+          "lines": [
+            27,
+            37
+          ]
+        }
+      ],
+      "behavior": [
+        "Default sorted aligns database order, reverse and mapped result; query reuse is separate bound."
+      ],
+      "execution_flow": "search/recordset → sort key/default order → reversed/mapped sequence",
+      "inputs_outputs": "recordset and reverse flag → stable ordered recordset",
+      "side_effects": "Potential prefetch reads; identity/content preserved",
+      "dependencies": "record iteration, ordering keys, related data and prefetch",
+      "consumers": "test_sort.py country setup and models/test_orm.py country fixture",
+      "installed_mechanism": "src/orm/models.py::sorted:5161; tests/unit/orm/test_sorted_order_to_function.py",
+      "existing_adaptation": "src/orm/models.py::sorted:5161; tests/unit/orm/test_sorted_order_to_function.py",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_sort.py",
+            "test": "test_basic",
+            "lines": [
+              27,
+              37
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "equivalence": "not_verified",
+      "limitations": "Representative bounded obligation; additional assertions in same test file and end-to-end Consumer path remain not_verified.",
+      "integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "existing_task_relationships": "TASK-API-0400 historical completed; current status/ownership not re-evaluated here",
+      "acceptance": "Default and explicit key/reverse sorting preserve record identities and agreed order, including empty/singleton inputs. Reuse existing order-to-function tests; query/prefetch bounds require separate fixture measurements."
+    },
+    {
+      "label": "web_projection_access",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_unity_read.py",
+          "test": "test_read_many2one_throws_if_it_cannot_read_extra_fields",
+          "lines": [
+            87,
+            96
+          ]
+        },
+        {
+          "file": "tests/test_web_save.py",
+          "test": "test_web_save_create",
+          "lines": [
+            8,
+            23
+          ]
+        }
+      ],
+      "behavior": [
+        "Projection of related write_date with insufficient access raises AccessError; minimal id/display-name cases have distinct rules.",
+        "web_save creates persisted person and returns id-only or requested display_name projection."
+      ],
+      "execution_flow": "create/write or existing record → specification expansion → permission-aware related read",
+      "inputs_outputs": "vals/spec/user → id/requested fields or AccessError",
+      "side_effects": "Persistence for web_save; relation reads/context/security for projection",
+      "dependencies": "web helper, access policy, nested field resolution; DRF seam requires authority decision",
+      "consumers": "test_unity_read.py::setUpClass restricted public user/course/person; ACL CSV; security XML applies own-line rule to different shared-cache fixture",
+      "installed_mechanism": "addons/web/models/models.py::web_save:493/web_read:530; local docstring delegates row security to DRF/DEC-11 and omits polymorphic/property expansions",
+      "existing_adaptation": "addons/web/models/models.py::web_save:493/web_read:530; local docstring delegates row security to DRF/DEC-11 and omits polymorphic/property expansions",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_unity_read.py",
+            "test": "test_read_many2one_throws_if_it_cannot_read_extra_fields",
+            "lines": [
+              87,
+              96
+            ]
+          },
+          {
+            "file": "tests/test_web_save.py",
+            "test": "test_web_save_create",
+            "lines": [
+              8,
+              23
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "equivalence": "not_verified",
+      "limitations": "Representative bounded obligation; additional assertions in same test file and end-to-end Consumer path remain not_verified.",
+      "integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "existing_task_relationships": "no exact existing TASK identity verified; Consumer comment is not permission-policy acceptance",
+      "acceptance": "Reconcile DEC11/DRF and model-level authorization first. Through the actual caller, unauthorized nested extra fields must not disclose protected data; permitted id/display-name and create projection follow explicitly agreed exceptions. Do not infer failure from helper docstring alone."
+    },
+    {
+      "label": "record_attribute_boundary",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_attributes.py",
+          "test": "test_we_cannot_add_attributes",
+          "lines": [
+            6,
+            11
+          ]
+        }
+      ],
+      "behavior": "New instance rejects undeclared attribute assignment with AttributeError.",
+      "execution_flow": "create model instance → assign unknown attribute → reject",
+      "inputs_outputs": "test_orm.category(name=Foo); instance.unknown=42 → AttributeError",
+      "side_effects": "Instance attribute dictionary/slots mutation must be rejected in reference; Consumer boundary undecided",
+      "dependencies": "models/test_orm.py::TestOrmCategory; model metaclass/instance construction",
+      "consumers": "Reference tests/test_attributes.py; models/test_orm.py::TestOrmCategory; model metaclass/instance construction",
+      "installed_mechanism": "src/orm/models.py; Django instance storage may differ; exact architectural equivalent not_verified",
+      "existing_adaptation": "src/orm/models.py; Django instance storage may differ; exact architectural equivalent not_verified",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_attributes.py",
+            "test": "test_we_cannot_add_attributes",
+            "lines": [
+              6,
+              11
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "not_verified: candidate path/source role only; no discriminant Consumer execution or independent verification"
+      },
+      "equivalence": "not_verified",
+      "limitations": "Selected core record-instance boundary candidate; literal Odoo slots not mandatory implementation",
+      "integration": "Analytical candidate only; no acceptance/admission/merge or functional authorization.",
+      "existing_task_relationships": "no exact equivalent existing TASK identity verified; no new TASK created",
+      "acceptance": "Characterize whether Consumer must reject undeclared attributes in this applicable record API. Verify declared field access and unknown assignment on the admitted model path; document any authorized structural adaptation before accepting equivalence."
+    },
+    {
+      "label": "autovacuum_expiration",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_autovacuum.py",
+          "test": "test_api_autovacuum",
+          "lines": [
+            7,
+            17
+          ]
+        }
+      ],
+      "behavior": "Expired record exists before scheduled autovacuum, disappears after cron trigger.",
+      "execution_flow": "create expired row → cron method_direct_trigger → exists check",
+      "inputs_outputs": "test_orm.autovacuumed expire_at=now−15days → absent record after cron",
+      "side_effects": "Deletes expired rows through decorated vacuum method and transaction/cron mechanism",
+      "dependencies": "models/test_orm.py autovacuumed fixture; base.autovacuum_job registry reference; registry test mode",
+      "consumers": "Reference tests/test_autovacuum.py; models/test_orm.py autovacuumed fixture; base.autovacuum_job registry reference; registry test mode",
+      "installed_mechanism": "src/addons/base/models/ir_autovacuum.py candidate; decorator/cron availability and Consumer end-to-end path not_verified",
+      "existing_adaptation": "src/addons/base/models/ir_autovacuum.py candidate; decorator/cron availability and Consumer end-to-end path not_verified",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_autovacuum.py",
+            "test": "test_api_autovacuum",
+            "lines": [
+              7,
+              17
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "not_verified: candidate path/source role only; no discriminant Consumer execution or independent verification"
+      },
+      "equivalence": "not_verified",
+      "limitations": "Operational lifecycle consumer; not prerequisite for every ORM contract, no cron execution authorized",
+      "integration": "Analytical candidate only; no acceptance/admission/merge or functional authorization.",
+      "existing_task_relationships": "no exact equivalent existing TASK identity verified; no new TASK created",
+      "acceptance": "With isolated cron/registry fixture, expired target exists before the trigger and disappears afterward; unexpired/unrelated targets survive. Scheduler installation and invocation authority remain separate from core recordset acceptance."
+    },
+    {
+      "label": "index_method_reconciliation",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_index_method.py",
+          "test": "test_index_rebuilt_when_method_changes",
+          "lines": [
+            24,
+            48
+          ]
+        }
+      ],
+      "behavior": "Existing convention-named btree is rebuilt as gin when trigram requested, conditional pg_trgm availability.",
+      "execution_flow": "inspect pg_trgm → create named btree → change field.index → registry.check_indexes → inspect catalog",
+      "inputs_outputs": "res.partner.ref existing btree with convention name; requested trigram → gin index",
+      "side_effects": "Drops/rebuilds index under same name in reference test",
+      "dependencies": "registry.has_trigram conditional precondition; PostgreSQL pg_trgm and schema/catalog access",
+      "consumers": "Reference tests/test_index_method.py; registry.has_trigram conditional precondition; PostgreSQL pg_trgm and schema/catalog access",
+      "installed_mechanism": "src/orm/registry.py::check_indexes:2667; matching real Consumer mechanism not qualified here",
+      "existing_adaptation": "src/orm/registry.py::check_indexes:2667; matching real Consumer mechanism not qualified here",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_index_method.py",
+            "test": "test_index_rebuilt_when_method_changes",
+            "lines": [
+              24,
+              48
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "not_verified: candidate path/source role only; no discriminant Consumer execution or independent verification"
+      },
+      "equivalence": "not_verified",
+      "limitations": "Conditional registry/schema candidate; source says skip if pg_trgm absent; no schema mutation or migration acceptance",
+      "integration": "Analytical candidate only; no acceptance/admission/merge or functional authorization.",
+      "existing_task_relationships": "no exact equivalent existing TASK identity verified; no new TASK created",
+      "acceptance": "Compare the selected reference index-method expectation with Consumer migration/registry contract and PostgreSQL backend. Verify required semantics and repeatability without automatically requiring identical physical index names or DDL."
+    },
+    {
+      "label": "float_render_precision",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_qweb_float.py",
+          "test": "test_basic_float",
+          "lines": [
+            14,
+            37
+          ]
+        }
+      ],
+      "behavior": "Float conversion respects default/custom digits and explicit precision formatting.",
+      "execution_flow": "retrieve QWeb float converter → convert field/options → rendered string",
+      "inputs_outputs": "42.0 and42.12345; field digits2 or precision4 →42.00/42.12/42.1235",
+      "side_effects": "Rendering only in selected source body; prior ORM conversion may already round input",
+      "dependencies": "test_qweb_float.py converter setup; QWeb float converter and decimal precision fixture",
+      "consumers": "Reference tests/test_qweb_float.py; test_qweb_float.py converter setup; QWeb float converter and decimal precision fixture",
+      "installed_mechanism": "src/addons/base/models/ir_qweb_fields.py candidate; converter presence/equivalence not_verified",
+      "existing_adaptation": "src/addons/base/models/ir_qweb_fields.py candidate; converter presence/equivalence not_verified",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_qweb_float.py",
+            "test": "test_basic_float",
+            "lines": [
+              14,
+              37
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "not_verified: candidate path/source role only; no discriminant Consumer execution or independent verification"
+      },
+      "equivalence": "not_verified",
+      "limitations": "QWeb Consumer boundary; not core global blocker, no mandated QWeb implementation or exact localization decision",
+      "integration": "Analytical candidate only; no acceptance/admission/merge or functional authorization.",
+      "existing_task_relationships": "no exact equivalent existing TASK identity verified; no new TASK created",
+      "acceptance": "If this consumer is admitted, render boundary values at the agreed precision and rounding with comparable locale/currency context. QWeb template behavior and Consumer rendering architecture must be reconciled; not a blanket ORM prerequisite."
+    },
+    {
+      "label": "browser_x2many_constraint_integration",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_ui.py",
+          "test": "test_01_admin_widget_x2many",
+          "lines": [
+            10,
+            19
+          ]
+        }
+      ],
+      "behavior": "x2many and SQL-constraint tours require browser/tour assets and installed web_tour.",
+      "execution_flow": "open action → start_tour widget_x2many/constraint → browser interactions",
+      "inputs_outputs": "installed action-test_orm.action_discussions; admin login; tours → browser assertions",
+      "side_effects": "Browser interactions may create/edit records; no browser run performed",
+      "dependencies": "base/web/web_tour; manifest assets; static/tests/tours/x2many.js,constraint.js; views/test_orm_views.xml;data/security fixtures",
+      "consumers": "Reference tests/test_ui.py; base/web/web_tour; manifest assets; static/tests/tours/x2many.js,constraint.js; views/test_orm_views.xml;data/security fixtures",
+      "installed_mechanism": "Consumer addon manifest has no tour assets; web_tour absent; TASK-API-0406 actual identity unrelated",
+      "existing_adaptation": "Consumer addon manifest has no tour assets; web_tour absent; TASK-API-0406 actual identity unrelated",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_ui.py",
+            "test": "test_01_admin_widget_x2many",
+            "lines": [
+              10,
+              19
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "not_verified: candidate path/source role only; no discriminant Consumer execution or independent verification"
+      },
+      "equivalence": "not_verified",
+      "limitations": "Optional separate browser integration candidate; no blanket prerequisite for core; reference warns layout sensitivity; resource/identity/authorization gaps",
+      "integration": "Analytical candidate only; no acceptance/admission/merge or functional authorization.",
+      "existing_task_relationships": "no exact equivalent existing TASK identity verified; no new TASK created",
+      "acceptance": "After browser/web_tour and UI counterpart are available and scope is authorized, verify constraint feedback and x2many state in the actual UI/backend flow. Isolate backend invariants as separate checks; never treat missing browser as failure of every ORM contract."
+    },
+    {
+      "label": "default_view_field_projection",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": [
+        {
+          "file": "tests/test_views.py",
+          "test": "test_default_form_view",
+          "lines": [
+            11,
+            23
+          ]
+        }
+      ],
+      "behavior": "Default view chooses/structures model fields including inherited and mixed fields.",
+      "execution_flow": "model field metadata → default form generator → XML comparison",
+      "inputs_outputs": "message/creativework.edition/mixed fixtures → structured form XML matching selected fields",
+      "side_effects": "Generated view metadata; reference selected test makes literal XML comparison",
+      "dependencies": "test_orm model fields/inheritance; default form generator, field visibility and view engine",
+      "consumers": "Reference tests/test_views.py; test_orm model fields/inheritance; default form generator, field visibility and view engine",
+      "installed_mechanism": "src/addons/base/models/ir_ui_view.py candidate; actual default-form mechanism and Consumer acceptance not_verified",
+      "existing_adaptation": "src/addons/base/models/ir_ui_view.py candidate; actual default-form mechanism and Consumer acceptance not_verified",
+      "verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_views.py",
+            "test": "test_default_form_view",
+            "lines": [
+              11,
+              23
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "not_verified: candidate path/source role only; no discriminant Consumer execution or independent verification"
+      },
+      "equivalence": "not_verified",
+      "limitations": "Consumer view boundary; literal XML not automatic Consumer requirement and no global ORM blocker",
+      "integration": "Analytical candidate only; no acceptance/admission/merge or functional authorization.",
+      "existing_task_relationships": "no exact equivalent existing TASK identity verified; no new TASK created",
+      "acceptance": "If default-view generation applies to the Consumer architecture, verify admitted model fields/projected view and exclusion behavior using its actual renderer. XML layout identity is not automatic for a different frontend; resolve authority before acceptance."
+    }
+  ],
+  "existing_15_reconciliation": [
+    {
+      "existing_label": "record_identity_singleton",
+      "related_reference_files": [
+        "test_attributes.py",
+        "test_sort.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    },
+    {
+      "existing_label": "exists_recordset_semantics",
+      "related_reference_files": [
+        "test_autovacuum.py",
+        "test_fields.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    },
+    {
+      "existing_label": "cache_value_and_miss",
+      "related_reference_files": [
+        "test_json_field.py",
+        "test_performance.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    },
+    {
+      "existing_label": "cache_across_user_environments",
+      "related_reference_files": [
+        "test_fields.py",
+        "test_company_checks.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    },
+    {
+      "existing_label": "selective_invalidation",
+      "related_reference_files": [
+        "test_one2many.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    },
+    {
+      "existing_label": "row_rule_access",
+      "related_reference_files": [
+        "test_unity_read.py",
+        "test_properties.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    },
+    {
+      "existing_label": "cursor_transaction_lifecycle",
+      "related_reference_files": [],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "No direct new evidence"
+    },
+    {
+      "existing_label": "cursor_replica_selection",
+      "related_reference_files": [],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "No direct new evidence"
+    },
+    {
+      "existing_label": "inverse_dependency_navigation",
+      "related_reference_files": [
+        "test_one2many.py",
+        "test_fields.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    },
+    {
+      "existing_label": "domain_any_rights_optimization",
+      "related_reference_files": [
+        "test_domain.py",
+        "test_search.py",
+        "test_many2many.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    },
+    {
+      "existing_label": "invalidate_all_flush_before_invalidate",
+      "related_reference_files": [
+        "test_onchange.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    },
+    {
+      "existing_label": "flush_recompute_fixpoint",
+      "related_reference_files": [
+        "test_fields.py",
+        "test_one2many.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    },
+    {
+      "existing_label": "relational_field_reconstruction",
+      "related_reference_files": [
+        "test_schema.py",
+        "test_one2many.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    },
+    {
+      "existing_label": "recompute_dependent_record_discovery",
+      "related_reference_files": [
+        "test_fields.py",
+        "test_one2many.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    },
+    {
+      "existing_label": "translated_record_storage_query",
+      "related_reference_files": [
+        "test_indexed_translation.py",
+        "test_related_translation.py"
+      ],
+      "effect": "Existing evidence retained; source-level consumers/obligations expanded without acceptance upgrade.",
+      "not_verified_reason": "Related scenarios do not certify the same mechanism or full Consumer equivalence."
+    }
+  ],
+  "resource_roles": [
+    {
+      "file": "__init__.py",
+      "sha256": "5fd10918e1361ad65b4b41bcd8fb525e659267f47c8c4334ae52530e58908e9e",
+      "role": "view_or_manifest",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "__manifest__.py",
+      "sha256": "5573cfe7820bcae8bf6365a5d57b78a5675e065d6ee98c18e5b3e8941ddd6a5e",
+      "role": "view_or_manifest",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "data/test_orm_data.xml",
+      "sha256": "763a2a82d8d4af259782e16bda550c0c1ffba920bc033490d5722a0d324786e8",
+      "role": "data_fixture",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "i18n/fr.po",
+      "sha256": "ea87524dfc1029545f2e57dee3c5f3306656ac53486ea0ef8f55b3fd8f313b2d",
+      "role": "translation_fixture",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "i18n/test_orm.pot",
+      "sha256": "f0e98d8f5da167afc3709b6d99c5558f72ec6b23f0880023bbde2160ff69c4e9",
+      "role": "translation_fixture",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "models/__init__.py",
+      "sha256": "8076fe28f4c6b27c4e9bc237b094b7cbc2f1bc8d2b0b38520cd01b859133449f",
+      "role": "model_fixture",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "models/test_orm.py",
+      "sha256": "5cb16e502ede06f8027a65205ec62fcbffacc36af610eb92c9ab972aef167d2a",
+      "role": "model_fixture",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "models/test_performance.py",
+      "sha256": "15b1dd468f4f1c5a91e0cfc0eeed83730b606a7067bfc004fae6f41516906de3",
+      "role": "model_fixture",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "models/test_unity_read.py",
+      "sha256": "c0196be404affd4e93ae679c560cef2dde6cb5bc46a9ae96fb29a310f098f886",
+      "role": "model_fixture",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "security/ir.model.access.csv",
+      "sha256": "8422b5c222f17eb0c384de1f2b9370ddc7748d3c40df5c4cb65e306a1e49a053",
+      "role": "permissions",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "security/test_orm_security.xml",
+      "sha256": "8779df77a03fd530733769e4f86db622c376ffe6bc56164ea038e0acc4d79ef6",
+      "role": "permissions",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "static/tests/tours/constraint.js",
+      "sha256": "f394c6075e0dd2605f8a7e42d617a32658ab6d253cb2cd6ae6d761d1a1ffd5d9",
+      "role": "browser_asset",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "static/tests/tours/x2many.js",
+      "sha256": "1a4eae65484ffacc9bcff2d0749489e6f870b99d83b2c02d1790379088439cb6",
+      "role": "browser_asset",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    },
+    {
+      "file": "views/test_orm_views.xml",
+      "sha256": "9f737695ff9a7e7f78e951962b41db4eb4f83a2c700c267149294b930d08db8d",
+      "role": "view_or_manifest",
+      "integration_status": "reference only; Consumer manifest does not load corresponding data/security/views/assets"
+    }
+  ],
+  "boundaries": {
+    "test_files": "23 test_*.py source files considered by representative body; file count is neither contract denominator nor executed coverage",
+    "reference_execution": "NOT_EVALUATED; no Odoo installation/tests run",
+    "consumer_suite": "src/addons/test_orm has models/apps/manifest but no tests directory; reference cases not ported simply because fixtures exist",
+    "source_fixtures": "Reference manifest loads ACL/security/data/views and web_tour; Consumer manifest omits them, therefore model copy alone cannot provide reference environment",
+    "core_vs_consumers": "Browser/QWeb/views/cron/performance are explicit consumer or operational tracks, not blanket prerequisite for every core obligation",
+    "authority_seams": "Local web_read delegates row security to DRF/DEC-11 and says Properties is plain JSON; current Properties implementation is substantive. Both authority and current consumer call paths need reconciliation before defect/adaptation decisions.",
+    "no_new_task_ids": true,
+    "no_store_writes": true,
+    "no_tests_run": true,
+    "no_product_changes": true,
+    "not_exhaustive": "No full interpretation of all test cases, model fixtures or task equivalence; representative body reading explicitly bounded.",
+    "task_identity_control": {
+      "evidence": "/workspace/scratch/orm-plan-testorm-task0406.json",
+      "result": "TASK-API-0406 resolves native task1181/session168b0fdf-bfe4-590b-b6c0-b6be124c124a, negative-assertion census, not web_tour. No owner/claim; no eligibility inferred."
+    }
+  },
+  "additional_discriminant_source_bodies": [
+    {
+      "file": "tests/test_fields.py",
+      "test": "test_10_computed",
+      "lines": [
+        100,
+        132
+      ],
+      "body_read": true,
+      "execution": "NOT_EVALUATED"
+    },
+    {
+      "file": "tests/test_fields.py",
+      "test": "test_12_recursive_recompute",
+      "lines": [
+        462,
+        511
+      ],
+      "body_read": true,
+      "execution": "NOT_EVALUATED"
+    },
+    {
+      "file": "tests/test_fields.py",
+      "test": "test_shared_cache_computed_field",
+      "lines": [
+        4977,
+        5010
+      ],
+      "body_read": true,
+      "execution": "NOT_EVALUATED"
+    },
+    {
+      "file": "tests/test_one2many.py",
+      "test": "test_cache_invalidation",
+      "lines": [
+        211,
+        247
+      ],
+      "body_read": true,
+      "execution": "NOT_EVALUATED"
+    }
+  ],
+  "reference_internal_tension": {
+    "file": "tests/test_fields.py",
+    "test": "test_shared_cache_computed_field",
+    "comment": "final total should be3,not2",
+    "actual_assertion": "self.assertEqual(task_form.total_amount, 2)",
+    "fixtures": "ir_rule_test_orm_model_shared_cache_compute_line restricts user_id=user.id; stored compute_sudo parent total",
+    "implication": "Source comment and effective assertion conflict; do not invent accepted total3 or certify Consumer defect from this fixture. Reference intent needs authoritative reconciliation.",
+    "related_existing_contract": "cache_across_user_environments; shared-cache name/ref test is insufficient for protected compute_sudo / ir.rule / Form behavior."
+  },
+  "descriptor_accounting": {
+    "new_or_refined": 18,
+    "previous_selected": 15,
+    "combined_descriptive_entries": 33,
+    "qualification": "Descriptive obligations/candidates; selected bounded set, not global denominator or TASKs; translated_record_storage_query reused from previous population; no automatic new shared-cache contract."
+  }
+}
