@@ -23,6 +23,7 @@ Qué haría fallar a estos casos:
 """
 import pytest
 from django.core.validators import MaxLengthValidator
+from orm.environments import get_transaction
 from django.db import connection
 from django.db import models as django_models
 
@@ -93,6 +94,13 @@ def tables(django_db_setup, django_db_blocker):
             editor.create_model(DirectProbe)
     yield
     with django_db_blocker.unblock():
+        # Los casos ya finalizaron y revirtieron sus transacciones. La DDL de
+        # cierre no debe heredar entornos de esos casos ni descartar trabajo.
+        transaction = get_transaction()
+        assert not any(transaction.field_dirty.values())
+        assert not any(transaction.tocompute.values())
+        assert not any(transaction.field_data_patches.values())
+        connection.close()
         with connection.schema_editor() as editor:
             editor.delete_model(DirectProbe)
 
