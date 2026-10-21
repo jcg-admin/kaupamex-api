@@ -1540,7 +1540,12 @@ class FieldDescriptor(DeferredAttribute):
         #
         # El recalculo pendiente ya se proceso arriba (``field.recompute``),
         # asi que un valor en el almacén es un valor vigente, no uno viejo.
-        if field.attname in instance.__dict__:
+        contextual_compute = (
+            record_id and field.compute and not field.store
+            and _has_context_buckets(field))
+        if field.attname in instance.__dict__ and not contextual_compute:
+            # Un compute contextual con id debe resolver el bucket actual;
+            # el almacén Django no identifica el contexto de su último valor.
             # **El valor del almacén se devuelve TAL CUAL.** La rama de arriba
             # aplica ``convert_to_record`` porque lo que guarda ``env.cache``
             # está en forma de caché; el almacén de Django guarda la forma de
@@ -1623,7 +1628,7 @@ class FieldDescriptor(DeferredAttribute):
                     if getattr(field, 'readonly', False) and not field.store:
                         raise ValueError(
                             f'Compute method failed to assign '
-                            f'{instance}.{field.name}')
+                            f'{instance._meta.label}({record_id!r},).{field.name}')
                     # ``:1753-1757`` — el cómputo no asignó: valor nulo.
                     field._update_cache(
                         instance,

@@ -1424,7 +1424,7 @@ class Environment:
         fuente trata aparte (``company`` y ``uid``).
         """
         keys = []
-        for name in (field._depends_context or ()):
+        for name in self.registry.field_depends_context[field]:
             if name == 'company':
                 keys.append(self.company_id)
             elif name == 'uid':
