@@ -1,0 +1,44 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test_missing_recompute (unittest.loader._FailedTest.test_missing_recompute) ... ERROR
+
+======================================================================
+ERROR: test_missing_recompute (unittest.loader._FailedTest.test_missing_recompute)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_missing_recompute
+Traceback (most recent call last):
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 13, in <module>
+    import fields
+  File "/workspace/kaupamex-api/src/fields/__init__.py", line 81, in <module>
+    from orm.fields_properties import Properties, PropertiesDefinition
+  File "/workspace/kaupamex-api/src/orm/fields_properties.py", line 47, in <module>
+    import orm.domains as _domains
+  File "/workspace/kaupamex-api/src/orm/domains.py", line 107, in <module>
+    from orm.fields import (
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 91, in <module>
+    from orm.fields_properties import (                            # noqa: F401
+ImportError: cannot import name 'Properties' from partially initialized module 'orm.fields_properties' (most likely due to a circular import) (/workspace/kaupamex-api/src/orm/fields_properties.py)
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (errors=1)
+CREATE ROLE
+GRANT
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+REVOKE
+DROP ROLE

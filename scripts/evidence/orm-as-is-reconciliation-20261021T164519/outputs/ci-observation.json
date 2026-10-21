@@ -1,0 +1,33 @@
+{
+  "command": [
+    "gh",
+    "api",
+    "repos/jcg-admin/kaupamex-api/actions/jobs/119322269936/logs"
+  ],
+  "exit_code": 0,
+  "head": "35501644c380f5f198e407fee16357994ac43b27",
+  "conclusion": "FAILURE",
+  "summary": [
+    "2026-10-21T16:16:06.5856029Z 26 skipped, 1 xfailed, 18 warnings, 10632 errors in 1524.52s (0:25:24)"
+  ],
+  "focused_setup_errors": [
+    "2026-10-21T16:16:06.4504864Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_callable_none_missing_and_scalars - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4505391Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_deconstruct_and_clone_preserve_content - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4505893Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_default_checks_and_model_checks - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4506464Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_migration_serialization_recreates_isolated_default - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4506991Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_models_have_independent_nested_defaults - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4507478Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_raw_django_negative_control - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4508009Z ERROR tests/unit/orm/test_json_defaults.py::JsonDefaultTests::test_related_and_store_metadata_are_preserved - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4734094Z ERROR tests/unit/orm/test_relational_field_reconstruction.py::RelationalFieldReconstructionTests::test_django_native_clone_is_positive_control - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4734894Z ERROR tests/unit/orm/test_relational_field_reconstruction.py::RelationalFieldReconstructionTests::test_foreign_key_preserves_target_policy_and_fresh_relation - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4735538Z ERROR tests/unit/orm/test_relational_field_reconstruction.py::RelationalFieldReconstructionTests::test_last_foreign_key_target_wins - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4736234Z ERROR tests/unit/orm/test_relational_field_reconstruction.py::RelationalFieldReconstructionTests::test_many_to_many_preserves_constructor_arguments - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4736924Z ERROR tests/unit/orm/test_relational_field_reconstruction.py::RelationalFieldReconstructionTests::test_one_to_one_retains_uniqueness_and_deletion_policy - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4737706Z ERROR tests/unit/orm/test_relational_field_reconstruction.py::RelationalFieldReconstructionTests::test_real_model_mro_is_reachable_before_nonstored_removal - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4738477Z ERROR tests/unit/orm/test_relational_field_reconstruction.py::RelationalFieldReconstructionTests::test_reconstruction_during_django_application_startup - django.db.utils.ProgrammingError: relation \"res_users\" does not exist",
+    "2026-10-21T16:16:06.4739152Z ERROR tests/unit/orm/test_relational_field_reconstruction.py::RelationalFieldReconstructionTests::test_scalar_declared_overrides_remain_intact - django.db.utils.ProgrammingError: relation \"res_users\" does not exist"
+  ],
+  "raw_sha256": "482f20c9fbe6271fc1a5055a9982e401930b00fdfe7a8102a73c5cf78b699cfc",
+  "raw_bytes": 43797784,
+  "full_log": "api-ci-39629146237.log.gz"
+}
