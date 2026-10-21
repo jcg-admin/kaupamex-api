@@ -42,3 +42,5 @@
 {"id":"c-20757d8d-d3a5-4053-8ef4-b776a920875f","op":"release","path":"tests/unit/orm/test_relational_reconstruction_persistence.py","owner":"codex-relational-verification","branch":"","at":"2026-10-21T17:02:21.291Z"}
 {"id":"c-7f64fb6f-b8dc-4e14-b2cf-e5b7c86f7d2e","op":"claim","path":"src/orm/fields.py","owner":"codex-recompute-retry","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T19:47:20.033Z","task":"TASK-GEN-0559"}
 {"id":"c-35655044-4670-47ea-8890-3932bdf0d8e5","op":"claim","path":"tests/unit/orm/test_missing_recompute.py","owner":"codex-recompute-retry","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T19:47:20.037Z","task":"TASK-GEN-0559"}
+{"id":"c-ac78dfd9-b13f-44e4-9696-fd0ce4dac8eb","op":"release","path":"src/orm/fields.py","owner":"codex-recompute-retry","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T20:23:15.632Z","task":"TASK-GEN-0559"}
+{"id":"c-49de94e9-a016-4d19-b5bd-ea3c3af67cd1","op":"release","path":"tests/unit/orm/test_missing_recompute.py","owner":"codex-recompute-retry","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T20:23:15.636Z","task":"TASK-GEN-0559"}

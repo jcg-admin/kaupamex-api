@@ -1,0 +1,2408 @@
+{
+  "repository": "jcg-admin/kaupamex-api",
+  "commits": {
+    "08908b86e6822679605e51d39249a15582feb75f": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/08908b86e6822679605e51d39249a15582feb75f/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/08908b86e6822679605e51d39249a15582feb75f/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "132d5ebf680bf1e3964e0144fb8141d8c4f65951": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/132d5ebf680bf1e3964e0144fb8141d8c4f65951/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/132d5ebf680bf1e3964e0144fb8141d8c4f65951/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "1578d6a3575ab9a69276e99afd0a1caf1dc7052c": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/1578d6a3575ab9a69276e99afd0a1caf1dc7052c/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/1578d6a3575ab9a69276e99afd0a1caf1dc7052c/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "16d5c4753134d112cee22d7010904c9317574f8f": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/16d5c4753134d112cee22d7010904c9317574f8f/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/16d5c4753134d112cee22d7010904c9317574f8f/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "20dc122ba73da889e4c2ec52fcfc3c9aece0d22d": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/20dc122ba73da889e4c2ec52fcfc3c9aece0d22d/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/20dc122ba73da889e4c2ec52fcfc3c9aece0d22d/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "21178d6a66c471c20c6a17e5c0741feb3bc41e1b": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/21178d6a66c471c20c6a17e5c0741feb3bc41e1b/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 71,
+            "state": "closed",
+            "merged_at": "2026-07-23T18:49:29Z",
+            "merge_commit_sha": "915cbbb8ac0187f5c51ddd474a95ce06337cbd4d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/71",
+            "title": "Integrate accumulated api work to develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/21178d6a66c471c20c6a17e5c0741feb3bc41e1b/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "2437373d15935dd28fbdc1f7a3be18e73ab6f419": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/2437373d15935dd28fbdc1f7a3be18e73ab6f419/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/2437373d15935dd28fbdc1f7a3be18e73ab6f419/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "25c7f403eebca4e3473ac0072361e250d8f93c08": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/25c7f403eebca4e3473ac0072361e250d8f93c08/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/25c7f403eebca4e3473ac0072361e250d8f93c08/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "2d1c7378154fa9312507c037b39dbbe18b24195a": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/2d1c7378154fa9312507c037b39dbbe18b24195a/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/2d1c7378154fa9312507c037b39dbbe18b24195a/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "2eddd15d9308cfec59c222d9bb381415fa82f425": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/2eddd15d9308cfec59c222d9bb381415fa82f425/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/2eddd15d9308cfec59c222d9bb381415fa82f425/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "2f01be1b0ce6ed513e1758bb8ebccd382b4383eb": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/2f01be1b0ce6ed513e1758bb8ebccd382b4383eb/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 109,
+            "state": "open",
+            "merged_at": null,
+            "merge_commit_sha": "063ef2be0a0e2ca5fe4891bd02ee499099b9247c",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+            "title": "Restore the Provider bridge and Codex instructions"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/2f01be1b0ce6ed513e1758bb8ebccd382b4383eb/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "323e9b50b23b750ae73aef9d9cf9f9073818132d": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/323e9b50b23b750ae73aef9d9cf9f9073818132d/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 71,
+            "state": "closed",
+            "merged_at": "2026-07-23T18:49:29Z",
+            "merge_commit_sha": "915cbbb8ac0187f5c51ddd474a95ce06337cbd4d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/71",
+            "title": "Integrate accumulated api work to develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/323e9b50b23b750ae73aef9d9cf9f9073818132d/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "33b1cac7862215ba43d562ea7183a8c949265284": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/33b1cac7862215ba43d562ea7183a8c949265284/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 90,
+            "state": "closed",
+            "merged_at": "2026-08-14T22:56:29Z",
+            "merge_commit_sha": "cb1fbb728049fed1306270408c589cd4dbff2bfa",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/90",
+            "title": "Merge develop and gate the addon root split"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/33b1cac7862215ba43d562ea7183a8c949265284/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "name": "test",
+            "head_sha": "33b1cac7862215ba43d562ea7183a8c949265284",
+            "status": "completed",
+            "conclusion": "failure",
+            "details_url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/31845940654/job/94912259877",
+            "completed_at": "2026-08-14T22:24:43Z"
+          }
+        ],
+        "total_count": 1
+      }
+    },
+    "37cbd7eb425d3a37c899f6be9537546bfd401a10": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/37cbd7eb425d3a37c899f6be9537546bfd401a10/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/37cbd7eb425d3a37c899f6be9537546bfd401a10/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "3b1ad5994defdc963b8ce6e69af314d4289d1d47": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/3b1ad5994defdc963b8ce6e69af314d4289d1d47/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/3b1ad5994defdc963b8ce6e69af314d4289d1d47/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "45c1af993288724f90bf7e8d45f1de59eb18b60e": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/45c1af993288724f90bf7e8d45f1de59eb18b60e/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/45c1af993288724f90bf7e8d45f1de59eb18b60e/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "45f44dbcbcfd16634444058dd440cf9f05a54c8e": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/45f44dbcbcfd16634444058dd440cf9f05a54c8e/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/45f44dbcbcfd16634444058dd440cf9f05a54c8e/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "4c2906202c0e30745d22affc9c719e56ff613bd8": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/4c2906202c0e30745d22affc9c719e56ff613bd8/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/4c2906202c0e30745d22affc9c719e56ff613bd8/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "51a91e432bcf9c22ad165d9634aa15ba762d06aa": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/51a91e432bcf9c22ad165d9634aa15ba762d06aa/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/51a91e432bcf9c22ad165d9634aa15ba762d06aa/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "589232853b1fa412b1d97c020ba954e37d1a5eb9": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/589232853b1fa412b1d97c020ba954e37d1a5eb9/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/589232853b1fa412b1d97c020ba954e37d1a5eb9/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "5905a9ebc5e348f038f2bcdc4a27e262e038140d": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/5905a9ebc5e348f038f2bcdc4a27e262e038140d/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 109,
+            "state": "open",
+            "merged_at": null,
+            "merge_commit_sha": "063ef2be0a0e2ca5fe4891bd02ee499099b9247c",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+            "title": "Restore the Provider bridge and Codex instructions"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/5905a9ebc5e348f038f2bcdc4a27e262e038140d/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "name": "test",
+            "head_sha": "5905a9ebc5e348f038f2bcdc4a27e262e038140d",
+            "status": "completed",
+            "conclusion": "failure",
+            "details_url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39307252466/job/118247424701",
+            "completed_at": "2026-10-19T19:25:08Z"
+          }
+        ],
+        "total_count": 1
+      }
+    },
+    "5e0891aa880767719e0e328f20047a5ecda63a31": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/5e0891aa880767719e0e328f20047a5ecda63a31/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/5e0891aa880767719e0e328f20047a5ecda63a31/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "5f505455b4bf3d7bc5bbc6f6277bb5b608e3803c": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/5f505455b4bf3d7bc5bbc6f6277bb5b608e3803c/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 109,
+            "state": "open",
+            "merged_at": null,
+            "merge_commit_sha": "063ef2be0a0e2ca5fe4891bd02ee499099b9247c",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+            "title": "Restore the Provider bridge and Codex instructions"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/5f505455b4bf3d7bc5bbc6f6277bb5b608e3803c/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "name": "test",
+            "head_sha": "5f505455b4bf3d7bc5bbc6f6277bb5b608e3803c",
+            "status": "completed",
+            "conclusion": "failure",
+            "details_url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39640318416/job/119361802996",
+            "completed_at": "2026-10-21T17:25:09Z"
+          },
+          {
+            "name": "test",
+            "head_sha": "5f505455b4bf3d7bc5bbc6f6277bb5b608e3803c",
+            "status": "completed",
+            "conclusion": "failure",
+            "details_url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39640313799/job/119361783606",
+            "completed_at": "2026-10-21T17:26:25Z"
+          }
+        ],
+        "total_count": 2
+      }
+    },
+    "67252948805bb5fa13dfcff9955be0b15e9d9bcf": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/67252948805bb5fa13dfcff9955be0b15e9d9bcf/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/67252948805bb5fa13dfcff9955be0b15e9d9bcf/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "6c11dddefb0a3bc7f003724ee44f92a3ba8434c3": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/6c11dddefb0a3bc7f003724ee44f92a3ba8434c3/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 109,
+            "state": "open",
+            "merged_at": null,
+            "merge_commit_sha": "063ef2be0a0e2ca5fe4891bd02ee499099b9247c",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+            "title": "Restore the Provider bridge and Codex instructions"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/6c11dddefb0a3bc7f003724ee44f92a3ba8434c3/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "6d8c0afb37865681c5c98b9d553d72a5117143f2": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/6d8c0afb37865681c5c98b9d553d72a5117143f2/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 109,
+            "state": "open",
+            "merged_at": null,
+            "merge_commit_sha": "063ef2be0a0e2ca5fe4891bd02ee499099b9247c",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+            "title": "Restore the Provider bridge and Codex instructions"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/6d8c0afb37865681c5c98b9d553d72a5117143f2/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "name": "test",
+            "head_sha": "6d8c0afb37865681c5c98b9d553d72a5117143f2",
+            "status": "completed",
+            "conclusion": "failure",
+            "details_url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39547733095/job/119049614770",
+            "completed_at": "2026-10-21T05:28:34Z"
+          }
+        ],
+        "total_count": 1
+      }
+    },
+    "71818f3d7a5700c457a36e82d659f4c25e40690f": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/71818f3d7a5700c457a36e82d659f4c25e40690f/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/71818f3d7a5700c457a36e82d659f4c25e40690f/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "775c674ebb7063a29065141c953cd7ebfb119367": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/775c674ebb7063a29065141c953cd7ebfb119367/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/775c674ebb7063a29065141c953cd7ebfb119367/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "79bc956e15f83c19714585246ba41501234a51fe": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/79bc956e15f83c19714585246ba41501234a51fe/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 109,
+            "state": "open",
+            "merged_at": null,
+            "merge_commit_sha": "063ef2be0a0e2ca5fe4891bd02ee499099b9247c",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+            "title": "Restore the Provider bridge and Codex instructions"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/79bc956e15f83c19714585246ba41501234a51fe/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "name": "test",
+            "head_sha": "79bc956e15f83c19714585246ba41501234a51fe",
+            "status": "completed",
+            "conclusion": "failure",
+            "details_url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39554071093/job/119069611117",
+            "completed_at": "2026-10-21T06:31:03Z"
+          }
+        ],
+        "total_count": 1
+      }
+    },
+    "7bb9a601528b92e7add8a8efc9f26190a1e11b84": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/7bb9a601528b92e7add8a8efc9f26190a1e11b84/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/7bb9a601528b92e7add8a8efc9f26190a1e11b84/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "7f41a25c088b6d0ba2e0d87ff2106b362dc7cf46": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/7f41a25c088b6d0ba2e0d87ff2106b362dc7cf46/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/7f41a25c088b6d0ba2e0d87ff2106b362dc7cf46/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "806a2ad2b851ed0c362aeb06bfa155fe9c55a3aa": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/806a2ad2b851ed0c362aeb06bfa155fe9c55a3aa/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/806a2ad2b851ed0c362aeb06bfa155fe9c55a3aa/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "8087fd4c570959c710f1d18936c81b682b4ed1bc": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/8087fd4c570959c710f1d18936c81b682b4ed1bc/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/8087fd4c570959c710f1d18936c81b682b4ed1bc/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "85168364e723c4454c534044f54f5ea2ad3e5fa3": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/85168364e723c4454c534044f54f5ea2ad3e5fa3/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/85168364e723c4454c534044f54f5ea2ad3e5fa3/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "890a8c16b440d1376603399cb4ef99e35f5e3609": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/890a8c16b440d1376603399cb4ef99e35f5e3609/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/890a8c16b440d1376603399cb4ef99e35f5e3609/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "8a6655907dae751ae431b0acb5fbe8b534a9a5fb": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/8a6655907dae751ae431b0acb5fbe8b534a9a5fb/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 81,
+            "state": "closed",
+            "merged_at": "2026-08-12T07:35:54Z",
+            "merge_commit_sha": "5e7711038b37617af9ac30ab001bcee81ff393d6",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/81",
+            "title": "Migrate to PostgreSQL, package kaupamex-bin, fix branding drift"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/8a6655907dae751ae431b0acb5fbe8b534a9a5fb/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "8aca3900cdec39a17584521031e741ddd64e6b55": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/8aca3900cdec39a17584521031e741ddd64e6b55/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 109,
+            "state": "open",
+            "merged_at": null,
+            "merge_commit_sha": "063ef2be0a0e2ca5fe4891bd02ee499099b9247c",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+            "title": "Restore the Provider bridge and Codex instructions"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/8aca3900cdec39a17584521031e741ddd64e6b55/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "941923ec6a2ca7d652527b45ec8873ffdf996d84": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/941923ec6a2ca7d652527b45ec8873ffdf996d84/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/941923ec6a2ca7d652527b45ec8873ffdf996d84/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "9532ad56b2d5a3ba465c66a5c7ec1a4b39951409": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/9532ad56b2d5a3ba465c66a5c7ec1a4b39951409/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/9532ad56b2d5a3ba465c66a5c7ec1a4b39951409/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "9d30647c77ff4a88792a00981b459d052eecbee6": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/9d30647c77ff4a88792a00981b459d052eecbee6/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 103,
+            "state": "closed",
+            "merged_at": "2026-09-14T00:40:06Z",
+            "merge_commit_sha": "b953c32260dff9e098f8c2f82f0c7ab0a1db8ee6",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/103",
+            "title": "Refresh the ORM signature parity measurement"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/9d30647c77ff4a88792a00981b459d052eecbee6/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "a5966121a432d3d9af999189faf6ae9ed8aa9663": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/a5966121a432d3d9af999189faf6ae9ed8aa9663/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/a5966121a432d3d9af999189faf6ae9ed8aa9663/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "a7ba97233632fe3042c778c69b74648721f216a0": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/a7ba97233632fe3042c778c69b74648721f216a0/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 109,
+            "state": "open",
+            "merged_at": null,
+            "merge_commit_sha": "063ef2be0a0e2ca5fe4891bd02ee499099b9247c",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+            "title": "Restore the Provider bridge and Codex instructions"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/a7ba97233632fe3042c778c69b74648721f216a0/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "a85abb9018cfe13c0dd822535675757bd2a158a6": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/a85abb9018cfe13c0dd822535675757bd2a158a6/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/a85abb9018cfe13c0dd822535675757bd2a158a6/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "a872f4ae85fce246fa81672332fc4c38d76dcc89": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/a872f4ae85fce246fa81672332fc4c38d76dcc89/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/a872f4ae85fce246fa81672332fc4c38d76dcc89/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "aa9a3e63b8d3befce65dfd7f6f8bd0714817ac29": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/aa9a3e63b8d3befce65dfd7f6f8bd0714817ac29/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/aa9a3e63b8d3befce65dfd7f6f8bd0714817ac29/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "b73006b59ca43d1b420e6a42bb7cac216cdb9961": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/b73006b59ca43d1b420e6a42bb7cac216cdb9961/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/b73006b59ca43d1b420e6a42bb7cac216cdb9961/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "bf2017f2004ffe36358605f0e7a8d0addca0bb5b": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/bf2017f2004ffe36358605f0e7a8d0addca0bb5b/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/bf2017f2004ffe36358605f0e7a8d0addca0bb5b/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "c11613778bd377a811c28c7ab1928b459c48714b": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/c11613778bd377a811c28c7ab1928b459c48714b/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/c11613778bd377a811c28c7ab1928b459c48714b/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "c5e47bc49ccfb03657d1e163bad074347cbdfd92": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/c5e47bc49ccfb03657d1e163bad074347cbdfd92/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/c5e47bc49ccfb03657d1e163bad074347cbdfd92/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "c7fa51021a644ede4d55f80f070dfc2644e0ebd3": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/c7fa51021a644ede4d55f80f070dfc2644e0ebd3/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/c7fa51021a644ede4d55f80f070dfc2644e0ebd3/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "cd2678c40401da8e44ac9d0d1bf0de33c3b8dbc5": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/cd2678c40401da8e44ac9d0d1bf0de33c3b8dbc5/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/cd2678c40401da8e44ac9d0d1bf0de33c3b8dbc5/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "d043d25c96277b94853b8641a9fcd833ed39de2f": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/d043d25c96277b94853b8641a9fcd833ed39de2f/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/d043d25c96277b94853b8641a9fcd833ed39de2f/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "d17ee5185db91e9963003eafa67e7d5dd6292bb1": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/d17ee5185db91e9963003eafa67e7d5dd6292bb1/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/d17ee5185db91e9963003eafa67e7d5dd6292bb1/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "d2d7dba5026fbeac6cc4a0bbcc2cd20a0076b941": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/d2d7dba5026fbeac6cc4a0bbcc2cd20a0076b941/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/d2d7dba5026fbeac6cc4a0bbcc2cd20a0076b941/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "df403ac8d2efdd0fc9e80bd2453fc2f9da09e789": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/df403ac8d2efdd0fc9e80bd2453fc2f9da09e789/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/df403ac8d2efdd0fc9e80bd2453fc2f9da09e789/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "e51f484faf39406fa3dd1d83bd3c8b4aaba646eb": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/e51f484faf39406fa3dd1d83bd3c8b4aaba646eb/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 110,
+            "state": "open",
+            "merged_at": null,
+            "merge_commit_sha": "92c4e11da4bd57d990c8a98c3f8d20912facc3e8",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/110",
+            "title": "Restore translatable field labels (TASK-API-0283)"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/e51f484faf39406fa3dd1d83bd3c8b4aaba646eb/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "name": "test",
+            "head_sha": "e51f484faf39406fa3dd1d83bd3c8b4aaba646eb",
+            "status": "completed",
+            "conclusion": "failure",
+            "details_url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39306774872/job/118245767475",
+            "completed_at": "2026-10-19T19:16:13Z"
+          }
+        ],
+        "total_count": 1
+      }
+    },
+    "f4b5cd88e3d0e7d2560a5e7a1594466796b0ae46": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/f4b5cd88e3d0e7d2560a5e7a1594466796b0ae46/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/f4b5cd88e3d0e7d2560a5e7a1594466796b0ae46/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "f58c8a5dbda0301d1f333cbee2884d0a95212ac1": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/f58c8a5dbda0301d1f333cbee2884d0a95212ac1/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/f58c8a5dbda0301d1f333cbee2884d0a95212ac1/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "fd9e99149577c916e98eb6e47e51931ae797f94d": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/fd9e99149577c916e98eb6e47e51931ae797f94d/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/fd9e99149577c916e98eb6e47e51931ae797f94d/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "0ddc7ab00bd75109e802c29feae094c624226068": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/0ddc7ab00bd75109e802c29feae094c624226068/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/0ddc7ab00bd75109e802c29feae094c624226068/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "4c85830afc9103a4eae4a25d020daaa0d04b3cf8": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/4c85830afc9103a4eae4a25d020daaa0d04b3cf8/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 92,
+            "state": "closed",
+            "merged_at": "2026-08-15T06:33:00Z",
+            "merge_commit_sha": "f2194e19039a0a0243a864dfaf39c29fdecc9e0f",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/92",
+            "title": "Port Domain AST, stock.warehouse.orderpoint, and fix agent drift"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/4c85830afc9103a4eae4a25d020daaa0d04b3cf8/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "709eef679bea25c84d0f76a7f4c13ec3ee6b0e8c": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/709eef679bea25c84d0f76a7f4c13ec3ee6b0e8c/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 101,
+            "state": "closed",
+            "merged_at": "2026-09-10T06:49:19Z",
+            "merge_commit_sha": "e0f82b221783f00cf14c37ff13febeb03723c402",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/101",
+            "title": "Delegate the gates to THYROX and finish the L1 sweep"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/709eef679bea25c84d0f76a7f4c13ec3ee6b0e8c/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "0734b9069c655418a1d366a8e52eac446dfbb2df": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/0734b9069c655418a1d366a8e52eac446dfbb2df/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/0734b9069c655418a1d366a8e52eac446dfbb2df/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "2561256354d32a25626e3b0a00fddf83ff8d0e6a": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/2561256354d32a25626e3b0a00fddf83ff8d0e6a/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/2561256354d32a25626e3b0a00fddf83ff8d0e6a/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "33d6d69f04dd488e7ac87a35f118b4f7b7d19197": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/33d6d69f04dd488e7ac87a35f118b4f7b7d19197/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/33d6d69f04dd488e7ac87a35f118b4f7b7d19197/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "3c1c040fa6f3aac15e037535e4e2a63ad4a65731": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/3c1c040fa6f3aac15e037535e4e2a63ad4a65731/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/3c1c040fa6f3aac15e037535e4e2a63ad4a65731/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "7b8940ddf69ec06295de52fd812852943890fb32": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/7b8940ddf69ec06295de52fd812852943890fb32/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/7b8940ddf69ec06295de52fd812852943890fb32/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "a95c11fbcb40fbb50bff53942e97e2d40e511bf9": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/a95c11fbcb40fbb50bff53942e97e2d40e511bf9/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/a95c11fbcb40fbb50bff53942e97e2d40e511bf9/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "c0d3a79a25cca7f2816e6b17e5061e5252fb1113": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/c0d3a79a25cca7f2816e6b17e5061e5252fb1113/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 102,
+            "state": "closed",
+            "merged_at": "2026-09-13T00:55:13Z",
+            "merge_commit_sha": "703b8debb6caa21e9d0b36bbeb17c9e6ae8f468d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/102",
+            "title": "Integrate feature/kaupamex-l5 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/c0d3a79a25cca7f2816e6b17e5061e5252fb1113/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "06843c979d3ca13cf21c1b74a0fa20338fbf433d": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/06843c979d3ca13cf21c1b74a0fa20338fbf433d/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 71,
+            "state": "closed",
+            "merged_at": "2026-07-23T18:49:29Z",
+            "merge_commit_sha": "915cbbb8ac0187f5c51ddd474a95ce06337cbd4d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/71",
+            "title": "Integrate accumulated api work to develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/06843c979d3ca13cf21c1b74a0fa20338fbf433d/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "488a6cfb20373fc37c1bb27af734e3d6bfdbd3c5": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/488a6cfb20373fc37c1bb27af734e3d6bfdbd3c5/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 81,
+            "state": "closed",
+            "merged_at": "2026-08-12T07:35:54Z",
+            "merge_commit_sha": "5e7711038b37617af9ac30ab001bcee81ff393d6",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/81",
+            "title": "Migrate to PostgreSQL, package kaupamex-bin, fix branding drift"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/488a6cfb20373fc37c1bb27af734e3d6bfdbd3c5/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "7cddaa2c2f32ee0f39f881d0402cc5331d519f3b": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/7cddaa2c2f32ee0f39f881d0402cc5331d519f3b/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/7cddaa2c2f32ee0f39f881d0402cc5331d519f3b/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "973a6fffcd9ff70e77df18c06d2bcbe269cc9453": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/973a6fffcd9ff70e77df18c06d2bcbe269cc9453/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/973a6fffcd9ff70e77df18c06d2bcbe269cc9453/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "b04760d1ef79a754d74c70c3ed401e1920ed7250": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/b04760d1ef79a754d74c70c3ed401e1920ed7250/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 80,
+            "state": "closed",
+            "merged_at": "2026-08-08T00:40:18Z",
+            "merge_commit_sha": "6e0e6dfb8b357f263f35c7998275a61866055ee2",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/80",
+            "title": "Port the web family and four account satellites, with coverage declared"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/b04760d1ef79a754d74c70c3ed401e1920ed7250/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "b618a6b22ef699a3462d30763ec5fc026f571320": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/b618a6b22ef699a3462d30763ec5fc026f571320/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 80,
+            "state": "closed",
+            "merged_at": "2026-08-08T00:40:18Z",
+            "merge_commit_sha": "6e0e6dfb8b357f263f35c7998275a61866055ee2",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/80",
+            "title": "Port the web family and four account satellites, with coverage declared"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/b618a6b22ef699a3462d30763ec5fc026f571320/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "c5db6b83524a1a64c677bcb864daacd9f8b8078e": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/c5db6b83524a1a64c677bcb864daacd9f8b8078e/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 71,
+            "state": "closed",
+            "merged_at": "2026-07-23T18:49:29Z",
+            "merge_commit_sha": "915cbbb8ac0187f5c51ddd474a95ce06337cbd4d",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/71",
+            "title": "Integrate accumulated api work to develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/c5db6b83524a1a64c677bcb864daacd9f8b8078e/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "dbf54805a7c265a0dcaea8a11d0f72ff058d4b8b": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/dbf54805a7c265a0dcaea8a11d0f72ff058d4b8b/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/dbf54805a7c265a0dcaea8a11d0f72ff058d4b8b/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    },
+    "fa5e5819aae113466b9071eeac572ba095c4f3e1": {
+      "pulls": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/fa5e5819aae113466b9071eeac572ba095c4f3e1/pulls"
+        ],
+        "exit_code": 0,
+        "results": [
+          {
+            "number": 98,
+            "state": "closed",
+            "merged_at": "2026-09-04T18:43:39Z",
+            "merge_commit_sha": "2875ce584b8198270a6396dcb5e1d648cdf59271",
+            "html_url": "https://github.com/jcg-admin/kaupamex-api/pull/98",
+            "title": "Merge feature/kaupamex-l2 into develop"
+          }
+        ]
+      },
+      "check-runs": {
+        "command": [
+          "gh",
+          "api",
+          "repos/jcg-admin/kaupamex-api/commits/fa5e5819aae113466b9071eeac572ba095c4f3e1/check-runs"
+        ],
+        "exit_code": 0,
+        "results": [],
+        "total_count": 0
+      }
+    }
+  },
+  "interpretation": "Commit\u2192PR association is not TASK acceptance; empty check list means no retained check-run evidence returned, not a PASS. Ancestry separately fixed to observed develop."
+}

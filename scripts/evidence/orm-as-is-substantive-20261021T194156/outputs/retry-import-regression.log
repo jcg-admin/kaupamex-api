@@ -1,0 +1,227 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test_retry_django_missing_discards_deleted_record (test_missing_recompute.MissingRecomputeRetryTests.test_retry_django_missing_discards_deleted_record) ... ERROR
+test_retry_existing_record_computes_once_after_missing_error (test_missing_recompute.MissingRecomputeRetryTests.test_retry_existing_record_computes_once_after_missing_error) ... ERROR
+test_retry_missing_error_discards_deleted_record (test_missing_recompute.MissingRecomputeRetryTests.test_retry_missing_error_discards_deleted_record) ... ERROR
+test_retry_missing_related_object_keeps_primary_record_pending (test_missing_recompute.MissingRecomputeRetryTests.test_retry_missing_related_object_keeps_primary_record_pending) ... ERROR
+test_retry_repeated_missing_error_propagates_and_preserves_work (test_missing_recompute.MissingRecomputeRetryTests.test_retry_repeated_missing_error_propagates_and_preserves_work) ... ERROR
+test_retry_virtual_record_does_not_query_or_discard_it (test_missing_recompute.MissingRecomputeRetryTests.test_retry_virtual_record_does_not_query_or_discard_it) ... ERROR
+Missing default_env, flushing as public user
+setUpClass (test_missing_recompute.MissingRecomputeTests) ... ERROR
+
+======================================================================
+ERROR: test_retry_django_missing_discards_deleted_record (test_missing_recompute.MissingRecomputeRetryTests.test_retry_django_missing_discards_deleted_record)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4803, in apply_except_missing
+    self.compute_value(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4856, in compute_value
+    _invoke_compute_method(self, records)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4776, in _invoke_compute_method
+    determine(field.compute, record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 2182, in determine
+    return method(*args)
+           ^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 172, in disappear
+    MissingRecomputeModel.objects.get(pk=record.pk)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 639, in get
+    raise self.model.DoesNotExist(
+test_missing_recompute.MissingRecomputeModel.DoesNotExist: MissingRecomputeModel matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 176, in test_retry_django_missing_discards_deleted_record
+    self.field.recompute([row])
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4826, in recompute
+    apply_except_missing(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4805, in apply_except_missing
+    except (MissingError, ObjectDoesNotExist):
+            ^^^^^^^^^^^^
+NameError: name 'MissingError' is not defined
+
+======================================================================
+ERROR: test_retry_existing_record_computes_once_after_missing_error (test_missing_recompute.MissingRecomputeRetryTests.test_retry_existing_record_computes_once_after_missing_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4803, in apply_except_missing
+    self.compute_value(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4856, in compute_value
+    _invoke_compute_method(self, records)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4776, in _invoke_compute_method
+    determine(field.compute, record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 2182, in determine
+    return method(*args)
+           ^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 187, in transient
+    raise MissingError('transient missing read')
+exceptions.MissingError: transient missing read
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 192, in test_retry_existing_record_computes_once_after_missing_error
+    self.field.recompute([row])
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4826, in recompute
+    apply_except_missing(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4805, in apply_except_missing
+    except (MissingError, ObjectDoesNotExist):
+            ^^^^^^^^^^^^
+NameError: name 'MissingError' is not defined
+
+======================================================================
+ERROR: test_retry_missing_error_discards_deleted_record (test_missing_recompute.MissingRecomputeRetryTests.test_retry_missing_error_discards_deleted_record)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4803, in apply_except_missing
+    self.compute_value(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4856, in compute_value
+    _invoke_compute_method(self, records)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4776, in _invoke_compute_method
+    determine(field.compute, record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 2182, in determine
+    return method(*args)
+           ^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 159, in disappear
+    raise MissingError('record deleted during compute')
+exceptions.MissingError: record deleted during compute
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 163, in test_retry_missing_error_discards_deleted_record
+    self.field.recompute([row])
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4826, in recompute
+    apply_except_missing(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4805, in apply_except_missing
+    except (MissingError, ObjectDoesNotExist):
+            ^^^^^^^^^^^^
+NameError: name 'MissingError' is not defined
+
+======================================================================
+ERROR: test_retry_missing_related_object_keeps_primary_record_pending (test_missing_recompute.MissingRecomputeRetryTests.test_retry_missing_related_object_keeps_primary_record_pending)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4803, in apply_except_missing
+    self.compute_value(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4856, in compute_value
+    _invoke_compute_method(self, records)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4776, in _invoke_compute_method
+    determine(field.compute, record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 2182, in determine
+    return method(*args)
+           ^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 219, in missing_related
+    raise ObjectDoesNotExist('related object still missing')
+django.core.exceptions.ObjectDoesNotExist: related object still missing
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 224, in test_retry_missing_related_object_keeps_primary_record_pending
+    self.field.recompute([row])
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4826, in recompute
+    apply_except_missing(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4805, in apply_except_missing
+    except (MissingError, ObjectDoesNotExist):
+            ^^^^^^^^^^^^
+NameError: name 'MissingError' is not defined
+
+======================================================================
+ERROR: test_retry_repeated_missing_error_propagates_and_preserves_work (test_missing_recompute.MissingRecomputeRetryTests.test_retry_repeated_missing_error_propagates_and_preserves_work)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4803, in apply_except_missing
+    self.compute_value(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4856, in compute_value
+    _invoke_compute_method(self, records)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4776, in _invoke_compute_method
+    determine(field.compute, record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 2182, in determine
+    return method(*args)
+           ^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 204, in missing
+    raise MissingError('still missing')
+exceptions.MissingError: still missing
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 209, in test_retry_repeated_missing_error_propagates_and_preserves_work
+    self.field.recompute([row])
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4826, in recompute
+    apply_except_missing(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4805, in apply_except_missing
+    except (MissingError, ObjectDoesNotExist):
+            ^^^^^^^^^^^^
+NameError: name 'MissingError' is not defined
+
+======================================================================
+ERROR: test_retry_virtual_record_does_not_query_or_discard_it (test_missing_recompute.MissingRecomputeRetryTests.test_retry_virtual_record_does_not_query_or_discard_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4803, in apply_except_missing
+    self.compute_value(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4856, in compute_value
+    _invoke_compute_method(self, records)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4776, in _invoke_compute_method
+    determine(field.compute, record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 2182, in determine
+    return method(*args)
+           ^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 235, in missing
+    raise MissingError('virtual record')
+exceptions.MissingError: virtual record
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 241, in test_retry_virtual_record_does_not_query_or_discard_it
+    self.field.recompute([row])
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4826, in recompute
+    apply_except_missing(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4805, in apply_except_missing
+    except (MissingError, ObjectDoesNotExist):
+            ^^^^^^^^^^^^
+NameError: name 'MissingError' is not defined
+
+======================================================================
+ERROR: setUpClass (test_missing_recompute.MissingRecomputeTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 50, in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py", line 172, in __exit__
+    self.atomic.__exit__(exc_type, exc_value, traceback)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/transaction.py", line 263, in __exit__
+    connection.commit()
+  File "/workspace/kaupamex-api/src/orm/environments.py", line 710, in cut
+    current.flush()
+  File "/workspace/kaupamex-api/src/orm/environments.py", line 526, in flush
+    public_user = environment.ref('base.public_user')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/environments.py", line 1471, in ref
+    raise ValueError(f'ir.model.data no está en el registro: {xml_id!r}')
+ValueError: ir.model.data no está en el registro: 'base.public_user'
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.050s
+
+FAILED (errors=7)
+CREATE ROLE
+GRANT
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+REVOKE
+DROP ROLE

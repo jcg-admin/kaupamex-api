@@ -1,0 +1,39 @@
+{
+  "task_identity": {
+    "citation_id": "TASK-GEN-0559",
+    "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+    "task_id": "307",
+    "subject": "Portar apply_except_missing: desmarcar el computo de la fila que ya no existe",
+    "description": null,
+    "status": "pending",
+    "owner": null,
+    "blocked_by_json": "null"
+  },
+  "authority": "User ongoing authorized incremental ORM engineering and latest operational continuation; no privilege or merge inferred from attachment.",
+  "scope": "Continuation of previously admitted GEN0559: bounded mid-compute absence retry, not selection of an unowned TASK by NULL owner.",
+  "claims": [
+    {
+      "id": "c-7f64fb6f-b8dc-4e14-b2cf-e5b7c86f7d2e",
+      "op": "claim",
+      "path": "src/orm/fields.py",
+      "owner": "codex-recompute-retry",
+      "branch": "feature/codex-workspace-bootstrap",
+      "at": "2026-10-21T19:47:20.033Z",
+      "task": "TASK-GEN-0559"
+    },
+    {
+      "id": "c-35655044-4670-47ea-8890-3932bdf0d8e5",
+      "op": "claim",
+      "path": "tests/unit/orm/test_missing_recompute.py",
+      "owner": "codex-recompute-retry",
+      "branch": "feature/codex-workspace-bootstrap",
+      "at": "2026-10-21T19:47:20.037Z",
+      "task": "TASK-GEN-0559"
+    }
+  ],
+  "identity_proof": "native mapping_from_store/lookup agrees session29a5e555-e34f-5a20-8c39-ad6cf2f19961 local307; Consumer existing scope bullet307 and fields.recompute docstring describe same obligation.",
+  "dependencies_proof": "Real red tests distinguish retry gap; existing compute_value restores queue on exception; existing group/removal, internal base manager, record DB alias and PostgreSQL QA are exercised. GEN0558 batching not required for this bounded per-row behavior.",
+  "verification_plan": "16 PostgreSQL cases, original-helper negative and alias-specific mutation; current scoped regression and separately reported failing Consumer checks.",
+  "available_resources": "Existing PostgreSQL16 QA via declared container/DB/bridge; temporary CONNECT,TEMP role and scoped SCRAM HBA; no production provisioning.",
+  "provider_limit": "Native planning reader demonstrably drops edges, TASK1072 foreign claim preserved. No local Thyrox execution qualification; Codex performs authorized bounded engineering."
+}

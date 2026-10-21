@@ -1,0 +1,57 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__ TestTheRelationalBranches.test_a_many2one_recurses_into_the_comodel_order ___
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:241: in __get__
+    rel_obj = self.field.get_cached_value(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/mixins.py:21: in get_cached_value
+    return instance._state.fields_cache[self.cache_name]
+E   KeyError: 'parent_id'
+
+During handling of the above exception, another exception occurred:
+tests/unit/orm/test_sorted_order_to_function.py:200: in test_a_many2one_recurses_into_the_comodel_order
+    assert records.sorted('parent_id').ids == [18, 7]
+src/orm/models.py:5185: in sorted
+    ids = tuple(item.id for item in sorted(self, key=key, reverse=reverse))
+src/orm/models.py:5274: in <lambda>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5274: in <genexpr>
+    return lambda rec: tuple(fn(rec) for fn in item_makers)
+src/orm/models.py:5268: in <lambda>
+    return lambda rec: comparator(getter(rec))
+src/orm/models.py:5247: in getter
+    value = rec[field_name]
+src/orm/models.py:4833: in __getitem__
+    return self._read_field(self._fields[key])
+src/orm/models.py:4897: in _read_field
+    return descriptor.__get__(self, type(self))
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:244: in __get__
+    has_value = None not in self.field.get_local_related_value(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related.py:808: in get_local_related_value
+    return self.get_instance_value_for_fields(instance, self.local_related_fields)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related.py:830: in get_instance_value_for_fields
+    ret.append(getattr(instance, field.attname))
+.venv/lib/python3.12/site-packages/django/db/models/query_utils.py:271: in __get__
+    instance.refresh_from_db(fields=[field_name])
+.venv/lib/python3.12/site-packages/django/db/models/base.py:758: in refresh_from_db
+    db_instance = db_instance_qs.get()
+.venv/lib/python3.12/site-packages/django/db/models/query.py:635: in get
+    num = len(clone)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:372: in __len__
+    self._fetch_all()
+.venv/lib/python3.12/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.12/site-packages/django/db/models/query.py:95: in __iter__
+    results = compiler.execute_sql(
+.venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py:1622: in execute_sql
+    cursor = self.connection.cursor()
+.venv/lib/python3.12/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_sorted_order_to_function.py::TestTheRelationalBranches::test_a_many2one_recurses_into_the_comodel_order
+1 failed in 0.40s

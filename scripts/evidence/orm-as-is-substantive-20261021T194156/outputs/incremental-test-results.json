@@ -1,0 +1,677 @@
+{
+  "exit_code": 1,
+  "rows": [
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheReadDispatchesTheCompute::test_reading_it_dispatches_the_compute",
+      "phase": "setup",
+      "outcome": "failed",
+      "duration": 0.0370061909998185
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheReadDispatchesTheCompute::test_reading_it_dispatches_the_compute",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 0.00025768999330466613
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheReadDispatchesTheCompute::test_the_select_does_not_ask_for_the_missing_column",
+      "phase": "setup",
+      "outcome": "failed",
+      "duration": 0.009857671000645496
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheReadDispatchesTheCompute::test_the_select_does_not_ask_for_the_missing_column",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 0.00016424899513367563
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_read_returns_what_the_compute_produces",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0006489509978564456
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_read_returns_what_the_compute_produces",
+      "phase": "call",
+      "outcome": "failed",
+      "duration": 0.030283126994618215
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_read_returns_what_the_compute_produces",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 0.00022276700474321842
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_value_tracks_the_compute_and_not_a_constant[uno]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0005268870008876547
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_value_tracks_the_compute_and_not_a_constant[uno]",
+      "phase": "call",
+      "outcome": "failed",
+      "duration": 0.0003541759942891076
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_value_tracks_the_compute_and_not_a_constant[uno]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 0.00010473900329088792
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_value_tracks_the_compute_and_not_a_constant[otro distinto]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00029487600113498047
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_value_tracks_the_compute_and_not_a_constant[otro distinto]",
+      "phase": "call",
+      "outcome": "failed",
+      "duration": 9.68369931797497e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_value_tracks_the_compute_and_not_a_constant[otro distinto]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 0.00010582999675534666
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_facade_routes_a_bare_compute_to_the_descriptor",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00041600999975344166
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_facade_routes_a_bare_compute_to_the_descriptor",
+      "phase": "call",
+      "outcome": "failed",
+      "duration": 0.00017062800179701298
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_the_facade_routes_a_bare_compute_to_the_descriptor",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 8.968600013758987e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_a_callable_compute_is_dispatched_too",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00031524599762633443
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_a_callable_compute_is_dispatched_too",
+      "phase": "call",
+      "outcome": "failed",
+      "duration": 9.098699956666678e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheDeclaredComputeIsDispatched::test_a_callable_compute_is_dispatched_too",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 0.0001143729969044216
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheOtherTwoBranchesStillWin::test_the_written_value_beats_the_compute",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0003109500030404888
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheOtherTwoBranchesStillWin::test_the_written_value_beats_the_compute",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 0.02600438499939628
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheOtherTwoBranchesStillWin::test_the_written_value_beats_the_compute",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 0.00011984099546680227
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheOtherTwoBranchesStillWin::test_related_beats_the_compute",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0005353699962142855
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheOtherTwoBranchesStillWin::test_related_beats_the_compute",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 0.00029544699646066874
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestTheOtherTwoBranchesStillWin::test_related_beats_the_compute",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 9.952099935617298e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestWhatTheBranchDoesNotChange::test_a_field_without_compute_still_reads_its_default",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0004957289929734543
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestWhatTheBranchDoesNotChange::test_a_field_without_compute_still_reads_its_default",
+      "phase": "call",
+      "outcome": "failed",
+      "duration": 0.0001282640005229041
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestWhatTheBranchDoesNotChange::test_a_field_without_compute_still_reads_its_default",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 0.00020935700013069436
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestWhatTheBranchDoesNotChange::test_a_field_with_neither_reads_none",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0003267940046498552
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestWhatTheBranchDoesNotChange::test_a_field_with_neither_reads_none",
+      "phase": "call",
+      "outcome": "failed",
+      "duration": 0.00014574999659089372
+    },
+    {
+      "nodeid": "tests/unit/orm/test_nonstored_compute_dispatch.py::TestWhatTheBranchDoesNotChange::test_a_field_with_neither_reads_none",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 0.0001173370037577115
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheThreeValuesOfTheLiteral::test_each_value_maps_to_its_policy[cascade-CASCADE]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.000518603999807965
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheThreeValuesOfTheLiteral::test_each_value_maps_to_its_policy[cascade-CASCADE]",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 0.0002315599995199591
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheThreeValuesOfTheLiteral::test_each_value_maps_to_its_policy[cascade-CASCADE]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 8.077199890976772e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheThreeValuesOfTheLiteral::test_each_value_maps_to_its_policy[set null-SET_NULL]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0003999050022684969
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheThreeValuesOfTheLiteral::test_each_value_maps_to_its_policy[set null-SET_NULL]",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 0.00010581999958958477
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheThreeValuesOfTheLiteral::test_each_value_maps_to_its_policy[set null-SET_NULL]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 7.182900299085304e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheThreeValuesOfTheLiteral::test_each_value_maps_to_its_policy[restrict-RESTRICT]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0002373690003878437
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheThreeValuesOfTheLiteral::test_each_value_maps_to_its_policy[restrict-RESTRICT]",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 0.00011740799527615309
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheThreeValuesOfTheLiteral::test_each_value_maps_to_its_policy[restrict-RESTRICT]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 0.0001030750063364394
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheThreeValuesOfTheLiteral::test_restrict_is_the_sql_clause_not_the_python_guard",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00031209199369186535
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheThreeValuesOfTheLiteral::test_restrict_is_the_sql_clause_not_the_python_guard",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 9.319099626736715e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheThreeValuesOfTheLiteral::test_restrict_is_the_sql_clause_not_the_python_guard",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 7.956999615998939e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheDefaultWhenNothingIsDeclared::test_optional_and_undeclared_gives_set_null",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0002579200008767657
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheDefaultWhenNothingIsDeclared::test_optional_and_undeclared_gives_set_null",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 8.706200605956838e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheDefaultWhenNothingIsDeclared::test_optional_and_undeclared_gives_set_null",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 6.78630021866411e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheTwoProgrammingErrorsOfTheSource::test_set_null_on_a_required_field_is_refused",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00020849599968641996
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheTwoProgrammingErrorsOfTheSource::test_set_null_on_a_required_field_is_refused",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 0.0001149239978985861
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheTwoProgrammingErrorsOfTheSource::test_set_null_on_a_required_field_is_refused",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 8.971500210464001e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheTwoProgrammingErrorsOfTheSource::test_restrict_towards_a_registry_model_is_refused",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00032072499743662775
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheTwoProgrammingErrorsOfTheSource::test_restrict_towards_a_registry_model_is_refused",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 6.541900074807927e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheTwoProgrammingErrorsOfTheSource::test_restrict_towards_a_registry_model_is_refused",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 7.178800296969712e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheDjangoVocabularyStaysAlive::test_on_delete_of_django_still_works",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00026452000020071864
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheDjangoVocabularyStaysAlive::test_on_delete_of_django_still_works",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 0.00011877900396939367
+    },
+    {
+      "nodeid": "tests/unit/orm/test_many2one_ondelete.py::TestTheDjangoVocabularyStaysAlive::test_on_delete_of_django_still_works",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 7.320100121432915e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheChainComesFromTheMro::test_a_plain_base_contributes_its_declaration",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00035461600054986775
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheChainComesFromTheMro::test_a_plain_base_contributes_its_declaration",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 9.488400246482342e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheChainComesFromTheMro::test_a_plain_base_contributes_its_declaration",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 6.403700535884127e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheChainComesFromTheMro::test_the_merged_field_records_its_two_links",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0002821059970301576
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheChainComesFromTheMro::test_the_merged_field_records_its_two_links",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 5.403200339060277e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheChainComesFromTheMro::test_the_merged_field_records_its_two_links",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 6.143299833638594e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheChainComesFromTheMro::test_the_single_declaration_takes_the_direct_shortcut",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0002306989990756847
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheChainComesFromTheMro::test_the_single_declaration_takes_the_direct_shortcut",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 5.024600250180811e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheChainComesFromTheMro::test_the_single_declaration_takes_the_direct_shortcut",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 7.253000512719154e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergeKeepsBothEnds::test_the_compute_of_the_base_survives",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00021564600319834426
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergeKeepsBothEnds::test_the_compute_of_the_base_survives",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 4.389700188767165e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergeKeepsBothEnds::test_the_compute_of_the_base_survives",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 5.7616998674348e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergeKeepsBothEnds::test_the_inverse_of_the_child_survives",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00021175100118853152
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergeKeepsBothEnds::test_the_inverse_of_the_child_survives",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 4.147300205659121e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergeKeepsBothEnds::test_the_inverse_of_the_child_survives",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 5.4563002777285874e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergeKeepsBothEnds::test_the_child_overrides_the_base",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00018599200120661408
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergeKeepsBothEnds::test_the_child_overrides_the_base",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 4.084099782630801e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergeKeepsBothEnds::test_the_child_overrides_the_base",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 5.365099787013605e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergeKeepsBothEnds::test_the_positional_label_of_the_base_survives",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00031002899777377024
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergeKeepsBothEnds::test_the_positional_label_of_the_base_survives",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 4.931500006932765e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergeKeepsBothEnds::test_the_positional_label_of_the_base_survives",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 7.572399772470817e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergedFieldIsCONSTRUCTED::test_the_max_length_validator_is_materialized",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00021220100461505353
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergedFieldIsCONSTRUCTED::test_the_max_length_validator_is_materialized",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 4.818299930775538e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheMergedFieldIsCONSTRUCTED::test_the_max_length_validator_is_materialized",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 6.385700544342399e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_does_not_store[MergedProbe]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0002735540037974715
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_does_not_store[MergedProbe]",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 4.457800241652876e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_does_not_store[MergedProbe]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 5.9630001487676054e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_does_not_store[DirectProbe]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00019245099974796176
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_does_not_store[DirectProbe]",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 4.147200525039807e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_does_not_store[DirectProbe]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 5.7767996622715145e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_has_no_column[MergedProbe]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00022158499632496387
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_has_no_column[MergedProbe]",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 4.405700019560754e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_has_no_column[MergedProbe]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 5.959000554867089e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_has_no_column[DirectProbe]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00018873500084737316
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_has_no_column[DirectProbe]",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 4.151300527155399e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_has_no_column[DirectProbe]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 5.8117999287787825e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_is_not_concrete[MergedProbe]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00018954699771711603
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_is_not_concrete[MergedProbe]",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 4.04009988415055e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_is_not_concrete[MergedProbe]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 8.530899503966793e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_is_not_concrete[DirectProbe]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00020570200285874307
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_is_not_concrete[DirectProbe]",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 7.229900074889883e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_is_not_concrete[DirectProbe]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 0.00022796499979449436
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_is_private_not_local[MergedProbe]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00032878699857974425
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_is_private_not_local[MergedProbe]",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 5.212900578044355e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_is_private_not_local[MergedProbe]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 6.436699914047495e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_is_private_not_local[DirectProbe]",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0002734239969868213
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_is_private_not_local[DirectProbe]",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 4.66900019091554e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_the_field_is_private_not_local[DirectProbe]",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 6.255399785004556e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_a_field_without_the_declaration_keeps_its_column",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00019140999938827008
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_a_field_without_the_declaration_keeps_its_column",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 0.00012429799971869215
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheStoreIsDerivedBeforeTheColumn::test_a_field_without_the_declaration_keeps_its_column",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 9.395200322614983e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheReadDispatchesTheCompute::test_the_class_attribute_is_not_the_raw_field",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.0002577400009613484
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheReadDispatchesTheCompute::test_the_class_attribute_is_not_the_raw_field",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 4.6540997573174536e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheReadDispatchesTheCompute::test_the_class_attribute_is_not_the_raw_field",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 6.395600212272257e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheFacadeKeepsItsShape::test_a_facade_compute_still_has_no_column",
+      "phase": "setup",
+      "outcome": "passed",
+      "duration": 0.00020702400070149451
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheFacadeKeepsItsShape::test_a_facade_compute_still_has_no_column",
+      "phase": "call",
+      "outcome": "passed",
+      "duration": 7.808800000930205e-05
+    },
+    {
+      "nodeid": "tests/unit/orm/test_field_definition_collection.py::TestTheFacadeKeepsItsShape::test_a_facade_compute_still_has_no_column",
+      "phase": "teardown",
+      "outcome": "passed",
+      "duration": 0.0009248089991160668
+    }
+  ]
+}
