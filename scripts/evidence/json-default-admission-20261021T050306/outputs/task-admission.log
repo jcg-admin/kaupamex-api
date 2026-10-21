@@ -1,0 +1,7 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "store_unchanged": true,
+  "admission": "BLOCKED",
+  "blocker": "Operational owner NULL; no native TASK ownership assignment authorized or performed. NULL dependencies are not proof of satisfied functional dependencies."
+}
