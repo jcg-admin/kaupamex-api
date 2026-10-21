@@ -3878,7 +3878,17 @@ def _recompute_field(self, field, ids=None):
     model = _model_of_records(self) or getattr(field, 'model', None)
     if model is None:
         return
-    field.recompute(list(model.objects.filter(pk__in=[i for i in ids if i])))
+    persisted_ids = [record_id for record_id in ids if record_id]
+    records = list(model.objects.filter(pk__in=persisted_ids))
+    missing_ids = set(persisted_ids).difference(record.pk for record in records)
+    field.recompute(records)
+    # TASK-GEN-0559: Django excluye las filas ausentes al consultar, sin
+    # MissingError. Equivale al descarte de apply_except_missing de la fuente
+    # (odoo19c: odoo/orm/fields.py:1859-1874), después de computar con éxito.
+    # Se conserva el trabajo virtual y el ajeno al alcance solicitado.
+    if missing_ids:
+        for computed in registry.field_computed[field]:
+            env().remove_to_compute(computed, missing_ids)
 
 
 def _recompute_model(self, fnames=None):
