@@ -1,0 +1,264 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interfaces": "resolve_store_dir(create=False),connect_readonly,mapping_from_store/lookup",
+  "selected": [
+    {
+      "task_id": "383",
+      "subject": "Gate: orm.fields.__all__ sólo contiene clases de campo",
+      "description": "`src/addons/base/models/ir_model.py:147,164` deriva `FIELD_TYPES` —el vocabulario de `IrModelFields.ttype`— de `orm.fields.__all__`. Un nombre que no sea una clase de campo entra al vocabulario y ensucia el modelo EN SILENCIO: la única señal es una migración inesperada (`~ Alter field ttype on irmodelfields`), y ningún gate estático lo ve.\n\nYa ocurrió: `api@4c85830` añadió `falsy_value`, `condition_to_q`, `SqlLike` y `SqlILike`. Ver H-API-616.\n\nEntregable: check que importe `orm.fields` y verifique que cada nombre de `__all__` resuelve a una subclase de `django.db.models.Field`. Es una comprobación de una línea sobre el módulo ya importado; convierte un defecto silencioso en fallo de arranque.",
+      "status": "pending",
+      "active_form": null,
+      "owner": null,
+      "blocks_json": "[]",
+      "blocked_by_json": "[]",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "source": "hook-stop",
+      "metadata_json": null,
+      "created_at": "2026-08-18T03:55:58",
+      "updated_at": "2026-08-21T10:03:52",
+      "submodule": "api",
+      "submodule_source": "hallazgo_store",
+      "opened_at": "2026-08-15T05:25:23",
+      "opened_at_source": "ficha-mtime",
+      "citation_id": "TASK-API-0216",
+      "board_ordinal": null,
+      "layer_citation_id": null
+    },
+    {
+      "task_id": "1173",
+      "subject": "Hacer que las filas que Django construye lleven la terna del recordset",
+      "description": "La opción 2 de H-API-1083 (los modelos portados DERIVAN de BaseModel) es hoy sólo NOMINAL: BaseModel._from_ids instala env/_ids/_prefetch_ids, pero una fila que Django construye por Model.__init__ (queryset, create, refresh_from_db) NO los lleva. Consecuencias medidas:\n\n- mapped() por ruta relacional no puede unir recordsets: el comodelo devuelve filas de Django sin _ids (api: src/orm/models.py, rama `field.relational`, que hoy levanta NotImplementedError citando esta tarea).\n- IdFromIds releva al descriptor original justo para ese caso.\n\nEl trabajo: decidir e implementar dónde se inyecta la terna — candidato medido: TimeStampedModel, que es el ancestro común de los modelos portados. Se abre con su propia mitad ROJA y su propio sucesor, no como apéndice de TASK-API-0397.",
+      "status": "pending",
+      "active_form": null,
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "source": "task_ids ingerir-board",
+      "metadata_json": null,
+      "created_at": "2026-09-11T04:10:18",
+      "updated_at": "2026-09-11T04:10:18",
+      "submodule": "api",
+      "submodule_source": "acuñado al ingerir el board",
+      "opened_at": "2026-09-11T04:10:18",
+      "opened_at_source": "acuñado al ingerir el board",
+      "citation_id": "TASK-API-0402",
+      "board_ordinal": null,
+      "layer_citation_id": null
+    },
+    {
+      "task_id": "1192",
+      "subject": "Retirar el enrutado de las fachadas: la costura decide, no el constructor",
+      "description": "Cierra la duplicación que TASK-API-0416 declaró en el docstring de `_field_get_attrs` (src/orm/fields.py). Los tres bloques de derivación de la fuente (`compute`/`related`/`precompute`, odoo19c: odoo/orm/fields.py:443-465) viven hoy DOS veces: en `_field_get_attrs`, portados verbatim, y en `apply_source_defaults` de src/orm/fields_nonstored.py, que es lo que las fachadas consultan al construir. Mientras `make_dispatcher`/`Char`/`Json`/`Monetary`/`projection_or_none` enruten por clase en el constructor, la copia de `fields_nonstored` no se puede retirar: es lo único que decide qué clase se instancia. El trabajo es retirar ese enrutado para que las fachadas devuelvan UNA sola clase y la derivación de `store` la haga la costura al contribuir (que es el orden de la fuente). Verificación: `apply_source_defaults` deja de contener los tres bloques y la suite de tests/unit/orm sigue verde.",
+      "status": "in_progress",
+      "active_form": null,
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "source": "task_ids ingerir-board",
+      "metadata_json": null,
+      "created_at": "2026-09-11T19:15:36",
+      "updated_at": "2026-09-12T09:36:13",
+      "submodule": "api",
+      "submodule_source": "acuñado al ingerir el board",
+      "opened_at": "2026-09-11T19:15:36",
+      "opened_at_source": "acuñado al ingerir el board",
+      "citation_id": "TASK-API-0417",
+      "board_ordinal": null,
+      "layer_citation_id": null
+    },
+    {
+      "task_id": "1193",
+      "subject": "Retirar NonStored como clase: el eje es store, no el tipo",
+      "description": "Citada por TASK-API-0416 en el docstring de `_collect_field_definitions` (src/orm/fields.py) como la condición que vuelve ALCANZABLE la rama de fusión: hoy `NonStored` es una clase suelta y por eso no cuenta como definición de campo en la MRO. La fuente no tiene una clase por almacenamiento — `store` es un atributo derivado, no un tipo (odoo19c: odoo/orm/fields.py:459-465). Radio medido: 317 menciones en ~80 archivos; 7 declaraciones directas en 5 archivos; 35 sitios `isinstance`/`issubclass`; 27 imports. Los 3 sitios de producción son src/orm/domains.py:234, src/orm/fields_nonstored.py:224 y :718, que pasan a `not getattr(f, 'store', True)`. Además: el export de src/fields/__init__.py, scripts/check_display_name.py:101, addons/base_sparse_field/models/fields.py, y ~25 aserciones de test que van a un helper único. Bloqueada por TASK-API-0417.",
+      "status": "pending",
+      "active_form": null,
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "source": "task_ids ingerir-board",
+      "metadata_json": null,
+      "created_at": "2026-09-11T19:15:36",
+      "updated_at": "2026-09-11T19:15:36",
+      "submodule": "api",
+      "submodule_source": "acuñado al ingerir el board",
+      "opened_at": "2026-09-11T19:15:36",
+      "opened_at_source": "acuñado al ingerir el board",
+      "citation_id": "TASK-API-0418",
+      "board_ordinal": null,
+      "layer_citation_id": null
+    },
+    {
+      "task_id": "1194",
+      "subject": "Reconstruir un campo relacional desde _args__: to y on_delete no llegan a Field.__init__",
+      "description": "Cota declarada por TASK-API-0416 en el docstring de `_merge_field_definitions` (src/orm/fields.py). La fusión reconstruye el campo con `type(chain[-1])(**merged)`, y `merged` sale de `_args__`, que sólo guarda lo que pasó por `Field.__init__` (el parche `_field_init_with_copy`). Una relacional entrega `to` y `on_delete` a `ForeignKey.__init__`/`ManyToManyField.__init__` y nunca al de `Field`, así que su reconstrucción sale sin destino ni política de borrado. Hoy no se alcanza —la rama de fusión entera es inalcanzable hasta que cierre TASK-API-0418— pero al abrirse será el primer caso que rompa. Dos caminos a medir contra la referencia antes de elegir: capturar los kwargs en el `__init__` de cada relacional, o reconstruir desde `deconstruct()` en vez de desde `_args__`. Verificación: un caso con una cadena de dos declaraciones sobre un ForeignKey que conserve `to` y `on_delete`.",
+      "status": "pending",
+      "active_form": null,
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "source": "task_ids ingerir-board",
+      "metadata_json": null,
+      "created_at": "2026-09-11T19:15:36",
+      "updated_at": "2026-09-11T19:15:36",
+      "submodule": "api",
+      "submodule_source": "acuñado al ingerir el board",
+      "opened_at": "2026-09-11T19:15:36",
+      "opened_at_source": "acuñado al ingerir el board",
+      "citation_id": "TASK-API-0419",
+      "board_ordinal": null,
+      "layer_citation_id": null
+    },
+    {
+      "task_id": "1195",
+      "subject": "El default literal de fields.Json dispara E010: la fuente lo copia por registro",
+      "description": "Medido con `kaupamex-bin makemigrations --check --dry-run`: `test_orm.TestOrmDiscussion.history: (fields.E010) JSONField default should be a callable instead of an instance so that it's not shared between all field instances`. El porte es FIEL — `odoo19c: odoo/addons/test_orm/models/test_orm.py:108` declara exactamente `history = fields.Json('History', default={'delete_messages': []})`, y su suite lo ejercita (`tests/test_json_field.py:17,22,24,26`). El defecto no es del porte: es que **nuestro** `fields.Json` entrega el mismo objeto a todas las instancias, mientras la fuente copia el `default` por registro. Por eso NO se resuelve cambiando el porte a `default=dict` (perdería el contenido `{'delete_messages': []}` que los tests exigen) ni declarando divergencia: se construye el copiado por registro en el mecanismo de default, que es lo que `porte-completo-no-parcial.md` manda cuando el stack no trae la conducta. Verificación: `makemigrations --check` sin E010, y un caso que escriba en el default de un registro y lea el de otro sin contaminación. Pre-existente desde api@0ddc7ab0; hallado al correr el gate de migraciones de TASK-API-0416.",
+      "status": "pending",
+      "active_form": null,
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "source": "task_ids ingerir-board",
+      "metadata_json": null,
+      "created_at": "2026-09-11T19:24:49",
+      "updated_at": "2026-09-11T19:24:49",
+      "submodule": "api",
+      "submodule_source": "acuñado al ingerir el board",
+      "opened_at": "2026-09-11T19:24:49",
+      "opened_at_source": "acuñado al ingerir el board",
+      "citation_id": "TASK-API-0420",
+      "board_ordinal": null,
+      "layer_citation_id": null
+    },
+    {
+      "task_id": "140",
+      "subject": "Read the task universe from the store in task_source",
+      "description": "task_source.records_from_store(store, layer) + load_records(.sqlite3); ids = citation number per layer; blocked_by ordinals resolved within the row's session; no prose edges from store rows. implementation_order unchanged. RED: tests/task/test_task_source_store.py (12 fallos), includes 1067 not re-proposed and 1065 rejected kept pending.",
+      "status": "pending",
+      "active_form": null,
+      "owner": null,
+      "blocks_json": null,
+      "blocked_by_json": null,
+      "session_id": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+      "source": "task_ids ingest-board",
+      "metadata_json": null,
+      "created_at": "2026-10-08T23:16:48",
+      "updated_at": "2026-10-08T23:16:48",
+      "submodule": "thyrox",
+      "submodule_source": "acuñado al ingerir el board",
+      "opened_at": "2026-10-08T23:16:48",
+      "opened_at_source": "acuñado al ingerir el board",
+      "citation_id": "TASK-THYROX-1072",
+      "board_ordinal": 157,
+      "layer_citation_id": null
+    }
+  ],
+  "related_existing": [
+    {
+      "citation_id": "TASK-API-0143",
+      "subject": "Dar veredicto a classify_inactive_users, perdido sin sucesor (H-API-398)",
+      "status": "pending"
+    },
+    {
+      "citation_id": "TASK-API-0149",
+      "subject": "stock lote 2: 8 archivos ausentes + 3 esbozos (221 métodos)",
+      "status": "completed"
+    },
+    {
+      "citation_id": "TASK-API-0176",
+      "subject": "Barrer los tests que comparan fechas con otro huso que su código (H-API-566 abre)",
+      "status": "pending"
+    },
+    {
+      "citation_id": "TASK-DOCS-0081",
+      "subject": "stock completo: los 25 archivos de la referencia, sin porte parcial",
+      "status": "in_progress"
+    },
+    {
+      "citation_id": "TASK-API-0218",
+      "subject": "RESUELTA — 5 atributos de res.users + 7 de res.partner (api@996039a)",
+      "status": "completed"
+    },
+    {
+      "citation_id": "TASK-API-0231",
+      "subject": "Portar fields_get y sus dos piezas (get_description, has_groups)",
+      "status": "pending"
+    },
+    {
+      "citation_id": "TASK-API-0262",
+      "subject": "RESUELTA — 0 re-portar; el arbol ya absorbio los 34 archivos",
+      "status": "completed"
+    },
+    {
+      "citation_id": "TASK-API-0264",
+      "subject": "DECIDIDA (DEC-AISL-05) — no se reparte esquema; toda app migra a toda base",
+      "status": "completed"
+    },
+    {
+      "citation_id": "TASK-DOCS-0105",
+      "subject": "Modo desarrollador: bandera de sesión con 4 consumidores de servidor (H-DOCS-182)",
+      "status": "pending"
+    },
+    {
+      "citation_id": "TASK-API-0303",
+      "subject": "Barrer la deriva de Meta sin migración en las demás apps (H-API-686 sólo midió base)",
+      "status": "pending"
+    },
+    {
+      "citation_id": "TASK-API-0313",
+      "subject": "website B1 · núcleo: cabecera + 44 campos + 33 métodos",
+      "status": "completed"
+    },
+    {
+      "citation_id": "TASK-API-0342",
+      "subject": "Construir has_group y los grupos de base.ResUsers",
+      "status": "completed"
+    },
+    {
+      "citation_id": "TASK-DOCS-0147",
+      "subject": "RESUELTA — llave 4 (símbolos): vocabulario disjunto, 0 con res_users.py",
+      "status": "completed"
+    },
+    {
+      "citation_id": "TASK-API-0348",
+      "subject": "DECISIÓN: authz_reauth contra la forma medida de auth_totp",
+      "status": "completed"
+    },
+    {
+      "citation_id": "TASK-API-0367",
+      "subject": "Portar _mfa_type a authz_totp/models/res_users.py",
+      "status": "completed"
+    },
+    {
+      "citation_id": "TASK-API-0368",
+      "subject": "Cablear el candado por tiempo a la capa HTTP (ir_http + 3 controllers)",
+      "status": "completed"
+    },
+    {
+      "citation_id": "TASK-API-0371",
+      "subject": "Portar totp_last_counter — anti-repetición del código TOTP",
+      "status": "completed"
+    },
+    {
+      "citation_id": "TASK-GEN-0107",
+      "subject": "Decidir si existe un _check_credentials unificado",
+      "status": "completed"
+    },
+    {
+      "citation_id": "TASK-API-0376",
+      "subject": "Portar _assert_can_auth — el limitador de tasa de res.users.apikeys",
+      "status": "pending"
+    },
+    {
+      "citation_id": "TASK-API-0377",
+      "subject": "CERRADA por medición — la cookie td_id sí se pone y sí se lee",
+      "status": "completed"
+    }
+  ],
+  "store_sha256": "0f290d162a5907ba8476484c6986100a97d663f9d103a04c63fb5507cab20f6f",
+  "store_unchanged": true
+}
