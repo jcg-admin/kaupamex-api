@@ -1,0 +1,12 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____________ test_context_buckets_do_not_reuse_the_instance_label _____________
+tests/unit/orm/test_res_groups_compute_contract.py:77: in test_context_buckets_do_not_reuse_the_instance_label
+    assert group.full_name == 'Operations'
+E   AssertionError: assert 'Admin / Operations' == 'Operations'
+E     - Operations
+E     + Admin / Operations
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_context_buckets_do_not_reuse_the_instance_label
+1 failed in 0.15s

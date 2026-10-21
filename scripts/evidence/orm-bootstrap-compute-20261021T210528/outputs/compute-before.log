@@ -1,0 +1,77 @@
+FFFFFFF.                                                                 [100%]
+=================================== FAILURES ===================================
+___________________ test_first_and_second_reads_compute_once ___________________
+tests/unit/orm/test_res_groups_compute_contract.py:19: in test_first_and_second_reads_compute_once
+    assert group.full_name == 'Operations'
+src/orm/fields.py:1626: in __get__
+    f'{instance}.{field.name}')
+src/addons/base/models/res_groups.py:258: in __str__
+    return self.full_name
+src/orm/fields.py:1626: in __get__
+    f'{instance}.{field.name}')
+E   RecursionError: maximum recursion depth exceeded
+!!! Recursion detected (same locals & position)
+__________________ test_compute_assigns_instead_of_returning ___________________
+tests/unit/orm/test_res_groups_compute_contract.py:25: in test_compute_assigns_instead_of_returning
+    assert group._compute_full_name() is None
+E   AssertionError: assert 'Operations' is None
+E    +  where 'Operations' = <[RecursionError('maximum recursion depth exceeded') raised in repr()] method object at 0x7ff2845cf580>()
+E    +    where <[RecursionError('maximum recursion depth exceeded') raised in repr()] method object at 0x7ff2845cf580> = <[RecursionError('maximum recursion depth exceeded') raised in repr()] ResGroups object at 0x7ff284575370>._compute_full_name
+___________________ test_privilege_prefix_uses_real_consumer ___________________
+tests/unit/orm/test_res_groups_compute_contract.py:32: in test_privilege_prefix_uses_real_consumer
+    assert group.full_name == 'Admin / Operations'
+src/orm/fields.py:1626: in __get__
+    f'{instance}.{field.name}')
+src/addons/base/models/res_groups.py:258: in __str__
+    return self.full_name
+src/orm/fields.py:1626: in __get__
+    f'{instance}.{field.name}')
+E   RecursionError: maximum recursion depth exceeded
+!!! Recursion detected (same locals & position)
+___________________ test_short_display_name_omits_privilege ____________________
+tests/unit/orm/test_res_groups_compute_contract.py:38: in test_short_display_name_omits_privilege
+    assert group.full_name == 'Operations'
+src/orm/fields.py:1626: in __get__
+    f'{instance}.{field.name}')
+src/addons/base/models/res_groups.py:258: in __str__
+    return self.full_name
+src/orm/fields.py:1626: in __get__
+    f'{instance}.{field.name}')
+E   RecursionError: maximum recursion depth exceeded
+!!! Recursion detected (same locals & position)
+_________________ test_cache_invalidation_allows_recomputation _________________
+tests/unit/orm/test_res_groups_compute_contract.py:44: in test_cache_invalidation_allows_recomputation
+    assert group.full_name == 'Operations'
+src/orm/fields.py:1626: in __get__
+    f'{instance}.{field.name}')
+src/addons/base/models/res_groups.py:258: in __str__
+    return self.full_name
+src/orm/fields.py:1626: in __get__
+    f'{instance}.{field.name}')
+E   RecursionError: maximum recursion depth exceeded
+!!! Recursion detected (same locals & position)
+_________________ test_compute_declares_reference_dependencies _________________
+tests/unit/orm/test_res_groups_compute_contract.py:56: in test_compute_declares_reference_dependencies
+    assert set(method._depends) == {'privilege.name', 'name'}
+E   AttributeError: 'function' object has no attribute '_depends'
+________ test_return_without_assignment_raises_without_recursive_label _________
+tests/unit/orm/test_res_groups_compute_contract.py:63: in test_return_without_assignment_raises_without_recursive_label
+    group.full_name
+src/orm/fields.py:1626: in __get__
+    f'{instance}.{field.name}')
+src/addons/base/models/res_groups.py:258: in __str__
+    return self.full_name
+src/orm/fields.py:1626: in __get__
+    f'{instance}.{field.name}')
+E   RecursionError: maximum recursion depth exceeded
+!!! Recursion detected (same locals & position)
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_first_and_second_reads_compute_once
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_compute_assigns_instead_of_returning
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_privilege_prefix_uses_real_consumer
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_short_display_name_omits_privilege
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_cache_invalidation_allows_recomputation
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_compute_declares_reference_dependencies
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_return_without_assignment_raises_without_recursive_label
+7 failed, 1 passed in 0.44s
+

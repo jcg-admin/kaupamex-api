@@ -1,0 +1,16 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+........................................................................ [ 81%]
+................                                                         [100%]
+=============================== warnings summary ===============================
+tests/unit/orm/test_res_groups_compute_contract.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+  /workspace/kaupamex-api/src/orm/fields.py:4120: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_res_groups_compute_contract.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+  /workspace/kaupamex-api/src/orm/fields.py:4120: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+88 passed, 30 warnings in 1.15s

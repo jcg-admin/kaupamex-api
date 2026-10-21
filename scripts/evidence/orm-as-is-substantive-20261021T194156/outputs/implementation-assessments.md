@@ -504,3 +504,35 @@ web_save coordina valores/comandos y salida; create de un registro no acredita s
 Consumer: addons/web/models/models.py, src/orm/models.py.
 Verificadores: tests/unit/orm/test_create.py — ver evidencia/condición individual, no PASS por existencia
 
+
+## Incremento bootstrap/compute — 2026-10-21
+
+Esta sección actualiza las conclusiones históricas afectadas sin regenerar la población. Detalle verificable: scripts/evidence/orm-bootstrap-compute-20261021T210528/README.md y outputs.
+
+### TASK-API-0415
+
+El despacho histórico completed se conserva. Incremento actual: ResGroups asigna full_name y declara dependencias como Odoo; el descriptor informa falta de asignación sin invocar __str__.126casos focalizados PASS y controles negativos Consumer/diagnóstico/bucket/clave discriminan por separado. No se restaura la fábrica NonStored.
+
+Continuación: Aceptar sólo el delta acotado tras revisión/CI; subsiste reutilización entre contextos de un objeto Django sin pk (GEN0579), no equivalencia total.
+
+### TASK-API-0417
+
+in_progress oficial conservado. Corrección de composición Consumer/FieldDescriptor/Environment en8b6ea823: asignación explícita, diagnóstico estable, buckets de id estable y dependencias de contexto derivadas. Las nueve pruebas históricas se reconcilian por responsabilidad y contrato actual, sin exigir retorno de compute ni fábrica retirada.
+
+Continuación: Revisión/CI e integración autorizada pendientes. GEN0576 completed tiene una divergencia de clave contextual corregida sin reabrir su estado. GEN0579 sigue dependencia para objetos virtuales entre contextos.
+
+### TASK-GEN-0559
+
+3ffa958e y2f01be1b preservados, sin modificar sus cuerpos de recompute/_recompute_field.16PostgreSQLPASS de regresión tras cambios materiales en lectura/caché. CI39669997683/headb1b6 terminóFAILURE por10636res_users+38transacción, sin otras firmas de setup.
+
+Continuación: No reimplementar retry. No aceptación global ni integración por PR109 abierto. La migración nueva se verifica como unidad0312/H1120, no se atribuye su deuda a0559.
+
+### TASK-API-0416
+
+Estado histórico conservado.19casos de colección ya pasaban; los dos antes bloqueados requieren la segunda preparación pytest-Django de este lote. Resultado definitivo en native-pytest-bootstrap.log, no se declara PASS antes de terminar.
+
+Continuación: Consultar el resultado de la prueba PG de bootstrap y aceptar separadamente del porte completo de las fachadas.
+
+Relaciones nativas adicionales: GEN0312/session29a5e555-e34f-5a20-8c39-ad6cf2f19961/local60 (migración inicial de dos modelos registrados) y GEN0576/misma sesión/local324 (clave de contexto derivada). No nuevas TASK, estados o inventario. Los datos completos e identidad verificada están en admission-and-provenance.json. No se da por cerrado el porte de test_orm ni todas las13funciones de Environment.
+
+Resultado final del segundo bootstrap nativo:41cuerposPASS,1ERRORteardown (exit1).21de colección incluyen los dos antes bloqueados. Transaction.flush→base.public_user ausente→autocommit es una falla pendiente de ciclo de fixture, no res_users. No se etiqueta heredada sin control.
