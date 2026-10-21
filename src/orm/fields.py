@@ -93,6 +93,7 @@ from orm.fields_properties import (                            # noqa: F401
     Properties,
     PropertiesDefinition,
 )
+from orm.identifiers import NewId
 from orm.fields_reference import Many2oneReference, Reference  # noqa: F401
 from orm.fields_relational import Many2many, Many2one, One2many  # noqa: F401
 from orm.fields_selection import Selection                     # noqa: F401
@@ -109,6 +110,7 @@ from orm.utils import (COLLECTION_TYPES, as_record_list, browse, expand_ids,
 #: **saca** —no la lee— :meth:`~orm.models.RecordLoaderMixin.save`, que es lo
 #: que impide que un segundo ``save()`` de la misma fila vuelva a despacharlo.
 PENDING_INVERSE_FIELDS = '_pending_inverse_fields'
+PENDING_INITIAL_CACHE_FIELDS = '_pending_initial_cache_fields'
 
 #: El **registro de tipos de campo**, no la lista de exportables del módulo.
 #:
@@ -1429,6 +1431,21 @@ def _model_init_marking_the_load(self, *args, **kwargs):
 models.Model.__init__ = _model_init_marking_the_load
 
 
+def _field_cache_record_id(field, instance):
+    """Clave del caché existente, sin alterar la pk ni construir un recordset.
+
+    Un compute contextual sin columna necesita separar instancias nuevas.
+    NewId ya expresa esa identidad en Odoo; aquí sólo identifica su caché.
+    La construcción completa de BaseModel.new sigue fuera de este adaptador.
+    """
+    if (instance.pk is None and field.compute and not field.store
+            and _has_context_buckets(field)):
+        if '_orm_cache_id' not in instance.__dict__:
+            instance.__dict__['_orm_cache_id'] = NewId()
+        return instance.__dict__['_orm_cache_id']
+    return instance.pk
+
+
 class FieldDescriptor(DeferredAttribute):
     """El cuerpo de ``Field.__get__`` y ``Field.__set__``, en el enganche vivo.
 
@@ -1512,7 +1529,13 @@ class FieldDescriptor(DeferredAttribute):
             # ``:1664-1666`` — procesa los cómputos pendientes.
             field.recompute(instance)
 
-        record_id = instance.pk
+        record_id = _field_cache_record_id(field, instance)
+        cache_records = (record_id,) if isinstance(record_id, NewId) else instance
+        initial_fields = instance.__dict__.get(PENDING_INITIAL_CACHE_FIELDS, set())
+        if isinstance(record_id, NewId) and field.attname in initial_fields:
+            field._insert_cache(cache_records, [field.convert_to_cache(
+                instance.__dict__[field.attname], instance, validate=False)])
+        initial_fields.discard(field.attname)
         field_cache = field._get_cache(environment)
         try:
             # ``:1668-1673`` — acierto de caché.
@@ -1541,7 +1564,7 @@ class FieldDescriptor(DeferredAttribute):
         # El recalculo pendiente ya se proceso arriba (``field.recompute``),
         # asi que un valor en el almacén es un valor vigente, no uno viejo.
         contextual_compute = (
-            record_id and field.compute and not field.store
+            field.compute and not field.store
             and _has_context_buckets(field))
         if field.attname in instance.__dict__ and not contextual_compute:
             # Un compute contextual con id debe resolver el bucket actual;
@@ -1559,7 +1582,7 @@ class FieldDescriptor(DeferredAttribute):
                 # Sembrar la caché del ORM sólo con ``pk``: es su clave. Una
                 # fila en vuelo dentro de ``_do_insert`` no la tiene todavía.
                 field._update_cache(
-                    instance,
+                    cache_records,
                     field.convert_to_cache(value, instance, validate=False))
             # **Se traduce, igual que la rama de arriba.** Las dos ramas
             # son el mismo acierto de caché de la fuente —una sola en su
@@ -1602,14 +1625,19 @@ class FieldDescriptor(DeferredAttribute):
 
         elif field.compute:
             # ``:1736-1763`` — sin columna, o fila nueva sin origen: se computa.
-            if environment.is_protected(field, record_id):
+            if environment.is_protected(field, instance.pk):
                 field._update_cache(
-                    instance,
+                    cache_records,
                     field.convert_to_cache(False, instance, validate=False))
             else:
                 field.compute_value(instance)
-                if record_id in tuple(field._cache_missing_ids(instance)):
-                    if field.attname in instance.__dict__:
+                cache_missing = (
+                    record_id not in field._get_cache(environment)
+                    if isinstance(record_id, NewId)
+                    else record_id in tuple(field._cache_missing_ids(instance)))
+                if cache_missing:
+                    if (field.attname in instance.__dict__
+                            and not isinstance(record_id, NewId)):
                         # **El cómputo SÍ asignó — al almacén, no a la caché
                         # del ORM.** ``__set__`` escribe siempre
                         # ``instance.__dict__[attname]`` y sólo siembra
@@ -1631,7 +1659,7 @@ class FieldDescriptor(DeferredAttribute):
                             f'{instance._meta.label}({record_id!r},).{field.name}')
                     # ``:1753-1757`` — el cómputo no asignó: valor nulo.
                     field._update_cache(
-                        instance,
+                        cache_records,
                         field.convert_to_cache(False, instance, validate=False))
 
         # ``:1765-1783`` — la rama del ``many2one`` delegado sobre fila nueva NO
@@ -1646,7 +1674,7 @@ class FieldDescriptor(DeferredAttribute):
             defaults = instance.default_get([field.name])
             if field.name in defaults:
                 field._update_cache(
-                    instance,
+                    cache_records,
                     field.convert_to_cache(defaults[field.name], instance))
 
         # La caché pudo invalidarse entera dentro del cómputo (``:1759-1761``),
@@ -1750,6 +1778,10 @@ class ComputedFieldDescriptor(FieldDescriptor):
                     instance,
                     [field.convert_to_cache(value, instance, validate=False)])
             if not getattr(field, 'concrete', True):
+                # El valor explícito de constructor se insertará al leer,
+                # cuando el setup del registro ya esté disponible.
+                instance.__dict__.setdefault(
+                    PENDING_INITIAL_CACHE_FIELDS, set()).add(field.attname)
                 # **Un campo SIN COLUMNA no puede venir de la fila.** El
                 # cargador de Django puebla por ``opts.concrete_fields``, así
                 # que un campo sin columna sólo llega hasta aquí por el bucle
@@ -1766,6 +1798,10 @@ class ComputedFieldDescriptor(FieldDescriptor):
 
         environment = get_environment()
         record_id = instance.pk
+        cache_id = _field_cache_record_id(field, instance)
+        if isinstance(cache_id, NewId):
+            field._update_cache((cache_id,), field.convert_to_cache(
+                value, instance, validate=False))
 
         if environment.is_protected(field, record_id):
             # ``:1819-1822`` — fila en cómputo: sin lógica de negocio y sin
@@ -4677,8 +4713,9 @@ def _filter_not_equal_ids(self, records, cache_value):
 
     La fuente no necesita la guarda porque su fila nueva lleva un
     ``NewId``, que sí es una clave de caché válida. Construir ese
-    identificador virtual es la tarea **#327**; hasta entonces la fila en
-    vuelo vive sólo en el almacén de instancia de Django.
+    identificador virtual completo es la tarea **#327**. El adaptador de
+    lectura contextual sin columna ya usa NewId como clave privada de caché,
+    sin convertir la pk de Django ni cambiar este filtrado de escritura.
     """
     field_cache = self._get_cache(get_environment())
     return tuple(
