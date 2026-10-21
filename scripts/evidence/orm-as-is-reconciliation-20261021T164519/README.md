@@ -1,6 +1,6 @@
 # Incremental ORM TASK / Implementation AS IS and reconciliation
 
-This is a Consumer evidence run, not a new TaskStore, backlog, population, canonical schema or planner. Existing sources are linked and hashed in input-lineage.json;55 native scoped identities,33 previous descriptors and66 full-module characterizations retained, not a global denominator. Reconciliation tables are outputs/reconciliation.md; exact identities/raw descriptions/dependencies/claims/jobs in task-as-is.json; one new bounded contract in missing-recompute-contract.json. Eight legacy ordinals unresolved in checked original session remain explicit, no cross-session guessing. The full current functional audit is not declared complete.
+This is a Consumer evidence run, not a new TaskStore, backlog, population, canonical schema or planner. Existing sources are linked and hashed in input-lineage.json;55 native scoped identities,33 previous descriptors and66 full-module characterizations retained, not a global denominator. Reconciliation tables are outputs/reconciliation-v2.md; exact identities/raw descriptions/dependencies/claims/jobs in task-as-is.json; one new bounded contract in missing-recompute-contract.json. Eight legacy ordinals unresolved in checked original session remain explicit, no cross-session guessing. The full current functional audit is not declared complete.
 
 ## Native interfaces and source authority
 
@@ -35,3 +35,7 @@ BABOK previous same-revision skill load/portability evidence and portable handof
 Recover via latest_run(jobs_dir(consumer_root()), 'orm-as-is-reconciliation'); source links and native identities suffice without transcript. Frontier: finish scoped GEN0559 acceptance/CI, reconcile stale-row retry scope before broader change;0420 global QA/migrations acceptance;0419 further relation verification if relevant; no exact invalidate_all TASK and foreign1072 remain blockers, batching/translation not silently admitted.
 
 Functional commit2f01be1b contains only models.py and missing-row tests. Separate evidence/0419 verification commit follows; no claim that local commit alone is integrated. CI signature classification and PR input observation include inherited scope and COMMENTED quota review, not approval.
+
+## Correction precedence
+
+Use reconciliation-v2.json/md. Original reconciliation.json/md are preserved as historical outputs but their blanket per-TASK integration=not merged and shared publication context were incorrect generalizations. No integration history was measured for every55TASK; only current batch PR109 is observed not merged. V2 states historical task-specific integration/publication not_verified unless evidence note supplies it. Completed statuses remain native, not reversed. No source/tests/results/state changed by this report correction. The executable analytical join now emits v2 so replay cannot recreate the false generalization. Original instrument hashes remain original; correction-provenance.json records updated instrument and v2 hashes.

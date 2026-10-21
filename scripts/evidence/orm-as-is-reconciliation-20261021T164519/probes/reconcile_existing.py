@@ -66,8 +66,8 @@ for row in sorted(tasks['native_rows'],key=lambda r:r['citation_id']):
  views.append({'citation':cite,'identity':[row['session_id'],row['task_id']],'official_status':row['status'],'official_owner':row['owner'],
  'functional_owner':'API for ORM contract; historical GEN layer does not change ownership automatically' if not cite.startswith('TASK-THYROX') else 'Thyrox',
  'claims':row['active_claims'],'dependencies_raw':row['blocked_by_json'],'diagnosis':diag,'implementation_navigation':code,'observation':note,
- 'verification':'specific evidence referenced above; otherwise not_verified','publication':'API109 published baseline35501644; new unit publication recorded in PR after commit',
- 'acceptance':'not_verified for whole TASK','integration':'not merged','next_action':'Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch'})
+ 'verification':'specific evidence referenced above; otherwise not_verified','publication':'Current batch API109 published5f505455; task-specific historical publication not_verified unless noted',
+ 'acceptance':'not_verified for whole TASK','integration':'Current batch PR not merged; historical task-specific integration not_verified','next_action':'Use scoped contract note; unknown scope/ownership/dependencies requires reconciliation, no automatic dispatch'})
 result={'scope':'Analytical view over existing33descriptors/66source characterizations plus native55scoped task identities; not a new population/store or global denominator',
  'reference_revision':coverage['revision'],'implementation_revision':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
  'working_source_sha256':{p:hashlib.sha256((root/p).read_bytes()).hexdigest() for p in ['src/orm/models.py','tests/unit/orm/test_missing_recompute.py','tests/unit/orm/test_relational_reconstruction_persistence.py']},
@@ -76,16 +76,16 @@ result={'scope':'Analytical view over existing33descriptors/66source characteriz
  'no_reimplementation':['0420 Json deepcopy default','0419 relational constructor capture','0402 singleton triple injection','0400 sorted helper','Cache/grouping/removal and native Thyrox mechanisms'],
  'unmapped_implementation_limit':'No exhaustive code-to-TASK correspondence claimed. Prior unmatched symbols are not automatic defects/TASK.',
  'coverage_limit':'Complete current functional verification of all applicable obligations remains open; untouched mechanisms retain historical evidence with limitations, not new PASS.'}
-(out/'reconciliation.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+(out/'reconciliation-v2.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
 lines=['# TASK AS IS / Implementation AS IS / Contractual Reconciliation','',result['scope'],'',
-'All official statuses unchanged. Missing description/owner/dependency is not readiness. Native task-source graph currently loses edges; no executable frontier is fabricated. All integration/whole TASK acceptance remains pending.','',
+'All official statuses unchanged. Missing description/owner/dependency is not readiness. Native task-source graph currently loses edges; no executable frontier is fabricated. Historical TASK-specific integration and whole-contract acceptance are not inferred from status. Only the current batch PR is observed not merged.','',
 '## TASK AS IS','', '| TASK | Official status | Diagnosis | Observed code/evidence or gap |','|---|---|---|---|']
 for r in views:lines.append('| '+ ' | '.join([r['citation'],r['official_status'],r['diagnosis'],r['observation']]).replace('\n',' ')+' |')
 lines+=['','## Implementation AS IS and reconciliation','', '| Existing contract | Diagnosis | Evidence and limits |','|---|---|---|']
 for r in records:lines.append('| '+' | '.join([r['descriptor'],r['diagnosis'],r['observation']])+' |')
-lines+=['','All66source groups remain linked individually in reconciliation.json to original14-element records. None is silently omitted or accepted from file counts. Eight legacy board refs have no mapping in the checked original session; kept unresolved, no guessed identities.','',
+lines+=['','All66source groups remain linked individually in reconciliation-v2.json to original14-element records. None is silently omitted or accepted from file counts. Eight legacy board refs have no mapping in the checked original session; kept unresolved, no guessed identities.','',
 '## Continuation','',
 '0420: global migrations timezone debt and shared CI setup1120 block acceptance, not reimplementation.0419: new FK persistence closes a bounded verification gap; M2M/O2O persistence, race/concurrency and whole ORM integration remain open. GEN0559: scope-admitted query-missing cleanup now7PASS vs4baselinefail; stale loaded row deleted during compute and native MissingError retry not accepted.0558 batching remains separate. Invalidate_all flush defect has no exact reconciled TASK; do not silently use completed0575. Translation needs storage/migration authority. No remote/local-model inference claimed.','',
 'Recover this run through native latest_run(jobs_dir(consumer_root()), "orm-as-is-reconciliation") and its existing manifest. Read source authorities by linked relative paths and exact pinned revision, not transcript/scratch. Existing BABOK portable handoff in Docs babok-operational-continuation-20261021T153929 remains applicable; Podman still absent.','']
-(out/'reconciliation.md').write_text('\n'.join(lines))
+(out/'reconciliation-v2.md').write_text('\n'.join(lines))
 print('Reconciled',len(records),'existing descriptors,',len(groups),'existing source groups,',len(views),'native task identities; no states changed')
