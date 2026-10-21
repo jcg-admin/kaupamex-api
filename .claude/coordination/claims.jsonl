@@ -30,3 +30,7 @@
 {"id":"c-33e13d43-fb25-4444-8ac0-3fd907997467","op":"claim","path":"tests/unit/orm/test_json_defaults.py","owner":"codex-task-api-0420","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T05:49:19.567Z","task":"TASK-API-0420"}
 {"id":"c-75a3b505-3ed4-4f8b-a8c4-0b681251a73d","op":"release","path":"src/orm/fields_misc.py","owner":"codex-task-api-0420","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T06:12:46.096Z","task":"TASK-API-0420"}
 {"id":"c-cb7ea56a-e986-4ba6-b434-120c7f4a8fe0","op":"release","path":"tests/unit/orm/test_json_defaults.py","owner":"codex-task-api-0420","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T06:12:46.100Z","task":"TASK-API-0420"}
+{"id":"c-6cbd446c-ee5f-4064-9579-9b852f094896","op":"claim","path":"src/orm/fields.py","owner":"codex-task-api-0419","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T15:27:47.679Z","task":"TASK-API-0419"}
+{"id":"c-dba7937f-5849-4fa6-84b1-590ba08f28f5","op":"claim","path":"tests/unit/orm/test_relational_field_reconstruction.py","owner":"codex-task-api-0419","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T15:27:47.685Z","task":"TASK-API-0419"}
+{"id":"c-5608a1dc-bb65-40f6-a55a-bed22090b986","op":"release","path":"src/orm/fields.py","owner":"codex-task-api-0419","branch":"","at":"2026-10-21T15:48:52.356Z"}
+{"id":"c-baae8bee-3794-460b-8185-1fb71c5cda8e","op":"release","path":"tests/unit/orm/test_relational_field_reconstruction.py","owner":"codex-task-api-0419","branch":"","at":"2026-10-21T15:48:52.361Z"}
