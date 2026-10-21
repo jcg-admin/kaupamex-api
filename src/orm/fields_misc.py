@@ -14,6 +14,9 @@ consumidores en la referencia — ``account/models/partner.py:573-574``
 fuente (``odoo19c: odoo/orm/fields.py:42-44``), y además un campo por empresa
 YA es un ``jsonb`` — anidarlo no tendría dónde poner el mapa de empresas.
 """
+from copy import deepcopy
+from functools import partial
+
 from django.db import models
 
 from orm.fields_company_dependent import make_dispatcher
@@ -46,6 +49,12 @@ def Json(*args, store=_UNSET, related=None, **kwargs):
     """
     if store is not _UNSET:
         kwargs['store'] = store
+    # TASK-API-0420: la fuente copia el JSON al entregarlo al registro
+    # (Json.convert_to_record). Django evalúa un default invocable por
+    # instancia; partial conserva el literal y es serializable en migraciones.
+    default = kwargs.get('default')
+    if default is not None and not callable(default):
+        kwargs['default'] = partial(deepcopy, default)
     related_attrs = apply_source_defaults(related, kwargs)
     #: El tipo se construye SIEMPRE, con columna o sin ella: ``store`` es un
     #: atributo del campo, no una clase distinta

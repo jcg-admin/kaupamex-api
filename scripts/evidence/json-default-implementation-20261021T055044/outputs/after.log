@@ -1,0 +1,13 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test_absent_default_is_not_invented (__main__.JsonDefaultContract.test_absent_default_is_not_invented) ... ok
+test_callable_default_is_preserved (__main__.JsonDefaultContract.test_callable_default_is_preserved) ... ok
+test_literal_content_survives_deconstruction (__main__.JsonDefaultContract.test_literal_content_survives_deconstruction) ... ok
+test_literal_default_has_no_e010 (__main__.JsonDefaultContract.test_literal_default_has_no_e010) ... ok
+test_negative_control_raw_django_shares_literal (__main__.JsonDefaultContract.test_negative_control_raw_django_shares_literal) ... ok
+test_nested_defaults_are_independent (__main__.JsonDefaultContract.test_nested_defaults_are_independent) ... ok
+test_none_default_is_preserved (__main__.JsonDefaultContract.test_none_default_is_preserved) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.001s
+
+OK
