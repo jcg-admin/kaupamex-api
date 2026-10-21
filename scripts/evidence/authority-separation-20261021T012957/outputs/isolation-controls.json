@@ -1,0 +1,48 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "observations": [
+    {
+      "control": "Provider roots without any Kaupamex checkout in fixture",
+      "result": "PASS",
+      "values": {
+        "provider": "/workspace/scratch/authority-separation/independence-4gfof6r0/provider",
+        "store": "/workspace/scratch/authority-separation/independence-4gfof6r0/provider/agent-results/agent_store.sqlite3",
+        "workbench": "/workspace/scratch/authority-separation/independence-4gfof6r0/provider/bench",
+        "jobs": "/workspace/scratch/authority-separation/independence-4gfof6r0/provider/jobs",
+        "cache": "/workspace/scratch/authority-separation/independence-4gfof6r0/provider/cache"
+      },
+      "limit": "Production modules imported from fixed Provider checkout; path/control independence only, not isolated installation or runtime E2E"
+    },
+    {
+      "control": "Arbitrary named and multiple Consumers",
+      "result": "PASS",
+      "values": [
+        {
+          "consumer": "/workspace/scratch/authority-separation/independence-4gfof6r0/alpha-service",
+          "workbench": "/workspace/scratch/authority-separation/independence-4gfof6r0/alpha-service/bench",
+          "cache": "/workspace/scratch/authority-separation/independence-4gfof6r0/alpha-service/cache",
+          "jobs": "/workspace/scratch/authority-separation/independence-4gfof6r0/alpha-service/jobs"
+        },
+        {
+          "consumer": "/workspace/scratch/authority-separation/independence-4gfof6r0/warehouse-ledger",
+          "workbench": "/workspace/scratch/authority-separation/independence-4gfof6r0/warehouse-ledger/bench",
+          "cache": "/workspace/scratch/authority-separation/independence-4gfof6r0/warehouse-ledger/cache",
+          "jobs": "/workspace/scratch/authority-separation/independence-4gfof6r0/warehouse-ledger/jobs"
+        }
+      ],
+      "limit": "Explicit generic homes, empty fixture env file; does not prove ownership or operational multiwriter storage isolation"
+    },
+    {
+      "control": "Global consumer declaration with another start",
+      "result": "OBSERVED_CONFIGURATION_HAZARD",
+      "observed": "/workspace/scratch/authority-separation/independence-4gfof6r0/alpha-service",
+      "limit": "Legacy behavior by source contract; explicitly pass declared root/per-clone configuration and qualify strict mode, do not silently call independent"
+    },
+    {
+      "control": "Native next_for_node accepted dependency / foreign claim / unresolved predecessor",
+      "result": "PASS",
+      "limit": "In-memory graph fixture only; does not adjudicate live task ownership or resource qualification"
+    }
+  ],
+  "no_models_or_real_store_writes": true
+}

@@ -18,3 +18,7 @@
 {"id":"c-3b500540-77a6-492c-8897-1db2176d7ff3","op":"release","path":"scripts/evidence/orm-contract-plan","owner":"codex-orm-planning","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T20:24:04.849Z"}
 {"id":"c-d4e208f7-64c6-43be-b248-2f142264e94e","op":"claim","path":"scripts/evidence/orm-contract-plan-testorm","owner":"codex-orm-planning","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T20:26:05.165Z"}
 {"id":"c-e6374a46-3209-440a-bb4c-31503396fac4","op":"release","path":"scripts/evidence/orm-contract-plan-testorm","owner":"codex-orm-planning","branch":"feature/codex-workspace-bootstrap","at":"2026-10-20T20:39:31.482Z"}
+{"id":"c-8e6409ec-5524-4762-8bfb-65455e667548","op":"claim","path":"docs/operaciones.md","owner":"codex-authority-separation","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T01:29:57.027Z"}
+{"id":"c-4ceb192c-8a09-4799-b81c-da30dd740947","op":"claim","path":"scripts/evidence/authority-separation","owner":"codex-authority-separation","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T01:29:57.031Z"}
+{"id":"c-e457f36b-78cc-4b7a-b5f7-698a70a07c9b","op":"release","path":"docs/operaciones.md","owner":"codex-authority-separation","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T01:45:43.867Z"}
+{"id":"c-a4c61bda-049f-493f-b94c-1bcf18843f14","op":"release","path":"scripts/evidence/authority-separation","owner":"codex-authority-separation","branch":"feature/codex-workspace-bootstrap","at":"2026-10-21T01:45:43.871Z"}

@@ -1,0 +1,39 @@
+{
+  "acceptance_items": {
+    "1_couplings": "Satisfied for targeted source/interfaces with explicit limits,20filesclassified",
+    "2_boundaries": "Defined proposed vs actual; legitimate approval pending adoption",
+    "3_task_ownership": "23 selected rows reconciled; NULL operators and GEN scope unknown preserved, not assigned",
+    "4_historical_identity": "Known negative controls preserved; no destructive change",
+    "5_api_docs_proposal": "Existing6files evaluated by role; no move or definitive new layout",
+    "6_existing_continuity": "13 native interface groups inspected/used with actual qualification limits",
+    "7_handoff_requirements": "18-data procedure plus fresh-process positive/negative controls; real-agent test pending",
+    "8_taxonomy": "Existing conceptual matrix retained; SQLstatus separate, no migration",
+    "9_orm_django_drf": "Existing6units and33/66checkpoint retained, internal web_read callers identified; no security verdict",
+    "10_acceptance_tests": "Designed with bounded controls; full independence/restore/publication not demonstrated",
+    "11_uncertainty": "Explicit actions and prerequisite mechanisms in existing plan",
+    "12_preservation": "Six historic hashes validated; current store unchanged; no new operational source"
+  },
+  "checks": {
+    "historical_evidence_hash_manifests": "PASS six executed, logs preserved",
+    "provider_root_and_multiple_consumers": "PASS bounded resolver fixtures; not install/runtime E2E",
+    "native_identity_claim_dependency_read": "PASS selected23rows; no operational writes",
+    "fresh_process_transfer_controls": "PASS identity/dependency/evidence/claim plus bad-hash/bad-identity rejection and revision drift; not live agent transfer",
+    "api_import_boundary": "PASS Python open guard only",
+    "document_intent": "PASS generic canonical RST and expected API docs layout rejection; no publication executed",
+    "hook_projection": "PASS explicit Consumer no Docs literal, historical defaults retain it; no settings changed",
+    "rst_syntax": "PASS final focal check exit0",
+    "vocabulary": "PASS final focal check exit0",
+    "provider_e2e": "NOT_EVALUATED",
+    "api_fresh_install_startup_database_suite": "NOT_EVALUATED",
+    "actual_agent_session_handoff": "NOT_EVALUATED",
+    "backup_restore_reversal": "NOT_EVALUATED",
+    "aggregate_documentation_publication": "NOT_EVALUATED",
+    "orm_acceptance": "NOT_EVALUATED",
+    "local_model_execution": "NOT_EVALUATED",
+    "sphinx": "NOT_EVALUATED",
+    "native_workbench": "PASS exit0, problems=[]"
+  },
+  "global_independence_claimed": false,
+  "orm_complete": false,
+  "no_task_or_schema_migration": true
+}

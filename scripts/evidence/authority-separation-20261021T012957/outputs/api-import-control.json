@@ -1,0 +1,12 @@
+{
+  "command": "UV_CACHE_DIR=/workspace/.cache/uv uv run --frozen python /workspace/scratch/authority-separation/api_boundary.py",
+  "cwd": "/workspace/kaupamex-api",
+  "exit_code": 0,
+  "result": {
+    "django": "6.0.5",
+    "drf": "3.16.1",
+    "bounded_api_imports_without_docs_open": "PASS",
+    "negative_guard": "PASS"
+  },
+  "limit": "Recorded result of earlier single execution, not repeated. Python open guard only; no full install/runtime/test acceptance"
+}
