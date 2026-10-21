@@ -59,13 +59,14 @@ from operator import attrgetter
 from typing import TypeVar
 
 from django.apps import apps
-from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
 from django.db import DEFAULT_DB_ALIAS, connections, models
 from django.db.models.fields.related import RelatedField
 from django.db.models.query_utils import DeferredAttribute
 from django.utils.timezone import localtime
 from psycopg.types.json import Jsonb
 
+from exceptions import MissingError
 from orm.environments import (env as get_environment, get_current_company,
                              get_transaction, sudo as elevate_privileges)
 from tools.constants import PREFETCH_MAX
@@ -4782,22 +4783,12 @@ def recompute(self, records):
     ≙ ``Field.recompute`` (``:1850``). Sólo se llama si el campo es calculado
     y almacenado.
 
-    **Dos divergencias de mecanismo, las dos con su motivo medido y su
-    sucesor** — ninguna recorta el comportamiento observable del campo:
-
-    1. *Sin lote de prelectura.* La fuente agrupa los pendientes en ventanas
-       de ``PREFETCH_MAX`` con ``expand_ids`` y computa la ventana entera de
-       una vez. Aquí el cómputo se invoca por fila (ver
-       :func:`_invoke_compute_method`), así que la ventana no ahorraría ni
-       una consulta: agruparla sería ceremonia. Vuelve a tener sentido el día
-       que el cómputo reciba un ``QuerySet``, que es la tarea **#306**.
-    2. *Sin reintento por fila ausente.* La fuente envuelve cada cómputo en
-       ``apply_except_missing``: ante un ``MissingError`` reintenta sobre
-       ``records.exists()`` y desmarca los que ya no existen *"otherwise they
-       remain to compute forever, which may lead to an infinite loop"*. Aquí
-       no hay ``MissingError`` — una fila borrada no se detecta al tocarla,
-       sino al consultarla — y el equivalente exige el lado de lectura del
-       motor, que es la capa C. Sucesor: tarea **#307**.
+    La adaptación conserva el cómputo por fila; la prelectura por lotes sigue
+    siendo TASK-GEN-0558. TASK-GEN-0559 conserva el reintento acotado de
+    ``apply_except_missing``: ante ausencia, comprueba la fila sin el filtro
+    del manager público, reintenta una vez si existe y desmarca el grupo si
+    desapareció. Django ``ObjectDoesNotExist`` y el ``MissingError`` ya
+    existente expresan esa ausencia; cualquier otro error se propaga.
     """
     to_compute_ids = get_environment().transaction.tocompute.get(self)
     if not to_compute_ids:
@@ -4808,6 +4799,20 @@ def recompute(self, records):
     if not pending:
         return
 
+    def apply_except_missing(record):
+        try:
+            self.compute_value(record)
+            return
+        except (MissingError, ObjectDoesNotExist):
+            # La segunda invocación queda fuera del try: un error persistente
+            # se propaga y compute_value conserva el trabajo pendiente.
+            pass  # silent OK because la ausencia se comprueba y resuelve abajo
+        if not record.pk or type(record)._base_manager.using(record._state.db).filter(pk=record.pk).exists():
+            self.compute_value(record)
+        else:
+            for field in registry_field_computed[self]:
+                get_environment().remove_to_compute(field, [record.pk])
+
     if self.recursive:
         # Un calculado recursivo se computa fila a fila, para que sus
         # dependencias internas se resuelvan en orden. Aquí el no-recursivo
@@ -4815,11 +4820,11 @@ def recompute(self, records):
         # dos ramas coinciden; la condición se conserva porque es donde
         # aterriza el lote cuando #306 lo construya.
         for record in pending:
-            self.compute_value(record)
+            apply_except_missing(record)
         return
 
     for record in pending:
-        self.compute_value(record)
+        apply_except_missing(record)
 
 
 def compute_value(self, records):
