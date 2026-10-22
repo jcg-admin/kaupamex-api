@@ -105,6 +105,7 @@ def test_allow_migrate_keeps_control_plane_only_in_default():
     assert router.allow_migrate('company_5_db', 'contenttypes', 'contenttype') is False
 
 
+@override_settings(DATABASES=_WITH_COMPANY_5)
 def test_allow_migrate_domain_in_company_db_and_default_for_n1():
     assert router.allow_migrate('company_5_db', 'catalogue', 'product') is True
     # Degeneración N=1: el dominio también puede vivir en 'default'.
