@@ -16098,7 +16098,7 @@
           "kind": "file"
         }
       ],
-      "specific_finding": "La composición MRO/registro es adaptación Django; el fixture de extensiones repetidas test_orm requiere orden de módulos y registro reconstruido, no sólo creación de una clase.",
+      "specific_finding": "La composición MRO/registro es adaptación Django; el fixture de extensiones repetidas test_orm requiere orden de módulos y registro reconstruido, no sólo creación de una clase. Incremento 2026-10-22, Consumer56b08be8: dos bases propias con estados IrModule distintos exponen las mismas clases globales; no se acredita composición efectiva por base. Contratos, tres adaptaciones acotadas y límites: scripts/evidence/orm-module-lifecycle-20261022T023817/outputs/module-contracts.json. La composición completa permanece not_verified; no se altera la población histórica.",
       "tests": [
         {
           "path": "tests/unit/orm/test_model_class_construction.py",

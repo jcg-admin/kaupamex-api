@@ -1,0 +1,45 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "scope": "Native Django contenttypes migrations only, no addon lifecycle acceptance.",
+  "initial_columns": [
+    "id",
+    "name",
+    "app_label",
+    "model"
+  ],
+  "upgraded_columns": [
+    "id",
+    "app_label",
+    "model"
+  ],
+  "data_after_upgrade": [
+    1,
+    "module_probe",
+    "roundtrip"
+  ],
+  "downgraded_columns": [
+    "id",
+    "app_label",
+    "model",
+    "name"
+  ],
+  "table_after_unapply": null,
+  "applied_migrations_after_unapply": 0,
+  "python_model_remains_registered": true,
+  "status": "PASS for native migration capabilities; NOT_EVALUATED addon install/upgrade/uninstall"
+}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE
