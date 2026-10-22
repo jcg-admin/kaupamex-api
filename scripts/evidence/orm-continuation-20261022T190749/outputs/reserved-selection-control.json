@@ -1,0 +1,10 @@
+{
+  "states": {
+    "ModuleNode.demo_installable": "failed",
+    "ModuleNode.phase": "failed",
+    "ModuleGraph._update_from_database": "failed"
+  },
+  "input": "full ledger with reserved graph path",
+  "result": [],
+  "decision": "release completed mutation reservation before next selection; no owner-filtered selector input"
+}

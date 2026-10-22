@@ -1,0 +1,13 @@
+{
+  "interface": "node_frontier -> node_graph_rows -> next_for_node",
+  "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "objective": "completar-raiz-orm",
+  "objective_complete": false,
+  "task": "TASK-API-0382",
+  "selection": [
+    "ModuleNode.demo_installable"
+  ],
+  "claims_input": "Complete native ledger, no owner filtering; own prior claims released before selecting, then reacquired natively",
+  "scope": "Bounded existing0382 obligations; not global objective scheduler or local model execution",
+  "corrected_probe": "Initial in-memory selection removed own-owner rows; not used as qualification. This corrected call passes the full ledger."
+}

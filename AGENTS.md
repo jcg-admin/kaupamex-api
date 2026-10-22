@@ -72,6 +72,15 @@ propietario y verificador. No declarar elegible un grafo sin aristas sin medir
 sus dependencias. Al cerrar registra revisión, pruebas, resultado, commit/PR y
 estado remoto. No declares publicado lo que sólo existe localmente.
 
+Después de verificar o publicar una unidad ORM, vuelve a evaluar la frontera
+mediante las interfaces cualificadas de Thyrox y los contratos del AS IS vigente.
+Conserva entradas, resultado, claims y decisión; continúa si hay otra unidad
+admitida y ejecutable. Un commit, un piloto o un PASS focalizado no cierran
+`completar-raiz-orm`. No marques una unidad aceptada para desbloquear otra.
+Si una capacidad del Provider falla o una ruta está reservada por otro dueño,
+registra el límite sin sustituirla por un coordinador del Consumer. Antes de
+finalizar distingue bloqueo comprobado de falta de cobertura del selector.
+
 ## Restricciones del componente
 
 Las capacidades de negocio se autorizan mediante HasCapability y deben fallar cerrado. No iniciar ejecución masiva ORM: primero una TASK existente con dependencias verificadas, prueba, aceptación e integración.

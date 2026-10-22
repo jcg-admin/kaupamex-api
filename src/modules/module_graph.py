@@ -13,7 +13,8 @@ Contratos de ejecución todavía pendientes bajo TASK-API-0382:
   ``installed``/``to upgrade`` de ``ir_module_module`` para decidir qué cargar.
   El catálogo y las solicitudes administrativas ya persisten por base;
   el grafo todavía no consume esos estados ni ejecuta las solicitudes.
-- Fases y elegibilidad demo requieren el contexto de carga, aún pendiente.
+  Fases y elegibilidad demo operan sobre el estado explícito de sus nodos;
+  falta enlazarlo al contexto persistente de carga.
 - ``cycles()`` permite diagnosticar dependencias cíclicas; ordenar un ciclo
   lanza ModuleGraphCycle. La referencia elimina los nodos afectados al fallar
   su cálculo de profundidad; esa política de poda sigue siendo otro contrato.
@@ -21,8 +22,11 @@ Contratos de ejecución todavía pendientes bajo TASK-API-0382:
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Iterator
+import logging
 
 from modules.module import get_module_path, get_modules, load_manifest
+
+_logger = logging.getLogger(__name__)
 
 
 class ModuleGraphCycle(ValueError):
@@ -36,13 +40,28 @@ class ModuleGraphCycle(ValueError):
 class ModuleNode:
     """Un addon dentro del grafo. ≙ ``ModuleNode`` de la referencia."""
 
-    __slots__ = ('name', '_graph', 'depends', 'manifest')
+    __slots__ = ('name', '_graph', 'depends', 'manifest', 'demo', 'state')
 
     def __init__(self, name: str, module_graph: ModuleGraph) -> None:
         self.name = name
         self._graph = module_graph
         self.manifest = load_manifest(name)
         self.depends: list[str] = list(self.manifest.get('depends', ()))
+        self.demo = False
+        self.state = 'uninstalled'
+
+    @property
+    def demo_installable(self) -> bool:
+        """Los datos demo requieren demo habilitada en cada dependencia."""
+        return all(self._graph[dep].demo for dep in self.depends)
+
+    @property
+    def phase(self) -> int:
+        """Fase según el modo y las fronteras de instalación explícitas."""
+        if self.name != 'base' and self._graph.mode == 'update':
+            # Keep the existing explicit cycle diagnostic for recursive phases.
+            self._graph._depth(self, {}, {})
+        return self._graph._phase(self, {})
 
     @property
     def depth(self) -> int:
@@ -74,7 +93,10 @@ class ModuleNode:
 class ModuleGraph:
     """Grafo de addons ordenable topológicamente. ≙ ``ModuleGraph`` de la referencia."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, mode: str = 'load') -> None:
+        if mode not in ('load', 'update'):
+            raise ValueError('ModuleGraph mode must be load or update')
+        self.mode = mode
         self._nodes: dict[str, ModuleNode] = {}
 
     def __contains__(self, name: str) -> bool:
@@ -84,11 +106,32 @@ class ModuleGraph:
         return self._nodes[name]
 
     def __iter__(self) -> Iterator[ModuleNode]:
-        """Ordena por profundidad y clave de dependencia, sin fases de carga."""
+        """Ordena por fase explícita, profundidad y clave de dependencia."""
         depths = {}
+        phases = {}
         for name in sorted(self._nodes):
             self._depth(self._nodes[name], depths, {})
-        return iter(sorted(self._nodes.values(), key=lambda n: (depths[n.name], n.order_name)))
+        for node in self._nodes.values():
+            self._phase(node, phases)
+        return iter(sorted(self._nodes.values(), key=lambda n: (
+            phases[n.name], depths[n.name], n.order_name)))
+
+    def _phase(self, node, memo):
+        if node.name in memo:
+            return memo[node.name]
+        if node.name == 'base':
+            phase = 0
+        elif self.mode == 'load':
+            phase = 1
+        else:
+            phase = max(
+                self._phase(self._nodes[dep], memo)
+                + int((node.state == 'to install') != (self._nodes[dep].state == 'to install'))
+                + int(dep == 'base')
+                for dep in node.depends
+            )
+        memo[node.name] = phase
+        return phase
 
     def _depth(self, node, memo, path):
         if node.name in path:
@@ -127,6 +170,54 @@ class ModuleGraph:
             pending.extend(
                 d for d in self._nodes[name].depends if d not in seen
             )
+
+    def _remove(self, name: str, log_dependents: bool = True) -> None:
+        """Retira un nodo y sus dependientes del grafo que se está preparando.
+
+        Adaptado de Odoo Community19, module_graph.py (LGPL-3). No cambia
+        estados persistidos ni ejecuta una desinstalación. La preparación
+        explícita usa esta poda; el grafo estático sigue rechazando ciclos.
+        """
+        self._nodes.pop(name)
+        for another, node in list(self._nodes.items()):
+            if name in node.depends and node.name in self._nodes:
+                if log_dependents:
+                    _logger.info(
+                        'module %s: its direct/indirect dependency is skipped, skipped',
+                        another,
+                    )
+                self._remove(another)
+
+    def _update_depends(self, names: Iterable[str]) -> None:
+        """Enlaza dependencias presentes y poda las que no pueden resolverse."""
+        for name in names:
+            node = self._nodes.get(name)
+            if node is None:
+                continue
+            depends = node.manifest['depends']
+            try:
+                linked = [self._nodes[dep].name for dep in depends]
+            except KeyError:
+                missing = [dep for dep in depends if dep not in self._nodes]
+                _logger.warning(
+                    'module %s: some depends are not loaded (%s), skipped',
+                    name, ', '.join(missing),
+                )
+                self._remove(name)
+            else:
+                node.depends = linked
+
+    def _update_depth(self, names: Iterable[str]) -> None:
+        """Poda ciclos en preparación explícita; no sustituye order/cycles."""
+        for name in names:
+            node = self._nodes.get(name)
+            if node is None:
+                continue
+            try:
+                _ = node.depth
+            except (ModuleGraphCycle, RecursionError):
+                _logger.warning('module %s: in a dependency loop, skipped', name)
+                self._remove(name)
 
     def missing(self) -> dict[str, list[str]]:
         """``{addon: [deps declaradas cuyo addon NO existe en el árbol]}``.

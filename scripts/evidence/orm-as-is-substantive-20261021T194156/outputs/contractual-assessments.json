@@ -16150,6 +16150,18 @@
           "demo eligibility in effective loader",
           "schema/data/hooks/model composition/invalidation/worker execution"
         ]
+      },
+      "current_module_graph_contracts": {
+        "reference": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/module-graph-contract-reconciliation.json",
+        "replaces_current_observation_only": "Earlier module_graph_pilot remains historical; current scope new explicit phase/demo controls and full named-symbol dispositions",
+        "reference_named_declarations": 19,
+        "current_consumer_inventory": "Re-extracted with existing file_inventory after source changes; no new extractor",
+        "version_dependency": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/ir-module-version-correspondence.json",
+        "verification": "28inventory/contracts +12pure graph +7native continuation controls PASS; strengthened actual-reference protocol1PASS is an existing case. Final global77PASS/1SKIP/1ERROR,501.83s,pytest1/make2; same baseline display_name first error, subsequent tests NOT_EVALUATED",
+        "acceptance": "not_verified; no file or initiative acceptance",
+        "continuation_evidence": "scripts/evidence/orm-continuation-20261022T190749",
+        "pending": "Database-bound state/version snapshot and loader wiring; pure explicit pruning controls verified independently. Installed-version persistence cannot be inferred from refreshed manifest version; schema/data/hooks/effective registry/worker acceptance remain pending",
+        "imported_modules": "Fifth native selection:2reference-only controls PASS; actual Consumer metadata lacks imported; producer/provenance/loader integration pending, no schema change. See current job outputs/imported-module-contract.json"
       }
     },
     {
@@ -70055,9 +70067,9 @@
       ],
       "observed_conclusion": "Catalogue refresh no longer derives operational states from imported apps. Administrative requests validate dependencies/authorization, lock and queue transitions in one database. Two real databases retain distinct states, concurrent requests and rollback; mixed-database batches with colliding IDs are rejected. Installation itself is not executed by these requests.",
       "next_action": "Complete effective registry and schema/data/hooks loader using existing mechanisms. Global automation signals still lose explicit DB alias on metadata writes; prototype isolated process composition is not production integration. TASK-API-0173 identity checked; no arbitrary relocation of capability identities or historical migration rewrite.",
-      "verification_and_acceptance": "scripts/evidence/orm-module-state-20261022T032053/outputs: baseline 5FAIL/1PASS; old report fixture 84PASS/1FAIL retained and corrected with explicit installed-state fixture plus negative case; definitive rerun and ci-verify recorded separately. No whole TASK acceptance.",
+      "verification_and_acceptance": "28inventory/contracts +12pure graph +7continuation controls PASS; full ci-verify FAIL pytest1/make2,77PASS/1SKIP/1ERROR,501.83s,exact prior remote compute assignment error. Cleanup0databases/0roles. No TASK acceptance or merge.",
       "integration_rule": "Existing feature branch/PR109; no merge or official TASK state change.",
-      "publication_and_ci": "Functional source revision e9211d51f66d7eff571df5bf1cd43605ad80d98c plus recorded working changes; see final README and PR109 for publication/CI outcome.",
+      "publication_and_ci": "Current batch starts from published0d91ce3e494a09d27868998d48bec96a75480ca3; current changes not yet committed. PR109 remains unmerged; see batch evidence for final publication outcome.",
       "history_search_result": "Prior AS IS retained; module-lifecycle and current scoped native exports reused."
     }
   ],
