@@ -190,7 +190,7 @@ class ModuleGraph:
                 if node.name in selected:
                     continue
                 auto = node.manifest.get('auto_install', False)
-                if not auto:
+                if auto is False or not node.manifest.get('installable', True):
                     continue
                 required = node.depends if auto is True else [
                     d for d in node.depends if d in auto

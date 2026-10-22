@@ -69,3 +69,24 @@ def test_each_node_depth_is_computed_once_per_ordering(monkeypatch):
     assert graph.order() == ['base', 'left', 'right', 'sale']
     assert len(visits) == 4
     assert set(visits.values()) == {1}
+
+
+@pytest.mark.parametrize('trigger', [[], ()])
+def test_empty_auto_install_trigger_is_not_false(monkeypatch, trigger):
+    graph = graph_of(monkeypatch, {'base': [], 'bridge': ['base']})
+    graph['bridge'].manifest['auto_install'] = trigger
+    assert graph.auto_installable([]) == ['bridge']
+
+
+def test_uninstallable_module_is_not_an_auto_install_candidate(monkeypatch):
+    graph = graph_of(monkeypatch, {'disabled': []})
+    graph['disabled'].manifest.update(auto_install=True, installable=False)
+    assert graph.auto_installable([]) == []
+
+
+def test_true_trigger_requires_dependencies_and_false_never_qualifies(monkeypatch):
+    graph = graph_of(monkeypatch, {'base': [], 'bridge': ['base'], 'manual': []})
+    graph['bridge'].manifest['auto_install'] = True
+    graph['manual'].manifest['auto_install'] = False
+    assert graph.auto_installable([]) == []
+    assert graph.auto_installable(['base']) == ['bridge']
