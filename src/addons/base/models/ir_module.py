@@ -168,8 +168,10 @@ class IrModule(TimeStampedModel):
     campos; de ellos coinciden por nombre **8** (``name``, ``shortdesc``,
     ``summary``, ``sequence``, ``application``, ``auto_install``, ``state``,
     ``license``). Otros **2** son formas nuestras: ``category``, un
-    desnormalizado de su ``category_id``, y ``version``, que colapsa sus tres
-    (``installed_version`` / ``latest_version`` / ``published_version``).
+    desnormalizado de su ``category_id``, y ``version``, que conserva metadata
+    del manifiesto. ``installed_version`` conserva por separado la versión
+    realmente instalada (``latest_version`` persistido de la referencia).
+    Su valor histórico desconocido permanece NULL: no se infiere del catálogo.
 
     Quedan **23 ausentes**, y la mayoría **no** está bloqueada por nada — son
     ``Char`` planos del manifest (``author``, ``maintainer``, ``website``,
@@ -275,6 +277,10 @@ class IrModule(TimeStampedModel):
     # Es un desnormalizado nuestro y provisional — su reestructuración es #452.
     category     = fields.Char(max_length=100, blank=True, default='Uncategorized')
     version      = fields.Char(blank=True, default='1.0')
+    installed_version = fields.Char(
+        blank=True, null=True, default=None, editable=False,
+        help_text='Versión realmente instalada; NULL si no existe evidencia de instalación.',
+    )
     # Lo nombra ``_order``; sin él el atributo describiría un orden que este
     # modelo no puede cumplir. ``odoo19c: …/ir_module.py:294`` — default 100.
     sequence     = fields.Integer(default=100)
@@ -427,13 +433,13 @@ class IrModule(TimeStampedModel):
         """≙ ``_get_latest_version`` (``odoo19c: ir_module.py:211-215``).
 
         Devuelve la versión que el manifest declara **en disco**, que puede
-        diferir de la que el catálogo guardó la última vez que se sembró. Ésa es
-        toda su razón de ser: distinguir lo instalado de lo publicado.
+        diferir de la metadata guardada por el catálogo y de la versión
+        instalada. Este getter no acredita una instalación.
 
-        La fuente escribe ``installed_version``, uno de los tres campos de
-        versión que aquí colapsan en ``version`` (declarado en el docstring de
-        la clase). Por eso aquí **devuelve** el valor en vez de asignarlo: sin
-        los tres campos separados no hay dónde escribir la distinción.
+        La fuente asigna su campo computado ``installed_version`` desde el
+        manifiesto; guarda lo instalado en ``latest_version``. Aquí el getter
+        devuelve la versión del manifiesto y nuestro campo persistido
+        ``installed_version`` conserva por separado lo realmente instalado.
         """
         return self.get_module_info(self.name).get(
             'version', adapt_version('1.0'))

@@ -9,20 +9,20 @@ de sus dependientes ordinarios. ``extend`` añade dependencias transitivas.
 
 Contratos de ejecución todavía pendientes bajo TASK-API-0382:
 
-- Sin cursor ni ``mode='load'|'update'``: la referencia lee el estado
-  ``installed``/``to upgrade`` de ``ir_module_module`` para decidir qué cargar.
-  El catálogo y las solicitudes administrativas ya persisten por base;
-  el grafo todavía no consume esos estados ni ejecuta las solicitudes.
-  Fases y elegibilidad demo operan sobre el estado explícito de sus nodos;
-  falta enlazarlo al contexto persistente de carga.
+- ``from_database`` prepara un snapshot por alias explícito, con estado,
+  demo y versión instalada del catálogo. No ejecuta solicitudes, migraciones,
+  datos ni hooks y no sustituye al registro efectivo de modelos.
 - ``cycles()`` permite diagnosticar dependencias cíclicas; ordenar un ciclo
   lanza ModuleGraphCycle. La referencia elimina los nodos afectados al fallar
-  su cálculo de profundidad; esa política de poda sigue siendo otro contrato.
+  su cálculo de profundidad; ``from_database`` aplica esa poda explícita.
 """
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Iterator
 import logging
+
+from django.apps import apps
+from django.db import connections
 
 from modules.module import get_module_path, get_modules, load_manifest
 
@@ -40,7 +40,8 @@ class ModuleGraphCycle(ValueError):
 class ModuleNode:
     """Un addon dentro del grafo. ≙ ``ModuleNode`` de la referencia."""
 
-    __slots__ = ('name', '_graph', 'depends', 'manifest', 'demo', 'state')
+    __slots__ = ('name', '_graph', 'depends', 'manifest', 'demo', 'state',
+                 'id', 'installed_version', 'load_version', 'load_state')
 
     def __init__(self, name: str, module_graph: ModuleGraph) -> None:
         self.name = name
@@ -49,6 +50,10 @@ class ModuleNode:
         self.depends: list[str] = list(self.manifest.get('depends', ()))
         self.demo = False
         self.state = 'uninstalled'
+        self.id = 0
+        self.installed_version = None
+        self.load_version = None
+        self.load_state = 'uninstalled'
 
     @property
     def demo_installable(self) -> bool:
@@ -97,7 +102,60 @@ class ModuleGraph:
         if mode not in ('load', 'update'):
             raise ValueError('ModuleGraph mode must be load or update')
         self.mode = mode
+        self.using = None
         self._nodes: dict[str, ModuleNode] = {}
+
+    @classmethod
+    def from_database(cls, names: Collection[str], *, using: str, mode: str = 'load'):
+        """Prepara un grafo de lectura para una base explícita.
+
+        Adapta la preparación y snapshot de Odoo Community19 (LGPL-3),
+        revisión abe4040ec1a45beee90fb694e4eae4453e46b389. Conserva la
+        clausura transitiva propia de ``extend``; las solicitudes estáticas
+        siguen rechazando ciclos. Esto no instala ni actualiza módulos.
+        """
+        if not isinstance(using, str) or not using:
+            raise ValueError('An explicit database alias is required')
+        connections[using]  # Rechaza alias desconocidos antes de preparar el grafo.
+        graph = cls(mode=mode)
+        graph.using = using
+        graph.extend(names)
+        new_names = tuple(graph._nodes)
+        for name in new_names:
+            if name in graph and (not graph[name].manifest or not
+                                  graph[name].manifest.get('installable', True)):
+                graph._remove(name)
+        graph._update_depends(new_names)
+        graph._update_depth(new_names)
+        graph._update_from_database(new_names, using=using)
+        return graph
+
+    def _update_from_database(self, names: Iterable[str], *, using: str) -> None:
+        """Copia estado por base; la versión instalada nunca sale del manifest.
+
+        ``IrModule.installed_version`` corresponde al ``latest_version``
+        persistido de la referencia, incluido NULL para historia desconocida.
+        ``load_*`` conserva el snapshot inicial aunque se muten los nodos.
+        """
+        names = tuple(name for name in names if name in self)
+        if not names:
+            return
+        model = apps.get_model('base', 'IrModule')
+        rows = model.objects.using(using).filter(name__in=names).order_by().values_list(
+            'name', 'id', 'state', 'demo', 'installed_version')
+        for name, identifier, state, demo, version in rows:
+            # Un antecesor puede haber retirado este dependiente antes de su fila.
+            if name not in self:
+                continue
+            if state == 'uninstallable' or (self.mode == 'load' and state in (
+                    'uninstalled', 'to install')):
+                self._remove(name)
+                continue
+            node = self[name]
+            node.id = identifier
+            node.state = node.load_state = state
+            node.demo = demo
+            node.installed_version = node.load_version = version
 
     def __contains__(self, name: str) -> bool:
         return name in self._nodes

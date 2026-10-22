@@ -51,6 +51,37 @@ def test_refresh_preserves_existing_state_and_updates_metadata(manifests):
         module__name='catalog_leaf').values_list('name', flat=True)) == ['catalog_root']
 
 
+def test_refresh_preserves_installed_version_when_manifest_changes(manifests):
+    IrModule.objects.bulk_create([IrModule(
+        name='catalog_root', state=IrModule.STATE_INSTALLED,
+        version='1.0', installed_version='0.9')])
+    manifests['catalog_root']['version'] = '2.0'
+    refresh()
+    row = IrModule.objects.get(name='catalog_root')
+    assert row.version == '2.0'
+    assert row.installed_version == '0.9'
+    assert row.state == IrModule.STATE_INSTALLED
+
+
+def test_new_catalog_entry_has_unknown_installed_version(manifests):
+    manifests['catalog_root']['version'] = '2.0'
+    refresh()
+    row = IrModule.objects.get(name='catalog_root')
+    assert row.version == '2.0'
+    assert row.installed_version is None
+    assert row.state == IrModule.STATE_UNINSTALLED
+
+
+def test_dry_run_preserves_both_version_sources(manifests):
+    IrModule.objects.bulk_create([IrModule(
+        name='catalog_root', state=IrModule.STATE_INSTALLED,
+        version='1.0', installed_version='0.9')])
+    manifests['catalog_root']['version'] = '2.0'
+    refresh(dry_run=True)
+    row = IrModule.objects.get(name='catalog_root')
+    assert (row.version, row.installed_version) == ('1.0', '0.9')
+
+
 def test_manifest_change_cannot_silently_uninstall_an_installed_module(manifests):
     IrModule.objects.bulk_create([
         IrModule(name='catalog_leaf', state=IrModule.STATE_INSTALLED),
