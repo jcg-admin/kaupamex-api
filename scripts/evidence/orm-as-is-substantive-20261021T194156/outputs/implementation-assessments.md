@@ -566,3 +566,13 @@ Continuación: Esperar CI/revisión/integración autorizada; no declarar todaGEN
 El criterio previo de que la lectura contextual sin pk exigía todoBaseModel.new queda corregido por prueba del adaptador de caché existente. GEN0579 completo y0379 actor de seguridad conservan estado/alcance; no nuevas TASK. Ver scripts/evidence/orm-acceptance-close-20261021T234504/README.md para matriz de cumplimiento y resultado conjunto.
 
 Cierre verificado del incremento actual:47pytestPASS con migraciones nativas PostgreSQL y teardown del código final conjunto;131PASS focalizados,214PASS/1XFAIL y16PG0559 conservados. No sumar poblaciones solapadas ni declarar CI/merge.
+
+## Incremento module-state
+
+TASK-API-0382, sesión168b0fdf-bfe4-590b-b6c0-b6be124c124a/local737, conserva pending y owner codex-module-lifecycle. Se añade sólo este registro al alcance histórico; no se considera la población exhaustiva.
+
+Catalogue refresh no longer derives operational states from imported apps. Administrative requests validate dependencies/authorization, lock and queue transitions in one database. Two real databases retain distinct states, concurrent requests and rollback; mixed-database batches with colliding IDs are rejected. Installation itself is not executed by these requests.
+
+Complete effective registry and schema/data/hooks loader using existing mechanisms. Global automation signals still lose explicit DB alias on metadata writes; prototype isolated process composition is not production integration. TASK-API-0173 identity checked; no arbitrary relocation of capability identities or historical migration rewrite.
+
+Evidencia y resultados definitivos: scripts/evidence/orm-module-state-20261022T032053/README.md. Sin aceptación integral ni merges.

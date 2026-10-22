@@ -1,0 +1,7 @@
+{
+  "command": "docker exec -u postgres <existing-QA-container> psql -X -d postgres -tAc SELECT counts for orm_bootstrap_% resources",
+  "command_exit_code": 0,
+  "remaining_probe_databases": 0,
+  "remaining_probe_roles": 0,
+  "scope": "Own QA resource prefix; no production or foreign resources removed"
+}

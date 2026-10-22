@@ -1,0 +1,78 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ALTER ROLE
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-module-state-20261022T032053/probes/database_module_states.py", line 86, in <module>
+    call_command('update_module_list', database=using, verbosity=0)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/management/__init__.py", line 195, in call_command
+    return command.execute(*args, **defaults)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/core/management/base.py", line 464, in execute
+    output = self.handle(*args, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/addons/base/management/commands/update_module_list.py", line 51, in handle
+    return self._refresh(using, options['dry_run'])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/addons/base/management/commands/update_module_list.py", line 95, in _refresh
+    row.save(using=using, update_fields=[*changed, 'updated_at'])
+  File "/workspace/kaupamex-api/src/orm/models.py", line 2550, in save
+    super().save(*args, **kwargs)
+  File "/workspace/kaupamex-api/src/orm/models.py", line 1366, in save
+    super().save(*args, **kwargs)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py", line 946, in save_base
+    pre_save.send(
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/dispatch/dispatcher.py", line 209, in send
+    response = receiver(signal=self, sender=sender, **named)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/addons/base_automation/models/signals.py", line 92, in _capture_old_values
+    sender.objects.filter(pk=instance.pk).values().first())
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1145, in first
+    for obj in queryset[:1]:
+               ~~~~~~~~^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 390, in __iter__
+    self._fetch_all()
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 210, in __iter__
+    compiler = query.get_compiler(queryset.db)
+                                  ^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 1887, in db
+    return self._db or router.db_for_read(self.model, **self._hints)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/utils.py", line 231, in _route_db
+    chosen_db = method(model, **hints)
+                ^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/routers.py", line 155, in db_for_read
+    return self._route(model)
+           ^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/routers.py", line 146, in _route
+    raise CompanyContextRequired(
+orm.routers.CompanyContextRequired: operacion de dominio base.irmodule sin empresa activa bajo multi-DB (N>1); fijar company_scope antes de leer/escribir
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

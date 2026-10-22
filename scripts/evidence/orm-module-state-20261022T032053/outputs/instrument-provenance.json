@@ -1,0 +1,66 @@
+{
+  "source_revision": "e9211d51f66d7eff571df5bf1cd43605ad80d98c",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "instruments": [
+    {
+      "instrument_path": "scripts/evidence/orm-module-state-20261022T032053/probes/compute_boundary.py",
+      "instrument_hash": "37e6d85316f4bf3c49a53f577d2c344cb4c38fecf77f61394f643ba97a35477d",
+      "purpose": "Distingue el contrato genérico compute del Consumer sin modificar código productivo.",
+      "inputs": "See README; native QA harness for PostgreSQL, optional explicit process roster for registry probe",
+      "execution_command": "uv run --frozen python scripts/evidence/orm-module-state-20261022T032053/probes/compute_boundary.py",
+      "dependencies": "Existing Consumer frozen environment, reference resolvers and QA harness; no alternate coordinator",
+      "expected_result": "Bounded positive/negative contract verdicts; not whole ORM acceptance",
+      "observed_result": "See outputs and README; do not replay historical source snapshots",
+      "evidence_location": "scripts/evidence/orm-module-state-20261022T032053/outputs",
+      "limitations": "Appropriate settings and exclusively owned database are mandatory; settings_module_roster.py is imported by the fresh-process probe, not a standalone CLI"
+    },
+    {
+      "instrument_path": "scripts/evidence/orm-module-state-20261022T032053/probes/database_module_states.py",
+      "instrument_hash": "cc6aec8968e3ef204fb677908b298e819c96f9316e21122b41a57fc433278449",
+      "purpose": "Dos bases propias: catálogo y solicitudes administrativas sin simular instalación.",
+      "inputs": "See README; native QA harness for PostgreSQL, optional explicit process roster for registry probe",
+      "execution_command": "uv run --frozen python scripts/evidence/orm-module-state-20261022T032053/probes/database_module_states.py",
+      "dependencies": "Existing Consumer frozen environment, reference resolvers and QA harness; no alternate coordinator",
+      "expected_result": "Bounded positive/negative contract verdicts; not whole ORM acceptance",
+      "observed_result": "See outputs and README; do not replay historical source snapshots",
+      "evidence_location": "scripts/evidence/orm-module-state-20261022T032053/outputs",
+      "limitations": "Appropriate settings and exclusively owned database are mandatory; settings_module_roster.py is imported by the fresh-process probe, not a standalone CLI"
+    },
+    {
+      "instrument_path": "scripts/evidence/orm-module-state-20261022T032053/probes/reconcile_state_as_is.py",
+      "instrument_hash": "c70c1a367c20e0c00a655fb6097c6e92f8ef2d88cc415c200c0acea71d646115",
+      "purpose": "Incremento idempotente del AS IS existente para TASK-API-0382; no inventario global.",
+      "inputs": "See README; native QA harness for PostgreSQL, optional explicit process roster for registry probe",
+      "execution_command": "uv run --frozen python scripts/evidence/orm-module-state-20261022T032053/probes/reconcile_state_as_is.py",
+      "dependencies": "Existing Consumer frozen environment, reference resolvers and QA harness; no alternate coordinator",
+      "expected_result": "Bounded positive/negative contract verdicts; not whole ORM acceptance",
+      "observed_result": "See outputs and README; do not replay historical source snapshots",
+      "evidence_location": "scripts/evidence/orm-module-state-20261022T032053/outputs",
+      "limitations": "Appropriate settings and exclusively owned database are mandatory; settings_module_roster.py is imported by the fresh-process probe, not a standalone CLI"
+    },
+    {
+      "instrument_path": "scripts/evidence/orm-module-state-20261022T032053/probes/registry_process.py",
+      "instrument_hash": "4983c8784952367e85549f2b0356cbee1c74b7d425955c8f3e0d939de00b6ec3",
+      "purpose": "Verifica si el registro Django existente compone un roster en un proceso fresco.",
+      "inputs": "See README; native QA harness for PostgreSQL, optional explicit process roster for registry probe",
+      "execution_command": "uv run --frozen python scripts/evidence/orm-module-state-20261022T032053/probes/registry_process.py",
+      "dependencies": "Existing Consumer frozen environment, reference resolvers and QA harness; no alternate coordinator",
+      "expected_result": "Bounded positive/negative contract verdicts; not whole ORM acceptance",
+      "observed_result": "See outputs and README; do not replay historical source snapshots",
+      "evidence_location": "scripts/evidence/orm-module-state-20261022T032053/outputs",
+      "limitations": "Appropriate settings and exclusively owned database are mandatory; settings_module_roster.py is imported by the fresh-process probe, not a standalone CLI"
+    },
+    {
+      "instrument_path": "scripts/evidence/orm-module-state-20261022T032053/probes/settings_module_roster.py",
+      "instrument_hash": "57141f2af1da55207c96f198c082d81ad4d56adfcfa3495ae670e3de254e83a3",
+      "purpose": "Configuración experimental de un proceso; no settings productivos ni cambio por request.",
+      "inputs": "See README; native QA harness for PostgreSQL, optional explicit process roster for registry probe",
+      "execution_command": "uv run --frozen python scripts/evidence/orm-module-state-20261022T032053/probes/settings_module_roster.py",
+      "dependencies": "Existing Consumer frozen environment, reference resolvers and QA harness; no alternate coordinator",
+      "expected_result": "Bounded positive/negative contract verdicts; not whole ORM acceptance",
+      "observed_result": "See outputs and README; do not replay historical source snapshots",
+      "evidence_location": "scripts/evidence/orm-module-state-20261022T032053/outputs",
+      "limitations": "Appropriate settings and exclusively owned database are mandatory; settings_module_roster.py is imported by the fresh-process probe, not a standalone CLI"
+    }
+  ]
+}

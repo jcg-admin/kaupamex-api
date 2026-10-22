@@ -16098,7 +16098,7 @@
           "kind": "file"
         }
       ],
-      "specific_finding": "La composición MRO/registro es adaptación Django; el fixture de extensiones repetidas test_orm requiere orden de módulos y registro reconstruido, no sólo creación de una clase. Incremento 2026-10-22, Consumer56b08be8: dos bases propias con estados IrModule distintos exponen las mismas clases globales; no se acredita composición efectiva por base. Contratos, tres adaptaciones acotadas y límites: scripts/evidence/orm-module-lifecycle-20261022T023817/outputs/module-contracts.json. La composición completa permanece not_verified; no se altera la población histórica.",
+      "specific_finding": "La composición MRO/registro es adaptación Django; el fixture de extensiones repetidas test_orm requiere orden de módulos y registro reconstruido, no sólo creación de una clase. Incremento 2026-10-22, Consumer56b08be8: dos bases propias con estados IrModule distintos exponen las mismas clases globales; no se acredita composición efectiva por base. Contratos, tres adaptaciones acotadas y límites: scripts/evidence/orm-module-lifecycle-20261022T023817/outputs/module-contracts.json. La composición completa permanece not_verified; no se altera la población histórica. Incremento module-state: scripts/evidence/orm-module-state-20261022T032053 verifies database-owned pending requests, not complete lifecycle. Fresh processes can compose distinct models/extensions using native Apps, but model checks reject base without authz; native auto-install closure passes model checks. Signals/global runtime and persistent loader integration remain pending.",
       "tests": [
         {
           "path": "tests/unit/orm/test_model_class_construction.py",
@@ -53530,8 +53530,8 @@
           "execution": "Executed named cases; see phase/outcome"
         }
       ],
-      "observed_conclusion": "Revisión de cumplimiento0fc622dc, evidencia scripts/evidence/orm-acceptance-close-20261021T234504: 0fc622dc reutiliza NewId como clave privada del caché existente para computes contextuales sin columna con pkNone. Preserva valores por instancia/contexto y constructor, invalidación y protección recursiva; pk sigueNone.131casosPASS y controles sin identidad/identidad compartida fallan2/1. El Consumer original antes divergente pasa con0SQL. Histórico previo: Incremento 8b6ea8236b7107aad1c184e48e4c2faf3ec6375a (scripts/evidence/orm-bootstrap-compute-20261021T210528): in_progress oficial conservado. Corrección de composición Consumer/FieldDescriptor/Environment en8b6ea823: asignación explícita, diagnóstico estable, buckets de id estable y dependencias de contexto derivadas. Las nueve pruebas históricas se reconcilian por responsabilidad y contrato actual, sin exigir retorno de compute ni fábrica retirada. Observación histórica conservada: Las factories ya no eligen NonStored por store. La derivación central existe; siguen tres fallos heredados que esperan claves antiguas en apply_source_defaults.",
-      "next_action": "Revisión/CI e integración autorizada pendientes. La falla acotada sin pk ya está corregida; BaseModel.new/origin y protocolo virtual completo GEN0579 no quedan aceptados.",
+      "observed_conclusion": "Revisión de cumplimiento0fc622dc, evidencia scripts/evidence/orm-acceptance-close-20261021T234504: 0fc622dc reutiliza NewId como clave privada del caché existente para computes contextuales sin columna con pkNone. Preserva valores por instancia/contexto y constructor, invalidación y protección recursiva; pk sigueNone.131casosPASS y controles sin identidad/identidad compartida fallan2/1. El Consumer original antes divergente pasa con0SQL. Histórico previo: Incremento 8b6ea8236b7107aad1c184e48e4c2faf3ec6375a (scripts/evidence/orm-bootstrap-compute-20261021T210528): in_progress oficial conservado. Corrección de composición Consumer/FieldDescriptor/Environment en8b6ea823: asignación explícita, diagnóstico estable, buckets de id estable y dependencias de contexto derivadas. Las nueve pruebas históricas se reconcilian por responsabilidad y contrato actual, sin exigir retorno de compute ni fábrica retirada. Observación histórica conservada: Las factories ya no eligen NonStored por store. La derivación central existe; siguen tres fallos heredados que esperan claves antiguas en apply_source_defaults. Incremento compute-boundary: scripts/evidence/orm-module-state-20261022T032053 demonstrates that generic DisplayNameMixin and ProductProduct both return values instead of assigning display_name. The real descriptor raises ValueError for both; assignment-only controls pass. Earlier bounded compute results do not imply all display_name Consumers conform.",
+      "next_action": "Reconcile existing generic display-name contract and Consumer overrides without restoring the retired constructor dispatcher or weakening assignment checks. Native TaskGet1192 confirms in_progress/owner null; not automatically eligible. Preserve module-lifecycle priority and CI failure.",
       "verification_and_acceptance": "Resultados actuales en scripts/evidence/orm-acceptance-close-20261021T234504/README.md; CI remota/integración separadas de pruebas locales.",
       "integration_rule": "Containment measured separately for every linked commit against fixed remote develop SHA; code may later be changed/reverted, so ancestry is not current semantic acceptance.",
       "publication_and_ci": {
@@ -69939,6 +69939,92 @@
         }
       },
       "history_search_result": "Explicit citation mentions located; file changes and PR/CI must be reviewed before asserting implementation acceptance."
+    },
+    {
+      "citation": "TASK-API-0382",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "737"
+      },
+      "official_status": "pending",
+      "official_owner": "codex-module-lifecycle",
+      "claims": [
+        "Native claimsCommand; ledger .claude/coordination/claims.jsonl; own scope only"
+      ],
+      "dependency_sources": {
+        "raw": [],
+        "resolved_native_edges": [],
+        "functional_conditions": "DEC-AISL-05 accepted; installed state != schema != effective registry. Native TASK-API-0173 pending/unowned is related, not automatically eligible."
+      },
+      "scope_source": {
+        "native_subject": "Mecanismo: la instalación se decide por base, no por proceso (H-API-784)",
+        "native_description": "Medido 2026-08-21 (H-API-784): `ir_module_module.state` existe y su propio help_text declara \"Derivado de INSTALLED_APPS; no hay instalador que lo escriba\". `grep -rn IrModule src/config/ src/orm/` → 0 hits. La dirección está invertida respecto a la referencia, donde `odoo/modules/db.py:88` ESCRIBE el estado y el cargador lo LEE, por base.\n\nConsecuencia: dos bases no pueden diferir en qué addons tienen instalados, porque INSTALLED_APPS es del proceso.\n\nEmparenta con #456 (H-API-654, installable: False sin efecto en la carga) y #449 (sembrar el registro de módulos) — las tres son la misma carencia vista desde tres sitios.\n\nBloqueada por la decisión de #443 sobre el reparto.",
+        "additional_authority": "User continuation of complete module lifecycle document; admission-continuation.json"
+      },
+      "source_evidence": [
+        {
+          "path": "src/addons/base/management/commands/update_module_list.py",
+          "symbol": "handle",
+          "start": 46,
+          "end": 51,
+          "source_sha256": "2446016c9910339f8db2a6612c82a5210c8106a99b514119b93d83ee53bb86af",
+          "body": "def handle(self, *args, **options):\n        using = options['database']\n        if using not in connections:\n            raise CommandError(f'Unknown database alias: {using}')\n        with transaction.atomic(using=using):\n            return self._refresh(using, options['dry_run'])"
+        },
+        {
+          "path": "src/addons/base/management/commands/update_module_list.py",
+          "symbol": "_refresh",
+          "start": 53,
+          "end": 102,
+          "source_sha256": "2446016c9910339f8db2a6612c82a5210c8106a99b514119b93d83ee53bb86af",
+          "body": "def _refresh(self, using, dry_run):\n        stored = {module.name: module for module in\n                  IrModule.objects.using(using).select_for_update()}\n        installed = {name for name, row in stored.items()\n                     if row.state == IrModule.STATE_INSTALLED}\n\n        updated = added = 0\n        without_manifest = []\n\n        for addon in get_modules():\n            addon_dir = get_module_path(addon)\n            if addon_dir is None:\n                continue\n\n            manifest = read_manifest(addon_dir)\n            if manifest is None:\n                without_manifest.append(addon)\n                continue\n\n            values = values_from_manifest(manifest)\n            depends = values.pop('depends')\n            values.pop('installable')\n            row = stored.get(addon)\n            if row is None:\n                values['state'] = (IrModule.STATE_UNINSTALLED\n                                   if manifest.get('installable', True)\n                                   else IrModule.STATE_UNINSTALLABLE)\n                added += 1\n                if not dry_run:\n                    row = IrModule.objects.using(using).create(name=addon, **values)\n            else:\n                if row.state in {IrModule.STATE_UNINSTALLED, IrModule.STATE_UNINSTALLABLE}:\n                    values['state'] = (IrModule.STATE_UNINSTALLED\n                                       if manifest.get('installable', True)\n                                       else IrModule.STATE_UNINSTALLABLE)\n                changed = {k: v for k, v in values.items()\n                           if getattr(row, k) != v}\n                if changed:\n                    updated += 1\n                    if not dry_run:\n                        for key, value in changed.items():\n                            setattr(row, key, value)\n                        row.save(using=using, update_fields=[*changed, 'updated_at'])\n\n            if not dry_run and row is not None:\n                self._sync_dependencies(row, depends, using=using)\n\n        self._report(added, updated, without_manifest, dry_run)\n        self._report_auto_install_gaps(installed)\n        return None"
+        },
+        {
+          "path": "src/addons/base/management/commands/update_module_list.py",
+          "symbol": "_sync_dependencies",
+          "start": 133,
+          "end": 146,
+          "source_sha256": "2446016c9910339f8db2a6612c82a5210c8106a99b514119b93d83ee53bb86af",
+          "body": "def _sync_dependencies(self, module, depends, *, using):\n        \"\"\"Deja las aristas del manifest, ni una más.\n\n        Las que sobran se retiran: una dependencia que el manifest dejó de\n        declarar y sobrevive en la tabla es el mismo defecto que H-API-106\n        registró en el catálogo comercial.\n        \"\"\"\n        declared = set(depends)\n        dependencies = IrModuleDependency.objects.using(using).filter(module_id=module.pk)\n        existing = set(dependencies.values_list('name', flat=True))\n        for name in sorted(declared - existing):\n            IrModuleDependency.objects.using(using).create(module_id=module.pk, name=name)\n        if existing - declared:\n            dependencies.filter(name__in=existing - declared).delete()"
+        },
+        {
+          "path": "src/addons/base/models/ir_module.py",
+          "symbol": "_request_module_change",
+          "start": 324,
+          "end": 392,
+          "source_sha256": "a2a13078d389a6f713cc195c3a2d539042dc03e11b075bfc0ff292667a8d67ad",
+          "body": "def _request_module_change(self, operation):\n        if not is_system():\n            raise PermissionDenied('Module changes require system administration')\n        if self.pk is None:\n            raise ValidationError('A persisted module is required')\n        using = self._state.db or router.db_for_write(type(self), instance=self)\n        with transaction.atomic(using=using):\n            # Orden estable y mismo cerrojo para operaciones incompatibles.\n            rows = {row.name: row for row in type(self).objects.using(using)\n                    .select_for_update().order_by('pk')}\n            current = rows.get(self.name)\n            if current is None or current.pk != self.pk:\n                raise ValidationError('Module does not exist in the selected database')\n            active_states = {self.STATE_INSTALLED, self.STATE_TO_UPGRADE}\n            requested = {self.name}\n            if operation != 'install':\n                if current.state not in active_states:\n                    raise ValidationError(f'Module {self.name} is not installed')\n                if operation == 'uninstall' and self.name == 'base':\n                    raise ValidationError('The base module cannot be uninstalled')\n                requested.update(self.downstream_dependencies(\n                    exclude_states=(self.STATE_UNINSTALLED, self.STATE_UNINSTALLABLE,\n                                    self.STATE_TO_INSTALL, self.STATE_TO_REMOVE)\n                ).values_list('name', flat=True))\n                if operation == 'uninstall':\n                    if 'base' in requested:\n                        raise ValidationError('The base module cannot be uninstalled')\n                    type(self).objects.using(using).filter(name__in=requested).update(\n                        state=self.STATE_TO_REMOVE)\n                    self.state = self.STATE_TO_REMOVE\n                    return sorted(requested)\n\n                if self.name == 'base':\n                    requested.update(name for name, row in rows.items()\n                                     if row.state in active_states)\n            graph = ModuleGraph()\n            available = ModuleGraph()\n            available.extend(tuple(rows))\n            active = {name for name, row in rows.items() if row.state in\n                      active_states | {self.STATE_TO_INSTALL}}\n            while True:\n                graph.extend(tuple(requested))\n                ordered = list(graph)  # Rechaza ciclos antes de escribir estados.\n                for node in ordered:\n                    row = rows.get(node.name)\n                    if row is None or not node.manifest:\n                        raise ValidationError(f'Missing module dependency: {node.name}')\n                    if not node.manifest.get('installable', True):\n                        raise ValidationError(f'Module is not installable: {node.name}')\n                    if row.state in {self.STATE_UNINSTALLABLE, self.STATE_TO_REMOVE}:\n                        raise ValidationError(f'Invalid module state: {node.name}: {row.state}')\n                    self._check_module_dependencies(node.manifest)\n                active.update(node.name for node in ordered)\n                automatic = set(available.auto_installable(active)) - requested\n                if not automatic:\n                    break\n                requested |= automatic\n            selected = {node.name for node in ordered}\n            exclusions = IrModuleExclusion.objects.using(using).filter(\n                module__name__in=active, name__in=active)\n            if exclusions.exists():\n                raise ValidationError('Incompatible modules in the selected database')\n            if operation == 'upgrade':\n                type(self).objects.using(using).filter(name__in=requested,\n                    state__in=active_states).update(state=self.STATE_TO_UPGRADE)\n            type(self).objects.using(using).filter(name__in=selected,\n                state=self.STATE_UNINSTALLED).update(state=self.STATE_TO_INSTALL)\n            self.state = type(self).objects.using(using).get(pk=self.pk).state\n            return [node.name for node in ordered]"
+        },
+        {
+          "path": "src/addons/base/models/ir_module.py",
+          "symbol": "_walk_dependencies",
+          "start": 492,
+          "end": 532,
+          "source_sha256": "a2a13078d389a6f713cc195c3a2d539042dc03e11b075bfc0ff292667a8d67ad",
+          "body": "def _walk_dependencies(self, forward, exclude_states):\n        \"\"\"El recorrido que comparten los dos sentidos.\n\n        La fuente los escribe como dos métodos recursivos con dos consultas SQL\n        casi idénticas —difieren en qué columna cruza con cuál—. Aquí el\n        recorrido es uno y el sentido es un parámetro: la duplicación de allá no\n        expresa nada que aquí no exprese el booleano, y dos copias divergen.\n\n        Se recorre por oleadas y con marca de visitado, no por recursión: el\n        grafo admite ciclos —dos addons pueden declararse mutuamente— y una\n        recursión ingenua no terminaría. Es la misma razón que en\n        ``IrModuleDependency.all_dependencies``.\n        \"\"\"\n        using = self._state.db or router.db_for_read(type(self), instance=self)\n        modules = type(self).objects.using(using)\n        dependencies = IrModuleDependency.objects.using(using)\n        seen = set()\n        frontier = {self.name} if forward else {self.pk}\n\n        while frontier:\n            if forward:\n                names = list(dependencies.filter(\n                    module__name__in=frontier).values_list('name', flat=True))\n                found = modules.filter(name__in=names)\n            else:\n                names = list(modules.filter(\n                    pk__in=frontier).values_list('name', flat=True))\n                found = modules.filter(\n                    dependencies__name__in=names)\n\n            found = found.exclude(state__in=exclude_states).exclude(\n                pk__in=seen | {self.pk})\n            fresh = {module.pk for module in found}\n            if not fresh:\n                break\n            seen |= fresh\n            frontier = ({module.name for module in\n                         modules.filter(pk__in=fresh)}\n                        if forward else fresh)\n\n        return modules.filter(pk__in=seen)"
+        },
+        {
+          "path": "src/addons/base/models/ir_module.py",
+          "symbol": "_compute_depend_batch",
+          "start": 606,
+          "end": 625,
+          "source_sha256": "a2a13078d389a6f713cc195c3a2d539042dc03e11b075bfc0ff292667a8d67ad",
+          "body": "def _compute_depend_batch(cls, dependencies):\n        \"\"\"El lote de ``_compute_depend``, con una sola consulta.\n\n        Es la forma de la fuente —``search`` de todos los nombres, índice por\n        nombre, asignación en bucle— y la razón de portarla es medible: sin\n        ella, resolver N aristas cuesta N consultas.\n        \"\"\"\n        dependencies = list(dependencies)\n        if not dependencies:\n            return {}\n        aliases = {dependency._state.db or router.db_for_read(IrModule, instance=dependency)\n                   for dependency in dependencies}\n        if len(aliases) != 1:\n            raise ValidationError('A dependency batch must belong to one database')\n        using = aliases.pop()\n        names = {dependency.name for dependency in dependencies}\n        by_name = {module.name: module\n                   for module in IrModule.objects.using(using).filter(name__in=names)}\n        return {dependency.pk: by_name.get(dependency.name)\n                for dependency in dependencies}"
+        }
+      ],
+      "task_mentioned_commits": [],
+      "commits_explicit_in_native_description": [],
+      "history_limit": "Incremental source and runtime evidence at the recorded revision; not a new exhaustive historical search.",
+      "tests": [
+        "tests/integration/base/test_module_catalog_database.py",
+        "tests/integration/base/test_module_state_requests.py",
+        "scripts/evidence/orm-module-state-20261022T032053/probes/database_module_states.py"
+      ],
+      "observed_conclusion": "Catalogue refresh no longer derives operational states from imported apps. Administrative requests validate dependencies/authorization, lock and queue transitions in one database. Two real databases retain distinct states, concurrent requests and rollback; mixed-database batches with colliding IDs are rejected. Installation itself is not executed by these requests.",
+      "next_action": "Complete effective registry and schema/data/hooks loader using existing mechanisms. Global automation signals still lose explicit DB alias on metadata writes; prototype isolated process composition is not production integration. TASK-API-0173 identity checked; no arbitrary relocation of capability identities or historical migration rewrite.",
+      "verification_and_acceptance": "scripts/evidence/orm-module-state-20261022T032053/outputs: baseline 5FAIL/1PASS; old report fixture 84PASS/1FAIL retained and corrected with explicit installed-state fixture plus negative case; definitive rerun and ci-verify recorded separately. No whole TASK acceptance.",
+      "integration_rule": "Existing feature branch/PR109; no merge or official TASK state change.",
+      "publication_and_ci": "Functional source revision e9211d51f66d7eff571df5bf1cd43605ad80d98c plus recorded working changes; see final README and PR109 for publication/CI outcome.",
+      "history_search_result": "Prior AS IS retained; module-lifecycle and current scoped native exports reused."
     }
   ],
   "legacy_resolution": [

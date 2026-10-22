@@ -1,0 +1,19 @@
+{
+  "fixture_manifests": {
+    "base": {
+      "depends": []
+    },
+    "uom": {
+      "depends": [
+        "base"
+      ]
+    },
+    "product": {
+      "depends": [
+        "base",
+        "uom"
+      ]
+    }
+  },
+  "second_database_removed": true
+}
