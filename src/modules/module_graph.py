@@ -26,6 +26,14 @@ from collections.abc import Collection, Iterable, Iterator
 from modules.module import get_module_path, get_modules, load_manifest
 
 
+class ModuleGraphCycle(ValueError):
+    """Dependencias cíclicas: no existe un orden válido de carga."""
+
+    def __init__(self, cycle):
+        self.cycle = tuple(cycle)
+        super().__init__('ModuleGraphCycle: ' + ' -> '.join(self.cycle))
+
+
 class ModuleNode:
     """Un addon dentro del grafo. ≙ ``ModuleNode`` de la referencia."""
 
@@ -44,12 +52,7 @@ class ModuleNode:
         Un addon sin ``depends`` (o cuyas dependencias no están en el grafo)
         tiene profundidad 0. Ordenar por ``depth`` da el orden topológico.
         """
-        depths = [
-            self._graph[d].depth
-            for d in self.depends
-            if d in self._graph and d != self.name
-        ]
-        return 1 + max(depths) if depths else 0
+        return self._graph._depth(self, {}, {})
 
     @property
     def order_name(self) -> str:
@@ -74,7 +77,25 @@ class ModuleGraph:
 
     def __iter__(self) -> Iterator[ModuleNode]:
         """Itera en orden topológico: por ``(depth, name)``. ≙ referencia."""
-        return iter(sorted(self._nodes.values(), key=lambda n: (n.depth, n.name)))
+        depths = {}
+        for name in sorted(self._nodes):
+            self._depth(self._nodes[name], depths, {})
+        return iter(sorted(self._nodes.values(), key=lambda n: (depths[n.name], n.name)))
+
+    def _depth(self, node, memo, path):
+        if node.name in path:
+            cycle = tuple(path)[path[node.name]:] + (node.name,)
+            raise ModuleGraphCycle(cycle)
+        if node.name in memo:
+            return memo[node.name]
+        path[node.name] = len(path)
+        try:
+            depths = [self._depth(self._nodes[dep], memo, path)
+                      for dep in node.depends if dep in self._nodes]
+            memo[node.name] = 1 + max(depths) if depths else 0
+            return memo[node.name]
+        finally:
+            del path[node.name]
 
     def __len__(self) -> int:
         return len(self._nodes)
