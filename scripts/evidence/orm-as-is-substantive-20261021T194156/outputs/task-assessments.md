@@ -754,3 +754,33 @@ Continuación: Consultar el resultado de la prueba PG de bootstrap y aceptar sep
 Relaciones nativas adicionales: GEN0312/session29a5e555-e34f-5a20-8c39-ad6cf2f19961/local60 (migración inicial de dos modelos registrados) y GEN0576/misma sesión/local324 (clave de contexto derivada). No nuevas TASK, estados o inventario. Los datos completos e identidad verificada están en admission-and-provenance.json. No se da por cerrado el porte de test_orm ni todas las13funciones de Environment.
 
 Resultado final del segundo bootstrap nativo:41cuerposPASS,1ERRORteardown (exit1).21de colección incluyen los dos antes bloqueados. Transaction.flush→base.public_user ausente→autocommit es una falla pendiente de ciclo de fixture, no res_users. No se etiqueta heredada sin control.
+
+## Verificación de cumplimiento y cierre de brechas — 2026-10-21
+
+### TASK-API-0416
+
+Fixture corregido en f5bb655c: el cierre de DDL usa conexión nueva después de comprobar ausencia de dirty/tocompute/patches. Control anterior reproduce base.public_user/autocommit, frontera nueva pasa.41pytestPASS incluyendo teardown; no se sembró actor ni se modificó Transaction.flush.
+
+Continuación: Aceptar el resultado conjunto final del lote y revisión/CI; no atribuir este error de fixture a obligación de implementar0379.
+
+### TASK-API-0417
+
+0fc622dc reutiliza NewId como clave privada del caché existente para computes contextuales sin columna con pkNone. Preserva valores por instancia/contexto y constructor, invalidación y protección recursiva; pk sigueNone.131casosPASS y controles sin identidad/identidad compartida fallan2/1. El Consumer original antes divergente pasa con0SQL.
+
+Continuación: Revisión/CI e integración autorizada pendientes. La falla acotada sin pk ya está corregida; BaseModel.new/origin y protocolo virtual completo GEN0579 no quedan aceptados.
+
+### TASK-API-0415
+
+Estado completed histórico intacto. Despacho/asignación vigente se conserva; el Consumer real ahora también conserva contextos sin pk mediante caché existente. Nueva prueba de segunda lectura conserva metadata del método mockeado, evitando un positivo que ignorara depends_context.
+
+Continuación: No reimplementar fábrica NonStored; revisar delta0417 y aceptar sólo contratos probados, no todoORM.
+
+### TASK-GEN-0559
+
+3ffa958e/2f01be1b preservados, helpers sin cambios;16PGPASS de regresión tras modificación material de lectura/cache. No nueva implementación o admisión.
+
+Continuación: Esperar CI/revisión/integración autorizada; no declarar todaGEN0559 niORM completo.
+
+El criterio previo de que la lectura contextual sin pk exigía todoBaseModel.new queda corregido por prueba del adaptador de caché existente. GEN0579 completo y0379 actor de seguridad conservan estado/alcance; no nuevas TASK. Ver scripts/evidence/orm-acceptance-close-20261021T234504/README.md para matriz de cumplimiento y resultado conjunto.
+
+Cierre verificado del incremento actual:47pytestPASS con migraciones nativas PostgreSQL y teardown del código final conjunto;131PASS focalizados,214PASS/1XFAIL y16PG0559 conservados. No sumar poblaciones solapadas ni declarar CI/merge.
