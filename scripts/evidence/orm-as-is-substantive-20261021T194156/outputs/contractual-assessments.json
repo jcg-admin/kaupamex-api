@@ -16116,7 +16116,25 @@
         }
       ],
       "native_odoo_execution": "NOT_EVALUATED; no native Odoo runtime/fixtures started",
-      "whole_group_acceptance": "not established by bounded subcontracts; acceptance requires applicable source assertions and stated Consumer conditions"
+      "whole_group_acceptance": "not established by bounded subcontracts; acceptance requires applicable source assertions and stated Consumer conditions",
+      "module_graph_pilot": {
+        "inventory": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/module-graph-pilot.json",
+        "evidence": "scripts/evidence/orm-module-graph-pilot-20261022T142314",
+        "task": "TASK-API-0382",
+        "verified": "Five bounded differential/protocol tests PASS; ordinary depths/cardinality/lookup, test_* divergence, phase and demo obligations; not native Odoo execution",
+        "acceptance": "not_verified; no production graph or loader modifications",
+        "continuation_frontier": [
+          "State-bound executable graph, load/update filtering and pruning",
+          "test_* placement and dependency ordering",
+          "schema/model composition/data/hooks and registry invalidation",
+          "worker consistency and upgrade/uninstall execution"
+        ],
+        "dependencies": "Existing DEC-AISL-05; persisted catalogue and requests already implemented; effective registry and DB-bound load context still required",
+        "related_blockers": [
+          "TASK-API-0173 base/authz cycle remains unowned; not automatically eligible",
+          "TASK-API-0417 compute/display_name divergence; current CI FAIL"
+        ]
+      }
     },
     {
       "source_group": "computed_fixture_dependency_graph",
