@@ -1,69 +1,22 @@
-"""``ir.module.module`` — catálogo técnico de addons (Odoo ``base``).
+"""Catálogo técnico y solicitudes de ciclo de vida por base.
 
-Adaptado de ``odoo/addons/base/models/ir_module.py`` (Odoo Community, LGPL-3)
-— atribución y aviso de licencia preservados (DEC-KX-03).
-
-**Por qué existe, y por qué no existía.** Un análisis previo concluyó que este
-modelo *"no se portó — no por olvido: no tiene a qué apuntar"*, razonando que
-sin instalación en caliente no hay nada que registrar. Era falso, y el error
-fue medir un trabajo del modelo y concluir sobre los dos: el original **declara
-metadata** (nombre, licencia, categoría, dependencias) *y* **sostiene el estado
-de instalación**. Sólo el segundo depende del instalador.
-
-Lo que ese hueco costaba es medible: **4 carpetas de** ``src/addons/`` **no
-están en** ``INSTALLED_APPS`` — ``contact``, ``referral``, ``returns``,
-``reviews``. Están en disco, no cargan, y ese hecho no vivía en ninguna tabla:
-sólo en la cabeza de quien lo supiera.
-
-**Los dos catálogos, y por qué hacen falta los dos.** La referencia tiene
-``ir.module.module`` (técnico: qué está instalado) y el eje comercial que en
-Kaupamex es ``authz.Module`` (qué contrata una company). No coinciden —medido,
-18 de 25 códigos comerciales no llevan el nombre de su carpeta, y dos addons
-declaran dos módulos cada uno— así que no se colapsan: se tienen los dos, cada
-uno sobre su eje.
-
-**Qué se porta y qué no.** Se portan los campos de declaración y los tres
-estados **alcanzables** en este árbol. Las transiciones de Odoo
-(``to install`` / ``to upgrade`` / ``to remove``) **no** se portan: son la
-máquina de estados de un instalador que aquí no existe — el registro de apps de
-Django se congela en ``django.setup()`` y el schema es compartido entre
-companies (ADR-021). Registrar un estado que nadie puede alcanzar sería
-inventar una capacidad.
-
-Los cuatro enganches que Enterprise usa sobre este modelo
-==========================================================
-
-Medido sobre Enterprise 19 (``odoo19e:``, ``odoo-tools@bf077302``): **4
-archivos** con ``_inherit = 'ir.module.module'``, con **3** nombres de método
-distintos. El árbol viene duplicado en el repo —``odoo19-enterprise-main/`` y
-``odoo19pro-main/`` son la misma población— así que el grep crudo da 8 rutas y
-la población es 4.
-
-Ninguno se porta, y los cuatro caen **dentro de la divergencia ya declarada
-arriba**: los tres primeros son la transición ``to remove`` vista desde fuera,
-y el cuarto crea un módulo que ningún registro cargó.
-
-============================  =========================  ==========================
-Addon                         Método                     Qué hace, y por qué no aplica
-============================  =========================  ==========================
-``pos_blackbox_be``           ``module_uninstall``       veta la desinstalación si hay una caja certificada. Sin desinstalador no hay qué vetar.
-``helpdesk``                  ``module_uninstall``       apaga por SQL las banderas de ``helpdesk_team`` del addon que se va. Misma transición.
-``timesheet_grid``            ``button_uninstall``       arrastra ``hr_timesheet``/``sale_timesheet`` a la desinstalación — extiende el **conjunto**, no el registro.
-``web_studio``                ``get_studio_module``      crea al vuelo un módulo ``imported=True`` con ``state='installed'``. Aquí ``state`` es **derivado** de ``INSTALLED_APPS`` (ver el ``help_text`` del campo): no hay dónde escribirlo, y ``imported`` no se declara.
-============================  =========================  ==========================
-
-*Métrica:* archivos de Enterprise 19 con ``_inherit`` a ``ir.module.module``,
-y los ``def`` de nivel de clase que declaran.
-*Ciega a:* una extensión que llegue por un mixin intermedio sin nombrar el
-modelo, y a Enterprise 18 — que no se midió en este pase.
+Adaptado de Odoo Community 19 ir.module.module (LGPL-3), revisión
+abe4040ec1a45beee90fb694e4eae4453e46b389. Las solicitudes administrativas
+programan estados transitorios; no sustituyen la ejecución del loader,
+la preparación del esquema, los hooks ni la composición efectiva del registro.
 """
+import shutil
+
 import fields
 import models
 from django.apps import apps
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import router, transaction
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
-from modules.module import adapt_version, load_manifest
+from modules.module import adapt_version, check_python_external_dependency, load_manifest
+from modules.module_graph import ModuleGraph
+from orm.environments import is_system
 
 
 class IrModuleCategory(TimeStampedModel):
@@ -237,15 +190,20 @@ class IrModule(TimeStampedModel):
     _order = 'application desc,sequence,name'
     _allow_sudo_commands = False
 
-    # Sólo los estados que este árbol puede producir. Odoo declara seis; las
-    # tres transiciones restantes pertenecen a su instalador.
+    # Estado persistido por base: las transiciones programan el trabajo del loader.
     STATE_UNINSTALLABLE = 'uninstallable'
     STATE_UNINSTALLED   = 'uninstalled'
     STATE_INSTALLED     = 'installed'
+    STATE_TO_INSTALL = 'to install'
+    STATE_TO_UPGRADE = 'to upgrade'
+    STATE_TO_REMOVE = 'to remove'
     STATES = [
         (STATE_UNINSTALLABLE, 'No instalable'),
         (STATE_UNINSTALLED,   'No instalado'),
         (STATE_INSTALLED,     'Instalado'),
+        (STATE_TO_INSTALL, 'Pendiente de instalación'),
+        (STATE_TO_UPGRADE, 'Pendiente de actualización'),
+        (STATE_TO_REMOVE, 'Pendiente de desinstalación'),
     ]
 
     # Las diez licencias del titular, verbatim de la referencia. NO se recorta
@@ -331,7 +289,7 @@ class IrModule(TimeStampedModel):
     auto_install = fields.Boolean(default=False)
     state        = fields.Selection(
         max_length=16, choices=STATES, default=STATE_UNINSTALLED, db_index=True,
-        help_text='Derivado de INSTALLED_APPS; no hay instalador que lo escriba.',
+        help_text='Estado de instalación persistido en la base del módulo.',
     )
 
     class Meta:
@@ -350,6 +308,97 @@ class IrModule(TimeStampedModel):
         devolver una cadena vacía.
         """
         return getattr(self, self._rec_name, '') or self.name
+
+    def button_install(self):
+        """Programa instalación y dependencias; no declara ejecutado el loader."""
+        return self._request_module_change('install')
+
+    def button_upgrade(self):
+        """Programa actualización y dependientes instalados de esta base."""
+        return self._request_module_change('upgrade')
+
+    def button_uninstall(self):
+        """Programa retirada de dependientes sin borrar datos ni esquema aún."""
+        return self._request_module_change('uninstall')
+
+    def _request_module_change(self, operation):
+        if not is_system():
+            raise PermissionDenied('Module changes require system administration')
+        if self.pk is None:
+            raise ValidationError('A persisted module is required')
+        using = self._state.db or router.db_for_write(type(self), instance=self)
+        with transaction.atomic(using=using):
+            # Orden estable y mismo cerrojo para operaciones incompatibles.
+            rows = {row.name: row for row in type(self).objects.using(using)
+                    .select_for_update().order_by('pk')}
+            current = rows.get(self.name)
+            if current is None or current.pk != self.pk:
+                raise ValidationError('Module does not exist in the selected database')
+            active_states = {self.STATE_INSTALLED, self.STATE_TO_UPGRADE}
+            requested = {self.name}
+            if operation != 'install':
+                if current.state not in active_states:
+                    raise ValidationError(f'Module {self.name} is not installed')
+                if operation == 'uninstall' and self.name == 'base':
+                    raise ValidationError('The base module cannot be uninstalled')
+                requested.update(self.downstream_dependencies(
+                    exclude_states=(self.STATE_UNINSTALLED, self.STATE_UNINSTALLABLE,
+                                    self.STATE_TO_INSTALL, self.STATE_TO_REMOVE)
+                ).values_list('name', flat=True))
+                if operation == 'uninstall':
+                    if 'base' in requested:
+                        raise ValidationError('The base module cannot be uninstalled')
+                    type(self).objects.using(using).filter(name__in=requested).update(
+                        state=self.STATE_TO_REMOVE)
+                    self.state = self.STATE_TO_REMOVE
+                    return sorted(requested)
+
+                if self.name == 'base':
+                    requested.update(name for name, row in rows.items()
+                                     if row.state in active_states)
+            graph = ModuleGraph()
+            available = ModuleGraph()
+            available.extend(tuple(rows))
+            active = {name for name, row in rows.items() if row.state in
+                      active_states | {self.STATE_TO_INSTALL}}
+            while True:
+                graph.extend(tuple(requested))
+                ordered = list(graph)  # Rechaza ciclos antes de escribir estados.
+                for node in ordered:
+                    row = rows.get(node.name)
+                    if row is None or not node.manifest:
+                        raise ValidationError(f'Missing module dependency: {node.name}')
+                    if not node.manifest.get('installable', True):
+                        raise ValidationError(f'Module is not installable: {node.name}')
+                    if row.state in {self.STATE_UNINSTALLABLE, self.STATE_TO_REMOVE}:
+                        raise ValidationError(f'Invalid module state: {node.name}: {row.state}')
+                    self._check_module_dependencies(node.manifest)
+                active.update(node.name for node in ordered)
+                automatic = set(available.auto_installable(active)) - requested
+                if not automatic:
+                    break
+                requested |= automatic
+            selected = {node.name for node in ordered}
+            exclusions = IrModuleExclusion.objects.using(using).filter(
+                module__name__in=active, name__in=active)
+            if exclusions.exists():
+                raise ValidationError('Incompatible modules in the selected database')
+            if operation == 'upgrade':
+                type(self).objects.using(using).filter(name__in=requested,
+                    state__in=active_states).update(state=self.STATE_TO_UPGRADE)
+            type(self).objects.using(using).filter(name__in=selected,
+                state=self.STATE_UNINSTALLED).update(state=self.STATE_TO_INSTALL)
+            self.state = type(self).objects.using(using).get(pk=self.pk).state
+            return [node.name for node in ordered]
+
+    @staticmethod
+    def _check_module_dependencies(manifest):
+        external = manifest.get('external_dependencies', {})
+        for dependency in external.get('python', ()):
+            check_python_external_dependency(dependency)
+        for dependency in external.get('bin', ()):
+            if shutil.which(dependency) is None:
+                raise ValidationError(f'Missing executable dependency: {dependency}')
 
     @classmethod
     def get_module_info(cls, name):
@@ -416,26 +465,13 @@ class IrModule(TimeStampedModel):
 
     def downstream_dependencies(self,
                                 exclude_states=(STATE_UNINSTALLED,
-                                                STATE_UNINSTALLABLE)):
+                                                STATE_UNINSTALLABLE,
+                                                STATE_TO_REMOVE)):
         """≙ ``downstream_dependencies`` (``odoo19c: ir_module.py:531-555``).
 
-        Quién depende de mí, directa o indirectamente. Es la pregunta que la
-        fuente hace antes de desinstalar; aquí no hay desinstalador, pero la
-        pregunta sigue siendo la que responde *"si retiro este addon, qué se
-        rompe"*, y hoy no la responde nada.
-
-        **La lista de estados a excluir diverge, y su razón está medida.** La
-        fuente excluye ``('uninstalled', 'uninstallable', 'to remove')``; aquí
-        el tercero no existe —es una transición de su instalador, declarada
-        fuera del porte en el docstring del módulo—, así que enumerarlo sería
-        declarar un estado inalcanzable.
-
-        **El parámetro ``known_deps`` de la fuente no se porta, y es
-        deliberado.** Allá es el acumulador de una recursión: cada nivel lo
-        pasa al siguiente para no revisitar. Aquí el recorrido es por oleadas
-        con marca de visitado interna, así que un parámetro para acumular no
-        tiene receptor — declararlo sería una superficie que ningún llamador
-        puede usar. Ver ``_walk_dependencies``.
+        Reutiliza el recorrido por oleadas del catálogo de la misma base.
+        Excluye módulos retirados o ya programados para retirada; conserva
+        la distinción entre programar una operación y ejecutarla.
         """
         return self._walk_dependencies(forward=False,
                                        exclude_states=exclude_states)
@@ -466,18 +502,21 @@ class IrModule(TimeStampedModel):
         recursión ingenua no terminaría. Es la misma razón que en
         ``IrModuleDependency.all_dependencies``.
         """
+        using = self._state.db or router.db_for_read(type(self), instance=self)
+        modules = type(self).objects.using(using)
+        dependencies = IrModuleDependency.objects.using(using)
         seen = set()
         frontier = {self.name} if forward else {self.pk}
 
         while frontier:
             if forward:
-                names = list(IrModuleDependency.objects.filter(
+                names = list(dependencies.filter(
                     module__name__in=frontier).values_list('name', flat=True))
-                found = type(self).objects.filter(name__in=names)
+                found = modules.filter(name__in=names)
             else:
-                names = list(type(self).objects.filter(
+                names = list(modules.filter(
                     pk__in=frontier).values_list('name', flat=True))
-                found = type(self).objects.filter(
+                found = modules.filter(
                     dependencies__name__in=names)
 
             found = found.exclude(state__in=exclude_states).exclude(
@@ -487,10 +526,10 @@ class IrModule(TimeStampedModel):
                 break
             seen |= fresh
             frontier = ({module.name for module in
-                         type(self).objects.filter(pk__in=fresh)}
+                         modules.filter(pk__in=fresh)}
                         if forward else fresh)
 
-        return type(self).objects.filter(pk__in=seen)
+        return modules.filter(pk__in=seen)
 
 
 class IrModuleDependency(TimeStampedModel):
@@ -571,9 +610,17 @@ class IrModuleDependency(TimeStampedModel):
         nombre, asignación en bucle— y la razón de portarla es medible: sin
         ella, resolver N aristas cuesta N consultas.
         """
+        dependencies = list(dependencies)
+        if not dependencies:
+            return {}
+        aliases = {dependency._state.db or router.db_for_read(IrModule, instance=dependency)
+                   for dependency in dependencies}
+        if len(aliases) != 1:
+            raise ValidationError('A dependency batch must belong to one database')
+        using = aliases.pop()
         names = {dependency.name for dependency in dependencies}
         by_name = {module.name: module
-                   for module in IrModule.objects.filter(name__in=names)}
+                   for module in IrModule.objects.using(using).filter(name__in=names)}
         return {dependency.pk: by_name.get(dependency.name)
                 for dependency in dependencies}
 
@@ -678,7 +725,8 @@ class IrModuleExclusion(TimeStampedModel):
         arista. La fuente las declara por separado y no las factoriza; se
         conserva esa separación en vez de inventar un mixin que allá no existe.
         """
-        return IrModule.objects.filter(name=self.name).first()
+        using = self._state.db or router.db_for_read(IrModule, instance=self)
+        return IrModule.objects.using(using).filter(name=self.name).first()
 
     @classmethod
     def _search_exclusion(cls, value):
