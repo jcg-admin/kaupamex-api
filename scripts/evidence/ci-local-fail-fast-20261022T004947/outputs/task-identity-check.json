@@ -1,0 +1,14 @@
+{
+  "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "task_id": "1441",
+  "citation_id": "TASK-API-0478",
+  "subject": "Validate API locally with the same fail-fast CI contract",
+  "status": "pending",
+  "owner": "codex-ci-local",
+  "submodule": "api",
+  "submodule_source": "corregida 2026-10-22T00:52:59: User-requested Consumer CI parity and local failure detection; implementation owned by kaupamex-api",
+  "blocked_by_json": "[]",
+  "blocks_json": "[]",
+  "citation_match_count": 1,
+  "resolved_identity": "TASK-API-0478"
+}

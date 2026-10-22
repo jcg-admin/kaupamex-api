@@ -30,6 +30,7 @@ help:
 	@echo '  make db-up             Arranca PostgreSQL via el script de db (socket)'
 	@echo '  make ci-test           db-up + pytest suite completa (--reuse-db)'
 	@echo '  make ci-test-fast      db-up + subset de humo sale/ (--reuse-db)'
+	@echo '  make ci-verify         Contrato local/CI; exige PostgreSQL desechable'
 	@echo '  make serve             Servidor de aplicacion embebido (ADR-027)'
 	@echo '  make check-serve       Gate: valida gunicorn.conf.py y que la app importe'
 	@echo '  make pdf               Compila los helpers PDF (libharu vendorizada; ADR-017)'
@@ -133,6 +134,17 @@ install-hooks:
 	bash scripts/install-hooks.sh
 
 # --- Coordinacion CI/CD: db + api ---------------------------------------
+
+# Contrato compartido local/Actions. No depende de db-up: sólo admite una
+# base desechable provisionada por el invocador, nunca la QA compartida.
+# Una sola receta secuencial: incluso con make -j no adelanta etapas.
+.PHONY: ci-verify
+ci-verify: export UV_PYTHON = 3.12
+ci-verify:
+	uv sync --frozen
+	uv run --frozen python scripts/check_ci_database.py
+	$(MAKE) pdf
+	uv run --frozen pytest --create-db --maxfail=1 -q --junitxml=test-results/pytest.xml
 
 # Arranca PostgreSQL (idempotente) via el script del submodulo db
 # (ADR-028 — MariaDB retirado; start_db.sh ya no sirve a ningun entorno).

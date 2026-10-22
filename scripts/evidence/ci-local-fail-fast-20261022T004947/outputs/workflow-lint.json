@@ -1,0 +1,7 @@
+{
+  "command": "actionlint .github/workflows/api-tests.yml",
+  "version": "1.7.12",
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": ""
+}
