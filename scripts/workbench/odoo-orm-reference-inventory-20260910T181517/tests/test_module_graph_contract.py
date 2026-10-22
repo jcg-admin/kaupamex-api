@@ -49,23 +49,23 @@ def graphs(reference_node, manifests):
     return reference, consumer
 
 
-def test_ordinary_depth_agrees_but_order_key_does_not(reference_node):
+def test_ordinary_depth_and_order_key_agree(reference_node):
     ref, ours = graphs(reference_node, {'base': {'depends': []},
                                       'sale': {'depends': ['base']}})
     assert [ref[n].depth for n in ('base', 'sale')] == [0, 1]
     assert [ours[n].depth for n in ('base', 'sale')] == [0, 1]
     assert ref['sale'].order_name == 'sale'
-    assert ours['sale'].order_name == '001-sale'
+    assert ours['sale'].order_name == ref['sale'].order_name
 
 
-def test_test_addon_placement_is_not_equivalent(reference_node):
+def test_test_addon_placement_matches_reference(reference_node):
     ref, ours = graphs(reference_node, {'base': {'depends': []},
         'aaa': {'depends': ['base']}, 'test_base': {'depends': ['base']}})
     assert ref['test_base'].depth == 0
-    assert ours['test_base'].depth == 1
+    assert ours['test_base'].depth == ref['test_base'].depth
     assert ref['test_base'].order_name == 'base test_base'
     assert [n.name for n in sorted(ref.values(), key=lambda n: (n.depth, n.order_name))] == ['base', 'test_base', 'aaa']
-    assert ours.order() == ['base', 'aaa', 'test_base']
+    assert ours.order() == ['base', 'test_base', 'aaa']
 
 
 def test_reference_phase_depends_on_mode_and_pending_state(reference_node):
@@ -101,3 +101,40 @@ def test_static_graph_membership_lookup_and_cardinality(reference_node):
     assert ours['sale'].name == ref['sale'].name
     with pytest.raises(KeyError):
         ours['absent']
+
+
+@pytest.mark.parametrize('manifests', [
+    {'base': {'depends': []}, 'a': {'depends': ['base']},
+     'z': {'depends': ['base']}, 'test_tie': {'depends': ['a', 'z']}},
+    {'base': {'depends': []}, 'test_base': {'depends': ['base']},
+     'test_nested': {'depends': ['test_base']}, 'a': {'depends': ['base']}},
+])
+def test_test_addon_ties_and_nested_anchors(reference_node, manifests):
+    ref, ours = graphs(reference_node, manifests)
+    assert [(n.depth, n.order_name) for n in ours] == [
+        (n.depth, n.order_name)
+        for n in sorted(ref.values(), key=lambda n: (n.depth, n.order_name))]
+
+
+def test_test_addon_without_anchor_rejects_both_graphs(reference_node):
+    ref, ours = graphs(reference_node, {'test_empty': {'depends': []}})
+    for node in (ref['test_empty'], ours['test_empty']):
+        with pytest.raises(ValueError):
+            _ = node.depth
+
+
+def test_test_addon_cycle_still_has_domain_error(reference_node):
+    _, ours = graphs(reference_node, {'test_cycle': {'depends': ['a']},
+                                     'a': {'depends': ['test_cycle']}})
+    with pytest.raises(ValueError, match='ModuleGraphCycle'):
+        _ = ours['test_cycle'].order_name
+
+
+def test_mutating_anchor_dependencies_invalidates_order(reference_node):
+    _, ours = graphs(reference_node, {'base': {'depends': []},
+        'test_base': {'depends': ['base']}, 'a': {'depends': ['base']}})
+    assert ours.order() == ['base', 'test_base', 'a']
+    ours['test_base'].depends[:] = ['a']
+    assert ours['test_base'].depth == 1
+    assert ours['test_base'].order_name == 'a test_base'
+    assert ours.order() == ['base', 'a', 'test_base']

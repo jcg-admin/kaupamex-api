@@ -16134,6 +16134,22 @@
           "TASK-API-0173 base/authz cycle remains unowned; not automatically eligible",
           "TASK-API-0417 compute/display_name divergence; current CI FAIL"
         ]
+      },
+      "module_graph_ordering": {
+        "task": "TASK-API-0382",
+        "evidence": "scripts/evidence/orm-module-order-20261022T174513",
+        "contract": "outputs/ordering-contract.json",
+        "source": "src/modules/module_graph.py:ModuleNode.depth/order_name;ModuleGraph.__iter__/_depth",
+        "before": "2FAIL/3PASS conformance baseline; test addon one depth too far and ordinary order key prefixed",
+        "after": "Bounded contract conformance and boundary controls PASS;17inventory/conformance and12pure graph regression tests",
+        "functional_change": "Test addons use dependency depth/key, ordinary names unprefixed, iteration follows dependency insertion order; explicit cycle errors retained",
+        "acceptance": "ci-verify FAIL:77PASS/1SKIP/1ERROR,532.98s,pytest1/make2. Exact pre-change remote display_name error matches. Later tests NOT_EVALUATED; review/CI/integration remain required.",
+        "pending": [
+          "Database-bound graph snapshots/filtering",
+          "load/update phases",
+          "demo eligibility in effective loader",
+          "schema/data/hooks/model composition/invalidation/worker execution"
+        ]
       }
     },
     {

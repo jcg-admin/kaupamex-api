@@ -3,21 +3,20 @@
 Resuelve el **primero** de los tres grafos del proyecto (H-API-228): el de
 addons-código, declarado en ``__manifest__.py:depends``.
 
-Conserva de la referencia: ``ModuleNode`` con ``depends``/``depth``, el orden de
-iteración por ``(depth, name)`` —que es el orden topológico de carga— y
-``ModuleGraph.extend()`` como forma de poblarlo transitivamente.
+Conserva nodos y orden por profundidad y clave de dependencia: los addons
+``test_*`` comparten profundidad con su última dependencia y la siguen antes
+de sus dependientes ordinarios. ``extend`` añade dependencias transitivas.
 
-**Divergencias deliberadas:**
+Contratos de ejecución todavía pendientes bajo TASK-API-0382:
 
 - Sin cursor ni ``mode='load'|'update'``: la referencia lee el estado
   ``installed``/``to upgrade`` de ``ir_module_module`` para decidir qué cargar.
-  Aquí no hay install dinámico (ver ``modules/__init__``), así que
-  ``_update_from_database`` no se porta y el grafo es puramente estático.
-- ``phase`` y ``demo_installable`` no se portan: sirven al instalador.
-- Se añade ``cycles()``, que **no** está en la referencia. Odoo no lo necesita
-  porque su grafo se puebla en orden de instalación y un ciclo se manifiesta
-  como dependencia irresoluble; aquí el grafo se construye sobre un árbol ya
-  escrito, donde un ciclo declarado es un defecto que hay que poder nombrar.
+  El catálogo y las solicitudes administrativas ya persisten por base;
+  el grafo todavía no consume esos estados ni ejecuta las solicitudes.
+- Fases y elegibilidad demo requieren el contexto de carga, aún pendiente.
+- ``cycles()`` permite diagnosticar dependencias cíclicas; ordenar un ciclo
+  lanza ModuleGraphCycle. La referencia elimina los nodos afectados al fallar
+  su cálculo de profundidad; esa política de poda sigue siendo otro contrato.
 """
 from __future__ import annotations
 
@@ -47,17 +46,26 @@ class ModuleNode:
 
     @property
     def depth(self) -> int:
-        """Profundidad = 1 + la máxima de sus dependencias presentes. ≙ referencia.
+        """Distancia de carga; test_* comparte la de su última dependencia.
 
-        Un addon sin ``depends`` (o cuyas dependencias no están en el grafo)
-        tiene profundidad 0. Ordenar por ``depth`` da el orden topológico.
+        Un addon ordinario sin dependencias presentes tiene profundidad0.
+        Un test_* sin dependencia de anclaje rechaza el cálculo.
         """
         return self._graph._depth(self, {}, {})
 
     @property
     def order_name(self) -> str:
         """Clave de orden estable. ≙ referencia."""
-        return f'{self.depth:03d}-{self.name}'
+        if self.name.startswith('test_'):
+            # Validate the complete path before recursively resolving names;
+            # a cycle must remain a domain error, not a RecursionError.
+            _ = self.depth
+            dependency = max(
+                (self._graph[dep] for dep in self.depends if dep in self._graph),
+                key=lambda node: (node.depth, node.order_name),
+            )
+            return dependency.order_name + ' ' + self.name
+        return self.name
 
     def __repr__(self) -> str:
         return f'ModuleNode({self.name!r}, depth={self.depth})'
@@ -76,11 +84,11 @@ class ModuleGraph:
         return self._nodes[name]
 
     def __iter__(self) -> Iterator[ModuleNode]:
-        """Itera en orden topológico: por ``(depth, name)``. ≙ referencia."""
+        """Ordena por profundidad y clave de dependencia, sin fases de carga."""
         depths = {}
         for name in sorted(self._nodes):
             self._depth(self._nodes[name], depths, {})
-        return iter(sorted(self._nodes.values(), key=lambda n: (depths[n.name], n.name)))
+        return iter(sorted(self._nodes.values(), key=lambda n: (depths[n.name], n.order_name)))
 
     def _depth(self, node, memo, path):
         if node.name in path:
@@ -92,7 +100,12 @@ class ModuleGraph:
         try:
             depths = [self._depth(self._nodes[dep], memo, path)
                       for dep in node.depends if dep in self._nodes]
-            memo[node.name] = 1 + max(depths) if depths else 0
+            if node.name.startswith('test_'):
+                # As in the pinned source, a test addon without dependencies
+                # has no insertion anchor and max() raises ValueError.
+                memo[node.name] = max(depths)
+            else:
+                memo[node.name] = 1 + max(depths) if depths else 0
             return memo[node.name]
         finally:
             del path[node.name]

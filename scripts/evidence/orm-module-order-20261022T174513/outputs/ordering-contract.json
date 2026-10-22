@@ -1,0 +1,35 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo/modules/module_graph.py::ModuleNode.depth/order_name;ModuleGraph.__iter__",
+  "behavior": "For normal addons depth=max(dependency depth)+1 or0, key=name. For test_* depth=maximum dependency depth; key=last dependency key + space + own name. Iterate by depth/key; load phases remain separate pending contract.",
+  "execution_flow": "ModuleGraph.extend -> depth DFS validates cycles -> depth/order key -> sorted iteration -> IrModule administrative closure consumes graph order",
+  "inputs_outputs": {
+    "inputs": "Manifest dependency DAG, addon identities including test_*, existing node changes",
+    "outputs": "Deterministic nodes/order, correct shared-depth test insertion; ValueError when test addon lacks dependency anchor; ModuleGraphCycle when cycle prevents ordering"
+  },
+  "side_effects": "No database/schema writes, no state transitions; per-evaluation depth memo only; does not persist stale computed keys",
+  "dependencies": [
+    "Existing load_manifest and ModuleGraphCycle",
+    "Pure Python graph; no DB-state or phase context needed for this unit",
+    "Existing TASK-API-0382 owner codex-module-lifecycle; DEC-AISL-05 retained from prior admission"
+  ],
+  "consumers": [
+    "src/addons/base/models/ir_module.py:_request_install/auto_installable",
+    "ModuleGraph.order/__iter__ callers"
+  ],
+  "installed_mechanism": "src/modules/module_graph.py:ModuleNode.depth/order_name;ModuleGraph._depth/__iter__",
+  "existing_adaptation": "String dependency names resolve existing graph nodes. Native CPython max/sorted; memoized graph depth, no new graph/registry/router. Domain cycle error retained.",
+  "verification": {
+    "baseline": "baseline.log:2FAIL/3PASS exit1 before implementation",
+    "conformance": "conformance.log/JUnit:17PASS exit0 (7existing inventory tests +10contract cases)",
+    "regression": "regression.log/JUnit:12PASS exit0, isolated pure graph tests --confcutdir=tests/unit/modules; no DB tests replaced",
+    "global": "ci-verify FAIL:pytest1/make2,77PASS/1SKIP/1ERROR,532.98s. Exact pre-change remote JUnit error matches; later tests NOT_EVALUATED."
+  },
+  "equivalence": "Bounded ordering rules verified; full graph phase/cursor/filtering equivalence not_verified",
+  "limitations": [
+    "Reference class constructor/native Odoo loader not executed",
+    "Fixtures include ties, nested test anchors, empty dependencies, cycles and mutation; not exhaustive arbitrary graph proof",
+    "Requests remain requests, not loader acceptance"
+  ],
+  "integration": "Existing PR109 pending; acceptance blocked by global FAIL/review/integration; bounded ordering probes PASS, not whole loader acceptance"
+}
