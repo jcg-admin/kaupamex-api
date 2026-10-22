@@ -147,3 +147,14 @@ final response after preserving JUnit interrupted the batch again; no completed
 objective or Provider decision justified that stop. The batch resumed existing
 work and made a fifth native selection rather than treating a report as closure.
 No claim that AGENTS or fixture tests enforce the Codex host boundary is made.
+
+## User-confirmed terminal visibility
+
+The user confirmed all seven A-G terminal visibility tests were visible and
+requested preservation. outputs/terminal-visibility-confirmation.json records
+real commands, expected/final exits, the active-process recovery and the user's
+confirmation. AGENTS.md persists the verified native invocation and a bounded
+recheck if visibility disappears. No binary patch, configuration change or
+experimental feature flag was used. The historical rendering cause remains
+unproven; successful controls do not establish a permanent client-side fix.
+This presentation clarification never closes the ORM objective.

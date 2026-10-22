@@ -67,6 +67,30 @@ no la describas como ejecución de un modelo local de Thyrox.
 
 `scripts/workbench/` para instrumentos con su manifest existente; `scripts/evidence/` para resultados. No copies el store del Provider.
 
+### Ejecuciones visibles en esta interfaz
+
+El usuario confirmó que las siete pruebas A-G mostraron las ejecuciones el
+2026-10-22. Conserva el uso de la terminal real: `tools.exec_command` mediante
+`functions.exec`, una operación por llamada, y entrega su resultado con
+`text(result)`. No afirmes que esa vía impide mostrar los bloques nativos.
+La causa de la pérdida anterior de visibilidad no quedó demostrada; no se
+modificó el binario, la configuración ni las opciones del entorno para resolverla.
+
+Antes de cada operación comunica brevemente su propósito. Conserva comando,
+salida y código de salida reales. Para procesos activos conserva `session_id`
+y recupera su resultado con `tools.write_stdin`; no declares completado lo
+que sigue en ejecución. Para registros largos usa `tee` con `pipefail`, sin
+ocultar la salida ni imprimir secretos. Distingue fallo esperado y fallo real.
+
+No sustituyas los bloques de actividad por transcripciones en el chat salvo
+petición expresa. La presentación no cambia el alcance ni justifica detener
+`completar-raiz-orm`. Si el usuario vuelve a indicar falta de visibilidad,
+repite primero los controles inocuos A-G del expediente existente y solicita
+confirmación de lo visible; no atribuyas la causa a la interfaz, a una recarga
+o al Provider sin evidencia, ni cambies opciones experimentales por conjetura.
+
+Evidencia: `scripts/evidence/orm-continuation-20261022T190749/outputs/terminal-visibility-confirmation.json`.
+
 Antes de ejecutar una TASK comprueba identidad, iniciativa, alcance, dependencias,
 propietario y verificador. No declarar elegible un grafo sin aristas sin medir
 sus dependencias. Al cerrar registra revisión, pruebas, resultado, commit/PR y
