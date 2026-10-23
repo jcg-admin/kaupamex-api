@@ -35,6 +35,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 
+from orm.environments import company_scope
 from tools import config
 from tools.misc import find_pg_tool
 
@@ -458,13 +459,19 @@ def provision_company_database(db_name, using=DEFAULT_DB_ALIAS):
     management command ``company_create``): SRP + Tell-Don't-Ask.
     """
     ensure_management_enabled()
+    if not isinstance(db_name, str) or not _COMPANY_DB_RE.fullmatch(db_name):
+        raise ValueError('Expected a company_<N>_db database name')
     created = not database_exists(db_name, using)
     if created:
         create_empty_database(db_name, using)
     # Cablea el alias runtime ANTES de migrar (la base recién creada no estaba
     # en el roster de settings al boot). Idempotente si ya estaba.
     install_company_aliases(settings.DATABASES, names=[db_name], using=using)
-    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+    # RunPython puede consultar modelos históricos sin .using(). El destino
+    # explícito gobierna también esas consultas, no la empresa del llamador.
+    # Conservar el componente textual evita renombrar aliases con ceros iniciales.
+    with company_scope(db_name.split('_')[1]):
+        call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
     return db_name, created
 
 
