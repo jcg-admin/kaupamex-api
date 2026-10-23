@@ -1,0 +1,30 @@
+{
+  "kaupamex-api": {
+    "exit_code": 0,
+    "pr": {
+      "head": "b2934e3daa2a34d13b084027c3f18b79088a80b0",
+      "mergeable": true,
+      "merged": false,
+      "number": 109,
+      "state": "open"
+    },
+    "checks": [
+      {
+        "conclusion": "failure",
+        "name": "test",
+        "status": "completed"
+      }
+    ]
+  },
+  "kaupamex-docs": {
+    "exit_code": 0,
+    "pr": {
+      "head": "c5bc2462193ebd7a8db8ffbc3eba78914a278e21",
+      "mergeable": true,
+      "merged": false,
+      "number": 154,
+      "state": "open"
+    },
+    "checks": []
+  }
+}

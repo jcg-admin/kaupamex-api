@@ -70088,6 +70088,22 @@
         "acceptance": "not_verified for full task; data/demo orchestration caller, XML/CSV/hook/registry composition and installed finalization pending",
         "evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
         "ci": "Final497.81s77PASS/1SKIP/1ERROR make2 baseline first error; later NOT_EVALUATED; six focused and five differential controls remain separate"
+      },
+      "current_demo_continuation": {
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "native_identity": "session168b0fdf-bfe4-590b-b6c0-b6be124c124a/local737",
+        "implementation": [
+          "src/modules/loading.py::load_demo",
+          "src/addons/base/models/ir_demo_failure.py::IrDemoFailure.error",
+          "src/addons/base/migrations/0089_demo_failure_error_length.py"
+        ],
+        "verified": "Storage real PG exact long Unicode roundtrip; old data/migration and protected reverse pass. Combined data/demo16PASS. Real file/converter/PG savepoint passes; memory-only savepoint and length255 annulments each exit1 expected. Full migrated N=1 actual files/converter/signals/todo/XMLID/error reporting PASS, original error19117characters persisted completely; module state/version unchanged.",
+        "pending": "Global CI519.64s77PASS/1SKIP/1ERROR make2, inherited display_name first error; later tests NOT_EVALUATED. N>1 migration/alias/registry composition, hooks/full lifecycle and integration not accepted.",
+        "contract_authorities": [
+          "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/loading-contract-reconciliation.json",
+          "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/demo-failure-correspondence.json"
+        ],
+        "admission": "Current native owner codex-module-lifecycle and no foreign path claims; no new task or state update; prior selected qualification resumed rather than accepted artificially."
       }
     },
     {

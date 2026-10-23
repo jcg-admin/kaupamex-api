@@ -325,37 +325,80 @@
         "acceptance": "not_verified",
         "merge": false
       }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/loading.py::load_demo",
+      "source_location": 64,
+      "owner": "odoo.modules.loading",
+      "symbol_kind": "function",
+      "behavior": "Optional demo runs elevated within a savepoint; report failures without accepting the whole module lifecycle",
+      "execution_flow": [
+        "No demo/demo_xml returns True",
+        "Elevated install_demo context; load_data demo within savepoint",
+        "Success returns True",
+        "On error rollback demo data and log complete traceback",
+        "Resolve optional todo and failure model; persist open todo and error only when both exist; return False"
+      ],
+      "inputs_outputs": {
+        "signature": {
+          "params": [
+            "env",
+            "package",
+            "idref",
+            "mode"
+          ],
+          "has_default": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "consumer": "load_demo(env, package, idref, mode); env.cr.alias binds selected Django database",
+        "precondition": "Explicit caller atomic transaction for work, matching domain routing alias, matching package catalogue identity before failure writes"
+      },
+      "side_effects": "Demo converter SQL/data, context activation/restoration, optional todo and complete error persistence; no own outer commit or installed/version finalization",
+      "dependencies": [
+        "Existing Environment entered context manager",
+        "Django nested transaction.atomic",
+        "Existing tools.convert_file",
+        "Existing Django-label lookup for IrDemoFailure",
+        "Complete error storage and optional IrModelData todo reference",
+        "Caller registry/schema and company scope readiness"
+      ],
+      "consumers": [
+        "Pinned load_module_graph",
+        "Pinned force_demo",
+        "Future Consumer module loader caller not integrated"
+      ],
+      "installed_mechanism": [
+        "src/modules/loading.py::load_demo reuses load_data, Environment and Django atomic",
+        "IrDemoFailure.error now unbounded; base0089 protects narrowing reverse",
+        "Django-label fallback is a native equivalent, not a new canonical name or registry implementation"
+      ],
+      "existing_adaptation": "Consumer env has no get and canonical demo model is not registered; existing Django-label lookup verified. Context requires with env(...) rather than merely creating a derived Environment. Caller owns transaction.",
+      "verification": {
+        "focused": "Nine initial red cases; definitive combined data/demo16PASS including added identity mismatch control",
+        "postgresql": "Complete error storage/migration/guard and real-file savepoint PASS; full migrated N=1 stack exit0",
+        "negative": "Savepoint annulment exit1 leaves outer transaction aborted; length255 annulment exit1 detects lost content",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "ci": "make exit2; inherited first display_name error, later tests NOT_EVALUATED"
+      },
+      "equivalence": "N=1 bounded demo path verified with real migrated schema, files, converter, todo/XMLID/failure models and automation signals; full module lifecycle and N>1 not accepted",
+      "limitations": "No XML/CSV, hooks, module schema/registry composition or installed-version producer acceptance. Existing automation alias and productive company provisioning blockers remain.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "acceptance": "not_verified for full TASK",
+        "merge": false,
+        "official_state_changes": false
+      }
     }
   ],
   "other_named_declarations_pending": [
-    {
-      "kind": "function",
-      "owner": null,
-      "name": "load_demo",
-      "lineno": 64,
-      "signature": {
-        "params": [
-          "env",
-          "package",
-          "idref",
-          "mode"
-        ],
-        "has_default": [
-          false,
-          false,
-          false,
-          false
-        ],
-        "vararg": null,
-        "kwonly": [],
-        "kwarg": null
-      },
-      "body": "substantive",
-      "decorators": [],
-      "qualified_symbol": "load_demo",
-      "acceptance": "not_verified",
-      "task_resolution": "not_verified"
-    },
     {
       "kind": "function",
       "owner": null,
@@ -461,7 +504,7 @@
     "src/service/db.py",
     "src/orm/registry.py"
   ],
-  "scope": "Two source-flow contracts reviewed: loader version finalization and manifest-data stage. Five other named declarations remain pending; full loader acceptance not verified.",
+  "scope": "Three reviewed source-flow contracts; four other named declarations remain pending. Counts are not contractual acceptance coverage.",
   "evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
   "consumer_service_inventory": {
     "name": "db.py",
@@ -1299,14 +1342,14 @@
   },
   "consumer_loading_inventory": {
     "name": "loading.py",
-    "lines": 42,
+    "lines": 89,
     "classes": [],
     "functions": [
       {
         "kind": "function",
         "owner": null,
         "name": "load_data",
-        "lineno": 17,
+        "lineno": 19,
         "signature": {
           "params": [
             "idref",
@@ -1328,10 +1371,35 @@
         },
         "body": "substantive",
         "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "load_demo",
+        "lineno": 47,
+        "signature": {
+          "params": [
+            "env",
+            "package",
+            "idref",
+            "mode"
+          ],
+          "has_default": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
       }
     ],
-    "raw": 1,
-    "unique": 1
+    "raw": 2,
+    "unique": 2
   },
-  "consumer_loading_sha256": "cd0cce31e4a5902e5d829c734ee8577a9fcf275beefa9e76fe412bb076aed814"
+  "consumer_loading_sha256": "b2e2ea82c99c431eb76736f4194b251920847f8262990622e214c7676c04f230"
 }
