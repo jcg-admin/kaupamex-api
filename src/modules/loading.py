@@ -1,4 +1,4 @@
-"""Manifest data stage using the existing Django converter.
+"""Bounded module-loading stages using existing Django mechanisms.
 
 Corresponds to pinned Odoo19Community modules/loading.py::load_data. An
 explicit database alias replaces the reference Environment database binding.
@@ -14,6 +14,50 @@ from django.db.transaction import TransactionManagementError
 from tools.convert import convert_file
 
 _logger = logging.getLogger(__name__)
+
+
+def reset_modules_state(using):
+    """Persist failure recovery after the failed installation has rolled back.
+
+    Odoo opens an independent committing cursor. Django callers must instead
+    exit their failed transaction before invoking this explicit-alias stage.
+    Refuse nesting so recovery cannot silently disappear in a caller rollback.
+    """
+    if not isinstance(using, str) or not using:
+        raise ValueError('A database alias is required for module recovery')
+    database = connections[using]
+    if database.in_atomic_block or not database.get_autocommit():
+        raise TransactionManagementError('Module recovery requires an independent transaction')
+    with transaction.atomic(using=using):
+        with database.cursor() as cursor:
+            if 'ir_module_module' not in database.introspection.table_names(cursor):
+                _logger.info('skipping reset_modules_state, ir_module_module table does not exist')
+                return
+            cursor.execute("UPDATE ir_module_module SET state='installed' "
+                           "WHERE state IN ('to remove', 'to upgrade')")
+            cursor.execute("UPDATE ir_module_module SET state='uninstalled' "
+                           "WHERE state='to install'")
+    _logger.warning('Transient module states were reset')
+
+
+def _check_module_names(cr, module_names):
+    """Warn about unknown requests in the catalogue bound to ``cr``.
+
+    Like the pinned loader, this validates names without changing the input,
+    module states or transaction boundaries. ``all`` is a request wildcard.
+    """
+    names = set(module_names)
+    names.discard('all')
+    if names:
+        cr.execute('SELECT count(id) FROM ir_module_module WHERE name = ANY(%s)',
+                   (list(names),))
+        row = cr.fetchone()
+        assert row is not None
+        if row[0] != len(names):
+            cr.execute('SELECT name FROM ir_module_module')
+            incorrect_names = names.difference(name for name, in cr.fetchall())
+            _logger.warning('invalid module names, ignored: %s',
+                            ', '.join(incorrect_names))
 
 
 def load_data(idref, mode, kind, package, *, using):
