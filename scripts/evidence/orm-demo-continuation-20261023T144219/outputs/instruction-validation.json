@@ -1,5 +1,5 @@
 {
-  "document": "VM-b501 — Continuación integral de completar-raiz-orm, recuperación del estado persistido y resolución contractual de ModuleGraph, loading.py y migraciones por empresa.txt",
+  "document": "VM-b501 \u2014 Continuaci\u00f3n integral de completar-raiz-orm, recuperaci\u00f3n del estado persistido y resoluci\u00f3n contractual de ModuleGraph, loading.py y migraciones por empresa.txt",
   "document_sha256": "73b9c218579e7b61038536bb7834e121e04fd278fe2a0518554b3f50c7550452",
   "scope": "Consumer-specific review of the current user-authorized continuation document; output only, not a new planner/task schema or acceptance authority",
   "baseline_api_revision": "b2934e3daa2a34d13b084027c3f18b79088a80b0",
@@ -42,7 +42,7 @@
     },
     {
       "clause": 3,
-      "title": "Revisiones históricas de recuperación",
+      "title": "Revisiones hist\u00f3ricas de recuperaci\u00f3n",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -53,7 +53,7 @@
     },
     {
       "clause": 4,
-      "title": "Recuperar la ejecución interrumpida",
+      "title": "Recuperar la ejecuci\u00f3n interrumpida",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -75,7 +75,7 @@
     },
     {
       "clause": 6,
-      "title": "Recuperar la selección existente",
+      "title": "Recuperar la selecci\u00f3n existente",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -97,7 +97,7 @@
     },
     {
       "clause": 8,
-      "title": "Revisar el código vigente",
+      "title": "Revisar el c\u00f3digo vigente",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -119,7 +119,7 @@
     },
     {
       "clause": 10,
-      "title": "Preservar la preparación por base",
+      "title": "Preservar la preparaci\u00f3n por base",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -130,7 +130,7 @@
     },
     {
       "clause": 11,
-      "title": "Preservar la versión instalada",
+      "title": "Preservar la versi\u00f3n instalada",
       "result": "PARTIAL",
       "assessment": "Installed version preserved but successful loader finalization producer not verified.",
       "evidence": [
@@ -163,7 +163,7 @@
     },
     {
       "clause": 14,
-      "title": "Diseñar controles discriminantes",
+      "title": "Dise\u00f1ar controles discriminantes",
       "result": "PARTIAL",
       "assessment": "Owned PG alias/missing-table/cleanup probes exist; full-company acceptance fails.",
       "evidence": [
@@ -174,7 +174,7 @@
     },
     {
       "clause": 15,
-      "title": "Corregir únicamente la causa demostrada",
+      "title": "Corregir \u00fanicamente la causa demostrada",
       "result": "PARTIAL",
       "assessment": "Target context and historical HR DDL corrected; contenttypes placement and consumer alias ownership unresolved.",
       "evidence": [
@@ -185,7 +185,7 @@
     },
     {
       "clause": 16,
-      "title": "Aceptación de TASK-API-0383",
+      "title": "Aceptaci\u00f3n de TASK-API-0383",
       "result": "NOT_SATISFIED",
       "assessment": "Native TASK-API-0383 pending; full real company provisioning has not reached expected final state.",
       "evidence": [
@@ -218,7 +218,7 @@
     },
     {
       "clause": 19,
-      "title": "Distinguir estados de solicitudes y ejecución",
+      "title": "Distinguir estados de solicitudes y ejecuci\u00f3n",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -229,7 +229,7 @@
     },
     {
       "clause": 20,
-      "title": "Implementación incremental",
+      "title": "Implementaci\u00f3n incremental",
       "result": "PARTIAL",
       "assessment": "Native selected manifest-data stage implemented; demo continuation now in progress.",
       "evidence": [
@@ -240,7 +240,7 @@
     },
     {
       "clause": 21,
-      "title": "Mantener vigente la instrucción anterior",
+      "title": "Mantener vigente la instrucci\u00f3n anterior",
       "result": "PARTIAL",
       "assessment": "Per-file traceability retained incrementally; exhaustive semantic/acceptance coverage not complete.",
       "evidence": [
@@ -317,7 +317,7 @@
     },
     {
       "clause": 28,
-      "title": "Validación global",
+      "title": "Validaci\u00f3n global",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -383,7 +383,7 @@
     },
     {
       "clause": 34,
-      "title": "Eliminar dependencias exclusivamente efímeras",
+      "title": "Eliminar dependencias exclusivamente ef\u00edmeras",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -394,7 +394,7 @@
     },
     {
       "clause": 35,
-      "title": "Evidencia antes de publicación",
+      "title": "Evidencia antes de publicaci\u00f3n",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -427,7 +427,7 @@
     },
     {
       "clause": 38,
-      "title": "Conservar información aprovechable",
+      "title": "Conservar informaci\u00f3n aprovechable",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -471,7 +471,7 @@
     },
     {
       "clause": 42,
-      "title": "Documentación",
+      "title": "Documentaci\u00f3n",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -482,7 +482,7 @@
     },
     {
       "clause": 43,
-      "title": "Recuperación",
+      "title": "Recuperaci\u00f3n",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -515,7 +515,7 @@
     },
     {
       "clause": 46,
-      "title": "Ciclo de módulos",
+      "title": "Ciclo de m\u00f3dulos",
       "result": "NOT_SATISFIED",
       "assessment": "Request transitions do not execute installation; full schema/data/hooks/state acceptance absent.",
       "evidence": [
@@ -548,7 +548,7 @@
     },
     {
       "clause": 49,
-      "title": "Integración",
+      "title": "Integraci\u00f3n",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -559,7 +559,7 @@
     },
     {
       "clause": 50,
-      "title": "Estado de recuperación",
+      "title": "Estado de recuperaci\u00f3n",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -603,7 +603,7 @@
     },
     {
       "clause": 54,
-      "title": "Estado de publicación",
+      "title": "Estado de publicaci\u00f3n",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -614,7 +614,7 @@
     },
     {
       "clause": 55,
-      "title": "Frontera de continuación",
+      "title": "Frontera de continuaci\u00f3n",
       "result": "PARTIAL",
       "assessment": "Current frontier is recoverable but not a complete qualified whole-goal dispatcher.",
       "evidence": [
@@ -648,7 +648,7 @@
     "still_not_satisfied": "Full productive company provisioning and full module installation acceptance; no claim all instruction requirements are complete"
   },
   "continuation_instruction_review": {
-    "file_name": "VM-b501 — Continuidad contractual del ORM, aceptación funcional progresiva y consolidación de los mecanismos existentes de Thyrox.txt",
+    "file_name": "VM-b501 \u2014 Continuidad contractual del ORM, aceptaci\u00f3n funcional progresiva y consolidaci\u00f3n de los mecanismos existentes de Thyrox.txt",
     "sha256": "867f96471b1bc851698fb08cd53f3ae9b517de524f49e95f9ae49325a91d29b0",
     "baseline_api": "5dad5f651f01edbc80f0489876e2b5a552940f4e",
     "code_commit": "56c6d4eab2426e93a4af86f24383f92044c93278",
@@ -988,6 +988,333 @@
       "G_continuation_condition": "Acceptance gate failed on actual exact-code CI; productive company schema blocked by existing open placement authority. Broader admission cannot rely on NULL ownership or unqualified global reader reserved to others. Not resource exhaustion, not proof global goal has no possible independent work.",
       "H_persistence": "Existing job README/current summary/native exports/per-file ledger/both AS IS/frontier; normal feature commits and PR publication verified via Git",
       "I_acceptance": "Step verification, TASK acceptance, PR integration and persistent goal completion remain distinct"
+    }
+  },
+  "integral_continuation_instruction_review": {
+    "document": "VM-b501 \u2014 Continuaci\u00f3n integral de completar-raiz-orm mediante implementaci\u00f3n contractual exhaustiva por archivo, trazabilidad de TASK y conservaci\u00f3n de la arquitectura existente.txt",
+    "sha256": "991464d2fcb4faa01f64fa584a6b206bfeca18232b152916fef6619a28a6c0d9",
+    "baseline_api_revision": "2865700b7bc626bc55a330d69ce74164c2b0bf0f",
+    "task_fixture_revision": "4b67be0f",
+    "objective_complete": false,
+    "official_task_states_changed": false,
+    "clauses": [
+      {
+        "section": 1,
+        "status": "verified_bounded",
+        "evidence_and_limit": "Current API/Docs/Provider HEAD/status/worktrees/stashes recovered;7 native TASKs read; historical commits remain ancestors. PR109/154 open; current remote CI40012474106 failed. Existing expedients reused."
+      },
+      {
+        "section": 2,
+        "status": "verified_bounded",
+        "evidence_and_limit": "Current API/Docs/Provider HEAD/status/worktrees/stashes recovered;7 native TASKs read; historical commits remain ancestors. PR109/154 open; current remote CI40012474106 failed. Existing expedients reused."
+      },
+      {
+        "section": 3,
+        "status": "verified_bounded",
+        "evidence_and_limit": "Current API/Docs/Provider HEAD/status/worktrees/stashes recovered;7 native TASKs read; historical commits remain ancestors. PR109/154 open; current remote CI40012474106 failed. Existing expedients reused."
+      },
+      {
+        "section": 4,
+        "status": "verified_bounded",
+        "evidence_and_limit": "Current API/Docs/Provider HEAD/status/worktrees/stashes recovered;7 native TASKs read; historical commits remain ancestors. PR109/154 open; current remote CI40012474106 failed. Existing expedients reused."
+      },
+      {
+        "section": 5,
+        "status": "partial",
+        "evidence_and_limit": "Existing per-file graph/loading inventories reused,19 graph declarations preserved. Loading7function contracts now represented including force_demo/load_modules not_verified. Fixture contract implemented; full reference file acceptance pending."
+      },
+      {
+        "section": 6,
+        "status": "partial",
+        "evidence_and_limit": "Existing per-file graph/loading inventories reused,19 graph declarations preserved. Loading7function contracts now represented including force_demo/load_modules not_verified. Fixture contract implemented; full reference file acceptance pending."
+      },
+      {
+        "section": 7,
+        "status": "partial",
+        "evidence_and_limit": "Existing per-file graph/loading inventories reused,19 graph declarations preserved. Loading7function contracts now represented including force_demo/load_modules not_verified. Fixture contract implemented; full reference file acceptance pending."
+      },
+      {
+        "section": 8,
+        "status": "partial",
+        "evidence_and_limit": "Existing per-file graph/loading inventories reused,19 graph declarations preserved. Loading7function contracts now represented including force_demo/load_modules not_verified. Fixture contract implemented; full reference file acceptance pending."
+      },
+      {
+        "section": 9,
+        "status": "partial",
+        "evidence_and_limit": "Existing per-file graph/loading inventories reused,19 graph declarations preserved. Loading7function contracts now represented including force_demo/load_modules not_verified. Fixture contract implemented; full reference file acceptance pending."
+      },
+      {
+        "section": 10,
+        "status": "partial",
+        "evidence_and_limit": "Existing per-file graph/loading inventories reused,19 graph declarations preserved. Loading7function contracts now represented including force_demo/load_modules not_verified. Fixture contract implemented; full reference file acceptance pending."
+      },
+      {
+        "section": 11,
+        "status": "partial",
+        "evidence_and_limit": "Existing per-file graph/loading inventories reused,19 graph declarations preserved. Loading7function contracts now represented including force_demo/load_modules not_verified. Fixture contract implemented; full reference file acceptance pending."
+      },
+      {
+        "section": 12,
+        "status": "partial",
+        "evidence_and_limit": "Metadata proposal unchanged/unapproved. Native provisioner, routers and existing AS IS retained. No alternate state/store/coordinator; owners and cross-TASK effects retained."
+      },
+      {
+        "section": 13,
+        "status": "partial",
+        "evidence_and_limit": "Metadata proposal unchanged/unapproved. Native provisioner, routers and existing AS IS retained. No alternate state/store/coordinator; owners and cross-TASK effects retained."
+      },
+      {
+        "section": 14,
+        "status": "partial",
+        "evidence_and_limit": "Metadata proposal unchanged/unapproved. Native provisioner, routers and existing AS IS retained. No alternate state/store/coordinator; owners and cross-TASK effects retained."
+      },
+      {
+        "section": 15,
+        "status": "verified_bounded",
+        "evidence_and_limit": "New fixture/probe identifiers English and explanatory comments/docstrings Spanish; normal hooks enforce existing conventions. No public API rename."
+      },
+      {
+        "section": 16,
+        "status": "verified_bounded",
+        "evidence_and_limit": "New fixture/probe identifiers English and explanatory comments/docstrings Spanish; normal hooks enforce existing conventions. No public API rename."
+      },
+      {
+        "section": 17,
+        "status": "verified_bounded",
+        "evidence_and_limit": "New fixture/probe identifiers English and explanatory comments/docstrings Spanish; normal hooks enforce existing conventions. No public API rename."
+      },
+      {
+        "section": 18,
+        "status": "partial",
+        "evidence_and_limit": "Previous ModuleGraph controls/source unchanged; per-file19declarations remain mapped with loader/imported-module boundaries explicit. No repeated graph test campaign."
+      },
+      {
+        "section": 19,
+        "status": "partial",
+        "evidence_and_limit": "Previous ModuleGraph controls/source unchanged; per-file19declarations remain mapped with loader/imported-module boundaries explicit. No repeated graph test campaign."
+      },
+      {
+        "section": 20,
+        "status": "partial",
+        "evidence_and_limit": "load_data/load_demo/name/reset results retained. force_demo/load_modules source flow reviewed against Registry.new; requests still stored not executed and effective per-base composition not accepted."
+      },
+      {
+        "section": 21,
+        "status": "partial",
+        "evidence_and_limit": "load_data/load_demo/name/reset results retained. force_demo/load_modules source flow reviewed against Registry.new; requests still stored not executed and effective per-base composition not accepted."
+      },
+      {
+        "section": 22,
+        "status": "partial",
+        "evidence_and_limit": "load_data/load_demo/name/reset results retained. force_demo/load_modules source flow reviewed against Registry.new; requests still stored not executed and effective per-base composition not accepted."
+      },
+      {
+        "section": 23,
+        "status": "partial",
+        "evidence_and_limit": "Existing380migrations/107local userFK evidence retained. Metadata/session placement proposal requires review; schema alone is not authentication or module installation acceptance."
+      },
+      {
+        "section": 24,
+        "status": "partial",
+        "evidence_and_limit": "Existing380migrations/107local userFK evidence retained. Metadata/session placement proposal requires review; schema alone is not authentication or module installation acceptance."
+      },
+      {
+        "section": 25,
+        "status": "partial",
+        "evidence_and_limit": "Existing380migrations/107local userFK evidence retained. Metadata/session placement proposal requires review; schema alone is not authentication or module installation acceptance."
+      },
+      {
+        "section": 26,
+        "status": "verified_bounded",
+        "evidence_and_limit": "Fixture and5real cases PASS;8mock controls PASS and guard annulment discriminates. Two harness errors preserved separately; cleanup independentlyPASS. See isolation-qualification-summary.json. Whole auth/policy/TASK acceptance pending."
+      },
+      {
+        "section": 27,
+        "status": "partial",
+        "evidence_and_limit": "Fixture and5real cases PASS;8mock controls PASS and guard annulment discriminates. Two harness errors preserved separately; cleanup independentlyPASS. See isolation-qualification-summary.json. Whole auth/policy/TASK acceptance pending."
+      },
+      {
+        "section": 28,
+        "status": "not_verified",
+        "evidence_and_limit": "No historical live databases modified. Recovery of already-recorded but absent physical tables remains distinct from fresh provisioning; no recorder rewrite."
+      },
+      {
+        "section": 29,
+        "status": "partial",
+        "evidence_and_limit": "Existing14-element records and62TASK AS IS retained; neither files,tests norTASKs used as accepted-contract denominator. Native0381 ownerNULL introduces a real request-routing boundary, not eligibility."
+      },
+      {
+        "section": 30,
+        "status": "partial",
+        "evidence_and_limit": "Existing14-element records and62TASK AS IS retained; neither files,tests norTASKs used as accepted-contract denominator. Native0381 ownerNULL introduces a real request-routing boundary, not eligibility."
+      },
+      {
+        "section": 31,
+        "status": "partial",
+        "evidence_and_limit": "Existing14-element records and62TASK AS IS retained; neither files,tests norTASKs used as accepted-contract denominator. Native0381 ownerNULL introduces a real request-routing boundary, not eligibility."
+      },
+      {
+        "section": 32,
+        "status": "verified_bounded",
+        "evidence_and_limit": "No dependency on external BABOK/Excel documents, new taxonomy, TASK numbering or BA coordinator introduced."
+      },
+      {
+        "section": 33,
+        "status": "verified_bounded",
+        "evidence_and_limit": "No dependency on external BABOK/Excel documents, new taxonomy, TASK numbering or BA coordinator introduced."
+      },
+      {
+        "section": 34,
+        "status": "verified_bounded",
+        "evidence_and_limit": "No dependency on external BABOK/Excel documents, new taxonomy, TASK numbering or BA coordinator introduced."
+      },
+      {
+        "section": 35,
+        "status": "verified_bounded",
+        "evidence_and_limit": "Fixture and5real cases PASS;8mock controls PASS and guard annulment discriminates. Two harness errors preserved separately; cleanup independentlyPASS. See isolation-qualification-summary.json. Whole auth/policy/TASK acceptance pending."
+      },
+      {
+        "section": 36,
+        "status": "verified_bounded",
+        "evidence_and_limit": "Fixture and5real cases PASS;8mock controls PASS and guard annulment discriminates. Two harness errors preserved separately; cleanup independentlyPASS. See isolation-qualification-summary.json. Whole auth/policy/TASK acceptance pending."
+      },
+      {
+        "section": 37,
+        "status": "verified_bounded",
+        "evidence_and_limit": "Fixture and5real cases PASS;8mock controls PASS and guard annulment discriminates. Two harness errors preserved separately; cleanup independentlyPASS. See isolation-qualification-summary.json. Whole auth/policy/TASK acceptance pending."
+      },
+      {
+        "section": 38,
+        "status": "partial",
+        "evidence_and_limit": "Local4b67CI2 and remote948CI2,77PASS1SKIP1ERROR, same inherited display_name; new source commits published existingPR, no merge or acceptance. Later tests not evaluated."
+      },
+      {
+        "section": 39,
+        "status": "partial",
+        "evidence_and_limit": "Local4b67CI2 and remote948CI2,77PASS1SKIP1ERROR, same inherited display_name; new source commits published existingPR, no merge or acceptance. Later tests not evaluated."
+      },
+      {
+        "section": 40,
+        "status": "partial",
+        "evidence_and_limit": "RemoteHEAD286CI failure independently recovered. Exact local4b67be0f makeci running ownPG; no acceptance or merges and foreign ownership respected."
+      },
+      {
+        "section": 41,
+        "status": "partial",
+        "evidence_and_limit": "Local4b67CI2 and remote948CI2,77PASS1SKIP1ERROR, same inherited display_name; new source commits published existingPR, no merge or acceptance. Later tests not evaluated."
+      },
+      {
+        "section": 42,
+        "status": "partial",
+        "evidence_and_limit": "Real native frontier after own code claims release selects same unaccepted unit from2candidates; no accepted state fabricated and no valid test repeated. Global coverage/admission and managed local execution remain unqualified. Not global exhaustion."
+      },
+      {
+        "section": 43,
+        "status": "partial",
+        "evidence_and_limit": "Real native frontier after own code claims release selects same unaccepted unit from2candidates; no accepted state fabricated and no valid test repeated. Global coverage/admission and managed local execution remain unqualified. Not global exhaustion."
+      },
+      {
+        "section": 44,
+        "status": "partial",
+        "evidence_and_limit": "Real native frontier after own code claims release selects same unaccepted unit from2candidates; no accepted state fabricated and no valid test repeated. Global coverage/admission and managed local execution remain unqualified. Not global exhaustion."
+      },
+      {
+        "section": 45,
+        "status": "partial",
+        "evidence_and_limit": "Real native frontier after own code claims release selects same unaccepted unit from2candidates; no accepted state fabricated and no valid test repeated. Global coverage/admission and managed local execution remain unqualified. Not global exhaustion."
+      },
+      {
+        "section": 46,
+        "status": "verified_bounded",
+        "evidence_and_limit": "Fixture and5real cases PASS;8mock controls PASS and guard annulment discriminates. Two harness errors preserved separately; cleanup independentlyPASS. See isolation-qualification-summary.json. Whole auth/policy/TASK acceptance pending."
+      },
+      {
+        "section": 47,
+        "status": "partial",
+        "evidence_and_limit": "Real native frontier after own code claims release selects same unaccepted unit from2candidates; no accepted state fabricated and no valid test repeated. Global coverage/admission and managed local execution remain unqualified. Not global exhaustion."
+      },
+      {
+        "section": 48,
+        "status": "verified_bounded",
+        "evidence_and_limit": "Fixture and5real cases PASS;8mock controls PASS and guard annulment discriminates. Two harness errors preserved separately; cleanup independentlyPASS. See isolation-qualification-summary.json. Whole auth/policy/TASK acceptance pending."
+      },
+      {
+        "section": 49,
+        "status": "verified_bounded",
+        "evidence_and_limit": "Fixture and5real cases PASS;8mock controls PASS and guard annulment discriminates. Two harness errors preserved separately; cleanup independentlyPASS. See isolation-qualification-summary.json. Whole auth/policy/TASK acceptance pending."
+      },
+      {
+        "section": 50,
+        "status": "partial",
+        "evidence_and_limit": "Fixture and5real cases PASS;8mock controls PASS and guard annulment discriminates. Two harness errors preserved separately; cleanup independentlyPASS. See isolation-qualification-summary.json. Whole auth/policy/TASK acceptance pending."
+      },
+      {
+        "section": 51,
+        "status": "partial",
+        "evidence_and_limit": "Fixture and5real cases PASS;8mock controls PASS and guard annulment discriminates. Two harness errors preserved separately; cleanup independentlyPASS. See isolation-qualification-summary.json. Whole auth/policy/TASK acceptance pending."
+      },
+      {
+        "section": 52,
+        "status": "in_progress",
+        "evidence_and_limit": "Priorityfixture executed first; loadercomplete-scope semantic reconciliation advanced independently. Source package representation correction and verified native continuation/publication still pending current batch."
+      },
+      {
+        "section": 53,
+        "status": "in_progress",
+        "evidence_and_limit": "Priorityfixture executed first; loadercomplete-scope semantic reconciliation advanced independently. Source package representation correction and verified native continuation/publication still pending current batch."
+      },
+      {
+        "section": 54,
+        "status": "partial",
+        "evidence_and_limit": "Local4b67CI2 and remote948CI2,77PASS1SKIP1ERROR, same inherited display_name; new source commits published existingPR, no merge or acceptance. Later tests not evaluated."
+      },
+      {
+        "section": 55,
+        "status": "partial",
+        "evidence_and_limit": "Real native frontier after own code claims release selects same unaccepted unit from2candidates; no accepted state fabricated and no valid test repeated. Global coverage/admission and managed local execution remain unqualified. Not global exhaustion."
+      }
+    ],
+    "real_resource_controls": "PASS: preexisting sentinel preserved; own DB after actual partial DDL cleaned; extension failure retains created resource for explicit cleanup. Initial over-broad injected connection error excluded from product verdict.",
+    "source_publication": {
+      "fixture_commit": "4b67be0f266c4b5a882a959226a33ec0e77df183",
+      "package_description_commit": "948c523363b75ef2f0091c983a347f328dcfdc43",
+      "remote_source_verified": true,
+      "PR": 109,
+      "merged": false
+    },
+    "first_ci_result": {
+      "revision": "4b67be0f266c4b5a882a959226a33ec0e77df183",
+      "make_exit": 2,
+      "pytest_exit": 1,
+      "pass": 77,
+      "skip": 1,
+      "error": 1,
+      "seconds": 467.74,
+      "first_failure": "ProductProduct.display_name",
+      "classification": "BASELINE_FAILURE",
+      "later_tests": "NOT_EVALUATED"
+    },
+    "batch_result": "isolation-qualification-summary.json",
+    "native_continuation": "isolation-native-continuation.json",
+    "functional_cases": "5PASS915.37s,pytest0;probe postcheck1 separately classified;independent cleanup0",
+    "remaining": [
+      "Metadata proposal review under DEC-AISL-05 and whole TASK acceptance",
+      "TASK-API-0381 request routing pending ownerNULL; full login/user identity/authorization/session replay across companies",
+      "Already-recorded but absent historical schemas: bounded recovery not implemented or applied",
+      "Effective per-base Registry/model composition, whole loader/hooks/state/installed_version/invalidation",
+      "Mandatory CI baseline compute issue and related unowned tasks; no ownership transfer",
+      "Provider discovery owner/dependency coverage and local model execution/integration qualification"
+    ],
+    "remote_ci": {
+      "revision": "948c5233",
+      "run": 40031305381,
+      "state": "COMPLETED",
+      "conclusion": "FAILURE",
+      "make_exit": 2,
+      "passed": 77,
+      "skipped": 1,
+      "errors": 1,
+      "seconds": 484.2
     }
   }
 }

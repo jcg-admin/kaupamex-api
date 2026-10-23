@@ -1,0 +1,19 @@
+{
+  "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet.run",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "input": {
+    "task_id": "736"
+  },
+  "task": {
+    "task_id": "736",
+    "citation_id": "TASK-API-0381",
+    "subject": "Cablear la resolución de base POR PETICIÓN: db_list_for_host y db_monodb tienen 0 consumidores",
+    "description": "Origen: H-API-781, y la corrección del ejecutor 2026-08-21 sobre la divergencia 1 de addons/web/controllers/session.py.\n\nEl mecanismo host→base está portado fielmente y probado: service.db.db_filter (== odoo/http.py::db_filter, con %h/%d, quita :puerto y www.), db_list_for_host (== http.db_list) y db_monodb, con tests en tests/unit/service/test_db_resolution.py. La iniciativa implementar-aislamiento-multi-db-per-company está :estado: en-ejecucion y su análisis lo declara IMPLEMENTADO.\n\nLo que NO está: nadie lo llama en el camino de la petición. Medido 2026-08-21 sobre src/ y addons/, excluyendo src/service/db.py y tests: db_list_for_host → 0 consumidores, db_monodb → 0, db_filter → 2 (y las dos son prosa de docstring, no llamadas). La base la elige hoy CompanyDatabaseRouter por app/modelo (MULTIDB_CONTROL_PLANE_APPS), no el host de la petición.\n\nConsecuencia concreta: /web/session/* no acepta el parámetro db de la referencia, y esa omisión se documentó como \"aquí la base es una\" — falso: el árbol declara DATABASE_ROUTERS, install_company_aliases, company_create, company_migrate_all y un cron que itera list_company_db_names.\n\nEntregable: decidir y cablear quién resuelve la base por petición (middleware sobre el host vs parámetro explícito vs sesión), y luego reponer o declarar con fundamento el parámetro db de session.py.",
+    "status": "pending",
+    "owner": null,
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  }
+}

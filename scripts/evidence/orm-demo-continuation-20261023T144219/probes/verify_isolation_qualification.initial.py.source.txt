@@ -1,0 +1,122 @@
+"""Verifica el fixture Consumer con PostgreSQL propio, sin coordinar TASK."""
+import importlib.util
+import json
+import os
+from pathlib import Path
+import secrets
+import subprocess
+import sys
+from unittest import mock
+
+import django
+
+django.setup()
+
+import pytest
+from django.conf import settings
+from django.db import connections
+from service import db as svc
+
+root = Path.cwd()
+output = Path(__file__).resolve().parents[1] / 'outputs'
+name = settings.DATABASES['default']['NAME']
+role = settings.DATABASES['default']['USER']
+assert name.startswith('orm_bootstrap_') and role == name
+os.environ['CI_DATABASE_DISPOSABLE'] = name
+settings.MULTIDB_MANAGEMENT_ENABLED = True
+container = os.environ['ORM_QA_CONTAINER']
+marker = name + '_isolation'
+results = {'task': 'TASK-API-0383', 'source_revision': subprocess.check_output(
+    ['git', 'rev-parse', 'HEAD'], text=True).strip(), 'acceptance': 'not_verified',
+    'scope': 'Fixture qualification and data isolation, not whole authentication or loader acceptance'}
+
+
+def admin(sql):
+    subprocess.run(['docker', 'exec', '-i', '-u', 'postgres', container,
+                    'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-d', 'postgres'],
+                   input=sql, text=True, check=True)
+
+
+path = root / 'tests/integration/company/test_multidb_isolation.py'
+spec = importlib.util.spec_from_file_location('qualified_isolation_fixture', path)
+fixture = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(fixture)
+alias = 'company_' + str(secrets.randbits(48)) + '_db'
+created = hba = False
+try:
+    admin(f'ALTER ROLE {role} CREATEDB;')
+    subprocess.run(['docker', 'exec', '-i', '-u', 'postgres', container,
+                    'sh', '-c', 'cat >> "$PGDATA/pg_hba.conf"'], input=
+                   f'\nhost all {role} {os.environ["ORM_QA_BRIDGE"]}/32 scram-sha-256 # {marker}\n',
+                   text=True, check=True)
+    hba = True
+    admin('SELECT pg_reload_conf();')
+    results['ci_make_exit'] = subprocess.run(['make', 'ci-verify']).returncode
+    junit = root / 'test-results/pytest.xml'
+    if junit.exists():
+        (output / 'isolation-ci.junit.xml').write_bytes(junit.read_bytes())
+    svc.create_empty_database(alias)
+    created = True
+    svc.install_company_aliases(settings.DATABASES, [alias])
+    with connections[alias].cursor() as cursor:
+        cursor.execute('CREATE TABLE ownership_sentinel (value integer)')
+        cursor.execute('INSERT INTO ownership_sentinel VALUES (42)')
+    fixture._forget_alias(alias)
+    try:
+        with fixture._company_databases((alias,)):
+            raise AssertionError('Preexisting database was acquired')
+    except RuntimeError as error:
+        assert 'existing' in str(error)
+    svc.install_company_aliases(settings.DATABASES, [alias])
+    with connections[alias].cursor() as cursor:
+        cursor.execute('SELECT value FROM ownership_sentinel')
+        assert cursor.fetchall() == [(42,)]
+    svc.drop_database(alias)
+    created = False
+    fixture._forget_alias(alias)
+    results['preexisting_database_and_sentinel_preserved'] = True
+
+    def fail_after_partial_schema(target):
+        with connections[target].cursor() as cursor:
+            cursor.execute('CREATE TABLE partial_owned_schema (value integer)')
+        raise RuntimeError('Injected migration failure after actual DDL')
+
+    with mock.patch.object(svc, 'provision_company_database', side_effect=fail_after_partial_schema):
+        try:
+            with fixture._company_databases((alias,)):
+                raise AssertionError('Partial migration unexpectedly succeeded')
+        except RuntimeError as error:
+            assert 'actual DDL' in str(error)
+    assert not svc.database_exists(alias) and alias not in settings.DATABASES
+    results['partial_schema_failure_cleaned_own_database'] = True
+    # El servicio registra fallos de extensiones sin perder el recurso adquirido.
+    with mock.patch.object(svc, '_connect', side_effect=RuntimeError('Injected extension connection failure')):
+        svc.create_empty_database(alias)
+    created = True
+    assert svc.database_exists(alias)
+    svc.drop_database(alias)
+    created = False
+    results['extension_failure_retains_owned_database_for_cleanup'] = True
+    print('Real resource safety controls PASS; begin five isolation cases', flush=True)
+    results['isolation_pytest_exit'] = int(pytest.main([
+        str(path), '--confcutdir=' + str(path.parent), '-vv', '-s',
+        '-o', 'addopts=', '--junitxml=' + str(output / 'isolation-functional.junit.xml')]))
+    results['qualification_limit'] = 'No root conftest seed replay in bounded run; native provisioner applies all migrations. Full CI measured separately above.'
+    results['aliases_after_teardown'] = [alias for alias in settings.DATABASES if alias.startswith('company_')]
+    assert not results['aliases_after_teardown']
+    with connections['default'].cursor() as cursor:
+        cursor.execute('SELECT datname FROM pg_database WHERE datdba = (SELECT oid FROM pg_roles WHERE rolname = %s) AND datname != %s', [role, name])
+        results['owned_extra_databases_after_teardown'] = cursor.fetchall()
+    assert not results['owned_extra_databases_after_teardown']
+finally:
+    if created:
+        svc.drop_database(alias)
+    if alias in settings.DATABASES:
+        fixture._forget_alias(alias)
+    if hba:
+        subprocess.run(['docker', 'exec', '-u', 'postgres', container, 'sh', '-c',
+                        f'sed -i "/# {marker}$/d" "$PGDATA/pg_hba.conf"'], check=True)
+        admin('SELECT pg_reload_conf();')
+    (output / 'isolation-qualification.json').write_text(json.dumps(results, indent=2) + '\n')
+    print(json.dumps(results, indent=2), flush=True)
+raise SystemExit(results['ci_make_exit'] or results['isolation_pytest_exit'])

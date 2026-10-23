@@ -540,6 +540,91 @@
         "official_state_changes": false,
         "published": true
       }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/loading.py::force_demo",
+      "source_location": 89,
+      "behavior": "Force demo flags for catalogue rows, load demo for installed/upgrade/remove modules, invalidate cached demo flags and rebuild the registry if demo creates module requests",
+      "execution_flow": "Ready registry and database-bound Environment -> all catalogue demo flags true and demo attempted in dependency order. Pending requests require commit, effective Registry.new(update_module=True) and transaction reset.",
+      "inputs_outputs": "Ready registry and database-bound Environment -> all catalogue demo flags true and demo attempted in dependency order. Pending requests require commit, effective Registry.new(update_module=True) and transaction reset.",
+      "side_effects": "Caller-owned transaction, SQL flag update, optional demo writes/reporting, possible commit and registry rebuild. Demo optional failures differ from mandatory registry/rebuild failure.",
+      "dependencies": [
+        "Ready effective per-database Registry",
+        "ModuleGraph.from_database selected-alias snapshot",
+        "load_demo",
+        "IrModule demo persistence and invalidation",
+        "Executable Registry.new module request processing",
+        "Caller transaction/reset contract"
+      ],
+      "consumers": [
+        "odoo/cli/module.py::_force_demo lines187-189 obtains its Environment with _create_env_context(parsed_args.db_name)",
+        "odoo/addons/base/models/ir_demo.py::IrDemo.install_demo, explicit module administration"
+      ],
+      "installed_mechanism": [
+        "No direct Consumer force_demo implementation",
+        "Existing load_demo implements bounded data/savepoint/report behavior",
+        "ModuleGraph.from_database and IrModule snapshot/persistence are support only"
+      ],
+      "existing_adaptation": "Distributed bounded support identified; full contract pending, not equivalent by existence",
+      "verification": {
+        "current_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "specific_controls": "Not executed: positive two-database catalogue flag isolation and dependency-order demo; negative not-ready registry and failed rebuild; demo-created request must be processed, not silently stored.",
+        "result": "not_verified"
+      },
+      "equivalence": "not_verified",
+      "limitations": "No native Odoo runtime test or whole loader/Registry acceptance; no new functional loader in this unit",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_owner": "codex-module-lifecycle",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "PR": 109,
+        "merge": false
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/loading.py::load_modules",
+      "source_location": 340,
+      "behavior": "Build an effective per-database installation through base bootstrap, catalogue requests, fixed-point graph loading, schema/data/hooks/migrations, uninstall/reload and consistency checks",
+      "execution_flow": "New registry plus update/install/upgrade/reinit/demo/model-check requests -> database-bound effective models, loaded state, finalized constraints and persistent lifecycle results. Read-only load excludes uninstalled modules.",
+      "inputs_outputs": "New registry plus update/install/upgrade/reinit/demo/model-check requests -> database-bound effective models, loaded state, finalized constraints and persistent lifecycle results. Read-only load excludes uninstalled modules.",
+      "side_effects": "Schema locks, writes and per-module commits, optional warning paths, mandatory bootstrap ImportError, migration/hook failures, uninstall commit/reload, final constraints and registry/cache effects. Preserve errors and database identity.",
+      "dependencies": [
+        "TASK-API-0383 safe company installations and metadata policy review",
+        "Registry.new effective module dispatch and per-database model composition",
+        "load_module_graph full owner contract",
+        "Existing IrModule catalogue discovery and request methods",
+        "Schema/data/demo/hooks and pre/post/end migration mapping",
+        "Failure rollback, independent reset_modules_state and worker/cache invalidation"
+      ],
+      "consumers": [
+        "odoo/orm/registry.py::Registry.new calls load_modules with per-database request arguments",
+        "Consumer orm.registry.Registry.new: current integration missing; _ensure_seeded does not consume requests"
+      ],
+      "installed_mechanism": [
+        "Registry.new stores requests then calls _ensure_seeded; does not execute them",
+        "Django apps/INSTALLED_APPS globally register models; not per-base effective installation",
+        "Native service.db provisioner supplies physical schema only",
+        "ModuleGraph.from_database plus load_data/load_demo/name checks/recovery provide bounded support"
+      ],
+      "existing_adaptation": "Distributed bounded support identified; full contract pending, not equivalent by existence",
+      "verification": {
+        "current_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "specific_controls": "Not executed: differing installed catalogues A/B and effective model composition, install/upgrade/reinit/remove requests with hook order and installed_version finalization, new requests during load, failing data/hook rollback/recovery, worker invalidation. Schema-only PASS cannot accept these obligations.",
+        "result": "not_verified"
+      },
+      "equivalence": "not_verified",
+      "limitations": "No native Odoo runtime test or whole loader/Registry acceptance; no new functional loader in this unit",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_owner": "codex-module-lifecycle",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "PR": 109,
+        "merge": false
+      }
     }
   ],
   "other_named_declarations_pending": [
@@ -563,7 +648,8 @@
       "decorators": [],
       "qualified_symbol": "force_demo",
       "acceptance": "not_verified",
-      "task_resolution": "not_verified"
+      "task_resolution": "TASK-API-0382 via current native TaskGet737 and per-database installation ownership; not a new TASK",
+      "contract_record": "odoo/modules/loading.py::force_demo"
     },
     {
       "kind": "function",
@@ -592,7 +678,8 @@
       "decorators": [],
       "qualified_symbol": "load_modules",
       "acceptance": "not_verified",
-      "task_resolution": "not_verified"
+      "task_resolution": "TASK-API-0382 via current native TaskGet737 and per-database installation ownership; not a new TASK",
+      "contract_record": "odoo/modules/loading.py::load_modules"
     }
   ],
   "extraction_limits": "Existing top-level/direct-method extractor; imports/constants/conditional/nested/dynamic source require progressive supplemental review. No exhaustive structural or semantic claim.",
@@ -1446,6 +1533,46 @@
       "fixture_safety": "4f5a166f,3unit controls PASS;3legacy cases still skipped/unqualified",
       "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/salesteam-policy-summary.json",
       "task_acceptance": "not_verified"
+    },
+    "fixture_qualification": {
+      "task": "TASK-API-0383",
+      "source_revision": "4b67be0f266c4b5a882a959226a33ec0e77df183",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_scope": "Existing ModuleGraph/loading inventories retained. Fixture is a native Django/pytest Consumer adaptation; no whole Odoo service.db acceptance asserted. Pinned service.db::_create_empty_database confirms exclusive server DDL followed by best-effort extensions.",
+      "behavior": "Public database blocker, random aliases, exclusive resource acquisition and cleanup ownership; no private TestCase override",
+      "execution_flow": "Reject shared default/existing aliases or DBs -> acquire exclusive DB -> register cleanup -> native provisioner -> real cases -> all cleanup attempts",
+      "inputs_outputs": "Explicit own disposable default plus two fresh company aliases -> data/FK/rule-isolation outcomes and cleanup observations",
+      "side_effects": "DDL and migration data on owned resources only; N1 test transaction rollback; no shared QA or historical DB repair",
+      "dependencies": [
+        "Native service.db create/provision/drop and build_company_alias",
+        "CompanyDatabaseRouter roster and company_scope",
+        "Local metadata proposal pending DEC-AISL-05 review",
+        "sale_subscription0002 native rules and ResCompany manager",
+        "TASK-API-0381 pending ownerNULL for per-request routing/whole HTTP acceptance"
+      ],
+      "consumers": [
+        "Three historical isolation cases",
+        "N1 default fallback and physical schema/connection controls"
+      ],
+      "installed_mechanism": "tests/integration/company/test_multidb_isolation.py native pytest fixtures and contextmanager with ExitStack",
+      "existing_adaptation": "Native framework resource/testing adaptation; not a new Provider coordination mechanism",
+      "verification": {
+        "mock_controls": "8PASS; prior8RED; guard annulment2FAIL6PASS expectedexit1",
+        "real_resource_controls": "PASS preexisting sentinel, partialDDL cleanup, extension failure resource retention",
+        "five_functional_cases": "5PASS915.37s pytest0; no private override; actual two-company provisioner",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "independent_cleanup": "PASS0remaining knownowned DB/roles",
+        "harness_limits": "Probe1postcheck rejected outside Django blocker; error preserved, future instrument corrected, no repeated valid full run"
+      },
+      "equivalence": "not_verified beyond bounded outcomes",
+      "limitations": "Whole auth/login/user identity, HasCapability under equal IDs across DBs, session replay and request routing, historical partial DBs and module loader acceptance remain pending",
+      "integration": {
+        "PR": 109,
+        "source_published": true,
+        "merge": false,
+        "official_status": "pending",
+        "acceptance": "not_verified"
+      }
     }
   },
   "consumer_loading_inventory": {
@@ -1550,5 +1677,14 @@
     "unique": 4
   },
   "consumer_loading_sha256": "e7f1396d427dfac5435263b09f6b716b2ce010cada0842172f5826bea32a7516",
-  "current_support_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/loading-support-summary.json"
+  "current_support_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/loading-support-summary.json",
+  "supplemental_source_review": {
+    "scope": "Full pinned loading.py source reviewed incrementally against existing inventory; no second extraction authority",
+    "imports": "Runtime datetime/itertools/logging/sys/time/typing/traceback; Odoo SQL/translation/api/tools/OrderedSet/converter; module DB bootstrap, MigrationManager, path/version/import helpers, ModuleGraph and Registry. TYPE_CHECKING holds collection/Environment/BaseCursor/test-result/ModuleNode annotations and LoadKind literal.",
+    "attributes": "Module _logger only mutable module assignment; per-call local registries, graph/package state, registry updated/init/reinit/force-script and constraint/field collections mutate during full loading. These are not separate business requirements.",
+    "decorators_inheritance_dynamic": "No top-level classes/decorators/inheritance or nested named function declarations in this source inventory. Dynamic addon import and hook lookup, per-base Registry recreation, environment model lookup and local test-loader import affect runtime and are explicitly pending.",
+    "transactions_concurrency": "Actual DB cursor required by Odoo load_module_graph; lock_timeout15s during schema loading, per-module successful writes commit, uninstall commits then reloads. reset_modules_state independent transaction preserved separately. No automatic equivalence to Django atomic/INSTALLED_APPS.",
+    "errors": "Missing base raises ImportError; demo errors optional, hook/migration/schema failures propagate; missing dependency/state/custom-view/ACL inconsistencies have distinct diagnostics. Failures are not all equivalent or silently ignored.",
+    "acceptance": "not_verified for file-wide obligations; seven named function entries are declaration coverage, not contractual denominator"
+  }
 }

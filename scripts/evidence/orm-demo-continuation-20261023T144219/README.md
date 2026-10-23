@@ -240,3 +240,94 @@ salesteam-policy-continuation.json. Both62-task AS IS files updated only for
 0382/0383. Next logical obligation is fixture qualification and real isolation,
 with approval/acceptance/identity and whole Registry/loader kept separate.
 No global exhaustion, complete instruction or complete ORM is declared.
+
+## Continuación integral: fixture y cobertura por archivo
+
+La instrucción de continuación integral queda reconciliada en
+`outputs/instruction-validation.json#integral_continuation_instruction_review`:
+55 secciones, sin declarar completa la iniciativa. No se abrió otro expediente,
+TaskStore, coordinador o población maestra. Las 62 TASK de los AS IS se conservan.
+
+Fuente publicada: `4b67be0f` cualifica el fixture de TASK-API-0383 mediante el
+blocker público, aliases aleatorios y creación exclusiva; ExitStack registra
+sólo recursos adquiridos e intenta las demás limpiezas si una falla. El default
+requiere declaración explícita de recurso propio y revierte el caso N=1.
+`948c5233` corrige exclusivamente el docstring del paquete modules; su AST
+executable coincide con4b67be0f. No implementa el cargador que sigue pendiente.
+
+Resultados independientes, no una suite sumada:
+
+- Los 8 RED iniciales son ausencia de la nueva interfaz del fixture. Después 8 PASS
+  de fallos/ownership. No se presentan como 8 borrados inseguros observados.
+- Anulación sólo en memoria del guard de recursos existentes: 2 FAIL y 6 PASS,
+  salida 1 esperada. Los casos comprueban conducta, no sólo presencia de métodos.
+- PostgreSQL real: testigo preexistente preservado, DDL parcial propio limpiado,
+  fallo de conexión para extensiones conserva la base adquirida para limpieza.
+- Cinco casos reales PASS,2warnings heredados,915.37 s, pytest 0. Incluyen los 3 casos
+  históricos antes omitidos, N=1 y esquema/conexiones sin override privado.
+  Dos empresas distintas usan el provisionador completo. La corrida delimitada
+  no carga el conftest global ni re-siembra sus datos fuera de migraciones.
+- Gate local exacto 4b67be0f: 77 PASS, 1 SKIP, 1 ERROR en 467.74 s, pytest 1, Make 2. CI remoto
+ 948c5233, run 40031305381: 77 PASS, 1 SKIP, 1 ERROR en 484.20 s, Make 2. Primer fallo heredado
+ ProductProduct.display_name; pruebas posteriores NOT_EVALUATED.
+
+Dos errores del instrumento se conservan y no se convierten en fallo del
+producto ni en salida 0 ficticia. El primer probe terminó 1 al inyectar un fallo
+que afectaba también mantenimiento; su fuente compilada se preserva en
+`probes/verify_isolation_qualification.initial.py.source.txt`, su resultado en
+`outputs/isolation-qualification-initial.json` y el log
+`outputs/isolation-ci-and-functional.log`. La fuente del disco fue corregida
+para la reanudación, pero el proceso inicial seguía ejecutando la versión ya
+compilada; no se edita su traceback para ocultarlo.
+
+La reanudación `--bounded-only` no repitió CI. Aprovisionó un nuevo default propio
+y ejecutó los 5 casos. Después pytest restauró su blocker y rechazó una consulta
+Django del postcheck fuera del contexto permitido. El resultado total sigue 1,
+aunque pytest terminó 0 y los aliases ya estaban retirados. Se preservan fuente
+`probes/verify_isolation_qualification.postcheck-failure.py.source.txt`, log
+`outputs/isolation-functional-resumption.log`, JUnit y resultado raw
+`outputs/isolation-qualification-completed-tests.json`.
+
+El harness exterior eliminó default y rol. La verificación independiente por
+mantenimiento PostgreSQL terminó 0 y confirmó cero recursos propios conocidos
+pendientes: `outputs/isolation-cleanup.json`. El probe actual usa mantenimiento
+para ese postcheck; no se repitieron 15 minutos válidos sólo por esa corrección.
+No se afirma que el instrumento completo corregido haya sido ejecutado otra vez.
+
+Reproducción futura: en un checkout aislado de la revisión a verificar, usar el
+harness `orm-bootstrap-compute-20261021T210528/probes/qa_context.py` con
+`uv run --frozen python` y ejecutar `probes/verify_isolation_qualification.py`
+dentro de ese entorno. Las variables Docker/host/bridge y dependencias nativas
+son las de `docs/ci-local.md`; declarar UV_CACHE_DIR en el workspace. El modo
+normal ejecuta el gate y los controles. `--bounded-only` fue una reanudación
+exacta de 4b67be0f que exige su evidencia inicial; falla cerrado ante otro HEAD.
+No se debe usar para presentar CI de otra revisión como satisfactoria. En replay
+se conservan salidas separadas; los resultados históricos de este job no se
+sobrescriben. Ningún comando modifica .env, Git identity, hooks o QA compartida.
+
+`outputs/isolation-schema-observations.jsonl` es observación concurrente, no
+aceptación. Mide default y primera empresa: 380 migraciones y 107 FK; la última foto
+de la segunda todavía estaba migrando: 344 migraciones y 99 FK. El provisionador terminó después
+y los 5 casos pasaron, pero no se inventa una medición final de 380/107 de esa base.
+
+El banco por archivo conserva 19 declaraciones del grafo. Loading tiene 7 registros
+de función, con force_demo/load_modules, consumidores reales, 14 elementos,
+transacciones, hooks dinámicos y aceptación not_verified. Eso es cobertura de
+las declaraciones representadas, no aceptación de sus obligaciones completas.
+La dependencia encontrada de selección por petición se resuelve nativamente como
+TASK-API-0381, pendiente sin propietario, fuera de la población histórica de 62; no se toma
+por disponible ni se crea otra TASK.
+
+Thyrox: 13 fuentes previas sin cambios, Bun 1.4.0 y Python 3.12.14 propios observados;
+TaskGet, claimsCommand y node_frontier son las interfaces usadas. TaskSource aún
+omite owner/dependencias y mantiene reservas ajenas. No hubo ejecución de modelo
+local/remoto, integración automática ni cambios oficiales de estados.
+`outputs/isolation-native-continuation.json` preserva entradas/ledger real:
+selecciona otra vez la unidad no aceptada, no una frontera global agotada. No se
+repite una prueba válida ni se fabrica accepted para liberar el cargador.
+
+Resumen y límites: `outputs/isolation-qualification-summary.json`. Pendientes:
+revisión de la propuesta DEC-AISL-05, gate global/ownership de compute, TASK-API-0381 para
+resolución por petición y aceptación HTTP, recuperación histórica, Registry y
+cargador efectivo, descubrimiento/admisión global e inferencia local cualificada.
+Los PR permanecen abiertos; publicar evidencia no es merge ni aceptación.
