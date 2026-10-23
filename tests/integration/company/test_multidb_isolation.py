@@ -92,7 +92,6 @@ import types
 import pytest
 
 from django.conf import settings
-from django.core.management import call_command
 from django.db import connections
 
 from addons.authz.models import Module
@@ -127,18 +126,11 @@ _COMPANY_A_ID = 8801
 _COMPANY_B_ID = 8802
 
 
-def _provision(alias):
-    """Alta de una base ``company_<N>_db`` real, acotada a ``authz`` +
-    ``company`` (ver H-API-091-07 en el docstring del módulo) — NO usa
-    ``provision_company_database`` para no tropezar con ese hallazgo.
-    """
+def _provision(alias, created):
+    """Track successful exclusive creation, then use the existing provisioner."""
     svc.create_empty_database(alias)
-    # ``base`` primero: authz/sale_subscription le cuelgan FKs (res_users,
-    # res_company). ``platform`` ya no existe — sus modelos viven en
-    # base (CompanySetting) y sale_subscription (suscripciones).
-    call_command('migrate', 'base', database=alias, verbosity=0)
-    call_command('migrate', 'authz', database=alias, verbosity=0)
-    call_command('migrate', 'sale_subscription', database=alias, verbosity=0)
+    created.append(alias)
+    svc.provision_company_database(alias)
 
 
 def _forget_alias(alias):
@@ -224,16 +216,22 @@ def two_company_databases(django_db_blocker):
     módulo.
     """
     with django_db_blocker.unblock():
-        svc.install_company_aliases(settings.DATABASES, names=[_ALIAS_A, _ALIAS_B])
+        created = []
+        registered = []
         try:
-            _provision(_ALIAS_A)
-            _provision(_ALIAS_B)
+            for alias in (_ALIAS_A, _ALIAS_B):
+                if alias in settings.DATABASES or svc.database_exists(alias):
+                    raise RuntimeError('Isolation fixture refuses an existing database or alias')
+            registered = [_ALIAS_A, _ALIAS_B]
+            svc.install_company_aliases(settings.DATABASES, names=registered)
+            _provision(_ALIAS_A, created)
+            _provision(_ALIAS_B, created)
             yield _ALIAS_A, _ALIAS_B
         finally:
-            svc.drop_database(_ALIAS_A)
-            svc.drop_database(_ALIAS_B)
-            _forget_alias(_ALIAS_A)
-            _forget_alias(_ALIAS_B)
+            for alias in reversed(created):
+                svc.drop_database(alias)
+            for alias in registered:
+                _forget_alias(alias)
 
 
 class TestN1DegenerationRealWrite:
@@ -252,7 +250,7 @@ class TestN1DegenerationRealWrite:
         assert Module.objects.using('default').filter(code='n1-degenerate').exists()
 
 
-@pytest.mark.skip(reason='H-API-262: AUTH_USER_MODEL vive en base (plano de control, solo default); las tablas de dominio con FK a res_users no pueden migrar a company_<N>_db (FK cross-database). Se resuelve con el canal del dato de DEC-AISL-04 pasos 2-3 (tarea #36).')
+@pytest.mark.skip(reason='TASK-API-0383: two-company fixture qualification pending; private TestCase connection overrides and fixed aliases remain unqualified')
 class TestCrossCompanyIsolationByBase:
     """T-091-07 — aislamiento por BASE entre dos companies reales."""
 
@@ -283,7 +281,7 @@ class TestCrossCompanyIsolationByBase:
             assert Module.objects.filter(code='iso-a2').exists()
 
 
-@pytest.mark.skip(reason='H-API-262: AUTH_USER_MODEL vive en base (plano de control, solo default); las tablas de dominio con FK a res_users no pueden migrar a company_<N>_db (FK cross-database). Se resuelve con el canal del dato de DEC-AISL-04 pasos 2-3 (tarea #36).')
+@pytest.mark.skip(reason='TASK-API-0383: two-company fixture qualification pending; private TestCase connection overrides and fixed aliases remain unqualified')
 class TestSol085RowScopingIntraBase:
     """T-091-08 — SOL-085 (row-scoping) sin regresión por el wiring del
     router + la FK ``company`` resuelve intra-base (D-091-2).
