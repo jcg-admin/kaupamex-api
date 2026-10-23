@@ -731,17 +731,20 @@
       {
         "section": 15,
         "assessment": "partial; functional acceptance or continuation pending",
-        "evidence_and_limits": "Current router/service/migration sources unchanged from discriminating company failure. Existing valid diagnosis reused; no repeat solely to get same failure."
+        "evidence_and_limits": "Historical/runtime sales-team default fixed in e8ea2938. Actual current proposal without override completes380migrations/107UserFK per default/company; old contenttypes exclusion is historical baseline, not claimed current first failure.",
+        "prior_evidence_and_limits_before_policy_revision": "Current router/service/migration sources unchanged from discriminating company failure. Existing valid diagnosis reused; no repeat solely to get same failure."
       },
       {
         "section": 16,
         "assessment": "partial; functional acceptance or continuation pending",
-        "evidence_and_limits": "Current aliases/router/recorder/FK/context/signals and open placement authority reviewed. Ownership/acceptance of unresolved dependencies not fabricated."
+        "evidence_and_limits": "Existing router/settings now implement reviewable metadata-local placement, sessions central. Native migration dependency state verified; no manual productive tables or recorder changes. Proposal review and login/identity qualification remain separate.",
+        "prior_evidence_and_limits_before_policy_revision": "Current aliases/router/recorder/FK/context/signals and open placement authority reviewed. Ownership/acceptance of unresolved dependencies not fabricated."
       },
       {
         "section": 17,
         "assessment": "partial; functional acceptance or continuation pending",
-        "evidence_and_limits": "Full productive company provisioning still blocked by metadata placement and alias dependencies. Fixture schema creation via Django is test-only, not a production repair."
+        "evidence_and_limits": "Own separate default/company full migrations, local FK/backbone and metadata/session storage PASS without override. Not real two-company data isolation or full authentication acceptance;3legacy cases remain skipped/unqualified.",
+        "prior_evidence_and_limits_before_policy_revision": "Full productive company provisioning still blocked by metadata placement and alias dependencies. Fixture schema creation via Django is test-only, not a production repair."
       },
       {
         "section": 18,
@@ -786,7 +789,8 @@
       {
         "section": 26,
         "assessment": "partial; functional acceptance or continuation pending",
-        "evidence_and_limits": "Two owned TASK remain incomplete; remaining reviewed loading obligations require effective Registry/outer caller integration, company provisioning requires open metadata placement. No claim of global exhaustion. Other60 AS IS TASK have NULL owner and global admission reader is unqualified with foreign reserved correction1072."
+        "evidence_and_limits": "Continued through known default defect, actual experimental schema/storage, configuration proposal, verification without override and fixture deletion safety. No scoped-empty frontier or unrelated global CI failure used as global exhaustion/step failure proof.",
+        "prior_evidence_and_limits_before_policy_revision": "Two owned TASK remain incomplete; remaining reviewed loading obligations require effective Registry/outer caller integration, company provisioning requires open metadata placement. No claim of global exhaustion. Other60 AS IS TASK have NULL owner and global admission reader is unqualified with foreign reserved correction1072."
       },
       {
         "section": 27,
@@ -796,7 +800,8 @@
       {
         "section": 28,
         "assessment": "verified procedural/bounded requirement",
-        "evidence_and_limits": "Remote commit5dad CI completed FAILURE; actual775-line log confirms77PASS/1SKIP/1ERROR476.44s, display_name. Later tests not evaluated."
+        "evidence_and_limits": "Remote prior4ea6 run39998384770 completedFAILURE77PASS/1SKIP/1ERROR473.44s, display_name;773-line log retained. New source publications trigger new remote checks, whose current state is queried separately.",
+        "prior_evidence_and_limits_before_policy_revision": "Remote commit5dad CI completed FAILURE; actual775-line log confirms77PASS/1SKIP/1ERROR476.44s, display_name. Later tests not evaluated."
       },
       {
         "section": 29,
@@ -806,12 +811,14 @@
       {
         "section": 30,
         "assessment": "partial; functional acceptance or continuation pending",
-        "evidence_and_limits": "Exact56c6d4ea make ci-verify completed make2/pytest1,77PASS/1SKIP/1ERROR482.36s. First baseline display_name failure; later verifiers NOT_EVALUATED. No acceptance declared."
+        "evidence_and_limits": "Exact productionea963f24 make2/pytest1,77PASS/1SKIP/1ERROR490.26s; first baseline display_name. Independent no-override company verifier exits0. Later test-only fixture guard3PASS, no full local suite rerun for that change; no full-head/global PASS inferred.",
+        "prior_evidence_and_limits_before_policy_revision": "Exact56c6d4ea make ci-verify completed make2/pytest1,77PASS/1SKIP/1ERROR482.36s. First baseline display_name failure; later verifiers NOT_EVALUATED. No acceptance declared."
       },
       {
         "section": 31,
         "assessment": "verified procedural/bounded requirement",
-        "evidence_and_limits": "Two required historical expedients verified69+91checksums; no duplicated test execution."
+        "evidence_and_limits": "Historical result files preserved; existing company instrument extended with explicit output target and storage checks. Experimental instrumentb23source preserved in1e3dfe2d; no-override instrument8554retained in current evidence commit. Hash manifests updated explicitly.",
+        "prior_evidence_and_limits_before_policy_revision": "Two required historical expedients verified69+91checksums; no duplicated test execution."
       },
       {
         "section": 32,
@@ -821,12 +828,14 @@
       {
         "section": 33,
         "assessment": "verified procedural/bounded requirement",
-        "evidence_and_limits": "Only current0382 continuation appended to both existing62-task AS IS records; official status unchanged."
+        "evidence_and_limits": "Only affected0382/0383 deltas/next_actions reconciled in both existing62-task AS IS files; official task states unchanged. Prior top-level revisions remain historical, current scope explicitly identified.",
+        "prior_evidence_and_limits_before_policy_revision": "Only current0382 continuation appended to both existing62-task AS IS records; official status unchanged."
       },
       {
         "section": 34,
         "assessment": "partial; functional acceptance or continuation pending",
-        "evidence_and_limits": "56c6 code local, publication pending at this observation; PRs remain open, no merge."
+        "evidence_and_limits": "Source commits e8ea2938/1e3dfe2d/ea963f24/4f5a166f published and remote4f5 verified. Evidence/Docs updates use same open PRs, no merge.",
+        "prior_evidence_and_limits_before_policy_revision": "56c6 code local, publication pending at this observation; PRs remain open, no merge."
       },
       {
         "section": 35,
@@ -851,7 +860,8 @@
       {
         "section": 39,
         "assessment": "verified procedural/bounded requirement",
-        "evidence_and_limits": "Two new eligible functional units executed with positive/negative actualPG controls."
+        "evidence_and_limits": "Three admitted substantive corrections executed: default/schema boundary, required local metadata placement proposal, fixture ownership cleanup safety. Positive/negative and actualPG verification retained.",
+        "prior_evidence_and_limits_before_policy_revision": "Two new eligible functional units executed with positive/negative actualPG controls."
       },
       {
         "section": 40,
@@ -866,12 +876,14 @@
       {
         "section": 42,
         "assessment": "partial; functional acceptance or continuation pending",
-        "evidence_and_limits": "Source/probes/logs and current native identities retained in existing authority paths; remote publication checked separately by Git, not fabricated by evidence file."
+        "evidence_and_limits": "Essential Consumer scripts, all outcomes, per-file links, current instruction review and continuation retained in existing paths; no reliance on tmp-only procedures or Provider store copy.",
+        "prior_evidence_and_limits_before_policy_revision": "Source/probes/logs and current native identities retained in existing authority paths; remote publication checked separately by Git, not fabricated by evidence file."
       },
       {
         "section": 43,
         "assessment": "partial; functional acceptance or continuation pending",
-        "evidence_and_limits": "Native TASKs pending and PRs open/unmerged; local exact revision CI fails. Focused checks do not confer acceptance."
+        "evidence_and_limits": "Both native TASKs remain pending; policy and whole task acceptance not_verified, PRs open. Current remote head states verified separately; local globalCI remainsfailed.",
+        "prior_evidence_and_limits_before_policy_revision": "Native TASKs pending and PRs open/unmerged; local exact revision CI fails. Focused checks do not confer acceptance."
       },
       {
         "section": 44,
@@ -882,6 +894,91 @@
     "objective_complete": false,
     "authority": "Instruction audit within existing job only; native TASKs/AS IS/per-file ledger remain their respective authorities. No new approval or platform statuses.",
     "pre_final_control": {
+      "A_objective_complete": false,
+      "B_pending": "Policy PR review;3legacy isolation cases and real two-company identity/login; partial historic DB recovery; effective per-database Registry/whole module loader; global CI and unqualified Provider local execution",
+      "C_owned": "Native737/738 pending owner codex-module-lifecycle. Fresh schema/storage verification PASS without override, whole TASK acceptance still not_verified.",
+      "D_reservations": "Existing Provider source task_source/continuation claims retained; current Consumer code claims released after verification. Other existing AS IS tasks not auto-admitted from NULL owner.",
+      "E_executed": "Three real independently selected units: historical/runtime default correction, local metadata proposal with real full schema/storage, fixture deletion ownership safety.",
+      "F_next_logical_unit": "Native frontier selects fixture qualification. Existing private TestCase bypass mechanism remains unqualified and was not executed; replace/qualify using native Django/pytest controls before real isolation verification. Selection alone is not execution admission.",
+      "G_actual_acceptance_boundary": "Exact production CI fails on inherited display_name; existing PR review/integration and unresolved isolation/identity verification prevent acceptance. No environment exhaustion or global absence of independent future engineering asserted.",
+      "H_persistence": "Existing job, bank, both62-task AS IS files, existing progress/decision proposal, normal source/evidence/Docs commits and same PRs; no Store copy.",
+      "I_separation": "Bounded PASS, whole TASK acceptance, policy approval, PR integration and objective completion are different claims."
+    },
+    "subsequent_salesteam_batch": {
+      "code_commit": "e8ea2938d5a5c0547e004eb4971bea5a8c34d924",
+      "task": "TASK-API-0383 pending owner codex-module-lifecycle",
+      "new_functional_work": "Independent already-recorded default alias/historical DDL defect now implemented and verified; not another inventory or report-only cycle",
+      "evidence": [
+        "salesteam-selection.json",
+        "salesteam-native-tasks.json",
+        "salesteam-historical-state.json",
+        "salesteam-migration-before.log",
+        "salesteam-migration-after.log",
+        "salesteam-migration-negative.log",
+        "salesteam-runtime-after.junit.xml"
+      ],
+      "verification": "Four complete migration0003/0004 forward/reverse scenarios; one wrong-model rejection/rollback scenario; two router default-binding controls; negative separation annulment exit1",
+      "ci": "Exact e8ea2938: make2/pytest1,77PASS/1SKIP/1ERROR501.29s, first inherited display_name; later tests NOT_EVALUATED",
+      "previous_frontier_limitation": "Known independent website_sale default defect was not represented. Global CI failure was incorrectly projected as failure of bounded passing support checks; original snapshot preserved with explicit correction.",
+      "integrated_company_and_storage": {
+        "experimental_exit": 0,
+        "default_and_company_migrations": 380,
+        "local_res_users_fks_each": 107,
+        "separate_physical_databases": true,
+        "metadata_session_storage": "pass",
+        "limits": "One company and separate default DB; no login/cross-company identity or approved policy acceptance"
+      },
+      "objective_complete": false
+    },
+    "subsequent_contenttypes_proposal": {
+      "code_commit": "ea963f24fc9626b28f3ddec89548557aec91ae9e",
+      "task": "TASK-API-0383 pending",
+      "basis": "Actual mandatory local FK failure plus controlled experiment; not a build-only policy relaxation",
+      "implementation": "Existing control-plane apps list now sessions only; metadata follows declared domain alias and existing fail-closed routing",
+      "focused": "4new controls FAIL before;26routing/context/provisioner controls PASS after",
+      "approval": "Proposal for existing PR review, not automatically approved",
+      "without_override_verification": {
+        "code_revision": "ea963f24fc9626b28f3ddec89548557aec91ae9e",
+        "exit": 0,
+        "actual_provisioner": true,
+        "experimental_override": false,
+        "physical_databases": "Owned default and one separate company",
+        "migrations_each": 380,
+        "local_res_users_fks_each": 107,
+        "metadata_cache_and_session_storage": "pass",
+        "cleanup": "Company removed, base/role dropped,0ownedDB/roles observed",
+        "ci": {
+          "make_exit": 2,
+          "pytest_exit": 1,
+          "passed": 77,
+          "skipped": 1,
+          "errors": 1,
+          "seconds": 490.26,
+          "first_failure": "ProductProduct.display_name",
+          "classification": "BASELINE_FAILURE; later tests NOT_EVALUATED"
+        }
+      },
+      "old_fixture_review": "Two skip decorators cover3cases; fixed8801/8802 names, unconditional drop, TestCase private-method bypass and partial migration bypass require fixture qualification. Do not unskip or treat old AUTH_USER_MODEL placement as current."
+    },
+    "fixture_safety_current": {
+      "commit": "4f5a166f30b076ab4928ca10c28d62dea9e0c4d4",
+      "before": "3FAIL, unconditional DROP after setup failure",
+      "after": "3PASS, mocks only: no actual databases used",
+      "behavior": "Reject existing databases/aliases; track completed creation and drop only tracked resources; delegate migrations to native provisioner",
+      "limits": "Not full fixture qualification; private TestCase overrides/fixed names persist,3cases still skipped. Partial SQL creation/extension failure ownership is not certified by these mocked controls.",
+      "ci_limit": "Test-only fixture change follows exact production CI at ea963f24; targeted3controls PASS, no additional full local suite repeated solely to rediscover the same earlier failure."
+    },
+    "current_termination_and_acceptance": {
+      "objective_complete": false,
+      "whole_instruction_complete": false,
+      "implemented_and_verified": "Historical/runtime default, local metadata proposal, full own schema/backend storage without override, bounded fixture deletion safety",
+      "acceptance_gates": "Global CI fails, policy requires existing PR review,3isolation tests remain unqualified. No TASK acceptance or merge granted.",
+      "next_dependencies": "Qualify fixture with native Django/pytest controls and real two-company data; validate login/identity; reconcile unowned compute triage; effective per-database Registry and loader depend on verified acceptance of foundation contracts.",
+      "scope_limit": "No global exhaustion or absence of all independent future work inferred from scoped frontier. New unrelated unowned tasks are not assumed available.",
+      "persistent_evidence": "Existing job/per-file bank/both AS IS/progress and existing decision review, published source commits/PRs; source proofs retained without Store copy.",
+      "continuation_snapshot": "outputs/salesteam-policy-continuation.json; logical next candidate retained, not automatically execution/approval"
+    },
+    "pre_final_control_before_policy_revision": {
       "A_objective_complete": false,
       "B_pending": "Company provisioning, effective Registry/composition, force_demo/load_modules, outer caller integration, hooks/version/state/invalidation, CI acceptance and authorized integration",
       "C_owned": "0382/0383 current native pending, owner codex-module-lifecycle; missing functional dependencies remain despite empty structured edges",

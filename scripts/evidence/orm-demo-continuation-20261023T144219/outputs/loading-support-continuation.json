@@ -72,5 +72,15 @@
     "Broader60TASK with NULL owners; native reader1072 correction reserved elsewhere"
   ],
   "objective_complete": false,
-  "resumption": "Resolve legitimate contenttypes/session placement and effective Registry loader ownership/dependencies; reconcile compute triage GEN0633 ownership; do not repeat valid bounded tests solely to regenerate evidence."
+  "resumption": "Resolve legitimate contenttypes/session placement and effective Registry loader ownership/dependencies; reconcile compute triage GEN0633 ownership; do not repeat valid bounded tests solely to regenerate evidence.",
+  "subsequent_semantic_correction": {
+    "original_snapshot_retained": true,
+    "do_not_reuse_unit_failure_states": [
+      "TASK-API-0382.check_module_names",
+      "TASK-API-0382.reset_modules_state"
+    ],
+    "reason": "Their declared bounded verifiers passed. Global CI acceptance failure must not be projected as their functional failure or native TASK state.",
+    "current_interpretation": "Bounded support implementations verified; whole TASK/PR acceptance remains not_verified. Future implementation selection separates pending functionality from pending review/acceptance, without synthetic accepted states.",
+    "known_prior_frontier_coverage_gap": "The previously recorded website_sale migration default was independent and admissible under owned0383, now selected in salesteam-selection.json. Prior empty frontier was not global exhaustion."
+  }
 }

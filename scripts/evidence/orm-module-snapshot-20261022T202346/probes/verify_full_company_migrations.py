@@ -135,8 +135,8 @@ try:
         assert results['databases']['default']['applied_migrations'] == results['databases']['company']['applied_migrations']
         assert results['databases']['default']['foreign_keys_to_local_res_users'] == results['databases']['company']['foreign_keys_to_local_res_users']
     results['separate_physical_databases'] = first != company
-    if '--probe-local-contenttypes' in sys.argv:
-        # Measure the open placement question without changing productive policy.
+    if '--probe-local-contenttypes' in sys.argv or '--verify-metadata-session-cycle' in sys.argv:
+        # Measure storage independently from authentication/identity acceptance.
         results['metadata_session_probe'] = {'status': 'running'}
         with company_scope(company.split('_')[1]):
             marker_name = 'local_' + secrets.token_hex(8)

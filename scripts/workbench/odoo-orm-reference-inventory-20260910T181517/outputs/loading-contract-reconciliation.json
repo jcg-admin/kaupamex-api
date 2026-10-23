@@ -1436,7 +1436,17 @@
     "observed_before": "Full default migration379applied and107FKs to local res_users; company failed in base0005 implicit update without scope",
     "replay": "Combined CI after context failed at inherited display_name; company failed at missing contenttypes. HR historical default subsequently fixed; later experimental company-only replay fails in website_sale default using central IrModelData.ref.",
     "history": "Router policy and base migration history unchanged; measured HR migration now separates nullable DDL from preserved runtime default. Leading-zero company aliases preserved.",
-    "acceptance": "not_verified; full company migration, legacy skipped fixtures, CI/review/integration remain separate obligations"
+    "acceptance": "not_verified; full company migration, legacy skipped fixtures, CI/review/integration remain separate obligations",
+    "current_policy_continuation": {
+      "code_commit": "ea963f24",
+      "default_migration_correction": "e8ea2938, historical local active-team backfill and router-bound runtime default",
+      "full_schema_without_override": "PASS380migrations107localUserFK per own default/company",
+      "metadata_and_session_storage": "PASS native backend, not full login/identity",
+      "proposal_approval": "pending existing PR review",
+      "fixture_safety": "4f5a166f,3unit controls PASS;3legacy cases still skipped/unqualified",
+      "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/salesteam-policy-summary.json",
+      "task_acceptance": "not_verified"
+    }
   },
   "consumer_loading_inventory": {
     "name": "loading.py",

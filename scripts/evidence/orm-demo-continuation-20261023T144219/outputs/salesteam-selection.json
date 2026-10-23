@@ -1,0 +1,80 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows; claims_ledger_rows; node_frontier",
+  "command": "PYTHONPATH=/workspace/thyrox/src /workspace/thyrox/.venv/bin/python -",
+  "inputs": [
+    {
+      "id": "TASK-API-0383.salesteam_migration_default",
+      "taskId": "TASK-API-0383",
+      "prompt": "Separate historical nullable DDL and local active-team backfill from current model defaults; bind runtime default to existing router alias",
+      "verify": "Actual PostgreSQL forward/reverse, local active/inactive/missing XMLID, no live-model lookup during DDL, callable state and partial index preserved; negative annulment fails",
+      "route": "local",
+      "owned": [
+        "addons/website_sale/models/website.py",
+        "addons/website_sale/migrations/0003_websitesalesettings_salesteam_and_more.py",
+        "tests/unit/website_sale/test_salesteam_migration.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.reset_modules_state",
+      "taskId": "TASK-API-0382",
+      "prompt": "Restore transient module requests only after failed transaction has exited; selected catalogue only",
+      "verify": "Actual PG state mapping, committed persistence, missing table, nested transaction refusal and negative no-op",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py",
+        "tests/unit/modules/test_loading_reset.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.check_module_names",
+      "taskId": "TASK-API-0382",
+      "prompt": "Validate requested module names against selected database catalogue without changing state",
+      "verify": "Pinned source differential plus actual PostgreSQL selected-catalogue and read-only controls",
+      "owned": [
+        "src/modules/loading.py",
+        "tests/unit/modules/test_loading_names.py"
+      ],
+      "route": "local",
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.company_schema_verification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Resolve existing productive company migration/metadata alias contract under legitimate ownership",
+      "verify": "Full own company provisioner and isolation, not in-memory policy override",
+      "route": "local",
+      "owned": [
+        "src/service/db.py",
+        "src/orm/routers.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.per_company_module_graph_execution",
+      "taskId": "TASK-API-0382",
+      "prompt": "Integrate per-company loader only after selected database schema and model-composition contracts are verified",
+      "verify": "Per-company real registry/schema/data/hooks/state/version acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py"
+      ],
+      "dependsOn": [
+        "TASK-API-0383.company_schema_verification"
+      ]
+    }
+  ],
+  "states": {
+    "TASK-API-0383.company_schema_verification": "failed",
+    "TASK-API-0382.check_module_names": "failed",
+    "TASK-API-0382.reset_modules_state": "failed"
+  },
+  "claims_count": 297,
+  "selected": [
+    "TASK-API-0383.salesteam_migration_default"
+  ],
+  "basis": "Previously recorded website_sale migration callable calls IrModelData.ref using default alias. Existing738 ownership verified. Isolated historical schema verification does not require changing contenttypes policy, full company bootstrap or unowned compute files.",
+  "scope": "Bounded known migration defect, not new TASK or global exhaustion. No official state update or model inference."
+}

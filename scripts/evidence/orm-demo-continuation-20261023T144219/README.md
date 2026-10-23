@@ -170,3 +170,73 @@ pending ownerNULL with actual vm-r source reservation; continuation source
 has vm-r/vm-a reservations. No Provider state/code edit or alternate global
 admission mechanism. Final frontier uses actual acceptance-gate failure, not
 manufactured accepted state; it is scoped, not a global exhaustion verdict.
+
+
+## Further contractual continuation: historical default and local metadata
+
+Source commits e8ea2938 (default/migration),1e3dfe2d (exact experimental
+instrument),ea963f24 (local metadata proposal) and4f5a166f (fixture safety)
+are published. TASK-API-0383 remains pending, owner codex-module-lifecycle;
+TASK-API-0382 remains pending. No TaskUpdate or managed model inference.
+
+The existing45-section instruction control is reconciled with the new actual
+results. Three independent source-reviewed units were selected using native
+node_frontier with full claims, then conflict-checked native claims. This
+continues beyond the previous partial frontier rather than reconstructing AS IS.
+The old failed flags on passing support stages were projections of global CI,
+not functional failures; original snapshot preserved with explicit correction.
+
+website_sale0003 had evaluated a current runtime XMLID default during DDL.
+The maintained PG control fails there before the fix. SeparateDatabaseAndState
+adds nullable DDL without a live callable, preserves callable state and uses
+historical local metadata/active-team backfill.0004 stays unchanged. Four
+complete forward/reverse cases pass; one wrong-model identity case rejects,
+rolls back and preserves the old row (the raw positive log's generic label
+was corrected in the probe afterward, not counted as a fifth forward/reverse).
+Two pure runtime controls verify explicit default/company router binding.
+Negative separation annulment exits1 expected. Initial pytest setup with an
+overscoped django_db marker was invalid, excluded from RED/PASS and retained
+with generated ephemeral test values redacted. No shared QA was provisioned.
+
+Native MigrationLoader confirms actual required historical dependency fields.
+Pinned Odoo source at abe4040ec1a45beee90fb694e4eae4453e46b389 resolves the
+optional team through the active Environment and accepts only an active team.
+Existing14-element dependency record is in the existing per-file bank's
+website-sale-default-contract.json, not full-file or whole-addon acceptance.
+
+Controlled experiment: exact instrument preserved in1e3dfe2d, then current
+proposal without any contenttypes override: both complete380migrations and
+107local FK to res_users in each separate own default/company database.
+Backbone tables, nullable installed_version and actual native metadata/cache
+and SessionStore create/rotate/read/flush pass. Company database is removed;
+root QA database/role are removed, zero owned remnants observed. The catalogue
+has0rows: schema is not installation/whole module loading. Only one company
+and a separate default DB were verified; this does not qualify full N=2 login,
+identity switching, authorization or existing broken-database recovery.
+
+Proposal ea963f24 keeps sessions central and metadata local using existing
+configuration/router, with roster and fail-closed guards unchanged. Four
+routing controls fail before and26combined controls pass after. Existing
+DEC-AISL-05 retains its accepted directive and adds an explicit proposed
+review subsection; no approval or merge is granted automatically.
+
+Exact production CI at ea963f24:77PASS/1SKIP/1ERROR490.26s, pytest1/make2,
+same first baseline display_name error. Independent company verifier exits0;
+combined process retains2. Previous e8ea2938 CI:77/1/1,501.29s, make2,
+experimental company verifier0. These are separate runs, not summed coverage.
+Source production bytes remain identical to ea963f24; later fixture-only
+changes have3focused PASS and are not represented as full-head CI acceptance.
+
+Legacy isolation fixture previously dropped both fixed names even if creation
+failed.3negative controls fail before and pass after ownership tracking.
+It now refuses existing aliases/DBs, drops only successful tracked creations
+and uses the native full provisioner.3isolation cases remain skipped with
+corrected reason: private TestCase overrides/fixed aliases still unqualified.
+Mock controls do not certify partial SQL creation/extension-failure cleanup.
+No private connection bypass was executed as part of this new verification.
+
+Current summary/continuation: salesteam-policy-summary.json and
+salesteam-policy-continuation.json. Both62-task AS IS files updated only for
+0382/0383. Next logical obligation is fixture qualification and real isolation,
+with approval/acceptance/identity and whole Registry/loader kept separate.
+No global exhaustion, complete instruction or complete ORM is declared.

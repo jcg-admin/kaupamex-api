@@ -1,0 +1,24 @@
+{
+  "interface": "Django MigrationLoader(None).project_state(migration.dependencies)",
+  "historical_required_fields": {
+    "base.IrModelData": {
+      "module": "CharField",
+      "name": "CharField",
+      "model": "CharField",
+      "res_id": "IntegerField"
+    },
+    "sales_team.CrmTeam": {
+      "active": "BooleanField"
+    },
+    "website_sale.WebsiteSaleSettings": {
+      "cart_recovery_mail_template": "ForeignKey"
+    }
+  },
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_file": "addons/website_sale/models/website.py",
+  "reference_sha256": "6015cc2026f519f2c33bd5389fa35a3b40ef1617b7e12ffac6d6b012d6f68dc8",
+  "reference_symbol": "_default_salesteam_id",
+  "source_line": 35,
+  "source_excerpt": "    def _default_salesteam_id(self):\n        team = self.env.ref('sales_team.salesteam_website_sales', raise_if_not_found=False)\n        if team and team.active:\n            return team.id\n        return None",
+  "limits": "Historical dependency and selected default contract only; no native Odoo runtime or full model composition acceptance"
+}

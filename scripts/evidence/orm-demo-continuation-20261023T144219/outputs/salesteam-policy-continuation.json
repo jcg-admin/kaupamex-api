@@ -1,0 +1,44 @@
+{
+  "interface": "plan_items_from_rows; claims_ledger_rows; node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "inputs": [
+    {
+      "id": "TASK-API-0383.isolation_qualification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Replace unqualified private TestCase bypass fixture using existing Django/pytest mechanisms and verify real two-company data before TASK acceptance",
+      "verify": "No private connection safety removal, owned fresh resources, all3legacy isolation cases discriminating, identity/session acceptance separately qualified",
+      "route": "local",
+      "owned": [
+        "tests/integration/company/test_multidb_isolation.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.per_company_loader_acceptance",
+      "taskId": "TASK-API-0382",
+      "prompt": "Qualify effective per-database model composition and loader caller integration under existing ownership",
+      "verify": "Schema alone is not loader/model/state/version acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py"
+      ],
+      "dependsOn": [
+        "TASK-API-0383.isolation_qualification"
+      ]
+    }
+  ],
+  "states": {},
+  "claims_count": 320,
+  "selected": [
+    "TASK-API-0383.isolation_qualification"
+  ],
+  "no_fabricated_unit_failures_or_acceptance": true,
+  "verified_support_separate_from_pending_acceptance": [
+    "load_data/load_demo/name validation/recovery bounded checks retained",
+    "Fresh full default/company schema and metadata/session storage without override PASS",
+    "Fixture deletion safety3mock controls PASS; whole fixture still unqualified"
+  ],
+  "admission_limit": "Logical next selection is not execution or approval. Existing fixture still overrides private TestCase connection guards and uses fixed aliases;3cases are deliberately not run with that unqualified mechanism. Proposal review, whole login/identity and global CI remain acceptance gates. No managed model dispatch qualified or invoked.",
+  "resumption": "Use existing native Django/pytest resource interfaces to replace/qualify fixture before execution; native TASK738 remains pending. Review local metadata proposal and resolve actual compute triage ownership; no global exhaustion or objective completion inferred.",
+  "objective_complete": false
+}
