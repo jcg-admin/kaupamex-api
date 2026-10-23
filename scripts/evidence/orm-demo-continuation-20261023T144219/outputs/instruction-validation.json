@@ -646,5 +646,251 @@
     "verification": "16focal PASS;2PG storage/migration controls PASS; real file/SQL savepoint PASS;2negative exits1 expected; actual full stack PASS with19117character error",
     "ci": "77PASS/1SKIP/1ERROR519.64s make2 baseline first error; later NOT_EVALUATED",
     "still_not_satisfied": "Full productive company provisioning and full module installation acceptance; no claim all instruction requirements are complete"
+  },
+  "continuation_instruction_review": {
+    "file_name": "VM-b501 — Continuidad contractual del ORM, aceptación funcional progresiva y consolidación de los mecanismos existentes de Thyrox.txt",
+    "sha256": "867f96471b1bc851698fb08cd53f3ae9b517de524f49e95f9ae49325a91d29b0",
+    "baseline_api": "5dad5f651f01edbc80f0489876e2b5a552940f4e",
+    "code_commit": "56c6d4eab2426e93a4af86f24383f92044c93278",
+    "sections": [
+      {
+        "section": 0,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Persistent goal incomplete; two real admitted loading support stages executed, no global restart."
+      },
+      {
+        "section": 1,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Applicable three AGENTS and effective rules read; no Provider code changed."
+      },
+      {
+        "section": 2,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "All three Git roots/branches/HEAD/status/worktrees/stashes recovered. Provider dirty Store and old job preserved, no destructive action."
+      },
+      {
+        "section": 3,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Historical API c6d88a44,d861c057,5dad5f65 and Docs d9e55e07 retained; PR109/154 still open, publication is not integration."
+      },
+      {
+        "section": 4,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Required seven native reads plus all62 identities from existing AS IS revalidated.60NULL owners not available, only0382/0383 lifecycle-owned; all remain their native states."
+      },
+      {
+        "section": 5,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Step verification, TASK pending, contract acceptance, commits and merges remain separate."
+      },
+      {
+        "section": 6,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Existing governance/AS IS/per-file records and measured failures used for BABOK evaluation; no methodological implementation or automatic approval."
+      },
+      {
+        "section": 7,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Purpose/Description map to existing contract behavior/scope; Inputs/Elements to inputs_outputs/flow; Guidelines and Tools/Techniques to dependencies/installed_mechanism/verification; Stakeholders to TASK ownership/authorities; Outputs to evidence/integration. No new universal columns."
+      },
+      {
+        "section": 8,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Existing TASK and contractual AS IS and per-file authority reused, no Excel or third matrix."
+      },
+      {
+        "section": 9,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Two additional actual contracts retain the existing14 dimensions; exhaustive whole-file/whole-ORM acceptance remains pending."
+      },
+      {
+        "section": 10,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Source-flow reviewed contracts, declarations, files and accepted contracts remain distinct; no acceptance percentages."
+      },
+      {
+        "section": 11,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Prior16PASS/N=1 demo19117-char evidence retained; no redundant replay. Prior source bodies and storage migration preserved."
+      },
+      {
+        "section": 12,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Existing Environment/load_data/convert_file/atomic/PG preserved, no second converter."
+      },
+      {
+        "section": 13,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "IrDemoFailure.error and0089 unchanged; historical rollback/storage evidence retained."
+      },
+      {
+        "section": 14,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Native selector used for source-reviewed independent units. Two isolated schema fixtures do not count as productive N>1 acceptance."
+      },
+      {
+        "section": 15,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Current router/service/migration sources unchanged from discriminating company failure. Existing valid diagnosis reused; no repeat solely to get same failure."
+      },
+      {
+        "section": 16,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Current aliases/router/recorder/FK/context/signals and open placement authority reviewed. Ownership/acceptance of unresolved dependencies not fabricated."
+      },
+      {
+        "section": 17,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Full productive company provisioning still blocked by metadata placement and alias dependencies. Fixture schema creation via Django is test-only, not a production repair."
+      },
+      {
+        "section": 18,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "0382 recovered natively; fixed reference and reconciliations reused, verified graph code untouched."
+      },
+      {
+        "section": 19,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Graph functions and nodes preserved; snapshot is not installation."
+      },
+      {
+        "section": 20,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Two independently admitted support stages implemented. force_demo/load_modules and outer load_module_graph acceptance still pending."
+      },
+      {
+        "section": 21,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Connection, module state, effective Registry and migration history evaluated separately."
+      },
+      {
+        "section": 22,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Recovery reverses requests after failure; does not execute install/upgrade/remove or finalize installed_version."
+      },
+      {
+        "section": 23,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "13 relevant Provider source interfaces match prior qualified source; global task_source ownership/edges and local model runtime remain unqualified."
+      },
+      {
+        "section": 24,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Prior scoped continuation-frontier recovered; actual pending source declaration admitted via node_frontier with full ledger. No synthetic accepted state."
+      },
+      {
+        "section": 25,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Two native select/claim/execute/verify cycles recorded; no managed local inference or new coordinator. Whole-goal continuation still unqualified."
+      },
+      {
+        "section": 26,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Two owned TASK remain incomplete; remaining reviewed loading obligations require effective Registry/outer caller integration, company provisioning requires open metadata placement. No claim of global exhaustion. Other60 AS IS TASK have NULL owner and global admission reader is unqualified with foreign reserved correction1072."
+      },
+      {
+        "section": 27,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "ActualPG positive/negative, independent connection, Git and CI evidence used; model assertion alone never accepted."
+      },
+      {
+        "section": 28,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Remote commit5dad CI completed FAILURE; actual775-line log confirms77PASS/1SKIP/1ERROR476.44s, display_name. Later tests not evaluated."
+      },
+      {
+        "section": 29,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Native targeted search and TaskGet identify related TASK-GEN-0633 pending owner NULL, and0418 pending owner NULL;0415/0416 completed. Current ProductProduct compute returns a value while descriptor expects assignment, matching historical triage category. Sole ownership not asserted; unclaimed paths do not establish admission."
+      },
+      {
+        "section": 30,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Exact56c6d4ea make ci-verify completed make2/pytest1,77PASS/1SKIP/1ERROR482.36s. First baseline display_name failure; later verifiers NOT_EVALUATED. No acceptance declared."
+      },
+      {
+        "section": 31,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Two required historical expedients verified69+91checksums; no duplicated test execution."
+      },
+      {
+        "section": 32,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Consumer probes/logs in existing scripts/evidence; no secrets or DB copies committed."
+      },
+      {
+        "section": 33,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Only current0382 continuation appended to both existing62-task AS IS records; official status unchanged."
+      },
+      {
+        "section": 34,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "56c6 code local, publication pending at this observation; PRs remain open, no merge."
+      },
+      {
+        "section": 35,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "BABOK criteria used for evaluation only, no installation/framework/agent taxonomy."
+      },
+      {
+        "section": 36,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "No general coordinator/skills audit, qualification or Provider refactor initiated."
+      },
+      {
+        "section": 37,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Existing links preserve later methodology evaluation; no general BABOK qualification declared."
+      },
+      {
+        "section": 38,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Prior code, evidence and dirty Provider state preserved; no store restore or repeated global inventory."
+      },
+      {
+        "section": 39,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Two new eligible functional units executed with positive/negative actualPG controls."
+      },
+      {
+        "section": 40,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "Both new records retain source/contract/Consumer737/tests/evidence/integration/acceptance limits."
+      },
+      {
+        "section": 41,
+        "assessment": "verified procedural/bounded requirement",
+        "evidence_and_limits": "No-op controls fail, actualSQL detects psycopg3 adaptation error, constraint proves atomic rollback."
+      },
+      {
+        "section": 42,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Source/probes/logs and current native identities retained in existing authority paths; remote publication checked separately by Git, not fabricated by evidence file."
+      },
+      {
+        "section": 43,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Native TASKs pending and PRs open/unmerged; local exact revision CI fails. Focused checks do not confer acceptance."
+      },
+      {
+        "section": 44,
+        "assessment": "partial; functional acceptance or continuation pending",
+        "evidence_and_limits": "Step completion not persistent goal completion; final continuation and verified blockers must remain saved."
+      }
+    ],
+    "objective_complete": false,
+    "authority": "Instruction audit within existing job only; native TASKs/AS IS/per-file ledger remain their respective authorities. No new approval or platform statuses.",
+    "pre_final_control": {
+      "A_objective_complete": false,
+      "B_pending": "Company provisioning, effective Registry/composition, force_demo/load_modules, outer caller integration, hooks/version/state/invalidation, CI acceptance and authorized integration",
+      "C_owned": "0382/0383 current native pending, owner codex-module-lifecycle; missing functional dependencies remain despite empty structured edges",
+      "D_reserved": "Provider task_source vm-r; task_continuation vm-r/vm-a. Consumer60NULL TASK are not available; targeted product/fields/registry paths unclaimed does not confer ownership.",
+      "E_executed_admissible": "Names validation and failure state recovery selected via native interface and verified with actualPG positive/negative controls",
+      "F_remaining_reviewed_units": "force_demo requires real registry rebuild/invalidation after state changes; load_modules requires actual composition/schema/data/hooks/finalization. Existing Registry.new does not consume installation requests. Company policy placement unresolved.",
+      "G_continuation_condition": "Acceptance gate failed on actual exact-code CI; productive company schema blocked by existing open placement authority. Broader admission cannot rely on NULL ownership or unqualified global reader reserved to others. Not resource exhaustion, not proof global goal has no possible independent work.",
+      "H_persistence": "Existing job README/current summary/native exports/per-file ledger/both AS IS/frontier; normal feature commits and PR publication verified via Git",
+      "I_acceptance": "Step verification, TASK acceptance, PR integration and persistent goal completion remain distinct"
+    }
   }
 }

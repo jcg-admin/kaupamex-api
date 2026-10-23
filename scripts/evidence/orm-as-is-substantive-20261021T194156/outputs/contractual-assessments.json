@@ -70075,7 +70075,7 @@
         "tests/integration/base/test_module_graph_database.py"
       ],
       "observed_conclusion": "Catalogue refresh no longer derives operational states from imported apps. Administrative requests validate dependencies/authorization, lock and queue transitions in one database. Two real databases retain distinct states, concurrent requests and rollback; mixed-database batches with colliding IDs are rejected. Installation itself is not executed by these requests.",
-      "next_action": "Preserve actual loader producer contract: loading.load_module_graph writes installed state/version only after domain initialization/data/hooks and commits before optional at_install tests. Current Django migration and registry reflection are partial mechanisms, not whole-loader equivalence. Full company migration verification under existing owned0383 is now running independently.",
+      "next_action": "Resolve productive metadata/session placement under DEC-AISL-05 and existing automation/default alias ownership; full company verification failed, no process still running. Effective Registry and outer loader must be verified before whole0382/0383 acceptance. Do not repeat valid bounded tests solely to regenerate evidence.",
       "verification_and_acceptance": "3catalogue +20snapshot/preparation controls,12pinned differential cases,twoDBisolation and0088forward/reverse PASS;30pure contracts +12static regressions PASS. CI FAIL77PASS/1SKIP/1ERROR512.57s,pytest1/make2,baseline display_name; later tests NOT_EVALUATED. No TASK acceptance or merge.",
       "integration_rule": "Existing feature branch/PR109; no merge or official TASK state change.",
       "publication_and_ci": "Working changes after f0da172d; see scripts/evidence/orm-module-snapshot-20261022T202346 for final commit/PR/CI result.",
@@ -70104,7 +70104,21 @@
           "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/demo-failure-correspondence.json"
         ],
         "admission": "Current native owner codex-module-lifecycle and no foreign path claims; no new task or state update; prior selected qualification resumed rather than accepted artificially."
-      }
+      },
+      "current_loading_support": {
+        "code_commit": "56c6d4ea",
+        "contracts": [
+          "odoo/modules/loading.py::_check_module_names",
+          "odoo/modules/loading.py::reset_modules_state"
+        ],
+        "verification": "26 focused PASS, actual PostgreSQL differentials PASS, both negative no-ops exit1 expected",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/loading-support-summary.json",
+        "task_state": "pending; owner codex-module-lifecycle; no TaskUpdate",
+        "acceptance": "not_verified; outer caller integration and full goal remain unaccepted",
+        "ci": "Exact56c6 make2,77PASS/1SKIP/1ERROR482.36s; first baseline display_name",
+        "published": true
+      },
+      "historical_next_action_before_loading_support": "Preserve actual loader producer contract: loading.load_module_graph writes installed state/version only after domain initialization/data/hooks and commits before optional at_install tests. Current Django migration and registry reflection are partial mechanisms, not whole-loader equivalence. Full company migration verification under existing owned0383 is now running independently."
     },
     {
       "citation": "TASK-API-0383",
@@ -70144,10 +70158,19 @@
       ],
       "observed_conclusion": "Context fix110c8182 preserves target alias and caller scope. Complete company replay fails at base0060 contenttypes FK: native migration dependencies are satisfied in recorder but router omits the actual table. In-memory local-contenttypes experiment passes that point and exposes hr0004 evaluating current ResCompany before all columns exist. Historical nullable DDL now separates physical default NULL from preserved runtime callable in migration state; no current HR model change.",
       "verification_and_acceptance": "Context11PASS; negative8FAIL/3PASS expected. CI after context77PASS/1SKIP/1ERROR542.65s make2. HR historical PG controlRED1/GREEN0/negative1 expected; fixed8bf4369f. Experimental company provisioning now exits1 at website_sale default resolving IrModelData.ref in empty central DB. Metadata/session reduced control exits1 in automation alias loss; later checks NOT_EVALUATED. Official pending, no acceptance/merge.",
-      "next_action": "Reconcile contenttypes placement and automation alias consumer ownership; distinguish website_sale historical default from IrModelData.ref alias contract. Do not hide either behind a prepopulated central DB or in-memory override. Full productive provisioning, skipped fixture reactivation and independent acceptance remain pending. Continue independent admitted0382 manifest-data stage.",
+      "next_action": "Resolve productive metadata/session placement under DEC-AISL-05 and existing automation/default alias ownership; full company verification failed, no process still running. Effective Registry and outer loader must be verified before whole0382/0383 acceptance. Do not repeat valid bounded tests solely to regenerate evidence.",
       "integration_rule": "Existing feature branch/PR109; no Task state transition or merge",
       "publication_and_ci": "110c8182,8bf4369f and2cc7758d published on feature branch. After-HR global461.12s and after-data497.81s preserve baseline first error. No acceptance or merge.",
-      "history_search_result": "Current native738 owner and prior lifecycle admission0383 verified, no new TASK"
+      "history_search_result": "Current native738 owner and prior lifecycle admission0383 verified, no new TASK",
+      "historical_next_action_before_loading_support": "Reconcile contenttypes placement and automation alias consumer ownership; distinguish website_sale historical default from IrModelData.ref alias contract. Do not hide either behind a prepopulated central DB or in-memory override. Full productive provisioning, skipped fixture reactivation and independent acceptance remain pending. Continue independent admitted0382 manifest-data stage.",
+      "current_support_dependency_observation": {
+        "source_changes": false,
+        "new_full_company_experiment": false,
+        "valid_prior_failure_reused": true,
+        "metadata_placement": "Unresolved authority, router excludes required local contenttypes table",
+        "acceptance": "not_verified",
+        "related_compute_triage": "TASK-GEN-0633 pending owner NULL; no auto-admission"
+      }
     }
   ],
   "legacy_resolution": [
@@ -70344,5 +70367,11 @@
     "reason": "Current owned lifecycle prerequisite admitted and observed while continuing0382; add existing native738, not a new TASK or AS IS rebuild",
     "source": "scripts/evidence/orm-module-snapshot-20261022T202346",
     "original_population_preserved": true
+  },
+  "current_loading_support_scope": {
+    "consumer_revision": "56c6d4eab2426e93a4af86f24383f92044c93278",
+    "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/loading-support-summary.json",
+    "scope": "Incremental current0382/0383 observation; original top revision/measurements and prior continuation windows remain historical. No62-task reconstruction.",
+    "native_state_differences_from_historical_rows": []
   }
 }

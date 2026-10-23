@@ -90,3 +90,83 @@ pinned Odoo19Community abe4040ec1a45beee90fb694e4eae4453e46b389. It updates
 loading-contract-reconciliation.json and demo-failure-correspondence.json,
 and only current0382 observations in the existing62-task AS IS population.
 No global inventory, plan, AST extractor or finding number was recreated.
+
+## Contractual continuation instruction, 2026-10-23
+
+The same instruction-validation.json now contains a separate review of all
+45 numbered sections of the new continuation instruction, with its source
+SHA256. Historical assessments and outcomes above remain historical.
+The original job manifest settlement is not a duration/status claim for
+these later processes; their own logs, JUnit and tool exit codes apply.
+
+Code commit56c6d4ea adds two independent support stages under native local737,
+TASK-API-0382, still pending and owned by codex-module-lifecycle:
+
+- _check_module_names deduplicates requests, ignores the all wildcard and
+  warns only unknown names in the supplied cursor's catalogue. The actual
+  PostgreSQL differential caught psycopg3 tuple-IN incompatibility; parameterized
+  ANY(list) is the measured adaptation. Six initial controls fail before
+  implementation.16 differential cases pass across two isolated schemas in
+  one own database, including an injection-shaped name treated as data.
+  This is not productive multi-database acceptance.
+- reset_modules_state restores transient requests after failure, preserving
+  stable states and installed_version. Django requires leaving the failed
+  caller transaction before recovery; nested/manual transactions are refused.
+  Native atomic commits both updates together. Four initial controls fail
+  before implementation. Actual PostgreSQL verifies reference state mapping,
+  independent-connection visibility, missing-table no-op and full rollback
+  when a real constraint rejects the second update.
+
+Combined data/demo/names/reset controls:26PASS. Both memory-only no-op
+controls exit1 as expected. The pinned functions are extracted using existing
+counterpart_body.declarations_of and reference_roots, not a new extractor.
+The comparison uses actual PG SQL with explicit cursor-protocol adaptation;
+it does not run native Odoo or establish whole-loader equivalence.
+
+Selection inputs/results and native task reads are saved separately without
+replacing historical exports. node_frontier was invoked with the full ledger.
+Its own_owner(node)=vm-<node> does not match codex-module-lifecycle. Own code
+claims were released before selection and reacquired with native overlap
+checks before editing; no foreign claims or identities were filtered/rewritten.
+The13 previously reviewed Provider source interfaces are unchanged; their
+local-model/runtime qualification is not inferred from source equality.
+
+The first CI in this extension started before reset was added and ended
+77PASS/1SKIP/1ERROR508.87s, make2. A second CI targets exact56c6d4ea;
+its definitive result is outputs/loading-support-summary.json and its JUnit.
+Remote baseline5dad run39977965965 completed FAILURE,77PASS/1SKIP/1ERROR
+476.44s, display_name; the complete775-line log is preserved here.
+
+DEC-AISL-05 still leaves contenttypes/session placement open. Router/service
+and the failing migration are unchanged, so valid company experiments were
+not repeated. No manual production table, policy relaxation or fake PASS.
+force_demo requires cache invalidation, transaction reset and registry rebuild;
+load_modules requires effective composition/schema/data/hooks/finalization.
+Existing Registry.new still delegates to _ensure_seeded. Its historical #342
+comment is not a durable TASK identity: current native342 is TASK-API-0187,
+stock work. Native targeted search found no Registry.new/load_modules text;
+this is a search limitation, not proof that equivalent work does not exist.
+
+The existing loading ledger now has five reviewed source-flow contracts and
+two pending named declarations. These counts are not accepted-contract
+denominators. Both existing AS IS files retain their same62-task population.
+No TASK status was changed and no managed model inference, merge or whole
+objective acceptance is claimed. Final continuation inputs and real blockers
+remain in outputs/loading-support-continuation.json.
+
+Final exact-code CI:77PASS/1SKIP/1ERROR482.36s, pytest1/make2,
+first inherited ProductProduct.display_name; later tests NOT_EVALUATED.
+All owned databases/roles are cleaned (zero remaining). Code56c6d4ea is
+published and remote hash verified, PR109 open/unmerged. The first normal
+commit attempt failed because its process lacked Django/reference environment;
+rerun with existing venv/PATH and pinned resolver passed normal hooks.
+No hook/config/baseline was bypassed or changed.
+
+Current native ownership revalidation of the existing62 AS IS identities:
+60NULL owners, only0382/0383 owned by codex-module-lifecycle, both pending.
+Related compute triage is TASK-GEN-0633 pending ownerNULL;0418 also pending
+ownerNULL. No claim is not ownership. Generic task_source correction1072 is
+pending ownerNULL with actual vm-r source reservation; continuation source
+has vm-r/vm-a reservations. No Provider state/code edit or alternate global
+admission mechanism. Final frontier uses actual acceptance-gate failure, not
+manufactured accepted state; it is scoped, not a global exhaustion verdict.

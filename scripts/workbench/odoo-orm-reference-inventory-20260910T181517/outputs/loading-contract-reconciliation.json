@@ -396,6 +396,150 @@
         "merge": false,
         "official_state_changes": false
       }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/loading.py::_check_module_names",
+      "source_location": 326,
+      "owner": "odoo.modules.loading",
+      "symbol_kind": "function",
+      "behavior": "Warn only unknown requested module names without writes",
+      "execution_flow": [
+        "Deduplicate iterable",
+        "Discard all wildcard",
+        "Count names in selected catalogue",
+        "Read actual catalogue only on mismatch and warn unknown names"
+      ],
+      "inputs_outputs": {
+        "source_signature": {
+          "params": [
+            "cr",
+            "module_names"
+          ],
+          "has_default": [
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "consumer_signature": "(cr, module_names)",
+        "result": "None; errors propagate"
+      },
+      "side_effects": "Read SQL and warning only; no mutation of input or states",
+      "dependencies": [
+        "Supplied native Django cursor",
+        "Existing selected PostgreSQL catalogue"
+      ],
+      "consumers": [
+        "Pinned load_modules; Consumer outer loader still unintegrated"
+      ],
+      "installed_mechanism": "src/modules/loading.py::_check_module_names",
+      "existing_adaptation": "psycopg3 = ANY(list) replaces psycopg2 IN(tuple); fetchall replaces dictfetchall",
+      "verification": {
+        "focused": "Six red controls -> PASS",
+        "combined": "26PASS data/demo/names/reset",
+        "postgresql": "16 source differential catalogue cases, two isolated schemas, unchanged states and parameterized injection string",
+        "negative": "No-op in memory exits1 expected",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "ci": {
+          "revision": "56c6d4eab2426e93a4af86f24383f92044c93278",
+          "state": "completed",
+          "make_exit": 2,
+          "pytest_exit": 1,
+          "passed": 77,
+          "skipped": 1,
+          "errors": 1,
+          "seconds": 482.36,
+          "first_failure": "ProductProduct.display_name",
+          "classification": "BASELINE_FAILURE; later tests NOT_EVALUATED",
+          "junit": "outputs/loading-support-ci.junit.xml",
+          "log": "outputs/loading-support-ci.log"
+        }
+      },
+      "equivalence": "Bounded differential PASS with real PG and explicit cursor-protocol adaptation; native Odoo runtime not executed",
+      "limitations": "No outer-loader integration, effective per-base model composition, complete company provisioning or TASK acceptance. Two schemas in one database are not N>1 productive acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "code_commit": "56c6d4ea",
+        "acceptance": "not_verified",
+        "merge": false,
+        "official_state_changes": false,
+        "published": true
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/loading.py::reset_modules_state",
+      "source_location": 611,
+      "owner": "odoo.modules.loading",
+      "symbol_kind": "function",
+      "behavior": "Restore transient requests after failed installation, preserving stable states and versions",
+      "execution_flow": [
+        "Require caller failure transaction exited",
+        "Begin native atomic recovery",
+        "Missing catalogue is no-op",
+        "Restore removal/upgrade to installed and install to uninstalled",
+        "Commit both or roll back both on error"
+      ],
+      "inputs_outputs": {
+        "source_signature": {
+          "params": [
+            "db_name"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "consumer_signature": "(using)",
+        "result": "None; errors propagate"
+      },
+      "side_effects": "Two bounded state updates and commit; no installed_version update or actual installation",
+      "dependencies": [
+        "Declared Django connection alias",
+        "Autocommit outside caller atomic",
+        "Django introspection and transaction.atomic; no effective registry needed"
+      ],
+      "consumers": [
+        "Pinned Registry failure recovery; Consumer Registry.new still calls _ensure_seeded"
+      ],
+      "installed_mechanism": "src/modules/loading.py::reset_modules_state",
+      "existing_adaptation": "Explicit alias replaces db name. Django root atomic replaces independent Odoo cursor; nesting/manual transaction refused. Both updates atomic.",
+      "verification": {
+        "focused": "Four red controls -> PASS",
+        "combined": "26PASS data/demo/names/reset",
+        "postgresql": "Six state mappings match pinned function, unchanged versions, committed visibility from second connection, missing table, nested refusal, actual second-update constraint rollback",
+        "negative": "No-op in memory exits1 expected",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "ci": {
+          "revision": "56c6d4eab2426e93a4af86f24383f92044c93278",
+          "state": "completed",
+          "make_exit": 2,
+          "pytest_exit": 1,
+          "passed": 77,
+          "skipped": 1,
+          "errors": 1,
+          "seconds": 482.36,
+          "first_failure": "ProductProduct.display_name",
+          "classification": "BASELINE_FAILURE; later tests NOT_EVALUATED",
+          "junit": "outputs/loading-support-ci.junit.xml",
+          "log": "outputs/loading-support-ci.log"
+        }
+      },
+      "equivalence": "Bounded differential PASS with real PG and explicit cursor-protocol adaptation; native Odoo runtime not executed",
+      "limitations": "No outer-loader integration, effective per-base model composition, complete company provisioning or TASK acceptance. Two schemas in one database are not N>1 productive acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "code_commit": "56c6d4ea",
+        "acceptance": "not_verified",
+        "merge": false,
+        "official_state_changes": false,
+        "published": true
+      }
     }
   ],
   "other_named_declarations_pending": [
@@ -418,30 +562,6 @@
       "body": "substantive",
       "decorators": [],
       "qualified_symbol": "force_demo",
-      "acceptance": "not_verified",
-      "task_resolution": "not_verified"
-    },
-    {
-      "kind": "function",
-      "owner": null,
-      "name": "_check_module_names",
-      "lineno": 326,
-      "signature": {
-        "params": [
-          "cr",
-          "module_names"
-        ],
-        "has_default": [
-          false,
-          false
-        ],
-        "vararg": null,
-        "kwonly": [],
-        "kwarg": null
-      },
-      "body": "substantive",
-      "decorators": [],
-      "qualified_symbol": "_check_module_names",
       "acceptance": "not_verified",
       "task_resolution": "not_verified"
     },
@@ -473,28 +593,6 @@
       "qualified_symbol": "load_modules",
       "acceptance": "not_verified",
       "task_resolution": "not_verified"
-    },
-    {
-      "kind": "function",
-      "owner": null,
-      "name": "reset_modules_state",
-      "lineno": 611,
-      "signature": {
-        "params": [
-          "db_name"
-        ],
-        "has_default": [
-          false
-        ],
-        "vararg": null,
-        "kwonly": [],
-        "kwarg": null
-      },
-      "body": "substantive",
-      "decorators": [],
-      "qualified_symbol": "reset_modules_state",
-      "acceptance": "not_verified",
-      "task_resolution": "not_verified"
     }
   ],
   "extraction_limits": "Existing top-level/direct-method extractor; imports/constants/conditional/nested/dynamic source require progressive supplemental review. No exhaustive structural or semantic claim.",
@@ -504,7 +602,7 @@
     "src/service/db.py",
     "src/orm/registry.py"
   ],
-  "scope": "Three reviewed source-flow contracts; four other named declarations remain pending. Counts are not contractual acceptance coverage.",
+  "scope": "Five reviewed source-flow contracts; force_demo and load_modules remain pending. Symbol/file counts do not establish contractual acceptance coverage.",
   "evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
   "consumer_service_inventory": {
     "name": "db.py",
@@ -1342,14 +1440,54 @@
   },
   "consumer_loading_inventory": {
     "name": "loading.py",
-    "lines": 89,
+    "lines": 133,
     "classes": [],
     "functions": [
       {
         "kind": "function",
         "owner": null,
-        "name": "load_data",
+        "name": "reset_modules_state",
         "lineno": 19,
+        "signature": {
+          "params": [
+            "using"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "_check_module_names",
+        "lineno": 43,
+        "signature": {
+          "params": [
+            "cr",
+            "module_names"
+          ],
+          "has_default": [
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "load_data",
+        "lineno": 63,
         "signature": {
           "params": [
             "idref",
@@ -1376,7 +1514,7 @@
         "kind": "function",
         "owner": null,
         "name": "load_demo",
-        "lineno": 47,
+        "lineno": 91,
         "signature": {
           "params": [
             "env",
@@ -1398,8 +1536,9 @@
         "decorators": []
       }
     ],
-    "raw": 2,
-    "unique": 2
+    "raw": 4,
+    "unique": 4
   },
-  "consumer_loading_sha256": "b2e2ea82c99c431eb76736f4194b251920847f8262990622e214c7676c04f230"
+  "consumer_loading_sha256": "e7f1396d427dfac5435263b09f6b716b2ce010cada0842172f5826bea32a7516",
+  "current_support_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/loading-support-summary.json"
 }

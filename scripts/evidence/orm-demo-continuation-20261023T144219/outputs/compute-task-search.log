@@ -1,0 +1,156 @@
+#335  pending      [api]  Enseñar a check_porte_completo la equivalencia declarada (H-API-579)
+    sesion:      168b0fdf-bfe4-590b-b6c0-b6be124c124a
+    origen:      hook-stop
+    creada:      2026-08-18T03:55:58  actualizada: 2026-08-21T10:03:52
+    El gate compara por nombre literal; este árbol renombra por convención
+    (_compute_X → compute_X | property, _compute_display_name → __str__,
+    _onchange_X → método explícito). Medido: stock_picking.py está 83/83 y el
+    gate le marca 15 ausentes; stock_location.py, porte cerrado, recibe 9. Cota
+    superior en el reporte completo: 1308 de 3548 símbolos llevan prefijo
+    renombrable.  Cierre: leer la tabla símbolo-por-símbolo del docstring
+    (formato ya uniforme) en vez de exigir el literal; alternativa más barata
+    pero laxa, un mapa de alias por prefijo. Republicar el conteo global con el
+    denominador corregido y medir cuántos de los 1308 eran falsos positivos
+    reales.  NO renombrar nuestros métodos al literal de la referencia: la
+    convención (property para el compute sin columna) es divergencia declarada.
+    --- Ceguera adicional medida 2026-08-18 (verificando el entregable de #390)
+    --- La heurística de absolución del gate es 1:1 — absuelve `_compute_X` si
+    existe una `property X`. Es CIEGA al caso 1-compute → N-properties.  Caso
+    concreto: `stock/models/stock_storage_category.py`. El gate reporta
+    `_compute_storage_capacity_ids` como MÉTODO AUSENTE. En la referencia
+    (`odoo19c: addons/stock/models/stock_storage_category.py`) ese único compute
+    alimenta DOS campos: `product_capacity_ids` y `package_capacity_ids`
+    (`storage_category.product_capacity_ids = ...filtered(lambda c:
+    c.product_id)` y `...package_capacity_ids = ...filtered(lambda c:
+    c.package_type_id)`). Aquí están portados como dos properties (`:162` y
+    `:170`) más `_set_storage_capacity_ids` (`:187`). El porte es COMPLETO; el
+    gate no puede verlo porque busca una property con el nombre del compute.
+    Consecuencia para el cierre: la tabla símbolo-por-símbolo del docstring debe
+    admitir un símbolo de la referencia mapeado a VARIOS símbolos nuestros
+    (relación 1:N), no sólo 1:1.
+
+#1190  completed    [api]  Despachar el compute declarado al leer un NonStored
+    sesion:      168b0fdf-bfe4-590b-b6c0-b6be124c124a
+    origen:      task_ids ingerir-board
+    creada:      2026-09-11T17:32:11  actualizada: 2026-09-12T10:57:56
+    CERRADA en `api@a95c11fb`. TASK-API-0415.  `NonStored.__get__` gana su
+    tercera rama —entre `related` y `default`— que llama `determine_compute`,
+    instalado desde `fields.py` como sus hermanos
+    `determine_domain`/`determine_inverse` (el import inverso sería ciclo). Los
+    dos sitios declaran ahora la forma de la referencia: `display_name =
+    Char('Display Name', compute='_compute_display_name',
+    search='_search_display_name')` y `full_name = fields.Char('Group Name',
+    compute='_compute_full_name', search='_search_full_name')`; el envoltorio
+    `_display_name_default` retirado, y la etiqueta movida de `help_text=`
+    (alias de `help=`) al primer posicional (`verbose_name` en Django, `string`
+    en la fuente).  Flujo medido antes de escribir: `Field.__get__` abre la rama
+    en `odoo19c: odoo/orm/fields.py:1736-1737`; su cuerpo llega a
+    `_compute_field_value` (`odoo/orm/models.py:4953`), cuyo cuerpo entero es
+    `determine(field.compute, self)` más un `if field.store:` que un campo sin
+    columna nunca alcanza. `determine` ya estaba portado (`orm/fields.py:1699`).
+    TDD con su rojo persistido: `scripts/evidence/rojo-compute-
+    dispatch-2026-09-11T17-33-32.log` (2 failed, 6 passed) → verde (9 passed).
+    Control de anulación: deshabilitada la rama caen EXACTAMENTE los cuatro
+    casos que la miden (4 failed, 5 passed) y no se mueve ninguno de precedencia
+    ni de regresión. Suite completa tras el porte: 3 failed, 10553 passed, 30
+    skipped en 317.63 s — los tres rojos son los heredados.  El control de
+    control original NO discriminaba (`label != plain_label` era verde en los
+    dos estados); se sustituyó por uno parametrizado con dos cómputos distintos,
+    que ninguna constante satisface.
+
+#1191  completed    [api]  Portar la fase que recoge las definiciones de campo por clase
+    sesion:      168b0fdf-bfe4-590b-b6c0-b6be124c124a
+    origen:      task_ids ingerir-board
+    creada:      2026-09-11T17:44:22  actualizada: 2026-09-12T10:57:56
+    BLOQUEO CORREGIDO 2026-09-11. Esta tarea declaraba «depende de #318
+    (MetaModel) y de _setup/_setup_fields». **Falso, y la conclusión salía del
+    censo de símbolos — significante — en vez de medir cómo funciona.**  Medido
+    por conducta (`scripts/workbench/recoleccion-de-definiciones-*/`):  1. La
+    referencia recorre `_model_classes__`, y eso ES `mro()`:
+    `model_cls._model_classes__ = tuple(c for c in model_cls.mro() if
+    getattr(c,'pool',None) is None)` (`odoo19c: odoo/orm/model_classes.py:358`).
+    No es un registro propio — es el MRO filtrado a clases de definición. Python
+    lo trae hecho. 2. Las DOS ocurrencias sobreviven distinguibles en las dos
+    formas de herencia de este árbol, medido con sondas: base abstracta de
+    Django → `_meta.local_fields` de cada clase da
+    `[('HoldsBase',10),('HoldsChild',20)]`; mixin llano → `vars(mixin)` y
+    `vars(hija)` dan dos `NonStored` distintos, cada uno con su `compute`. 3.
+    `ModelBase.__new__(cls, name, bases, attrs, **kwargs)` recibe el cuerpo de
+    clase igual que `MetaModel.__new__`, y `contribute_to_class` dispara una vez
+    por ocurrencia en orden base→hija.  Veredicto INVENTORY: la **recolección**
+    es *el stack lo trae hecho* (mro + `_meta.local_fields` + `vars`); la
+    **fusión** es *tiene con qué construirlo* (`_get_attrs` ya portado,
+    `orm/fields.py:1105-1128`). No hace falta `MetaModel` ni ninguna dependencia
+    de fuera.  CASO DE ACEPTACIÓN, medido sobre el modelo real
+    (`probe_the_override_loses_the_base.py`):      la base (DisplayNameMixin)
+    compute='_compute_display_name' search='_search_display_name' -> NonStored
+    el override (TestOrmCategory) compute=None search=None
+    inverse='_inverse_display_name' recursive=True -> CharField  El override se
+    porta verbatim de `odoo19c: odoo/addons/test_orm/models/test_orm.py:28-31`.
+    Allá no significa «campo con columna»: significa override, y la fusión le
+    trae el `compute` de la base, del que el bloque compute deriva
+    `store=False`. Aquí, sin fusión, `store` cae a su defecto `True`.  Cierra
+    los dos rojos heredados de `tests/unit/orm/test_display_name.py`.
+
+#1193  pending      [api]  Retirar NonStored como clase: el eje es store, no el tipo
+    sesion:      168b0fdf-bfe4-590b-b6c0-b6be124c124a
+    origen:      task_ids ingerir-board
+    creada:      2026-09-11T19:15:36  actualizada: 2026-09-11T19:15:36
+    Citada por TASK-API-0416 en el docstring de `_collect_field_definitions`
+    (src/orm/fields.py) como la condición que vuelve ALCANZABLE la rama de
+    fusión: hoy `NonStored` es una clase suelta y por eso no cuenta como
+    definición de campo en la MRO. La fuente no tiene una clase por
+    almacenamiento — `store` es un atributo derivado, no un tipo (odoo19c:
+    odoo/orm/fields.py:459-465). Radio medido: 317 menciones en ~80 archivos; 7
+    declaraciones directas en 5 archivos; 35 sitios `isinstance`/`issubclass`;
+    27 imports. Los 3 sitios de producción son src/orm/domains.py:234,
+    src/orm/fields_nonstored.py:224 y :718, que pasan a `not getattr(f, 'store',
+    True)`. Además: el export de src/fields/__init__.py,
+    scripts/check_display_name.py:101,
+    addons/base_sparse_field/models/fields.py, y ~25 aserciones de test que van
+    a un helper único. Bloqueada por TASK-API-0417.
+
+#1203  pending      [api]  Triar los 64 rojos de tests/unit/orm que TASK-API-0412 volvió alcanzables
+    sesion:      168b0fdf-bfe4-590b-b6c0-b6be124c124a
+    origen:      task_ids ingerir-board
+    creada:      2026-09-12T09:03:30  actualizada: 2026-09-12T10:57:56
+    TASK-API-0412 (api@775c674e) hizo que `tests/unit/orm` pasara de 0 passed /
+    2205 errors —la suite moría en import— a 2141 passed / 64 failed. Los 64 NO
+    son regresiones del cambio: eran inalcanzables porque nada llegaba a correr.
+    Esto es una LÍNEA BASE NUEVA, no una comparación contra los 5371 de
+    2026-08-28.  Agrupación medida
+    (`scripts/evidence/triage-64-2026-09-12T09-02-05-001.log`): **26 grupos que
+    cubren 31 de los 64**. Los 33 restantes NO están atribuidos — el instrumento
+    agrupa por la línea `file:line: Error` del resumen y esos rojos no la llevan
+    bajo `--tb=no`. Ése es su punto ciego, y el triaje empieza por cerrarlo (re-
+    correr el subconjunto con `--tb=line`, que sí emite una línea por rojo).
+    Los grupos medidos, por dueño:  - **5** — `src/orm/fields_relational.py:530`
+    `ManyToManyField.__init__() missing 'to'` → es **#349** (reconstruir el
+    relacional desde `_args__`), no de aquí. - **6** — `src/orm/fields.py:1593`
+    `Compute method failed to assign …display_name` (grupo #3, clave.uno,
+    Cliente, Cliente Sin Correo, Cliente Con Nombre, y
+    `ComputeDispatchProbe.label`). Un compute que DEVUELVE en vez de ASIGNAR:
+    `_invoke_compute_method` descarta el retorno de `determine()` y `__get__`
+    lee `instance.__dict__[attname]` después. Candidato a cerrar en este mismo
+    triaje. - **8** — `tests/unit/orm/test_related_in_every_field_type.py:60` «X
+    devolvió Y» (Properties, One2many, Monetary, Many2one, Json, Image, Html)
+    más `:68` `'One2many' object has no attribute 'store'` y `:78`. Es el eje
+    **`related=` por tipo de campo**, hermano de #348 (retirar NonStored como
+    clase: el eje es `store`, no el tipo). - **4** —
+    `tests/unit/orm/test_related_write_reaches_the_far_end.py` (`:47`, `:53`,
+    `:136`, `:179`). Escritura que no llega al extremo lejano de la cadena — el
+    mismo mecanismo que TASK-API-0412 cerró para la dirección de ResCompany, sin
+    cerrar para el resto. - **2** — `test_nonstored_compute_dispatch.py:123`
+    `'CharField' object has no attribute '__get__'` → **#343** (un NonStored no
+    tiene atributo editable y su hermano con columna sí). - **2** —
+    `django/apps/registry.py:206` `'NoneType' object has no attribute 'split'` —
+    resolución de modelo por cadena mal formada. - **1 + 1 + 1** —
+    `src/tools/sql.py:338` `'NoneType' has no attribute 'isidentifier'`;
+    `src/orm/fields.py:1610` `'ComputeDispatchProbe' object has no attribute
+    'default_get'`; `res_partner.py:1222` 'Another partner already has this
+    barcode' (contaminación de estado entre casos, no defecto de porte).
+    Condición de cierre: cada uno de los 64 termina en (a) cerrado aquí, (b)
+    reasignado a la tarea que ya lo posee con su cita, o (c) DESCONOCIDO con su
+    condición de cierre escrita. Ninguno se queda sin dueño.
+
+Total: 5 (alcance medido: 2638 tarea(s) de 11 sesion/es en /workspace/thyrox/agent-results/agent_store.sqlite3)

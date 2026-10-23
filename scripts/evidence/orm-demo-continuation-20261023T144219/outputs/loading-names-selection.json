@@ -1,0 +1,52 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "inputs": [
+    {
+      "id": "TASK-API-0382.check_module_names",
+      "taskId": "TASK-API-0382",
+      "prompt": "Validate requested module names against selected database catalogue without changing state",
+      "verify": "Pinned source differential plus actual PostgreSQL selected-catalogue and read-only controls",
+      "owned": [
+        "src/modules/loading.py",
+        "tests/unit/modules/test_loading_names.py"
+      ],
+      "route": "local",
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.company_schema_verification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Resolve existing productive company migration/metadata alias contract under legitimate ownership",
+      "verify": "Full own company provisioner and isolation, not in-memory policy override",
+      "route": "local",
+      "owned": [
+        "src/service/db.py",
+        "src/orm/routers.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.per_company_module_graph_execution",
+      "taskId": "TASK-API-0382",
+      "prompt": "Integrate per-company loader only after selected database schema and model-composition contracts are verified",
+      "verify": "Per-company real registry/schema/data/hooks/state/version acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py"
+      ],
+      "dependsOn": [
+        "TASK-API-0383.company_schema_verification"
+      ]
+    }
+  ],
+  "states": {
+    "TASK-API-0383.company_schema_verification": "failed"
+  },
+  "claims_count": 263,
+  "selected": [
+    "TASK-API-0382.check_module_names"
+  ],
+  "eligibility": "Existing native TASK737 owner codex-module-lifecycle. Pending named declaration from existing pinned loading ledger; cursor-only validation needs no effective model registry or company schema. Other source declarations remain unqualified, not silently excluded as complete.",
+  "scope": "Bounded source-reviewed unit, not global TASK exhaustion or model dispatch. Selector vm-<node> claim-owner mismatch requires selection before native path claim; no identity/claim rewriting."
+}
