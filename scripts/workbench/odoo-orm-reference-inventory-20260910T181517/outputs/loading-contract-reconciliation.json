@@ -1573,6 +1573,2340 @@
         "official_status": "pending",
         "acceptance": "not_verified"
       }
+    },
+    "historical_schema_preflight": {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_file": "odoo/service/db.py",
+      "reference_sha256": "1447f08c76ef3e72a72a0a2cd8fe7776327b63c7f75f7e9adc4e1117e7cabc32",
+      "reference_inventory": {
+        "name": "db.py",
+        "lines": 521,
+        "classes": [
+          {
+            "name": "DatabaseExists",
+            "lineno": 33,
+            "decorators": [],
+            "methods": []
+          }
+        ],
+        "functions": [
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "database_identifier",
+            "lineno": 37,
+            "signature": {
+              "params": [
+                "cr",
+                "name"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "check_db_management_enabled",
+            "lineno": 46,
+            "signature": {
+              "params": [
+                "func"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "check_super",
+            "lineno": 60,
+            "signature": {
+              "params": [
+                "passwd"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_initialize_db",
+            "lineno": 67,
+            "signature": {
+              "params": [
+                "db_name",
+                "demo",
+                "lang",
+                "user_password",
+                "login",
+                "country_code",
+                "phone"
+              ],
+              "has_default": [
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_check_faketime_mode",
+            "lineno": 105,
+            "signature": {
+              "params": [
+                "db_name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_create_empty_database",
+            "lineno": 128,
+            "signature": {
+              "params": [
+                "name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_create_database",
+            "lineno": 177,
+            "signature": {
+              "params": [
+                "db_name",
+                "demo",
+                "lang",
+                "user_password",
+                "login",
+                "country_code",
+                "phone"
+              ],
+              "has_default": [
+                false,
+                false,
+                false,
+                true,
+                true,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_duplicate_database",
+            "lineno": 185,
+            "signature": {
+              "params": [
+                "db_original_name",
+                "db_name",
+                "neutralize_database"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_drop_conn",
+            "lineno": 213,
+            "signature": {
+              "params": [
+                "cr",
+                "db_name"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_drop",
+            "lineno": 230,
+            "signature": {
+              "params": [
+                "db_name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_dump",
+            "lineno": 256,
+            "signature": {
+              "params": [
+                "db_name",
+                "format"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "dump_db_manifest",
+            "lineno": 263,
+            "signature": {
+              "params": [
+                "cr"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "dump_db",
+            "lineno": 279,
+            "signature": {
+              "params": [
+                "db_name",
+                "stream",
+                "backup_format",
+                "with_filestore"
+              ],
+              "has_default": [
+                false,
+                false,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_restore",
+            "lineno": 316,
+            "signature": {
+              "params": [
+                "db_name",
+                "data",
+                "copy"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "restore_db",
+            "lineno": 331,
+            "signature": {
+              "params": [
+                "db",
+                "dump_file",
+                "copy",
+                "neutralize_database"
+              ],
+              "has_default": [
+                false,
+                false,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_rename",
+            "lineno": 385,
+            "signature": {
+              "params": [
+                "old_name",
+                "new_name"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_change_admin_password",
+            "lineno": 408,
+            "signature": {
+              "params": [
+                "new_password"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_migrate_databases",
+            "lineno": 414,
+            "signature": {
+              "params": [
+                "databases"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_db_exist",
+            "lineno": 425,
+            "signature": {
+              "params": [
+                "db_name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "odoo.tools.mute_logger('odoo.sql_db')"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "list_dbs",
+            "lineno": 434,
+            "signature": {
+              "params": [
+                "force"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "list_db_incompatible",
+            "lineno": 455,
+            "signature": {
+              "params": [
+                "databases"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_list",
+            "lineno": 483,
+            "signature": {
+              "params": [
+                "document"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_list_lang",
+            "lineno": 488,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_list_countries",
+            "lineno": 491,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_server_version",
+            "lineno": 500,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "dispatch",
+            "lineno": 510,
+            "signature": {
+              "params": [
+                "method",
+                "params"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ],
+        "raw": 27,
+        "unique": 27
+      },
+      "consumer_before_sha256": "9cd39073fe1bf1e7451f7fcf5b827daed7e988c6e2094adf81125c8bad39ed39",
+      "consumer_inventory_before": {
+        "name": "db.py",
+        "lines": 678,
+        "classes": [
+          {
+            "name": "Savepoint",
+            "lineno": 45,
+            "decorators": [],
+            "methods": [
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "__init__",
+                "lineno": 71,
+                "signature": {
+                  "params": [
+                    "connection"
+                  ],
+                  "has_default": [
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "__enter__",
+                "lineno": 76,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "__exit__",
+                "lineno": 79,
+                "signature": {
+                  "params": [
+                    "exc_type",
+                    "exc_val",
+                    "exc_tb"
+                  ],
+                  "has_default": [
+                    false,
+                    false,
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "close",
+                "lineno": 82,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [
+                    "rollback"
+                  ],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "rollback",
+                "lineno": 86,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "_close",
+                "lineno": 89,
+                "signature": {
+                  "params": [
+                    "rollback"
+                  ],
+                  "has_default": [
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              }
+            ]
+          },
+          {
+            "name": "DatabaseManagementDisabled",
+            "lineno": 96,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "DatabaseExists",
+            "lineno": 100,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "RestoreFailed",
+            "lineno": 104,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "_DumpStream",
+            "lineno": 543,
+            "decorators": [],
+            "methods": [
+              {
+                "kind": "method",
+                "owner": "_DumpStream",
+                "name": "__init__",
+                "lineno": 552,
+                "signature": {
+                  "params": [
+                    "proc"
+                  ],
+                  "has_default": [
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "_DumpStream",
+                "name": "read",
+                "lineno": 555,
+                "signature": {
+                  "params": [
+                    "size"
+                  ],
+                  "has_default": [
+                    true
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "_DumpStream",
+                "name": "close",
+                "lineno": 558,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              }
+            ]
+          }
+        ],
+        "functions": [
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "build_company_alias",
+            "lineno": 123,
+            "signature": {
+              "params": [
+                "base_default",
+                "db_name"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "build_company_databases",
+            "lineno": 135,
+            "signature": {
+              "params": [
+                "db_names",
+                "base_default"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "install_company_aliases",
+            "lineno": 145,
+            "signature": {
+              "params": [
+                "databases",
+                "names",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "list_all_schema_names",
+            "lineno": 170,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "filter_company_dbs",
+            "lineno": 180,
+            "signature": {
+              "params": [
+                "names",
+                "pattern"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "list_company_db_names",
+            "lineno": 189,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "db_filter",
+            "lineno": 198,
+            "signature": {
+              "params": [
+                "dbs",
+                "host",
+                "dbfilter",
+                "db_name"
+              ],
+              "has_default": [
+                false,
+                false,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "db_list_for_host",
+            "lineno": 236,
+            "signature": {
+              "params": [
+                "host",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "db_monodb",
+            "lineno": 245,
+            "signature": {
+              "params": [
+                "host",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "close_db",
+            "lineno": 259,
+            "signature": {
+              "params": [
+                "alias"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "close_all",
+            "lineno": 269,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "quote_db_identifier",
+            "lineno": 278,
+            "signature": {
+              "params": [
+                "name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_maintenance_cursor",
+            "lineno": 290,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_connect",
+            "lineno": 309,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "closing_cursor",
+            "lineno": 333,
+            "signature": {
+              "params": [
+                "conn"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "contextmanager"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "ensure_management_enabled",
+            "lineno": 342,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "database_exists",
+            "lineno": 349,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "create_empty_database",
+            "lineno": 359,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_install_extensions",
+            "lineno": 382,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "kill_connections",
+            "lineno": 397,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "drop_database",
+            "lineno": 422,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "create_database",
+            "lineno": 435,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "provision_company_database",
+            "lineno": 448,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "duplicate_database",
+            "lineno": 478,
+            "signature": {
+              "params": [
+                "src_name",
+                "dst_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_pg_env",
+            "lineno": 509,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "dump_database",
+            "lineno": 563,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "restore_database",
+            "lineno": 585,
+            "signature": {
+              "params": [
+                "db_name",
+                "dump_path",
+                "using"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "rename_database",
+            "lineno": 617,
+            "signature": {
+              "params": [
+                "old_name",
+                "new_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_ensure_alias_registered",
+            "lineno": 637,
+            "signature": {
+              "params": [
+                "name",
+                "base_default"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "migrate_all_company_databases",
+            "lineno": 649,
+            "signature": {
+              "params": [
+                "names",
+                "using"
+              ],
+              "has_default": [
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ],
+        "raw": 44,
+        "unique": 42
+      },
+      "task": "TASK-API-0383",
+      "scope": "Consumer idempotent company migration adaptation; pinned creation refuses existing DBs, so preflight is not copied from an Odoo helper. Native Django applied-state graph and physical introspection provide the evidence. No full service file acceptance.",
+      "family_dispositions": {
+        "database_management": "Existing service create/drop/duplicate/rename/exist/list functions; selected exclusive creation and provision/migration consumers reviewed. Full lifecycle acceptance not_verified.",
+        "backup_restore_filestore": "Existing pg_dump/restore stream path; no changes or acceptance inferred.",
+        "database_selection": "Existing HTTP host filtering/monodb; request consumers pending TASK-API-0381 ownerNULL.",
+        "connection_and_transactions": "Native PostgreSQL maintenance autocommit and Django aliases/atomic/Savepoint; test resources only.",
+        "initialization_and_migration": "New selected unit checks known applied state before actual migration; new schema creation remains native migrate; bulk per-base error aggregation preserved.",
+        "reference_admin_security_and_demo": "Not automatic Consumer obligations; no new admin credentials, model registry, demo or productive policy acceptance in this unit."
+      },
+      "acceptance": "not_verified",
+      "source_revision": "2807e5ba5de97d6d0a3939a2c8984f2ba6ed249b",
+      "behavior": "Fail closed before migrate when known applied migration state requires missing managed tables; bulk uses target company context and continues other bases",
+      "execution_flow": "Validate target -> install native alias -> company_scope(target text) -> MigrationLoader/check_consistent_history -> applied project state -> router-filtered tables/M2M -> introspection -> native migrate",
+      "inputs_outputs": "Existing or fresh company alias, applied known recorder entries and physical catalog -> migration result or DatabaseSchemaIncomplete; bulk preserves per-base status/error list",
+      "side_effects": "Preflight reads recorder/catalog only; no history rewrite, automatic repair, shared QA, new persisted identities or Provider changes. Later native migrate retains existing side effects.",
+      "dependencies": [
+        "Django MigrationLoader and graph/project_state",
+        "Historical StateApps/model can_migrate including swapped/managed/proxy",
+        "CompanyDatabaseRouter.allow_migrate_model",
+        "PostgreSQL table introspection",
+        "company_scope and install_company_aliases",
+        "Existing metadata proposal remains pending DEC-AISL-05 review"
+      ],
+      "consumers": [
+        "provision_company_database -> company_create and web database_create",
+        "migrate_all_company_databases -> existing bulk consumers; no absent DB creation"
+      ],
+      "installed_mechanism": "src/service/db.py::_check_applied_schema; _migrate_company_database; DatabaseSchemaIncomplete",
+      "existing_adaptation": "Native Django migration state/table introspection, not copied Odoo registry or second Provider mechanism",
+      "verification": {
+        "orchestration": "RED2failed11passed exit1; GREEN17passed exit0",
+        "postgres": "Partial known state admits pending tables; missing contenttypes table rejected; missing auto-created auth_group_permissions rejected; applied sessions excluded by native company router admitted; recorder and sentinel retained; each independent own resource cleaned",
+        "negative_control": "In-memory no-op detector causes expected assertion exit1",
+        "initial_instrument_failure": "Set nodes rejected by native graph TypeError exit1, fixed to sorted sequence; raw failure preserved",
+        "mandatory_ci": {
+          "result": "BASELINE_FAILURE",
+          "pytest_exit": 1,
+          "make_exit": 2,
+          "passed": 77,
+          "skipped": 1,
+          "errors": 1,
+          "seconds": 455.78,
+          "first_failure": "ProductProduct.display_name in TestCartSnapshotsV2.test_saves_cart_and_returns_200",
+          "junit": "outputs/schema-preflight-ci.junit.xml",
+          "log": "outputs/schema-preflight-ci.log",
+          "remaining_tests": "NOT_EVALUATED after maxfail=1",
+          "source_revision": "2807e5ba5de97d6d0a3939a2c8984f2ba6ed249b",
+          "comparison": "Same first failure in published a699454f remote run40034493718; no new regression demonstrated by evaluated tests",
+          "acceptance": "not_verified"
+        },
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "supplementary_service_suite": "75PASS6setupERROR exit1: invalid non-database harness for6Savepoint DB cases; no product/regression or acceptance inference; ephemeral dummy literals sanitized in retained log",
+        "prior_remote_ci": "a699454f run40034493718:77PASS1SKIP1ERROR506.70s,Make2,ProductProduct.display_name"
+      },
+      "equivalence": "Bounded adapted initialization/migration safety demonstrated; not full service/db.py or loading.py equivalence",
+      "limitations": "No column/constraint/data certification, unknown-only migration history certification, historical repair, concurrent administrator DDL guarantee, full Registry/model/version loader acceptance or metadata policy acceptance",
+      "integration": {
+        "PR": 109,
+        "merge": false,
+        "official_status": "pending",
+        "acceptance": "not_verified"
+      },
+      "consumer_after_sha256": "a6d61c410297b1f4a3bb69b828cc8df47966d0df2861a02bc6755ee9bc790fde",
+      "consumer_inventory_after": {
+        "name": "db.py",
+        "lines": 695,
+        "classes": [
+          {
+            "name": "Savepoint",
+            "lineno": 27,
+            "decorators": [],
+            "methods": [
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "__init__",
+                "lineno": 53,
+                "signature": {
+                  "params": [
+                    "connection"
+                  ],
+                  "has_default": [
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "__enter__",
+                "lineno": 58,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "__exit__",
+                "lineno": 61,
+                "signature": {
+                  "params": [
+                    "exc_type",
+                    "exc_val",
+                    "exc_tb"
+                  ],
+                  "has_default": [
+                    false,
+                    false,
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "close",
+                "lineno": 64,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [
+                    "rollback"
+                  ],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "rollback",
+                "lineno": 68,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "_close",
+                "lineno": 71,
+                "signature": {
+                  "params": [
+                    "rollback"
+                  ],
+                  "has_default": [
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              }
+            ]
+          },
+          {
+            "name": "DatabaseManagementDisabled",
+            "lineno": 78,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "DatabaseSchemaIncomplete",
+            "lineno": 82,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "DatabaseExists",
+            "lineno": 86,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "RestoreFailed",
+            "lineno": 90,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "_DumpStream",
+            "lineno": 562,
+            "decorators": [],
+            "methods": [
+              {
+                "kind": "method",
+                "owner": "_DumpStream",
+                "name": "__init__",
+                "lineno": 571,
+                "signature": {
+                  "params": [
+                    "proc"
+                  ],
+                  "has_default": [
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "_DumpStream",
+                "name": "read",
+                "lineno": 574,
+                "signature": {
+                  "params": [
+                    "size"
+                  ],
+                  "has_default": [
+                    true
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "_DumpStream",
+                "name": "close",
+                "lineno": 577,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              }
+            ]
+          }
+        ],
+        "functions": [
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "build_company_alias",
+            "lineno": 109,
+            "signature": {
+              "params": [
+                "base_default",
+                "db_name"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "build_company_databases",
+            "lineno": 121,
+            "signature": {
+              "params": [
+                "db_names",
+                "base_default"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "install_company_aliases",
+            "lineno": 131,
+            "signature": {
+              "params": [
+                "databases",
+                "names",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "list_all_schema_names",
+            "lineno": 156,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "filter_company_dbs",
+            "lineno": 166,
+            "signature": {
+              "params": [
+                "names",
+                "pattern"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "list_company_db_names",
+            "lineno": 175,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "db_filter",
+            "lineno": 184,
+            "signature": {
+              "params": [
+                "dbs",
+                "host",
+                "dbfilter",
+                "db_name"
+              ],
+              "has_default": [
+                false,
+                false,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "db_list_for_host",
+            "lineno": 222,
+            "signature": {
+              "params": [
+                "host",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "db_monodb",
+            "lineno": 231,
+            "signature": {
+              "params": [
+                "host",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "close_db",
+            "lineno": 245,
+            "signature": {
+              "params": [
+                "alias"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "close_all",
+            "lineno": 255,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "quote_db_identifier",
+            "lineno": 264,
+            "signature": {
+              "params": [
+                "name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_maintenance_cursor",
+            "lineno": 276,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_connect",
+            "lineno": 295,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "closing_cursor",
+            "lineno": 319,
+            "signature": {
+              "params": [
+                "conn"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "contextmanager"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "ensure_management_enabled",
+            "lineno": 328,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "database_exists",
+            "lineno": 335,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "create_empty_database",
+            "lineno": 345,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_install_extensions",
+            "lineno": 368,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "kill_connections",
+            "lineno": 383,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "drop_database",
+            "lineno": 408,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "create_database",
+            "lineno": 421,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_check_applied_schema",
+            "lineno": 434,
+            "signature": {
+              "params": [
+                "db_name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_migrate_company_database",
+            "lineno": 463,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "provision_company_database",
+            "lineno": 474,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "duplicate_database",
+            "lineno": 497,
+            "signature": {
+              "params": [
+                "src_name",
+                "dst_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_pg_env",
+            "lineno": 528,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "dump_database",
+            "lineno": 582,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "restore_database",
+            "lineno": 604,
+            "signature": {
+              "params": [
+                "db_name",
+                "dump_path",
+                "using"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "rename_database",
+            "lineno": 636,
+            "signature": {
+              "params": [
+                "old_name",
+                "new_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_ensure_alias_registered",
+            "lineno": 656,
+            "signature": {
+              "params": [
+                "name",
+                "base_default"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "migrate_all_company_databases",
+            "lineno": 668,
+            "signature": {
+              "params": [
+                "names",
+                "using"
+              ],
+              "has_default": [
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ],
+        "raw": 47,
+        "unique": 45
+      }
     }
   },
   "consumer_loading_inventory": {

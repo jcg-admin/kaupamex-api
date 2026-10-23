@@ -23100,6 +23100,14 @@
         "cleanup": "Aliases removed; independent maintenance check0remaining knownDB/roles,exit0",
         "harness_limit": "Two probe errors kept separately: over-broad injection and postpytest protected Django query; both overallexit1,not product verdict",
         "native_continuation": "Same unaccepted qualification candidate; no fake accepted state or global coverage; see isolation-native-continuation.json"
+      },
+      "historical_schema_preflight": {
+        "task": "TASK-API-0383",
+        "source_revision": "2807e5ba5de97d6d0a3939a2c8984f2ba6ed249b",
+        "contract_authority": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/loading-contract-reconciliation.json#company_migration_context.historical_schema_preflight",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/schema-preflight-summary.json",
+        "acceptance": "not_verified",
+        "scope": "Incremental owned0383; existing62TASK population unchanged"
       }
     }
   ],
@@ -23892,6 +23900,14 @@
   "current_company_policy_scope": {
     "production_revision": "ea963f24",
     "test_safety_revision": "4f5a166f",
-    "scope": "Incremental existing0382/0383 only; original measurements retained as history,62-task population unchanged"
+    "scope": "Incremental existing0382/0383 only; original measurements retained as history,62-task population unchanged",
+    "historical_schema_preflight": {
+      "task": "TASK-API-0383",
+      "source_revision": "2807e5ba5de97d6d0a3939a2c8984f2ba6ed249b",
+      "contract_authority": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/loading-contract-reconciliation.json#company_migration_context.historical_schema_preflight",
+      "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/schema-preflight-summary.json",
+      "acceptance": "not_verified",
+      "scope": "Incremental owned0383; existing62TASK population unchanged"
+    }
   }
 }

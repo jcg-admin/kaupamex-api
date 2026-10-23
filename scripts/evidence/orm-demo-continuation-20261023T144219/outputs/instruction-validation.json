@@ -1315,6 +1315,23 @@
       "skipped": 1,
       "errors": 1,
       "seconds": 484.2
+    },
+    "current_incremental_verification": {
+      "source_revision": "2807e5ba5de97d6d0a3939a2c8984f2ba6ed249b",
+      "task": "TASK-API-0383",
+      "obligation": "Historical applied-schema preflight and shared target company migration context",
+      "contract_authority": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/loading-contract-reconciliation.json#company_migration_context.historical_schema_preflight",
+      "results": "schema-preflight-summary.json",
+      "objective_complete": false,
+      "acceptance": "not_verified",
+      "remaining": [
+        "Full loader/model composition/state/version acceptance",
+        "Whole per-request identity/security isolation",
+        "DEC-AISL-05 policy review",
+        "Global required CI failure",
+        "Native source discovery owner/dependency coverage and local-model qualification",
+        "Remaining file-level obligations and TASK acceptance/integration"
+      ]
     }
   }
 }

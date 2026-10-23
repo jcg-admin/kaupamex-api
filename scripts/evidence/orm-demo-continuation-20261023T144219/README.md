@@ -331,3 +331,23 @@ revisión de la propuesta DEC-AISL-05, gate global/ownership de compute, TASK-AP
 resolución por petición y aceptación HTTP, recuperación histórica, Registry y
 cargador efectivo, descubrimiento/admisión global e inferencia local cualificada.
 Los PR permanecen abiertos; publicar evidencia no es merge ni aceptación.
+
+### Continuación: esquema histórico aplicado (TASK-API-0383)
+
+Selección nativa y ownership conservados en `outputs/schema-preflight-selection.json`.
+`src/service/db.py` comparte contexto destino y comprobación previa entre alta
+y lote; el lote no crea bases ausentes. No se repara el historial.
+RED: 2 FAIL/11 PASS, exit1. GREEN:17 PASS, exit0. PostgreSQL propio:
+estado parcial válido, tabla ordinaria ausente, M2M ausente, exclusión nativa
+de sessions y conservación de historial/sentinel verificados, exit0 por recurso.
+Anulación en memoria: rechazo desaparece, control falla exit1 esperado.
+El primer experimento detectó un TypeError real de adaptación a Django;
+se preservó el fallo y se corrigió a una secuencia de nodos.
+El resumen contractual y los límites están en `outputs/schema-preflight-summary.json`.
+No acredita columnas, reparación, aceptación de TASK ni cumplimiento global.
+
+Gate local de ``2807e5ba``: 77 PASS, 1 SKIP, 1 ERROR, 455.78 s;
+pytest1/Make2, primer fallo heredado ProductProduct.display_name,
+comprobado también en CI remoto de a699454f. JUnit y log completos
+`outputs/schema-preflight-ci.junit.xml` y `outputs/schema-preflight-ci.log`.
+Pruebas posteriores NOT_EVALUATED; no aceptación global ni merge.
