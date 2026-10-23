@@ -1,5 +1,6 @@
 """TASK-API-0383: migraciones reales default/company con recursos propios."""
 import json
+import hashlib
 from pathlib import Path
 import secrets
 import subprocess
@@ -13,6 +14,8 @@ django.setup()
 
 from django.conf import settings
 from django.core.management import call_command
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.sessions.backends.db import SessionStore
 from django.db import connections
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.migrations.executor import MigrationExecutor
@@ -21,7 +24,7 @@ from orm.routers import CompanyDatabaseRouter
 import orm.routers as router_module
 from service import db as database_service
 
-run = Path(__file__).resolve().parent.parent
+run = Path(os.environ.get('ORM_COMPANY_EVIDENCE_DIR', str(Path(__file__).resolve().parent.parent)))
 first = settings.DATABASES['default']['NAME']
 assert first.startswith('orm_bootstrap_')
 company = 'company_' + str(secrets.randbits(48)) + '_db'
@@ -29,6 +32,7 @@ container = os.environ['ORM_QA_CONTAINER']
 marker = first + '_full_company'
 created = hba = False
 results = {'task':'TASK-API-0383','scope':'Full Django migration verification only, not module installer execution or Task acceptance','databases':{}}
+results['instrument_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
 
 def admin(sql):
@@ -131,9 +135,51 @@ try:
         assert results['databases']['default']['applied_migrations'] == results['databases']['company']['applied_migrations']
         assert results['databases']['default']['foreign_keys_to_local_res_users'] == results['databases']['company']['foreign_keys_to_local_res_users']
     results['separate_physical_databases'] = first != company
+    if '--probe-local-contenttypes' in sys.argv:
+        # Measure the open placement question without changing productive policy.
+        results['metadata_session_probe'] = {'status': 'running'}
+        with company_scope(company.split('_')[1]):
+            marker_name = 'local_' + secrets.token_hex(8)
+            assert not ContentType.objects.db_manager('default').filter(
+                app_label='contract_bootstrap', model=marker_name).exists()
+            local_type = ContentType.objects.db_manager(company).create(
+                app_label='contract_bootstrap', model=marker_name)
+            assert ContentType.objects.db_manager(company).get_for_id(local_type.pk).model == marker_name
+            try:
+                central_type = ContentType.objects.db_manager('default').get_for_id(local_type.pk)
+            except ContentType.DoesNotExist:
+                central_type = None
+            assert central_type is None or central_type.model != marker_name
+            assert not ContentType.objects.db_manager('default').filter(
+                app_label='contract_bootstrap', model=marker_name).exists()
+            store = SessionStore()
+            store['company_probe'] = company
+            store.create()
+            old_key = store.session_key
+            assert SessionStore(old_key).load()['company_probe'] == company
+            store.cycle_key()
+            new_key = store.session_key
+            assert new_key != old_key and not store.exists(old_key)
+            assert SessionStore(new_key).load()['company_probe'] == company
+            session_model = store.get_model_class()
+            assert session_model.objects.using('default').filter(session_key=new_key).exists()
+            assert 'django_session' not in connections[company].introspection.table_names()
+            store.flush()
+            assert not SessionStore().exists(new_key)
+            local_type.delete(using=company)
+        results['metadata_session_probe'] = {
+            'status': 'pass', 'local_metadata_not_in_default': True,
+            'content_type_cache_bound_to_alias': True,
+            'session_create_rotate_read_flush': True,
+            'session_storage_default_only': True,
+            'session_keys_removed': True,
+            'limit': 'Storage backend under one company context and separate default DB. Not login, cross-company user identity, authorization or productive policy acceptance.',
+        }
     results['limits'] = 'Migration/schema acceptance only. No module graph execution, data/demo/hooks lifecycle, ORM compute conformance or PR integration.'
     print('Full company migration and independent backbone/FK checks PASS',flush=True)
 finally:
+    if results.get('metadata_session_probe', {}).get('status') == 'running':
+        results['metadata_session_probe']['status'] = 'failed'
     if '--probe-local-contenttypes' in sys.argv and 'original_control_plane' in locals():
         router_module._CONTROL_PLANE_APPS = original_control_plane
     connections.close_all()
