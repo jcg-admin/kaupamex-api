@@ -1,0 +1,30 @@
+{
+  "interface": "task.task_source.records_from_store(store,layer=\"gen\")",
+  "read_only": true,
+  "source_row": {
+    "citation_id": "TASK-GEN-0062",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "400",
+    "blocked_by_json": "[\"333\"]"
+  },
+  "same_session_target": [
+    {
+      "citation_id": "TASK-GEN-0060",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "333"
+    }
+  ],
+  "returned_record": {
+    "id": "62",
+    "citation": "TASK-GEN-0062",
+    "subject": "Construir el motor de traducción: import/export de .po",
+    "status": "pending",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "blockedBy": [],
+    "edgeSource": "store"
+  },
+  "stderr": "",
+  "observation": "stored dependency exists, returned blockedBy empty; not qualified for dependency-preserving selection",
+  "expected_existing_task": "TASK-THYROX-1072",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+}

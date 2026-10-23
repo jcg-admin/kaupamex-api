@@ -1,0 +1,123 @@
+[
+  {
+    "citation_id": "TASK-API-0216",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "383",
+    "subject": "Gate: orm.fields.__all__ sólo contiene clases de campo",
+    "status": "pending",
+    "owner": null,
+    "blocks_json": "[]",
+    "blocked_by_json": "[]",
+    "updated_at": "2026-08-21T10:03:52"
+  },
+  {
+    "citation_id": "TASK-API-0397",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1167",
+    "subject": "Construir BaseModel propio desde el contrato medido de la referencia",
+    "status": "in_progress",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-12T09:36:13"
+  },
+  {
+    "citation_id": "TASK-API-0398",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1168",
+    "subject": "Verificar contrato por contrato los 21 del cubo TRAE de BaseModel",
+    "status": "in_progress",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-12T09:36:13"
+  },
+  {
+    "citation_id": "TASK-API-0416",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1191",
+    "subject": "Portar la fase que recoge las definiciones de campo por clase",
+    "status": "completed",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-12T10:57:56"
+  },
+  {
+    "citation_id": "TASK-API-0418",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1193",
+    "subject": "Retirar NonStored como clase: el eje es store, no el tipo",
+    "status": "pending",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-11T19:15:36"
+  },
+  {
+    "citation_id": "TASK-API-0419",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1194",
+    "subject": "Reconstruir un campo relacional desde _args__: to y on_delete no llegan a Field.__init__",
+    "status": "pending",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-11T19:15:36"
+  },
+  {
+    "citation_id": "TASK-API-0421",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1196",
+    "subject": "Portar BaseModel.create por contenido: lista de dicts → recordset, dict → singleton",
+    "status": "completed",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-12T09:36:13"
+  },
+  {
+    "citation_id": "TASK-API-0422",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1197",
+    "subject": "Portar bypass_search_access al create: la fuente lo propaga a los padres _inherits",
+    "status": "pending",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-11T22:42:04"
+  },
+  {
+    "citation_id": "TASK-API-0424",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1199",
+    "subject": "El campo sin columna de una cadena related no es buscable: el recompute no puede hallar las filas",
+    "status": "pending",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-12T07:54:25"
+  },
+  {
+    "citation_id": "TASK-GEN-0060",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "333",
+    "subject": "Construir el almacenamiento jsonb de translate=True",
+    "status": "pending",
+    "owner": null,
+    "blocks_json": "[\"400\"]",
+    "blocked_by_json": "[]",
+    "updated_at": "2026-08-21T10:03:52"
+  },
+  {
+    "citation_id": "TASK-GEN-0634",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1204",
+    "subject": "Portar como campo los ocho @property de ResCompany que delegan al partner",
+    "status": "pending",
+    "owner": null,
+    "blocks_json": null,
+    "blocked_by_json": null,
+    "updated_at": "2026-09-12T10:57:56"
+  }
+]

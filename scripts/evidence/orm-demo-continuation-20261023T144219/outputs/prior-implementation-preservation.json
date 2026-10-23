@@ -1,0 +1,35 @@
+[
+  {
+    "symbol": "load_data",
+    "unchanged_ast": true
+  },
+  {
+    "symbol": "load_demo",
+    "unchanged_ast": true
+  },
+  {
+    "path": "src/modules/module_graph.py",
+    "unchanged_bytes": true,
+    "sha256": "c8d433b151d1b62661794bc3c810bb64fe9a65bd520810e42114465cf33b110f"
+  },
+  {
+    "path": "src/addons/base/models/ir_demo_failure.py",
+    "unchanged_bytes": true,
+    "sha256": "ed4952b829ad8322e15d43e105fb606ab639470cf412cbae680c83e9312cffa5"
+  },
+  {
+    "path": "src/addons/base/migrations/0089_demo_failure_error_length.py",
+    "unchanged_bytes": true,
+    "sha256": "1c0b26f28fe4e6c1d86bcf0e4ceacce40061f158f005ffd16861e0dcf52df4bf"
+  },
+  {
+    "path": "src/service/db.py",
+    "unchanged_bytes": true,
+    "sha256": "9cd39073fe1bf1e7451f7fcf5b827daed7e988c6e2094adf81125c8bad39ed39"
+  },
+  {
+    "path": "src/orm/routers.py",
+    "unchanged_bytes": true,
+    "sha256": "a152fa6a9e89b8f83a29e8e205f24d5535a30014be56993f7bff8604b8c7876b"
+  }
+]

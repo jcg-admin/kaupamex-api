@@ -1,0 +1,91 @@
+{
+  "conclusion": "failure",
+  "headSha": "90cc7b78ecf727c352c5edd602b0fdf199198069",
+  "jobs": [
+    {
+      "completedAt": "2026-10-20T04:53:11Z",
+      "conclusion": "failure",
+      "databaseId": 118454947896,
+      "name": "test",
+      "startedAt": "2026-10-20T04:29:18Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Initialize containers",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Checkout",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install uv",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Set up Python",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Install deps",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Build PDF helper (ADR-017)",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "failure",
+          "name": "Run tests",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Post Install uv",
+          "number": 14,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Checkout",
+          "number": 15,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Stop containers",
+          "number": 16,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 17,
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39369826270/job/118454947896"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39369826270"
+}

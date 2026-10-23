@@ -1,0 +1,11 @@
+{
+  "target_regression_passed": true,
+  "baseline_failures_reproduced": true,
+  "django_validation_verified": "bounded model/field checks PASS; global addon checks not_verified",
+  "postgresql_integration_verified": "bounded real Django model with non-superuser QA role PASS; complete addon acceptance not_verified",
+  "CI_verified": "pending publication of current functional commit; prior API109 CI FAILURE",
+  "integration_verified": false,
+  "contract_accepted": false,
+  "store_status_changed": false,
+  "no_local_model_inference": true
+}

@@ -1,0 +1,1106 @@
+{
+  "kind": "Analytical consolidation,notTaskStore or executableplan schema",
+  "input_revisions": {
+    "api": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+    "docs": "afae6a943a8cd6ff940cc94275df8ba8cfa5bf4e",
+    "reference": "abe4040ec1a45beee90fb694e4eae4453e46b389"
+  },
+  "population_rule": "Fifteen selected behavior obligations from existing authority and evidence;not global functional denominator. Name labels are descriptions,not newTASKidentifiers.",
+  "scope_sources": [
+    "Docs/source/gestion/pm/api/iniciativas/completar-raiz-orm/alcance-completar-raiz-orm.rst",
+    "Existing BaseModelcontractanalysis v1.7",
+    "ExistinghistoricalORMinventory,notrerun"
+  ],
+  "families": "BaseModel/Recordsets/Registry/Fields/Domains/Relations/CRUD/Search/Cache/Recompute/Translations/Persistence/Security are categories,not oneTASK each",
+  "contracts": [
+    {
+      "name": "record_identity_singleton",
+      "family": [
+        "BaseModel",
+        "Recordsets"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/orm/fields_misc.py::Id.__get__;odoo/orm/models.py::BaseModel.ensure_one:5931",
+      "behavior": "Identity accessor returns False for empty,id for singleton and rejects multiple;ensure_one requires exactly one and returns receiver.",
+      "execution_flow": "Recordset._ids cardinality -> descriptor/ensure_one -> return or ValueError",
+      "inputs_outputs": "Empty,one,many ids;expected False/id/ValueError forid and receiver/ValueError forensure_one.",
+      "side_effects": "No DB needed for cardinality subcontracts;other record access can reach DB.",
+      "dependencies": [
+        "Recordset ids/NewId representation",
+        "descriptor installation and ModelBase interaction"
+      ],
+      "consumers": [
+        "Recordset callers and field access"
+      ],
+      "installed_mechanism": "Python cardinality/descriptor hooks plus Django ModelBase;native Django.id is not complete Odoo contract.",
+      "existing_adaptation": "src/orm/models.py::BaseModel,ensure_one:4671 and installed singleton descriptor adaptation.",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "tests/unit/orm/test_base_model_recordset.py::TestEnsureOne",
+          "scripts/workbench/basemodel-id-access-20260911T035612/"
+        ],
+        "evidence": [
+          "Docs existing analysis singleton/id sections",
+          "scripts/evidence/orm-contract-history-audit-20261019T220449/"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "Bounded ensure_one/id behavior examined historically;whole recordset architecture acceptance not_verified.",
+      "limitations": [
+        "Not every model inherits BaseModel;that alone neither removes contract nor mandates inheritance",
+        "PKtypes/reload behavior and broader access remain not_verified"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [
+        "TASK-API-0397",
+        "TASK-API-0398",
+        "TASK-API-0401",
+        "TASK-API-0402"
+      ],
+      "acceptance_criteria": [
+        "All three cardinalities discriminate first-id shortcut",
+        "Construction and descriptor/access paths preserve appropriate zero-query guarantees",
+        "Architectural distribution of responsibilities reconciled before changing base classes"
+      ],
+      "planning_priority_reason": "Structural dependency of later exists/cache/callers;architecture decision before broad port."
+    },
+    {
+      "name": "exists_recordset_semantics",
+      "family": [
+        "Recordsets",
+        "Persistence"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/addons/base/tests/test_orm.py::TestORM.test_exists:138-153",
+      "behavior": "Existing searched records remain;new records conventionally exist;id0 excluded;return recordset not bool",
+      "execution_flow": "search->exists;new->exists;browse([0])->exists",
+      "inputs_outputs": "Reference searched partner recordset,new({}) virtual recordset,browse([0]); expected existing/new recordsets preserved and nonexistent0 filtered,return recordset not bool. Requires Odoo TransactionCase and DB for persisted ids.",
+      "side_effects": "May query actual persistence for concrete ids;none required for empty/new shortcut",
+      "dependencies": [
+        "Recordset ids/NewId,browse,default manager/query,DB"
+      ],
+      "consumers": "Existence checks on recordsets incl delete-race recovery",
+      "installed_mechanism": "Django QuerySet.filter/values_list can query persisted ids,while native QuerySet.exists returns bool. Consumer recordset adaptation must preserve NewId/id semantics;full conformance not_verified.",
+      "existing_adaptation": "src/orm/models.py:5269-5290;test_base_model_recordset.py:476-481 checks empty returns same object",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "src/orm/models.py:5269-5290;test_base_model_recordset.py:476-481 checks empty returns same object"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs/reference-obligations-mapping.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "not_verified",
+      "limitations": [
+        "Tests located/read are not executed;mapping by obligation does not prove end-to-end equivalence",
+        "Empty shortcut is covered in selected Consumer test but native searched/new/id0 flow not_verified;no native Django.exists(bool) equivalence"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [
+        "TASK-API-0397",
+        "TASK-API-0398"
+      ],
+      "acceptance_criteria": [
+        "Return recordsets,not bool",
+        "Existing,new and id0 cases agree with reference",
+        "Real persisted-id behavior under isolated PostgreSQL verified"
+      ],
+      "planning_priority_reason": "Depends on recordset representation and a trustworthy DB fixture;not new implementation from absence."
+    },
+    {
+      "name": "cache_value_and_miss",
+      "family": [
+        "Cache"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/addons/base/tests/test_cache.py::TestRecordCache.test_cache:24-33,44-64",
+      "behavior": "get/contains/fields/records agree with cache presence;CacheMiss on absent value;get_missing_ids names absent entries",
+      "execution_flow": "empty cache -> read/miss -> set values -> read/contains/records -> missing ids empty",
+      "inputs_outputs": "Reference fixture TransactionCaseWithUserDemo: res.partner records ids1/2, fields name/ref and sample strings. Expected get(value),contains bool,field/record membership,missing id collections or CacheMiss. These are reference assertions read,not executed here.",
+      "side_effects": "In-memory cache values;no persistence promise",
+      "dependencies": [
+        "Cache,Field mappings,record id,shared Transaction"
+      ],
+      "consumers": "Field cache access and Environment.cache",
+      "installed_mechanism": "CPython mappings provide storage primitives;Consumer Cache.get/set delegates field cache and record-id helpers. Django alone is not the full record-cache contract.",
+      "existing_adaptation": "src/orm/environments.py::Cache.get:1588,set:1598;tests/unit/orm/test_environments_cache.py:138-219",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "src/orm/environments.py::Cache.get:1588,set:1598;tests/unit/orm/test_environments_cache.py:138-219"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs/reference-obligations-mapping.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "not_verified",
+      "limitations": [
+        "Tests located/read are not executed;mapping by obligation does not prove end-to-end equivalence",
+        "Native Odoo runtime/results and Consumer cross-case equivalence not_verified"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [
+        "TASK-GEN-0575"
+      ],
+      "acceptance_criteria": [
+        "contains/get/missingids/get_fields/get_records remain consistent",
+        "CacheMiss negative control retained"
+      ],
+      "planning_priority_reason": "Existing adaptation,focus verification before reconstructing cache."
+    },
+    {
+      "name": "cache_across_user_environments",
+      "family": [
+        "Cache",
+        "Environment"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/addons/base/tests/test_cache.py::TestRecordCache.test_cache:40-85",
+      "behavior": "For name/ref fields, same ids share values across environments with different uid;writes/removes visible in both",
+      "execution_flow": "browse same ids as two users -> set in first -> read both -> overwrite second -> read both -> remove -> both miss",
+      "inputs_outputs": "Same record ids1/2 and fields name/ref under two distinct uid environments in one transaction. Expected writes/overwrite/remove visible in both for these fields;no universal uid/context-independent cache inference.",
+      "side_effects": "Shared cache within transaction,for these fields;no universal context-field sharing assertion",
+      "dependencies": [
+        "Environment.with_user,Transaction cache,Field context dependencies"
+      ],
+      "consumers": "User-scoped recordsets reading common fields",
+      "installed_mechanism": "Transaction-owned mapping and Field._get_cache context partition are Consumer adaptations over CPython structures;two-user equivalence remains not_verified.",
+      "existing_adaptation": "tests/unit/orm/test_field_cache.py:62-97 stable mappings/plain/context bucket;test_environments_cache.py:125-136 transaction-owned cache",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "tests/unit/orm/test_field_cache.py:62-97 stable mappings/plain/context bucket;test_environments_cache.py:125-136 transaction-owned cache"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs/reference-obligations-mapping.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "not_verified",
+      "limitations": [
+        "Tests located/read are not executed;mapping by obligation does not prove end-to-end equivalence",
+        "Exact two-user read/write/remove flow not demonstrated by these selected tests;not claim no equivalent anywhere"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [
+        "TASK-GEN-0575"
+      ],
+      "acceptance_criteria": [
+        "Same name/ref values visible across two uid environments within transaction",
+        "Context-sensitive fields remain partitioned where contract requires",
+        "Set/overwrite/remove sequence checked without exposing denied data"
+      ],
+      "planning_priority_reason": "Cache scope correctness precedes accepting invalidation/context fixes."
+    },
+    {
+      "name": "selective_invalidation",
+      "family": [
+        "Cache",
+        "Fields"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/addons/base/tests/test_cache.py::TestRecordCache.test_cache:87-99",
+      "behavior": "Field-wide or selected-id invalidation preserves untouched values;total invalidation removes all",
+      "execution_flow": "populate two fields/twoids -> invalidate[(name,None),(ref,foo.ids)] -> assert untouched bar.ref -> total invalidation",
+      "inputs_outputs": "Populated name/ref caches on ids1/2; spec[(name,None),(ref,[1])] must leave ref forid2 while deleting named values; specNone removes all. Reference fixture requires native Odoo records/environment.",
+      "side_effects": "Cache removal,not recalculation or DB writes",
+      "dependencies": [
+        "Field._invalidate_cache,Transaction.field_data,context buckets"
+      ],
+      "consumers": "Cache.invalidate and record descriptors",
+      "installed_mechanism": "Consumer Cache.invalidate delegates Field._invalidate_cache;Transaction owns field_data/memo. Mapping removal is native Python;all-context functional behavior requires its existing adaptation and verification.",
+      "existing_adaptation": "tests/unit/orm/test_environments_cache.py:236-260;test_field_cache.py:99-137;test_environments_transaction.py:167-190;src/orm/environments.py:1796-1817",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "tests/unit/orm/test_environments_cache.py:236-260;test_field_cache.py:99-137;test_environments_transaction.py:167-190;src/orm/environments.py:1796-1817"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs/reference-obligations-mapping.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "not_verified",
+      "limitations": [
+        "Tests located/read are not executed;mapping by obligation does not prove end-to-end equivalence",
+        "Reference cross-user composed scenario and all-context invalidation not_verified here;do not duplicate existing focused tests"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [
+        "TASK-GEN-0575",
+        "TASK-GEN-0578"
+      ],
+      "acceptance_criteria": [
+        "Specified field/ids invalidated in all applicable context buckets",
+        "Untouched field/id remains",
+        "Total invalidation clears memo references and values according to contract"
+      ],
+      "planning_priority_reason": "Do not duplicate suites;bridge already existing field/cache tests to reference obligation."
+    },
+    {
+      "name": "row_rule_access",
+      "family": [
+        "CRUD",
+        "Search",
+        "Security"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/addons/base/tests/test_orm.py::TestORM.test_access_filtered_records:55-95",
+      "behavior": "Nonprivileged search filters denied records;read/write/unlink denied raise AccessError;deleted+denied mixed set still errors",
+      "execution_flow": "create records/user/rule -> search asuser -> read/write/unlink denied -> mixed delete case",
+      "inputs_outputs": "Two partners,user/group and ir.rule domain denying one; expected search excludes denied record and read/write/unlink raise AccessError,including mixed deleted/denied set. Requires native Odoo TransactionCase with isolated DB fixtures.",
+      "side_effects": "DB records/rule writes,deletion,AccessError;requires isolated fixture transaction",
+      "dependencies": [
+        "res.users,res.partner,ir.model,ir.rule,group membership,domain evaluation,CRUD,DB"
+      ],
+      "consumers": "User CRUD/search request behavior",
+      "installed_mechanism": "Django Q/QuerySet support filtering;Consumer AccessQuerySet and ir.rule adapt domain/access policy. Bare Django primitives do not prove Odoo AccessError/CRUD semantics.",
+      "existing_adaptation": "src/orm/models.py::AccessQuerySet._check_access/check_access/has_access/_filtered_access:232-282;tests/unit/orm/test_access_manager.py:55-85 structural adoption;tests/unit/base/test_ir_rule.py:60-165;test_ir_rule_access_error.py:91-182, latercacheinvalidation tests",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "src/orm/models.py::AccessQuerySet._check_access/check_access/has_access/_filtered_access:232-282;tests/unit/orm/test_access_manager.py:55-85 structural adoption;tests/unit/base/test_ir_rule.py:60-165;test_ir_rule_access_error.py:91-182, latercacheinvalidation tests"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs/reference-obligations-mapping.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "not_verified",
+      "limitations": [
+        "Tests located/read are not executed;mapping by obligation does not prove end-to-end equivalence",
+        "Rule-domain/error tests and structural adoption are not equivalent by themselves to complete reference CRUD mixed-deleted scenario;not_verified end-to-end"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [],
+      "acceptance_criteria": [
+        "Nonprivileged search filters denied records",
+        "read/write/unlink denied raise AccessError",
+        "Mixed deleted/denied case stays safe",
+        "Django/DRF request integration checked separately"
+      ],
+      "planning_priority_reason": "High impact but requires recordsets,domains,users/rules and DB;not gated on unrelated translation work."
+    },
+    {
+      "name": "cursor_transaction_lifecycle",
+      "family": [
+        "Registry",
+        "Persistence"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/orm/registry.py::Registry.cursor:1165;odoo/sql_db.py::BaseCursor.__exit__,Cursor.commit/rollback/_close",
+      "behavior": "Context success commits and exit always cleans/closes;failure rolls back/cleans under ownership model required by reference.",
+      "execution_flow": "Acquire connection/pool/cursor -> body -> flush/precommit -> commit or rollback hooks -> close -> pool return.",
+      "inputs_outputs": "readonlybool and SQL body success/error;cursor/context state and exceptions are outputs.",
+      "side_effects": "DB transaction state,locks,cache and callbacks;not merely return values.",
+      "dependencies": [
+        "Connection ownership and nesting",
+        "Pool/callback contracts",
+        "Authorized PostgreSQL QA",
+        "Consumer BaseDatabaseWrapper adaptation"
+      ],
+      "consumers": [
+        "Registry.setup_signaling",
+        "Registry.check_signaling",
+        "Registry.signal_changes",
+        "Registry.reset_changes"
+      ],
+      "installed_mechanism": "Django CursorWrapper closes cursor;transaction.atomic supplies bounded commit/rollback but not full Odoo lifecycle.",
+      "existing_adaptation": "src/orm/registry.py:2585;src/orm/environments.py:694-728 already wraps connection commit/rollback/close/savepoint.",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "tests/unit/orm/test_registry_signaling_axis.py::TestCursor",
+          "Prior cursor_transaction_contract.py"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-real-contracts-20261020T015333/outputs/cursor-contract.json",
+          "scripts/evidence/orm-contract-continuation-20261020T045110/outputs/cursor-replica-observations.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "Manual-autocommitFalse lifecycle gap demonstrated with real PostgreSQL;whole lifecycle not_verified.",
+      "limitations": [
+        "No exact atomic TASK identity reconciled",
+        "No proof that all product cursors use Registry.cursor",
+        "atomic wrapper alone is not accepted solution"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [],
+      "acceptance_criteria": [
+        "Transaction success/error releases advisory lock and leaves appropriate final state",
+        "Preserve nested transaction ownership and hooks",
+        "Do not swallow unrelated SQL errors",
+        "Pool/read-only/nesting acceptance separated"
+      ],
+      "planning_priority_reason": "High persistence risk;split bounded ownership characterization before implementation;not automatic global ORM blocker."
+    },
+    {
+      "name": "cursor_replica_selection",
+      "family": [
+        "Registry"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/orm/registry.py::Registry.cursor:1165-1186",
+      "behavior": "Readonly uses replica where possible,operational failure falls back with1200s retry suppression and thread marker;programming errors propagate.",
+      "execution_flow": "readonly+replica -> timestampcheck -> tryreplica -> success clearsfail;OperationalError setsfail/warning -> ro->rw -> primary.",
+      "inputs_outputs": "Endpoint outcomes,time,prior failure,readonly;cursor or propagatederror plus attempt/timestamp/thread state.",
+      "side_effects": "Connection attempts,cooldown,logs,threadmode.",
+      "dependencies": [
+        "Explicit correct reference selection",
+        "Configured readonly alias/driver",
+        "Clock and thread isolation",
+        "Cursor lifecycle"
+      ],
+      "consumers": [
+        "Registry.check_signaling and other readonly consumers"
+      ],
+      "installed_mechanism": "Django connections/errors plus Python time/threading;policy requires adaptation.",
+      "existing_adaptation": "Consumer uses <alias>_readonly and captures DatabaseError without cooldown state.",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "Prior probe_cursor_fallback.py exact extracted bodies,6scenarios/2mutants"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-contract-continuation-20261020T045110/outputs/cursor-replica-observations.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "Four shared branches agree under protocol;retry/threadmode/error selection differ.",
+      "limitations": [
+        "Reference psycopg2 runtime absent;protocol hierarchy only",
+        "Real replica,pool,concurrency and final consumer acceptance not_verified"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [],
+      "acceptance_criteria": [
+        "Positive no-replica/healthyreplica/writable/primaryerror controls",
+        "Failure-at100 retry at101 suppressed;strict boundary1200tested",
+        "ProgrammingError must not be reclassified operational",
+        "Actual driver translation and readonly backend tested"
+      ],
+      "planning_priority_reason": "Can prepare as independent sub-obligation within cursor unit after identity/ownership;do not repeat earlier protocol experiment."
+    },
+    {
+      "name": "inverse_dependency_navigation",
+      "family": [
+        "Registry",
+        "Fields",
+        "Relations"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/orm/registry.py::field_inverses,is_modifying_relations;fields_relational.py::One2many.setup_inverses",
+      "behavior": "Inverse relations and dependency graph identify affected dependent fields/records;is_relation flag alone does not give modification contract.",
+      "execution_flow": "Field metadata -> inverseCollector -> trigger/dependency graph -> dependent fields / inverse records.",
+      "inputs_outputs": "FK/plainfields,dependencygraph;inverse map and modification predicate.",
+      "side_effects": "Registry maps/memos;later recompute depends on navigation.",
+      "dependencies": [
+        "Django relation metadata",
+        "Consumer Collector",
+        "Registry dependency/trigger maps"
+      ],
+      "consumers": [
+        "modified",
+        "Recompute dependency discovery"
+      ],
+      "installed_mechanism": "Django reverse metadata plus Consumer Collector;not direct native full contract.",
+      "existing_adaptation": "src/orm/registry.py field graph/inverse implementations already exist.",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "tests/unit/orm/test_field_triggers.py",
+          "Prior real_registry_classifier_cases.py"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-real-contracts-20261020T015333/outputs/field-trigger-tests.log",
+          "scripts/evidence/orm-real-contracts-20261020T015333/outputs/real-classifier-cases.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "22existing tests passed;FK/plain and empty-graph cases covered;full relational equivalence not_verified.",
+      "limitations": [
+        "Do not extrapolate empty graph to nonempty graph",
+        "Task0424 related searchable-path requirement,not exact identity for all inverse work"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [
+        "TASK-API-0424"
+      ],
+      "acceptance_criteria": [
+        "FK inverse both directions and plain negative retained",
+        "Many2many/Many2oneReference and dependency traversal obligations explicitly scoped",
+        "Actual affected-record discovery matched with reference"
+      ],
+      "planning_priority_reason": "Foundational for recompute and relations;verify existing graph before replacing it."
+    },
+    {
+      "name": "domain_any_rights_optimization",
+      "family": [
+        "Domains",
+        "Search",
+        "Security"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/orm/domains.py::_optimize_any_with_rights:1833-1836",
+      "behavior": "Rewrite any/notany when sudo or field-bypass permits;preserve access obligations otherwise.",
+      "execution_flow": "Condition+model.env.su+field.bypass_search_access -> optimized operator decision.",
+      "inputs_outputs": "Twooperators x fourflag combinations;rewritten condition/operator.",
+      "side_effects": "Optimization result only;SQL/row permissions not observed by predicate probe.",
+      "dependencies": [
+        "DomainCondition",
+        "Field bypass metadata",
+        "Environment privilege semantics"
+      ],
+      "consumers": [
+        "Domain optimizer",
+        "Search/AccessQuerySet"
+      ],
+      "installed_mechanism": "Python predicate primitives;Consumer domain adaptation.",
+      "existing_adaptation": "src/orm/domains.py actual implementation present;uses real ResGroups field in prior probe.",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "Prior domain_reference_predicate.py with2negative controls"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-real-contracts-20261020T015333/outputs/domain-reference-predicate.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "Eightpredicate comparisons agree,not whole Domains/security acceptance.",
+      "limitations": [
+        "Exact atomic TASK relationship not_verified",
+        "FullSQL/permission and nested semantics not_verified"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [],
+      "acceptance_criteria": [
+        "Retain eightpositive and two negative witnesses",
+        "No bypass of row rules in resulting query",
+        "Nested/relational operator obligations separately verified"
+      ],
+      "planning_priority_reason": "Reuse verified predicate as prerequisite evidence,do not rebuild;extend only for specific Search/Security unit."
+    },
+    {
+      "name": "invalidate_all_flush_before_invalidate",
+      "family": [
+        "Environment",
+        "Cache",
+        "Recompute"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/orm/environments.py::Environment.invalidate_all:357-366",
+      "behavior": "Default/True flush pending updates before invalidating;False intentionally skips;flusherror prevents invalidation.",
+      "execution_flow": "ifflush -> flush_all -> transaction.invalidate_field_data",
+      "inputs_outputs": "flush bool defaultTrue;returnsNone or flush error.",
+      "side_effects": "Pendingwrites then cache invalidation;real data loss not demonstrated.",
+      "dependencies": [
+        "flush_all orchestration and model flushing",
+        "Transaction data/memo invalidation",
+        "Transaction ownership",
+        "DB verifier fixture"
+      ],
+      "consumers": [
+        "Reference Registry._setup_models__ and BaseModel.unlink",
+        "Consumer sorted fixture already located"
+      ],
+      "installed_mechanism": "Python sequencing and existing Consumer flush/cache mechanisms;not bare Django call.",
+      "existing_adaptation": "src/orm/environments.py:1438-1440 exists but ignores flush.",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "Prior probe_invalidate_all_flow.py4cases+mutant"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-flow-audit-20261020T042342/outputs/invalidate-all-observations.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "Call-order/error gap demonstrated on exact bodies;False branch agrees under protocol.",
+      "limitations": [
+        "Exact TASK identity/owner not_verified",
+        "Full transaction and PostgreSQL persistence acceptance pending"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [],
+      "acceptance_criteria": [
+        "Default andTrue flushbeforeinvalidate",
+        "False doesnotflush",
+        "Flushfailure propagates without invalidation",
+        "Real pending-value persistence and cache consistency verified in isolated QA",
+        "No globalclaim from exact-body probe alone"
+      ],
+      "planning_priority_reason": "Narrow/high impact evidenced gap;good first preparation candidate after reconciling identity and verification;not eligible now."
+    },
+    {
+      "name": "flush_recompute_fixpoint",
+      "family": [
+        "Environment",
+        "Recompute",
+        "Persistence"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/orm/environments.py::Environment.flush_all:380-390;_recompute_all:368",
+      "behavior": "Recompute then flush unique dirty models in deterministic order until fixed point;warn at bounded ceiling and propagate failures.",
+      "execution_flow": "recompute -> orderedmodels -> flush_model -> nextwave;break clean or warning at10iterations.",
+      "inputs_outputs": "Dirty/tocompute and model mapping;None/error,warnings,updated pending state.",
+      "side_effects": "Recomputed values,dirty maps,eventual DB writes;protocol alone observes only ordered calls.",
+      "dependencies": [
+        "Recompute engine",
+        "OrderedSet/model resolver",
+        "flush_model/_flush",
+        "Field dirty cache",
+        "Transaction"
+      ],
+      "consumers": [
+        "Environment.invalidate_all",
+        "Transaction.flush",
+        "Registry init/setup and unlink"
+      ],
+      "installed_mechanism": "Python loops/OrderedSet plus Django per-model write primitives;not complete native equivalence.",
+      "existing_adaptation": "src/orm/environments.py:1274;src/orm/models.py flush_model/_flush. Existing filter ofempty dirtyids.",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "Prior probe_flush_fixpoint.py6cases/2mutants",
+          "test_environments_pooling_and_flush.py::TestTheModelScopedFlush,TestTheFixpointCeiling"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-contract-continuation-20261020T045110/outputs/flush-fixpoint-observations.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "Five orchestration observations agree under bridge;sixth empty-entry representation differs,not accepted or declared defect.",
+      "limitations": [
+        "Exact equivalent atomic TASK for orchestration not_verified",
+        "Bridge substitutes recompute/resolver/modelstorage",
+        "Relatedtasks not complete acceptance evidence"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [
+        "TASK-GEN-0575",
+        "TASK-API-0424"
+      ],
+      "acceptance_criteria": [
+        "Multiplemodelcoalescence,secondwave and errorpropagation preserved",
+        "Ceiling10 warning discriminates live pending loop",
+        "Real model resolver/OrderedSet/dirty writes and rollback cleanup independently verified",
+        "Do not require unrelated taxonomy migration"
+      ],
+      "planning_priority_reason": "Verification dependency for invalidation and model writes;prepare focused cases rather than rebuilding existing engine."
+    },
+    {
+      "name": "relational_field_reconstruction",
+      "family": [
+        "Fields",
+        "Relations"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/orm/fields.py field-definition chain setup;fields_relational.py relational constructors",
+      "behavior": "Reconstructed relation retains target/delete policy and derived store behavior through definition-chain merge.",
+      "execution_flow": "CollectMRO field declarations -> merge attrs -> construct same relational contract -> contribute/setup -> relation accessible.",
+      "inputs_outputs": "Atleasttwo relational declarations;result retains to/on_delete and expected storage semantics.",
+      "side_effects": "Django field metadata and eventual schema/migration effects.",
+      "dependencies": [
+        "Existing facade/store architecture decision",
+        "0417/0418 chain",
+        "Django deconstruct or capturedconstructorargs selection",
+        "Relationsinverse graph"
+      ],
+      "consumers": [
+        "Field setup",
+        "Model registration/migrations",
+        "Related/recompute consumers"
+      ],
+      "installed_mechanism": "Django ForeignKey/ManyToManyField and deconstruct are candidate primitives;viability requires correct kwargs fidelity.",
+      "existing_adaptation": "src/orm/fields.py _collect_field_definitions/_merge_field_definitions;current _args__ misses constructorargs in historical analysis.",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "Existing Field chain suites;exact ForeignKey to/on_delete acceptance case specified in TASK0419"
+        ],
+        "evidence": [
+          "Docs authority relation sections",
+          "scripts/evidence/orm-flow-audit-20261020T042342/outputs/tasks.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "Functional reconstruction acceptance not_verified;do not infer absent from class naming.",
+      "limitations": [
+        "Textualdependency0417->0418->0419 not structurededges",
+        "Do not blindly apply historicalstorearchitecturecriterion without reconciliation"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [
+        "TASK-API-0417",
+        "TASK-API-0418",
+        "TASK-API-0419"
+      ],
+      "acceptance_criteria": [
+        "Two-declaration ForeignKey retains target and on_delete",
+        "Store derived by current intended seam and nonstored remains class-independent",
+        "Inverse setup,constructor errors and migration behavior discriminate incorrect kwargs"
+      ],
+      "planning_priority_reason": "Depends on facade/store decisions,unblocks reliable relational setup;not automatically blocked by all BaseModel work."
+    },
+    {
+      "name": "recompute_dependent_record_discovery",
+      "family": [
+        "Recompute",
+        "Relations",
+        "Search"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/orm/fields.py::Field.resolve_depends;registry.py dependency triggers;models.py modified/_recompute_field",
+      "behavior": "When source changes,find correct dependent records through relation paths and mark stored compute or invalidate nonstored values.",
+      "execution_flow": "modifiedsource -> inversepathnavigation -> protected/recursive filtering -> tocompute or cache invalidation -> recompute/flush.",
+      "inputs_outputs": "Fieldpath and changedrecords;correct dependentids/marks vs unchangedrecords.",
+      "side_effects": "Pending marks,cache invalidation and later writes.",
+      "dependencies": [
+        "Searchability of intermediatefields",
+        "Inverse graph",
+        "Stored/nonstored semantics",
+        "Protected/recursive state",
+        "Persisted vs virtualids"
+      ],
+      "consumers": [
+        "ResCompany related address/settings chains",
+        "Any crossmodel dependent compute"
+      ],
+      "installed_mechanism": "Django reverse relationships/query primitives plus Consumer trigger engine.",
+      "existing_adaptation": "src/orm/models.py modified/_modified_triggers/_recompute_field and src/orm/fields.py existing engine.",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "test_field_triggers.py existing22passes",
+          "TASK0424 original warnings and bounded repeat requirement"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-real-contracts-20261020T015333/outputs/field-trigger-tests.log",
+          "scripts/evidence/orm-flow-audit-20261020T042342/outputs/tasks.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "Warnings preserved;missing dependent-record behavior not demonstrated by warnings alone.",
+      "limitations": [
+        "Search callback/columnnone behavior needs bounded discrimination",
+        "GEN0558batch and0559missingretry are related subcontracts,not automatic prerequisites for all recompute"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [
+        "TASK-API-0424",
+        "TASK-GEN-0558",
+        "TASK-GEN-0559"
+      ],
+      "acceptance_criteria": [
+        "Determine actual affected recordset through searchable paths",
+        "Keep faithful warnings distinct from observed errors",
+        "Deleted-record/virtual-id handling matches reference where applicable",
+        "No duplicatecomputation with existingmanual triggers"
+      ],
+      "planning_priority_reason": "Dependency-driven verification after inverse/field semantics;do not classify every warning as new defect."
+    },
+    {
+      "name": "translated_record_storage_query",
+      "family": [
+        "Translations",
+        "Persistence",
+        "Search"
+      ],
+      "scope": "Included bounded obligation in completing applicable Odoo19Community ORM;not entire family",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_edition": "Odoo19Community",
+      "reference_symbol": "odoo/orm/fields_textual.py translated storage/column_type and language-sensitive query behavior",
+      "behavior": "Store translated values as per-language jsonb and resolve/read/write/search/order by active language;metadata flag alone insufficient.",
+      "execution_flow": "translatefield definition -> jsonb storage -> language read/write -> query/filter/order -> migration/acceptance.",
+      "inputs_outputs": "Languages/values/queries;perlanguage results with defined fallback and persistence.",
+      "side_effects": "Schema,data migration and query effects;not a trivial flag change.",
+      "dependencies": [
+        "PostgreSQLjsonb",
+        "Languagecontext",
+        "Django adaptedfield/query",
+        "Authorized schema/data migration plan",
+        "GEN0060->0062 and metadata candidate dependencies"
+      ],
+      "consumers": [
+        "Translatable recordfields",
+        "Translation import/export",
+        "Fielddescription candidate PR110"
+      ],
+      "installed_mechanism": "PostgreSQLjsonb and Django support exist;Consumer flagdoesnotconstruct wholecontract.",
+      "existing_adaptation": "src/orm/fields_textual.py currently varchar vs jsonb in priorprobe;PR110 adds metadata candidate not storage engine.",
+      "verification": {
+        "existing_tests_or_instruments": [
+          "Prior translation datatype probe",
+          "Existingfields/query tests;DB read/write/search acceptance stillneeded"
+        ],
+        "evidence": [
+          "Docs existingtranslation analysis",
+          "scripts/evidence/orm-real-contracts-20261020T015333/README.md",
+          "scripts/evidence/orm-flow-audit-20261020T042342/outputs/tasks.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "equivalence": "Storage mismatch/partial implementation previously demonstrated;full read/write/query/migration acceptance not_verified.",
+      "limitations": [
+        "Do not run migration during thislot",
+        "TASKGEN0062 dependency structured,metadata PR110 may have separate acceptance dependency",
+        "No localmodel qualifiedexecution"
+      ],
+      "integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "existing_task_relationships": [
+        "TASK-GEN-0060",
+        "TASK-GEN-0062",
+        "TASK-API-0283"
+      ],
+      "acceptance_criteria": [
+        "Distinctlanguages roundtrip and fallback policy reference checked",
+        "Filter/order active language verified",
+        "Historicalvarchar migration preserves information under authorized plan",
+        "No mergePR110 asproof of multilingual persistence"
+      ],
+      "planning_priority_reason": "Plan separately after persistence/query scope and migration admission;not prerequisite of all ORM units."
+    }
+  ],
+  "candidate_units": [
+    {
+      "name": "Cache invalidation and flush preservation",
+      "contracts": [
+        "cache_value_and_miss",
+        "cache_across_user_environments",
+        "selective_invalidation",
+        "invalidate_all_flush_before_invalidate",
+        "flush_recompute_fixpoint"
+      ],
+      "diagnosis": "Partially implemented;Needs bounded analysis/verification",
+      "tasks": [
+        "TASK-GEN-0575",
+        "TASK-GEN-0578"
+      ],
+      "identity_gap": "Exact atomic correction invalidation/flush TASK not_verified",
+      "priority": "First preparation candidate because narrow demonstrated call-order gap with existing mechanisms;do not assert execution eligibility",
+      "depends": [
+        "Authoritative19c source selection",
+        "Isolated DB verification fixture",
+        "Transaction ownership bounds"
+      ],
+      "verification": [
+        "Retain prior exact-body controls",
+        "Reuse existing cache/flush tests",
+        "Add only missing crossuser/persistence acceptance after assessing existing coverage"
+      ],
+      "admission_blockers": [
+        "No reconciled exact owner/identity",
+        "Resources/model/authorization not admitted",
+        "Persistence verifier preconditions pending"
+      ]
+    },
+    {
+      "name": "Cursor ownership and replica lifecycle",
+      "contracts": [
+        "cursor_transaction_lifecycle",
+        "cursor_replica_selection"
+      ],
+      "diagnosis": "Partially implemented;Needs bounded analysis",
+      "tasks": [],
+      "identity_gap": "Exact equivalent TASK not_verified;API0427 lock history doesnotprove cursorcause",
+      "priority": "High persistence risk;prepare ownership/callback/nesting split before implementation",
+      "depends": [
+        "Reference source identity",
+        "Connection/pool/transaction ownership decision",
+        "Backend/readonly verifier"
+      ],
+      "verification": [
+        "Preserve realDBtransactionprobe",
+        "Preserve replica6protocolcases",
+        "Define real driver/readonly/nesting/hooks controls"
+      ],
+      "admission_blockers": [
+        "Unknown ownership/atomicTASK",
+        "Real replica/driver/resources unknown",
+        "No implementation authorization"
+      ]
+    },
+    {
+      "name": "Recordset identity and existence contracts",
+      "contracts": [
+        "record_identity_singleton",
+        "exists_recordset_semantics"
+      ],
+      "diagnosis": "Implemented in part;verification/architecture boundaries pending",
+      "tasks": [
+        "TASK-API-0397",
+        "TASK-API-0398",
+        "TASK-API-0401",
+        "TASK-API-0402"
+      ],
+      "identity_gap": "Existingtask scopes broad/historical;do not selectfromownerNULL",
+      "priority": "Structural prerequisite for record-based callers;do not imposeBaseModelinheritance before authority reconciliation",
+      "depends": [
+        "Architectural distribution across Model/QuerySet/BaseModel/mixins",
+        "Descriptorinstallation",
+        "DBfixture forexistsconcreteids"
+      ],
+      "verification": [
+        "Reuse singleton/id tests and evidence",
+        "Check existing/new/id0 returnrecordset",
+        "Separate getters from ordinaryfieldaccess queries"
+      ],
+      "admission_blockers": [
+        "Architecturedecision unresolved",
+        "Taskownership and revisedacceptance unresolved",
+        "No executionauthorization"
+      ]
+    },
+    {
+      "name": "Field relations and dependent record propagation",
+      "contracts": [
+        "inverse_dependency_navigation",
+        "relational_field_reconstruction",
+        "recompute_dependent_record_discovery"
+      ],
+      "diagnosis": "Partially implemented;Blocked by specific field/seam dependencies",
+      "tasks": [
+        "TASK-API-0417",
+        "TASK-API-0418",
+        "TASK-API-0419",
+        "TASK-API-0424",
+        "TASK-GEN-0558",
+        "TASK-GEN-0559"
+      ],
+      "identity_gap": "Different tasks coverdifferent subcontracts;keeptextdependencies visible",
+      "priority": "Reconcile partial API0417 correction before admitting residual API0418/API0419; historical chain is not a proven current hard edge",
+      "depends": [
+        "Facade/store decision",
+        "Relationconstructor fidelity",
+        "Inversegraph/searchability"
+      ],
+      "verification": [
+        "Existing22fieldtrigger tests",
+        "ForeignKeychain target/delete acceptance",
+        "Bounded dependent-record search and missing-record behavior"
+      ],
+      "admission_blockers": [
+        "Text/JSONdependency reconciliation",
+        "NULLowners",
+        "Currentfieldcriterion vs architecture agreement"
+      ]
+    },
+    {
+      "name": "Domain and row-rule CRUD conformance",
+      "contracts": [
+        "domain_any_rights_optimization",
+        "row_rule_access"
+      ],
+      "diagnosis": "Predicate verified narrowly;full CRUD/Search/Security not_verified",
+      "tasks": [],
+      "identity_gap": "Exact row-rule conformance TASK not_verified",
+      "priority": "Securityimpact high;use existing predicate and access suites rather than newgenericengine",
+      "depends": [
+        "Recordset obligations",
+        "Domainrelation semantics",
+        "User/group/rule fixtures",
+        "DBpreparedschema"
+      ],
+      "verification": [
+        "Reuse8predicatecomparisons andnegativecontrols",
+        "Existingtests/unit/base/test_ir_rule.py andtest_ir_rule_access_error.py",
+        "Reference mixeddeleted/denied scenario"
+      ],
+      "admission_blockers": [
+        "AtomicTASK/ownerunreconciled",
+        "End-to-endverifierpreconditions",
+        "No localexecutionadmission"
+      ]
+    },
+    {
+      "name": "Translated record persistence and query semantics",
+      "contracts": [
+        "translated_record_storage_query"
+      ],
+      "diagnosis": "Partially implemented;Needs implementation and migrationplanning later",
+      "tasks": [
+        "TASK-GEN-0060",
+        "TASK-GEN-0062",
+        "TASK-API-0283"
+      ],
+      "identity_gap": "Knownstabletasks butowner/acceptance stillpending",
+      "priority": "Independentpersistencetrack;not globalprecondition for otherunits",
+      "depends": [
+        "Languagecontext",
+        "PostgreSQLjsonb andquery adaptation",
+        "Migrationplan authorization",
+        "KnownstructuredGEN0060->GEN0062"
+      ],
+      "verification": [
+        "Priorvarchar/jsonbevidence",
+        "PerlanguageCRUD/filter/order/fallback",
+        "No-lossmigration andmetadata distinction"
+      ],
+      "admission_blockers": [
+        "Migrationnotauthorized",
+        "Owners/resourcesnotadmitted",
+        "PR110notintegrated norstorageacceptance"
+      ]
+    }
+  ],
+  "dependency_relationships": [
+    {
+      "from": "record_identity_singleton",
+      "to": "exists_recordset_semantics",
+      "type": "structural",
+      "evidence": "Identity/ids and receiver semantics are required by exists contract;architecture remains open"
+    },
+    {
+      "from": "flush_recompute_fixpoint",
+      "to": "invalidate_all_flush_before_invalidate",
+      "type": "execution/verification",
+      "evidence": "Reference invalidate_all calls flush_all;existing implementation not equivalent to accepteddependency"
+    },
+    {
+      "from": "inverse_dependency_navigation",
+      "to": "recompute_dependent_record_discovery",
+      "type": "functional",
+      "evidence": "modified traversal needs inversepaths to find dependentrows"
+    },
+    {
+      "from": "relational_field_reconstruction",
+      "to": "recompute_dependent_record_discovery",
+      "type": "construction/verification conditional",
+      "evidence": "Correct relationmetadata needed for chains under reconstruction;not proof allcurrentpaths blocked"
+    },
+    {
+      "from": "domain_any_rights_optimization",
+      "to": "row_rule_access",
+      "type": "functional conditional",
+      "evidence": "Anyoptimization influences searchrights butnot allrowrulesuseany"
+    },
+    {
+      "from": "TASK-API-0417",
+      "to": "TASK-API-0418",
+      "type": "historical_text_dependency_conditional_not_verified",
+      "evidence": "scripts/evidence/orm-flow-audit-20261020T042342/outputs/tasks.json; progreso/index.rst records API20dc122b removal of projection_or_none/routing; reconcile residual scope before hard edge"
+    },
+    {
+      "from": "TASK-API-0418",
+      "to": "TASK-API-0419",
+      "type": "task_text_dependency",
+      "evidence": "scripts/evidence/orm-flow-audit-20261020T042342/outputs/tasks.json"
+    },
+    {
+      "from": "TASK-GEN-0060",
+      "to": "TASK-GEN-0062",
+      "type": "task_structured_dependency",
+      "evidence": "scripts/evidence/orm-flow-audit-20261020T042342/outputs/related.json;reciprocalids333/400same session"
+    },
+    {
+      "from": "Preserve dependency reader under TASK-THYROX-1072",
+      "to": "Automatic source-store dependency-based admission",
+      "type": "operational_admission",
+      "evidence": "scripts/evidence/orm-contract-continuation-20261020T045110/outputs/records-from-store-observation.json;do not use lossyprojection asonlyauthority"
+    }
+  ],
+  "deduplication_rules": [
+    "Cursorlifecycle is compound overcommit/rollback/pool/hooks;replica is separableacquisitionsubcontract,notcountedagainaswholecursoracceptance",
+    "Invalidate_all iscallerobligation;flush_all/recompute subordinateflow,do notaddparentandchildrenasglobalcoveragepercent",
+    "Threecacheobligations shareCacheimplementation/tests buthave distinct observableexpectations",
+    "Domainsrightspredicate isnotallrowruleaccess;conditionaledgeonly",
+    "Taskdependenciesuseexistingidentitiesandprovenance;NULLor[] doesnotproveindependence"
+  ],
+  "further_known_not_delimited": [
+    "CRUDcreate data/defaults/M2M/constraints underexistingTASK-API-0421 completedhistorical;codeexists butnotglobalacceptance",
+    "Fullrecordsetcollections/environment/context protocol",
+    "Signalingcrossprocess acceptance under7persistenttables andexistingTASK-GEN-0508",
+    "Completefieldfamilytypecontracts,translationfallbackallcases,SQLsecurity/CRUDtransactions"
+  ],
+  "excluded_automatic_scope": [
+    "Alladdonsindiscriminately",
+    "Odoo18/EnterpriseasimplicitcurrentORMtarget",
+    "ProductionOdooruntimeimports",
+    "Taxonomymigrationasglobalprerequisite"
+  ],
+  "closure": "Sufficient partialpopulation forplanning;globaluniverse andfunctionalconformance remainopen. Nofunctionaluniteligible orauthorized bythisreport.",
+  "no_new_tasks": true,
+  "no_store_writes": true,
+  "no_tests_rerun": true,
+  "no_product_changes": true
+}

@@ -1,0 +1,45 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+..FF....                                                                 [100%]
+=================================== FAILURES ===================================
+___________________ test_privilege_prefix_uses_real_consumer ___________________
+tests/unit/orm/test_res_groups_compute_contract.py:32: in test_privilege_prefix_uses_real_consumer
+    assert group.full_name == 'Admin / Operations'
+src/orm/fields.py:1605: in __get__
+    field.compute_value(instance)
+src/orm/fields.py:4859: in compute_value
+    _invoke_compute_method(self, records)
+src/orm/fields.py:4777: in _invoke_compute_method
+    determine(field.compute, record)
+src/orm/fields.py:2183: in determine
+    return method(*args)
+src/addons/base/models/res_groups.py:264: in _compute_full_name
+    if self.privilege_id and not self.env.context.get('short_display_name'):
+E   AttributeError: 'ResGroups' object has no attribute 'env'
+___________________ test_short_display_name_omits_privilege ____________________
+tests/unit/orm/test_res_groups_compute_contract.py:38: in test_short_display_name_omits_privilege
+    assert group.full_name == 'Operations'
+src/orm/fields.py:1605: in __get__
+    field.compute_value(instance)
+src/orm/fields.py:4859: in compute_value
+    _invoke_compute_method(self, records)
+src/orm/fields.py:4777: in _invoke_compute_method
+    determine(field.compute, record)
+src/orm/fields.py:2183: in determine
+    return method(*args)
+src/addons/base/models/res_groups.py:264: in _compute_full_name
+    if self.privilege_id and not self.env.context.get('short_display_name'):
+E   AttributeError: 'ResGroups' object has no attribute 'env'
+=============================== warnings summary ===============================
+tests/unit/orm/test_res_groups_compute_contract.py::test_compute_assigns_instead_of_returning
+  /workspace/kaupamex-api/src/orm/fields.py:4120: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_res_groups_compute_contract.py::test_compute_assigns_instead_of_returning
+  /workspace/kaupamex-api/src/orm/fields.py:4120: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_privilege_prefix_uses_real_consumer
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_short_display_name_omits_privilege
+2 failed, 6 passed, 2 warnings in 0.30s

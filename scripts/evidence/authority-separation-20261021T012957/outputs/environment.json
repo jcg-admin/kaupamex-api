@@ -1,0 +1,16 @@
+{
+  "captured_at": "2026-10-21T01:35:03",
+  "repo_head": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "executable_path": "/workspace/kaupamex-api/.venv/bin/python",
+  "executable_version": "Python 3.12.14",
+  "executable_sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+  "python_version": "3.12.14",
+  "cpu_count": 5,
+  "platform": "linux",
+  "environment_variables": {
+    "CLAUDE_EFFORT": null,
+    "CLAUDE_CODE_EFFORT_LEVEL": null,
+    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": null,
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": null
+  }
+}

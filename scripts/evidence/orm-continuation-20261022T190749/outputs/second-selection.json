@@ -1,0 +1,25 @@
+{
+  "objective": "completar-raiz-orm",
+  "objective_complete": false,
+  "prior_unit_verified": "ModuleNode.demo_installable",
+  "prior_unit_accepted": false,
+  "native_input_log": [
+    {
+      "kind": "start"
+    },
+    {
+      "kind": "hard_block",
+      "item": "ModuleNode.demo_installable",
+      "reason": "Focused verification PASS, acceptance not granted: global CI failure and no merge"
+    }
+  ],
+  "native_states": {
+    "ModuleNode.demo_installable": "failed"
+  },
+  "next_selection": [
+    "ModuleNode.phase"
+  ],
+  "interface": "session.task_continuation.node_frontier",
+  "claims": "Complete native ledger after own claims released",
+  "decision": "Continue independent phase unit; no official TASK state transitions"
+}

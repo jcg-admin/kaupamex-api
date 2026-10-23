@@ -1,0 +1,28 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:odoo/orm/fields.py::Field.recompute.apply_except_missing:1859-1874; odoo/orm/models.py::_recompute_field:6948-6959",
+  "behavior": "Retry missing-record compute once if the primary row still exists; remove absent persisted IDs from all computed-group queues; propagate persistent absence and other exceptions.",
+  "execution_flow": "Field.recompute -> compute_value -> MissingError/ObjectDoesNotExist -> primary _base_manager using record._state.db existence -> retry once outside catch OR native remove_to_compute for computed group.",
+  "inputs_outputs": "Live, deleted during compute, related missing, transient/persistent missing, virtual None, filtered public manager, AccessError, read-router mismatch; real TEMP columns, queues and rollback observed.",
+  "side_effects": "Only selected absent persisted IDs removed from existing in-memory queue; second failure preserves pending work. TEMP PostgreSQL fixtures only; no product DDL.",
+  "dependencies": [
+    "Existing _recompute_field query and field.recompute engine, GEN0525 partial mechanism present",
+    "Environment.remove_to_compute and Registry.field_computed existing qualified for selected cases",
+    "PostgreSQL16 QA TEMP/least privilege verified",
+    "GEN0558 batching unnecessary for this missing-after-query scope; no conclusion all0559 dependencies resolved"
+  ],
+  "consumers": "_recompute_model/_recompute_recordset/flush callers using _recompute_field; exact installed-addon/whole-system flow not_verified",
+  "installed_mechanism": "Django queryset excludes missing rows without Odoo MissingError; existing native Consumer Environment/Registry group mechanisms reused.",
+  "existing_adaptation": "Compute remains per row, not Odoo recordset batching. Existing MissingError and Django ObjectDoesNotExist reused; no second exception type/coordinator.",
+  "verification": {
+    "postgresql_after": "16PASS exit0:7 retained plus9 retry tests",
+    "original_retry_control": "8 retry cases against exact99f helper:7 fail,1AccessError control pass, exit1",
+    "alias_control": "Remove only record alias binding in memory:1error exit1; current source passes same case",
+    "regression": "312PASS/1 inheritedXFAIL exit0; separate incremental batch29PASS/7FAIL/2fixtureERROR exit1",
+    "real_consumer": "ResGroups.full_name raises RecursionError exit1, noSQL; related0415/0417, not repaired under0559",
+    "native_odoo_runtime": "NOT_EVALUATED"
+  },
+  "equivalence": "Bounded absent-row cleanup and retry adaptation verified. Neither full GEN0559 acceptance nor all Odoo recompute semantics.",
+  "limitations": "Concurrent transactions, all installed consumers, batch prefetch and full recordset behavior remain not_verified. Unrelated real nonstored Consumer divergence remains open.",
+  "integration": "Feature branch and existing API109 only; no merge or official task-state mutation. Publication recorded in existing Docs authority and PR."
+}

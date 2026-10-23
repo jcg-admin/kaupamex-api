@@ -1,0 +1,37 @@
+{
+  "kaupamex-api": {
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/kaupamex-api/pulls/109"
+    ],
+    "state": "open",
+    "merged": false,
+    "head": "0d4de26b078c736bd7946ebdc93010fea158317c",
+    "url": "https://github.com/jcg-admin/kaupamex-api/pull/109"
+  },
+  "kaupamex-docs": {
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/kaupamex-docs/pulls/154"
+    ],
+    "state": "open",
+    "merged": false,
+    "head": "d8ccb209c50fac1b5b9ba57314b2ba8ac4408898",
+    "url": "https://github.com/jcg-admin/kaupamex-docs/pull/154"
+  },
+  "ci": {
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/kaupamex-api/actions/runs/39719704981"
+    ],
+    "head": "0d4de26b078c736bd7946ebdc93010fea158317c",
+    "status": "completed",
+    "conclusion": "failure",
+    "url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39719704981",
+    "failed_log_export_bytes": 0,
+    "cause": "Log export returned empty; no diagnosis inferred from empty logs. Previous local ci-verify compute failure retained separately."
+  }
+}

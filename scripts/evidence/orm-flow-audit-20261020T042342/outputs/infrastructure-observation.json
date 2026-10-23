@@ -1,0 +1,33 @@
+[
+  {
+    "command": [
+      "docker",
+      "ps",
+      "--filter",
+      "name=kaupamex-postgres-cloud",
+      "--format",
+      "{{.Names}} {{.Status}} {{.Ports}}"
+    ],
+    "exit_code": 0,
+    "stdout": "kaupamex-postgres-cloud Up 4 hours 127.0.0.1:5432->5432/tcp\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "docker",
+      "exec",
+      "-u",
+      "postgres",
+      "kaupamex-postgres-cloud",
+      "psql",
+      "-X",
+      "-d",
+      "postgres",
+      "-Atc",
+      "SELECT datname,usename,state,count(*) FROM pg_stat_activity WHERE backend_type='client backend' AND pid<>pg_backend_pid() GROUP BY datname,usename,state ORDER BY datname,usename,state;"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]

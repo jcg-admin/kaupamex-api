@@ -1,0 +1,93 @@
+[
+  {
+    "instrument_path": "scripts/evidence/orm-module-lifecycle-20261022T023817/probes/baseline_router.py",
+    "instrument_hash": "03eeddab80ce20a5b53f398f19f1ae8084781f7e2c36c1e178f7b2e5985aa77a",
+    "source_revision": "56b08be8",
+    "purpose": "\"\"\"Control congelado: algoritmo y pol\u00edtica del router en f04dfd1b.\"\"\"",
+    "inputs": "Pinned reference and/or existing Consumer settings; PostgreSQL probes require exclusive qa_context",
+    "execution_command": "uv run --frozen python scripts/evidence/orm-module-lifecycle-20261022T023817/probes/baseline_router.py",
+    "dependencies": "Frozen Consumer environment; Thyrox existing job interfaces; see README for DB isolation",
+    "expected_result": "Bounded contract observations; known negative cases retained",
+    "observed_result": "See outputs matching instrument name and README; not global acceptance",
+    "evidence_location": "scripts/evidence/orm-module-lifecycle-20261022T023817/outputs",
+    "limitations": "Direct execution requires appropriate settings/reference environment; no automatic replay of historical TASK calls"
+  },
+  {
+    "instrument_path": "scripts/evidence/orm-module-lifecycle-20261022T023817/probes/database_contract.py",
+    "instrument_hash": "8b4a0194201b66c84e9cc12e140e084cc853c953f8f7ef9c061103a23748e77a",
+    "source_revision": "56b08be8",
+    "purpose": "\"\"\"Sonda Consumer: dos bases propias, router real y registros existentes.\"\"\"",
+    "inputs": "Pinned reference and/or existing Consumer settings; PostgreSQL probes require exclusive qa_context",
+    "execution_command": "uv run --frozen python scripts/evidence/orm-module-lifecycle-20261022T023817/probes/database_contract.py",
+    "dependencies": "Frozen Consumer environment; Thyrox existing job interfaces; see README for DB isolation",
+    "expected_result": "Bounded contract observations; known negative cases retained",
+    "observed_result": "See outputs matching instrument name and README; not global acceptance",
+    "evidence_location": "scripts/evidence/orm-module-lifecycle-20261022T023817/outputs",
+    "limitations": "Direct execution requires appropriate settings/reference environment; no automatic replay of historical TASK calls"
+  },
+  {
+    "instrument_path": "scripts/evidence/orm-module-lifecycle-20261022T023817/probes/manifest_contract.py",
+    "instrument_hash": "5f18a63886c6523c6ed6b04525cd84de48f4579c41e29e1353705b5dca9aa08e",
+    "source_revision": "56b08be8",
+    "purpose": "\"\"\"Manifiestos y candidatos auto_install: declaraciones frente a efectos.\"\"\"",
+    "inputs": "Pinned reference and/or existing Consumer settings; PostgreSQL probes require exclusive qa_context",
+    "execution_command": "uv run --frozen python scripts/evidence/orm-module-lifecycle-20261022T023817/probes/manifest_contract.py",
+    "dependencies": "Frozen Consumer environment; Thyrox existing job interfaces; see README for DB isolation",
+    "expected_result": "Bounded contract observations; known negative cases retained",
+    "observed_result": "See outputs matching instrument name and README; not global acceptance",
+    "evidence_location": "scripts/evidence/orm-module-lifecycle-20261022T023817/outputs",
+    "limitations": "Direct execution requires appropriate settings/reference environment; no automatic replay of historical TASK calls"
+  },
+  {
+    "instrument_path": "scripts/evidence/orm-module-lifecycle-20261022T023817/probes/migration_roundtrip.py",
+    "instrument_hash": "94b29b9f987f0209a763a0aac4b64e24eeeed7652c03d4d7f4336f83ab204ccd",
+    "source_revision": "56b08be8",
+    "purpose": "\"\"\"Capacidades nativas de migraci\u00f3n en una base desechable, no un instalador.\"\"\"",
+    "inputs": "Pinned reference and/or existing Consumer settings; PostgreSQL probes require exclusive qa_context",
+    "execution_command": "uv run --frozen python scripts/evidence/orm-module-lifecycle-20261022T023817/probes/migration_roundtrip.py",
+    "dependencies": "Frozen Consumer environment; Thyrox existing job interfaces; see README for DB isolation",
+    "expected_result": "Bounded contract observations; known negative cases retained",
+    "observed_result": "See outputs matching instrument name and README; not global acceptance",
+    "evidence_location": "scripts/evidence/orm-module-lifecycle-20261022T023817/outputs",
+    "limitations": "Direct execution requires appropriate settings/reference environment; no automatic replay of historical TASK calls"
+  },
+  {
+    "instrument_path": "scripts/evidence/orm-module-lifecycle-20261022T023817/probes/negative_graph.py",
+    "instrument_hash": "16cbec8e08094f9f5dc77cdb65f7166cf0f03556987b94998cf8c3755a7afe32",
+    "source_revision": "56b08be8",
+    "purpose": "\"\"\"Anulaci\u00f3n aislada: sin c\u00f3mputo/guarda, los controles deben fallar.\"\"\"",
+    "inputs": "Pinned reference and/or existing Consumer settings; PostgreSQL probes require exclusive qa_context",
+    "execution_command": "uv run --frozen python scripts/evidence/orm-module-lifecycle-20261022T023817/probes/negative_graph.py",
+    "dependencies": "Frozen Consumer environment; Thyrox existing job interfaces; see README for DB isolation",
+    "expected_result": "Bounded contract observations; known negative cases retained",
+    "observed_result": "See outputs matching instrument name and README; not global acceptance",
+    "evidence_location": "scripts/evidence/orm-module-lifecycle-20261022T023817/outputs",
+    "limitations": "Direct execution requires appropriate settings/reference environment; no automatic replay of historical TASK calls"
+  },
+  {
+    "instrument_path": "scripts/evidence/orm-module-lifecycle-20261022T023817/probes/reference_contract.py",
+    "instrument_hash": "934c610e4768b0d28187391424bda488da103c11f76da5955300288ca7f651af",
+    "source_revision": "56b08be8",
+    "purpose": "\"\"\"Fuente contractual fijada y llamadas ejecutables; no usa cabeceras como prueba.\"\"\"",
+    "inputs": "Pinned reference and/or existing Consumer settings; PostgreSQL probes require exclusive qa_context",
+    "execution_command": "uv run --frozen python scripts/evidence/orm-module-lifecycle-20261022T023817/probes/reference_contract.py",
+    "dependencies": "Frozen Consumer environment; Thyrox existing job interfaces; see README for DB isolation",
+    "expected_result": "Bounded contract observations; known negative cases retained",
+    "observed_result": "See outputs matching instrument name and README; not global acceptance",
+    "evidence_location": "scripts/evidence/orm-module-lifecycle-20261022T023817/outputs",
+    "limitations": "Direct execution requires appropriate settings/reference environment; no automatic replay of historical TASK calls"
+  },
+  {
+    "instrument_path": "scripts/evidence/orm-module-lifecycle-20261022T023817/probes/stack_contract.py",
+    "instrument_hash": "7e78238d3217c9b97a265e0e114a671031107d95fa32e319b17b26896e7b193f",
+    "source_revision": "56b08be8",
+    "purpose": "\"\"\"Introspecci\u00f3n y experimentos aislados del stack realmente instalado.\"\"\"",
+    "inputs": "Pinned reference and/or existing Consumer settings; PostgreSQL probes require exclusive qa_context",
+    "execution_command": "uv run --frozen python scripts/evidence/orm-module-lifecycle-20261022T023817/probes/stack_contract.py",
+    "dependencies": "Frozen Consumer environment; Thyrox existing job interfaces; see README for DB isolation",
+    "expected_result": "Bounded contract observations; known negative cases retained",
+    "observed_result": "See outputs matching instrument name and README; not global acceptance",
+    "evidence_location": "scripts/evidence/orm-module-lifecycle-20261022T023817/outputs",
+    "limitations": "Direct execution requires appropriate settings/reference environment; no automatic replay of historical TASK calls"
+  }
+]

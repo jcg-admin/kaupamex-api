@@ -1,0 +1,18 @@
+[
+  {
+    "temporary": "/tmp/orm-module-admission.ts",
+    "persistent_copy": "scripts/evidence/orm-module-lifecycle-20261022T023817/probes/recovery/orm-module-admission.ts.source.txt",
+    "temporary_sha256": "80542d8b9978fee61e559470191f6132faa72dcc8b7d99baa5819658fdb597ca",
+    "persistent_sha256": "80542d8b9978fee61e559470191f6132faa72dcc8b7d99baa5819658fdb597ca",
+    "identical": true,
+    "replayed": false
+  },
+  {
+    "temporary": "/tmp/orm_batch_env.py",
+    "persistent_copy": "scripts/evidence/orm-module-lifecycle-20261022T023817/probes/recovery/orm_batch_env.py.source.txt",
+    "temporary_sha256": "a84b0ed28f447a2ba1961a71b075b2c49c63605d9908bd8e5d65c4202b50e827",
+    "persistent_sha256": "a84b0ed28f447a2ba1961a71b075b2c49c63605d9908bd8e5d65c4202b50e827",
+    "identical": true,
+    "replayed": false
+  }
+]

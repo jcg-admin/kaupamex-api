@@ -1,0 +1,85 @@
+{
+  "recorded_at": "2026-10-22T20:10:20.952245+00:00",
+  "scope": "Terminal visibility in this conversation; no ORM acceptance or Provider qualification",
+  "user_confirmation": "si, todas, guardalo, porque no quiero que se vuelva a repetir,",
+  "visible_tests_confirmed_by_user": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G"
+  ],
+  "baseline_route": "functions.exec -> tools.exec_command -> text(result); separate calls",
+  "active_process_route": "tools.write_stdin(session_id), preserve completion and actual exit_code",
+  "tests": [
+    {
+      "id": "A",
+      "mode": "normal",
+      "command": "printf 'PRUEBA A: salida normal\\n'",
+      "cwd": "/workspace",
+      "final_exit_code": 0,
+      "expected_failure": false
+    },
+    {
+      "id": "B",
+      "mode": "tty",
+      "command": "printf 'PRUEBA B: terminal con TTY\\n'",
+      "cwd": "/workspace",
+      "final_exit_code": 0,
+      "expected_failure": false
+    },
+    {
+      "id": "C",
+      "mode": "expected_failure",
+      "command": "printf 'PRUEBA C: stdout antes del fallo\\n'\nprintf 'PRUEBA C: stderr del fallo intencional\\n' >&2\nexit 7",
+      "cwd": "/workspace",
+      "final_exit_code": 7,
+      "expected_failure": true
+    },
+    {
+      "id": "D",
+      "mode": "running_then_write_stdin",
+      "command": "printf 'PRUEBA D: proceso iniciado\\n'\nsleep 3\nprintf 'PRUEBA D: proceso terminado\\n'",
+      "cwd": "/workspace",
+      "final_exit_code": 0,
+      "expected_failure": false
+    },
+    {
+      "id": "E",
+      "mode": "forward_output_text",
+      "command": "printf 'PRUEBA E: resultado como texto simple\\n'",
+      "cwd": "/workspace",
+      "final_exit_code": 0,
+      "expected_failure": false
+    },
+    {
+      "id": "F",
+      "mode": "no_forward_then_retrieve_stored_result",
+      "command": "printf 'PRUEBA F: llamada sin reenviar el resultado\\n'",
+      "cwd": "/workspace",
+      "final_exit_code": 0,
+      "expected_failure": false
+    },
+    {
+      "id": "G",
+      "mode": "immediate_notify",
+      "command": "printf 'PRUEBA G: notificación inmediata del resultado\\n'",
+      "cwd": "/workspace",
+      "final_exit_code": 0,
+      "expected_failure": false
+    }
+  ],
+  "D_session_id": 9707,
+  "F_note": "Initial nonforwarded result was not retained; repeated using store/load and verified exit0. No fake terminal event emitted.",
+  "binary_analysis": "codex-cli0.159.2 supports commandExecution items; schema generated without config changes. That alone did not establish UI cause.",
+  "causal_limit": "User confirmed visibility after controlled tests; refresh/routing/rendering root cause not established. No guarantee of client behavior across future refreshes.",
+  "changes_not_made": [
+    "Codex binary modification",
+    "Feature flag or environment configuration changes",
+    "Alternative terminal UI",
+    "Thyrox TASK status updates"
+  ],
+  "persistent_instructions": "AGENTS.md#ejecuciones-visibles-en-esta-interfaz"
+}

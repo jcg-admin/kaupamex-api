@@ -1,0 +1,3 @@
+{"kind": "launch", "instrument": "uv run --frozen python probes/reconstruction_contract.py", "started_at": "2026-10-21T15:27:48+00:00"}
+{"kind": "declaration", "question": "¿La fusión conserva destino, borrado y propiedades de FK sin esperar retirar NonStored?", "instrument": "probes/reconstruction_contract.py", "metric": "RED/GREEN y control anterior; construcción ModelBase real, relaciones y campo escalar", "blind_to": "No aceptación general de 0418, DB completa o fusión de toda relación Odoo", "destination": "outputs"}
+{"kind": "settle", "exit_code": 1, "finished_at": "2026-10-21T15:47:57+00:00", "duration_seconds": 1209.528009}

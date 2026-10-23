@@ -1,0 +1,32 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+........FFF.                                                             [100%]
+=================================== FAILURES ===================================
+____________ test_empty_auto_install_trigger_is_not_false[trigger0] ____________
+tests/unit/modules/test_module_graph.py:78: in test_empty_auto_install_trigger_is_not_false
+    assert graph.auto_installable([]) == ['bridge']
+E   AssertionError: assert [] == ['bridge']
+E     Right contains one more item: 'bridge'
+E     Use -v to get more diff
+____________ test_empty_auto_install_trigger_is_not_false[trigger1] ____________
+tests/unit/modules/test_module_graph.py:78: in test_empty_auto_install_trigger_is_not_false
+    assert graph.auto_installable([]) == ['bridge']
+E   AssertionError: assert [] == ['bridge']
+E     Right contains one more item: 'bridge'
+E     Use -v to get more diff
+__________ test_uninstallable_module_is_not_an_auto_install_candidate __________
+tests/unit/modules/test_module_graph.py:84: in test_uninstallable_module_is_not_an_auto_install_candidate
+    assert graph.auto_installable([]) == []
+E   AssertionError: assert ['disabled'] == []
+E     Left contains one more item: 'disabled'
+E     Use -v to get more diff
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/modules/test_module_graph.py::test_empty_auto_install_trigger_is_not_false[trigger0]
+FAILED tests/unit/modules/test_module_graph.py::test_empty_auto_install_trigger_is_not_false[trigger1]
+FAILED tests/unit/modules/test_module_graph.py::test_uninstallable_module_is_not_an_auto_install_candidate
+3 failed, 9 passed, 1 warning in 0.12s

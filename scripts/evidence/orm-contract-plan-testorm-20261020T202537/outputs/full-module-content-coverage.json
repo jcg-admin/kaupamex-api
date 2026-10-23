@@ -1,0 +1,204 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "scope": "entire odoo/addons/test_orm content, not only tests or selected methods",
+  "source_files": {
+    "__init__.py": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 1,
+      "sha256": "5fd10918e1361ad65b4b41bcd8fb525e659267f47c8c4334ae52530e58908e9e"
+    },
+    "__manifest__.py": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 22,
+      "sha256": "5573cfe7820bcae8bf6365a5d57b78a5675e065d6ee98c18e5b3e8941ddd6a5e"
+    },
+    "data/test_orm_data.xml": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 54,
+      "sha256": "763a2a82d8d4af259782e16bda550c0c1ffba920bc033490d5722a0d324786e8"
+    },
+    "i18n/fr.po": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 22,
+      "sha256": "ea87524dfc1029545f2e57dee3c5f3306656ac53486ea0ef8f55b3fd8f313b2d"
+    },
+    "i18n/test_orm.pot": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 21,
+      "sha256": "f0e98d8f5da167afc3709b6d99c5558f72ec6b23f0880023bbde2160ff69c4e9"
+    },
+    "models/__init__.py": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 5,
+      "sha256": "8076fe28f4c6b27c4e9bc237b094b7cbc2f1bc8d2b0b38520cd01b859133449f"
+    },
+    "models/test_orm.py": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 2537,
+      "sha256": "5cb16e502ede06f8027a65205ec62fcbffacc36af610eb92c9ab972aef167d2a"
+    },
+    "models/test_performance.py": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 103,
+      "sha256": "15b1dd468f4f1c5a91e0cfc0eeed83730b606a7067bfc004fae6f41516906de3"
+    },
+    "models/test_unity_read.py": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 78,
+      "sha256": "c0196be404affd4e93ae679c560cef2dde6cb5bc46a9ae96fb29a310f098f886"
+    },
+    "security/ir.model.access.csv": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 161,
+      "sha256": "8422b5c222f17eb0c384de1f2b9370ddc7748d3c40df5c4cb65e306a1e49a053"
+    },
+    "security/test_orm_security.xml": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 11,
+      "sha256": "8779df77a03fd530733769e4f86db622c376ffe6bc56164ea038e0acc4d79ef6"
+    },
+    "static/tests/tours/constraint.js": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 36,
+      "sha256": "f394c6075e0dd2605f8a7e42d617a32658ab6d253cb2cd6ae6d761d1a1ffd5d9"
+    },
+    "static/tests/tours/x2many.js": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 565,
+      "sha256": "1a4eae65484ffacc9bcff2d0749489e6f870b99d83b2c02d1790379088439cb6"
+    },
+    "views/test_orm_views.xml": {
+      "source_artifact": "testorm-full-models-resources.json",
+      "lines": 506,
+      "sha256": "9f737695ff9a7e7f78e951962b41db4eb4f83a2c700c267149294b930d08db8d"
+    },
+    "tests/test_fields.py": {
+      "source_artifact": "testorm-full-fields.json",
+      "lines": 5408,
+      "sha256": "a97110371e961bec55a796e8a7f6247860e9bc1be0e388bdab3c100402d6ffd3"
+    },
+    "tests/test_properties.py": {
+      "source_artifact": "testorm-full-properties-company.json",
+      "lines": 3521,
+      "sha256": "890f0844ed3fbc8e4fefbb3df24a73634bbdaa219f5d96e87a9bfda9838b98d1"
+    },
+    "tests/test_company_checks.py": {
+      "source_artifact": "testorm-full-properties-company.json",
+      "lines": 274,
+      "sha256": "8ca7697a8a8d74f30a866b28a6f62d3edacef22df16bfbe945928009c6747812"
+    },
+    "tests/test_search.py": {
+      "source_artifact": "testorm-full-search-domain-performance.json",
+      "lines": 1960,
+      "sha256": "58fde001df7137f7f9dbf77526ed76e7fe2adc45919a80f905bb0aef42821e22"
+    },
+    "tests/test_domain.py": {
+      "source_artifact": "testorm-full-search-domain-performance.json",
+      "lines": 1069,
+      "sha256": "254cd1a27805498396c79aa0f18dfac2caa6f9c00c2f3e3f5faedf4e4ed39db0"
+    },
+    "tests/test_sort.py": {
+      "source_artifact": "testorm-full-search-domain-performance.json",
+      "lines": 205,
+      "sha256": "3333629b6432899ba8f5a3a02bc5f96b2112129a45cabde8c64d166499acdbd0"
+    },
+    "tests/test_performance.py": {
+      "source_artifact": "testorm-full-search-domain-performance.json",
+      "lines": 824,
+      "sha256": "ca0d9abd93b3d812df62e6d18623442aca0ce1cb176c724ddbe3787e95af4503"
+    },
+    "tests/test_timeit.py": {
+      "source_artifact": "testorm-full-search-domain-performance.json",
+      "lines": 217,
+      "sha256": "cfbc5d845f1980f8a2a23017d36e654277ce943a1131c7d05fbbc430c2eae908"
+    },
+    "tests/__init__.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 25,
+      "sha256": "18517f5d5279eb48b376a78e4389d3e2aa0bb9fd1a6840ceb8470e23aafccdb1"
+    },
+    "tests/test_attributes.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 11,
+      "sha256": "eac9bef7872c72a1250618b6235019d213acf6254d1bae64f2fd7955ac49c91f"
+    },
+    "tests/test_autovacuum.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 17,
+      "sha256": "14243b9ab337b29a3772c834dd8a6e47b200b2d3f816b7455729f0a6c82ac1d0"
+    },
+    "tests/test_index_method.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 48,
+      "sha256": "f408f8390702f308d08943081d5bc3f7deb33cc492d697ebdf4013d7bfe3ee47"
+    },
+    "tests/test_indexed_translation.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 89,
+      "sha256": "e7720fd01522b9632c990e586f227207c6ce08df75651dce2e0a9aae7963bce7"
+    },
+    "tests/test_json_field.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 36,
+      "sha256": "b419b54f942b592106c586035903754bb6e7fa3f27f2445b7c3d47d27a056c76"
+    },
+    "tests/test_many2many.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 94,
+      "sha256": "29800a672cea1cc198d02c3a75bc27d675208f0eed8eeadb80d36d5097f3f048"
+    },
+    "tests/test_onchange.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 1397,
+      "sha256": "41d0f78b9f60e2d9e8bd4b4c56f91ce2b0e6188d89e9f8ed8a8bc02c074cb7e8"
+    },
+    "tests/test_one2many.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 511,
+      "sha256": "4cffa7e5d2e452cb3e14be6da3c0a2ed3324126438c9e057841ddf2e074ddf67"
+    },
+    "tests/test_qweb_float.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 63,
+      "sha256": "276136acd7573df75918a0807e11254ade6b2e9d7c3e610e3aebe0f4ec9e2834"
+    },
+    "tests/test_related_translation.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 359,
+      "sha256": "f40995e9def222eb51549ec38c4186a3c7c54df20992e559063f989d227ac83d"
+    },
+    "tests/test_schema.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 742,
+      "sha256": "91552d6b77cc3563d3553d2c55d35c57723acfa55ab413ba367cf432d2299462"
+    },
+    "tests/test_ui.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 39,
+      "sha256": "d5f664b723d5b549c0d5890d3210d3df3f1000bebe1e6c5b22bb515dc94bf28d"
+    },
+    "tests/test_unity_read.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 888,
+      "sha256": "5a8d43d621b7301dfb50e7abb55827848d20011247dd69d502896236c8b99939"
+    },
+    "tests/test_views.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 258,
+      "sha256": "0edb2d8063618a9804c855ecfce1fe01b61862770e0ff43fff39b8c0c7e3c874"
+    },
+    "tests/test_web_save.py": {
+      "source_artifact": "testorm-full-other-tests.json",
+      "lines": 96,
+      "sha256": "9c72397371f83fbb7eb74ec77e851968cc72c453b04795fe179b38df7fb2336f"
+    }
+  },
+  "source_content_examination": "all 38 files read in full: declarations, helpers, setup, branches, assertions, comments, fixtures, data, ACL, rules, translations, views, JS tours and initializers",
+  "unread_module_files": [],
+  "unread_assigned_source_blocks": [],
+  "semantic_characterizations": 66,
+  "count_limit": "file/symbol/group counts are navigation/completeness checks for source examination, not a functional denominator or a TASK count",
+  "functional_conformance": "not_verified; independent Consumer execution/acceptance pending",
+  "external_dependencies": "base/web/web_tour manifests pinned and direct closure verified; Odoo test helpers, DB/registry/browser and Consumer fixtures remain separately unqualified",
+  "execution": "No native Odoo/Consumer tests, model inference, migration or merge"
+}

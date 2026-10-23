@@ -1,0 +1,30 @@
+{
+  "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet.run",
+  "command": "THYROX_ROOT=<declared Provider root> bun run probes/native_task_snapshot.ts",
+  "invocation": {
+    "argv": [
+      "/workspace/.cache/npm/_npx/214ebe133ee6a004/node_modules/bun/bin/bun.exe",
+      "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/native_task_snapshot.ts"
+    ],
+    "cwd": "/workspace/kaupamex-api",
+    "THYROX_ROOT": "/workspace/thyrox"
+  },
+  "observed_at": "2026-10-23T22:46:12.391Z",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "input": {
+    "task_id": "1441"
+  },
+  "task": {
+    "task_id": "1441",
+    "citation_id": "TASK-API-0478",
+    "subject": "Validate API locally with the same fail-fast CI contract",
+    "description": "Solicitud explicita del usuario 2026-10-22: detectar errores antes del push, detener al primer fallo y registrar la TASK. Alcance Consumer: un mismo target Make local/GitHub, uv frozen, PostgreSQL desechable con consentimiento por nombre exacto, pytest maxfail=1, JUnit incluso al fallar, timeout CI. Sin ORM, hooks, protecciones ni otro coordinador. Relacion: TASK-API-0136 (PDF/CI completed), TASK-API-0093 (drift de migraciones pendiente: no imponer makemigrations como nuevo gate), TASK-API-0415 y H-API-1120 (bootstrap). No equivalen a este contrato. Dependencias de ejecucion: Python compatible, uv, libpng/zlib, PostgreSQL exclusivo. Aceptacion: controles negativos contra QA compartida y propagacion de fallo sin ejecutar pasos posteriores; ejecucion real con la misma orden en DB propia; distinguir fallo de suite y fallo del mecanismo; conservar resultados CI. Cierre remoto requiere aceptacion/integracion. Evidencia: scripts/evidence/ci-local-fail-fast-20261022T004947/.",
+    "status": "pending",
+    "owner": "codex-ci-local",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "scope": "Native read only; export is evidence, not replacement TaskStore authority"
+}

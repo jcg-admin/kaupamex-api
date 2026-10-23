@@ -1,0 +1,11 @@
+{
+  "source": "gh run view 39715997899 --repo jcg-admin/kaupamex-api --json status,conclusion,headSha,jobs; observed in native terminal this batch",
+  "run_id": 39715997899,
+  "head_sha": "d25042fd43a0787e07cc4a2a2cefe0ce6815b57c",
+  "status": "completed",
+  "conclusion": "failure",
+  "failed_step": "Verify API (same contract locally)",
+  "result_upload": "success",
+  "cause_limit": "Step conclusion does not by itself establish the traceback; local error independently recorded",
+  "url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39715997899"
+}

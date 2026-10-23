@@ -1,0 +1,19 @@
+{
+  "consumer_revision": "99f4a0445c163b8a5228e3df68121ce27905559b",
+  "read_only_database_session": true,
+  "results": [
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "/workspace/kaupamex-api/scripts/evidence/orm-as-is-substantive-20261021T194156/probes/xfail_probe.py"
+      ],
+      "exit_code": 1,
+      "log": "xfail-probe.log",
+      "json_e010_reported": false
+    }
+  ],
+  "limits": "Normal installed addons/checks; no migrations applied, no fixtures seeded, no whole-ORM acceptance"
+}

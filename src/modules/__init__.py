@@ -1,65 +1,32 @@
-"""``modules`` — fiel a ``odoo/modules/`` (Odoo 19).
+"""Descubrimiento de addons y etapas delimitadas de su carga (TASK-API-0382).
 
-Paquete del **sistema de módulos**: descubrir addons, leer y validar su
-``__manifest__.py``, y resolver el grafo ``depends``.
+``module.py`` resuelve raíces, manifests y dependencias externas;
+``module_graph.py`` construye y ordena el grafo y prepara snapshots explícitos
+por base. El catálogo persistido existe en ``base.IrModule``: su estado ya no
+puede describirse como un mecanismo ausente o descartado.
 
-Qué se porta y qué NO — declarado, no omitido en silencio
----------------------------------------------------------
+``loading.py`` implementa load_data, load_demo, comprobación de nombres y
+recuperación de estados. Todavía no ejecuta el ciclo completo de instalación,
+actualización o eliminación. ``Registry.new`` conserva las solicitudes, pero
+actualmente prepara modelos del proceso mediante _ensure_seeded; la composición
+efectiva por base, hooks y finalización de versiones siguen pendientes.
+``INSTALLED_APPS`` y las migraciones Django no acreditan esa equivalencia.
 
-===========================  ==========================================================
-``odoo/modules/``            Aquí
-===========================  ==========================================================
-``module.py`` (623 loc)      **portado** → ``modules/module.py`` (manifest + descubrimiento)
-``module_graph.py`` (317)    **portado** → ``modules/module_graph.py`` (grafo + orden)
-``registry/`` (3 loc shim)   **portado** → ``modules/registry/`` (shim sobre ``orm.registry``)
-``loading.py`` (632)         **NO** — el orden de carga lo da ``INSTALLED_APPS``
-                             + ``django.apps``
-``db.py`` (200)              **PARCIAL** — su *algoritmo* de ``auto_install`` SÍ
-                             (→ ``ModuleGraph.auto_installable``); sus sondas de
-                             capacidad (``FunctionStatus``/``has_unaccent``/
-                             ``has_trigram``) SÍ (→ ``modules/db.py``); su
-                             *almacenamiento* (``ir_module_module``) no (#298)
-``migration.py`` (253)       **NO** — resuelto 2026-08-02; ver abajo
-``neutralize.py`` (41)       **NO** — depende de ``loading``
-===========================  ==========================================================
+El análisis histórico H-API-230 separó el algoritmo auto_install de su
+persistencia; el catálogo persistido y los snapshots posteriores amplían ese
+estado inicial. H-API-231 identificó mecanismos Django para migraciones de
+esquema/datos: la equivalencia del ciclo pre/post/end y su disparo por versión
+debe verificarse en el cargador efectivo, sin reimplementar Django.
 
-La decisión de no adoptar el install dinámico no es de este pase: viene de
-``analisis-organizacion-addon-odoo-modules`` ("Qué NO se adopta"), y se sostiene
-porque su premisa —módulos de terceros con set de instalación por cliente— no es
-la de este árbol.
+Se conservan tres grafos con responsabilidades distintas:
 
-**Corrección de un descarte apresurado (H-API-230).** La primera versión de este
-docstring decía ``db.py`` → **NO**, "es el estado de ``ir_module_module``". Era
-falso por omisión: ``db.py:91-124`` **implementa ``auto_install``** —un bucle de
-punto fijo que marca los addons auto-instalables cuyas dependencias requeridas
-ya están— y ése es justo el mecanismo por el que la referencia instala solos los
-puentes ``_portal``/``_signup``. Descartarlo contradecía la razón por la que se
-estaba portando el manifest. El algoritmo es de **grafo** y se portó; lo que no
-se porta es la tabla donde Odoo lo persiste.
+- Dependencias de código de addons: manifests y ModuleGraph.
+- Imports Python: scripts/check_addon_cycles.py.
+- Módulos comerciales L0: authz.declaration.ModuleSpec.depends.
 
-**``migration.py`` — resuelto: NO se porta (H-API-231, 2026-08-02).** Medido
-contra la referencia completa (253 loc): su disparador es
-``pkg.load_state == 'to upgrade'`` leído de ``ir_module_module``
-(``migration.py:134,151``; ``module_graph.py:158,309``) — el mismo
-almacenamiento que H-API-230 delimitó como no-portable, y aquí sin algoritmo
-separable: la selección de scripts depende de ``load_version`` de la BD. Su
-función (data ops alrededor del schema sync) la cubren ``RunPython``/``RunSQL``
-— en uso hoy (2 seeds: ``authz_password_policy/0001``, ``authz_signup/0001``) y
-con precedente PROVEN de que el squash las preserva (DEC-MIG-2). Los dos huecos
-residuales (fase ``end-`` dedicada; ``0.0.0`` re-ejecutable) tienen expresión
-Django (``dependencies``/``run_before``; management command) y 0 demandantes.
-Análisis completo:
-``docs: gestion/pm/api/iniciativas/consolidar-migraciones-django-squash/
-analisis-mecanismo-migracion-odoo-vs-django.rst``.
-
-**Tres grafos distintos, no uno** (H-API-228). Este paquete resuelve el
-**primero**; los otros dos ya tienen dueño y no se colapsan aquí:
-
-1. **addons-código** — ``__manifest__.py:depends``: qué addon necesita a qué
-   addon. Es lo que ``module_graph`` resuelve.
-2. **imports** — derivado con ``ast`` por ``scripts/check_addon_cycles.py``.
-3. **módulos comerciales L0** — ``authz.declaration.ModuleSpec.depends``: qué
-   módulo puede activarse para una company.
+La cobertura por archivo y los contratos todavía no aceptados viven en el banco
+odoo-orm-reference-inventory-20260910T181517. Esta descripción no sustituye sus
+verificadores ni declara aceptación integral del sistema de módulos.
 """
 from modules.module import (          # noqa: F401
     MANIFEST_NAMES,

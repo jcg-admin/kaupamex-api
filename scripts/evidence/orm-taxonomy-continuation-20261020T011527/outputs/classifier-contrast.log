@@ -1,0 +1,92 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "cases": [
+    {
+      "installed": [
+        "installed"
+      ],
+      "primitives": [
+        "primitive"
+      ],
+      "available": [
+        "installed"
+      ],
+      "field": "BLOCKED",
+      "signaling": "READY"
+    },
+    {
+      "installed": [],
+      "primitives": [],
+      "available": [],
+      "field": "BUILDABLE",
+      "signaling": "BUILDABLE"
+    },
+    {
+      "installed": [],
+      "primitives": [
+        "primitive"
+      ],
+      "available": [
+        "primitive"
+      ],
+      "field": "BUILDABLE",
+      "signaling": "BUILDABLE"
+    }
+  ],
+  "present_but_none": {
+    "field": true,
+    "signaling_is_none": true
+  },
+  "unsupported_callable_classified_ready": true,
+  "unsupported_callable_raises": true,
+  "inventory_field_entries": 13,
+  "inventory_signaling_entries": 14,
+  "raw_inventory_only_field": [
+    [
+      "cpython",
+      "contencion por bytecode"
+    ],
+    [
+      "django",
+      "almacen del arch por key"
+    ],
+    [
+      "django",
+      "evaluacion y control de flujo"
+    ],
+    [
+      "django",
+      "recorrido del arbol a dict"
+    ],
+    [
+      "lxml",
+      "parseo, XPath y construccion de nodos"
+    ]
+  ],
+  "raw_inventory_only_signaling": [
+    [
+      "cpython",
+      "contención por bytecode"
+    ],
+    [
+      "cpython",
+      "evaluación y control de flujo"
+    ],
+    [
+      "django",
+      "almacén del arch por key"
+    ],
+    [
+      "django",
+      "evaluación y control de flujo"
+    ],
+    [
+      "django",
+      "recorrido del árbol a dict"
+    ],
+    [
+      "lxml",
+      "parseo, XPath y construcción de nodos"
+    ]
+  ]
+}

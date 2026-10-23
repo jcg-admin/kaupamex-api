@@ -1,0 +1,43 @@
+{
+  "phase": "planning; general exploratory phase closed with bounded unknowns",
+  "functional_implementation_authorized": false,
+  "contracts": 15,
+  "analytical_elements_per_contract": 14,
+  "candidate_units": 6,
+  "eligible_units": 0,
+  "checks": [
+    {
+      "check": "required contract keys and unique names",
+      "exit_code": 0
+    },
+    {
+      "check": "RST syntax initial",
+      "exit_code": 1,
+      "cause": "new heading underline lengths; corrected"
+    },
+    {
+      "check": "RST syntax corrected, four changed files",
+      "exit_code": 0
+    },
+    {
+      "check": "prose vocabulary, four changed files",
+      "exit_code": 0
+    },
+    {
+      "check": "native workbench initial absolute instrument path",
+      "exit_code": 1,
+      "cause": "checker requires run-relative instrument path; corrected declaration appended"
+    },
+    {
+      "check": "native workbench corrected relative path",
+      "exit_code": 0
+    }
+  ],
+  "orm_tests": "NOT_EVALUATED: valid prior experiments reused",
+  "sphinx": "NOT_EVALUATED",
+  "ci_input_run": "39446134052",
+  "ci_classification": "BASELINE_FAILURE",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "local_inference_executed": false,
+  "merges": []
+}

@@ -1,0 +1,575 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+..FFFFFFFFF                                                              [100%]
+=================================== FAILURES ===================================
+_ test_migration_uses_target_company_and_restores_outer_scope[company_7_db-False-None] _
+
+outer_company = None, migration_fails = False, target = 'company_7_db'
+
+    @pytest.mark.filterwarnings('ignore:Overriding setting DATABASES:UserWarning')
+    @pytest.mark.parametrize('outer_company', [None, 9])
+    @pytest.mark.parametrize('migration_fails', [False, True])
+    @pytest.mark.parametrize('target', ['company_7_db', 'company_007_db'])
+    @override_settings(DATABASES={
+        'default': {}, 'company_7_db': {}, 'company_007_db': {}, 'company_9_db': {},
+    })
+    def test_migration_uses_target_company_and_restores_outer_scope(
+            outer_company, migration_fails, target):
+        historical = SimpleNamespace(_meta=SimpleNamespace(
+            app_label='base', model_name='iractionsreport'))
+        router = CompanyDatabaseRouter()
+    
+        def migrate(*args, **kwargs):
+            assert kwargs['database'] == target
+            assert router.db_for_write(historical) == target
+            if migration_fails:
+                raise RuntimeError('migration failed after correct routing')
+    
+        p_mgmt, p_create, p_alias, p_migrate = _patches()
+        original_company = get_current_company()
+        with p_mgmt, p_create, p_alias, p_migrate as mocked, \
+                mock.patch.object(db, 'database_exists', return_value=True):
+            mocked.side_effect = migrate
+            with company_scope(outer_company):
+                if migration_fails:
+                    with pytest.raises(RuntimeError, match='migration failed after correct routing'):
+                        db.provision_company_database(target)
+                else:
+>                   assert db.provision_company_database(target) == (target, False)
+
+tests/unit/service/test_provision_company.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/service/db.py:467: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+tests/unit/service/test_provision_company.py:70: in migrate
+    assert router.db_for_write(historical) == target
+src/orm/routers.py:158: in db_for_write
+    return self._route(model)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <orm.routers.CompanyDatabaseRouter object at 0x7f5bb492e5a0>
+model = namespace(_meta=namespace(app_label='base', model_name='iractionsreport'))
+
+    def _route(self, model):
+        """``_target`` + guard fail-closed duro para dominio-sin-empresa bajo N>1.
+    
+        ``_target`` devuelve ``None`` **sólo** para dominio sin empresa activa
+        (control-plane devuelve ``default``; dominio-con-empresa devuelve su
+        alias). Ese ``None`` cae a ``default``: correcto en N=1, fuga en N>1 →
+        se rechaza.
+        """
+        target = self._target(model)
+        if target is None and _has_company_databases():
+            meta = model._meta
+>           raise CompanyContextRequired(
+                'operacion de dominio %s.%s sin empresa activa bajo multi-DB '
+                '(N>1); fijar company_scope antes de leer/escribir'
+                % (meta.app_label, meta.model_name)
+            )
+E           orm.routers.CompanyContextRequired: operacion de dominio base.iractionsreport sin empresa activa bajo multi-DB (N>1); fijar company_scope antes de leer/escribir
+
+src/orm/routers.py:146: CompanyContextRequired
+_ test_migration_uses_target_company_and_restores_outer_scope[company_7_db-False-9] _
+
+outer_company = 9, migration_fails = False, target = 'company_7_db'
+
+    @pytest.mark.filterwarnings('ignore:Overriding setting DATABASES:UserWarning')
+    @pytest.mark.parametrize('outer_company', [None, 9])
+    @pytest.mark.parametrize('migration_fails', [False, True])
+    @pytest.mark.parametrize('target', ['company_7_db', 'company_007_db'])
+    @override_settings(DATABASES={
+        'default': {}, 'company_7_db': {}, 'company_007_db': {}, 'company_9_db': {},
+    })
+    def test_migration_uses_target_company_and_restores_outer_scope(
+            outer_company, migration_fails, target):
+        historical = SimpleNamespace(_meta=SimpleNamespace(
+            app_label='base', model_name='iractionsreport'))
+        router = CompanyDatabaseRouter()
+    
+        def migrate(*args, **kwargs):
+            assert kwargs['database'] == target
+            assert router.db_for_write(historical) == target
+            if migration_fails:
+                raise RuntimeError('migration failed after correct routing')
+    
+        p_mgmt, p_create, p_alias, p_migrate = _patches()
+        original_company = get_current_company()
+        with p_mgmt, p_create, p_alias, p_migrate as mocked, \
+                mock.patch.object(db, 'database_exists', return_value=True):
+            mocked.side_effect = migrate
+            with company_scope(outer_company):
+                if migration_fails:
+                    with pytest.raises(RuntimeError, match='migration failed after correct routing'):
+                        db.provision_company_database(target)
+                else:
+>                   assert db.provision_company_database(target) == (target, False)
+
+tests/unit/service/test_provision_company.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/service/db.py:467: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ('migrate',)
+kwargs = {'database': 'company_7_db', 'run_syncdb': True, 'verbosity': 0}
+@py_assert0 = None, @py_assert2 = None
+@py_assert1 = <bound method CompanyDatabaseRouter.db_for_write of <orm.routers.CompanyDatabaseRouter object at 0x7f5bb492e1e0>>
+@py_assert4 = 'company_9_db', @py_assert6 = False
+@py_format8 = "'company_9_db' == 'company_7_db'\n~- company_7_db\n~?         ^\n~+ company_9_db\n~?         ^"
+@py_format10 = "assert 'company_9_db' == 'company_7_db'\n~- company_7_db\n~?         ^\n~+ company_9_db\n~?         ^"
+
+    def migrate(*args, **kwargs):
+        assert kwargs['database'] == target
+>       assert router.db_for_write(historical) == target
+E       AssertionError: assert 'company_9_db' == 'company_7_db'
+E         - company_7_db
+E         ?         ^
+E         + company_9_db
+E         ?         ^
+
+tests/unit/service/test_provision_company.py:70: AssertionError
+_ test_migration_uses_target_company_and_restores_outer_scope[company_7_db-True-None] _
+
+outer_company = None, migration_fails = True, target = 'company_7_db'
+
+    @pytest.mark.filterwarnings('ignore:Overriding setting DATABASES:UserWarning')
+    @pytest.mark.parametrize('outer_company', [None, 9])
+    @pytest.mark.parametrize('migration_fails', [False, True])
+    @pytest.mark.parametrize('target', ['company_7_db', 'company_007_db'])
+    @override_settings(DATABASES={
+        'default': {}, 'company_7_db': {}, 'company_007_db': {}, 'company_9_db': {},
+    })
+    def test_migration_uses_target_company_and_restores_outer_scope(
+            outer_company, migration_fails, target):
+        historical = SimpleNamespace(_meta=SimpleNamespace(
+            app_label='base', model_name='iractionsreport'))
+        router = CompanyDatabaseRouter()
+    
+        def migrate(*args, **kwargs):
+            assert kwargs['database'] == target
+            assert router.db_for_write(historical) == target
+            if migration_fails:
+                raise RuntimeError('migration failed after correct routing')
+    
+        p_mgmt, p_create, p_alias, p_migrate = _patches()
+        original_company = get_current_company()
+        with p_mgmt, p_create, p_alias, p_migrate as mocked, \
+                mock.patch.object(db, 'database_exists', return_value=True):
+            mocked.side_effect = migrate
+            with company_scope(outer_company):
+                if migration_fails:
+                    with pytest.raises(RuntimeError, match='migration failed after correct routing'):
+>                       db.provision_company_database(target)
+
+tests/unit/service/test_provision_company.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/service/db.py:467: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+tests/unit/service/test_provision_company.py:70: in migrate
+    assert router.db_for_write(historical) == target
+src/orm/routers.py:158: in db_for_write
+    return self._route(model)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <orm.routers.CompanyDatabaseRouter object at 0x7f5bb4997830>
+model = namespace(_meta=namespace(app_label='base', model_name='iractionsreport'))
+
+    def _route(self, model):
+        """``_target`` + guard fail-closed duro para dominio-sin-empresa bajo N>1.
+    
+        ``_target`` devuelve ``None`` **sólo** para dominio sin empresa activa
+        (control-plane devuelve ``default``; dominio-con-empresa devuelve su
+        alias). Ese ``None`` cae a ``default``: correcto en N=1, fuga en N>1 →
+        se rechaza.
+        """
+        target = self._target(model)
+        if target is None and _has_company_databases():
+            meta = model._meta
+>           raise CompanyContextRequired(
+                'operacion de dominio %s.%s sin empresa activa bajo multi-DB '
+                '(N>1); fijar company_scope antes de leer/escribir'
+                % (meta.app_label, meta.model_name)
+            )
+E           orm.routers.CompanyContextRequired: operacion de dominio base.iractionsreport sin empresa activa bajo multi-DB (N>1); fijar company_scope antes de leer/escribir
+
+src/orm/routers.py:146: CompanyContextRequired
+_ test_migration_uses_target_company_and_restores_outer_scope[company_7_db-True-9] _
+
+outer_company = 9, migration_fails = True, target = 'company_7_db'
+
+    @pytest.mark.filterwarnings('ignore:Overriding setting DATABASES:UserWarning')
+    @pytest.mark.parametrize('outer_company', [None, 9])
+    @pytest.mark.parametrize('migration_fails', [False, True])
+    @pytest.mark.parametrize('target', ['company_7_db', 'company_007_db'])
+    @override_settings(DATABASES={
+        'default': {}, 'company_7_db': {}, 'company_007_db': {}, 'company_9_db': {},
+    })
+    def test_migration_uses_target_company_and_restores_outer_scope(
+            outer_company, migration_fails, target):
+        historical = SimpleNamespace(_meta=SimpleNamespace(
+            app_label='base', model_name='iractionsreport'))
+        router = CompanyDatabaseRouter()
+    
+        def migrate(*args, **kwargs):
+            assert kwargs['database'] == target
+            assert router.db_for_write(historical) == target
+            if migration_fails:
+                raise RuntimeError('migration failed after correct routing')
+    
+        p_mgmt, p_create, p_alias, p_migrate = _patches()
+        original_company = get_current_company()
+        with p_mgmt, p_create, p_alias, p_migrate as mocked, \
+                mock.patch.object(db, 'database_exists', return_value=True):
+            mocked.side_effect = migrate
+            with company_scope(outer_company):
+                if migration_fails:
+                    with pytest.raises(RuntimeError, match='migration failed after correct routing'):
+>                       db.provision_company_database(target)
+
+tests/unit/service/test_provision_company.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/service/db.py:467: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ('migrate',)
+kwargs = {'database': 'company_7_db', 'run_syncdb': True, 'verbosity': 0}
+@py_assert0 = None, @py_assert2 = None
+@py_assert1 = <bound method CompanyDatabaseRouter.db_for_write of <orm.routers.CompanyDatabaseRouter object at 0x7f5bb490c9b0>>
+@py_assert4 = 'company_9_db', @py_assert6 = False
+@py_format8 = "'company_9_db' == 'company_7_db'\n~- company_7_db\n~?         ^\n~+ company_9_db\n~?         ^"
+@py_format10 = "assert 'company_9_db' == 'company_7_db'\n~- company_7_db\n~?         ^\n~+ company_9_db\n~?         ^"
+
+    def migrate(*args, **kwargs):
+        assert kwargs['database'] == target
+>       assert router.db_for_write(historical) == target
+E       AssertionError: assert 'company_9_db' == 'company_7_db'
+E         - company_7_db
+E         ?         ^
+E         + company_9_db
+E         ?         ^
+
+tests/unit/service/test_provision_company.py:70: AssertionError
+_ test_migration_uses_target_company_and_restores_outer_scope[company_007_db-False-None] _
+
+outer_company = None, migration_fails = False, target = 'company_007_db'
+
+    @pytest.mark.filterwarnings('ignore:Overriding setting DATABASES:UserWarning')
+    @pytest.mark.parametrize('outer_company', [None, 9])
+    @pytest.mark.parametrize('migration_fails', [False, True])
+    @pytest.mark.parametrize('target', ['company_7_db', 'company_007_db'])
+    @override_settings(DATABASES={
+        'default': {}, 'company_7_db': {}, 'company_007_db': {}, 'company_9_db': {},
+    })
+    def test_migration_uses_target_company_and_restores_outer_scope(
+            outer_company, migration_fails, target):
+        historical = SimpleNamespace(_meta=SimpleNamespace(
+            app_label='base', model_name='iractionsreport'))
+        router = CompanyDatabaseRouter()
+    
+        def migrate(*args, **kwargs):
+            assert kwargs['database'] == target
+            assert router.db_for_write(historical) == target
+            if migration_fails:
+                raise RuntimeError('migration failed after correct routing')
+    
+        p_mgmt, p_create, p_alias, p_migrate = _patches()
+        original_company = get_current_company()
+        with p_mgmt, p_create, p_alias, p_migrate as mocked, \
+                mock.patch.object(db, 'database_exists', return_value=True):
+            mocked.side_effect = migrate
+            with company_scope(outer_company):
+                if migration_fails:
+                    with pytest.raises(RuntimeError, match='migration failed after correct routing'):
+                        db.provision_company_database(target)
+                else:
+>                   assert db.provision_company_database(target) == (target, False)
+
+tests/unit/service/test_provision_company.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/service/db.py:467: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+tests/unit/service/test_provision_company.py:70: in migrate
+    assert router.db_for_write(historical) == target
+src/orm/routers.py:158: in db_for_write
+    return self._route(model)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <orm.routers.CompanyDatabaseRouter object at 0x7f5bb4999b50>
+model = namespace(_meta=namespace(app_label='base', model_name='iractionsreport'))
+
+    def _route(self, model):
+        """``_target`` + guard fail-closed duro para dominio-sin-empresa bajo N>1.
+    
+        ``_target`` devuelve ``None`` **sólo** para dominio sin empresa activa
+        (control-plane devuelve ``default``; dominio-con-empresa devuelve su
+        alias). Ese ``None`` cae a ``default``: correcto en N=1, fuga en N>1 →
+        se rechaza.
+        """
+        target = self._target(model)
+        if target is None and _has_company_databases():
+            meta = model._meta
+>           raise CompanyContextRequired(
+                'operacion de dominio %s.%s sin empresa activa bajo multi-DB '
+                '(N>1); fijar company_scope antes de leer/escribir'
+                % (meta.app_label, meta.model_name)
+            )
+E           orm.routers.CompanyContextRequired: operacion de dominio base.iractionsreport sin empresa activa bajo multi-DB (N>1); fijar company_scope antes de leer/escribir
+
+src/orm/routers.py:146: CompanyContextRequired
+_ test_migration_uses_target_company_and_restores_outer_scope[company_007_db-False-9] _
+
+outer_company = 9, migration_fails = False, target = 'company_007_db'
+
+    @pytest.mark.filterwarnings('ignore:Overriding setting DATABASES:UserWarning')
+    @pytest.mark.parametrize('outer_company', [None, 9])
+    @pytest.mark.parametrize('migration_fails', [False, True])
+    @pytest.mark.parametrize('target', ['company_7_db', 'company_007_db'])
+    @override_settings(DATABASES={
+        'default': {}, 'company_7_db': {}, 'company_007_db': {}, 'company_9_db': {},
+    })
+    def test_migration_uses_target_company_and_restores_outer_scope(
+            outer_company, migration_fails, target):
+        historical = SimpleNamespace(_meta=SimpleNamespace(
+            app_label='base', model_name='iractionsreport'))
+        router = CompanyDatabaseRouter()
+    
+        def migrate(*args, **kwargs):
+            assert kwargs['database'] == target
+            assert router.db_for_write(historical) == target
+            if migration_fails:
+                raise RuntimeError('migration failed after correct routing')
+    
+        p_mgmt, p_create, p_alias, p_migrate = _patches()
+        original_company = get_current_company()
+        with p_mgmt, p_create, p_alias, p_migrate as mocked, \
+                mock.patch.object(db, 'database_exists', return_value=True):
+            mocked.side_effect = migrate
+            with company_scope(outer_company):
+                if migration_fails:
+                    with pytest.raises(RuntimeError, match='migration failed after correct routing'):
+                        db.provision_company_database(target)
+                else:
+>                   assert db.provision_company_database(target) == (target, False)
+
+tests/unit/service/test_provision_company.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/service/db.py:467: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ('migrate',)
+kwargs = {'database': 'company_007_db', 'run_syncdb': True, 'verbosity': 0}
+@py_assert0 = None, @py_assert2 = None
+@py_assert1 = <bound method CompanyDatabaseRouter.db_for_write of <orm.routers.CompanyDatabaseRouter object at 0x7f5bb4892e70>>
+@py_assert4 = 'company_9_db', @py_assert6 = False
+@py_format8 = "'company_9_db' == 'company_007_db'\n~- company_007_db\n~?         ^^^\n~+ company_9_db\n~?         ^"
+@py_format10 = "assert 'company_9_db' == 'company_007_db'\n~- company_007_db\n~?         ^^^\n~+ company_9_db\n~?         ^"
+
+    def migrate(*args, **kwargs):
+        assert kwargs['database'] == target
+>       assert router.db_for_write(historical) == target
+E       AssertionError: assert 'company_9_db' == 'company_007_db'
+E         - company_007_db
+E         ?         ^^^
+E         + company_9_db
+E         ?         ^
+
+tests/unit/service/test_provision_company.py:70: AssertionError
+_ test_migration_uses_target_company_and_restores_outer_scope[company_007_db-True-None] _
+
+outer_company = None, migration_fails = True, target = 'company_007_db'
+
+    @pytest.mark.filterwarnings('ignore:Overriding setting DATABASES:UserWarning')
+    @pytest.mark.parametrize('outer_company', [None, 9])
+    @pytest.mark.parametrize('migration_fails', [False, True])
+    @pytest.mark.parametrize('target', ['company_7_db', 'company_007_db'])
+    @override_settings(DATABASES={
+        'default': {}, 'company_7_db': {}, 'company_007_db': {}, 'company_9_db': {},
+    })
+    def test_migration_uses_target_company_and_restores_outer_scope(
+            outer_company, migration_fails, target):
+        historical = SimpleNamespace(_meta=SimpleNamespace(
+            app_label='base', model_name='iractionsreport'))
+        router = CompanyDatabaseRouter()
+    
+        def migrate(*args, **kwargs):
+            assert kwargs['database'] == target
+            assert router.db_for_write(historical) == target
+            if migration_fails:
+                raise RuntimeError('migration failed after correct routing')
+    
+        p_mgmt, p_create, p_alias, p_migrate = _patches()
+        original_company = get_current_company()
+        with p_mgmt, p_create, p_alias, p_migrate as mocked, \
+                mock.patch.object(db, 'database_exists', return_value=True):
+            mocked.side_effect = migrate
+            with company_scope(outer_company):
+                if migration_fails:
+                    with pytest.raises(RuntimeError, match='migration failed after correct routing'):
+>                       db.provision_company_database(target)
+
+tests/unit/service/test_provision_company.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/service/db.py:467: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+tests/unit/service/test_provision_company.py:70: in migrate
+    assert router.db_for_write(historical) == target
+src/orm/routers.py:158: in db_for_write
+    return self._route(model)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <orm.routers.CompanyDatabaseRouter object at 0x7f5bb48922a0>
+model = namespace(_meta=namespace(app_label='base', model_name='iractionsreport'))
+
+    def _route(self, model):
+        """``_target`` + guard fail-closed duro para dominio-sin-empresa bajo N>1.
+    
+        ``_target`` devuelve ``None`` **sólo** para dominio sin empresa activa
+        (control-plane devuelve ``default``; dominio-con-empresa devuelve su
+        alias). Ese ``None`` cae a ``default``: correcto en N=1, fuga en N>1 →
+        se rechaza.
+        """
+        target = self._target(model)
+        if target is None and _has_company_databases():
+            meta = model._meta
+>           raise CompanyContextRequired(
+                'operacion de dominio %s.%s sin empresa activa bajo multi-DB '
+                '(N>1); fijar company_scope antes de leer/escribir'
+                % (meta.app_label, meta.model_name)
+            )
+E           orm.routers.CompanyContextRequired: operacion de dominio base.iractionsreport sin empresa activa bajo multi-DB (N>1); fijar company_scope antes de leer/escribir
+
+src/orm/routers.py:146: CompanyContextRequired
+_ test_migration_uses_target_company_and_restores_outer_scope[company_007_db-True-9] _
+
+outer_company = 9, migration_fails = True, target = 'company_007_db'
+
+    @pytest.mark.filterwarnings('ignore:Overriding setting DATABASES:UserWarning')
+    @pytest.mark.parametrize('outer_company', [None, 9])
+    @pytest.mark.parametrize('migration_fails', [False, True])
+    @pytest.mark.parametrize('target', ['company_7_db', 'company_007_db'])
+    @override_settings(DATABASES={
+        'default': {}, 'company_7_db': {}, 'company_007_db': {}, 'company_9_db': {},
+    })
+    def test_migration_uses_target_company_and_restores_outer_scope(
+            outer_company, migration_fails, target):
+        historical = SimpleNamespace(_meta=SimpleNamespace(
+            app_label='base', model_name='iractionsreport'))
+        router = CompanyDatabaseRouter()
+    
+        def migrate(*args, **kwargs):
+            assert kwargs['database'] == target
+            assert router.db_for_write(historical) == target
+            if migration_fails:
+                raise RuntimeError('migration failed after correct routing')
+    
+        p_mgmt, p_create, p_alias, p_migrate = _patches()
+        original_company = get_current_company()
+        with p_mgmt, p_create, p_alias, p_migrate as mocked, \
+                mock.patch.object(db, 'database_exists', return_value=True):
+            mocked.side_effect = migrate
+            with company_scope(outer_company):
+                if migration_fails:
+                    with pytest.raises(RuntimeError, match='migration failed after correct routing'):
+>                       db.provision_company_database(target)
+
+tests/unit/service/test_provision_company.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/service/db.py:467: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = ('migrate',)
+kwargs = {'database': 'company_007_db', 'run_syncdb': True, 'verbosity': 0}
+@py_assert0 = None, @py_assert2 = None
+@py_assert1 = <bound method CompanyDatabaseRouter.db_for_write of <orm.routers.CompanyDatabaseRouter object at 0x7f5bb499b410>>
+@py_assert4 = 'company_9_db', @py_assert6 = False
+@py_format8 = "'company_9_db' == 'company_007_db'\n~- company_007_db\n~?         ^^^\n~+ company_9_db\n~?         ^"
+@py_format10 = "assert 'company_9_db' == 'company_007_db'\n~- company_007_db\n~?         ^^^\n~+ company_9_db\n~?         ^"
+
+    def migrate(*args, **kwargs):
+        assert kwargs['database'] == target
+>       assert router.db_for_write(historical) == target
+E       AssertionError: assert 'company_9_db' == 'company_007_db'
+E         - company_007_db
+E         ?         ^^^
+E         + company_9_db
+E         ?         ^
+
+tests/unit/service/test_provision_company.py:70: AssertionError
+___________ test_invalid_company_database_is_refused_before_creation ___________
+
+    def test_invalid_company_database_is_refused_before_creation():
+        p_mgmt, p_create, p_alias, p_migrate = _patches()
+        with p_mgmt, p_create as create, p_alias as alias, p_migrate as migrate, \
+                mock.patch.object(db, 'database_exists', return_value=False):
+>           with pytest.raises(ValueError, match='company'):
+E           Failed: DID NOT RAISE <class 'ValueError'>
+
+tests/unit/service/test_provision_company.py:93: Failed
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-module-snapshot-20261022T202346/outputs/provision-context-before.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_7_db-False-None]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_7_db-False-9]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_7_db-True-None]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_7_db-True-9]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_007_db-False-None]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_007_db-False-9]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_007_db-True-None]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_007_db-True-9]
+FAILED tests/unit/service/test_provision_company.py::test_invalid_company_database_is_refused_before_creation
+9 failed, 2 passed, 1 warning in 0.48s

@@ -1,0 +1,16 @@
+{
+  "headRefOid": "61ea5e9f6c379a9808d71c2a5fd801fd150be0f0",
+  "state": "OPEN",
+  "statusCheckRollup": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-20T01:44:37Z",
+      "conclusion": "FAILURE",
+      "detailsUrl": "https://github.com/jcg-admin/kaupamex-api/actions/runs/39352967635/job/118401205862",
+      "name": "test",
+      "startedAt": "2026-10-20T01:21:27Z",
+      "status": "COMPLETED",
+      "workflowName": "api-tests"
+    }
+  ]
+}

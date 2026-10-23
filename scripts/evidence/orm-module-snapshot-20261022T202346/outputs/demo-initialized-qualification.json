@@ -1,0 +1,11 @@
+{
+  "registry_constructed": true,
+  "canonical_demo_failure_resolves": false,
+  "django_label_demo_failure_resolves": true,
+  "registered_names_after_initialization": [],
+  "elevation_context_activation_and_restoration": true,
+  "real_pg_savepoint_rollback": true,
+  "environment_get_method": false,
+  "remaining": "Real failure record persistence, long errors, optional todo resolution, selected-company alias/signal integration and whole demo stage remain not_verified",
+  "acceptance": "Dependency qualification only; no implementation or TASK acceptance"
+}

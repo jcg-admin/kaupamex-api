@@ -1,0 +1,27 @@
+{
+  "scope": "66 matches in20files from targeted four areas; not a whole-repository semantic census",
+  "classifications": {
+    "src/agents/agent_store.py": "Historical prose; separately document_root has active Docs fallback, store locator is generic",
+    "src/agents/definitions/workbench-instrumenter.md": "API-specific agent definition, not universal Provider prerequisite",
+    "src/agents/definitions/prueba-palancas.md": "Specific API tool/agent probe",
+    "src/agents/definitions/packaging-porter-low.md": "API packaging experiment definition",
+    "src/agents/definitions/packaging-porter-high.md": "API packaging experiment definition",
+    "src/agents/definitions/migration-porter.md": "Specific Odoo\u2192API procedure with Docs report step",
+    "src/task/task_ids.py": "Historical explanatory prose at matched line; native identities retain full session",
+    "src/task/snapshot-tasks.sh": "Executable report/registry target explicitly resolves docs; scoped board publication, do not run as neutral coordinator",
+    "src/task/refresh-board.sh": "Executable board rendering target explicitly resolves docs; store location separate",
+    "src/task/layer_signals.tsv": "Product vocabulary in default layer classifier; does not require checkout but not arbitrary Consumer vocabulary proof",
+    "src/task/agrupar_tareas_por_familia.py": "Domain-specific Odoo\u2192API task grouping and output, not generic dependency resolver",
+    "src/task/__init__.py": "Historical move provenance",
+    "src/session/user_wiring.py": "Old Docs fallback removed in current resolve_consumer; explicit/declared/context/error; projection control executed",
+    "src/session/task_pool.py": "Historical origin provenance in docstring",
+    "src/task/census_open_tasks.py": "Historical instrument provenance",
+    "src/session/sync_local_settings.py": "Frozen Docs template rewritten for explicit consumer; defaults still project historical Docs path. Pure control passed, no live hook writes",
+    "src/session/clone_bootstrap.py": "Comment about prior naming leakage",
+    "src/session/bg.sh": "Example in comment, not default execution target",
+    "src/session/job_runs.py": "Comment about unrelated API variable-name collision",
+    "src/session/job_ledger.py": "Historical adaptation and decision provenance"
+  },
+  "no_deletions_by_string_match": true,
+  "no_live_settings_or_boards_modified": true
+}

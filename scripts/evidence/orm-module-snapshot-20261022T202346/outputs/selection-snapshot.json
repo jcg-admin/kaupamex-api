@@ -1,0 +1,26 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "inputs": [
+    {
+      "id": "ModuleGraph.database_snapshot_binding",
+      "prompt": "Existing0382 selected-database readonly graph snapshot, installed provenance now nullable and separated",
+      "verify": "Real PostgreSQL alias/isolation, mode/pruning, snapshot identity/state/version and pinned differential controls",
+      "taskId": "TASK-API-0382",
+      "route": "local",
+      "mutates": true,
+      "owned": [
+        "src/modules/module_graph.py",
+        "tests/integration/base/test_module_graph_database.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "ModuleGraph.database_snapshot_binding"
+  ],
+  "dependency_evidence": "version-after.log3PASS; version-migration.log forward/reverse no invented backfill",
+  "acceptance": "Version persistence verified in working tree, not officially accepted/integrated. Same cohesive0382 change can consume it for verification; not an accepted TASK dependency fabricated to unblock unrelated work.",
+  "claims": "Full current ledger",
+  "objective_complete": false,
+  "official_state_changes": false
+}

@@ -1,0 +1,23 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+PASS: historical forward/reverse, runtime lookup absent, selected alias only; team=None
+PASS: historical forward/reverse, runtime lookup absent, selected alias only; team=True
+PASS: historical forward/reverse, runtime lookup absent, selected alias only; team=False
+PASS: historical forward/reverse, runtime lookup absent, selected alias only; team=missing
+PASS: historical forward/reverse, runtime lookup absent, selected alias only; team=wrong_model
+PASS: runtime router alias default
+PASS: runtime router alias company_77421_db
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

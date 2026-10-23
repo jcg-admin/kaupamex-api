@@ -1,0 +1,16 @@
+{
+  "interface": "activeClaims(readLedger(ledgerPathFor(root)))",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "active_claim_count": 49,
+  "relevant": [
+    {
+      "id": "c-844ca00b-019b-4297-a19f-39d1a7b4a6a0",
+      "op": "claim",
+      "path": "src/task/task_source.py",
+      "owner": "vm-r",
+      "branch": "feature/vm-r-impl",
+      "at": "2026-10-09T04:45:40.641Z",
+      "task": "TASK-THYROX-1072"
+    }
+  ]
+}

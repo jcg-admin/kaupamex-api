@@ -1,0 +1,39 @@
+{
+  "exit_code": 0,
+  "checks": {
+    "fixed_revision_preserved": true,
+    "full_module_git_blobs": 38,
+    "test_file_rows": 23,
+    "new_or_refined_records_with_14_elements": 18,
+    "previous_records_reconciled": 15,
+    "all_test_rows_resolve_descriptor": true,
+    "test_source_hashes_match": true,
+    "all_23_selected_test_symbols_resolve": true,
+    "native_workbench_exit_code": 0,
+    "rst_syntax_exit_code": 0,
+    "source_files_with_complete_read_and_matching_hash": 38,
+    "full_source_group_canonical_14_element_records": 66,
+    "unread_module_files": [],
+    "prose_vocabulary_corrected_exit_code": 0,
+    "rst_syntax_final_exit_code": 0
+  },
+  "not_evaluated": [
+    "Odoo native tests",
+    "Consumer conformance execution",
+    "Model qualification or inference",
+    "Functional integration",
+    "Exhaustive Consumer equivalence/acceptance for all source assertions and external helpers"
+  ],
+  "failed_attempts": [
+    {
+      "operation": "inspect Consumer web source under src/addons/web",
+      "exit_code": 2,
+      "resolution": "actual addon resolved at addons/web/models/models.py; no absence inferred"
+    },
+    {
+      "operation": "prose vocabulary",
+      "exit_code": 1,
+      "resolution": "replaced rejected term instalabilidad with la instalación; strict check repeated"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "inputs": [
+    {
+      "id": "TASK-API-0383.company_migration_context",
+      "prompt": "Fix measured missing/wrong company scope at existing provisioner migrate boundary, preserving fail-closed router and historical migrations",
+      "verify": "Real router under no/wrong outer scope; restoration on success/failure; full company migration replay",
+      "taskId": "TASK-API-0383",
+      "route": "local",
+      "owned": [
+        "src/service/db.py",
+        "tests/unit/service/test_provision_company.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-API-0383.company_migration_context"
+  ],
+  "cause": "Full provision_company_database failed in base0005 RunPython implicit domain write: CompanyContextRequired when no ambient company. Wrong ambient company would route that write to the wrong DB.",
+  "existing_mechanism": "orm.environments.company_scope ContextVar restores outer scope; do not weaken CompanyDatabaseRouter or patch historical migration history",
+  "official_state_changes": false,
+  "objective_complete": false
+}

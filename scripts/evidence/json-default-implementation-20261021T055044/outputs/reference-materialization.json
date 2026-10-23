@@ -1,0 +1,11 @@
+{
+  "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "verification": "git shallow filtered fetch + sparse checkout, detached pinned revision; initial audit excerpts unchanged",
+  "verified_source_files": [
+    "odoo/orm/fields_misc.py",
+    "odoo/addons/test_orm/models/test_orm.py",
+    "odoo/addons/test_orm/tests/test_json_field.py"
+  ],
+  "purpose": "Provide complete Odoo19Community source for existing gates; additional existing-alias manifests only for reference-name gate, not new behavioral authority",
+  "behavioral_authority_unchanged": true
+}

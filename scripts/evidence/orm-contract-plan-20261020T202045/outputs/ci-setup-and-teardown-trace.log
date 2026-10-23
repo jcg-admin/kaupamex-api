@@ -1,0 +1,68 @@
+--- self.sync_apps(connection ---
+2026-10-20T15:36:00.1185889Z     call_command(
+2026-10-20T15:36:00.1186546Z .venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+2026-10-20T15:36:00.1187386Z     return command.execute(*args, **defaults)
+2026-10-20T15:36:00.1188150Z .venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+2026-10-20T15:36:00.1188910Z     output = self.handle(*args, **options)
+2026-10-20T15:36:00.1189638Z .venv/lib/python3.12/site-packages/django/core/management/base.py:111: in wrapper
+2026-10-20T15:36:00.1190378Z     res = handle_func(*args, **kwargs)
+2026-10-20T15:36:00.1191160Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:319: in handle
+2026-10-20T15:36:00.1192113Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+2026-10-20T15:36:00.1193075Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+2026-10-20T15:36:00.1193952Z     with connection.schema_editor() as editor:
+2026-10-20T15:36:00.1194967Z .venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:170: in __exit__
+2026-10-20T15:36:00.1195743Z     self.execute(sql, None)
+2026-10-20T15:36:00.1196471Z .venv/lib/python3.12/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+2026-10-20T15:36:00.1197280Z     return super().execute(sql, params)
+2026-10-20T15:36:00.1198036Z .venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:205: in execute
+--- moderator_id ---
+2026-10-20T15:36:10.4109739Z  2026-10-20 15:11:47.680 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-20T15:36:10.4110600Z  2026-10-20 15:11:47.682 UTC [64] LOG:  database system was shut down at 2026-10-20 15:11:47 UTC
+2026-10-20T15:36:10.4111216Z  2026-10-20 15:11:47.686 UTC [1] LOG:  database system is ready to accept connections
+2026-10-20T15:36:10.4111783Z  2026-10-20 15:12:57.718 UTC [128] ERROR:  database "kaupamex_qa" already exists
+2026-10-20T15:36:10.4112325Z  2026-10-20 15:12:57.718 UTC [128] STATEMENT:  CREATE DATABASE "kaupamex_qa" 
+2026-10-20T15:36:10.4112877Z  2026-10-20 15:12:57.719 UTC [62] LOG:  checkpoint starting: immediate force wait
+2026-10-20T15:36:10.4114406Z  2026-10-20 15:12:57.727 UTC [62] LOG:  checkpoint complete: wrote 43 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.008 s; sync files=12, longest=0.001 s, average=0.001 s; distance=239 kB, estimate=239 kB; lsn=0/195B000, redo lsn=0/195AFC8
+2026-10-20T15:36:10.4116493Z  2026-10-20 15:12:58.270 UTC [130] ERROR:  relation "res_users" does not exist
+2026-10-20T15:36:10.4117529Z  2026-10-20 15:12:58.270 UTC [130] STATEMENT:  ALTER TABLE "test_orm_testormdiscussion" ADD CONSTRAINT "test_orm_testormdisc_moderator_id_85ba696f_fk_res_users" FOREIGN KEY ("moderator_id") REFERENCES "res_users" ("id") DEFERRABLE INITIALLY DEFERRED
+2026-10-20T15:36:10.4118548Z  2026-10-20 15:17:57.823 UTC [62] LOG:  checkpoint starting: time
+2026-10-20T15:36:10.4119656Z  2026-10-20 15:19:34.958 UTC [62] LOG:  checkpoint complete: wrote 972 buffers (5.9%); 1 WAL file(s) added, 0 removed, 0 recycled; write=97.122 s, sync=0.002 s, total=97.135 s; sync files=328, longest=0.001 s, average=0.001 s; distance=4550 kB, estimate=4550 kB; lsn=0/1DCC928, redo lsn=0/1DCC8F0
+2026-10-20T15:36:10.4121080Z  2026-10-20 15:26:29.817 UTC [130] ERROR:  current transaction is aborted, commands ignored until end of transaction block
+2026-10-20T15:36:10.4122007Z  2026-10-20 15:26:29.817 UTC [130] STATEMENT:  SELECT 1 AS "a" FROM "system_parameter" WHERE "system_parameter"."key" = 'database.uuid' LIMIT 1
+2026-10-20T15:36:10.4122888Z  2026-10-20 15:26:29.929 UTC [130] ERROR:  current transaction is aborted, commands ignored until end of transaction block
+2026-10-20T15:36:10.4123705Z  2026-10-20 15:26:29.929 UTC [130] STATEMENT:  SELECT 1 AS "a" FROM "system_parameter" WHERE "system_parameter"."key" = 'database.uuid' LIMIT 1
+2026-10-20T15:36:10.4124721Z  2026-10-20 15:26:30.039 UTC [130] ERROR:  current transaction is aborted, commands ignored until end of transaction block
+--- tests/conftest.py:428 ---
+2026-10-20T15:36:05.9966765Z _ ERROR at teardown of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+2026-10-20T15:36:05.9966975Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+2026-10-20T15:36:05.9967097Z     return self.cursor.execute(sql, params)
+2026-10-20T15:36:05.9967279Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T15:36:05.9967376Z     raise ex.with_traceback(None)
+2026-10-20T15:36:05.9967764Z E   psycopg.errors.InFailedSqlTransaction: current transaction is aborted, commands ignored until end of transaction block
+2026-10-20T15:36:05.9967775Z 
+2026-10-20T15:36:05.9968020Z The above exception was the direct cause of the following exception:
+2026-10-20T15:36:05.9968168Z tests/conftest.py:428: in pytest_runtest_teardown
+2026-10-20T15:36:05.9968257Z     seed()
+2026-10-20T15:36:05.9968415Z src/addons/base/models/ir_config_parameter.py:252: in init
+2026-10-20T15:36:05.9968582Z     exists = cls.objects.using(using).filter(key=key).exists()
+2026-10-20T15:36:05.9968791Z .venv/lib/python3.12/site-packages/django/db/models/query.py:1337: in exists
+2026-10-20T15:36:05.9968923Z     return self.query.has_results(using=self.db)
+2026-10-20T15:36:05.9969151Z .venv/lib/python3.12/site-packages/django/db/models/sql/query.py:686: in has_results
+2026-10-20T15:36:05.9969262Z     return compiler.has_results()
+--- current transaction is aborted ---
+2026-10-20T15:36:05.9966105Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T15:36:05.9966209Z     raise ex.with_traceback(None)
+2026-10-20T15:36:05.9966411Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T15:36:05.9966765Z _ ERROR at teardown of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+2026-10-20T15:36:05.9966975Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:105: in _execute
+2026-10-20T15:36:05.9967097Z     return self.cursor.execute(sql, params)
+2026-10-20T15:36:05.9967279Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T15:36:05.9967376Z     raise ex.with_traceback(None)
+2026-10-20T15:36:05.9967764Z E   psycopg.errors.InFailedSqlTransaction: current transaction is aborted, commands ignored until end of transaction block
+2026-10-20T15:36:05.9967775Z 
+2026-10-20T15:36:05.9968020Z The above exception was the direct cause of the following exception:
+2026-10-20T15:36:05.9968168Z tests/conftest.py:428: in pytest_runtest_teardown
+2026-10-20T15:36:05.9968257Z     seed()
+2026-10-20T15:36:05.9968415Z src/addons/base/models/ir_config_parameter.py:252: in init
+2026-10-20T15:36:05.9968582Z     exists = cls.objects.using(using).filter(key=key).exists()
+2026-10-20T15:36:05.9968791Z .venv/lib/python3.12/site-packages/django/db/models/query.py:1337: in exists

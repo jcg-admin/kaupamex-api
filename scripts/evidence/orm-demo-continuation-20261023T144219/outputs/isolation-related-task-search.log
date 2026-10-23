@@ -1,0 +1,109 @@
+#443  completed    [api]  DECIDIDA (DEC-AISL-05) — no se reparte esquema; toda app migra a toda base
+    sesion:      168b0fdf-bfe4-590b-b6c0-b6be124c124a
+    origen:      hook-post-tool
+    creada:      2026-08-18T03:55:58  actualizada: 2026-08-21T23:48:43
+    DECIDIDA por el ejecutor 2026-08-21: "queremos que nuestra api sea igual a
+    la referencia, en donde la referencia no reparte esquema entre bases. Cada
+    base es una instalación completa: su propio res_company, su propio
+    res_users, su propio ir_module_module".  Registrada como DEC-AISL-05 en
+    decisiones-implementar-aislamiento-multi-db-per-company. Cierra el punto
+    "Abierta (capa-3 de 091)" de ADR-021.  En una línea: toda app de dominio
+    migra a TODA base; los tres base* salen de MULTIDB_CONTROL_PLANE_APPS;
+    allow_migrate deja de partir el dominio y pasa a consultar el roster; las 79
+    FK a res_users quedan intra-base sin cortar ninguna.  Queda DESCARTADA la
+    opción 1 de H-API-646 (core sólo en default, dominio sólo en
+    company_<N>_db), que además se justificaba atribuyendo el reparto a la
+    referencia — falso, ver H-API-783.  Implementación: #738. Granularidad de
+    instalación por base (ir_module_module.state vs INSTALLED_APPS, H-API-784):
+    #737.  Medición que la alimentó: analisis-multidb-en-la-referencia (odoo19c
+    @ odoo-tools@622ddc2a).
+
+#575  pending      [api]  makemigrations escribe fuera de su app_label — el write-set disjunto no basta
+    sesion:      168b0fdf-bfe4-590b-b6c0-b6be124c124a
+    origen:      hook-stop
+    creada:      2026-08-20T05:31:41  actualizada: 2026-08-21T10:03:52
+    Origen: tanda Opus del 2026-08-19, reportado por el agente de website_sale
+    (#568/#569) y verificado por el orquestador. `makemigrations website_sale`
+    escribió `addons/website/migrations/0009_websiteviewinfo.py` — el
+    deliverable del agente de #565, que seguía en vuelo. El autodetector de
+    Django NO se limita al app_label que recibe: detecta todo modelo nuevo del
+    proyecto. El agente lo detectó por mtime, lo tomó por suyo y lo borró;
+    verificado después: el modelo `WebsiteViewInfo` seguía en
+    `addons/website/models/ir_ui_view.py:178` y su migración ya no estaba en
+    disco. Segundo efecto medido: el autodetector ata `dependencies` a
+    migraciones aún no publicadas de otros addons (propuso
+    `("website","0009_websiteviewinfo")` para la 0003 de website_sale), así que
+    un pase paralelo puede quedar atado a un nombre que todavía puede cambiar.
+    `bash-background-tasks.md` fija el aislamiento por write-set y eso NO basta:
+    la regla asume que un agente sólo escribe donde se le dijo, y aquí la
+    HERRAMIENTA escribe fuera. Desenlaces a evaluar: (a) prohibir
+    `makemigrations` a los subagentes de una tanda paralela y dejarlo al
+    orquestador en la consolidación, como ya se hizo con pytest por la base QA
+    compartida; (b) exigir `--dry-run` a los agentes y que sólo el orquestador
+    materialice; (c) un gate que compare el conjunto de archivos tocados contra
+    el write-set declarado. Y la cláusula que falta en cualquier caso: un agente
+    NUNCA borra un archivo fuera de su write-set — lo reporta.
+
+#626  completed    [api]  Los 3 motivos maestros de hr.departure.reason no se siembran (H-API-755)
+    sesion:      168b0fdf-bfe4-590b-b6c0-b6be124c124a
+    origen:      hook-stop
+    creada:      2026-08-20T08:24:50  actualizada: 2026-08-21T10:03:52
+    `tests/unit/hr/test_hr_departure_reason.py::TestHrDepartureReasonDefaultReas
+    onsSeed` falla en dos casos con `StopIteration` en `next(iter(motivos))`: la
+    siembra no deja ningún motivo maestro. Verificado PRE-EXISTENTE — falla
+    igual con el `testing.py` de HEAD, así que no lo causa el cambio de
+    `disable_existing_loggers` (#617). Falla también en aislamiento, así que no
+    es orden de tests. Diagnosticar si la siembra es una data-migration que no
+    corre bajo `--reuse-db`, o si el modelo perdió su `_is_master`.
+
+#736  pending      [api]  Cablear la resolución de base POR PETICIÓN: db_list_for_host y db_monodb tienen 0 consumidores
+    sesion:      168b0fdf-bfe4-590b-b6c0-b6be124c124a
+    origen:      hook-post-tool
+    creada:      2026-08-21T23:07:59  actualizada: 2026-08-21T23:07:59
+    Origen: H-API-781, y la corrección del ejecutor 2026-08-21 sobre la
+    divergencia 1 de addons/web/controllers/session.py.  El mecanismo host→base
+    está portado fielmente y probado: service.db.db_filter (==
+    odoo/http.py::db_filter, con %h/%d, quita :puerto y www.), db_list_for_host
+    (== http.db_list) y db_monodb, con tests en
+    tests/unit/service/test_db_resolution.py. La iniciativa implementar-
+    aislamiento-multi-db-per-company está :estado: en-ejecucion y su análisis lo
+    declara IMPLEMENTADO.  Lo que NO está: nadie lo llama en el camino de la
+    petición. Medido 2026-08-21 sobre src/ y addons/, excluyendo
+    src/service/db.py y tests: db_list_for_host → 0 consumidores, db_monodb → 0,
+    db_filter → 2 (y las dos son prosa de docstring, no llamadas). La base la
+    elige hoy CompanyDatabaseRouter por app/modelo (MULTIDB_CONTROL_PLANE_APPS),
+    no el host de la petición.  Consecuencia concreta: /web/session/* no acepta
+    el parámetro db de la referencia, y esa omisión se documentó como "aquí la
+    base es una" — falso: el árbol declara DATABASE_ROUTERS,
+    install_company_aliases, company_create, company_migrate_all y un cron que
+    itera list_company_db_names.  Entregable: decidir y cablear quién resuelve
+    la base por petición (middleware sobre el host vs parámetro explícito vs
+    sesión), y luego reponer o declarar con fundamento el parámetro db de
+    session.py.
+
+#738  pending      [api]  Implementar DEC-AISL-05: toda app de dominio migra a toda base
+    sesion:      168b0fdf-bfe4-590b-b6c0-b6be124c124a
+    origen:      hook-post-tool
+    creada:      2026-08-21T23:47:09  actualizada: 2026-10-22T02:50:17.257Z
+    Decisión del ejecutor 2026-08-21 (DEC-AISL-05): "queremos que nuestra api
+    sea igual a la referencia … cada base es una instalación completa: su propio
+    res_company, su propio res_users, su propio ir_module_module". Cierra #443.
+    Piezas medidas que cambian:  1. `src/config/settings/base.py:328` —
+    MULTIDB_CONTROL_PLANE_APPS pierde los tres base*: `base`,
+    `base_address_extended`, `base_geolocalize`. Queda ('sessions',
+    'contenttypes'), que es el default del router (routers.py:57-58). 2.
+    `src/orm/routers.py:149-153` — allow_migrate deja de partir el dominio, Y
+    consulta el roster como hace _target (hoy fija `db == DEFAULT_DB_ALIAS or
+    db.startswith('company_')` sin consultarlo; H-API-783). 3. Las 79 FK de
+    dominio a res_users quedan intra-base — no se corta ninguna. 4. Reactivar
+    los 3 skip que citan H-API-262. 5. Verificar migrate ×N sobre una
+    company_<N>_db real (hoy MULTIDB_COMPANY_DATABASES está en default='' y no
+    hay alias company_* en settings.DATABASES).  Alcance del cambio: 21 apps
+    rompían bajo el reparto actual (22 mencionan base.rescompany en migraciones,
+    menos `base`), sobre 120 apps addons.* en INSTALLED_APPS.  NO incluye la
+    granularidad de instalación por base (ir_module_module.state) — eso es #737.
+    Ver decisiones-implementar-aislamiento-multi-db-per-company (DEC-AISL-05),
+    analisis-multidb-en-la-referencia, h-api-783, h-api-784. Toca ADR-021
+    (cierra su punto "Abierta (capa-3 de 091)").
+
+Total: 5 (alcance medido: 2638 tarea(s) de 11 sesion/es en /workspace/thyrox/agent-results/agent_store.sqlite3)

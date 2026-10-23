@@ -1,0 +1,6 @@
+{
+  "generic_consumer_canonical_rst_intent": "PASS",
+  "api_docs_layout": "REJECTED_BY_EXISTING_CONTRACT",
+  "reason": "el objetivo no est\u00e1 bajo source/gestion/pm/<ra\u00edz>/iniciativas/completar-raiz-orm/: docs/analisis-boundary.rst",
+  "limit": "Only pure intent validation; no publisher, worktree, commit/push or artifact aggregation executed"
+}

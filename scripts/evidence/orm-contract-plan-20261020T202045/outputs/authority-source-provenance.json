@@ -1,0 +1,51 @@
+[
+  {
+    "repository": "kaupamex-docs",
+    "revision": "afae6a943a8cd6ff940cc94275df8ba8cfa5bf4e",
+    "path": "source/gestion/pm/api/iniciativas/completar-raiz-orm/index.rst",
+    "sha256": "d5931e2aa5e1a9f0d5aff617f82d2d03ba1ade19c2cd59bade059a548b477001",
+    "git_blob": "4ad3d912f3e8dbffb6e10a7e8af1d10347b2f247"
+  },
+  {
+    "repository": "kaupamex-docs",
+    "revision": "afae6a943a8cd6ff940cc94275df8ba8cfa5bf4e",
+    "path": "source/gestion/pm/api/iniciativas/completar-raiz-orm/tareas-completar-raiz-orm.rst",
+    "sha256": "cde2e542099006d5392bcae811f0448ccef7afa4b695fb9976166f20cb150813",
+    "git_blob": "35da1f780f7da8b355d5c6ef310f7cce4607cd06"
+  },
+  {
+    "repository": "kaupamex-docs",
+    "revision": "afae6a943a8cd6ff940cc94275df8ba8cfa5bf4e",
+    "path": "source/gestion/pm/api/iniciativas/completar-raiz-orm/progreso/index.rst",
+    "sha256": "671efbd789eeb928a6006bbe1179b18a30d103e6ba51ca27e0fb4ea7387bc9a1",
+    "git_blob": "676ccfcbd61f1c2f54fc2bcd655447c6b0f6bb4f"
+  },
+  {
+    "repository": "kaupamex-docs",
+    "revision": "afae6a943a8cd6ff940cc94275df8ba8cfa5bf4e",
+    "path": "source/gestion/pm/api/iniciativas/completar-raiz-orm/alcance-completar-raiz-orm.rst",
+    "sha256": "ca847b79d4f4e45e00f3512578bc43e2bc471b05e3f5ae218ed37cb5519f63ac",
+    "git_blob": "2555b02ee760ee1a9377c9cc5f88c4955dabf7c0"
+  },
+  {
+    "repository": "kaupamex-docs",
+    "revision": "afae6a943a8cd6ff940cc94275df8ba8cfa5bf4e",
+    "path": "source/gestion/pm/api/iniciativas/completar-raiz-orm/analisis-contrato-de-basemodel-trae-o-construye.rst",
+    "sha256": "f2e45899c8760a2907df87e67a4c76b3107d20661b032a4f8a89960a98cdcb91",
+    "git_blob": "2c4a99bd27cd0356277766b896303c0a1f22814b"
+  },
+  {
+    "repository": "kaupamex-api",
+    "revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+    "path": "tests/unit/orm/test_base_model_recordset.py",
+    "sha256": "7a1bcd537fcf99cec2c619cf1c83c81d3cbc266eb8f20e0b14fc00e1adecf51b",
+    "git_blob": "80e10c292dcdf0216d86598402ae2c249ddc06b2"
+  },
+  {
+    "repository": "kaupamex-api",
+    "revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+    "path": "scripts/reference_flow.py",
+    "sha256": "865c13f200cd95207f2be22b143fa332260423426de4de580b422f4ac6f7110c",
+    "git_blob": "0cfa0b6b81160d339c8982ce434b7e231a3702b7"
+  }
+]

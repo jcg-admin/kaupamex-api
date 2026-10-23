@@ -1,0 +1,18 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Negative control in memory only: diagnostic
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_return_without_assignment_raises_without_recursive_label _________
+tests/unit/orm/test_res_groups_compute_contract.py:69: in test_return_without_assignment_raises_without_recursive_label
+    group.full_name
+<single descriptor mutation>:165: in __get__
+    ???
+src/addons/base/models/res_groups.py:259: in __str__
+    return self.full_name
+<single descriptor mutation>:165: in __get__
+    ???
+E   RecursionError: maximum recursion depth exceeded
+!!! Recursion detected (same locals & position)
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_return_without_assignment_raises_without_recursive_label
+1 failed in 0.14s

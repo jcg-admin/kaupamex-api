@@ -1,0 +1,73 @@
+{
+  "source_revision": "e9211d51",
+  "runs": [
+    {
+      "operation": "Catalogue baseline",
+      "exit_code": 1,
+      "result": "5 failed, 1 passed",
+      "log": "catalog-baseline.log"
+    },
+    {
+      "operation": "Fast regression invocation without native dependency PATH",
+      "exit_code": 1,
+      "result": "BLOCKED before tests: pg_isready missing",
+      "log": "Native terminal activity; invocation corrected, no dependency/source changes"
+    },
+    {
+      "operation": "Fast invocation with import-only settings adapter",
+      "exit_code": 1,
+      "result": "29 fixture errors from synthetic DB credentials; configuration misuse, not a functional verdict",
+      "log": "routing-graph-regression.log"
+    },
+    {
+      "operation": "First state/catalogue cohort",
+      "exit_code": 1,
+      "result": "84 passed, 1 failed; historical global-import fixture contradicted database-owned state",
+      "log": "historical-fixture-verification-batch.log"
+    },
+    {
+      "operation": "Final scoped cohort",
+      "exit_code": 0,
+      "result": "86 passed in469.78s; final alias refinements independently checked by final two-DB probe",
+      "log": "verification-batch.log / module-state.junit.xml"
+    },
+    {
+      "operation": "Final two-DB requests/dependency/exclusion probe",
+      "exit_code": 0,
+      "result": "PASS bounded states, concurrent requests, rollback and alias behavior; not executed installation",
+      "log": "database-module-states.log"
+    },
+    {
+      "operation": "Fresh process without full required/auto closure",
+      "exit_code": 1,
+      "result": "FAIL model checks E300/E307; imported classes alone not acceptance",
+      "log": "registry-process-checks.log"
+    },
+    {
+      "operation": "Fresh process with native auto-install closure",
+      "exit_code": 0,
+      "result": "PASS model checks; production routing/reloading not qualified",
+      "log": "registry-process-autoclosure.log"
+    },
+    {
+      "operation": "Compute boundary diagnosis",
+      "exit_code": 0,
+      "result": "Both generic and product reads FAIL as expected; assignment controls PASS; probe succeeded at distinguishing cause",
+      "log": "compute-boundary.log"
+    },
+    {
+      "operation": "Docs language verifier tests",
+      "exit_code": 0,
+      "result": "6 passed; Sphinx NOT_EVALUATED",
+      "log": "Native terminal activity"
+    },
+    {
+      "operation": "Final make ci-verify",
+      "exit_code": 2,
+      "pytest_exit_code": 1,
+      "result": "FAIL:77 passed,1 skipped,1 error in487.20s; ProductProduct.display_name failed assignment",
+      "log": "verification-batch.log / ci-final.junit.xml",
+      "regression_classification": "Same first failure observed on d25042fd before these two commits; generic compute diagnosis separate; no global acceptance"
+    }
+  ]
+}

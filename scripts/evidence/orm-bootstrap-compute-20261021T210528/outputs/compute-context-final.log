@@ -1,0 +1,32 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+........FF.............................................................. [ 57%]
+......................................................                   [100%]
+=================================== FAILURES ===================================
+_____________ test_context_buckets_do_not_reuse_the_instance_label _____________
+tests/unit/orm/test_res_groups_compute_contract.py:77: in test_context_buckets_do_not_reuse_the_instance_label
+    assert group.full_name == 'Operations'
+E   AssertionError: assert 'Admin / Operations' == 'Operations'
+E     - Operations
+E     + Admin / Operations
+__________ test_cache_key_uses_dependencies_derived_from_the_compute ___________
+tests/unit/orm/test_res_groups_compute_contract.py:83: in test_cache_key_uses_dependencies_derived_from_the_compute
+    assert env().cache_key(field) == (None,)
+E   assert () == (None,)
+E     Right contains one more item: None
+E     Use -v to get more diff
+=============================== warnings summary ===============================
+tests/unit/orm/test_res_groups_compute_contract.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+  /workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_res_groups_compute_contract.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+  /workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_context_buckets_do_not_reuse_the_instance_label
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_cache_key_uses_dependencies_derived_from_the_compute
+2 failed, 124 passed, 30 warnings in 1.02s

@@ -76,7 +76,7 @@ _COMPANY_ALIAS_RE = re.compile(r'^company_\d+_db$')
 # ``service.db.list_company_db_names``), así que ``orm`` no registra ninguna
 # entidad y no es INSTALLED_APP.
 _CONTROL_PLANE_APPS = frozenset(getattr(
-    settings, 'MULTIDB_CONTROL_PLANE_APPS', ('sessions', 'contenttypes')))
+    settings, 'MULTIDB_CONTROL_PLANE_APPS', ('sessions',)))
 _CONTROL_PLANE_MODELS = frozenset(m.lower() for m in getattr(
     settings, 'MULTIDB_CONTROL_PLANE_MODELS', ()))
 
@@ -161,8 +161,8 @@ class CompanyDatabaseRouter:
         # Sólo relaciones dentro del mismo alias resuelto (sin joins cross-DB,
         # que Django no soporta). ``None`` = sin opinión -> Django compara
         # ``obj._state.db`` (db/utils.py:244-256).
-        db1 = self._target(obj1)
-        db2 = self._target(obj2)
+        db1 = getattr(getattr(obj1, '_state', None), 'db', None) or self._target(obj1)
+        db2 = getattr(getattr(obj2, '_state', None), 'db', None) or self._target(obj2)
         if db1 is None or db2 is None:
             return None
         return db1 == db2
@@ -172,4 +172,5 @@ class CompanyDatabaseRouter:
             # El plano de control (registro L0, sesiones) sólo existe en 'default'.
             return db == DEFAULT_DB_ALIAS
         # Dominio: migra a 'default' (degeneración N=1) y a cualquier company_<N>_db.
-        return db == DEFAULT_DB_ALIAS or db.startswith('company_')
+        return db == DEFAULT_DB_ALIAS or bool(
+            _COMPANY_ALIAS_RE.fullmatch(db) and db in settings.DATABASES)

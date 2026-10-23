@@ -1,0 +1,11 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/compute_negative.py", line 10, in <module>
+    from orm import fields as field_module, environments, registry
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 92, in <module>
+    from orm.fields_properties import (                            # noqa: F401
+  File "/workspace/kaupamex-api/src/orm/fields_properties.py", line 47, in <module>
+    import orm.domains as _domains
+  File "/workspace/kaupamex-api/src/orm/domains.py", line 107, in <module>
+    from orm.fields import (
+ImportError: cannot import name 'NEGATIVE_CONDITION_OPERATORS' from partially initialized module 'orm.fields' (most likely due to a circular import) (/workspace/kaupamex-api/src/orm/fields.py)

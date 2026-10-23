@@ -6,8 +6,8 @@ separa primaria/réplica (orm/registry.py:244-249, 1165-1186). En Django la
 conexión por base es ``connections[alias]`` y ese split lectura/escritura son
 ``db_for_read``/``db_for_write``. Lógica pura del router — sin DB.
 
-El plano de control (lo que vive en ``default``) es infraestructura de Django
-(``sessions``, ``contenttypes``), no un modelo aplicativo: ``orm`` no registra
+El plano de control mantiene sesiones en ``default``; los metadatos de tipo
+siguen al dominio local por sus FK. ``orm`` no registra
 ninguna entidad. La lista de bases de empresa se descubre de
 ``information_schema`` (== ``list_dbs`` de Odoo), no de una tabla.
 """
@@ -15,7 +15,7 @@ import pytest
 from django.test import override_settings
 
 from orm.environments import company_scope, set_current_company
-from orm.routers import CompanyDatabaseRouter, company_db_alias
+from orm.routers import CompanyContextRequired, CompanyDatabaseRouter, company_db_alias
 
 # Routing DB-per-company (N>1) sólo activa cuando la base de la empresa está
 # configurada en ``settings.DATABASES``. Bajo N=1 (settings de testing, sin
@@ -92,19 +92,35 @@ def test_domain_with_active_company_but_unprovisioned_db_degenerates_n1():
         assert router.db_for_write(DOMAIN) is None
 
 
-def test_control_plane_infra_goes_to_default():
+@override_settings(DATABASES=_WITH_COMPANY_5)
+def test_sessions_stay_central_and_metadata_follows_company():
     with company_scope(5):
         assert router.db_for_read(SESSION) == 'default'
-        assert router.db_for_write(CONTENTTYPE) == 'default'
+        assert router.db_for_read(CONTENTTYPE) == 'company_5_db'
+        assert router.db_for_write(CONTENTTYPE) == 'company_5_db'
 
 
-def test_allow_migrate_keeps_control_plane_only_in_default():
+@override_settings(DATABASES=_WITH_COMPANY_5)
+def test_allow_migrate_keeps_sessions_central_and_metadata_local():
     assert router.allow_migrate('default', 'sessions', 'session') is True
     assert router.allow_migrate('company_5_db', 'sessions', 'session') is False
     assert router.allow_migrate('default', 'contenttypes', 'contenttype') is True
-    assert router.allow_migrate('company_5_db', 'contenttypes', 'contenttype') is False
+    assert router.allow_migrate('company_5_db', 'contenttypes', 'contenttype') is True
+    assert router.allow_migrate('company_6_db', 'contenttypes', 'contenttype') is False
 
 
+@override_settings(DATABASES=_WITH_COMPANY_5)
+def test_metadata_without_company_fails_closed_under_multiple_databases():
+    with company_scope(None), pytest.raises(CompanyContextRequired):
+        router.db_for_read(CONTENTTYPE)
+
+
+def test_metadata_falls_back_to_default_without_company_databases():
+    with company_scope(None):
+        assert router.db_for_read(CONTENTTYPE) is None
+
+
+@override_settings(DATABASES=_WITH_COMPANY_5)
 def test_allow_migrate_domain_in_company_db_and_default_for_n1():
     assert router.allow_migrate('company_5_db', 'catalogue', 'product') is True
     # Degeneración N=1: el dominio también puede vivir en 'default'.

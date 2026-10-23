@@ -1,0 +1,20 @@
+{
+  "comparisons": [
+    {
+      "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/tools/template_inheritance.py",
+      "exit": 0,
+      "git_blob": "99cd8c805a5998cebe49b733fd161e6b9eabf960",
+      "sha256": "dd90d5f1d9110eac4a8374f526872ac36248c490b514a87b3810037d42fb1734"
+    },
+    {
+      "revision": "622ddc2aa5",
+      "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/tools/template_inheritance.py",
+      "exit": 0,
+      "git_blob": "99cd8c805a5998cebe49b733fd161e6b9eabf960",
+      "sha256": "dd90d5f1d9110eac4a8374f526872ac36248c490b514a87b3810037d42fb1734"
+    }
+  ],
+  "same_blob": true,
+  "population_still_partial": true
+}

@@ -1,0 +1,67 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test_django_native_clone_is_positive_control (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_django_native_clone_is_positive_control) ... ok
+test_foreign_key_preserves_target_policy_and_fresh_relation (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_foreign_key_preserves_target_policy_and_fresh_relation) ... ERROR
+test_last_foreign_key_target_wins (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_last_foreign_key_target_wins) ... ERROR
+test_many_to_many_preserves_constructor_arguments (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_many_to_many_preserves_constructor_arguments) ... ERROR
+test_real_model_mro_is_reachable_before_nonstored_removal (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_real_model_mro_is_reachable_before_nonstored_removal) ... ERROR
+test_scalar_declared_overrides_remain_intact (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_scalar_declared_overrides_remain_intact) ... ok
+
+======================================================================
+ERROR: test_foreign_key_preserves_target_policy_and_fresh_relation (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_foreign_key_preserves_target_policy_and_fresh_relation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_relational_field_reconstruction.py", line 16, in test_foreign_key_preserves_target_policy_and_fresh_relation
+    merged = _merge_field_definitions((base, leaf))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<original merge>", line 1843, in _merge_field_definitions
+TypeError: ForeignKey.__init__() missing 2 required positional arguments: 'to' and 'on_delete'
+
+======================================================================
+ERROR: test_last_foreign_key_target_wins (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_last_foreign_key_target_wins)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_relational_field_reconstruction.py", line 28, in test_last_foreign_key_target_wins
+    merged = _merge_field_definitions((base, leaf))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<original merge>", line 1843, in _merge_field_definitions
+TypeError: ForeignKey.__init__() missing 2 required positional arguments: 'to' and 'on_delete'
+
+======================================================================
+ERROR: test_many_to_many_preserves_constructor_arguments (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_many_to_many_preserves_constructor_arguments)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_relational_field_reconstruction.py", line 36, in test_many_to_many_preserves_constructor_arguments
+    merged = _merge_field_definitions((base, leaf))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<original merge>", line 1843, in _merge_field_definitions
+TypeError: ManyToManyField.__init__() missing 1 required positional argument: 'to'
+
+======================================================================
+ERROR: test_real_model_mro_is_reachable_before_nonstored_removal (test_relational_field_reconstruction.RelationalFieldReconstructionTests.test_real_model_mro_is_reachable_before_nonstored_removal)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/test/utils.py", line 458, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/orm/test_relational_field_reconstruction.py", line 60, in test_real_model_mro_is_reachable_before_nonstored_removal
+    class Child(PlainMixin, models.Model):
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py", line 213, in __new__
+    new_class.add_to_class(obj_name, obj)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py", line 393, in add_to_class
+    value.contribute_to_class(cls, name)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/related.py", line 923, in contribute_to_class
+    super().contribute_to_class(cls, name, private_only=private_only, **kwargs)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 1999, in _related_contribute_to_class
+    _DJANGO_RELATED_CONTRIBUTE(
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/related.py", line 368, in contribute_to_class
+    super().contribute_to_class(cls, name, private_only=private_only, **kwargs)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 1874, in _field_contribute_to_class
+    _merge_field_definitions(chain).contribute_to_class(
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<original merge>", line 1843, in _merge_field_definitions
+TypeError: ForeignKey.__init__() missing 2 required positional arguments: 'to' and 'on_delete'
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.005s
+
+FAILED (errors=4)

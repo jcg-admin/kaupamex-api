@@ -1,0 +1,29 @@
+{
+  "scope": "Native Django contenttypes migrations only, no addon lifecycle acceptance.",
+  "initial_columns": [
+    "id",
+    "name",
+    "app_label",
+    "model"
+  ],
+  "upgraded_columns": [
+    "id",
+    "app_label",
+    "model"
+  ],
+  "data_after_upgrade": [
+    1,
+    "module_probe",
+    "roundtrip"
+  ],
+  "downgraded_columns": [
+    "id",
+    "app_label",
+    "model",
+    "name"
+  ],
+  "table_after_unapply": null,
+  "applied_migrations_after_unapply": 0,
+  "python_model_remains_registered": true,
+  "status": "PASS for native migration capabilities; NOT_EVALUATED addon install/upgrade/uninstall"
+}

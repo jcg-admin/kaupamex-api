@@ -1,0 +1,13 @@
+[
+  {
+    "citation": "TASK-API-0382",
+    "native_identity": {
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task_id": "737"
+    },
+    "official_status": "pending",
+    "official_owner": "codex-module-lifecycle",
+    "next_action": "Complete effective registry and schema/data/hooks loader using existing mechanisms. Global automation signals still lose explicit DB alias on metadata writes; prototype isolated process composition is not production integration. TASK-API-0173 identity checked; no arbitrary relocation of capability identities or historical migration rewrite.",
+    "verification_and_acceptance": "scripts/evidence/orm-module-state-20261022T032053/outputs: baseline 5FAIL/1PASS; old report fixture 84PASS/1FAIL retained and corrected with explicit installed-state fixture plus negative case; definitive rerun and ci-verify recorded separately. No whole TASK acceptance."
+  }
+]

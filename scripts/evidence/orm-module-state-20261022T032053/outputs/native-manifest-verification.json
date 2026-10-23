@@ -1,0 +1,18 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "session.job_runs.settle(run,2), missing_keys(run), read_manifest(run)",
+  "exit_code": 0,
+  "missing_keys": [],
+  "manifest": {
+    "instrument": "Native Django/PostgreSQL mechanisms and pinned Odoo comparison",
+    "started_at": "2026-10-22T03:20:53+00:00",
+    "question": "Preserve database-owned module states and implement missing module lifecycle contracts",
+    "metric": "Behavioral obligations with negative controls",
+    "blind_to": "Whole ORM acceptance and unexecuted addon contracts",
+    "destination": "Existing completar-raiz-orm authority",
+    "exit_code": 2,
+    "finished_at": "2026-10-22T03:55:34+00:00",
+    "duration_seconds": 2081.400337
+  },
+  "scope": "Job evidence completeness only; functional result remains exit2"
+}

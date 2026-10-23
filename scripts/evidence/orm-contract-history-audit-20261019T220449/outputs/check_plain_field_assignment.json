@@ -1,0 +1,47 @@
+{
+  "contract": "Field.__set__ dispatches protected plain-field assignment to write",
+  "reference_source": "odoo19c: odoo/orm/fields.py",
+  "reference_lines": [
+    1807,
+    1843
+  ],
+  "reference_calls": [
+    {
+      "ids": [
+        7,
+        18
+      ],
+      "value": "new"
+    }
+  ],
+  "consumer_calls": [],
+  "positive_witness_control": [
+    {
+      "ids": [
+        7,
+        18
+      ],
+      "value": "control"
+    }
+  ],
+  "consumer_field_cache": {
+    "7": "old-7",
+    "18": "old-18"
+  },
+  "consumer_instance_attribute": "new",
+  "descriptor": "FieldDescriptor",
+  "database_attempts": [],
+  "scope": "Protected branch only, actual original reference body; no persistent write or full ORM acceptance",
+  "contract_matches": false,
+  "environment_lookup": {
+    "reference_ids": [],
+    "reference_is_class": false,
+    "consumer_is_class": true,
+    "consumer_name": "ResPartner",
+    "reference_lines": [
+      105,
+      107
+    ],
+    "same_representation": false
+  }
+}

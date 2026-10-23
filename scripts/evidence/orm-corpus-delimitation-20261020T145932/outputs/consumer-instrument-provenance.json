@@ -1,0 +1,22 @@
+{
+  "scripts/reference_roots.py": {
+    "sha256": "5539a913d52bc4ea8b9987100c41f59f1b7694ee9812067271e0251ec09cf62a",
+    "git_blob": "6d7063440e7b4de11941dc02422f2fbff6889996"
+  },
+  "scripts/reference_flow.py": {
+    "sha256": "865c13f200cd95207f2be22b143fa332260423426de4de580b422f4ac6f7110c",
+    "git_blob": "0cfa0b6b81160d339c8982ce434b7e231a3702b7"
+  },
+  "scripts/counterpart_body.py": {
+    "sha256": "ef15887bdb7fddc8fd411b73297c1c7218213a4bd310458ad08835d5f1cdf095",
+    "git_blob": "94d42adc40707930f0cce08e541d94a1742d57ca"
+  },
+  "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/manifest.json": {
+    "sha256": "b43a94aee79f1516dcc86739b9e5ef425605cc985b5f01055aa758f17c210f37",
+    "git_blob": "fbdc24aa4d8dcd0097644f5ed667876e690afbc2"
+  },
+  "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/inventory_reference_orm.py": {
+    "sha256": "720ffca78a67bd1611d0f978c565447794215725ffb6fe84afcf35f00593d0f6",
+    "git_blob": "436006941b459a59702286d6d287426b99715f82"
+  }
+}

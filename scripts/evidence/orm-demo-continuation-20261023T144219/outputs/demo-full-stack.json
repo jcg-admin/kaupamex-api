@@ -1,0 +1,14 @@
+{
+  "real_migrated_postgresql": true,
+  "real_files_and_converter": true,
+  "real_todo_xmlid_and_failure_models": true,
+  "automation_signals_not_mocked": true,
+  "failed_demo_data_rolled_back": true,
+  "success_data_retained_by_caller_transaction": true,
+  "error_length": 19117,
+  "error_sha256": "09ad0c768378a8f9bd29a1083e992e44ce30f444067ac44368aae060bd171117",
+  "todo_open": true,
+  "context_restored": true,
+  "module_state_and_installed_version_not_finalized": true,
+  "limits": "N=1 existing default installation only; per-company full migration, XML/CSV/hooks/registry composition and whole TASK acceptance remain separate"
+}

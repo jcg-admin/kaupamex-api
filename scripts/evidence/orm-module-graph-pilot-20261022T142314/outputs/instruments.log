@@ -1,0 +1,17 @@
+...............F...                                                      [100%]
+=================================== FAILURES ===================================
+____________________ test_a_super_only_body_is_substantive _____________________
+scripts/workbench/orm-symbol-presence-census-20260910T175850/tests/test_census_symbol_presence.py:57: in test_a_super_only_body_is_substantive
+    assert delegating, 'el __init__ delegante de registry.py:844 movio de linea'
+E   AssertionError: el __init__ delegante de registry.py:844 movio de linea
+E   assert []
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-module-graph-pilot-20261022T142314/outputs/instruments.junit.xml -
+=========================== short test summary info ============================
+FAILED scripts/workbench/orm-symbol-presence-census-20260910T175850/tests/test_census_symbol_presence.py::test_a_super_only_body_is_substantive
+1 failed, 18 passed, 1 warning in 0.48s

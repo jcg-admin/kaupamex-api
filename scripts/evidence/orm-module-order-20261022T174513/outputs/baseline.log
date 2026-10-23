@@ -1,0 +1,24 @@
+FF...                                                                    [100%]
+=================================== FAILURES ===================================
+___________________ test_ordinary_depth_and_order_key_agree ____________________
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:58: in test_ordinary_depth_and_order_key_agree
+    assert ours['sale'].order_name == ref['sale'].order_name
+E   AssertionError: assert '001-sale' == 'sale'
+E     - sale
+E     + 001-sale
+_________________ test_test_addon_placement_matches_reference __________________
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:65: in test_test_addon_placement_matches_reference
+    assert ours['test_base'].depth == ref['test_base'].depth
+E   AssertionError: assert 1 == 0
+E    +  where 1 = ModuleNode('test_base', depth=1).depth
+E    +  and   0 = <ModuleNode object at 0x7fd2c9669430>.depth
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_ordinary_depth_and_order_key_agree
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_test_addon_placement_matches_reference
+2 failed, 3 passed, 1 warning in 0.14s

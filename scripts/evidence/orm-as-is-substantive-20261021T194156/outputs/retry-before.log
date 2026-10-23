@@ -1,0 +1,117 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test_retry_django_missing_discards_deleted_record (test_missing_recompute.MissingRecomputeRetryTests.test_retry_django_missing_discards_deleted_record) ... ERROR
+test_retry_existing_record_computes_once_after_missing_error (test_missing_recompute.MissingRecomputeRetryTests.test_retry_existing_record_computes_once_after_missing_error) ... ERROR
+test_retry_missing_error_discards_deleted_record (test_missing_recompute.MissingRecomputeRetryTests.test_retry_missing_error_discards_deleted_record) ... ERROR
+test_retry_missing_related_object_keeps_primary_record_pending (test_missing_recompute.MissingRecomputeRetryTests.test_retry_missing_related_object_keeps_primary_record_pending) ... FAIL
+test_retry_repeated_missing_error_propagates_and_preserves_work (test_missing_recompute.MissingRecomputeRetryTests.test_retry_repeated_missing_error_propagates_and_preserves_work) ... FAIL
+
+======================================================================
+ERROR: test_retry_django_missing_discards_deleted_record (test_missing_recompute.MissingRecomputeRetryTests.test_retry_django_missing_discards_deleted_record)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 174, in test_retry_django_missing_discards_deleted_record
+    self.field.recompute([row])
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4822, in recompute
+    self.compute_value(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4852, in compute_value
+    _invoke_compute_method(self, records)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4776, in _invoke_compute_method
+    determine(field.compute, record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 2182, in determine
+    return method(*args)
+           ^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 170, in disappear
+    MissingRecomputeModel.objects.get(pk=record.pk)
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py", line 639, in get
+    raise self.model.DoesNotExist(
+test_missing_recompute.MissingRecomputeModel.DoesNotExist: MissingRecomputeModel matching query does not exist.
+
+======================================================================
+ERROR: test_retry_existing_record_computes_once_after_missing_error (test_missing_recompute.MissingRecomputeRetryTests.test_retry_existing_record_computes_once_after_missing_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 190, in test_retry_existing_record_computes_once_after_missing_error
+    self.field.recompute([row])
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4822, in recompute
+    self.compute_value(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4852, in compute_value
+    _invoke_compute_method(self, records)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4776, in _invoke_compute_method
+    determine(field.compute, record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 2182, in determine
+    return method(*args)
+           ^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 185, in transient
+    raise MissingError('transient missing read')
+exceptions.MissingError: transient missing read
+
+======================================================================
+ERROR: test_retry_missing_error_discards_deleted_record (test_missing_recompute.MissingRecomputeRetryTests.test_retry_missing_error_discards_deleted_record)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 161, in test_retry_missing_error_discards_deleted_record
+    self.field.recompute([row])
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4822, in recompute
+    self.compute_value(record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4852, in compute_value
+    _invoke_compute_method(self, records)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4776, in _invoke_compute_method
+    determine(field.compute, record)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 2182, in determine
+    return method(*args)
+           ^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 157, in disappear
+    raise MissingError('record deleted during compute')
+exceptions.MissingError: record deleted during compute
+
+======================================================================
+FAIL: test_retry_missing_related_object_keeps_primary_record_pending (test_missing_recompute.MissingRecomputeRetryTests.test_retry_missing_related_object_keeps_primary_record_pending)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 223, in test_retry_missing_related_object_keeps_primary_record_pending
+    self.assertEqual(calls, [row.pk, row.pk])
+AssertionError: Lists differ: [4] != [4, 4]
+
+Second list contains 1 additional elements.
+First extra element 1:
+4
+
+- [4]
++ [4, 4]
+
+======================================================================
+FAIL: test_retry_repeated_missing_error_propagates_and_preserves_work (test_missing_recompute.MissingRecomputeRetryTests.test_retry_repeated_missing_error_propagates_and_preserves_work)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 208, in test_retry_repeated_missing_error_propagates_and_preserves_work
+    self.assertEqual(calls, [row.pk, row.pk])
+AssertionError: Lists differ: [5] != [5, 5]
+
+Second list contains 1 additional elements.
+First extra element 1:
+5
+
+- [5]
++ [5, 5]
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.032s
+
+FAILED (failures=2, errors=3)
+CREATE ROLE
+GRANT
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+REVOKE
+DROP ROLE

@@ -1,0 +1,2 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+PASS: invalid password rejected by PostgreSQL; authentication is enforced.

@@ -1,0 +1,894 @@
+{
+  "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet.run",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "source_population": "scripts/evidence/orm-as-is-substantive-20261021T194156/outputs/task-assessments.json",
+  "observed_at": "2026-10-23T17:43:10.482Z",
+  "count": 62,
+  "owners": {
+    "NULL": 60,
+    "codex-module-lifecycle": 2
+  },
+  "tasks": [
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "383",
+        "citation_id": "TASK-API-0216",
+        "subject": "Gate: orm.fields.__all__ sólo contiene clases de campo",
+        "description": "`src/addons/base/models/ir_model.py:147,164` deriva `FIELD_TYPES` —el vocabulario de `IrModelFields.ttype`— de `orm.fields.__all__`. Un nombre que no sea una clase de campo entra al vocabulario y ensucia el modelo EN SILENCIO: la única señal es una migración inesperada (`~ Alter field ttype on irmodelfields`), y ningún gate estático lo ve.\n\nYa ocurrió: `api@4c85830` añadió `falsy_value`, `condition_to_q`, `SqlLike` y `SqlILike`. Ver H-API-616.\n\nEntregable: check que importe `orm.fields` y verifique que cada nombre de `__all__` resuelve a una subclase de `django.db.models.Field`. Es una comprobación de una línea sobre el módulo ya importado; convierte un defecto silencioso en fallo de arranque.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "487",
+        "citation_id": "TASK-API-0283",
+        "subject": "field_description sin translate= mientras la referencia lo declara translate=True",
+        "description": "Cap. 11 del Cookbook, desenlace (a) — bug de una línea. `api: src/addons/base/models/ir_model.py:414` declara `field_description` como `fields.Char` SIN el kwarg `translate=`; la referencia lo declara `translate=True` (`odoo19c: addons/base/models/ir_model.py:525`). El despachador de `Char()` ya sabe anotar la bandera —lo hace en otros 19 usos del árbol— así que es una omisión, no una capacidad ausente, y nada la bloquea.\n\nImporta porque `field_description` es precisamente donde aterrizan las traducciones de etiquetas de campo al importar un .po (lo documenta la propia receta del capítulo). Sin la bandera, ese destino queda fuera del motor de traducción antes de empezar a construirlo.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1167",
+        "citation_id": "TASK-API-0397",
+        "subject": "Construir BaseModel propio desde el contrato medido de la referencia",
+        "description": "La referencia declara BaseModel con 194 metodos y __slots__ = ['env','_ids','_prefetch_ids'] (odoo19c: odoo/orm/models.py:334-7004). Portarlo con el criterio de dos niveles: (1) el stack lo trae hecho — hay simbolo instalado y basta llamarlo; (2) el stack tiene con que construirlo — no hay simbolo, si primitivas, sin dependencia de fuera.\n\nMedido en el banco api scripts/workbench/basemodel-contract-20260911T030334:\n- nivel 1 por NOMBRE: 21 sobre Django pristino. NO es veredicto: create/exists/update/__eq__ existen con OTRA semantica (exists() da bool, la fuente da recordset — H-API-1084).\n- nuestro arbol YA colgo: 14 sobre models.Model.\n- por construir: 159.\n- el bloque raiz es el protocolo de recordset: ids, ensure_one, with_env/sudo/with_user/with_company/with_context/with_prefetch, mapped, filtered, grouped, sorted, exists, concat, _cache, _convert_to_record, _convert_to_write — AUSENTES; sus 'presentes' del localizador son homonimos en otros archivos.\n\nPrimitivas medidas en los binarios instalados (django 6.0.5):\n- ModelBase.__new__ :97-389 y add_to_class :391-395 — el gancho de clase.\n- Model.__init__ :482-595, from_db :598-608 — el portal de instancia.\n- QuerySet.__init__(model, query, using, hints) :286-300, _clone :1979-1996, _fetch_all :1998-2002, __iter__ :375-391, __getitem__ :407-442.\n\nTDD: la mitad roja primero. Sin declarar divergencia donde toca construir.",
+        "status": "in_progress",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1168",
+        "citation_id": "TASK-API-0398",
+        "subject": "Verificar contrato por contrato los 21 del cubo TRAE de BaseModel",
+        "description": "H-API-1089 corrigió el instrumento (Django prístino en subproceso) y dejó el cubo TRAE en 21 nombres. Ese 21 es por NOMBRE, no por contrato: `exists` (bool vs recordset), `create` (una instancia vs recordset de N), `update` (filas afectadas vs escritura en caché) y `__eq__`/`__lt__` (pk vs conjunto de ids) son homónimos con contrato distinto — sub-patrón C de metrica-decide-la-conclusion.md.\n\nEntregable: por cada uno de los 21, leer su cuerpo en el binario instalado (.venv/lib/python3.12/site-packages/django) y en la referencia (odoo19c: odoo/orm/models.py:334-7004), y publicar su veredicto: LLAMABLE tal cual · ADAPTABLE con envoltura · HOMÓNIMO (hay que construirlo, y el nombre colisiona).\n\nEl instrumento ya existe: scripts/workbench/basemodel-contract-20260911T030334/census_class.py, que censa una clase de cualquiera de los dos árboles con el mismo formato.\n\nSin este veredicto, el cubo TRAE no autoriza a llamar y el conteo 21/14/159 no se puede usar para repartir trabajo.",
+        "status": "in_progress",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1170",
+        "citation_id": "TASK-API-0399",
+        "subject": "Portar BaseModel.fetch — mapped por ruta de campo sobre PREFETCH_MAX lo exige",
+        "description": "`mapped(func: str)` de la referencia (odoo19c: odoo/orm/models.py:6163-6165) llama `records.fetch([field_name])` cuando `len(records) > PREFETCH_MAX`. El puerto de `mapped` deja esa rama con su cuerpo declarado y un puntero a esta tarea; por debajo de PREFETCH_MAX el camino es completo.\n\nEL HUECO, RE-MEDIDO 2026-09-11 POR CONDUCTA (banco api scripts/workbench/fetch-contract-20260911T093329). La medicion anterior era del SIGNIFICANTE —contar `def <simbolo>`— y publico cinco piezas ausentes; tres de las cinco estaban, porque son atributos que el `__init__` fija y un recorrido de declaraciones es ciego a ellas por construccion.\n\nMedido preguntandole a campos concretos de `base.ResPartner` las nueve preguntas que `_determine_fields_to_fetch` y `_fetch_query` hacen: **0 de 9 sin respuesta**. `column_type` lo responde `db_type(connection)` de Django (`bigint`, `varchar(100)`, y `None` para la relacion inversa de control); `store`, `prefetch`, `translate`, `copy`, `inherited`, `read`, `_insert_cache` y `_cache_missing_ids` estan en nuestro campo. El control negativo —`category_ids`, relacion inversa— falla las nueve, asi que la sonda discrimina.\n\nLO QUE FALTA son TRES METODOS mas `fetch`, 224 lineas de referencia, y todas sus dependencias estan presentes:\n- `fetch` :3775-3818 (44 lineas)\n- `_determine_fields_to_fetch` :3820-3878 (59)\n- `_fetch_query` :3879-3989 (111)\n- `_as_query` :5396-5449 (54)\n\nFLUJO MEDIDO, que es lo que gobierna el porte: `fetch()` devuelve `None` y NO construye registros — llena la CACHE de los ids que ya estan en `self`. `_fetch_query` devuelve `fetched` solo para calcular la diferencia de acceso. En la referencia leer de la base NUNCA construye un objeto registro: los nueve sitios de construccion pasan todos por `BaseModel.__init__(env, ids, prefetch_ids)`, unica asignacion de la terna en todo `odoo/orm`.\n\nCierre: los cuatro portados con su suite, y la rama de `mapped` invocandolos sin puntero.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1171",
+        "citation_id": "TASK-API-0400",
+        "subject": "Portar _sorted_order_to_function — sorted() por cadena y por _order lo exige",
+        "description": "`sorted(key)` de la referencia (odoo19c: odoo/orm/models.py:6286-6289) resuelve dos de sus tres formas de clave con `self._sorted_order_to_function(...)`: cuando `key` es una cadena (`'name DESC, id'`) y cuando es `None` (cae al `_order` del modelo). La tercera —`key` callable— no lo necesita.\n\n`_sorted_order_to_function` es uno de los 194 del contrato de BaseModel (:6294-6344, api.model, firma `(self, order: str)`) y NO está en los 36 del núcleo que TASK-API-0397 porta.\n\nMedido: `grep -rn \"_sorted_order_to_function\" src/orm/*.py src/tools/*.py` → 0. El puerto de `sorted` acepta callable y `None`/cadena señalan la rama pendiente con puntero a esta tarea.\n\nCierre: `_sorted_order_to_function` portado con su suite —incluido el tramo de `NULLS FIRST|LAST` y `ASC|DESC` que la referencia parsea— y `sorted()` resolviendo sus tres formas.",
+        "status": "completed",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1172",
+        "citation_id": "TASK-API-0401",
+        "subject": "Extender la guarda de tamaño al acceso llano rs.label",
+        "description": "BaseModel._read_field (api: src/orm/models.py) porta la guarda de tres regímenes de Field.__get__ (odoo19c: odoo/orm/fields.py:1641-1661), pero sólo actúa por __getitem__('label') y por filtered/mapped. El acceso llano rs.label sobre un recordset de N sigue cayendo en el DeferredAttribute de Django, que ignora _ids.\n\nExtenderlo exige instalar FieldDescriptor en TODOS los campos, no sólo en los que declaran compute. Coste medido: 42.6 ns contra 132.9 ns (3.12x) al volverlo descriptor de datos. Es decisión del ejecutor, no derivable.\n\nAdemás: el docstring de api: src/orm/fields.py:1236 declara hoy que la rama record_len != 1 \"no tiene receptor\" — con BaseModel sí lo tiene, así que esa nota queda rancia y se corrige en el mismo pase.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1173",
+        "citation_id": "TASK-API-0402",
+        "subject": "Hacer que las filas que Django construye lleven la terna del recordset",
+        "description": "La opción 2 de H-API-1083 (los modelos portados DERIVAN de BaseModel) es hoy sólo NOMINAL: BaseModel._from_ids instala env/_ids/_prefetch_ids, pero una fila que Django construye por Model.__init__ (queryset, create, refresh_from_db) NO los lleva. Consecuencias medidas:\n\n- mapped() por ruta relacional no puede unir recordsets: el comodelo devuelve filas de Django sin _ids (api: src/orm/models.py, rama `field.relational`, que hoy levanta NotImplementedError citando esta tarea).\n- IdFromIds releva al descriptor original justo para ese caso.\n\nEl trabajo: decidir e implementar dónde se inyecta la terna — candidato medido: TimeStampedModel, que es el ancestro común de los modelos portados. Se abre con su propia mitad ROJA y su propio sucesor, no como apéndice de TASK-API-0397.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1181",
+        "citation_id": "TASK-API-0406",
+        "subject": "Censar las aserciones negativas que el barrido invirtió en los cinco clones",
+        "description": "Sucesor real de :ref:`h-api-1095`. El barrido del 2026-09-05 (api@709eef67) sustituyó el nombre del L1 por «Kaupamex» DENTRO de aserciones cuyo predicado era que ese nombre NO aparece. La que se corrigió (tests/integration/auto_backup/test_backups.py:211) se delató con un rojo; las que hoy pasan por casualidad —porque el valor bajo prueba no contiene «kaupamex»— no producen rojo y son invisibles. Censar cuántas aserciones negativas tocó el barrido en los cinco clones y cuántas quedaron invertidas sin delatarse. La cita TASK-API-0327 que el hallazgo llevaba resuelve en el store a otro sujeto («Dar identidad de clase a fields.Html»): era un ordinal de board escrito como cita durable.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1187",
+        "citation_id": "TASK-API-0412",
+        "subject": "Despachar el inverse declarado al escribir el campo",
+        "description": "CERRADA en api@775c674e (TASK-API-0412). Las dos vías portadas, en tres piezas: (1) `RecordLoaderMixin.write` envuelve la escritura en `env().protecting(protected, self)` y despacha `fields[0].determine_inverse(self)` al final del bloque — ≙ `odoo19c: odoo/orm/models.py:4334,4493`; (2) `ComputedFieldDescriptor.__set__` marca el campo en `instance.__dict__[PENDING_INVERSE_FIELDS]` en sus tres cubos de escritura (fila nueva, fila real, y el cubo `_orm_building` SÓLO si el campo no tiene columna — un campo sin columna sólo llega al `__init__` por el bucle de kwargs sobrantes, o sea porque el llamador lo pasó); (3) `RecordLoaderMixin.save` vacía esa marca tras `super().save()` y despacha. Además `model_field_registry` responde ahora al attname y al name (895 attnames, 0 choques), que es lo que el KeyError 'company_id' destapó. Aceptación por CONTENIDO (columna del partner releída de la DB, no `hasattr`): 4/4 caminos. Banco: scripts/workbench/fachadas-construyen-una-vez-20260911T193801/probe_declared_address_dispatches_its_inverse.py. Hallazgo: H-API-1111 (docs@d84ac6acd). Sucesores abiertos: #358 (64 rojos alcanzables), #359 (los ocho @property restantes de ResCompany).",
+        "status": "completed",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1192",
+        "citation_id": "TASK-API-0417",
+        "subject": "Retirar el enrutado de las fachadas: la costura decide, no el constructor",
+        "description": "Cierra la duplicación que TASK-API-0416 declaró en el docstring de `_field_get_attrs` (src/orm/fields.py). Los tres bloques de derivación de la fuente (`compute`/`related`/`precompute`, odoo19c: odoo/orm/fields.py:443-465) viven hoy DOS veces: en `_field_get_attrs`, portados verbatim, y en `apply_source_defaults` de src/orm/fields_nonstored.py, que es lo que las fachadas consultan al construir. Mientras `make_dispatcher`/`Char`/`Json`/`Monetary`/`projection_or_none` enruten por clase en el constructor, la copia de `fields_nonstored` no se puede retirar: es lo único que decide qué clase se instancia. El trabajo es retirar ese enrutado para que las fachadas devuelvan UNA sola clase y la derivación de `store` la haga la costura al contribuir (que es el orden de la fuente). Verificación: `apply_source_defaults` deja de contener los tres bloques y la suite de tests/unit/orm sigue verde.",
+        "status": "in_progress",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1193",
+        "citation_id": "TASK-API-0418",
+        "subject": "Retirar NonStored como clase: el eje es store, no el tipo",
+        "description": "Citada por TASK-API-0416 en el docstring de `_collect_field_definitions` (src/orm/fields.py) como la condición que vuelve ALCANZABLE la rama de fusión: hoy `NonStored` es una clase suelta y por eso no cuenta como definición de campo en la MRO. La fuente no tiene una clase por almacenamiento — `store` es un atributo derivado, no un tipo (odoo19c: odoo/orm/fields.py:459-465). Radio medido: 317 menciones en ~80 archivos; 7 declaraciones directas en 5 archivos; 35 sitios `isinstance`/`issubclass`; 27 imports. Los 3 sitios de producción son src/orm/domains.py:234, src/orm/fields_nonstored.py:224 y :718, que pasan a `not getattr(f, 'store', True)`. Además: el export de src/fields/__init__.py, scripts/check_display_name.py:101, addons/base_sparse_field/models/fields.py, y ~25 aserciones de test que van a un helper único. Bloqueada por TASK-API-0417.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1194",
+        "citation_id": "TASK-API-0419",
+        "subject": "Reconstruir un campo relacional desde _args__: to y on_delete no llegan a Field.__init__",
+        "description": "Cota declarada por TASK-API-0416 en el docstring de `_merge_field_definitions` (src/orm/fields.py). La fusión reconstruye el campo con `type(chain[-1])(**merged)`, y `merged` sale de `_args__`, que sólo guarda lo que pasó por `Field.__init__` (el parche `_field_init_with_copy`). Una relacional entrega `to` y `on_delete` a `ForeignKey.__init__`/`ManyToManyField.__init__` y nunca al de `Field`, así que su reconstrucción sale sin destino ni política de borrado. Hoy no se alcanza —la rama de fusión entera es inalcanzable hasta que cierre TASK-API-0418— pero al abrirse será el primer caso que rompa. Dos caminos a medir contra la referencia antes de elegir: capturar los kwargs en el `__init__` de cada relacional, o reconstruir desde `deconstruct()` en vez de desde `_args__`. Verificación: un caso con una cadena de dos declaraciones sobre un ForeignKey que conserve `to` y `on_delete`.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1195",
+        "citation_id": "TASK-API-0420",
+        "subject": "El default literal de fields.Json dispara E010: la fuente lo copia por registro",
+        "description": "Medido con `kaupamex-bin makemigrations --check --dry-run`: `test_orm.TestOrmDiscussion.history: (fields.E010) JSONField default should be a callable instead of an instance so that it's not shared between all field instances`. El porte es FIEL — `odoo19c: odoo/addons/test_orm/models/test_orm.py:108` declara exactamente `history = fields.Json('History', default={'delete_messages': []})`, y su suite lo ejercita (`tests/test_json_field.py:17,22,24,26`). El defecto no es del porte: es que **nuestro** `fields.Json` entrega el mismo objeto a todas las instancias, mientras la fuente copia el `default` por registro. Por eso NO se resuelve cambiando el porte a `default=dict` (perdería el contenido `{'delete_messages': []}` que los tests exigen) ni declarando divergencia: se construye el copiado por registro en el mecanismo de default, que es lo que `porte-completo-no-parcial.md` manda cuando el stack no trae la conducta. Verificación: `makemigrations --check` sin E010, y un caso que escriba en el default de un registro y lea el de otro sin contaminación. Pre-existente desde api@0ddc7ab0; hallado al correr el gate de migraciones de TASK-API-0416.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1196",
+        "citation_id": "TASK-API-0421",
+        "subject": "Portar BaseModel.create por contenido: lista de dicts → recordset, dict → singleton",
+        "description": "BLOQUEO CORREGIDO: DefaultGetMixin.create(cls, **values) (src/orm/models.py:685) declaraba «lo que se porta es el paso, no la firma» apoyado en «los seis create de clase del árbol». Medido por conducta: grep -rn \"def create(cls\" src/ addons/ da 25 definiciones, 9 con la forma de la referencia (vals_list; decimal_precision.py ya lleva @api.model_create_multi) y 13 con **vals; los callers list/dict suman 22 contra 20 kwargs (casi todos tests). La premisa contaba, no leía. Referencia: odoo19c odoo/orm/models.py:4611-4770 (create), :4849-4948 (_create), :4772-4812 (_prepare_create_values), decorators.py:357 (model_create_multi: Mapping → [vals]). Veredicto INVENTORY ('django','recorrido del árbol a dict'): lo trae hecho — @api.model_create_multi ya existe en el árbol; el flujo se construye con las primitivas ya portadas (check_access :263, _check_field_access :1642, _add_missing_default_values :605, _add_precomputed_values :3735, modified :3320, _validate_fields :3791, browse :4180). CASO DE ACEPTACIÓN: sonda de contenido en scripts/workbench/fachadas-construyen-una-vez-20260911T193801/ con claves declaradas — create({...}) devuelve recordset de 1; create([a,b]) devuelve recordset de 2 en orden; campo desconocido → ValueError «Invalid field»; defaults de default_get aplicados; M2M por Command.set tras el alta; kwargs form rechazada; los 9 create(vals_list) del árbol siguen verdes; los 13 **vals se migran al mismo pase.",
+        "status": "completed",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1199",
+        "citation_id": "TASK-API-0424",
+        "subject": "El campo sin columna de una cadena related no es buscable: el recompute no puede hallar las filas",
+        "description": "Medido al declarar ResCompany.country como Many2one(compute='_compute_address', inverse='_inverse_country') en proceso (scripts/evidence/direccion2-2026-09-12T07-52-24-001.log): la costura emite DOS UserWarning de src/orm/fields.py:4020 — «Field country in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified». Lo mismo para company_country_group_codes. La forma es la de la referencia (odoo19c: addons/base/models/res_company.py:69-78), asi que el aviso puede ser fiel y no un defecto; lo que falta es el veredicto: o el campo declara `search=`, o la dependencia se simplifica, o se declara la divergencia. Ademas, en la sonda el recolector de delete() sobre ResPartner reventó con TypeError: argument of type 'NoneType' is not iterable al consultar la columna None del campo — pendiente de re-medir con el campo declarado en el cuerpo de la clase (donde la costura lo contribuye con private_only), no por contribute_to_class manual.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1207",
+        "citation_id": "TASK-API-0427",
+        "subject": "La suite completa de api se cuelga en espera de lock: una conexión queda idle in transaction",
+        "description": "Medido 2026-09-12T09:52:19. La corrida lanzada a las 09:07:19 NO midió la suite: midió una espera de lock. NO es citable como baseline.\n\nEvidencia: scripts/evidence/suite-colgada-por-lock-2026-09-12T09-52-19.log\n\nSíntoma: el proceso de pytest (19495) llevaba 43:37 de reloj y 12:36 de CPU,\ncon 0 ticks de CPU en una ventana de 3 s, bloqueado en poll_schedule_timeout.\nEl log no avanzaba desde las 09:22:23, parado en 59 %.\n\nMecanismo: pg_stat_activity da cinco backends sobre kaupamex_core_qa. El\nbackend 23200 (abierto 09:12:36, state_change 09:22:23 — el mismo instante en\nque el log dejó de avanzar) está `idle in transaction` / ClientRead, y\npg_blocking_pids señala que bloquea a los otros cuatro:\n\n  752, 921, 1516  ->  SELECT ... FROM ir_cron ...\n  1609            ->  select number_next from ir_sequence where id=327 for update nowait\n\nPregunta abierta que el diagnóstico NO responde: pytest corría en serie y el\nproceso sólo tenía TRES sockets, así que dos de los cinco backends pertenecen a\notro cliente que no se identificó. Sin eso no se puede afirmar si es un\nautobloqueo del propio proceso o contención con un cliente ajeno — y ese es el\nprimer paso del cierre, no una conclusión que se pueda derivar de lo medido.\n\nCiega a: qué caso concreto estaba corriendo. La corrida usaba `--tb=no -q`, que\nno nombra el test en curso. Re-medir con `--tb=line` y, si hace falta,\n`-p no:cacheprovider --timeout` para que el cuelgue falle en vez de esperar.\n\nCierre: identificar al dueño de los backends huérfanos, y que la suite no pueda\nquedarse esperando un lock indefinidamente (timeout por test o lock_timeout en\nla conexión de pruebas).",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "333",
+        "citation_id": "TASK-GEN-0060",
+        "subject": "Construir el almacenamiento jsonb de translate=True",
+        "description": "La referencia almacena un campo translate=True como columna jsonb {lang: valor} y resuelve el idioma en el ORM (odoo19c: odoo/orm/fields_textual.py:53 — 'if self.store and self.translate'; :66 — column['udt_name'] == 'jsonb'). Aquí fields.Char(translate=True) sólo ANOTA la bandera en el campo (field.odoo_translate) para que la declaración sea fiel y greppeable; la columna sigue siendo varchar y guarda un solo idioma. Construir: (a) el campo jsonb con lectura/escritura por idioma activo, (b) la reescritura de consulta para filtrar/ordenar por el idioma, (c) la migración de los varchar existentes. PostgreSQL ya soporta jsonb y django.contrib.postgres está cableado (#94), así que no hay bloqueo de motor. Medir primero cuántos campos del árbol lo declaran (grep odoo_translate / translate=True).",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [
+          {
+            "task_id": "400",
+            "subject": "Construir el motor de traducción: import/export de .po",
+            "status": "pending"
+          }
+        ],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "400",
+        "citation_id": "TASK-GEN-0062",
+        "subject": "Construir el motor de traducción: import/export de .po",
+        "description": "Construir el motor de traducción: import/export de .po.\n\nRE-ENCUADRADA 2026-08-18 por el cap. 11 del Cookbook. La tarea declara como única dependencia la #333 (almacenamiento jsonb de los valores traducibles de registro), y con ese alcance cerraría PARCIAL bajo su propio criterio: la receta de importar del capítulo documenta un TERCER destino que no depende de #333 en absoluto — `ir_model_fields.field_description`, las etiquetas de campo. Medido: 0 de 1831 `verbose_name`/`help_text` envueltos en `gettext_lazy`, sin `locale/` ni `LOCALE_PATHS` declarados.\n\nLos tres destinos de un .po importado son distintos y sólo uno está cubierto por la dependencia declarada:\n1. valores de registro traducibles → jsonb en la propia columna (#333)\n2. etiquetas de campo → `ir_model_fields.field_description` (bloqueado además por #487, que le falta el `translate=`)\n3. arquitectura de vista → `ir_ui_view.arch_db`\n\nSub-piezas medidas que tampoco están en el tablero y son alcance natural de esta tarea: el despachador `translate=` no existe para `Text`/`Html` (prerrequisito de #333); el eje de idioma base `es.po`→`es_MX.po` (`get_base_langs`); y `i18n_extra/` como segunda capa de .po.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [
+          {
+            "task_id": "333",
+            "subject": "Construir el almacenamiento jsonb de translate=True",
+            "status": "pending"
+          }
+        ],
+        "blocks": [],
+        "blocked": true
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "209",
+        "citation_id": "TASK-GEN-0461",
+        "subject": "Censar odoo/orm/ entero: que falta de cada archivo, y su veredicto TRAE/CONSTRUYE",
+        "description": null,
+        "status": "in_progress",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "210",
+        "citation_id": "TASK-GEN-0462",
+        "subject": "Barrer los 181 Selection que no declaran required contra la fuente",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "211",
+        "citation_id": "TASK-GEN-0463",
+        "subject": "Portar Field, el contrato de campo del que cuelga todo el ORM",
+        "description": null,
+        "status": "in_progress",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "212",
+        "citation_id": "TASK-GEN-0464",
+        "subject": "Recrear las bases limpias al cerrar el porte de src/orm entero",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "213",
+        "citation_id": "TASK-GEN-0465",
+        "subject": "Medir cada tipo de campo por CONDUCTA, no por nombre",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "218",
+        "citation_id": "TASK-GEN-0470",
+        "subject": "Extender orden_de_porte a las otras raices espejadas",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "224",
+        "citation_id": "TASK-GEN-0476",
+        "subject": "Recorrer _table_object_definitions hacia Meta al construir la clase",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "225",
+        "citation_id": "TASK-GEN-0477",
+        "subject": "Portar los 33 optimizadores de dominio que el registro ya admite",
+        "description": null,
+        "status": "in_progress",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "226",
+        "citation_id": "TASK-GEN-0478",
+        "subject": "Gate contra una quinta copia de la tupla estrecha de colecciones",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "227",
+        "citation_id": "TASK-GEN-0479",
+        "subject": "Censar por consumidor los 64 atributos de clase de campo que quedan",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "230",
+        "citation_id": "TASK-GEN-0482",
+        "subject": "Renombrar TRUE_DOMAIN y FALSE_DOMAIN: son Q, no Domain",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "231",
+        "citation_id": "TASK-GEN-0483",
+        "subject": "Sonda de conducta para el contrato de un simbolo con N implementaciones",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "232",
+        "citation_id": "TASK-GEN-0484",
+        "subject": "Barrer los operadores que el compilador de hoja no conoce",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "233",
+        "citation_id": "TASK-GEN-0485",
+        "subject": "Hacer que el caso de campo no relacional discrimine su guarda",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "235",
+        "citation_id": "TASK-GEN-0487",
+        "subject": "Dar a child_of y parent_of un predicado en memoria propio",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "240",
+        "citation_id": "TASK-GEN-0492",
+        "subject": "Cerrar la rama polimorfica de One2many._additional_domain",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "241",
+        "citation_id": "TASK-GEN-0493",
+        "subject": "Devolver Domain en get_comodel_domain, tras separar fachada de definidor",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "242",
+        "citation_id": "TASK-GEN-0494",
+        "subject": "Validar el inverso de One2many al arrancar, no al leerlo",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "243",
+        "citation_id": "TASK-GEN-0495",
+        "subject": "Portar el lado SQL de One2many: la condicion relacional y su subconsulta",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "244",
+        "citation_id": "TASK-GEN-0496",
+        "subject": "Medir si setup_inverses tiene receptor en este arbol",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "251",
+        "citation_id": "TASK-GEN-0503",
+        "subject": "Derivar required de null en el campo persistido",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "255",
+        "citation_id": "TASK-GEN-0507",
+        "subject": "Transaccionar la escritura del inverso con la del origen",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "256",
+        "citation_id": "TASK-GEN-0508",
+        "subject": "Construir la señalizacion de cache entre procesos, que hoy es media",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "260",
+        "citation_id": "TASK-GEN-0512",
+        "subject": "Enderezar la direccion del import entre fields_properties, domains y models",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "273",
+        "citation_id": "TASK-GEN-0525",
+        "subject": "Construir modified(): el motor de recálculo de campos calculados sobre registro virtual",
+        "description": null,
+        "status": "in_progress",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "302",
+        "citation_id": "TASK-GEN-0554",
+        "subject": "Barrer los campos de la fuente declarados aqui como property pelada",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "306",
+        "citation_id": "TASK-GEN-0558",
+        "subject": "Dar al computo un QuerySet en vez de una fila, y recuperar el lote de prelectura",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "307",
+        "citation_id": "TASK-GEN-0559",
+        "subject": "Portar apply_except_missing: desmarcar el computo de la fila que ya no existe",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "310",
+        "citation_id": "TASK-GEN-0562",
+        "subject": "Portar internal_group a store=False + search, cuando el buscador sirva la travesia por FK",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "318",
+        "citation_id": "TASK-GEN-0570",
+        "subject": "Reubicar los símbolos del ORM que aterrizaron en un addon consumidor",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "323",
+        "citation_id": "TASK-GEN-0575",
+        "subject": "Portar Cache (28 metodos) y Starred a src/orm/environments.py",
+        "description": null,
+        "status": "completed",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "326",
+        "citation_id": "TASK-GEN-0578",
+        "subject": "Portar Field._filter_not_equal y _update_inverse, que Cache delega",
+        "description": null,
+        "status": "completed",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "327",
+        "citation_id": "TASK-GEN-0579",
+        "subject": "Construir BaseModel.new: el registro virtual con origin, que la rama dict de",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "329",
+        "citation_id": "TASK-GEN-0581",
+        "subject": "Hacer que los dos registrantes sin tabla hereden de AbstractModel",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "task": {
+        "task_id": "335",
+        "citation_id": "TASK-GEN-0587",
+        "subject": "Portar la mitad de change_default de onchange_methods",
+        "description": null,
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+      "task": {
+        "task_id": "140",
+        "citation_id": "TASK-THYROX-1072",
+        "subject": "Read the task universe from the store in task_source",
+        "description": "task_source.records_from_store(store, layer) + load_records(.sqlite3); ids = citation number per layer; blocked_by ordinals resolved within the row's session; no prose edges from store rows. implementation_order unchanged. RED: tests/task/test_task_source_store.py (12 fallos), includes 1067 not re-proposed and 1065 rejected kept pending.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1190",
+        "citation_id": "TASK-API-0415",
+        "subject": "Despachar el compute declarado al leer un NonStored",
+        "description": "CERRADA en `api@a95c11fb`. TASK-API-0415.\n\n`NonStored.__get__` gana su tercera rama —entre `related` y `default`— que llama `determine_compute`, instalado desde `fields.py` como sus hermanos `determine_domain`/`determine_inverse` (el import inverso sería ciclo). Los dos sitios declaran ahora la forma de la referencia: `display_name = Char('Display Name', compute='_compute_display_name', search='_search_display_name')` y `full_name = fields.Char('Group Name', compute='_compute_full_name', search='_search_full_name')`; el envoltorio `_display_name_default` retirado, y la etiqueta movida de `help_text=` (alias de `help=`) al primer posicional (`verbose_name` en Django, `string` en la fuente).\n\nFlujo medido antes de escribir: `Field.__get__` abre la rama en `odoo19c: odoo/orm/fields.py:1736-1737`; su cuerpo llega a `_compute_field_value` (`odoo/orm/models.py:4953`), cuyo cuerpo entero es `determine(field.compute, self)` más un `if field.store:` que un campo sin columna nunca alcanza. `determine` ya estaba portado (`orm/fields.py:1699`).\n\nTDD con su rojo persistido: `scripts/evidence/rojo-compute-dispatch-2026-09-11T17-33-32.log` (2 failed, 6 passed) → verde (9 passed). Control de anulación: deshabilitada la rama caen EXACTAMENTE los cuatro casos que la miden (4 failed, 5 passed) y no se mueve ninguno de precedencia ni de regresión. Suite completa tras el porte: 3 failed, 10553 passed, 30 skipped en 317.63 s — los tres rojos son los heredados.\n\nEl control de control original NO discriminaba (`label != plain_label` era verde en los dos estados); se sustituyó por uno parametrizado con dos cómputos distintos, que ninguna constante satisface.",
+        "status": "completed",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1180",
+        "citation_id": "TASK-API-0405",
+        "subject": "La rama is_transient() de ondelete no se simula: el momento del stack no la alcanza",
+        "description": "La fuente resuelve la política de `ondelete` en `setup_nonrelated` (`odoo19c: odoo/orm/fields_relational.py:274-282`) y su primer caso consulta el MODELO: `if model.is_transient() and not comodel.is_transient()` (`:275`) → `'cascade'`. Aquí la resolución ocurre en `__init__` porque `ForeignKey.__init__` de Django exige `on_delete` posicional, y en ese momento el campo aún no se ha asociado a ninguna clase: no hay `model`. Un `Many2one` declarado en un modelo transitorio recibe hoy el default de la rama NO transitoria (`:282`, `'restrict' if required else 'set null'`). Está declarado en el docstring de `_apply_ondelete`, no inventado. Condición de cierre: medir si `contribute_to_class` puede re-resolver la política cuando el modelo ya existe (Django lo llama con `cls`), y si el `remote_field.on_delete` admite reasignación después de la construcción; si sí, portar el caso 1 entero; si no, medir por qué y declararlo con su cita.",
+        "status": "completed",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1191",
+        "citation_id": "TASK-API-0416",
+        "subject": "Portar la fase que recoge las definiciones de campo por clase",
+        "description": "BLOQUEO CORREGIDO 2026-09-11. Esta tarea declaraba «depende de #318 (MetaModel) y de _setup/_setup_fields». **Falso, y la conclusión salía del censo de símbolos — significante — en vez de medir cómo funciona.**\n\nMedido por conducta (`scripts/workbench/recoleccion-de-definiciones-*/`):\n\n1. La referencia recorre `_model_classes__`, y eso ES `mro()`: `model_cls._model_classes__ = tuple(c for c in model_cls.mro() if getattr(c,'pool',None) is None)` (`odoo19c: odoo/orm/model_classes.py:358`). No es un registro propio — es el MRO filtrado a clases de definición. Python lo trae hecho.\n2. Las DOS ocurrencias sobreviven distinguibles en las dos formas de herencia de este árbol, medido con sondas: base abstracta de Django → `_meta.local_fields` de cada clase da `[('HoldsBase',10),('HoldsChild',20)]`; mixin llano → `vars(mixin)` y `vars(hija)` dan dos `NonStored` distintos, cada uno con su `compute`.\n3. `ModelBase.__new__(cls, name, bases, attrs, **kwargs)` recibe el cuerpo de clase igual que `MetaModel.__new__`, y `contribute_to_class` dispara una vez por ocurrencia en orden base→hija.\n\nVeredicto INVENTORY: la **recolección** es *el stack lo trae hecho* (mro + `_meta.local_fields` + `vars`); la **fusión** es *tiene con qué construirlo* (`_get_attrs` ya portado, `orm/fields.py:1105-1128`). No hace falta `MetaModel` ni ninguna dependencia de fuera.\n\nCASO DE ACEPTACIÓN, medido sobre el modelo real (`probe_the_override_loses_the_base.py`):\n\n    la base (DisplayNameMixin)  compute='_compute_display_name' search='_search_display_name' -> NonStored\n    el override (TestOrmCategory) compute=None search=None inverse='_inverse_display_name' recursive=True -> CharField\n\nEl override se porta verbatim de `odoo19c: odoo/addons/test_orm/models/test_orm.py:28-31`. Allá no significa «campo con columna»: significa override, y la fusión le trae el `compute` de la base, del que el bloque compute deriva `store=False`. Aquí, sin fusión, `store` cae a su defecto `True`.\n\nCierra los dos rojos heredados de `tests/unit/orm/test_display_name.py`.",
+        "status": "completed",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1179",
+        "citation_id": "TASK-API-0404",
+        "subject": "La guarda :289 de ondelete es ciega al segundo vocabulario",
+        "description": "`:289` de la fuente compara la cadena declarada contra IR_MODELS, que lleva `_name` de la fuente. Nuestro árbol tiene DOS vocabularios: `fields.Many2one('base.IrModel', ondelete='restrict')` no lo atrapa. Medido al dejarlo así: 0 declaraciones del árbol combinan etiqueta de Django con `ondelete=` (grep -rnE \"Many2one\\(\\s*['\\\"][a-z_]+\\.[A-Z]\" src/ --include=*.py | grep -c ondelete), así que el caso es hoy INALCANZABLE. La fuente no lo necesita: allá sólo existe el nombre punteado, y un puente de 7 entradas escrito a mano se RETIRÓ por inventar un caso que la fuente nunca alcanza. El símbolo construido que lo cerraría es `orm.registry.model_by_key`, que resuelve ambos vocabularios — pero su `_ensure_seeded()` barre `apps.get_models()` y el modelo puede no estar cargado al construir el campo. Condición de cierre: medir si `model_by_key` resuelve durante la definición de clases, o adoptar la regla de que un `Many2one` hacia un modelo de IR_MODELS se declara con el `_name` de la fuente, y cablear el gate que lo verifique.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "1204",
+        "citation_id": "TASK-GEN-0634",
+        "subject": "Portar como campo los ocho @property de ResCompany que delegan al partner",
+        "description": "TASK-API-0412 cerró los SEIS de la dirección (street, street2, zip, city, state, country) declarándolos `compute='_compute_address'` + `inverse`. Quedan ocho delegaciones al partner que siguen siendo `@property` y que **ninguna cadena `related=` puede navegar**, por la misma razón: un `@property` no vive en `_meta`.\n\nLa referencia los declara como campo (`odoo19c: addons/base/models/res_company.py`):\n\n- `:48`  name = fields.Char(related='partner_id.name', string='Company Name', required=True, store=True, readonly=False)\n- `:62`  logo = fields.Binary(related='partner_id.image_1920', readonly=False)\n- `:81`  email = fields.Char(related='partner_id.email', store=True, readonly=False)\n- `:82`  phone = fields.Char(related='partner_id.phone', store=True, readonly=False)\n- `:83`  website = fields.Char(related='partner_id.website', readonly=False)\n- `:84`  vat = fields.Char(related='partner_id.vat', string=\"Tax ID\", readonly=False)\n- `:85`  company_registry = fields.Char(related='partner_id.company_registry', readonly=False)\n- `:86`  company_registry_placeholder = fields.Char(related='partner_id.company_registry_placeholder')\n\nmás `billing_name`, que aquí deriva de `partner.commercial_company_name` y allá no existe con ese nombre.\n\nMedido: con la dirección ya cerrada, una cadena que pida `ResCompany.name` muere con *«la ruta related 'company_id.name' pide 'name' sobre ResCompany, que no lo declara»* — 2205 casos de `tests/unit/orm` en el import (`scripts/evidence/diag2-353-*-001.log`). Se esquivó apuntando la sonda a `code`, que sí es columna; el defecto sigue.\n\nLo que NO es trivial y hay que decidir antes de escribir: `name`, `email` y `phone` llevan `store=True` en la fuente, o sea COLUMNA. Declararlos así aquí es una migración, y `name` además es el `__str__`, el `Meta.ordering` y lo que `ResCompanyManager.create` escribe en el partner. El porte se hace con esa decisión tomada, no a ciegas.\n\nTRAMPA MEDIDA, a resolver EN ESTE PORTE — el despacho fantasma tras `refresh_from_db()`. El cubo `real_row` de `ComputedFieldDescriptor.__set__` (api@775c674e) marca el campo como inverso pendiente ante CUALQUIER asignación a un campo `compute` + `inverse` sobre una fila ya cargada. `Model.refresh_from_db` de Django hace `setattr(self, field.attname, getattr(db_instance, field.attname))` para cada campo concreto (`django/db/models/base.py`, dentro de `refresh_from_db`) — fuera de `_orm_building` y fuera de todo `protecting`. Consecuencia: un campo `store=True` + `inverse` quedaría marcado al refrescar, y el siguiente `save()` despacharía su inverso escribiendo al partner un valor que acaba de venir de la DB. HOY NO DISPARA porque ningún campo del árbol es `store=True` + `inverse` a la vez — pero `name`, `email` y `phone` de esta tarea son exactamente `related=…, store=True, readonly=False`, y un `related` no-readonly gana inverso implícito. El porte necesita que el marcado distinga «asignación del llamador» de «relleno desde la fila», o que `refresh_from_db` entre bajo `protecting`; el control que lo prueba es una sonda que refresque y guarde sin tocar el campo, y afirme que el partner NO cambió.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "737",
+        "citation_id": "TASK-API-0382",
+        "subject": "Mecanismo: la instalación se decide por base, no por proceso (H-API-784)",
+        "description": "Medido 2026-08-21 (H-API-784): `ir_module_module.state` existe y su propio help_text declara \"Derivado de INSTALLED_APPS; no hay instalador que lo escriba\". `grep -rn IrModule src/config/ src/orm/` → 0 hits. La dirección está invertida respecto a la referencia, donde `odoo/modules/db.py:88` ESCRIBE el estado y el cargador lo LEE, por base.\n\nConsecuencia: dos bases no pueden diferir en qué addons tienen instalados, porque INSTALLED_APPS es del proceso.\n\nEmparenta con #456 (H-API-654, installable: False sin efecto en la carga) y #449 (sembrar el registro de módulos) — las tres son la misma carencia vista desde tres sitios.\n\nBloqueada por la decisión de #443 sobre el reparto.",
+        "status": "pending",
+        "owner": "codex-module-lifecycle",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "task": {
+        "task_id": "738",
+        "citation_id": "TASK-API-0383",
+        "subject": "Implementar DEC-AISL-05: toda app de dominio migra a toda base",
+        "description": "Decisión del ejecutor 2026-08-21 (DEC-AISL-05): \"queremos que nuestra api sea igual a la referencia … cada base es una instalación completa: su propio res_company, su propio res_users, su propio ir_module_module\". Cierra #443.\n\nPiezas medidas que cambian:\n\n1. `src/config/settings/base.py:328` — MULTIDB_CONTROL_PLANE_APPS pierde los tres base*: `base`, `base_address_extended`, `base_geolocalize`. Queda ('sessions', 'contenttypes'), que es el default del router (routers.py:57-58).\n2. `src/orm/routers.py:149-153` — allow_migrate deja de partir el dominio, Y consulta el roster como hace _target (hoy fija `db == DEFAULT_DB_ALIAS or db.startswith('company_')` sin consultarlo; H-API-783).\n3. Las 79 FK de dominio a res_users quedan intra-base — no se corta ninguna.\n4. Reactivar los 3 skip que citan H-API-262.\n5. Verificar migrate ×N sobre una company_<N>_db real (hoy MULTIDB_COMPANY_DATABASES está en default='' y no hay alias company_* en settings.DATABASES).\n\nAlcance del cambio: 21 apps rompían bajo el reparto actual (22 mencionan base.rescompany en migraciones, menos `base`), sobre 120 apps addons.* en INSTALLED_APPS.\n\nNO incluye la granularidad de instalación por base (ir_module_module.state) — eso es #737.\n\nVer decisiones-implementar-aislamiento-multi-db-per-company (DEC-AISL-05), analisis-multidb-en-la-referencia, h-api-783, h-api-784. Toca ADR-021 (cierra su punto \"Abierta (capa-3 de 091)\").",
+        "status": "pending",
+        "owner": "codex-module-lifecycle",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    }
+  ],
+  "limit": "Same existing62-task AS IS population, not global TaskStore enumeration or goal completion. NULL or foreign owners are not automatic admission."
+}

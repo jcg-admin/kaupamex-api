@@ -1,0 +1,178 @@
+[
+  {
+    "alias": "odoo18c",
+    "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "path": "18.x/odoo-18",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/18.x/odoo-18?ref=abe4040ec1a45beee90fb694e4eae4453e46b389"
+    ],
+    "exit_code": 0,
+    "response_sha256": "478de7a48cc43c988e36d48e771106d61bdc1b461e2b6e7571eb8cb7edfa780e",
+    "entry_count_returned": 19,
+    "selected_entries": [
+      {
+        "name": "LICENSE",
+        "path": "18.x/odoo-18/LICENSE",
+        "sha": "a84c07d240e3bd647deebee7a97dc99306156cd8",
+        "type": "file",
+        "size": 59
+      },
+      {
+        "name": "README.md",
+        "path": "18.x/odoo-18/README.md",
+        "sha": "ac3c04c8f4c53e75a25ec330143f870d2af9ae8b",
+        "type": "file",
+        "size": 2044
+      },
+      {
+        "name": "addons",
+        "path": "18.x/odoo-18/addons",
+        "sha": "a2076fa7f2604925f5810d2b2a8dc085db558539",
+        "type": "dir",
+        "size": 0
+      },
+      {
+        "name": "odoo-bin",
+        "path": "18.x/odoo-18/odoo-bin",
+        "sha": "fae9bf233b67953314d400c07bc4b8dd85f63299",
+        "type": "file",
+        "size": 180
+      },
+      {
+        "name": "odoo",
+        "path": "18.x/odoo-18/odoo",
+        "sha": "e38cf54ff1c1b2410e37887403212f1b6867cbf0",
+        "type": "dir",
+        "size": 0
+      },
+      {
+        "name": "setup.py",
+        "path": "18.x/odoo-18/setup.py",
+        "sha": "899994b96868ded54ae79b27f89ef7b478498cb7",
+        "type": "file",
+        "size": 1838
+      }
+    ],
+    "coverage_limit": "One directory only, no recursion; contents API may cap directories at 1000 entries; not a functional population."
+  },
+  {
+    "alias": "odoo18e",
+    "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "path": "18.x/odoo.enterprise",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/18.x/odoo.enterprise?ref=abe4040ec1a45beee90fb694e4eae4453e46b389"
+    ],
+    "exit_code": 0,
+    "response_sha256": "951dcf15114b5a3c1f35405b9d3cad81f0b9ea193f052ddf8a6d718df885d698",
+    "entry_count_returned": 1000,
+    "selected_entries": [
+      {
+        "name": "LICENSE",
+        "path": "18.x/odoo.enterprise/LICENSE",
+        "sha": "82dde038af37ea66eaad801f40c3a210d8691685",
+        "type": "file",
+        "size": 2017
+      },
+      {
+        "name": "README.md",
+        "path": "18.x/odoo.enterprise/README.md",
+        "sha": "5537a097ea61b98dd0ff039c922eeb8de4b79e49",
+        "type": "file",
+        "size": 2300
+      }
+    ],
+    "coverage_limit": "One directory only, no recursion; contents API may cap directories at 1000 entries; not a functional population."
+  },
+  {
+    "alias": "odoo19c",
+    "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/19.x/odoo-19.0/odoo-19.0/odoo-19.0?ref=abe4040ec1a45beee90fb694e4eae4453e46b389"
+    ],
+    "exit_code": 0,
+    "response_sha256": "dead3d1cfb382f99e5a4438ed921323f2134d0fe079fb5e549d59bfc60a1b783",
+    "entry_count_returned": 19,
+    "selected_entries": [
+      {
+        "name": "LICENSE",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/LICENSE",
+        "sha": "12334e0fdd8d3412d5e1deed72220fcc03431ff2",
+        "type": "file",
+        "size": 43529
+      },
+      {
+        "name": "README.md",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/README.md",
+        "sha": "ac3c04c8f4c53e75a25ec330143f870d2af9ae8b",
+        "type": "file",
+        "size": 2044
+      },
+      {
+        "name": "addons",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons",
+        "sha": "00d01d6df167d3d33da991f7ff9f60937ef74a30",
+        "type": "dir",
+        "size": 0
+      },
+      {
+        "name": "odoo-bin",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo-bin",
+        "sha": "06b34a2f073c2656a366ff3835d7ae3ab6449f1c",
+        "type": "file",
+        "size": 88
+      },
+      {
+        "name": "odoo",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo",
+        "sha": "9c05a750ab97945515531d0627725345e19520ff",
+        "type": "dir",
+        "size": 0
+      },
+      {
+        "name": "setup.py",
+        "path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/setup.py",
+        "sha": "66d48fdab5426b6a0b794c1f00a3a57552471139",
+        "type": "file",
+        "size": 1966
+      }
+    ],
+    "coverage_limit": "One directory only, no recursion; contents API may cap directories at 1000 entries; not a functional population."
+  },
+  {
+    "alias": "odoo19e",
+    "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "path": "19.x/odoo19-enterprise-main/odoo19-enterprise-main/odoo19-enterprise-main",
+    "command": [
+      "gh",
+      "api",
+      "repos/jcg-admin/odoo-tools/contents/19.x/odoo19-enterprise-main/odoo19-enterprise-main/odoo19-enterprise-main?ref=abe4040ec1a45beee90fb694e4eae4453e46b389"
+    ],
+    "exit_code": 0,
+    "response_sha256": "31ee2bbe32d70ca6c575f10be0365409bd2ab38bad77a4b52b1890bbae100885",
+    "entry_count_returned": 741,
+    "selected_entries": [
+      {
+        "name": "LICENSE",
+        "path": "19.x/odoo19-enterprise-main/odoo19-enterprise-main/odoo19-enterprise-main/LICENSE",
+        "sha": "82dde038af37ea66eaad801f40c3a210d8691685",
+        "type": "file",
+        "size": 2017
+      },
+      {
+        "name": "README.md",
+        "path": "19.x/odoo19-enterprise-main/odoo19-enterprise-main/odoo19-enterprise-main/README.md",
+        "sha": "289e055a68616b942f0604e369bdacf255685d99",
+        "type": "file",
+        "size": 1906
+      }
+    ],
+    "coverage_limit": "One directory only, no recursion; contents API may cap directories at 1000 entries; not a functional population."
+  }
+]

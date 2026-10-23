@@ -1,0 +1,17 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{"first": "Admin / Operations", "short": "Operations", "restored": "Admin / Operations", "pk_still_none": true, "queries": 0, "outcome": "PASS"}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

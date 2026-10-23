@@ -1,0 +1,20 @@
+[
+  {
+    "repo": "kaupamex-api",
+    "workbench": "/workspace/kaupamex-api/scripts/workbench",
+    "cache": "/workspace/kaupamex-api/.claude/cache",
+    "jobs": "/workspace/kaupamex-api/scripts/evidence"
+  },
+  {
+    "repo": "kaupamex-docs",
+    "workbench": "/workspace/kaupamex-docs/.claude/eventos",
+    "cache": "/workspace/kaupamex-docs/.claude/cache",
+    "jobs": "/workspace/kaupamex-docs/.claude/jobs"
+  },
+  {
+    "repo": "thyrox",
+    "workbench": "/workspace/thyrox/.claude/workbench",
+    "cache": "/workspace/thyrox/.claude/cache",
+    "jobs": "/workspace/thyrox/.claude/jobs"
+  }
+]

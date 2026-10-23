@@ -1,0 +1,5 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "/workspace/scratch/orm-cursor-continuation/probe_cursor_replica_flow.py", line 32, in <module>
+    import psycopg2
+ModuleNotFoundError: No module named 'psycopg2'

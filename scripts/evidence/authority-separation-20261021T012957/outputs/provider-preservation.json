@@ -1,0 +1,9 @@
+{
+  "command": "git bundle verify /workspace/scratch/thyrox-recovered-from-github.bundle",
+  "exit_code": 0,
+  "bundle_sha256": "ed0d10cb3ab80d19addf8cb025fc5d7e8bfc314d4dc15c695ffa4dcbe34e7fa8",
+  "contains": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "requires": "fc8a7e2f6f00d1c78e0c4e5526f97f7063a6b20c",
+  "external_preservation": "Reuses previously recovered GitHub draft release417625600 and matching preserved bundle; no upload/download or Provider push repeated",
+  "limit": "Git bundle preserves code commits, not consistent live SQLite/WAL backup. DB restore/backups remain not_verified"
+}

@@ -1,0 +1,21 @@
+{
+  "task": "TASK-API-0383",
+  "scope": "Full Django migration verification only, not module installer execution or Task acceptance",
+  "databases": {
+    "default": {
+      "backbone_tables": [
+        "res_users",
+        "res_company",
+        "ir_module_module"
+      ],
+      "foreign_keys_to_local_res_users": 107,
+      "applied_migrations": 379,
+      "installed_version_nullable": true,
+      "catalogue_rows": 0,
+      "rows_with_installed_version": 0
+    }
+  },
+  "default_schema_reused_from_current_ci": true,
+  "default_migration_seconds": 0.022,
+  "company_database_removed": true
+}

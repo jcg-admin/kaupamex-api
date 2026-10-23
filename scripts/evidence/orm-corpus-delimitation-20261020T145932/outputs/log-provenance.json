@@ -1,0 +1,13 @@
+{
+  "command": [
+    "gh",
+    "api",
+    "repos/jcg-admin/kaupamex-api/actions/runs/39374373036/logs"
+  ],
+  "exit_code": 0,
+  "zip_bytes": 3424683,
+  "zip_sha256": "d7927747127fb38fbd5d9a8b418abfb0eb1a3e7b43eda538eb7d157eb8732e1a",
+  "member": "0_test.txt",
+  "log_bytes": 43736005,
+  "log_sha256": "86fdcae6d7d78d793f9960e81fc554be6b2d8ea5f0a7483e646fcd7965d1524a"
+}

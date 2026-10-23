@@ -1,0 +1,19 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+PASS: historial parcial válido; tablas pendientes no exigidas
+PASS: tabla histórica ausente rechazada
+PASS: historial y datos ajenos preservados; sin reparación
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

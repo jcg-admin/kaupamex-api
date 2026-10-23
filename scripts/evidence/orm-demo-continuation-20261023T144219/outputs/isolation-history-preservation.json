@@ -1,0 +1,38 @@
+{
+  "kaupamex-api": [
+    {
+      "revision": "e8ea2938d5a5c0547e004eb4971bea5a8c34d924",
+      "ancestor_exit": 0
+    },
+    {
+      "revision": "1e3dfe2dae03dd46bba5ffd412fb976ec69e7826",
+      "ancestor_exit": 0
+    },
+    {
+      "revision": "ea963f24fc9626b28f3ddec89548557aec91ae9e",
+      "ancestor_exit": 0
+    },
+    {
+      "revision": "4f5a166f30b076ab4928ca10c28d62dea9e0c4d4",
+      "ancestor_exit": 0
+    },
+    {
+      "revision": "2865700b7bc626bc55a330d69ce74164c2b0bf0f",
+      "ancestor_exit": 0
+    },
+    {
+      "revision": "4b67be0f266c4b5a882a959226a33ec0e77df183",
+      "ancestor_exit": 0
+    },
+    {
+      "revision": "948c523363b75ef2f0091c983a347f328dcfdc43",
+      "ancestor_exit": 0
+    }
+  ],
+  "kaupamex-docs": [
+    {
+      "revision": "b948058d502c1644ff0bde0a256975add2388449",
+      "ancestor_exit": 0
+    }
+  ]
+}

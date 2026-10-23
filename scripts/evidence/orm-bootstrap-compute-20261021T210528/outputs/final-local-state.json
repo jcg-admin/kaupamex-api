@@ -1,0 +1,83 @@
+{
+  "store_sha256": "0f290d162a5907ba8476484c6986100a97d663f9d103a04c63fb5507cab20f6f",
+  "store_unchanged": true,
+  "resources": {
+    "own_ephemeral_databases": 0,
+    "own_ephemeral_roles": 0,
+    "own_scoped_hba_rules": 0
+  },
+  "repositories": [
+    {
+      "repo": "kaupamex-api",
+      "root_resolver": "git rev-parse --show-toplevel",
+      "branch": "feature/codex-workspace-bootstrap",
+      "head": "8b6ea8236b7107aad1c184e48e4c2faf3ec6375a",
+      "worktrees": "worktree /workspace/kaupamex-api\nHEAD 8b6ea8236b7107aad1c184e48e4c2faf3ec6375a\nbranch refs/heads/feature/codex-workspace-bootstrap\n\n",
+      "stashes": "",
+      "pending_changes": " M .claude/coordination/claims.jsonl\n M scripts/evidence/orm-as-is-substantive-20261021T194156/outputs/contractual-assessments.json\n M scripts/evidence/orm-as-is-substantive-20261021T194156/outputs/implementation-assessments.md\n M scripts/evidence/orm-as-is-substantive-20261021T194156/outputs/task-assessments.json\n M scripts/evidence/orm-as-is-substantive-20261021T194156/outputs/task-assessments.md\n?? scripts/evidence/orm-bootstrap-compute-20261021T210528/\n",
+      "jobs_home": "/workspace/kaupamex-api/scripts/evidence"
+    },
+    {
+      "repo": "kaupamex-docs",
+      "root_resolver": "git rev-parse --show-toplevel",
+      "branch": "feature/codex-workspace-bootstrap",
+      "head": "fdc991771efe395b8ff1a7f21d77033834b0b431",
+      "worktrees": "worktree /workspace/kaupamex-docs\nHEAD fdc991771efe395b8ff1a7f21d77033834b0b431\nbranch refs/heads/feature/codex-workspace-bootstrap\n\n",
+      "stashes": "",
+      "pending_changes": " M .claude/coordination/claims.jsonl\n M .claude/eventos/auditar-estado-vm-y-continuidad-20261016T100835/informe-consolidacion-ramas.md\n M source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/hallazgos/hallazgo-H-API-1120-la-base-de-ci-no-tiene-res-users-cuando-se-crean-sus-fk.rst\n M source/gestion/pm/api/iniciativas/completar-raiz-orm/progreso/index.rst\n M source/gestion/pm/api/iniciativas/completar-raiz-orm/tareas-completar-raiz-orm.rst\n",
+      "jobs_home": "/workspace/kaupamex-docs/.claude/jobs"
+    },
+    {
+      "repo": "thyrox",
+      "root_resolver": "git rev-parse --show-toplevel",
+      "branch": "feature/codex-workspace-bootstrap",
+      "head": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+      "worktrees": "worktree /workspace/thyrox\nHEAD 9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f\nbranch refs/heads/feature/codex-workspace-bootstrap\n\n",
+      "stashes": "",
+      "pending_changes": "",
+      "jobs_home": "/workspace/thyrox/.claude/jobs"
+    }
+  ],
+  "native_scoped_jobs": [
+    {
+      "run": "scripts/evidence/orm-as-is-reconciliation-20261021T164519",
+      "manifest": {
+        "instrument": "probes/task_as_is.py",
+        "started_at": "2026-10-21T16:45:19+00:00",
+        "question": "¿Qué obligaciones y TASK existentes corresponden al código actual y qué unidad acotada puede continuar?",
+        "metric": "Reconciliación por identidades nativas, cuerpos/pruebas y procedencia; sin porcentaje global",
+        "blind_to": "No reconstruye población ni cambia estados; presencia o completed no acredita aceptación",
+        "destination": "outputs",
+        "exit_code": 1,
+        "finished_at": "2026-10-21T16:59:20+00:00",
+        "duration_seconds": 841.767254
+      }
+    },
+    {
+      "run": "scripts/evidence/orm-bootstrap-compute-20261021T210528",
+      "manifest": {
+        "instrument": "probes/bootstrap_contract.py",
+        "started_at": "2026-10-21T21:05:28+00:00",
+        "question": "¿Se corrigen bootstrap y compute sin alterar contratos previamente verificados?",
+        "metric": "Bootstrap PostgreSQL limpio, FK válidas, regresiones y controles negativos por defecto concreto",
+        "blind_to": "Sin aceptación global ORM ni inferencia local Provider; sólo unidades actuales y fixture PostgreSQL aislada",
+        "destination": "outputs"
+      }
+    },
+    {
+      "run": "scripts/evidence/orm-as-is-substantive-20261021T194156",
+      "manifest": {
+        "instrument": "probes/evidence_review.py",
+        "started_at": "2026-10-21T19:41:56+00:00",
+        "question": "¿Qué demuestra cada TASK/obligación del alcance existente al contrastar fuente, contratos, pruebas e historia?",
+        "metric": "Expedientes individuales con hechos observados y verificadores concretos; ninguna conclusión genérica por defecto",
+        "blind_to": "Sin aceptación global por presencia o completed; dependencias y evidencia ausentes se delimitan por unidad",
+        "destination": "outputs",
+        "exit_code": 1,
+        "finished_at": "2026-10-21T20:22:34+00:00",
+        "duration_seconds": 2438.260808
+      }
+    }
+  ],
+  "limits": "No remote liveness assertion or global job recensus. Captured before evidence/docs commits; final clean heads/PR state verified after push."
+}
