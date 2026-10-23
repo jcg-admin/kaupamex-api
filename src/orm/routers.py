@@ -76,7 +76,7 @@ _COMPANY_ALIAS_RE = re.compile(r'^company_\d+_db$')
 # ``service.db.list_company_db_names``), así que ``orm`` no registra ninguna
 # entidad y no es INSTALLED_APP.
 _CONTROL_PLANE_APPS = frozenset(getattr(
-    settings, 'MULTIDB_CONTROL_PLANE_APPS', ('sessions', 'contenttypes')))
+    settings, 'MULTIDB_CONTROL_PLANE_APPS', ('sessions',)))
 _CONTROL_PLANE_MODELS = frozenset(m.lower() for m in getattr(
     settings, 'MULTIDB_CONTROL_PLANE_MODELS', ()))
 

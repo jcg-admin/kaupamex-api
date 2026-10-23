@@ -318,9 +318,10 @@ install_company_aliases(DATABASES, list(_MULTIDB_COMPANY_DBS))
 # de arriba puebla aliases ``company_*`` (ver ``orm.routers``).
 DATABASE_ROUTERS = ['orm.routers.CompanyDatabaseRouter']
 
-# Infraestructura Django; los addons base pertenecen a cada instalación
-# conforme a DEC-AISL-05. La granularidad de módulos es un contrato separado.
-MULTIDB_CONTROL_PLANE_APPS = ('sessions', 'contenttypes')
+# Las sesiones conservan su almacenamiento central. Contenttypes sigue a los
+# modelos locales: base.0060 y auth mantienen FK dentro de cada instalación.
+# Propuesta revisable bajo TASK-API-0383; no acredita el ciclo auth multiempresa.
+MULTIDB_CONTROL_PLANE_APPS = ('sessions',)
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
