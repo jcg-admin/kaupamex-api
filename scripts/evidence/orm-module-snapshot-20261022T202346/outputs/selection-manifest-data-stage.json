@@ -1,0 +1,24 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "inputs": [
+    {
+      "id": "TASK-API-0382.manifest_data_stage",
+      "taskId": "TASK-API-0382",
+      "prompt": "Reuse existing converter to load ordered manifest data/demo for explicit database alias; preserve duplicate invocation and error propagation; never finalize installed state",
+      "verify": "Pinned load_data differential order/duplicate/demo/idref/error controls; real PostgreSQL SQL import and rollback; no loader acceptance extrapolation",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py",
+        "tests/unit/modules/test_loading.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-API-0382.manifest_data_stage"
+  ],
+  "provenance": "Native737 pending owner codex-module-lifecycle; loading-contract-reconciliation.json14-dimension load_data contract; existing tools.convert_file verified by source; no dependency on full company schema for isolated data stage",
+  "objective_complete": false,
+  "official_state_changes": false,
+  "limits": "Bounded source unit, no managed dispatch/local inference/global eligibility claim"
+}

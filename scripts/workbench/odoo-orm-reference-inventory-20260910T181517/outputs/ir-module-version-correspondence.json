@@ -1084,10 +1084,10 @@
     {
       "reference": "IrModuleModule.latest_version",
       "responsibility": "Stored version actually installed; selected as installed_version in ModuleGraph snapshot",
-      "consumer": "No separate concrete field in inspected real Django model",
-      "verification": "snapshot-metadata.json; version is manifest-derived and refreshed, not proof of installed version",
+      "consumer": "IrModule.installed_version nullable, noneditable Char; preserves actual installed provenance separately from refreshed IrModule.version",
+      "verification": "version-before-isolated.log3FAIL -> version-after.log3PASS; actual0088 migration forward/reverse on existing rows; snapshot16controls/12differential/twoDBisolation",
       "task": "TASK-API-0382",
-      "acceptance": "not_verified; historical preservation/migration and upgrade use require reconciliation"
+      "acceptance": "Bounded persistence and snapshot verified; installed-version finalization requires successful loader execution; official0382 pending and no merge"
     },
     {
       "reference": "IrModuleModule.published_version",
@@ -1107,7 +1107,7 @@
   "source_review_limit": "Only version dependency contract examined semantically. Structural inventory remains limited by historical extractor for nested/conditional/dynamic definitions. No claim whole file inventoried exhaustively or functionally complete. All other reference_inventory occurrences remain not_verified.",
   "no_new_tasks": true,
   "owner_task": "TASK-API-0382 for graph/catalogue dependency; native search found no exact version literal task, not a proof of global absence",
-  "evidence": "scripts/evidence/orm-continuation-20261022T190749",
+  "evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
   "other_named_declarations_pending": [
     {
       "qualified_symbol": "IrModuleCategory",
@@ -2023,5 +2023,523 @@
       "acceptance": "not_verified",
       "task_resolution": "not_verified"
     }
-  ]
+  ],
+  "previous_current_observation": "e84d348c: no separate installed-version field; now changed, historical record retained in Git",
+  "consumer_inventory": {
+    "name": "ir_module.py",
+    "lines": 751,
+    "classes": [
+      {
+        "name": "IrModuleCategory",
+        "lineno": 22,
+        "decorators": [],
+        "methods": [
+          {
+            "kind": "method",
+            "owner": "IrModuleCategory",
+            "name": "_compute_xml_id",
+            "lineno": 78,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModuleCategory",
+            "name": "_check_parent_not_circular",
+            "lineno": 105,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModuleCategory",
+            "name": "save",
+            "lineno": 125,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": "args",
+              "kwonly": [],
+              "kwarg": "kwargs"
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModuleCategory",
+            "name": "__str__",
+            "lineno": 130,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ]
+      },
+      {
+        "name": "IrModule",
+        "lineno": 134,
+        "decorators": [],
+        "methods": [
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "__str__",
+            "lineno": 308,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "button_install",
+            "lineno": 318,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "button_upgrade",
+            "lineno": 322,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "button_uninstall",
+            "lineno": 326,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "_request_module_change",
+            "lineno": 330,
+            "signature": {
+              "params": [
+                "operation"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "_check_module_dependencies",
+            "lineno": 401,
+            "signature": {
+              "params": [
+                "manifest"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "staticmethod"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "get_module_info",
+            "lineno": 410,
+            "signature": {
+              "params": [
+                "name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "classmethod"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "_get_latest_version",
+            "lineno": 432,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "_get_id",
+            "lineno": 448,
+            "signature": {
+              "params": [
+                "name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "classmethod"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "_get",
+            "lineno": 458,
+            "signature": {
+              "params": [
+                "name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "classmethod"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "downstream_dependencies",
+            "lineno": 472,
+            "signature": {
+              "params": [
+                "exclude_states"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "upstream_dependencies",
+            "lineno": 485,
+            "signature": {
+              "params": [
+                "exclude_states"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModule",
+            "name": "_walk_dependencies",
+            "lineno": 498,
+            "signature": {
+              "params": [
+                "forward",
+                "exclude_states"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ]
+      },
+      {
+        "name": "IrModuleDependency",
+        "lineno": 541,
+        "decorators": [],
+        "methods": [
+          {
+            "kind": "method",
+            "owner": "IrModuleDependency",
+            "name": "__str__",
+            "lineno": 591,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModuleDependency",
+            "name": "_compute_depend",
+            "lineno": 593,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModuleDependency",
+            "name": "_compute_depend_batch",
+            "lineno": 612,
+            "signature": {
+              "params": [
+                "dependencies"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "classmethod"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "IrModuleDependency",
+            "name": "_search_depend",
+            "lineno": 634,
+            "signature": {
+              "params": [
+                "value"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "classmethod"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "IrModuleDependency",
+            "name": "_compute_state",
+            "lineno": 650,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModuleDependency",
+            "name": "all_dependencies",
+            "lineno": 662,
+            "signature": {
+              "params": [
+                "module_names"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "classmethod"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "IrModuleExclusion",
+        "lineno": 694,
+        "decorators": [],
+        "methods": [
+          {
+            "kind": "method",
+            "owner": "IrModuleExclusion",
+            "name": "_compute_exclusion",
+            "lineno": 727,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModuleExclusion",
+            "name": "_search_exclusion",
+            "lineno": 738,
+            "signature": {
+              "params": [
+                "value"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "classmethod"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "IrModuleExclusion",
+            "name": "_compute_state",
+            "lineno": 745,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "IrModuleExclusion",
+            "name": "__str__",
+            "lineno": 750,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ]
+      }
+    ],
+    "functions": [],
+    "raw": 31,
+    "unique": 27
+  },
+  "consumer_sha256": "ec068884cf9536b18c8eb877de03cc8c98bd3e9143e9d4d15de2f1de33716543",
+  "historical_compatibility": {
+    "migration": "0088_module_installed_version",
+    "backfill": false,
+    "legacy_rows": "Keep original version/state; installed_versionNULL because previous metadata is not evidence of an installation",
+    "taxonomy_migration": false,
+    "reverse": "Real operation backwards preserves legacy metadata; dropping the new column naturally removes its newly stored values"
+  },
+  "pending_installed_version_producer": "Only a successful future loader may finalize installed state and installed_version; no API accepting an arbitrary completion was added"
 }

@@ -1,0 +1,26 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "inputs": [
+    {
+      "id": "ModuleGraph.installed_version_persistence",
+      "prompt": "Existing0382 version provenance contract",
+      "verify": "PostgreSQL nullable migration, refresh/request nonmutation and rollback controls",
+      "taskId": "TASK-API-0382",
+      "route": "local",
+      "owned": [
+        "src/addons/base/models/ir_module.py",
+        "src/addons/base/migrations",
+        "tests/integration/base/test_module_catalog_database.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "claims": "Complete current ledger",
+  "selected": [
+    "ModuleGraph.installed_version_persistence"
+  ],
+  "scope": "Existing owned0382 subunit, not global admission",
+  "previous_block_reconciliation": "Missing representation is implementable dependency; preserve unknown historical versions with NULL; no guessed backfill or taxonomy migration",
+  "official_state_changes": false
+}

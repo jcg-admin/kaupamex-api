@@ -1,0 +1,23 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "inputs": [
+    {
+      "id": "ModuleGraph.from_database.preparation_boundaries",
+      "prompt": "Existing0382 public preparation boundary verification; no compute edit",
+      "verify": "Persisted PostgreSQL controls for missing/noninstallable manifests, cycle pruning and repeated removed rows",
+      "taskId": "TASK-API-0382",
+      "route": "local",
+      "owned": [
+        "tests/integration/base/test_module_graph_database.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "ModuleGraph.from_database.preparation_boundaries"
+  ],
+  "after": "Global CI baseline compute failure, acceptance retained; independent verification continues",
+  "claims": "Full ledger, completed own source/test reservation released first",
+  "objective_complete": false,
+  "official_task_state_changes": false
+}

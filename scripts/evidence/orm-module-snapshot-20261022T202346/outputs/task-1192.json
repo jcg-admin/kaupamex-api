@@ -1,0 +1,30 @@
+{
+  "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet.run",
+  "command": "THYROX_ROOT=<declared Provider root> bun run probes/native_task_snapshot.ts",
+  "invocation": {
+    "argv": [
+      "/workspace/.cache/npm/_npx/214ebe133ee6a004/node_modules/bun/bin/bun.exe",
+      "/workspace/kaupamex-api/scripts/evidence/orm-module-snapshot-20261022T202346/probes/native_task_snapshot.ts"
+    ],
+    "cwd": "/workspace/kaupamex-api",
+    "THYROX_ROOT": "/workspace/thyrox"
+  },
+  "observed_at": "2026-10-23T05:43:34.813Z",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "input": {
+    "task_id": "1192"
+  },
+  "task": {
+    "task_id": "1192",
+    "citation_id": "TASK-API-0417",
+    "subject": "Retirar el enrutado de las fachadas: la costura decide, no el constructor",
+    "description": "Cierra la duplicación que TASK-API-0416 declaró en el docstring de `_field_get_attrs` (src/orm/fields.py). Los tres bloques de derivación de la fuente (`compute`/`related`/`precompute`, odoo19c: odoo/orm/fields.py:443-465) viven hoy DOS veces: en `_field_get_attrs`, portados verbatim, y en `apply_source_defaults` de src/orm/fields_nonstored.py, que es lo que las fachadas consultan al construir. Mientras `make_dispatcher`/`Char`/`Json`/`Monetary`/`projection_or_none` enruten por clase en el constructor, la copia de `fields_nonstored` no se puede retirar: es lo único que decide qué clase se instancia. El trabajo es retirar ese enrutado para que las fachadas devuelvan UNA sola clase y la derivación de `store` la haga la costura al contribuir (que es el orden de la fuente). Verificación: `apply_source_defaults` deja de contener los tres bloques y la suite de tests/unit/orm sigue verde.",
+    "status": "in_progress",
+    "owner": null,
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "scope": "Native read only; export is evidence, not replacement TaskStore authority"
+}

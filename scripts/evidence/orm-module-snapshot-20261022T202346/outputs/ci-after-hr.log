@@ -1,0 +1,66 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ALTER ROLE
+uv sync --frozen
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Checked 67 packages in 0.53ms
+uv run --frozen python scripts/check_ci_database.py
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+PASS: destino PostgreSQL desechable autorizado; QA compartida excluida.
+make pdf
+make[1]: Entering directory '/workspace/kaupamex-api'
+make -C src/tools/pdf build
+make[2]: Entering directory '/workspace/kaupamex-api/src/tools/pdf'
+make[2]: Nothing to be done for 'build'.
+make[2]: Leaving directory '/workspace/kaupamex-api/src/tools/pdf'
+make[1]: Leaving directory '/workspace/kaupamex-api'
+uv run --frozen pytest --create-db --maxfail=1 -q --junitxml=test-results/pytest.xml
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+........................................................................ [  0%]
+.....E
+==================================== ERRORS ====================================
+____ ERROR at setup of TestCartSnapshotsV2.test_saves_cart_and_returns_200 _____
+tests/integration/test_v2_cart_wishlist_notifications.py:65: in cart_with_item
+    add_item_to_draft(order, product_f2, quantity=1)
+addons/sale/services.py:125: in add_item_to_draft
+    'name': _line_snapshot_name(product),
+addons/sale/services.py:91: in _line_snapshot_name
+    return str(product)
+addons/product/models/product_product.py:178: in __str__
+    return f'[{self.default_code}] {self.display_name}' \
+src/orm/fields.py:1657: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign product.ProductProduct(1,).display_name
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/integration/test_v2_cart_wishlist_notifications.py::TestCartSnapshotsV2::test_empty_cart_returns_400
+  /workspace/kaupamex-api/src/orm/fields.py:4161: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_v2_cart_wishlist_notifications.py::TestCartSnapshotsV2::test_empty_cart_returns_400
+  /workspace/kaupamex-api/src/orm/fields.py:4161: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+----- generated xml file: /workspace/kaupamex-api/test-results/pytest.xml ------
+=========================== short test summary info ============================
+ERROR tests/integration/test_v2_cart_wishlist_notifications.py::TestCartSnapshotsV2::test_saves_cart_and_returns_200
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+77 passed, 1 skipped, 3 warnings, 1 error in 461.12s (0:07:41)
+make: *** [Makefile:147: ci-verify] Error 1
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

@@ -16157,11 +16157,18 @@
         "reference_named_declarations": 19,
         "current_consumer_inventory": "Re-extracted with existing file_inventory after source changes; no new extractor",
         "version_dependency": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/ir-module-version-correspondence.json",
-        "verification": "28inventory/contracts +12pure graph +7native continuation controls PASS; strengthened actual-reference protocol1PASS is an existing case. Final global77PASS/1SKIP/1ERROR,501.83s,pytest1/make2; same baseline display_name first error, subsequent tests NOT_EVALUATED",
-        "acceptance": "not_verified; no file or initiative acceptance",
-        "continuation_evidence": "scripts/evidence/orm-continuation-20261022T190749",
-        "pending": "Database-bound state/version snapshot and loader wiring; pure explicit pruning controls verified independently. Installed-version persistence cannot be inferred from refreshed manifest version; schema/data/hooks/effective registry/worker acceptance remain pending",
-        "imported_modules": "Fifth native selection:2reference-only controls PASS; actual Consumer metadata lacks imported; producer/provenance/loader integration pending, no schema change. See current job outputs/imported-module-contract.json"
+        "verification": "30pure inventory/contract tests +12static regressions PASS;3catalogue controls;20snapshot/preparation controls;12pinned differential cases;twoDBisolation and actual0088forward/reverse. CI FAIL77PASS/1SKIP/1ERROR in512.57s,pytest1/make2; exact baseline display_name, subsequent tests NOT_EVALUATED.",
+        "acceptance": "not_verified; official0382 pending, no merge; verification does not establish full loader acceptance",
+        "continuation_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "pending": "Read-only graph snapshot now binds explicit DB alias and filters by mode. Full loader/schema/data/hooks/effective registry/worker consistency and installed-version finalization remain pending; imported module provenance remains pending.",
+        "imported_modules": "Fifth native selection:2reference-only controls PASS; actual Consumer metadata lacks imported; producer/provenance/loader integration pending, no schema change. See current job outputs/imported-module-contract.json",
+        "installed_version_persistence": {
+          "implementation": "IrModule.installed_version nullable/noneditable;0088 migration",
+          "contract": "Counterpart of reference stored latest_version, distinct from manifest IrModule.version",
+          "compatibility": "Existing rows retain version/state and installed_versionNULL. No guessed historical backfill or taxonomy migration.",
+          "evidence": "scripts/evidence/orm-module-snapshot-20261022T202346/outputs/version-migration.log"
+        },
+        "loading_dependency": "Existing inventory outputs/loading-contract-reconciliation.json:7named declarations structurally recorded, installed-version producer flow reviewed,6others pending; full loader not accepted."
       }
     },
     {
@@ -70055,7 +70062,8 @@
           "end": 625,
           "source_sha256": "a2a13078d389a6f713cc195c3a2d539042dc03e11b075bfc0ff292667a8d67ad",
           "body": "def _compute_depend_batch(cls, dependencies):\n        \"\"\"El lote de ``_compute_depend``, con una sola consulta.\n\n        Es la forma de la fuente —``search`` de todos los nombres, índice por\n        nombre, asignación en bucle— y la razón de portarla es medible: sin\n        ella, resolver N aristas cuesta N consultas.\n        \"\"\"\n        dependencies = list(dependencies)\n        if not dependencies:\n            return {}\n        aliases = {dependency._state.db or router.db_for_read(IrModule, instance=dependency)\n                   for dependency in dependencies}\n        if len(aliases) != 1:\n            raise ValidationError('A dependency batch must belong to one database')\n        using = aliases.pop()\n        names = {dependency.name for dependency in dependencies}\n        by_name = {module.name: module\n                   for module in IrModule.objects.using(using).filter(name__in=names)}\n        return {dependency.pk: by_name.get(dependency.name)\n                for dependency in dependencies}"
-        }
+        },
+        "scripts/evidence/orm-module-snapshot-20261022T202346"
       ],
       "task_mentioned_commits": [],
       "commits_explicit_in_native_description": [],
@@ -70063,14 +70071,67 @@
       "tests": [
         "tests/integration/base/test_module_catalog_database.py",
         "tests/integration/base/test_module_state_requests.py",
-        "scripts/evidence/orm-module-state-20261022T032053/probes/database_module_states.py"
+        "scripts/evidence/orm-module-state-20261022T032053/probes/database_module_states.py",
+        "tests/integration/base/test_module_graph_database.py"
       ],
       "observed_conclusion": "Catalogue refresh no longer derives operational states from imported apps. Administrative requests validate dependencies/authorization, lock and queue transitions in one database. Two real databases retain distinct states, concurrent requests and rollback; mixed-database batches with colliding IDs are rejected. Installation itself is not executed by these requests.",
-      "next_action": "Complete effective registry and schema/data/hooks loader using existing mechanisms. Global automation signals still lose explicit DB alias on metadata writes; prototype isolated process composition is not production integration. TASK-API-0173 identity checked; no arbitrary relocation of capability identities or historical migration rewrite.",
-      "verification_and_acceptance": "28inventory/contracts +12pure graph +7continuation controls PASS; full ci-verify FAIL pytest1/make2,77PASS/1SKIP/1ERROR,501.83s,exact prior remote compute assignment error. Cleanup0databases/0roles. No TASK acceptance or merge.",
+      "next_action": "Preserve actual loader producer contract: loading.load_module_graph writes installed state/version only after domain initialization/data/hooks and commits before optional at_install tests. Current Django migration and registry reflection are partial mechanisms, not whole-loader equivalence. Full company migration verification under existing owned0383 is now running independently.",
+      "verification_and_acceptance": "3catalogue +20snapshot/preparation controls,12pinned differential cases,twoDBisolation and0088forward/reverse PASS;30pure contracts +12static regressions PASS. CI FAIL77PASS/1SKIP/1ERROR512.57s,pytest1/make2,baseline display_name; later tests NOT_EVALUATED. No TASK acceptance or merge.",
       "integration_rule": "Existing feature branch/PR109; no merge or official TASK state change.",
-      "publication_and_ci": "Current batch starts from published0d91ce3e494a09d27868998d48bec96a75480ca3; current changes not yet committed. PR109 remains unmerged; see batch evidence for final publication outcome.",
-      "history_search_result": "Prior AS IS retained; module-lifecycle and current scoped native exports reused."
+      "publication_and_ci": "Working changes after f0da172d; see scripts/evidence/orm-module-snapshot-20261022T202346 for final commit/PR/CI result.",
+      "history_search_result": "Prior AS IS retained; module-lifecycle and current scoped native exports reused.",
+      "source_evidence_snapshot_limit": "Earlier captured method bodies retain historical source hashes; current Consumer file inventories/hashes and current19symbol reconciliation are the authority for this new batch.",
+      "current_manifest_data_stage": {
+        "implementation": "src/modules/loading.py::load_data",
+        "tests": "tests/unit/modules/test_loading.py",
+        "verification": "six unit controls; five pinned source differential cases; actual PG SQL duplicate/rollback controls PASS",
+        "acceptance": "not_verified for full task; data/demo orchestration caller, XML/CSV/hook/registry composition and installed finalization pending",
+        "evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "ci": "Final497.81s77PASS/1SKIP/1ERROR make2 baseline first error; later NOT_EVALUATED; six focused and five differential controls remain separate"
+      }
+    },
+    {
+      "citation": "TASK-API-0383",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "738"
+      },
+      "official_status": "pending",
+      "official_owner": "codex-module-lifecycle",
+      "claims": [
+        "Native claimsCommand; src/service/db.py and tests/unit/service/test_provision_company.py under0383"
+      ],
+      "dependency_sources": {
+        "raw": [],
+        "functional_conditions": "Existing accepted DEC-AISL-05 and bounded routing fixes preserved. Complete company migration is a schema prerequisite, independent of display_name compute."
+      },
+      "scope_source": {
+        "native_subject": "Implementar DEC-AISL-05: toda app de dominio migra a toda base",
+        "native_description": "Decisión del ejecutor 2026-08-21 (DEC-AISL-05): \"queremos que nuestra api sea igual a la referencia … cada base es una instalación completa: su propio res_company, su propio res_users, su propio ir_module_module\". Cierra #443.\n\nPiezas medidas que cambian:\n\n1. `src/config/settings/base.py:328` — MULTIDB_CONTROL_PLANE_APPS pierde los tres base*: `base`, `base_address_extended`, `base_geolocalize`. Queda ('sessions', 'contenttypes'), que es el default del router (routers.py:57-58).\n2. `src/orm/routers.py:149-153` — allow_migrate deja de partir el dominio, Y consulta el roster como hace _target (hoy fija `db == DEFAULT_DB_ALIAS or db.startswith('company_')` sin consultarlo; H-API-783).\n3. Las 79 FK de dominio a res_users quedan intra-base — no se corta ninguna.\n4. Reactivar los 3 skip que citan H-API-262.\n5. Verificar migrate ×N sobre una company_<N>_db real (hoy MULTIDB_COMPANY_DATABASES está en default='' y no hay alias company_* en settings.DATABASES).\n\nAlcance del cambio: 21 apps rompían bajo el reparto actual (22 mencionan base.rescompany en migraciones, menos `base`), sobre 120 apps addons.* en INSTALLED_APPS.\n\nNO incluye la granularidad de instalación por base (ir_module_module.state) — eso es #737.\n\nVer decisiones-implementar-aislamiento-multi-db-per-company (DEC-AISL-05), analisis-multidb-en-la-referencia, h-api-783, h-api-784. Toca ADR-021 (cierra su punto \"Abierta (capa-3 de 091)\").",
+        "additional_authority": "Current user continuation; source-level full-company failure and existing owner admission revalidated"
+      },
+      "source_evidence": [
+        "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "src/service/db.py::provision_company_database",
+        "tests/unit/service/test_provision_company.py",
+        "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/loading-contract-reconciliation.json",
+        "addons/hr/migrations/0004_hrpayrollstructuretype_default_resource_calendar.py",
+        "tests/unit/hr/test_payroll_calendar_migration.py"
+      ],
+      "task_mentioned_commits": [],
+      "commits_explicit_in_native_description": [],
+      "history_limit": "Prior admission0383 and current source/TaskGet reused; not a fresh global task inventory",
+      "tests": [
+        "tests/unit/service/test_provision_company.py",
+        "tests/integration/company/test_multidb_isolation.py",
+        "probes/verify_full_company_migrations.py under current evidence"
+      ],
+      "observed_conclusion": "Context fix110c8182 preserves target alias and caller scope. Complete company replay fails at base0060 contenttypes FK: native migration dependencies are satisfied in recorder but router omits the actual table. In-memory local-contenttypes experiment passes that point and exposes hr0004 evaluating current ResCompany before all columns exist. Historical nullable DDL now separates physical default NULL from preserved runtime callable in migration state; no current HR model change.",
+      "verification_and_acceptance": "Context11PASS; negative8FAIL/3PASS expected. CI after context77PASS/1SKIP/1ERROR542.65s make2. HR historical PG controlRED1/GREEN0/negative1 expected; fixed8bf4369f. Experimental company provisioning now exits1 at website_sale default resolving IrModelData.ref in empty central DB. Metadata/session reduced control exits1 in automation alias loss; later checks NOT_EVALUATED. Official pending, no acceptance/merge.",
+      "next_action": "Reconcile contenttypes placement and automation alias consumer ownership; distinguish website_sale historical default from IrModelData.ref alias contract. Do not hide either behind a prepopulated central DB or in-memory override. Full productive provisioning, skipped fixture reactivation and independent acceptance remain pending. Continue independent admitted0382 manifest-data stage.",
+      "integration_rule": "Existing feature branch/PR109; no Task state transition or merge",
+      "publication_and_ci": "110c8182,8bf4369f and2cc7758d published on feature branch. After-HR global461.12s and after-data497.81s preserve baseline first error. No acceptance or merge.",
+      "history_search_result": "Current native738 owner and prior lifecycle admission0383 verified, no new TASK"
     }
   ],
   "legacy_resolution": [
@@ -70262,5 +70323,10 @@
     }
   ],
   "observed_develop": "ed55e6d5ff4879f0e7170ed1daf5fb90eff6154f",
-  "scope_limit": "Individual analysis of existing scope, not whole ORM conformance or new canonical backlog. Every unexecuted obligation has its own behavior/fixture condition, no generic default finding."
+  "scope_limit": "Individual analysis of existing scope, not whole ORM conformance or new canonical backlog. Every unexecuted obligation has its own behavior/fixture condition, no generic default finding.",
+  "incremental_scope_extension_0383": {
+    "reason": "Current owned lifecycle prerequisite admitted and observed while continuing0382; add existing native738, not a new TASK or AS IS rebuild",
+    "source": "scripts/evidence/orm-module-snapshot-20261022T202346",
+    "original_population_preserved": true
+  }
 }
