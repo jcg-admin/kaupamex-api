@@ -160,6 +160,7 @@ sucesor:
 import logging
 
 from django.apps import apps
+from django.db import router
 from django.utils import timezone
 
 import fields
@@ -238,10 +239,11 @@ def _default_salesteam_id():
     modelo como en la fuente. Devuelve la clave primaria, que es lo que aquel
     ``return team.id`` devuelve.
 
-    Hoy devuelve ``None`` siempre porque el identificador externo no está
-    sembrado — ver ``WEBSITE_SALESTEAM_XMLID``.
+    El router selecciona el catálogo de la empresa activa. La ausencia del
+    identificador en ese catálogo no autoriza consultar la base central.
     """
-    team = IrModelData.ref(WEBSITE_SALESTEAM_XMLID, raise_if_not_found=False)
+    team = IrModelData.ref(WEBSITE_SALESTEAM_XMLID, raise_if_not_found=False,
+                           using=router.db_for_read(IrModelData))
     if team is not None and team.active:
         return team.pk
     return None
