@@ -17,8 +17,15 @@ from service.db import (
 )
 
 
+@pytest.fixture(autouse=True)
+def applied_schema_check():
+    """La comprobación física se verifica por separado con PostgreSQL real."""
+    with mock.patch('service.db._check_applied_schema'):
+        yield
+
+
 @mock.patch('service.db.call_command')
-@mock.patch('service.db._ensure_alias_registered')
+@mock.patch('service.db.install_company_aliases')
 @mock.patch('service.db.config')
 def test_migrate_all_ok(mock_config, mock_reg, mock_call):
     mock_config.management_enabled.return_value = True
@@ -31,7 +38,7 @@ def test_migrate_all_ok(mock_config, mock_reg, mock_call):
 
 
 @mock.patch('service.db.call_command')
-@mock.patch('service.db._ensure_alias_registered')
+@mock.patch('service.db.install_company_aliases')
 @mock.patch('service.db.config')
 def test_migrate_all_partial_failure_does_not_abort(mock_config, mock_reg, mock_call):
     mock_config.management_enabled.return_value = True
@@ -57,7 +64,7 @@ def test_migrate_all_management_disabled_raises_before_loop(mock_config, mock_ca
 
 
 @mock.patch('service.db.call_command')
-@mock.patch('service.db._ensure_alias_registered')
+@mock.patch('service.db.install_company_aliases')
 @mock.patch('service.db.config')
 @mock.patch('service.db.list_company_db_names')
 def test_migrate_all_default_names_from_discovery(

@@ -18,6 +18,14 @@ from orm.routers import CompanyDatabaseRouter
 pytestmark = pytest.mark.unit
 
 
+@pytest.fixture(autouse=True)
+def applied_schema_check():
+    """La orquestación se aísla; la comprobación física tiene pruebas PostgreSQL."""
+    with mock.patch.object(db, '_check_applied_schema', create=True) as check:
+        yield check
+
+
+
 def _patches():
     return (
         mock.patch.object(db, 'ensure_management_enabled'),
@@ -95,3 +103,44 @@ def test_invalid_company_database_is_refused_before_creation():
     create.assert_not_called()
     alias.assert_not_called()
     migrate.assert_not_called()
+
+
+
+def test_existing_incoherent_schema_is_rejected_before_migration(applied_schema_check):
+    applied_schema_check.side_effect = RuntimeError('Applied table is missing')
+    p_mgmt, p_create, p_alias, p_migrate = _patches()
+    with p_mgmt, p_create as create, p_alias, p_migrate as migrate, \
+            mock.patch.object(db, 'database_exists', return_value=True), \
+            company_scope(91):
+        with pytest.raises(RuntimeError, match='Applied table is missing'):
+            db.provision_company_database('company_7_db')
+        assert get_current_company() == 91
+    create.assert_not_called()
+    migrate.assert_not_called()
+
+
+def test_bulk_uses_target_context_and_continues_after_invalid_schema(applied_schema_check):
+    observed = []
+
+    def check(alias):
+        assert str(get_current_company()) == alias.split('_')[1]
+        if alias == 'company_2_db':
+            raise RuntimeError('Applied table is missing')
+
+    def migrate(*args, **kwargs):
+        alias = kwargs['database']
+        assert str(get_current_company()) == alias.split('_')[1]
+        observed.append(alias)
+
+    applied_schema_check.side_effect = check
+    with mock.patch.object(db, 'ensure_management_enabled'), \
+            mock.patch.object(db, '_ensure_alias_registered'), \
+            mock.patch.object(db, 'install_company_aliases'), \
+            mock.patch.object(db, 'call_command', side_effect=migrate), \
+            company_scope(91):
+        results = db.migrate_all_company_databases(
+            ['company_1_db', 'company_2_db', 'company_3_db'])
+        assert get_current_company() == 91
+    assert [row['status'] for row in results] == ['ok', 'failed', 'ok']
+    assert 'Applied table is missing' in results[1]['error']
+    assert observed == ['company_1_db', 'company_3_db']
