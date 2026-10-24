@@ -95,11 +95,20 @@ def _local_apps() -> tuple[str, ...]:
     un ``ready()`` que cuelga campos sobre un modelo ajeno encuentra el
     registro poblado sin que nadie tenga que recordarlo.
 
+    Se excluyen addons no instalables y sus dependientes antes del registro
+    de clases. Esta selección de código no acredita instalación por base.
+
     ``core`` va primero y a mano: no es un addon —es código transversal bajo
     ``src/core/``— y por tanto no está en el grafo.
     """
+    addon_names = get_modules()
     graph = ModuleGraph()
-    graph.extend(get_modules())
+    graph.extend(addon_names)
+    # La presencia en disco no admite clases: podar antes de poblar Django.
+    # _remove también retira dependientes sin duplicar el algoritmo del grafo.
+    for name in addon_names:
+        if name in graph and not graph[name].manifest.get('installable', True):
+            graph._remove(name)
 
     # El ciclo se busca ANTES de iterar: ``cycles()`` es un DFS iterativo y
     # aguanta un grafo cíclico, pero ``__iter__`` ordena por ``depth``, que
