@@ -21,6 +21,11 @@ vuelven con él.
 from drf_spectacular.authentication import SessionScheme
 
 
+SPECTACULAR_TAGS = [
+    {'name': 'technical-modules', 'description': 'Consulta del catálogo técnico de módulos.'},
+]
+
+
 class CsrfExemptSessionScheme(SessionScheme):
     """Documenta la auth por sesión (ADR-018) en el esquema OpenAPI.
 

@@ -40,6 +40,7 @@ MODULES = [
 ]
 
 CAPABILITIES = [
+    CapabilitySpec(code='settings.modules', name='Consultar catálogo técnico de módulos'),
     CapabilitySpec(code='account.bus', name='Leer mi canal de eventos'),
     CapabilitySpec(code='account.deactivate', name='Dar de baja mi cuenta'),
     CapabilitySpec(
