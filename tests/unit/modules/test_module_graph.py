@@ -90,3 +90,63 @@ def test_true_trigger_requires_dependencies_and_false_never_qualifies(monkeypatc
     graph['manual'].manifest['auto_install'] = False
     assert graph.auto_installable([]) == []
     assert graph.auto_installable(['base']) == ['bridge']
+
+
+@pytest.fixture
+def bound_graph(monkeypatch):
+    """Aísla el catálogo para verificar la orquestación incremental."""
+    manifests = {
+        'base': {'depends': [], 'installable': True},
+        'child': {'depends': ['base'], 'installable': True},
+        'disabled': {'depends': ['base'], 'installable': False},
+        'cycle_a': {'depends': ['cycle_b'], 'installable': True},
+        'cycle_b': {'depends': ['cycle_a'], 'installable': True},
+    }
+    monkeypatch.setattr(module_graph, 'load_manifest', manifests.__getitem__)
+    calls = []
+
+    def snapshot(graph, names, *, using):
+        assert using == 'default'
+        names = tuple(name for name in names if name in graph)
+        calls.append(names)
+        for name in names:
+            node = graph[name]
+            node.id = 11 if name == 'base' else 22
+            node.state = node.load_state = 'installed' if name == 'base' else 'to install'
+            node.installed_version = node.load_version = 'persisted-old'
+            node.demo = True
+
+    monkeypatch.setattr(module_graph.ModuleGraph, '_update_from_database', snapshot)
+    graph = module_graph.ModuleGraph.from_database(['base'], using='default', mode='update')
+    return graph, calls
+
+
+def test_bound_extension_snapshots_new_nodes_without_overwriting_loaded_state(bound_graph):
+    graph, calls = bound_graph
+    graph['base'].state = 'to upgrade'
+    graph.extend(['child'])
+    child = graph['child']
+    assert (child.id, child.state, child.load_state, child.demo) == (22, 'to install', 'to install', True)
+    assert child.installed_version == child.load_version == 'persisted-old'
+    assert child.phase == 2
+    assert graph['base'].state == 'to upgrade'
+    assert graph['base'].load_state == 'installed'
+    assert calls == [('base',), ('child',)]
+
+
+def test_bound_extension_prunes_uninstallable_manifests(bound_graph):
+    graph, _ = bound_graph
+    graph.extend(['disabled'])
+    assert set(graph._nodes) == {'base'}
+
+
+def test_bound_extension_prunes_new_dependency_cycles(bound_graph):
+    graph, _ = bound_graph
+    graph.extend(['cycle_a'])
+    assert set(graph._nodes) == {'base'}
+
+
+def test_bound_extension_of_existing_nodes_does_not_reload_catalogue(bound_graph):
+    graph, calls = bound_graph
+    graph.extend(['base'])
+    assert calls == [('base',)]

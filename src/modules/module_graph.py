@@ -120,14 +120,6 @@ class ModuleGraph:
         graph = cls(mode=mode)
         graph.using = using
         graph.extend(names)
-        new_names = tuple(graph._nodes)
-        for name in new_names:
-            if name in graph and (not graph[name].manifest or not
-                                  graph[name].manifest.get('installable', True)):
-                graph._remove(name)
-        graph._update_depends(new_names)
-        graph._update_depth(new_names)
-        graph._update_from_database(new_names, using=using)
         return graph
 
     def _update_from_database(self, names: Iterable[str], *, using: str) -> None:
@@ -215,7 +207,13 @@ class ModuleGraph:
         return len(self._nodes)
 
     def extend(self, names: Collection[str]) -> None:
-        """Añade los addons y, transitivamente, sus ``depends``. ≙ referencia."""
+        """Amplía dependencias y prepara los nodos nuevos si hay base vinculada.
+
+        El grafo estático conserva su diagnóstico explícito. Un snapshot por
+        alias vuelve a leer únicamente las incorporaciones, sin sobrescribir
+        estados que el cargador haya cambiado en los nodos existentes.
+        """
+        new_names = []
         pending = list(names)
         seen: set[str] = set()
         while pending:
@@ -225,9 +223,19 @@ class ModuleGraph:
             seen.add(name)
             if name not in self._nodes:
                 self._nodes[name] = ModuleNode(name, self)
+                new_names.append(name)
             pending.extend(
                 d for d in self._nodes[name].depends if d not in seen
             )
+
+        if self.using is not None and new_names:
+            for name in new_names:
+                if name in self and (not self[name].manifest or not
+                                     self[name].manifest.get('installable', True)):
+                    self._remove(name)
+            self._update_depends(new_names)
+            self._update_depth(new_names)
+            self._update_from_database(new_names, using=self.using)
 
     def _remove(self, name: str, log_dependents: bool = True) -> None:
         """Retira un nodo y sus dependientes del grafo que se está preparando.
