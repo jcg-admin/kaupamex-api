@@ -1,0 +1,95 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph.extend",
+  "reference_sha256": "584f0e71063b36211147bc8190a5e348d0674153ba7b981d71179a85d753b8c5",
+  "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+  "task": "TASK-API-0382",
+  "official_owner": "codex-module-lifecycle",
+  "official_status": "pending",
+  "behavior": "Prepare newly extended database-bound graph nodes from the selected catalogue and preserve prior snapshots/caller-mutated states",
+  "execution_flow": [
+    "Bind alias once in from_database",
+    "Extend transitive manifest closure; track only genuinely new names",
+    "For bound graphs, prune absent/uninstallable manifests, invalid dependencies and cycles",
+    "Read known newly retained catalogue rows with the same explicit alias",
+    "Populate identity/state/demo/version snapshots; load/update filtering and ordering remain native graph operations"
+  ],
+  "inputs_outputs": "Initial snapshot plus addon names -> extended/pruned graph whose new nodes reflect the selected catalogue; None return, catalogue errors propagate",
+  "side_effects": "In-memory node mutation and one SELECT for nonempty retained additions; no catalogue writes, schema/data/hook execution, commits, installed-version finalization or TASK state changes",
+  "dependencies": [
+    "Existing manifest resolver and transitive closure adaptation",
+    "Existing _remove/_update_depends/_update_depth/_update_from_database",
+    "Django explicit alias/queryset",
+    "IrModule persisted state/demo/installed_version",
+    "Recomputed properties instead of Odoo cached_property invalidation"
+  ],
+  "consumers": [
+    "Reference loading.load_modules fixed-point graph extensions",
+    "Consumer ModuleGraph.from_database public bound entry point and subsequent extend",
+    "Consumer build_graph and IrModule administrative request graphs remain static/unbound; no effective loader integration inferred"
+  ],
+  "installed_mechanism": "src/modules/module_graph.py::extend now composes existing preparation/snapshot stages when using is bound; from_database delegates once",
+  "existing_adaptation": "Two graph modes retained, static transitive closure retained; explicit alias replaces bound Odoo cursor. No new coordinator, schema, persisted field or taxonomy",
+  "verification": {
+    "red": "3FAIL13PASS exit1: stale new snapshots, unpruned uninstallable manifest and new cycle",
+    "green": "16PASS exit0",
+    "neighbors": "65PASS exit0, including existing graph reference-body and loading-stage contracts; separate run, not summed as one suite",
+    "postgres": "Six bounded catalogue/alias/snapshot/order/read-only controls PASS on two schemas of one owned DB; not N>1 productive installation",
+    "differential": "12 incremental mode/state combinations PASS using unmodified pinned classes from existing fixture extractor",
+    "adapters": "Manifest fixtures, Consumer OrderedSet/reset_cached_properties, false imported-column probe, cursor IN/ANY and latest_version/installed_version protocol adaptation; not native Odoo runtime",
+    "negative": "Bypass bound extension -> FAIL expected1; force default alias -> FAIL expected1",
+    "instrument_failures": "First differential NameError OrderedSet; second import from tools failed; corrected tools.misc import; all raw logs retained and resources cleaned",
+    "mandatory_ci": {
+      "revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+      "classification": "BASELINE_FAILURE",
+      "passed": 77,
+      "skipped": 1,
+      "errors": 1,
+      "seconds": 429.67,
+      "pytest_exit": 1,
+      "make_exit": 2,
+      "harness_exit": 2,
+      "cleanup": "Own database and role removed successfully after failure",
+      "first_failure": "ProductProduct.display_name in TestCartSnapshotsV2.test_saves_cart_and_returns_200",
+      "log": "outputs/incremental-graph-ci.log",
+      "junit": "outputs/incremental-graph-ci.junit.xml",
+      "comparison": "Same first failure as prior remote479f02c6 JUnit; no regression demonstrated by evaluated cases",
+      "remaining_tests": "NOT_EVALUATED after maxfail=1",
+      "acceptance": "not_verified"
+    },
+    "docs_checker": "6PASS exit0; Sphinx NOT_EVALUATED"
+  },
+  "equivalence": "Bounded adapted incremental preparation verified; no whole file/loader/Registry acceptance",
+  "limitations": [
+    "Imported module provenance/diagnostic exception remains pending",
+    "Global model composition, schema/data/hooks, installed-version producer and worker invalidation remain pending",
+    "Unknown catalogue rows retain pinned defaults, not installation acceptance",
+    "Two schema aliases do not demonstrate two productive company databases",
+    "Official acceptance and integration require their own gates"
+  ],
+  "integration": {
+    "PR": 109,
+    "merged": false,
+    "acceptance": "not_verified",
+    "official_states_changed": false
+  },
+  "inventory_authority": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/module-graph-contract-reconciliation.json",
+  "consumer_sha256": "9cc75624ff4e0342ad2d3fa3fcb7c20064193af408f04512e1b24e1424946390",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "native_selection": "outputs/incremental-graph-selection.json",
+  "command": "Existing qa_context.py -> uv run --frozen python probes/verify_incremental_graph.py [--differential|--annul|--wrong-alias], UV_CACHE_DIR and pinned ODOO_TOOLS declared per invocation",
+  "prior_remote_ci": {
+    "revision": "479f02c6",
+    "run": 40037369272,
+    "status": "FAILURE",
+    "classification": "BASELINE_FAILURE",
+    "passed": 77,
+    "skipped": 1,
+    "errors": 1,
+    "junit_time_seconds": 458.158,
+    "first_error": "ProductProduct.display_name",
+    "evidence": "outputs/incremental-graph-prior-ci.json; incremental-graph-prior-ci.junit.xml",
+    "empty_cli_log": "Retained empty output; not used as cause evidence"
+  },
+  "instruction_review": "55existing sections reconciled, prior observations retained; no global contract denominator or completeness inference"
+}

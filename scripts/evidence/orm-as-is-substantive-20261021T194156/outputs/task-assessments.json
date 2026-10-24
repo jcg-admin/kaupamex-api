@@ -23012,6 +23012,13 @@
         "cleanup": "Aliases removed; independent maintenance check0remaining knownDB/roles,exit0",
         "harness_limit": "Two probe errors kept separately: over-broad injection and postpytest protected Django query; both overallexit1,not product verdict",
         "native_continuation": "Same unaccepted qualification candidate; no fake accepted state or global coverage; see isolation-native-continuation.json"
+      },
+      "current_incremental_graph_extension": {
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "contract_authority": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/module-graph-contract-reconciliation.json#incremental_extension",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/incremental-graph-summary.json",
+        "scope": "Read-only incremental bound graph preparation; 62TASK population unchanged",
+        "acceptance": "not_verified"
       }
     },
     {
@@ -23895,7 +23902,14 @@
     "consumer_revision": "56c6d4eab2426e93a4af86f24383f92044c93278",
     "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/loading-support-summary.json",
     "scope": "Incremental current0382/0383 observation; original top revision/measurements and prior continuation windows remain historical. No62-task reconstruction.",
-    "native_state_differences_from_historical_rows": []
+    "native_state_differences_from_historical_rows": [],
+    "incremental_graph_extension": {
+      "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+      "contract_authority": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/module-graph-contract-reconciliation.json#incremental_extension",
+      "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/incremental-graph-summary.json",
+      "scope": "Read-only incremental bound graph preparation; 62TASK population unchanged",
+      "acceptance": "not_verified"
+    }
   },
   "current_company_policy_scope": {
     "production_revision": "ea963f24",

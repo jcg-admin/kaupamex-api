@@ -351,3 +351,21 @@ pytest1/Make2, primer fallo heredado ProductProduct.display_name,
 comprobado también en CI remoto de a699454f. JUnit y log completos
 `outputs/schema-preflight-ci.junit.xml` y `outputs/schema-preflight-ci.log`.
 Pruebas posteriores NOT_EVALUATED; no aceptación global ni merge.
+
+### Extensión incremental vinculada: TASK-API-0382
+
+`312b7fb6` reutiliza la preparación del grafo dentro de extensiones vinculadas
+a un alias. RED3FAIL13PASS -> GREEN16PASS; controles vecinos65PASS en otra
+ejecución. PostgreSQL propio verifica alias, estado/demo/versión, poda y fase
+sin escrituras del grafo.12comparaciones incrementales de cuerpos fijados PASS;
+los adaptadores se declaran en el resumen. Anular preparación o forzar alias
+default causa fallos esperados1. Los errores de instrumento de los primeros
+diferenciales se conservan; no son regresiones productivas ni PASS.
+Autoridad contractual: banco existente `module-graph-contract-reconciliation.json`,
+sección `incremental_extension`; resumen y registros `outputs/incremental-graph-*`.
+No demuestra instalación efectiva, dos bases de empresa, aceptación ni merge.
+
+Gate local312b7fb6:77PASS1SKIP1ERROR429.67s,pytest1/Make2; primer fallo
+heredado ProductProduct.display_name, comprobado también en JUnit remoto479f02c6.
+JUnit/log completos en `outputs/incremental-graph-ci.*`. Lo posterior al primer
+error queda NOT_EVALUATED; la aceptación integral sigue pendiente.

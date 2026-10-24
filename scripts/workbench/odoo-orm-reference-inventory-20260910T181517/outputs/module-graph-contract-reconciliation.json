@@ -4,7 +4,7 @@
   "supplemental_reference": "module-graph-pilot.json#supplemental_source_review; conditional alias/imports/logger/bases/attributes retained",
   "consumer_inventory": {
     "name": "module_graph.py",
-    "lines": 379,
+    "lines": 387,
     "classes": [
       {
         "name": "ModuleGraphCycle",
@@ -193,7 +193,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "_update_from_database",
-            "lineno": 133,
+            "lineno": 125,
             "signature": {
               "params": [
                 "names"
@@ -214,7 +214,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "__contains__",
-            "lineno": 160,
+            "lineno": 152,
             "signature": {
               "params": [
                 "name"
@@ -233,7 +233,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "__getitem__",
-            "lineno": 163,
+            "lineno": 155,
             "signature": {
               "params": [
                 "name"
@@ -252,7 +252,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "__iter__",
-            "lineno": 166,
+            "lineno": 158,
             "signature": {
               "params": [],
               "has_default": [],
@@ -267,7 +267,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "_phase",
-            "lineno": 177,
+            "lineno": 169,
             "signature": {
               "params": [
                 "node",
@@ -288,7 +288,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "_depth",
-            "lineno": 194,
+            "lineno": 186,
             "signature": {
               "params": [
                 "node",
@@ -311,7 +311,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "__len__",
-            "lineno": 214,
+            "lineno": 206,
             "signature": {
               "params": [],
               "has_default": [],
@@ -326,7 +326,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "extend",
-            "lineno": 217,
+            "lineno": 209,
             "signature": {
               "params": [
                 "names"
@@ -345,7 +345,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "_remove",
-            "lineno": 232,
+            "lineno": 240,
             "signature": {
               "params": [
                 "name",
@@ -366,7 +366,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "_update_depends",
-            "lineno": 249,
+            "lineno": 257,
             "signature": {
               "params": [
                 "names"
@@ -385,7 +385,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "_update_depth",
-            "lineno": 268,
+            "lineno": 276,
             "signature": {
               "params": [
                 "names"
@@ -404,7 +404,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "missing",
-            "lineno": 280,
+            "lineno": 288,
             "signature": {
               "params": [],
               "has_default": [],
@@ -419,7 +419,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "cycles",
-            "lineno": 300,
+            "lineno": 308,
             "signature": {
               "params": [],
               "has_default": [],
@@ -434,7 +434,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "auto_installable",
-            "lineno": 324,
+            "lineno": 332,
             "signature": {
               "params": [
                 "present"
@@ -453,7 +453,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "order",
-            "lineno": 367,
+            "lineno": 375,
             "signature": {
               "params": [],
               "has_default": [],
@@ -468,7 +468,7 @@
             "kind": "method",
             "owner": "ModuleGraph",
             "name": "__repr__",
-            "lineno": 371,
+            "lineno": 379,
             "signature": {
               "params": [],
               "has_default": [],
@@ -487,7 +487,7 @@
         "kind": "function",
         "owner": null,
         "name": "build_graph",
-        "lineno": 375,
+        "lineno": 383,
         "signature": {
           "params": [
             "names"
@@ -506,7 +506,7 @@
     "raw": 29,
     "unique": 26
   },
-  "consumer_sha256": "c8d433b151d1b62661794bc3c810bb64fe9a65bd520810e42114465cf33b110f",
+  "consumer_sha256": "9cc75624ff4e0342ad2d3fa3fcb7c20064193af408f04512e1b24e1424946390",
   "named_reference_declarations": 19,
   "contract_records": [
     {
@@ -748,7 +748,12 @@
       },
       "source_location": 184,
       "symbol_kind": "method",
-      "owner": "ModuleNode"
+      "owner": "ModuleNode",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
     },
     {
       "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
@@ -797,7 +802,12 @@
       },
       "source_location": 202,
       "symbol_kind": "method",
-      "owner": "ModuleNode"
+      "owner": "ModuleNode",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
     },
     {
       "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
@@ -820,7 +830,7 @@
         "Reference ModuleGraph.extend/iteration and module loader",
         "ModuleGraph.from_database -> transitive manifest closure -> explicit dependency/depth preparation -> selected DB snapshot -> ordering"
       ],
-      "installed_mechanism": "ModuleGraph.from_database -> transitive manifest closure -> explicit dependency/depth preparation -> selected DB snapshot -> ordering",
+      "installed_mechanism": "from_database binds the explicit alias and delegates to extend; every nonempty new bound batch reuses manifest/dependency/cycle preparation and selected-alias snapshot",
       "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
       "verification": {
         "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
@@ -838,7 +848,12 @@
       },
       "source_location": 206,
       "symbol_kind": "class",
-      "owner": "odoo.modules.module_graph"
+      "owner": "odoo.modules.module_graph",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
     },
     {
       "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
@@ -1120,12 +1135,13 @@
         "Reference ModuleGraph.extend/iteration and module loader",
         "Static transitive closure retained for administrative requests; from_database composes preparation/filtering, not literal reference extend equivalence"
       ],
-      "installed_mechanism": "Static transitive closure retained for administrative requests; from_database composes preparation/filtering, not literal reference extend equivalence",
-      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "installed_mechanism": "src/modules/module_graph.py::extend now composes existing preparation/snapshot stages when using is bound; from_database delegates once",
+      "existing_adaptation": "Two graph modes retained, static transitive closure retained; explicit alias replaces bound Odoo cursor. No new coordinator, schema, persisted field or taxonomy",
       "verification": {
         "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
         "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
-        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+        "current_incremental_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/incremental-graph-summary.json"
       },
       "equivalence": "Bounded observations only; not_verified for remaining contract",
       "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
@@ -1138,7 +1154,12 @@
       },
       "source_location": 230,
       "symbol_kind": "method",
-      "owner": "ModuleGraph"
+      "owner": "ModuleGraph",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
     },
     {
       "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
@@ -1220,7 +1241,7 @@
         "Reference ModuleGraph.extend/iteration and module loader",
         "Existing pure preparation now used by from_database; dependency pruning precedes the snapshot"
       ],
-      "installed_mechanism": "Existing pure preparation now used by from_database; dependency pruning precedes the snapshot",
+      "installed_mechanism": "Shared dependency preparation invoked by database-bound extend for new names, including initial from_database; static closure remains separate",
       "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
       "verification": {
         "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
@@ -1238,7 +1259,12 @@
       },
       "source_location": 257,
       "symbol_kind": "method",
-      "owner": "ModuleGraph"
+      "owner": "ModuleGraph",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
     },
     {
       "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
@@ -1271,7 +1297,7 @@
         "Reference ModuleGraph.extend/iteration and module loader",
         "Existing cycle pruning now used only by explicit from_database preparation; static request cycle rejection retained"
       ],
-      "installed_mechanism": "Existing cycle pruning now used only by explicit from_database preparation; static request cycle rejection retained",
+      "installed_mechanism": "Shared cycle pruning invoked by database-bound extend for new names, including initial from_database; static request cycles still reject at ordering",
       "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
       "verification": {
         "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
@@ -1289,7 +1315,12 @@
       },
       "source_location": 271,
       "symbol_kind": "method",
-      "owner": "ModuleGraph"
+      "owner": "ModuleGraph",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
     },
     {
       "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
@@ -1322,7 +1353,7 @@
         "Reference ModuleGraph.extend/iteration and module loader",
         "Django apps.get_model(base,IrModule).objects.using(explicit_alias).filter(name__in=...).values_list(name,id,state,demo,installed_version); one read query; skip/prune according to mode; copy load snapshots"
       ],
-      "installed_mechanism": "Django apps.get_model(base,IrModule).objects.using(explicit_alias).filter(name__in=...).values_list(name,id,state,demo,installed_version); one read query; skip/prune according to mode; copy load snapshots",
+      "installed_mechanism": "Native IrModule explicit-alias values_list snapshot invoked for newly retained bound extensions; preserves existing node snapshots and caller-mutated states",
       "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
       "verification": {
         "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
@@ -1340,7 +1371,12 @@
       },
       "source_location": 280,
       "symbol_kind": "method",
-      "owner": "ModuleGraph"
+      "owner": "ModuleGraph",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
     },
     {
       "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
@@ -1446,7 +1482,7 @@
   "acceptance": "No file-level contract acceptance. Pending symbols remain visible; completed0391/0392 are instrument TASKs only.",
   "extends_previous_current_revision": "API e84d348c: previous current observations remain recoverable by Git; immutable pinned pilot unchanged",
   "consumer_only_current_adaptation": {
-    "ModuleGraph.from_database": "Public explicit-alias preparation entry point, distributed counterpart of reference cursor-bound extend/preparation; not another module installer",
+    "ModuleGraph.from_database": "Binds explicit alias and delegates preparation to extend; subsequent bound extensions snapshot only new nodes",
     "ModuleGraph.using": "Ephemeral source database alias, not a taxonomy or persistent field",
     "ModuleNode.snapshot_attributes": "id,state,demo,installed_version,load_version,load_state now populated from retained catalogue rows"
   },
@@ -1455,5 +1491,80 @@
     "Imported module provenance/diagnostic exception",
     "Schema/data/hooks/model registry/worker execution and acceptance",
     "Cached-property reset lifecycle remains adapted to recomputing properties"
-  ]
+  ],
+  "incremental_extension": {
+    "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph.extend",
+    "reference_sha256": "584f0e71063b36211147bc8190a5e348d0674153ba7b981d71179a85d753b8c5",
+    "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+    "task": "TASK-API-0382",
+    "official_owner": "codex-module-lifecycle",
+    "official_status": "pending",
+    "behavior": "Prepare newly extended database-bound graph nodes from the selected catalogue and preserve prior snapshots/caller-mutated states",
+    "execution_flow": [
+      "Bind alias once in from_database",
+      "Extend transitive manifest closure; track only genuinely new names",
+      "For bound graphs, prune absent/uninstallable manifests, invalid dependencies and cycles",
+      "Read known newly retained catalogue rows with the same explicit alias",
+      "Populate identity/state/demo/version snapshots; load/update filtering and ordering remain native graph operations"
+    ],
+    "inputs_outputs": "Initial snapshot plus addon names -> extended/pruned graph whose new nodes reflect the selected catalogue; None return, catalogue errors propagate",
+    "side_effects": "In-memory node mutation and one SELECT for nonempty retained additions; no catalogue writes, schema/data/hook execution, commits, installed-version finalization or TASK state changes",
+    "dependencies": [
+      "Existing manifest resolver and transitive closure adaptation",
+      "Existing _remove/_update_depends/_update_depth/_update_from_database",
+      "Django explicit alias/queryset",
+      "IrModule persisted state/demo/installed_version",
+      "Recomputed properties instead of Odoo cached_property invalidation"
+    ],
+    "consumers": [
+      "Reference loading.load_modules fixed-point graph extensions",
+      "Consumer ModuleGraph.from_database public bound entry point and subsequent extend",
+      "Consumer build_graph and IrModule administrative request graphs remain static/unbound; no effective loader integration inferred"
+    ],
+    "installed_mechanism": "src/modules/module_graph.py::extend now composes existing preparation/snapshot stages when using is bound; from_database delegates once",
+    "existing_adaptation": "Two graph modes retained, static transitive closure retained; explicit alias replaces bound Odoo cursor. No new coordinator, schema, persisted field or taxonomy",
+    "verification": {
+      "red": "3FAIL13PASS exit1: stale new snapshots, unpruned uninstallable manifest and new cycle",
+      "green": "16PASS exit0",
+      "neighbors": "65PASS exit0, including existing graph reference-body and loading-stage contracts; separate run, not summed as one suite",
+      "postgres": "Six bounded catalogue/alias/snapshot/order/read-only controls PASS on two schemas of one owned DB; not N>1 productive installation",
+      "differential": "12 incremental mode/state combinations PASS using unmodified pinned classes from existing fixture extractor",
+      "adapters": "Manifest fixtures, Consumer OrderedSet/reset_cached_properties, false imported-column probe, cursor IN/ANY and latest_version/installed_version protocol adaptation; not native Odoo runtime",
+      "negative": "Bypass bound extension -> FAIL expected1; force default alias -> FAIL expected1",
+      "instrument_failures": "First differential NameError OrderedSet; second import from tools failed; corrected tools.misc import; all raw logs retained and resources cleaned",
+      "mandatory_ci": {
+        "revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "classification": "BASELINE_FAILURE",
+        "passed": 77,
+        "skipped": 1,
+        "errors": 1,
+        "seconds": 429.67,
+        "pytest_exit": 1,
+        "make_exit": 2,
+        "harness_exit": 2,
+        "cleanup": "Own database and role removed successfully after failure",
+        "first_failure": "ProductProduct.display_name in TestCartSnapshotsV2.test_saves_cart_and_returns_200",
+        "log": "outputs/incremental-graph-ci.log",
+        "junit": "outputs/incremental-graph-ci.junit.xml",
+        "comparison": "Same first failure as prior remote479f02c6 JUnit; no regression demonstrated by evaluated cases",
+        "remaining_tests": "NOT_EVALUATED after maxfail=1",
+        "acceptance": "not_verified"
+      }
+    },
+    "equivalence": "Bounded adapted incremental preparation verified; no whole file/loader/Registry acceptance",
+    "limitations": [
+      "Imported module provenance/diagnostic exception remains pending",
+      "Global model composition, schema/data/hooks, installed-version producer and worker invalidation remain pending",
+      "Unknown catalogue rows retain pinned defaults, not installation acceptance",
+      "Two schema aliases do not demonstrate two productive company databases",
+      "Official acceptance and integration require their own gates"
+    ],
+    "integration": {
+      "PR": 109,
+      "merged": false,
+      "acceptance": "not_verified",
+      "official_states_changed": false
+    }
+  }
 }
