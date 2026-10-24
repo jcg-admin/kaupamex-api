@@ -1388,7 +1388,7 @@
   "contractual_exhaustive_continuation_review": {
     "document": "contractual-continuation-20261024.txt",
     "original_file_name": "VM-b501 — Continuación contractual exhaustiva del ORM, reconciliación estructural por archivo y ejecución funcional mediante TASK existentes.txt",
-    "sha256": "09abff733745b248227af38d47e58f80b5a8a2744d759dfcdb99417f1aadcd3f",
+    "sha256": "4aaee562dbbdd1ba34be6e626ec1886ce63911073ba3190eab13d59d1c37de66",
     "observed_at": "2026-10-24T18:39:47.328342+00:00",
     "source_revision": "3fb301a542c218981aed5eb8274003083671c0b5",
     "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
@@ -1770,7 +1770,9 @@
       "merge": false
     },
     "next_admission_block": "Owner assignments resolved. Next substantive work is reconcile five measured assignment failures under GEN0633 and37 expectation cases against0417/0418 history, plus category-tree0267 implementation; not declared blocked globally. Metadata review, request resolution and effective Registry remain pending. No full acceptance or integration.",
-    "current_source_revision": "5a84f1ff92436b7976d9109bea1b9e2cfc93cbcb"
+    "current_source_revision": "5a84f1ff92436b7976d9109bea1b9e2cfc93cbcb",
+    "original_upload_sha256": "09abff733745b248227af38d47e58f80b5a8a2744d759dfcdb99417f1aadcd3f",
+    "input_storage": "Git-normalized LF text; original upload SHA retained separately; semantic contents unchanged"
   },
   "current_authorized_ownership": {
     "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
