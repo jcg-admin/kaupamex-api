@@ -369,3 +369,59 @@ Gate local312b7fb6:77PASS1SKIP1ERROR429.67s,pytest1/Make2; primer fallo
 heredado ProductProduct.display_name, comprobado también en JUnit remoto479f02c6.
 JUnit/log completos en `outputs/incremental-graph-ci.*`. Lo posterior al primer
 error queda NOT_EVALUATED; la aceptación integral sigue pendiente.
+
+### Continuación contractual exhaustiva: grafo físico y fixture actual
+
+La instrucción se preserva en `inputs/contractual-continuation-20261024.txt`;
+sus54secciones extienden instruction-validation.json, sin otro plan o maestro.
+Los bancos existentes del grafo/cargador relacionan responsabilidades compuestas
+con19declaraciones y7funciones. No son denominadores de aceptación.
+
+Dos bases físicas propias prueban la selección incremental de catálogo:
+positivo0, alias incorrecto1esperado, adquisición parcial1esperado; limpiezaPASS
+en los tres escenarios. Los catálogos mínimos no acreditan Registry ni auth.
+
+El fixture actual3fb301a5 pasa5casos en878.16s,pytest0 yprobe0, con el
+provisionador completo después del preflight2807. Los controles de recurso
+preexistente,DDLparcial yfallo deextensiones pasan. Postcheck ycomprobación
+independiente exacta confirman cero recursos conocidos. No se sobrescriben
+resultados previos4b67be0f ni se retiran protecciones privadas para forzarPASS.
+Se reutilizaCIlocal312Make2 sólo tras igualdad exacta de fuentes/pruebas/gate;
+elJUnitremoto3fbactual también conserva primerfallodisplay_name yresto no
+evaluado. No se repite una compilación global por cambios sólo de evidencia.
+
+TaskGet confirma0264completada. Tras dos autorizaciones explícitas del usuario,
+TaskUpdate asignó sólo owner=codex-module-lifecycle a0265/0269/0267/GEN0633.
+Los cuatro estados pendientes y dependencias permanecen iguales, ver los dos
+archivos contractual-*-ownership-assignment.json.0381/0418 siguen fuera de
+esa asignación. Las propuestas anteriores se conservan como historia.
+update_module_list ya existe: estado TASK no es ausencia de código.
+No se cambian estados, dependencias, política ni gates.
+Las13interfacesProvider comparadasno cambiaron; no hubo inferencia gestionada.
+
+0269:5744db36 selecciona apps instalables antes del registro Django mediante
+el grafo existente; RED3FAIL2PASS, GREEN21PASS, arranque nativo positivo0 y
+anulación1. La selección actual124addons/125LOCAL_APPS conserva orden y
+miembros. No acredita composición por base ni exclusión de todo import.
+El gate local conserva77PASS1SKIP1ERROR, Make2 por display_name.
+
+0265:5a84f1ff añade el recurso HTTP técnico de sólo lectura, capacidad explícita,
+paginación y filtros tipados, sin selector de conexión ni instalación. RED9FAIL,
+primerGREEN7PASS2FAIL por sobre de error, corregidoGREEN55PASS con regresiones
+vecinas y OpenAPI. Contrato14 en technical-catalogue-contract-14.json.
+El hook usa la interfaz existente IDENTIFIER_LANGUAGE_CANON_KEYS=codigo_error
+por invocación; se preserva el rechazo inicial y no se modifica el baseline.
+
+GEN0633:los64nodeid históricos se recuperaron del log diag3-353 completo.
+historical-64-selection.json conserva selección nativa, entradas y ledger sin
+aceptaciones inventadas. El triaje debe conservar resultado actual por identidad,
+contrato vigente y TASK relacionada; no asumir que los64rojos siguen iguales.
+No se declara terminada la iniciativa ni cualificado un modelo local.
+
+Resultado final del lote HTTP: CI77PASS1SKIP1ERROR436.56s, Make2 por
+display_name heredado; lo posterior NOT_EVALUATED. Triaje exacto64:9PASS55FAIL
+en2.40s;5fallos de asignación,37expectativas a reconciliar y13otros. Un nodeid
+tiene sucesor demostrado en8b6ea823. Se preservan dos intentos de instrumento
+con salida4, sin atribuirlos al ORM. Harness0 y consulta independiente0:
+cero bases y roles orm_bootstrap restantes. Continúan pendientes las
+correcciones contractuales, categorías, aceptación e integración.

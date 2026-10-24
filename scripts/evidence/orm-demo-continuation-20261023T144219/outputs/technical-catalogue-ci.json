@@ -1,0 +1,16 @@
+{
+  "source_revision": "5a84f1ff",
+  "make_exit": 2,
+  "pytest_exit": 1,
+  "passed": 77,
+  "skipped": 1,
+  "errors": 1,
+  "seconds": 436.56,
+  "first_failure": "TestCartSnapshotsV2.test_saves_cart_and_returns_200 setup: Compute method failed to assign product.ProductProduct(1,).display_name",
+  "classification": "BASELINE_FAILURE: same first error independently measured before both new functional units",
+  "limits": "maxfail=1; later suite NOT_EVALUATED; no whole CI PASS or TASK acceptance",
+  "evidence": [
+    "technical-catalogue-ci.log",
+    "technical-catalogue-ci.junit.xml"
+  ]
+}

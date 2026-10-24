@@ -1,5 +1,5 @@
 {
-  "document": "VM-b501 \u2014 Continuaci\u00f3n integral de completar-raiz-orm, recuperaci\u00f3n del estado persistido y resoluci\u00f3n contractual de ModuleGraph, loading.py y migraciones por empresa.txt",
+  "document": "VM-b501 — Continuación integral de completar-raiz-orm, recuperación del estado persistido y resolución contractual de ModuleGraph, loading.py y migraciones por empresa.txt",
   "document_sha256": "73b9c218579e7b61038536bb7834e121e04fd278fe2a0518554b3f50c7550452",
   "scope": "Consumer-specific review of the current user-authorized continuation document; output only, not a new planner/task schema or acceptance authority",
   "baseline_api_revision": "b2934e3daa2a34d13b084027c3f18b79088a80b0",
@@ -42,7 +42,7 @@
     },
     {
       "clause": 3,
-      "title": "Revisiones hist\u00f3ricas de recuperaci\u00f3n",
+      "title": "Revisiones históricas de recuperación",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -53,7 +53,7 @@
     },
     {
       "clause": 4,
-      "title": "Recuperar la ejecuci\u00f3n interrumpida",
+      "title": "Recuperar la ejecución interrumpida",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -75,7 +75,7 @@
     },
     {
       "clause": 6,
-      "title": "Recuperar la selecci\u00f3n existente",
+      "title": "Recuperar la selección existente",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -97,7 +97,7 @@
     },
     {
       "clause": 8,
-      "title": "Revisar el c\u00f3digo vigente",
+      "title": "Revisar el código vigente",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -119,7 +119,7 @@
     },
     {
       "clause": 10,
-      "title": "Preservar la preparaci\u00f3n por base",
+      "title": "Preservar la preparación por base",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -130,7 +130,7 @@
     },
     {
       "clause": 11,
-      "title": "Preservar la versi\u00f3n instalada",
+      "title": "Preservar la versión instalada",
       "result": "PARTIAL",
       "assessment": "Installed version preserved but successful loader finalization producer not verified.",
       "evidence": [
@@ -163,7 +163,7 @@
     },
     {
       "clause": 14,
-      "title": "Dise\u00f1ar controles discriminantes",
+      "title": "Diseñar controles discriminantes",
       "result": "PARTIAL",
       "assessment": "Owned PG alias/missing-table/cleanup probes exist; full-company acceptance fails.",
       "evidence": [
@@ -174,7 +174,7 @@
     },
     {
       "clause": 15,
-      "title": "Corregir \u00fanicamente la causa demostrada",
+      "title": "Corregir únicamente la causa demostrada",
       "result": "PARTIAL",
       "assessment": "Target context and historical HR DDL corrected; contenttypes placement and consumer alias ownership unresolved.",
       "evidence": [
@@ -185,7 +185,7 @@
     },
     {
       "clause": 16,
-      "title": "Aceptaci\u00f3n de TASK-API-0383",
+      "title": "Aceptación de TASK-API-0383",
       "result": "NOT_SATISFIED",
       "assessment": "Native TASK-API-0383 pending; full real company provisioning has not reached expected final state.",
       "evidence": [
@@ -218,7 +218,7 @@
     },
     {
       "clause": 19,
-      "title": "Distinguir estados de solicitudes y ejecuci\u00f3n",
+      "title": "Distinguir estados de solicitudes y ejecución",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -229,7 +229,7 @@
     },
     {
       "clause": 20,
-      "title": "Implementaci\u00f3n incremental",
+      "title": "Implementación incremental",
       "result": "PARTIAL",
       "assessment": "Native selected manifest-data stage implemented; demo continuation now in progress.",
       "evidence": [
@@ -240,7 +240,7 @@
     },
     {
       "clause": 21,
-      "title": "Mantener vigente la instrucci\u00f3n anterior",
+      "title": "Mantener vigente la instrucción anterior",
       "result": "PARTIAL",
       "assessment": "Per-file traceability retained incrementally; exhaustive semantic/acceptance coverage not complete.",
       "evidence": [
@@ -317,7 +317,7 @@
     },
     {
       "clause": 28,
-      "title": "Validaci\u00f3n global",
+      "title": "Validación global",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -383,7 +383,7 @@
     },
     {
       "clause": 34,
-      "title": "Eliminar dependencias exclusivamente ef\u00edmeras",
+      "title": "Eliminar dependencias exclusivamente efímeras",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -394,7 +394,7 @@
     },
     {
       "clause": 35,
-      "title": "Evidencia antes de publicaci\u00f3n",
+      "title": "Evidencia antes de publicación",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -427,7 +427,7 @@
     },
     {
       "clause": 38,
-      "title": "Conservar informaci\u00f3n aprovechable",
+      "title": "Conservar información aprovechable",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -471,7 +471,7 @@
     },
     {
       "clause": 42,
-      "title": "Documentaci\u00f3n",
+      "title": "Documentación",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -482,7 +482,7 @@
     },
     {
       "clause": 43,
-      "title": "Recuperaci\u00f3n",
+      "title": "Recuperación",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -515,7 +515,7 @@
     },
     {
       "clause": 46,
-      "title": "Ciclo de m\u00f3dulos",
+      "title": "Ciclo de módulos",
       "result": "NOT_SATISFIED",
       "assessment": "Request transitions do not execute installation; full schema/data/hooks/state acceptance absent.",
       "evidence": [
@@ -548,7 +548,7 @@
     },
     {
       "clause": 49,
-      "title": "Integraci\u00f3n",
+      "title": "Integración",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -559,7 +559,7 @@
     },
     {
       "clause": 50,
-      "title": "Estado de recuperaci\u00f3n",
+      "title": "Estado de recuperación",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -603,7 +603,7 @@
     },
     {
       "clause": 54,
-      "title": "Estado de publicaci\u00f3n",
+      "title": "Estado de publicación",
       "result": "VERIFIED",
       "assessment": "Existing published recovery, source or operational evidence satisfies this procedural clause within its stated scope; not whole TASK acceptance.",
       "evidence": [
@@ -614,7 +614,7 @@
     },
     {
       "clause": 55,
-      "title": "Frontera de continuaci\u00f3n",
+      "title": "Frontera de continuación",
       "result": "PARTIAL",
       "assessment": "Current frontier is recoverable but not a complete qualified whole-goal dispatcher.",
       "evidence": [
@@ -648,7 +648,7 @@
     "still_not_satisfied": "Full productive company provisioning and full module installation acceptance; no claim all instruction requirements are complete"
   },
   "continuation_instruction_review": {
-    "file_name": "VM-b501 \u2014 Continuidad contractual del ORM, aceptaci\u00f3n funcional progresiva y consolidaci\u00f3n de los mecanismos existentes de Thyrox.txt",
+    "file_name": "VM-b501 — Continuidad contractual del ORM, aceptación funcional progresiva y consolidación de los mecanismos existentes de Thyrox.txt",
     "sha256": "867f96471b1bc851698fb08cd53f3ae9b517de524f49e95f9ae49325a91d29b0",
     "baseline_api": "5dad5f651f01edbc80f0489876e2b5a552940f4e",
     "code_commit": "56c6d4eab2426e93a4af86f24383f92044c93278",
@@ -991,7 +991,7 @@
     }
   },
   "integral_continuation_instruction_review": {
-    "document": "VM-b501 \u2014 Continuaci\u00f3n integral de completar-raiz-orm mediante implementaci\u00f3n contractual exhaustiva por archivo, trazabilidad de TASK y conservaci\u00f3n de la arquitectura existente.txt",
+    "document": "VM-b501 — Continuación integral de completar-raiz-orm mediante implementación contractual exhaustiva por archivo, trazabilidad de TASK y conservación de la arquitectura existente.txt",
     "sha256": "991464d2fcb4faa01f64fa584a6b206bfeca18232b152916fef6619a28a6c0d9",
     "baseline_api_revision": "2865700b7bc626bc55a330d69ce74164c2b0bf0f",
     "task_fixture_revision": "4b67be0f",
@@ -1384,5 +1384,454 @@
       }
     },
     "last_reconciled_at": "2026-10-24T17:51:37.984853+00:00"
+  },
+  "contractual_exhaustive_continuation_review": {
+    "document": "contractual-continuation-20261024.txt",
+    "original_file_name": "VM-b501 — Continuación contractual exhaustiva del ORM, reconciliación estructural por archivo y ejecución funcional mediante TASK existentes.txt",
+    "sha256": "09abff733745b248227af38d47e58f80b5a8a2744d759dfcdb99417f1aadcd3f",
+    "observed_at": "2026-10-24T18:39:47.328342+00:00",
+    "source_revision": "3fb301a542c218981aed5eb8274003083671c0b5",
+    "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "scope": "54instruction sections, not54contracts or acceptance denominator; original structural/contractual/functional/operational populations retained",
+    "sections": [
+      {
+        "section": 1,
+        "title": "Consultar autoridades",
+        "status": "verified_bounded",
+        "evidence_and_limit": "Current API/Docs/Provider roots, revisions, branch/status/worktrees/stashes/conflict state and relevant rules recovered. Only owned evidence/instruments/relations modified; Provider baseline preserved."
+      },
+      {
+        "section": 2,
+        "title": "Recuperar Git",
+        "status": "verified_bounded",
+        "evidence_and_limit": "Current API/Docs/Provider roots, revisions, branch/status/worktrees/stashes/conflict state and relevant rules recovered. Only owned evidence/instruments/relations modified; Provider baseline preserved."
+      },
+      {
+        "section": 3,
+        "title": "Revisiones de recuperación",
+        "status": "partial",
+        "evidence_and_limit": "API3fb301a5 andDocsc917cbb0f recovered; historical source commits retained and PR109/154 open. Current remote40118271212 JUnit confirms77PASS1SKIP1ERROR display_name; source3fb, not a newer revision. Global later tests not evaluated."
+      },
+      {
+        "section": 4,
+        "title": "Recuperar CI",
+        "status": "partial",
+        "evidence_and_limit": "API3fb301a5 andDocsc917cbb0f recovered; historical source commits retained and PR109/154 open. Current remote40118271212 JUnit confirms77PASS1SKIP1ERROR display_name; source3fb, not a newer revision. Global later tests not evaluated."
+      },
+      {
+        "section": 5,
+        "title": "Recuperar TASK",
+        "status": "partial",
+        "evidence_and_limit": "Native TaskGet refreshed seven required TASKs and related0264/0265/0269/0381/GEN0633/0418/0415/0416.0264completed;0265/0269/0381/GEN0633/0418unowned, not automatically available. Exact ProductProduct root ownership not inferred solely from historical triage wording."
+      },
+      {
+        "section": 6,
+        "title": "Principio de cobertura contractual",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 7,
+        "title": "Población contractual por archivo",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 8,
+        "title": "Analizar la totalidad de responsabilidades aplicables",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 9,
+        "title": "Clasificación semántica",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 10,
+        "title": "Prohibición de equivalencias aparentes",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 11,
+        "title": "Recuperar la población",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 12,
+        "title": "Conservar implementaciones verificadas",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 13,
+        "title": "Reconciliar ModuleGraph.extend",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 14,
+        "title": "Validar diferencias entre bases físicas",
+        "status": "verified_bounded",
+        "evidence_and_limit": "Two independently owned physical PostgreSQL company DBs confirmed by current_database; distinct catalogue state/demo/version, incremental filtering, stable existing snapshots and unchanged catalogue. Wrong physical alias fails1; injected partial acquisition fails1; cleanupPASS for every run. No Registry/auth/installation acceptance."
+      },
+      {
+        "section": 15,
+        "title": "Cerrar la reconciliación por archivo",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 16,
+        "title": "Recuperar el inventario",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 17,
+        "title": "Conservar lo ya verificado",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 18,
+        "title": "Analizar el ciclo completo",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 19,
+        "title": "Seleccionar implementación funcional pendiente",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 20,
+        "title": "Verificar el Registry efectivo",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 21,
+        "title": "Conservar las correcciones recientes",
+        "status": "partial",
+        "evidence_and_limit": "Existing2807e5ba/479f02c6 preflight17PASS and real table/M2M/router controls preserved; exact service source retained. Known applied-table omission refuses migration. No historical repair/recorder rewrite, unknown history or whole schema certification."
+      },
+      {
+        "section": 22,
+        "title": "Coherencia histórica",
+        "status": "partial",
+        "evidence_and_limit": "Existing2807e5ba/479f02c6 preflight17PASS and real table/M2M/router controls preserved; exact service source retained. Known applied-table omission refuses migration. No historical repair/recorder rewrite, unknown history or whole schema certification."
+      },
+      {
+        "section": 23,
+        "title": "Recuperar el fixture de aislamiento",
+        "status": "verified_bounded",
+        "evidence_and_limit": "Current3fb fixture5PASS878.16s, pytest0/probe0; safety controls PASS, native maintenance postcheck PASS and independent exact-resource cleanup0. Public protections retained; no skipped-case removal or historical result overwrite. Whole TASK/policy/auth acceptance not inferred."
+      },
+      {
+        "section": 24,
+        "title": "Cualificar los mecanismos de prueba",
+        "status": "verified_bounded",
+        "evidence_and_limit": "Current3fb fixture5PASS878.16s, pytest0/probe0; safety controls PASS, native maintenance postcheck PASS and independent exact-resource cleanup0. Public protections retained; no skipped-case removal or historical result overwrite. Whole TASK/policy/auth acceptance not inferred."
+      },
+      {
+        "section": 25,
+        "title": "Aislamiento funcional",
+        "status": "partial",
+        "evidence_and_limit": "Current owned fixture requalified:5PASS878.16s and all known resources cleaned. Data/row/FK/schema isolation verified; whole identity, login, HasCapability and cross-company session replay remain linked to unowned0381 and metadata approval. FullTask0383 not accepted."
+      },
+      {
+        "section": 26,
+        "title": "Política de metadatos",
+        "status": "blocked",
+        "evidence_and_limit": "DEC-AISL-05 accepted direction retained; metadata proposal remains explicitly IMPLEMENTED IN BRANCH pending review/acceptance/integration. Positive tests do not approve policy. No state/policy change authorized by this evidence."
+      },
+      {
+        "section": 27,
+        "title": "Análisis de impacto obligatorio",
+        "status": "partial",
+        "evidence_and_limit": "Actual source, not headers, reviewed: update_module_list refresh exists; manifest.update retains supplied hooks; Registry.new still uses global seed and stores requests. No unsupported assumption of missing catalogue code, no broad refactor. Only changed relations updated."
+      },
+      {
+        "section": 28,
+        "title": "Actualizar modelos propietarios",
+        "status": "partial",
+        "evidence_and_limit": "Actual source, not headers, reviewed: update_module_list refresh exists; manifest.update retains supplied hooks; Registry.new still uses global seed and stores requests. No unsupported assumption of missing catalogue code, no broad refactor. Only changed relations updated."
+      },
+      {
+        "section": 29,
+        "title": "Documentación histórica",
+        "status": "partial",
+        "evidence_and_limit": "Actual source, not headers, reviewed: update_module_list refresh exists; manifest.update retains supplied hooks; Registry.new still uses global seed and stores requests. No unsupported assumption of missing catalogue code, no broad refactor. Only changed relations updated."
+      },
+      {
+        "section": 30,
+        "title": "Convenciones obligatorias",
+        "status": "verified_bounded",
+        "evidence_and_limit": "New specific verification instruments use English technical identifiers and Spanish explanatory comments/docstrings. Consumer/Provider split, existing models and APIs preserved; no new functional ORM or public error translation."
+      },
+      {
+        "section": 31,
+        "title": "Principios de Clean Code",
+        "status": "verified_bounded",
+        "evidence_and_limit": "New specific verification instruments use English technical identifiers and Spanish explanatory comments/docstrings. Consumer/Provider split, existing models and APIs preserved; no new functional ORM or public error translation."
+      },
+      {
+        "section": 32,
+        "title": "Control lingüístico",
+        "status": "verified_bounded",
+        "evidence_and_limit": "New specific verification instruments use English technical identifiers and Spanish explanatory comments/docstrings. Consumer/Provider split, existing models and APIs preserved; no new functional ORM or public error translation."
+      },
+      {
+        "section": 33,
+        "title": "Reconciliación obligatoria",
+        "status": "partial",
+        "evidence_and_limit": "Existing job, per-file contract bank and AS IS reused;62TASK rows unchanged. New document preserved as input. Native commands/exits/revisions/CIJUnit/probe outputs retained; no third master register, new official states or contract-count acceptance inference."
+      },
+      {
+        "section": 34,
+        "title": "Actualizar las autoridades existentes",
+        "status": "partial",
+        "evidence_and_limit": "Existing job, per-file contract bank and AS IS reused;62TASK rows unchanged. New document preserved as input. Native commands/exits/revisions/CIJUnit/probe outputs retained; no third master register, new official states or contract-count acceptance inference."
+      },
+      {
+        "section": 35,
+        "title": "Poblaciones separadas",
+        "status": "partial",
+        "evidence_and_limit": "Existing job, per-file contract bank and AS IS reused;62TASK rows unchanged. New document preserved as input. Native commands/exits/revisions/CIJUnit/probe outputs retained; no third master register, new official states or contract-count acceptance inference."
+      },
+      {
+        "section": 36,
+        "title": "Evidencia reproducible",
+        "status": "partial",
+        "evidence_and_limit": "Existing job, per-file contract bank and AS IS reused;62TASK rows unchanged. New document preserved as input. Native commands/exits/revisions/CIJUnit/probe outputs retained; no third master register, new official states or contract-count acceptance inference."
+      },
+      {
+        "section": 37,
+        "title": "CI global",
+        "status": "partial",
+        "evidence_and_limit": "Required local312b7fb6 CI baseline retained and current3fb production/tests/gate source equivalence checked before reuse. Current remote failure independently recovered. No CI rerun solely for evidence or merge; publication/manifest and post-unit continuation settle after current probe finishes."
+      },
+      {
+        "section": 38,
+        "title": "Ownership del error global",
+        "status": "partial",
+        "evidence_and_limit": "Native TaskGet refreshed seven required TASKs and related0264/0265/0269/0381/GEN0633/0418/0415/0416.0264completed;0265/0269/0381/GEN0633/0418unowned, not automatically available. Exact ProductProduct root ownership not inferred solely from historical triage wording."
+      },
+      {
+        "section": 39,
+        "title": "Publicación",
+        "status": "partial",
+        "evidence_and_limit": "Required local312b7fb6 CI baseline retained and current3fb production/tests/gate source equivalence checked before reuse. Current remote failure independently recovered. No CI rerun solely for evidence or merge; publication/manifest and post-unit continuation settle after current probe finishes."
+      },
+      {
+        "section": 40,
+        "title": "Reutilizar mecanismos existentes",
+        "status": "partial",
+        "evidence_and_limit": "Thirteen Provider interface blobs unchanged; nativeTaskGet/TaskList/claims/frontier used. Selection correctness limited to supplied candidates. Generic task_source owner/dependency gap and foreign claims preserved; no qualified local-model cycle, remote fallback or duplicate coordinator. Ownership proposal prepared but not executed while explicit authorization is pending."
+      },
+      {
+        "section": 41,
+        "title": "Selección y cobertura",
+        "status": "partial",
+        "evidence_and_limit": "Thirteen Provider interface blobs unchanged; nativeTaskGet/TaskList/claims/frontier used. Selection correctness limited to supplied candidates. Generic task_source owner/dependency gap and foreign claims preserved; no qualified local-model cycle, remote fallback or duplicate coordinator. Ownership proposal prepared but not executed while explicit authorization is pending."
+      },
+      {
+        "section": 42,
+        "title": "Claims y dependencias",
+        "status": "partial",
+        "evidence_and_limit": "Thirteen Provider interface blobs unchanged; nativeTaskGet/TaskList/claims/frontier used. Selection correctness limited to supplied candidates. Generic task_source owner/dependency gap and foreign claims preserved; no qualified local-model cycle, remote fallback or duplicate coordinator. Ownership proposal prepared but not executed while explicit authorization is pending."
+      },
+      {
+        "section": 43,
+        "title": "Modelos locales",
+        "status": "partial",
+        "evidence_and_limit": "Thirteen Provider interface blobs unchanged; nativeTaskGet/TaskList/claims/frontier used. Selection correctness limited to supplied candidates. Generic task_source owner/dependency gap and foreign claims preserved; no qualified local-model cycle, remote fallback or duplicate coordinator. Ownership proposal prepared but not executed while explicit authorization is pending."
+      },
+      {
+        "section": 44,
+        "title": "Continuidad operativa",
+        "status": "partial",
+        "evidence_and_limit": "Thirteen Provider interface blobs unchanged; nativeTaskGet/TaskList/claims/frontier used. Selection correctness limited to supplied candidates. Generic task_source owner/dependency gap and foreign claims preserved; no qualified local-model cycle, remote fallback or duplicate coordinator. Ownership proposal prepared but not executed while explicit authorization is pending."
+      },
+      {
+        "section": 45,
+        "title": "Referencias metodológicas",
+        "status": "verified_bounded",
+        "evidence_and_limit": "No BABOK/Excel dependency, new agents, taxonomy, numbering, framework or parallel plan introduced. Traceability relationships extend current authorities; methodological names are not new TASKs."
+      },
+      {
+        "section": 46,
+        "title": "Principios aplicables",
+        "status": "verified_bounded",
+        "evidence_and_limit": "No BABOK/Excel dependency, new agents, taxonomy, numbering, framework or parallel plan introduced. Traceability relationships extend current authorities; methodological names are not new TASKs."
+      },
+      {
+        "section": 47,
+        "title": "Frontera entre los trabajos",
+        "status": "verified_bounded",
+        "evidence_and_limit": "No BABOK/Excel dependency, new agents, taxonomy, numbering, framework or parallel plan introduced. Traceability relationships extend current authorities; methodological names are not new TASKs."
+      },
+      {
+        "section": 48,
+        "title": "Requisitos mínimos",
+        "status": "partial",
+        "evidence_and_limit": "Physical graph and current fixture functional verification complete within bounded scopes; exact source, commands/exits, negative controls, native TASKs and contract/AS IS links retained. Whole loader/Registry, ownership approval, metadata review, global CI and integration remain pending; objective incomplete."
+      },
+      {
+        "section": 49,
+        "title": "No aceptar sustitutos",
+        "status": "partial",
+        "evidence_and_limit": "Physical graph and current fixture functional verification complete within bounded scopes; exact source, commands/exits, negative controls, native TASKs and contract/AS IS links retained. Whole loader/Registry, ownership approval, metadata review, global CI and integration remain pending; objective incomplete."
+      },
+      {
+        "section": 50,
+        "title": "Criterios de terminación de la iniciativa",
+        "status": "partial",
+        "evidence_and_limit": "Physical graph and current fixture functional verification complete within bounded scopes; exact source, commands/exits, negative controls, native TASKs and contract/AS IS links retained. Whole loader/Registry, ownership approval, metadata review, global CI and integration remain pending; objective incomplete."
+      },
+      {
+        "section": 51,
+        "title": "Primera unidad: reconciliación contractual del grafo",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 52,
+        "title": "Segunda unidad: reconciliación contractual del cargador",
+        "status": "partial",
+        "evidence_and_limit": "Existing graph/loading banks now relate composite observable responsibilities to qualified-symbol14element records, implementations, dependencies, tests and real TASKs.19graph declarations and7loading functions fully represented structurally; not a contract denominator or file acceptance. Imported provenance, effective Registry/model composition, hooks, phase/version finalization and full lifecycle remain pending."
+      },
+      {
+        "section": 53,
+        "title": "Tercera unidad: aislamiento pendiente",
+        "status": "partial",
+        "evidence_and_limit": "Current owned fixture requalified:5PASS878.16s and all known resources cleaned. Data/row/FK/schema isolation verified; whole identity, login, HasCapability and cross-company session replay remain linked to unowned0381 and metadata approval. FullTask0383 not accepted."
+      },
+      {
+        "section": 54,
+        "title": "Cuarta unidad: integración y continuidad",
+        "status": "partial",
+        "evidence_and_limit": "Required local312b7fb6 CI baseline retained and current3fb production/tests/gate source equivalence checked before reuse. Current remote failure independently recovered. No CI rerun solely for evidence or merge; publication/manifest and post-unit continuation settle after current probe finishes."
+      }
+    ],
+    "instruction_complete": false,
+    "objective_complete": false,
+    "official_task_states_changed": false,
+    "ownership_update": "EXECUTED with explicit user approval: native449/456/452/1203 owner codex-module-lifecycle; statuses and dependencies unchanged; both contractual ownership assignment files retain before/update/after",
+    "current_execution": "Completed current verification batch: fixture5PASS; startup21PASS; technical HTTP55PASS; required CI77PASS1SKIP1ERROR/Make2; historical64 current9PASS55FAIL/pytest1; harness0 and independent zero remaining resources",
+    "authorities": {
+      "graph": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/module-graph-contract-reconciliation.json#applicable_responsibility_reconciliation",
+      "loading": "scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/loading-contract-reconciliation.json#applicable_responsibility_reconciliation",
+      "tasks": "contractual-native-dependencies.json; native TaskGet exports",
+      "provider": "contractual-provider-capabilities.json",
+      "physical": "physical-catalogue-positive.json; physical-catalogue-wrong-alias.json; physical-catalogue-partial-failure.json",
+      "CI": "contractual-current-ci.json",
+      "current_owner_assignments": "contractual-ownership-assignment.json; contractual-additional-ownership-assignment.json",
+      "technical_HTTP": "technical-catalogue-contract-14.json",
+      "historical_64": "historical-64-selection.json; historical-64-reconciliation.json"
+    },
+    "current_fixture_qualification": {
+      "task": "TASK-API-0383",
+      "source_revision": "3fb301a542c218981aed5eb8274003083671c0b5",
+      "fixture_source_revision": "4b67be0f",
+      "fixture_AST_unchanged": true,
+      "service_preflight_revision": "2807e5ba",
+      "verification": {
+        "cases": 5,
+        "pytest_exit": 0,
+        "probe_exit": 0,
+        "seconds": 878.16,
+        "suites": [
+          {
+            "name": "pytest",
+            "errors": "0",
+            "failures": "0",
+            "skipped": "0",
+            "tests": "5",
+            "time": "878.154",
+            "timestamp": "2026-10-24T12:36:26.099501",
+            "hostname": "550e3b387ddd"
+          }
+        ],
+        "resource_controls": "PASS preexisting sentinel, partialDDL cleanup, extension failure retention",
+        "cleanup": "Independent exact role/database check PASS, zero remaining; source blocker/native connection protections retained",
+        "CI": "Reused312b7fb6 Make2 baseline only after exact production/tests/gate source equivalence; current remote3fb JUnit baseline independently recovered",
+        "evidence": "current-isolation-qualification.json; current-isolation-functional.junit.xml; current-isolation-cleanup.json; current-isolation-qualification.log"
+      },
+      "instrument_sha256": "fdf04f9691c9d6be0d95584c3b73ef6818c0a984f531f042af360ab77069e915",
+      "scope": "Complete native company provisioner and5domain/schema cases; not whole authentication/authorization, Registry, policy or installation acceptance",
+      "official_status": "pending",
+      "acceptance": "not_verified",
+      "merge": false
+    },
+    "next_admission_block": "Owner assignments resolved. Next substantive work is reconcile five measured assignment failures under GEN0633 and37 expectation cases against0417/0418 history, plus category-tree0267 implementation; not declared blocked globally. Metadata review, request resolution and effective Registry remain pending. No full acceptance or integration.",
+    "current_source_revision": "5a84f1ff92436b7976d9109bea1b9e2cfc93cbcb"
+  },
+  "current_authorized_ownership": {
+    "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+    "owner": "codex-module-lifecycle",
+    "tasks": [
+      "TASK-API-0265",
+      "TASK-API-0269",
+      "TASK-API-0267",
+      "TASK-GEN-0633"
+    ],
+    "interface": "TaskGet -> TaskUpdate(owner only) -> TaskGet",
+    "evidence": [
+      "contractual-ownership-assignment.json",
+      "contractual-additional-ownership-assignment.json"
+    ],
+    "status_and_dependencies": "Verified unchanged; all four remain pending",
+    "historical_snapshots": "Earlier NULL-owner observations and proposals retained as historical evidence; superseded for current ownership only",
+    "acceptance": "Ownership is not functional acceptance or model qualification"
+  },
+  "current_startup_installability_unit": {
+    "source_revision": "5744db3653ab022c91b0cd9a81e6d1984b5f447f",
+    "task": "TASK-API-0269",
+    "unit": "Startup app/model admission using existing ModuleGraph pruning",
+    "red": "3 failed, 2 passed; exit 1",
+    "green": "21 passed; exit 0",
+    "independent_startup": "Native Django registry positive exit 0; annulment imports disabled addon and exits 1",
+    "compatibility": "124 real addons; LOCAL_APPS membership and order unchanged for current manifests",
+    "required_ci": "77 passed, 1 skipped, 1 error; Make exit 2; ProductProduct.display_name assignment baseline remains",
+    "limits": "Does not establish per-database Registry composition, full runtime import exclusion, TASK acceptance or integration"
+  },
+  "current_technical_catalogue_unit": {
+    "source_revision": "5a84f1ff",
+    "task": "TASK-API-0265",
+    "verification": "55 PASS; PostgreSQL regression and HTTP/schema contract; pytest0",
+    "required_ci": {
+      "source_revision": "5a84f1ff",
+      "make_exit": 2,
+      "pytest_exit": 1,
+      "passed": 77,
+      "skipped": 1,
+      "errors": 1,
+      "seconds": 436.56,
+      "first_failure": "TestCartSnapshotsV2.test_saves_cart_and_returns_200 setup: Compute method failed to assign product.ProductProduct(1,).display_name",
+      "classification": "BASELINE_FAILURE: same first error independently measured before both new functional units",
+      "limits": "maxfail=1; later suite NOT_EVALUATED; no whole CI PASS or TASK acceptance",
+      "evidence": [
+        "technical-catalogue-ci.log",
+        "technical-catalogue-ci.junit.xml"
+      ]
+    },
+    "acceptance": "Pending; no merge or official status update",
+    "evidence": "technical-catalogue-contract-14.json"
+  },
+  "current_historical_64_triage": {
+    "authority": "historical-64-reconciliation.json",
+    "current_result": "9PASS55FAIL;64exact identities with one documented successor in8b6ea823",
+    "groups": {
+      "compute_assignment_failure": 5,
+      "contract_expectation_reconciliation_required": 37,
+      "other_contract_reconciliation_required": 13
+    },
+    "acceptance": "Pending; no TaskUpdate statuses or reassignment inferred"
   }
 }

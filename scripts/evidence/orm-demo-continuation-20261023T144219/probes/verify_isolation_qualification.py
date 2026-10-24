@@ -21,6 +21,7 @@ from service import db as svc
 
 root = Path.cwd()
 output = Path(__file__).resolve().parents[1] / 'outputs'
+artifact_prefix = 'current-isolation' if '--reuse-current-ci' in sys.argv else 'isolation'
 name = settings.DATABASES['default']['NAME']
 role = settings.DATABASES['default']['USER']
 assert re.fullmatch(r'orm_bootstrap_[0-9a-f]{12}', name) and role == name
@@ -53,7 +54,20 @@ try:
                    text=True, check=True)
     hba = True
     admin('SELECT pg_reload_conf();')
-    if '--bounded-only' in sys.argv:
+    if '--reuse-current-ci' in sys.argv:
+        prior = json.loads((output / 'incremental-graph-summary.json').read_text())['verification']['mandatory_ci']
+        # Reutilizar el gate exige las mismas fuentes, pruebas y configuración.
+        subprocess.run(['git', 'diff', '--quiet', prior['revision'], 'HEAD', '--',
+                        'src', 'addons', 'tests', 'Makefile', 'pytest.ini',
+                        'pyproject.toml', 'uv.lock', 'scripts/check_ci_database.py',
+                        '.github/workflows/api-tests.yml'], check=True)
+        assert prior['make_exit'] == 2 and prior['classification'] == 'BASELINE_FAILURE'
+        results['ci_make_exit'] = prior['make_exit']
+        results['ci_reused_revision'] = prior['revision']
+        results['ci_reused_evidence'] = 'incremental-graph-ci.junit.xml; incremental-graph-ci.log; production/tests/gate unchanged'
+        print('Reuse unchanged-source CI baseline failure; prepare own schema for current fixture qualification', flush=True)
+        call_command('migrate', database='default', run_syncdb=True, verbosity=0)
+    elif '--bounded-only' in sys.argv:
         prior = json.loads((output / 'isolation-qualification-initial.json').read_text())
         assert prior['source_revision'] == results['source_revision']
         assert prior['ci_make_exit'] == 2
@@ -66,7 +80,7 @@ try:
         results['ci_make_exit'] = subprocess.run(['make', 'ci-verify']).returncode
         junit = root / 'test-results/pytest.xml'
         if junit.exists():
-            (output / 'isolation-ci.junit.xml').write_bytes(junit.read_bytes())
+            (output / (artifact_prefix + '-ci.junit.xml')).write_bytes(junit.read_bytes())
     svc.create_empty_database(alias)
     created = True
     svc.install_company_aliases(settings.DATABASES, [alias])
@@ -119,7 +133,7 @@ try:
     print('Real resource safety controls PASS; begin five isolation cases', flush=True)
     results['isolation_pytest_exit'] = int(pytest.main([
         str(path), '--confcutdir=' + str(path.parent), '-vv', '-s',
-        '-o', 'addopts=', '--junitxml=' + str(output / 'isolation-functional.junit.xml')]))
+        '-o', 'addopts=', '--junitxml=' + str(output / (artifact_prefix + '-functional.junit.xml'))]))
     results['qualification_limit'] = 'No root conftest seed replay in bounded run; native provisioner applies all migrations. Full CI measured separately above.'
     results['aliases_after_teardown'] = [alias for alias in settings.DATABASES if alias.startswith('company_')]
     assert not results['aliases_after_teardown']
@@ -139,6 +153,6 @@ finally:
         subprocess.run(['docker', 'exec', '-u', 'postgres', container, 'sh', '-c',
                         f'sed -i "/# {marker}$/d" "$PGDATA/pg_hba.conf"'], check=True)
         admin('SELECT pg_reload_conf();')
-    (output / 'isolation-qualification.json').write_text(json.dumps(results, indent=2) + '\n')
+    (output / (artifact_prefix + '-qualification.json')).write_text(json.dumps(results, indent=2) + '\n')
     print(json.dumps(results, indent=2), flush=True)
-raise SystemExit(results['isolation_pytest_exit'] if '--bounded-only' in sys.argv else results['ci_make_exit'] or results['isolation_pytest_exit'])
+raise SystemExit(results['isolation_pytest_exit'] if '--bounded-only' in sys.argv or '--reuse-current-ci' in sys.argv else results['ci_make_exit'] or results['isolation_pytest_exit'])

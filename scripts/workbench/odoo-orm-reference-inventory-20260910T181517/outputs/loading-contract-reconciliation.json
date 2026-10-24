@@ -3907,6 +3907,40 @@
         "raw": 47,
         "unique": 45
       }
+    },
+    "current_fixture_qualification": {
+      "task": "TASK-API-0383",
+      "source_revision": "3fb301a542c218981aed5eb8274003083671c0b5",
+      "fixture_source_revision": "4b67be0f",
+      "fixture_AST_unchanged": true,
+      "service_preflight_revision": "2807e5ba",
+      "verification": {
+        "cases": 5,
+        "pytest_exit": 0,
+        "probe_exit": 0,
+        "seconds": 878.16,
+        "suites": [
+          {
+            "name": "pytest",
+            "errors": "0",
+            "failures": "0",
+            "skipped": "0",
+            "tests": "5",
+            "time": "878.154",
+            "timestamp": "2026-10-24T12:36:26.099501",
+            "hostname": "550e3b387ddd"
+          }
+        ],
+        "resource_controls": "PASS preexisting sentinel, partialDDL cleanup, extension failure retention",
+        "cleanup": "Independent exact role/database check PASS, zero remaining; source blocker/native connection protections retained",
+        "CI": "Reused312b7fb6 Make2 baseline only after exact production/tests/gate source equivalence; current remote3fb JUnit baseline independently recovered",
+        "evidence": "current-isolation-qualification.json; current-isolation-functional.junit.xml; current-isolation-cleanup.json; current-isolation-qualification.log"
+      },
+      "instrument_sha256": "fdf04f9691c9d6be0d95584c3b73ef6818c0a984f531f042af360ab77069e915",
+      "scope": "Complete native company provisioner and5domain/schema cases; not whole authentication/authorization, Registry, policy or installation acceptance",
+      "official_status": "pending",
+      "acceptance": "not_verified",
+      "merge": false
     }
   },
   "consumer_loading_inventory": {
@@ -4020,5 +4054,348 @@
     "transactions_concurrency": "Actual DB cursor required by Odoo load_module_graph; lock_timeout15s during schema loading, per-module successful writes commit, uninstall commits then reloads. reset_modules_state independent transaction preserved separately. No automatic equivalence to Django atomic/INSTALLED_APPS.",
     "errors": "Missing base raises ImportError; demo errors optional, hook/migration/schema failures propagate; missing dependency/state/custom-view/ACL inconsistencies have distinct diagnostics. Failures are not all equivalent or silently ignored.",
     "acceptance": "not_verified for file-wide obligations; seven named function entries are declaration coverage, not contractual denominator"
+  },
+  "applicable_responsibility_reconciliation": {
+    "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "structural_authority": "Existing reference_inventory:7module functions, plus imports/type alias/dependencies/supplemental source review;7is not a contractual denominator",
+    "representation": "Views over existing symbols and Consumer mechanisms, not a new registry/taxonomy/plan",
+    "responsibilities": [
+      {
+        "responsibility": "Module discovery",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "modules.module.get_modules/load_manifest",
+          "IrModule.get_module_info",
+          "update_module_list.Command"
+        ],
+        "task_relationship": "TASK-API-0382; related TASK-API-0265 pending ownerNULL",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Manual discovery/catalogue refresh exists; no automatic bootstrap consumer found in inspected config/service/modules; pending TASK does not prove absent implementation"
+      },
+      {
+        "responsibility": "Module selection",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "IrModule._request_module_change",
+          "ModuleGraph.from_database/extend"
+        ],
+        "task_relationship": "TASK-API-0382; related TASK-API-0269 pending ownerNULL",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Graph selection verified, but process-wide Django app/model availability is not effective per-base selection"
+      },
+      {
+        "responsibility": "Dependency resolution",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "ModuleGraph",
+          "IrModuleDependency",
+          "IrModule._request_module_change"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Manifest and persisted dependency requests supported; full dynamic install/reinit/remove cycle pending"
+      },
+      {
+        "responsibility": "Graph preparation",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "ModuleGraph.from_database/extend"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Current physical A/B catalogues and incremental contracts verified; not execution of selected packages"
+      },
+      {
+        "responsibility": "Effective Registry composition",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "Registry.new -> _ensure_seeded",
+          "Registry.init copies process MODELS_BY_NAME",
+          "Registry.load collects global Django app models"
+        ],
+        "task_relationship": "TASK-API-0382 per-base installation; historical Registry ordinal342 lacks stable scope authority",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "not_verified",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Registry.new stores requests and marks ready without executing them; mapping-only filtering cannot qualify inherited fields/methods or Environment resolution. Atomic Registry ownership/reconciliation required; #342 currently resolves unrelated stock0187"
+      },
+      {
+        "responsibility": "Schema initialization",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "Native migrate/service.db provisioner",
+          "Known applied-schema preflight",
+          "Registry.init_models checks/reflects, not Django DDL"
+        ],
+        "task_relationship": "TASK-API-0383 owner codex-module-lifecycle; linked0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Current3fb fixture5PASS with complete native provisioner; known migration preflight/safety controls PASS. No whole module/Registry installation or metadata policy acceptance."
+      },
+      {
+        "responsibility": "Data loading",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_data",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "modules.loading.load_data",
+          "tools.convert.convert_file"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Order/idrefs/duplicates/alias/failure controls retained; outer installation caller/acceptance pending"
+      },
+      {
+        "responsibility": "Demo loading",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_demo",
+          "odoo/modules/loading.py::force_demo",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "modules.loading.load_demo"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Bounded savepoint/report behavior verified; force_demo requires effective ready Registry/rebuild/reset not yet qualified"
+      },
+      {
+        "responsibility": "Hooks",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::load_modules"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "Manifest retains supplied hook keys",
+          "No hook execution path in current modules.loading"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "not_verified",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Pre/post/uninstall ordering and failure rollback require model/schema/lifecycle admission; no synthetic callbacks or success claims added"
+      },
+      {
+        "responsibility": "State persistence",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::reset_modules_state"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "IrModule._request_module_change atomic transient requests",
+          "reset_modules_state independent recovery"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Requests and recovery supported; no successful loader installs/finalizes catalogue state"
+      },
+      {
+        "responsibility": "Installed version finalization",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::load_modules"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "IrModule.installed_version nullable persistence and migration0088",
+          "ModuleNode installed/load version snapshots"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "not_verified",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Persisted field and snapshots verified; no success-only installation/version producer. update_module_list refreshes manifest metadata, not installed provenance"
+      },
+      {
+        "responsibility": "Registry invalidation",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::force_demo"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "Existing Registry cache/signaling methods"
+        ],
+        "task_relationship": "TASK-API-0382; related cache/Registry work retained in AS IS",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Existing mechanisms do not prove module lifecycle invokes rebuild/transaction reset/worker invalidation"
+      },
+      {
+        "responsibility": "Error recovery",
+        "reference_symbols": [
+          "odoo/modules/loading.py::reset_modules_state",
+          "odoo/modules/loading.py::load_modules"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "reset_modules_state",
+          "Registry.new removes failed cached instance"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Independent recovery transaction controls verified; full failed installation caller/rollback/recovery integration pending"
+      },
+      {
+        "responsibility": "Transaction boundaries and request validation",
+        "reference_symbols": [
+          "odoo/modules/loading.py::_check_module_names",
+          "odoo/modules/loading.py::load_data",
+          "odoo/modules/loading.py::load_demo",
+          "odoo/modules/loading.py::reset_modules_state",
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::force_demo"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "Django atomic/savepoints",
+          "Explicit alias checks",
+          "reset nesting refusal",
+          "IrModule select_for_update requests"
+        ],
+        "task_relationship": "TASK-API-0382; physical isolation linked0383",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Bounded controls preserved; per-module commit/rebuild, schema hooks and consistency of full installation not yet demonstrated"
+      },
+      {
+        "contract_details_authority": "Existing load_modules/load_module_graph qualified-symbol14element records; not a new contract identity",
+        "task_relationship": "TASK-API-0382; native migration dependencies and installed-version provenance retained",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "not_verified",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading bank and modules package H-API-231 reconciliation",
+        "responsibility": "Pre/post/end migration phases",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::load_modules"
+        ],
+        "consumer_mechanisms": [
+          "Native Django migrations",
+          "No qualified per-module version-selected MigrationManager counterpart in current loader"
+        ],
+        "limitations_and_dependencies": "Physical migration order alone does not prove source pre/post/end selection, script hooks or rollback at installed-version boundaries"
+      },
+      {
+        "contract_details_authority": "Existing load_modules/load_module_graph qualified-symbol14element records; not a new contract identity",
+        "task_relationship": "TASK-API-0382; native migration dependencies and installed-version provenance retained",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "not_verified",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading bank and modules package H-API-231 reconciliation",
+        "responsibility": "Uninstall, reload and fixed-point requests",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::load_modules"
+        ],
+        "consumer_mechanisms": [
+          "IrModule.button_uninstall schedules to remove",
+          "IrModule._request_module_change auto-install fixed-point scheduling",
+          "ModuleGraph supports incremental catalogue extensions"
+        ],
+        "limitations_and_dependencies": "No effective uninstall/model removal/Registry rebuild or repeated load-until-stable execution; requests remain distinct from execution"
+      }
+    ],
+    "unmapped_qualified_declarations": [],
+    "file_acceptance": "not_verified",
+    "next_functional_admission_boundary": "Whole load_modules/load_module_graph/force_demo depend on effective Registry/model composition, catalogue bootstrap reconciliation and policy/ownership gates; no unowned TASK automatically admitted",
+    "reference_specific_limits": "Odoo test runner/query counters and Environment internals are not automatically separate Consumer business requirements. Native pytest/logging, transactions and Registry contracts require explicit equivalence; no blanket authorized exclusion or acceptance asserted."
+  },
+  "current_authorized_related_units": {
+    "tasks": {
+      "TASK-API-0265": {
+        "native_id": "449",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "HTTP read-only technical catalogue; 55 PG regression PASS; full CI pending"
+      },
+      "TASK-API-0269": {
+        "native_id": "456",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "Startup app/model admission 5744db36; 21 PASS; whole TASK not accepted"
+      },
+      "TASK-API-0267": {
+        "native_id": "452",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "Tree/category FK migration not implemented; must preserve current strings and coordinate existing db.py work"
+      },
+      "TASK-GEN-0633": {
+        "native_id": "1203",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "Recovered exactly64 historical nodeids; current rerun queued, no blanket return fallback"
+      }
+    },
+    "authority": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/contractual-additional-ownership-assignment.json and contractual-ownership-assignment.json",
+    "scope": "Explicit user-approved owner-only updates through native TaskUpdate; statuses/dependencies preserved; older NULL-owner observations historical",
+    "contract": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/technical-catalogue-contract-14.json",
+    "acceptance": "No completed status, merge, per-base Registry acceptance or local model qualification implied"
   }
 }

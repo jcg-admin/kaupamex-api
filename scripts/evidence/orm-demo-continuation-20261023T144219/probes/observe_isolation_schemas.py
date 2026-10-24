@@ -32,6 +32,7 @@ result = {'observed_at': datetime.datetime.now(datetime.timezone.utc).isoformat(
           'instrument_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
           'owner_role': role, 'schema_observations': rows,
           'limit': 'Concurrent read-only schema snapshot; not test or TASK acceptance'}
-with (Path(__file__).resolve().parents[1] / 'outputs/isolation-schema-observations.jsonl').open('a') as stream:
+filename = 'current-isolation-schema-observations.jsonl' if '--current-run' in sys.argv else 'isolation-schema-observations.jsonl'
+with (Path(__file__).resolve().parents[1] / 'outputs' / filename).open('a') as stream:
     stream.write(json.dumps(result) + '\n')
 print(json.dumps(result, indent=2))

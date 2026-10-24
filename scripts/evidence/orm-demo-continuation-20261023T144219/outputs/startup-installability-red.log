@@ -1,0 +1,95 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFF..                                                                    [100%]
+=================================== FAILURES ===================================
+________________ test_noninstallable_addon_is_not_a_django_app _________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f1ea8d08470>
+
+    def test_noninstallable_addon_is_not_a_django_app(monkeypatch):
+>       assert local_apps(monkeypatch, {
+            'base': {'depends': []},
+            'disabled': {'depends': ['base'], 'installable': False},
+            'enabled': {'depends': ['base'], 'installable': True},
+        }) == ('core', 'addons.base', 'addons.enabled')
+E       AssertionError: assert ('core', 'add...dons.enabled') == ('core', 'add...dons.enabled')
+E         At index 2 diff: 'addons.disabled' != 'addons.enabled'
+E         Left contains one more item: 'addons.enabled'
+E         Use -v to get more diff
+
+tests/unit/config/test_local_apps_installability.py:17: AssertionError
+_________ test_dependents_of_disabled_addon_are_pruned_before_loading __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f1ea8d63d70>
+
+    def test_dependents_of_disabled_addon_are_pruned_before_loading(monkeypatch):
+>       assert local_apps(monkeypatch, {
+            'base': {'depends': []},
+            'disabled': {'depends': ['base'], 'installable': False},
+            'child': {'depends': ['disabled']},
+            'grandchild': {'depends': ['child']},
+        }) == ('core', 'addons.base')
+E       AssertionError: assert ('core', 'add...s.grandchild') == ('core', 'addons.base')
+E         Left contains 3 more items, first extra item: 'addons.disabled'
+E         Use -v to get more diff
+
+tests/unit/config/test_local_apps_installability.py:25: AssertionError
+________ test_cycle_in_disabled_component_does_not_block_retained_apps _________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f1ea8d65d00>
+
+    def test_cycle_in_disabled_component_does_not_block_retained_apps(monkeypatch):
+>       assert local_apps(monkeypatch, {
+            'base': {'depends': []},
+            'disabled': {'depends': ['cycle'], 'installable': False},
+            'cycle': {'depends': ['disabled']},
+        }) == ('core', 'addons.base')
+
+tests/unit/config/test_local_apps_installability.py:34: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/unit/config/test_local_apps_installability.py:13: in local_apps
+    return base._local_apps()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _local_apps() -> tuple[str, ...]:
+        """``LOCAL_APPS`` en orden topológico, derivado del grafo de addons.
+    
+        ``ModuleGraph`` itera por ``(depth, name)`` — el orden de carga de la
+        referencia (``odoo/modules/module_graph.py``). Cada addon aparece después
+        de todo aquello que su ``__manifest__.py`` declara en ``depends``, así que
+        un ``ready()`` que cuelga campos sobre un modelo ajeno encuentra el
+        registro poblado sin que nadie tenga que recordarlo.
+    
+        ``core`` va primero y a mano: no es un addon —es código transversal bajo
+        ``src/core/``— y por tanto no está en el grafo.
+        """
+        graph = ModuleGraph()
+        graph.extend(get_modules())
+    
+        # El ciclo se busca ANTES de iterar: ``cycles()`` es un DFS iterativo y
+        # aguanta un grafo cíclico, pero ``__iter__`` ordena por ``depth``, que
+        # recurre y revienta con ``RecursionError`` sin nombrar al culpable
+        # (H-API-563). Con la guarda, el arranque falla diciendo qué addons lo
+        # cierran. La guarda del ciclo en el propio ``depth`` es la tarea #323.
+        cycles = graph.cycles()
+        if cycles:
+            rutas = '; '.join(' -> '.join(c) for c in cycles)
+>           raise ImproperlyConfigured(
+                f'El grafo de addons declara {len(cycles)} ciclo(s) y no admite '
+                f'orden topológico, así que LOCAL_APPS no se puede derivar: '
+                f'{rutas}. Corregir el `depends` del manifiesto que invierte la '
+                f'dirección de la referencia (ver H-API-563).')
+E           django.core.exceptions.ImproperlyConfigured: El grafo de addons declara 1 ciclo(s) y no admite orden topológico, así que LOCAL_APPS no se puede derivar: cycle -> disabled -> cycle. Corregir el `depends` del manifiesto que invierte la dirección de la referencia (ver H-API-563).
+
+src/config/settings/base.py:112: ImproperlyConfigured
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/config/test_local_apps_installability.py::test_noninstallable_addon_is_not_a_django_app
+FAILED tests/unit/config/test_local_apps_installability.py::test_dependents_of_disabled_addon_are_pruned_before_loading
+FAILED tests/unit/config/test_local_apps_installability.py::test_cycle_in_disabled_component_does_not_block_retained_apps
+3 failed, 2 passed, 1 warning in 0.12s

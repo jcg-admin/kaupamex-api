@@ -1,0 +1,18 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_file": "odoo/addons/base/security/ir.model.access.csv",
+  "sha256": "1d19b2da7fa6eecc30ed46b21c1ed30a5b600d4950e083e6be349f15d69dfd50",
+  "rows": [
+    {
+      "id": "access_ir_module_module_group_user",
+      "name": "ir_module_module group_user",
+      "model_id:id": "model_ir_module_module",
+      "group_id:id": "group_system",
+      "perm_read": "1",
+      "perm_write": "1",
+      "perm_create": "1",
+      "perm_unlink": "1"
+    }
+  ],
+  "equivalence": "Project named capability must gate technical catalogue reads; no Odoo CRUD grants copied automatically"
+}

@@ -1565,6 +1565,194 @@
       "merged": false,
       "acceptance": "not_verified",
       "official_states_changed": false
+    },
+    "physical_database_qualification": {
+      "result": "PASS",
+      "evidence": "physical-catalogue-positive.json",
+      "negative": "wrong physical alias fails expected1",
+      "partial_failure": "after first acquisition fails expected1; no owned candidates remain",
+      "scope": "Two physical DB catalogues only; no schema completeness, effective Registry/auth/installation acceptance"
     }
+  },
+  "applicable_responsibility_reconciliation": {
+    "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "representation": "Composite observable obligations over existing qualified-symbol contracts; not new durable contract IDs, TASKs, taxonomy or acceptance denominator",
+    "structural_authority": "Existing reference_inventory,19named declarations, contract_records and supplemental_dispositions; no re-inventory",
+    "responsibilities": [
+      {
+        "responsibility": "Node initialization and catalogue snapshots",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleNode",
+          "odoo/modules/module_graph.py::ModuleNode.__init__",
+          "odoo/modules/module_graph.py::ModuleGraph._update_from_database"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "ModuleNode defaults plus explicit-alias persisted identity/state/demo/installed_version snapshots",
+        "verification": "Existing snapshot controls and incremental65contracts; physical-catalogue-positive.json",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "limitations": "Catalogue snapshot is not model composition or installation"
+      },
+      {
+        "responsibility": "Mapping and graph identity",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleGraph",
+          "odoo/modules/module_graph.py::ModuleGraph.__init__",
+          "odoo/modules/module_graph.py::ModuleGraph.__contains__",
+          "odoo/modules/module_graph.py::ModuleGraph.__getitem__",
+          "odoo/modules/module_graph.py::ModuleGraph.__len__"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "Native Python mapping and validated load/update mode; explicit using binding",
+        "verification": "Existing qualified-name mapping tests in65neighbor contracts",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "limitations": "Native cursor binding adapted; no new database or state authority"
+      },
+      {
+        "responsibility": "Dependency ordering and state boundaries",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleNode.order_name",
+          "odoo/modules/module_graph.py::ModuleNode.depth",
+          "odoo/modules/module_graph.py::ModuleNode.phase",
+          "odoo/modules/module_graph.py::ModuleGraph.__iter__",
+          "odoo/modules/module_graph.py::ModuleNode.phase.not_in_the_same_phase"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "Mode/phase/depth/dependency-anchor ordering with recomputed properties",
+        "verification": "65neighbor contracts;12incremental pinned-body differential cases",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "limitations": "No full module load execution, actual Registry or worker invalidation"
+      },
+      {
+        "responsibility": "Incremental closure and preparation",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleGraph.extend",
+          "odoo/modules/module_graph.py::ModuleGraph._update_depends",
+          "odoo/modules/module_graph.py::ModuleGraph._update_depth"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "Static transitive closure retained; bound additions prepare/filter/snapshot only new nodes",
+        "verification": "16focused;12incremental differential; two physical catalogues; wrong-alias negative",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "limitations": "Manifest fixtures controlled; not all productive module arrangements or loader acceptance"
+      },
+      {
+        "responsibility": "Recursive pruning and error surfaces",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleGraph._remove",
+          "odoo/modules/module_graph.py::ModuleGraph._update_depends",
+          "odoo/modules/module_graph.py::ModuleGraph._update_depth",
+          "odoo/modules/module_graph.py::ModuleGraph._update_from_database"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "Remove dependents, prune invalid/cyclic/noninstalled nodes, propagate query/name failures",
+        "verification": "Existing removal/differential controls and current physical catalogue pruning",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "limitations": "Imported-module diagnostic exception and full runtime consumer acceptance pending"
+      },
+      {
+        "responsibility": "Demo dependency eligibility",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleNode.demo_installable"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "All dependency demo flags govern eligibility; persisted flags selected by alias",
+        "verification": "Existing pinned-body demo eligibility; current physical demo flags",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "limitations": "Eligibility does not execute demo or force_demo/rebuild"
+      },
+      {
+        "responsibility": "Imported-module provenance and diagnostics",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleGraph._imported_modules",
+          "odoo/modules/module_graph.py::ModuleGraph.extend"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "Reference imported-column/studio_customization diagnostic exemption has no qualified Consumer equivalent",
+        "verification": "Source review; current IrModule has no imported field or qualified imported-addon loader",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "not_verified",
+        "acceptance": "not_verified",
+        "limitations": "No automatic field creation or authorized exclusion inferred; TASK-API-0382 and related0269 remain pending"
+      },
+      {
+        "responsibility": "Descriptor freshness during extension",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleNode.order_name",
+          "odoo/modules/module_graph.py::ModuleNode.depth",
+          "odoo/modules/module_graph.py::ModuleNode.phase",
+          "odoo/modules/module_graph.py::ModuleGraph.extend"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "Consumer recomputes properties rather than resetting Odoo cached_property entries",
+        "verification": "Mutation/state-boundary controls and incremental comparisons",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "limitations": "Bounded freshness verified; full loader/registry/cache lifecycle not accepted"
+      }
+    ],
+    "unmapped_qualified_declarations": [],
+    "supplemental_scope": "Existing imports, TYPE_CHECKING STATES alias, logger and nested/dynamic declarations reviewed; no new enum or reference modifications",
+    "file_acceptance": "not_verified"
+  },
+  "current_authorized_related_units": {
+    "tasks": {
+      "TASK-API-0265": {
+        "native_id": "449",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "HTTP read-only technical catalogue; 55 PG regression PASS; full CI pending"
+      },
+      "TASK-API-0269": {
+        "native_id": "456",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "Startup app/model admission 5744db36; 21 PASS; whole TASK not accepted"
+      },
+      "TASK-API-0267": {
+        "native_id": "452",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "Tree/category FK migration not implemented; must preserve current strings and coordinate existing db.py work"
+      },
+      "TASK-GEN-0633": {
+        "native_id": "1203",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "Recovered exactly64 historical nodeids; current rerun queued, no blanket return fallback"
+      }
+    },
+    "authority": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/contractual-additional-ownership-assignment.json and contractual-ownership-assignment.json",
+    "scope": "Explicit user-approved owner-only updates through native TaskUpdate; statuses/dependencies preserved; older NULL-owner observations historical",
+    "contract": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/technical-catalogue-contract-14.json",
+    "acceptance": "No completed status, merge, per-base Registry acceptance or local model qualification implied"
   }
 }
