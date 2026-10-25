@@ -66,7 +66,7 @@ from django.db.models import (  # noqa: F401
     ForeignKey, Manager, Model, QuerySet,
 )
 from django.db.models.base import ModelState
-from django.db.models.signals import (class_prepared, post_init,
+from django.db.models.signals import (class_prepared, m2m_changed, post_init,
                                       pre_delete, pre_init, pre_save)
 from django.dispatch import receiver
 
@@ -3857,6 +3857,61 @@ def modified(self, fnames, create=False, before=False):
     if before:
         for field, ids in tomark.items():
             environment.add_to_compute(field, ids)
+
+
+_M2M_CLEAR_OWNERS = '_orm_m2m_clear_owners'
+
+
+@receiver(m2m_changed, dispatch_uid='orm.models.notify_m2m_modified')
+def _notify_m2m_modified(sender, instance, action, reverse, model,
+                         pk_set=None, using=None, **_ignored):
+    """Notifica al motor existente los cambios de relación hechos por Django.
+
+    El manager M2M escribe su tabla sin pasar por Field.__set__. La señal
+    pública conserva ese flujo y entrega la invalidación a modified(). En
+    clear inverso hay que recordar los propietarios antes de borrar enlaces;
+    el dato temporal vive sólo en la instancia entre las dos señales.
+    """
+    if action not in {'post_add', 'post_remove', 'pre_clear', 'post_clear'}:
+        return
+    owner = model if reverse else type(instance)
+    if not hasattr(owner, 'modified'):
+        return
+    for field in owner._meta.many_to_many:
+        if field.remote_field.through is not sender:
+            continue
+        key = (sender, field.name, using)
+        symmetrical = field.remote_field.symmetrical
+        if action == 'pre_clear':
+            if reverse:
+                previous = owner._base_manager.using(using).filter(
+                    **{field.name: instance.pk}).values_list('pk', flat=True)
+            elif symmetrical:
+                previous = getattr(instance, field.name).using(using).values_list(
+                    'pk', flat=True)
+            else:
+                continue
+            instance.__dict__.setdefault(_M2M_CLEAR_OWNERS, {})[key] = tuple(previous)
+            continue
+        if action == 'post_clear':
+            snapshots = instance.__dict__.get(_M2M_CLEAR_OWNERS, {})
+            owner_ids = set(snapshots.pop(key, ()))
+            if not snapshots:
+                instance.__dict__.pop(_M2M_CLEAR_OWNERS, None)
+        else:
+            if not pk_set:
+                continue
+            owner_ids = set(pk_set) if reverse or symmetrical else set()
+        if not reverse or symmetrical:
+            owner_ids.add(instance.pk)
+        if not owner_ids:
+            continue
+        if reverse or symmetrical:
+            records = owner._base_manager.using(using).filter(pk__in=owner_ids)
+        else:
+            records = (instance,)
+        for record in records:
+            record.modified([field.name])
 
 
 def _recompute_field(self, field, ids=None):

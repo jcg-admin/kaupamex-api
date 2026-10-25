@@ -93,6 +93,7 @@ Qué NO se porta, con su medición
   materializarlo. Se porta como la propiedad ``product_document_ids`` de abajo.
   Ver H-API-193.
 """
+import api
 import fields
 import models
 from django.apps import apps
@@ -284,14 +285,21 @@ class ProductProduct(TimeStampedModel):
             self.product_template_attribute_values.all())
         return self.combination_indices
 
+    @api.depends(
+        'product_tmpl.name', 'product_template_attribute_values',
+        'product_template_attribute_values.attribute_value.name',
+        'product_template_attribute_values.price_extra',
+    )
     def _compute_display_name(self):
         """≙ ``display_name`` / ``_compute_display_name`` (``:813-872``), que
         delega en ``_get_combination_name`` — nombre de la ficha más su
         combinación.
 
-        La referencia **excluye** los valores de líneas con un solo valor: si
-        todas las camisetas son de algodón, poner "(Algodón)" en cada variante
-        no distingue nada y sólo alarga el nombre. Se conserva ese filtro.
+        Se conserva el formato actual del Consumer y el retorno directo,
+        además de la asignación exigida por el ORM. La exclusión nativa de
+        valores únicos no queda acreditada por el atributo opcional
+        ``is_distinguishing``: el modelo actual no lo declara. Los contextos
+        de proveedor y presentación pertenecen a su reconciliación de negocio.
         """
         base = self.product_tmpl.name
         parts = [
@@ -299,7 +307,8 @@ class ProductProduct(TimeStampedModel):
             for value in self.product_template_attribute_values.all()
             if getattr(value, 'is_distinguishing', True)
         ]
-        return f'{base} ({", ".join(parts)})' if parts else base
+        self.display_name = f'{base} ({", ".join(parts)})' if parts else base
+        return self.display_name
 
     # === PRECIO ===========================================================
 
