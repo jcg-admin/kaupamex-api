@@ -3363,10 +3363,9 @@ class DisplayNameMixin:
     ``ir_model``, ``properties_base_definition``, ``res_currency``), así que
     cambiarlas ahora rompería lo que ya funciona:
 
-    1. **``_compute_display_name`` DEVUELVE la etiqueta**; la fuente la
-       **asigna** (``record.display_name = convert(...)``). Aquí el campo no es
-       un campo del ORM con cache de cómputo, así que el valor tiene que
-       volver al descriptor por el retorno.
+    1. **``_compute_display_name`` asigna la etiqueta**, como la fuente, y
+       conserva además el retorno para los llamadores directos existentes.
+       El retorno no sustituye la asignación exigida por el descriptor.
     2. **``name_create`` y ``name_search`` reciben y devuelven lo de Django.**
        ``name_search`` acota con un ``Q`` y no con un dominio extra, que es la
        forma que sus llamadores de este árbol ya usaban.
@@ -3390,11 +3389,9 @@ class DisplayNameMixin:
     Lo que NO es divergencia: la asignación sigue permitida
     ======================================================
 
-    ``display_name`` es un :class:`orm.fields_nonstored.NonStored`, no una
-    ``property``, y la diferencia es deliberada: la fuente declara un campo, y
-    un campo de la fuente **se puede escribir en memoria** aunque no tenga
-    columna. ``record.display_name = 'X'`` gana sobre el cómputo hasta que se
-    borre, igual que allá.
+    ``display_name`` es un campo sin columna, no una ``property``. Su
+    descriptor admite la asignación en memoria y la caché vigente conserva
+    el valor hasta que se invalidan sus dependencias.
     """
 
     #: ≙ la declaración de la fuente, verbatim salvo el nombre del argumento
@@ -3409,8 +3406,7 @@ class DisplayNameMixin:
     #: Sin ``store=``, el bloque ``compute`` de la fuente deriva
     #: ``store=False`` (``odoo19c: odoo/orm/fields.py:443-450``, portado en
     #: :func:`orm.fields_nonstored.apply_source_defaults`), así que el
-    #: enrutador devuelve un :class:`~orm.fields_nonstored.NonStored` y el
-    #: campo no tiene columna — igual que allá.
+    #: campo se contribuye como privado, sin columna — igual que allá.
     #:
     #: La etiqueta va en el primer posicional porque es ``verbose_name`` en
     #: Django y ``string`` en la fuente; antes viajaba en ``help_text=``, que
@@ -3423,6 +3419,7 @@ class DisplayNameMixin:
                         compute='_compute_display_name',
                         search='_search_display_name')
 
+    @api.depends(lambda model: (model._rec_name,) if getattr(model, '_rec_name', None) else ())
     def _compute_display_name(self):
         """La etiqueta del registro — ≙ ``_compute_display_name`` (``:1425``).
 
@@ -3430,28 +3427,26 @@ class DisplayNameMixin:
         :func:`orm.fields.convert_to_display_name`; sin él, ``modelo,id``,
         verbatim el ``f"{record._name},{record.id}"`` de la fuente.
 
-        El ``@api.depends(lambda self: (self._rec_name,) ...)`` de la fuente no
-        se porta: declara de qué depende el cómputo para invalidar su cache, y
-        aquí no hay cache que invalidar — el descriptor computa en cada
-        lectura. Es divergencia de mecanismo, no un hueco.
+        La dependencia invocable conserva el campo de nombre de cada modelo.
+        Se asigna mediante el descriptor existente para poblar su caché; el
+        retorno adicional conserva los consumidores que llaman directamente.
         """
         rec_name = getattr(type(self), '_rec_name', None)
         if not rec_name:
             name = getattr(type(self), '_name', None) or self._meta.label
-            return f'{name},{self.pk}'
-        try:
-            field = self._meta.get_field(rec_name)
-        except FieldDoesNotExist:
-            field = None
-        etiqueta = convert_to_display_name(field, getattr(self, rec_name), self)
-        # El ``False`` del default de la fuente para un campo vacío: aquí la
-        # etiqueta tiene que ser texto, así que se cae al par ``modelo,id`` —
-        # que es lo que la fuente da cuando NO hay ``_rec_name`` en absoluto, y
-        # el único texto que identifica al registro sin inventar nada.
-        if not etiqueta:
-            name = getattr(type(self), '_name', None) or self._meta.label
-            return f'{name},{self.pk}'
-        return etiqueta
+            label = f'{name},{self.pk}'
+        else:
+            try:
+                field = self._meta.get_field(rec_name)
+            except FieldDoesNotExist:
+                field = None
+            label = convert_to_display_name(field, getattr(self, rec_name), self)
+            # Conservar el respaldo técnico de la adaptación para nombres vacíos.
+            if not label:
+                name = getattr(type(self), '_name', None) or self._meta.label
+                label = f'{name},{self.pk}'
+        self.display_name = label
+        return label
 
     @classmethod
     def _search_display_name(cls, operator, value):

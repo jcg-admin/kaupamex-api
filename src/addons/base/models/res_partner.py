@@ -1982,6 +1982,14 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     # display_name — el nombre enriquecido segun quien lo pide
     # ≙ ``odoo19c: odoo/addons/base/models/res_partner.py:1038-1069``
     # ------------------------------------------------------------------
+    @api.depends(lambda model: (
+        'name', 'complete_name', 'parent.name', 'email', 'vat',
+        'commercial_company_name', 'is_company', 'type',
+    ) + tuple(model._display_address_depends()))
+    @api.depends_context(
+        'show_address', 'partner_show_db_id', 'show_email', 'show_vat',
+        'lang', 'formatted_display_name', 'partner_display_name_hide_company',
+    )
     def _compute_display_name(self):
         """El nombre completo, enriquecido segun cinco claves de contexto.
 
@@ -2004,30 +2012,30 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         ``TYPES``, que es una lista literal — no hay traduccion que fijar. Se
         cierra con el catalogo, no antes.
         """
-        contexto = get_context()
+        context = get_context()
         type_description = dict(self.TYPES)
 
-        if contexto.get('formatted_display_name'):
+        if context.get('formatted_display_name'):
             name = self.name or ''
             if self.parent_id or self.company_name:
                 company = self.company_name or (
                     self.parent.name if self.parent_id else '')
                 own = self.name or type_description.get(self.type, '')
                 name = f"{company} \t --{own}--"
-            if contexto.get('show_email') and self.email:
+            if context.get('show_email') and self.email:
                 name = f"{name} \t --{self.email}--"
-            elif contexto.get('partner_show_db_id'):
+            elif context.get('partner_show_db_id'):
                 name = f"{name} \t --{self.pk}--"
         else:
             name = self._get_complete_name()
-            if contexto.get('partner_show_db_id'):
+            if context.get('partner_show_db_id'):
                 name = f"{name} ({self.pk})"
-            if contexto.get('show_email') and self.email:
+            if context.get('show_email') and self.email:
                 name = f"{name} <{self.email}>"
-            if contexto.get('show_address'):
+            if context.get('show_address'):
                 name = name + "\n" + self._display_address(without_company=True)
-            if contexto.get('show_vat') and self.vat:
-                if contexto.get('show_address'):
+            if context.get('show_vat') and self.vat:
+                if context.get('show_address'):
                     name = f"{name} \n {self.vat}"
                 else:
                     name = f"{name} - {self.vat}"
@@ -2035,7 +2043,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         # ≙ *"Remove extra empty lines"* de la fuente (``:1067``): la plantilla
         # del pais deja blancos delante del salto cuando una parte va vacia.
         name = re.sub(r'\s+\n', '\n', name)
-        return name.strip()
+        self.display_name = name.strip()
+        return self.display_name
 
     # ------------------------------------------------------------------
     # El avatar y su relleno por tipo de direccion

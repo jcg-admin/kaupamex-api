@@ -1447,38 +1447,18 @@ def _field_cache_record_id(field, instance):
 
 
 class FieldDescriptor(DeferredAttribute):
-    """El cuerpo de ``Field.__get__`` y ``Field.__set__``, en el enganche vivo.
+    """Lectura y escritura de campos mediante el enganche nativo de Django.
 
-    ≙ ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:1642-1804``) y
-    ``Field.__set__`` (``:1807-1841``).
+    Adapta Field.__get__/__set__ de Odoo19Community. La asignación de una
+    columna ordinaria también notifica los cómputos que dependen de ella,
+    sin volcar SQL. Durante construcción sólo se carga el almacén Django.
+    Las columnas ordinarias ya cargadas conservan su lectura nativa y los
+    campos calculados usan la caché existente y su invalidación.
 
-    **El descriptor NO es el campo, y por eso el cuerpo no cuelga de
-    ``models.Field``.** La fuente hace del propio ``Field`` su descriptor: el
-    objeto que vive en el atributo de clase *es* el campo. Django coloca ahí un
-    objeto distinto, que el campo instala por ``descriptor_class``
-    (= ``DeferredAttribute``). Medido sobre ``res.partner``: ``name`` y
-    ``active`` llevan un ``DeferredAttribute``, ``barcode`` un
-    ``_CompanyDependentAttribute`` y ``parent_id`` un
-    ``ForeignKeyDeferredAttribute``. Colgar ``__get__`` de ``models.Field``
-    sería código muerto — nadie lo consultaría —, igual que lo era
-    ``__set_name__`` antes de portarse a ``contribute_to_class``
-    (:ref:`h-api-1067`). El cuerpo se porta al descriptor; el sitio cambia, el
-    comportamiento no.
-
-    **Se instala sobre TODO campo, y por eso aquí no hay ``__set__``.** La
-    fuente consulta ``env.cache`` para todo campo (``:1667``); un puerto que
-    instale el descriptor sólo sobre el calculado tiene dos cachés y un lector
-    que consulta la que no es. ``DeferredAttribute`` no declara ``__set__``: es
-    un descriptor de NO datos, así que ``instance.__dict__`` gana y este
-    ``__get__`` sólo se consulta cuando el valor falta — que es exactamente
-    cuando el recordset, cuyo ``__dict__`` está vacío, necesita la caché del
-    ORM. Medido sobre 300 000 lecturas: el de NO datos cuesta **1.00×** lo que
-    el atributo llano, porque en el camino caliente no se le consulta. La
-    escritura, que sí cuesta **3.24×**, vive en :class:`ComputedFieldDescriptor`.
-
-    Precedente propio del árbol: ``_CompanyDependentAttribute``
-    (``orm/fields_company_dependent.py:167``) ya porta comportamiento de campo a
-    un descriptor, y se instala por campo en ``contribute_to_class``.
+    La separación histórica sin setter ahorraba llamadas de lectura, pero
+    dejaba etiquetas calculadas obsoletas tras cambiar el campo de nombre.
+    La medición histórica se conserva en el banco two-caches-descriptor;
+    no acredita corrección funcional ni el coste de esta implementación.
     """
 
     def __get__(self, instance, cls=None):
@@ -1487,13 +1467,25 @@ class FieldDescriptor(DeferredAttribute):
             # ``:1644-1645`` — acceso por la clase: devuelve el descriptor.
             return self
 
+        field = self.field
+        # Conservar el almacén nativo de Django durante construcción y para
+        # columnas ordinarias ya cargadas. Antes, el descriptor sin setter
+        # dejaba que Python resolviera exactamente esta lectura por __dict__.
+        # Un recordset vacío o múltiple conserva las guardas de cardinalidad.
+        if field.attname in instance.__dict__:
+            if instance.__dict__.get('_orm_building'):
+                return instance.__dict__[field.attname]
+            if field.store and not field.compute and not field.related:
+                ids = getattr(instance, '_ids', None)
+                if ids is None or len(ids) == 1:
+                    return instance.__dict__[field.attname]
+
         # El primer consumidor tras ``apps.ready`` dispara la fase de setup
         # que la fuente corre desde su cargador (``ensure_field_setup``): sin
         # ella un ``related=`` sobre un campo de Django no tiene ``compute``.
         if ensure_field_setup.pending:
             ensure_field_setup()
 
-        field = self.field
         environment = get_environment()
 
         # ``:1647-1651`` — el control de acceso por campo. La guarda por
@@ -1563,12 +1555,12 @@ class FieldDescriptor(DeferredAttribute):
         #
         # El recalculo pendiente ya se proceso arriba (``field.recompute``),
         # asi que un valor en el almacén es un valor vigente, no uno viejo.
-        contextual_compute = (
+        computed_cache = (
             field.compute and not field.store
-            and _has_context_buckets(field))
-        if field.attname in instance.__dict__ and not contextual_compute:
-            # Un compute contextual con id debe resolver el bucket actual;
-            # el almacén Django no identifica el contexto de su último valor.
+            and (record_id is not None or _has_context_buckets(field)))
+        if field.attname in instance.__dict__ and not computed_cache:
+            # Un compute con identidad debe resolver el bucket vigente: el
+            # snapshot Django puede sobrevivir a la invalidación del campo.
             # **El valor del almacén se devuelve TAL CUAL.** La rama de arriba
             # aplica ``convert_to_record`` porque lo que guarda ``env.cache``
             # está en forma de caché; el almacén de Django guarda la forma de
@@ -1683,27 +1675,6 @@ class FieldDescriptor(DeferredAttribute):
         return field.convert_to_record(field_cache[record_id], instance)
 
 
-class ComputedFieldDescriptor(FieldDescriptor):
-    """El mismo ``__get__``, más ``__set__`` — ≙ ``Field.__set__`` (``:1807``).
-
-    **Por qué la escritura vive en una subclase y no en la base.**
-    ``DeferredAttribute`` no declara ``__set__``: es un descriptor de NO datos,
-    así que ``instance.__dict__`` gana y su ``__get__`` sólo se consulta cuando
-    el valor falta. Declarar ``__set__`` lo convierte en descriptor de datos, y
-    entonces **toda** lectura de **todo** campo pasa por Python. Medido sobre
-    300 000 lecturas con un cuerpo vacío
-    (``scripts/workbench/two-caches-descriptor-20260911T053450/outputs/``
-    ``descriptor_cost.txt``): el descriptor de NO datos cuesta **1.00×** lo que
-    el atributo llano —22.8 ns contra 22.8 ns, porque nunca se le consulta— y
-    el de datos **3.24×** (73.9 ns). El coste no lo trae el descriptor: lo trae
-    ``__set__``.
-
-    Por eso el reparto es por **capacidad**, no por comodidad: la lectura la
-    necesitan todos los campos —es donde vive la caché del ORM— y la escritura
-    en tres cubos sólo tiene receptor donde el campo declara ``compute``. Ahí el
-    3.24× es despreciable frente a la llamada al método de cómputo.
-    """
-
     def _mark_pending_inverse(self, instance):
         """Anota que este campo quedó escrito y su inverso no se ha despachado.
 
@@ -1744,10 +1715,16 @@ class ComputedFieldDescriptor(FieldDescriptor):
         es la mitad de disparo; el volcado sigue siendo ``save()``.
         """
         field = self.field
+        previous = instance.__dict__.get(field.attname, SENTINEL)
         # El atributo de instancia se escribe SIEMPRE: es de donde ``save()``
         # de Django lee la columna, y de donde la lee ``_cache_computed_values``
         # tras el cómputo.
         instance.__dict__[field.attname] = value
+
+        # Django asigna la identidad tras INSERT y al refrescar la fila. No
+        # es una columna de negocio que deba entrar al conjunto de flush.
+        if field.primary_key:
+            return
 
         if instance.__dict__.get('_orm_building'):
             # **Construir NO es asignar, y esto lo decide la fuente.**
@@ -1796,6 +1773,12 @@ class ComputedFieldDescriptor(FieldDescriptor):
                 self._mark_pending_inverse(instance)
             return
 
+        # Un refresh puede entregar de nuevo el mismo valor ordinario. Esa
+        # carga no debe programar cómputos como si hubiera cambiado la columna.
+        # Los computes conservan su escritura, incluso bajo protección.
+        if not field.compute and previous is not SENTINEL and previous == value:
+            return
+
         environment = get_environment()
         record_id = instance.pk
         cache_id = _field_cache_record_id(field, instance)
@@ -1839,6 +1822,15 @@ class ComputedFieldDescriptor(FieldDescriptor):
         field.write(instance, field.convert_to_write(value, instance))
         instance.modified([field.name])
         self._mark_pending_inverse(instance)
+
+
+class ComputedFieldDescriptor(FieldDescriptor):
+    """Conserva el tipo público de los campos calculados.
+
+    La escritura pertenece al descriptor base: cambiar una columna ordinaria
+    también debe invalidar los cómputos que dependen de ella. La separación
+    histórica sin setter evitaba ese efecto observable por ahorrar lecturas.
+    """
 
 
 def _collect_field_definitions(field, cls, name):
@@ -1965,47 +1957,19 @@ def _field_contribute_to_class(self, cls, name, private_only=False):
 
 
 def _install_field_descriptor(field, cls):
-    """Cuelga el descriptor de la fuente sobre el campo, y elige cuál.
+    """Instala el descriptor y conserva el tipo público de los calculados.
 
-    **Todo campo lee por el descriptor; sólo el calculado escribe por él.** La
-    fuente tiene UNA caché (``env.cache``) y ``Field.__get__`` la consulta
-    siempre, para todo campo (``odoo19c: odoo/orm/fields.py:1667``). Instalarlo
-    sólo sobre el calculado dejaba al puerto con **dos** cachés y un lector que
-    consultaba la que no era: ``_insert_cache`` escribía en la del ORM y una
-    lectura llana caía al ``DeferredAttribute`` de Django, que emite
-    ``refresh_from_db``. Medido sobre un recordset con la caché sembrada
-    (``scripts/workbench/two-caches-descriptor-20260911T053450/outputs/``
-    ``id_resolution_on_recordset.txt``): ``rs.label`` iba a la base y reventaba,
-    mientras ``rs.id`` —que sí tiene descriptor propio, :class:`IdFromIds`—
-    respondía ``7``.
-
-    Las dos guardas que quedan, y ninguna es de comodidad:
-
-    1. **Quién escribe.** ``compute`` declarado → :class:`ComputedFieldDescriptor`
-       (con ``__set__``, descriptor de datos); si no → :class:`FieldDescriptor`
-       (sin ``__set__``, de NO datos, coste medido **1.00×**). El reparto lo
-       justifica el docstring de la subclase.
-    2. **El atributo de clase es un ``DeferredAttribute`` PELADO, o no hay
-       ninguno.** Un ``ForeignKeyDeferredAttribute`` o un
-       ``_CompanyDependentAttribute`` ya son descriptores de datos con su
-       propio camino de lectura y escritura portado; sustituirlos rompería la
-       relación o el eje por empresa. Por eso la condición es de tipo exacto,
-       no ``isinstance``. El campo relacional sobre recordset lo cierra su
-       propio sucesor, **TASK-API-0402**.
-
-       El ``None`` es el caso del campo **sin columna**, y no es un hueco: el
-       ``contribute_to_class`` de Django cuelga su descriptor sólo ``if
-       self.column`` (verbatim en el paquete instalado), así que un
-       ``store=False`` sale de ahí sin nada. Sin esta rama el atributo se
-       resolvía por la MRO al objeto ``Field`` crudo de la base y una lectura
-       nunca despachaba el cómputo — el campo respondía con el descriptor en
-       vez de con su valor.
+    Ambos tipos notifican la escritura para invalidar sus dependientes.
+    Sólo se sustituye DeferredAttribute exacto o un atributo ausente: los
+    descriptores de relaciones y de campos por empresa mantienen sus
+    mecanismos propios. Un campo related se promueve cuando su setup
+    declara compute, sin duplicar la implementación del setter.
     """
     current = cls.__dict__.get(field.attname)
     # Re-invocable desde ``Field.setup``: un campo ``related=`` no tiene
     # ``compute`` en ``contribute_to_class`` —se lo cuelga ``setup_related``
     # (``:632``) en la fase de setup—, así que aquí recibía el descriptor
-    # base, que NO define ``__set__``: la asignación del cómputo caía al
+    # base, que antes no definía ``__set__``: la asignación del cómputo caía al
     # ``__dict__`` y la caché nunca se enteraba (medido en
     # ``probe_plain_row_assignment_lands_in_cache.py``: ``_model_setitem``
     # trazado, ``_field_write`` nunca). La fuente no distingue: allá el
