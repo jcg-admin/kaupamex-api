@@ -93,7 +93,7 @@ from django.dispatch import receiver
 from django.apps import apps
 
 from orm.method_chain import chain_method, wrap_method
-from orm.registry import (MODELS_BY_NAME, clear_marked_methods,
+from orm.registry import (MODELS_BY_NAME, clear_field_depends, clear_marked_methods,
                           field_depends, resolve_model_key)
 from tools.misc import discardattr
 
@@ -1314,7 +1314,13 @@ def ensure_field_setup():
                if not _is_setup_done(m)]
     for model_cls in models_:
         prepare_field_setup(model_cls)
-    return sum(setup_fields(model_cls) for model_cls in models_)
+    count = sum(setup_fields(model_cls) for model_cls in models_)
+    if count:
+        # Un setter puede consultar mapas antes del setup perezoso. Related
+        # acaba de instalar compute: esos mapas ya no describen los campos.
+        # Reutilizar la invalidación del registro, sin ocultar campos ausentes.
+        clear_field_depends()
+    return count
 
 
 #: Levantada por :func:`mark_model_for_setup`; bajada por el barrido. Nace en
