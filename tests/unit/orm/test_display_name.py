@@ -12,19 +12,9 @@ nuestros — medido, no supuesto. Los 90 restantes los recibe de
 ``orm.model_classes.adopt_display_name`` sobre ``class_prepared``, la misma
 pareja de vías que ``H-API-577`` estableció para el registro por nombre.
 
-Dos divergencias de FORMA, heredadas del árbol y declaradas
-===========================================================
-
-El mixin las adopta porque cinco modelos ya las ejercían antes de existir:
-``_compute_display_name`` **devuelve** la etiqueta (la fuente la asigna), y
-``name_create``/``name_search`` son ``classmethod`` (la fuente usa
-``@api.model``). Un default que no las respetara rompería a esos cinco.
-
-La tercera se retiró en ``api@5ae823c9``: ``_search_display_name`` devolvía un
-``QuerySet`` y ahora devuelve un ``Domain``, como la fuente. Su argumento —*"es
-lo que el llamador de este árbol sabe consumir"*— quedó falso al llegar el
-segundo llamador, el optimizador de dominios, que necesita algo que se componga
-dentro de un ``any``. Ver :ref:`h-api-965`.
+La etiqueta actual es un Char calculado y buscable. El cómputo asigna
+su resultado, y la caché se invalida por los mecanismos existentes del ORM.
+El protocolo nativo de Field tiene lectura y asignación, sin borrado Python.
 
 Qué haría fallar a estos casos
 ==============================
@@ -41,12 +31,14 @@ import pytest
 
 from django.apps import apps
 from django.contrib.contenttypes.models import ContentType
+from django.db import models as django_models
 
 from addons.base.models import ResPartner
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.purchase_requisition.models import PurchaseOrderGroup
-from orm.fields_nonstored import NonStored
+from orm.environments import env as get_environment
+from orm.fields import ComputedFieldDescriptor
 from orm.model_classes import (DISPLAY_NAME_SYMBOLS,
                                THIRD_PARTY_MODULE_PREFIXES,
                                adopt_display_name, ensure_display_names)
@@ -96,11 +88,15 @@ class TestTheFieldAdmitsAssignment:
     La fuente lo declara campo, y sus overrides **le asignan**
     (``lot.display_name = name``, ``odoo19c:
     product_expiry/models/production_lot.py:35``). Con una ``property`` de sólo
-    lectura ese idioma revienta, y por eso el mecanismo es ``NonStored``.
+    lectura ese idioma revienta; el campo tipado usa el descriptor del ORM.
     """
 
     def test_the_descriptor_is_the_one_of_the_mixin(self):
-        assert isinstance(vars(DisplayNameMixin)['display_name'], NonStored)
+        field = vars(DisplayNameMixin)['display_name']
+        assert isinstance(field, django_models.CharField)
+        assert field.compute == '_compute_display_name'
+        assert SystemParameter._meta.get_field('display_name').search == '_search_display_name'
+        assert field.store is False
 
     @pytest.mark.django_db
     def test_it_reads_the_computed_value(self):
@@ -117,7 +113,12 @@ class TestTheFieldAdmitsAssignment:
     def test_deleting_it_falls_back_to_the_computed_value(self):
         parametro = SystemParameter.objects.create(key='clave.tres', value='x')
         parametro.display_name = 'temporal'
-        del parametro.display_name
+        # Stable historical nodeid; native Field has no deletion protocol.
+        with pytest.raises(AttributeError):
+            del parametro.display_name
+        assert parametro.display_name == 'temporal'
+        field = parametro._meta.get_field('display_name')
+        field._invalidate_cache(get_environment(), [parametro.pk])
         assert parametro.display_name == 'clave.tres'
 
 
@@ -208,3 +209,38 @@ class TestPrefixesStayInSync:
     def test_the_gate_and_the_adopter_share_the_prefixes(self):
         assert (check_display_name.THIRD_PARTY_MODULE_PREFIXES
                 == THIRD_PARTY_MODULE_PREFIXES)
+
+
+@pytest.mark.parametrize('attribute,value', [
+    ('store', True), ('concrete', True), ('compute', None), ('search', None),
+])
+def test_gate_rejects_incompatible_display_field_metadata(monkeypatch, attribute, value):
+    field = SystemParameter._meta.get_field('display_name')
+    with monkeypatch.context() as patch:
+        patch.setattr(field, attribute, value)
+        assert any('base.SystemParameter.display_name' in item
+                   for item in not_a_field())
+    assert not_a_field() == []
+
+
+def test_gate_rejects_a_descriptor_bound_to_another_field(monkeypatch):
+    with monkeypatch.context() as patch:
+        patch.setattr(SystemParameter, 'display_name', ComputedFieldDescriptor(
+            ResPartner._meta.get_field('name')))
+        assert any('base.SystemParameter.display_name' in item
+                   for item in not_a_field())
+    assert not_a_field() == []
+
+
+def test_gate_rejects_a_nonassignable_descriptor_with_matching_metadata(monkeypatch):
+    class ReadOnlyLabel:
+        field = SystemParameter._meta.get_field('display_name')
+
+        def __get__(self, instance, owner=None):
+            return self if instance is None else 'constant'
+
+    with monkeypatch.context() as patch:
+        patch.setattr(SystemParameter, 'display_name', ReadOnlyLabel())
+        assert any('base.SystemParameter.display_name' in item
+                   for item in not_a_field())
+    assert not_a_field() == []
