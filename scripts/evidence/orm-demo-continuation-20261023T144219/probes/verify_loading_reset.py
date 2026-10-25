@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT/'scripts'))
 from counterpart_body import declarations_of
 from reference_roots import tree
-from addons.base.models.ir_module import IrModule
+from addons.base.models.ir_module import IrModule, IrModuleCategory
 from modules.loading import reset_modules_state
 
 assert settings.DATABASES['default']['NAME'].startswith('orm_bootstrap_')
@@ -28,7 +28,9 @@ recover = (lambda alias: None) if '--annul-reset' in sys.argv else reset_modules
 assert recover('default') is None  # No catalogue on this fresh owned database.
 assert 'ir_module_module' not in connection.introspection.table_names()
 state = ProjectState()
+state.add_model(ModelState.from_model(IrModuleCategory))
 state.add_model(ModelState.from_model(IrModule))
+category = state.apps.get_model('base', 'IrModuleCategory')
 module = state.apps.get_model('base', 'IrModule')
 states = ('installed', 'uninstalled', 'uninstallable', 'to install', 'to upgrade', 'to remove')
 expected = ('installed', 'uninstalled', 'uninstallable', 'uninstalled', 'installed', 'installed')
@@ -49,6 +51,7 @@ namespace = {'_logger': logging.getLogger('pinned_loading_reset'),
 exec(compile(ast.Module(body=[declaration.node], type_ignores=[]), str(source),
              'exec', flags=__future__.annotations.compiler_flag), namespace)
 with connection.schema_editor() as editor:
+    editor.create_model(category)
     editor.create_model(module)
 try:
     for index, status in enumerate(states):
@@ -102,3 +105,4 @@ try:
 finally:
     with connection.schema_editor() as editor:
         editor.delete_model(module)
+        editor.delete_model(category)

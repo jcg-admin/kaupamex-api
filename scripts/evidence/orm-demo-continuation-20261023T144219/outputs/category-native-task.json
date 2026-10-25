@@ -1,0 +1,18 @@
+{
+  "interface": "taskTools.TaskGet.run",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "command": "bun -e native TaskGet task_id=452",
+  "observed_at": "2026-10-25T03:19:07.694Z",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "task": {
+    "task_id": "452",
+    "citation_id": "TASK-API-0267",
+    "subject": "Poblar el árbol de categorías: IrModuleCategory es un porte huérfano (H-API-649)",
+    "description": "Medido 2026-08-18: `ir_module_category` tiene **0 filas** y **ningún campo apunta a él**. `IrModuleCategory` está portado (`api: src/addons/base/models/ir_module.py:39`) con su árbol `parent` self-FK, pero `IrModule.category` es un `Char` — mientras la referencia declara `category_id = fields.Many2one('ir.module.category')` (`odoo19c: odoo/addons/base/models/ir_module.py:275`) y lo escribe con `_update_category` (`:862`) sobre `modules.db.create_categories` (`odoo19c: odoo/modules/db.py:127`), que parte la ruta por `/` y crea un nivel por tramo.\n\nEs un porte **estructuralmente huérfano** — misma clase que #294 (`auto_installable` portado sin llamador).\n\nPoblación que espera: los 94 manifiestos declaran **25 rutas** distintas — `Sales/Sales` 22, `Hidden/Tools` 14, `Accounting/Accounting` 13, `Hidden` 8, `Accounting/Payment Providers` 7, `Supply Chain/Inventory` 4, `Website/Website` 4, y 18 más. Son exactamente las categorías de la barra lateral de la pantalla de aplicaciones.\n\nAlcance:\n1. `create_categories` en `src/modules/db.py` — el hogar que la referencia le da. Ese archivo no existe aún; la tarea #298 porta sus otros 5 símbolos, así que este pase declara su cobertura parcial (`porte-completo-no-parcial.md`) o se coordina con #298.\n2. Cambiar `IrModule.category` de `Char` a `Many2one('base.IrModuleCategory')` + migración. La referencia no guarda la cadena cruda: sólo el FK.\n3. Cablearlo en `update_module_list`, con test de regresión que mida filas de categoría y profundidad del árbol.\n\nPrecondición cerrada: el registro de módulos ya tiene sus 94 filas (`api@6945cc1`).",
+    "status": "pending",
+    "owner": "codex-module-lifecycle",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  }
+}

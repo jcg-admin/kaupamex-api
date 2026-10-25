@@ -1,0 +1,8 @@
+{
+  "alias": "category_contract_alias",
+  "schema": "contract_category_alias_735c8501bab1",
+  "passed": false,
+  "scope": "Separate connection and namespace in one owned physical database; not N>1 acceptance",
+  "mechanism": "Existing create_categories, Django execute_wrapper and schema_editor; no private DB-blocker override",
+  "schema_cleanup": true
+}

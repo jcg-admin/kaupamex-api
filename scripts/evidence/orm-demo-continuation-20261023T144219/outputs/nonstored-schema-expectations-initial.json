@@ -1,0 +1,6 @@
+{
+  "exit_code": 1,
+  "error": "ModuleNotFoundError: No module named addons.base.models.res_partner_bank",
+  "classification": "Instrument import path; no ORM assertion executed",
+  "command": "Existing orm_batch_env helper -> uv run --frozen python probes/verify_nonstored_schema_expectations.py"
+}

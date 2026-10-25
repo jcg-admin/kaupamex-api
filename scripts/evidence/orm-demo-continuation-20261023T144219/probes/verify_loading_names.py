@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT/'scripts'))
 from counterpart_body import declarations_of
 from reference_roots import tree
-from addons.base.models.ir_module import IrModule
+from addons.base.models.ir_module import IrModule, IrModuleCategory
 from modules import loading
 
 assert settings.DATABASES['default']['NAME'].startswith('orm_bootstrap_')
@@ -52,7 +52,9 @@ class ReferenceCursor:
 
 
 state = ProjectState()
+state.add_model(ModelState.from_model(IrModuleCategory))
 state.add_model(ModelState.from_model(IrModule))
+category = state.apps.get_model('base', 'IrModuleCategory')
 module = state.apps.get_model('base', 'IrModule')
 schemas = ('contract_names_first', 'contract_names_second')
 checks = []
@@ -62,6 +64,7 @@ try:
             cursor.execute(f'CREATE SCHEMA {schema}')
             cursor.execute(f'SET search_path TO {schema}')
         with connection.schema_editor() as editor:
+            editor.create_model(category)
             editor.create_model(module)
         module.objects.create(name='base', state='installed')
         module.objects.create(name=installed, state='to install')

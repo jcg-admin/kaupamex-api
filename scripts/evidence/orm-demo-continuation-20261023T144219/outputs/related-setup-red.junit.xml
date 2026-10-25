@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="3" time="4.012" timestamp="2026-10-24T21:31:56.690567" hostname="c8a29a030cff"><testcase classname="tests.unit.orm.test_related_setup_derived_maps" name="test_related_compute_joins_a_group_built_before_setup" time="3.878"><failure message="KeyError: &lt;django.db.models.fields.CharField: projected&gt;">tests/unit/orm/test_related_setup_derived_maps.py:42: in test_related_compute_joins_a_group_built_before_setup
+    assert registry.field_computed[field] == [field]
+src/orm/registry.py:1212: in __getitem__
+    return self._table[field]
+E   KeyError: &lt;django.db.models.fields.CharField: projected&gt;</failure></testcase><testcase classname="tests.unit.orm.test_related_setup_derived_maps" name="test_setup_without_pending_models_keeps_the_derived_map" time="0.002" /><testcase classname="tests.unit.orm.test_related_setup_derived_maps" name="test_noncomputed_field_still_fails_closed" time="0.002" /></testsuite></testsuites>

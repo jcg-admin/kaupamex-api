@@ -1729,7 +1729,7 @@
         "native_id": "449",
         "owner": "codex-module-lifecycle",
         "status": "pending",
-        "unit": "HTTP read-only technical catalogue; 55 PG regression PASS; full CI pending"
+        "unit": "HTTP55PASS5a84f1ff; required CI Make2 baseline display_name; acceptance pending"
       },
       "TASK-API-0269": {
         "native_id": "456",
@@ -1741,13 +1741,149 @@
         "native_id": "452",
         "owner": "codex-module-lifecycle",
         "status": "pending",
-        "unit": "Tree/category FK migration not implemented; must preserve current strings and coordinate existing db.py work"
+        "unit": "Category tree/FK/source path metadata/guarded historical migration/HTTP adapter implemented and bounded verified",
+        "contract": "orm-demo-continuation-20261023T144219/outputs/category-tree-contract-14.json",
+        "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798",
+        "verification": {
+          "catalogue_tests": 78,
+          "catalogue_exit": 0,
+          "historical_schema_controls": 5,
+          "historical_schema_exit": 0,
+          "alias_guard_red_exit": 1,
+          "alias_guard_green_exit": 0,
+          "alias_scope": "two connections/namespaces, one owned physical DB; not productive N>1",
+          "error_storage_controls": 2,
+          "error_storage_exit": 0,
+          "bootstrap_exit": 0,
+          "global_ci": {
+            "make_exit": 2,
+            "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798",
+            "command": "make ci-verify",
+            "acceptance": false,
+            "pytest_exit": 1,
+            "passed": 146,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 474.59,
+            "first_failure": "ResCountry.DoesNotExist through ResCompany.country_code, TestRecalculateTaxTagsErrors.test_child_tax_shared_by_two_parents_is_422",
+            "classification": "BASELINE_FAILURE: exact ae949aa8 focused case reproduces same ResCountry.DoesNotExist; new computed-group KeyError fixed separately",
+            "later_suite": "NOT_EVALUATED",
+            "new_regression_scope": "Related-setup stale group and category alias fallback found and fixed by bounded controls; unexecuted suite not declared regression-free"
+          },
+          "preserved_probes": "16names differential and reset SQL controls exit0, own resource cleanup independently0"
+        },
+        "acceptance": "pending",
+        "integration": "local commit; no merge",
+        "broader_task": "TASK-GEN-0058 ownerNULL not executed or closed"
       },
       "TASK-GEN-0633": {
         "native_id": "1203",
         "owner": "codex-module-lifecycle",
         "status": "pending",
-        "unit": "Recovered exactly64 historical nodeids; current rerun queued, no blanket return fallback"
+        "source_revision": "c2d0d10d5ead906cd5241e0286de9a0e97692926",
+        "unit": "Five historical assignment failures corrected;13new discriminating cases plus existing regressions; shared setter notifications and cache invalidation reconciled",
+        "verification": {
+          "refined": {
+            "tests": 50,
+            "exit": 0
+          },
+          "defaults": {
+            "tests": 40,
+            "exit": 0
+          },
+          "neighbors": {
+            "tests": 165,
+            "exit": 0
+          },
+          "native_unittest_recompute": {
+            "tests": 16,
+            "exit": 0
+          },
+          "historical64": {
+            "passed": 14,
+            "failed": 50,
+            "exit": 1
+          },
+          "global_ci": {
+            "source_revision": "c2d0d10d5ead906cd5241e0286de9a0e97692926",
+            "make_exit": 2,
+            "pytest_exit": 1,
+            "passed": 77,
+            "skipped": 1,
+            "errors": 1,
+            "seconds": 438.32,
+            "first_error": "ProductProduct.display_name, setup TestCartSnapshotsV2.test_saves_cart_and_returns_200",
+            "classification": "BASELINE_FAILURE: same first error in prior local and remote JUnit; later suite NOT_EVALUATED",
+            "evidence": [
+              "display-name-assignment-ci.log",
+              "display-name-assignment-ci.junit.xml"
+            ]
+          }
+        },
+        "qualified_symbols": {
+          "odoo19c:BaseModel._compute_display_name": "orm.models.DisplayNameMixin._compute_display_name",
+          "odoo19c:ResPartner._compute_display_name": "addons.base.models.res_partner.ResPartner._compute_display_name",
+          "odoo19c:Field.__set__": "orm.fields.FieldDescriptor.__set__ (inherited by ComputedFieldDescriptor)",
+          "odoo19c:Field.__get__": "orm.fields.FieldDescriptor.__get__"
+        },
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/display-name-assignment-contract-14.json",
+        "limits": "No whole-file acceptance; remaining50failures retain closure criteria; no official status change, merge or model inference",
+        "product_followup": {
+          "source_revision": "2b249be82a8acec2fd2f280342d13a7fc505c189",
+          "task_reconciliation": "orm-demo-continuation-20261023T144219/outputs/product-display-name-task-reconciliation.json",
+          "implementation": [
+            "addons/product/models/product_product.py:ProductProduct._compute_display_name",
+            "src/orm/models.py:_notify_m2m_modified"
+          ],
+          "reference": [
+            "odoo19c:addons/product/models/product_product.py:ProductProduct._compute_display_name",
+            "odoo19c:odoo/orm/fields.py:Field.__get__/compute_value"
+          ],
+          "verification": {
+            "contract": {
+              "tests": 12,
+              "exit": 0
+            },
+            "consumers": {
+              "tests": 54,
+              "exit": 0
+            },
+            "regression": {
+              "tests": 106,
+              "exit": 0
+            },
+            "global_ci": {
+              "source_revision": "2b249be82a8acec2fd2f280342d13a7fc505c189",
+              "make_exit": 2,
+              "pytest_exit": 1,
+              "passed": 146,
+              "skipped": 1,
+              "failed": 1,
+              "seconds": 469.44,
+              "first_failure": "ResCompany.country_code KeyError in field_computed; TestRecalculateTaxTagsErrors.test_child_tax_shared_by_two_parents_is_422",
+              "classification": "Distinct current failure under diagnosis: exact ae949aa8 targeted baseline fails with ResCountry.DoesNotExist, not this KeyError. Do not conflate error identities.",
+              "later_suite": "NOT_EVALUATED"
+            }
+          },
+          "equivalence": "Bounded Consumer assignment/invalidation, not full product formatting or whole-file acceptance",
+          "acceptance": "pending",
+          "integration": "local commit, PR109 open, no merge"
+        },
+        "related_setup_followup": {
+          "source_revision": "f1e2386f",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/related-setup-contract-14.json",
+          "new_controls": 3,
+          "broad_passed": 92,
+          "broad_inherited_failed": 3,
+          "acceptance": "pending"
+        },
+        "current_historical64": {
+          "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798",
+          "passed": 14,
+          "failed": 50,
+          "exit": 1,
+          "evidence": "orm-demo-continuation-20261023T144219/outputs/category-historical64.junit.xml"
+        }
       }
     },
     "authority": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/contractual-additional-ownership-assignment.json and contractual-ownership-assignment.json",

@@ -1,0 +1,237 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": [
+    "odoo19c:odoo/modules/db.py:create_categories",
+    "odoo19c:odoo/addons/base/models/ir_module.py:Module._update_category/update_list"
+  ],
+  "behavior": "Resolve ordered category segments to a persistent tree leaf and stable base XML identities; repeated calls reuse identity, selected database and caller transaction; catalogue links preserve existing data and external category contract.",
+  "execution_flow": "Manifest category path -> update_module_list -> existing modules.db category helper -> IrModuleCategory and IrModelData -> catalogue category relation -> read-only HTTP category text.",
+  "inputs_outputs": "Ordered list of segments returns leaf integer ID or None for empty list; input list remains unchanged. Existing record names can differ after rename because native identity is XMLID.",
+  "side_effects": "Existing category tree/XMLIDs and category FK populated on selected connection. Migration retains original text as category_path; module state/version unchanged. Frozen historical models, full preflight and guarded reverse prevent ambiguous identity/data loss. Native dry-run writes nothing.",
+  "dependencies": [
+    "TASK-API-0267 native452 pending owned codex-module-lifecycle, owner explicitly authorized; no blocked_by entries but concrete prerequisites inspected",
+    "TASK-GEN-0058 native298 pending ownerNULL has broader full modules.db scope and remains unexecuted",
+    "IrModuleCategory and IrModelData exist; current IrModule.category Char and HTTP serializer/filter use original text",
+    "Current global gate must settle before production code changes; own PostgreSQL already available",
+    "Reference resolver pinned, current source read rather than stale task/header assertions"
+  ],
+  "consumers": [
+    "src/addons/base/management/commands/update_module_list.py:Command._refresh",
+    "src/addons/base/controllers/module_catalogue.py:TechnicalModuleSerializer/TechnicalModuleViewSet",
+    "Existing category XMLID tests and module catalogue HTTP tests"
+  ],
+  "installed_mechanism": "Existing modules.db home, Django apps/model registry, transactional PostgreSQL, IrModelData unique(module,name), native Provider TaskGet/claims/node_frontier. No second coordinator or identity store.",
+  "existing_adaptation": "Django requires timestamps and uses base.IrModuleCategory labels in IrModelData rather than native ir.module.category; preserve this established resolver convention. Reference raw SQL/translations are not copied mechanically. category_path retains original metadata and the established HTTP string/filter contract; category is now a Django FK. This is domain module metadata, not TASK taxonomy migration. Runtime and frozen migration share native XMLID normalization but reject demonstrated incompatible identities instead of overwriting them.",
+  "verification": {
+    "current": "not_verified; no implementation edit yet",
+    "planned": [
+      "Empty and nested path; reuse and shared prefix; input not mutated; stable XMLID after display rename",
+      "Selected alias and rollback; conflicting XMLID target/model must not silently overwrite data",
+      "Manifest update and dry-run; existing module state and installed version unchanged",
+      "Data-preserving migration with real old data and guarded rollback; HTTP output/filter compatibility",
+      "Negative no-op/collapsed-tree controls distinguish structure from functional acceptance"
+    ],
+    "helper": {
+      "tests": 24,
+      "exit": 0,
+      "evidence": "category-tree-green.junit.xml",
+      "scope": "initial9tree+existingXMLID/unaccent controls; later length control not yet included"
+    },
+    "initial_migration": {
+      "controls": 3,
+      "exit": 0,
+      "evidence": "category-migration-green.log"
+    },
+    "catalogue_red": {
+      "passed": 1,
+      "failed": 2,
+      "exit": 1,
+      "evidence": "category-catalogue-red.junit.xml"
+    },
+    "migration_red": {
+      "exit": 1,
+      "error": "ModuleNotFoundError for new migration; original preserved"
+    },
+    "runtime_catalogue": {
+      "passed": 78,
+      "exit": 0,
+      "evidence": "category-catalogue-refined.junit.xml",
+      "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798"
+    },
+    "migration": {
+      "controls": 5,
+      "exit": 0,
+      "evidence": "category-migration-extended.log"
+    },
+    "alias": {
+      "red_exit": 1,
+      "green_exit": 0,
+      "evidence": "category-alias-red/green.json",
+      "finding": "New child cycle validation queried default before save; corrected using existing FK cache with already validated cursor-alias ancestry",
+      "scope": "Two connections/namespaces in one physical owned DB; no N>1 acceptance"
+    },
+    "error_storage": {
+      "controls": 2,
+      "exit": 0,
+      "evidence": "category-error-storage.json"
+    },
+    "required_ci": {
+      "make_exit": 2,
+      "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798",
+      "command": "make ci-verify",
+      "acceptance": false,
+      "pytest_exit": 1,
+      "passed": 146,
+      "skipped": 1,
+      "failed": 1,
+      "seconds": 474.59,
+      "first_failure": "ResCountry.DoesNotExist through ResCompany.country_code, TestRecalculateTaxTagsErrors.test_child_tax_shared_by_two_parents_is_422",
+      "classification": "BASELINE_FAILURE: exact ae949aa8 focused case reproduces same ResCountry.DoesNotExist; new computed-group KeyError fixed separately",
+      "later_suite": "NOT_EVALUATED",
+      "new_regression_scope": "Related-setup stale group and category alias fallback found and fixed by bounded controls; unexecuted suite not declared regression-free"
+    },
+    "drift": {
+      "current_exit": 1,
+      "baseline_exit": 1,
+      "difference": "Only inherited ResPartner.tz, reproduced at ae949aa8; no category field delta",
+      "initial_command_exit": 2,
+      "initial_command_error": "No root manage.py; corrected python -m django invocation retained"
+    },
+    "preserved_probe_compatibility": {
+      "names_exit": 0,
+      "reset_exit": 0,
+      "names_cases": 16,
+      "cleanup_remaining": 0,
+      "evidence": "category-probe-compatibility.json; category-probe-cleanup.json"
+    }
+  },
+  "equivalence": "Bounded category tree, metadata relation, migration and HTTP contract verified; native full module initialization/per-database Registry/cache not accepted",
+  "limitations": "Native XMLID normalization can map different raw paths to the same identifier. Renamed display labels alone do not establish a collision. Migration must preflight raw-source collisions and preserve data or block with evidence; no arbitrary renaming/coalescing. Effective per-database Registry/cache remains separate.",
+  "integration": "5943be0cf23900a856072cb246abf0fd0e23f798 committed normally; current full CI fails inherited fiscal case, PR integration/acceptance pending. Instrument-only fixture adaptation reverified independently; no runtime source change after tested revision.",
+  "structural_context": {
+    "reference_file": "odoo/modules/db.py",
+    "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "reference_sha256": "0ed445039a82b9f76514d236c1a63e1741a42fbe5a2c3427078f95fa633091d5",
+    "existing_extractor": "inventory_reference_orm.py:file_inventory",
+    "inventory": {
+      "name": "db.py",
+      "lines": 200,
+      "classes": [
+        {
+          "name": "FunctionStatus",
+          "lineno": 162,
+          "decorators": [],
+          "methods": []
+        }
+      ],
+      "functions": [
+        {
+          "kind": "function",
+          "owner": null,
+          "name": "is_initialized",
+          "lineno": 20,
+          "signature": {
+            "params": [
+              "cr"
+            ],
+            "has_default": [
+              false
+            ],
+            "vararg": null,
+            "kwonly": [],
+            "kwarg": null
+          },
+          "body": "substantive",
+          "decorators": []
+        },
+        {
+          "kind": "function",
+          "owner": null,
+          "name": "initialize",
+          "lineno": 29,
+          "signature": {
+            "params": [
+              "cr"
+            ],
+            "has_default": [
+              false
+            ],
+            "vararg": null,
+            "kwonly": [],
+            "kwarg": null
+          },
+          "body": "substantive",
+          "decorators": []
+        },
+        {
+          "kind": "function",
+          "owner": null,
+          "name": "create_categories",
+          "lineno": 127,
+          "signature": {
+            "params": [
+              "cr",
+              "categories"
+            ],
+            "has_default": [
+              false,
+              false
+            ],
+            "vararg": null,
+            "kwonly": [],
+            "kwarg": null
+          },
+          "body": "substantive",
+          "decorators": []
+        },
+        {
+          "kind": "function",
+          "owner": null,
+          "name": "has_unaccent",
+          "lineno": 168,
+          "signature": {
+            "params": [
+              "cr"
+            ],
+            "has_default": [
+              false
+            ],
+            "vararg": null,
+            "kwonly": [],
+            "kwarg": null
+          },
+          "body": "substantive",
+          "decorators": []
+        },
+        {
+          "kind": "function",
+          "owner": null,
+          "name": "has_trigram",
+          "lineno": 192,
+          "signature": {
+            "params": [
+              "cr"
+            ],
+            "has_default": [
+              false
+            ],
+            "vararg": null,
+            "kwonly": [],
+            "kwarg": null
+          },
+          "body": "substantive",
+          "decorators": []
+        }
+      ],
+      "raw": 6,
+      "unique": 6
+    },
+    "responsibility_disposition": {
+      "FunctionStatus/has_unaccent/has_trigram": "existing implementations preserved, not complete-contract requalification by category tests",
+      "create_categories": "adapted Consumer implementation plus existing IrModuleCategory/IrModelData; helper24cases PASS, extended migration controls and catalogue integration pending",
+      "initialize/is_initialized": "pending functional reconciliation with actual Django/bootstrap consumers; no equivalence accepted solely from migrations/INSTALLED_APPS"
+    },
+    "supplemental_scope": "SQL, imports, transaction ownership, identity normalization and native runtime differences reviewed for category contract; structural extraction alone not exhaustive semantic coverage",
+    "file_acceptance": "not_verified"
+  }
+}

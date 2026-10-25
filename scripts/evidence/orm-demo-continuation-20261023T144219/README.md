@@ -1,11 +1,13 @@
 # Current-instruction validation and demo continuation
 
-Objective `completar-raiz-orm`: **incomplete**. Existing TASK-API-0382, native
-session168b0fdf-bfe4-590b-b6c0-b6be124c124a/local737, owner
-codex-module-lifecycle. TASK-API-0383 remains pending. No TaskUpdate, new TASK,
-model inference, merge, protection change or taxonomy migration was performed.
+Objective `completar-raiz-orm`: **incomplete**. The initial2026-10-23 job
+started with owned TASK-API-0382/native737; its observations below remain
+historical. Later explicitly authorized owner-only and description-only native
+TaskUpdate operations are recorded in this same job. Official states remain
+unchanged; no new TASK, model inference, merge, protection change or TASK
+taxonomy migration is claimed. Domain module-category migration0090 is separate.
 
-`outputs/instruction-validation.json` reviews clauses0..56 of the current
+`outputs/instruction-validation.json` reviews clauses0..56 of the initial
 attached continuation document, preserving its SHA256 and baseline revision.
 Initial assessment:36 procedural clauses verified,18 partial,3 acceptance
 criteria not satisfied. These counts are document clauses, not TASK counts,
@@ -425,3 +427,74 @@ tiene sucesor demostrado en8b6ea823. Se preservan dos intentos de instrumento
 con salida4, sin atribuirlos al ORM. Harness0 y consulta independiente0:
 cero bases y roles orm_bootstrap restantes. Continúan pendientes las
 correcciones contractuales, categorías, aceptación e integración.
+
+## Display-name assignment continuation, 2026-10-25
+
+TASK-GEN-0633 remains pending, owner codex-module-lifecycle. Native description
+reconciliation preserves state, ownership and dependencies. Source c2d0d10d
+restores generic/ResPartner assignment and shared descriptor invalidation.
+Four disjoint verifier batches pass:50+40+165+16; exact historical64 changes
+from9PASS55FAIL to14PASS50FAIL, with five resolved nodeids retained.
+The c2d required CI exits2:77PASS1SKIP1ERROR, ProductProduct missing assignment.
+That first error is not the complete set of remaining suite failures.
+
+The next native-selected unit, source2b249be8, restores ProductProduct
+assignment with actual dependencies and existing Django m2m_changed -> modified
+notifications for forward/reverse relationship updates. Twelve contract cases,
+54 consumer cases and106 regression cases pass in separate processes against
+owned PostgreSQL. Negative return-only and exception controls pass. The first
+consumer invocation failed because pg_isready was absent from PATH; its actual
+exit1 is preserved and the corrected invocation exits0.
+
+The complete gate for2b249be8 exits2:146PASS1SKIP1FAIL in469.44s, first
+ResCompany.country_code KeyError. Exact ae949aa8 targeted comparison also
+fails, with a distinct ResCountry.DoesNotExist; the errors are not conflated.
+The new stale-map regression is being corrected in the existing owned TASK. Full product context/vendor/company semantics, custom
+M2M target keys, symmetrical relations and per-database cache are not qualified
+by this bounded unit. No source-wide acceptance, TASK state change, merge or
+local-model inference is claimed. See display-name-assignment-contract-14.json
+and product-display-name-contract-14.json in outputs.
+
+Native continuation selects TASK-API-0267.category_tree. Task452 is pending
+and owned; actual modules.db exists with capability probes, contrary to older
+TASK wording. Broader TASK-GEN-0058/native298 remains pending without owner;
+this does not authorize completing or closing that task. Source edits wait
+for the active gate to settle. Current API route returns/filters category
+text, so a later FK migration must preserve that Consumer contract and data.
+
+## Verified category/compute checkpoint, 2026-10-25
+
+Production commits c2d0d10d,2b249be8,f1e2386f,5943be0c preserve separate
+assignment, invalidation, Product Consumer, lazy-derived-map and category
+contracts. Category final verification:78PASS;5historical-schema controls
+PASS; alias guard RED1/GREEN0;2maintained error-storage controls PASS.
+The two older catalogue probes include the new real FK dependency and retain
+16names differentials, recovery state/version/rollback controls and independent
+resource cleanup0. Initial failed instrument invocations are preserved.
+
+Current full make ci-verify against exact5943be0c exits2 in474.59s:
+146PASS1SKIP1FAIL, ResCountry.DoesNotExist at the tax-tags endpoint.
+Exact ae949aa8 targeted comparison reproduces that exception. The newly
+introduced computed-group KeyError was independently discriminated and fixed
+in f1e2386f. Later full-suite tests/stages remain NOT_EVALUATED.
+Sphinx NOT_EVALUATED; no build repair or protection relaxation performed.
+
+Exact known historical64 replay stays14PASS50FAIL. Extracted pinned property
+bodies and SQL-order declaration demonstrate a contradiction in two historical
+fixtures: nonstored Char retains varchar/order2, and native _auto_init skips
+nonstored fields before update_db. No production property or assertion was
+changed to force PASS; native criterion reconciliation is the next owned
+GEN0633 unit. That extracted-body experiment is not a native Odoo runtime.
+
+The interrupted earlier QA resource was matched to previous CI by exact
+owner, zero connections, schema0089 and migration timestamp45.78s before its
+log ended. Targeted cleanup and independent absence checks exit0. The
+current category QA lease remains active for continuation; no current
+resource-cleanup completion is claimed. The secondary compatibility lease
+was removed by qa_context and independently verified absent.
+
+No full-file or initiative acceptance, effective Registry-per-database
+composition, complete loader, managed local-model cycle or merge is claimed.
+Unowned in-progress TASK-API-0397 and broader TASK-GEN-0058 are not available
+for execution by inference. Continue native TaskGet/claims/frontier with
+current contracts; a bounded candidate list is not global population coverage.

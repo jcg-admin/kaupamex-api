@@ -1,0 +1,43 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": [
+    "odoo19c:odoo/orm/models.py:BaseModel._compute_display_name",
+    "odoo19c:odoo/addons/base/models/res_partner.py:ResPartner._compute_display_name",
+    "odoo19c:odoo/orm/fields.py:Field.__get__",
+    "odoo19c:odoo/orm/fields.py:Field.__set__"
+  ],
+  "behavior": "Compute assigns its declared display_name through the existing descriptor; reads, invalidation and context-dependent names remain observable; returning a string alone remains insufficient",
+  "execution_flow": "FieldDescriptor cache miss -> compute_value -> existing determine dispatch -> Consumer assignment -> existing cache bucket -> converted read; modified dependencies invalidate through existing triggers",
+  "inputs_outputs": "Actual SystemParameter key, nameless PurchaseOrderGroup identity and ResPartner fields/context; assigned label plus retained direct-call return for existing Consumer compatibility; missing assignment and exceptions propagate",
+  "side_effects": "Normal field assignment and existing dependency notifications, without SQL writes on assignment. Ordinary loaded columns preserve Django values; generated PK and unchanged ordinary values do not become flush work. A nonstored compute with identity no longer reuses an invalidated instance snapshot. No new cache/store/coordinator.",
+  "dependencies": [
+    "TASK-GEN-0633 native1203 pending owner codex-module-lifecycle; explicitly admitted assignment-failure scope",
+    "Current descriptor and derived cache contract8b6ea823, previous compute-contract-14 evidence retained",
+    "API decorators and registry get_depends/field_depends_context already implemented; real input dependencies must be declared",
+    "TASK-API-0417 in_progress owner NULL is related history, not permission to rebuild constructors",
+    "TASK-GEN-0386 historical completed owner NULL lacks acceptance description; does not establish ownership for ProductProduct correction"
+  ],
+  "consumers": [
+    "DisplayNameMixin default used by SystemParameter/PurchaseOrderGroup and other inheritors",
+    "ResPartner name_create currently fails in three historical64 cases",
+    "Direct compute callers retain return compatibility; ProductProduct override is outside this bounded unit"
+  ],
+  "installed_mechanism": "api.depends/depends_context, registry derived collectors, FieldDescriptor/ComputedFieldDescriptor, modified, transaction_scope and context_scope; native Django/PostgreSQL tests",
+  "existing_adaptation": "Per-instance Consumer rather than native Odoo recordset; preserve legacy label conversion/fallback and direct return while restoring required assignment; actual hide-company context dependency extends source decorator keys because current implementation consumes it",
+  "verification": {
+    "red": "7FAIL2PASS, pytest1; assignment missing; negative controls pass",
+    "planned_positive": "Nine PostgreSQL cases for assigned reads/direct returns, name/email invalidation, nameless fallback, repeated reads, context and hide-company buckets",
+    "planned_negative": "Return-only replacement still raises assignment error; compute exception propagates",
+    "prior_global": "Published ae949aa8 remote JUnit77PASS1SKIP1ERROR; first ProductProduct display_name error; later suite not evaluated",
+    "initial_consumer_green": "8PASS1FAIL; persisted generic invalidation still stale",
+    "initial_shared_green": "18PASS; later broader regression exposed PK/refresh issues, retained in neighbor artifacts",
+    "refined": "50PASS including13new cases,7descriptor cases and30compute-wiring cases;40defaults PASS separately;165neighbor PASS;16native unittest recompute PASS; all exits0",
+    "historical64": "14PASS50FAIL, pytest1; exactly five assignment failures corrected",
+    "cache_probe": "exit0; invalidation observed before read; snapshot remains old but read and stored key become new; source hashes retained",
+    "performance": "Same-process100000 scalar reads x3, zero SQL: medians228.82ns current vs22.70ns non-data hot-read baseline. Does not measure whole application performance.",
+    "harness_limits": "Initial pytest batch16setUpClass DB-blocker errors resolved by qualified public unittest runner; initial rec_name failure does not reproduce in40-case separate process; not presented as global suite PASS"
+  },
+  "equivalence": "Bounded assignment, invalidation, constructor, no-SQL, context and failure contracts verified; whole-file/native Odoo/runtime acceptance not claimed",
+  "limitations": "Whole models.py and res_partner.py obligations remain in existing inventories/AS IS; no copied whole-file denominator. Native Odoo runtime not executed. Unsaved cross-context identity is a separately measured existing limitation. ProductProduct follow-up subsequently reconciled through native TaskUpdate under owned TASK-GEN-0633; separate product contract and results apply. No official TASK status changes or local model inference Existing whole-file structural authority: scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/inventory-odoo19c.json; models.py raw=219, unique=202. These populations are not acceptance denominators and the file remains pending beyond this unit.",
+  "integration": "c2d0d10d5ead906cd5241e0286de9a0e97692926 published on PR109; make ci-verify exits2 with77PASS1SKIP1ERROR ProductProduct.display_name. Separate subsequent Product correction 2b249be8 under validation. No merge or official TASK status change."
+}

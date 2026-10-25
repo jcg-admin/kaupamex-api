@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "key"
+  ],
+  "first": "fixture.cache.before",
+  "cache_absent_after_write": false,
+  "instance_snapshot_after_write": "fixture.cache.before",
+  "second_read": "fixture.cache.before"
+}

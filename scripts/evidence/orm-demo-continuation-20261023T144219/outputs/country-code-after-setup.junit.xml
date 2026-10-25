@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.656" timestamp="2026-10-24T21:33:31.442921" hostname="c8a29a030cff"><testcase classname="tests.integration.account.test_recalculate_tax_tags_endpoint.TestRecalculateTaxTagsErrors" name="test_child_tax_shared_by_two_parents_is_422" time="4.378"><failure message="addons.base.models.res_country.ResCountry.DoesNotExist: ResCountry matching query does not exist.">.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:241: in __get__
+    rel_obj = self.field.get_cached_value(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/mixins.py:21: in get_cached_value
+    return instance._state.fields_cache[self.cache_name]
+E   KeyError: 'country'
+
+During handling of the above exception, another exception occurred:
+tests/integration/account/test_recalculate_tax_tags_endpoint.py:61: in test_child_tax_shared_by_two_parents_is_422
+    parent1 = AccountTax.objects.create(name='P1', company=company)
+.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.12/site-packages/django/db/models/base.py:946: in save_base
+    pre_save.send(
+.venv/lib/python3.12/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+addons/l10n_mx/models/account_tax.py:98: in _apply_l10n_mx_tax_type
+    _compute_l10n_mx_tax_type(instance)
+addons/l10n_mx/models/account_tax.py:87: in _compute_l10n_mx_tax_type
+    'iva' if company is not None and company.country_code == 'MX' else ''
+src/orm/fields.py:1625: in __get__
+    field.compute_value(instance)
+src/orm/fields.py:4863: in compute_value
+    _invoke_compute_method(self, records)
+src/orm/fields.py:4783: in _invoke_compute_method
+    determine(field.compute, record)
+src/orm/fields.py:2190: in determine
+    return needle(records, *args)
+src/orm/fields.py:3696: in _field_compute_related
+    values = [_first_record(element[name]) for element in values]
+src/orm/models.py:3579: in _model_getitem
+    return getattr(self, key)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:257: in __get__
+    rel_obj = self.get_object(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:222: in get_object
+    return qs.get(self.field.get_reverse_related_filter(instance))
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.base.models.res_country.ResCountry.DoesNotExist: ResCountry matching query does not exist.</failure></testcase></testsuite></testsuites>
