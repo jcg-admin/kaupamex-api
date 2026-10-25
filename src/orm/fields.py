@@ -62,6 +62,9 @@ from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
 from django.db import DEFAULT_DB_ALIAS, connections, models
 from django.db.models.fields.related import RelatedField
+from django.db.models.fields.related_descriptors import (
+    ForeignKeyDeferredAttribute, ForwardManyToOneDescriptor,
+)
 from django.db.models.query_utils import DeferredAttribute
 from django.utils.timezone import localtime
 from psycopg.types.json import Jsonb
@@ -1446,6 +1449,15 @@ def _field_cache_record_id(field, instance):
     return instance.pk
 
 
+class NonStoredMany2oneAccessor(ForwardManyToOneDescriptor):
+    """Prepare lazy field metadata before reading the Django relation cache."""
+
+    def __get__(self, instance, cls=None):
+        if instance is not None and ensure_field_setup.pending:
+            ensure_field_setup()
+        return super().__get__(instance, cls)
+
+
 class FieldDescriptor(DeferredAttribute):
     """Lectura y escritura de campos mediante el enganche nativo de Django.
 
@@ -1460,6 +1472,13 @@ class FieldDescriptor(DeferredAttribute):
     La medición histórica se conserva en el banco two-caches-descriptor;
     no acredita corrección funcional ni el coste de esta implementación.
     """
+
+    def _attribute_value(self, value, instance):
+        value = self.field.convert_to_record(value, instance)
+        if (isinstance(self.field, models.ForeignKey)
+                and not self.field.store and value is False):
+            return None
+        return value
 
     def __get__(self, instance, cls=None):
         """≙ ``Field.__get__`` (``:1642``) — el valor del campo sobre la fila."""
@@ -1513,7 +1532,7 @@ class FieldDescriptor(DeferredAttribute):
                 instance.ensure_one()
                 raise AssertionError('unreachable')
             # ``:1659-1661`` — recordset vacío: el valor nulo del campo.
-            return field.convert_to_record(
+            return self._attribute_value(
                 field.convert_to_cache(False, instance, validate=False),
                 instance)
 
@@ -1531,7 +1550,7 @@ class FieldDescriptor(DeferredAttribute):
         field_cache = field._get_cache(environment)
         try:
             # ``:1668-1673`` — acierto de caché.
-            return field.convert_to_record(field_cache[record_id], instance)
+            return self._attribute_value(field_cache[record_id], instance)
         except KeyError:
             # silent OK because el fallo de cache NO es un error: es la
             # bifurcacion del cuerpo. La fuente lo escribe igual
@@ -1588,7 +1607,7 @@ class FieldDescriptor(DeferredAttribute):
             # La vuelta la cierra ``convert_to_column`` en el camino de la
             # columna (ver :func:`_field_get_prep_value`): sin ella ese
             # ``False`` viajaba al ``parse_date`` de Django y lo rechazaba.
-            return field.convert_to_record(value, instance)
+            return self._attribute_value(value, instance)
 
         # ``:1694-1804`` — las ramas de fallo de caché.
         if getattr(field, 'store', False) and record_id:
@@ -1643,7 +1662,7 @@ class FieldDescriptor(DeferredAttribute):
                         # primera lectura levantaba *Compute method failed to
                         # assign* con el valor ya en ``after_dict``; la
                         # segunda lo devolvía por el almacén.
-                        return field.convert_to_record(
+                        return self._attribute_value(
                             instance.__dict__[field.attname], instance)
                     if getattr(field, 'readonly', False) and not field.store:
                         raise ValueError(
@@ -1672,7 +1691,7 @@ class FieldDescriptor(DeferredAttribute):
         # La caché pudo invalidarse entera dentro del cómputo (``:1759-1761``),
         # así que se vuelve a pedir en vez de reusar la referencia de arriba.
         field_cache = field._get_cache(environment)
-        return field.convert_to_record(field_cache[record_id], instance)
+        return self._attribute_value(field_cache[record_id], instance)
 
 
     def _mark_pending_inverse(self, instance):
@@ -1719,7 +1738,10 @@ class FieldDescriptor(DeferredAttribute):
         # El atributo de instancia se escribe SIEMPRE: es de donde ``save()``
         # de Django lee la columna, y de donde la lee ``_cache_computed_values``
         # tras el cómputo.
-        instance.__dict__[field.attname] = value
+        if isinstance(field, models.ForeignKey) and not field.store:
+            ForeignKeyDeferredAttribute.__set__(self, instance, value)
+        else:
+            instance.__dict__[field.attname] = value
 
         # Django asigna la identidad tras INSERT y al refrescar la fila. No
         # es una columna de negocio que deba entrar al conjunto de flush.
@@ -1943,6 +1965,9 @@ def _field_contribute_to_class(self, cls, name, private_only=False):
     #: idéntico al que ya se tiene; la diferencia observable es nula porque
     #: :func:`_field_get_attrs` deriva lo mismo en los dos caminos.
     self._setup_attrs__(cls, name)
+    if (isinstance(self, models.ForeignKey) and not self.store
+            and self.forward_related_accessor_class is ForwardManyToOneDescriptor):
+        self.forward_related_accessor_class = NonStoredMany2oneAccessor
     _DJANGO_FIELD_CONTRIBUTE(
         self, cls, name, private_only=private_only or self.store is False)
     _install_field_descriptor(self, cls)
@@ -3969,6 +3994,8 @@ def _field_setup(self, model):
         self.setup_related(model)
     else:
         self.setup_nonrelated(model)
+    if isinstance(self, models.ForeignKey) and not self.store and not self.required:
+        self.null = True
     # ``setup_related`` acaba de declarar ``compute``
     # (``odoo19c: odoo/orm/fields.py:632``, ``self.compute = self._compute_related``).
     # En la fuente el campo ES su propio descriptor, así que ese ``compute``
