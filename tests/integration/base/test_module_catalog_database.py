@@ -2,10 +2,11 @@
 import io
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
-from addons.base.models import IrModule, IrModuleDependency
+from addons.base.models import IrModule, IrModuleCategory, IrModuleDependency
 from addons.base.management.commands import update_module_list as catalog
 
 pytestmark = pytest.mark.django_db
@@ -119,6 +120,39 @@ def test_dry_run_does_not_change_states_or_dependencies(manifests):
     assert IrModule.objects.filter(name__in=manifests).count() == 1
     assert IrModule.objects.get(name='catalog_root').state == IrModule.STATE_INSTALLED
     assert not IrModuleDependency.objects.filter(module__name__in=manifests).exists()
+
+
+def test_refresh_populates_category_relation_and_preserves_manifest_path(manifests):
+    manifests['catalog_root']['category'] = 'Contract Catalog/Child'
+    manifests['catalog_leaf']['category'] = 'Contract Catalog/Other'
+    refresh()
+
+    root = IrModule.objects.get(name='catalog_root')
+    leaf = IrModule.objects.get(name='catalog_leaf')
+    assert root.category_path == 'Contract Catalog/Child'
+    assert root.category.name == 'Child'
+    assert root.category.parent.name == 'Contract Catalog'
+    assert leaf.category.parent_id == root.category.parent_id
+    assert leaf.category_id != root.category_id
+
+
+def test_category_dry_run_never_creates_a_tree(manifests):
+    manifests['catalog_root']['category'] = 'Contract Dry Run/Child'
+    before = IrModuleCategory.objects.count()
+    refresh(dry_run=True)
+    assert IrModuleCategory.objects.count() == before
+    assert not IrModuleCategory.objects.filter(name='Contract Dry Run').exists()
+
+
+def test_category_identity_collision_rolls_back_catalogue_updates(manifests):
+    manifests['catalog_root']['category'] = 'Contract A B'
+    manifests['catalog_leaf']['category'] = 'Contract A_B'
+
+    with pytest.raises(ValidationError, match='colisi'):
+        refresh()
+
+    assert not IrModule.objects.filter(name__in=manifests).exists()
+    assert not IrModuleCategory.objects.filter(name__startswith='Contract A').exists()
 
 
 @pytest.mark.parametrize('previous,installable,expected', [

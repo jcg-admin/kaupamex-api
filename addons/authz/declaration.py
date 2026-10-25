@@ -205,8 +205,9 @@ def values_from_manifest(manifest):
     **Tres claves nuestras que la fuente no tiene**, y por qué:
 
     - ``category`` — la fuente la resuelve como FK (``category_id``) en
-      ``_update_category``, no en esta función. Aquí es un desnormalizado
-      provisional; su reestructuración a FK sigue pendiente.
+      ``_update_category``, no en esta función. Aquí devuelve la ruta fuente;
+      update_module_list la conserva como category_path y resuelve el FK
+      mediante modules.db.create_categories en la conexión seleccionada.
     - ``installable`` y ``depends`` — el ``state`` y el grafo se derivan de
       ellas, y el seed las consume y descarta. En la fuente ese trabajo lo
       hacen ``_update_from_terp`` y ``_update_dependencies``, que pertenecen al

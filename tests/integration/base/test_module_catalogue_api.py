@@ -1,6 +1,7 @@
 """Contrato HTTP del catálogo técnico; no acredita instalación de módulos."""
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.urls import include, path
 from drf_spectacular.generators import SchemaGenerator
 from rest_framework.test import APIClient
@@ -10,6 +11,7 @@ from addons.authz.models import Capability, Module, Role, RoleAssignment
 from addons.authz.services import invalidate_capabilities
 from addons.base.models.ir_module import IrModule
 from addons.base.controllers import admin_urls
+from modules.db import create_categories
 
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
@@ -38,16 +40,20 @@ def reader():
 
 @pytest.fixture
 def catalogue():
+    with connection.cursor() as cursor:
+        sales_id = create_categories(cursor, ['Sales'])
+        hidden_id = create_categories(cursor, ['Hidden'])
     return IrModule.objects.bulk_create([
         IrModule(name='fixture_catalog_alpha', shortdesc='Alpha',
-                 category='Sales', application=True, sequence=10,
+                 category_id=sales_id, category_path='Sales', application=True, sequence=10,
                  version='19.0.2.0', state='uninstalled'),
         IrModule(name='fixture_catalog_beta', shortdesc='Beta',
-                 category='Sales', application=True, sequence=20,
+                 category_id=sales_id, category_path='Sales', application=True, sequence=20,
                  version='19.0.2.0', installed_version='19.0.1.0',
                  state='installed'),
         IrModule(name='fixture_catalog_library', shortdesc='Library',
-                 category='Hidden', application=False, state='uninstalled'),
+                 category_id=hidden_id, category_path='Hidden',
+                 application=False, state='uninstalled'),
     ])
 
 
@@ -97,6 +103,7 @@ def test_catalogue_preserves_version_provenance_and_is_read_only(reader, catalog
     response = reader.get(f'{URL}{beta.pk}/')
     assert response.status_code == 200
     assert response.data['version'] == '19.0.2.0'
+    assert response.data['category'] == 'Sales'
     assert response.data['installed_version'] == '19.0.1.0'
     assert reader.get(f'{URL}{alpha.pk}/').data['installed_version'] is None
     assert reader.get(f'{URL}999999999/').status_code == 404
@@ -110,6 +117,22 @@ def test_catalogue_preserves_version_provenance_and_is_read_only(reader, catalog
 def test_catalogue_capability_is_declared_by_existing_collector():
     _, capabilities = discover()
     assert 'settings.modules' in capabilities
+
+
+def test_catalogue_keeps_nested_category_text_and_exact_path_filter(reader):
+    with connection.cursor() as cursor:
+        category_id = create_categories(cursor, ['Contract Sales', 'Child'])
+    row = IrModule.objects.create(
+        name='fixture_catalog_nested', category_id=category_id,
+        category_path='Contract Sales/Child',
+    )
+    response = reader.get(URL, {
+        'search': row.name, 'category': 'Contract Sales/Child',
+    })
+    assert response.status_code == 200
+    assert response.data['count'] == 1
+    assert response.data['results'][0]['category'] == 'Contract Sales/Child'
+    assert reader.get(URL, {'search': row.name, 'category': 'Child'}).data['count'] == 0
 
 
 def test_catalogue_schema_publishes_paginated_read_only_session_contract():

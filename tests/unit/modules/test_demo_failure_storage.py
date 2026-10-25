@@ -8,7 +8,7 @@ from django.db.migrations.state import ModelState, ProjectState
 import pytest
 
 from addons.base.models.ir_demo_failure import IrDemoFailure, IrDemoFailureWizard
-from addons.base.models.ir_module import IrModule
+from addons.base.models.ir_module import IrModule, IrModuleCategory
 
 pytestmark = pytest.mark.django_db(transaction=True)
 LONG_ERROR = 'Traceback original\n' + 'detalle completo Ω\n' * 300
@@ -18,7 +18,7 @@ LONG_ERROR = 'Traceback original\n' + 'detalle completo Ω\n' * 300
 def storage_models(legacy=False):
     assert connection.vendor == 'postgresql'
     state = ProjectState()
-    for model in (IrModule, IrDemoFailureWizard, IrDemoFailure):
+    for model in (IrModuleCategory, IrModule, IrDemoFailureWizard, IrDemoFailure):
         item = ModelState.from_model(model)
         item.options['db_table'] = 'contract_demo_' + model._meta.model_name
         item.options['indexes'] = []
@@ -27,12 +27,12 @@ def storage_models(legacy=False):
             item.fields['error'].max_length = 255
         state.add_model(item)
     classes = [state.apps.get_model('base', model.__name__) for model in
-               (IrModule, IrDemoFailureWizard, IrDemoFailure)]
+               (IrModuleCategory, IrModule, IrDemoFailureWizard, IrDemoFailure)]
     with connection.schema_editor() as editor:
         for model in classes:
             editor.create_model(model)
     try:
-        yield state, classes
+        yield state, classes[1:]
     finally:
         with connection.schema_editor() as editor:
             for model in reversed(classes):

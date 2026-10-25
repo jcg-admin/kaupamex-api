@@ -11,6 +11,8 @@ from addons.base.models.ir_module import IrModule
 class TechnicalModuleSerializer(serializers.ModelSerializer):
     """Separa versión disponible de versión instalada conocida."""
 
+    category = serializers.CharField(source='category_path', read_only=True)
+
     class Meta:
         model = IrModule
         fields = (
@@ -65,6 +67,8 @@ class TechnicalModuleViewSet(CapabilityRequiredMixin, viewsets.ReadOnlyModelView
             })
         values = dict(filters.validated_data)
         search = values.pop('search', '')
+        if 'category' in values:
+            values['category_path'] = values.pop('category')
         queryset = IrModule.objects.filter(**values)
         if search:
             queryset = queryset.filter(

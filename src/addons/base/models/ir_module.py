@@ -159,7 +159,7 @@ class IrModule(TimeStampedModel):
     fuente no impone y que su propio corpus casi toca no protege de nada; sólo
     espera para romper.
 
-    ``category`` es la excepción declarada, y su comentario dice por qué.
+    La ruta fuente de categoría también se conserva sin un tope arbitrario.
 
     Cobertura de campos — 8 de 31, declarada
     =========================================
@@ -167,8 +167,8 @@ class IrModule(TimeStampedModel):
     ``odoo19c: odoo/addons/base/models/ir_module.py:158-330`` declara **31**
     campos; de ellos coinciden por nombre **8** (``name``, ``shortdesc``,
     ``summary``, ``sequence``, ``application``, ``auto_install``, ``state``,
-    ``license``). Otros **2** son formas nuestras: ``category``, un
-    desnormalizado de su ``category_id``, y ``version``, que conserva metadata
+    ``license``). Otros **2** son formas nuestras: ``category``, la relación
+    que la fuente llama ``category_id``, y ``version``, que conserva metadata
     del manifiesto. ``installed_version`` conserva por separado la versión
     realmente instalada (``latest_version`` persistido de la referencia).
     Su valor histórico desconocido permanece NULL: no se infiere del catálogo.
@@ -272,10 +272,15 @@ class IrModule(TimeStampedModel):
         default=False,
         help_text='Odoo demo: el addon tiene datos de demostración cargados.',
     )
-    # ``category`` NO pierde su tope: no tiene contraparte de esta forma en la
-    # referencia, que declara ``category_id`` como FK a ``ir.module.category``.
-    # Es un desnormalizado nuestro y provisional — su reestructuración es #452.
-    category     = fields.Char(max_length=100, blank=True, default='Uncategorized')
+    category = fields.Many2one(
+        IrModuleCategory, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='modules',
+        help_text='Odoo category_id: hoja del árbol técnico de categorías.',
+    )
+    category_path = fields.Char(
+        blank=True, default='Uncategorized', editable=False,
+        help_text='Ruta original del manifiesto; preserva historia y contrato HTTP.',
+    )
     version      = fields.Char(blank=True, default='1.0')
     installed_version = fields.Char(
         blank=True, null=True, default=None, editable=False,

@@ -14,6 +14,7 @@ from addons.authz.declaration import (
 )
 from addons.base.models import IrModule, IrModuleDependency
 from modules import ModuleGraph
+from modules.db import create_categories, validate_category_paths
 from modules.module import ADDONS_PATHS, get_module_path, get_modules
 
 
@@ -58,6 +59,7 @@ class Command(BaseCommand):
 
         updated = added = 0
         without_manifest = []
+        manifests = {}
 
         for addon in get_modules():
             addon_dir = get_module_path(addon)
@@ -69,9 +71,25 @@ class Command(BaseCommand):
                 without_manifest.append(addon)
                 continue
 
+            manifests[addon] = manifest
+
+        paths = {name: row.category_path for name, row in stored.items()}
+        paths.update({name: manifest.get('category', 'Uncategorized')
+                      for name, manifest in manifests.items()})
+        validate_category_paths(paths.values())
+
+        for addon, manifest in manifests.items():
+
             values = values_from_manifest(manifest)
             depends = values.pop('depends')
             values.pop('installable')
+            category_path = values.pop('category')
+            values['category_path'] = category_path
+            if not dry_run:
+                with connections[using].cursor() as cursor:
+                    values['category_id'] = create_categories(
+                        cursor, category_path.split('/') if category_path else [],
+                    )
             row = stored.get(addon)
             if row is None:
                 values['state'] = (IrModule.STATE_UNINSTALLED
