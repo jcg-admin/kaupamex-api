@@ -3731,7 +3731,7 @@ def _field_inverse_related(self, records):
     """≙ ``Field._inverse_related`` (``:724``) — «inverse the related field
     ``self`` on ``records``».
 
-    La primera línea guarda los valores antes de tocar nada, y la fuente
+    Antes de tocar destinos se capturan los valores, y la fuente
     explica por qué en su comentario: *«store record values, otherwise they
     may be lost by cache invalidation»*. Escribir en el extremo de la cadena
     invalida la caché del origen, así que leer después de escribir devolvería
@@ -3741,11 +3741,20 @@ def _field_inverse_related(self, records):
     se propaga entre dos registros que sean ambos reales o ambos nuevos. Un
     registro sin guardar no puede escribir en uno guardado.
     """
-    record_value = {record: record[self.name] for record in records}
-    for record in records:
+    records = as_record_list(records)
+    # Django rows without a PK are unhashable. Snapshot all values before
+    # inverse writes invalidate any source cache, without using rows as keys.
+    record_values = [(record, record[self.name]) for record in records]
+    for record, value in record_values:
         target, field = self.traverse_related(record)
         if target and bool(target.id) == bool(record.id):
-            target[field.name] = record_value[record]
+            target[field.name] = value
+            if (target.pk and isinstance(field, models.Field)
+                    and field.concrete and field.store):
+                # Native Field assignment persists through records.write.
+                # Django assignment is cache-only; explicit inverse dispatch
+                # must save its stored target using the already-bound alias.
+                target.save(using=target._state.db, update_fields=[field.name])
 
 
 models.Field._inverse_related = _field_inverse_related
