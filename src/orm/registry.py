@@ -1831,25 +1831,23 @@ class Registry(Mapping):
     def new(cls, db_name, *, update_module=False, install_modules=(),
             upgrade_modules=(), reinit_modules=(), new_db_demo=None,
             models_to_check=None):
-        """Construye y registra un registro nuevo para ``db_name`` — ≙ ``:113-215``.
+        """Construye el registro de metadatos sin afirmar una instalación.
 
-        Los siete parametros de la fuente se conservan con su significado:
-        ``update_module`` actualiza modulos al cargar; ``install_modules``,
-        ``upgrade_modules`` y ``reinit_modules`` nombran los modulos a
-        instalar, actualizar y reinicializar; ``new_db_demo`` decide la data de
-        demostracion; ``models_to_check`` acota la verificacion.
+        La referencia ejecuta load_modules antes de marcar ready. Este árbol
+        todavía prepara los modelos del proceso mediante _ensure_seeded; no
+        ejecuta solicitudes de instalación, actualización, reinicialización,
+        demostración ni comprobación de modelos. Se rechazan antes de crear
+        una instancia o sustituir el registro anterior (TASK-API-0382).
 
-        **Que hace aqui y que no.** La estructura es la de la fuente: crea la
-        instancia sin pasar por ``__new__``, la inicializa, anula en ella los
-        tres puntos de entrada de clase, la registra ANTES de cargar —porque la
-        carga vuelve a pedir ``Registry(db_name)`` y tiene que encontrarla— y la
-        descarta si algo revienta. La **carga de modulos** delega en
-        :func:`_ensure_seeded`; el grafo de modulos de la fuente
-        (``load_modules``, ``reset_modules_state``) es el tramo 3 de la tarea
-        **#342**, y hasta entonces los cinco parametros de modulo se guardan en
-        la instancia sin consumirse. Se guardan y no se ignoran: el tramo 3 los
-        lee de ahi.
+        Sin solicitudes se conserva el ciclo de vida de metadatos existente.
+        Su estado ready no acredita composición efectiva por base ni carga
+        de módulos; loaded sigue teniendo su contrato independiente.
         """
+        if (update_module or install_modules or upgrade_modules or reinit_modules
+                or new_db_demo is not None or models_to_check):
+            raise NotImplementedError(
+                'La fábrica de metadatos no ejecuta solicitudes del cargador '
+                'de módulos; no se ha sustituido el registro anterior.')
         t0 = time.time()
         registry = object.__new__(cls)
         registry.init(db_name)

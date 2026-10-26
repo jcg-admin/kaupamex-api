@@ -7,9 +7,10 @@ puede describirse como un mecanismo ausente o descartado.
 
 ``loading.py`` implementa load_data, load_demo, comprobación de nombres y
 recuperación de estados. Todavía no ejecuta el ciclo completo de instalación,
-actualización o eliminación. ``Registry.new`` conserva las solicitudes, pero
-actualmente prepara modelos del proceso mediante _ensure_seeded; la composición
-efectiva por base, hooks y finalización de versiones siguen pendientes.
+actualización o eliminación. ``Registry.new`` prepara modelos del proceso
+mediante _ensure_seeded y rechaza solicitudes que todavía no puede ejecutar,
+antes de sustituir el registro anterior. La composición efectiva por base,
+hooks y finalización de versiones siguen pendientes.
 ``INSTALLED_APPS`` y las migraciones Django no acreditan esa equivalencia.
 
 El análisis histórico H-API-230 separó el algoritmo auto_install de su
