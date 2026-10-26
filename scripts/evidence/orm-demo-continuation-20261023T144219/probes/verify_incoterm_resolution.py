@@ -12,6 +12,7 @@ from django.template import Context, Engine
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 parser = argparse.ArgumentParser()
 parser.add_argument("--pipeline", action="store_true")
+parser.add_argument("--result", type=Path)
 arguments = parser.parse_args()
 django.setup()
 
@@ -24,8 +25,8 @@ from addons.sale.models import SaleOrder
 from addons.sale_stock.models.sale_order import SaleOrderDelivery
 from tests.factories.order_factory import make_order
 
-output = Path(__file__).resolve().parents[1] / 'outputs' / (
-    'incoterm-pipeline-resolution.json' if arguments.pipeline else 'incoterm-resolution.json')
+output = arguments.result or (Path(__file__).resolve().parents[1] / 'outputs' / (
+    'incoterm-pipeline-resolution.json' if arguments.pipeline else 'incoterm-resolution.json'))
 before = (SaleOrder.objects.count(), SaleOrderDelivery.objects.count(),
           IrActionsReport.objects.count())
 with transaction.atomic():

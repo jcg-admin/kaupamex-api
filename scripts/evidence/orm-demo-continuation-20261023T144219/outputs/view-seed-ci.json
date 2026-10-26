@@ -1,0 +1,18 @@
+{
+  "source_revision": "ebb08d9388214bd61578408d8c94a9898d33468a",
+  "make_exit": 2,
+  "command": "make ci-verify",
+  "execution_status": "COMPLETED_FAILURE",
+  "pytest_exit": 1,
+  "passed": 1230,
+  "skipped": 1,
+  "failed": 1,
+  "seconds": 646.59,
+  "first_failure": "tests/integration/company/test_base_vat.py::test_partner_full_clean_rejects_bad_rfc",
+  "cause": "partner_fiscal_country_codes callable missing self in default_get -> field.get_default",
+  "classification": "BASELINE_FAILURE: exact093cdfd7 focused test reproduces same TypeError, exit1",
+  "later_tests": "NOT_EVALUATED",
+  "whole_head_acceptance": false,
+  "report_incoterm_in_full_ci": "PASS",
+  "baseline_evidence": "fiscal-default-baseline-093.junit.xml"
+}

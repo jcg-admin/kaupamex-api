@@ -1,0 +1,23 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.category_relation_notification",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Complete demonstrated category reparent invalidation through existing shared FieldDescriptor setter while retaining native ForeignKey raw-ID read/cache invalidation",
+      "verify": "Existing category RED44PASS1FAIL, selected-alias/native object and raw ID changes, hydration and no SQL controls; no computed/related/custom descriptor replacement",
+      "route": "local",
+      "owned": [
+        "src/orm/fields.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "claims_count": 459,
+  "states": {},
+  "selected": [
+    "TASK-GEN-0633.category_relation_notification"
+  ],
+  "scope": "Functional extension of native1203 admitted category unit; published inverse editing claim closed first; no accepted state, whole FK or inference qualification"
+}

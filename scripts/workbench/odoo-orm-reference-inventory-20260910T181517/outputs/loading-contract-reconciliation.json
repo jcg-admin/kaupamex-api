@@ -4092,12 +4092,14 @@
           "IrModule._request_module_change",
           "ModuleGraph.from_database/extend"
         ],
-        "task_relationship": "TASK-API-0382; related TASK-API-0269 pending ownerNULL",
+        "task_relationship": "TASK-API-0382; related TASK-API-0269 pending owner codex-module-lifecycle",
         "owner_for_0382": "codex-module-lifecycle",
         "status": "partial",
         "acceptance": "not_verified",
         "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
-        "limitations_and_dependencies": "Graph selection verified, but process-wide Django app/model availability is not effective per-base selection"
+        "limitations_and_dependencies": "Graph selection verified, but process-wide Django app/model availability is not effective per-base selection",
+        "historical_relationship": "TASK-API-0382; related TASK-API-0269 pending ownerNULL",
+        "current_ownership_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/view-seed-current-native-tasks.json"
       },
       {
         "responsibility": "Dependency resolution",
@@ -4712,7 +4714,55 @@
             "binary_diagnostic": "Direct compiled helper preserves Incoterm; no stale-helper defect demonstrated"
           },
           "integration": "Local source2137, full gate failure preserved; publication verification pending"
+        },
+        "category_display_followup": {
+          "source_revision": "c2d8fce8c482c0a9816e6d58bbfd782e0d768a69",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/category-display-contract-14.json",
+          "verification": "122PASS, no final source-specific whole CI acceptance",
+          "acceptance": "not_verified"
+        },
+        "fiscal_fields_followup": {
+          "source_revision": "f3623e313f67f5a2c010987db26e054540fe0db9",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/fiscal-fields-contract-14.json",
+          "verification": "7model metadata/setupPASS;2purecachePASS;cachefile40PASS7PGsetupERROR; final actual fiscal PostgreSQL and CI NOT_EVALUATED",
+          "block": "Automatic review rejected exact owned-resource cleanup pending explicit user approval",
+          "acceptance": "not_verified"
         }
+      },
+      "TASK-API-0383": {
+        "native_id": "738",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "source_revision": "ebb08d9388214bd61578408d8c94a9898d33468a",
+        "unit": "App-owned late report seed repair completes existing base0070 canonical mapping without altering history, enum/schema or resolver",
+        "contract": "orm-demo-continuation-20261023T144219/outputs/view-seed-contract-14.json",
+        "verification": {
+          "focused_passed": 22,
+          "focused_exit": 0,
+          "alias_exit": 0,
+          "alias_scope": "Two connections on one owned PostgreSQL; not N>1 acceptance",
+          "global_ci": {
+            "source_revision": "ebb08d9388214bd61578408d8c94a9898d33468a",
+            "make_exit": 2,
+            "command": "make ci-verify",
+            "execution_status": "COMPLETED_FAILURE",
+            "pytest_exit": 1,
+            "passed": 1230,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 646.59,
+            "first_failure": "tests/integration/company/test_base_vat.py::test_partner_full_clean_rejects_bad_rfc",
+            "cause": "partner_fiscal_country_codes callable missing self in default_get -> field.get_default",
+            "classification": "BASELINE_FAILURE: exact093cdfd7 focused test reproduces same TypeError, exit1",
+            "later_tests": "NOT_EVALUATED",
+            "whole_head_acceptance": false,
+            "report_incoterm_in_full_ci": "PASS",
+            "baseline_evidence": "fiscal-default-baseline-093.junit.xml"
+          }
+        },
+        "acceptance": "not_verified",
+        "integration": "Local ebb08d93, required gate completed failure at proven inherited fiscal default after1230PASS; pending publication/acceptance",
+        "other_obligations": "Existing isolation fixture5PASS and cleanup retained, no rerun; whole authentication, authorization, metadata policy and historical recovery not accepted"
       }
     },
     "authority": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/contractual-additional-ownership-assignment.json and contractual-ownership-assignment.json",

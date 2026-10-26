@@ -569,3 +569,41 @@ cleaned using existing harness finally operations, and independently absent0/0.
 Current own lease5404af94c0df remains active for continuation; cleanup not yet
 claimed. Native editing claims release/reacquisition and publication checks
 are preserved. No official state change, managed inference, acceptance or merge.
+
+
+## Continuación: vistas, categorías y campos fiscales
+
+Sourceebb08d93 completa el mapeo vigente base0070 para dos seeds tardíos,
+sin reescribir historia, enum, esquema o resolver.22PASS y alias secundario
+PASS conservan valores e idempotencia. Gate real1230PASS1SKIP1FAIL646.59s,
+Make2/Pytest1: PDFIncotermPASS; primer fallo fiscal default_get. Exact093
+reproduce el TypeError. El CI remoto77ce83a6 confirma el anterior fallo
+Incoterm838PASS1SKIP1FAIL; ninguno acredita aceptación del head nuevo.
+
+Sourcec2d8fce8 asigna display_name de categorías y conserva el setter
+compartido para el ID de FKs ordinarias con lectura/caché nativas.
+RED3FAIL; sólo asignación44PASS1FAILreparent; solución108PASS y ampliación
+122PASS, incluidos ID/objeto y0SQL. Contrato14 preservado; gate propio pendiente.
+
+Sourcef3623e31 conserva tres defaults fiscales de sesión y cuatro cómputos
+según declaraciones fijadas, asigna grupos de país, usa DefaultGetMixin en
+ResBank y separa conjuntos activos en la clave existente de caché.
+RED23PASS16FAIL; declaración36PASS3FAIL; luego2cachepurosPASS y7modelos
+metadata/setupPASS. La ampliación de caché40PASS7ERROR requierePG en siete
+fixtures: no equivale a siete defectos productivos ni a una suite aprobada.
+El intento sinPATHfalló antes de pruebas y permanece separado.
+
+La revisión automática primero impidió ejecutar la última verificación por
+límite de uso. Después desapareció la terminal16809. El recurso propio
+orm_bootstrap_5404af94c0df sigue presente, propietario exacto y0conexiones
+verificados. La limpieza exacta por operaciones finales del harness fue
+rechazada antes de ejecutarse por falta de autorización explícita para
+DROPbase/rol y retirada de su líneaHBA. Se solicitó permiso y no se eludió.
+No se declara limpieza ni resultado fiscal PostgreSQL.
+
+Se conservan62filas ASIS,19/7registros estructurales y el replay64previo;
+las vistas relacionadas actuales incorporan estas unidades sin aceptarTASKs.
+Commits locales/hooks preservados; publicación posterior a la comprobación
+requerida permanece pendiente. PR109/154 abiertos sin merge en consulta real.
+No estados oficiales, inferencia local gestionada, aceptación integral ni
+finalización de completar-raiz-orm.

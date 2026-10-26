@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="16" skipped="0" tests="39" time="6.396" timestamp="2026-10-25T22:48:20.910253" hostname="c8a29a030cff"><testcase classname="tests.unit.account.test_account_fiscal_country" name="test_session_field_retains_a_zero_argument_default[ResCurrency]" time="4.615"><failure message="TypeError: session_fiscal_country_codes() missing 1 required positional argument: 'self'">tests/unit/account/test_account_fiscal_country.py:34: in test_session_field_retains_a_zero_argument_default
+    assert field.get_default() == 'MX'
+.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+E   TypeError: session_fiscal_country_codes() missing 1 required positional argument: 'self'</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country" name="test_session_field_retains_a_zero_argument_default[ResBank]" time="0.034"><failure message="TypeError: session_fiscal_country_codes() missing 1 required positional argument: 'self'">tests/unit/account/test_account_fiscal_country.py:34: in test_session_field_retains_a_zero_argument_default
+    assert field.get_default() == 'MX'
+.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+E   TypeError: session_fiscal_country_codes() missing 1 required positional argument: 'self'</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country" name="test_session_field_retains_a_zero_argument_default[ResPartnerBank]" time="0.034"><failure message="TypeError: session_fiscal_country_codes() missing 1 required positional argument: 'self'">tests/unit/account/test_account_fiscal_country.py:34: in test_session_field_retains_a_zero_argument_default
+    assert field.get_default() == 'MX'
+.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+E   TypeError: session_fiscal_country_codes() missing 1 required positional argument: 'self'</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country" name="test_record_field_is_computed_without_a_default_or_column[Uom]" time="0.002"><failure message="assert None&#10; +  where None = &lt;django.db.models.fields.CharField: fiscal_country_codes&gt;.compute">tests/unit/account/test_account_fiscal_country.py:43: in test_record_field_is_computed_without_a_default_or_column
+    assert field.compute
+E   assert None
+E    +  where None = &lt;django.db.models.fields.CharField: fiscal_country_codes&gt;.compute</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country" name="test_record_field_is_computed_without_a_default_or_column[ProductTemplate]" time="0.001"><failure message="assert None&#10; +  where None = &lt;django.db.models.fields.CharField: fiscal_country_codes&gt;.compute">tests/unit/account/test_account_fiscal_country.py:43: in test_record_field_is_computed_without_a_default_or_column
+    assert field.compute
+E   assert None
+E    +  where None = &lt;django.db.models.fields.CharField: fiscal_country_codes&gt;.compute</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country" name="test_record_field_is_computed_without_a_default_or_column[AccountPaymentTerm]" time="0.001"><failure message="assert None&#10; +  where None = &lt;django.db.models.fields.CharField: fiscal_country_codes&gt;.compute">tests/unit/account/test_account_fiscal_country.py:43: in test_record_field_is_computed_without_a_default_or_column
+    assert field.compute
+E   assert None
+E    +  where None = &lt;django.db.models.fields.CharField: fiscal_country_codes&gt;.compute</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country" name="test_record_field_is_computed_without_a_default_or_column[ResPartner]" time="0.001"><failure message="assert None&#10; +  where None = &lt;django.db.models.fields.CharField: fiscal_country_codes&gt;.compute">tests/unit/account/test_account_fiscal_country.py:43: in test_record_field_is_computed_without_a_default_or_column
+    assert field.compute
+E   assert None
+E    +  where None = &lt;django.db.models.fields.CharField: fiscal_country_codes&gt;.compute</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country" name="test_fiscal_compute_separates_active_company_sets" time="0.052"><failure message="AttributeError: 'Uom' object has no attribute 'default_get'">tests/unit/account/test_account_fiscal_country.py:57: in test_fiscal_compute_separates_active_company_sets
+    assert record.fiscal_country_codes == 'MX'
+src/orm/fields.py:1685: in __get__
+    defaults = instance.default_get([field.name])
+E   AttributeError: 'Uom' object has no attribute 'default_get'</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country.TestAccountFiscalCountry" name="test_the_company_carries_its_fiscal_country" time="0.034" /><testcase classname="tests.unit.account.test_account_fiscal_country.TestAccountFiscalCountry" name="test_the_resolver_falls_back_to_the_company_country" time="0.043" /><testcase classname="tests.unit.account.test_account_fiscal_country.TestAccountFiscalCountry" name="test_the_resolver_does_not_overwrite_an_explicit_value" time="0.032" /><testcase classname="tests.unit.account.test_account_fiscal_country.TestFiscalCountryGroupCodes" name="test_returns_the_groups_of_its_fiscal_country" time="0.033"><failure message="ValueError: Compute method failed to assign base.ResCountry(68,).country_group_codes">tests/unit/account/test_account_fiscal_country.py:115: in test_returns_the_groups_of_its_fiscal_country
+    assert 'EU' in company.account_fiscal_country_group_codes
+addons/account/models/res_company.py:447: in account_fiscal_country_group_codes
+    return country.country_group_codes if country else ['']
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResCountry(68,).country_group_codes</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country.TestFiscalCountryGroupCodes" name="test_returns_a_list_with_an_empty_string_when_there_is_none" time="0.031" /><testcase classname="tests.unit.account.test_account_fiscal_country.TestEnabledTaxCountries" name="test_includes_its_own_fiscal_country" time="0.035" /><testcase classname="tests.unit.account.test_account_fiscal_country.TestEnabledTaxCountries" name="test_includes_the_countries_of_its_foreign_vat_positions" time="0.035" /><testcase classname="tests.unit.account.test_account_fiscal_country.TestEnabledTaxCountries" name="test_a_position_without_foreign_vat_does_not_enable_its_country" time="0.036" /><testcase classname="tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes" name="test_the_helper_reads_the_active_companies" time="0.033" /><testcase classname="tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes" name="test_the_helper_preserves_the_order_of_the_companies" time="0.047" /><testcase classname="tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes" name="test_a_company_without_fiscal_country_contributes_nothing" time="0.045" /><testcase classname="tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes" name="test_the_session_shape_is_hung_on_its_three_models[ResBank]" time="0.028"><failure message="AttributeError: 'ResBank' object has no attribute 'default_get'">tests/unit/account/test_account_fiscal_country.py:176: in test_the_session_shape_is_hung_on_its_three_models
+    assert model().fiscal_country_codes == 'MX'
+src/orm/fields.py:1685: in __get__
+    defaults = instance.default_get([field.name])
+E   AttributeError: 'ResBank' object has no attribute 'default_get'</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes" name="test_the_session_shape_is_hung_on_its_three_models[ResPartnerBank]" time="0.031"><failure message="TypeError: session_fiscal_country_codes() missing 1 required positional argument: 'self'">tests/unit/account/test_account_fiscal_country.py:176: in test_the_session_shape_is_hung_on_its_three_models
+    assert model().fiscal_country_codes == 'MX'
+src/orm/fields.py:1685: in __get__
+    defaults = instance.default_get([field.name])
+src/orm/models.py:564: in default_get
+    defaults[name] = field.get_default()
+.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+E   TypeError: session_fiscal_country_codes() missing 1 required positional argument: 'self'</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes" name="test_the_session_shape_is_hung_on_its_three_models[ResCurrency]" time="0.234"><failure message="TypeError: session_fiscal_country_codes() missing 1 required positional argument: 'self'">tests/unit/account/test_account_fiscal_country.py:176: in test_the_session_shape_is_hung_on_its_three_models
+    assert model().fiscal_country_codes == 'MX'
+src/orm/fields.py:1685: in __get__
+    defaults = instance.default_get([field.name])
+src/orm/models.py:564: in default_get
+    defaults[name] = field.get_default()
+.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+E   TypeError: session_fiscal_country_codes() missing 1 required positional argument: 'self'</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes" name="test_the_record_shape_prefers_the_company_of_the_record" time="0.050"><failure message="AttributeError: 'AccountPaymentTerm' object has no attribute 'default_get'">tests/unit/account/test_account_fiscal_country.py:189: in test_the_record_shape_prefers_the_company_of_the_record
+    assert term.fiscal_country_codes == 'ES'
+src/orm/fields.py:1685: in __get__
+    defaults = instance.default_get([field.name])
+E   AttributeError: 'AccountPaymentTerm' object has no attribute 'default_get'</failure></testcase><testcase classname="tests.unit.account.test_account_fiscal_country.TestFiscalCountryCodes" name="test_the_partner_shape_appends_its_own_country" time="0.040"><failure message="TypeError: partner_fiscal_country_codes() missing 1 required positional argument: 'self'">tests/unit/account/test_account_fiscal_country.py:201: in test_the_partner_shape_appends_its_own_country
+    codes = partner.fiscal_country_codes.split(',')
+src/orm/fields.py:1685: in __get__
+    defaults = instance.default_get([field.name])
+src/addons/base/models/res_partner.py:355: in default_get
+    values = super().default_get(fields)
+src/orm/models.py:564: in default_get
+    defaults[name] = field.get_default()
+.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+E   TypeError: partner_fiscal_country_codes() missing 1 required positional argument: 'self'</failure></testcase><testcase classname="tests.integration.company.test_base_vat" name="test_valid_rfc_passes[XAXX010101000]" time="0.002" /><testcase classname="tests.integration.company.test_base_vat" name="test_valid_rfc_passes[XEXX010101000]" time="0.001" /><testcase classname="tests.integration.company.test_base_vat" name="test_valid_rfc_passes[ABC010101AB1]" time="0.001" /><testcase classname="tests.integration.company.test_base_vat" name="test_valid_rfc_passes[ABCD991231XY9]" time="0.001" /><testcase classname="tests.integration.company.test_base_vat" name="test_valid_rfc_passes[]" time="0.001" /><testcase classname="tests.integration.company.test_base_vat" name="test_invalid_rfc_raises[ABC12]" time="0.001" /><testcase classname="tests.integration.company.test_base_vat" name="test_invalid_rfc_raises[1234567890123]" time="0.001" /><testcase classname="tests.integration.company.test_base_vat" name="test_invalid_rfc_raises[ABCDE010101AB1]" time="0.001" /><testcase classname="tests.integration.company.test_base_vat" name="test_invalid_rfc_raises[ABC991301AB1]" time="0.001" /><testcase classname="tests.integration.company.test_base_vat" name="test_invalid_rfc_raises[ABC010132AB1]" time="0.001" /><testcase classname="tests.integration.company.test_base_vat" name="test_dispatcher_unknown_country_no_restriction" time="0.001" /><testcase classname="tests.integration.company.test_base_vat" name="test_normalizes_lowercase" time="0.001" /><testcase classname="tests.integration.company.test_base_vat" name="test_partner_vat_field_has_validator" time="0.001" /><testcase classname="tests.integration.company.test_base_vat" name="test_partner_full_clean_rejects_bad_rfc" time="0.005"><failure message="TypeError: partner_fiscal_country_codes() missing 1 required positional argument: 'self'">tests/integration/company/test_base_vat.py:62: in test_partner_full_clean_rejects_bad_rfc
+    p.full_clean()
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1680: in full_clean
+    self.clean_fields(exclude=exclude)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1728: in clean_fields
+    raw_value = getattr(self, f.attname)
+src/orm/fields.py:1685: in __get__
+    defaults = instance.default_get([field.name])
+src/addons/base/models/res_partner.py:355: in default_get
+    values = super().default_get(fields)
+src/orm/models.py:564: in default_get
+    defaults[name] = field.get_default()
+.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+E   TypeError: partner_fiscal_country_codes() missing 1 required positional argument: 'self'</failure></testcase><testcase classname="tests.integration.company.test_base_vat" name="test_partner_full_clean_accepts_good_rfc" time="0.010"><failure message="TypeError: partner_fiscal_country_codes() missing 1 required positional argument: 'self'">tests/integration/company/test_base_vat.py:69: in test_partner_full_clean_accepts_good_rfc
+    p.full_clean()
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1680: in full_clean
+    self.clean_fields(exclude=exclude)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:1728: in clean_fields
+    raw_value = getattr(self, f.attname)
+src/orm/fields.py:1685: in __get__
+    defaults = instance.default_get([field.name])
+src/addons/base/models/res_partner.py:355: in default_get
+    values = super().default_get(fields)
+src/orm/models.py:564: in default_get
+    defaults[name] = field.get_default()
+.venv/lib/python3.12/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+E   TypeError: partner_fiscal_country_codes() missing 1 required positional argument: 'self'</failure></testcase></testsuite></testsuites>

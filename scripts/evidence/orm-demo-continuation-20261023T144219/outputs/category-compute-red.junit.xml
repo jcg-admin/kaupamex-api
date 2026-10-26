@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="4.624" timestamp="2026-10-25T22:36:50.903955" hostname="c8a29a030cff"><testcase classname="tests.unit.base.test_res_partner_category" name="test_new_category_assigns_display_name_without_sql" time="4.371"><failure message="ValueError: Compute method failed to assign base.ResPartnerCategory(None,).display_name">tests/unit/base/test_res_partner_category.py:84: in test_new_category_assigns_display_name_without_sql
+    assert category.display_name == 'Nueva'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResPartnerCategory(None,).display_name</failure></testcase><testcase classname="tests.unit.base.test_res_partner_category" name="test_category_name_change_invalidates_cached_label" time="0.036"><failure message="ValueError: Compute method failed to assign base.ResPartnerCategory(4,).display_name">tests/unit/base/test_res_partner_category.py:90: in test_category_name_change_invalidates_cached_label
+    assert category.display_name == 'Anterior'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResPartnerCategory(4,).display_name</failure></testcase><testcase classname="tests.unit.base.test_res_partner_category" name="test_reparenting_invalidates_cached_hierarchical_label" time="0.011"><failure message="ValueError: Compute method failed to assign base.ResPartnerCategory(7,).display_name">tests/unit/base/test_res_partner_category.py:99: in test_reparenting_invalidates_cached_hierarchical_label
+    assert child.display_name == 'Primera / Hija'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResPartnerCategory(7,).display_name</failure></testcase></testsuite></testsuites>

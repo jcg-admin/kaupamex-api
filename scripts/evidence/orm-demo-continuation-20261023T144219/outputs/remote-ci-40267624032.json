@@ -1,0 +1,14 @@
+{
+  "head": "77ce83a67598fe5791872fec905de1d2434c1ae5",
+  "run": 40267624032,
+  "job": 121393356952,
+  "download_exit": 0,
+  "log": "remote-ci-40267624032.log",
+  "summary_lines": [
+    "2026-10-26T04:22:52.0078725Z E   AssertionError: assert 'Incoterm: FOB Veracruz' in 'RECIBO DE COMPRA\\nOrden: S00001\\nFecha: 2026-10-26T04:22:51+00:00\\nComprador\\nProducto\\nSKU\\nCant.\\nP.Unit\\nImporte\\n...da de Osun\\n2\\n150.00\\n300.00\\nVela de siete d\u00edas\\n3\\n45.50\\n136.50\\nSubtotal\\n376.29\\nIVA (16%)\\n60.21\\nTOTAL\\n436.50'",
+    "2026-10-26T04:22:52.0112465Z FAILED tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel - AssertionError: assert 'Incoterm: FOB Veracruz' in 'RECIBO DE COMPRA\\nOrden: S00001\\nFecha: 2026-10-26T04:22:51+00:00\\nComprador\\nProducto\\nSKU\\nCant.\\nP.Unit\\nImporte\\n...da de Osun\\n2\\n150.00\\n300.00\\nVela de siete d\u00edas\\n3\\n45.50\\n136.50\\nSubtotal\\n376.29\\nIVA (16%)\\n60.21\\nTOTAL\\n436.50'",
+    "2026-10-26T04:22:52.0121003Z 1 failed, 838 passed, 1 skipped, 5 warnings in 717.65s (0:11:57)",
+    "2026-10-26T04:22:56.9325661Z make: *** [Makefile:147: ci-verify] Error 1"
+  ],
+  "scope": "Published prior head, not acceptance of running ebb08d93"
+}
