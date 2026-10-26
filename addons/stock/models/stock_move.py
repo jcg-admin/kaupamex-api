@@ -1372,6 +1372,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         if not self.reference_ids.exists() and self.picking_id:
             self.reference_ids.set(self.picking.reference_ids)
 
+    @api.depends('picking', 'product', 'location', 'location_dest')
     def _compute_display_name(self):
         """≙ ``display_name`` / ``_compute_display_name`` (``odoo19c: :786-792``).
 
@@ -1379,13 +1380,15 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         opcionales — la fuente los omite cuando están vacíos en vez de dejar
         separadores huérfanos.
         """
-        origen = self.picking.origin if self.picking_id else ''
-        codigo = self.product.code_for(None) if self.product_id else ''
-        return '%s%s%s>%s' % (
-            f'{origen}/' if origen else '',
-            f'{codigo}: ' if codigo else '',
+        origin = self.picking.origin if self.picking_id else ''
+        code = self.product.code_for(None) if self.product_id else ''
+        label = '%s%s%s>%s' % (
+            f'{origin}/' if origin else '',
+            f'{code}: ' if code else '',
             self.location.name if self.location_id else '',
             self.location_dest.name if self.location_dest_id else '')
+        self.display_name = label
+        return label
 
     # -- ola B · propagación a las reglas de reabastecimiento --
 
