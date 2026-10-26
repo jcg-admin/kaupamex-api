@@ -3749,7 +3749,8 @@ def _field_inverse_related(self, records):
         target, field = self.traverse_related(record)
         if target and bool(target.id) == bool(record.id):
             target[field.name] = value
-            if (target.pk and isinstance(field, models.Field)
+            if (isinstance(target, models.Model) and target.pk
+                    and isinstance(field, models.Field)
                     and field.concrete and field.store):
                 # Native Field assignment persists through records.write.
                 # Django assignment is cache-only; explicit inverse dispatch
