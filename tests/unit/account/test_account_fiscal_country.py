@@ -12,11 +12,55 @@ import pytest
 from addons.account.models.account_fiscal_position import AccountFiscalPosition
 from addons.account.models.account_payment_term import AccountPaymentTerm
 from addons.account.models.res_company import get_fiscal_country_codes
-from addons.base.models import ResBank, ResCompany, ResCountry, ResCurrency
+from addons.base.models import ResBank, ResCompany, ResCountry, ResCurrency, ResPartner
 from addons.base.models.res_bank import ResPartnerBank
-from orm.environments import set_current_company
+from addons.product.models.product_template import ProductTemplate
+from addons.uom.models.uom_uom import Uom
+from orm.environments import (
+    activate_companies, get_current_companies, set_current_company,
+)
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.mark.parametrize('model', [ResCurrency, ResBank, ResPartnerBank])
+def test_session_field_retains_a_zero_argument_default(model, company):
+    """El default de sesión no recibe un registro Django como argumento."""
+    field = model._meta.get_field('fiscal_country_codes')
+    assert not field.compute
+    assert field.has_default()
+    set_current_company(company.pk)
+    try:
+        assert field.get_default() == 'MX'
+    finally:
+        set_current_company(None)
+
+
+@pytest.mark.parametrize('model', [Uom, ProductTemplate, AccountPaymentTerm, ResPartner])
+def test_record_field_is_computed_without_a_default_or_column(model):
+    """La declaración fijada exige cómputo, no un default que recibe self."""
+    field = model._meta.get_field('fiscal_country_codes')
+    assert field.compute
+    assert not field.has_default()
+    assert not field.store
+    assert not field.concrete
+
+
+def test_fiscal_compute_separates_active_company_sets(company, spain):
+    """Cambiar el conjunto con la misma compañía principal no reutiliza caché."""
+    other = ResCompany.objects.create(
+        code='fiscal-context-es', name='Context ES', account_fiscal_country=spain)
+    previous = get_current_companies()
+    record = Uom()
+    try:
+        activate_companies([company.pk], [company.pk, other.pk])
+        assert record.fiscal_country_codes == 'MX'
+        activate_companies([company.pk, other.pk], [company.pk, other.pk])
+        assert record.fiscal_country_codes == 'MX,ES'
+        activate_companies([other.pk], [company.pk, other.pk])
+        assert record.fiscal_country_codes == 'ES'
+    finally:
+        activate_companies(previous, previous)
 
 
 @pytest.fixture

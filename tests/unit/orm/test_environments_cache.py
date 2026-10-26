@@ -53,7 +53,8 @@ from addons.base.models.res_partner import ResPartner
 from exceptions import CacheMiss
 from orm import registry
 from orm.environments import (EMPTY_DICT, MAX_FIXPOINT_ITERATIONS, Cache,
-                              Starred, env as ambient_env, transaction_scope)
+                              Starred, activate_companies, get_current_companies,
+                              env as ambient_env, transaction_scope)
 from orm.fields_nonstored import non_stored_fields
 from orm.utils import record_ids
 from tools.misc import frozendict
@@ -82,6 +83,44 @@ def open_transaction():
 
 def field_of(name):
     return CacheFacadeProbe._meta.get_field(name)
+
+
+def test_allowed_company_cache_key_tracks_the_validated_channel(monkeypatch):
+    """El mismo primer ID no identifica dos conjuntos de compañías distintos."""
+    field = field_of('label')
+    monkeypatch.setattr(registry, 'field_depends_context', {
+        field: ('allowed_company_ids',),
+    })
+    previous = get_current_companies()
+    try:
+        activate_companies([17], [17, 23])
+        first = ambient_env().cache_key(field)
+        activate_companies([17, 23], [17, 23])
+        second = ambient_env().cache_key(field)
+        assert first == ((17,),)
+        assert second == ((17, 23),)
+        assert first != second
+        activate_companies([], [])
+        assert ambient_env().cache_key(field) == ((),)
+    finally:
+        activate_companies(previous, previous)
+
+
+def test_allowed_company_cache_key_normalizes_explicit_lists(monkeypatch):
+    """La clave es hashable y no modifica la lista aportada por el llamador."""
+    field = field_of('label')
+    monkeypatch.setattr(registry, 'field_depends_context', {
+        field: ('allowed_company_ids',),
+    })
+    values = [23, 17]
+    environment = ambient_env()(context={'allowed_company_ids': values})
+    key = environment.cache_key(field)
+    assert key == ((23, 17),)
+    assert values == [23, 17]
+    assert {key: 'value'}[key] == 'value'
+    assert key != ambient_env()(context={
+        'allowed_company_ids': [17, 23],
+    }).cache_key(field)
 
 
 class TestTheModuleConstants:

@@ -1431,6 +1431,12 @@ class Environment:
                 keys.append(self.uid)
             elif name == 'active_test':
                 keys.append(self.context.get('active_test', True))
+            elif name == 'allowed_company_ids':
+                # El canal validado de compañías activas es el equivalente
+                # ambiental de env.companies cuando no hay contexto explícito.
+                # La lista declarada se normaliza como en la referencia.
+                values = self.context.get(name)
+                keys.append(tuple(get_current_companies() if values is None else values))
             else:
                 keys.append(self.context.get(name))
         return tuple(keys)

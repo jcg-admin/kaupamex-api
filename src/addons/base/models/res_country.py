@@ -7,6 +7,7 @@ import re
 
 from django.core.exceptions import ValidationError
 
+import api
 import fields
 import models
 from tools.translate import _
@@ -173,6 +174,7 @@ class ResCountry(models.Model):
         country = cls.objects.filter(code=(code or '').upper()).first()
         return country.phone_code if country else None
 
+    @api.depends('country_groups')
     def _compute_country_group_codes(self):
         """Los códigos de sus agrupaciones — ≙ ``_compute_country_group_codes``
         (``odoo19c: odoo/addons/base/models/res_country.py:162-168``).
@@ -186,7 +188,9 @@ class ResCountry(models.Model):
         contra esta lista, y cambiar ``['']`` por ``[]`` alteraría el resultado
         de esa comparación para todo país sin agrupación.
         """
-        return [g.code for g in self.country_groups.all() if g.code] or ['']
+        codes = [g.code for g in self.country_groups.all() if g.code] or ['']
+        self.country_group_codes = codes
+        return codes
 
     @property
     def image_url(self):
