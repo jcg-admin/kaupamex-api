@@ -1738,7 +1738,7 @@ class FieldDescriptor(DeferredAttribute):
         # El atributo de instancia se escribe SIEMPRE: es de donde ``save()``
         # de Django lee la columna, y de donde la lee ``_cache_computed_values``
         # tras el cómputo.
-        if isinstance(field, models.ForeignKey) and not field.store:
+        if isinstance(field, models.ForeignKey):
             ForeignKeyDeferredAttribute.__set__(self, instance, value)
         else:
             instance.__dict__[field.attname] = value
@@ -1981,6 +1981,18 @@ def _field_contribute_to_class(self, cls, name, private_only=False):
         phase(self, cls)
 
 
+class StoredMany2oneIdDescriptor(FieldDescriptor):
+    """Notifica el ID de una FK ordinaria sin cambiar su lectura nativa.
+
+    El setter compartido conserva protección, caché e inversos; Django sigue
+    invalidando el objeto relacionado al cambiar su ID. El atributo del ID
+    debe devolver el escalar nativo, no convertirlo a un registro del comodelo.
+    """
+
+    def __get__(self, instance, cls=None):
+        return ForeignKeyDeferredAttribute.__get__(self, instance, cls)
+
+
 def _install_field_descriptor(field, cls):
     """Instala el descriptor y conserva el tipo público de los calculados.
 
@@ -1991,6 +2003,10 @@ def _install_field_descriptor(field, cls):
     declara compute, sin duplicar la implementación del setter.
     """
     current = cls.__dict__.get(field.attname)
+    if (type(current) is ForeignKeyDeferredAttribute
+            and field.store and not field.compute and not field.related):
+        setattr(cls, field.attname, StoredMany2oneIdDescriptor(field))
+        return
     # Re-invocable desde ``Field.setup``: un campo ``related=`` no tiene
     # ``compute`` en ``contribute_to_class`` —se lo cuelga ``setup_related``
     # (``:632``) en la fase de setup—, así que aquí recibía el descriptor

@@ -1,4 +1,4 @@
-"""Late seeds must obey the existing base.0070 view-type contract."""
+"""Los seeds tardíos deben cumplir el contrato vigente de base.0070."""
 from importlib import import_module
 from types import SimpleNamespace
 

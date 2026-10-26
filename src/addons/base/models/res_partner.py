@@ -3087,6 +3087,7 @@ class ResPartnerCategory(TimeStampedModel):
             return f'{self.pk}/'
         return f'{self.parent.parent_path}{self.pk}/'
 
+    @api.depends('parent')
     def _compute_display_name(self):
         """≙ ``_compute_display_name`` (``:162-172``).
 
@@ -3099,7 +3100,9 @@ class ResPartnerCategory(TimeStampedModel):
         while current is not None:
             names.append(current.name or '')
             current = current.parent
-        return ' / '.join(reversed(names))
+        label = ' / '.join(reversed(names))
+        self.display_name = label
+        return label
 
     @classmethod
     def _search_display_name(cls, operator, value):
