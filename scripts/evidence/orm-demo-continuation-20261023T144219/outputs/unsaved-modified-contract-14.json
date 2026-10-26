@@ -1,0 +1,99 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:odoo/orm/models.py:BaseModel.modified/_modified_triggers; Field contextual cache invalidation",
+  "behavior": "Ordinary unsaved Django assignment keeps its value and invalidates its cached compute without SQL; native collection managers are not used without required PK, while direct/custom in-memory relations and saved traversal remain functional",
+  "execution_flow": "Shared FieldDescriptor setter -> existing modified/_modified_triggers -> inverse traversal with native descriptor PK boundary -> own computed cache invalidation with existing descriptor cache identity",
+  "inputs_outputs": "Actual unsaved ResPartner/ResPartnerCategory, cached display labels, two distinct new-row identities, SaleOrder/Delivery cachedOneToOne, custom collection protocol and real saved bank-account relation",
+  "side_effects": "Existing contextual cache entries invalidated by existing NewId identity, persistence/transaction IDs unchanged; no new cache, schema, enum or BaseModel class change",
+  "dependencies": [
+    "Native1203 TASK-GEN-0633 pending owned codex-module-lifecycle, reconciliation/frontier/claims verified",
+    "Shared setterc2d0d10d and existing _field_cache_record_id",
+    "Installed frozen Django native manager preconditions and descriptor types; custom descriptor protocol remains unchanged",
+    "No execution of unowned0397/0417/0418/0419"
+  ],
+  "consumers": [
+    "Unchanged test_models_item_access name assignment",
+    "ResPartner contextual display_name and separate unsaved instances",
+    "Native reverse/forward collection and direct cached relation consumers",
+    "Existing modified engine, field conversions, labels of base/product and explicit inverse consumers"
+  ],
+  "installed_mechanism": "Existing _traverse_inverse/modified, Django Model._is_pk_set and exact native collection descriptor classes, existing _field_cache_record_id and Field._invalidate_cache; no generic orchestration introduced",
+  "existing_adaptation": "Native Odoo recordsets/NewId differ from ordinary Django rows. Bridge observes Django collection PK precondition and uses the already-installed cache-only NewId key; it does not relabel unsaved events as create=True or suppress all modified notifications",
+  "verification": {
+    "baseline_before_shared_setter": {
+      "revision": "ae949aa82fc77bb8c119533446a70b1cef9bd79b",
+      "passed": 1,
+      "exit": 0,
+      "junit": "unsaved-modified-baseline-ae949.junit.xml"
+    },
+    "baseline_after_shared_setter": {
+      "revision": "093cdfd708c02b9043b39f36e0bed09b628f3d73",
+      "failed": 1,
+      "exit": 1,
+      "junit": "unsaved-modified-baseline-093.junit.xml"
+    },
+    "classification": "NEW_REGRESSION of this session/shared setter; not accepted inherited debt",
+    "first_instrument": {
+      "exit": 2,
+      "cause": "test imported unexported category from aggregator; corrected to owning module"
+    },
+    "red_refined": {
+      "passed": 3,
+      "failed": 6,
+      "exit": 1
+    },
+    "manager_boundary": {
+      "passed": 7,
+      "failed": 2,
+      "exit": 1,
+      "cause": "remaining real stale contextual cache"
+    },
+    "green": {
+      "passed": 32,
+      "new_controls": 9,
+      "exit": 0,
+      "junit": "unsaved-modified-green.junit.xml"
+    },
+    "regression": {
+      "passed": 180,
+      "exit": 0,
+      "junit": "unsaved-modified-regression.junit.xml"
+    },
+    "BaseModel_class_AST_unchanged": true,
+    "final_full_ci": {
+      "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+      "make_exit": 2,
+      "execution_status": "COMPLETED_FAILURE",
+      "command": "make ci-verify",
+      "pytest_exit": 1,
+      "passed": 838,
+      "skipped": 1,
+      "failed": 1,
+      "seconds": 607.55,
+      "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+      "classification": "BASELINE_FAILURE relative2137fad6, exact093cdfd7 targeted reproduction preserved",
+      "new_related_inverse_cases_in_full_ci": 12,
+      "later_tests": "NOT_EVALUATED",
+      "whole_head_acceptance": false,
+      "binary_diagnostic": "Direct compiled helper preserves Incoterm; no stale-helper defect demonstrated"
+    }
+  },
+  "equivalence": "Bounded actual Django row event/cache bridge verified; not whole recordset/NewId/recompute or per-database cache acceptance",
+  "limitations": "No full BaseModel.new/recordset/migration/taxonomy implementation, arbitrary custom manager semantics, persistence-ID change or N>1 cache acceptance. Native in-memory new-record relation families remain separate contracts; no local-model inference or TASK state change.",
+  "integration": "Source2137fad6 includesc4055e1c andb87396fa; hooks PASS, full local gate FAIL at proven legacy view-type seed mismatch; publication verification pending, no acceptance/merge",
+  "reference_hash": "4dc0f7ed1bfedf292b91d9603a67e83b740910601f418880e2ebf12902297c1e",
+  "reference_bodies": {
+    "modified": {
+      "line": 6756,
+      "body": "@api.private\ndef modified(self, fnames: Collection[str], create: bool=False, before: bool=False) -> None:\n    \"\"\" Notify that fields will be or have been modified on ``self``. This\n        invalidates the cache where necessary, and prepares the recomputation of\n        dependent stored fields.\n\n        :param fnames: iterable of field names modified on records ``self``\n        :param create: whether called in the context of record creation\n        :param before: whether called before modifying records ``self``\n        \"\"\"\n    if not self or not fnames:\n        return\n    if before:\n        marked = self.env.transaction.tocompute\n        tomark = defaultdict(OrderedSet)\n    else:\n        marked = {}\n        tomark = self.env.transaction.tocompute\n    todo = [self._modified([self._fields[fname] for fname in fnames], create)]\n    for field, records, create in itertools.chain.from_iterable(todo):\n        records -= self.env.protected(field)\n        if not records:\n            continue\n        if field.recursive:\n            if field.compute and field.store:\n                ids = (marked.get(field) or set()) | (tomark.get(field) or set())\n                records = records.browse((id_ for id_ in records._ids if id_ not in ids))\n            else:\n                ids_in_cache = field._get_all_cache_ids(self.env)\n                records = records.browse((id_ for id_ in records._ids if id_ in ids_in_cache))\n            if not records:\n                continue\n            todo.append(records._modified([field], create))\n        if field.compute and field.store:\n            tomark[field].update(records._ids)\n        else:\n            field._invalidate_cache(self.env, records._ids)\n    if before:\n        for field, ids in tomark.items():\n            records = self.env[field.model_name].browse(ids)\n            self.env.add_to_compute(field, records)"
+    },
+    "_modified_triggers": {
+      "line": 6862,
+      "body": "def _modified_triggers(self, tree: TriggerTree, create: bool=False) -> Iterable[tuple[Field, BaseModel, bool]]:\n    \"\"\" Return an iterator traversing a tree of field triggers on ``self``,\n        traversing backwards field dependencies along the way, and yielding\n        tuple ``(field, records, created)`` to recompute.\n        \"\"\"\n    if not self:\n        return\n    for field in tree.root:\n        yield (field, self, create)\n    for field, subtree in tree.items():\n        if create and field.type in ('many2one', 'many2one_reference'):\n            continue\n        model = self.env[field.model_name]\n        for invf in model.pool.field_inverses[field]:\n            if not (invf.type in ('one2many', 'many2many') and invf.domain):\n                if invf.type == 'many2one_reference':\n                    rec_ids = OrderedSet()\n                    for rec in self:\n                        try:\n                            if rec[invf.model_field] == field.model_name:\n                                rec_ids.add(rec[invf.name])\n                        except MissingError:\n                            continue\n                    records = model.browse(rec_ids)\n                else:\n                    try:\n                        records = self[invf.name]\n                    except MissingError:\n                        records = self.exists()[invf.name]\n                if field.model_name == records._name:\n                    if not any(self._ids):\n                        records = records.browse((it and NewId(it) for it in records._ids))\n                    break\n        else:\n            new_records = self.filtered(lambda r: not r.id)\n            real_records = self - new_records\n            records = model.browse()\n            if real_records:\n                records = model.search([(field.name, 'in', real_records.ids)], order='id')\n            if new_records:\n                field_cache = field._get_cache(model.env)\n                cache_records = model.browse(field_cache)\n                new_ids = set(self._ids)\n                records |= cache_records.filtered(lambda r: not set(r[field.name]._ids).isdisjoint(new_ids))\n        yield from records._modified_triggers(subtree)"
+    }
+  },
+  "framework_version": "6.0.5",
+  "framework_descriptor_source_sha256": "42407d239140dffc8bc1373ee6f2f11aeff3cfd256ebb518dc491271c9a3996c",
+  "consumer_sha256": "773fd44a84e8752e2861ed6cc92250cbad6ad8f6a99d7902265ef91e38980422",
+  "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b"
+}

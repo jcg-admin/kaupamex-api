@@ -1,5 +1,7 @@
 """Localize the inherited report failure without committing business data."""
 import json
+import argparse
+from unittest.mock import patch
 import sys
 from pathlib import Path
 
@@ -8,16 +10,24 @@ from django.db import transaction
 from django.template import Context, Engine
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
+parser = argparse.ArgumentParser()
+parser.add_argument("--pipeline", action="store_true")
+arguments = parser.parse_args()
 django.setup()
 
 from addons.base.models.ir_ui_view import IrUiView
+from addons.base.models import ir_actions_report as report_module
+from addons.base.models.ir_actions_report import IrActionsReport, REPORT_TYPE_PDF
+from tests.integration.base.test_report_engine import texto_impreso
 from addons.base.report_template import interpret_descriptor
 from addons.sale.models import SaleOrder
 from addons.sale_stock.models.sale_order import SaleOrderDelivery
 from tests.factories.order_factory import make_order
 
-output = Path(__file__).resolve().parents[1] / 'outputs/incoterm-resolution.json'
-before = (SaleOrder.objects.count(), SaleOrderDelivery.objects.count())
+output = Path(__file__).resolve().parents[1] / 'outputs' / (
+    'incoterm-pipeline-resolution.json' if arguments.pipeline else 'incoterm-resolution.json')
+before = (SaleOrder.objects.count(), SaleOrderDelivery.objects.count(),
+          IrActionsReport.objects.count())
 with transaction.atomic():
     order = make_order()
     SaleOrderDelivery.objects.create(order=order, incoterm_location='FOB Veracruz')
@@ -45,8 +55,36 @@ with transaction.atomic():
     }
     assert direct == expression == 'FOB Veracruz'
     assert conditional == 'Incoterm: FOB Veracruz'
+    if arguments.pipeline:
+        report = IrActionsReport.objects.create(
+            name='Incoterm pipeline probe', report_name='sale.report_saleorder',
+            model='sale.SaleOrder', report_type=REPORT_TYPE_PDF)
+        selected = report._get_template_view(report.report_name)
+        rendering_context = report._get_rendering_context(report, [fresh.pk], {})
+        rendered = report._render_template(report.report_name, rendering_context)
+        prepared = report._prepare_html(rendered, report_model=report.model)
+        captures = []
+        original_helper = report_module.run_helper
+
+        def capture(helper, descriptor):
+            captures.append({'helper': helper, 'notes': descriptor.get('notes'),
+                             'body_keys': list(descriptor)})
+            return original_helper(helper, descriptor)
+
+        with patch.object(report_module, 'run_helper', side_effect=capture):
+            content, extension = IrActionsReport._render(report, [fresh.pk])
+        result['pipeline'] = {
+            'selected_view_id': selected.pk if selected is not None else None,
+            'render_method_module': report._render_template.__module__,
+            'rendered_notes': [body.get('notes') for body in rendered['bodies']],
+            'prepared_notes': [body.get('notes') for body in prepared[0]],
+            'helper_payloads': captures,
+            'pdf_extension': extension,
+            'pdf_incoterm_present': 'Incoterm: FOB Veracruz' in texto_impreso(content),
+        }
     transaction.set_rollback(True)
-after = (SaleOrder.objects.count(), SaleOrderDelivery.objects.count())
+after = (SaleOrder.objects.count(), SaleOrderDelivery.objects.count(),
+         IrActionsReport.objects.count())
 assert after == before
 result['business_row_counts_unchanged'] = True
 output.write_text(json.dumps(result, indent=2) + '\n')

@@ -70763,6 +70763,129 @@
           },
           "scope": "Pinned criterion reconciliation; negative property/metadata/foreign descriptor/read-only cases retained; no productive compute change",
           "full_head_ci": "NOT_EVALUATED; latest complete09974556 remains FAIL, not transferable whole-head PASS"
+        },
+        "related_inverse_followup": {
+          "scope": "Generic related inverse actual Django shape/snapshot and real stored scalar persistence at explicit dispatch",
+          "source_commit": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/related-inverse-contract-14.json",
+          "native_reconciliation": "orm-demo-continuation-20261023T144219/outputs/related-inverse-native-reconciliation.json",
+          "verification": {
+            "initial_red": {
+              "passed": 1,
+              "failed": 8,
+              "exit": 1
+            },
+            "normalized_red": {
+              "passed": 1,
+              "failed": 8,
+              "exit": 1
+            },
+            "initial_green": {
+              "passed": 9,
+              "exit": 0
+            },
+            "regression": {
+              "passed": 109,
+              "new_controls": 12,
+              "exit": 0
+            },
+            "independent_sql_cases": 2,
+            "independent_sql_exit": 0,
+            "historical64": {
+              "passed": 20,
+              "failed": 44,
+              "exit": 1
+            },
+            "final_combined_regression": {
+              "passed": 180,
+              "exit": 0
+            },
+            "final_full_ci": {
+              "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+              "make_exit": 2,
+              "execution_status": "COMPLETED_FAILURE",
+              "command": "make ci-verify",
+              "pytest_exit": 1,
+              "passed": 838,
+              "skipped": 1,
+              "failed": 1,
+              "seconds": 607.55,
+              "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+              "classification": "BASELINE_FAILURE relative2137fad6, exact093cdfd7 targeted reproduction preserved",
+              "new_related_inverse_cases_in_full_ci": 12,
+              "later_tests": "NOT_EVALUATED",
+              "whole_head_acceptance": false,
+              "binary_diagnostic": "Direct compiled helper preserves Incoterm; no stale-helper defect demonstrated"
+            }
+          },
+          "identity": "Native1203 owned;0412 completed predecessor not reopened;0418/0419 unowned not executed",
+          "limitations": "No ordinary-assignment SQL, BaseModel rewrite, whole inverse/Field acceptance, full caller atomicity or physical N>1 claim",
+          "acceptance": "pending",
+          "integration": "local source commit, hooks PASS; full CI RUNNING",
+          "protocol_followup": {
+            "source_revision": "b87396fa",
+            "new_regression": "c4055e1c queried pk on existing non-Django protocol target; current1FAIL1PASS, parent-method2PASS, fixed2PASS",
+            "interrupted_ci": {
+              "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+              "passed": 310,
+              "skipped": 1,
+              "pytest_exit": 2,
+              "make_exit": 2,
+              "status": "INTERRUPTED after independent NEW_REGRESSION proof"
+            },
+            "original_tests_changed": false
+          }
+        },
+        "unsaved_modified_followup": {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/unsaved-modified-contract-14.json",
+          "classification": "NEW_REGRESSION of session/shared setter; ae949targetPASS,093targetFAIL, not accepted inherited debt",
+          "verification": {
+            "red_refined": {
+              "passed": 3,
+              "failed": 6,
+              "exit": 1
+            },
+            "manager_boundary": {
+              "passed": 7,
+              "failed": 2,
+              "exit": 1
+            },
+            "green": {
+              "passed": 32,
+              "new_controls": 9,
+              "exit": 0
+            },
+            "regression": {
+              "passed": 180,
+              "exit": 0
+            },
+            "historical64": {
+              "passed": 20,
+              "failed": 44,
+              "exit": 1
+            }
+          },
+          "BaseModel_class_AST_unchanged": true,
+          "scope": "Existing global Django event/cache bridge, no new store/IDs/schema or complete recordset claim",
+          "full_ci": {
+            "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+            "make_exit": 2,
+            "execution_status": "COMPLETED_FAILURE",
+            "command": "make ci-verify",
+            "pytest_exit": 1,
+            "passed": 838,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 607.55,
+            "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+            "classification": "BASELINE_FAILURE relative2137fad6, exact093cdfd7 targeted reproduction preserved",
+            "new_related_inverse_cases_in_full_ci": 12,
+            "later_tests": "NOT_EVALUATED",
+            "whole_head_acceptance": false,
+            "binary_diagnostic": "Direct compiled helper preserves Incoterm; no stale-helper defect demonstrated"
+          },
+          "integration": "Local source2137, full gate failure preserved; publication verification pending"
         }
       }
     },

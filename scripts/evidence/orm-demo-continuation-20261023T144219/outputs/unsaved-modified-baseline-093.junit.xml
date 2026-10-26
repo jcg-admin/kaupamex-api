@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.263" timestamp="2026-10-25T20:42:04.848642" hostname="c8a29a030cff"><testcase classname="tests.unit.orm.test_models_item_access.TestTheKeyAccess" name="test_it_writes_the_field_by_name" time="0.058"><failure message="ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.">tests/unit/orm/test_models_item_access.py:24: in test_it_writes_the_field_by_name
+    partner['name'] = 'Otro nombre'
+src/orm/models.py:3589: in _model_setitem
+    setattr(self, key, value)
+src/orm/fields.py:1810: in __set__
+    instance.modified([field.name])
+src/orm/models.py:3827: in modified
+    todo = [_modified(rows, fields, create)]
+src/orm/models.py:3778: in _modified
+    return list(_modified_triggers(self, tree, create))
+src/orm/models.py:3746: in _modified_triggers
+    records = _traverse_inverse(rows, inverse)
+src/orm/models.py:3678: in _traverse_inverse
+    found = list(value.all()) if hasattr(value, 'all') else [value]
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/manager.py:164: in all
+    return self.get_queryset()
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:748: in get_queryset
+    raise ValueError(
+E   ValueError: 'ResPartner' instance needs to have a primary key value before this relationship can be used.</failure></testcase></testsuite></testsuites>

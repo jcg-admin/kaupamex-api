@@ -49,6 +49,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -96,6 +108,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -143,6 +167,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -190,6 +226,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -237,6 +285,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -284,6 +344,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -331,6 +403,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -376,6 +460,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -423,6 +519,18 @@
           "result": "FAIL",
           "message": "assert False\n +  where False = isinstance(<django.db.models.fields.CharField: display_name>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(<django.db.models.fields.CharField: display_name>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(<django.db.models.fields.CharField: display_name>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -433,7 +541,7 @@
       "disposition": "Unknown: discriminate current functional defect from obsolete NonStored/factory/descriptor expectation; do not relax assertions mechanically",
       "closure_criterion": "Rerun current node; compare current implementation and pinned Odoo contract; reconcile existing TASK before attribution or correction; passing historical test alone is not whole-contract acceptance",
       "current_nodeid": "tests/unit/orm/test_field_search_method.py::TestTheFallbackLadder::test_a_search_that_only_knows_equality_is_decomposed_for_in",
-      "current_message": "AttributeError: <orm.fields.ComputedFieldDescriptor object at 0x7f00acb9af90> has no attribute 'search'",
+      "current_message": "AttributeError: <orm.fields.ComputedFieldDescriptor object at 0x7f3c29d82f00> has no attribute 'search'",
       "related_task_candidates": [
         "TASK-GEN-0633",
         "TASK-API-0417",
@@ -470,6 +578,18 @@
           "result": "FAIL",
           "message": "AttributeError: <orm.fields.ComputedFieldDescriptor object at 0x7f00acb9af90> has no attribute 'search'",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AttributeError: <orm.fields.ComputedFieldDescriptor object at 0x7f906e99ad50> has no attribute 'search'",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AttributeError: <orm.fields.ComputedFieldDescriptor object at 0x7f3c29d82f00> has no attribute 'search'",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -480,7 +600,7 @@
       "disposition": "Unknown: discriminate current functional defect from obsolete NonStored/factory/descriptor expectation; do not relax assertions mechanically",
       "closure_criterion": "Rerun current node; compare current implementation and pinned Odoo contract; reconcile existing TASK before attribution or correction; passing historical test alone is not whole-contract acceptance",
       "current_nodeid": "tests/unit/orm/test_field_search_method.py::TestTheFallbackLadder::test_a_search_that_supports_nothing_raises_naming_the_field",
-      "current_message": "AttributeError: <orm.fields.ComputedFieldDescriptor object at 0x7f00acb9af90> has no attribute 'search'",
+      "current_message": "AttributeError: <orm.fields.ComputedFieldDescriptor object at 0x7f3c29d82f00> has no attribute 'search'",
       "related_task_candidates": [
         "TASK-GEN-0633",
         "TASK-API-0417",
@@ -517,6 +637,18 @@
           "result": "FAIL",
           "message": "AttributeError: <orm.fields.ComputedFieldDescriptor object at 0x7f00acb9af90> has no attribute 'search'",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AttributeError: <orm.fields.ComputedFieldDescriptor object at 0x7f906e99ad50> has no attribute 'search'",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AttributeError: <orm.fields.ComputedFieldDescriptor object at 0x7f3c29d82f00> has no attribute 'search'",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -562,6 +694,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -609,6 +753,18 @@
           "result": "FAIL",
           "message": "AttributeError: 'ForeignKey' object has no attribute 'resolve_related'",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AttributeError: 'ForeignKey' object has no attribute 'resolve_related'",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AttributeError: 'ForeignKey' object has no attribute 'resolve_related'",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -656,6 +812,18 @@
           "result": "FAIL",
           "message": "AttributeError: 'One2many' object has no attribute 'resolve_related'",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AttributeError: 'One2many' object has no attribute 'resolve_related'",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AttributeError: 'One2many' object has no attribute 'resolve_related'",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -701,6 +869,18 @@
           "result": "FAIL",
           "message": "AssertionError: assert 'Banco original' == 'Banco corregido'\n  - Banco corregido\n  + Banco original",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: assert 'Banco original' == 'Banco corregido'\n  - Banco corregido\n  + Banco original",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: assert 'Banco original' == 'Banco corregido'\n  - Banco corregido\n  + Banco original",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -746,6 +926,18 @@
           "result": "FAIL",
           "message": "AssertionError: assert 'ORIGMXMM' == 'FIXDMXMM'\n  - FIXDMXMM\n  + ORIGMXMM",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: assert 'ORIGMXMM' == 'FIXDMXMM'\n  - FIXDMXMM\n  + ORIGMXMM",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: assert 'ORIGMXMM' == 'FIXDMXMM'\n  - FIXDMXMM\n  + ORIGMXMM",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -791,6 +983,18 @@
           "result": "FAIL",
           "message": "assert False\n +  where False = isinstance(One2many(None, None), NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(One2many(None, None), NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(One2many(None, None), NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -836,6 +1040,18 @@
           "result": "FAIL",
           "message": "AttributeError: 'NoneType' object has no attribute 'split'",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AttributeError: 'NoneType' object has no attribute 'split'",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AttributeError: 'NoneType' object has no attribute 'split'",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -881,6 +1097,18 @@
           "result": "FAIL",
           "message": "AttributeError: 'NoneType' object has no attribute 'split'",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AttributeError: 'NoneType' object has no attribute 'split'",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AttributeError: 'NoneType' object has no attribute 'split'",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -928,6 +1156,18 @@
           "result": "FAIL",
           "message": "AssertionError: Html\nassert False\n +  where False = isinstance(<orm.fields_textual.Html>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: Html\nassert False\n +  where False = isinstance(<orm.fields_textual.Html>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: Html\nassert False\n +  where False = isinstance(<orm.fields_textual.Html>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -975,6 +1215,18 @@
           "result": "FAIL",
           "message": "AssertionError: Binary\nassert False\n +  where False = isinstance(<orm.fields_binary.Binary>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: Binary\nassert False\n +  where False = isinstance(<orm.fields_binary.Binary>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: Binary\nassert False\n +  where False = isinstance(<orm.fields_binary.Binary>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1022,6 +1274,18 @@
           "result": "FAIL",
           "message": "AssertionError: Image\nassert False\n +  where False = isinstance(<orm.fields_binary.Image>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: Image\nassert False\n +  where False = isinstance(<orm.fields_binary.Image>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: Image\nassert False\n +  where False = isinstance(<orm.fields_binary.Image>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1069,6 +1333,18 @@
           "result": "FAIL",
           "message": "AssertionError: PropertiesDefinition\nassert False\n +  where False = isinstance(<orm.fields_properties.PropertiesDefinition>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: PropertiesDefinition\nassert False\n +  where False = isinstance(<orm.fields_properties.PropertiesDefinition>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: PropertiesDefinition\nassert False\n +  where False = isinstance(<orm.fields_properties.PropertiesDefinition>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1116,6 +1392,18 @@
           "result": "FAIL",
           "message": "TypeError: missing a required argument: 'to'",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "TypeError: missing a required argument: 'to'",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "TypeError: missing a required argument: 'to'",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1163,6 +1451,18 @@
           "result": "FAIL",
           "message": "AssertionError: Properties\nassert False\n +  where False = isinstance(<orm.fields_properties.Properties>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: Properties\nassert False\n +  where False = isinstance(<orm.fields_properties.Properties>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: Properties\nassert False\n +  where False = isinstance(<orm.fields_properties.Properties>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1173,7 +1473,7 @@
       "disposition": "Unknown: discriminate current functional defect from obsolete NonStored/factory/descriptor expectation; do not relax assertions mechanically",
       "closure_criterion": "Rerun current node; compare current implementation and pinned Odoo contract; reconcile existing TASK before attribution or correction; passing historical test alone is not whole-contract acceptance",
       "current_nodeid": "tests/unit/orm/test_company_dependent.py::TestDispatcher::test_store_false_is_still_non_stored",
-      "current_message": "assert False\n +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)\n +    where <django.db.models.fields.CharField> = <function Char at 0x7f00ad220400>(store=False)\n +      where <function Char at 0x7f00ad220400> = fields.Char",
+      "current_message": "assert False\n +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)\n +    where <django.db.models.fields.CharField> = <function Char at 0x7f3c2a4082c0>(store=False)\n +      where <function Char at 0x7f3c2a4082c0> = fields.Char",
       "related_task_candidates": [
         "TASK-GEN-0633",
         "TASK-API-0417",
@@ -1210,6 +1510,18 @@
           "result": "FAIL",
           "message": "assert False\n +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)\n +    where <django.db.models.fields.CharField> = <function Char at 0x7f00ad220400>(store=False)\n +      where <function Char at 0x7f00ad220400> = fields.Char",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)\n +    where <django.db.models.fields.CharField> = <function Char at 0x7f906f0202c0>(store=False)\n +      where <function Char at 0x7f906f0202c0> = fields.Char",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)\n +    where <django.db.models.fields.CharField> = <function Char at 0x7f3c2a4082c0>(store=False)\n +      where <function Char at 0x7f3c2a4082c0> = fields.Char",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1220,7 +1532,7 @@
       "disposition": "Unknown: discriminate current functional defect from obsolete NonStored/factory/descriptor expectation; do not relax assertions mechanically",
       "closure_criterion": "Rerun current node; compare current implementation and pinned Odoo contract; reconcile existing TASK before attribution or correction; passing historical test alone is not whole-contract acceptance",
       "current_nodeid": "tests/unit/orm/test_company_dependent.py::TestABareStoreFalseGivesANonStoredField::test_integer_with_store_false_is_non_stored",
-      "current_message": "assert False\n +  where False = isinstance(<django.db.models.fields.IntegerField>, NonStored)\n +    where <django.db.models.fields.IntegerField> = <function Integer at 0x7f00ad30d620>(store=False)\n +      where <function Integer at 0x7f00ad30d620> = fields.Integer",
+      "current_message": "assert False\n +  where False = isinstance(<django.db.models.fields.IntegerField>, NonStored)\n +    where <django.db.models.fields.IntegerField> = <function Integer at 0x7f3c2a50d4e0>(store=False)\n +      where <function Integer at 0x7f3c2a50d4e0> = fields.Integer",
       "related_task_candidates": [
         "TASK-GEN-0633",
         "TASK-API-0417",
@@ -1257,6 +1569,18 @@
           "result": "FAIL",
           "message": "assert False\n +  where False = isinstance(<django.db.models.fields.IntegerField>, NonStored)\n +    where <django.db.models.fields.IntegerField> = <function Integer at 0x7f00ad30d620>(store=False)\n +      where <function Integer at 0x7f00ad30d620> = fields.Integer",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(<django.db.models.fields.IntegerField>, NonStored)\n +    where <django.db.models.fields.IntegerField> = <function Integer at 0x7f906f10d4e0>(store=False)\n +      where <function Integer at 0x7f906f10d4e0> = fields.Integer",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(<django.db.models.fields.IntegerField>, NonStored)\n +    where <django.db.models.fields.IntegerField> = <function Integer at 0x7f3c2a50d4e0>(store=False)\n +      where <function Integer at 0x7f3c2a50d4e0> = fields.Integer",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1267,7 +1591,7 @@
       "disposition": "Unknown: discriminate current functional defect from obsolete NonStored/factory/descriptor expectation; do not relax assertions mechanically",
       "closure_criterion": "Rerun current node; compare current implementation and pinned Odoo contract; reconcile existing TASK before attribution or correction; passing historical test alone is not whole-contract acceptance",
       "current_nodeid": "tests/unit/orm/test_company_dependent.py::TestABareStoreFalseGivesANonStoredField::test_float_with_store_false_is_non_stored",
-      "current_message": "assert False\n +  where False = isinstance(<django.db.models.fields.FloatField>, NonStored)\n +    where <django.db.models.fields.FloatField> = <function Float at 0x7f00ad30d6c0>(store=False)\n +      where <function Float at 0x7f00ad30d6c0> = fields.Float",
+      "current_message": "assert False\n +  where False = isinstance(<django.db.models.fields.FloatField>, NonStored)\n +    where <django.db.models.fields.FloatField> = <function Float at 0x7f3c2a50d580>(store=False)\n +      where <function Float at 0x7f3c2a50d580> = fields.Float",
       "related_task_candidates": [
         "TASK-GEN-0633",
         "TASK-API-0417",
@@ -1304,6 +1628,18 @@
           "result": "FAIL",
           "message": "assert False\n +  where False = isinstance(<django.db.models.fields.FloatField>, NonStored)\n +    where <django.db.models.fields.FloatField> = <function Float at 0x7f00ad30d6c0>(store=False)\n +      where <function Float at 0x7f00ad30d6c0> = fields.Float",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(<django.db.models.fields.FloatField>, NonStored)\n +    where <django.db.models.fields.FloatField> = <function Float at 0x7f906f10d580>(store=False)\n +      where <function Float at 0x7f906f10d580> = fields.Float",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(<django.db.models.fields.FloatField>, NonStored)\n +    where <django.db.models.fields.FloatField> = <function Float at 0x7f3c2a50d580>(store=False)\n +      where <function Float at 0x7f3c2a50d580> = fields.Float",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1351,6 +1687,18 @@
           "result": "FAIL",
           "message": "assert False\n +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1396,6 +1744,18 @@
           "result": "FAIL",
           "message": "AssertionError: compute ya no viaja en attrs: el control de no-estampado dejó de medirlo\nassert 'compute' in {'declared_keys': frozenset(), 'store': True}",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: compute ya no viaja en attrs: el control de no-estampado dejó de medirlo\nassert 'compute' in {'declared_keys': frozenset(), 'store': True}",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: compute ya no viaja en attrs: el control de no-estampado dejó de medirlo\nassert 'compute' in {'declared_keys': frozenset(), 'store': True}",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1441,6 +1801,18 @@
           "result": "FAIL",
           "message": "AssertionError: inverse ya no viaja en attrs: el control de no-estampado dejó de medirlo\nassert 'inverse' in {'declared_keys': frozenset(), 'store': True}",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: inverse ya no viaja en attrs: el control de no-estampado dejó de medirlo\nassert 'inverse' in {'declared_keys': frozenset(), 'store': True}",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: inverse ya no viaja en attrs: el control de no-estampado dejó de medirlo\nassert 'inverse' in {'declared_keys': frozenset(), 'store': True}",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1486,6 +1858,18 @@
           "result": "FAIL",
           "message": "AssertionError: precompute ya no viaja en attrs: el control de no-estampado dejó de medirlo\nassert 'precompute' in {'declared_keys': frozenset(), 'store': True}",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: precompute ya no viaja en attrs: el control de no-estampado dejó de medirlo\nassert 'precompute' in {'declared_keys': frozenset(), 'store': True}",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: precompute ya no viaja en attrs: el control de no-estampado dejó de medirlo\nassert 'precompute' in {'declared_keys': frozenset(), 'store': True}",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1533,6 +1917,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1580,6 +1976,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1627,6 +2035,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1672,6 +2092,18 @@
           "result": "FAIL",
           "message": "AssertionError: 119 discrepancias en base, se esperaban 27. Es evidencia fechada al portar #247; si cambia, se re-mide y se actualiza con su razón — no se relaja la aserción\nassert 119 == 27\n +  where 119 = len(['base.IrModuleCategory.display_name', 'base.IrModule.display_name', 'base.IrModuleDependency.display_name', 'base.IrModuleExclusion.display_name', 'base.ResGroupsPrivilege.display_name', 'base.ResDeviceLog.display_name', ...])",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: 119 discrepancias en base, se esperaban 27. Es evidencia fechada al portar #247; si cambia, se re-mide y se actualiza con su razón — no se relaja la aserción\nassert 119 == 27\n +  where 119 = len(['base.IrModuleCategory.display_name', 'base.IrModule.display_name', 'base.IrModuleDependency.display_name', 'base.IrModuleExclusion.display_name', 'base.ResGroupsPrivilege.display_name', 'base.ResDeviceLog.display_name', ...])",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: 119 discrepancias en base, se esperaban 27. Es evidencia fechada al portar #247; si cambia, se re-mide y se actualiza con su razón — no se relaja la aserción\nassert 119 == 27\n +  where 119 = len(['base.IrModuleCategory.display_name', 'base.IrModule.display_name', 'base.IrModuleDependency.display_name', 'base.IrModuleExclusion.display_name', 'base.ResGroupsPrivilege.display_name', 'base.ResDeviceLog.display_name', ...])",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1717,6 +2149,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1762,6 +2206,18 @@
           "result": "FAIL",
           "message": "AssertionError: assert {'created_at'...ield_id', ...} == {'created_at'... 'updated_at'}\n  Extra items in the left set:\n  'properties_field_id'\n  Use -v to get more diff",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: assert {'created_at'...ield_id', ...} == {'created_at'... 'updated_at'}\n  Extra items in the left set:\n  'properties_field_id'\n  Use -v to get more diff",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: assert {'created_at'...ield_id', ...} == {'created_at'... 'updated_at'}\n  Extra items in the left set:\n  'properties_field_id'\n  Use -v to get more diff",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1809,6 +2265,18 @@
           "result": "FAIL",
           "message": "AssertionError: assert not True\n +  where True = isinstance(<django.db.models.fields.CharField>, <class 'django.db.models.fields.CharField'>)\n +    where <class 'django.db.models.fields.CharField'> = django_models.CharField",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: assert not True\n +  where True = isinstance(<django.db.models.fields.CharField>, <class 'django.db.models.fields.CharField'>)\n +    where <class 'django.db.models.fields.CharField'> = django_models.CharField",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: assert not True\n +  where True = isinstance(<django.db.models.fields.CharField>, <class 'django.db.models.fields.CharField'>)\n +    where <class 'django.db.models.fields.CharField'> = django_models.CharField",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1854,6 +2322,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1899,6 +2379,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1944,6 +2436,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -1989,6 +2493,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2034,6 +2550,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2079,6 +2607,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2124,6 +2664,18 @@
           "result": "PASS",
           "message": "",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "PASS",
+          "message": "",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "PASS",
+          "message": "",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2171,6 +2723,18 @@
           "result": "FAIL",
           "message": "AssertionError: CharField\nassert False\n +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: CharField\nassert False\n +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: CharField\nassert False\n +  where False = isinstance(<django.db.models.fields.CharField>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2218,6 +2782,18 @@
           "result": "FAIL",
           "message": "AssertionError: Boolean\nassert False\n +  where False = isinstance(<django.db.models.fields.BooleanField>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: Boolean\nassert False\n +  where False = isinstance(<django.db.models.fields.BooleanField>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: Boolean\nassert False\n +  where False = isinstance(<django.db.models.fields.BooleanField>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2228,7 +2804,7 @@
       "disposition": "Unknown: discriminate current functional defect from obsolete NonStored/factory/descriptor expectation; do not relax assertions mechanically",
       "closure_criterion": "Rerun current node; compare current implementation and pinned Odoo contract; reconcile existing TASK before attribution or correction; passing historical test alone is not whole-contract acceptance",
       "current_nodeid": "tests/unit/orm/test_related_field_declaration.py::TestTheFourDeclaredInResBank::test_none_of_the_four_took_a_column",
-      "current_message": "AssertionError: ResPartnerBank.bank_name tomó columna\nassert 'bank_name' not in {'acc_holder_name', 'acc_number', 'acc_type', 'active', 'allow_out_payment', 'bank', ...}",
+      "current_message": "AssertionError: ResPartnerBank.country_code tomó columna\nassert 'country_code' not in {'acc_holder_name', 'acc_number', 'acc_type', 'active', 'allow_out_payment', 'bank', ...}",
       "related_task_candidates": [
         "TASK-GEN-0633",
         "TASK-API-0417",
@@ -2265,6 +2841,18 @@
           "result": "FAIL",
           "message": "AssertionError: ResPartnerBank.bank_name tomó columna\nassert 'bank_name' not in {'acc_holder_name', 'acc_number', 'acc_type', 'active', 'allow_out_payment', 'bank', ...}",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: ResBank.country_code tomó columna\nassert 'country_code' not in {'accounts', 'active', 'bic', 'city', 'country', 'country_code', ...}",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: ResPartnerBank.country_code tomó columna\nassert 'country_code' not in {'acc_holder_name', 'acc_number', 'acc_type', 'active', 'allow_out_payment', 'bank', ...}",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2312,6 +2900,18 @@
           "result": "FAIL",
           "message": "TypeError: missing a required argument: 'to'",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "TypeError: missing a required argument: 'to'",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "TypeError: missing a required argument: 'to'",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2359,6 +2959,18 @@
           "result": "FAIL",
           "message": "AssertionError: Many2one devolvió ForeignKey\nassert False\n +  where False = isinstance(<django.db.models.fields.related.ForeignKey>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: Many2one devolvió ForeignKey\nassert False\n +  where False = isinstance(<django.db.models.fields.related.ForeignKey>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: Many2one devolvió ForeignKey\nassert False\n +  where False = isinstance(<django.db.models.fields.related.ForeignKey>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2406,6 +3018,18 @@
           "result": "FAIL",
           "message": "TypeError: missing a required argument: 'to'",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "TypeError: missing a required argument: 'to'",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "TypeError: missing a required argument: 'to'",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2453,6 +3077,18 @@
           "result": "FAIL",
           "message": "AssertionError: One2many devolvió One2many\nassert False\n +  where False = isinstance(One2many(None, None), NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: One2many devolvió One2many\nassert False\n +  where False = isinstance(One2many(None, None), NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: One2many devolvió One2many\nassert False\n +  where False = isinstance(One2many(None, None), NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2500,6 +3136,18 @@
           "result": "FAIL",
           "message": "AssertionError: Binary devolvió Binary\nassert False\n +  where False = isinstance(<orm.fields_binary.Binary>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: Binary devolvió Binary\nassert False\n +  where False = isinstance(<orm.fields_binary.Binary>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: Binary devolvió Binary\nassert False\n +  where False = isinstance(<orm.fields_binary.Binary>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2547,6 +3195,18 @@
           "result": "FAIL",
           "message": "AssertionError: Image devolvió Image\nassert False\n +  where False = isinstance(<orm.fields_binary.Image>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: Image devolvió Image\nassert False\n +  where False = isinstance(<orm.fields_binary.Image>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: Image devolvió Image\nassert False\n +  where False = isinstance(<orm.fields_binary.Image>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2594,6 +3254,18 @@
           "result": "FAIL",
           "message": "AssertionError: Html devolvió Html\nassert False\n +  where False = isinstance(<orm.fields_textual.Html>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: Html devolvió Html\nassert False\n +  where False = isinstance(<orm.fields_textual.Html>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: Html devolvió Html\nassert False\n +  where False = isinstance(<orm.fields_textual.Html>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2641,6 +3313,18 @@
           "result": "FAIL",
           "message": "AssertionError: Monetary devolvió DecimalField\nassert False\n +  where False = isinstance(<django.db.models.fields.DecimalField>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: Monetary devolvió DecimalField\nassert False\n +  where False = isinstance(<django.db.models.fields.DecimalField>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: Monetary devolvió DecimalField\nassert False\n +  where False = isinstance(<django.db.models.fields.DecimalField>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2688,6 +3372,18 @@
           "result": "FAIL",
           "message": "AssertionError: Json devolvió JSONField\nassert False\n +  where False = isinstance(<django.db.models.fields.json.JSONField>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: Json devolvió JSONField\nassert False\n +  where False = isinstance(<django.db.models.fields.json.JSONField>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: Json devolvió JSONField\nassert False\n +  where False = isinstance(<django.db.models.fields.json.JSONField>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2735,6 +3431,18 @@
           "result": "FAIL",
           "message": "AssertionError: Properties devolvió Properties\nassert False\n +  where False = isinstance(<orm.fields_properties.Properties>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: Properties devolvió Properties\nassert False\n +  where False = isinstance(<orm.fields_properties.Properties>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: Properties devolvió Properties\nassert False\n +  where False = isinstance(<orm.fields_properties.Properties>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2782,6 +3490,18 @@
           "result": "FAIL",
           "message": "TypeError: missing a required argument: 'to'",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "TypeError: missing a required argument: 'to'",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "TypeError: missing a required argument: 'to'",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2829,6 +3549,18 @@
           "result": "FAIL",
           "message": "AttributeError: 'One2many' object has no attribute 'store'",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AttributeError: 'One2many' object has no attribute 'store'",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AttributeError: 'One2many' object has no attribute 'store'",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2876,6 +3608,18 @@
           "result": "FAIL",
           "message": "assert False\n +  where False = isinstance(<django.db.models.fields.related.ForeignKey>, NonStored)",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(<django.db.models.fields.related.ForeignKey>, NonStored)",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "assert False\n +  where False = isinstance(<django.db.models.fields.related.ForeignKey>, NonStored)",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2923,6 +3667,18 @@
           "result": "FAIL",
           "message": "TypeError: missing a required argument: 'to'",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "TypeError: missing a required argument: 'to'",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "TypeError: missing a required argument: 'to'",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     },
@@ -2968,6 +3724,18 @@
           "result": "FAIL",
           "message": "AssertionError: assert False\n +  where False = isinstance(One2many(None, None), NonStored)\n +    where One2many(None, None) = <class 'addons.base.models.res_company.ResCompany'>.bank_ids",
           "junit": "display-name-criteria-historical64.junit.xml"
+        },
+        {
+          "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "result": "FAIL",
+          "message": "AssertionError: assert False\n +  where False = isinstance(One2many(None, None), NonStored)\n +    where One2many(None, None) = <class 'addons.base.models.res_company.ResCompany'>.bank_ids",
+          "junit": "related-inverse-historical64.junit.xml"
+        },
+        {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "result": "FAIL",
+          "message": "AssertionError: assert False\n +  where False = isinstance(One2many(None, None), NonStored)\n +    where One2many(None, None) = <class 'addons.base.models.res_company.ResCompany'>.bank_ids",
+          "junit": "unsaved-modified-historical64.junit.xml"
         }
       ]
     }
@@ -2980,23 +3748,18 @@
     "reason": "Empty nonstored field current Odoo contract False rather than prior None; exact same historical regression responsibility, not automatic PASS"
   },
   "current_execution": {
-    "source_revision": "875a4aeb72c9458db662ae541bccbb6b387b8034",
+    "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
     "pytest_exit": 1,
     "results": {
       "PASS": 20,
       "FAIL": 44
     },
     "population": 64,
-    "log": "display-name-criteria-historical64.log",
-    "junit": "display-name-criteria-historical64.junit.xml",
-    "identity_join": "Exact mapped64nodeids/classname/name, unique matching",
-    "interpretation": "Four historical typed-field/deletion protocol criteria reconciled, not four new productive behavior fixes; original population retained",
-    "changed_nodes": [
-      "tests/unit/orm/test_display_name.py::TestTheFieldAdmitsAssignment::test_deleting_it_falls_back_to_the_computed_value",
-      "tests/unit/orm/test_display_name.py::TestUniversalAdoption::test_none_declares_it_as_something_other_than_the_field",
-      "tests/unit/orm/test_display_name.py::TestTheFieldAdmitsAssignment::test_the_descriptor_is_the_one_of_the_mixin",
-      "tests/unit/orm/test_display_name.py::TestTheGateDiscriminates::test_it_names_a_model_that_declares_display_name_as_a_property"
-    ]
+    "junit": "unsaved-modified-historical64.junit.xml",
+    "log": "unsaved-modified-historical64.log",
+    "identity_join": "exact64unique mapped nodeid/classname/name",
+    "source_identity": "tested working bytes match committed2137 models/fields blobs",
+    "interpretation": "Same20PASS44FAIL;21new discriminating inverse/event tests are separate from original64, no denominator change"
   },
   "official_task_status_changed": false,
   "cleanup": {
@@ -3082,6 +3845,38 @@
         "tests/unit/orm/test_field_update_db.py::TestUpdateDb::test_a_field_without_column_is_left_alone",
         "tests/unit/orm/test_field_conversion.py::test_column_order_of_a_field_without_column_is_zero"
       ]
+    },
+    {
+      "source_revision": "875a4aeb72c9458db662ae541bccbb6b387b8034",
+      "pytest_exit": 1,
+      "results": {
+        "PASS": 20,
+        "FAIL": 44
+      },
+      "population": 64,
+      "log": "display-name-criteria-historical64.log",
+      "junit": "display-name-criteria-historical64.junit.xml",
+      "identity_join": "Exact mapped64nodeids/classname/name, unique matching",
+      "interpretation": "Four historical typed-field/deletion protocol criteria reconciled, not four new productive behavior fixes; original population retained",
+      "changed_nodes": [
+        "tests/unit/orm/test_display_name.py::TestTheFieldAdmitsAssignment::test_deleting_it_falls_back_to_the_computed_value",
+        "tests/unit/orm/test_display_name.py::TestUniversalAdoption::test_none_declares_it_as_something_other_than_the_field",
+        "tests/unit/orm/test_display_name.py::TestTheFieldAdmitsAssignment::test_the_descriptor_is_the_one_of_the_mixin",
+        "tests/unit/orm/test_display_name.py::TestTheGateDiscriminates::test_it_names_a_model_that_declares_display_name_as_a_property"
+      ]
+    },
+    {
+      "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+      "pytest_exit": 1,
+      "results": {
+        "PASS": 20,
+        "FAIL": 44
+      },
+      "population": 64,
+      "junit": "related-inverse-historical64.junit.xml",
+      "log": "related-inverse-historical64.log",
+      "identity_join": "exact64mapped nodeid/classname/name, unique matches",
+      "interpretation": "Unchanged20PASS44FAIL; new explicit-save/dispatch persistence verified separately, immediate-assignment historical assertions not modified"
     }
   ]
 }

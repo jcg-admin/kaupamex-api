@@ -1,0 +1,119 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:odoo/orm/fields.py:Field._inverse_related,Field.__set__",
+  "behavior": "Explicit inverse dispatch accepts actual Consumer record shapes and persists a real stored scalar target; ordinary assignment remains zeroSQL and mixed real/new identities do not propagate",
+  "execution_flow": "RecordLoaderMixin.save/write or Field.determine_inverse -> existing as_record_list -> eager ordered source-value snapshot -> traverse_related -> same real/new identity guard -> existing target descriptor assignment -> bound Django save for real concrete stored field",
+  "inputs_outputs": "Actual ResPartnerBank.bank_name/bank_bic, scalar/list/tuple and unsaved/saved pairs; target cache and SQL column equality, readonly and actual target failure",
+  "side_effects": "Only requested stored target column via Model.save(using=target._state.db,update_fields=[field.name]) at explicit dispatch; no persistent schema or ordinary-assignment SQL",
+  "dependencies": [
+    "TASK-GEN-0633 native1203 pending owned codex-module-lifecycle, reconciled description/frontier and claims",
+    "TASK-API-0412 completed predecessor qualified custom address paths; not reopened or whole generic inverse acceptance",
+    "TASK-API-0418/0419 unowned pending, not executed",
+    "Existing DjangoModel save, record-shape utility, field metadata, cache notifications and related traversal"
+  ],
+  "consumers": [
+    "ResPartnerBank writable bank_name/bank_bic",
+    "Existing explicit inverse callers in RecordLoaderMixin.save/write",
+    "Existing CRM determine_inverse and related field setup consumers, verified separately"
+  ],
+  "installed_mechanism": "as_record_list,Field.determine_inverse/traverse_related,shared descriptor,public Django Model.save and DATABASE_ROUTERS override for negative routing control",
+  "existing_adaptation": "Native field assignment calls recordset.write; Consumer assignment intentionally changes memory/cache without SQL. Explicit inverse must materialize the stored target. Native recordsets are hashable; unsaved Django rows are not, so snapshot ordered pairs rather than keying by row. No second cache/store/loader.",
+  "verification": {
+    "diagnostic": "related-inverse-persistence-before.log scalar TypeError after0SQL assignment",
+    "initial_red": {
+      "passed": 1,
+      "failed": 8,
+      "exit": 1,
+      "junit": "related-inverse-red.junit.xml"
+    },
+    "normalized_red": {
+      "passed": 1,
+      "failed": 8,
+      "exit": 1,
+      "junit": "related-inverse-normalized.junit.xml",
+      "difference": "scalar iteration fixed; unsaved row hashability and missing SQL persistence independently exposed"
+    },
+    "initial_green": {
+      "passed": 9,
+      "exit": 0,
+      "junit": "related-inverse-green.junit.xml"
+    },
+    "expanded": {
+      "passed": 109,
+      "exit": 0,
+      "new_controls": 12,
+      "junit": "related-inverse-regression.junit.xml"
+    },
+    "independent_sql_probe": {
+      "exit": 0,
+      "cases": 2,
+      "evidence": "related-inverse-persistence-current.json",
+      "rollback_counts_unchanged": true
+    },
+    "historical64": {
+      "passed": 20,
+      "failed": 44,
+      "exit": 1,
+      "junit": "related-inverse-historical64.junit.xml",
+      "interpretation": "same population and results; original immediate-assignment expectations not modified"
+    },
+    "final_full_ci": {
+      "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+      "make_exit": 2,
+      "execution_status": "COMPLETED_FAILURE",
+      "command": "make ci-verify",
+      "pytest_exit": 1,
+      "passed": 838,
+      "skipped": 1,
+      "failed": 1,
+      "seconds": 607.55,
+      "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+      "classification": "BASELINE_FAILURE relative2137fad6, exact093cdfd7 targeted reproduction preserved",
+      "new_related_inverse_cases_in_full_ci": 12,
+      "later_tests": "NOT_EVALUATED",
+      "whole_head_acceptance": false,
+      "binary_diagnostic": "Direct compiled helper preserves Incoterm; no stale-helper defect demonstrated"
+    },
+    "protocol_regression": {
+      "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+      "classification": "NEW_REGRESSION",
+      "current": {
+        "passed": 1,
+        "failed": 1,
+        "exit": 1
+      },
+      "parent_method": {
+        "passed": 2,
+        "exit": 0,
+        "scope": "isolated old method in current metadata context, not whole parent CI"
+      },
+      "fixed": {
+        "revision": "b87396fa",
+        "passed": 2,
+        "exit": 0
+      },
+      "original_tests_changed": false
+    },
+    "combined_final_regression": {
+      "passed": 180,
+      "exit": 0,
+      "junit": "unsaved-modified-regression.junit.xml"
+    }
+  },
+  "equivalence": "Verified bounded real stored scalar target persistence, actual shape adaptation and identity/alias guards; whole inverse family remains unaccepted",
+  "limitations": "No whole BaseModel/Field/related-family acceptance; complete caller transaction atomicity, nested nonstored inverse targets, M2M/One2many adapters and physical N>1 remain separate obligations. Public conflicting-router control verifies bound alias, not two-company acceptance. No native Odoo runtime or managed model inference.",
+  "integration": "Source2137fad6 includesc4055e1c andb87396fa; hooks PASS, full local gate FAIL at proven legacy view-type seed mismatch; publication verification pending, no acceptance/merge",
+  "reference_hash": "48bc4e496ff98a3c2d33b06248549681041b5791323380c6d73ce6dd8a0ebb6e",
+  "reference_bodies": {
+    "_inverse_related": {
+      "line": 724,
+      "body": "def _inverse_related(self, records: BaseModel) -> None:\n    \"\"\" Inverse the related field ``self`` on ``records``. \"\"\"\n    record_value = {record: record[self.name] for record in records}\n    for record in records:\n        target, field = self.traverse_related(record)\n        if target and bool(target.id) == bool(record.id):\n            target[field.name] = record_value[record]"
+    },
+    "__set__": {
+      "line": 1807,
+      "body": "def __set__(self, records: BaseModel, value) -> None:\n    \"\"\" set the value of field ``self`` on ``records`` \"\"\"\n    protected_ids = []\n    new_ids = []\n    other_ids = []\n    for record_id in records._ids:\n        if record_id in records.env._protected.get(self, ()):\n            protected_ids.append(record_id)\n        elif not record_id:\n            new_ids.append(record_id)\n        else:\n            other_ids.append(record_id)\n    if protected_ids:\n        protected_records = records.__class__(records.env, tuple(protected_ids), records._prefetch_ids)\n        self.write(protected_records, value)\n    if new_ids:\n        new_records = records.__class__(records.env, tuple(new_ids), records._prefetch_ids)\n        with records.env.protecting(records.pool.field_computed.get(self, [self]), new_records):\n            if self.relational:\n                new_records.modified([self.name], before=True)\n            self.write(new_records, value)\n            new_records.modified([self.name])\n        if self.inherited:\n            parents = new_records[self.related.split('.')[0]]\n            parents.filtered(lambda r: not r.id)[self.name] = value\n    if other_ids:\n        records = records.__class__(records.env, tuple(other_ids), records._prefetch_ids)\n        write_value = self.convert_to_write(value, records)\n        records.write({self.name: write_value})"
+    }
+  },
+  "consumer_hash": "2b28b83c141ea6c5293089daed2396f9e1c0f35b3ea1ce977fc34bc5d6b9d977",
+  "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe"
+}

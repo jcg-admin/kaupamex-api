@@ -1,0 +1,51 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+/workspace/kaupamex-api/src/orm/fields.py:4162: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+/workspace/kaupamex-api/src/orm/fields.py:4162: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+{
+  "direct": "FOB Veracruz",
+  "template_expression": "FOB Veracruz",
+  "template_conditional": "Incoterm: FOB Veracruz",
+  "extension_rows": [
+    {
+      "active": true,
+      "mode": "extension",
+      "inherit_id_id": 1
+    }
+  ],
+  "combined_incoterm_nodes": 1,
+  "rendered_notes": {
+    "incoterm": "Incoterm: FOB Veracruz"
+  },
+  "scope": "Owned PostgreSQL transaction; report failure localization, no ORM or business implementation acceptance",
+  "pipeline": {
+    "selected_view_id": null,
+    "render_method_module": "addons.base.models.ir_actions_report",
+    "rendered_notes": [
+      null
+    ],
+    "prepared_notes": [
+      null
+    ],
+    "helper_payloads": [
+      {
+        "helper": "pdf_receipt",
+        "notes": null,
+        "body_keys": [
+          "issuer",
+          "buyer",
+          "order_number",
+          "date",
+          "currency",
+          "items",
+          "totals",
+          "paperformat"
+        ]
+      }
+    ],
+    "pdf_extension": "pdf",
+    "pdf_incoterm_present": false
+  },
+  "business_row_counts_unchanged": true
+}

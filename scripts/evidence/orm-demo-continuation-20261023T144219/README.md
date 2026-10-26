@@ -530,3 +530,42 @@ source boundaries remain documented, not accepted. Historical342notfound in
 checked legacy session,0391/0392completed inventory-only; no identity invented.
 Provider interfaces used remain9b13f2d7 with published executable byte provenance
 recorded separately. No managed inference, official state change or merge.
+
+
+## Explicit inverse and new-row notification checkpoint
+
+Sourcec4055e1c normalizes actual Django row shapes, eagerly snapshots source
+values without hashing unsaved rows, and persists real stored scalar targets
+at explicit inverse dispatch using the bound alias. Twelve new controls and
+existing consumers total109PASS; independent SQL probe verifies name/BIC and
+unchanged row counts after rollback. Normal assignment remains0SQL.
+
+An omitted existing protocol control detects NEW_REGRESSIONc4055e1c on target.pk:
+1FAIL1PASS; isolated exact parent-method replay2PASS. The known-bad full gate
+is interrupted by verified own PID:310PASS1SKIP,pytest2,Make2. Sourceb87396fa
+preserves non-Django targets and the unchanged existing protocol tests pass2.
+Expanded129PASS1FAIL exposes a separate unsaved ResPartner notification failure.
+Exact093targetFAIL and exactae949targetPASS prove a shared-setter regression of
+this session, not accepted inherited debt.
+
+Source2137fad6 respects native collection PK preconditions, retains direct and
+custom in-memory inverse traversal, and invalidates contextual values using the
+existing NewId cache identity. RefinedRED6FAIL3PASS; boundary-only2FAIL7PASS;
+complete32PASS with9new controls; expanded180PASS. BaseModel class AST unchanged,
+without claiming its inherited behavior or full recordsets accepted. Exact64
+remains20PASS44FAIL;21new discriminating tests do not change that denominator.
+
+Full required gate2137fad6:838PASS1SKIP1FAIL607.55s,Make2, first Incoterm PDF.
+All12new inverse cases occur and pass in thisJUnit. Later suiteNOT_EVALUATED.
+Direct compiled helper includes the note in both JSON key orders, no stale
+binary demonstrated. Pipeline probe identifies selected_viewNone and missing
+notes in actual helper payload: stored primary typeqweb versus canonical
+filtertemplate. Historicalsale0002/sale_stock0003 assume a laterbase0070 rename
+without ordering dependency. No fixture data/gate/recorder/history edit to
+force PASS. Bootstrap coherence requires next native admission and verification.
+
+The interrupted prior QA lease43562547fb9c was ownership/zero-connection checked,
+cleaned using existing harness finally operations, and independently absent0/0.
+Current own lease5404af94c0df remains active for continuation; cleanup not yet
+claimed. Native editing claims release/reacquisition and publication checks
+are preserved. No official state change, managed inference, acceptance or merge.

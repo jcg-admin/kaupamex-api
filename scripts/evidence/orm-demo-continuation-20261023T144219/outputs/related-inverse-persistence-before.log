@@ -1,0 +1,28 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+/workspace/kaupamex-api/src/orm/fields.py:4152: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+/workspace/kaupamex-api/src/orm/fields.py:4152: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_related_inverse_persistence.py", line 34, in <module>
+    account.save()
+  File "/workspace/kaupamex-api/src/orm/method_chain.py", line 193, in chained
+    else previous(first, *args, **kwargs))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/addons/base/models/res_bank.py", line 404, in save
+    return super().save(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/models.py", line 2561, in save
+    fields[0].determine_inverse(self)
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 4325, in determine_inverse
+    return determine(field.inverse, records)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 2215, in determine
+    return needle(records, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 3744, in _field_inverse_related
+    record_value = {record: record[self.name] for record in records}
+                                                            ^^^^^^^
+  File "/workspace/kaupamex-api/src/orm/models.py", line 3572, in _model_getitem
+    raise TypeError(
+TypeError: ResPartnerBank[0]: sólo se accede por nombre de campo. El contenedor de filas es el QuerySet, no la instancia.
