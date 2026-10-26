@@ -71,11 +71,14 @@ notificación se reduce al flag idempotente. Sucesor registrado: tarea **#89**
 """
 import datetime
 
+import api
 import fields
 from django.utils import timezone
 
 from addons.stock.models import StockLot, StockQuant
+from orm.environments import get_context
 from orm.method_chain import chain_method
+from tools.translate import _
 
 #: Los tres desplazamientos derivados de la caducidad, con el campo del
 #: producto que da los días. ≙ ``_fields`` de ``_compute_dates``
@@ -113,31 +116,29 @@ def product_expiry_alert(self):
     return self.expiration_date <= timezone.now()
 
 
+@api.depends('name', 'expiration_date', 'alert_date',
+             'product.product_tmpl.use_expiration_date')
+@api.depends_context('formatted_display_name')
 def _compute_display_name(self):
-    """≙ ``_compute_display_name`` (``odoo19c: production_lot.py:26-38``).
+    """Asigna el estado de caducidad solicitado por el contexto del cliente.
 
-    La referencia antepone la fecha de caducidad al nombre::
-
-        super()._compute_display_name()
-        for lot in self:
-            if ...formatted_display_name and lot.expiration_date:
-                lot.display_name = f"{lot.name}\\t--{lot.expiration_date.date()}--"
-
-    Devuelve ``None`` cuando el lote no caduca: ése es el **relevo** de
-    ``chain_method`` — el equivalente exacto del ``super()`` de la referencia,
-    que atiende el caso que este override no cubre. No se pisa el método
-    previo con una guarda ``if not hasattr``: es el defecto que
-    :ref:`h-api-364` registra.
-
-    El condicionante ``formatted_display_name`` de la referencia es una clave
-    del contexto de su cliente web; este árbol no tiene ese contexto (medido:
-    ``grep -rn formatted_display_name addons/ src/`` → 0), así que el formato
-    se aplica siempre que haya caducidad. Es la única lectura posible sin
-    inventar un contexto.
+    Reproduce el contrato fijado de product_expiry: sin formato, activación
+    o fecha, devuelve None para relevar al método previo. El camino atendido
+    asigna mediante el descriptor y devuelve la etiqueta como señal del
+    chain_method existente; no añade un segundo mecanismo de cómputo.
     """
-    if self.expiration_date:
-        return f'{self.name}\t--{self.expiration_date.date()}--'
-    return None
+    if not (get_context().get('formatted_display_name')
+            and self.use_expiration_date and self.expiration_date):
+        return None
+    label = self.name
+    now = timezone.now()
+    if now >= self.expiration_date:
+        label += _('\t--Expired--')
+    elif self.alert_date and now >= self.alert_date:
+        label += _('\t--Expire on %(date)s--',
+                   date=fields.Datetime.to_string(self.expiration_date))
+    self.display_name = label
+    return label
 
 
 # -- el cálculo de las fechas (≙ los dos computes de escritura) --

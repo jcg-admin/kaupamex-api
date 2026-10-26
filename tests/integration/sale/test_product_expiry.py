@@ -8,7 +8,7 @@ esa forma.
 
 Cubre: la delegación template→variante de los cinco campos de configuración, el
 cálculo de las fechas del lote en sus **dos** ramas (creación y desplazamiento),
-la alerta de caducidad alcanzada, el ``display_name`` con fecha, la estrategia
+la alerta de caducidad alcanzada, el ``display_name`` contextual, la estrategia
 FEFO sobre ``gather``, el descuento de lo caducado en ``available_qty``, y el
 barrido ``alert_date_exceeded``.
 """
@@ -18,12 +18,14 @@ from decimal import Decimal
 import pytest
 from django.utils import timezone
 
+import fields
 from addons.product_expiry.models import production_lot as pe_lot
 from addons.product_expiry.models import res_config_settings as pe_config
 from addons.product_expiry.models import stock_move_line as pe_move_line
 from addons.product_expiry.models import stock_picking as pe_picking
 from addons.product_expiry.models import stock_rule as pe_rule
 from addons.stock.models import ProductRemoval, StockLocation, StockLot, StockQuant
+from orm.environments import context_scope
 from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
@@ -164,17 +166,95 @@ def test_expiry_alert_flips_when_the_expiration_is_reached(db):
 
 
 def test_display_name_carries_the_expiration_and_relays_without_it(db):
-    """≙ ``_compute_display_name``: el formato cuando caduca, el relevo si no."""
+    """≙ el estado de caducidad con contexto y el relevo sin fecha."""
     producto = _product()
     caduca = StockLot.objects.create(
         name='L9', product=producto,
-        expiration_date=timezone.now() + datetime.timedelta(days=5))
-    fecha = caduca.expiration_date.date()
-    assert caduca.display_name == f'L9\t--{fecha}--'
-    # Sin caducidad el override devuelve None y `chain_method` releva a la base
-    # del núcleo (`orm.models.DisplayNameMixin`), que resuelve por `_rec_name`.
+        expiration_date=timezone.now() - datetime.timedelta(days=1))
+    with context_scope(formatted_display_name=True):
+        assert caduca.display_name == 'L9\t--Expired--'
     sin_fecha = StockLot.objects.create(name='L10', product=producto)
-    assert sin_fecha.display_name == 'L10'
+    with context_scope(formatted_display_name=True):
+        assert sin_fecha.display_name == 'L10'
+
+
+@pytest.mark.parametrize('formatted,tracked,expiration_offset,alert_offset,state', [
+    (False, True, -1, None, 'plain'),
+    (True, False, -1, None, 'plain'),
+    (True, True, None, None, 'plain'),
+    (True, True, -1, None, 'expired'),
+    (True, True, -1, -2, 'expired'),
+    (True, True, 0, None, 'expired'),
+    (True, True, 60, -1, 'alert'),
+    (True, True, 60, 0, 'alert'),
+    (True, True, 60, 30, 'plain'),
+    (True, True, 60, None, 'plain'),
+])
+def test_expiry_display_obeys_context_flags_and_time_boundaries(
+    db, monkeypatch, formatted, tracked, expiration_offset, alert_offset, state,
+):
+    """El contrato distingue vencimiento, alerta y nombre sin adornos."""
+    now = timezone.now().replace(microsecond=0)
+    monkeypatch.setattr(pe_lot.timezone, 'now', lambda: now)
+    expiration = (now + datetime.timedelta(seconds=expiration_offset)
+                  if expiration_offset is not None else None)
+    alert = (now + datetime.timedelta(seconds=alert_offset)
+             if alert_offset is not None else None)
+    lot = StockLot.objects.create(
+        name='BOUNDARY', product=_product(tracked=tracked),
+        expiration_date=expiration, alert_date=alert,
+    )
+    expected = {
+        'plain': 'BOUNDARY',
+        'expired': 'BOUNDARY\t--Expired--',
+        'alert': f'BOUNDARY\t--Expire on {fields.Datetime.to_string(expiration)}--',
+    }[state]
+    with context_scope(formatted_display_name=formatted):
+        assert lot.display_name == expected
+
+
+def test_expiry_display_keeps_contexts_and_field_changes_separate(db):
+    """La misma fila no mezcla nombres normales y formateados en la caché."""
+    lot = StockLot.objects.create(
+        name='CONTEXT', product=_product(),
+        expiration_date=timezone.now() - datetime.timedelta(days=1),
+    )
+    assert lot.display_name == 'CONTEXT'
+    with context_scope(formatted_display_name=True):
+        assert lot.display_name == 'CONTEXT\t--Expired--'
+        lot.expiration_date = timezone.now() + datetime.timedelta(days=1)
+        lot.alert_date = None
+        assert lot.display_name == 'CONTEXT'
+        lot.name = 'RENAMED'
+        assert lot.display_name == 'RENAMED'
+    assert lot.display_name == 'RENAMED'
+
+
+def test_new_expiry_lot_assigns_computed_label_without_sql(db, django_assert_num_queries):
+    """Un lote nuevo con producto ya cacheado también recibe el resultado."""
+    product = _product()
+    assert product.use_expiration_date
+    lot = StockLot(
+        name='NEW', product=product,
+        expiration_date=timezone.now() - datetime.timedelta(days=1),
+    )
+    with context_scope(formatted_display_name=True), django_assert_num_queries(0):
+        assert lot.display_name == 'NEW\t--Expired--'
+        assert lot.pk is None
+
+
+def test_disabling_template_expiry_invalidates_the_cached_lot_label(db):
+    """La propiedad delegada se invalida por su campo real en el template."""
+    lot = StockLot.objects.create(
+        name='DISABLED', product=_product(),
+        expiration_date=timezone.now() - datetime.timedelta(days=1),
+    )
+    with context_scope(formatted_display_name=True):
+        assert lot.display_name == 'DISABLED\t--Expired--'
+        template = lot.product.product_tmpl
+        template.use_expiration_date = False
+        template.save(update_fields=['use_expiration_date'])
+        assert lot.display_name == 'DISABLED'
 
 
 # -- FEFO y disponibilidad ---------------------------------------------------
