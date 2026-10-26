@@ -1,0 +1,9 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet",
+  "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+  "result": {
+    "content": "no hay ninguna tarea con id 342 en el tablero de esta sesión",
+    "isError": true
+  }
+}

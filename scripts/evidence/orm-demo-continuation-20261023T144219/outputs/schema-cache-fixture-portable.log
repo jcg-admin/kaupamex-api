@@ -1,0 +1,17 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+/workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+/workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+{
+  "constructor_populated_label_cache": true,
+  "constructor_value": "",
+  "after_normal_assignment": "del atributo",
+  "later_cache_value_is_authoritative": true,
+  "explicit_absence_raises": true,
+  "getter_body_unchanged_from_ae949aa8": true,
+  "baseline_revision": "ae949aa82fc77bb8c119533446a70b1cef9bd79b",
+  "getter_ast_sha256": "2ea7fb9239cc0bb46f1753875098d7f5959e5df933f1de47050a3c91f9bc930c",
+  "scope": "Current unmanaged Django test model, existing transaction cache, no SQL. Not full constructor acceptance."
+}

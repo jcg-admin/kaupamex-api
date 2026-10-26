@@ -1,0 +1,91 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": [
+    "odoo19c:odoo/orm/fields_relational.py:Many2one.convert_to_record",
+    "odoo19c:odoo/orm/fields.py:Field.__get__/__set__/setup",
+    "Consumer existing fields._first_record/_end_of_chain explicit Django None adaptation"
+  ],
+  "behavior": "Empty optional nonstored relation reads as Django None without querying false ID; derived scalar uses its existing empty value. Positive/missing/wrong-type references and stored-required semantics remain distinct.",
+  "execution_flow": "Standard forward relation accessor ensures existing lazy setup -> computed raw ID descriptor reads existing cache -> convert public field value -> Django raw-ID absence boundary -> native accessor; related traversal handles None. Raw ID changes use existing Django FK cache invalidation.",
+  "inputs_outputs": "Actual ResCompany.country requiredFalse/nullFalse/storeFalse/concreteFalse, partner-backed saved company, explicit country-only constructor, real ResCountry and ProductProduct stored relation; None/valid reference/scalar code or actual exception",
+  "side_effects": "Existing optional nonstored FK nullable metadata at setup, scalar-to-attribute adaptation and existing Django relation cache. No new store, business row, persistent schema, public base conversion change or constructor rewrite.",
+  "dependencies": [
+    "TASK-GEN-0633 native1203 pending owned codex-module-lifecycle, native scope reconciliation and frontier recorded",
+    "c2d0d10d shared descriptor, f1e2386f setup invalidation and existing ensure_field_setup",
+    "Actual fiscal first failure reproduced on old ae949aa8; valid country/partner fixtures rather than unsupported name-property constructor",
+    "Django forward/deferred FK descriptors available; custom/stored accessors must retain their behavior"
+  ],
+  "consumers": [
+    "l10n_mx.account_tax pre_save -> ResCompany.country_code",
+    "Existing tax-tag recalculate endpoint shared-child422 case",
+    "Direct optional nonstored FK reads, related projection and raw-ID assignment"
+  ],
+  "installed_mechanism": "FieldDescriptor/ComputedFieldDescriptor, Django ForwardManyToOneDescriptor/ForeignKeyDeferredAttribute, Field.setup, existing transaction cache, inherited FK cache API and lazy setup",
+  "existing_adaptation": "Native empty recordset is represented by Django None for relation traversal. Public Field.convert_to_record still retains existing scalar False vocabulary; only raw FK-ID attribute boundary changes. Nullable runtime flag applies only optional nonstored FK and does not add/alter SQL columns.",
+  "verification": {
+    "initial_red": {
+      "passed": 3,
+      "failed": 5,
+      "exit": 1,
+      "evidence": "computed-many2one-red.junit.xml",
+      "limits": "Two failures from unsupported plain company name-property constructor, refined without changing constructor implementation"
+    },
+    "refined_red": {
+      "passed": 4,
+      "failed": 5,
+      "exit": 1,
+      "evidence": "computed-many2one-red-refined.junit.xml"
+    },
+    "planned": "NoSQL empty/ID/derived reads, explicitNone, valid/dangling/wrong-comodel references, required stored relation and actual fiscal422; cache/schema/category regressions and full CI afterward",
+    "focused": {
+      "passed": 89,
+      "failed": 0,
+      "exit": 0,
+      "evidence": "computed-many2one-regression.junit.xml",
+      "includes": "nine relation controls and complete tax-tags endpoint file"
+    },
+    "expanded": {
+      "passed": 45,
+      "failed": 4,
+      "exit": 1,
+      "evidence": "computed-many2one-descriptor.junit.xml",
+      "classification": "four existing test_display_name failures matched historical-64-reconciliation.json; no new nodes"
+    },
+    "first_green_attempt": {
+      "passed": 8,
+      "failed": 1,
+      "exit": 1,
+      "evidence": "computed-many2one-green.junit.xml",
+      "cause": "new assertion expected False instead of existing textual falsy_value empty string; corrected only new test, public scalar conversion unchanged"
+    },
+    "migration_check": {
+      "exit": 1,
+      "evidence": "computed-many2one-migrations.log",
+      "result": "only inherited ResPartner.tz drift; no new relational migration"
+    },
+    "full_ci": {
+      "source_revision": "09974556a9e0cc53674693d80ad71a396b452bd7",
+      "make_exit": 2,
+      "command": "make ci-verify",
+      "pytest_exit": 1,
+      "passed": 826,
+      "skipped": 1,
+      "failed": 1,
+      "seconds": 621.45,
+      "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+      "classification": "BASELINE_FAILURE: executable exact093cdfd7 focused comparison fails same Incoterm assertion",
+      "later_tests": "NOT_EVALUATED",
+      "acceptance": false,
+      "evidence": [
+        "computed-many2one-ci.log",
+        "computed-many2one-ci.junit.xml",
+        "incoterm-current.junit.xml",
+        "incoterm-baseline-093-executable.junit.xml"
+      ]
+    }
+  },
+  "equivalence": "Bounded optional nonstored Many2one absence and Django FK cache coherence verified; no whole-file or family acceptance.",
+  "limitations": "No native Odoo runtime, per-database Registry/cache acceptance, constructor rebuild, new module coordinator, managed inference or TASK state change. Stored/custom accessor protocols require regression controls; full file remains unaccepted.",
+  "integration": "Source09974556 local commit, no merge; required CI Make2 at inherited Incoterm failure, no acceptance",
+  "source_sha256": "cafbcfd13f4e7900e9c0f974175552fcc39d096479de301c5155002ec682404f"
+}

@@ -70592,7 +70592,7 @@
           "preserved_probes": "16names differential and reset SQL controls exit0, own resource cleanup independently0"
         },
         "acceptance": "pending",
-        "integration": "local commit; no merge",
+        "integration": "published source5943be0c in PR109; no merge or acceptance",
         "broader_task": "TASK-GEN-0058 ownerNULL not executed or closed"
       },
       "TASK-GEN-0633": {
@@ -70646,7 +70646,7 @@
           "odoo19c:Field.__get__": "orm.fields.FieldDescriptor.__get__"
         },
         "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/display-name-assignment-contract-14.json",
-        "limits": "No whole-file acceptance; remaining50failures retain closure criteria; no official status change, merge or model inference",
+        "limits": "Historical64 now20PASS44FAIL, same stable population; no whole-file acceptance, official state change, merge or managed inference",
         "product_followup": {
           "source_revision": "2b249be82a8acec2fd2f280342d13a7fc505c189",
           "task_reconciliation": "orm-demo-continuation-20261023T144219/outputs/product-display-name-task-reconciliation.json",
@@ -70702,6 +70702,67 @@
           "failed": 50,
           "exit": 1,
           "evidence": "orm-demo-continuation-20261023T144219/outputs/category-historical64.junit.xml"
+        },
+        "schema_fixture_reconciliation": {
+          "source_revision": "093cdfd708c02b9043b39f36e0bed09b628f3d73",
+          "full_files_pass": 61,
+          "historical64": {
+            "passed": 16,
+            "failed": 48,
+            "exit": 1
+          },
+          "qualification": "two fixture criteria corrected after pinned-source proof, not two runtime bugs fixed; denominator unchanged",
+          "evidence": "orm-demo-continuation-20261023T144219/outputs/historical-64-reconciliation.json"
+        },
+        "computed_many2one_followup": {
+          "source_revision": "09974556a9e0cc53674693d80ad71a396b452bd7",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/computed-many2one-contract-14.json",
+          "focused": {
+            "passed": 89,
+            "exit": 0
+          },
+          "expanded": {
+            "passed": 45,
+            "failed": 4,
+            "exit": 1,
+            "classification": "same four historical display-name controls"
+          },
+          "full_ci": {
+            "source_revision": "09974556a9e0cc53674693d80ad71a396b452bd7",
+            "make_exit": 2,
+            "command": "make ci-verify",
+            "pytest_exit": 1,
+            "passed": 826,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 621.45,
+            "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+            "classification": "BASELINE_FAILURE: executable exact093cdfd7 focused comparison fails same Incoterm assertion",
+            "later_tests": "NOT_EVALUATED",
+            "acceptance": false,
+            "evidence": [
+              "computed-many2one-ci.log",
+              "computed-many2one-ci.junit.xml",
+              "incoterm-current.junit.xml",
+              "incoterm-baseline-093-executable.junit.xml"
+            ]
+          },
+          "scope": "optional nonstored relation absence and native Django FK cache invalidation; no constructor/public scalar protocol/persistent schema change",
+          "acceptance": "pending",
+          "integration": "local source09974556; no merge/acceptance"
+        },
+        "historical_verifier_reconciliation": {
+          "source_revision": "875a4aeb72c9458db662ae541bccbb6b387b8034",
+          "tests_passed": 23,
+          "checker_models": 391,
+          "checker_exit": 0,
+          "historical64": {
+            "passed": 20,
+            "failed": 44,
+            "exit": 1
+          },
+          "scope": "Pinned criterion reconciliation; negative property/metadata/foreign descriptor/read-only cases retained; no productive compute change",
+          "full_head_ci": "NOT_EVALUATED; latest complete09974556 remains FAIL, not transferable whole-head PASS"
         }
       }
     },

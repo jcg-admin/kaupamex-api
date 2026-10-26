@@ -39,5 +39,40 @@
   },
   "equivalence": "Bounded assignment, invalidation, constructor, no-SQL, context and failure contracts verified; whole-file/native Odoo/runtime acceptance not claimed",
   "limitations": "Whole models.py and res_partner.py obligations remain in existing inventories/AS IS; no copied whole-file denominator. Native Odoo runtime not executed. Unsaved cross-context identity is a separately measured existing limitation. ProductProduct follow-up subsequently reconciled through native TaskUpdate under owned TASK-GEN-0633; separate product contract and results apply. No official TASK status changes or local model inference Existing whole-file structural authority: scripts/workbench/odoo-orm-reference-inventory-20260910T181517/outputs/inventory-odoo19c.json; models.py raw=219, unique=202. These populations are not acceptance denominators and the file remains pending beyond this unit.",
-  "integration": "c2d0d10d5ead906cd5241e0286de9a0e97692926 published on PR109; make ci-verify exits2 with77PASS1SKIP1ERROR ProductProduct.display_name. Separate subsequent Product correction 2b249be8 under validation. No merge or official TASK status change."
+  "integration": "c2d0d10d5ead906cd5241e0286de9a0e97692926 published on PR109; make ci-verify exits2 with77PASS1SKIP1ERROR ProductProduct.display_name. Separate subsequent Product correction 2b249be8 under validation. No merge or official TASK status change.",
+  "historical_verifier_reconciliation": {
+    "source_revision": "875a4aeb72c9458db662ae541bccbb6b387b8034",
+    "source_comparison": "display-name-criterion-source-comparison.json",
+    "native_reconciliation": "display-name-criteria-native-reconciliation.json",
+    "selection": "display-name-criteria-selection.json",
+    "initial_red": {
+      "passed": 14,
+      "failed": 9,
+      "exit": 1,
+      "limit": "One new assertion initially read search on unbound mixin; corrected to bound metadata after diagnostic"
+    },
+    "green": {
+      "passed": 23,
+      "exit": 0
+    },
+    "cli": {
+      "models": 391,
+      "exit": 0
+    },
+    "historical64": {
+      "PASS": 20,
+      "FAIL": 44
+    },
+    "negative_controls": [
+      "property",
+      "storeTrue",
+      "concreteTrue",
+      "computeNone",
+      "searchNone",
+      "foreign-field descriptor",
+      "nonassignable descriptor"
+    ],
+    "scope": "Checker and historical fixture criteria; no productive compute change, Task status change or acceptance",
+    "full_ci": "Latest required full execution09974556 Make2,826PASS1SKIP1FAIL inherited Incoterm;875a4aeb full execution NOT_EVALUATED; no claim of whole-head PASS"
+  }
 }

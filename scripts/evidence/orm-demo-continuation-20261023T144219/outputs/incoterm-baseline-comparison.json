@@ -1,0 +1,24 @@
+{
+  "current_revision": "09974556a9e0cc53674693d80ad71a396b452bd7",
+  "baseline_revision": "093cdfd708c02b9043b39f36e0bed09b628f3d73",
+  "comparison": "same node, same owned0090 PostgreSQL lease, sequential processes; source unchanged",
+  "current_exit": 1,
+  "baseline_initial": {
+    "exit": 0,
+    "skipped": 1,
+    "classification": "NOT_EVALUATED because helper absent"
+  },
+  "baseline_executable": {
+    "exit": 1,
+    "failed": 1,
+    "classification": "same missing Incoterm assertion"
+  },
+  "helper_sources_diff_exit": 0,
+  "helper_reuse": "existing qualified binaries symlinked into isolated baseline after exact tracked source equality",
+  "helper_sha256": {
+    "pdf_receipt": "9d50e734e590c4358df22d46ec43a84139e237b2b7c793658fcddc4951c24d02",
+    "pdf_report": "231f22430026ab052b93b6898d454c0edbcacdb70397e8b605fd0ddd28218a62"
+  },
+  "full_suite_baseline": "NOT_EVALUATED; no repeated full CI for this classification",
+  "classification": "BASELINE_FAILURE relative09974556, not whole initiative regression absence"
+}

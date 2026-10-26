@@ -1,0 +1,8 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet",
+  "result": {
+    "content": "{\"task_id\":\"443\",\"citation_id\":\"TASK-API-0264\",\"subject\":\"DECIDIDA (DEC-AISL-05) — no se reparte esquema; toda app migra a toda base\",\"description\":\"DECIDIDA por el ejecutor 2026-08-21: \\\"queremos que nuestra api sea igual a la referencia, en donde la referencia no reparte esquema entre bases. Cada base es una instalación completa: su propio res_company, su propio res_users, su propio ir_module_module\\\".\\n\\nRegistrada como DEC-AISL-05 en decisiones-implementar-aislamiento-multi-db-per-company. Cierra el punto \\\"Abierta (capa-3 de 091)\\\" de ADR-021.\\n\\nEn una línea: toda app de dominio migra a TODA base; los tres base* salen de MULTIDB_CONTROL_PLANE_APPS; allow_migrate deja de partir el dominio y pasa a consultar el roster; las 79 FK a res_users quedan intra-base sin cortar ninguna.\\n\\nQueda DESCARTADA la opción 1 de H-API-646 (core sólo en default, dominio sólo en company_<N>_db), que además se justificaba atribuyendo el reparto a la referencia — falso, ver H-API-783.\\n\\nImplementación: #738. Granularidad de instalación por base (ir_module_module.state vs INSTALLED_APPS, H-API-784): #737.\\n\\nMedición que la alimentó: analisis-multidb-en-la-referencia (odoo19c @ odoo-tools@622ddc2a).\",\"status\":\"completed\",\"owner\":null,\"blocked_by\":[],\"blocks\":[],\"blocked\":false}",
+    "isError": false
+  }
+}

@@ -1,0 +1,5 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_incoterm_resolution.py", line 15, in <module>
+    from tests.factories.order_factory import make_order
+ModuleNotFoundError: No module named 'tests.factories'

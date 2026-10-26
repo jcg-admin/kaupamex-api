@@ -1,0 +1,68 @@
+{
+  "interface": "TaskList limit5000",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "result_population": 1436,
+  "matched_rows": [
+    {
+      "task_id": "49",
+      "citation_id": "TASK-API-0029",
+      "subject": "Cablear SkillRegistry al despacho de herramientas del bucle",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1034",
+      "citation_id": "TASK-DOCS-0423",
+      "subject": "Decidir c\u00f3mo thyrox aloja un skill, sabiendo que ccnmt no tiene cargador de skills",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1121",
+      "citation_id": "TASK-DOCS-0510",
+      "subject": "Portar tool-registry (255 mod) \u2014 penultimo: le faltan 11 de 19 deps",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1141",
+      "citation_id": "TASK-THYROX-0001",
+      "subject": "Portar backends/registry.ts y sus cuatro respaldos: 1832 l\u00edneas sin import externo",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1312",
+      "citation_id": "TASK-THYROX-0111",
+      "subject": "Portar tool-registry (313 mod) \u2014 el bloqueo declarado med\u00eda el manifiesto, no el \u00e1rbol",
+      "status": "in_progress",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1328",
+      "citation_id": "TASK-THYROX-0127",
+      "subject": "Frontera medida de tool-registry: los 7 m\u00f3dulos de ra\u00edz que quedan y su bloqueo real",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    }
+  ],
+  "limit": "Titles only; no absence conclusion or TASK admission without TaskGet"
+}

@@ -498,3 +498,35 @@ composition, complete loader, managed local-model cycle or merge is claimed.
 Unowned in-progress TASK-API-0397 and broader TASK-GEN-0058 are not available
 for execution by inference. Continue native TaskGet/claims/frontier with
 current contracts; a bounded candidate list is not global population coverage.
+
+
+## Computed relation and historical criteria checkpoint, 2026-10-25
+
+Source093cdfd7 reconciles schema/cache fixtures after pinned contract proof:
+61PASS, exact64replay16PASS48FAIL; two fixture criteria, not two runtime fixes.
+Source09974556 preserves optional nonstored Many2one None at Django raw-ID
+boundary and native object-cache invalidation. Nine controls and fiscal
+consumers are included in89PASS; expanded45PASS4FAIL match prior display tests.
+Required full make ci-verify09974556 exits2:826PASS1SKIP1FAIL621.45s,
+first missing Incoterm in the sale-stock PDF. Exact parent093cdfd7 reproduces
+same assertion using identical helper sources/binaries; first skipped baseline
+is retained asNOT_EVALUATED, not a PASS. Later suite remainsNOT_EVALUATED.
+
+Source875a4aeb reconciles the superseded NonStored checker with registered typed
+computed/searchable Char metadata and its assignable descriptor. Six new negative
+controls preserve structural rejection;23PASS, CLI391models exit0. Stable
+deletion nodeid now verifies native lack of Python deletion plus existing field
+cache invalidation/recompute. Exact64replay20PASS44FAIL; four criteria, not four
+new productive compute fixes. Full875a4aeb suiteNOT_EVALUATED; prior failing CI
+is not a whole-head PASS. No new persistent schema or BaseModel change.
+
+The portable Incoterm diagnostic proves direct relation, Django template,
+combined extension and notes.incoterm retain the text; business counts unchanged
+after rollback. Root cause of downstream PDF loss remains pending; no speculative
+ORM repair. Failed etree/string and probe import-path attempts retained.
+Native TaskGet confirms0264completed, so historical0382decision blocker is
+reconciled description-only. Registry.new/load and Environment.registry current
+source boundaries remain documented, not accepted. Historical342notfound in
+checked legacy session,0391/0392completed inventory-only; no identity invented.
+Provider interfaces used remain9b13f2d7 with published executable byte provenance
+recorded separately. No managed inference, official state change or merge.

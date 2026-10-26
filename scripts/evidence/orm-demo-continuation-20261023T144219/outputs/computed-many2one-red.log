@@ -1,0 +1,100 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFF.F..                                                                 [100%]
+=================================== FAILURES ===================================
+______ test_empty_computed_relation_does_not_look_up_a_false_primary_key _______
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:241: in __get__
+    rel_obj = self.field.get_cached_value(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/mixins.py:21: in get_cached_value
+    return instance._state.fields_cache[self.cache_name]
+E   KeyError: 'country'
+
+During handling of the above exception, another exception occurred:
+tests/integration/base/test_computed_many2one_absence.py:22: in test_empty_computed_relation_does_not_look_up_a_false_primary_key
+    assert company.country is None
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:257: in __get__
+    rel_obj = self.get_object(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:222: in get_object
+    return qs.get(self.field.get_reverse_related_filter(instance))
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.base.models.res_country.ResCountry.DoesNotExist: ResCountry matching query does not exist.
+____________ test_computed_foreign_key_id_preserves_django_absence _____________
+tests/integration/base/test_computed_many2one_absence.py:29: in test_computed_foreign_key_id_preserves_django_absence
+    assert company.country_id is None
+E   assert False is None
+E    +  where False = <ResCompany: Computed country contract>.country_id
+_____ test_related_code_of_an_empty_country_returns_the_field_empty_value ______
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:241: in __get__
+    rel_obj = self.field.get_cached_value(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/mixins.py:21: in get_cached_value
+    return instance._state.fields_cache[self.cache_name]
+E   KeyError: 'country'
+
+During handling of the above exception, another exception occurred:
+tests/integration/base/test_computed_many2one_absence.py:35: in test_related_code_of_an_empty_country_returns_the_field_empty_value
+    assert company.country_code is False
+src/orm/fields.py:1625: in __get__
+    field.compute_value(instance)
+src/orm/fields.py:4863: in compute_value
+    _invoke_compute_method(self, records)
+src/orm/fields.py:4783: in _invoke_compute_method
+    determine(field.compute, record)
+src/orm/fields.py:2190: in determine
+    return needle(records, *args)
+src/orm/fields.py:3696: in _field_compute_related
+    values = [_first_record(element[name]) for element in values]
+src/orm/models.py:3579: in _model_getitem
+    return getattr(self, key)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:257: in __get__
+    rel_obj = self.get_object(instance)
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:222: in get_object
+    return qs.get(self.field.get_reverse_related_filter(instance))
+.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.base.models.res_country.ResCountry.DoesNotExist: ResCountry matching query does not exist.
+___ test_explicit_constructor_none_is_readable_without_another_field_access ____
+tests/integration/base/test_computed_many2one_absence.py:41: in test_explicit_constructor_none_is_readable_without_another_field_access
+    record = ResCompany(
+src/orm/fields.py:1426: in _model_init_marking_the_load
+    _DJANGO_MODEL_INIT(self, *args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:579: in __init__
+    _setattr(self, prop, value)
+src/addons/base/models/res_company.py:434: in name
+    self.partner.name = value
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:267: in __get__
+    raise self.RelatedObjectDoesNotExist(
+E   addons.base.models.res_company.ResCompany.partner.RelatedObjectDoesNotExist: ResCompany has no partner.. Did you mean: 'partner_id'?
+__________ test_real_missing_reference_still_raises_the_target_error ___________
+tests/integration/base/test_computed_many2one_absence.py:61: in test_real_missing_reference_still_raises_the_target_error
+    record = ResCompany(code='computed-country-missing', name='Missing country reference')
+src/orm/fields.py:1426: in _model_init_marking_the_load
+    _DJANGO_MODEL_INIT(self, *args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:579: in __init__
+    _setattr(self, prop, value)
+src/addons/base/models/res_company.py:434: in name
+    self.partner.name = value
+.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:267: in __get__
+    raise self.RelatedObjectDoesNotExist(
+E   addons.base.models.res_company.ResCompany.partner.RelatedObjectDoesNotExist: ResCompany has no partner.. Did you mean: 'partner_id'?
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/integration/base/test_computed_many2one_absence.py::test_empty_computed_relation_does_not_look_up_a_false_primary_key
+  /workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/base/test_computed_many2one_absence.py::test_empty_computed_relation_does_not_look_up_a_false_primary_key
+  /workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/computed-many2one-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/integration/base/test_computed_many2one_absence.py::test_empty_computed_relation_does_not_look_up_a_false_primary_key
+FAILED tests/integration/base/test_computed_many2one_absence.py::test_computed_foreign_key_id_preserves_django_absence
+FAILED tests/integration/base/test_computed_many2one_absence.py::test_related_code_of_an_empty_country_returns_the_field_empty_value
+FAILED tests/integration/base/test_computed_many2one_absence.py::test_explicit_constructor_none_is_readable_without_another_field_access
+FAILED tests/integration/base/test_computed_many2one_absence.py::test_real_missing_reference_still_raises_the_target_error
+5 failed, 3 passed, 3 warnings in 5.60s

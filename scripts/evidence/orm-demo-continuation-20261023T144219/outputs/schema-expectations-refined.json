@@ -1,0 +1,4 @@
+{
+  "pytest_exit": 0,
+  "scope": "Full conversion/schema verifier files; reconciled fixtures; production source unchanged"
+}
