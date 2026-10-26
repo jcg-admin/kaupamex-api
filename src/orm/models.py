@@ -66,6 +66,7 @@ from django.db.models import (  # noqa: F401
     ForeignKey, Manager, Model, QuerySet,
 )
 from django.db.models.base import ModelState
+from django.db.models.fields import related_descriptors as _related_descriptors
 from django.db.models.signals import (class_prepared, m2m_changed, post_init,
                                       pre_delete, pre_init, pre_save)
 from django.dispatch import receiver
@@ -85,6 +86,7 @@ from orm.commands import ManyToManyLink, ManyToManySet, One2manyChild
 from orm import registry
 from orm.domains import Domain, to_q
 from orm.fields import (PENDING_INVERSE_FIELDS, FieldDescriptor,
+                        _field_cache_record_id,
                         convert_to_display_name, determine_inverse)
 from orm.fields_textual import Char
 from orm.identifiers import NewId
@@ -3672,6 +3674,15 @@ def _traverse_inverse(rows, inverse):
     reached = []
     seen = set()
     for row in rows:
+        if isinstance(row, Model) and not row._is_pk_set():
+            descriptor = getattr(type(row), name, None)
+            if type(descriptor) in (
+                    _related_descriptors.ReverseManyToOneDescriptor,
+                    _related_descriptors.ManyToManyDescriptor):
+                # Native collection managers require a PK even for cached
+                # querysets. New rows cannot have persisted inverse links.
+                # Direct cached relations and custom descriptors still walk.
+                continue
         value = getattr(row, name, None)
         if value is None:
             continue
@@ -3842,7 +3853,8 @@ def modified(self, fnames, create=False, before=False):
                 #: Sin columna solo interesan las filas con valor en cache: las
                 #: demas no tienen nada que invalidar.
                 in_cache = field._get_all_cache_ids(environment)
-                records = [row for row in records if row.pk in in_cache]
+                records = [row for row in records
+                           if _field_cache_record_id(field, row) in in_cache]
             if not records:
                 continue
             todo.append(_modified(records, [field], created))
@@ -3852,7 +3864,11 @@ def modified(self, fnames, create=False, before=False):
         else:
             #: Un calculado sin columna no se fuerza a recalcular: basta con
             #: retirar su valor del cache — ``:6828-6831``.
-            field._invalidate_cache(environment, record_ids(records))
+            # Contextual nonstored fields already use NewId cache keys on
+            # unsaved Django rows. Keep the descriptor identity rather than
+            # the persistence PK (None), without changing transaction IDs.
+            field._invalidate_cache(environment, tuple(
+                _field_cache_record_id(field, row) for row in records))
 
     if before:
         for field, ids in tomark.items():
