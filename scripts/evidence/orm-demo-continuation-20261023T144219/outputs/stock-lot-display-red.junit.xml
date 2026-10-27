@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="10" skipped="0" tests="11" time="5.537" timestamp="2026-10-26T17:20:57.725348" hostname="c8a29a030cff"><testcase classname="tests.integration.sale.test_product_expiry" name="test_display_name_carries_the_expiration_and_relays_without_it" time="4.538"><failure message="ValueError: Compute method failed to assign stock.StockLot(11,).display_name">tests/integration/sale/test_product_expiry.py:175: in test_display_name_carries_the_expiration_and_relays_without_it
+    assert caduca.display_name == 'L9\t--Expired--'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(11,).display_name</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[False-True--1-None-plain]" time="0.041"><failure message="ValueError: Compute method failed to assign stock.StockLot(12,).display_name">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(12,).display_name</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-False--1-None-plain]" time="0.042"><failure message="ValueError: Compute method failed to assign stock.StockLot(13,).display_name">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(13,).display_name</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-None-None-plain]" time="0.049" /><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True--1-None-expired]" time="0.043"><failure message="ValueError: Compute method failed to assign stock.StockLot(15,).display_name">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(15,).display_name</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-0-None-expired]" time="0.062"><failure message="ValueError: Compute method failed to assign stock.StockLot(16,).display_name">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(16,).display_name</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60--1-alert]" time="0.056"><failure message="ValueError: Compute method failed to assign stock.StockLot(17,).display_name">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(17,).display_name</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-0-alert]" time="0.052"><failure message="ValueError: Compute method failed to assign stock.StockLot(18,).display_name">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(18,).display_name</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-30-plain]" time="0.048"><failure message="ValueError: Compute method failed to assign stock.StockLot(19,).display_name">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(19,).display_name</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-None-plain]" time="0.046"><failure message="ValueError: Compute method failed to assign stock.StockLot(20,).display_name">tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(20,).display_name</failure></testcase><testcase classname="tests.integration.sale.test_product_expiry" name="test_expiry_display_keeps_contexts_and_field_changes_separate" time="0.049"><failure message="ValueError: Compute method failed to assign stock.StockLot(21,).display_name">tests/integration/sale/test_product_expiry.py:221: in test_expiry_display_keeps_contexts_and_field_changes_separate
+    assert lot.display_name == 'CONTEXT'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(21,).display_name</failure></testcase></testsuite></testsuites>

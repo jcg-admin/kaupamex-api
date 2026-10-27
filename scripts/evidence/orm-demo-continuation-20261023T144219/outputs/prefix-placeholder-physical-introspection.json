@@ -1,0 +1,15 @@
+{
+  "result": "PASS",
+  "alias": "default",
+  "metadata_registered": true,
+  "field_store": false,
+  "field_concrete": false,
+  "field_column": null,
+  "physical_placeholder_column": false,
+  "other_three_columns_present": true,
+  "compute": null,
+  "declared_default": "_default_prefix_placeholder",
+  "default_signature": "(instance)",
+  "model_has_default_get": false,
+  "scope": "Read-only actual PostgreSQL introspection and metadata, no analytic correction or Task0305 execution"
+}

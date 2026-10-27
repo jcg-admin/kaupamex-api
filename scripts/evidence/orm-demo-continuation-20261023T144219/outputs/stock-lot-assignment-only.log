@@ -1,0 +1,97 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFF.FFFFFFFF                                                             [100%]
+=================================== FAILURES ===================================
+________ test_display_name_carries_the_expiration_and_relays_without_it ________
+tests/integration/sale/test_product_expiry.py:175: in test_display_name_carries_the_expiration_and_relays_without_it
+    assert caduca.display_name == 'L9\t--Expired--'
+E   AssertionError: assert 'L9\t--2026-10-25--' == 'L9\t--Expired--'
+E     - L9	--Expired--
+E     + L9	--2026-10-25--
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[False-True--1-None-plain] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY'
+E     - BOUNDARY
+E     + BOUNDARY	--2026-10-26--
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-False--1-None-plain] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY'
+E     - BOUNDARY
+E     + BOUNDARY	--2026-10-26--
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-True--1-None-expired] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY\t--Expired--'
+E     - BOUNDARY	--Expired--
+E     + BOUNDARY	--2026-10-26--
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-0-None-expired] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY\t--Expired--'
+E     - BOUNDARY	--Expired--
+E     + BOUNDARY	--2026-10-26--
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60--1-alert] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY\t--...26 23:24:44--'
+E     - BOUNDARY	--Expire on 2026-10-26 23:24:44--
+E     + BOUNDARY	--2026-10-26--
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-0-alert] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY\t--...26 23:24:44--'
+E     - BOUNDARY	--Expire on 2026-10-26 23:24:44--
+E     + BOUNDARY	--2026-10-26--
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-30-plain] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY'
+E     - BOUNDARY
+E     + BOUNDARY	--2026-10-26--
+_ test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-None-plain] _
+tests/integration/sale/test_product_expiry.py:212: in test_expiry_display_obeys_context_flags_and_time_boundaries
+    assert lot.display_name == expected
+E   AssertionError: assert 'BOUNDARY\t--2026-10-26--' == 'BOUNDARY'
+E     - BOUNDARY
+E     + BOUNDARY	--2026-10-26--
+________ test_expiry_display_keeps_contexts_and_field_changes_separate _________
+tests/integration/sale/test_product_expiry.py:221: in test_expiry_display_keeps_contexts_and_field_changes_separate
+    assert lot.display_name == 'CONTEXT'
+E   AssertionError: assert 'CONTEXT\t--2026-10-25--' == 'CONTEXT'
+E     - CONTEXT
+E     + CONTEXT	--2026-10-25--
+____________ test_new_expiry_lot_assigns_computed_label_without_sql ____________
+tests/integration/sale/test_product_expiry.py:241: in test_new_expiry_lot_assigns_computed_label_without_sql
+    assert lot.display_name == 'NEW\t--Expired--'
+E   AssertionError: assert 'NEW\t--2026-10-25--' == 'NEW\t--Expired--'
+E     - NEW	--Expired--
+E     + NEW	--2026-10-25--
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/integration/sale/test_product_expiry.py::test_display_name_carries_the_expiration_and_relays_without_it
+  /workspace/kaupamex-api/src/orm/fields.py:4178: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/sale/test_product_expiry.py::test_display_name_carries_the_expiration_and_relays_without_it
+  /workspace/kaupamex-api/src/orm/fields.py:4178: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/stock-lot-assignment-only.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/integration/sale/test_product_expiry.py::test_display_name_carries_the_expiration_and_relays_without_it
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[False-True--1-None-plain]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-False--1-None-plain]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-True--1-None-expired]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-0-None-expired]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60--1-alert]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-0-alert]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-30-plain]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_obeys_context_flags_and_time_boundaries[True-True-60-None-plain]
+FAILED tests/integration/sale/test_product_expiry.py::test_expiry_display_keeps_contexts_and_field_changes_separate
+FAILED tests/integration/sale/test_product_expiry.py::test_new_expiry_lot_assigns_computed_label_without_sql
+11 failed, 1 passed, 16 deselected, 3 warnings in 5.33s

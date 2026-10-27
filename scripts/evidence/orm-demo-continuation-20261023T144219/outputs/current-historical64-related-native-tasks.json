@@ -1,0 +1,52 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet.run",
+  "command": "bun native1167/1192/1193/1194 read-only reconciliation",
+  "rows": [
+    {
+      "task_id": "1167",
+      "citation_id": "TASK-API-0397",
+      "subject": "Construir BaseModel propio desde el contrato medido de la referencia",
+      "description": "La referencia declara BaseModel con 194 metodos y __slots__ = ['env','_ids','_prefetch_ids'] (odoo19c: odoo/orm/models.py:334-7004). Portarlo con el criterio de dos niveles: (1) el stack lo trae hecho — hay simbolo instalado y basta llamarlo; (2) el stack tiene con que construirlo — no hay simbolo, si primitivas, sin dependencia de fuera.\n\nMedido en el banco api scripts/workbench/basemodel-contract-20260911T030334:\n- nivel 1 por NOMBRE: 21 sobre Django pristino. NO es veredicto: create/exists/update/__eq__ existen con OTRA semantica (exists() da bool, la fuente da recordset — H-API-1084).\n- nuestro arbol YA colgo: 14 sobre models.Model.\n- por construir: 159.\n- el bloque raiz es el protocolo de recordset: ids, ensure_one, with_env/sudo/with_user/with_company/with_context/with_prefetch, mapped, filtered, grouped, sorted, exists, concat, _cache, _convert_to_record, _convert_to_write — AUSENTES; sus 'presentes' del localizador son homonimos en otros archivos.\n\nPrimitivas medidas en los binarios instalados (django 6.0.5):\n- ModelBase.__new__ :97-389 y add_to_class :391-395 — el gancho de clase.\n- Model.__init__ :482-595, from_db :598-608 — el portal de instancia.\n- QuerySet.__init__(model, query, using, hints) :286-300, _clone :1979-1996, _fetch_all :1998-2002, __iter__ :375-391, __getitem__ :407-442.\n\nTDD: la mitad roja primero. Sin declarar divergencia donde toca construir.",
+      "status": "in_progress",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1192",
+      "citation_id": "TASK-API-0417",
+      "subject": "Retirar el enrutado de las fachadas: la costura decide, no el constructor",
+      "description": "Cierra la duplicación que TASK-API-0416 declaró en el docstring de `_field_get_attrs` (src/orm/fields.py). Los tres bloques de derivación de la fuente (`compute`/`related`/`precompute`, odoo19c: odoo/orm/fields.py:443-465) viven hoy DOS veces: en `_field_get_attrs`, portados verbatim, y en `apply_source_defaults` de src/orm/fields_nonstored.py, que es lo que las fachadas consultan al construir. Mientras `make_dispatcher`/`Char`/`Json`/`Monetary`/`projection_or_none` enruten por clase en el constructor, la copia de `fields_nonstored` no se puede retirar: es lo único que decide qué clase se instancia. El trabajo es retirar ese enrutado para que las fachadas devuelvan UNA sola clase y la derivación de `store` la haga la costura al contribuir (que es el orden de la fuente). Verificación: `apply_source_defaults` deja de contener los tres bloques y la suite de tests/unit/orm sigue verde.",
+      "status": "in_progress",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1193",
+      "citation_id": "TASK-API-0418",
+      "subject": "Retirar NonStored como clase: el eje es store, no el tipo",
+      "description": "Citada por TASK-API-0416 en el docstring de `_collect_field_definitions` (src/orm/fields.py) como la condición que vuelve ALCANZABLE la rama de fusión: hoy `NonStored` es una clase suelta y por eso no cuenta como definición de campo en la MRO. La fuente no tiene una clase por almacenamiento — `store` es un atributo derivado, no un tipo (odoo19c: odoo/orm/fields.py:459-465). Radio medido: 317 menciones en ~80 archivos; 7 declaraciones directas en 5 archivos; 35 sitios `isinstance`/`issubclass`; 27 imports. Los 3 sitios de producción son src/orm/domains.py:234, src/orm/fields_nonstored.py:224 y :718, que pasan a `not getattr(f, 'store', True)`. Además: el export de src/fields/__init__.py, scripts/check_display_name.py:101, addons/base_sparse_field/models/fields.py, y ~25 aserciones de test que van a un helper único. Bloqueada por TASK-API-0417.",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "1194",
+      "citation_id": "TASK-API-0419",
+      "subject": "Reconstruir un campo relacional desde _args__: to y on_delete no llegan a Field.__init__",
+      "description": "Cota declarada por TASK-API-0416 en el docstring de `_merge_field_definitions` (src/orm/fields.py). La fusión reconstruye el campo con `type(chain[-1])(**merged)`, y `merged` sale de `_args__`, que sólo guarda lo que pasó por `Field.__init__` (el parche `_field_init_with_copy`). Una relacional entrega `to` y `on_delete` a `ForeignKey.__init__`/`ManyToManyField.__init__` y nunca al de `Field`, así que su reconstrucción sale sin destino ni política de borrado. Hoy no se alcanza —la rama de fusión entera es inalcanzable hasta que cierre TASK-API-0418— pero al abrirse será el primer caso que rompa. Dos caminos a medir contra la referencia antes de elegir: capturar los kwargs en el `__init__` de cada relacional, o reconstruir desde `deconstruct()` en vez de desde `_args__`. Verificación: un caso con una cadena de dos declaraciones sobre un ForeignKey que conserve `to` y `on_delete`.",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    }
+  ],
+  "scope": "No unowned Task execution or Task state mutation; actual source/test behavior remains authority for contract assessment"
+}

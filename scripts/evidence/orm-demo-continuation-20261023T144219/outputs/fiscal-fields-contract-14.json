@@ -116,19 +116,63 @@
       "models": 7,
       "evidence": "fiscal-runtime-metadata.json"
     },
-    "final_postgresql": "NOT_EVALUATED: automatic approval usage limit prevented command, terminal then disappeared; cleanup pending explicit approval",
-    "full_ci": "NOT_EVALUATED for working fiscal source; do not infer acceptance from metadata",
+    "final_postgresql": {
+      "result": "PASS",
+      "passed": 114,
+      "exit": 0,
+      "seconds": 453.15,
+      "junit": "fiscal-runtime-green.junit.xml",
+      "scope": "Actual own fresh PostgreSQL; fiscal consumers, all cache facade cases, category and inverse persistence"
+    },
+    "full_ci": {
+      "source_revision": "4b29e40e242b55ae49443609f6364331fce9bed0",
+      "make_exit": 2,
+      "command": "make ci-verify",
+      "execution_status": "COMPLETED_FAILURE",
+      "pytest_exit": 1,
+      "passed": 1850,
+      "skipped": 1,
+      "failed": 1,
+      "seconds": 832.74,
+      "first_failure": "tests/integration/sale/test_product_expiry.py::test_display_name_carries_the_expiration_and_relays_without_it",
+      "classification": "BASELINE_FAILURE: exact093cdfd7 focused test reproduces same StockLot compute failure, exit1",
+      "baseline_evidence": "stock-lot-display-baseline-093.junit.xml",
+      "later_tests": "NOT_EVALUATED",
+      "whole_head_acceptance": false
+    },
     "cache_file_attempt": {
       "passed": 40,
       "errors": 7,
       "exit": 1,
       "junit": "fiscal-runtime-cache-regression.junit.xml",
       "classification": "Seven actual PostgreSQL setup requirements, not behavioral PASS/FAIL; no rerun filtering away errors"
+    },
+    "persistent_layout": {
+      "result": "PASS",
+      "models": 8,
+      "evidence": "fiscal-persistent-layout-comparison.json",
+      "scope": "Tables and concrete column layout only"
+    },
+    "subsequent_shared_ci": {
+      "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+      "make_exit": 2,
+      "command": "make ci-verify",
+      "execution_status": "COMPLETED_FAILURE",
+      "pytest_exit": 1,
+      "passed": 2224,
+      "skipped": 1,
+      "failed": 1,
+      "seconds": 901.47,
+      "first_failure": "tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_creates_no_column",
+      "classification": "BASELINE_FAILURE: exact093 reproduces same metadata assertion; metadata visibility is not physical-column proof",
+      "baseline_evidence": "prefix-placeholder-baseline-093.junit.xml",
+      "later_tests": "NOT_EVALUATED",
+      "whole_head_acceptance": false
     }
   },
-  "equivalence": "Metadata and two direct cache controls verified; final actual PostgreSQL fiscal consumer behavior not yet verified",
-  "limitations": "Other Environment.cache_key branches, multi-DB cache isolation, whole defaults/Registry/installation not accepted. No official TASK states changed or local inference",
-  "integration": "Local sourcef3623e313f67f5a2c010987db26e054540fe0db9 hooksPASS; PostgreSQL and full required gate blocked pending cleanup approval; not published/accepted/merged",
+  "equivalence": "Bounded fiscal declarations and selected actual PostgreSQL consumers verified, not whole defaults, Environment, Registry or per-database model composition",
+  "limitations": "No whole Environment/cache/default/Registry or N>1 composition acceptance. Pinned ResPartner.company_id precedence has no corresponding forward Consumer field in this unit: own-record-company branch not_verified; active-context and own-country paths verified. No persistent FK inferred from a reverse company/partner association; default initialization timing and complete recordset/new-record behavior not accepted. Other Environment.cache_key branches unchanged.",
+  "integration": "Sourcef3623e31 included621aaf83; own PostgreSQL114PASS; later required gate2224PASS1SKIP1FAIL at legacy analytic prefix criterion; publication/whole acceptance/merge pending",
   "source_base": "c2d8fce8c482c0a9816e6d58bbfd782e0d768a69",
   "working_sha256": {
     "addons/account/models/res_company.py": "a4aa5220222c0ef9109e79a3077c0178729b168aca811f60f50683abfc656f63",
@@ -138,5 +182,110 @@
     "tests/unit/account/test_account_fiscal_country.py": "d303f6d25597f1c25f46dbac3943b3b8080bbdb3669a0332dce169e715b89f3e",
     "tests/unit/orm/test_environments_cache.py": "5ad8d66190f348b0af2c3573b30832f7f7341118d72e3adaa8a903419153d275"
   },
-  "source_revision": "f3623e313f67f5a2c010987db26e054540fe0db9"
+  "source_revision": "f3623e313f67f5a2c010987db26e054540fe0db9",
+  "reference_field_declarations": [
+    {
+      "source": "odoo19c:addons/account/models/res_currency.py",
+      "qualified_symbol": "ResCurrency.fiscal_country_codes",
+      "consumer_class": "ResCurrency",
+      "line": 17,
+      "declaration": "fiscal_country_codes = fields.Char(store=False, default=_get_fiscal_country_codes)",
+      "sha256": "4501b80fda17319d7cd27cb83249f64e81a42f14ad133eeda82f41821e4c9e1e"
+    },
+    {
+      "source": "odoo19c:addons/l10n_mx/models/res_bank.py",
+      "qualified_symbol": "ResBank.fiscal_country_codes",
+      "consumer_class": "ResBank",
+      "line": 17,
+      "declaration": "fiscal_country_codes = fields.Char(store=False, default=_get_fiscal_country_codes)",
+      "sha256": "1e16d47d2385b9c8562a5c7bec3af8678a8b4c7e4c8682bb0f58f75085f04ce7"
+    },
+    {
+      "source": "odoo19c:addons/l10n_mx/models/res_bank.py",
+      "qualified_symbol": "ResPartnerBank.fiscal_country_codes",
+      "consumer_class": "ResPartnerBank",
+      "line": 29,
+      "declaration": "fiscal_country_codes = fields.Char(store=False, default=_get_fiscal_country_codes)",
+      "sha256": "1e16d47d2385b9c8562a5c7bec3af8678a8b4c7e4c8682bb0f58f75085f04ce7"
+    },
+    {
+      "source": "odoo19c:addons/account/models/uom_uom.py",
+      "qualified_symbol": "UomUom.fiscal_country_codes",
+      "consumer_class": "Uom",
+      "line": 41,
+      "declaration": "fiscal_country_codes = fields.Char(compute=\"_compute_fiscal_country_codes\")",
+      "sha256": "c84c79414ceaf55ed33a1b6987304d6822d536855d4a2f866799d2410701f528"
+    },
+    {
+      "source": "odoo19c:addons/account/models/product.py",
+      "qualified_symbol": "ProductTemplate.fiscal_country_codes",
+      "consumer_class": "ProductTemplate",
+      "line": 66,
+      "declaration": "fiscal_country_codes = fields.Char(compute='_compute_fiscal_country_codes')",
+      "sha256": "b7c4b2817cb6441cccf2ea916f5b9317aafca93d2ed2c6453d6d15fd320d8b65"
+    },
+    {
+      "source": "odoo19c:addons/account/models/account_payment_term.py",
+      "qualified_symbol": "AccountPaymentTerm.fiscal_country_codes",
+      "consumer_class": "AccountPaymentTerm",
+      "line": 28,
+      "declaration": "fiscal_country_codes = fields.Char(compute='_compute_fiscal_country_codes')",
+      "sha256": "4fe0fea6733ce62d23107c09c52146e8a9ccd8e948402f030175f32f4acfa836"
+    },
+    {
+      "source": "odoo19c:addons/account/models/partner.py",
+      "qualified_symbol": "ResPartner.fiscal_country_codes",
+      "consumer_class": "ResPartner",
+      "line": 335,
+      "declaration": "fiscal_country_codes = fields.Char(compute='_compute_fiscal_country_codes')",
+      "sha256": "ab8b912131b637804e4940031ee229b2e25cf669fcd1d701d2d8ff503a545c6f"
+    }
+  ],
+  "resource_recovery": {
+    "cleanup": "PASS exact old database/role independently absent0/0",
+    "authorization": "Explicit user authorization in current turn",
+    "new_harness": "RUNNING actual PostgreSQL fiscal verification, no result yet",
+    "evidence": [
+      "fiscal-interrupted-qa-cleanup.json",
+      "fiscal-resumed-qa-resource.json"
+    ]
+  },
+  "consumer_flow": {
+    "session_defaults": {
+      "models": [
+        "ResCurrency",
+        "ResBank",
+        "ResPartnerBank"
+      ],
+      "declaration": "addons.account.models.res_company.apply_account_extensions -> fields.Char(store=False,default=get_fiscal_country_codes)",
+      "runtime": "FieldDescriptor.__get__ -> existing DefaultGetMixin.default_get -> zero-argument fiscal helper -> existing field cache",
+      "acceptance": "bounded114PASS; whole default lifecycle not_verified"
+    },
+    "record_computes": {
+      "models": [
+        "ProductTemplate",
+        "AccountPaymentTerm"
+      ],
+      "declaration": "_compute_record_fiscal_country_codes with company dependency and company/allowed_company_ids context",
+      "runtime": "Computed field read -> protected compute dispatch -> existing record_fiscal_country_codes -> descriptor assignment",
+      "acceptance": "selected PostgreSQL consumersPASS"
+    },
+    "session_compute": {
+      "reference_class": "UomUom",
+      "consumer_class": "Uom",
+      "declaration": "_compute_session_fiscal_country_codes; company/allowed_company_ids context",
+      "runtime": "Validated ambient active-company channel -> existing helper -> descriptor assignment -> existing context cache key",
+      "acceptance": "same-primary active-set change and existing consumersPASS"
+    },
+    "partner_compute": {
+      "declaration": "_compute_partner_fiscal_country_codes; country.code and active context dependencies",
+      "runtime": "Existing helper -> active fiscal countries plus own country -> ordered deduplication -> descriptor assignment",
+      "acceptance": "active context/own-country consumerPASS; forward own-company branch not_verified"
+    },
+    "country_groups": {
+      "declaration": "ResCountry._compute_country_group_codes; country_groups dependency",
+      "runtime": "Native relation -> code list or existing empty sentinel -> descriptor assignment",
+      "acceptance": "existing fiscal consumerPASS, whole new-record/M2M family not_verified"
+    }
+  }
 }

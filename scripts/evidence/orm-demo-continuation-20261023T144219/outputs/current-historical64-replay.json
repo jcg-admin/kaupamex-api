@@ -1,0 +1,14 @@
+{
+  "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+  "pytest_exit": 1,
+  "counts": {
+    "PASS": 20,
+    "FAIL": 44,
+    "ERROR": 0,
+    "SKIP": 0
+  },
+  "junit": "current-historical64-replay.junit.xml",
+  "log": "current-historical64-replay.log",
+  "changed_results": [],
+  "scope": "Exact existing64population, no automatic attribution/Task acceptance or official state change"
+}

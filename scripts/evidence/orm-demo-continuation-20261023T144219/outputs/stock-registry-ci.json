@@ -1,0 +1,16 @@
+{
+  "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+  "make_exit": 2,
+  "command": "make ci-verify",
+  "execution_status": "COMPLETED_FAILURE",
+  "pytest_exit": 1,
+  "passed": 2224,
+  "skipped": 1,
+  "failed": 1,
+  "seconds": 901.47,
+  "first_failure": "tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_creates_no_column",
+  "classification": "BASELINE_FAILURE: exact093 reproduces same metadata assertion; metadata visibility is not physical-column proof",
+  "baseline_evidence": "prefix-placeholder-baseline-093.junit.xml",
+  "later_tests": "NOT_EVALUATED",
+  "whole_head_acceptance": false
+}

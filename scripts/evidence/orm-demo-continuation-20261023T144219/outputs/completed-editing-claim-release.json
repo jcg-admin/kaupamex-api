@@ -1,0 +1,278 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "claimsCommand",
+  "command": "bun native exact owner/branch/task release of verified committed source editing paths",
+  "records": [
+    {
+      "task": "TASK-API-0382",
+      "path": "src/orm/registry.py",
+      "args": [
+        "--release",
+        "src/orm/registry.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-API-0382"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-API-0382",
+      "path": "tests/unit/orm/test_registry_class.py",
+      "args": [
+        "--release",
+        "tests/unit/orm/test_registry_class.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-API-0382"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-API-0382",
+      "path": "src/modules/__init__.py",
+      "args": [
+        "--release",
+        "src/modules/__init__.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-API-0382"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "addons/account/models/res_company.py",
+      "args": [
+        "--release",
+        "addons/account/models/res_company.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "src/orm/environments.py",
+      "args": [
+        "--release",
+        "src/orm/environments.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "src/addons/base/models/res_bank.py",
+      "args": [
+        "--release",
+        "src/addons/base/models/res_bank.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "src/addons/base/models/res_country.py",
+      "args": [
+        "--release",
+        "src/addons/base/models/res_country.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "tests/unit/account/test_account_fiscal_country.py",
+      "args": [
+        "--release",
+        "tests/unit/account/test_account_fiscal_country.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "tests/unit/orm/test_environments_cache.py",
+      "args": [
+        "--release",
+        "tests/unit/orm/test_environments_cache.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "addons/product_expiry/models/production_lot.py",
+      "args": [
+        "--release",
+        "addons/product_expiry/models/production_lot.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "tests/integration/sale/test_product_expiry.py",
+      "args": [
+        "--release",
+        "tests/integration/sale/test_product_expiry.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "addons/stock/models/stock_move.py",
+      "args": [
+        "--release",
+        "addons/stock/models/stock_move.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "tests/unit/stock/test_stock_move_persistence.py",
+      "args": [
+        "--release",
+        "tests/unit/stock/test_stock_move_persistence.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "src/orm/fields.py",
+      "args": [
+        "--release",
+        "src/orm/fields.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "src/addons/base/models/res_partner.py",
+      "args": [
+        "--release",
+        "src/addons/base/models/res_partner.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "tests/unit/base/test_res_partner_category.py",
+      "args": [
+        "--release",
+        "tests/unit/base/test_res_partner_category.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "src/orm/models.py",
+      "args": [
+        "--release",
+        "src/orm/models.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    },
+    {
+      "task": "TASK-GEN-0633",
+      "path": "tests/unit/orm/test_unsaved_modified.py",
+      "args": [
+        "--release",
+        "tests/unit/orm/test_unsaved_modified.py",
+        "--owner",
+        "codex-module-lifecycle",
+        "--branch",
+        "feature/codex-workspace-bootstrap",
+        "--task",
+        "TASK-GEN-0633"
+      ],
+      "exit": 0
+    }
+  ],
+  "scope": "Editing leases only, no Task acceptance/status/owner change; evidence job reservations preserved"
+}

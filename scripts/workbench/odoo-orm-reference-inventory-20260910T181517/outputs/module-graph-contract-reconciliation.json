@@ -2077,9 +2077,56 @@
         "fiscal_fields_followup": {
           "source_revision": "f3623e313f67f5a2c010987db26e054540fe0db9",
           "contract": "orm-demo-continuation-20261023T144219/outputs/fiscal-fields-contract-14.json",
-          "verification": "7model metadata/setupPASS;2purecachePASS;cachefile40PASS7PGsetupERROR; final actual fiscal PostgreSQL and CI NOT_EVALUATED",
-          "block": "Automatic review rejected exact owned-resource cleanup pending explicit user approval",
+          "verification": "Actual fresh PostgreSQL114PASS, all prior39fiscal/47cache cases retained; required4b29 CI1850PASS1SKIP1FAIL at proven inherited StockLot label",
+          "block": "Prior cleanup block resolved by explicit user authorization; old resource independently absent0/0; current harness active",
           "acceptance": "not_verified"
+        },
+        "stock_lot_display_followup": {
+          "source_revision": "3806ec77c3090419871999becf711cb4f906c613",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/stock-lot-display-contract-14.json",
+          "verification": "RED10FAIL1PASS plus new-rowRED1FAIL; assignment-only11FAIL1PASS demonstrates stale format; complete30PASS; neighborhood297PASS after move correction",
+          "acceptance": "not_verified"
+        },
+        "stock_move_display_followup": {
+          "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/stock-move-display-contract-14.json",
+          "verification": "Exact093 baselineFAIL;4REDFAIL;16persistencePASS and297stock/expiryPASS; supplier context not qualified",
+          "acceptance": "not_verified"
+        },
+        "current_required_ci": {
+          "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+          "make_exit": 2,
+          "command": "make ci-verify",
+          "execution_status": "COMPLETED_FAILURE",
+          "pytest_exit": 1,
+          "passed": 2224,
+          "skipped": 1,
+          "failed": 1,
+          "seconds": 901.47,
+          "first_failure": "tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_creates_no_column",
+          "classification": "BASELINE_FAILURE: exact093 reproduces same metadata assertion; metadata visibility is not physical-column proof",
+          "baseline_evidence": "prefix-placeholder-baseline-093.junit.xml",
+          "later_tests": "NOT_EVALUATED",
+          "whole_head_acceptance": false
+        },
+        "historical64_current": {
+          "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+          "passed": 20,
+          "failed": 44,
+          "pytest_exit": 1,
+          "identity_changes": 0,
+          "junit": "current-historical64-replay.junit.xml",
+          "related_unowned": "Current0397/0417in_progressNULL and0418/0419pendingNULL; no execution inferred"
+        },
+        "current_block": {
+          "task": "TASK-API-0305",
+          "native_id": "520",
+          "status": "in_progress",
+          "owner": null,
+          "proposal": "analytic-prefix-ownership-proposal.json",
+          "proposal_executed": false,
+          "evidence": "Actual prefix metadata/physical introspectionPASS; old criterion fails; existing runtime reads4FAIL11PASS due default_get route",
+          "scope": "No unowned analytic block changes; no claim of global frontier exhaustion"
         }
       },
       "TASK-API-0383": {
@@ -2116,6 +2163,40 @@
         "acceptance": "not_verified",
         "integration": "Local ebb08d93, required gate completed failure at proven inherited fiscal default after1230PASS; pending publication/acceptance",
         "other_obligations": "Existing isolation fixture5PASS and cleanup retained, no rerun; whole authentication, authorization, metadata policy and historical recovery not accepted"
+      },
+      "TASK-API-0382": {
+        "native_id": "737",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "source_revision": "ec089c9a598183a53292421c14c1a55daf2c6f30",
+        "unit": "Reject unsupported lifecycle requests before Registry metadata initialization/replacement; preserve no-request path",
+        "contract": "orm-demo-continuation-20261023T144219/outputs/registry-readiness-contract-14.json",
+        "verification": {
+          "red_failed": 7,
+          "red_passed": 30,
+          "class_passed": 37,
+          "native_probe_exit": 0,
+          "registry_family_passed": 143,
+          "registry_family_exit": 0,
+          "global_ci": {
+            "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+            "make_exit": 2,
+            "command": "make ci-verify",
+            "execution_status": "COMPLETED_FAILURE",
+            "pytest_exit": 1,
+            "passed": 2224,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 901.47,
+            "first_failure": "tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_creates_no_column",
+            "classification": "BASELINE_FAILURE: exact093 reproduces same metadata assertion; metadata visibility is not physical-column proof",
+            "baseline_evidence": "prefix-placeholder-baseline-093.junit.xml",
+            "later_tests": "NOT_EVALUATED",
+            "whole_head_acceptance": false
+          }
+        },
+        "acceptance": "not_verified",
+        "remaining": "Effective per-base composition, full loader/hook/version/state cycle and installed module provenance remain not_verified; no unaccepted isolation state fabricated"
       }
     },
     "authority": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/contractual-additional-ownership-assignment.json and contractual-ownership-assignment.json",

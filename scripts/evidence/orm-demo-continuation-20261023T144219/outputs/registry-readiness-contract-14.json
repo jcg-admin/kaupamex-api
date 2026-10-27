@@ -1,0 +1,80 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "integration": "Local source committed with hooksPASS and focused regressionsPASS; required621aaf83 gate2224PASS1SKIP1FAIL at proven legacy analytic prefix criterion; publication pending, no whole-head acceptance or merge",
+  "source_revision": "ec089c9a598183a53292421c14c1a55daf2c6f30",
+  "reference_symbol": {
+    "path": "odoo19c:odoo/orm/registry.py",
+    "qualified_symbol": "Registry.new",
+    "line": 113,
+    "sha256": "b97c87be3c90948f3b28aed599863aa1b6480fcf65eeb17bc3e7c05c88092695",
+    "body": "def new(\n        cls,\n        db_name: str,\n        *,\n        update_module: bool = False,\n        install_modules: Collection[str] = (),\n        upgrade_modules: Collection[str] = (),\n        reinit_modules: Collection[str] = (),\n        new_db_demo: bool | None = None,\n        models_to_check: set[str] | None = None,\n    ) -> Registry:\n        \"\"\"Create and return a new registry for the given database name.\n\n        :param db_name: The name of the database to associate with the Registry instance.\n        :param update_module: If ``True``, update modules while loading the registry. Defaults to ``False``.\n        :param install_modules: Names of modules to install.\n\n          * If a specified module is **not installed**, it and all of its direct and indirect\n            dependencies will be installed.\n\n          Defaults to an empty tuple.\n\n        :param upgrade_modules: Names of modules to upgrade. Their direct or indirect dependent\n          modules will also be upgraded. Defaults to an empty tuple.\n        :param reinit_modules: Names of modules to reinitialize.\n\n          * If a specified module is **already installed**, it and all of its installed direct and\n            indirect dependents will be re-initialized. Re-initialization means the module will be\n            upgraded without running upgrade scripts, but with data loaded in ``'init'`` mode.\n\n        :param new_db_demo: Whether to install demo data for the new database. If set to ``None``, the value will be\n          determined by the ``config['with_demo']``. Defaults to ``None``\n        \"\"\"\n        t0 = time.time()\n        registry: Registry = object.__new__(cls)\n        registry.init(db_name)\n        registry.new = registry.init = registry.registries = None  # type: ignore\n        first_registry = not cls.registries\n\n        # Initializing a registry will call general code which will in\n        # turn call Registry() to obtain the registry being initialized.\n        # Make it available in the registries dictionary then remove it\n        # if an exception is raised.\n        cls.delete(db_name)\n        cls.registries[db_name] = registry  # pylint: disable=unsupported-assignment-operation\n        try:\n            registry.setup_signaling()\n            with registry.cursor() as cr:\n                # This transaction defines a critical section for multi-worker concurrency control.\n                # When the transaction commits, the first worker proceeds to upgrade modules. Other workers\n                # encounter a serialization error and retry, finding no upgrade marker in the database.\n                # This significantly reduces the likelihood of concurrent module upgrades across workers.\n                # NOTE: This block is intentionally outside the try-except below to prevent workers that fail\n                # due to serialization errors from calling `reset_modules_state` while the first worker is\n                # actively upgrading modules.\n                from odoo.modules import db  # noqa: PLC0415\n                if db.is_initialized(cr):\n                    cr.execute(\"DELETE FROM ir_config_parameter WHERE key='base.partially_updated_database'\")\n                    if cr.rowcount:\n                        update_module = True\n            # This should be a method on Registry\n            from odoo.modules.loading import load_modules, reset_modules_state  # noqa: PLC0415\n            exit_stack = ExitStack()\n            try:\n                if upgrade_modules or install_modules or reinit_modules:\n                    update_module = True\n                if new_db_demo is None:\n                    new_db_demo = config['with_demo']\n                if first_registry and not update_module:\n                    exit_stack.enter_context(gc.disabling_gc())\n                load_modules(\n                    registry,\n                    update_module=update_module,\n                    upgrade_modules=upgrade_modules,\n                    install_modules=install_modules,\n                    reinit_modules=reinit_modules,\n                    new_db_demo=new_db_demo,\n                    models_to_check=models_to_check,\n                )\n            except Exception:\n                reset_modules_state(db_name)\n                raise\n            finally:\n                exit_stack.close()\n        except Exception:\n            _logger.error('Failed to load registry')\n            del cls.registries[db_name]     # pylint: disable=unsupported-delete-operation\n            raise\n\n        del registry._reinit_modules\n\n        # load_modules() above can replace the registry by calling\n        # indirectly new() again (when modules have to be uninstalled).\n        # Yeah, crazy.\n        registry = cls.registries[db_name]  # pylint: disable=unsubscriptable-object\n\n        registry._init = False\n        registry.ready = True\n        registry.registry_invalidated = bool(update_module)\n        registry.signal_changes()\n\n        _logger.info(\"Registry loaded in %.3fs\", time.time() - t0)\n        return registry",
+    "decorators": [
+      "classmethod",
+      "locked"
+    ]
+  },
+  "behavior": "Unimplemented lifecycle requests cannot return ready or replace a standing metadata registry",
+  "execution_flow": "Existing locked Registry.new -> unsupported-request guard before allocation/init/cache replacement; no-request path retains existing seed/metadata lifecycle",
+  "inputs_outputs": "Update/install/upgrade/reinit, explicit demoTrue/demoFalse and model-check requests raiseNotImplementedError; empty requests keep ready metadata/loadedFalse behavior",
+  "side_effects": "Rejected request preserves prior registry object and its models mapping, performs no SQL or loader dispatch; existing reentrant lock retained",
+  "dependencies": [
+    "Native737 TASK-API-0382 pending owned codex-module-lifecycle; native frontier/claims/reconciliation retained",
+    "Pinned loader dispatch183 precedes ready210",
+    "No accepted isolation/whole-loader state fabricated for this pure guard"
+  ],
+  "consumers": [
+    "Existing singleton/lifecycle/locking registry consumers",
+    "Registry.check_signaling no-request rebuild",
+    "143 actual PostgreSQL registry family tests"
+  ],
+  "installed_mechanism": "Existing Registry factory, class lock, exceptions and LRU; no second registry/loader/coordinator",
+  "existing_adaptation": "Current metadata-only factory remains available without requests. Full Odoo loader is not emulated; unsupported explicit lifecycle requests fail instead of claiming success",
+  "verification": {
+    "standalone_red": {
+      "exit": 1,
+      "ready": true,
+      "prior_registry_preserved": false
+    },
+    "initial_instrument": {
+      "exit": 2,
+      "cause": "pytest reserved request parameter; corrected to options"
+    },
+    "qualified_red": {
+      "passed": 30,
+      "failed": 7,
+      "exit": 1
+    },
+    "green": {
+      "passed": 37,
+      "exit": 0
+    },
+    "standalone_green": {
+      "exit": 0,
+      "request": "REJECTED",
+      "prior_registry_preserved": true
+    },
+    "regression": {
+      "passed": 143,
+      "exit": 0,
+      "junit": "registry-readiness-regression.junit.xml"
+    },
+    "shared_required_ci": {
+      "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+      "make_exit": 2,
+      "command": "make ci-verify",
+      "execution_status": "COMPLETED_FAILURE",
+      "pytest_exit": 1,
+      "passed": 2224,
+      "skipped": 1,
+      "failed": 1,
+      "seconds": 901.47,
+      "first_failure": "tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_creates_no_column",
+      "classification": "BASELINE_FAILURE: exact093 reproduces same metadata assertion; metadata visibility is not physical-column proof",
+      "baseline_evidence": "prefix-placeholder-baseline-093.junit.xml",
+      "later_tests": "NOT_EVALUATED",
+      "whole_head_acceptance": false
+    }
+  },
+  "equivalence": "Bounded rejection/readiness contract verified; not implementation equivalence for requested installation",
+  "limitations": "Metadata-ready without requests is not effective per-base composition, module installation, hook/version finalization or full Registry acceptance; old legacy342 remains unresolved identity"
+}

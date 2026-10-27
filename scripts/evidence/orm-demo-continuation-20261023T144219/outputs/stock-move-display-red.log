@@ -1,0 +1,48 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+____________ test_display_name_joins_origin_code_and_both_locations ____________
+tests/unit/stock/test_stock_move_persistence.py:239: in test_display_name_joins_origin_code_and_both_locations
+    assert move.display_name == 'SO0042/CAM-M: Stock>Customers'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockMove(109,).display_name
+__________ test_display_name_is_invalidated_when_destination_changes ___________
+tests/unit/stock/test_stock_move_persistence.py:246: in test_display_name_is_invalidated_when_destination_changes
+    assert move.display_name == 'CAM-M: Stock>Customers'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockMove(110,).display_name
+___________ test_new_move_labels_keep_independent_values_without_sql ___________
+tests/unit/stock/test_stock_move_persistence.py:259: in test_new_move_labels_keep_independent_values_without_sql
+    assert first.display_name == 'CAM-M: Stock>Customers'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockMove(None,).display_name
+_____________ test_display_name_drops_the_prefixes_that_are_absent _____________
+tests/unit/stock/test_stock_move_persistence.py:271: in test_display_name_drops_the_prefixes_that_are_absent
+    assert move.display_name == 'Stock>Customers'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockMove(111,).display_name
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/stock/test_stock_move_persistence.py::test_display_name_joins_origin_code_and_both_locations
+  /workspace/kaupamex-api/src/orm/fields.py:4178: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/stock/test_stock_move_persistence.py::test_display_name_joins_origin_code_and_both_locations
+  /workspace/kaupamex-api/src/orm/fields.py:4178: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/stock-move-display-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/stock/test_stock_move_persistence.py::test_display_name_joins_origin_code_and_both_locations
+FAILED tests/unit/stock/test_stock_move_persistence.py::test_display_name_is_invalidated_when_destination_changes
+FAILED tests/unit/stock/test_stock_move_persistence.py::test_new_move_labels_keep_independent_values_without_sql
+FAILED tests/unit/stock/test_stock_move_persistence.py::test_display_name_drops_the_prefixes_that_are_absent
+4 failed, 12 deselected, 3 warnings in 4.73s

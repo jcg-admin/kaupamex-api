@@ -1,0 +1,14 @@
+{
+  "resource": "orm_bootstrap_5404af94c0df",
+  "authorization": "Explicit user authorization in current turn for exact cleanup and existing harness lifecycle",
+  "before": {
+    "owner": "orm_bootstrap_5404af94c0df",
+    "connections": 0
+  },
+  "cleanup": "Existing qa_context finally operations, exact owned resource only",
+  "after": {
+    "databases": 0,
+    "roles": 0
+  },
+  "result": "PASS"
+}

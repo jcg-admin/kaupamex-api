@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.917" timestamp="2026-10-26T17:22:25.876614" hostname="c8a29a030cff"><testcase classname="tests.integration.sale.test_product_expiry" name="test_new_expiry_lot_assigns_computed_label_without_sql" time="4.768"><failure message="ValueError: Compute method failed to assign stock.StockLot(None,).display_name">tests/integration/sale/test_product_expiry.py:241: in test_new_expiry_lot_assigns_computed_label_without_sql
+    assert lot.display_name == 'NEW\t--Expired--'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign stock.StockLot(None,).display_name</failure></testcase></testsuite></testsuites>

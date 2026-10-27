@@ -1,0 +1,37 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet.run; proposed TaskUpdate.run(owner-only)",
+  "before": {
+    "task_id": "520",
+    "citation_id": "TASK-API-0305",
+    "subject": "Retomar el bloque analytic de account con apps.py y analytic/migrations en alcance",
+    "description": "H-API-684: 21 de 25 def del bloque anal\u00edtico quedaron BLOQUEADOS por el ALCANCE DE ESCRITURA del tramo, no por capacidad del ORM. Faltaban dos piezas en la lista de escribibles: addons/account/apps.py (para cablear las 4 funciones apply_*_extensions() ya escritas en AccountConfig._EXTENSIONES) y addons/analytic/migrations/ (para la columna move_line_id y account_prefix/product/product_categ, porque account.analytic.line vive en la app analytic). Retomar account_analytic_account.py y account_analytic_line.py con ambas en alcance. Depende adem\u00e1s de AccountMove.get_sale_types/get_purchase_types y AccountMoveLine.analytic_distribution.",
+    "status": "in_progress",
+    "owner": null,
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "proposed_input": {
+    "task_id": "520",
+    "owner": "codex-module-lifecycle"
+  },
+  "must_preserve": [
+    "status",
+    "blocked_by",
+    "blocks",
+    "citation_id"
+  ],
+  "executed": false,
+  "scope": "Reconcile existing analytic block and demonstrated prefix-placeholder metadata/compute contract; no new TASK, no status or dependency change, no inferred availability from ownerNULL",
+  "evidence": [
+    "prefix-placeholder-before.junit.xml",
+    "prefix-placeholder-baseline-093.junit.xml"
+  ],
+  "source_notes": "Actual helper predates remaining three analytic methods; do not use completed header as proof of native Task completion or execute an overlapping unowned analytic scope",
+  "additional_evidence": [
+    "prefix-placeholder-physical-introspection.json",
+    "prefix-placeholder-before.junit.xml"
+  ],
+  "finding": "No physical prefix_placeholder column exists; metadata-visible typed private field is legitimate. Existing runtime default requires instance and model lacks default_get. Related native0305 remains in_progress ownerNULL; no source/test changes executed."
+}

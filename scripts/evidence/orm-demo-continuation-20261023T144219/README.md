@@ -607,3 +607,52 @@ Commits locales/hooks preservados; publicación posterior a la comprobación
 requerida permanece pendiente. PR109/154 abiertos sin merge en consulta real.
 No estados oficiales, inferencia local gestionada, aceptación integral ni
 finalización de completar-raiz-orm.
+
+
+## Recuperación autorizada y continuación verificada
+
+El usuario autorizó la limpieza exacta anterior y el ciclo completo del harness.
+El recurso5404af94c0df se revalidó propietario/0conexiones y quedó ausente0/0.
+El nuevo recurso4bbec2db0478 se creó con el harness existente; su limpieza
+final terminó0 y la verificación independiente confirma0bases/0roles/0líneasHBA.
+No se registraron contraseñas ni se limpió infraestructura compartida.
+
+La corrección fiscal pasó114casos PostgreSQL fresco453.15s; todos los39casos
+fiscales y47de caché anteriores permanecen, incluidos los16REDFAIL,3fallos
+de declaración y7errores de preparación yaPASS. Ocho tablas/columnas de
+modelo coinciden con093; siete declaraciones se vinculan a la revisión fija.
+Su gate4b29 terminó1850PASS1SKIP1FAIL, Make2, porStockLot. Exact093 reproduce.
+
+Sourceec089c9a rechaza solicitudes de ciclo de vida antes de sustituir el
+Registry de metadatos: RED7FAIL30PASS, GREEN37PASS, sonda realpreserva
+instancia y familiaRegistry143PASS. No implementa la instalación completa
+ni acepta composición efectiva por base; el camino sin solicitudes permanece.
+
+Source3806ec77 asigna y reconcilia el formato de caducidad con el cuerpo
+fijado, no con la cabecera antigua. Contexto/activación/alerta/vencimiento y
+prioridad, invalidación del template y nuevo registro0SQL pasan30casos.
+La corrección sólo de asignación dejaba11FAIL1PASS; formato/predicados
+también eran incorrectos. La identidad del test histórico se conserva.
+
+Source621aaf83 asigna el nombre deStockMove y declara sus relaciones reales,
+conservando code_for(None): RED4FAIL, persistencia16PASS y ampliación
+stock/caducidad297PASS. Se prueban destino cambiado y dos nuevos0SQL.
+El contexto específico de proveedor sigue fuera de esa equivalencia.
+
+El gate requerido621aaf83 terminó2224PASS1SKIP1FAIL901.47s, Make2/Pytest1.
+Primer fallo: prefix_placeholder en_meta; exact093 lo reproduce. La
+introspección real confirma campo privado registrado pero sin columna,
+y las tres columnas analíticas propias presentes. El archivo completo
+da4FAIL11PASS: el campo se declara como default(instance), sin default_get
+en el modelo, aunque la referencia lo calcula. Native0305 siguein_progress
+sin propietario. Propuesta de asignación sólo de owner guardada y preguntada,
+no ejecutada; no cambios de fuente/pruebas del bloque analítico.
+
+El replay exacto de64originales conserva20PASS44FAIL,0cambios de resultado
+por identidad en621; no se extrapola el replay antiguo. Native0397/0417
+in_progressNULL y0418/0419pendingNULL no se declaran disponibles. Se
+conservan62filas originales y19/7registros estructurales; no son denominador
+de aceptación. Once archivos de referencia usados coinciden byte a byte
+con blobsabe4040. Sin cambios de estado oficial, inferencia gestionada,
+merge o aceptación completa deORM/Registry. Publicación se verifica después
+del checkpoint; no se presenta el gate fallido comoPASS.

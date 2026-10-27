@@ -41,5 +41,12 @@
     "src/orm/environments.py": "1be396018fec24caa0d644a7abe360a2fea3bfbdeda316e38e6cfecdf20cf623",
     "src/modules/loading.py": "e7f1396d427dfac5435263b09f6b716b2ce010cada0842172f5826bea32a7516"
   },
-  "production_changes": false
+  "production_changes": false,
+  "current_factory_boundary": {
+    "source_revision": "ec089c9a598183a53292421c14c1a55daf2c6f30",
+    "behavior": "Lifecycle requests rejected before initialization/replacement; no-request metadata path unchanged",
+    "verification": "143registry familyPASS plus standalone real factory probe preserving previous object",
+    "contract": "registry-readiness-contract-14.json",
+    "remaining": "Original per-base composition/full-loader observations remain unaccepted; historical source099 observations retained"
+  }
 }
