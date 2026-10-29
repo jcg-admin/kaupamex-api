@@ -122,7 +122,9 @@ class ModuleGraph:
         graph.extend(names)
         return graph
 
-    def _update_from_database(self, names: Iterable[str], *, using: str) -> None:
+    def _update_from_database(
+        self, names: Iterable[str], *, using: str
+    ) -> None:
         """Copia estado por base; la versión instalada nunca sale del manifest.
 
         ``IrModule.installed_version`` corresponde al ``latest_version``
@@ -136,11 +138,16 @@ class ModuleGraph:
         rows = model.objects.using(using).filter(name__in=names).order_by().values_list(
             'name', 'id', 'state', 'demo', 'installed_version')
         for name, identifier, state, demo, version in rows:
-            # Un antecesor puede haber retirado este dependiente antes de su fila.
+            # Un antecesor puede haber retirado este dependiente antes
+            # de su fila.
             if name not in self:
                 continue
-            if state == 'uninstallable' or (self.mode == 'load' and state in (
-                    'uninstalled', 'to install')):
+            if state == 'uninstallable':
+                _logger.warning('module %s: not installable, skipped', name)
+                self._remove(name)
+                continue
+            if self.mode == 'load' and state in ('uninstalled', 'to install'):
+                _logger.info('module %s: not installed, skipped', name)
                 self._remove(name)
                 continue
             node = self[name]
@@ -230,8 +237,13 @@ class ModuleGraph:
 
         if self.using is not None and new_names:
             for name in new_names:
-                if name in self and (not self[name].manifest or not
-                                     self[name].manifest.get('installable', True)):
+                if name in self and (
+                    not self[name].manifest
+                    or not self[name].manifest.get('installable', True)
+                ):
+                    _logger.warning(
+                        'module %s: not installable, skipped', name
+                    )
                     self._remove(name)
             self._update_depends(new_names)
             self._update_depth(new_names)
