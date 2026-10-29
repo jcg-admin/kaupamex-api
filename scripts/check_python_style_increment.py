@@ -202,12 +202,13 @@ def inspect_source(raw, path, baseline=False):
     for value in checked_lines:
         offsets.append(offsets[-1] + len(value))
     replacements = []
+    suppressions = []
     for token in tokenize.generate_tokens(io.StringIO(text).readline):
         if token.type == tokenize.COMMENT and pragma.search(token.string):
-            if not baseline:
-                raise Unverifiable(
-                    'Suppression in changed source requires review'
-                )
+            suppressions.append((
+                token.start[0], token.start[1] + 1,
+                'SUPPRESSION', token.string,
+            ))
         if token.type in {tokenize.STRING, tokenize.COMMENT} and pragma.search(
             token.string,
         ):
@@ -234,6 +235,7 @@ def inspect_source(raw, path, baseline=False):
     )
     checker.check_all()
     rows = list(native.rows)
+    rows.extend(suppressions)
     rows.extend(
         (line, 1, 'IMPORT', statement)
         for line, statement in find_misplaced_imports(tree)
@@ -291,10 +293,14 @@ def evaluate_file(change):
         return result
     result['candidate_checks'] = {
         'compilation_exit': 0,
-        'style_exit': int(any(row['code'] != 'IMPORT' for row in new)),
+        'style_exit': int(any(
+            row['code'] not in {'IMPORT', 'SUPPRESSION'} for row in new
+        )),
         'imports_exit': int(any(row['code'] == 'IMPORT' for row in new)),
     }
     if change['status'].startswith(('A', 'R')) or not old_python:
+        if any(row['code'] == 'SUPPRESSION' for row in new):
+            raise Unverifiable('New or moved source contains a suppression')
         result['introduced'] = new
         result['decision'] = 'FAIL' if new else 'PASS'
         result['comparison'] = 'STRICT_NEW_OR_MOVED_FILE'
@@ -309,7 +315,9 @@ def evaluate_file(change):
         raise Unverifiable('Base cannot be compiled reliably') from error
     result['base_checks'] = {
         'compilation_exit': 0,
-        'style_exit': int(any(row['code'] != 'IMPORT' for row in old)),
+        'style_exit': int(any(
+            row['code'] not in {'IMPORT', 'SUPPRESSION'} for row in old
+        )),
         'imports_exit': int(any(row['code'] == 'IMPORT' for row in old)),
     }
     mapping = {}
@@ -326,6 +334,10 @@ def evaluate_file(change):
             available[key] -= 1
             result['inherited'].append(row)
         else:
+            if row['code'] == 'SUPPRESSION':
+                raise Unverifiable(
+                    'New or changed suppression requires review'
+                )
             result['introduced'].append(row)
     remaining = available.copy()
     forward = {old_line: new_line for new_line, old_line in mapping.items()}
@@ -421,6 +433,9 @@ def qualify_checkers(entries, candidate, report):
             'test_duplicate_diagnostics_do_not_hide_an_added_occurrence',
             'test_real_hook_rejects_invalid_provenance',
             'test_qualification_flag_is_not_a_policy_bypass',
+            'test_unchanged_old_suppression_cannot_hide_style_debt',
+            'test_changed_old_suppression_is_rejected',
+            'test_moved_old_suppression_is_rejected',
             'test_real_hook_rejects_regressions_and_preserves_other_gates'
             '[clean]',
             'test_real_hook_rejects_regressions_and_preserves_other_gates'

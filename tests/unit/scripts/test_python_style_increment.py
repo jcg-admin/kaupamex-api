@@ -201,6 +201,37 @@ def test_removing_an_old_suppression_does_not_hide_base_debt(repo):
     assert report['files'][0]['corrected']
 
 
+def test_unchanged_old_suppression_cannot_hide_style_debt(repo):
+    suppressed = DEBT.rstrip() + '  # noqa: BLE001\n'
+    stage(repo, suppressed)
+    git(repo, 'commit', '-qm', 'Suppression provenance fixture')
+    stage(repo, suppressed + 'answer = 42\n')
+    result, report = admit(repo)
+    assert result.returncode == 0
+    file = report['files'][0]
+    assert file['candidate_checks']['style_exit'] == 1
+    assert any(row['code'] == 'E501' for row in file['inherited'])
+    assert any(row['code'] == 'SUPPRESSION' for row in file['inherited'])
+
+
+def test_changed_old_suppression_is_rejected(repo):
+    suppressed = DEBT.rstrip() + '  # noqa: BLE001\n'
+    stage(repo, suppressed)
+    git(repo, 'commit', '-qm', 'Suppression fixture')
+    stage(repo, suppressed.replace('BLE001', 'E501'))
+    result, _ = admit(repo)
+    assert result.returncode == 2
+
+
+def test_moved_old_suppression_is_rejected(repo):
+    suppressed = DEBT.rstrip() + '  # noqa: BLE001\n'
+    stage(repo, suppressed)
+    git(repo, 'commit', '-qm', 'Suppression fixture')
+    stage(repo, 'answer = 42\n' + suppressed)
+    result, _ = admit(repo)
+    assert result.returncode == 2
+
+
 def test_policy_change_requires_separate_qualification(repo):
     stage(repo, DEBT + 'answer = 42\n')
     stage(repo, '[tool.example]\n', 'pyproject.toml')
