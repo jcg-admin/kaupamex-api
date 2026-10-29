@@ -38,6 +38,18 @@ Python >=3.12,<3.15; `uv sync --frozen`. PostgreSQL >=14, nunca SQLite como sust
 Separa PASS, FAIL, BLOCKED y no ejecutado. Compara fallo heredado y regresión.
 Un proceso vivo o una declaración de un modelo no acredita aceptación.
 
+PEP 8 es obligatorio en todo el Python versionado: `make check-style`, sin
+baseline de deuda. Los imports pertenecen al bloque inicial del módulo, antes
+de código ejecutable; nunca dentro de funciones o clases ni intercalados con
+definiciones. Sólo se admiten dependencias opcionales, tipos y plataforma en
+ese bloque inicial, conforme a `docs/python-style.md`. No sustituir imports
+por carga dinámica para eludir el gate. El pre-commit verifica admisión
+incremental del índice real contra HEAD, con procedencia y cualificación de
+verificadores cuando cambien. Permite publicar commits delimitados en PR
+pendientes; no acredita conformidad global, integración ni aceptación.
+`make check-style` conserva el control global y `make ci-verify` detiene las
+etapas posteriores si falla. No se permite integrar con CI obligatorio fallido.
+
 Antes de publicar cambios de API para aceptación, ejecuta `make ci-verify`
 contra PostgreSQL desechable propio; es el mismo contrato que usa Actions.
 Consulta `docs/ci-local.md` para precondiciones y autorización de recreación.

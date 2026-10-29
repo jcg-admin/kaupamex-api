@@ -6,6 +6,8 @@
 
 help:
 	@echo 'Targets:'
+	@echo '  make check-style      PEP 8 e imports de todo el Python versionado'
+
 	@echo '  make check-names       Nombre de addon contra odoo-tools (H-API-119)'
 	@echo '  make check-names-ci    Idem, exit != 0 tambien con deuda heredada'
 	@echo '  make check-layout      Capas estructurales en paquete (H-API-238)'
@@ -38,6 +40,10 @@ help:
 	@echo '  make clean-pdf         Borra binarios y objetos de los helpers PDF'
 
 # Audit local — imprime hallazgos pero no falla (para inspeccion manual).
+.PHONY: check-style
+check-style:
+	bash scripts/check_python_style.sh --all
+
 check-names:
 	python3 scripts/check_addon_names.py
 
@@ -142,6 +148,7 @@ install-hooks:
 ci-verify: export UV_PYTHON = 3.12
 ci-verify:
 	uv sync --frozen
+	$(MAKE) check-style
 	uv run --frozen python scripts/check_ci_database.py
 	$(MAKE) pdf
 	uv run --frozen pytest --create-db --maxfail=1 -q --junitxml=test-results/pytest.xml

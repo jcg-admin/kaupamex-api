@@ -24,6 +24,16 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 EXIT_CODE=0
 
+# Admisión del índice exacto; conformidad global separada en check-style/CI.
+STYLE_REPORT="$REPO_ROOT/scripts/evidence/ci-local-fail-fast-20261022T004947/outputs/pre-commit-admission.json"
+mkdir -p -- "$(dirname -- "$STYLE_REPORT")"
+STYLE_BASE="$(git rev-parse --verify HEAD)"
+STYLE_TREE="$(git write-tree)"
+bash "$REPO_ROOT/scripts/check_python_style.sh" --increment \
+    --base "$STYLE_BASE" --index-tree "$STYLE_TREE" \
+    --qualify-checkers --report "$STYLE_REPORT" || EXIT_CODE=1
+echo 'Global style compliance: NOT_EXECUTED here; use make check-style/ci-verify.'
+
 # ─── El alcance que comparten TODOS los gates de abajo ───────────────────────
 # Las tres raíces son las que `check_no_lazy_imports.py` declara en su
 # DEFAULT_ROOTS: el código de la app. `addons/` faltaba desde que #317 movió
