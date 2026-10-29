@@ -421,6 +421,15 @@ def test_real_hook_rejects_invalid_provenance(repo, monkeypatch):
     result = actual_hook(repo)
     assert result.returncode == 1
     assert 'ERROR' in result.stdout
+    report_path = (
+        repo / 'scripts/evidence/ci-local-fail-fast-20261022T004947'
+        / 'outputs/pre-commit-admission.json'
+    )
+    report = json.loads(report_path.read_text())
+    assert report['increment_admission'] == 'ERROR'
+    assert report['exit_code'] == 2
+    assert report['reasons']
+    assert report['global_style_compliance'] == 'NOT_EVALUATED'
 
 
 def test_qualification_flag_is_not_a_policy_bypass(repo):
