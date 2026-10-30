@@ -1,4 +1,5 @@
 """Demo orchestration contracts; real PG integration is verified separately."""
+
 from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
 from unittest import mock
@@ -14,27 +15,86 @@ from orm.environments import Environment, get_context, is_su
 
 
 def package(**changes):
-    manifest = {'demo':['demo.sql']}
+    manifest = {'demo': ['demo.sql']}
     manifest.update(changes)
     return SimpleNamespace(name='demo_contract', id=17, manifest=manifest)
 
 
 def environment():
-    return Environment(cr='default', uid=42, su=False, context={'original':True})
+    return Environment(
+        cr='default', uid=42, su=False, context={'original': True}
+    )
 
 
 @contextmanager
 def unit_transaction():
-    with mock.patch.object(connection, 'in_atomic_block', True), \
-            mock.patch('modules.loading.transaction.atomic', return_value=nullcontext()), \
-            mock.patch.object(IrModule.objects, 'using') as catalogue:
+    with (
+        mock.patch.object(connection, 'in_atomic_block', True),
+        mock.patch(
+            'modules.loading.transaction.atomic', return_value=nullcontext()
+        ),
+        mock.patch.object(IrModule.objects, 'using') as catalogue,
+    ):
         catalogue.return_value.filter.return_value.exists.return_value = True
         yield catalogue
 
 
+@pytest.mark.parametrize('legacy_only', [False, True])
+def test_demo_logs_start_before_loading(caplog, legacy_only):
+    caplog.set_level('INFO', logger='modules.loading')
+
+    def load(*args, **kwargs):
+        assert 'Module demo_contract: loading demo' in caplog.messages
+
+    selected = (
+        package(demo=[], demo_xml=['legacy.xml']) if legacy_only else package()
+    )
+    with (
+        unit_transaction(),
+        mock.patch('modules.loading.load_data', side_effect=load),
+        mock.patch.object(Environment, 'ref', return_value=None),
+    ):
+        assert loading.load_demo(environment(), selected, {}, 'init') is True
+
+
+def test_no_demo_does_not_log_loading_or_failure(caplog):
+    caplog.set_level('INFO', logger='modules.loading')
+    assert loading.load_demo(
+        environment(), package(demo=[]), {}, 'init'
+    ) is True
+    assert not [
+        record for record in caplog.records
+        if record.name == 'modules.loading'
+    ]
+
+
+def test_demo_failure_log_preserves_optional_failure_meaning(caplog):
+    with (
+        unit_transaction(),
+        mock.patch('modules.loading.load_data', side_effect=ValueError('bad')),
+        mock.patch.object(Environment, 'ref', return_value=None),
+    ):
+        assert loading.load_demo(
+            environment(), package(), {}, 'init'
+        ) is False
+    failures = [
+        record for record in caplog.records
+        if record.name == 'modules.loading' and record.levelname == 'WARNING'
+    ]
+    assert len(failures) == 1
+    assert failures[0].getMessage() == (
+        'Module demo_contract demo data failed to install, '
+        'installed without demo data'
+    )
+    assert failures[0].exc_info[0] is ValueError
+
+
 def test_no_demo_does_not_require_transaction_or_load_data():
     with mock.patch('modules.loading.load_data') as data:
-        assert loading.load_demo(environment(), package(demo=[]), {}, 'init') is True
+        assert (
+            loading.load_demo(environment(), package(demo=[]), {}, 'init')
+            is True
+        )
     data.assert_not_called()
 
 
@@ -53,11 +113,19 @@ def test_demo_activates_scope_and_restores_it(legacy_only):
     def data(idref, mode, kind, selected, *, using):
         assert idref is refs and mode == 'init' and kind == 'demo'
         assert using == 'default'
-        assert is_su() and get_context() == {'original':True, 'install_demo':True}
+        assert is_su() and get_context() == {
+            'original': True,
+            'install_demo': True,
+        }
         return True
 
-    selected = package(demo=[], demo_xml=['legacy.xml']) if legacy_only else package()
-    with unit_transaction(), mock.patch('modules.loading.load_data', side_effect=data):
+    selected = (
+        package(demo=[], demo_xml=['legacy.xml']) if legacy_only else package()
+    )
+    with (
+        unit_transaction(),
+        mock.patch('modules.loading.load_data', side_effect=data),
+    ):
         assert loading.load_demo(env, selected, refs, 'init') is True
     assert (is_su(), dict(get_context())) == original
 
@@ -67,13 +135,23 @@ def test_failure_records_full_traceback_after_scope_restoration():
     original = (is_su(), dict(get_context()))
     configuration_step = mock.Mock(state='done')
     message = 'complete failure Ω\n' * 300
-    with unit_transaction(), \
-            mock.patch('modules.loading.load_data', side_effect=ValueError(message)), \
-            mock.patch.object(Environment, 'ref', return_value=configuration_step) as lookup, \
-            mock.patch.object(IrDemoFailure.objects, 'using') as storage:
+    with (
+        unit_transaction(),
+        mock.patch(
+            'modules.loading.load_data', side_effect=ValueError(message)
+        ),
+        mock.patch.object(
+            Environment, 'ref', return_value=configuration_step
+        ) as lookup,
+        mock.patch.object(IrDemoFailure.objects, 'using') as storage,
+    ):
         assert loading.load_demo(env, package(), {}, 'update') is False
-        lookup.assert_called_once_with('base.demo_failure_todo', raise_if_not_found=False)
-        configuration_step.save.assert_called_once_with(using='default', update_fields=['state'])
+        lookup.assert_called_once_with(
+            'base.demo_failure_todo', raise_if_not_found=False
+        )
+        configuration_step.save.assert_called_once_with(
+            using='default', update_fields=['state']
+        )
         assert configuration_step.state == 'open'
         storage.assert_called_once_with('default')
         values = storage.return_value.create.call_args.kwargs
@@ -82,49 +160,75 @@ def test_failure_records_full_traceback_after_scope_restoration():
 
 
 def test_missing_configuration_step_does_not_invent_a_failure_record():
-    with unit_transaction(), \
-            mock.patch('modules.loading.load_data', side_effect=ValueError('bad demo')), \
-            mock.patch.object(Environment, 'ref', return_value=None), \
-            mock.patch.object(IrDemoFailure.objects, 'using') as storage:
+    with (
+        unit_transaction(),
+        mock.patch(
+            'modules.loading.load_data', side_effect=ValueError('bad demo')
+        ),
+        mock.patch.object(Environment, 'ref', return_value=None),
+        mock.patch.object(IrDemoFailure.objects, 'using') as storage,
+    ):
         assert loading.load_demo(environment(), package(), {}, 'init') is False
     storage.assert_not_called()
 
 
 def test_missing_optional_failure_model_does_not_write_configuration_step():
     configuration_step = mock.Mock(state='done')
-    with unit_transaction(), \
-            mock.patch.object(Environment, '__getitem__', side_effect=KeyError('optional model')), \
-            mock.patch('modules.loading.load_data', side_effect=ValueError('bad demo')), \
-            mock.patch.object(Environment, 'ref', return_value=configuration_step):
+    with (
+        unit_transaction(),
+        mock.patch.object(
+            Environment, '__getitem__', side_effect=KeyError('optional model')
+        ),
+        mock.patch(
+            'modules.loading.load_data', side_effect=ValueError('bad demo')
+        ),
+        mock.patch.object(Environment, 'ref', return_value=configuration_step),
+    ):
         assert loading.load_demo(environment(), package(), {}, 'init') is False
     configuration_step.save.assert_not_called()
 
 
 def test_mismatched_reporting_alias_is_rejected_before_loading():
-    with unit_transaction(), \
-            mock.patch('modules.loading.router.db_for_write', return_value='company_9_db'), \
-            mock.patch('modules.loading.load_data') as data:
+    with (
+        unit_transaction(),
+        mock.patch(
+            'modules.loading.router.db_for_write', return_value='company_9_db'
+        ),
+        mock.patch('modules.loading.load_data') as data,
+    ):
         with pytest.raises(ValueError, match='alias'):
             loading.load_demo(environment(), package(), {}, 'init')
     data.assert_not_called()
 
 
 def test_reporting_error_is_not_silently_treated_as_success():
-    with unit_transaction(), \
-            mock.patch('modules.loading.load_data', side_effect=ValueError('bad demo')), \
-            mock.patch.object(Environment, 'ref', return_value=mock.Mock(state='done')), \
-            mock.patch.object(IrDemoFailure.objects, 'using') as storage:
-        storage.return_value.create.side_effect = RuntimeError('failure reporting failed')
+    with (
+        unit_transaction(),
+        mock.patch(
+            'modules.loading.load_data', side_effect=ValueError('bad demo')
+        ),
+        mock.patch.object(
+            Environment, 'ref', return_value=mock.Mock(state='done')
+        ),
+        mock.patch.object(IrDemoFailure.objects, 'using') as storage,
+    ):
+        storage.return_value.create.side_effect = RuntimeError(
+            'failure reporting failed'
+        )
         with pytest.raises(RuntimeError, match='failure reporting failed'):
             loading.load_demo(environment(), package(), {}, 'init')
 
 
 def test_package_identity_mismatch_does_not_write_failure():
     configuration_step = mock.Mock(state='done')
-    with unit_transaction() as catalogue, \
-            mock.patch('modules.loading.load_data', side_effect=ValueError('bad demo')), \
-            mock.patch.object(Environment, 'ref', return_value=configuration_step), \
-            mock.patch.object(IrDemoFailure.objects, 'using') as storage:
+    with (
+        unit_transaction() as catalogue,
+        mock.patch(
+            'modules.loading.load_data', side_effect=ValueError('bad demo')
+        ),
+        mock.patch.object(Environment, 'ref', return_value=configuration_step),
+        mock.patch.object(IrDemoFailure.objects, 'using') as storage,
+    ):
         catalogue.return_value.filter.return_value.exists.return_value = False
         with pytest.raises(ValueError, match='identity'):
             loading.load_demo(environment(), package(), {}, 'init')
