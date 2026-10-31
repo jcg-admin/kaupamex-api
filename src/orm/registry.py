@@ -166,10 +166,10 @@ def signaling_table_names():
 #: singleton que este árbol tiene.
 _CACHES = {name: LRU(size) for name, size in _REGISTRY_CACHES.items()}
 
-#: El registro de invalidación **de este hilo** — ≙ los dos campos que la
-#: fuente guarda en ``Registry._invalidation_flags`` (``odoo19c:
-#: odoo/orm/registry.py:224``): ``registry`` (bool) y ``cache`` (conjunto de
-#: nombres vaciados desde la última señal).
+#: Los nombres de caché invalidados por este hilo. Sus contenedores son del
+#: proceso y el invalidator de módulo debe escribir lo que señalización lee.
+#: La bandera de cambios de Registry pertenece, en cambio, a cada instancia:
+#: construir o modificar otro registro no debe borrarla ni propagarla.
 #:
 #: Vive en el módulo por la misma razón que :data:`_CACHES`, y es la mitad que
 #: faltaba: los contenedores son estado de proceso, así que su registro de
@@ -205,15 +205,11 @@ def cache_invalidated_names():
 
 
 def reset_invalidation_record():
-    """Olvida lo que este hilo hubiera anotado — lo llama ``Registry.init``.
+    """Reset this thread's shared cache record, called by Registry.init.
 
-    ≙ ``self._invalidation_flags = threading.local()`` de la fuente (``:279``),
-    que al inicializar un registro descarta el registro de invalidación entero.
-    Aquí el descarte es del hilo que construye, porque la estructura es de
-    proceso: un hilo ajeno conserva lo suyo, que es lo que él necesita
-    señalizar.
+    Registry.init separately creates its own thread-local registry flag.
+    Cache containers and their invalidator keep the process-level contract.
     """
-    _invalidation.registry = False
     _invalidation.cache = set()
 
 
@@ -743,7 +739,8 @@ def many2one_company_dependents(model_label):
 #
 # Aquí no hay fase de setup que poblar: Django carga los modelos y termina. Así
 # que el mapa se **deriva** de lo ya declarado, y se deriva una sola vez —
-# ``@api.depends`` deja su tupla en ``func._depends`` (``orm/decorators.py:23``),
+# ``@api.depends`` deja su tupla en ``func._depends``
+# (``orm/decorators.py:23``),
 # y un campo calculado nombra su método en ``compute``.
 #
 # La derivación es la misma información por otro camino: allá el decorador la
@@ -1926,6 +1923,7 @@ class Registry(Mapping):
 
         self.registry_sequence = -1
         self.cache_sequences = {}
+        self._invalidation_flags = threading.local()
         reset_invalidation_record()
 
         #: ≙ ``Registry._assertion_report`` (``:227-231``). Alla guarda un
@@ -2118,11 +2116,11 @@ class Registry(Mapping):
         Docstring de la fuente, verbatim: *"Determine whether the current
         thread has modified the registry"*.
         """
-        return getattr(_invalidation, 'registry', False)
+        return getattr(self._invalidation_flags, 'registry', False)
 
     @registry_invalidated.setter
     def registry_invalidated(self, value):
-        _invalidation.registry = value
+        self._invalidation_flags.registry = value
 
     @property
     def cache_invalidated(self):
