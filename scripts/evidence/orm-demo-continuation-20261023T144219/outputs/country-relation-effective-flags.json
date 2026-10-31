@@ -1,0 +1,11 @@
+{
+  "field": "base.ResCompany.country",
+  "required": false,
+  "null": false,
+  "blank": false,
+  "store": false,
+  "concrete": false,
+  "related": null,
+  "compute": "_compute_address",
+  "scope": "Effective metadata only; no data read or state change"
+}

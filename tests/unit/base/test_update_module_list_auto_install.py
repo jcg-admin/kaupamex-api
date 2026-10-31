@@ -20,6 +20,7 @@ import pytest
 from django.conf import settings
 from django.core.management import call_command
 
+from addons.base.models import IrModule
 from modules import ModuleGraph
 from modules.module import get_modules
 
@@ -42,6 +43,10 @@ def module_graph():
 
 def test_the_command_reports_auto_install_coherence():
     """El chequeo corre dentro del comando, no es una función suelta."""
+    IrModule.objects.bulk_create([
+        IrModule(name=name, state=IrModule.STATE_INSTALLED)
+        for name in installed_addon_names()
+    ])
     out = io.StringIO()
     call_command('update_module_list', '--dry-run', stdout=out)
     salida = out.getvalue()
@@ -121,3 +126,12 @@ def test_an_addon_without_auto_install_never_appears():
 
     reduced = installed_addon_names() - {plain}
     assert plain not in graph.auto_installable(reduced)
+
+
+def test_imported_code_does_not_hide_auto_install_candidates_in_empty_catalog():
+    assert not IrModule.objects.exists()
+    out = io.StringIO()
+    call_command('update_module_list', '--dry-run', stdout=out)
+    assert 'auto_install coherente: 0 pendientes' not in out.getvalue()
+    assert '  base  (depends:' in out.getvalue()
+    assert not IrModule.objects.exists()

@@ -1,0 +1,35 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+____________ test_reference_phase_depends_on_mode_and_pending_state ____________
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:76: in test_reference_phase_depends_on_mode_and_pending_state
+    assert ours['base'].phase == 0
+E   AttributeError: 'ModuleNode' object has no attribute 'phase'
+___ test_phase_and_iteration_match_reference_for_state_boundaries[installed] ___
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:98: in test_phase_and_iteration_match_reference_for_state_boundaries
+    ref['new'].state = ours['new'].state = state
+E   AttributeError: 'ModuleNode' object has no attribute 'state'
+__ test_phase_and_iteration_match_reference_for_state_boundaries[to install] ___
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:98: in test_phase_and_iteration_match_reference_for_state_boundaries
+    ref['new'].state = ours['new'].state = state
+E   AttributeError: 'ModuleNode' object has no attribute 'state'
+__ test_phase_and_iteration_match_reference_for_state_boundaries[to upgrade] ___
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:98: in test_phase_and_iteration_match_reference_for_state_boundaries
+    ref['new'].state = ours['new'].state = state
+E   AttributeError: 'ModuleNode' object has no attribute 'state'
+___ test_phase_and_iteration_match_reference_for_state_boundaries[to remove] ___
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:98: in test_phase_and_iteration_match_reference_for_state_boundaries
+    ref['new'].state = ours['new'].state = state
+E   AttributeError: 'ModuleNode' object has no attribute 'state'
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_reference_phase_depends_on_mode_and_pending_state
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_phase_and_iteration_match_reference_for_state_boundaries[installed]
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_phase_and_iteration_match_reference_for_state_boundaries[to install]
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_phase_and_iteration_match_reference_for_state_boundaries[to upgrade]
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_phase_and_iteration_match_reference_for_state_boundaries[to remove]
+5 failed, 9 deselected, 1 warning in 0.14s

@@ -3,58 +3,93 @@
 Resuelve el **primero** de los tres grafos del proyecto (H-API-228): el de
 addons-código, declarado en ``__manifest__.py:depends``.
 
-Conserva de la referencia: ``ModuleNode`` con ``depends``/``depth``, el orden de
-iteración por ``(depth, name)`` —que es el orden topológico de carga— y
-``ModuleGraph.extend()`` como forma de poblarlo transitivamente.
+Conserva nodos y orden por profundidad y clave de dependencia: los addons
+``test_*`` comparten profundidad con su última dependencia y la siguen antes
+de sus dependientes ordinarios. ``extend`` añade dependencias transitivas.
 
-**Divergencias deliberadas:**
+Contratos de ejecución todavía pendientes bajo TASK-API-0382:
 
-- Sin cursor ni ``mode='load'|'update'``: la referencia lee el estado
-  ``installed``/``to upgrade`` de ``ir_module_module`` para decidir qué cargar.
-  Aquí no hay install dinámico (ver ``modules/__init__``), así que
-  ``_update_from_database`` no se porta y el grafo es puramente estático.
-- ``phase`` y ``demo_installable`` no se portan: sirven al instalador.
-- Se añade ``cycles()``, que **no** está en la referencia. Odoo no lo necesita
-  porque su grafo se puebla en orden de instalación y un ciclo se manifiesta
-  como dependencia irresoluble; aquí el grafo se construye sobre un árbol ya
-  escrito, donde un ciclo declarado es un defecto que hay que poder nombrar.
+- ``from_database`` prepara un snapshot por alias explícito, con estado,
+  demo y versión instalada del catálogo. No ejecuta solicitudes, migraciones,
+  datos ni hooks y no sustituye al registro efectivo de modelos.
+- ``cycles()`` permite diagnosticar dependencias cíclicas; ordenar un ciclo
+  lanza ModuleGraphCycle. La referencia elimina los nodos afectados al fallar
+  su cálculo de profundidad; ``from_database`` aplica esa poda explícita.
 """
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Iterator
+import logging
+
+from django.apps import apps
+from django.db import connections
 
 from modules.module import get_module_path, get_modules, load_manifest
+
+_logger = logging.getLogger(__name__)
+
+
+class ModuleGraphCycle(ValueError):
+    """Dependencias cíclicas: no existe un orden válido de carga."""
+
+    def __init__(self, cycle):
+        self.cycle = tuple(cycle)
+        super().__init__('ModuleGraphCycle: ' + ' -> '.join(self.cycle))
 
 
 class ModuleNode:
     """Un addon dentro del grafo. ≙ ``ModuleNode`` de la referencia."""
 
-    __slots__ = ('name', '_graph', 'depends', 'manifest')
+    __slots__ = ('name', '_graph', 'depends', 'manifest', 'demo', 'state',
+                 'id', 'installed_version', 'load_version', 'load_state')
 
     def __init__(self, name: str, module_graph: ModuleGraph) -> None:
         self.name = name
         self._graph = module_graph
         self.manifest = load_manifest(name)
         self.depends: list[str] = list(self.manifest.get('depends', ()))
+        self.demo = False
+        self.state = 'uninstalled'
+        self.id = 0
+        self.installed_version = None
+        self.load_version = None
+        self.load_state = 'uninstalled'
+
+    @property
+    def demo_installable(self) -> bool:
+        """Los datos demo requieren demo habilitada en cada dependencia."""
+        return all(self._graph[dep].demo for dep in self.depends)
+
+    @property
+    def phase(self) -> int:
+        """Fase según el modo y las fronteras de instalación explícitas."""
+        if self.name != 'base' and self._graph.mode == 'update':
+            # Keep the existing explicit cycle diagnostic for recursive phases.
+            self._graph._depth(self, {}, {})
+        return self._graph._phase(self, {})
 
     @property
     def depth(self) -> int:
-        """Profundidad = 1 + la máxima de sus dependencias presentes. ≙ referencia.
+        """Distancia de carga; test_* comparte la de su última dependencia.
 
-        Un addon sin ``depends`` (o cuyas dependencias no están en el grafo)
-        tiene profundidad 0. Ordenar por ``depth`` da el orden topológico.
+        Un addon ordinario sin dependencias presentes tiene profundidad0.
+        Un test_* sin dependencia de anclaje rechaza el cálculo.
         """
-        depths = [
-            self._graph[d].depth
-            for d in self.depends
-            if d in self._graph and d != self.name
-        ]
-        return 1 + max(depths) if depths else 0
+        return self._graph._depth(self, {}, {})
 
     @property
     def order_name(self) -> str:
         """Clave de orden estable. ≙ referencia."""
-        return f'{self.depth:03d}-{self.name}'
+        if self.name.startswith('test_'):
+            # Validate the complete path before recursively resolving names;
+            # a cycle must remain a domain error, not a RecursionError.
+            _ = self.depth
+            dependency = max(
+                (self._graph[dep] for dep in self.depends if dep in self._graph),
+                key=lambda node: (node.depth, node.order_name),
+            )
+            return dependency.order_name + ' ' + self.name
+        return self.name
 
     def __repr__(self) -> str:
         return f'ModuleNode({self.name!r}, depth={self.depth})'
@@ -63,8 +98,63 @@ class ModuleNode:
 class ModuleGraph:
     """Grafo de addons ordenable topológicamente. ≙ ``ModuleGraph`` de la referencia."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, mode: str = 'load') -> None:
+        if mode not in ('load', 'update'):
+            raise ValueError('ModuleGraph mode must be load or update')
+        self.mode = mode
+        self.using = None
         self._nodes: dict[str, ModuleNode] = {}
+
+    @classmethod
+    def from_database(cls, names: Collection[str], *, using: str, mode: str = 'load'):
+        """Prepara un grafo de lectura para una base explícita.
+
+        Adapta la preparación y snapshot de Odoo Community19 (LGPL-3),
+        revisión abe4040ec1a45beee90fb694e4eae4453e46b389. Conserva la
+        clausura transitiva propia de ``extend``; las solicitudes estáticas
+        siguen rechazando ciclos. Esto no instala ni actualiza módulos.
+        """
+        if not isinstance(using, str) or not using:
+            raise ValueError('An explicit database alias is required')
+        connections[using]  # Rechaza alias desconocidos antes de preparar el grafo.
+        graph = cls(mode=mode)
+        graph.using = using
+        graph.extend(names)
+        return graph
+
+    def _update_from_database(
+        self, names: Iterable[str], *, using: str
+    ) -> None:
+        """Copia estado por base; la versión instalada nunca sale del manifest.
+
+        ``IrModule.installed_version`` corresponde al ``latest_version``
+        persistido de la referencia, incluido NULL para historia desconocida.
+        ``load_*`` conserva el snapshot inicial aunque se muten los nodos.
+        """
+        names = tuple(name for name in names if name in self)
+        if not names:
+            return
+        model = apps.get_model('base', 'IrModule')
+        rows = model.objects.using(using).filter(name__in=names).order_by().values_list(
+            'name', 'id', 'state', 'demo', 'installed_version')
+        for name, identifier, state, demo, version in rows:
+            # Un antecesor puede haber retirado este dependiente antes
+            # de su fila.
+            if name not in self:
+                continue
+            if state == 'uninstallable':
+                _logger.warning('module %s: not installable, skipped', name)
+                self._remove(name)
+                continue
+            if self.mode == 'load' and state in ('uninstalled', 'to install'):
+                _logger.info('module %s: not installed, skipped', name)
+                self._remove(name)
+                continue
+            node = self[name]
+            node.id = identifier
+            node.state = node.load_state = state
+            node.demo = demo
+            node.installed_version = node.load_version = version
 
     def __contains__(self, name: str) -> bool:
         return name in self._nodes
@@ -73,14 +163,64 @@ class ModuleGraph:
         return self._nodes[name]
 
     def __iter__(self) -> Iterator[ModuleNode]:
-        """Itera en orden topológico: por ``(depth, name)``. ≙ referencia."""
-        return iter(sorted(self._nodes.values(), key=lambda n: (n.depth, n.name)))
+        """Ordena por fase explícita, profundidad y clave de dependencia."""
+        depths = {}
+        phases = {}
+        for name in sorted(self._nodes):
+            self._depth(self._nodes[name], depths, {})
+        for node in self._nodes.values():
+            self._phase(node, phases)
+        return iter(sorted(self._nodes.values(), key=lambda n: (
+            phases[n.name], depths[n.name], n.order_name)))
+
+    def _phase(self, node, memo):
+        if node.name in memo:
+            return memo[node.name]
+        if node.name == 'base':
+            phase = 0
+        elif self.mode == 'load':
+            phase = 1
+        else:
+            phase = max(
+                self._phase(self._nodes[dep], memo)
+                + int((node.state == 'to install') != (self._nodes[dep].state == 'to install'))
+                + int(dep == 'base')
+                for dep in node.depends
+            )
+        memo[node.name] = phase
+        return phase
+
+    def _depth(self, node, memo, path):
+        if node.name in path:
+            cycle = tuple(path)[path[node.name]:] + (node.name,)
+            raise ModuleGraphCycle(cycle)
+        if node.name in memo:
+            return memo[node.name]
+        path[node.name] = len(path)
+        try:
+            depths = [self._depth(self._nodes[dep], memo, path)
+                      for dep in node.depends if dep in self._nodes]
+            if node.name.startswith('test_'):
+                # As in the pinned source, a test addon without dependencies
+                # has no insertion anchor and max() raises ValueError.
+                memo[node.name] = max(depths)
+            else:
+                memo[node.name] = 1 + max(depths) if depths else 0
+            return memo[node.name]
+        finally:
+            del path[node.name]
 
     def __len__(self) -> int:
         return len(self._nodes)
 
     def extend(self, names: Collection[str]) -> None:
-        """Añade los addons y, transitivamente, sus ``depends``. ≙ referencia."""
+        """Amplía dependencias y prepara los nodos nuevos si hay base vinculada.
+
+        El grafo estático conserva su diagnóstico explícito. Un snapshot por
+        alias vuelve a leer únicamente las incorporaciones, sin sobrescribir
+        estados que el cargador haya cambiado en los nodos existentes.
+        """
+        new_names = []
         pending = list(names)
         seen: set[str] = set()
         while pending:
@@ -90,9 +230,72 @@ class ModuleGraph:
             seen.add(name)
             if name not in self._nodes:
                 self._nodes[name] = ModuleNode(name, self)
+                new_names.append(name)
             pending.extend(
                 d for d in self._nodes[name].depends if d not in seen
             )
+
+        if self.using is not None and new_names:
+            for name in new_names:
+                if name in self and (
+                    not self[name].manifest
+                    or not self[name].manifest.get('installable', True)
+                ):
+                    _logger.warning(
+                        'module %s: not installable, skipped', name
+                    )
+                    self._remove(name)
+            self._update_depends(new_names)
+            self._update_depth(new_names)
+            self._update_from_database(new_names, using=self.using)
+
+    def _remove(self, name: str, log_dependents: bool = True) -> None:
+        """Retira un nodo y sus dependientes del grafo que se está preparando.
+
+        Adaptado de Odoo Community19, module_graph.py (LGPL-3). No cambia
+        estados persistidos ni ejecuta una desinstalación. La preparación
+        explícita usa esta poda; el grafo estático sigue rechazando ciclos.
+        """
+        self._nodes.pop(name)
+        for another, node in list(self._nodes.items()):
+            if name in node.depends and node.name in self._nodes:
+                if log_dependents:
+                    _logger.info(
+                        'module %s: its direct/indirect dependency is skipped, skipped',
+                        another,
+                    )
+                self._remove(another)
+
+    def _update_depends(self, names: Iterable[str]) -> None:
+        """Enlaza dependencias presentes y poda las que no pueden resolverse."""
+        for name in names:
+            node = self._nodes.get(name)
+            if node is None:
+                continue
+            depends = node.manifest['depends']
+            try:
+                linked = [self._nodes[dep].name for dep in depends]
+            except KeyError:
+                missing = [dep for dep in depends if dep not in self._nodes]
+                _logger.warning(
+                    'module %s: some depends are not loaded (%s), skipped',
+                    name, ', '.join(missing),
+                )
+                self._remove(name)
+            else:
+                node.depends = linked
+
+    def _update_depth(self, names: Iterable[str]) -> None:
+        """Poda ciclos en preparación explícita; no sustituye order/cycles."""
+        for name in names:
+            node = self._nodes.get(name)
+            if node is None:
+                continue
+            try:
+                _ = node.depth
+            except (ModuleGraphCycle, RecursionError):
+                _logger.warning('module %s: in a dependency loop, skipped', name)
+                self._remove(name)
 
     def missing(self) -> dict[str, list[str]]:
         """``{addon: [deps declaradas cuyo addon NO existe en el árbol]}``.
@@ -169,7 +372,7 @@ class ModuleGraph:
                 if node.name in selected:
                     continue
                 auto = node.manifest.get('auto_install', False)
-                if not auto:
+                if auto is False or not node.manifest.get('installable', True):
                     continue
                 required = node.depends if auto is True else [
                     d for d in node.depends if d in auto

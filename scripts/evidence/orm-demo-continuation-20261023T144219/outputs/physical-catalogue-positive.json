@@ -1,0 +1,21 @@
+{
+  "source_revision": "3fb301a542c218981aed5eb8274003083671c0b5",
+  "task": "TASK-API-0382",
+  "mode": "positive",
+  "databases": [
+    "company_248760760593732_db",
+    "company_12462144968727_db"
+  ],
+  "scope": "Physical catalogue and graph snapshot only; no schema completeness, Registry, authentication or module installation acceptance",
+  "fixture": "Minimal ir_module_module rows and controlled manifests; native service create/drop/aliases plus existing qualified _forget_alias",
+  "acceptance": "not_verified",
+  "physical_identities": [
+    "company_248760760593732_db",
+    "company_12462144968727_db"
+  ],
+  "catalogue_unchanged": true,
+  "existing_snapshot_preserved": true,
+  "result": "PASS",
+  "remaining_owned_candidates": [],
+  "cleanup": "PASS"
+}

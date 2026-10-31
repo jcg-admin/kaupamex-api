@@ -1,0 +1,21 @@
+{
+  "head": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+  "run": 39446134052,
+  "state": "FAILURE",
+  "actual_cause": "django_db_setup -> migrate.sync_apps -> schema_editor -> FK test_orm_testormdiscussion.moderator_id REFERENCES res_users(id) -> UndefinedTable",
+  "classification": "BASELINE_FAILURE",
+  "authority": "H-API-1120",
+  "source_diff": {
+    "command": "git diff --name-only 1f6e46f1..5183ac7b -- src tests pyproject.toml uv.lock .github/workflows",
+    "exit_code": 0,
+    "stdout": ""
+  },
+  "summary_lines": [
+    "2026-10-20T15:36:10.1676784Z 26 skipped, 1 xfailed, 18 warnings, 10617 errors in 1400.03s (0:23:20)"
+  ],
+  "setup_errors": 10600,
+  "teardown_internal_errors": 17,
+  "not_acceptance": true,
+  "no_ci_rerun": true,
+  "summary_error_entries": 10617
+}

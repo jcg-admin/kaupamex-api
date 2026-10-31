@@ -1,0 +1,132 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "PYTHONPATH=/workspace/thyrox/src /workspace/thyrox/.venv/bin/python (native interfaces, stdin invocation)",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.historical_failure_reconciliation",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Re-run exact64 historically failing cases recovered from existing full log; reconcile current behavior with pinned contracts and existing TASKs; no production edits or status changes",
+      "verify": "Each recovered nodeid retains historical source and measured current result; missing nodeids stay not_verified; no whole ORM acceptance or return-value fallback",
+      "route": "local",
+      "mutates": false,
+      "owned": [
+        "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "tests/unit/orm/test_bare_store_false_declaration.py",
+        "tests/unit/orm/test_company_dependent.py",
+        "tests/unit/orm/test_compute_declaration.py",
+        "tests/unit/orm/test_create.py",
+        "tests/unit/orm/test_declared_source_vocabulary.py",
+        "tests/unit/orm/test_default_get.py",
+        "tests/unit/orm/test_display_name.py",
+        "tests/unit/orm/test_domain_in_required.py",
+        "tests/unit/orm/test_field_conversion.py",
+        "tests/unit/orm/test_field_lifecycle_methods.py",
+        "tests/unit/orm/test_field_search_method.py",
+        "tests/unit/orm/test_field_to_sql.py",
+        "tests/unit/orm/test_field_update_db.py",
+        "tests/unit/orm/test_fields_char_signature_aliases.py",
+        "tests/unit/orm/test_nonstored_compute_dispatch.py",
+        "tests/unit/orm/test_related_field_declaration.py",
+        "tests/unit/orm/test_related_in_every_field_type.py",
+        "tests/unit/orm/test_related_write_reaches_the_far_end.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0265.technical_catalogue_http",
+      "taskId": "TASK-API-0265",
+      "prompt": "Expose the existing technical module catalogue through an administrative read-only, paginated capability-gated HTTP resource without collapsing commercial catalogues or marking installation",
+      "verify": "Anonymous/forbidden/explicit grant, actual persisted fields/null version, filtering/invalid query rejection, stable pagination, no mutations and published OpenAPI paths; PostgreSQL only",
+      "route": "local",
+      "owned": [
+        "src/addons/base/controllers/module_catalogue.py",
+        "src/addons/base/controllers/admin_urls.py",
+        "src/addons/base/controllers/schema.py",
+        "src/addons/base/authz_catalog.py",
+        "tests/integration/base/test_module_catalogue_api.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0269.startup_installability",
+      "taskId": "TASK-API-0269",
+      "prompt": "Honor manifest installable before Django app/model registration, prune dependents using existing graph and retain static request graph semantics",
+      "verify": "Disabled addon/dependents absent from LOCAL_APPS and native startup model registry; disabled cycle pruned, active cycle rejected; real project manifest set and current startup unchanged when no false flags",
+      "route": "local",
+      "owned": [
+        "src/config/settings/base.py",
+        "tests/unit/config/test_local_apps_installability.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.current_fixture_qualification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Requalify owned real two-company fixture after native service preflight changed; reuse identical-source measured required CI baseline, preserving all prior results",
+      "verify": "Five real cases, sentinel/partial-DDL/extension-failure controls, independent maintenance cleanup and source-equivalent CI evidence; no whole auth/policy acceptance",
+      "route": "local",
+      "owned": [
+        "tests/integration/company/test_multidb_isolation.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.incremental_graph_snapshot",
+      "taskId": "TASK-API-0382",
+      "prompt": "Keep database-bound ModuleGraph extensions consistent with catalogue state, demo, versions, dependency pruning and update-phase ordering",
+      "verify": "Real PostgreSQL incremental load/update states, missing/uninstallable manifest pruning, snapshots preserved and wrong-alias negative; no automatic installation acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/module_graph.py",
+        "tests/unit/modules/test_module_graph.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.applied_schema_preflight",
+      "taskId": "TASK-API-0383",
+      "prompt": "Reject missing managed tables implied by known applied migrations before company migrations; preserve data/recorder and share target context with bulk migration",
+      "verify": "Real PostgreSQL negative table/M2M controls and healthy pending/router-excluded states; no automatic destructive repair; bulk continues after one failed database",
+      "route": "local",
+      "owned": [
+        "src/service/db.py",
+        "tests/unit/service/test_provision_company.py",
+        "tests/unit/service/test_db_migrate_all.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0383.isolation_qualification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Replace unqualified private TestCase bypass fixture using existing Django/pytest mechanisms and verify real two-company data before TASK acceptance",
+      "verify": "No private connection safety removal, owned fresh resources, all3legacy isolation cases discriminating, identity/session acceptance separately qualified",
+      "route": "local",
+      "owned": [
+        "tests/integration/company/test_multidb_isolation.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.per_company_loader_acceptance",
+      "taskId": "TASK-API-0382",
+      "prompt": "Qualify effective per-database model composition and loader caller integration under existing ownership",
+      "verify": "Schema alone is not loader/model/state/version acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py"
+      ],
+      "dependsOn": [
+        "TASK-API-0383.isolation_qualification"
+      ]
+    }
+  ],
+  "states": {},
+  "claims_count": 395,
+  "node": "b501",
+  "selected": [
+    "TASK-GEN-0633.historical_failure_reconciliation"
+  ],
+  "admission": "TaskGet1203 owner-only assignment explicitly authorized; no native blocked_by; independent read/test triage does not require installation or metadata-policy acceptance",
+  "coverage": "Eight bounded candidates, not global frontier exhaustion; no local model inference invoked"
+}

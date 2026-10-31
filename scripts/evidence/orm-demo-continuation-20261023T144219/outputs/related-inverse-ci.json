@@ -1,0 +1,13 @@
+{
+  "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+  "make_exit": 2,
+  "execution_status": "INTERRUPTED",
+  "pytest_exit": 2,
+  "passed": 310,
+  "skipped": 1,
+  "seconds": 545.3,
+  "cause": "SIGINT after independent NEW_REGRESSION at existing non-Django protocol control",
+  "proof": "related-inverse-protocol-current.junit.xml",
+  "later_tests": "NOT_EVALUATED",
+  "acceptance": false
+}

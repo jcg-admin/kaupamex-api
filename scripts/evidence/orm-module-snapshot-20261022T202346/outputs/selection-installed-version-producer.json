@@ -1,0 +1,24 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "inputs": [
+    {
+      "id": "IrModule.installed_version.finalization_contract",
+      "prompt": "Reconcile existing loading flow and producer of installed version; do not mark installed after catalogue refresh",
+      "verify": "Reuse existing bootstrap flow evidence; pinned loading source and current migration/provisioning consumers",
+      "taskId": "TASK-API-0382",
+      "route": "local",
+      "mutates": false,
+      "owned": [
+        "src/service/db.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "IrModule.installed_version.finalization_contract"
+  ],
+  "after": "Preparation20PASS; objective remains open and global baseline CI failure retained",
+  "scope": "Next readonly source/consumer contract unit under existing0382; not new global plan",
+  "claims": "Full ledger",
+  "objective_complete": false
+}

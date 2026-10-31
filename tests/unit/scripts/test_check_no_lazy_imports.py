@@ -20,6 +20,7 @@ canónico de Django hasta este mismo pase— y no uno fabricado en ``tmp_path``:
 un directorio de juguete confirma el patrón de quien lo escribió, no el
 recorrido real de las raíces.
 """
+
 import ast
 import contextlib
 import importlib.util
@@ -30,7 +31,8 @@ import pytest
 
 REPO = pathlib.Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location(
-    'check_no_lazy_imports', REPO / 'scripts' / 'check_no_lazy_imports.py')
+    'check_no_lazy_imports', REPO / 'scripts' / 'check_no_lazy_imports.py'
+)
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
 
@@ -39,7 +41,9 @@ OUTSIDE_SRC_ADDONS = REPO / 'src' / 'manage.py'
 
 
 class TestTheRootsCoverAllOfSrc:
-    """``DEFAULT_ROOTS`` alcanza las raíces de framework, no sólo los addons."""
+    """
+    ``DEFAULT_ROOTS`` alcanza las raíces de framework, no sólo los addons.
+    """
 
     def test_src_is_a_root_and_not_just_its_addons(self):
         assert 'src' in gate.DEFAULT_ROOTS
@@ -66,18 +70,16 @@ class TestTheGateDiscriminates:
         """El positivo real: el import dentro de ``main()`` de ``manage.py``.
 
         Se reconstruye la forma que el archivo tuvo hasta este pase, no una
-        inventada: ``from django.core.management import execute_from_command_line``
+        inventada: ``from django.core.management import
+        execute_from_command_line``
         dentro de la función.
         """
         episodio = (
-            'import os\n'
-            'import sys\n'
-            '\n'
-            '\n'
-            'def main():\n'
-            "    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'x')\n"
-            '    from django.core.management import execute_from_command_line\n'
-            '    execute_from_command_line(sys.argv)\n')
+            'import os\nimport sys\n\n\ndef main():\n   '
+            ' os.environ.setdefault(\'DJANGO_SETTINGS_MODULE\', \'x\')\n   '
+            ' from django.core.management import execute_from_command_line\n  '
+            '  execute_from_command_line(sys.argv)\n'
+        )
         hallados = list(gate.find_lazy_imports(ast.parse(episodio)))
 
         assert len(hallados) == 1
@@ -93,7 +95,9 @@ class TestTheGateDiscriminates:
         assert 'OK: sin lazy imports' in salida.getvalue()
         assert 'archivos medidos' in salida.getvalue()
 
-    def test_an_empty_audit_refuses_instead_of_reporting_clean(self, monkeypatch):
+    def test_an_empty_audit_refuses_instead_of_reporting_clean(
+        self, monkeypatch
+    ):
         """Sin árbol que medir, el gate NO dice OK: sale 2 y lo nombra.
 
         Un 0 ahí sería el verde falso de H-API-336 — el gate corrido desde
@@ -121,3 +125,49 @@ class TestThePreCommitModeIsUnaffected:
         salida = io.StringIO()
         with contextlib.redirect_stdout(salida):
             assert gate.main(['README.md']) == 0
+
+
+@pytest.mark.parametrize(
+    'source',
+    [
+        'value = 1\nimport os\n',
+        'def run():\n    import os\n',
+        'class Example:\n    import os\n',
+        'if True:\n    import os\n',
+        'value = 1\ntry:\n    import os\nexcept ImportError:\n    pass\n',
+    ],
+)
+def test_strict_imports_reject_nested_and_late_statements(source, tmp_path):
+    """La regla estricta cubre las formas que el gate antiguo omitía."""
+    path = tmp_path / 'example.py'
+    path.write_text(source)
+    assert gate.main(['--top-level', str(path)]) == 1
+
+
+def test_strict_imports_accept_the_initial_import_block(tmp_path):
+    """Docstring y metadatos de módulo no interrumpen los imports."""
+    path = tmp_path / 'example.py'
+    path.write_text(
+        '"""Module."""\nfrom __future__ import annotations\n'
+        '__all__ = ["run"]\nimport os\n\ndef run():\n    return os.name\n'
+    )
+    assert gate.main(['--top-level', str(path)]) == 0
+
+
+@pytest.mark.parametrize(
+    'source',
+    [
+        '__all__ = register()\nimport os\n',
+        'from typing import TYPE_CHECKING\n'
+        'if TYPE_CHECKING:\n    register()\n    import os\n',
+        'try:\n    import optional\nexcept ImportError:\n'
+        '    register()\n    import os\n',
+    ],
+)
+def test_strict_imports_reject_execution_before_guarded_imports(
+    source, tmp_path,
+):
+    """Metadatos y guards no pueden esconder imports tardíos."""
+    path = tmp_path / 'example.py'
+    path.write_text(source)
+    assert gate.main(['--top-level', str(path)]) == 1

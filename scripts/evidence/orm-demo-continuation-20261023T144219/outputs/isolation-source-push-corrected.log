@@ -1,0 +1,4 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+To https://github.com/jcg-admin/kaupamex-api.git
+   2865700b..948c5233  feature/codex-workspace-bootstrap -> feature/codex-workspace-bootstrap
+branch 'feature/codex-workspace-bootstrap' set up to track 'origin/feature/codex-workspace-bootstrap'.

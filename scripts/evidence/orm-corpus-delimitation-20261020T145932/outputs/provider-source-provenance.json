@@ -1,0 +1,126 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "source_files": {
+    "src/session/job_runs.py": {
+      "sha256": "20e14a195363a3f140a4283056dfd6826db9274af5dea635aeed8ae78ea0f9ce",
+      "git_blob": "477c2bc345b040f80079f7004471a50d1de093e2"
+    },
+    "src/workbench/manifest.py": {
+      "sha256": "cfabc78a1a9ca9a770c39395d0a748783e81aa7278936dc84e46030e3115173b",
+      "git_blob": "80e3e2aeb7be4b442323859f21694be7e045dfdf"
+    },
+    "src/packages/workbench/manifest.ts": {
+      "sha256": "0c112a5254dec57b72b9d1e977576cb5bd5b259b2fe4d6e413bb178ba4ab962c",
+      "git_blob": "d521d6fd7f73bf12871d5b8b87e8c407587d44da"
+    },
+    "src/session/record_environment.py": {
+      "sha256": "24fcb5768cd69ce2822527adce873278e9882cb69982f307339ed3d033e93381",
+      "git_blob": "6178aee45835d25392ec9db85d1b0a00ae4806c9"
+    },
+    "src/verify/tree_fingerprint.py": {
+      "sha256": "d60454b236da37fbc1c50a9cbbd8a62530fd81d7333c17e9a9262b1312853f8b",
+      "git_blob": "8da973a36ca0edb6ed1a50fdad277abdfe8d6685"
+    },
+    "src/session/snapshot_store.py": {
+      "sha256": "e36d2b5ab7bfe606206c259c5e09cd0f9696f61a296382628a2212c613dcf194",
+      "git_blob": "61ebac4155e6bb3c3f7f2d689a42928260d98050"
+    },
+    "src/session/recovery_controller.py": {
+      "sha256": "45c26cae7218ddbf1a7c5c7ce416ba4ab13d1f8abac05a77f4f99558b3326c00",
+      "git_blob": "25d377f9b3ba6f7119fa83e72c7ef91b5ae2cee5"
+    },
+    "src/session/pool_lifecycle.py": {
+      "sha256": "3307decebb4c043c24abfb65ce96d29a43314ba727eacf4aee21a9ddb1c6f900",
+      "git_blob": "b6992cf9ac9444f74806309835956ea9ecd4c2bd"
+    },
+    "src/task/task_source.py": {
+      "sha256": "8882c56440af44a0d5086d82bb93aa8751f1a82f093de242c6a42f9619a27491",
+      "git_blob": "793987dba93a1de3229e70bf7df3d6c72f01f172"
+    },
+    "src/agents/agent_store.py": {
+      "sha256": "f718377a14e09fce7a73a5c508e35c9f2228ca6870a76a19bd48010f80bc5e75",
+      "git_blob": "4a405227a55638a6c204e3d06dca16bf92428b5f"
+    },
+    "src/task/task_ids.py": {
+      "sha256": "23b41c3036067a087bb073f96f6866f52661c3f6dea85ddb1f7e88e4118f74e8",
+      "git_blob": "eac12bc6a94cd7e82a3f5eebb2a889e7e14b5312"
+    },
+    "src/packages/coordination/claims.ts": {
+      "sha256": "21a4098a408964079fc2941d7cab9d0f785c3fcca2730e03a001a30106597d7c",
+      "git_blob": "617cd0f74298ca7a6c5599d7aea6c22dcebea6c3"
+    },
+    "tests/session/test_job_runs.py": {
+      "sha256": "92ef2fe8239d9437fc7346f2b726239703c1a5d390557a1010d05f2882b590a8",
+      "git_blob": "b70967ae1682fef758d93f213b380c74810e24b3"
+    },
+    "tests/workbench/test_manifest.py": {
+      "sha256": "2158ade39b381080d0c750789732373db4815842a33caf782fb9d86761292a94",
+      "git_blob": "b100903eccbebfb5db4668c877298b390f1aac51"
+    },
+    "tests/workbench/test_manifest_jsonl.py": {
+      "sha256": "c55cb1e2a4c7fe9b9c5eec7cefed7192312716593eb6d38a9697cb43ad0ec62f",
+      "git_blob": "3b9d2b8873f871ccf3343335c622898fa628038e"
+    },
+    "tests/verify/test_tree_fingerprint.py": {
+      "sha256": "6c0da217f8b5019e9fa466082fff09bcdaf66fb593d627bbed13d964fd3e91de",
+      "git_blob": "357019f1899b48de83360dc16108d6e5bd82aa13"
+    },
+    "tests/session/test_snapshot_recovery.py": {
+      "sha256": "4d2f91d2d326d9748d209e8e1c26bd7146ee2152ff2f976b1425a09f5f8faf40",
+      "git_blob": "dacde4bafee1f5ae52282de2d255b22878148bdf"
+    },
+    "tests/session/test_pool_lifecycle.py": {
+      "sha256": "38e954f796e0616dcf93cc84dced0d472ce49f8e201f7e7aac4b67c07c43f045",
+      "git_blob": "2f3147e5a2f69ffb474b6b11b9fc0d8ae355f2c8"
+    },
+    "src/session/documentation_publisher.py": {
+      "sha256": "8002cb3d3454cd47a7cc629872b39c935ed7176388b38d33e23efde7c1cb347f",
+      "git_blob": "763969dbc9a7227b84b4863d67be5aa42b3343b6"
+    }
+  },
+  "commands": [
+    {
+      "command": "git rev-parse HEAD; git status --short",
+      "exit_code": 0,
+      "result": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f, clean"
+    },
+    {
+      "command": "UV_CACHE_DIR=/workspace/.cache/uv PYTHONPATH=/workspace/thyrox/src uv run --frozen python -",
+      "exit_code": 0,
+      "evidence": "task1072-current.json",
+      "stdin_description": "Executed inline Python body calls the interfaces enumerated in its linked evidence; no standalone runner was created."
+    },
+    {
+      "command": "PATH=/workspace/.cache/toolchains/bin:$PATH bun --eval \"import {activeClaims,readLedger,ledgerPathFor} from './src/packages/coordination/claims.ts';import {writeFileSync} from 'node:fs';const claims=activeClaims(readLedger(ledgerPathFor('/workspace/thyrox')));const relevant=claims.filter(c=>c.path==='src/task/task_source.py'||c.task==='TASK-THYROX-1072');writeFileSync('/workspace/scratch/orm-corpus-provider/claims1072-current.json',JSON.stringify({interface:'activeClaims(readLedger(ledgerPathFor(root)))',provider_revision:'9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f',active_claim_count:claims.length,relevant},null,2)+'\\n');console.log(JSON.stringify({active_claim_count:claims.length,relevant}));\"",
+      "exit_code": 0,
+      "evidence": "claims1072-current.json"
+    },
+    {
+      "command": "UV_CACHE_DIR=/workspace/.cache/uv PYTHONPATH=/workspace/thyrox/src uv run --frozen python -",
+      "exit_code": 0,
+      "evidence": "integrity-observations.json",
+      "stdin_description": "Executed inline Python body calls the interfaces enumerated in its linked evidence; no standalone runner was created."
+    },
+    {
+      "command": "UV_CACHE_DIR=/workspace/.cache/uv PYTHONPATH=/workspace/thyrox/src uv run --frozen python -",
+      "stdin_description": "resolve_store_dir(create=False),connect_readonly; bounded SELECT tasks reference_flow/resolve_roots/alias, mapping_from_store+lookup; findings_history bounded reference_flow/resolve_roots/H-API-632; no write",
+      "exit_code": 0,
+      "evidence": [
+        "reference-alias-related.json",
+        "reference-alias-selected-tasks.json",
+        "findings-alias-related.json"
+      ]
+    }
+  ],
+  "not_run": [
+    "Full Thyrox suite (unchanged inputs; audit only)",
+    "Model execution",
+    "Pool runtime publication",
+    "Snapshot creation",
+    "Historical ORM probe rerun"
+  ],
+  "search_failure": {
+    "exit_code": 2,
+    "cause": "One bounded rg included absent tests/session/test_record_environment.py; later rg --files established actual tests. No capability absence inferred."
+  }
+}

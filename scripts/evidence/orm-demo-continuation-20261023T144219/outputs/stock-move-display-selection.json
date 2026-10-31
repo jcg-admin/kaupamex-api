@@ -1,0 +1,24 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.stock_move_display_assignment",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Assign the existing StockMove origin/code/location display label through its descriptor with concrete relation dependencies; preserve existing code_for(None) adaptation",
+      "verify": "177PASS1FAIL stock neighborhood; exact093 same existing test fails assignment. Pinned StockMove787 body/depends inspected. Existing prefix/empty-prefix consumers plus relation change and independent unsaved rows; no supplier-context or whole persistence acceptance",
+      "route": "local",
+      "owned": [
+        "addons/stock/models/stock_move.py",
+        "tests/unit/stock/test_stock_move_persistence.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "claims_count": 471,
+  "selected": [
+    "TASK-GEN-0633.stock_move_display_assignment"
+  ],
+  "scope": "Current verifier dependency under native1203, not task creation or64population change"
+}

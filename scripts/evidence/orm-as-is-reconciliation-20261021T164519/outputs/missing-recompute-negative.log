@@ -1,0 +1,62 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test_all_missing_clears_computed_group_only (test_missing_recompute.MissingRecomputeTests.test_all_missing_clears_computed_group_only) ... FAIL
+test_compute_failure_does_not_accept_missing_or_existing_work (test_missing_recompute.MissingRecomputeTests.test_compute_failure_does_not_accept_missing_or_existing_work) ... ok
+test_mixed_rows_compute_flush_and_remove_deleted_pending (test_missing_recompute.MissingRecomputeTests.test_mixed_rows_compute_flush_and_remove_deleted_pending) ... FAIL
+test_no_pending_avoids_database_queries (test_missing_recompute.MissingRecomputeTests.test_no_pending_avoids_database_queries) ... ok
+test_recomputed_column_update_obeys_postgresql_rollback (test_missing_recompute.MissingRecomputeTests.test_recomputed_column_update_obeys_postgresql_rollback) ... ok
+test_requested_subset_keeps_other_pending_ids (test_missing_recompute.MissingRecomputeTests.test_requested_subset_keeps_other_pending_ids) ... FAIL
+test_virtual_ids_are_not_missing_persisted_rows (test_missing_recompute.MissingRecomputeTests.test_virtual_ids_are_not_missing_persisted_rows) ... FAIL
+
+======================================================================
+FAIL: test_all_missing_clears_computed_group_only (test_missing_recompute.MissingRecomputeTests.test_all_missing_clears_computed_group_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 80, in test_all_missing_clears_computed_group_only
+    self.assertFalse(env().records_to_compute(self.field))
+AssertionError: OrderedSet([987654321]) is not false
+
+======================================================================
+FAIL: test_mixed_rows_compute_flush_and_remove_deleted_pending (test_missing_recompute.MissingRecomputeTests.test_mixed_rows_compute_flush_and_remove_deleted_pending)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 92, in test_mixed_rows_compute_flush_and_remove_deleted_pending
+    self.assertFalse(env().records_to_compute(self.field))
+AssertionError: OrderedSet([3]) is not false
+
+======================================================================
+FAIL: test_requested_subset_keeps_other_pending_ids (test_missing_recompute.MissingRecomputeTests.test_requested_subset_keeps_other_pending_ids)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 103, in test_requested_subset_keeps_other_pending_ids
+    self.assertEqual(set(env().records_to_compute(self.field)), {987654322})
+AssertionError: Items in the first set but not the second:
+987654321
+
+======================================================================
+FAIL: test_virtual_ids_are_not_missing_persisted_rows (test_missing_recompute.MissingRecomputeTests.test_virtual_ids_are_not_missing_persisted_rows)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/tests/unit/orm/test_missing_recompute.py", line 111, in test_virtual_ids_are_not_missing_persisted_rows
+    self.assertEqual(set(env().records_to_compute(self.field)), {virtual, None})
+AssertionError: Items in the first set but not the second:
+987654321
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.032s
+
+FAILED (failures=4)
+CREATE ROLE
+GRANT
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+Negative control: original _recompute_field restored in memory only
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+REVOKE
+DROP ROLE

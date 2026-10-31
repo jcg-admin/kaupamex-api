@@ -1,0 +1,42 @@
+{
+  "authority": "scripts/reference_roots.py:ADDON_ALIAS/addon_root",
+  "existing_aliases": {
+    "authz_ldap": "auth_ldap",
+    "authz_oauth": "auth_oauth",
+    "authz_passkey": "auth_passkey",
+    "authz_password_policy": "auth_password_policy",
+    "authz_signup": "auth_signup",
+    "authz_timeout": "auth_timeout",
+    "authz_totp": "auth_totp",
+    "authz_totp_mail": "auth_totp_mail"
+  },
+  "authz_reference_resolution": "/workspace/.cache/references/odoo-tools-git/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/authz",
+  "literal_auth_in_materialized_reference": {
+    "addons": false,
+    "odoo/addons": false
+  },
+  "git_tree_check": {
+    "command": [
+      "git",
+      "-C",
+      "/workspace/.cache/references/odoo-tools-git/abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "ls-tree",
+      "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "--",
+      "19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/auth",
+      "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons/auth"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "interpretation": "Pinned Git tree has no literal auth addon at either Community root. No blanket auth->authz alias in current resolver. Family aliases are existing adaptations; authz is a separate capability implementation, not a literal addon rename.",
+  "consumer_mechanisms": [
+    "addons/authz/apps.py:AuthzConfig.name=addons.authz",
+    "addons/authz/__manifest__.py:depends base; auto_install True",
+    "src/config/settings/base.py:AUTH_USER_MODEL=base.ResUsers",
+    "src/addons/base/migrations/0001_initial.py:authz.0001_initial dependency"
+  ],
+  "functional_equivalence": "not_verified; existing base->authz bootstrap cycle TASK-API-0173 and capability security obligations remain separate",
+  "renames_performed": false
+}

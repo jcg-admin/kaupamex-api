@@ -1,0 +1,49 @@
+{
+  "interface": "plan_items_from_rows; claims_ledger_rows; node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "command": "PYTHONPATH=/workspace/thyrox/src /workspace/thyrox/.venv/bin/python - <existing plan inputs and full actual claims ledger>",
+  "inputs": [
+    {
+      "id": "TASK-API-0383.isolation_qualification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Replace unqualified private TestCase bypass fixture using existing Django/pytest mechanisms and verify real two-company data before TASK acceptance",
+      "verify": "No private connection safety removal, owned fresh resources, all3legacy isolation cases discriminating, identity/session acceptance separately qualified",
+      "route": "local",
+      "owned": [
+        "tests/integration/company/test_multidb_isolation.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.per_company_loader_acceptance",
+      "taskId": "TASK-API-0382",
+      "prompt": "Qualify effective per-database model composition and loader caller integration under existing ownership",
+      "verify": "Schema alone is not loader/model/state/version acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py"
+      ],
+      "dependsOn": [
+        "TASK-API-0383.isolation_qualification"
+      ]
+    }
+  ],
+  "states": {},
+  "claims_count": 338,
+  "selected": [
+    "TASK-API-0383.isolation_qualification"
+  ],
+  "coverage": "Two declared bounded candidates only, not62TASK or whole ORM coverage",
+  "unit_verification": "Qualification five real cases PASS and cleanup independently PASS; not native accepted state",
+  "acceptance_gates": [
+    "Mandatory CI baseline failure display_name",
+    "Metadata policy DEC-AISL-05 proposal review",
+    "Whole per-base Registry/loader acceptance",
+    "TASK-API-0381 request-routing ownerNULL for HTTP identity acceptance"
+  ],
+  "source_discovery_limit": "task_source still drops owner/dependencies; existing TASK-THYROX-1072 and foreign source claims preserved",
+  "consequence": "Selector still proposes the same officially-unaccepted unit. Do not rerun valid tests or fabricate accepted state to unblock the dependent loader. Reconcile verification/acceptance with the native authorities; this is not global exhaustion.",
+  "managed_local_model_execution": false,
+  "official_task_states_changed": false,
+  "objective_complete": false
+}

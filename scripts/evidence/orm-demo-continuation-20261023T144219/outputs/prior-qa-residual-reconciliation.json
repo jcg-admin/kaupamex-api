@@ -1,0 +1,20 @@
+{
+  "command": "Native Docker PostgreSQL metadata reads only; no credential columns or SQL mutation",
+  "current_resource_excluded": "orm_bootstrap_43562547fb9c",
+  "prior_ci_source": "2b249be8",
+  "prior_ci_log": "product-display-name-ci.log",
+  "residuals": [
+    {
+      "database": "orm_bootstrap_1afbe4536686",
+      "owner": "orm_bootstrap_1afbe4536686",
+      "active_connections": 0,
+      "latest_migration": "2026-10-25 03:25:45.858096+00",
+      "has_base0089": true,
+      "has_base0090": false,
+      "migration_rows": 380,
+      "seconds_from_last_migration_to_previous_ci_log_end": 45.78,
+      "matches_prior_ci_window": true
+    }
+  ],
+  "cleanup_executed": false
+}

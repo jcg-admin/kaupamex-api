@@ -253,7 +253,17 @@ def test_column_order_reads_the_table_of_the_source(name, expected):
 
 def test_column_order_of_a_field_without_column_is_zero():
     """≙ ``:1093``: ``0 if self.column_type is None``."""
-    assert fields.Char('Sin columna', store=False).column_order == 0
+    field = django_models.Field()
+    assert field.column_type is None
+    assert field.column_order == 0
+
+
+def test_nonstored_char_keeps_the_native_type_order():
+    """No almacenar no borra el tipo: el llamador de esquema filtra store."""
+    field = fields.Char('Sin columna', store=False)
+    assert field.store is False
+    assert field.column_type[0] == 'varchar'
+    assert field.column_order == 2
 
 
 # --- get_column_update ------------------------------------------------------
@@ -264,8 +274,10 @@ def test_get_column_update_reads_the_cache_of_the_transaction():
     with transaction_scope():
         field = field_of('label')
         registro = ConversionProbe(id=7)
-        field._get_cache_impl(ambient_env())[7] = 'de la cache'
         registro.label = 'del atributo'
+        # El setter normal actualiza la caché; crear después la divergencia
+        # que este contrato necesita medir, no deshacerla antes de la lectura.
+        field._get_cache_impl(ambient_env())[7] = 'de la cache'
         assert field.get_column_update(registro) == 'de la cache'
 
 
@@ -273,8 +285,25 @@ def test_get_column_update_refuses_when_the_value_is_not_cached():
     """La ausencia no se lee como ``None``: sin valor en cache el field no sabe
     que escribir, y la fuente lo dice con un ``KeyError``."""
     with transaction_scope():
+        field = field_of('label')
+        record = ConversionProbe(id=99)
+        field._get_cache_impl(ambient_env()).pop(record.pk, None)
         with pytest.raises(KeyError):
-            field_of('label').get_column_update(ConversionProbe(id=99))
+            field.get_column_update(record)
+
+
+def test_normal_assignment_updates_the_transaction_cache():
+    """Conserva el contrato del setter que invalidó los fixtures anteriores."""
+    with transaction_scope():
+        field = field_of('label')
+        record = ConversionProbe(id=7)
+        cache = field._get_cache_impl(ambient_env())
+        cache[7] = 'anterior'
+
+        record.label = 'actual'
+
+        assert cache[7] == 'actual'
+        assert field.get_column_update(record) == 'actual'
 
 
 # --- el cableado a get_db_prep_save y la expresion SQL -----------------------

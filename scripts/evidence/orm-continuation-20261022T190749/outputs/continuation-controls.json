@@ -1,0 +1,66 @@
+{
+  "interface": "native node_frontier/main next/read_log",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "fixture_only": true,
+  "production_task_writes": false,
+  "limits": "Verifies bounded native plan continuation; does not qualify absent goal API, local inference, global plan coverage or enforce Codex host termination",
+  "controls": [
+    {
+      "control": "pilot_done_work_remains",
+      "fixture_log": [
+        {
+          "kind": "accepted",
+          "item": "ModuleGraph.reference_inventory"
+        }
+      ],
+      "selected": "ModuleNode.phase",
+      "objective_complete": false
+    },
+    {
+      "control": "commit_is_not_objective_acceptance",
+      "fixture_log": [
+        {
+          "kind": "accepted",
+          "item": "ModuleGraph.reference_inventory"
+        },
+        {
+          "kind": "commit",
+          "item": "ModuleNode.phase"
+        }
+      ],
+      "selected": "ModuleNode.phase",
+      "objective_complete": false
+    },
+    {
+      "control": "failed_acceptance_does_not_block_independent_unit",
+      "fixture_log": [
+        {
+          "kind": "hard_block",
+          "item": "ModuleGraph.reference_inventory"
+        }
+      ],
+      "selected": "ModuleNode.phase",
+      "objective_complete": false
+    },
+    {
+      "control": "blocked_first_selects_independent_second",
+      "selected": "ModuleNode.phase"
+    },
+    {
+      "control": "no_admissible_due_to_foreign_claim",
+      "selected": [],
+      "objective_complete": false,
+      "reason": "Foreign path reservation, not missing obligations"
+    },
+    {
+      "control": "resumption_from_native_plan_and_log",
+      "output": "ModuleNode.phase",
+      "exit_code": 0
+    },
+    {
+      "control": "premature_completion_mutation_detected",
+      "mutated_output": "plan completo",
+      "detected": true
+    }
+  ]
+}

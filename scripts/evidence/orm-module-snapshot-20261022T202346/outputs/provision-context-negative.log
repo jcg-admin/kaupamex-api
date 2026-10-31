@@ -1,0 +1,157 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+..FFFFFFFF.                                                              [100%]
+=================================== FAILURES ===================================
+_ test_migration_uses_target_company_and_restores_outer_scope[company_7_db-False-None] _
+tests/unit/service/test_provision_company.py:84: in test_migration_uses_target_company_and_restores_outer_scope
+    assert db.provision_company_database(target) == (target, False)
+src/service/db.py:474: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+tests/unit/service/test_provision_company.py:70: in migrate
+    assert router.db_for_write(historical) == target
+src/orm/routers.py:158: in db_for_write
+    return self._route(model)
+src/orm/routers.py:146: in _route
+    raise CompanyContextRequired(
+E   orm.routers.CompanyContextRequired: operacion de dominio base.iractionsreport sin empresa activa bajo multi-DB (N>1); fijar company_scope antes de leer/escribir
+_ test_migration_uses_target_company_and_restores_outer_scope[company_7_db-False-9] _
+tests/unit/service/test_provision_company.py:84: in test_migration_uses_target_company_and_restores_outer_scope
+    assert db.provision_company_database(target) == (target, False)
+src/service/db.py:474: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+tests/unit/service/test_provision_company.py:70: in migrate
+    assert router.db_for_write(historical) == target
+E   AssertionError: assert 'company_9_db' == 'company_7_db'
+E     - company_7_db
+E     ?         ^
+E     + company_9_db
+E     ?         ^
+_ test_migration_uses_target_company_and_restores_outer_scope[company_7_db-True-None] _
+tests/unit/service/test_provision_company.py:82: in test_migration_uses_target_company_and_restores_outer_scope
+    db.provision_company_database(target)
+src/service/db.py:474: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+tests/unit/service/test_provision_company.py:70: in migrate
+    assert router.db_for_write(historical) == target
+src/orm/routers.py:158: in db_for_write
+    return self._route(model)
+src/orm/routers.py:146: in _route
+    raise CompanyContextRequired(
+E   orm.routers.CompanyContextRequired: operacion de dominio base.iractionsreport sin empresa activa bajo multi-DB (N>1); fijar company_scope antes de leer/escribir
+_ test_migration_uses_target_company_and_restores_outer_scope[company_7_db-True-9] _
+tests/unit/service/test_provision_company.py:82: in test_migration_uses_target_company_and_restores_outer_scope
+    db.provision_company_database(target)
+src/service/db.py:474: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+tests/unit/service/test_provision_company.py:70: in migrate
+    assert router.db_for_write(historical) == target
+E   AssertionError: assert 'company_9_db' == 'company_7_db'
+E     - company_7_db
+E     ?         ^
+E     + company_9_db
+E     ?         ^
+_ test_migration_uses_target_company_and_restores_outer_scope[company_007_db-False-None] _
+tests/unit/service/test_provision_company.py:84: in test_migration_uses_target_company_and_restores_outer_scope
+    assert db.provision_company_database(target) == (target, False)
+src/service/db.py:474: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+tests/unit/service/test_provision_company.py:70: in migrate
+    assert router.db_for_write(historical) == target
+src/orm/routers.py:158: in db_for_write
+    return self._route(model)
+src/orm/routers.py:146: in _route
+    raise CompanyContextRequired(
+E   orm.routers.CompanyContextRequired: operacion de dominio base.iractionsreport sin empresa activa bajo multi-DB (N>1); fijar company_scope antes de leer/escribir
+_ test_migration_uses_target_company_and_restores_outer_scope[company_007_db-False-9] _
+tests/unit/service/test_provision_company.py:84: in test_migration_uses_target_company_and_restores_outer_scope
+    assert db.provision_company_database(target) == (target, False)
+src/service/db.py:474: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+tests/unit/service/test_provision_company.py:70: in migrate
+    assert router.db_for_write(historical) == target
+E   AssertionError: assert 'company_9_db' == 'company_007_db'
+E     - company_007_db
+E     ?         ^^^
+E     + company_9_db
+E     ?         ^
+_ test_migration_uses_target_company_and_restores_outer_scope[company_007_db-True-None] _
+tests/unit/service/test_provision_company.py:82: in test_migration_uses_target_company_and_restores_outer_scope
+    db.provision_company_database(target)
+src/service/db.py:474: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+tests/unit/service/test_provision_company.py:70: in migrate
+    assert router.db_for_write(historical) == target
+src/orm/routers.py:158: in db_for_write
+    return self._route(model)
+src/orm/routers.py:146: in _route
+    raise CompanyContextRequired(
+E   orm.routers.CompanyContextRequired: operacion de dominio base.iractionsreport sin empresa activa bajo multi-DB (N>1); fijar company_scope antes de leer/escribir
+_ test_migration_uses_target_company_and_restores_outer_scope[company_007_db-True-9] _
+tests/unit/service/test_provision_company.py:82: in test_migration_uses_target_company_and_restores_outer_scope
+    db.provision_company_database(target)
+src/service/db.py:474: in provision_company_database
+    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1204: in _execute_mock_call
+    result = effect(*args, **kwargs)
+tests/unit/service/test_provision_company.py:70: in migrate
+    assert router.db_for_write(historical) == target
+E   AssertionError: assert 'company_9_db' == 'company_007_db'
+E     - company_007_db
+E     ?         ^^^
+E     + company_9_db
+E     ?         ^
+=========================== short test summary info ============================
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_7_db-False-None]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_7_db-False-9]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_7_db-True-None]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_7_db-True-9]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_007_db-False-None]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_007_db-False-9]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_007_db-True-None]
+FAILED tests/unit/service/test_provision_company.py::test_migration_uses_target_company_and_restores_outer_scope[company_007_db-True-9]
+8 failed, 3 passed in 0.66s

@@ -1,0 +1,25 @@
+{
+  "versions": {
+    "CPython": "3.12.14",
+    "Django": "6.0.5",
+    "djangorestframework": "3.16.1",
+    "psycopg": "3.3.4",
+    "gunicorn": "26.0.0",
+    "lxml": "6.1.1",
+    "pypdf": null
+  },
+  "libharu_found": null,
+  "cpython_instructions": [
+    "RESUME",
+    "LOAD_FAST",
+    "LOAD_CONST",
+    "BINARY_OP",
+    "RETURN_VALUE"
+  ],
+  "django_locale": "1234.5",
+  "django_template_control_flow": "yes",
+  "lxml_xpath": 1.0,
+  "safe_eval_positive": 3,
+  "safe_eval_import_rejected": true,
+  "safe_eval_error": "NameError"
+}

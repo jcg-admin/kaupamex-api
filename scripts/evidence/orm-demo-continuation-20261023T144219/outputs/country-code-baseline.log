@@ -1,0 +1,64 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___ TestRecalculateTaxTagsErrors.test_child_tax_shared_by_two_parents_is_422 ___
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:241: in __get__
+    rel_obj = self.field.get_cached_value(instance)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/mixins.py:21: in get_cached_value
+    return instance._state.fields_cache[self.cache_name]
+E   KeyError: 'country'
+
+During handling of the above exception, another exception occurred:
+tests/integration/account/test_recalculate_tax_tags_endpoint.py:61: in test_child_tax_shared_by_two_parents_is_422
+    parent1 = AccountTax.objects.create(name='P1', company=company)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/base.py:946: in save_base
+    pre_save.send(
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+addons/l10n_mx/models/account_tax.py:98: in _apply_l10n_mx_tax_type
+    _compute_l10n_mx_tax_type(instance)
+addons/l10n_mx/models/account_tax.py:87: in _compute_l10n_mx_tax_type
+    'iva' if company is not None and company.country_code == 'MX' else ''
+src/orm/fields.py:1633: in __get__
+    field.compute_value(instance)
+src/orm/fields.py:4899: in compute_value
+    _invoke_compute_method(self, records)
+src/orm/fields.py:4819: in _invoke_compute_method
+    determine(field.compute, record)
+src/orm/fields.py:2226: in determine
+    return needle(records, *args)
+src/orm/fields.py:3732: in _field_compute_related
+    values = [_first_record(element[name]) for element in values]
+src/orm/models.py:3584: in _model_getitem
+    return getattr(self, key)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:257: in __get__
+    rel_obj = self.get_object(instance)
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/fields/related_descriptors.py:222: in get_object
+    return qs.get(self.field.get_reverse_related_filter(instance))
+../../kaupamex-api/.venv/lib/python3.12/site-packages/django/db/models/query.py:639: in get
+    raise self.model.DoesNotExist(
+E   addons.base.models.res_country.ResCountry.DoesNotExist: ResCountry matching query does not exist.
+=============================== warnings summary ===============================
+../../kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/integration/account/test_recalculate_tax_tags_endpoint.py::TestRecalculateTaxTagsErrors::test_child_tax_shared_by_two_parents_is_422
+  /workspace/.cache/orm-country-code-baseline-ae949aa8/src/orm/fields.py:4161: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/account/test_recalculate_tax_tags_endpoint.py::TestRecalculateTaxTagsErrors::test_child_tax_shared_by_two_parents_is_422
+  /workspace/.cache/orm-country-code-baseline-ae949aa8/src/orm/fields.py:4161: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/country-code-baseline.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/integration/account/test_recalculate_tax_tags_endpoint.py::TestRecalculateTaxTagsErrors::test_child_tax_shared_by_two_parents_is_422
+1 failed, 3 warnings in 4.60s

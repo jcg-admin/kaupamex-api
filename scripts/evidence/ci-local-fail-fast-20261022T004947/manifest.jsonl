@@ -1,0 +1,3 @@
+{"kind": "launch", "instrument": "make ci-verify (PostgreSQL aislado); pruebas discriminantes Consumer", "started_at": "2026-10-22T00:49:47+00:00"}
+{"kind": "declaration", "question": "Does the same API verification stop on the first failure locally and in CI without destroying shared QA?", "instrument": "make ci-verify; pytest discriminating controls; native Thyrox TaskCreate and identity resolver", "metric": "exit codes, executed stages, tests and isolated database ownership", "blind_to": "Full ORM acceptance, remote CI completion and local-model execution", "destination": "API CI contract and existing completar-raiz-orm evidence"}
+{"kind": "settle", "exit_code": 2, "finished_at": "2026-10-22T01:05:24+00:00", "duration_seconds": 937.288141}

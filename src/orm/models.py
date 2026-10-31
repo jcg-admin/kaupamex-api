@@ -66,7 +66,8 @@ from django.db.models import (  # noqa: F401
     ForeignKey, Manager, Model, QuerySet,
 )
 from django.db.models.base import ModelState
-from django.db.models.signals import (class_prepared, post_init,
+from django.db.models.fields import related_descriptors as _related_descriptors
+from django.db.models.signals import (class_prepared, m2m_changed, post_init,
                                       pre_delete, pre_init, pre_save)
 from django.dispatch import receiver
 
@@ -85,6 +86,7 @@ from orm.commands import ManyToManyLink, ManyToManySet, One2manyChild
 from orm import registry
 from orm.domains import Domain, to_q
 from orm.fields import (PENDING_INVERSE_FIELDS, FieldDescriptor,
+                        _field_cache_record_id,
                         convert_to_display_name, determine_inverse)
 from orm.fields_textual import Char
 from orm.identifiers import NewId
@@ -3363,10 +3365,9 @@ class DisplayNameMixin:
     ``ir_model``, ``properties_base_definition``, ``res_currency``), así que
     cambiarlas ahora rompería lo que ya funciona:
 
-    1. **``_compute_display_name`` DEVUELVE la etiqueta**; la fuente la
-       **asigna** (``record.display_name = convert(...)``). Aquí el campo no es
-       un campo del ORM con cache de cómputo, así que el valor tiene que
-       volver al descriptor por el retorno.
+    1. **``_compute_display_name`` asigna la etiqueta**, como la fuente, y
+       conserva además el retorno para los llamadores directos existentes.
+       El retorno no sustituye la asignación exigida por el descriptor.
     2. **``name_create`` y ``name_search`` reciben y devuelven lo de Django.**
        ``name_search`` acota con un ``Q`` y no con un dominio extra, que es la
        forma que sus llamadores de este árbol ya usaban.
@@ -3390,11 +3391,9 @@ class DisplayNameMixin:
     Lo que NO es divergencia: la asignación sigue permitida
     ======================================================
 
-    ``display_name`` es un :class:`orm.fields_nonstored.NonStored`, no una
-    ``property``, y la diferencia es deliberada: la fuente declara un campo, y
-    un campo de la fuente **se puede escribir en memoria** aunque no tenga
-    columna. ``record.display_name = 'X'`` gana sobre el cómputo hasta que se
-    borre, igual que allá.
+    ``display_name`` es un campo sin columna, no una ``property``. Su
+    descriptor admite la asignación en memoria y la caché vigente conserva
+    el valor hasta que se invalidan sus dependencias.
     """
 
     #: ≙ la declaración de la fuente, verbatim salvo el nombre del argumento
@@ -3409,8 +3408,7 @@ class DisplayNameMixin:
     #: Sin ``store=``, el bloque ``compute`` de la fuente deriva
     #: ``store=False`` (``odoo19c: odoo/orm/fields.py:443-450``, portado en
     #: :func:`orm.fields_nonstored.apply_source_defaults`), así que el
-    #: enrutador devuelve un :class:`~orm.fields_nonstored.NonStored` y el
-    #: campo no tiene columna — igual que allá.
+    #: campo se contribuye como privado, sin columna — igual que allá.
     #:
     #: La etiqueta va en el primer posicional porque es ``verbose_name`` en
     #: Django y ``string`` en la fuente; antes viajaba en ``help_text=``, que
@@ -3423,6 +3421,7 @@ class DisplayNameMixin:
                         compute='_compute_display_name',
                         search='_search_display_name')
 
+    @api.depends(lambda model: (model._rec_name,) if getattr(model, '_rec_name', None) else ())
     def _compute_display_name(self):
         """La etiqueta del registro — ≙ ``_compute_display_name`` (``:1425``).
 
@@ -3430,28 +3429,26 @@ class DisplayNameMixin:
         :func:`orm.fields.convert_to_display_name`; sin él, ``modelo,id``,
         verbatim el ``f"{record._name},{record.id}"`` de la fuente.
 
-        El ``@api.depends(lambda self: (self._rec_name,) ...)`` de la fuente no
-        se porta: declara de qué depende el cómputo para invalidar su cache, y
-        aquí no hay cache que invalidar — el descriptor computa en cada
-        lectura. Es divergencia de mecanismo, no un hueco.
+        La dependencia invocable conserva el campo de nombre de cada modelo.
+        Se asigna mediante el descriptor existente para poblar su caché; el
+        retorno adicional conserva los consumidores que llaman directamente.
         """
         rec_name = getattr(type(self), '_rec_name', None)
         if not rec_name:
             name = getattr(type(self), '_name', None) or self._meta.label
-            return f'{name},{self.pk}'
-        try:
-            field = self._meta.get_field(rec_name)
-        except FieldDoesNotExist:
-            field = None
-        etiqueta = convert_to_display_name(field, getattr(self, rec_name), self)
-        # El ``False`` del default de la fuente para un campo vacío: aquí la
-        # etiqueta tiene que ser texto, así que se cae al par ``modelo,id`` —
-        # que es lo que la fuente da cuando NO hay ``_rec_name`` en absoluto, y
-        # el único texto que identifica al registro sin inventar nada.
-        if not etiqueta:
-            name = getattr(type(self), '_name', None) or self._meta.label
-            return f'{name},{self.pk}'
-        return etiqueta
+            label = f'{name},{self.pk}'
+        else:
+            try:
+                field = self._meta.get_field(rec_name)
+            except FieldDoesNotExist:
+                field = None
+            label = convert_to_display_name(field, getattr(self, rec_name), self)
+            # Conservar el respaldo técnico de la adaptación para nombres vacíos.
+            if not label:
+                name = getattr(type(self), '_name', None) or self._meta.label
+                label = f'{name},{self.pk}'
+        self.display_name = label
+        return label
 
     @classmethod
     def _search_display_name(cls, operator, value):
@@ -3677,6 +3674,15 @@ def _traverse_inverse(rows, inverse):
     reached = []
     seen = set()
     for row in rows:
+        if isinstance(row, Model) and not row._is_pk_set():
+            descriptor = getattr(type(row), name, None)
+            if type(descriptor) in (
+                    _related_descriptors.ReverseManyToOneDescriptor,
+                    _related_descriptors.ManyToManyDescriptor):
+                # Native collection managers require a PK even for cached
+                # querysets. New rows cannot have persisted inverse links.
+                # Direct cached relations and custom descriptors still walk.
+                continue
         value = getattr(row, name, None)
         if value is None:
             continue
@@ -3847,7 +3853,8 @@ def modified(self, fnames, create=False, before=False):
                 #: Sin columna solo interesan las filas con valor en cache: las
                 #: demas no tienen nada que invalidar.
                 in_cache = field._get_all_cache_ids(environment)
-                records = [row for row in records if row.pk in in_cache]
+                records = [row for row in records
+                           if _field_cache_record_id(field, row) in in_cache]
             if not records:
                 continue
             todo.append(_modified(records, [field], created))
@@ -3857,11 +3864,70 @@ def modified(self, fnames, create=False, before=False):
         else:
             #: Un calculado sin columna no se fuerza a recalcular: basta con
             #: retirar su valor del cache — ``:6828-6831``.
-            field._invalidate_cache(environment, record_ids(records))
+            # Contextual nonstored fields already use NewId cache keys on
+            # unsaved Django rows. Keep the descriptor identity rather than
+            # the persistence PK (None), without changing transaction IDs.
+            field._invalidate_cache(environment, tuple(
+                _field_cache_record_id(field, row) for row in records))
 
     if before:
         for field, ids in tomark.items():
             environment.add_to_compute(field, ids)
+
+
+_M2M_CLEAR_OWNERS = '_orm_m2m_clear_owners'
+
+
+@receiver(m2m_changed, dispatch_uid='orm.models.notify_m2m_modified')
+def _notify_m2m_modified(sender, instance, action, reverse, model,
+                         pk_set=None, using=None, **_ignored):
+    """Notifica al motor existente los cambios de relación hechos por Django.
+
+    El manager M2M escribe su tabla sin pasar por Field.__set__. La señal
+    pública conserva ese flujo y entrega la invalidación a modified(). En
+    clear inverso hay que recordar los propietarios antes de borrar enlaces;
+    el dato temporal vive sólo en la instancia entre las dos señales.
+    """
+    if action not in {'post_add', 'post_remove', 'pre_clear', 'post_clear'}:
+        return
+    owner = model if reverse else type(instance)
+    if not hasattr(owner, 'modified'):
+        return
+    for field in owner._meta.many_to_many:
+        if field.remote_field.through is not sender:
+            continue
+        key = (sender, field.name, using)
+        symmetrical = field.remote_field.symmetrical
+        if action == 'pre_clear':
+            if reverse:
+                previous = owner._base_manager.using(using).filter(
+                    **{field.name: instance.pk}).values_list('pk', flat=True)
+            elif symmetrical:
+                previous = getattr(instance, field.name).using(using).values_list(
+                    'pk', flat=True)
+            else:
+                continue
+            instance.__dict__.setdefault(_M2M_CLEAR_OWNERS, {})[key] = tuple(previous)
+            continue
+        if action == 'post_clear':
+            snapshots = instance.__dict__.get(_M2M_CLEAR_OWNERS, {})
+            owner_ids = set(snapshots.pop(key, ()))
+            if not snapshots:
+                instance.__dict__.pop(_M2M_CLEAR_OWNERS, None)
+        else:
+            if not pk_set:
+                continue
+            owner_ids = set(pk_set) if reverse or symmetrical else set()
+        if not reverse or symmetrical:
+            owner_ids.add(instance.pk)
+        if not owner_ids:
+            continue
+        if reverse or symmetrical:
+            records = owner._base_manager.using(using).filter(pk__in=owner_ids)
+        else:
+            records = (instance,)
+        for record in records:
+            record.modified([field.name])
 
 
 def _recompute_field(self, field, ids=None):
@@ -3878,7 +3944,17 @@ def _recompute_field(self, field, ids=None):
     model = _model_of_records(self) or getattr(field, 'model', None)
     if model is None:
         return
-    field.recompute(list(model.objects.filter(pk__in=[i for i in ids if i])))
+    persisted_ids = [record_id for record_id in ids if record_id]
+    records = list(model.objects.filter(pk__in=persisted_ids))
+    missing_ids = set(persisted_ids).difference(record.pk for record in records)
+    field.recompute(records)
+    # TASK-GEN-0559: Django excluye las filas ausentes al consultar, sin
+    # MissingError. Equivale al descarte de apply_except_missing de la fuente
+    # (odoo19c: odoo/orm/fields.py:1859-1874), después de computar con éxito.
+    # Se conserva el trabajo virtual y el ajeno al alcance solicitado.
+    if missing_ids:
+        for computed in registry.field_computed[field]:
+            env().remove_to_compute(computed, missing_ids)
 
 
 def _recompute_model(self, fnames=None):

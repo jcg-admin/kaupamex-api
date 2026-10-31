@@ -1,0 +1,43 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+______________ test_new_category_assigns_display_name_without_sql ______________
+tests/unit/base/test_res_partner_category.py:84: in test_new_category_assigns_display_name_without_sql
+    assert category.display_name == 'Nueva'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResPartnerCategory(None,).display_name
+______________ test_category_name_change_invalidates_cached_label ______________
+tests/unit/base/test_res_partner_category.py:90: in test_category_name_change_invalidates_cached_label
+    assert category.display_name == 'Anterior'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResPartnerCategory(4,).display_name
+____________ test_reparenting_invalidates_cached_hierarchical_label ____________
+tests/unit/base/test_res_partner_category.py:99: in test_reparenting_invalidates_cached_hierarchical_label
+    assert child.display_name == 'Primera / Hija'
+src/orm/fields.py:1668: in __get__
+    raise ValueError(
+E   ValueError: Compute method failed to assign base.ResPartnerCategory(7,).display_name
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/base/test_res_partner_category.py::test_new_category_assigns_display_name_without_sql
+tests/unit/base/test_res_partner_category.py::test_category_name_change_invalidates_cached_label
+  /workspace/kaupamex-api/src/orm/fields.py:4162: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/base/test_res_partner_category.py::test_new_category_assigns_display_name_without_sql
+tests/unit/base/test_res_partner_category.py::test_category_name_change_invalidates_cached_label
+  /workspace/kaupamex-api/src/orm/fields.py:4162: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/category-compute-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/base/test_res_partner_category.py::test_new_category_assigns_display_name_without_sql
+FAILED tests/unit/base/test_res_partner_category.py::test_category_name_change_invalidates_cached_label
+FAILED tests/unit/base/test_res_partner_category.py::test_reparenting_invalidates_cached_hierarchical_label
+3 failed, 5 warnings in 4.61s

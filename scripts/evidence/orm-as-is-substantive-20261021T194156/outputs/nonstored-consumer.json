@@ -1,0 +1,9 @@
+{
+  "consumer": "base.ResGroups.full_name",
+  "expected": "ORM contract group",
+  "implementation_method_returns": "ORM contract group",
+  "outcome": "CONTRACT_DIVERGENCE",
+  "exception": "RecursionError",
+  "message": "maximum recursion depth exceeded",
+  "query_count": 0
+}

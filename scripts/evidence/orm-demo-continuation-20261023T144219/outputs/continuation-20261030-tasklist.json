@@ -1,0 +1,634 @@
+{
+  "interface": "TaskList.run",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "observed_at": "2026-10-30T23:51:34.783Z",
+  "result": [
+    {
+      "task_id": "1",
+      "citation_id": "TASK-API-0001",
+      "subject": "Mudar packages/agent a .claude/packages/agent y reapuntar sus 4 consumidores",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "2",
+      "citation_id": "TASK-API-0002",
+      "subject": "Decidir la conducta del harness ante thinking_delta en el stream SSE",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "3",
+      "citation_id": "TASK-API-0003",
+      "subject": "Puentear los `- [ ]` de los RST al tablero de tareas",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [
+        {
+          "task_id": "5",
+          "subject": "Implementar TodoWrite, la única de las 47 con necesidad demostrada",
+          "status": "completed"
+        }
+      ],
+      "blocked": false
+    },
+    {
+      "task_id": "4",
+      "citation_id": "TASK-API-0004",
+      "subject": "Reconciliar verificar_premisa.py con premises.ts",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "5",
+      "citation_id": "TASK-GEN-0001",
+      "subject": "Implementar TodoWrite, la única de las 47 con necesidad demostrada",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [
+        {
+          "task_id": "3",
+          "subject": "Puentear los `- [ ]` de los RST al tablero de tareas",
+          "status": "completed"
+        }
+      ],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "6",
+      "citation_id": "TASK-GEN-0002",
+      "subject": "Sustituir los placeholders {tool1}/{tool2} de skill-generator.md",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "7",
+      "citation_id": "TASK-API-0005",
+      "subject": "Emitir un predicado declarado desde una señal S1/S2/S3 del detector",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "8",
+      "citation_id": "TASK-GEN-0632",
+      "subject": "Triar los 82 skills que mandan escribir .md en dos clases",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [
+        {
+          "task_id": "9",
+          "subject": "Implementar el sustrato de skill como código en el harness",
+          "status": "completed"
+        }
+      ],
+      "blocked": false
+    },
+    {
+      "task_id": "9",
+      "citation_id": "TASK-GEN-0003",
+      "subject": "Implementar el sustrato de skill como código en el harness",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [
+        {
+          "task_id": "8",
+          "subject": "Triar los 82 skills que mandan escribir .md en dos clases",
+          "status": "completed"
+        }
+      ],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "10",
+      "citation_id": "TASK-API-0006",
+      "subject": "Cablear la cadena de premisas a un disparador periódico",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "11",
+      "citation_id": "TASK-GEN-0004",
+      "subject": "Nombrar el artefacto del set mínimo para los 17 skills sin coordinador que los mapee",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "12",
+      "citation_id": "TASK-GEN-0005",
+      "subject": "Dar hogar a los cuatro artefactos de raíz del WP que ninguna regla declara",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "13",
+      "citation_id": "TASK-GEN-0006",
+      "subject": "Corregir metadata-standards.md:244 — cita #310 como pendiente estando cerrada",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "14",
+      "citation_id": "TASK-GEN-0007",
+      "subject": "Migrar los skills al sustrato de código, empezando por los que sólo tienen apoyo",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [
+        {
+          "task_id": "39",
+          "subject": "Aplicar el sustrato a los skills que citan el hogar inexistente, en los tres repos",
+          "status": "pending"
+        }
+      ],
+      "blocked": false
+    },
+    {
+      "task_id": "15",
+      "citation_id": "TASK-GEN-0008",
+      "subject": "Implementar las constantes de ruta documental en el harness (src/paths/docs.ts)",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [
+        {
+          "task_id": "39",
+          "subject": "Aplicar el sustrato a los skills que citan el hogar inexistente, en los tres repos",
+          "status": "pending"
+        }
+      ],
+      "blocked": false
+    },
+    {
+      "task_id": "16",
+      "citation_id": "TASK-GEN-0009",
+      "subject": "Declarar la fuente del porte en los 29 archivos de test del harness",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "17",
+      "citation_id": "TASK-GEN-0010",
+      "subject": "Construir @kaupamex/binary — el análisis del ejecutable, en etapas y nativo",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "18",
+      "citation_id": "TASK-DOCS-0001",
+      "subject": "Clasificar vendor contra aplicación en el payload — hoy sin señal medible",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "19",
+      "citation_id": "TASK-API-0007",
+      "subject": "Detectar el patrón general que precede al específico en una lista ordenada",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "20",
+      "citation_id": "TASK-DOCS-0002",
+      "subject": "Portar la decisión de compactación del binario y costear no comprimir",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "21",
+      "citation_id": "TASK-API-0008",
+      "subject": "Medir si un hecho verificado sobrevive a una compactación real",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "22",
+      "citation_id": "TASK-API-0009",
+      "subject": "Portar los cuatro niveles de contexto al harness: hoy no tiene parada dura",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [
+        {
+          "task_id": "25",
+          "subject": "Cablear los niveles al bucle: microcompact por presión, no por conteo",
+          "status": "completed"
+        }
+      ],
+      "blocked": false
+    },
+    {
+      "task_id": "23",
+      "citation_id": "TASK-API-0010",
+      "subject": "Resolver si la compactación está activa — Qp() y sus dos variables de entorno",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [
+        {
+          "task_id": "25",
+          "subject": "Cablear los niveles al bucle: microcompact por presión, no por conteo",
+          "status": "completed"
+        }
+      ],
+      "blocked": false
+    },
+    {
+      "task_id": "24",
+      "citation_id": "TASK-API-0011",
+      "subject": "Portar el guard antithrashing: hoy el harness puede compactar en bucle",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [
+        {
+          "task_id": "25",
+          "subject": "Cablear los niveles al bucle: microcompact por presión, no por conteo",
+          "status": "completed"
+        }
+      ],
+      "blocked": false
+    },
+    {
+      "task_id": "25",
+      "citation_id": "TASK-API-0012",
+      "subject": "Cablear los niveles al bucle: microcompact por presión, no por conteo",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [
+        {
+          "task_id": "22",
+          "subject": "Portar los cuatro niveles de contexto al harness: hoy no tiene parada dura",
+          "status": "completed"
+        },
+        {
+          "task_id": "23",
+          "subject": "Resolver si la compactación está activa — Qp() y sus dos variables de entorno",
+          "status": "completed"
+        },
+        {
+          "task_id": "24",
+          "subject": "Portar el guard antithrashing: hoy el harness puede compactar en bucle",
+          "status": "completed"
+        }
+      ],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "26",
+      "citation_id": "TASK-API-0013",
+      "subject": "Fallar temprano si el store no abre, en vez de descubrirlo en la primera purga",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "27",
+      "citation_id": "TASK-API-0014",
+      "subject": "Medir si `llamada-desconocida` ocurre de verdad, y construir el índice sobre el transcript",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "28",
+      "citation_id": "TASK-API-0015",
+      "subject": "Reintentar el insert del store ante contención: dos escritores, un archivo",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "29",
+      "citation_id": "TASK-DOCS-0003",
+      "subject": "Publicar tokens equivalentes también en `policy.ts`, que hoy sólo da USD",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "30",
+      "citation_id": "TASK-DOCS-0004",
+      "subject": "Portar la rama remota de `Fte` y el tercer override de bloqueo",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "31",
+      "citation_id": "TASK-API-0016",
+      "subject": "Unificar los dos portes de `fZe` — `agent/cost/compaction.ts` y `harness/context/contextLevel.ts`",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "32",
+      "citation_id": "TASK-API-0017",
+      "subject": "Buscar la cifra plantada DESPUÉS de una compactación futura",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "33",
+      "citation_id": "TASK-API-0018",
+      "subject": "Declarar `attachment` y `progress` como tipos de línea del transcript",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "34",
+      "citation_id": "TASK-GEN-0011",
+      "subject": "Emitir la frontera `compact_boundary` con su `compactMetadata` al compactar",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "35",
+      "citation_id": "TASK-API-0019",
+      "subject": "Registrar la forma del transcript en la fila de sesión del store",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "36",
+      "citation_id": "TASK-API-0020",
+      "subject": "Portar el flujo del attachment en sus cuatro etapas",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "37",
+      "citation_id": "TASK-API-0021",
+      "subject": "Convertir un attachment del transcript de vuelta a payload al reanudar",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "38",
+      "citation_id": "TASK-DOCS-0005",
+      "subject": "Separar el separador de millar del separador de lista en compactionFidelity",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "39",
+      "citation_id": "TASK-GEN-0012",
+      "subject": "Aplicar el sustrato a los skills que citan el hogar inexistente, en los tres repos",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [
+        {
+          "task_id": "15",
+          "subject": "Implementar las constantes de ruta documental en el harness (src/paths/docs.ts)",
+          "status": "completed"
+        },
+        {
+          "task_id": "14",
+          "subject": "Migrar los skills al sustrato de código, empezando por los que sólo tienen apoyo",
+          "status": "completed"
+        }
+      ],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "40",
+      "citation_id": "TASK-API-0022",
+      "subject": "Medir si un @import funciona dentro de un SKILL.md",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "41",
+      "citation_id": "TASK-API-0023",
+      "subject": "Barrer las citas en prosa a guiones mudados por d566c180",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "42",
+      "citation_id": "TASK-API-0024",
+      "subject": "Bajar el coste de censar_scripts.py --verificar (68 s por 121 git grep)",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "43",
+      "citation_id": "TASK-API-0025",
+      "subject": "Analizar en el binario 2.1.258 el flujo de reanudación y reconciliación de estado tras un reinicio",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [
+        {
+          "task_id": "46",
+          "subject": "Escribir el documento de tareas de la reconciliación tras reinicio a partir de los tres análisis",
+          "status": "completed"
+        }
+      ],
+      "blocked": false
+    },
+    {
+      "task_id": "44",
+      "citation_id": "TASK-API-0026",
+      "subject": "Analizar en la referencia (ccb, hccw, ccnmt) el flujo de reanudación y reconciliación de estado",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [
+        {
+          "task_id": "46",
+          "subject": "Escribir el documento de tareas de la reconciliación tras reinicio a partir de los tres análisis",
+          "status": "completed"
+        }
+      ],
+      "blocked": false
+    },
+    {
+      "task_id": "45",
+      "citation_id": "TASK-API-0027",
+      "subject": "Documentar cómo reconcilia hoy nuestro harness el estado tras un reinicio",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [
+        {
+          "task_id": "46",
+          "subject": "Escribir el documento de tareas de la reconciliación tras reinicio a partir de los tres análisis",
+          "status": "completed"
+        }
+      ],
+      "blocked": false
+    },
+    {
+      "task_id": "46",
+      "citation_id": "TASK-GEN-0013",
+      "subject": "Escribir el documento de tareas de la reconciliación tras reinicio a partir de los tres análisis",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [
+        {
+          "task_id": "43",
+          "subject": "Analizar en el binario 2.1.258 el flujo de reanudación y reconciliación de estado tras un reinicio",
+          "status": "completed"
+        },
+        {
+          "task_id": "44",
+          "subject": "Analizar en la referencia (ccb, hccw, ccnmt) el flujo de reanudación y reconciliación de estado",
+          "status": "completed"
+        },
+        {
+          "task_id": "45",
+          "subject": "Documentar cómo reconcilia hoy nuestro harness el estado tras un reinicio",
+          "status": "completed"
+        }
+      ],
+      "blocks": [
+        {
+          "task_id": "47",
+          "subject": "Implementar en el harness la reconciliación de estado tras un reinicio (src/session/reconcile.ts)",
+          "status": "completed"
+        }
+      ],
+      "blocked": false
+    },
+    {
+      "task_id": "47",
+      "citation_id": "TASK-API-0028",
+      "subject": "Implementar en el harness la reconciliación de estado tras un reinicio (src/session/reconcile.ts)",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [
+        {
+          "task_id": "46",
+          "subject": "Escribir el documento de tareas de la reconciliación tras reinicio a partir de los tres análisis",
+          "status": "completed"
+        }
+      ],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "48",
+      "citation_id": "TASK-GEN-0014",
+      "subject": "Cablear verifyAdoption al store: cerrar la fila running de un proceso muerto",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "49",
+      "citation_id": "TASK-API-0029",
+      "subject": "Cablear SkillRegistry al despacho de herramientas del bucle",
+      "status": "completed",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    },
+    {
+      "task_id": "50",
+      "citation_id": "TASK-API-0030",
+      "subject": "Migrar los skills clase-a al sustrato, declarando su destino via src/paths/docs.ts",
+      "status": "pending",
+      "owner": null,
+      "blocked_by": [],
+      "blocks": [],
+      "blocked": false
+    }
+  ]
+}

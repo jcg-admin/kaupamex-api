@@ -1,0 +1,15 @@
+{
+  "scripts/evidence/orm-as-is-substantive-20261021T194156/probes/contract_review.py": "cce8bde453b8ea836b0f28138e2339786b16cd53500f3f45454475f01d7dd1ca",
+  "scripts/evidence/orm-as-is-substantive-20261021T194156/probes/scoped_unit_checks.py": "ec145e0232ab13d21ce6a8fc7488a7644ba2fc707f1560ad44772a60f12e0e97",
+  "scripts/evidence/orm-as-is-substantive-20261021T194156/probes/task_findings.tsv": "2c999800adad07ec641086c559bc17e9c713fb78829e5874b8a1196b71a40dc2",
+  "scripts/evidence/orm-as-is-substantive-20261021T194156/probes/xfail_probe.py": "a06da54f5e4c358493bf9151423acdcae898032e714d1a8fa8eff2ec017425d9",
+  "scripts/evidence/orm-as-is-substantive-20261021T194156/probes/scoped_postgresql_context.py": "a76463e492cd1a790ff88868de51561c6b254c5048a356ec441f63c908727119",
+  "scripts/evidence/orm-as-is-substantive-20261021T194156/probes/group_findings.tsv": "55c3b252435dec150a5c13664aef323883da9a42469630b803dfb56f1280630c",
+  "scripts/evidence/orm-as-is-substantive-20261021T194156/probes/nonstored_consumer_probe.py": "44787ab54130a9e6dd2f692e93b62d3a205cd2c7bc4f2c1cb1ff20e18100d166",
+  "scripts/evidence/orm-as-is-substantive-20261021T194156/probes/history_observations.py": "a3124aeea5282eb57996b88695fcd9998600a2019f0a4e40fc59a14f2dda9a50",
+  "scripts/evidence/orm-as-is-substantive-20261021T194156/probes/evidence_review.py": "0e890e3192f017a5a3716df16ee50320965a02ad3570f6aae49151aee9621ed1",
+  "scripts/evidence/orm-as-is-substantive-20261021T194156/probes/recompute_postgresql.py": "f290562e14c01d73d42f3a969d85b6810dc1b268834a1321f8dd12d72a727073",
+  "src/orm/fields.py": "becfb929e89a1b48d0b727dd33bcff710972a941caa305003d6e69eeada32797",
+  "src/orm/models.py": "35c421a6f3906c473c5d5958b419dce4f6d0467e1bac2658f640a6ffe4bffd53",
+  "tests/unit/orm/test_missing_recompute.py": "f9524aee01faf5366683cc612d6792282f593c5530c12f136ba212948e54b578"
+}

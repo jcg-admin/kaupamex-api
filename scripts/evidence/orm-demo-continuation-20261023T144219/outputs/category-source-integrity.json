@@ -1,0 +1,127 @@
+{
+  "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798",
+  "baseline": "ae949aa8",
+  "files": [
+    {
+      "path": "addons/authz/declaration.py",
+      "committed_sha256": "6ad65f560aaa460f0511fa11311cdf4077d27dad903e55e20a002a9ceaaa444c",
+      "workspace_sha256": "6ad65f560aaa460f0511fa11311cdf4077d27dad903e55e20a002a9ceaaa444c",
+      "matches": true
+    },
+    {
+      "path": "addons/product/models/product_product.py",
+      "committed_sha256": "a01cd53e96fdd47b9a4be046c19c1337cb8ede4f726c3dac49d5f3a8c220f9af",
+      "workspace_sha256": "a01cd53e96fdd47b9a4be046c19c1337cb8ede4f726c3dac49d5f3a8c220f9af",
+      "matches": true
+    },
+    {
+      "path": "src/addons/base/controllers/module_catalogue.py",
+      "committed_sha256": "8e82150bc8462c34b5ad7db49e704b3e5ef5013e836dae61ace38e0afda07fb1",
+      "workspace_sha256": "8e82150bc8462c34b5ad7db49e704b3e5ef5013e836dae61ace38e0afda07fb1",
+      "matches": true
+    },
+    {
+      "path": "src/addons/base/management/commands/update_module_list.py",
+      "committed_sha256": "747dd14df88c35badd9c646a65bc5975a7f9fd1660834e367ef1def2cd9c8192",
+      "workspace_sha256": "747dd14df88c35badd9c646a65bc5975a7f9fd1660834e367ef1def2cd9c8192",
+      "matches": true
+    },
+    {
+      "path": "src/addons/base/migrations/0090_module_category_tree.py",
+      "committed_sha256": "9a0009ebf482dbefe9cad37e14367921967f83c3c9b9f4dd76ee18edde3454f1",
+      "workspace_sha256": "9a0009ebf482dbefe9cad37e14367921967f83c3c9b9f4dd76ee18edde3454f1",
+      "matches": true
+    },
+    {
+      "path": "src/addons/base/models/ir_module.py",
+      "committed_sha256": "e3cce7196628408c9dffbde16c67dfb57e431565ce2f3a359fc3730c4e5339c2",
+      "workspace_sha256": "e3cce7196628408c9dffbde16c67dfb57e431565ce2f3a359fc3730c4e5339c2",
+      "matches": true
+    },
+    {
+      "path": "src/addons/base/models/res_partner.py",
+      "committed_sha256": "e71ab7867089a9996b3b0c4dae14b64c143b92d7446f3a6aa62cbb746659a6f2",
+      "workspace_sha256": "e71ab7867089a9996b3b0c4dae14b64c143b92d7446f3a6aa62cbb746659a6f2",
+      "matches": true
+    },
+    {
+      "path": "src/modules/db.py",
+      "committed_sha256": "795936f9a0e9977fb8c247422973052443b3a67510c2a5a4d83021bd95cd5ac9",
+      "workspace_sha256": "795936f9a0e9977fb8c247422973052443b3a67510c2a5a4d83021bd95cd5ac9",
+      "matches": true
+    },
+    {
+      "path": "src/orm/fields.py",
+      "committed_sha256": "2dd6f36d3b14c117a3e093c798387c0a2435a57d242cf5948ff0e039acbdfde0",
+      "workspace_sha256": "2dd6f36d3b14c117a3e093c798387c0a2435a57d242cf5948ff0e039acbdfde0",
+      "matches": true
+    },
+    {
+      "path": "src/orm/model_classes.py",
+      "committed_sha256": "d85555f7c065c2b97b8cd286426eec439f15e6441ec0124e6738c4098e4b8fe0",
+      "workspace_sha256": "d85555f7c065c2b97b8cd286426eec439f15e6441ec0124e6738c4098e4b8fe0",
+      "matches": true
+    },
+    {
+      "path": "src/orm/models.py",
+      "committed_sha256": "c30a619826a4202544919ecac06bb0fad18e0f2fecf7948cc076914a7750e34b",
+      "workspace_sha256": "c30a619826a4202544919ecac06bb0fad18e0f2fecf7948cc076914a7750e34b",
+      "matches": true
+    },
+    {
+      "path": "tests/integration/base/test_display_name_assignment.py",
+      "committed_sha256": "dec04da9aba9baf9d983110cf627b0ef745f2ad09cd37115735f92ce0e74c65d",
+      "workspace_sha256": "dec04da9aba9baf9d983110cf627b0ef745f2ad09cd37115735f92ce0e74c65d",
+      "matches": true
+    },
+    {
+      "path": "tests/integration/base/test_module_catalog_database.py",
+      "committed_sha256": "19de3ba886fd5da554dc76f5cb7b5d76440662d2ba2f1744c7b00d71b0dc3b40",
+      "workspace_sha256": "19de3ba886fd5da554dc76f5cb7b5d76440662d2ba2f1744c7b00d71b0dc3b40",
+      "matches": true
+    },
+    {
+      "path": "tests/integration/base/test_module_catalogue_api.py",
+      "committed_sha256": "5edb00a89036c40eb1eddba0d55dc39d46fdbcbd8bea448029487a86bafdc9e0",
+      "workspace_sha256": "5edb00a89036c40eb1eddba0d55dc39d46fdbcbd8bea448029487a86bafdc9e0",
+      "matches": true
+    },
+    {
+      "path": "tests/integration/base/test_module_category_tree.py",
+      "committed_sha256": "05c07a31baf75062c07b2a81b81a17db40fa49d88afa72979ce0c892e11ca12d",
+      "workspace_sha256": "05c07a31baf75062c07b2a81b81a17db40fa49d88afa72979ce0c892e11ca12d",
+      "matches": true
+    },
+    {
+      "path": "tests/integration/product/test_display_name_assignment.py",
+      "committed_sha256": "da2dc8497801a88587f6570af146f3ad2eb6c54424997eb3a606a02764d186dd",
+      "workspace_sha256": "da2dc8497801a88587f6570af146f3ad2eb6c54424997eb3a606a02764d186dd",
+      "matches": true
+    },
+    {
+      "path": "tests/unit/modules/test_demo_failure_storage.py",
+      "committed_sha256": "be52bf35bb8638b07f1702ca5cb80a2622eef8941a969d8f08157f78d74a038c",
+      "workspace_sha256": "be52bf35bb8638b07f1702ca5cb80a2622eef8941a969d8f08157f78d74a038c",
+      "matches": true
+    },
+    {
+      "path": "tests/unit/modules/test_module_category_migration.py",
+      "committed_sha256": "fba9426431ae3e2cc0929cf63d4cdff0b248dc8009fd8e5062e64266a712de6c",
+      "workspace_sha256": "fba9426431ae3e2cc0929cf63d4cdff0b248dc8009fd8e5062e64266a712de6c",
+      "matches": true
+    },
+    {
+      "path": "tests/unit/orm/test_field_descriptor.py",
+      "committed_sha256": "ea6b6528b4daeea4f8c522beadb71a6b108fd4e228c19c86361a17ed3cedb2d8",
+      "workspace_sha256": "ea6b6528b4daeea4f8c522beadb71a6b108fd4e228c19c86361a17ed3cedb2d8",
+      "matches": true
+    },
+    {
+      "path": "tests/unit/orm/test_related_setup_derived_maps.py",
+      "committed_sha256": "534d28a1c0fea6762449eb688d54bbd62c91b005f5ccaa7be4884b26bff49602",
+      "workspace_sha256": "534d28a1c0fea6762449eb688d54bbd62c91b005f5ccaa7be4884b26bff49602",
+      "matches": true
+    }
+  ],
+  "scope": "Exact changed production/tests source bytes equal Git blobs; no inference about acceptance"
+}

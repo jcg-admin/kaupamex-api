@@ -1,0 +1,100 @@
+[
+  {
+    "control": "fresh_process",
+    "command": [
+      "/workspace/thyrox/.venv/bin/python",
+      "/workspace/scratch/authority-separation/transfer_reader.py",
+      "/workspace/scratch/authority-separation/checkpoint-fixture.json"
+    ],
+    "exit_code": 0,
+    "result": {
+      "tasks": [
+        {
+          "citation_id": "TASK-API-0406",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1181",
+          "subject": "Censar las aserciones negativas que el barrido invirtió en los cinco clones",
+          "status": "pending",
+          "owner": null,
+          "blocked_by_json": null
+        },
+        {
+          "citation_id": "TASK-GEN-0060",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "333",
+          "subject": "Construir el almacenamiento jsonb de translate=True",
+          "status": "pending",
+          "owner": null,
+          "blocked_by_json": "[]"
+        },
+        {
+          "citation_id": "TASK-GEN-0062",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "400",
+          "subject": "Construir el motor de traducción: import/export de .po",
+          "status": "pending",
+          "owner": null,
+          "blocked_by_json": "[\"333\"]"
+        },
+        {
+          "citation_id": "TASK-THYROX-1072",
+          "session_id": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+          "task_id": "140",
+          "subject": "Read the task universe from the store in task_source",
+          "status": "pending",
+          "owner": null,
+          "blocked_by_json": null
+        }
+      ],
+      "claims1072": [
+        {
+          "id": "c-844ca00b-019b-4297-a19f-39d1a7b4a6a0",
+          "op": "claim",
+          "path": "src/task/task_source.py",
+          "owner": "vm-r",
+          "branch": "feature/vm-r-impl",
+          "at": "2026-10-09T04:45:40.641Z",
+          "task": "TASK-THYROX-1072"
+        }
+      ],
+      "heads": {
+        "api": "ebc91835b4e2a200cd8cab72e4a8bf2eefb45a9b",
+        "docs": "080b2c4d0c79b16be26f073684c7df3e1eaf88a4"
+      },
+      "drift": {},
+      "next_authorized_action": "documentation and bounded readonly verification; no functional TASK admitted",
+      "limit": "fresh process reads checkpoint, not live independent-agent E2E; no transcript input or store writes"
+    }
+  },
+  {
+    "control": "bad_expected_evidence_hash",
+    "exit_code": 1,
+    "result": "rejected evidence drift",
+    "stderr": "Traceback (most recent call last):\n  File \"/workspace/scratch/authority-separation/transfer_reader.py\", line 9, in <module>\n    c.close(); evidence=Path(p['evidence']['path']); assert hashlib.sha256(evidence.read_bytes()).hexdigest()==p['evidence']['sha256'],'evidence drift'; claims=active_claims([json.loads(l) for l in Path(p['claims']).read_text().splitlines() if l.strip()]); provider_claims=[x for x in claims if '1072' in json.dumps(x)]\n                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: evidence drift\n"
+  },
+  {
+    "control": "0406 cannot be assigned UI by manifest citation",
+    "result": "native subject differs; no reassignment"
+  },
+  {
+    "control": "GEN0062 dependency preserved from native row",
+    "blocked_by_raw": [
+      "333"
+    ],
+    "direction": "GEN0062 depends on GEN0060; graph edge GEN0060→GEN0062"
+  },
+  {
+    "control": "changed expected revision",
+    "exit_code": 0,
+    "drift_detected": {
+      "api": "ebc91835b4e2a200cd8cab72e4a8bf2eefb45a9b"
+    },
+    "limit": "Expected revision fixture changed, real Git not edited"
+  },
+  {
+    "control": "wrong known citation for same native session/task",
+    "exit_code": 1,
+    "result": "rejected identity mismatch",
+    "limit": "Fixture expectation only, no operational row edited"
+  }
+]

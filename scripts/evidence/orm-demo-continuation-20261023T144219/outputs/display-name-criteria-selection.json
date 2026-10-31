@@ -1,0 +1,25 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "uv run --frozen --project /workspace/thyrox python, Provider API with full actual claims ledger",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.display_name_criteria",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Reconcile demonstrated stale NonStored checker and deletion fixture criteria against pinned typed computed Char; preserve negative structural/property controls and cache invalidation behavior",
+      "verify": "Source comparison first; native criterion reconciliation before edit; PostgreSQL display contract and negative checker controls; preserve64identities and full CI classification",
+      "route": "local",
+      "owned": [
+        "scripts/check_display_name.py",
+        "tests/unit/orm/test_display_name.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "claims_count": 440,
+  "selected": [
+    "TASK-GEN-0633.display_name_criteria"
+  ],
+  "scope": "Bounded historical64 triage candidate; not global discovery, managed inference or acceptance; no file edit until required running CI completes"
+}

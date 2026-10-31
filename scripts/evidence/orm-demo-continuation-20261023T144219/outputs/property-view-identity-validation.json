@@ -1,0 +1,15 @@
+{
+  "input": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-structural.json",
+  "input_sha256": "267215080f2d8bd56f0281c300a298688a9f5fcd5faa562f976cda19577d00a9",
+  "view_source_sha256": "d988f9a980f4b7227a3f299714b067f49bf9ac2e611a46a27fd9a2c4c9978191",
+  "logical_properties": 41,
+  "accessor_count": 42,
+  "source_population_reinventoried": false,
+  "identity_guard_tests": {
+    "red_failed": 4,
+    "red_passed": 7,
+    "green_passed": 11
+  },
+  "result": "PASS",
+  "contract_acceptance": "NOT_EVALUATED"
+}

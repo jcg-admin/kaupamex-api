@@ -1,0 +1,29 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "Provider Python stdin invocation, full actual claims ledger",
+  "inputs": [
+    {
+      "id": "TASK-API-0267.category_tree",
+      "taskId": "TASK-API-0267",
+      "prompt": "Populate category tree through existing modules.db, preserve XML identities and caller database; wire catalogue FK only after data-preserving migration and HTTP compatibility controls. Whole modules.db task remains separate.",
+      "verify": "Pinned reference and actual PostgreSQL tree/idempotency/XMLID/rollback controls; schema data roundtrip and catalogue HTTP contract for full unit",
+      "route": "local",
+      "owned": [
+        "src/modules/db.py",
+        "src/addons/base/models/ir_module.py",
+        "src/addons/base/management/commands/update_module_list.py",
+        "src/addons/base/controllers/module_catalogue.py",
+        "tests/integration/base/test_module_category_tree.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "claims_count": 421,
+  "selected": [
+    "TASK-API-0267.category_tree"
+  ],
+  "admission": "Native452 pending owned, empty blocked_by insufficient alone: existing catalogue and actual category model inspected; TASK-GEN-0058 ownerNULL broader overlap preserved, not executed. Current CI must settle before code changes.",
+  "scope": "Bounded continuation candidate, not global exhaustion, acceptance, or local-model dispatch."
+}

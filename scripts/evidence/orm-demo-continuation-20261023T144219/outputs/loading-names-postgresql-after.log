@@ -1,0 +1,148 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "postgresql_catalogue_cases": [
+    {
+      "schema": "contract_names_first",
+      "requested": [],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "all"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "base",
+        "base",
+        "all"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "sale"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "sale"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "stock"
+      ],
+      "warnings": [
+        "invalid module names, ignored: stock"
+      ]
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "unknown_contract",
+        "base"
+      ],
+      "warnings": [
+        "invalid module names, ignored: unknown_contract"
+      ]
+    },
+    {
+      "schema": "contract_names_first",
+      "requested": [
+        "unknown'); DROP TABLE ir_module_module; --"
+      ],
+      "warnings": [
+        "invalid module names, ignored: unknown'); DROP TABLE ir_module_module; --"
+      ]
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "all"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "base",
+        "base",
+        "all"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "stock"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "sale"
+      ],
+      "warnings": [
+        "invalid module names, ignored: sale"
+      ]
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "stock"
+      ],
+      "warnings": []
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "unknown_contract",
+        "base"
+      ],
+      "warnings": [
+        "invalid module names, ignored: unknown_contract"
+      ]
+    },
+    {
+      "schema": "contract_names_second",
+      "requested": [
+        "unknown'); DROP TABLE ir_module_module; --"
+      ],
+      "warnings": [
+        "invalid module names, ignored: unknown'); DROP TABLE ir_module_module; --"
+      ]
+    }
+  ],
+  "states_unchanged": true,
+  "scope": "Two isolated schemas in one owned database; not productive multi-database acceptance"
+}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

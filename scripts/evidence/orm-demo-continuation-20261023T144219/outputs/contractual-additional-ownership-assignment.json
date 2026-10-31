@@ -1,0 +1,75 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "authorization": "User explicitly authorized both owner assignments",
+  "results": [
+    {
+      "interface": "TaskGet -> TaskUpdate -> TaskGet",
+      "input": {
+        "task_id": "452",
+        "owner": "codex-module-lifecycle"
+      },
+      "before": {
+        "task_id": "452",
+        "citation_id": "TASK-API-0267",
+        "subject": "Poblar el árbol de categorías: IrModuleCategory es un porte huérfano (H-API-649)",
+        "description": "Medido 2026-08-18: `ir_module_category` tiene **0 filas** y **ningún campo apunta a él**. `IrModuleCategory` está portado (`api: src/addons/base/models/ir_module.py:39`) con su árbol `parent` self-FK, pero `IrModule.category` es un `Char` — mientras la referencia declara `category_id = fields.Many2one('ir.module.category')` (`odoo19c: odoo/addons/base/models/ir_module.py:275`) y lo escribe con `_update_category` (`:862`) sobre `modules.db.create_categories` (`odoo19c: odoo/modules/db.py:127`), que parte la ruta por `/` y crea un nivel por tramo.\n\nEs un porte **estructuralmente huérfano** — misma clase que #294 (`auto_installable` portado sin llamador).\n\nPoblación que espera: los 94 manifiestos declaran **25 rutas** distintas — `Sales/Sales` 22, `Hidden/Tools` 14, `Accounting/Accounting` 13, `Hidden` 8, `Accounting/Payment Providers` 7, `Supply Chain/Inventory` 4, `Website/Website` 4, y 18 más. Son exactamente las categorías de la barra lateral de la pantalla de aplicaciones.\n\nAlcance:\n1. `create_categories` en `src/modules/db.py` — el hogar que la referencia le da. Ese archivo no existe aún; la tarea #298 porta sus otros 5 símbolos, así que este pase declara su cobertura parcial (`porte-completo-no-parcial.md`) o se coordina con #298.\n2. Cambiar `IrModule.category` de `Char` a `Many2one('base.IrModuleCategory')` + migración. La referencia no guarda la cadena cruda: sólo el FK.\n3. Cablearlo en `update_module_list`, con test de regresión que mida filas de categoría y profundidad del árbol.\n\nPrecondición cerrada: el registro de módulos ya tiene sus 94 filas (`api@6945cc1`).",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      },
+      "update": {
+        "content": "{\"task_id\":\"452\",\"updated\":true}",
+        "isError": false
+      },
+      "after": {
+        "task_id": "452",
+        "citation_id": "TASK-API-0267",
+        "subject": "Poblar el árbol de categorías: IrModuleCategory es un porte huérfano (H-API-649)",
+        "description": "Medido 2026-08-18: `ir_module_category` tiene **0 filas** y **ningún campo apunta a él**. `IrModuleCategory` está portado (`api: src/addons/base/models/ir_module.py:39`) con su árbol `parent` self-FK, pero `IrModule.category` es un `Char` — mientras la referencia declara `category_id = fields.Many2one('ir.module.category')` (`odoo19c: odoo/addons/base/models/ir_module.py:275`) y lo escribe con `_update_category` (`:862`) sobre `modules.db.create_categories` (`odoo19c: odoo/modules/db.py:127`), que parte la ruta por `/` y crea un nivel por tramo.\n\nEs un porte **estructuralmente huérfano** — misma clase que #294 (`auto_installable` portado sin llamador).\n\nPoblación que espera: los 94 manifiestos declaran **25 rutas** distintas — `Sales/Sales` 22, `Hidden/Tools` 14, `Accounting/Accounting` 13, `Hidden` 8, `Accounting/Payment Providers` 7, `Supply Chain/Inventory` 4, `Website/Website` 4, y 18 más. Son exactamente las categorías de la barra lateral de la pantalla de aplicaciones.\n\nAlcance:\n1. `create_categories` en `src/modules/db.py` — el hogar que la referencia le da. Ese archivo no existe aún; la tarea #298 porta sus otros 5 símbolos, así que este pase declara su cobertura parcial (`porte-completo-no-parcial.md`) o se coordina con #298.\n2. Cambiar `IrModule.category` de `Char` a `Many2one('base.IrModuleCategory')` + migración. La referencia no guarda la cadena cruda: sólo el FK.\n3. Cablearlo en `update_module_list`, con test de regresión que mida filas de categoría y profundidad del árbol.\n\nPrecondición cerrada: el registro de módulos ya tiene sus 94 filas (`api@6945cc1`).",
+        "status": "pending",
+        "owner": "codex-module-lifecycle",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    },
+    {
+      "interface": "TaskGet -> TaskUpdate -> TaskGet",
+      "input": {
+        "task_id": "1203",
+        "owner": "codex-module-lifecycle"
+      },
+      "before": {
+        "task_id": "1203",
+        "citation_id": "TASK-GEN-0633",
+        "subject": "Triar los 64 rojos de tests/unit/orm que TASK-API-0412 volvió alcanzables",
+        "description": "TASK-API-0412 (api@775c674e) hizo que `tests/unit/orm` pasara de 0 passed / 2205 errors —la suite moría en import— a 2141 passed / 64 failed. Los 64 NO son regresiones del cambio: eran inalcanzables porque nada llegaba a correr. Esto es una LÍNEA BASE NUEVA, no una comparación contra los 5371 de 2026-08-28.\n\nAgrupación medida (`scripts/evidence/triage-64-2026-09-12T09-02-05-001.log`): **26 grupos que cubren 31 de los 64**. Los 33 restantes NO están atribuidos — el instrumento agrupa por la línea `file:line: Error` del resumen y esos rojos no la llevan bajo `--tb=no`. Ése es su punto ciego, y el triaje empieza por cerrarlo (re-correr el subconjunto con `--tb=line`, que sí emite una línea por rojo).\n\nLos grupos medidos, por dueño:\n\n- **5** — `src/orm/fields_relational.py:530` `ManyToManyField.__init__() missing 'to'` → es **#349** (reconstruir el relacional desde `_args__`), no de aquí.\n- **6** — `src/orm/fields.py:1593` `Compute method failed to assign …display_name` (grupo #3, clave.uno, Cliente, Cliente Sin Correo, Cliente Con Nombre, y `ComputeDispatchProbe.label`). Un compute que DEVUELVE en vez de ASIGNAR: `_invoke_compute_method` descarta el retorno de `determine()` y `__get__` lee `instance.__dict__[attname]` después. Candidato a cerrar en este mismo triaje.\n- **8** — `tests/unit/orm/test_related_in_every_field_type.py:60` «X devolvió Y» (Properties, One2many, Monetary, Many2one, Json, Image, Html) más `:68` `'One2many' object has no attribute 'store'` y `:78`. Es el eje **`related=` por tipo de campo**, hermano de #348 (retirar NonStored como clase: el eje es `store`, no el tipo).\n- **4** — `tests/unit/orm/test_related_write_reaches_the_far_end.py` (`:47`, `:53`, `:136`, `:179`). Escritura que no llega al extremo lejano de la cadena — el mismo mecanismo que TASK-API-0412 cerró para la dirección de ResCompany, sin cerrar para el resto.\n- **2** — `test_nonstored_compute_dispatch.py:123` `'CharField' object has no attribute '__get__'` → **#343** (un NonStored no tiene atributo editable y su hermano con columna sí).\n- **2** — `django/apps/registry.py:206` `'NoneType' object has no attribute 'split'` — resolución de modelo por cadena mal formada.\n- **1 + 1 + 1** — `src/tools/sql.py:338` `'NoneType' has no attribute 'isidentifier'`; `src/orm/fields.py:1610` `'ComputeDispatchProbe' object has no attribute 'default_get'`; `res_partner.py:1222` 'Another partner already has this barcode' (contaminación de estado entre casos, no defecto de porte).\n\nCondición de cierre: cada uno de los 64 termina en (a) cerrado aquí, (b) reasignado a la tarea que ya lo posee con su cita, o (c) DESCONOCIDO con su condición de cierre escrita. Ninguno se queda sin dueño.",
+        "status": "pending",
+        "owner": null,
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      },
+      "update": {
+        "content": "{\"task_id\":\"1203\",\"updated\":true}",
+        "isError": false
+      },
+      "after": {
+        "task_id": "1203",
+        "citation_id": "TASK-GEN-0633",
+        "subject": "Triar los 64 rojos de tests/unit/orm que TASK-API-0412 volvió alcanzables",
+        "description": "TASK-API-0412 (api@775c674e) hizo que `tests/unit/orm` pasara de 0 passed / 2205 errors —la suite moría en import— a 2141 passed / 64 failed. Los 64 NO son regresiones del cambio: eran inalcanzables porque nada llegaba a correr. Esto es una LÍNEA BASE NUEVA, no una comparación contra los 5371 de 2026-08-28.\n\nAgrupación medida (`scripts/evidence/triage-64-2026-09-12T09-02-05-001.log`): **26 grupos que cubren 31 de los 64**. Los 33 restantes NO están atribuidos — el instrumento agrupa por la línea `file:line: Error` del resumen y esos rojos no la llevan bajo `--tb=no`. Ése es su punto ciego, y el triaje empieza por cerrarlo (re-correr el subconjunto con `--tb=line`, que sí emite una línea por rojo).\n\nLos grupos medidos, por dueño:\n\n- **5** — `src/orm/fields_relational.py:530` `ManyToManyField.__init__() missing 'to'` → es **#349** (reconstruir el relacional desde `_args__`), no de aquí.\n- **6** — `src/orm/fields.py:1593` `Compute method failed to assign …display_name` (grupo #3, clave.uno, Cliente, Cliente Sin Correo, Cliente Con Nombre, y `ComputeDispatchProbe.label`). Un compute que DEVUELVE en vez de ASIGNAR: `_invoke_compute_method` descarta el retorno de `determine()` y `__get__` lee `instance.__dict__[attname]` después. Candidato a cerrar en este mismo triaje.\n- **8** — `tests/unit/orm/test_related_in_every_field_type.py:60` «X devolvió Y» (Properties, One2many, Monetary, Many2one, Json, Image, Html) más `:68` `'One2many' object has no attribute 'store'` y `:78`. Es el eje **`related=` por tipo de campo**, hermano de #348 (retirar NonStored como clase: el eje es `store`, no el tipo).\n- **4** — `tests/unit/orm/test_related_write_reaches_the_far_end.py` (`:47`, `:53`, `:136`, `:179`). Escritura que no llega al extremo lejano de la cadena — el mismo mecanismo que TASK-API-0412 cerró para la dirección de ResCompany, sin cerrar para el resto.\n- **2** — `test_nonstored_compute_dispatch.py:123` `'CharField' object has no attribute '__get__'` → **#343** (un NonStored no tiene atributo editable y su hermano con columna sí).\n- **2** — `django/apps/registry.py:206` `'NoneType' object has no attribute 'split'` — resolución de modelo por cadena mal formada.\n- **1 + 1 + 1** — `src/tools/sql.py:338` `'NoneType' has no attribute 'isidentifier'`; `src/orm/fields.py:1610` `'ComputeDispatchProbe' object has no attribute 'default_get'`; `res_partner.py:1222` 'Another partner already has this barcode' (contaminación de estado entre casos, no defecto de porte).\n\nCondición de cierre: cada uno de los 64 termina en (a) cerrado aquí, (b) reasignado a la tarea que ya lo posee con su cita, o (c) DESCONOCIDO con su condición de cierre escrita. Ninguno se queda sin dueño.",
+        "status": "pending",
+        "owner": "codex-module-lifecycle",
+        "blocked_by": [],
+        "blocks": [],
+        "blocked": false
+      }
+    }
+  ],
+  "status_changed": false,
+  "dependencies_changed": false
+}

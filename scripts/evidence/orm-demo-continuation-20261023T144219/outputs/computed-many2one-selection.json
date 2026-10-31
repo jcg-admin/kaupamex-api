@@ -1,0 +1,26 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "Provider Python stdin with full actual ledger",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.computed_many2one_absence",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Correct observed optional nonstored Many2one absence at existing Django descriptor/setup boundary; preserve real missing references and stored-required behavior, no business/schema/BaseModel constructor rewrite",
+      "verify": "Actual PostgreSQL direct/explicitNone/rawID/derived reads, zero false-PK SQL, valid/missing/wrong-type/stored-required controls and current tax-tag endpoint",
+      "route": "local",
+      "owned": [
+        "src/orm/fields.py",
+        "tests/integration/base/test_computed_many2one_absence.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "claims_count": 438,
+  "selected": [
+    "TASK-GEN-0633.computed_many2one_absence"
+  ],
+  "admission": "Owned pending native1203 global-triage contract reconciled, actual current and baseline failure/effective flags/pinned conversion inspected. Existing setup and descriptors reused; no accepted states fabricated.",
+  "scope": "One bounded Consumer candidate, not global coverage or local-model dispatch"
+}

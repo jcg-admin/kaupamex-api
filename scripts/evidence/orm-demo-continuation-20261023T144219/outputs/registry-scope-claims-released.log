@@ -1,0 +1,2 @@
+liberado: {"id":"c-3b7ffc5f-36f2-4a8a-ab14-111766f3b669","op":"release","path":"src/orm/registry.py","owner":"codex-module-lifecycle","branch":"feature/codex-workspace-bootstrap","at":"2026-10-31T02:21:08.013Z","task":"TASK-API-0382"}
+liberado: {"id":"c-46fa37f0-1a00-4b6b-bacb-92dd845aeb9f","op":"release","path":"tests/unit/orm/test_registry_invalidation_scope.py","owner":"codex-module-lifecycle","branch":"feature/codex-workspace-bootstrap","at":"2026-10-31T02:21:08.016Z","task":"TASK-API-0382"}

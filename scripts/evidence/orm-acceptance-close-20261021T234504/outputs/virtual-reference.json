@@ -1,0 +1,10 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "resolver": "reference_roots.require(odoo19c), counterpart_body.declarations_of",
+  "path": "odoo19c:odoo/orm/identifiers.py",
+  "sha256": "ef22168208e1815047c2764e8a379a96aaa07e43a4b82c42e3f44c0539a9142b",
+  "start": 6,
+  "end": 50,
+  "body": "class NewId:\n    \"\"\" Pseudo-ids for new records, encapsulating an optional origin id (actual\n        record id) and an optional reference (any value).\n    \"\"\"\n    __slots__ = ('origin', 'ref', '__hash')  # noqa: RUF023\n\n    def __init__(self, origin=None, ref=None):\n        self.origin = origin\n        self.ref = ref\n        self.__hash = hash(origin or ref or id(self))\n\n    def __bool__(self):\n        return False\n\n    def __eq__(self, other):\n        return isinstance(other, NewId) and (\n            (self.origin and other.origin and self.origin == other.origin)\n            or (self.ref and other.ref and self.ref == other.ref)\n        )\n\n    def __hash__(self):\n        return self.__hash\n\n    def __lt__(self, other):\n        if isinstance(other, NewId):\n            other = other.origin\n            if other is None:\n                return other > self.origin if self.origin else False\n        if isinstance(other, int):\n            return bool(self.origin) and self.origin < other\n        return NotImplemented\n\n    def __repr__(self):\n        return (\n            \"<NewId origin=%r>\" % self.origin if self.origin else\n            \"<NewId ref=%r>\" % self.ref if self.ref else\n            \"<NewId 0x%x>\" % id(self)\n        )\n\n    def __str__(self):\n        if self.origin or self.ref:\n            id_part = repr(self.origin or self.ref)\n        else:\n            id_part = hex(id(self))\n        return \"NewId_%s\" % id_part",
+  "related_reference": "Existing pinned-source-contracts.json of prior batch covers Field.__get__/compute and BaseModel._compute_field_value. No corpus recensus."
+}

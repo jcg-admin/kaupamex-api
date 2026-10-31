@@ -30,8 +30,8 @@ del mixin — que es exactamente lo que hacían once modelos antes de la tarea
 ``property`` y comprueba que el gate lo nombra.
 
 *Métrica:* modelos concretos de ``apps.get_models()`` a los que les falta
-alguno de los cinco símbolos, o cuyo ``display_name`` no es el descriptor
-``NonStored`` del mixin; excluidos los de terceros por su módulo.
+alguno de los cinco símbolos, o cuyo ``display_name`` no tiene metadata
+Char calculada, buscable y sin columna con su descriptor asignable; excluidos los de terceros por su módulo.
 *Ciega a:* un ``_compute_display_name`` propio que devuelva algo inútil —el
 gate mide que el símbolo esté y que el campo sea el descriptor, no qué calcula
 el cómputo. Y ciega a un modelo de terceros, que el adoptador no toca por
@@ -46,6 +46,8 @@ import pathlib
 import sys
 
 import django
+from django.core.exceptions import FieldDoesNotExist
+from django.db import models
 
 #: Los prefijos de módulo que NO son nuestros. Se declaran aquí y en
 #: ``orm/model_classes.py``, y el gate lo verifica: si divergieran, el barrido
@@ -92,19 +94,29 @@ def not_a_field():
     ``odoo19c: product_expiry/models/production_lot.py:35``); una ``property``
     de sólo lectura la rechaza, y el override que la asigna revienta.
     """
-    from orm.fields_nonstored import NonStored
-
     fuera = []
     for model in _ours():
-        for base in model.mro():
-            if 'display_name' in vars(base):
-                if not isinstance(vars(base)['display_name'], NonStored):
-                    fuera.append(
-                        f'{model._meta.label}.display_name es '
-                        f'{type(vars(base)["display_name"]).__name__} declarado '
-                        f'en {base.__name__}, no el campo NonStored del mixin — '
-                        f'el cómputo va en _compute_display_name')
-                break
+        descriptor = next((vars(base)['display_name'] for base in model.mro()
+                           if 'display_name' in vars(base)), None)
+        try:
+            field = model._meta.get_field('display_name')
+        except FieldDoesNotExist:
+            # Missing registered metadata is precisely this structural defect.
+            field = None
+        valid = (
+            isinstance(field, models.CharField)
+            and not field.store and not field.concrete
+            and bool(field.compute) and bool(field.search)
+            and getattr(descriptor, 'field', None) is field
+            and callable(getattr(type(descriptor), '__get__', None))
+            and callable(getattr(type(descriptor), '__set__', None))
+        )
+        if not valid:
+            fuera.append(
+                f'{model._meta.label}.display_name: expected a registered '
+                f'nonstored computed/searchable Char with its assignable '
+                f'descriptor; found {type(descriptor).__name__}')
+
     return fuera
 
 

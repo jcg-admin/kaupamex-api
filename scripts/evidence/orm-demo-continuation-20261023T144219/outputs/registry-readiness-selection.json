@@ -1,0 +1,26 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "uv run --offline --frozen --project /workspace/thyrox python with actual full claim ledger",
+  "inputs": [
+    {
+      "id": "TASK-API-0382.registry_request_readiness",
+      "taskId": "TASK-API-0382",
+      "prompt": "Reject unsupported Registry.new lifecycle requests before replacing a valid metadata registry, preserving existing no-request behavior until actual loader/composition is qualified",
+      "verify": "Pinned loader dispatch precedes ready; current source stores requests only. Pure no-DB controls must reject update/install/upgrade/reinit/demo/model-check requests and preserve prior registry/cache, lock and no-request readiness",
+      "route": "local",
+      "owned": [
+        "src/orm/registry.py",
+        "tests/unit/orm/test_registry_class.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "claims_count": 466,
+  "selected": [
+    "TASK-API-0382.registry_request_readiness"
+  ],
+  "admission": "Native737 owned pending; exact reference load_modules183 before ready210; no claims overlap. This pure unsupported-request guard does not require or assert accepted full isolation/loader/composition",
+  "scope": "Bounded selection, not whole initiative population or local inference"
+}

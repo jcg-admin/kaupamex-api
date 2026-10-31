@@ -1,0 +1,30 @@
+{
+  "run": 41147677023,
+  "head": "573bff5418ad2c597f265b06fc20176b0c5620a7",
+  "result": "FAIL",
+  "check_style_exit_code": 1,
+  "ci_verify_exit_code": 2,
+  "later_stages": "NOT_EVALUATED",
+  "first_failing_files": [
+    {
+      "path": ".claude/hooks/inject_drf_skill_gate.py",
+      "base_blob": "78c0a79b6c5139da97cfec1df2c4bbbd554ff2e3",
+      "candidate_blob": "78c0a79b6c5139da97cfec1df2c4bbbd554ff2e3",
+      "unchanged": true
+    },
+    {
+      "path": ".claude/scripts/bound_detector.py",
+      "base_blob": "6c10741d09f8eb1f29136feb6124626e63cedc61",
+      "candidate_blob": "6c10741d09f8eb1f29136feb6124626e63cedc61",
+      "unchanged": true
+    },
+    {
+      "path": ".claude/scripts/convert_broken_references.py",
+      "base_blob": "03f2c02c2260a6ab41f70be975bbee0272e9ddca",
+      "candidate_blob": "03f2c02c2260a6ab41f70be975bbee0272e9ddca",
+      "unchanged": true
+    }
+  ],
+  "scope": "First three observed files only; not a new global debt census",
+  "complete_log": "continuation-20261030-ci-failed.log.gz"
+}

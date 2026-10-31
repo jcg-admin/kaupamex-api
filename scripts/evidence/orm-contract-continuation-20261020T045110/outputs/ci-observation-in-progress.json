@@ -1,0 +1,31 @@
+{
+  "observed_at_utc": "2026-10-20T04:49:59.624342+00:00",
+  "run": 39369826270,
+  "head": "90cc7b78ecf727c352c5edd602b0fdf199198069",
+  "status": "in_progress",
+  "conclusion": null,
+  "log_download": "not_evaluated: running job; no complete log or failure classification available",
+  "product_diff": {
+    "command": [
+      "git",
+      "diff",
+      "--stat",
+      "694587d9a5b6715e1e0309e7c8b36c58d8ebdc2d",
+      "90cc7b78ecf727c352c5edd602b0fdf199198069",
+      "--",
+      "src",
+      "tests",
+      "pyproject.toml",
+      "uv.lock",
+      ".github/workflows"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "limits": [
+    "unchanged source/tests/dependencies/workflow does not establish current CI outcome",
+    "historical failure39357612617 is separate evidence; not attributed to current run",
+    "no CI rerun or workflow mutation performed"
+  ]
+}

@@ -1,0 +1,13 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+/workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+/workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+{
+  "alias": "category_contract_alias",
+  "schema": "contract_category_alias_d422ab9d4bce",
+  "passed": true,
+  "scope": "Separate connection and namespace in one owned physical database; not N>1 acceptance",
+  "mechanism": "Existing create_categories, Django execute_wrapper and schema_editor; no private DB-blocker override",
+  "schema_cleanup": true
+}

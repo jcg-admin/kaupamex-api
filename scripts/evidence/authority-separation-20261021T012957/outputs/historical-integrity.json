@@ -1,0 +1,74 @@
+[
+  {
+    "run": "orm-real-contracts-20261020T015333",
+    "command": [
+      "sha256sum",
+      "-c",
+      "SHA256SUMS"
+    ],
+    "cwd": "/workspace/kaupamex-api/scripts/evidence/orm-real-contracts-20261020T015333/outputs",
+    "exit_code": 0,
+    "output_file": "orm-real-contracts-20261020T015333-hash-check.log",
+    "checked_lines": 24
+  },
+  {
+    "run": "orm-flow-audit-20261020T042342",
+    "command": [
+      "sha256sum",
+      "-c",
+      "SHA256SUMS"
+    ],
+    "cwd": "/workspace/kaupamex-api/scripts/evidence/orm-flow-audit-20261020T042342/outputs",
+    "exit_code": 0,
+    "output_file": "orm-flow-audit-20261020T042342-hash-check.log",
+    "checked_lines": 17
+  },
+  {
+    "run": "orm-contract-continuation-20261020T045110",
+    "command": [
+      "sha256sum",
+      "-c",
+      "SHA256SUMS"
+    ],
+    "cwd": "/workspace/kaupamex-api/scripts/evidence/orm-contract-continuation-20261020T045110/outputs",
+    "exit_code": 0,
+    "output_file": "orm-contract-continuation-20261020T045110-hash-check.log",
+    "checked_lines": 26
+  },
+  {
+    "run": "orm-corpus-delimitation-20261020T145932",
+    "command": [
+      "sha256sum",
+      "-c",
+      "SHA256SUMS"
+    ],
+    "cwd": "/workspace/kaupamex-api/scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs",
+    "exit_code": 0,
+    "output_file": "orm-corpus-delimitation-20261020T145932-hash-check.log",
+    "checked_lines": 35
+  },
+  {
+    "run": "orm-contract-plan-20261020T202045",
+    "command": [
+      "sha256sum",
+      "-c",
+      "SHA256SUMS"
+    ],
+    "cwd": "/workspace/kaupamex-api/scripts/evidence/orm-contract-plan-20261020T202045/outputs",
+    "exit_code": 0,
+    "output_file": "orm-contract-plan-20261020T202045-hash-check.log",
+    "checked_lines": 19
+  },
+  {
+    "run": "orm-contract-plan-testorm-20261020T202537",
+    "command": [
+      "sha256sum",
+      "-c",
+      "SHA256SUMS"
+    ],
+    "cwd": "/workspace/kaupamex-api/scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs",
+    "exit_code": 0,
+    "output_file": "orm-contract-plan-testorm-20261020T202537-hash-check.log",
+    "checked_lines": 15
+  }
+]

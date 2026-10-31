@@ -69,7 +69,7 @@ class IrDemoFailure(TimeStampedModel):
         help_text='Odoo module_id. El addon cuyo seed de demostración falló.',
     )
     error = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Error',
+        blank=True, default='', verbose_name='Error',
     )
     wizard = fields.Many2one(
         IrDemoFailureWizard, on_delete=models.CASCADE, null=True, blank=True,

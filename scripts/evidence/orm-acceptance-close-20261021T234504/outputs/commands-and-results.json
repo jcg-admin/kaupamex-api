@@ -1,0 +1,88 @@
+{
+  "results": [
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/qa_context.py",
+        "uv",
+        "run",
+        "--frozen",
+        "pytest",
+        "--reuse-db",
+        "--confcutdir=tests/unit/orm",
+        "-o",
+        "addopts=",
+        "--tb=short",
+        "-q",
+        "tests/unit/orm/test_field_definition_collection.py",
+        "tests/unit/orm/test_res_groups_compute_contract.py",
+        "tests/unit/orm/test_nonstored_compute_dispatch.py",
+        "tests/unit/orm/test_bootstrap_migration_graph.py"
+      ],
+      "exit_code": 0,
+      "result": "47PASS including teardown",
+      "full_log": "native-pytest-final.log",
+      "resource_scope": "New exclusively owned PG database; cleanup finally removed database,role,HBA."
+    },
+    {
+      "evidence": "fixture-before.log",
+      "exit_code": 1,
+      "result": "Control reproduces original public_user/autocommit",
+      "limits": "See scoped probe source and command metadata; no sum as global denominator."
+    },
+    {
+      "evidence": "fixture-after.log",
+      "exit_code": 0,
+      "result": "Native connection boundary succeeds",
+      "limits": "See scoped probe source and command metadata; no sum as global denominator."
+    },
+    {
+      "evidence": "virtual-cache-before.log",
+      "exit_code": 1,
+      "result": "2FAIL/10PASS baseline",
+      "limits": "See scoped probe source and command metadata; no sum as global denominator."
+    },
+    {
+      "evidence": "virtual-negative-none.log",
+      "exit_code": 1,
+      "result": "2FAIL discriminating",
+      "limits": "See scoped probe source and command metadata; no sum as global denominator."
+    },
+    {
+      "evidence": "virtual-negative-shared.log",
+      "exit_code": 1,
+      "result": "1FAIL discriminating",
+      "limits": "See scoped probe source and command metadata; no sum as global denominator."
+    },
+    {
+      "evidence": "virtual-context-recheck.log",
+      "exit_code": 0,
+      "result": "Original Consumer replay0SQL,correct context restoration,pkNone",
+      "limits": "See scoped probe source and command metadata; no sum as global denominator."
+    },
+    {
+      "evidence": "compute-final.log",
+      "exit_code": 0,
+      "result": "131PASS",
+      "limits": "See scoped probe source and command metadata; no sum as global denominator."
+    },
+    {
+      "evidence": "structural-regression.log",
+      "exit_code": 0,
+      "result": "214PASS/1inheritedXFAIL",
+      "limits": "See scoped probe source and command metadata; no sum as global denominator."
+    },
+    {
+      "evidence": "recompute-regression.log",
+      "exit_code": 0,
+      "result": "16PGPASS",
+      "limits": "See scoped probe source and command metadata; no sum as global denominator."
+    }
+  ],
+  "commands_detail": "fixture_boundary.py before/--close-boundary and virtual_cache_negative.py default/--shared-identity run under frozen uv and existing QA context or per-process settings; controls change in-memory behavior only. No source overwrite or disabled tests.",
+  "observed_settings_wrapper": "/tmp/orm_batch_env.py only supplied per-process settings for data-free pytest; not a continuation dependency. Replay via existing qa_context.py with declared ORM_QA_* variables.",
+  "aggregate_limit": "Final targeted instrument exit0 is not remote CI or full ORM acceptance."
+}

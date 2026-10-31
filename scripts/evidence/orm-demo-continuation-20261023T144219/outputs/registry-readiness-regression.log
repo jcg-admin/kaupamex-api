@@ -1,0 +1,25 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+........................................................................ [ 50%]
+.......................................................................  [100%]
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/orm/test_registry_load_axis.py::TestTheInvalidationFlags::test_the_registry_flag_starts_false
+tests/unit/orm/test_registry_load_axis.py::TestSetupModels::test_it_clears_the_trigger_memo
+tests/unit/orm/test_registry_load_axis.py::TestInitModels::test_no_names_is_a_no_op
+tests/unit/orm/test_registry_field_axis.py::TestDiscardFields::test_it_empties_the_trigger_memo
+  /workspace/kaupamex-api/src/orm/fields.py:4178: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_registry_load_axis.py::TestTheInvalidationFlags::test_the_registry_flag_starts_false
+tests/unit/orm/test_registry_load_axis.py::TestSetupModels::test_it_clears_the_trigger_memo
+tests/unit/orm/test_registry_load_axis.py::TestInitModels::test_no_names_is_a_no_op
+tests/unit/orm/test_registry_field_axis.py::TestDiscardFields::test_it_empties_the_trigger_memo
+  /workspace/kaupamex-api/src/orm/fields.py:4178: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-readiness-regression.junit.xml -
+143 passed, 9 warnings in 8.16s

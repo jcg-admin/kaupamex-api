@@ -1,0 +1,15 @@
+{
+  "source_revision": "c2d0d10d5ead906cd5241e0286de9a0e97692926",
+  "make_exit": 2,
+  "pytest_exit": 1,
+  "passed": 77,
+  "skipped": 1,
+  "errors": 1,
+  "seconds": 438.32,
+  "first_error": "ProductProduct.display_name, setup TestCartSnapshotsV2.test_saves_cart_and_returns_200",
+  "classification": "BASELINE_FAILURE: same first error in prior local and remote JUnit; later suite NOT_EVALUATED",
+  "evidence": [
+    "display-name-assignment-ci.log",
+    "display-name-assignment-ci.junit.xml"
+  ]
+}

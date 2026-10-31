@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="7" skipped="0" tests="37" time="1.886" timestamp="2026-10-26T17:11:38.577644" hostname="c8a29a030cff"><testcase classname="tests.unit.orm.test_registry_class.TestSingletonPerDatabase" name="test_the_same_name_yields_the_same_instance" time="0.040" /><testcase classname="tests.unit.orm.test_registry_class.TestSingletonPerDatabase" name="test_two_names_yield_two_instances" time="0.039" /><testcase classname="tests.unit.orm.test_registry_class.TestSingletonPerDatabase" name="test_the_empty_name_is_refused" time="0.001" /><testcase classname="tests.unit.orm.test_registry_class.TestSingletonPerDatabase" name="test_it_lands_in_the_shared_map" time="0.021" /><testcase classname="tests.unit.orm.test_registry_class.TestSingletonPerDatabase" name="test_the_map_is_capped_at_the_declared_size" time="0.841" /><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_new_replaces_the_standing_instance" time="0.037" /><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_unexecuted_request_is_rejected_before_replacing_registry[options0]" time="0.019"><failure message="Failed: La solicitud no soportada llegó a inicializar un registro">tests/unit/orm/test_registry_class.py:100: in test_unexecuted_request_is_rejected_before_replacing_registry
+    Registry.new('alfa', **options)
+src/tools/func.py:181: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1855: in new
+    registry.init(db_name)
+tests/unit/orm/test_registry_class.py:96: in reject_initialization
+    pytest.fail('La solicitud no soportada llegó a inicializar un registro')
+E   Failed: La solicitud no soportada llegó a inicializar un registro</failure></testcase><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_unexecuted_request_is_rejected_before_replacing_registry[options1]" time="0.020"><failure message="Failed: La solicitud no soportada llegó a inicializar un registro">tests/unit/orm/test_registry_class.py:100: in test_unexecuted_request_is_rejected_before_replacing_registry
+    Registry.new('alfa', **options)
+src/tools/func.py:181: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1855: in new
+    registry.init(db_name)
+tests/unit/orm/test_registry_class.py:96: in reject_initialization
+    pytest.fail('La solicitud no soportada llegó a inicializar un registro')
+E   Failed: La solicitud no soportada llegó a inicializar un registro</failure></testcase><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_unexecuted_request_is_rejected_before_replacing_registry[options2]" time="0.020"><failure message="Failed: La solicitud no soportada llegó a inicializar un registro">tests/unit/orm/test_registry_class.py:100: in test_unexecuted_request_is_rejected_before_replacing_registry
+    Registry.new('alfa', **options)
+src/tools/func.py:181: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1855: in new
+    registry.init(db_name)
+tests/unit/orm/test_registry_class.py:96: in reject_initialization
+    pytest.fail('La solicitud no soportada llegó a inicializar un registro')
+E   Failed: La solicitud no soportada llegó a inicializar un registro</failure></testcase><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_unexecuted_request_is_rejected_before_replacing_registry[options3]" time="0.020"><failure message="Failed: La solicitud no soportada llegó a inicializar un registro">tests/unit/orm/test_registry_class.py:100: in test_unexecuted_request_is_rejected_before_replacing_registry
+    Registry.new('alfa', **options)
+src/tools/func.py:181: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1855: in new
+    registry.init(db_name)
+tests/unit/orm/test_registry_class.py:96: in reject_initialization
+    pytest.fail('La solicitud no soportada llegó a inicializar un registro')
+E   Failed: La solicitud no soportada llegó a inicializar un registro</failure></testcase><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_unexecuted_request_is_rejected_before_replacing_registry[options4]" time="0.019"><failure message="Failed: La solicitud no soportada llegó a inicializar un registro">tests/unit/orm/test_registry_class.py:100: in test_unexecuted_request_is_rejected_before_replacing_registry
+    Registry.new('alfa', **options)
+src/tools/func.py:181: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1855: in new
+    registry.init(db_name)
+tests/unit/orm/test_registry_class.py:96: in reject_initialization
+    pytest.fail('La solicitud no soportada llegó a inicializar un registro')
+E   Failed: La solicitud no soportada llegó a inicializar un registro</failure></testcase><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_unexecuted_request_is_rejected_before_replacing_registry[options5]" time="0.019"><failure message="Failed: La solicitud no soportada llegó a inicializar un registro">tests/unit/orm/test_registry_class.py:100: in test_unexecuted_request_is_rejected_before_replacing_registry
+    Registry.new('alfa', **options)
+src/tools/func.py:181: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1855: in new
+    registry.init(db_name)
+tests/unit/orm/test_registry_class.py:96: in reject_initialization
+    pytest.fail('La solicitud no soportada llegó a inicializar un registro')
+E   Failed: La solicitud no soportada llegó a inicializar un registro</failure></testcase><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_unexecuted_request_is_rejected_before_replacing_registry[options6]" time="0.020"><failure message="Failed: La solicitud no soportada llegó a inicializar un registro">tests/unit/orm/test_registry_class.py:100: in test_unexecuted_request_is_rejected_before_replacing_registry
+    Registry.new('alfa', **options)
+src/tools/func.py:181: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1855: in new
+    registry.init(db_name)
+tests/unit/orm/test_registry_class.py:96: in reject_initialization
+    pytest.fail('La solicitud no soportada llegó a inicializar un registro')
+E   Failed: La solicitud no soportada llegó a inicializar un registro</failure></testcase><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_explicit_empty_requests_keep_metadata_only_behavior" time="0.018" /><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_delete_drops_only_its_own_name" time="0.050" /><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_deleting_an_absent_name_is_a_no_op" time="0.000" /><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_delete_all_empties_the_map" time="0.035" /><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_the_instance_loses_the_three_class_entry_points" time="0.018" /><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_a_built_registry_declares_itself_ready" time="0.019" /><testcase classname="tests.unit.orm.test_registry_class.TestLifecycle" name="test_the_lock_is_reentrant" time="0.018" /><testcase classname="tests.unit.orm.test_registry_class.TestMapping" name="test_it_is_a_mapping" time="0.018" /><testcase classname="tests.unit.orm.test_registry_class.TestMapping" name="test_length_and_iteration_read_the_models" time="0.017" /><testcase classname="tests.unit.orm.test_registry_class.TestMapping" name="test_getitem_returns_the_model" time="0.017" /><testcase classname="tests.unit.orm.test_registry_class.TestMapping" name="test_getitem_raises_for_an_unknown_name" time="0.017" /><testcase classname="tests.unit.orm.test_registry_class.TestMapping" name="test_setitem_replaces" time="0.018" /><testcase classname="tests.unit.orm.test_registry_class.TestMapping" name="test_the_mixin_gives_get_keys_items_and_values" time="0.019" /><testcase classname="tests.unit.orm.test_registry_class.TestMapping" name="test_delitem_removes_the_model" time="0.019" /><testcase classname="tests.unit.orm.test_registry_class.TestMapping" name="test_delitem_also_forgets_the_child_in_its_parents" time="0.019" /><testcase classname="tests.unit.orm.test_registry_class.TestMapping" name="test_two_registries_do_not_share_their_models" time="0.036" /><testcase classname="tests.unit.orm.test_registry_class.TestDescendants" name="test_it_includes_the_asked_model_itself" time="0.018" /><testcase classname="tests.unit.orm.test_registry_class.TestDescendants" name="test_it_walks_the_inherit_axis_transitively" time="0.017" /><testcase classname="tests.unit.orm.test_registry_class.TestDescendants" name="test_it_walks_the_inherits_axis" time="0.019" /><testcase classname="tests.unit.orm.test_registry_class.TestDescendants" name="test_one_axis_does_not_see_the_other" time="0.017" /><testcase classname="tests.unit.orm.test_registry_class.TestDescendants" name="test_both_axes_at_once" time="0.017" /><testcase classname="tests.unit.orm.test_registry_class.TestDescendants" name="test_an_unknown_name_is_skipped_not_an_error" time="0.018" /><testcase classname="tests.unit.orm.test_registry_class.TestDescendants" name="test_it_does_not_repeat_a_model_reachable_twice" time="0.017" /><testcase classname="tests.unit.orm.test_registry_class.TestDescendants" name="test_an_unknown_axis_is_refused" time="0.018" /></testsuite></testsuites>

@@ -1,0 +1,42 @@
+2026-10-20T05:46:23.7916224Z     db_cfg = setup_databases(
+2026-10-20T05:46:23.7916729Z .venv/lib/python3.12/site-packages/django/test/utils.py:207: in setup_databases
+2026-10-20T05:46:23.7917538Z     connection.creation.create_test_db(
+2026-10-20T05:46:23.7918131Z .venv/lib/python3.12/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+2026-10-20T05:46:23.7918716Z     call_command(
+2026-10-20T05:46:23.7919195Z .venv/lib/python3.12/site-packages/django/core/management/__init__.py:195: in call_command
+2026-10-20T05:46:23.7919800Z     return command.execute(*args, **defaults)
+2026-10-20T05:46:23.7920595Z .venv/lib/python3.12/site-packages/django/core/management/base.py:464: in execute
+2026-10-20T05:46:23.7921500Z     output = self.handle(*args, **options)
+2026-10-20T05:46:23.7922194Z .venv/lib/python3.12/site-packages/django/core/management/base.py:111: in wrapper
+2026-10-20T05:46:23.7922901Z     res = handle_func(*args, **kwargs)
+2026-10-20T05:46:23.7923645Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:319: in handle
+2026-10-20T05:46:23.7924758Z     self.sync_apps(connection, executor.loader.unmigrated_apps)
+2026-10-20T05:46:23.7925370Z .venv/lib/python3.12/site-packages/django/core/management/commands/migrate.py:466: in sync_apps
+2026-10-20T05:46:23.7925881Z     with connection.schema_editor() as editor:
+2026-10-20T05:46:23.7926509Z .venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:170: in __exit__
+2026-10-20T05:46:23.7926963Z     self.execute(sql, None)
+2026-10-20T05:46:23.7927451Z .venv/lib/python3.12/site-packages/django/db/backends/postgresql/schema.py:45: in execute
+2026-10-20T05:46:23.7927914Z     return super().execute(sql, params)
+2026-10-20T05:46:23.7928672Z .venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:205: in execute
+2026-10-20T05:46:23.7929449Z     cursor.execute(sql, params)
+2026-10-20T05:46:23.7930071Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:79: in execute
+2026-10-20T05:46:23.7930759Z     return self._execute_with_wrappers(
+2026-10-20T05:46:23.7932007Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+2026-10-20T05:46:23.7932889Z     return executor(sql, params, many, context)
+2026-10-20T05:46:23.7933317Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:100: in _execute
+2026-10-20T05:46:23.7933736Z     with self.db.wrap_database_errors:
+2026-10-20T05:46:23.7934102Z .venv/lib/python3.12/site-packages/django/db/utils.py:94: in __exit__
+2026-10-20T05:46:23.7934851Z     raise dj_exc_value.with_traceback(traceback) from exc_value
+2026-10-20T05:46:23.7935316Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+2026-10-20T05:46:23.7935847Z     return self.cursor.execute(sql)
+2026-10-20T05:46:23.7936490Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T05:46:23.7937113Z     raise ex.with_traceback(None)
+2026-10-20T05:46:23.7937648Z E   django.db.utils.ProgrammingError: relation "res_users" does not exist
+2026-10-20T05:46:23.7938142Z ---------------------------- Captured stderr setup -----------------------------
+2026-10-20T05:46:23.7938795Z Got an error creating the test database: database "kaupamex_qa" already exists
+2026-10-20T05:46:23.7939347Z _ ERROR at setup of TestTimeStampedModelHerencia.test_timestampedmodel_es_abstracto _
+2026-10-20T05:46:23.7939906Z .venv/lib/python3.12/site-packages/django/db/backends/utils.py:103: in _execute
+2026-10-20T05:46:23.7940309Z     return self.cursor.execute(sql)
+2026-10-20T05:46:23.7940674Z .venv/lib/python3.12/site-packages/psycopg/cursor.py:117: in execute
+2026-10-20T05:46:23.7941048Z     raise ex.with_traceback(None)
+2026-10-20T05:46:23.7941405Z E   psycopg.errors.UndefinedTable: relation "res_users" does not exist

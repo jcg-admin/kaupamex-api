@@ -1,0 +1,72 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+ALTER ROLE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+Reuse unchanged-source CI baseline failure; prepare own schema for current fixture qualification
+Real resource safety controls PASS; begin five isolation cases
+============================= test session starts ==============================
+platform linux -- Python 3.12.14, pytest-7.4.4, pluggy-1.6.0 -- /workspace/kaupamex-api/.venv/bin/python
+cachedir: .pytest_cache
+django: version: 6.0.5, settings: config.settings.testing (from env)
+rootdir: /workspace/kaupamex-api
+configfile: pytest.ini
+plugins: Faker-40.20.0, django-4.7.0, xdist-3.6.1
+collecting ... collected 5 items
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default PASSED
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base PASSED
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope PASSED
+tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base PASSED
+tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections PASSED pg_reload_conf 
+----------------
+ t
+(1 row)
+
+
+
+=============================== warnings summary ===============================
+tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base
+  /workspace/kaupamex-api/src/orm/fields.py:4161: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base
+  /workspace/kaupamex-api/src/orm/fields.py:4161: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/current-isolation-functional.junit.xml -
+================== 5 passed, 2 warnings in 878.16s (0:14:38) ===================
+{
+  "task": "TASK-API-0383",
+  "source_revision": "3fb301a542c218981aed5eb8274003083671c0b5",
+  "acceptance": "not_verified",
+  "scope": "Fixture qualification and data isolation, not whole authentication or loader acceptance",
+  "ci_make_exit": 2,
+  "ci_reused_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+  "ci_reused_evidence": "incremental-graph-ci.junit.xml; incremental-graph-ci.log; production/tests/gate unchanged",
+  "preexisting_database_and_sentinel_preserved": true,
+  "partial_schema_failure_cleaned_own_database": true,
+  "extension_failure_retains_owned_database_for_cleanup": true,
+  "isolation_pytest_exit": 0,
+  "qualification_limit": "No root conftest seed replay in bounded run; native provisioner applies all migrations. Full CI measured separately above.",
+  "aliases_after_teardown": [],
+  "owned_extra_databases_after_teardown": []
+}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

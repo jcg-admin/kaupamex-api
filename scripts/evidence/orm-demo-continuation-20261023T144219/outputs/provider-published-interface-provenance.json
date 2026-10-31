@@ -1,0 +1,110 @@
+{
+  "actual_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "actual_branch": "feature/codex-workspace-bootstrap",
+  "published_fresh_clone_revision": "fc8a7e2f6f00d1c78e0c4e5526f97f7063a6b20c",
+  "remote_query": "git ls-remote origin refs/heads/feature/codex-workspace-bootstrap refs/heads/feature/fresh-clone-bootstrap",
+  "local_branch_remote_ref_found": false,
+  "interfaces": [
+    {
+      "path": "src/session/task_continuation.py",
+      "local_sha256": "c7c760ccfe452cf818085110304d852e2dfdd4c1eebd4758b5e2901a7bb2fe39",
+      "published_sha256": "c7c760ccfe452cf818085110304d852e2dfdd4c1eebd4758b5e2901a7bb2fe39",
+      "equal": true
+    },
+    {
+      "path": "src/session/continuation_frontier.py",
+      "local_sha256": "3776f2f9ba283b9bbb09e03b74aba74c57ced37cc58443bd3221ebdb8a44a4e1",
+      "published_sha256": "3776f2f9ba283b9bbb09e03b74aba74c57ced37cc58443bd3221ebdb8a44a4e1",
+      "equal": true
+    },
+    {
+      "path": "src/session/node_next_task.py",
+      "local_sha256": "587d0dd1ae584a9c492fea576b251b9db196db6d6ba83adb85bf72ada8b82c64",
+      "published_sha256": "587d0dd1ae584a9c492fea576b251b9db196db6d6ba83adb85bf72ada8b82c64",
+      "equal": true
+    },
+    {
+      "path": "src/session/claim_fold.py",
+      "local_sha256": "a19e80848c20401baddd7669c6986c8e7ba4d05b47f0b46d2faa7e688e08ef80",
+      "published_sha256": "a19e80848c20401baddd7669c6986c8e7ba4d05b47f0b46d2faa7e688e08ef80",
+      "equal": true
+    },
+    {
+      "path": "src/session/in_flight.py",
+      "local_sha256": "c4b0ea615267833a85144989cd7dc6d199c4046ac9100b57c482b34935b21e60",
+      "published_sha256": "c4b0ea615267833a85144989cd7dc6d199c4046ac9100b57c482b34935b21e60",
+      "equal": true
+    },
+    {
+      "path": "src/task/task_source.py",
+      "local_sha256": "8882c56440af44a0d5086d82bb93aa8751f1a82f093de242c6a42f9619a27491",
+      "published_sha256": "8882c56440af44a0d5086d82bb93aa8751f1a82f093de242c6a42f9619a27491",
+      "equal": true
+    },
+    {
+      "path": "src/task/implementation_order.py",
+      "local_sha256": "c10a1d8b0491e5b41e8c95eb85e62cdccf7b56101a024fa8fe3d3c0c69b6cd16",
+      "published_sha256": "c10a1d8b0491e5b41e8c95eb85e62cdccf7b56101a024fa8fe3d3c0c69b6cd16",
+      "equal": true
+    },
+    {
+      "path": "src/session/local_plan.py",
+      "local_sha256": "4f455db351ed74300e17bcfdcf64a272f52f6741f83d07e35885b955a44c1df0",
+      "published_sha256": "4f455db351ed74300e17bcfdcf64a272f52f6741f83d07e35885b955a44c1df0",
+      "equal": true
+    },
+    {
+      "path": "src/session/resource_admission.py",
+      "local_sha256": "b4dca386276ccbb10f15c15f3774ec2d4d934e3dc6b28331865cbd02f8262071",
+      "published_sha256": "b4dca386276ccbb10f15c15f3774ec2d4d934e3dc6b28331865cbd02f8262071",
+      "equal": true
+    },
+    {
+      "path": "src/session/model_coordinator.sh",
+      "local_sha256": "623df016032a01bd3f946374194ebb4c87e75a76993776dae501d18411764fdf",
+      "published_sha256": "623df016032a01bd3f946374194ebb4c87e75a76993776dae501d18411764fdf",
+      "equal": true
+    },
+    {
+      "path": "src/session/pool_integrate.sh",
+      "local_sha256": "aacb679e4e96dbde4dba7a0667c77989e3dae4058dbc3fac2325695a2f5f375f",
+      "published_sha256": "aacb679e4e96dbde4dba7a0667c77989e3dae4058dbc3fac2325695a2f5f375f",
+      "equal": true
+    },
+    {
+      "path": "src/packages/tools/src/tasks.ts",
+      "local_sha256": "aeec5f5a2f8f584c4f3227ceb1c2f0c37632da843c50e7c2072ee37cb662e42c",
+      "published_sha256": "aeec5f5a2f8f584c4f3227ceb1c2f0c37632da843c50e7c2072ee37cb662e42c",
+      "equal": true
+    },
+    {
+      "path": "src/packages/observability/src/store.ts",
+      "local_sha256": "6642c536bef4e495f89d7b757a59c249ffdbdacebb5f652f219b363f223ff6c7",
+      "published_sha256": "6642c536bef4e495f89d7b757a59c249ffdbdacebb5f652f219b363f223ff6c7",
+      "equal": true
+    },
+    {
+      "path": "src/packages/cli/src/commands/claims.ts",
+      "local_sha256": "d2c9050379fbf3ad1c9d40535e53a4e2a89bec52be3c5b51ea65e0bfbbf0e4f2",
+      "published_sha256": "d2c9050379fbf3ad1c9d40535e53a4e2a89bec52be3c5b51ea65e0bfbbf0e4f2",
+      "equal": true
+    },
+    {
+      "path": "src/packages/coordination/claims.ts",
+      "local_sha256": "21a4098a408964079fc2941d7cab9d0f785c3fcca2730e03a001a30106597d7c",
+      "published_sha256": "21a4098a408964079fc2941d7cab9d0f785c3fcca2730e03a001a30106597d7c",
+      "equal": true
+    }
+  ],
+  "local_only_commits": [
+    "aaf2aaf00",
+    "9b13f2d7a"
+  ],
+  "local_diff_paths": [
+    "AGENTS.md",
+    "agent-results/agent_store.sqlite3"
+  ],
+  "snapshot_store_review": "Existing snapshot_store preserves local Git refs, not off-environment durability by itself; not invoked",
+  "qualification": "Read/claim/frontier executable bodies equal published fresh-clone source; no dependency on unpublished runtime implementation changes",
+  "limits": "Full local commit/store remote preservation not demonstrated; no store copy, alternate TaskStore, Provider push/gate bypass or managed local-model inference performed"
+}

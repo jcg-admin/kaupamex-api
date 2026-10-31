@@ -1,0 +1,23 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+/workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+/workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+{
+  "actual_postgresql": true,
+  "source_differential": true,
+  "states": {
+    "installed": "installed",
+    "uninstalled": "uninstalled",
+    "uninstallable": "uninstallable",
+    "to install": "uninstalled",
+    "to upgrade": "installed",
+    "to remove": "installed"
+  },
+  "version_preserved": true,
+  "committed_visible_from_independent_connection": true,
+  "second_update_failure_rolls_back_both": true,
+  "missing_table_noop": true,
+  "nested_transaction_refused": true,
+  "limits": "Bounded recovery stage, no outer-loader caller integration or TASK acceptance"
+}

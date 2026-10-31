@@ -1,0 +1,283 @@
+{
+  "environment": "qa_context.py supplies per-process settings/root/runtime variables; uv run --frozen used. All resource targets are explicitly declared, no .env edits. Negative controls restore code in memory only.",
+  "results": [
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/qa_context.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/bootstrap_contract.py"
+      ],
+      "scope": "baseline",
+      "exit_code": 1,
+      "result": "schema_preparation_failure",
+      "full_log": "bootstrap-before.log"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/qa_context.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/bootstrap_contract.py"
+      ],
+      "scope": "current full migrate + repeat",
+      "exit_code": 0,
+      "result": "PASS",
+      "full_log": "bootstrap-after.log"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/qa_context.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/bootstrap_contract.py",
+        "--without-testorm-migration"
+      ],
+      "scope": "negative",
+      "exit_code": 1,
+      "result": "expected schema_preparation_failure",
+      "full_log": "bootstrap-negative.log"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/qa_context.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/bootstrap_compatibility.py"
+      ],
+      "scope": "legacy matching native initial adoption",
+      "exit_code": 0,
+      "result": "PASS",
+      "full_log": "bootstrap-compatibility.log"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/qa_context.py",
+        "uv",
+        "run",
+        "--frozen",
+        "pytest",
+        "--reuse-db",
+        "--confcutdir=tests/unit/orm",
+        "-o",
+        "addopts=",
+        "--tb=short",
+        "-q",
+        "tests/unit/orm/test_field_definition_collection.py",
+        "tests/unit/orm/test_res_groups_compute_contract.py",
+        "tests/unit/orm/test_nonstored_compute_dispatch.py",
+        "tests/unit/orm/test_bootstrap_migration_graph.py"
+      ],
+      "scope": "new isolated database/native test preparation",
+      "exit_code": 1,
+      "result": "41PASS bodies/1teardownERROR missing public actor; independent cause not accepted as inherited",
+      "full_log": "native-pytest-bootstrap.log"
+    },
+    {
+      "command": [
+        "python",
+        "/tmp/orm_batch_env.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "-"
+      ],
+      "scope": "current",
+      "exit_code": 0,
+      "result": "126PASS",
+      "full_log": "compute-verified.log",
+      "stdin": "import django,pytest\ndjango.setup();raise SystemExit(pytest.main(['--confcutdir=tests/unit/orm', '-o', 'addopts=', '--tb=short', '-q', 'tests/unit/orm/test_res_groups_compute_contract.py', 'tests/unit/orm/test_nonstored_compute_dispatch.py', 'tests/unit/orm/test_bootstrap_migration_graph.py', 'tests/unit/orm/test_field_cache.py', 'tests/unit/orm/test_field_triggers.py', 'tests/unit/orm/test_field_resolve_depends.py', 'tests/unit/orm/test_related_field_setup.py', 'tests/unit/orm/test_environments_transaction.py']))\n"
+    },
+    {
+      "command": [
+        "python",
+        "/tmp/orm_batch_env.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "-"
+      ],
+      "scope": "current",
+      "exit_code": 0,
+      "result": "214PASS/1inheritedXFAIL",
+      "full_log": "structural-regression.log",
+      "stdin": "import django,pytest\ndjango.setup();raise SystemExit(pytest.main(['--confcutdir=tests/unit/orm', '-o', 'addopts=', '--tb=short', '-q', 'tests/unit/orm/test_base_model_recordset.py', 'tests/unit/orm/test_sorted_order_to_function.py', 'tests/unit/orm/test_field_type_vocabulary.py', 'tests/unit/orm/test_comodel_name_contract.py', 'tests/unit/orm/test_domain_optimizer_registry.py', 'tests/unit/orm/test_domain_operator_optimizers.py', 'tests/unit/orm/test_domain_type_optimizers.py', 'tests/unit/orm/test_fields_html.py', 'tests/unit/orm/test_environments_channels.py']))\n"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-as-is-substantive-20261021T194156/probes/recompute_postgresql.py"
+      ],
+      "scope": "regression after material descriptor/cache change",
+      "exit_code": 0,
+      "result": "16PGPASS",
+      "full_log": "recompute-regression.log"
+    },
+    {
+      "command": [
+        "python",
+        "/tmp/orm_batch_env.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/compute_negative.py",
+        "consumer"
+      ],
+      "scope": "negative",
+      "exit_code": 1,
+      "result": "2testFAIL",
+      "full_log": "negative-consumer.log",
+      "portable_replay": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/qa_context.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/compute_negative.py",
+        "consumer"
+      ]
+    },
+    {
+      "command": [
+        "python",
+        "/tmp/orm_batch_env.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/compute_negative.py",
+        "diagnostic"
+      ],
+      "scope": "negative",
+      "exit_code": 1,
+      "result": "1testFAIL",
+      "full_log": "negative-diagnostic.log",
+      "portable_replay": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/qa_context.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/compute_negative.py",
+        "diagnostic"
+      ]
+    },
+    {
+      "command": [
+        "python",
+        "/tmp/orm_batch_env.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/compute_negative.py",
+        "instance-cache"
+      ],
+      "scope": "negative",
+      "exit_code": 1,
+      "result": "1testFAIL",
+      "full_log": "negative-instance-cache.log",
+      "portable_replay": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/qa_context.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/compute_negative.py",
+        "instance-cache"
+      ]
+    },
+    {
+      "command": [
+        "python",
+        "/tmp/orm_batch_env.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/compute_negative.py",
+        "context-key"
+      ],
+      "scope": "negative",
+      "exit_code": 1,
+      "result": "1testFAIL",
+      "full_log": "negative-context-key.log",
+      "portable_replay": [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/qa_context.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "scripts/evidence/orm-bootstrap-compute-20261021T210528/probes/compute_negative.py",
+        "context-key"
+      ]
+    },
+    {
+      "command": [
+        "python",
+        "/tmp/orm_batch_env.py",
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "-"
+      ],
+      "scope": "residual",
+      "exit_code": 1,
+      "result": "contract_divergence relatedGEN0579",
+      "full_log": "virtual-context-limitation.log",
+      "stdin_description": "Actual ResGroups instance with pkNone, transaction_scope, privilege pk43; read full_name then read under context_scope(short_display_name=True); full observation in log."
+    }
+  ],
+  "interpretation": "No aggregate PASS; current schema ordering verified while separate fixture teardown and virtual identity remain unresolved. Intermediate import/fixture errors retained, not counted as successful negatives."
+}

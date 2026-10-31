@@ -1,0 +1,63 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "command": "uv run --frozen python probes/verify_nonstored_schema_expectations.py",
+  "reference_hashes": {
+    "odoo/orm/fields.py": "48bc4e496ff98a3c2d33b06248549681041b5791323380c6d73ce6dd8a0ebb6e",
+    "odoo/orm/models.py": "4dc0f7ed1bfedf292b91d9603a67e83b740910601f418880e2ebf12902297c1e",
+    "odoo/tools/sql.py": "98a9db703e0b491067ccd276ccf5762c831517a839e524124246532cc1726055"
+  },
+  "checks": [
+    {
+      "case": "unbound_nonstored_char",
+      "store": false,
+      "column": null,
+      "consumer_type": [
+        "varchar",
+        "VARCHAR"
+      ],
+      "reference_type": [
+        "varchar",
+        "VARCHAR"
+      ],
+      "consumer_order": 2,
+      "reference_order": 2
+    },
+    {
+      "case": "unbound_stored_char",
+      "store": true,
+      "column": null,
+      "consumer_type": [
+        "varchar",
+        "VARCHAR"
+      ],
+      "reference_type": [
+        "varchar",
+        "VARCHAR"
+      ],
+      "consumer_order": 2,
+      "reference_order": 2
+    },
+    {
+      "case": "bound_bank_name",
+      "store": false,
+      "column": null,
+      "consumer_type": [
+        "varchar",
+        "VARCHAR"
+      ],
+      "reference_type": [
+        "varchar",
+        "VARCHAR"
+      ],
+      "consumer_order": 2,
+      "reference_order": 2
+    }
+  ],
+  "native_caller_store_guard_lines": [
+    3224
+  ],
+  "conclusion": "These property results match pinned source. store=False alone does not make column_type None or column_order0; native schema caller skips nonstored fields before update_db.",
+  "limits": "Extracted property bodies/constant and caller AST only; not native Odoo runtime or whole schema workflow acceptance. Historical assertions retained; no TASK status or criteria changed."
+}

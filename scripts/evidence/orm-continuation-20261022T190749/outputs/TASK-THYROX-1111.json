@@ -1,0 +1,19 @@
+{
+  "sessionId": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet.run",
+  "input": {
+    "task_id": "176"
+  },
+  "task": {
+    "task_id": "176",
+    "citation_id": "TASK-THYROX-1111",
+    "subject": "Recover the persistent goal and its state as the first step of task_continuation",
+    "description": "Section 5.15 criterion 1 has no TASK (VM M, 6f5abaf60): nothing reads END_TO_END_LOCAL_AUTONOMY and its open criteria before selecting work. Search Existing first (agent_store, continuation_frontier, task_source).",
+    "status": "pending",
+    "owner": null,
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  }
+}

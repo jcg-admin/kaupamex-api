@@ -19,7 +19,7 @@ en la base y se comprueba que el metodo la devuelve al del campo. Un
 casos igual.
 """
 import pytest
-from django.db import connection
+from django.db import connection, models as django_models
 
 from orm.registry import MODELS_BY_NAME, Registry, clear_cache
 from orm.utils import model_field_registry
@@ -76,11 +76,22 @@ def _bank_account(model, acc_number, **extra):
 
 class TestUpdateDb:
 
-    def test_a_field_without_column_is_left_alone(self, model, fields, cursor):
-        """``bank_name`` no persiste, asi que el eje de esquema no lo toca."""
+    def test_a_field_without_column_is_left_alone(self, model, cursor):
+        """La guarda nativa omite campos sin tipo SQL, no todo store=False."""
+        field = django_models.Field()
+        field.set_attributes_from_name('contract_without_sql_type')
+        assert field.column_type is None
         before = set(_columns(cursor))
-        assert fields['bank_name'].update_db(model, _columns(cursor)) is False
+        assert field.update_db(model, _columns(cursor)) is False
         assert set(_columns(cursor)) == before
+
+    def test_nonstored_bank_name_is_absent_from_the_migrated_schema(self, fields, cursor):
+        """Django gobierna este esquema; el campo conserva el tipo nativo."""
+        field = fields['bank_name']
+        assert field.store is False
+        assert field.column is None
+        assert field.column_type[0] == 'varchar'
+        assert 'bank_name' not in _columns(cursor)
 
     def test_an_existing_column_needs_no_recompute(self, model, fields, cursor):
         assert fields['note'].update_db(model, _columns(cursor)) is False

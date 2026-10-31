@@ -1,0 +1,42 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFF.                                                                     [100%]
+=================================== FAILURES ===================================
+_______________ test_reverse_add_invalidates_the_owning_variant ________________
+tests/integration/product/test_display_name_assignment.py:97: in test_reverse_add_invalidates_the_owning_variant
+    assert variant.display_name == 'Camiseta (Rojo, Azul)'
+E   AssertionError: assert 'Camiseta (Rojo)' == 'Camiseta (Rojo, Azul)'
+E     - Camiseta (Rojo, Azul)
+E     ?               ------
+E     + Camiseta (Rojo)
+___________ test_reverse_remove_and_clear_invalidate_previous_owners ___________
+tests/integration/product/test_display_name_assignment.py:107: in test_reverse_remove_and_clear_invalidate_previous_owners
+    assert variant.display_name == 'Camiseta'
+E   AssertionError: assert 'Camiseta (Rojo)' == 'Camiseta'
+E     - Camiseta
+E     + Camiseta (Rojo)
+__________ test_set_replacement_invalidates_the_previous_combination ___________
+tests/integration/product/test_display_name_assignment.py:118: in test_set_replacement_invalidates_the_previous_combination
+    assert variant.display_name == 'Camiseta (Azul)'
+E   AssertionError: assert 'Camiseta (Rojo)' == 'Camiseta (Azul)'
+E     - Camiseta (Azul)
+E     + Camiseta (Rojo)
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/integration/product/test_display_name_assignment.py::test_reverse_add_invalidates_the_owning_variant
+  /workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/product/test_display_name_assignment.py::test_reverse_add_invalidates_the_owning_variant
+  /workspace/kaupamex-api/src/orm/fields.py:4125: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/product-display-name-relations-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/integration/product/test_display_name_assignment.py::test_reverse_add_invalidates_the_owning_variant
+FAILED tests/integration/product/test_display_name_assignment.py::test_reverse_remove_and_clear_invalidate_previous_owners
+FAILED tests/integration/product/test_display_name_assignment.py::test_set_replacement_invalidates_the_previous_combination
+3 failed, 1 passed, 8 deselected, 3 warnings in 2.46s

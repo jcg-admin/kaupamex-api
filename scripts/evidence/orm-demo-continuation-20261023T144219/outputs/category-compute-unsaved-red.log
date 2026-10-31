@@ -1,0 +1,7 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/workspace/kaupamex-api/src/orm/fields.py", line 1668, in __get__
+    raise ValueError(
+ValueError: Compute method failed to assign base.ResPartnerCategory(None,).display_name

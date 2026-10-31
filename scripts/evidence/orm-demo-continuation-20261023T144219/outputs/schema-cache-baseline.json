@@ -1,0 +1,5 @@
+{
+  "pytest_exit": 1,
+  "source_revision": "ae949aa8",
+  "scope": "Two exact cache-fixture cases; detached previous source; current own PostgreSQL"
+}

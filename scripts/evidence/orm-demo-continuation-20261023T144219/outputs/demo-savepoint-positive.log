@@ -1,0 +1,17 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+CREATE ROLE
+CREATE DATABASE
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{"real_files_converter_and_pg": true, "failed_stage_rolled_back": true, "outer_transaction_usable": true, "limits": "Optional failure model absent in fixture; actual reporter verified separately on full schema"}
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+DROP DATABASE
+DROP ROLE

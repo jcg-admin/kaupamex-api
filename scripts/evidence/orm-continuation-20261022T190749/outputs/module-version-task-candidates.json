@@ -1,0 +1,266 @@
+[
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "160",
+    "citation_id": "TASK-API-0096",
+    "status": "completed",
+    "owner": null,
+    "subject": "Sembrar account.account.tag y su etiqueta de inversión (desbloquea el mapeador)"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "234",
+    "citation_id": "TASK-DOCS-0039",
+    "status": "pending",
+    "owner": null,
+    "subject": "Versionar la referencia de hooks del CLI (Hooks_reference.md)"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "253",
+    "citation_id": "TASK-DOCS-0048",
+    "status": "completed",
+    "owner": null,
+    "subject": "RESUELTA — task board versionado en pm/reportes/tablero-de-tareas.rst"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "265",
+    "citation_id": "TASK-API-0142",
+    "status": "pending",
+    "owner": null,
+    "subject": "Reponer la importación de catálogo: UC-INV-05 quedó sin código (H-API-398)"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "296",
+    "citation_id": "TASK-API-0166",
+    "status": "completed",
+    "owner": "orquestador",
+    "subject": "70 de 90 addons no tienen __manifest__.py — el catálogo técnico ve 20"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "369",
+    "citation_id": "TASK-DOCS-0086",
+    "status": "pending",
+    "owner": null,
+    "subject": "Versionar la prueba de las cuatro leyes del merge de vecindarios"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "436",
+    "citation_id": "TASK-DOCS-0096",
+    "status": "pending",
+    "owner": null,
+    "subject": "Política de merge para agent_store.sqlite3, que es binario y versionado"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "51",
+    "citation_id": "TASK-API-0031",
+    "status": "pending",
+    "owner": null,
+    "subject": "Normalizar los 12 coordinadores contra el catálogo flow→hogar"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "53",
+    "citation_id": "TASK-SERVER-0001",
+    "status": "completed",
+    "owner": null,
+    "subject": "Entregar el catálogo flow→hogar al sustrato del harness (docs.ts)"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "452",
+    "citation_id": "TASK-API-0267",
+    "status": "pending",
+    "owner": null,
+    "subject": "Poblar el árbol de categorías: IrModuleCategory es un porte huérfano (H-API-649)"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "455",
+    "citation_id": "TASK-API-0268",
+    "status": "pending",
+    "owner": null,
+    "subject": "DECISIÓN: completar o retirar version/description de authz.Module (H-API-653)"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "513",
+    "citation_id": "TASK-API-0298",
+    "status": "completed",
+    "owner": null,
+    "subject": "Portar hr.version — desbloquea ~70 campos y 83 métodos de hr.employee"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "524",
+    "citation_id": "TASK-API-0308",
+    "status": "completed",
+    "owner": null,
+    "subject": "Reconectar los 83 métodos bloqueados de hr.employee contra HrVersion"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "525",
+    "citation_id": "TASK-API-0309",
+    "status": "pending",
+    "owner": null,
+    "subject": "Los 33 métodos bloqueados de hr.version, empezando por _check_dates"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "558",
+    "citation_id": "TASK-API-0330",
+    "status": "pending",
+    "owner": null,
+    "subject": "hr.version familia (a): señales pre_save que repliquen los 6 cómputos"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "559",
+    "citation_id": "TASK-API-0331",
+    "status": "pending",
+    "owner": null,
+    "subject": "hr.version familia (b): usuario/compañía activos por parámetro desde DRF"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "599",
+    "citation_id": "TASK-DOCS-0141",
+    "status": "completed",
+    "owner": null,
+    "subject": "Capturar effort, version y service_tier del transcript (H-DOCS-222)"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "618",
+    "citation_id": "TASK-API-0354",
+    "status": "completed",
+    "owner": null,
+    "subject": "IrModule.summary cap 255 vs fields.Char sin tamaño en la referencia (H-API-750)"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "765",
+    "citation_id": "TASK-DOCS-0250",
+    "status": "pending",
+    "owner": null,
+    "subject": "RE-ENCUADRADA en #872: el catálogo clasifica series documentales"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "782",
+    "citation_id": "TASK-DOCS-0266",
+    "status": "completed",
+    "owner": null,
+    "subject": "La tabla del catálogo de tipos mide profundidad 1 sin declararlo (H-DOCS-333)"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "798",
+    "citation_id": "TASK-DOCS-0280",
+    "status": "pending",
+    "owner": null,
+    "subject": "DESCONOCIDO: separar deriva de versión de nombre mangleado en el cruce libro↔binario (H-DOCS-350)"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "872",
+    "citation_id": "TASK-GEN-0136",
+    "status": "pending",
+    "owner": null,
+    "subject": "Definir la unidad de conservación del catálogo documental"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "876",
+    "citation_id": "TASK-GEN-0140",
+    "status": "pending",
+    "owner": null,
+    "subject": "DEC-DOC-015: el catálogo es registro y no tiene hogar en source/"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "895",
+    "citation_id": "TASK-GEN-0159",
+    "status": "pending",
+    "owner": null,
+    "subject": "Sembrar el catálogo de módulos de negocio: 0 de 9 existen (H-DOCS-426)"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "920",
+    "citation_id": "TASK-GEN-0184",
+    "status": "completed",
+    "owner": null,
+    "subject": "RESUELTA por directiva — el corpus ccb se versiona entero"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "937",
+    "citation_id": "TASK-GEN-0201",
+    "status": "pending",
+    "owner": null,
+    "subject": "Nombrar la versión en los 3 documentos que citan «el ejecutable de esta sesión» sin ella"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "960",
+    "citation_id": "TASK-GEN-0224",
+    "status": "completed",
+    "owner": null,
+    "subject": "RESUELTA por directiva — node_modules no se versiona; se reproduce con npm ci (H-DOCS-505)"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1046",
+    "citation_id": "TASK-DOCS-0435",
+    "status": "completed",
+    "owner": null,
+    "subject": "Decidir el hogar del store y fusionar antes de retirar: hay dos versionados"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1068",
+    "citation_id": "TASK-DOCS-0457",
+    "status": "completed",
+    "owner": null,
+    "subject": "El store versionado ensucia el árbol en cada turno y el Stop gate lo lee como trabajo"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1218",
+    "citation_id": "TASK-THYROX-0045",
+    "status": "pending",
+    "owner": null,
+    "subject": "Dejar de versionar la tabla documents: es cache de rescaneo y churnea entera"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1222",
+    "citation_id": "TASK-THYROX-0049",
+    "status": "completed",
+    "owner": null,
+    "subject": "Medir las 292 versiones del store con un gc -a real, no extrapolar desde 12"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1259",
+    "citation_id": "TASK-THYROX-0066",
+    "status": "completed",
+    "owner": null,
+    "subject": "Adoptar JSONL en thyrox: censo, clasificación por bucket y conversión"
+  },
+  {
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1291",
+    "citation_id": "TASK-THYROX-0097",
+    "status": "completed",
+    "owner": null,
+    "subject": "El corpus de 2.1.274 esta versionado a medias: sin claude_strings.txt ni README"
+  }
+]

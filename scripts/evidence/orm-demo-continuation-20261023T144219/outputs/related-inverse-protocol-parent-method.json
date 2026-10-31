@@ -1,0 +1,9 @@
+{
+  "source_revision": "1539be5abe95341e0b7244e0e82090f3245718b4",
+  "qualified_symbol": "orm.fields._field_inverse_related",
+  "body_sha256": "e32ac9222385952b7b86652b43edaea72883ec1b4d2ecab96b1322505432dd2c",
+  "pytest_exit": 0,
+  "scope": "Isolated exact parent-method body replay in current metadata context, two non-DB protocol controls; not whole parent checkout/CI qualification",
+  "on_disk_production_changed": false,
+  "method_restored": true
+}

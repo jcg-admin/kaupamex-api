@@ -1,0 +1,1514 @@
+[
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/acl-como-puerta-20260827T194322/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "submodulo_medido",
+      "motivo",
+      "pregunta",
+      "respuesta_corta",
+      "alias_de_referencia_usados",
+      "sondas",
+      "lo_que_la_salida_decidio",
+      "aterrizaje",
+      "reproducible"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/acl-en-las-referencias-20260827T192754/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "submodulo_medido",
+      "tareas",
+      "motivo",
+      "pregunta",
+      "respuesta_corta",
+      "raices",
+      "sondas",
+      "salidas_sueltas",
+      "lo_que_no_decide",
+      "lo_que_si_cierra"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/agentes-claude-code-20260819T230714/manifiesto.json",
+    "keys": [
+      "run_id",
+      "fecha",
+      "proposito",
+      "fuente",
+      "genera",
+      "reproducible",
+      "nota_reproducible",
+      "no_duplica",
+      "instrumento",
+      "derivado_no_transcrito",
+      "desconocidos_declarados"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/alcance-multiraiz-gate-20260905T010951/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "forma",
+      "instrumento",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "fuente"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/analisis-particion-binario-20260905T234844/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arboles_de_referencia",
+      "consumo",
+      "entregable",
+      "consumidor",
+      "archivos_de_evidencia",
+      "hallazgo_principal"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/analisis-particion-ccnmt-20260905T234844/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arboles_de_referencia",
+      "consumo",
+      "entregable",
+      "consumidor"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/async-suitable-contra-background-20260902T045635/manifiesto.json",
+    "keys": [
+      "evento",
+      "proposito",
+      "despacha_agentes",
+      "fuente_de_autoridad",
+      "instrumento",
+      "metodo",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "entregable"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/auditar-estado-vm-y-continuidad-20261016T100835/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "pregunta",
+      "instrumento",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "fuente",
+      "reproducible",
+      "nota_reproducibilidad",
+      "forma",
+      "inferencia_de_ia",
+      "secretos",
+      "commits",
+      "hallazgos_citados",
+      "estado_final_de_la_vm",
+      "frontera_provider_consumer",
+      "revalidacion_cloud_20261018"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/barrer-monorepo-a-multi-repo-20260905T023737/manifiesto.json",
+    "keys": [
+      "pregunta",
+      "forma",
+      "instrumento",
+      "metrica",
+      "ciego_a",
+      "destino",
+      "fuente",
+      "tareas",
+      "reproducible",
+      "fecha"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/barrido-fk-forma-c-20260828T184007/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "tarea",
+      "encargo",
+      "metodo",
+      "adr",
+      "hallazgo",
+      "insumo",
+      "piloto",
+      "ejes_que_mueve_el_renombre",
+      "precondicion_del_interprete",
+      "piezas",
+      "abierto",
+      "eje_2_posiciones"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/catalogo-modelos-cache-20260902T045046/manifiesto.json",
+    "keys": [
+      "evento",
+      "proposito",
+      "despacha_agentes",
+      "fuente_de_autoridad",
+      "instrumento",
+      "metodo",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "entregable"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/censo-monorepo-en-prosa-20260905T021441/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "forma",
+      "instrumento",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "fuente",
+      "reproducible",
+      "nota_reproducibilidad",
+      "criterio",
+      "tareas_abiertas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/censo-practicayoruba-20260905T024952/manifiesto.json",
+    "keys": [
+      "pregunta",
+      "forma",
+      "instrumento",
+      "metrica",
+      "ciego_a",
+      "destino",
+      "fuente",
+      "tareas",
+      "reproducible",
+      "fecha"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/censo-raices-del-monorepo-20260905T011428/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "forma",
+      "instrumento",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "fuente"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/censo-raices-espejadas-20260828T040439/manifiesto.json",
+    "keys": [
+      "id",
+      "fecha",
+      "tema",
+      "fuente",
+      "generador",
+      "datos",
+      "destino",
+      "genera",
+      "reproducible",
+      "nota_reproducibilidad",
+      "criterio",
+      "por_que_reusa_el_gate",
+      "cifras_de_esta_ejecucion",
+      "hallazgos",
+      "tareas_abiertas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/citas-de-tarea-en-artefactos-vivos-20260904T230853/manifiesto.json",
+    "keys": [
+      "pregunta",
+      "forma",
+      "instrumento",
+      "metrica",
+      "ciego_a",
+      "destino",
+      "fuente",
+      "tareas",
+      "reproducible",
+      "fecha"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/clase-de-bytes-en-herramienta-de-byte-20260906T004245/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "consumo",
+      "entregable",
+      "control",
+      "consumidor",
+      "archivos_de_evidencia",
+      "hallazgo_principal",
+      "efecto_colateral_medido"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/claude-code-tres-mecanismos-20260828T063625/manifiesto.json",
+    "keys": [
+      "pregunta",
+      "mitad_ya_respondida",
+      "mitad_de_este_evento",
+      "corpus",
+      "build",
+      "salida",
+      "reproducible",
+      "precondicion",
+      "hallazgo",
+      "tareas_abiertas",
+      "tareas_anotadas",
+      "correccion_aplicada"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/commit-por-pathspec-20260902T045859/manifiesto.json",
+    "keys": [
+      "evento",
+      "proposito",
+      "despacha_agentes",
+      "fuente_de_autoridad",
+      "instrumento",
+      "metodo",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "entregable"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/configuracion-claude-code-20260819T232142/manifiesto.json",
+    "keys": [
+      "run_id",
+      "fecha",
+      "proposito",
+      "fuente",
+      "genera",
+      "reproducible",
+      "nota_reproducible",
+      "no_duplica",
+      "instrumento",
+      "derivado_no_transcrito",
+      "desconocidos_declarados"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/convencion-fk-sufijo-id-20260828T172746/manifiesto.json",
+    "keys": [
+      "id",
+      "fecha",
+      "tema",
+      "fuente",
+      "generador",
+      "datos",
+      "destino",
+      "genera",
+      "reproducible",
+      "nota_reproducibilidad",
+      "criterio",
+      "cifras_de_esta_ejecucion",
+      "premisa_corregida",
+      "hallazgos",
+      "tareas_abiertas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/copia-en-vez-de-consumo-20260906T021608/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "consumo",
+      "entregable",
+      "control",
+      "consumidor",
+      "archivos_de_evidencia",
+      "hallazgo_principal"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/cotejo-raices-referencia-20260828T224736/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha_utc",
+      "artefacto",
+      "descripcion",
+      "referencia",
+      "resultado",
+      "metrica",
+      "ciega_a"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/derivar-lexico-cerrado-de-nombres-20260905T062807/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "forma",
+      "pregunta",
+      "instrumento",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "tarea"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/destinos-skills-20260823T051138/manifiesto.json",
+    "keys": [
+      "evento",
+      "id",
+      "fecha_creacion",
+      "pregunta",
+      "origen",
+      "generador",
+      "salidas",
+      "destino_en_source",
+      "universo",
+      "metrica",
+      "ciega_a",
+      "correcciones_en_el_mismo_pase",
+      "tareas_relacionadas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/enlace-directorio-20260821T210049/manifiesto.json",
+    "keys": [
+      "run_id",
+      "fecha",
+      "origen",
+      "pregunta",
+      "instrumento",
+      "salida",
+      "metrica",
+      "ciega_a",
+      "control",
+      "resultado",
+      "veredicto",
+      "hallazgo",
+      "reproducible"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/entorno-claude-code-20260819T233534/manifiesto.json",
+    "keys": [
+      "run_id",
+      "fecha",
+      "proposito",
+      "fuente",
+      "identidad",
+      "genera",
+      "reproducible",
+      "nota_reproducible",
+      "no_duplica",
+      "instrumento",
+      "derivado_no_transcrito",
+      "desconocidos_declarados",
+      "cierra_orden"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/esqueleto-de-porte-20260828T230333/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha_utc",
+      "tarea",
+      "sucesor_del_primer_uso",
+      "encargo",
+      "metodo",
+      "artefacto",
+      "referencia",
+      "api",
+      "reuso",
+      "precondiciones",
+      "no_escribe_en_api",
+      "metrica",
+      "ciega_a",
+      "salidas",
+      "poblaciones",
+      "conducta_declarada",
+      "discrepancia_del_primer_uso"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/estructura-documental-20260822T173341/manifiesto.json",
+    "keys": [
+      "id",
+      "fecha",
+      "tema",
+      "fuente",
+      "generador",
+      "datos",
+      "destino",
+      "genera",
+      "reproducible",
+      "nota_reproducibilidad",
+      "criterio",
+      "origen",
+      "hallazgos",
+      "tareas_abiertas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/extension-enterprise-18-20260827T071521/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "submodulo_medido",
+      "motivo",
+      "pregunta",
+      "respuesta_corta",
+      "hallazgo_principal",
+      "alias_de_referencia_usados",
+      "el_control_que_discrimina",
+      "defecto_de_instrumento_reincidente",
+      "superficie_de_res_users",
+      "metrica",
+      "ciega_a"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/extraer-base-cognitiva-20260911T171505/manifiesto.json",
+    "keys": [
+      "forma",
+      "instrumento",
+      "fuente",
+      "fecha",
+      "cifras"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/extraer-eventos-telemetricos-20260824T053003/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "encargo",
+      "metodo",
+      "binario",
+      "premisa_corregida",
+      "censo",
+      "flujo",
+      "correcciones_del_instrumento_en_el_mismo_pase",
+      "metrica",
+      "ciega_a",
+      "precedente_c_vs_python",
+      "hallazgos_que_produce",
+      "tarea",
+      "carga",
+      "declaracion",
+      "fecha_ultima_capa"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/flujo-carga-agentes-20260902T044544/manifiesto.json",
+    "keys": [
+      "evento",
+      "proposito",
+      "despacha_agentes",
+      "fuente_de_autoridad",
+      "instrumento",
+      "metodo",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "entregable"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/flujo-de-carga-binario-claude-code-20260905T211556/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arbol_medido",
+      "consumo",
+      "instrumento",
+      "aserciones",
+      "resultado",
+      "consumidor"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/flujo-de-carga-ccb-20260905T204025/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arbol_medido",
+      "consumo",
+      "instrumento",
+      "aserciones",
+      "resultado",
+      "consumidor"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/flujo-de-carga-claw-code-20260905T204025/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arbol_medido",
+      "consumo",
+      "instrumento",
+      "aserciones",
+      "resultado",
+      "consumidor"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/flujo-de-carga-litellm-20260905T204025/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arbol_medido",
+      "consumo",
+      "instrumento",
+      "aserciones",
+      "resultado",
+      "consumidor"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/flujo-de-carga-openswarm-20260905T204025/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arbol_medido",
+      "consumo",
+      "instrumento",
+      "aserciones",
+      "resultado",
+      "consumidor"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/flujo-de-subagente-binario-20260826T155707/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "encargo",
+      "metodo",
+      "binario",
+      "instrumento",
+      "hallazgos_del_flujo",
+      "correcciones_del_instrumento_en_el_mismo_pase",
+      "salidas",
+      "registro_en_source"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/flujo-de-tareas-binario-20260826T154609/manifiesto.json",
+    "keys": [
+      "evento",
+      "id",
+      "fecha_creacion",
+      "pregunta",
+      "origen",
+      "generador",
+      "salidas",
+      "destino_en_source",
+      "universo",
+      "sondas",
+      "constantes_del_cuerpo",
+      "metrica",
+      "ciega_a",
+      "correcciones_en_el_mismo_pase",
+      "hallazgo_que_produce",
+      "tareas_relacionadas",
+      "deuda_de_la_rama_hermana_que_este_evento_consume"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/flujo-de-tiempo-binario-20260824T013058/manifiesto.json",
+    "keys": [
+      "evento",
+      "id",
+      "fecha_creacion",
+      "pregunta",
+      "origen",
+      "generador",
+      "salidas",
+      "destino_en_source",
+      "universo",
+      "sondas",
+      "constantes_del_cuerpo",
+      "metrica",
+      "ciega_a",
+      "correcciones_en_el_mismo_pase",
+      "hallazgo_que_produce",
+      "tareas_relacionadas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/flujo-despacho-subagentes-20260902T044533/manifiesto.json",
+    "keys": [
+      "evento",
+      "proposito",
+      "despacha_agentes",
+      "fuente_de_autoridad",
+      "instrumento",
+      "metodo",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "entregable"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/flujo-thyrox-audit-20260828T091108/manifiesto.json",
+    "keys": [
+      "evento",
+      "run_id",
+      "ruta",
+      "fecha",
+      "submodulo_medido",
+      "motivo",
+      "pregunta",
+      "respuesta_corta",
+      "instrumento",
+      "salida",
+      "metrica",
+      "ciega_a",
+      "hallazgo",
+      "sucesor_registrado"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/herramientas-claude-code-20260819T225555/manifiesto.json",
+    "keys": [
+      "run_id",
+      "fecha",
+      "proposito",
+      "fuente",
+      "genera",
+      "reproducible",
+      "nota_reproducible",
+      "organizacion",
+      "no_duplica",
+      "ancla_de_contenido",
+      "desconocidos_declarados",
+      "instrumentos"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/hooks-claude-code-20260819T201332/manifiesto.json",
+    "keys": [
+      "id",
+      "fecha",
+      "tema",
+      "fuente",
+      "generador",
+      "datos",
+      "destino",
+      "genera",
+      "reproducible",
+      "nota_reproducibilidad",
+      "hallazgos",
+      "tareas_abiertas",
+      "veredicto",
+      "instrumentos",
+      "nota_version_posterior"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/implementar-agent-ts-20260829T001415/manifiesto.json",
+    "keys": [
+      "evento",
+      "proposito",
+      "despacha_agentes",
+      "fuente_de_autoridad",
+      "instrumento",
+      "metodo",
+      "suite",
+      "entregable",
+      "tareas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/install-raiz-por-marcador-20260905T235500/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arboles_de_referencia",
+      "consumo",
+      "entregable",
+      "control",
+      "aserciones",
+      "consumidor"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/install-sh-de-thyrox-20260905T225409/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arboles_de_referencia",
+      "consumo",
+      "entregable",
+      "control",
+      "aserciones",
+      "consumidor"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/mapa-skills-artefactos-20260822T180714/manifiesto.json",
+    "keys": [
+      "id",
+      "fecha",
+      "tema",
+      "fuente",
+      "generador",
+      "datos",
+      "destino",
+      "genera",
+      "reproducible",
+      "nota_reproducibilidad",
+      "criterio",
+      "origen",
+      "hallazgos",
+      "tareas_abiertas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/marcar-deprecated-obsolete-20260905T003606/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "forma",
+      "instrumento",
+      "metrica",
+      "ciega_a"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/mecanismo-por-flujo-20260905T013805/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "forma",
+      "instrumento",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "fuente"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/move-pretooluse-detectors-to-thyrox-20260909T210110/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "forma",
+      "submodulo_medido",
+      "motivo",
+      "pregunta",
+      "respuesta_corta",
+      "piezas_ausentes_declaradas",
+      "aterrizaje",
+      "reproducible"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/mudar-contenido-de-sesion-a-thyrox-20260905T191825/manifiesto.json",
+    "keys": [
+      "forma",
+      "fecha",
+      "encargo",
+      "criterio",
+      "radio",
+      "viaja_por_entrada",
+      "se_queda_entero",
+      "instrumento",
+      "no_ejecutado",
+      "correccion"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/mudar-scripts-a-thyrox-20260905T190725/manifiesto.json",
+    "keys": [
+      "forma",
+      "fecha",
+      "encargo",
+      "particion",
+      "radio",
+      "instrumento",
+      "no_ejecutado"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/niveles-de-esfuerzo-20260902T051302/manifiesto.json",
+    "keys": [
+      "evento",
+      "proposito",
+      "despacha_agentes",
+      "fuente_de_autoridad",
+      "instrumento",
+      "metodo",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "entregable"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/orphan-task-tdd-20260905T231757/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arboles_de_referencia",
+      "consumo",
+      "entregable",
+      "control",
+      "aserciones",
+      "consumidor"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/parallel-como-el-binario-20260828T092631/manifiesto.json",
+    "keys": [
+      "evento",
+      "run_id",
+      "ruta",
+      "fecha",
+      "submodulo_medido",
+      "motivo",
+      "pregunta",
+      "respuesta_corta",
+      "instrumento",
+      "salida",
+      "la_contradiccion_encontrada",
+      "que_se_implemento",
+      "metrica",
+      "ciega_a"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/particion-opcion-b-20260906T022619/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "consumo",
+      "entregable",
+      "control",
+      "consumidor",
+      "archivos_de_evidencia",
+      "hallazgo_principal",
+      "defectos_propios_medidos"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/persistencia-binario-20260828T061033/manifiesto.json",
+    "keys": [
+      "id",
+      "fecha",
+      "tema",
+      "fuente",
+      "generador",
+      "datos",
+      "condiciones",
+      "destino",
+      "genera",
+      "reproducible",
+      "nota_reproducibilidad",
+      "precondicion",
+      "criterio",
+      "hallazgos",
+      "tareas_abiertas",
+      "cadena_de_procedencia",
+      "tareas_cerradas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/porte-ccnmt-a-thyrox-20260906T051500/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "forma",
+      "submodulo_medido",
+      "motivo",
+      "pregunta",
+      "respuesta_corta",
+      "piezas_ausentes_declaradas",
+      "aterrizaje",
+      "reproducible",
+      "por_que_no_reproducible"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/precedencia-por-ramas-20260906T010316/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "consumo",
+      "entregable",
+      "control",
+      "consumidor",
+      "archivos_de_evidencia",
+      "hallazgo_principal",
+      "defectos_del_propio_instrumento"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/precondiciones-paquete-agent-20260902T044740/manifiesto.json",
+    "keys": [
+      "evento",
+      "proposito",
+      "despacha_agentes",
+      "fuente_de_autoridad",
+      "instrumento",
+      "metodo",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "entregable",
+      "nota_de_estructura"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/puntos-ciegos-transferencia-20260824T014337/manifiesto.json",
+    "keys": [
+      "evento",
+      "id",
+      "fecha_creacion",
+      "pregunta",
+      "origen",
+      "predecesor",
+      "generador",
+      "salidas",
+      "destino_en_source",
+      "universo",
+      "punto_1",
+      "punto_2",
+      "punto_3",
+      "correcciones_del_instrumento_en_el_mismo_pase",
+      "metrica",
+      "ciega_a",
+      "hallazgo_que_produce",
+      "cierra",
+      "tareas_relacionadas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/reclasificar-producto-en-thyrox-20260905T192647/manifiesto.json",
+    "keys": [
+      "forma",
+      "fecha",
+      "encargo",
+      "criterio",
+      "radio",
+      "destinos",
+      "instrumento",
+      "verificacion",
+      "hallazgo",
+      "no_ejecutado"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/recuperar-nombres-del-binario-20260826T173157/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha_creacion",
+      "origen",
+      "que_mide",
+      "instrumento",
+      "canales",
+      "resultado_2_1_246",
+      "resultado_2_1_241",
+      "lo_que_NO_se_adopto",
+      "correcciones_en_el_mismo_pase",
+      "metrica",
+      "ciega_a",
+      "resultado_aplicacion_2_1_246"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/remedir-gates-sin-githook-20260828T051122/manifiesto.json",
+    "keys": [
+      "id",
+      "fecha",
+      "tema",
+      "clase",
+      "fuente",
+      "generador",
+      "datos",
+      "destino",
+      "genera",
+      "invocacion",
+      "reproducible",
+      "nota_reproducibilidad",
+      "criterio",
+      "cuatro_estados_no_dos",
+      "cifras_de_esta_ejecucion",
+      "hallazgos",
+      "tareas_abiertas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/renombrar-alcance-thyrox-20260905T232935/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "filtro_declarado",
+      "fuera_de_alcance",
+      "consumo",
+      "entregable",
+      "control",
+      "regresion_hallada",
+      "consumidor"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/renombrar-familia-qweb-20260829T233852/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "encargo",
+      "directivas_del_ejecutor",
+      "metodo",
+      "commit_del_renombre",
+      "commit_previo",
+      "mapa_de_archivos",
+      "mapa_de_simbolos",
+      "lo_que_NO_se_renombra",
+      "censo_pareado",
+      "registro_de_divergencias",
+      "hallazgo",
+      "gates",
+      "subconjunto_derivado"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/repartir-config-packages-tools-scripts-20260905T193531/manifiesto.json",
+    "keys": [
+      "forma",
+      "fecha",
+      "encargo",
+      "criterio",
+      "radio",
+      "instrumento",
+      "correccion_del_instrumento",
+      "decision_pendiente",
+      "no_ejecutado",
+      "ejecutado",
+      "directiva_de_ejecucion",
+      "movidos",
+      "citas",
+      "hallazgo"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/reparto-de-agencia-openswarm-20260905T220452/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arbol_medido",
+      "consumo",
+      "instrumento",
+      "aserciones",
+      "resultado",
+      "consumidor"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/reparto-de-iniciativas-por-dominio-20260916T105548/manifiesto.json",
+    "keys": [
+      "evento",
+      "proposito",
+      "despacha_agentes",
+      "fuente_de_autoridad",
+      "instrumento",
+      "metodo",
+      "metrica",
+      "ciega_a",
+      "destino",
+      "entregable"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/revisar-tareas-api-20260828T055608/manifiesto.json",
+    "keys": [
+      "id",
+      "fecha",
+      "tema",
+      "fuente",
+      "generador",
+      "datos",
+      "destino",
+      "genera",
+      "reproducible",
+      "nota_reproducibilidad",
+      "criterio",
+      "control_positivo",
+      "hallazgos",
+      "tareas_abiertas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/settings-local-20260821T110649/manifiesto.json",
+    "keys": [
+      "id",
+      "fecha",
+      "tema",
+      "pregunta",
+      "fuente",
+      "instrumento",
+      "salida",
+      "generador",
+      "control_de_lo_emitido",
+      "control_de_autodestruccion",
+      "datos",
+      "destino",
+      "genera",
+      "sondas",
+      "control",
+      "medido",
+      "veredicto",
+      "diseno_del_mecanismo",
+      "reproducible",
+      "nota_reproducibilidad",
+      "hallazgos",
+      "tareas_abiertas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/superficie-de-extension-ccnmt-20260905T210625/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arbol_medido",
+      "consumo",
+      "instrumento",
+      "aserciones",
+      "resultado",
+      "consumidor"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/terminar-cinco-addons-20260827T181414/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "submodulo_medido",
+      "tarea",
+      "motivo",
+      "pregunta",
+      "respuesta_corta",
+      "alias_de_referencia_usados",
+      "entrada_comun",
+      "sondas",
+      "lo_que_no_cierra"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/toolchains-en-las-referencias-20260905T222848/manifiesto.json",
+    "keys": [
+      "forma",
+      "run_id",
+      "creado_en",
+      "pregunta",
+      "arboles_medidos",
+      "consumo",
+      "instrumento",
+      "aserciones",
+      "resultado",
+      "consumidor",
+      "nombre_descartado"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/traducir-identificadores-20260828T042128/manifiesto.json",
+    "keys": [
+      "id",
+      "fecha",
+      "tema",
+      "clase",
+      "nota_de_clase",
+      "fuente",
+      "generador",
+      "datos",
+      "destino",
+      "genera",
+      "invocacion",
+      "precondicion",
+      "reproducible",
+      "nota_reproducibilidad",
+      "criterio",
+      "por_que_ast_y_no_token",
+      "por_que_el_lexico_sale_de_la_referencia",
+      "posiciones_en_bytes",
+      "cifras_de_esta_ejecucion",
+      "controles",
+      "traza",
+      "hallazgos",
+      "tareas_abiertas",
+      "piezas"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/triaje-porte-base-20260826T220013/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "submodulo_medido",
+      "motivo",
+      "pregunta",
+      "respuesta_corta",
+      "alias_de_referencia_usados",
+      "defectos_del_instrumento_corregidos",
+      "la_correccion_del_ejecutor",
+      "las_44_ausentes_reales",
+      "metrica",
+      "ciega_a",
+      "licencia_por_manifiesto_DEC_KX_03",
+      "segundo_instrumento_equivocado"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/triaje-vocabulario-20260826T190410/manifiesto.json",
+    "keys": [
+      "evento",
+      "fecha",
+      "motivo",
+      "pregunta",
+      "respuesta_corta",
+      "defectos_del_instrumento_corregidos",
+      "correcciones_de_prosa",
+      "al_baseline_con_su_motivo",
+      "baseline_podado",
+      "las_cuatro_pruebas_en_rojo_que_l0_reporto",
+      "metrica",
+      "ciega_a"
+    ],
+    "error": null
+  },
+  {
+    "repo": "kaupamex-docs",
+    "path": ".claude/eventos/vocabulario-20260819T215709/manifiesto.json",
+    "keys": [
+      "id",
+      "fecha",
+      "tema",
+      "fuente",
+      "generador",
+      "datos",
+      "destino",
+      "genera",
+      "reproducible",
+      "nota_reproducibilidad",
+      "criterio",
+      "hallazgos",
+      "tareas_abiertas"
+    ],
+    "error": null
+  }
+]

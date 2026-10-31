@@ -1,0 +1,16 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "claimsCommand",
+  "args": [
+    "--claim",
+    "src/modules/__init__.py",
+    "--owner",
+    "codex-module-lifecycle",
+    "--branch",
+    "feature/codex-workspace-bootstrap",
+    "--task",
+    "TASK-API-0382"
+  ],
+  "exit": 0,
+  "scope": "Documentation of admitted Registry request behavior, executable package AST unchanged"
+}

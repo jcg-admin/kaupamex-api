@@ -1,0 +1,229 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FF...................................................................... [ 28%]
+................EEEEEEEEEEEEEEEE........................................ [ 57%]
+........................................................................ [ 86%]
+.....................F.............                                      [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of MissingRecomputeTests.test_all_missing_clears_computed_group_only _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeTests.test_compute_failure_does_not_accept_missing_or_existing_work _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeTests.test_mixed_rows_compute_flush_and_remove_deleted_pending _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeTests.test_no_pending_avoids_database_queries _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeTests.test_recomputed_column_update_obeys_postgresql_rollback _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeTests.test_requested_subset_keeps_other_pending_ids _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeTests.test_virtual_ids_are_not_missing_persisted_rows _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeRetryTests.test_retry_django_missing_discards_deleted_record _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeRetryTests.test_retry_does_not_catch_access_errors _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeRetryTests.test_retry_existing_record_computes_once_after_missing_error _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeRetryTests.test_retry_internal_existence_does_not_use_filtered_public_manager _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeRetryTests.test_retry_missing_error_discards_deleted_record _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeRetryTests.test_retry_missing_related_object_keeps_primary_record_pending _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeRetryTests.test_retry_repeated_missing_error_propagates_and_preserves_work _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeRetryTests.test_retry_uses_record_database_instead_of_read_router _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+_ ERROR at setup of MissingRecomputeRetryTests.test_retry_virtual_record_does_not_query_or_discard_it _
+tests/unit/orm/test_missing_recompute.py:50: in setUpClass
+    with connection.schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.12/site-packages/django/db/backends/base/schema.py:164: in __enter__
+    self.atomic.__enter__()
+.venv/lib/python3.12/site-packages/django/db/transaction.py:198: in __enter__
+    if not connection.get_autocommit():
+.venv/lib/python3.12/site-packages/django/db/backends/base/base.py:454: in get_autocommit
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+=================================== FAILURES ===================================
+_ TestTheCycleReachesTheColumn.test_touching_debit_recomputes_the_balance_into_the_column _
+tests/unit/orm/test_compute_wiring.py:206: in test_touching_debit_recomputes_the_balance_into_the_column
+    assert line.balance == Decimal('0.00')
+E   AssertionError: assert Decimal('60.00') == Decimal('0.00')
+E    +  where Decimal('60.00') = <AccountMoveLine: 105 Clientes 100.00/40.00>.balance
+E    +  and   Decimal('0.00') = Decimal('0.00')
+_ TestTheCycleReachesTheColumn.test_without_touching_it_the_column_is_left_alone _
+tests/unit/orm/test_compute_wiring.py:228: in test_without_touching_it_the_column_is_left_alone
+    line.flush_recordset(['balance'])
+src/orm/models.py:4052: in flush_recordset
+    _flush(rows)
+src/orm/models.py:3987: in _flush
+    row.save(update_fields=names)
+addons/account/models/account_move_line.py:299: in save
+    return super().save(*args, **kwargs)
+addons/analytic/models/analytic_mixin.py:250: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.12/site-packages/django/db/models/base.py:851: in save
+    raise ValueError(
+E   ValueError: The following fields do not exist in this model, are m2m fields, primary keys, or are non-concrete fields: id
+________ TestRecNameResolution.test_a_model_with_name_resolves_to_name _________
+tests/unit/orm/test_default_get.py:204: in test_a_model_with_name_resolves_to_name
+    assert ResPartner._rec_name == 'name'
+E   AttributeError: type object 'ResPartner' has no attribute '_rec_name'
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/orm/test_compute_wiring.py::TestTheCycleReachesTheColumn::test_touching_debit_recomputes_the_balance_into_the_column
+tests/unit/orm/test_compute_wiring.py::TestTheDeclarationReachesTheGraph::test_every_declared_dependency_resolves
+  /workspace/kaupamex-api/src/orm/fields.py:4113: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_compute_wiring.py::TestTheCycleReachesTheColumn::test_touching_debit_recomputes_the_balance_into_the_column
+tests/unit/orm/test_compute_wiring.py::TestTheDeclarationReachesTheGraph::test_every_declared_dependency_resolves
+  /workspace/kaupamex-api/src/orm/fields.py:4113: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/display-name-assignment-neighbor.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_compute_wiring.py::TestTheCycleReachesTheColumn::test_touching_debit_recomputes_the_balance_into_the_column
+FAILED tests/unit/orm/test_compute_wiring.py::TestTheCycleReachesTheColumn::test_without_touching_it_the_column_is_left_alone
+FAILED tests/unit/orm/test_default_get.py::TestRecNameResolution::test_a_model_with_name_resolves_to_name
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeTests::test_all_missing_clears_computed_group_only
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeTests::test_compute_failure_does_not_accept_missing_or_existing_work
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeTests::test_mixed_rows_compute_flush_and_remove_deleted_pending
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeTests::test_no_pending_avoids_database_queries
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeTests::test_recomputed_column_update_obeys_postgresql_rollback
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeTests::test_requested_subset_keeps_other_pending_ids
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeTests::test_virtual_ids_are_not_missing_persisted_rows
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeRetryTests::test_retry_django_missing_discards_deleted_record
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeRetryTests::test_retry_does_not_catch_access_errors
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeRetryTests::test_retry_existing_record_computes_once_after_missing_error
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeRetryTests::test_retry_internal_existence_does_not_use_filtered_public_manager
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeRetryTests::test_retry_missing_error_discards_deleted_record
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeRetryTests::test_retry_missing_related_object_keeps_primary_record_pending
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeRetryTests::test_retry_repeated_missing_error_propagates_and_preserves_work
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeRetryTests::test_retry_uses_record_database_instead_of_read_router
+ERROR tests/unit/orm/test_missing_recompute.py::MissingRecomputeRetryTests::test_retry_virtual_record_does_not_query_or_discard_it
+3 failed, 232 passed, 5 warnings, 16 errors in 4.39s

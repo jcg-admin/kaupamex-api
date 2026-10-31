@@ -1,0 +1,26 @@
+{
+  "interface": "session.task_continuation.node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "inputs": [
+    {
+      "id": "TASK-API-0383.contenttypes_dependency_diagnostic",
+      "taskId": "TASK-API-0383",
+      "prompt": "Resolve measured contenttypes exclusion at existing migration boundary; characterize native PostgreSQL plan and local metadata alias before changing policy",
+      "verify": "MigrationExecutor contenttypes plan, recorded versus physical schema, real company provisioning, local FK and alias isolation, cleanup",
+      "mutates": false,
+      "route": "local",
+      "owned": [],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-API-0383.contenttypes_dependency_diagnostic"
+  ],
+  "claims_sha256": "f369e8f92db174a65932952e8da010825fa01fe29fac1f0bebd22b05295eed2a",
+  "claims_rows": 213,
+  "provenance": "Native TaskGet session168b0fdf-bfe4-590b-b6c0-b6be124c124a/local738; owned codex-module-lifecycle. Existing full-company verifier failure, accepted DEC-AISL-05 open contenttypes location question. No other pending TASK is assumed eligible.",
+  "resources": "Existing PostgreSQL disposable harness; no shared QA, no model inference",
+  "limits": "Bounded engineering candidate view; does not replace native TaskStore or qualify managed dispatch, whole-goal task_source, global eligibility or acceptance. No production mutation in diagnostic; own evidence claim retained.",
+  "objective_complete": false,
+  "official_state_changes": false
+}

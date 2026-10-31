@@ -1,0 +1,5 @@
+{
+  "pytest_exit": 1,
+  "production_before": "5943be0c",
+  "task": "TASK-GEN-0633"
+}

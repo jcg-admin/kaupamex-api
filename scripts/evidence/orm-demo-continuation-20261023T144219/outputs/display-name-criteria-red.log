@@ -1,0 +1,84 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.....F...F....F..FFFFFF                                                  [100%]
+=================================== FAILURES ===================================
+_ TestUniversalAdoption.test_none_declares_it_as_something_other_than_the_field _
+tests/unit/orm/test_display_name.py:73: in test_none_declares_it_as_something_other_than_the_field
+    assert not_a_field() == []
+E   AssertionError: assert ['base.IrModu...ay_name', ...] == []
+E     Left contains 391 more items, first extra item: 'base.IrModuleCategory.display_name es ComputedFieldDescriptor declarado en IrModuleCategory, no el campo NonStored del mixin — el cómputo va en _compute_display_name'
+E     Use -v to get more diff
+___ TestTheFieldAdmitsAssignment.test_the_descriptor_is_the_one_of_the_mixin ___
+tests/unit/orm/test_display_name.py:108: in test_the_descriptor_is_the_one_of_the_mixin
+    assert field.search == '_search_display_name'
+E   AssertionError: assert None == '_search_display_name'
+E    +  where None = <django.db.models.fields.CharField>.search
+_ TestTheGateDiscriminates.test_it_names_a_model_that_declares_display_name_as_a_property _
+tests/unit/orm/test_display_name.py:193: in test_it_names_a_model_that_declares_display_name_as_a_property
+    assert not_a_field() == []
+E   AssertionError: assert ['base.IrModu...ay_name', ...] == []
+E     Left contains 391 more items, first extra item: 'base.IrModuleCategory.display_name es ComputedFieldDescriptor declarado en IrModuleCategory, no el campo NonStored del mixin — el cómputo va en _compute_display_name'
+E     Use -v to get more diff
+______ test_gate_rejects_incompatible_display_field_metadata[store-True] _______
+tests/unit/orm/test_display_name.py:233: in test_gate_rejects_incompatible_display_field_metadata
+    assert not_a_field() == []
+E   AssertionError: assert ['base.IrModu...ay_name', ...] == []
+E     Left contains 391 more items, first extra item: 'base.IrModuleCategory.display_name es ComputedFieldDescriptor declarado en IrModuleCategory, no el campo NonStored del mixin — el cómputo va en _compute_display_name'
+E     Use -v to get more diff
+_____ test_gate_rejects_incompatible_display_field_metadata[concrete-True] _____
+tests/unit/orm/test_display_name.py:233: in test_gate_rejects_incompatible_display_field_metadata
+    assert not_a_field() == []
+E   AssertionError: assert ['base.IrModu...ay_name', ...] == []
+E     Left contains 391 more items, first extra item: 'base.IrModuleCategory.display_name es ComputedFieldDescriptor declarado en IrModuleCategory, no el campo NonStored del mixin — el cómputo va en _compute_display_name'
+E     Use -v to get more diff
+_____ test_gate_rejects_incompatible_display_field_metadata[compute-None] ______
+tests/unit/orm/test_display_name.py:233: in test_gate_rejects_incompatible_display_field_metadata
+    assert not_a_field() == []
+E   AssertionError: assert ['base.IrModu...ay_name', ...] == []
+E     Left contains 391 more items, first extra item: 'base.IrModuleCategory.display_name es ComputedFieldDescriptor declarado en IrModuleCategory, no el campo NonStored del mixin — el cómputo va en _compute_display_name'
+E     Use -v to get more diff
+______ test_gate_rejects_incompatible_display_field_metadata[search-None] ______
+tests/unit/orm/test_display_name.py:233: in test_gate_rejects_incompatible_display_field_metadata
+    assert not_a_field() == []
+E   AssertionError: assert ['base.IrModu...ay_name', ...] == []
+E     Left contains 391 more items, first extra item: 'base.IrModuleCategory.display_name es ComputedFieldDescriptor declarado en IrModuleCategory, no el campo NonStored del mixin — el cómputo va en _compute_display_name'
+E     Use -v to get more diff
+____________ test_gate_rejects_a_descriptor_bound_to_another_field _____________
+tests/unit/orm/test_display_name.py:242: in test_gate_rejects_a_descriptor_bound_to_another_field
+    assert not_a_field() == []
+E   AssertionError: assert ['base.IrModu...ay_name', ...] == []
+E     Left contains 391 more items, first extra item: 'base.IrModuleCategory.display_name es ComputedFieldDescriptor declarado en IrModuleCategory, no el campo NonStored del mixin — el cómputo va en _compute_display_name'
+E     Use -v to get more diff
+_____ test_gate_rejects_a_nonassignable_descriptor_with_matching_metadata ______
+tests/unit/orm/test_display_name.py:256: in test_gate_rejects_a_nonassignable_descriptor_with_matching_metadata
+    assert not_a_field() == []
+E   AssertionError: assert ['base.IrModu...ay_name', ...] == []
+E     Left contains 391 more items, first extra item: 'base.IrModuleCategory.display_name es ComputedFieldDescriptor declarado en IrModuleCategory, no el campo NonStored del mixin — el cómputo va en _compute_display_name'
+E     Use -v to get more diff
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/unit/orm/test_display_name.py::TestTheFieldAdmitsAssignment::test_it_reads_the_computed_value
+tests/unit/orm/test_display_name.py::TestTheFieldAdmitsAssignment::test_it_admits_assignment_and_the_assigned_value_wins
+  /workspace/kaupamex-api/src/orm/fields.py:4152: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_display_name.py::TestTheFieldAdmitsAssignment::test_it_reads_the_computed_value
+tests/unit/orm/test_display_name.py::TestTheFieldAdmitsAssignment::test_it_admits_assignment_and_the_assigned_value_wins
+  /workspace/kaupamex-api/src/orm/fields.py:4152: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/display-name-criteria-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_display_name.py::TestUniversalAdoption::test_none_declares_it_as_something_other_than_the_field
+FAILED tests/unit/orm/test_display_name.py::TestTheFieldAdmitsAssignment::test_the_descriptor_is_the_one_of_the_mixin
+FAILED tests/unit/orm/test_display_name.py::TestTheGateDiscriminates::test_it_names_a_model_that_declares_display_name_as_a_property
+FAILED tests/unit/orm/test_display_name.py::test_gate_rejects_incompatible_display_field_metadata[store-True]
+FAILED tests/unit/orm/test_display_name.py::test_gate_rejects_incompatible_display_field_metadata[concrete-True]
+FAILED tests/unit/orm/test_display_name.py::test_gate_rejects_incompatible_display_field_metadata[compute-None]
+FAILED tests/unit/orm/test_display_name.py::test_gate_rejects_incompatible_display_field_metadata[search-None]
+FAILED tests/unit/orm/test_display_name.py::test_gate_rejects_a_descriptor_bound_to_another_field
+FAILED tests/unit/orm/test_display_name.py::test_gate_rejects_a_nonassignable_descriptor_with_matching_metadata
+9 failed, 14 passed, 5 warnings in 4.45s

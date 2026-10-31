@@ -1,0 +1,97 @@
+{
+  "docs:.claude/rules/referencia-odoo-gobierna-las-decisiones.md": {
+    "revision": "90bb68b606a508c86a0b617dd2757d5afe615230",
+    "sha256": "957082bfe26d8236d6113d166eb28019ef68ae5f1d6bc65fe58170dbfd29cc7c",
+    "blob": "8a14ee9b64802c2880a4f03bba4973472a8ca6d9"
+  },
+  "docs:source/gestion/pm/api/iniciativas/completar-raiz-orm/alcance-completar-raiz-orm.rst": {
+    "revision": "90bb68b606a508c86a0b617dd2757d5afe615230",
+    "sha256": "ca847b79d4f4e45e00f3512578bc43e2bc471b05e3f5ae218ed37cb5519f63ac",
+    "blob": "2555b02ee760ee1a9377c9cc5f88c4955dabf7c0"
+  },
+  "docs:source/backend/adr/adr-028-postgresql.rst": {
+    "revision": "90bb68b606a508c86a0b617dd2757d5afe615230",
+    "sha256": "39cf19458185d962b71a688336aeb88d17fb42b156fed66b021ed91bd88d7495",
+    "blob": "ea47975a504e9ff81778864ad772209c0c13462d"
+  },
+  "docs:source/backend/adr/adr-027-servidor-aplicacion-gunicorn-embebido.rst": {
+    "revision": "90bb68b606a508c86a0b617dd2757d5afe615230",
+    "sha256": "e5b62356cb93337424622c012661de39035c81f956879fb5644cfef527ececb7",
+    "blob": "033d0595846730ce4b57ff52d53098146e0dbaa5"
+  },
+  "api:tests/unit/orm/test_base_model_recordset.py": {
+    "revision": "1f6e46f1ddcb8fa8afd68318eb7e0b48d06fc6da",
+    "sha256": "7a1bcd537fcf99cec2c619cf1c83c81d3cbc266eb8f20e0b14fc00e1adecf51b",
+    "blob": "80e10c292dcdf0216d86598402ae2c249ddc06b2"
+  },
+  "api:tests/unit/orm/test_environments_cache.py": {
+    "revision": "1f6e46f1ddcb8fa8afd68318eb7e0b48d06fc6da",
+    "sha256": "753bf88f22a6d8b62094d988f31ef0ebc40eead4c60701fab066d5cc67dc686a",
+    "blob": "c29b404f4988341756dfba876add039ebd8df53e"
+  },
+  "api:tests/unit/orm/test_field_cache.py": {
+    "revision": "1f6e46f1ddcb8fa8afd68318eb7e0b48d06fc6da",
+    "sha256": "e19b1486640c798b866e65e640a8dce7b9217509241b4e11272c110d99ef9639",
+    "blob": "2cf64ca66b3d566a829634965af39eab9bc65d04"
+  },
+  "api:tests/unit/orm/test_access_manager.py": {
+    "revision": "1f6e46f1ddcb8fa8afd68318eb7e0b48d06fc6da",
+    "sha256": "71f5707c6929968c3d7acb9b80b08d1fdd0f94cfa9885a88405a7c4c388c01e7",
+    "blob": "2d08d0b1015168bb71bb286f724cd613e271461e"
+  },
+  "api:tests/unit/base/test_ir_rule.py": {
+    "revision": "1f6e46f1ddcb8fa8afd68318eb7e0b48d06fc6da",
+    "sha256": "1f176bdb2cc467772d68d67ae3ad43dab70465effba1813a1b95c848fccb8e97",
+    "blob": "373230c490b0151eff152b6bde74a7a9a65ed079"
+  },
+  "api:tests/unit/base/test_ir_rule_access_error.py": {
+    "revision": "1f6e46f1ddcb8fa8afd68318eb7e0b48d06fc6da",
+    "sha256": "10dafc4b5fac32ac702404f10dde142d45ee29e167863a50eea8ee7f8e505caa",
+    "blob": "1d7cf2a3d85e44889618f2f547724090a48f8ea2"
+  },
+  "api:src/orm/environments.py": {
+    "revision": "1f6e46f1ddcb8fa8afd68318eb7e0b48d06fc6da",
+    "sha256": "9db875b8acc179fb181f7f1c25155032477d70c2d800c02b36b401c3a750110a",
+    "blob": "3e3855c8fb4e1d80693e1707465ddd69ebe6919b"
+  },
+  "api:src/orm/models.py": {
+    "revision": "1f6e46f1ddcb8fa8afd68318eb7e0b48d06fc6da",
+    "sha256": "18fd092bc31c70c95b395df4d5d4274009b856d60e62d868435119d68765327e",
+    "blob": "0658970dad4e6259d71ec5ef10568bc8f9c73c34"
+  },
+  "db:CLAUDE.md": {
+    "revision": "50a4aca4b0c2afe71610d6d5088d1873596020ac",
+    "sha256": "e45a99538bb15fc66013d2a4a226c76d63351f2529ca13730cecdc59dfea2c21",
+    "blob": "73a35ff18b89e2c4d54e01a17050136754de5c90"
+  },
+  "db:README.md": {
+    "revision": "50a4aca4b0c2afe71610d6d5088d1873596020ac",
+    "sha256": "35c302ab11b806a00e53876e6b40d30fc483cd0c0177ae6421d17bc918599da6",
+    "blob": "6959f3ea55fc6e3daefcb3a0ed2592cc56416ca9"
+  },
+  "db:docs/integracion-api.md": {
+    "revision": "50a4aca4b0c2afe71610d6d5088d1873596020ac",
+    "sha256": "0ce337c2668552e39214ac555adcc31a615294f95df9556a9100595505ed5a94",
+    "blob": "7b31bd906c39d524fed5a07a7a51700052b04be4"
+  },
+  "db:scripts/verify_postgres.sh": {
+    "revision": "50a4aca4b0c2afe71610d6d5088d1873596020ac",
+    "sha256": "278d633a20cb26534f2d0574886d19142c109b9832aed564b341b31fb78ccea4",
+    "blob": "0f70b6bccc2fa1e4931b6cb08dd24a27bcdb5b00"
+  },
+  "server:README.md": {
+    "revision": "f5008aa5addd796aaf1cfe35694209668944fb2e",
+    "sha256": "15b10f9fef9436cb4d5adae91c70ea07f6de35f3f0d18bc73b078324f1e5a23b",
+    "blob": "187d2b492d86fca67f48e1abece4182819bb652f"
+  },
+  "ui:README.md": {
+    "revision": "945ea00b6944cd664f1e950c32b7284d753cb9eb",
+    "sha256": "2b347209d6a10b642b532e92d4cd780531c6c4394c0874b70c91d959331ea247",
+    "blob": "843fc60b08defa9c529247712c762de4566e860a"
+  },
+  "ui:src/services/apiService.js": {
+    "revision": "945ea00b6944cd664f1e950c32b7284d753cb9eb",
+    "sha256": "891540e539714eef042e33bc3d266a1ab69dc2a378a6ecfbc4efbd7ad364ff21",
+    "blob": "9bd701d47510b292f5a3a95d45729a18c3317bce"
+  }
+}

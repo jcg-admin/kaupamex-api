@@ -239,6 +239,29 @@ def test_display_name_joins_origin_code_and_both_locations(
     assert move.display_name == 'SO0042/CAM-M: Stock>Customers'
 
 
+def test_display_name_is_invalidated_when_destination_changes(
+        company, variant, source, destination):
+    """La FK real notifica al cómputo después de cambiar su destino."""
+    move = StockMove.objects.create(**_move(variant, source, destination, company))
+    assert move.display_name == 'CAM-M: Stock>Customers'
+    returned = StockLocation.objects.create(name='Returns', usage='customer')
+    move.location_dest = returned
+    assert move.display_name == 'CAM-M: Stock>Returns'
+
+
+def test_new_move_labels_keep_independent_values_without_sql(
+        company, variant, source, destination, django_assert_num_queries):
+    """Dos filas nuevas conservan sus etiquetas aunque ninguna tenga PK."""
+    returned = StockLocation.objects.create(name='Returns', usage='customer')
+    first = StockMove(**_move(variant, source, destination, company))
+    second = StockMove(**_move(variant, source, returned, company))
+    with django_assert_num_queries(0):
+        assert first.display_name == 'CAM-M: Stock>Customers'
+        assert second.display_name == 'CAM-M: Stock>Returns'
+        assert first.display_name == 'CAM-M: Stock>Customers'
+        assert first.pk is None and second.pk is None
+
+
 def test_display_name_drops_the_prefixes_that_are_absent(
         company, variant, source, destination):
     """Sin albarán y sin código de producto quedan sólo las dos ubicaciones."""

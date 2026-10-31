@@ -1,0 +1,19 @@
+{
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet.run",
+  "input": {
+    "task_id": "1153"
+  },
+  "task": {
+    "task_id": "1153",
+    "citation_id": "TASK-API-0391",
+    "subject": "Censo de presencia con firma de src/orm y src/tools contra la referencia",
+    "description": "Medir el estado REAL de lo implementado en src/orm y src/tools: por archivo, sus clases y funciones con FIRMA y CLASE DE CUERPO (stub vs sustantivo), unidas a su homologo de la referencia (odoo19c). Los cinco instrumentos existentes miden AUSENCIA; su criterio de cierre lo satisfacen simbolos vacios. El eje nuevo es la presencia con firma, y la columna que discrimina es el stub. Salida en scripts/workbench/orm-symbol-presence-census-20260910T175850/.",
+    "status": "completed",
+    "owner": null,
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  }
+}

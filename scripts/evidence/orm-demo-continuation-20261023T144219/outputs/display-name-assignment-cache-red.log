@@ -1,0 +1,2 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{"dependencies": ["key"], "first": "fixture.cache.before", "cache_absent_after_write": false, "instance_snapshot_after_write": "fixture.cache.before", "second_read": "fixture.cache.before"}

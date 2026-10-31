@@ -1,0 +1,17 @@
+[
+  {
+    "script": "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_descriptor_cost.py",
+    "exit": 0,
+    "denied_database_attempts": 0
+  },
+  {
+    "script": "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_orm_cache_outlives_environment.py",
+    "exit": 0,
+    "denied_database_attempts": 0
+  },
+  {
+    "script": "scripts/workbench/two-caches-descriptor-20260911T053450/probes/probe_id_resolution_on_recordset.py",
+    "exit": 0,
+    "denied_database_attempts": 0
+  }
+]

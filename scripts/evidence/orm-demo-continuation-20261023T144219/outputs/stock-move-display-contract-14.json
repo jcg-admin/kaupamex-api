@@ -1,0 +1,71 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "integration": "Local source committed with hooksPASS and focused regressionsPASS; required621aaf83 gate2224PASS1SKIP1FAIL at proven legacy analytic prefix criterion; publication pending, no whole-head acceptance or merge",
+  "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+  "reference_symbol": {
+    "path": "odoo19c:addons/stock/models/stock_move.py",
+    "qualified_symbol": "StockMove._compute_display_name",
+    "line": 787,
+    "sha256": "fafe6686d930d5e0d4b1dcbc81ef6c412867a1cfdd7e22916eeb116dc803d481",
+    "body": "def _compute_display_name(self):\n        for move in self:\n            move.display_name = '%s%s%s>%s' % (\n                move.picking_id.origin and '%s/' % move.picking_id.origin or '',\n                move.product_id.code and '%s: ' % move.product_id.code or '',\n                move.location_id.name, move.location_dest_id.name)",
+    "decorators": [
+      "api.depends('picking_id', 'product_id', 'location_id', 'location_dest_id')"
+    ]
+  },
+  "behavior": "Assign existing optional origin/code and source>destination label; changing destination invalidates it",
+  "execution_flow": "Existing StockMove field read -> registered relation dependencies -> existing code_for(None) and native relations -> descriptor assignment -> existing return compatibility",
+  "inputs_outputs": "With/without picking origin and default product code, changed destination, two independent unsaved rows with saved/cached relations; correct labels without orphan prefixes",
+  "side_effects": "Existing cache and relation notifications only, new-row label reads0SQL; no business write/unlink changes or new columns",
+  "dependencies": [
+    "Native1203 owned pending selection/claims before implementation",
+    "Pinned four relation dependencies translated to registered Consumer names",
+    "Existing ProductProduct.code_for(None) default-code adapter preserved, no nonexistent code property introduced"
+  ],
+  "consumers": [
+    "Existing stock_move_persistence tests, prefix/no-prefix nodes retained",
+    "Destination invalidation and independent new-row controls",
+    "297 actual PostgreSQL stock/expiry neighborhood tests"
+  ],
+  "installed_mechanism": "Existing api.depends, FieldDescriptor and typed Char, ordinary stored FK notification and code_for adapter",
+  "existing_adaptation": "Scalar Django producer retains its previous return while also assigning; tested default-code branch corresponds to reference product.code under ordinary inputs",
+  "verification": {
+    "baseline": {
+      "revision": "093cdfd708c02b9043b39f36e0bed09b628f3d73",
+      "failed": 1,
+      "exit": 1
+    },
+    "red": {
+      "failed": 4,
+      "exit": 1,
+      "junit": "stock-move-display-red.junit.xml"
+    },
+    "green": {
+      "passed": 16,
+      "exit": 0,
+      "junit": "stock-move-display-green.junit.xml"
+    },
+    "regression": {
+      "passed": 297,
+      "exit": 0,
+      "junit": "stock-display-regression-after-move.junit.xml"
+    },
+    "shared_required_ci": {
+      "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+      "make_exit": 2,
+      "command": "make ci-verify",
+      "execution_status": "COMPLETED_FAILURE",
+      "pytest_exit": 1,
+      "passed": 2224,
+      "skipped": 1,
+      "failed": 1,
+      "seconds": 901.47,
+      "first_failure": "tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_creates_no_column",
+      "classification": "BASELINE_FAILURE: exact093 reproduces same metadata assertion; metadata visibility is not physical-column proof",
+      "baseline_evidence": "prefix-placeholder-baseline-093.junit.xml",
+      "later_tests": "NOT_EVALUATED",
+      "whole_head_acceptance": false
+    }
+  },
+  "equivalence": "Bounded label/default-code and selected FK/new-row behavior verified, not whole persistence/model equivalence",
+  "limitations": "Supplier-partner code context, arbitrary related-object rename propagation, whole StockMove write/unlink/stock workflow, recordsets and N>1 not accepted"
+}

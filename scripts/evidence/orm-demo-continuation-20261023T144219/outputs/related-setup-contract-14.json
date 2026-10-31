@@ -1,0 +1,48 @@
+{
+  "source_revision": "f1e2386f",
+  "task": "TASK-GEN-0633",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": [
+    "odoo19c:odoo/orm/model_classes.py:setup_model_classes",
+    "odoo19c:odoo/orm/registry.py:Registry.setup_models",
+    "odoo19c:odoo/orm/fields.py:Field.setup/compute_value"
+  ],
+  "behavior": "Derived computation/dependency maps must reflect effective fields after related setup, even if a constructor setter consulted the maps earlier. Noncomputed missing fields must still raise.",
+  "execution_flow": "Setter -> pre-setup field_computed map -> lazy ensure_field_setup -> field.setup_related installs compute -> existing clear_field_depends -> read rebuilds groups",
+  "inputs_outputs": "Real Django field declarations and isolated model; related field joins group; empty subsequent setup returns0 preserving group identity; noncomputed lookup raises KeyError",
+  "side_effects": "Invalidate existing derived maps only when fields were prepared; no new cache/store/schema or exception suppression",
+  "dependencies": [
+    "Owned pending TASK-GEN-0633 native1203, native description updated preserving ownership/status/edges",
+    "Existing generic descriptor and lazy setup; Registry.clear_field_depends reused",
+    "Historical country relation failure kept separate"
+  ],
+  "consumers": [
+    "FieldDescriptor/ComputedFieldDescriptor",
+    "ResCompany.country_code; account tax pre_save",
+    "Related field and registry grouping consumers"
+  ],
+  "installed_mechanism": "model_classes.ensure_field_setup, registry.clear_field_depends and field_computed, existing pytest/PostgreSQL harness",
+  "existing_adaptation": "Lazy Django setup after apps.ready replaces native Odoo loader phase; derived state must be invalidated after definitions become effective",
+  "verification": {
+    "red": {
+      "passed": 2,
+      "failed": 1,
+      "exit": 1,
+      "evidence": "related-setup-red.junit.xml"
+    },
+    "current": {
+      "passed": 92,
+      "failed": 3,
+      "exit": 1,
+      "new_controls_passed": 3,
+      "evidence": "related-setup-green.junit.xml",
+      "remaining": "Three exact existing historical64 NonStored/column failures, assertions unchanged"
+    },
+    "global_before": "2b249be8 Make2,146PASS1SKIP1FAIL country_code grouping KeyError",
+    "exact_previous_case": "ae949aa8 targeted fiscal case fails with ResCountry.DoesNotExist",
+    "after_fix_case": "Same fiscal case still fails with ResCountry.DoesNotExist, grouping KeyError removed; not a fiscal PASS"
+  },
+  "equivalence": "Bounded stale-map contract verified; full file/Registry/per-database composition not accepted",
+  "limitations": "Inherited missing-country relation failure remains; source-domain metadata, ownership and acceptance must be reconciled before further functional changes",
+  "integration": "f1e2386f committed normally, local, required next CI pending, no merge or TASK state change"
+}

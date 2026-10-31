@@ -77,6 +77,51 @@ def test_display_name_is_the_whole_chain():
     assert root.display_name == 'Clientes'
 
 
+def test_new_category_assigns_display_name_without_sql(django_db_blocker):
+    """El descriptor exige asignación aunque el registro aún no tenga PK."""
+    with django_db_blocker.block():
+        category = ResPartnerCategory(name='Nueva')
+        assert category.display_name == 'Nueva'
+        assert category.pk is None
+
+
+def test_category_name_change_invalidates_cached_label():
+    category = ResPartnerCategory.objects.create(name='Anterior')
+    assert category.display_name == 'Anterior'
+    category.name = 'Actual'
+    assert category.display_name == 'Actual'
+
+
+def test_reparenting_invalidates_cached_hierarchical_label():
+    first = ResPartnerCategory.objects.create(name='Primera')
+    second = ResPartnerCategory.objects.create(name='Segunda')
+    child = ResPartnerCategory.objects.create(name='Hija', parent=first)
+    assert child.display_name == 'Primera / Hija'
+    child.parent = second
+    assert child.display_name == 'Segunda / Hija'
+    assert child._compute_display_name() == 'Segunda / Hija'
+
+
+@pytest.mark.parametrize('by_id', [False, True])
+def test_parent_assignment_preserves_native_cache_and_no_sql(
+    by_id, django_assert_num_queries,
+):
+    """Las dos entradas nativas conservan ID escalar y objeto relacionado."""
+    first = ResPartnerCategory.objects.create(name='Original')
+    second = ResPartnerCategory.objects.create(name='Destino')
+    child = ResPartnerCategory.objects.create(name='Hija', parent=first)
+    assert child.parent is first
+    assert child.display_name == 'Original / Hija'
+    with django_assert_num_queries(0):
+        if by_id:
+            child.parent_id = second.pk
+        else:
+            child.parent = second
+        assert child.parent_id == second.pk
+    assert child.parent.pk == second.pk
+    assert child.display_name == 'Destino / Hija'
+
+
 def test_the_materialized_path_is_kept():
     """``parent_path`` sostiene ``_parent_store``: mismo mecanismo que
     ``ResCompany._compute_parent_path``."""

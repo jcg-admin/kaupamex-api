@@ -1,0 +1,9 @@
+{
+  "error_summary_signatures": {
+    "missing_res_users": 10615,
+    "transaction_aborted_cascade": 17
+  },
+  "scope": "Count of summary error lines, not independent defects or executed test bodies",
+  "existing_authority": "Docs/source/gestion/pm/api/iniciativas/adaptar-familias-odoo-monolito-modular/hallazgos/hallazgo-H-API-1120-la-base-de-ci-no-tiene-res-users-cuando-se-crean-sus-fk.rst",
+  "existing_authority_limit": "Root cause/successor not diagnosed there; past exception only107/108, not permission to merge109. API0427 lock not proven cause; no exact current CI successor identity verified."
+}

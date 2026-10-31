@@ -1,0 +1,32 @@
+.......................F..F.                                             [100%]
+=================================== FAILURES ===================================
+________________ test_recursive_removal_matches_reference[True] ________________
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:219: in test_recursive_removal_matches_reference
+    assert [r.getMessage() for r in caplog.records] == expected_logs
+E   AssertionError: assert ['module righ...ped, skipped'] == ['module left...ped, skipped']
+E     At index 0 diff: 'module right: its direct/indirect dependency is skipped, skipped' != 'module left: its direct/indirect dependency is skipped, skipped'
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+INFO     pinned_module_graph:module_graph.py:316 module left: its direct/indirect dependency is skipped, skipped
+INFO     pinned_module_graph:module_graph.py:316 module diamond: its direct/indirect dependency is skipped, skipped
+INFO     pinned_module_graph:module_graph.py:316 module right: its direct/indirect dependency is skipped, skipped
+INFO     modules.module_graph:module_graph.py:185 module right: its direct/indirect dependency is skipped, skipped
+INFO     modules.module_graph:module_graph.py:185 module diamond: its direct/indirect dependency is skipped, skipped
+INFO     modules.module_graph:module_graph.py:185 module left: its direct/indirect dependency is skipped, skipped
+____ test_missing_dependency_prunes_dependents_and_retains_independent_node ____
+scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py:237: in test_missing_dependency_prunes_dependents_and_retains_independent_node
+    ref._update_depends(names)
+../.cache/references/odoo-tools-git/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/modules/module_graph.py:260: in _update_depends
+    depends = module.manifest['depends']
+E   AttributeError: 'ModuleNode' object has no attribute 'manifest'
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /workspace/kaupamex-api/.venv/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-continuation-20261022T190749/outputs/contracts-pruning.junit.xml -
+=========================== short test summary info ============================
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_recursive_removal_matches_reference[True]
+FAILED scripts/workbench/odoo-orm-reference-inventory-20260910T181517/tests/test_module_graph_contract.py::test_missing_dependency_prunes_dependents_and_retains_independent_node
+2 failed, 26 passed, 1 warning in 0.49s

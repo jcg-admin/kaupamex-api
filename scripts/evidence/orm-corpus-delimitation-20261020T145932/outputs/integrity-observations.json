@@ -1,0 +1,25 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "exit_code": 0,
+  "observations": {
+    "actual_provider_fingerprint": "e93e44f6bcfd356ff0d173ef72f3e3c41a7972ceddfeaa5fd794f5ccf8d30e71",
+    "two_readonly_fingerprints_equal": true,
+    "actual_python_binary_sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+    "snapshot_manifest_pure_positive": true,
+    "snapshot_manifest_pure_negative": false
+  },
+  "interfaces": [
+    "verify.tree_fingerprint.fingerprint",
+    "session.snapshot_store.SnapshotManifest.sealed/is_intact",
+    "session.record_environment.repo_head/executable_sha256"
+  ],
+  "scope": "Read-only real Provider fingerprint; pure isolated manifest fixture, not actual snapshot creation or pool execution",
+  "not_verified": [
+    "take_snapshot on live tree",
+    "pool publication/verify_closed runtime",
+    "automatic revision enforcement in ORM probes",
+    "automatic output isolation of historical probes"
+  ],
+  "no_store_writes": true,
+  "no_model_execution": true
+}

@@ -1,0 +1,72 @@
+{
+  "revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "sources": [
+    {
+      "path": "src/agents/agent_store.py",
+      "sha256": "f718377a14e09fce7a73a5c508e35c9f2228ca6870a76a19bd48010f80bc5e75",
+      "git_blob": "4a405227a55638a6c204e3d06dca16bf92428b5f"
+    },
+    {
+      "path": "src/packages/local-models/resourceAdmission.ts",
+      "sha256": "fc1327eb7e94488480e9ad5f98ac7d089201b23f6be13dc49c6586b10d3f099b",
+      "git_blob": "90d12f78e7ab68abf4cc33a34b06f908e47ecb56"
+    },
+    {
+      "path": "src/packages/model-artifacts/modelQualification.ts",
+      "sha256": "7beb7748f7f3b4923121716ced38bdc13766cf1645b8efbe198d58384fa5141e",
+      "git_blob": "f5a29e83120e117e3ba924546c408be4b913d0d3"
+    },
+    {
+      "path": "src/session/continuation_frontier.py",
+      "sha256": "3776f2f9ba283b9bbb09e03b74aba74c57ced37cc58443bd3221ebdb8a44a4e1",
+      "git_blob": "0343f4fc4d9ac97c376704cbb1e798023e32b805"
+    },
+    {
+      "path": "src/session/task_continuation.py",
+      "sha256": "c7c760ccfe452cf818085110304d852e2dfdd4c1eebd4758b5e2901a7bb2fe39",
+      "git_blob": "9ffee5e4824b2ae72af4435bfba1efcc8a0add30"
+    },
+    {
+      "path": "src/task/implementation_order.py",
+      "sha256": "c10a1d8b0491e5b41e8c95eb85e62cdccf7b56101a024fa8fe3d3c0c69b6cd16",
+      "git_blob": "980ac5223e48a1f63b76818b77a6ff9dc018e468"
+    },
+    {
+      "path": "src/task/task_source.py",
+      "sha256": "8882c56440af44a0d5086d82bb93aa8751f1a82f093de242c6a42f9619a27491",
+      "git_blob": "793987dba93a1de3229e70bf7df3d6c72f01f172"
+    }
+  ],
+  "commands": [
+    {
+      "operation": "readonly source inspection and TASK/claim APIs",
+      "exit_code": 0
+    },
+    {
+      "operation": "scratch provenance serialization first attempt",
+      "exit_code": 1,
+      "reason": "tuple index path TypeError; main contracts JSON saved; corrected serialization follows"
+    },
+    {
+      "operation": "corrected source provenance serialization",
+      "exit_code": 0
+    }
+  ],
+  "source_changes": false,
+  "store_writes": false,
+  "inference": false,
+  "skill_sources": [
+    {
+      "path": ".agents/skills/workflow-structure/SKILL.md",
+      "sha256": "16d030f118dba241a9099e837a343affa5d1a1324bee7e44f420bd0df4e10eec"
+    },
+    {
+      "path": ".agents/skills/workflow-decompose/SKILL.md",
+      "sha256": "ba3154cf507453ce86a135675a96604558ecba094aa94a85baa269a4f1b78fb0"
+    },
+    {
+      "path": ".agents/skills/workflow-track/SKILL.md",
+      "sha256": "d7fc4473e8f7ebab5ee62d6fd4eb628b9b7034bec180d85ca4a867be827a0183"
+    }
+  ]
+}

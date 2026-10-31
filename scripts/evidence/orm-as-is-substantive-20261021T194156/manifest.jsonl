@@ -1,0 +1,3 @@
+{"kind": "launch", "instrument": "uv run --frozen python probes/evidence_review.py", "started_at": "2026-10-21T19:41:56+00:00"}
+{"kind": "declaration", "question": "¿Qué demuestra cada TASK/obligación del alcance existente al contrastar fuente, contratos, pruebas e historia?", "instrument": "probes/evidence_review.py", "metric": "Expedientes individuales con hechos observados y verificadores concretos; ninguna conclusión genérica por defecto", "blind_to": "Sin aceptación global por presencia o completed; dependencias y evidencia ausentes se delimitan por unidad", "destination": "outputs"}
+{"kind": "settle", "exit_code": 1, "finished_at": "2026-10-21T20:22:34+00:00", "duration_seconds": 2438.260808}

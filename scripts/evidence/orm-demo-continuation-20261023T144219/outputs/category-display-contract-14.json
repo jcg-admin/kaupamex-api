@@ -1,0 +1,56 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": {
+    "path": "odoo19c:odoo/addons/base/models/res_partner.py",
+    "sha256": "b805ae83fa7fcc599634ac8d7edfba033b072afd3931062a25035a37702f8eea",
+    "symbols": [
+      {
+        "qualified_name": "ResPartnerCategory._compute_display_name",
+        "line": 162,
+        "body": "def _compute_display_name(self):\n        \"\"\" Return the categories' display name, including their direct\n            parent by default.\n        \"\"\"\n        for category in self:\n            names = []\n            current = category\n            while current:\n                names.append(current.name or \"\")\n                current = current.parent_id\n            category.display_name = ' / '.join(reversed(names))"
+      }
+    ]
+  },
+  "behavior": "Assign full hierarchical category label and invalidate it after own name or parent changes",
+  "execution_flow": "Existing stored FK descriptor native read/cache -> shared FieldDescriptor setter -> existing modified/cache invalidation -> category compute assignment",
+  "inputs_outputs": "New and persisted categories, scalar names, native object/raw-ID reparenting; same hierarchy format and return value retained",
+  "side_effects": "Existing cache notifications only, assignment0SQL; no schema/model identity or persistent fields added",
+  "dependencies": [
+    "TASK-GEN-0633 native1203 owned pending, native admission/claims/frontier recorded",
+    "Existing shared setter and Django exact ForeignKeyDeferredAttribute",
+    "Inherited display_name Char metadata, native parent relation and name dependency"
+  ],
+  "consumers": [
+    "Existing category hierarchy/search/cycle/path tests",
+    "Existing field conversion/modified/inverse protocols and unsaved notifications"
+  ],
+  "installed_mechanism": "Existing compute descriptor plus StoredMany2oneIdDescriptor retaining native raw ID reads and shared setter; custom/computed/related relation descriptors excluded",
+  "existing_adaptation": "Single Django row compute retains prior return compatibility while assigning; notification does not introduce Odoo immediate SQL on assignment",
+  "verification": {
+    "baseline": "Exactae949 unsaved category read fails with Compute failed to assign",
+    "red": {
+      "failed": 3,
+      "exit": 1
+    },
+    "assignment_only": {
+      "passed": 44,
+      "failed": 1,
+      "exit": 1,
+      "remaining": "stale reparent label"
+    },
+    "green": {
+      "passed": 108,
+      "exit": 0
+    },
+    "expanded": {
+      "passed": 122,
+      "exit": 0,
+      "junit": "category-relation-regression.junit.xml"
+    },
+    "full_ci": "NOT_EVALUATED for c2d8fce8; prior ebb08d93 gate failed inherited fiscal default; resumed PostgreSQL blocked pending explicit cleanup approval"
+  },
+  "equivalence": "Bounded scalar label and ordinary stored FK notification verified, not full hierarchy/recordset/relational-write equivalence",
+  "limitations": "No descendant rename propagation acceptance, whole parent_store, schema, N>1 or whole BaseModel acceptance; full gate remains pending",
+  "integration": "Local sourcec2d8fce8 with hooksPASS, not yet published/accepted/merged",
+  "source_revision": "c2d8fce8c482c0a9816e6d58bbfd782e0d768a69"
+}

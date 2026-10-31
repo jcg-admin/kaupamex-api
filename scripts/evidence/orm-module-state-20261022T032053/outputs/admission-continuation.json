@@ -1,0 +1,14 @@
+{
+  "existing_task": "TASK-API-0382",
+  "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "local_id": "737",
+  "owner": "codex-module-lifecycle",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "consumer_revision": "d25042fd43a0787e07cc4a2a2cefe0ce6815b57c",
+  "scope": "Database-owned module catalogue and administrative requests for module lifecycle; actual execution and effective registry remain separate obligations",
+  "dependencies": "DEC-AISL-05 accepted; previous admission-0382.json and native-task-0382.json; no empty-edge independence assumption",
+  "resources": "Own PostgreSQL database and role via existing qa_context; frozen uv dependencies; no Provider inference",
+  "claims": "Native claimsCommand and ledger; six functional/test paths plus scoped AS IS evidence; own reservations released at edit completion",
+  "verification_plan": "Frozen catalogue baseline, PostgreSQL state/dependency/rollback/authorization tests, regression and shared ci-verify; requests never count as completed installation",
+  "acceptance": "Review/CI and authorized integration required; no official TASK status changes"
+}

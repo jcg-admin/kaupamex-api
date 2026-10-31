@@ -1,0 +1,5 @@
+{
+  "interface": "Command._report_auto_install_gaps(installed_addon_names())",
+  "output": "auto_install coherente: 0 pendientes (alcance medido: 124 addon(s) con manifest de 124 en el árbol).\n",
+  "scope": "Existing reporting caller, not module installation or the DB-writing management command."
+}

@@ -1,0 +1,35 @@
+{
+  "pytest_exit": 1,
+  "make_exit": 2,
+  "passed": 77,
+  "skipped": 1,
+  "errors": [
+    {
+      "class": "tests.integration.test_v2_cart_wishlist_notifications.TestCartSnapshotsV2",
+      "test": "test_saves_cart_and_returns_200",
+      "kind": "error",
+      "message": "failed on setup with \"ValueError: Compute method failed to assign product.ProductProduct(1,).display_name\"",
+      "trace": "tests/integration/test_v2_cart_wishlist_notifications.py:65: in cart_with_item\n    add_item_to_draft(order, product_f2, quantity=1)\naddons/sale/services.py:125: in add_item_to_draft\n    'name': _line_snapshot_name(product),\naddons/sale/services.py:91: in _line_snapshot_name\n    return str(product)\naddons/product/models/product_product.py:178: in __str__\n    return f'[{self.default_code}] {self.display_name}' \\\nsrc/orm/fields.py:1657: in __get__\n    raise ValueError(\nE   ValueError: Compute method failed to assign product.ProductProduct(1,).display_name"
+    }
+  ],
+  "junit_suites": [
+    {
+      "name": "pytest",
+      "errors": "1",
+      "failures": "0",
+      "skipped": "1",
+      "tests": "79",
+      "time": "532.984",
+      "timestamp": "2026-10-22T11:46:21.998618",
+      "hostname": "355aee67589a"
+    }
+  ],
+  "matches_prechange_remote_error": true,
+  "classification": "BASELINE_FAILURE",
+  "scope": "First observed global failure only; subsequent suite NOT_EVALUATED; no global PASS",
+  "bounded_tests": {
+    "inventory_contract": 17,
+    "pure_graph_regression": 12,
+    "baseline_before_implementation": "2FAIL/3PASS"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "result": "PASS",
+  "revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "records": [
+    {
+      "alias": "odoo19c:addons/account/models/account_payment_term.py",
+      "git_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/account/models/account_payment_term.py",
+      "sha256": "4fe0fea6733ce62d23107c09c52146e8a9ccd8e948402f030175f32f4acfa836",
+      "matches_pinned_blob": true
+    },
+    {
+      "alias": "odoo19c:addons/account/models/partner.py",
+      "git_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/account/models/partner.py",
+      "sha256": "ab8b912131b637804e4940031ee229b2e25cf669fcd1d701d2d8ff503a545c6f",
+      "matches_pinned_blob": true
+    },
+    {
+      "alias": "odoo19c:addons/account/models/product.py",
+      "git_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/account/models/product.py",
+      "sha256": "b7c4b2817cb6441cccf2ea916f5b9317aafca93d2ed2c6453d6d15fd320d8b65",
+      "matches_pinned_blob": true
+    },
+    {
+      "alias": "odoo19c:addons/account/models/res_currency.py",
+      "git_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/account/models/res_currency.py",
+      "sha256": "4501b80fda17319d7cd27cb83249f64e81a42f14ad133eeda82f41821e4c9e1e",
+      "matches_pinned_blob": true
+    },
+    {
+      "alias": "odoo19c:addons/account/models/uom_uom.py",
+      "git_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/account/models/uom_uom.py",
+      "sha256": "c84c79414ceaf55ed33a1b6987304d6822d536855d4a2f866799d2410701f528",
+      "matches_pinned_blob": true
+    },
+    {
+      "alias": "odoo19c:addons/l10n_mx/models/res_bank.py",
+      "git_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/l10n_mx/models/res_bank.py",
+      "sha256": "1e16d47d2385b9c8562a5c7bec3af8678a8b4c7e4c8682bb0f58f75085f04ce7",
+      "matches_pinned_blob": true
+    },
+    {
+      "alias": "odoo19c:addons/product_expiry/models/production_lot.py",
+      "git_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/product_expiry/models/production_lot.py",
+      "sha256": "397d6c5213a6c0424f22815e7e204c5c3b90021b269038a8ff8347543829ce29",
+      "matches_pinned_blob": true
+    },
+    {
+      "alias": "odoo19c:addons/stock/models/stock_move.py",
+      "git_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/addons/stock/models/stock_move.py",
+      "sha256": "fafe6686d930d5e0d4b1dcbc81ef6c412867a1cfdd7e22916eeb116dc803d481",
+      "matches_pinned_blob": true
+    },
+    {
+      "alias": "odoo19c:odoo/addons/base/models/res_country.py",
+      "git_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/addons/base/models/res_country.py",
+      "sha256": "069fa464c1844ee798a162ed110f709749169c1c0e45881eac94caca2e5f3da0",
+      "matches_pinned_blob": true
+    },
+    {
+      "alias": "odoo19c:odoo/orm/environments.py",
+      "git_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/environments.py",
+      "sha256": "ff987a65389ac6c9648bad8bad86d8a9b1f8444ffd6c3598ffda53b8b0612bc5",
+      "matches_pinned_blob": true
+    },
+    {
+      "alias": "odoo19c:odoo/orm/registry.py",
+      "git_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py",
+      "sha256": "b97c87be3c90948f3b28aed599863aa1b6480fcf65eeb17bc3e7c05c88092695",
+      "matches_pinned_blob": true
+    }
+  ],
+  "scope": "Exact used qualified-source provenance only; file count is not a contractual coverage denominator"
+}

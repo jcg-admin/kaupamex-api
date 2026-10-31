@@ -1,27 +1,8 @@
-"""Servicio de bases DB-per-company (SOL-091, Palanca B) — ``service/db.py``.
+"""Administración PostgreSQL de bases por empresa mediante Django.
 
-Adaptación **fiel** de la capa de bases de Odoo 19 a Django/MariaDB. En Odoo esta
-funcionalidad se reparte en tres módulos **hermanos de ``orm/``** bajo ``odoo/``;
-a nuestra escala se consolidan aquí (documentado), manteniendo el nivel
-**service** (no dentro de ``orm/``, que sólo tiene el binding ORM↔base):
-
-- ``odoo/service/db.py`` — administración de bases (create/drop/duplicate/rename/
-  exist/list/dump). Es el núcleo de este módulo.
-- ``odoo/http.py`` — resolución de base por request (``db_filter``/``db_list``).
-- ``odoo/sql_db.py`` — capa de conexión (``connection_info_for``/``close_db``/
-  ``close_all``). En Django la conexión por base es ``connections[alias]``; sólo
-  reimplementamos la composición del dict de conexión y el cierre.
-
-Odoo ejecuta el DDL de servidor vía una conexión de mantenimiento a la base
-``postgres``; MariaDB no tiene esa base — usamos ``connections[using]`` (por
-defecto ``default`` = plano de control L0) con el grant ``company\\_%`` (T-091-01,
-``db_setup.sh``). El DDL en MariaDB es no transaccional y auto-commitea
-(F-DJ-03, ``@@autocommit=1``): no hace falta el ``rollback()`` + ``autocommit``
-que Odoo fuerza en PostgreSQL.
-
-Divergencias MariaDB vs PostgreSQL: ``CREATE DATABASE ... TEMPLATE`` (duplicado)
-y ``RENAME DATABASE`` no existen en MariaDB → se adaptan con
-``mariadb-dump | mariadb`` y con duplicate+drop respectivamente.
+Adapta la administración de Odoo a las conexiones y migraciones del Consumer.
+La comprobación previa detecta tablas ausentes del historial aplicado conocido;
+no repara datos ni certifica columnas, datos o equivalencia integral con Odoo.
 """
 import copy
 import logging
@@ -33,8 +14,10 @@ from contextlib import contextmanager
 import psycopg
 from django.conf import settings
 from django.core.management import call_command
-from django.db import DEFAULT_DB_ALIAS, connections, transaction
+from django.db import DEFAULT_DB_ALIAS, connections, router, transaction
+from django.db.migrations.loader import MigrationLoader
 
+from orm.environments import company_scope
 from tools import config
 from tools.misc import find_pg_tool
 
@@ -94,6 +77,10 @@ class Savepoint:
 
 class DatabaseManagementDisabled(Exception):
     """== ``AccessDenied`` de ``check_db_management_enabled`` en Odoo."""
+
+
+class DatabaseSchemaIncomplete(Exception):
+    """El historial aplicado exige tablas administradas que ya no existen."""
 
 
 class DatabaseExists(Exception):
@@ -444,6 +431,46 @@ def create_database(db_name, using=DEFAULT_DB_ALIAS):
     return db_name
 
 
+def _check_applied_schema(db_name):
+    """Comprueba sólo tablas exigidas por migraciones conocidas ya aplicadas."""
+    connection = connections[db_name]
+    loader = MigrationLoader(connection)
+    loader.check_consistent_history(connection)
+    applied = set(loader.applied_migrations).intersection(loader.graph.nodes)
+    if not applied:
+        return
+    state = loader.project_state(nodes=sorted(applied))
+    expected = set()
+    for app_label, model_name in state.models:
+        model = state.apps.get_model(app_label, model_name)
+        if (not model._meta.can_migrate(connection)
+                or not router.allow_migrate_model(db_name, model)):
+            continue
+        expected.add(model._meta.db_table)
+        for field in model._meta.local_many_to_many:
+            through = field.remote_field.through
+            if through._meta.auto_created and through._meta.can_migrate(connection):
+                expected.add(through._meta.db_table)
+    with connection.cursor() as cursor:
+        present = set(connection.introspection.table_names(cursor))
+    missing = sorted(expected - present)
+    if missing:
+        raise DatabaseSchemaIncomplete(
+            'Applied migration tables missing in %s: %s'
+            % (db_name, ', '.join(missing)))
+
+
+def _migrate_company_database(db_name, using=DEFAULT_DB_ALIAS):
+    """Comparte destino y comprobación sin crear bases en la ruta por lote."""
+    if not isinstance(db_name, str) or not _COMPANY_DB_RE.fullmatch(db_name):
+        raise ValueError('Expected a company_<N>_db database name')
+    install_company_aliases(settings.DATABASES, names=[db_name], using=using)
+    # RunPython también debe consultar la empresa destino, nunca la del llamador.
+    with company_scope(db_name.split('_')[1]):
+        _check_applied_schema(db_name)
+        call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+
+
 def provision_company_database(db_name, using=DEFAULT_DB_ALIAS):
     """Alta unitaria **idempotente** de una base ``company_<N>_db`` (T-091-06).
 
@@ -458,13 +485,12 @@ def provision_company_database(db_name, using=DEFAULT_DB_ALIAS):
     management command ``company_create``): SRP + Tell-Don't-Ask.
     """
     ensure_management_enabled()
+    if not isinstance(db_name, str) or not _COMPANY_DB_RE.fullmatch(db_name):
+        raise ValueError('Expected a company_<N>_db database name')
     created = not database_exists(db_name, using)
     if created:
         create_empty_database(db_name, using)
-    # Cablea el alias runtime ANTES de migrar (la base recién creada no estaba
-    # en el roster de settings al boot). Idempotente si ya estaba.
-    install_company_aliases(settings.DATABASES, names=[db_name], using=using)
-    call_command('migrate', database=db_name, run_syncdb=True, verbosity=0)
+    _migrate_company_database(db_name, using)
     return db_name, created
 
 
@@ -657,12 +683,10 @@ def migrate_all_company_databases(names=None, using=DEFAULT_DB_ALIAS):
     ensure_management_enabled()
     if names is None:
         names = list_company_db_names(using)
-    base_default = connections[using].settings_dict
     results = []
     for name in names:
         try:
-            _ensure_alias_registered(name, base_default)
-            call_command('migrate', database=name, run_syncdb=True, verbosity=0)
+            _migrate_company_database(name, using)
             results.append({'db': name, 'status': 'ok', 'error': None})
         except Exception as exc:  # noqa: BLE001
             # Acumular por-base y CONTINUAR (mejora sobre el abort de Odoo): el

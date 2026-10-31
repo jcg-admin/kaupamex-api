@@ -1,0 +1,30 @@
+{
+  "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet.run",
+  "command": "THYROX_ROOT=<declared Provider root> bun run probes/native_task_snapshot.ts",
+  "invocation": {
+    "argv": [
+      "/workspace/.cache/npm/_npx/214ebe133ee6a004/node_modules/bun/bin/bun.exe",
+      "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/native_task_snapshot.ts"
+    ],
+    "cwd": "/workspace/kaupamex-api",
+    "THYROX_ROOT": "/workspace/thyrox"
+  },
+  "observed_at": "2026-10-24T18:25:01.572Z",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "input": {
+    "task_id": "1153"
+  },
+  "task": {
+    "task_id": "1153",
+    "citation_id": "TASK-API-0391",
+    "subject": "Censo de presencia con firma de src/orm y src/tools contra la referencia",
+    "description": "Medir el estado REAL de lo implementado en src/orm y src/tools: por archivo, sus clases y funciones con FIRMA y CLASE DE CUERPO (stub vs sustantivo), unidas a su homologo de la referencia (odoo19c). Los cinco instrumentos existentes miden AUSENCIA; su criterio de cierre lo satisfacen simbolos vacios. El eje nuevo es la presencia con firma, y la columna que discrimina es el stub. Salida en scripts/workbench/orm-symbol-presence-census-20260910T175850/.",
+    "status": "completed",
+    "owner": null,
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "scope": "Native read only; export is evidence, not replacement TaskStore authority"
+}

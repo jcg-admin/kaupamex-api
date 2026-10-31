@@ -1,0 +1,5 @@
+{
+  "command": "git fsck --no-reflogs --connectivity-only",
+  "exit_code": 0,
+  "scope": "connectivity; no objects removed, branches modified or repair executed"
+}

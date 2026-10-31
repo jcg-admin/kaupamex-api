@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="0.356" timestamp="2026-10-31T10:32:35.438555" hostname="211a47b6160b"><testcase classname="" name="test_unflagged_consumer_preserves_another_registry[signal_changes]" time="0.056"><failure message="AssertionError: Unexpected SQL cursor">registries = (&lt;orm.registry.Registry object at 0x7f836a621220&gt;, &lt;orm.registry.Registry object at 0x7f836ae881a0&gt;)
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7f836a6211c0&gt;
+operation = 'signal_changes'
+
+    @pytest.mark.parametrize('operation', ['signal_changes', 'reset_changes'])
+    def test_unflagged_consumer_preserves_another_registry(
+        registries, monkeypatch, operation
+    ):
+        first, second = registries
+        first.registry_invalidated = True
+        second.ready = True
+        cursor = Mock(side_effect=AssertionError('Unexpected SQL cursor'))
+        monkeypatch.setattr(second, 'cursor', cursor)
+    
+&gt;       getattr(second, operation)()
+
+tests/unit/orm/test_registry_invalidation_scope.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/registry-scope-candidate-522zd29y/registry.py:2526: in signal_changes
+    with self.cursor() as cr:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;Mock id='140202464615632'&gt;, args = (), kwargs = {}
+effect = AssertionError('Unexpected SQL cursor')
+
+    def _execute_mock_call(self, /, *args, **kwargs):
+        # separate from _increment_mock_call so that awaited functions are
+        # executed separately from their call, also AsyncMock overrides this method
+    
+        effect = self.side_effect
+        if effect is not None:
+            if _is_exception(effect):
+&gt;               raise effect
+E               AssertionError: Unexpected SQL cursor
+
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1198: AssertionError</failure></testcase><testcase classname="" name="test_unflagged_consumer_preserves_another_registry[reset_changes]" time="0.041"><failure message="AssertionError: Unexpected SQL cursor">registries = (&lt;orm.registry.Registry object at 0x7f836a4ff1d0&gt;, &lt;orm.registry.Registry object at 0x7f836a4ff2c0&gt;)
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7f836a4ff410&gt;
+operation = 'reset_changes'
+
+    @pytest.mark.parametrize('operation', ['signal_changes', 'reset_changes'])
+    def test_unflagged_consumer_preserves_another_registry(
+        registries, monkeypatch, operation
+    ):
+        first, second = registries
+        first.registry_invalidated = True
+        second.ready = True
+        cursor = Mock(side_effect=AssertionError('Unexpected SQL cursor'))
+        monkeypatch.setattr(second, 'cursor', cursor)
+    
+&gt;       getattr(second, operation)()
+
+tests/unit/orm/test_registry_invalidation_scope.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/registry-scope-candidate-522zd29y/registry.py:2552: in reset_changes
+    with closing(self.cursor()) as cr:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;Mock id='140202401069248'&gt;, args = (), kwargs = {}
+effect = AssertionError('Unexpected SQL cursor')
+
+    def _execute_mock_call(self, /, *args, **kwargs):
+        # separate from _increment_mock_call so that awaited functions are
+        # executed separately from their call, also AsyncMock overrides this method
+    
+        effect = self.side_effect
+        if effect is not None:
+            if _is_exception(effect):
+&gt;               raise effect
+E               AssertionError: Unexpected SQL cursor
+
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1198: AssertionError</failure></testcase><testcase classname="" name="test_reset_consumer_clears_only_its_own_flag" time="0.037"><failure message="assert False is True&#10; +  where False = &lt;orm.registry.Registry object at 0x7f836a4fda90&gt;.registry_invalidated">registries = (&lt;orm.registry.Registry object at 0x7f836a4fda60&gt;, &lt;orm.registry.Registry object at 0x7f836a4fda90&gt;)
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7f836a4fd820&gt;
+
+    def test_reset_consumer_clears_only_its_own_flag(registries, monkeypatch):
+        first, second = registries
+        first.registry_invalidated = True
+        second.registry_invalidated = True
+        cursor = Mock()
+        setup = Mock()
+        monkeypatch.setattr(first, 'cursor', Mock(return_value=cursor))
+        monkeypatch.setattr(first, '_setup_models__', setup)
+    
+        first.reset_changes()
+    
+        setup.assert_called_once_with(cursor)
+        cursor.close.assert_called_once_with()
+        cursor.execute.assert_not_called()
+        assert first.registry_invalidated is False
+&gt;       assert second.registry_invalidated is True
+E       assert False is True
+E        +  where False = &lt;orm.registry.Registry object at 0x7f836a4fda90&gt;.registry_invalidated
+
+tests/unit/orm/test_registry_invalidation_scope.py:130: AssertionError</failure></testcase></testsuite></testsuites>

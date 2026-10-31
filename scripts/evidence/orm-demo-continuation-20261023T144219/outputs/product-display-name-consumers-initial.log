@@ -1,0 +1,5 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Exit: pg_isready no esta en PATH: falta el paquete postgresql-client.
+  sudo apt-get install -y postgresql-client
+! _pytest.outcomes.Exit: pg_isready no esta en PATH: falta el paquete postgresql-client.
+  sudo apt-get install -y postgresql-client !

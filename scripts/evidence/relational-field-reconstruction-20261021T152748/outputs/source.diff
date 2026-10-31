@@ -1,0 +1,135 @@
+diff --git a/src/orm/fields.py b/src/orm/fields.py
+index 9bab1a60..c4fc3ee8 100644
+--- a/src/orm/fields.py
++++ b/src/orm/fields.py
+@@ -54,6 +54,7 @@ import re
+ import warnings
+ import weakref
+ from decimal import Decimal
++from functools import wraps
+ from operator import attrgetter
+ from typing import TypeVar
+ 
+@@ -1091,6 +1092,30 @@ def _field_init_with_copy(self, *args, **kwargs):
+ 
+ models.Field.__init__ = _field_init_with_copy
+ 
++
++def _capture_relational_init(initializer):
++    """Completa ``_args__`` antes de perder parámetros propios de la relación.
++
++    TASK-API-0419: ``deconstruct`` no sirve en este punto del arranque porque
++    consulta modelos intercambiables antes de que el registro esté preparado.
++    Se reutiliza la captura existente y se deriva la firma del Django instalado.
++    """
++    signature = inspect.signature(initializer)
++
++    @wraps(initializer)
++    def initialize(self, *args, **kwargs):
++        declared = dict(signature.bind(self, *args, **kwargs).arguments)
++        declared.pop('self')
++        declared.update(declared.pop('kwargs', {}))
++        initializer(self, *args, **kwargs)
++        self._args__.update(declared)
++
++    return initialize
++
++
++models.ForeignKey.__init__ = _capture_relational_init(models.ForeignKey.__init__)
++models.ManyToManyField.__init__ = _capture_relational_init(models.ManyToManyField.__init__)
++
+ _DJANGO_FIELD_DECONSTRUCT = models.Field.deconstruct
+ 
+ 
+@@ -1319,6 +1344,11 @@ def _field_setup_attrs(self, model_class, name):
+     silenciarlos.
+     """
+     attrs = self._get_attrs(model_class, name)
++    if isinstance(self, RelatedField):
++        # Argumento del constructor almacenado en remote_field; en Django
++        # el nombre público es un método, no un atributo de valor. Se conserva
++        # en _args__ para reconstruir, sin ocultar related_query_name().
++        attrs.pop('related_query_name', None)
+ 
+     extra_keys = tuple(key for key in attrs if not hasattr(self, key))
+     if extra_keys:
+@@ -1790,10 +1820,11 @@ def _collect_field_definitions(field, cls, name):
+       antes de crear la clase, así que no está en ``vars(cls)``; la guarda es
+       contra el caso en que sí lo esté.
+ 
+-    Medido en consecuencia: hoy la rama de fusión es **inalcanzable** —cero
+-    bases llanas del árbol declaran un ``models.Field``—. Se vuelve alcanzable
+-    exactamente cuando ``TASK-API-0418`` retire :class:`NonStored`, que es una
+-    clase suelta y por eso hoy no cuenta como definición de campo.
++    El diagnóstico histórico encontró cero bases llanas productivas con un
++    ``models.Field``. Eso limita su adopción en aquel corpus, no hace
++    inalcanzable el mecanismo: una MRO Django con un mixin llano y un campo
++    redeclarado lo activa antes de retirar ``NonStored`` (TASK-API-0419).
++    TASK-API-0418 conserva su alcance sobre las declaraciones no almacenadas.
+     """
+     if '_base_fields__' in (field._args__ or {}):
+         # Ya es el campo fusionado: volver a recoger daría una cadena de
+@@ -1830,15 +1861,19 @@ def _merge_field_definitions(chain):
+     de modo que el vocabulario de la fuente llega a ``_args__`` sin llegar a
+     Django.
+ 
+-    **Cota declarada:** la reconstrucción sale de ``_args__``, que sólo tiene lo
+-    que llegó a ``Field.__init__``. Una relacional pasa ``to`` y ``on_delete``
+-    a **su** ``__init__`` y nunca al de ``Field``, así que su reconstrucción
+-    falla. No se alcanza hoy —la rama entera es inalcanzable— y su desenlace es
+-    ``TASK-API-0419``.
++    ``TASK-API-0419``: una relacional consume ``to`` y ``on_delete`` antes de
++    llegar a ``Field.__init__``. Su constructor completa la captura existente
++    de ``_args__`` con su firma real, sin consultar el registro de modelos.
++    No se reutiliza ``rel``: pertenece al campo original y el constructor debe
++    crear una relación ligada al campo nuevo. Una MRO con mixin llano alcanza
++    este camino sin retirar ``NonStored``; su adopción general es otro alcance.
+     """
+     merged = {}
+     for declared in chain:
+-        merged.update(declared._args__ or {})
++        constructor = dict(declared._args__ or {})
++        if isinstance(declared, RelatedField):
++            constructor.pop('rel', None)
++        merged.update(constructor)
+     merged['_base_fields__'] = chain
+     return type(chain[-1])(**merged)
+ 
+@@ -1973,6 +2008,7 @@ models.Field.contribute_to_class = _field_contribute_to_class
+ # ``related_name``.
+ # ---------------------------------------------------------------------------
+ _DJANGO_RELATED_CONTRIBUTE = RelatedField.contribute_to_class
++_DJANGO_FK_CONTRIBUTE = models.ForeignKey.contribute_to_class
+ _DJANGO_M2M_CONTRIBUTE = models.ManyToManyField.contribute_to_class
+ 
+ 
+@@ -1995,6 +2031,10 @@ def _related_contribute_to_class(self, cls, name, private_only=False, **kwargs):
+ def _m2m_contribute_to_class(self, cls, name, **kwargs):
+     """``ManyToManyField.contribute_to_class`` con la compuerta de ``store``:
+     sin ``store`` no nace la tabla de relación ni el descriptor de M2M."""
++    chain = _collect_field_definitions(self, cls, name)
++    if len(chain) > 1:
++        _merge_field_definitions(chain).contribute_to_class(cls, name, **kwargs)
++        return
+     self._setup_attrs__(cls, name)
+     if self.store is False and not cls._meta.abstract:
+         self.remote_field.related_name = _hidden_reverse_name(cls, name)
+@@ -2003,7 +2043,18 @@ def _m2m_contribute_to_class(self, cls, name, **kwargs):
+     _DJANGO_M2M_CONTRIBUTE(self, cls, name, **kwargs)
+ 
+ 
++def _fk_contribute_to_class(self, cls, name, private_only=False, **kwargs):
++    """Fusiona antes de que ForeignKey registre callbacks sobre el original."""
++    chain = _collect_field_definitions(self, cls, name)
++    if len(chain) > 1:
++        _merge_field_definitions(chain).contribute_to_class(
++            cls, name, private_only=private_only, **kwargs)
++        return
++    _DJANGO_FK_CONTRIBUTE(self, cls, name, private_only=private_only, **kwargs)
++
++
+ RelatedField.contribute_to_class = _related_contribute_to_class
++models.ForeignKey.contribute_to_class = _fk_contribute_to_class
+ models.ManyToManyField.contribute_to_class = _m2m_contribute_to_class
+ 
+ 

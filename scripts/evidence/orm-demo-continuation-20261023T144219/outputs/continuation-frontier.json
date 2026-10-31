@@ -1,0 +1,60 @@
+{
+  "objective": "completar-raiz-orm",
+  "objective_complete": false,
+  "interface": "session.task_continuation.node_frontier",
+  "inputs": [
+    {
+      "id": "TASK-API-0383.company_schema_verification",
+      "taskId": "TASK-API-0383",
+      "prompt": "Resolve existing productive company migration/metadata alias contract under legitimate ownership",
+      "verify": "Full own company provisioner and isolation, not in-memory policy override",
+      "route": "local",
+      "owned": [
+        "src/service/db.py",
+        "src/orm/routers.py"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "TASK-API-0382.per_company_module_graph_execution",
+      "taskId": "TASK-API-0382",
+      "prompt": "Integrate per-company loader only after selected database schema and model-composition contracts are verified",
+      "verify": "Per-company real registry/schema/data/hooks/state/version acceptance",
+      "route": "local",
+      "owned": [
+        "src/modules/loading.py"
+      ],
+      "dependsOn": [
+        "TASK-API-0383.company_schema_verification"
+      ]
+    }
+  ],
+  "scoped_observation_states": {
+    "TASK-API-0383.company_schema_verification": "failed"
+  },
+  "state_provenance": "Existing actual company verifier exit1: contenttypes excluded by unchanged router; latest experimental override exposes website_sale default metadata alias. Not official TASK status; no acceptance fabricated.",
+  "selected": [],
+  "scope": "Per-company execution path only. Does not prove global exhaustion or classify all other possible independent units.",
+  "completed_bounded_work": [
+    "Complete demo error storage and protected migration reversal",
+    "N=1 demo savepoint/context/file/data/reporting with actual migrated models/signals"
+  ],
+  "remaining_declarations_not_admitted_automatically": [
+    "force_demo",
+    "_check_module_names",
+    "load_modules",
+    "reset_modules_state"
+  ],
+  "other_dependencies": [
+    "Effective per-base registry composition remains unqualified",
+    "Existing automation alias defect ownership unresolved; completed unowned GEN0073 is not availability",
+    "Whole-goal Provider task-source/dispatch and local models remain unqualified; no substitute coordinator"
+  ],
+  "resources": "Owned PostgreSQL available; final cleanup zero owned DBs/roles, no active verifier. No remote model inference or local-model qualification claimed.",
+  "native_task_statuses": "0382 and0383 pending, owner codex-module-lifecycle; no TaskUpdate",
+  "evidence": [
+    "outputs/verification-summary.json",
+    "outputs/instruction-validation.json",
+    "../orm-module-snapshot-20261022T202346/outputs/continuation-frontier.json"
+  ]
+}

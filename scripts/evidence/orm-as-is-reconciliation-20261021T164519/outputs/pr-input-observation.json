@@ -1,0 +1,50 @@
+{
+  "kaupamex-api": {
+    "headRefOid": "35501644c380f5f198e407fee16357994ac43b27",
+    "mergeStateStatus": "UNSTABLE",
+    "number": 109,
+    "reviews": [
+      {
+        "id": "PRR_kwDOScMorc8AAAABS4vrPA",
+        "author": {
+          "login": "copilot-pull-request-reviewer"
+        },
+        "authorAssociation": "CONTRIBUTOR",
+        "body": "Copilot was unable to review this pull request because the user who requested the review has reached their quota limit.",
+        "submittedAt": "2026-10-18T09:44:56Z",
+        "includesCreatedEdit": false,
+        "reactionGroups": [],
+        "state": "COMMENTED",
+        "commit": {
+          "oid": "2940ef16f36bf9369767a0e5800c752f0b353f28"
+        }
+      }
+    ],
+    "state": "OPEN",
+    "url": "https://github.com/jcg-admin/kaupamex-api/pull/109"
+  },
+  "kaupamex-docs": {
+    "headRefOid": "a64e978abad69693341a63fc7bf801948c7d54a8",
+    "mergeStateStatus": "CLEAN",
+    "number": 154,
+    "reviews": [
+      {
+        "id": "PRR_kwDOScMgrM8AAAABS4vtPw",
+        "author": {
+          "login": "copilot-pull-request-reviewer"
+        },
+        "authorAssociation": "NONE",
+        "body": "Copilot was unable to review this pull request because the user who requested the review has reached their quota limit.",
+        "submittedAt": "2026-10-18T09:45:08Z",
+        "includesCreatedEdit": false,
+        "reactionGroups": [],
+        "state": "COMMENTED",
+        "commit": {
+          "oid": "7d7ce079d3971f8984b4f082f71e5e66bfdd9df1"
+        }
+      }
+    ],
+    "state": "OPEN",
+    "url": "https://github.com/jcg-admin/kaupamex-docs/pull/154"
+  }
+}

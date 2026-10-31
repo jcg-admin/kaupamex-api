@@ -1,0 +1,2 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{"result": "PASS", "selected": ["core", "addons.base", "addons.enabled"], "registered_models": ["base.StartupProbe", "enabled.StartupProbe"], "disabled_code_imported": false, "scope": "Native Django startup, controlled packages/manifests and actual selector body; no SQL, SQLite or whole per-base Registry acceptance"}

@@ -1,0 +1,6 @@
+NATIVE_ROWS 1437 REQUESTED_LIMIT 10000
+{"task_id":"449","citation_id":"TASK-API-0265","subject":"Sembrar el registro de módulos para que la pantalla de aplicaciones sea visible (H-API-647/649)","status":"pending","owner":"codex-module-lifecycle","blocked_by":[],"blocks":[],"blocked":false}
+{"task_id":"452","citation_id":"TASK-API-0267","subject":"Poblar el árbol de categorías: IrModuleCategory es un porte huérfano (H-API-649)","status":"pending","owner":"codex-module-lifecycle","blocked_by":[],"blocks":[],"blocked":false}
+{"task_id":"738","citation_id":"TASK-API-0383","subject":"Implementar DEC-AISL-05: toda app de dominio migra a toda base","status":"pending","owner":"codex-module-lifecycle","blocked_by":[],"blocks":[],"blocked":false}
+{"task_id":"1167","citation_id":"TASK-API-0397","subject":"Construir BaseModel propio desde el contrato medido de la referencia","status":"in_progress","owner":null,"blocked_by":[],"blocks":[],"blocked":false}
+{"task_id":"1195","citation_id":"TASK-API-0420","subject":"El default literal de fields.Json dispara E010: la fuente lo copia por registro","status":"pending","owner":null,"blocked_by":[],"blocks":[],"blocked":false}

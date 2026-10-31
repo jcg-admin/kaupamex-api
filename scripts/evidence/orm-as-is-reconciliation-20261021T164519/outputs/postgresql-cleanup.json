@@ -1,0 +1,31 @@
+{
+  "command": [
+    "docker",
+    "exec",
+    "-u",
+    "postgres",
+    "kaupamex-postgres-cloud",
+    "psql",
+    "-X",
+    "-At",
+    "-d",
+    "kaupamex_core_qa",
+    "-c",
+    "SELECT version(); SELECT count(*) FROM pg_roles WHERE rolname LIKE 'missing_contract_%' OR rolname LIKE 'relation_check_%';"
+  ],
+  "exit_code": 0,
+  "result": "PostgreSQL 16.15 (Debian 16.15-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit\n0\n",
+  "hba_observation_command": [
+    "docker",
+    "exec",
+    "-u",
+    "postgres",
+    "kaupamex-postgres-cloud",
+    "sh",
+    "-c",
+    "awk '/# (missing_contract_|relation_check_)/ {n++} END {print n+0}' \"$PGDATA/pg_hba.conf\""
+  ],
+  "hba_exit_code": 0,
+  "remaining_hba_entries": "0",
+  "credentials": "not recorded; role/password discarded after all connections close"
+}

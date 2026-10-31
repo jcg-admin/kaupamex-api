@@ -76,6 +76,40 @@ class TestLifecycle:
         assert second is not first
         assert Registry('alfa') is second
 
+    @pytest.mark.parametrize('options', [
+        {'update_module': True},
+        {'install_modules': ('sale',)},
+        {'upgrade_modules': ('sale',)},
+        {'reinit_modules': ('sale',)},
+        {'new_db_demo': True},
+        {'new_db_demo': False},
+        {'models_to_check': ('res.partner',)},
+    ])
+    def test_unexecuted_request_is_rejected_before_replacing_registry(
+        self, options, monkeypatch,
+    ):
+        """Una solicitud pendiente no equivale a haber ejecutado el cargador."""
+        original = Registry('alfa')
+        original_models = original.models
+
+        def reject_initialization(self, db_name):
+            pytest.fail('La solicitud no soportada llegó a inicializar un registro')
+
+        monkeypatch.setattr(Registry, 'init', reject_initialization)
+        with pytest.raises(NotImplementedError):
+            Registry.new('alfa', **options)
+        assert Registry.registries['alfa'] is original
+        assert original.models is original_models
+        assert Registry('alfa') is original
+
+    def test_explicit_empty_requests_keep_metadata_only_behavior(self):
+        registry = Registry.new(
+            'alfa', update_module=False, install_modules=(),
+            upgrade_modules=(), reinit_modules=(), models_to_check=(),
+        )
+        assert registry.ready is True
+        assert registry.loaded is False
+
     def test_delete_drops_only_its_own_name(self):
         alfa, beta = Registry('alfa'), Registry('beta')
         Registry.delete('alfa')

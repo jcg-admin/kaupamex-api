@@ -1,0 +1,30 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo19c:ResGroups._compute_full_name / Field.__get__ / Field.compute_value / BaseModel._compute_field_value / Environment.cache_key",
+  "behavior": "Compute assigns its field; return value alone is not assignment. Missing assignment raises a bounded diagnostic without reading the same computed label. Contextual computed values use derived dependencies and correct cache bucket with stable identity.",
+  "execution_flow": "FieldDescriptor lookup -> contextual bucket -> invoke Consumer -> assignment through ComputedFieldDescriptor -> existing queue/cache/instance mechanisms -> second read. Missing assignment uses technical identity, not Consumer __str__.",
+  "inputs_outputs": "Actual ResGroups class, names, optional privilege, short_display_name and stable ID; assigned labels, cached second read, invalidation/recompute and propagated exceptions. Unsaved first read works; unsaved cross-context reuse remains a measured limitation.",
+  "side_effects": "Consumer assigns instead of returns; adds source dependencies; descriptor avoids stale noncontextual instance value for contextual computes with ID and avoids recursive error formatting; Environment.cache_key reads existing derived registry, no new cache/store.",
+  "dependencies": [
+    "TASK-API-0415 completed history retained; scope reconciled not reopened",
+    "TASK-API-0417 in_progress unchanged; scoped composition correction authorized and claimed",
+    "TASK-GEN-0576 completed history retained; derived cache key discrepancy corrected independently from own13-method acceptance",
+    "TASK-GEN-0579 virtual NewId identity remains open, no selection by NULL owner",
+    "GEN0559 bodies unchanged,16PG regression PASS"
+  ],
+  "consumers": "Actual base.ResGroups.full_name, descriptor error path, current facade dispatch probes. Other returning compute methods and privilege access/elevation require their own acceptance; not swept globally.",
+  "installed_mechanism": "Existing FieldDescriptor/ComputedFieldDescriptor, derived registry.field_depends_context, Environment cache_key, transactional field buckets; existing decorators and get_context.",
+  "existing_adaptation": "Django single-object Consumer instead of Odoo recordset; name assignment per instance. Native Odoo sudo security semantics not inferred from these noSQL probes. Historical nine dispatch tests retain responsibilities but use current Field contribution and assignment contract.",
+  "verification": {
+    "red": "compute-before.log7FAIL/1PASS; compute-context-before.log1FAIL",
+    "positive": "compute-verified.log126PASS; structural-regression.log214PASS/1 inheritedXFAIL; batches disjoint, no whole-ORM denominator",
+    "negative_consumer": "negative-consumer.log2FAIL with old return-only Consumer in memory",
+    "negative_diagnostic": "negative-diagnostic.log1FAIL RecursionError after restoring only label formatting",
+    "negative_instance": "negative-instance-cache.log1FAIL after removing bucket/instance guard",
+    "negative_context_key": "negative-context-key.log1FAIL after restoring only raw field metadata lookup",
+    "residual": "virtual-context-limitation.log exit1: unsaved pkNone reused across contexts returns old label; no hidden PASS"
+  },
+  "equivalence": "Recursion eliminated for tested Consumer; assignment, stable-ID context split, cache invalidation and exceptions boundedly verified. Full compute/virtual record equivalence not accepted.",
+  "limitations": "Unsaved object across contexts remains wrong; no virtual identity/cache redesign under this patch. No native Odoo execution, whole installed Consumer sweep or full Environment contract acceptance. Existing contexts uid/lang/company/hashability behavior is not qualified by metadata correction.",
+  "integration": "8b6ea823 committed feature branch; no merge or TaskStore status mutation; publication/CI verified separately."
+}

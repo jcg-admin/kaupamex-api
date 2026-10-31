@@ -1,0 +1,104 @@
+{
+  "local_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "local_revision_github_query": "HTTP422 not published; do not rely on full local commit for resumption",
+  "public_revision": "fc8a7e2f6f00d1c78e0c4e5526f97f7063a6b20c",
+  "public_branch": "feature/fresh-clone-bootstrap",
+  "public_revision_github_verified": true,
+  "files": [
+    {
+      "path": "src/session/task_continuation.py",
+      "current_blob": "9ffee5e4824b2ae72af4435bfba1efcc8a0add30",
+      "public_blob": "9ffee5e4824b2ae72af4435bfba1efcc8a0add30",
+      "identical": true
+    },
+    {
+      "path": "src/session/continuation_frontier.py",
+      "current_blob": "0343f4fc4d9ac97c376704cbb1e798023e32b805",
+      "public_blob": "0343f4fc4d9ac97c376704cbb1e798023e32b805",
+      "identical": true
+    },
+    {
+      "path": "src/session/node_next_task.py",
+      "current_blob": "53ca7fcdf6e07bbb81479845e4f8b1d8ad9064a2",
+      "public_blob": "53ca7fcdf6e07bbb81479845e4f8b1d8ad9064a2",
+      "identical": true
+    },
+    {
+      "path": "src/session/claim_fold.py",
+      "current_blob": "693f582e6dc1202345bc58c15bfa476cae3b04a4",
+      "public_blob": "693f582e6dc1202345bc58c15bfa476cae3b04a4",
+      "identical": true
+    },
+    {
+      "path": "src/session/in_flight.py",
+      "current_blob": "ed067d0998c6670273aaa6ae08d667f106f27efa",
+      "public_blob": "ed067d0998c6670273aaa6ae08d667f106f27efa",
+      "identical": true
+    },
+    {
+      "path": "src/task/task_source.py",
+      "current_blob": "793987dba93a1de3229e70bf7df3d6c72f01f172",
+      "public_blob": "793987dba93a1de3229e70bf7df3d6c72f01f172",
+      "identical": true
+    },
+    {
+      "path": "src/task/implementation_order.py",
+      "current_blob": "980ac5223e48a1f63b76818b77a6ff9dc018e468",
+      "public_blob": "980ac5223e48a1f63b76818b77a6ff9dc018e468",
+      "identical": true
+    },
+    {
+      "path": "src/session/local_plan.py",
+      "current_blob": "adcc4813e03dc104a220bce77911eb68781ca913",
+      "public_blob": "adcc4813e03dc104a220bce77911eb68781ca913",
+      "identical": true
+    },
+    {
+      "path": "src/session/resource_admission.py",
+      "current_blob": "0a6aa5fe9aebe4aad27a9ff14823c0fc42c0665b",
+      "public_blob": "0a6aa5fe9aebe4aad27a9ff14823c0fc42c0665b",
+      "identical": true
+    },
+    {
+      "path": "src/session/model_coordinator.sh",
+      "current_blob": "795e22a812133a330f29098312b23f54b6864fba",
+      "public_blob": "795e22a812133a330f29098312b23f54b6864fba",
+      "identical": true
+    },
+    {
+      "path": "src/session/pool_integrate.sh",
+      "current_blob": "4a49d84890e6207acd871bca376859d9f9e76388",
+      "public_blob": "4a49d84890e6207acd871bca376859d9f9e76388",
+      "identical": true
+    },
+    {
+      "path": "src/packages/tools/src/tasks.ts",
+      "current_blob": "bd142a148c7a0b790d6ffcd211a802aafddcc549",
+      "public_blob": "bd142a148c7a0b790d6ffcd211a802aafddcc549",
+      "identical": true
+    },
+    {
+      "path": "src/packages/observability/src/store.ts",
+      "current_blob": "b556321f3364e986ce9304775849e029ab3dc24d",
+      "public_blob": "b556321f3364e986ce9304775849e029ab3dc24d",
+      "identical": true
+    }
+  ],
+  "same_for_all_selected_interfaces": true,
+  "scope": "Selected source interfaces can be recovered from public revision if identical; not full runtime/model qualification, no store copy or gate bypass",
+  "whole_tree_comparison_command": [
+    "git",
+    "-C",
+    "/workspace/thyrox",
+    "diff",
+    "--name-only",
+    "fc8a7e2f6f00d1c78e0c4e5526f97f7063a6b20c",
+    "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f"
+  ],
+  "whole_tree_changed_paths": [
+    "AGENTS.md",
+    "agent-results/agent_store.sqlite3"
+  ],
+  "runtime_source_tests_and_locks_identical_to_public": true,
+  "state_limit": "Store content/ownership durability is separate from source replay. No Store copy/rehydration, gate bypass, or assumption exported TaskGet becomes task authority. Resumption revalidates native identities/owners."
+}

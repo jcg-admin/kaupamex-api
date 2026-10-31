@@ -1,0 +1,12 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet.run",
+  "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+  "input": {
+    "task_id": "349"
+  },
+  "observed_isError": true,
+  "observed_message": "no hay ninguna tarea con id 349 en el tablero de esta sesi\u00f3n",
+  "native_command_exit": 1,
+  "scope": "Failed historical lookup preserved; no identity or eligibility inferred and no task mutation"
+}

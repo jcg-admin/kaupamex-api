@@ -1,0 +1,30 @@
+{
+  "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet.run",
+  "command": "THYROX_ROOT=<declared Provider root> bun run probes/native_task_snapshot.ts",
+  "invocation": {
+    "argv": [
+      "/workspace/.cache/npm/_npx/214ebe133ee6a004/node_modules/bun/bin/bun.exe",
+      "/workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/probes/native_task_snapshot.ts"
+    ],
+    "cwd": "/workspace/kaupamex-api",
+    "THYROX_ROOT": "/workspace/thyrox"
+  },
+  "observed_at": "2026-10-24T18:25:01.570Z",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "input": {
+    "task_id": "737"
+  },
+  "task": {
+    "task_id": "737",
+    "citation_id": "TASK-API-0382",
+    "subject": "Mecanismo: la instalación se decide por base, no por proceso (H-API-784)",
+    "description": "Medido 2026-08-21 (H-API-784): `ir_module_module.state` existe y su propio help_text declara \"Derivado de INSTALLED_APPS; no hay instalador que lo escriba\". `grep -rn IrModule src/config/ src/orm/` → 0 hits. La dirección está invertida respecto a la referencia, donde `odoo/modules/db.py:88` ESCRIBE el estado y el cargador lo LEE, por base.\n\nConsecuencia: dos bases no pueden diferir en qué addons tienen instalados, porque INSTALLED_APPS es del proceso.\n\nEmparenta con #456 (H-API-654, installable: False sin efecto en la carga) y #449 (sembrar el registro de módulos) — las tres son la misma carencia vista desde tres sitios.\n\nBloqueada por la decisión de #443 sobre el reparto.",
+    "status": "pending",
+    "owner": "codex-module-lifecycle",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "scope": "Native read only; export is evidence, not replacement TaskStore authority"
+}

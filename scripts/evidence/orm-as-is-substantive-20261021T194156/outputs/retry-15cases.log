@@ -1,0 +1,35 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+test_retry_django_missing_discards_deleted_record (test_missing_recompute.MissingRecomputeRetryTests.test_retry_django_missing_discards_deleted_record) ... ok
+test_retry_does_not_catch_access_errors (test_missing_recompute.MissingRecomputeRetryTests.test_retry_does_not_catch_access_errors) ... ok
+test_retry_existing_record_computes_once_after_missing_error (test_missing_recompute.MissingRecomputeRetryTests.test_retry_existing_record_computes_once_after_missing_error) ... ok
+test_retry_internal_existence_does_not_use_filtered_public_manager (test_missing_recompute.MissingRecomputeRetryTests.test_retry_internal_existence_does_not_use_filtered_public_manager) ... ok
+test_retry_missing_error_discards_deleted_record (test_missing_recompute.MissingRecomputeRetryTests.test_retry_missing_error_discards_deleted_record) ... ok
+test_retry_missing_related_object_keeps_primary_record_pending (test_missing_recompute.MissingRecomputeRetryTests.test_retry_missing_related_object_keeps_primary_record_pending) ... ok
+test_retry_repeated_missing_error_propagates_and_preserves_work (test_missing_recompute.MissingRecomputeRetryTests.test_retry_repeated_missing_error_propagates_and_preserves_work) ... ok
+test_retry_virtual_record_does_not_query_or_discard_it (test_missing_recompute.MissingRecomputeRetryTests.test_retry_virtual_record_does_not_query_or_discard_it) ... ok
+test_all_missing_clears_computed_group_only (test_missing_recompute.MissingRecomputeTests.test_all_missing_clears_computed_group_only) ... ok
+test_compute_failure_does_not_accept_missing_or_existing_work (test_missing_recompute.MissingRecomputeTests.test_compute_failure_does_not_accept_missing_or_existing_work) ... ok
+test_mixed_rows_compute_flush_and_remove_deleted_pending (test_missing_recompute.MissingRecomputeTests.test_mixed_rows_compute_flush_and_remove_deleted_pending) ... ok
+test_no_pending_avoids_database_queries (test_missing_recompute.MissingRecomputeTests.test_no_pending_avoids_database_queries) ... ok
+test_recomputed_column_update_obeys_postgresql_rollback (test_missing_recompute.MissingRecomputeTests.test_recomputed_column_update_obeys_postgresql_rollback) ... ok
+test_requested_subset_keeps_other_pending_ids (test_missing_recompute.MissingRecomputeTests.test_requested_subset_keeps_other_pending_ids) ... ok
+test_virtual_ids_are_not_missing_persisted_rows (test_missing_recompute.MissingRecomputeTests.test_virtual_ids_are_not_missing_persisted_rows) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.061s
+
+OK
+CREATE ROLE
+GRANT
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+REVOKE
+DROP ROLE

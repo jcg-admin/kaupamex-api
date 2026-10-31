@@ -1,0 +1,30 @@
+{
+  "run": 41159107993,
+  "head": "8630713f141cd47c678cdbbccceb634da0e8361d",
+  "ci_result": "FAIL",
+  "check_style_exit_code": 1,
+  "ci_verify_exit_code": 2,
+  "later_stages": "NOT_EVALUATED",
+  "first_failing_files": [
+    {
+      "path": ".claude/hooks/inject_drf_skill_gate.py",
+      "base_blob": "78c0a79b6c5139da97cfec1df2c4bbbd554ff2e3",
+      "candidate_blob": "78c0a79b6c5139da97cfec1df2c4bbbd554ff2e3",
+      "unchanged": true
+    },
+    {
+      "path": ".claude/scripts/bound_detector.py",
+      "base_blob": "6c10741d09f8eb1f29136feb6124626e63cedc61",
+      "candidate_blob": "6c10741d09f8eb1f29136feb6124626e63cedc61",
+      "unchanged": true
+    },
+    {
+      "path": ".claude/scripts/convert_broken_references.py",
+      "base_blob": "03f2c02c2260a6ab41f70be975bbee0272e9ddca",
+      "candidate_blob": "03f2c02c2260a6ab41f70be975bbee0272e9ddca",
+      "unchanged": true
+    }
+  ],
+  "classification": "First observed failing files unchanged from base; no whole repository regression-free claim",
+  "complete_log": "registry-scope-ci-failed.log.gz"
+}

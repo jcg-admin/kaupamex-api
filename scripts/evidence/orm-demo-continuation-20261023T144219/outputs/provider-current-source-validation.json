@@ -1,0 +1,148 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "public_replay_revision": "fc8a7e2f6f00d1c78e0c4e5526f97f7063a6b20c",
+  "interfaces": [
+    {
+      "path": "src/session/task_continuation.py",
+      "current_blob": "9ffee5e4824b2ae72af4435bfba1efcc8a0add30",
+      "prior_blob": "9ffee5e4824b2ae72af4435bfba1efcc8a0add30",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/continuation_frontier.py",
+      "current_blob": "0343f4fc4d9ac97c376704cbb1e798023e32b805",
+      "prior_blob": "0343f4fc4d9ac97c376704cbb1e798023e32b805",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/node_next_task.py",
+      "current_blob": "53ca7fcdf6e07bbb81479845e4f8b1d8ad9064a2",
+      "prior_blob": "53ca7fcdf6e07bbb81479845e4f8b1d8ad9064a2",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/claim_fold.py",
+      "current_blob": "693f582e6dc1202345bc58c15bfa476cae3b04a4",
+      "prior_blob": "693f582e6dc1202345bc58c15bfa476cae3b04a4",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/in_flight.py",
+      "current_blob": "ed067d0998c6670273aaa6ae08d667f106f27efa",
+      "prior_blob": "ed067d0998c6670273aaa6ae08d667f106f27efa",
+      "unchanged": true
+    },
+    {
+      "path": "src/task/task_source.py",
+      "current_blob": "793987dba93a1de3229e70bf7df3d6c72f01f172",
+      "prior_blob": "793987dba93a1de3229e70bf7df3d6c72f01f172",
+      "unchanged": true
+    },
+    {
+      "path": "src/task/implementation_order.py",
+      "current_blob": "980ac5223e48a1f63b76818b77a6ff9dc018e468",
+      "prior_blob": "980ac5223e48a1f63b76818b77a6ff9dc018e468",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/local_plan.py",
+      "current_blob": "adcc4813e03dc104a220bce77911eb68781ca913",
+      "prior_blob": "adcc4813e03dc104a220bce77911eb68781ca913",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/resource_admission.py",
+      "current_blob": "0a6aa5fe9aebe4aad27a9ff14823c0fc42c0665b",
+      "prior_blob": "0a6aa5fe9aebe4aad27a9ff14823c0fc42c0665b",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/model_coordinator.sh",
+      "current_blob": "795e22a812133a330f29098312b23f54b6864fba",
+      "prior_blob": "795e22a812133a330f29098312b23f54b6864fba",
+      "unchanged": true
+    },
+    {
+      "path": "src/session/pool_integrate.sh",
+      "current_blob": "4a49d84890e6207acd871bca376859d9f9e76388",
+      "prior_blob": "4a49d84890e6207acd871bca376859d9f9e76388",
+      "unchanged": true
+    },
+    {
+      "path": "src/packages/tools/src/tasks.ts",
+      "current_blob": "bd142a148c7a0b790d6ffcd211a802aafddcc549",
+      "prior_blob": "bd142a148c7a0b790d6ffcd211a802aafddcc549",
+      "unchanged": true
+    },
+    {
+      "path": "src/packages/observability/src/store.ts",
+      "current_blob": "b556321f3364e986ce9304775849e029ab3dc24d",
+      "prior_blob": "b556321f3364e986ce9304775849e029ab3dc24d",
+      "unchanged": true
+    }
+  ],
+  "source_interfaces_unchanged": true,
+  "prior_capability_authority": "../orm-continuation-20261022T190749/outputs/continuation-capabilities-and-diagnosis.json",
+  "qualification": "Prior bounded deterministic tests remain evidence only for unchanged source interfaces; no model proposal/dispatch, pool integration or objective completion accepted.",
+  "new_observation": "node_next_task.own_owner maps node to vm-<node>; native Task owner codex-module-lifecycle is not that identity. Selection was executed with full actual ledger after own code path release, followed by actual conflict-checked re-claim. No claim filtering or identity rewriting.",
+  "mechanisms_used": [
+    {
+      "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet.run",
+      "command": "THYROX_ROOT=/workspace/thyrox /workspace/.cache/toolchains/bin/bun -e <native taskTools calls>",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "inputs": [
+        "737",
+        "738",
+        "1153",
+        "1154",
+        "322",
+        "1192",
+        "1441",
+        "1190",
+        "1191",
+        "1193",
+        "1203"
+      ],
+      "result": "Read only, native states/owners preserved; no TaskUpdate",
+      "evidence": [
+        "current-native-tasks.json",
+        "compute-native-related-tasks.json"
+      ]
+    },
+    {
+      "interface": "claimsCommand(argv,cwd)",
+      "command": "THYROX_ROOT=/workspace/thyrox /workspace/.cache/toolchains/bin/bun -e <claimsCommand --claim/--release/--who-has calls>",
+      "result": "Actual ledger conflict checks; only own paths changed, no force or foreign filtering",
+      "evidence": [
+        "API .claude/coordination/claims.jsonl",
+        "Docs .claude/coordination/claims.jsonl",
+        "loading-names-selection.json",
+        "loading-reset-selection.json"
+      ]
+    },
+    {
+      "interface": "plan_items_from_rows; claims_ledger_rows; node_frontier",
+      "command": "PYTHONPATH=/workspace/thyrox/src /workspace/thyrox/.venv/bin/python - (source-reviewed inputs and full actual ledger)",
+      "result": "Selected two genuine pending source contract units; no model dispatch or official status change",
+      "evidence": [
+        "loading-names-selection.json",
+        "loading-reset-selection.json"
+      ]
+    },
+    {
+      "interface": "bin/agent_store buscar-tareas",
+      "commands": [
+        "bash bin/agent_store buscar-tareas --submodulo api --query Registry.new --detalle --limit 12",
+        "bash bin/agent_store buscar-tareas --submodulo api --query load_modules --detalle --limit 12",
+        "bash bin/agent_store buscar-tareas --submodulo api --query display_name --detalle --limit 8"
+      ],
+      "result": "Registry/loader exact-text searches zero; compute search five related rows; native TaskGet resolves durable identities",
+      "evidence": [
+        "registry-task-search.log",
+        "loader-task-search.log",
+        "compute-task-search.log",
+        "compute-native-related-tasks.json"
+      ]
+    }
+  ]
+}

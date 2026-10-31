@@ -1,0 +1,15 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+{
+  "abstract_override_constructed": true,
+  "parent_compute": "_compute_label",
+  "child_compute": null,
+  "child_inverse": "_inverse_label",
+  "child_max_length": 32,
+  "collected_links": 1,
+  "connection_attempts": []
+}
+Traceback (most recent call last):
+  File "/workspace/scratch/six-homes-review/abstract_override.py", line 36, in <module>
+    Path('/workspace/scratch/six-homes-review/abstract-override.json').write_text(json.dumps(result,indent=2)+'\n')
+    ^^^^
+NameError: name 'Path' is not defined

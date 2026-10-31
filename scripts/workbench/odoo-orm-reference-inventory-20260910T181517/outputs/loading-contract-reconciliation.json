@@ -1,0 +1,4856 @@
+{
+  "extends": "Existing res-users-bootstrap-comparison.json loading source flow/hash; existing ModuleGraph and version ledgers",
+  "reference_file": "odoo/modules/loading.py",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_sha256": "9df2022f6f7e62eb7628736df4c334dc4fa1ab85154a8f6c80d9b8169fdf6e50",
+  "reference_inventory": {
+    "name": "loading.py",
+    "lines": 632,
+    "classes": [],
+    "functions": [
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "load_data",
+        "lineno": 41,
+        "signature": {
+          "params": [
+            "env",
+            "idref",
+            "mode",
+            "kind",
+            "package"
+          ],
+          "has_default": [
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "load_demo",
+        "lineno": 64,
+        "signature": {
+          "params": [
+            "env",
+            "package",
+            "idref",
+            "mode"
+          ],
+          "has_default": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "force_demo",
+        "lineno": 89,
+        "signature": {
+          "params": [
+            "env"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "load_module_graph",
+        "lineno": 115,
+        "signature": {
+          "params": [
+            "env",
+            "graph",
+            "update_module",
+            "report",
+            "models_to_check",
+            "install_demo"
+          ],
+          "has_default": [
+            false,
+            false,
+            true,
+            true,
+            true,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "_check_module_names",
+        "lineno": 326,
+        "signature": {
+          "params": [
+            "cr",
+            "module_names"
+          ],
+          "has_default": [
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "load_modules",
+        "lineno": 340,
+        "signature": {
+          "params": [
+            "registry"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [
+            "update_module",
+            "upgrade_modules",
+            "install_modules",
+            "reinit_modules",
+            "new_db_demo",
+            "models_to_check"
+          ],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "reset_modules_state",
+        "lineno": 611,
+        "signature": {
+          "params": [
+            "db_name"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      }
+    ],
+    "raw": 7,
+    "unique": 7
+  },
+  "contract_records": [
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/loading.py::load_module_graph",
+      "source_location": 115,
+      "owner": "odoo.modules.loading",
+      "symbol_kind": "function",
+      "behavior": "Load/register models; perform per-module update lifecycle; finalize installed state/version after domain operations, before at_install tests",
+      "execution_flow": [
+        "Determine install/upgrade/reinit only when update_module enabled",
+        "Pre-migration, imports and pre-init hook",
+        "Registry.load, inheritance descendants and incremental model setup/schema initialization",
+        "Module checks and data/demo loading",
+        "Persist demo, post-migrations and translations",
+        "Post-init hook for installation or view validation for upgrade",
+        "Append updated_modules; adapt manifest version; write state installed and stored latest_version",
+        "Update package.state, flush and commit",
+        "Optional at_install tests and report; runtime installation marker is not TASK/PR acceptance"
+      ],
+      "inputs_outputs": {
+        "signature": {
+          "params": [
+            "env",
+            "graph",
+            "update_module",
+            "report",
+            "models_to_check",
+            "install_demo"
+          ],
+          "has_default": [
+            false,
+            false,
+            true,
+            true,
+            true,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "source_header": "def load_module_graph(\n    env: Environment,\n    graph: ModuleGraph,\n    update_module: bool = False,\n    report: OdooTestResult | None = None,\n    models_to_check: OrderedSet[str] | None = None,\n    install_demo: bool = True,\n) -> None:",
+        "returns": "None; side effects on registry, database and optional test report"
+      },
+      "side_effects": "Imports/models, DDL/data/hooks, module state/version writes, flush/commit and test report; no equivalent guaranteed by mere migrate success",
+      "dependencies": [
+        "Native Odoo Cursor/Environment/Registry for native reference execution",
+        "MigrationManager and module data/demo/hooks consumers",
+        "Consumer selected-alias graph and stored installed provenance now prepared, not an execution pipeline"
+      ],
+      "consumers": [
+        "load_modules caller",
+        "Registry construction/update lifecycle",
+        "MigrationManager reads package.load_version/load_state"
+      ],
+      "installed_mechanism": [
+        "Consumer ModuleGraph.from_database provides readonly graph",
+        "IrModule.installed_version stores counterpart of reference latest_version but no successful loader producer exists",
+        "service.db.provision_company_database applies Django project migrations, separately verified under0383",
+        "Registry.load/init_models have partial cache/reflection behavior; current init_models does not emit per-package model DDL"
+      ],
+      "existing_adaptation": "One distributed contract across graph/catalogue/registry/backend. Source names or module __init__ docstring are not evidence of functional equivalence. No new version finalization API without execution proof.",
+      "verification": {
+        "source": "Pinned source body and historical source hash matched; actual Consumer service/registry bodies reviewed",
+        "schema": "Full default/company migration probe is independent prerequisite, not loader acceptance",
+        "positive_negative": "Snapshot/migration/alias tests apply only to their bounded contracts; native load_module_graph execution NOT_EVALUATED",
+        "missing_fixtures": "Native Odoo runtime/cursor and complete Consumer loader integration fixture not available in this unit"
+      },
+      "equivalence": "not_verified for full loader; partial graph/catalogue/schema mechanisms identified concretely",
+      "limitations": "No installation success inferred from CI, migration count, class existence or copied manifest version. Native at_install tests occur after installed write/commit, so runtime installed and independent task acceptance are distinct.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "related_task": "TASK-API-0383 for whole-database schema prerequisite only",
+        "acceptance": "not_verified",
+        "merge": false
+      }
+    },
+    {
+      "reference_symbol": "odoo/modules/loading.py::load_data",
+      "source_location": 41,
+      "owner": "odoo.modules.loading",
+      "symbol_kind": "function",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "behavior": "Load manifest data/demo files in declared key/list order, warn but still import duplicate filenames, report whether any file was loaded",
+      "execution_flow": [
+        "data uses init_xml then data; other typed demo input uses demo",
+        "Warn on deprecated nonempty init_xml",
+        "Warn duplicate filenames without skipping them",
+        "Invoke existing convert_file with shared idref, mode and demo noupdate flag",
+        "Return bool of filenames encountered; propagate conversion failure"
+      ],
+      "inputs_outputs": {
+        "signature": {
+          "params": [
+            "env",
+            "idref",
+            "mode",
+            "kind",
+            "package"
+          ],
+          "has_default": [
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "returns": "bool(files); errors propagate",
+        "consumer_alias_adaptation": "Explicit selected Django alias replaces Odoo Environment database binding"
+      },
+      "side_effects": "Delegates file parsing and database writes to converter; no own commit or installed-state transition",
+      "dependencies": [
+        "Manifest-normalized file lists",
+        "tools.convert_file, file_open/addon roots",
+        "Caller transaction and registry/schema readiness",
+        "Correct alias propagation in converter consumers and global signal handlers"
+      ],
+      "consumers": [
+        "Pinned load_module_graph",
+        "Pinned load_demo under savepoint/elevated context"
+      ],
+      "installed_mechanism": [
+        "src/modules/loading.py::load_data delegates to existing tools.convert_file with explicit using; no own commit or module finalization",
+        "Manifest lists traverse init_xml/data or demo; absent lists adapt existing resolver, duplicate files still execute",
+        "Caller owns schema/registry readiness, atomic scope, hooks and installation finalization"
+      ],
+      "existing_adaptation": "Native Django connections/transactions replace env.cr; existing converter must be reused, not copied",
+      "verification": {
+        "source": "Pinned load_data body reviewed directly with existing reference_roots resolver",
+        "consumer": "Current converter signature/body and scoped callers reviewed",
+        "native_reference": "NOT_EVALUATED: no native Odoo runtime",
+        "consumer_conformance": "six maintained controls PASS; five pinned source-function differential cases PASS; actual PostgreSQL SQL import/duplicate execution/caller rollback PASS",
+        "evidence": "scripts/evidence/orm-module-snapshot-20261022T202346/outputs/manifest-data-*.log/.json",
+        "parser_limit": "Real SQL backend tested; file_open collaborator isolated with BytesIO; addon path resolution/XML/CSV and full loader not accepted"
+      },
+      "equivalence": "Bounded data-stage behavior verified for recorded controls; full lifecycle acceptance not_verified",
+      "limitations": "No schema/data/hooks/version producer or effective per-base registry acceptance inferred. Generic global automation alias bug is a measured dependent consumer limit.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "related_task": "TASK-API-0383 only for full company schema, not an artificial dependency for isolated data-stage tests",
+        "acceptance": "not_verified",
+        "merge": false
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/loading.py::load_demo",
+      "source_location": 64,
+      "owner": "odoo.modules.loading",
+      "symbol_kind": "function",
+      "behavior": "Optional demo runs elevated within a savepoint; report failures without accepting the whole module lifecycle",
+      "execution_flow": [
+        "No demo/demo_xml returns True",
+        "Elevated install_demo context; load_data demo within savepoint",
+        "Success returns True",
+        "On error rollback demo data and log complete traceback",
+        "Resolve optional todo and failure model; persist open todo and error only when both exist; return False"
+      ],
+      "inputs_outputs": {
+        "signature": {
+          "params": [
+            "env",
+            "package",
+            "idref",
+            "mode"
+          ],
+          "has_default": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "consumer": "load_demo(env, package, idref, mode); env.cr.alias binds selected Django database",
+        "precondition": "Explicit caller atomic transaction for work, matching domain routing alias, matching package catalogue identity before failure writes"
+      },
+      "side_effects": "Demo converter SQL/data, context activation/restoration, optional todo and complete error persistence; no own outer commit or installed/version finalization",
+      "dependencies": [
+        "Existing Environment entered context manager",
+        "Django nested transaction.atomic",
+        "Existing tools.convert_file",
+        "Existing Django-label lookup for IrDemoFailure",
+        "Complete error storage and optional IrModelData todo reference",
+        "Caller registry/schema and company scope readiness"
+      ],
+      "consumers": [
+        "Pinned load_module_graph",
+        "Pinned force_demo",
+        "Future Consumer module loader caller not integrated"
+      ],
+      "installed_mechanism": [
+        "src/modules/loading.py::load_demo reuses load_data, Environment and Django atomic",
+        "IrDemoFailure.error now unbounded; base0089 protects narrowing reverse",
+        "Django-label fallback is a native equivalent, not a new canonical name or registry implementation"
+      ],
+      "existing_adaptation": "Consumer env has no get and canonical demo model is not registered; existing Django-label lookup verified. Context requires with env(...) rather than merely creating a derived Environment. Caller owns transaction.",
+      "verification": {
+        "focused": "Nine initial red cases; definitive combined data/demo16PASS including added identity mismatch control",
+        "postgresql": "Complete error storage/migration/guard and real-file savepoint PASS; full migrated N=1 stack exit0",
+        "negative": "Savepoint annulment exit1 leaves outer transaction aborted; length255 annulment exit1 detects lost content",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "ci": "make exit2; inherited first display_name error, later tests NOT_EVALUATED"
+      },
+      "equivalence": "N=1 bounded demo path verified with real migrated schema, files, converter, todo/XMLID/failure models and automation signals; full module lifecycle and N>1 not accepted",
+      "limitations": "No XML/CSV, hooks, module schema/registry composition or installed-version producer acceptance. Existing automation alias and productive company provisioning blockers remain.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "acceptance": "not_verified for full TASK",
+        "merge": false,
+        "official_state_changes": false
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/loading.py::_check_module_names",
+      "source_location": 326,
+      "owner": "odoo.modules.loading",
+      "symbol_kind": "function",
+      "behavior": "Warn only unknown requested module names without writes",
+      "execution_flow": [
+        "Deduplicate iterable",
+        "Discard all wildcard",
+        "Count names in selected catalogue",
+        "Read actual catalogue only on mismatch and warn unknown names"
+      ],
+      "inputs_outputs": {
+        "source_signature": {
+          "params": [
+            "cr",
+            "module_names"
+          ],
+          "has_default": [
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "consumer_signature": "(cr, module_names)",
+        "result": "None; errors propagate"
+      },
+      "side_effects": "Read SQL and warning only; no mutation of input or states",
+      "dependencies": [
+        "Supplied native Django cursor",
+        "Existing selected PostgreSQL catalogue"
+      ],
+      "consumers": [
+        "Pinned load_modules; Consumer outer loader still unintegrated"
+      ],
+      "installed_mechanism": "src/modules/loading.py::_check_module_names",
+      "existing_adaptation": "psycopg3 = ANY(list) replaces psycopg2 IN(tuple); fetchall replaces dictfetchall",
+      "verification": {
+        "focused": "Six red controls -> PASS",
+        "combined": "26PASS data/demo/names/reset",
+        "postgresql": "16 source differential catalogue cases, two isolated schemas, unchanged states and parameterized injection string",
+        "negative": "No-op in memory exits1 expected",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "ci": {
+          "revision": "56c6d4eab2426e93a4af86f24383f92044c93278",
+          "state": "completed",
+          "make_exit": 2,
+          "pytest_exit": 1,
+          "passed": 77,
+          "skipped": 1,
+          "errors": 1,
+          "seconds": 482.36,
+          "first_failure": "ProductProduct.display_name",
+          "classification": "BASELINE_FAILURE; later tests NOT_EVALUATED",
+          "junit": "outputs/loading-support-ci.junit.xml",
+          "log": "outputs/loading-support-ci.log"
+        }
+      },
+      "equivalence": "Bounded differential PASS with real PG and explicit cursor-protocol adaptation; native Odoo runtime not executed",
+      "limitations": "No outer-loader integration, effective per-base model composition, complete company provisioning or TASK acceptance. Two schemas in one database are not N>1 productive acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "code_commit": "56c6d4ea",
+        "acceptance": "not_verified",
+        "merge": false,
+        "official_state_changes": false,
+        "published": true
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/loading.py::reset_modules_state",
+      "source_location": 611,
+      "owner": "odoo.modules.loading",
+      "symbol_kind": "function",
+      "behavior": "Restore transient requests after failed installation, preserving stable states and versions",
+      "execution_flow": [
+        "Require caller failure transaction exited",
+        "Begin native atomic recovery",
+        "Missing catalogue is no-op",
+        "Restore removal/upgrade to installed and install to uninstalled",
+        "Commit both or roll back both on error"
+      ],
+      "inputs_outputs": {
+        "source_signature": {
+          "params": [
+            "db_name"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "consumer_signature": "(using)",
+        "result": "None; errors propagate"
+      },
+      "side_effects": "Two bounded state updates and commit; no installed_version update or actual installation",
+      "dependencies": [
+        "Declared Django connection alias",
+        "Autocommit outside caller atomic",
+        "Django introspection and transaction.atomic; no effective registry needed"
+      ],
+      "consumers": [
+        "Pinned Registry failure recovery; Consumer Registry.new still calls _ensure_seeded"
+      ],
+      "installed_mechanism": "src/modules/loading.py::reset_modules_state",
+      "existing_adaptation": "Explicit alias replaces db name. Django root atomic replaces independent Odoo cursor; nesting/manual transaction refused. Both updates atomic.",
+      "verification": {
+        "focused": "Four red controls -> PASS",
+        "combined": "26PASS data/demo/names/reset",
+        "postgresql": "Six state mappings match pinned function, unchanged versions, committed visibility from second connection, missing table, nested refusal, actual second-update constraint rollback",
+        "negative": "No-op in memory exits1 expected",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "ci": {
+          "revision": "56c6d4eab2426e93a4af86f24383f92044c93278",
+          "state": "completed",
+          "make_exit": 2,
+          "pytest_exit": 1,
+          "passed": 77,
+          "skipped": 1,
+          "errors": 1,
+          "seconds": 482.36,
+          "first_failure": "ProductProduct.display_name",
+          "classification": "BASELINE_FAILURE; later tests NOT_EVALUATED",
+          "junit": "outputs/loading-support-ci.junit.xml",
+          "log": "outputs/loading-support-ci.log"
+        }
+      },
+      "equivalence": "Bounded differential PASS with real PG and explicit cursor-protocol adaptation; native Odoo runtime not executed",
+      "limitations": "No outer-loader integration, effective per-base model composition, complete company provisioning or TASK acceptance. Two schemas in one database are not N>1 productive acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "code_commit": "56c6d4ea",
+        "acceptance": "not_verified",
+        "merge": false,
+        "official_state_changes": false,
+        "published": true
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/loading.py::force_demo",
+      "source_location": 89,
+      "behavior": "Force demo flags for catalogue rows, load demo for installed/upgrade/remove modules, invalidate cached demo flags and rebuild the registry if demo creates module requests",
+      "execution_flow": "Ready registry and database-bound Environment -> all catalogue demo flags true and demo attempted in dependency order. Pending requests require commit, effective Registry.new(update_module=True) and transaction reset.",
+      "inputs_outputs": "Ready registry and database-bound Environment -> all catalogue demo flags true and demo attempted in dependency order. Pending requests require commit, effective Registry.new(update_module=True) and transaction reset.",
+      "side_effects": "Caller-owned transaction, SQL flag update, optional demo writes/reporting, possible commit and registry rebuild. Demo optional failures differ from mandatory registry/rebuild failure.",
+      "dependencies": [
+        "Ready effective per-database Registry",
+        "ModuleGraph.from_database selected-alias snapshot",
+        "load_demo",
+        "IrModule demo persistence and invalidation",
+        "Executable Registry.new module request processing",
+        "Caller transaction/reset contract"
+      ],
+      "consumers": [
+        "odoo/cli/module.py::_force_demo lines187-189 obtains its Environment with _create_env_context(parsed_args.db_name)",
+        "odoo/addons/base/models/ir_demo.py::IrDemo.install_demo, explicit module administration"
+      ],
+      "installed_mechanism": [
+        "No direct Consumer force_demo implementation",
+        "Existing load_demo implements bounded data/savepoint/report behavior",
+        "ModuleGraph.from_database and IrModule snapshot/persistence are support only"
+      ],
+      "existing_adaptation": "Distributed bounded support identified; full contract pending, not equivalent by existence",
+      "verification": {
+        "current_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "specific_controls": "Not executed: positive two-database catalogue flag isolation and dependency-order demo; negative not-ready registry and failed rebuild; demo-created request must be processed, not silently stored.",
+        "result": "not_verified"
+      },
+      "equivalence": "not_verified",
+      "limitations": "No native Odoo runtime test or whole loader/Registry acceptance; no new functional loader in this unit",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_owner": "codex-module-lifecycle",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "PR": 109,
+        "merge": false
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/loading.py::load_modules",
+      "source_location": 340,
+      "behavior": "Build an effective per-database installation through base bootstrap, catalogue requests, fixed-point graph loading, schema/data/hooks/migrations, uninstall/reload and consistency checks",
+      "execution_flow": "New registry plus update/install/upgrade/reinit/demo/model-check requests -> database-bound effective models, loaded state, finalized constraints and persistent lifecycle results. Read-only load excludes uninstalled modules.",
+      "inputs_outputs": "New registry plus update/install/upgrade/reinit/demo/model-check requests -> database-bound effective models, loaded state, finalized constraints and persistent lifecycle results. Read-only load excludes uninstalled modules.",
+      "side_effects": "Schema locks, writes and per-module commits, optional warning paths, mandatory bootstrap ImportError, migration/hook failures, uninstall commit/reload, final constraints and registry/cache effects. Preserve errors and database identity.",
+      "dependencies": [
+        "TASK-API-0383 safe company installations and metadata policy review",
+        "Registry.new effective module dispatch and per-database model composition",
+        "load_module_graph full owner contract",
+        "Existing IrModule catalogue discovery and request methods",
+        "Schema/data/demo/hooks and pre/post/end migration mapping",
+        "Failure rollback, independent reset_modules_state and worker/cache invalidation"
+      ],
+      "consumers": [
+        "odoo/orm/registry.py::Registry.new calls load_modules with per-database request arguments",
+        "Consumer orm.registry.Registry.new: current integration missing; _ensure_seeded does not consume requests"
+      ],
+      "installed_mechanism": [
+        "Registry.new stores requests then calls _ensure_seeded; does not execute them",
+        "Django apps/INSTALLED_APPS globally register models; not per-base effective installation",
+        "Native service.db provisioner supplies physical schema only",
+        "ModuleGraph.from_database plus load_data/load_demo/name checks/recovery provide bounded support"
+      ],
+      "existing_adaptation": "Distributed bounded support identified; full contract pending, not equivalent by existence",
+      "verification": {
+        "current_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "specific_controls": "Not executed: differing installed catalogues A/B and effective model composition, install/upgrade/reinit/remove requests with hook order and installed_version finalization, new requests during load, failing data/hook rollback/recovery, worker invalidation. Schema-only PASS cannot accept these obligations.",
+        "result": "not_verified"
+      },
+      "equivalence": "not_verified",
+      "limitations": "No native Odoo runtime test or whole loader/Registry acceptance; no new functional loader in this unit",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_owner": "codex-module-lifecycle",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "PR": 109,
+        "merge": false
+      }
+    }
+  ],
+  "other_named_declarations_pending": [
+    {
+      "kind": "function",
+      "owner": null,
+      "name": "force_demo",
+      "lineno": 89,
+      "signature": {
+        "params": [
+          "env"
+        ],
+        "has_default": [
+          false
+        ],
+        "vararg": null,
+        "kwonly": [],
+        "kwarg": null
+      },
+      "body": "substantive",
+      "decorators": [],
+      "qualified_symbol": "force_demo",
+      "acceptance": "not_verified",
+      "task_resolution": "TASK-API-0382 via current native TaskGet737 and per-database installation ownership; not a new TASK",
+      "contract_record": "odoo/modules/loading.py::force_demo"
+    },
+    {
+      "kind": "function",
+      "owner": null,
+      "name": "load_modules",
+      "lineno": 340,
+      "signature": {
+        "params": [
+          "registry"
+        ],
+        "has_default": [
+          false
+        ],
+        "vararg": null,
+        "kwonly": [
+          "update_module",
+          "upgrade_modules",
+          "install_modules",
+          "reinit_modules",
+          "new_db_demo",
+          "models_to_check"
+        ],
+        "kwarg": null
+      },
+      "body": "substantive",
+      "decorators": [],
+      "qualified_symbol": "load_modules",
+      "acceptance": "not_verified",
+      "task_resolution": "TASK-API-0382 via current native TaskGet737 and per-database installation ownership; not a new TASK",
+      "contract_record": "odoo/modules/loading.py::load_modules"
+    }
+  ],
+  "extraction_limits": "Existing top-level/direct-method extractor; imports/constants/conditional/nested/dynamic source require progressive supplemental review. No exhaustive structural or semantic claim.",
+  "consumer_dependencies": [
+    "src/modules/module_graph.py",
+    "src/addons/base/models/ir_module.py",
+    "src/service/db.py",
+    "src/orm/registry.py"
+  ],
+  "scope": "Five reviewed source-flow contracts; force_demo and load_modules remain pending. Symbol/file counts do not establish contractual acceptance coverage.",
+  "evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+  "consumer_service_inventory": {
+    "name": "db.py",
+    "lines": 678,
+    "classes": [
+      {
+        "name": "Savepoint",
+        "lineno": 45,
+        "decorators": [],
+        "methods": [
+          {
+            "kind": "method",
+            "owner": "Savepoint",
+            "name": "__init__",
+            "lineno": 71,
+            "signature": {
+              "params": [
+                "connection"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "Savepoint",
+            "name": "__enter__",
+            "lineno": 76,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "Savepoint",
+            "name": "__exit__",
+            "lineno": 79,
+            "signature": {
+              "params": [
+                "exc_type",
+                "exc_val",
+                "exc_tb"
+              ],
+              "has_default": [
+                false,
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "Savepoint",
+            "name": "close",
+            "lineno": 82,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [
+                "rollback"
+              ],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "Savepoint",
+            "name": "rollback",
+            "lineno": 86,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "Savepoint",
+            "name": "_close",
+            "lineno": 89,
+            "signature": {
+              "params": [
+                "rollback"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ]
+      },
+      {
+        "name": "DatabaseManagementDisabled",
+        "lineno": 96,
+        "decorators": [],
+        "methods": []
+      },
+      {
+        "name": "DatabaseExists",
+        "lineno": 100,
+        "decorators": [],
+        "methods": []
+      },
+      {
+        "name": "RestoreFailed",
+        "lineno": 104,
+        "decorators": [],
+        "methods": []
+      },
+      {
+        "name": "_DumpStream",
+        "lineno": 543,
+        "decorators": [],
+        "methods": [
+          {
+            "kind": "method",
+            "owner": "_DumpStream",
+            "name": "__init__",
+            "lineno": 552,
+            "signature": {
+              "params": [
+                "proc"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "_DumpStream",
+            "name": "read",
+            "lineno": 555,
+            "signature": {
+              "params": [
+                "size"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "_DumpStream",
+            "name": "close",
+            "lineno": 558,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ]
+      }
+    ],
+    "functions": [
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "build_company_alias",
+        "lineno": 123,
+        "signature": {
+          "params": [
+            "base_default",
+            "db_name"
+          ],
+          "has_default": [
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "build_company_databases",
+        "lineno": 135,
+        "signature": {
+          "params": [
+            "db_names",
+            "base_default"
+          ],
+          "has_default": [
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "install_company_aliases",
+        "lineno": 145,
+        "signature": {
+          "params": [
+            "databases",
+            "names",
+            "using"
+          ],
+          "has_default": [
+            false,
+            true,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "list_all_schema_names",
+        "lineno": 170,
+        "signature": {
+          "params": [
+            "using"
+          ],
+          "has_default": [
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "filter_company_dbs",
+        "lineno": 180,
+        "signature": {
+          "params": [
+            "names",
+            "pattern"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "list_company_db_names",
+        "lineno": 189,
+        "signature": {
+          "params": [
+            "using"
+          ],
+          "has_default": [
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "db_filter",
+        "lineno": 198,
+        "signature": {
+          "params": [
+            "dbs",
+            "host",
+            "dbfilter",
+            "db_name"
+          ],
+          "has_default": [
+            false,
+            false,
+            true,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "db_list_for_host",
+        "lineno": 236,
+        "signature": {
+          "params": [
+            "host",
+            "using"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "db_monodb",
+        "lineno": 245,
+        "signature": {
+          "params": [
+            "host",
+            "using"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "close_db",
+        "lineno": 259,
+        "signature": {
+          "params": [
+            "alias"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "close_all",
+        "lineno": 269,
+        "signature": {
+          "params": [],
+          "has_default": [],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "quote_db_identifier",
+        "lineno": 278,
+        "signature": {
+          "params": [
+            "name"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "_maintenance_cursor",
+        "lineno": 290,
+        "signature": {
+          "params": [
+            "using"
+          ],
+          "has_default": [
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "_connect",
+        "lineno": 309,
+        "signature": {
+          "params": [
+            "db_name",
+            "using"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "closing_cursor",
+        "lineno": 333,
+        "signature": {
+          "params": [
+            "conn"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": [
+          "contextmanager"
+        ]
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "ensure_management_enabled",
+        "lineno": 342,
+        "signature": {
+          "params": [],
+          "has_default": [],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "database_exists",
+        "lineno": 349,
+        "signature": {
+          "params": [
+            "db_name",
+            "using"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "create_empty_database",
+        "lineno": 359,
+        "signature": {
+          "params": [
+            "db_name",
+            "using"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "_install_extensions",
+        "lineno": 382,
+        "signature": {
+          "params": [
+            "db_name",
+            "using"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "kill_connections",
+        "lineno": 397,
+        "signature": {
+          "params": [
+            "db_name",
+            "using"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "drop_database",
+        "lineno": 422,
+        "signature": {
+          "params": [
+            "db_name",
+            "using"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "create_database",
+        "lineno": 435,
+        "signature": {
+          "params": [
+            "db_name",
+            "using"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "provision_company_database",
+        "lineno": 448,
+        "signature": {
+          "params": [
+            "db_name",
+            "using"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "duplicate_database",
+        "lineno": 478,
+        "signature": {
+          "params": [
+            "src_name",
+            "dst_name",
+            "using"
+          ],
+          "has_default": [
+            false,
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "_pg_env",
+        "lineno": 509,
+        "signature": {
+          "params": [
+            "using"
+          ],
+          "has_default": [
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "dump_database",
+        "lineno": 563,
+        "signature": {
+          "params": [
+            "db_name",
+            "using"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "restore_database",
+        "lineno": 585,
+        "signature": {
+          "params": [
+            "db_name",
+            "dump_path",
+            "using"
+          ],
+          "has_default": [
+            false,
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "rename_database",
+        "lineno": 617,
+        "signature": {
+          "params": [
+            "old_name",
+            "new_name",
+            "using"
+          ],
+          "has_default": [
+            false,
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "_ensure_alias_registered",
+        "lineno": 637,
+        "signature": {
+          "params": [
+            "name",
+            "base_default"
+          ],
+          "has_default": [
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "migrate_all_company_databases",
+        "lineno": 649,
+        "signature": {
+          "params": [
+            "names",
+            "using"
+          ],
+          "has_default": [
+            true,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      }
+    ],
+    "raw": 44,
+    "unique": 42
+  },
+  "consumer_service_sha256": "9cd39073fe1bf1e7451f7fcf5b827daed7e988c6e2094adf81125c8bad39ed39",
+  "company_migration_context": {
+    "task": "TASK-API-0383",
+    "source": "src/service/db.py::provision_company_database",
+    "caller": "src/addons/base/management/commands/company_create.py",
+    "precondition": "Management enabled; declared company_<N>_db target; alias installed before migrate",
+    "mechanism": "Existing company_scope around migrate; implicit historical-model routing follows target and previous context is restored",
+    "verification": "provision-context-before.junit.xml9FAIL/2PASS -> provision-context-after.junit.xml11PASS; memory-only context annulment8FAIL/3PASS expected",
+    "observed_before": "Full default migration379applied and107FKs to local res_users; company failed in base0005 implicit update without scope",
+    "replay": "Combined CI after context failed at inherited display_name; company failed at missing contenttypes. HR historical default subsequently fixed; later experimental company-only replay fails in website_sale default using central IrModelData.ref.",
+    "history": "Router policy and base migration history unchanged; measured HR migration now separates nullable DDL from preserved runtime default. Leading-zero company aliases preserved.",
+    "acceptance": "not_verified; full company migration, legacy skipped fixtures, CI/review/integration remain separate obligations",
+    "current_policy_continuation": {
+      "code_commit": "ea963f24",
+      "default_migration_correction": "e8ea2938, historical local active-team backfill and router-bound runtime default",
+      "full_schema_without_override": "PASS380migrations107localUserFK per own default/company",
+      "metadata_and_session_storage": "PASS native backend, not full login/identity",
+      "proposal_approval": "pending existing PR review",
+      "fixture_safety": "4f5a166f,3unit controls PASS;3legacy cases still skipped/unqualified",
+      "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/salesteam-policy-summary.json",
+      "task_acceptance": "not_verified"
+    },
+    "fixture_qualification": {
+      "task": "TASK-API-0383",
+      "source_revision": "4b67be0f266c4b5a882a959226a33ec0e77df183",
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_scope": "Existing ModuleGraph/loading inventories retained. Fixture is a native Django/pytest Consumer adaptation; no whole Odoo service.db acceptance asserted. Pinned service.db::_create_empty_database confirms exclusive server DDL followed by best-effort extensions.",
+      "behavior": "Public database blocker, random aliases, exclusive resource acquisition and cleanup ownership; no private TestCase override",
+      "execution_flow": "Reject shared default/existing aliases or DBs -> acquire exclusive DB -> register cleanup -> native provisioner -> real cases -> all cleanup attempts",
+      "inputs_outputs": "Explicit own disposable default plus two fresh company aliases -> data/FK/rule-isolation outcomes and cleanup observations",
+      "side_effects": "DDL and migration data on owned resources only; N1 test transaction rollback; no shared QA or historical DB repair",
+      "dependencies": [
+        "Native service.db create/provision/drop and build_company_alias",
+        "CompanyDatabaseRouter roster and company_scope",
+        "Local metadata proposal pending DEC-AISL-05 review",
+        "sale_subscription0002 native rules and ResCompany manager",
+        "TASK-API-0381 pending ownerNULL for per-request routing/whole HTTP acceptance"
+      ],
+      "consumers": [
+        "Three historical isolation cases",
+        "N1 default fallback and physical schema/connection controls"
+      ],
+      "installed_mechanism": "tests/integration/company/test_multidb_isolation.py native pytest fixtures and contextmanager with ExitStack",
+      "existing_adaptation": "Native framework resource/testing adaptation; not a new Provider coordination mechanism",
+      "verification": {
+        "mock_controls": "8PASS; prior8RED; guard annulment2FAIL6PASS expectedexit1",
+        "real_resource_controls": "PASS preexisting sentinel, partialDDL cleanup, extension failure resource retention",
+        "five_functional_cases": "5PASS915.37s pytest0; no private override; actual two-company provisioner",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "independent_cleanup": "PASS0remaining knownowned DB/roles",
+        "harness_limits": "Probe1postcheck rejected outside Django blocker; error preserved, future instrument corrected, no repeated valid full run"
+      },
+      "equivalence": "not_verified beyond bounded outcomes",
+      "limitations": "Whole auth/login/user identity, HasCapability under equal IDs across DBs, session replay and request routing, historical partial DBs and module loader acceptance remain pending",
+      "integration": {
+        "PR": 109,
+        "source_published": true,
+        "merge": false,
+        "official_status": "pending",
+        "acceptance": "not_verified"
+      }
+    },
+    "historical_schema_preflight": {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_file": "odoo/service/db.py",
+      "reference_sha256": "1447f08c76ef3e72a72a0a2cd8fe7776327b63c7f75f7e9adc4e1117e7cabc32",
+      "reference_inventory": {
+        "name": "db.py",
+        "lines": 521,
+        "classes": [
+          {
+            "name": "DatabaseExists",
+            "lineno": 33,
+            "decorators": [],
+            "methods": []
+          }
+        ],
+        "functions": [
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "database_identifier",
+            "lineno": 37,
+            "signature": {
+              "params": [
+                "cr",
+                "name"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "check_db_management_enabled",
+            "lineno": 46,
+            "signature": {
+              "params": [
+                "func"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "check_super",
+            "lineno": 60,
+            "signature": {
+              "params": [
+                "passwd"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_initialize_db",
+            "lineno": 67,
+            "signature": {
+              "params": [
+                "db_name",
+                "demo",
+                "lang",
+                "user_password",
+                "login",
+                "country_code",
+                "phone"
+              ],
+              "has_default": [
+                false,
+                false,
+                false,
+                false,
+                true,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_check_faketime_mode",
+            "lineno": 105,
+            "signature": {
+              "params": [
+                "db_name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_create_empty_database",
+            "lineno": 128,
+            "signature": {
+              "params": [
+                "name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_create_database",
+            "lineno": 177,
+            "signature": {
+              "params": [
+                "db_name",
+                "demo",
+                "lang",
+                "user_password",
+                "login",
+                "country_code",
+                "phone"
+              ],
+              "has_default": [
+                false,
+                false,
+                false,
+                true,
+                true,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_duplicate_database",
+            "lineno": 185,
+            "signature": {
+              "params": [
+                "db_original_name",
+                "db_name",
+                "neutralize_database"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_drop_conn",
+            "lineno": 213,
+            "signature": {
+              "params": [
+                "cr",
+                "db_name"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_drop",
+            "lineno": 230,
+            "signature": {
+              "params": [
+                "db_name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_dump",
+            "lineno": 256,
+            "signature": {
+              "params": [
+                "db_name",
+                "format"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "dump_db_manifest",
+            "lineno": 263,
+            "signature": {
+              "params": [
+                "cr"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "dump_db",
+            "lineno": 279,
+            "signature": {
+              "params": [
+                "db_name",
+                "stream",
+                "backup_format",
+                "with_filestore"
+              ],
+              "has_default": [
+                false,
+                false,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_restore",
+            "lineno": 316,
+            "signature": {
+              "params": [
+                "db_name",
+                "data",
+                "copy"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "restore_db",
+            "lineno": 331,
+            "signature": {
+              "params": [
+                "db",
+                "dump_file",
+                "copy",
+                "neutralize_database"
+              ],
+              "has_default": [
+                false,
+                false,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_rename",
+            "lineno": 385,
+            "signature": {
+              "params": [
+                "old_name",
+                "new_name"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_change_admin_password",
+            "lineno": 408,
+            "signature": {
+              "params": [
+                "new_password"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_migrate_databases",
+            "lineno": 414,
+            "signature": {
+              "params": [
+                "databases"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "check_db_management_enabled"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_db_exist",
+            "lineno": 425,
+            "signature": {
+              "params": [
+                "db_name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "odoo.tools.mute_logger('odoo.sql_db')"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "list_dbs",
+            "lineno": 434,
+            "signature": {
+              "params": [
+                "force"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "list_db_incompatible",
+            "lineno": 455,
+            "signature": {
+              "params": [
+                "databases"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_list",
+            "lineno": 483,
+            "signature": {
+              "params": [
+                "document"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_list_lang",
+            "lineno": 488,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_list_countries",
+            "lineno": 491,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "exp_server_version",
+            "lineno": 500,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "dispatch",
+            "lineno": 510,
+            "signature": {
+              "params": [
+                "method",
+                "params"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ],
+        "raw": 27,
+        "unique": 27
+      },
+      "consumer_before_sha256": "9cd39073fe1bf1e7451f7fcf5b827daed7e988c6e2094adf81125c8bad39ed39",
+      "consumer_inventory_before": {
+        "name": "db.py",
+        "lines": 678,
+        "classes": [
+          {
+            "name": "Savepoint",
+            "lineno": 45,
+            "decorators": [],
+            "methods": [
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "__init__",
+                "lineno": 71,
+                "signature": {
+                  "params": [
+                    "connection"
+                  ],
+                  "has_default": [
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "__enter__",
+                "lineno": 76,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "__exit__",
+                "lineno": 79,
+                "signature": {
+                  "params": [
+                    "exc_type",
+                    "exc_val",
+                    "exc_tb"
+                  ],
+                  "has_default": [
+                    false,
+                    false,
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "close",
+                "lineno": 82,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [
+                    "rollback"
+                  ],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "rollback",
+                "lineno": 86,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "_close",
+                "lineno": 89,
+                "signature": {
+                  "params": [
+                    "rollback"
+                  ],
+                  "has_default": [
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              }
+            ]
+          },
+          {
+            "name": "DatabaseManagementDisabled",
+            "lineno": 96,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "DatabaseExists",
+            "lineno": 100,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "RestoreFailed",
+            "lineno": 104,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "_DumpStream",
+            "lineno": 543,
+            "decorators": [],
+            "methods": [
+              {
+                "kind": "method",
+                "owner": "_DumpStream",
+                "name": "__init__",
+                "lineno": 552,
+                "signature": {
+                  "params": [
+                    "proc"
+                  ],
+                  "has_default": [
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "_DumpStream",
+                "name": "read",
+                "lineno": 555,
+                "signature": {
+                  "params": [
+                    "size"
+                  ],
+                  "has_default": [
+                    true
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "_DumpStream",
+                "name": "close",
+                "lineno": 558,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              }
+            ]
+          }
+        ],
+        "functions": [
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "build_company_alias",
+            "lineno": 123,
+            "signature": {
+              "params": [
+                "base_default",
+                "db_name"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "build_company_databases",
+            "lineno": 135,
+            "signature": {
+              "params": [
+                "db_names",
+                "base_default"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "install_company_aliases",
+            "lineno": 145,
+            "signature": {
+              "params": [
+                "databases",
+                "names",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "list_all_schema_names",
+            "lineno": 170,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "filter_company_dbs",
+            "lineno": 180,
+            "signature": {
+              "params": [
+                "names",
+                "pattern"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "list_company_db_names",
+            "lineno": 189,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "db_filter",
+            "lineno": 198,
+            "signature": {
+              "params": [
+                "dbs",
+                "host",
+                "dbfilter",
+                "db_name"
+              ],
+              "has_default": [
+                false,
+                false,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "db_list_for_host",
+            "lineno": 236,
+            "signature": {
+              "params": [
+                "host",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "db_monodb",
+            "lineno": 245,
+            "signature": {
+              "params": [
+                "host",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "close_db",
+            "lineno": 259,
+            "signature": {
+              "params": [
+                "alias"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "close_all",
+            "lineno": 269,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "quote_db_identifier",
+            "lineno": 278,
+            "signature": {
+              "params": [
+                "name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_maintenance_cursor",
+            "lineno": 290,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_connect",
+            "lineno": 309,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "closing_cursor",
+            "lineno": 333,
+            "signature": {
+              "params": [
+                "conn"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "contextmanager"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "ensure_management_enabled",
+            "lineno": 342,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "database_exists",
+            "lineno": 349,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "create_empty_database",
+            "lineno": 359,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_install_extensions",
+            "lineno": 382,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "kill_connections",
+            "lineno": 397,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "drop_database",
+            "lineno": 422,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "create_database",
+            "lineno": 435,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "provision_company_database",
+            "lineno": 448,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "duplicate_database",
+            "lineno": 478,
+            "signature": {
+              "params": [
+                "src_name",
+                "dst_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_pg_env",
+            "lineno": 509,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "dump_database",
+            "lineno": 563,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "restore_database",
+            "lineno": 585,
+            "signature": {
+              "params": [
+                "db_name",
+                "dump_path",
+                "using"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "rename_database",
+            "lineno": 617,
+            "signature": {
+              "params": [
+                "old_name",
+                "new_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_ensure_alias_registered",
+            "lineno": 637,
+            "signature": {
+              "params": [
+                "name",
+                "base_default"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "migrate_all_company_databases",
+            "lineno": 649,
+            "signature": {
+              "params": [
+                "names",
+                "using"
+              ],
+              "has_default": [
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ],
+        "raw": 44,
+        "unique": 42
+      },
+      "task": "TASK-API-0383",
+      "scope": "Consumer idempotent company migration adaptation; pinned creation refuses existing DBs, so preflight is not copied from an Odoo helper. Native Django applied-state graph and physical introspection provide the evidence. No full service file acceptance.",
+      "family_dispositions": {
+        "database_management": "Existing service create/drop/duplicate/rename/exist/list functions; selected exclusive creation and provision/migration consumers reviewed. Full lifecycle acceptance not_verified.",
+        "backup_restore_filestore": "Existing pg_dump/restore stream path; no changes or acceptance inferred.",
+        "database_selection": "Existing HTTP host filtering/monodb; request consumers pending TASK-API-0381 ownerNULL.",
+        "connection_and_transactions": "Native PostgreSQL maintenance autocommit and Django aliases/atomic/Savepoint; test resources only.",
+        "initialization_and_migration": "New selected unit checks known applied state before actual migration; new schema creation remains native migrate; bulk per-base error aggregation preserved.",
+        "reference_admin_security_and_demo": "Not automatic Consumer obligations; no new admin credentials, model registry, demo or productive policy acceptance in this unit."
+      },
+      "acceptance": "not_verified",
+      "source_revision": "2807e5ba5de97d6d0a3939a2c8984f2ba6ed249b",
+      "behavior": "Fail closed before migrate when known applied migration state requires missing managed tables; bulk uses target company context and continues other bases",
+      "execution_flow": "Validate target -> install native alias -> company_scope(target text) -> MigrationLoader/check_consistent_history -> applied project state -> router-filtered tables/M2M -> introspection -> native migrate",
+      "inputs_outputs": "Existing or fresh company alias, applied known recorder entries and physical catalog -> migration result or DatabaseSchemaIncomplete; bulk preserves per-base status/error list",
+      "side_effects": "Preflight reads recorder/catalog only; no history rewrite, automatic repair, shared QA, new persisted identities or Provider changes. Later native migrate retains existing side effects.",
+      "dependencies": [
+        "Django MigrationLoader and graph/project_state",
+        "Historical StateApps/model can_migrate including swapped/managed/proxy",
+        "CompanyDatabaseRouter.allow_migrate_model",
+        "PostgreSQL table introspection",
+        "company_scope and install_company_aliases",
+        "Existing metadata proposal remains pending DEC-AISL-05 review"
+      ],
+      "consumers": [
+        "provision_company_database -> company_create and web database_create",
+        "migrate_all_company_databases -> existing bulk consumers; no absent DB creation"
+      ],
+      "installed_mechanism": "src/service/db.py::_check_applied_schema; _migrate_company_database; DatabaseSchemaIncomplete",
+      "existing_adaptation": "Native Django migration state/table introspection, not copied Odoo registry or second Provider mechanism",
+      "verification": {
+        "orchestration": "RED2failed11passed exit1; GREEN17passed exit0",
+        "postgres": "Partial known state admits pending tables; missing contenttypes table rejected; missing auto-created auth_group_permissions rejected; applied sessions excluded by native company router admitted; recorder and sentinel retained; each independent own resource cleaned",
+        "negative_control": "In-memory no-op detector causes expected assertion exit1",
+        "initial_instrument_failure": "Set nodes rejected by native graph TypeError exit1, fixed to sorted sequence; raw failure preserved",
+        "mandatory_ci": {
+          "result": "BASELINE_FAILURE",
+          "pytest_exit": 1,
+          "make_exit": 2,
+          "passed": 77,
+          "skipped": 1,
+          "errors": 1,
+          "seconds": 455.78,
+          "first_failure": "ProductProduct.display_name in TestCartSnapshotsV2.test_saves_cart_and_returns_200",
+          "junit": "outputs/schema-preflight-ci.junit.xml",
+          "log": "outputs/schema-preflight-ci.log",
+          "remaining_tests": "NOT_EVALUATED after maxfail=1",
+          "source_revision": "2807e5ba5de97d6d0a3939a2c8984f2ba6ed249b",
+          "comparison": "Same first failure in published a699454f remote run40034493718; no new regression demonstrated by evaluated tests",
+          "acceptance": "not_verified"
+        },
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "supplementary_service_suite": "75PASS6setupERROR exit1: invalid non-database harness for6Savepoint DB cases; no product/regression or acceptance inference; ephemeral dummy literals sanitized in retained log",
+        "prior_remote_ci": "a699454f run40034493718:77PASS1SKIP1ERROR506.70s,Make2,ProductProduct.display_name"
+      },
+      "equivalence": "Bounded adapted initialization/migration safety demonstrated; not full service/db.py or loading.py equivalence",
+      "limitations": "No column/constraint/data certification, unknown-only migration history certification, historical repair, concurrent administrator DDL guarantee, full Registry/model/version loader acceptance or metadata policy acceptance",
+      "integration": {
+        "PR": 109,
+        "merge": false,
+        "official_status": "pending",
+        "acceptance": "not_verified"
+      },
+      "consumer_after_sha256": "a6d61c410297b1f4a3bb69b828cc8df47966d0df2861a02bc6755ee9bc790fde",
+      "consumer_inventory_after": {
+        "name": "db.py",
+        "lines": 695,
+        "classes": [
+          {
+            "name": "Savepoint",
+            "lineno": 27,
+            "decorators": [],
+            "methods": [
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "__init__",
+                "lineno": 53,
+                "signature": {
+                  "params": [
+                    "connection"
+                  ],
+                  "has_default": [
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "__enter__",
+                "lineno": 58,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "__exit__",
+                "lineno": 61,
+                "signature": {
+                  "params": [
+                    "exc_type",
+                    "exc_val",
+                    "exc_tb"
+                  ],
+                  "has_default": [
+                    false,
+                    false,
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "close",
+                "lineno": 64,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [
+                    "rollback"
+                  ],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "rollback",
+                "lineno": 68,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "Savepoint",
+                "name": "_close",
+                "lineno": 71,
+                "signature": {
+                  "params": [
+                    "rollback"
+                  ],
+                  "has_default": [
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              }
+            ]
+          },
+          {
+            "name": "DatabaseManagementDisabled",
+            "lineno": 78,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "DatabaseSchemaIncomplete",
+            "lineno": 82,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "DatabaseExists",
+            "lineno": 86,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "RestoreFailed",
+            "lineno": 90,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "_DumpStream",
+            "lineno": 562,
+            "decorators": [],
+            "methods": [
+              {
+                "kind": "method",
+                "owner": "_DumpStream",
+                "name": "__init__",
+                "lineno": 571,
+                "signature": {
+                  "params": [
+                    "proc"
+                  ],
+                  "has_default": [
+                    false
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "_DumpStream",
+                "name": "read",
+                "lineno": 574,
+                "signature": {
+                  "params": [
+                    "size"
+                  ],
+                  "has_default": [
+                    true
+                  ],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              },
+              {
+                "kind": "method",
+                "owner": "_DumpStream",
+                "name": "close",
+                "lineno": 577,
+                "signature": {
+                  "params": [],
+                  "has_default": [],
+                  "vararg": null,
+                  "kwonly": [],
+                  "kwarg": null
+                },
+                "body": "substantive",
+                "decorators": []
+              }
+            ]
+          }
+        ],
+        "functions": [
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "build_company_alias",
+            "lineno": 109,
+            "signature": {
+              "params": [
+                "base_default",
+                "db_name"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "build_company_databases",
+            "lineno": 121,
+            "signature": {
+              "params": [
+                "db_names",
+                "base_default"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "install_company_aliases",
+            "lineno": 131,
+            "signature": {
+              "params": [
+                "databases",
+                "names",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "list_all_schema_names",
+            "lineno": 156,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "filter_company_dbs",
+            "lineno": 166,
+            "signature": {
+              "params": [
+                "names",
+                "pattern"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "list_company_db_names",
+            "lineno": 175,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "db_filter",
+            "lineno": 184,
+            "signature": {
+              "params": [
+                "dbs",
+                "host",
+                "dbfilter",
+                "db_name"
+              ],
+              "has_default": [
+                false,
+                false,
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "db_list_for_host",
+            "lineno": 222,
+            "signature": {
+              "params": [
+                "host",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "db_monodb",
+            "lineno": 231,
+            "signature": {
+              "params": [
+                "host",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "close_db",
+            "lineno": 245,
+            "signature": {
+              "params": [
+                "alias"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "close_all",
+            "lineno": 255,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "quote_db_identifier",
+            "lineno": 264,
+            "signature": {
+              "params": [
+                "name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_maintenance_cursor",
+            "lineno": 276,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_connect",
+            "lineno": 295,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "closing_cursor",
+            "lineno": 319,
+            "signature": {
+              "params": [
+                "conn"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "contextmanager"
+            ]
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "ensure_management_enabled",
+            "lineno": 328,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "database_exists",
+            "lineno": 335,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "create_empty_database",
+            "lineno": 345,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_install_extensions",
+            "lineno": 368,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "kill_connections",
+            "lineno": 383,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "drop_database",
+            "lineno": 408,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "create_database",
+            "lineno": 421,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_check_applied_schema",
+            "lineno": 434,
+            "signature": {
+              "params": [
+                "db_name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_migrate_company_database",
+            "lineno": 463,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "provision_company_database",
+            "lineno": 474,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "duplicate_database",
+            "lineno": 497,
+            "signature": {
+              "params": [
+                "src_name",
+                "dst_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_pg_env",
+            "lineno": 528,
+            "signature": {
+              "params": [
+                "using"
+              ],
+              "has_default": [
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "dump_database",
+            "lineno": 582,
+            "signature": {
+              "params": [
+                "db_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "restore_database",
+            "lineno": 604,
+            "signature": {
+              "params": [
+                "db_name",
+                "dump_path",
+                "using"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "rename_database",
+            "lineno": 636,
+            "signature": {
+              "params": [
+                "old_name",
+                "new_name",
+                "using"
+              ],
+              "has_default": [
+                false,
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "_ensure_alias_registered",
+            "lineno": 656,
+            "signature": {
+              "params": [
+                "name",
+                "base_default"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "function",
+            "owner": null,
+            "name": "migrate_all_company_databases",
+            "lineno": 668,
+            "signature": {
+              "params": [
+                "names",
+                "using"
+              ],
+              "has_default": [
+                true,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ],
+        "raw": 47,
+        "unique": 45
+      }
+    },
+    "current_fixture_qualification": {
+      "task": "TASK-API-0383",
+      "source_revision": "3fb301a542c218981aed5eb8274003083671c0b5",
+      "fixture_source_revision": "4b67be0f",
+      "fixture_AST_unchanged": true,
+      "service_preflight_revision": "2807e5ba",
+      "verification": {
+        "cases": 5,
+        "pytest_exit": 0,
+        "probe_exit": 0,
+        "seconds": 878.16,
+        "suites": [
+          {
+            "name": "pytest",
+            "errors": "0",
+            "failures": "0",
+            "skipped": "0",
+            "tests": "5",
+            "time": "878.154",
+            "timestamp": "2026-10-24T12:36:26.099501",
+            "hostname": "550e3b387ddd"
+          }
+        ],
+        "resource_controls": "PASS preexisting sentinel, partialDDL cleanup, extension failure retention",
+        "cleanup": "Independent exact role/database check PASS, zero remaining; source blocker/native connection protections retained",
+        "CI": "Reused312b7fb6 Make2 baseline only after exact production/tests/gate source equivalence; current remote3fb JUnit baseline independently recovered",
+        "evidence": "current-isolation-qualification.json; current-isolation-functional.junit.xml; current-isolation-cleanup.json; current-isolation-qualification.log"
+      },
+      "instrument_sha256": "fdf04f9691c9d6be0d95584c3b73ef6818c0a984f531f042af360ab77069e915",
+      "scope": "Complete native company provisioner and5domain/schema cases; not whole authentication/authorization, Registry, policy or installation acceptance",
+      "official_status": "pending",
+      "acceptance": "not_verified",
+      "merge": false
+    }
+  },
+  "consumer_loading_inventory": {
+    "name": "loading.py",
+    "lines": 133,
+    "classes": [],
+    "functions": [
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "reset_modules_state",
+        "lineno": 19,
+        "signature": {
+          "params": [
+            "using"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "_check_module_names",
+        "lineno": 43,
+        "signature": {
+          "params": [
+            "cr",
+            "module_names"
+          ],
+          "has_default": [
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "load_data",
+        "lineno": 63,
+        "signature": {
+          "params": [
+            "idref",
+            "mode",
+            "kind",
+            "package"
+          ],
+          "has_default": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [
+            "using"
+          ],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      },
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "load_demo",
+        "lineno": 91,
+        "signature": {
+          "params": [
+            "env",
+            "package",
+            "idref",
+            "mode"
+          ],
+          "has_default": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      }
+    ],
+    "raw": 4,
+    "unique": 4
+  },
+  "consumer_loading_sha256": "e7f1396d427dfac5435263b09f6b716b2ce010cada0842172f5826bea32a7516",
+  "current_support_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/loading-support-summary.json",
+  "supplemental_source_review": {
+    "scope": "Full pinned loading.py source reviewed incrementally against existing inventory; no second extraction authority",
+    "imports": "Runtime datetime/itertools/logging/sys/time/typing/traceback; Odoo SQL/translation/api/tools/OrderedSet/converter; module DB bootstrap, MigrationManager, path/version/import helpers, ModuleGraph and Registry. TYPE_CHECKING holds collection/Environment/BaseCursor/test-result/ModuleNode annotations and LoadKind literal.",
+    "attributes": "Module _logger only mutable module assignment; per-call local registries, graph/package state, registry updated/init/reinit/force-script and constraint/field collections mutate during full loading. These are not separate business requirements.",
+    "decorators_inheritance_dynamic": "No top-level classes/decorators/inheritance or nested named function declarations in this source inventory. Dynamic addon import and hook lookup, per-base Registry recreation, environment model lookup and local test-loader import affect runtime and are explicitly pending.",
+    "transactions_concurrency": "Actual DB cursor required by Odoo load_module_graph; lock_timeout15s during schema loading, per-module successful writes commit, uninstall commits then reloads. reset_modules_state independent transaction preserved separately. No automatic equivalence to Django atomic/INSTALLED_APPS.",
+    "errors": "Missing base raises ImportError; demo errors optional, hook/migration/schema failures propagate; missing dependency/state/custom-view/ACL inconsistencies have distinct diagnostics. Failures are not all equivalent or silently ignored.",
+    "acceptance": "not_verified for file-wide obligations; seven named function entries are declaration coverage, not contractual denominator"
+  },
+  "applicable_responsibility_reconciliation": {
+    "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "structural_authority": "Existing reference_inventory:7module functions, plus imports/type alias/dependencies/supplemental source review;7is not a contractual denominator",
+    "representation": "Views over existing symbols and Consumer mechanisms, not a new registry/taxonomy/plan",
+    "responsibilities": [
+      {
+        "responsibility": "Module discovery",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "modules.module.get_modules/load_manifest",
+          "IrModule.get_module_info",
+          "update_module_list.Command"
+        ],
+        "task_relationship": "TASK-API-0382; related TASK-API-0265 pending owner codex-module-lifecycle (authorized owner assignment; bounded HTTP verification5a84f1ff)",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Manual discovery/catalogue refresh exists; no automatic bootstrap consumer found in inspected config/service/modules; pending TASK does not prove absent implementation",
+        "historical_relationship": "TASK-API-0382; related TASK-API-0265 pending ownerNULL",
+        "current_ownership_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/current-native-tasks.json; owner-only authorization retained, states unchanged"
+      },
+      {
+        "responsibility": "Module selection",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "IrModule._request_module_change",
+          "ModuleGraph.from_database/extend"
+        ],
+        "task_relationship": "TASK-API-0382; related TASK-API-0269 pending owner codex-module-lifecycle",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Graph selection verified, but process-wide Django app/model availability is not effective per-base selection",
+        "historical_relationship": "TASK-API-0382; related TASK-API-0269 pending ownerNULL",
+        "current_ownership_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/view-seed-current-native-tasks.json"
+      },
+      {
+        "responsibility": "Dependency resolution",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "ModuleGraph",
+          "IrModuleDependency",
+          "IrModule._request_module_change"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Manifest and persisted dependency requests supported; full dynamic install/reinit/remove cycle pending"
+      },
+      {
+        "responsibility": "Graph preparation",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "ModuleGraph.from_database/extend"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Current physical A/B catalogues and incremental contracts verified; not execution of selected packages"
+      },
+      {
+        "responsibility": "Effective Registry composition",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "Registry.new -> _ensure_seeded",
+          "Registry.init copies process MODELS_BY_NAME",
+          "Registry.load collects global Django app models"
+        ],
+        "task_relationship": "TASK-API-0382 per-base installation; historical Registry ordinal342 lacks stable scope authority",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "not_verified",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Registry.new now rejects unsupported lifecycle requests before metadata/cache replacement; no-request metadata-ready path remains. Effective per-base models, Environment registry integration and full installation remain not_verified.",
+        "historical_factory_boundary": "Registry.new stores requests and marks ready without executing them; mapping-only filtering cannot qualify inherited fields/methods or Environment resolution. Atomic Registry ownership/reconciliation required; #342 currently resolves unrelated stock0187",
+        "bounded_current_verification": "registry-readiness-contract-14.json:143PASS, no full composition acceptance"
+      },
+      {
+        "responsibility": "Schema initialization",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "Native migrate/service.db provisioner",
+          "Known applied-schema preflight",
+          "Registry.init_models checks/reflects, not Django DDL"
+        ],
+        "task_relationship": "TASK-API-0383 owner codex-module-lifecycle; linked0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Current3fb fixture5PASS with complete native provisioner; known migration preflight/safety controls PASS. No whole module/Registry installation or metadata policy acceptance."
+      },
+      {
+        "responsibility": "Data loading",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_data",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "modules.loading.load_data",
+          "tools.convert.convert_file"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Order/idrefs/duplicates/alias/failure controls retained; outer installation caller/acceptance pending"
+      },
+      {
+        "responsibility": "Demo loading",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_demo",
+          "odoo/modules/loading.py::force_demo",
+          "odoo/modules/loading.py::load_module_graph"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "modules.loading.load_demo"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Bounded savepoint/report behavior verified; force_demo requires effective ready Registry/rebuild/reset not yet qualified"
+      },
+      {
+        "responsibility": "Hooks",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::load_modules"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "Manifest retains supplied hook keys",
+          "No hook execution path in current modules.loading"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "not_verified",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Pre/post/uninstall ordering and failure rollback require model/schema/lifecycle admission; no synthetic callbacks or success claims added"
+      },
+      {
+        "responsibility": "State persistence",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::reset_modules_state"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "IrModule._request_module_change atomic transient requests",
+          "reset_modules_state independent recovery"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Requests and recovery supported; no successful loader installs/finalizes catalogue state"
+      },
+      {
+        "responsibility": "Installed version finalization",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::load_modules"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "IrModule.installed_version nullable persistence and migration0088",
+          "ModuleNode installed/load version snapshots"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "not_verified",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Persisted field and snapshots verified; no success-only installation/version producer. update_module_list refreshes manifest metadata, not installed provenance"
+      },
+      {
+        "responsibility": "Registry invalidation",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::force_demo"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "Existing Registry cache/signaling methods"
+        ],
+        "task_relationship": "TASK-API-0382; related cache/Registry work retained in AS IS",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Existing mechanisms do not prove module lifecycle invokes rebuild/transaction reset/worker invalidation"
+      },
+      {
+        "responsibility": "Error recovery",
+        "reference_symbols": [
+          "odoo/modules/loading.py::reset_modules_state",
+          "odoo/modules/loading.py::load_modules"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "reset_modules_state",
+          "Registry.new removes failed cached instance"
+        ],
+        "task_relationship": "TASK-API-0382",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Independent recovery transaction controls verified; full failed installation caller/rollback/recovery integration pending"
+      },
+      {
+        "responsibility": "Transaction boundaries and request validation",
+        "reference_symbols": [
+          "odoo/modules/loading.py::_check_module_names",
+          "odoo/modules/loading.py::load_data",
+          "odoo/modules/loading.py::load_demo",
+          "odoo/modules/loading.py::reset_modules_state",
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::load_modules",
+          "odoo/modules/loading.py::force_demo"
+        ],
+        "contract_details_authority": "Existing qualified-symbol14element contract_records; these composite relationships add no new contract identity",
+        "consumer_mechanisms": [
+          "Django atomic/savepoints",
+          "Explicit alias checks",
+          "reset nesting refusal",
+          "IrModule select_for_update requests"
+        ],
+        "task_relationship": "TASK-API-0382; physical isolation linked0383",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading/data/demo/reset and incremental/physical evidence in orm-demo-continuation-20261023T144219",
+        "limitations_and_dependencies": "Bounded controls preserved; per-module commit/rebuild, schema hooks and consistency of full installation not yet demonstrated"
+      },
+      {
+        "contract_details_authority": "Existing load_modules/load_module_graph qualified-symbol14element records; not a new contract identity",
+        "task_relationship": "TASK-API-0382; native migration dependencies and installed-version provenance retained",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "not_verified",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading bank and modules package H-API-231 reconciliation",
+        "responsibility": "Pre/post/end migration phases",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::load_modules"
+        ],
+        "consumer_mechanisms": [
+          "Native Django migrations",
+          "No qualified per-module version-selected MigrationManager counterpart in current loader"
+        ],
+        "limitations_and_dependencies": "Physical migration order alone does not prove source pre/post/end selection, script hooks or rollback at installed-version boundaries"
+      },
+      {
+        "contract_details_authority": "Existing load_modules/load_module_graph qualified-symbol14element records; not a new contract identity",
+        "task_relationship": "TASK-API-0382; native migration dependencies and installed-version provenance retained",
+        "owner_for_0382": "codex-module-lifecycle",
+        "status": "not_verified",
+        "acceptance": "not_verified",
+        "verification_authority": "Existing loading bank and modules package H-API-231 reconciliation",
+        "responsibility": "Uninstall, reload and fixed-point requests",
+        "reference_symbols": [
+          "odoo/modules/loading.py::load_module_graph",
+          "odoo/modules/loading.py::load_modules"
+        ],
+        "consumer_mechanisms": [
+          "IrModule.button_uninstall schedules to remove",
+          "IrModule._request_module_change auto-install fixed-point scheduling",
+          "ModuleGraph supports incremental catalogue extensions"
+        ],
+        "limitations_and_dependencies": "No effective uninstall/model removal/Registry rebuild or repeated load-until-stable execution; requests remain distinct from execution"
+      }
+    ],
+    "unmapped_qualified_declarations": [],
+    "file_acceptance": "not_verified",
+    "next_functional_admission_boundary": "Whole load_modules/load_module_graph/force_demo depend on effective Registry/model composition, catalogue bootstrap reconciliation and policy/ownership gates; no unowned TASK automatically admitted",
+    "reference_specific_limits": "Odoo test runner/query counters and Environment internals are not automatically separate Consumer business requirements. Native pytest/logging, transactions and Registry contracts require explicit equivalence; no blanket authorized exclusion or acceptance asserted."
+  },
+  "current_authorized_related_units": {
+    "tasks": {
+      "TASK-API-0265": {
+        "native_id": "449",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "HTTP55PASS5a84f1ff; required CI Make2 baseline display_name; acceptance pending"
+      },
+      "TASK-API-0269": {
+        "native_id": "456",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "Startup app/model admission 5744db36; 21 PASS; whole TASK not accepted"
+      },
+      "TASK-API-0267": {
+        "native_id": "452",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "Category tree/FK/source path metadata/guarded historical migration/HTTP adapter implemented and bounded verified",
+        "contract": "orm-demo-continuation-20261023T144219/outputs/category-tree-contract-14.json",
+        "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798",
+        "verification": {
+          "catalogue_tests": 78,
+          "catalogue_exit": 0,
+          "historical_schema_controls": 5,
+          "historical_schema_exit": 0,
+          "alias_guard_red_exit": 1,
+          "alias_guard_green_exit": 0,
+          "alias_scope": "two connections/namespaces, one owned physical DB; not productive N>1",
+          "error_storage_controls": 2,
+          "error_storage_exit": 0,
+          "bootstrap_exit": 0,
+          "global_ci": {
+            "make_exit": 2,
+            "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798",
+            "command": "make ci-verify",
+            "acceptance": false,
+            "pytest_exit": 1,
+            "passed": 146,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 474.59,
+            "first_failure": "ResCountry.DoesNotExist through ResCompany.country_code, TestRecalculateTaxTagsErrors.test_child_tax_shared_by_two_parents_is_422",
+            "classification": "BASELINE_FAILURE: exact ae949aa8 focused case reproduces same ResCountry.DoesNotExist; new computed-group KeyError fixed separately",
+            "later_suite": "NOT_EVALUATED",
+            "new_regression_scope": "Related-setup stale group and category alias fallback found and fixed by bounded controls; unexecuted suite not declared regression-free"
+          },
+          "preserved_probes": "16names differential and reset SQL controls exit0, own resource cleanup independently0"
+        },
+        "acceptance": "pending",
+        "integration": "published source5943be0c in PR109; no merge or acceptance",
+        "broader_task": "TASK-GEN-0058 ownerNULL not executed or closed"
+      },
+      "TASK-GEN-0633": {
+        "native_id": "1203",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "source_revision": "c2d0d10d5ead906cd5241e0286de9a0e97692926",
+        "unit": "Five historical assignment failures corrected;13new discriminating cases plus existing regressions; shared setter notifications and cache invalidation reconciled",
+        "verification": {
+          "refined": {
+            "tests": 50,
+            "exit": 0
+          },
+          "defaults": {
+            "tests": 40,
+            "exit": 0
+          },
+          "neighbors": {
+            "tests": 165,
+            "exit": 0
+          },
+          "native_unittest_recompute": {
+            "tests": 16,
+            "exit": 0
+          },
+          "historical64": {
+            "passed": 14,
+            "failed": 50,
+            "exit": 1
+          },
+          "global_ci": {
+            "source_revision": "c2d0d10d5ead906cd5241e0286de9a0e97692926",
+            "make_exit": 2,
+            "pytest_exit": 1,
+            "passed": 77,
+            "skipped": 1,
+            "errors": 1,
+            "seconds": 438.32,
+            "first_error": "ProductProduct.display_name, setup TestCartSnapshotsV2.test_saves_cart_and_returns_200",
+            "classification": "BASELINE_FAILURE: same first error in prior local and remote JUnit; later suite NOT_EVALUATED",
+            "evidence": [
+              "display-name-assignment-ci.log",
+              "display-name-assignment-ci.junit.xml"
+            ]
+          }
+        },
+        "qualified_symbols": {
+          "odoo19c:BaseModel._compute_display_name": "orm.models.DisplayNameMixin._compute_display_name",
+          "odoo19c:ResPartner._compute_display_name": "addons.base.models.res_partner.ResPartner._compute_display_name",
+          "odoo19c:Field.__set__": "orm.fields.FieldDescriptor.__set__ (inherited by ComputedFieldDescriptor)",
+          "odoo19c:Field.__get__": "orm.fields.FieldDescriptor.__get__"
+        },
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/display-name-assignment-contract-14.json",
+        "limits": "Historical64 now20PASS44FAIL, same stable population; no whole-file acceptance, official state change, merge or managed inference",
+        "product_followup": {
+          "source_revision": "2b249be82a8acec2fd2f280342d13a7fc505c189",
+          "task_reconciliation": "orm-demo-continuation-20261023T144219/outputs/product-display-name-task-reconciliation.json",
+          "implementation": [
+            "addons/product/models/product_product.py:ProductProduct._compute_display_name",
+            "src/orm/models.py:_notify_m2m_modified"
+          ],
+          "reference": [
+            "odoo19c:addons/product/models/product_product.py:ProductProduct._compute_display_name",
+            "odoo19c:odoo/orm/fields.py:Field.__get__/compute_value"
+          ],
+          "verification": {
+            "contract": {
+              "tests": 12,
+              "exit": 0
+            },
+            "consumers": {
+              "tests": 54,
+              "exit": 0
+            },
+            "regression": {
+              "tests": 106,
+              "exit": 0
+            },
+            "global_ci": {
+              "source_revision": "2b249be82a8acec2fd2f280342d13a7fc505c189",
+              "make_exit": 2,
+              "pytest_exit": 1,
+              "passed": 146,
+              "skipped": 1,
+              "failed": 1,
+              "seconds": 469.44,
+              "first_failure": "ResCompany.country_code KeyError in field_computed; TestRecalculateTaxTagsErrors.test_child_tax_shared_by_two_parents_is_422",
+              "classification": "Distinct current failure under diagnosis: exact ae949aa8 targeted baseline fails with ResCountry.DoesNotExist, not this KeyError. Do not conflate error identities.",
+              "later_suite": "NOT_EVALUATED"
+            }
+          },
+          "equivalence": "Bounded Consumer assignment/invalidation, not full product formatting or whole-file acceptance",
+          "acceptance": "pending",
+          "integration": "local commit, PR109 open, no merge"
+        },
+        "related_setup_followup": {
+          "source_revision": "f1e2386f",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/related-setup-contract-14.json",
+          "new_controls": 3,
+          "broad_passed": 92,
+          "broad_inherited_failed": 3,
+          "acceptance": "pending"
+        },
+        "current_historical64": {
+          "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798",
+          "passed": 14,
+          "failed": 50,
+          "exit": 1,
+          "evidence": "orm-demo-continuation-20261023T144219/outputs/category-historical64.junit.xml"
+        },
+        "schema_fixture_reconciliation": {
+          "source_revision": "093cdfd708c02b9043b39f36e0bed09b628f3d73",
+          "full_files_pass": 61,
+          "historical64": {
+            "passed": 16,
+            "failed": 48,
+            "exit": 1
+          },
+          "qualification": "two fixture criteria corrected after pinned-source proof, not two runtime bugs fixed; denominator unchanged",
+          "evidence": "orm-demo-continuation-20261023T144219/outputs/historical-64-reconciliation.json"
+        },
+        "computed_many2one_followup": {
+          "source_revision": "09974556a9e0cc53674693d80ad71a396b452bd7",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/computed-many2one-contract-14.json",
+          "focused": {
+            "passed": 89,
+            "exit": 0
+          },
+          "expanded": {
+            "passed": 45,
+            "failed": 4,
+            "exit": 1,
+            "classification": "same four historical display-name controls"
+          },
+          "full_ci": {
+            "source_revision": "09974556a9e0cc53674693d80ad71a396b452bd7",
+            "make_exit": 2,
+            "command": "make ci-verify",
+            "pytest_exit": 1,
+            "passed": 826,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 621.45,
+            "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+            "classification": "BASELINE_FAILURE: executable exact093cdfd7 focused comparison fails same Incoterm assertion",
+            "later_tests": "NOT_EVALUATED",
+            "acceptance": false,
+            "evidence": [
+              "computed-many2one-ci.log",
+              "computed-many2one-ci.junit.xml",
+              "incoterm-current.junit.xml",
+              "incoterm-baseline-093-executable.junit.xml"
+            ]
+          },
+          "scope": "optional nonstored relation absence and native Django FK cache invalidation; no constructor/public scalar protocol/persistent schema change",
+          "acceptance": "pending",
+          "integration": "local source09974556; no merge/acceptance"
+        },
+        "historical_verifier_reconciliation": {
+          "source_revision": "875a4aeb72c9458db662ae541bccbb6b387b8034",
+          "tests_passed": 23,
+          "checker_models": 391,
+          "checker_exit": 0,
+          "historical64": {
+            "passed": 20,
+            "failed": 44,
+            "exit": 1
+          },
+          "scope": "Pinned criterion reconciliation; negative property/metadata/foreign descriptor/read-only cases retained; no productive compute change",
+          "full_head_ci": "NOT_EVALUATED; latest complete09974556 remains FAIL, not transferable whole-head PASS"
+        },
+        "related_inverse_followup": {
+          "scope": "Generic related inverse actual Django shape/snapshot and real stored scalar persistence at explicit dispatch",
+          "source_commit": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/related-inverse-contract-14.json",
+          "native_reconciliation": "orm-demo-continuation-20261023T144219/outputs/related-inverse-native-reconciliation.json",
+          "verification": {
+            "initial_red": {
+              "passed": 1,
+              "failed": 8,
+              "exit": 1
+            },
+            "normalized_red": {
+              "passed": 1,
+              "failed": 8,
+              "exit": 1
+            },
+            "initial_green": {
+              "passed": 9,
+              "exit": 0
+            },
+            "regression": {
+              "passed": 109,
+              "new_controls": 12,
+              "exit": 0
+            },
+            "independent_sql_cases": 2,
+            "independent_sql_exit": 0,
+            "historical64": {
+              "passed": 20,
+              "failed": 44,
+              "exit": 1
+            },
+            "final_combined_regression": {
+              "passed": 180,
+              "exit": 0
+            },
+            "final_full_ci": {
+              "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+              "make_exit": 2,
+              "execution_status": "COMPLETED_FAILURE",
+              "command": "make ci-verify",
+              "pytest_exit": 1,
+              "passed": 838,
+              "skipped": 1,
+              "failed": 1,
+              "seconds": 607.55,
+              "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+              "classification": "BASELINE_FAILURE relative2137fad6, exact093cdfd7 targeted reproduction preserved",
+              "new_related_inverse_cases_in_full_ci": 12,
+              "later_tests": "NOT_EVALUATED",
+              "whole_head_acceptance": false,
+              "binary_diagnostic": "Direct compiled helper preserves Incoterm; no stale-helper defect demonstrated"
+            }
+          },
+          "identity": "Native1203 owned;0412 completed predecessor not reopened;0418/0419 unowned not executed",
+          "limitations": "No ordinary-assignment SQL, BaseModel rewrite, whole inverse/Field acceptance, full caller atomicity or physical N>1 claim",
+          "acceptance": "pending",
+          "integration": "local source commit, hooks PASS; full CI RUNNING",
+          "protocol_followup": {
+            "source_revision": "b87396fa",
+            "new_regression": "c4055e1c queried pk on existing non-Django protocol target; current1FAIL1PASS, parent-method2PASS, fixed2PASS",
+            "interrupted_ci": {
+              "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+              "passed": 310,
+              "skipped": 1,
+              "pytest_exit": 2,
+              "make_exit": 2,
+              "status": "INTERRUPTED after independent NEW_REGRESSION proof"
+            },
+            "original_tests_changed": false
+          }
+        },
+        "unsaved_modified_followup": {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/unsaved-modified-contract-14.json",
+          "classification": "NEW_REGRESSION of session/shared setter; ae949targetPASS,093targetFAIL, not accepted inherited debt",
+          "verification": {
+            "red_refined": {
+              "passed": 3,
+              "failed": 6,
+              "exit": 1
+            },
+            "manager_boundary": {
+              "passed": 7,
+              "failed": 2,
+              "exit": 1
+            },
+            "green": {
+              "passed": 32,
+              "new_controls": 9,
+              "exit": 0
+            },
+            "regression": {
+              "passed": 180,
+              "exit": 0
+            },
+            "historical64": {
+              "passed": 20,
+              "failed": 44,
+              "exit": 1
+            }
+          },
+          "BaseModel_class_AST_unchanged": true,
+          "scope": "Existing global Django event/cache bridge, no new store/IDs/schema or complete recordset claim",
+          "full_ci": {
+            "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+            "make_exit": 2,
+            "execution_status": "COMPLETED_FAILURE",
+            "command": "make ci-verify",
+            "pytest_exit": 1,
+            "passed": 838,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 607.55,
+            "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+            "classification": "BASELINE_FAILURE relative2137fad6, exact093cdfd7 targeted reproduction preserved",
+            "new_related_inverse_cases_in_full_ci": 12,
+            "later_tests": "NOT_EVALUATED",
+            "whole_head_acceptance": false,
+            "binary_diagnostic": "Direct compiled helper preserves Incoterm; no stale-helper defect demonstrated"
+          },
+          "integration": "Local source2137, full gate failure preserved; publication verification pending"
+        },
+        "category_display_followup": {
+          "source_revision": "c2d8fce8c482c0a9816e6d58bbfd782e0d768a69",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/category-display-contract-14.json",
+          "verification": "122PASS, no final source-specific whole CI acceptance",
+          "acceptance": "not_verified"
+        },
+        "fiscal_fields_followup": {
+          "source_revision": "f3623e313f67f5a2c010987db26e054540fe0db9",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/fiscal-fields-contract-14.json",
+          "verification": "Actual fresh PostgreSQL114PASS, all prior39fiscal/47cache cases retained; required4b29 CI1850PASS1SKIP1FAIL at proven inherited StockLot label",
+          "block": "Prior cleanup block resolved by explicit user authorization; old resource independently absent0/0; current harness active",
+          "acceptance": "not_verified"
+        },
+        "stock_lot_display_followup": {
+          "source_revision": "3806ec77c3090419871999becf711cb4f906c613",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/stock-lot-display-contract-14.json",
+          "verification": "RED10FAIL1PASS plus new-rowRED1FAIL; assignment-only11FAIL1PASS demonstrates stale format; complete30PASS; neighborhood297PASS after move correction",
+          "acceptance": "not_verified"
+        },
+        "stock_move_display_followup": {
+          "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/stock-move-display-contract-14.json",
+          "verification": "Exact093 baselineFAIL;4REDFAIL;16persistencePASS and297stock/expiryPASS; supplier context not qualified",
+          "acceptance": "not_verified"
+        },
+        "current_required_ci": {
+          "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+          "make_exit": 2,
+          "command": "make ci-verify",
+          "execution_status": "COMPLETED_FAILURE",
+          "pytest_exit": 1,
+          "passed": 2224,
+          "skipped": 1,
+          "failed": 1,
+          "seconds": 901.47,
+          "first_failure": "tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_creates_no_column",
+          "classification": "BASELINE_FAILURE: exact093 reproduces same metadata assertion; metadata visibility is not physical-column proof",
+          "baseline_evidence": "prefix-placeholder-baseline-093.junit.xml",
+          "later_tests": "NOT_EVALUATED",
+          "whole_head_acceptance": false
+        },
+        "historical64_current": {
+          "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+          "passed": 20,
+          "failed": 44,
+          "pytest_exit": 1,
+          "identity_changes": 0,
+          "junit": "current-historical64-replay.junit.xml",
+          "related_unowned": "Current0397/0417in_progressNULL and0418/0419pendingNULL; no execution inferred"
+        },
+        "current_block": {
+          "task": "TASK-API-0305",
+          "native_id": "520",
+          "status": "in_progress",
+          "owner": null,
+          "proposal": "analytic-prefix-ownership-proposal.json",
+          "proposal_executed": false,
+          "evidence": "Actual prefix metadata/physical introspectionPASS; old criterion fails; existing runtime reads4FAIL11PASS due default_get route",
+          "scope": "No unowned analytic block changes; no claim of global frontier exhaustion"
+        }
+      },
+      "TASK-API-0383": {
+        "native_id": "738",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "source_revision": "ebb08d9388214bd61578408d8c94a9898d33468a",
+        "unit": "App-owned late report seed repair completes existing base0070 canonical mapping without altering history, enum/schema or resolver",
+        "contract": "orm-demo-continuation-20261023T144219/outputs/view-seed-contract-14.json",
+        "verification": {
+          "focused_passed": 22,
+          "focused_exit": 0,
+          "alias_exit": 0,
+          "alias_scope": "Two connections on one owned PostgreSQL; not N>1 acceptance",
+          "global_ci": {
+            "source_revision": "ebb08d9388214bd61578408d8c94a9898d33468a",
+            "make_exit": 2,
+            "command": "make ci-verify",
+            "execution_status": "COMPLETED_FAILURE",
+            "pytest_exit": 1,
+            "passed": 1230,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 646.59,
+            "first_failure": "tests/integration/company/test_base_vat.py::test_partner_full_clean_rejects_bad_rfc",
+            "cause": "partner_fiscal_country_codes callable missing self in default_get -> field.get_default",
+            "classification": "BASELINE_FAILURE: exact093cdfd7 focused test reproduces same TypeError, exit1",
+            "later_tests": "NOT_EVALUATED",
+            "whole_head_acceptance": false,
+            "report_incoterm_in_full_ci": "PASS",
+            "baseline_evidence": "fiscal-default-baseline-093.junit.xml"
+          }
+        },
+        "acceptance": "not_verified",
+        "integration": "Local ebb08d93, required gate completed failure at proven inherited fiscal default after1230PASS; pending publication/acceptance",
+        "other_obligations": "Existing isolation fixture5PASS and cleanup retained, no rerun; whole authentication, authorization, metadata policy and historical recovery not accepted"
+      },
+      "TASK-API-0382": {
+        "native_id": "737",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "source_revision": "ec089c9a598183a53292421c14c1a55daf2c6f30",
+        "unit": "Reject unsupported lifecycle requests before Registry metadata initialization/replacement; preserve no-request path",
+        "contract": "orm-demo-continuation-20261023T144219/outputs/registry-readiness-contract-14.json",
+        "verification": {
+          "red_failed": 7,
+          "red_passed": 30,
+          "class_passed": 37,
+          "native_probe_exit": 0,
+          "registry_family_passed": 143,
+          "registry_family_exit": 0,
+          "global_ci": {
+            "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+            "make_exit": 2,
+            "command": "make ci-verify",
+            "execution_status": "COMPLETED_FAILURE",
+            "pytest_exit": 1,
+            "passed": 2224,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 901.47,
+            "first_failure": "tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_creates_no_column",
+            "classification": "BASELINE_FAILURE: exact093 reproduces same metadata assertion; metadata visibility is not physical-column proof",
+            "baseline_evidence": "prefix-placeholder-baseline-093.junit.xml",
+            "later_tests": "NOT_EVALUATED",
+            "whole_head_acceptance": false
+          }
+        },
+        "acceptance": "not_verified",
+        "remaining": "Effective per-base composition, full loader/hook/version/state cycle and installed module provenance remain not_verified; no unaccepted isolation state fabricated"
+      }
+    },
+    "authority": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/contractual-additional-ownership-assignment.json and contractual-ownership-assignment.json",
+    "scope": "Explicit user-approved owner-only updates through native TaskUpdate; statuses/dependencies preserved; older NULL-owner observations historical",
+    "contract": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/technical-catalogue-contract-14.json",
+    "acceptance": "No completed status, merge, per-base Registry acceptance or local model qualification implied"
+  }
+}

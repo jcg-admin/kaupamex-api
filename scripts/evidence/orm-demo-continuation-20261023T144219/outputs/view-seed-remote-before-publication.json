@@ -1,0 +1,28 @@
+{
+  "kaupamex-api": {
+    "number": 109,
+    "url": "https://github.com/jcg-admin/kaupamex-api/pull/109",
+    "state": "open",
+    "merged": false,
+    "head": "77ce83a67598fe5791872fec905de1d2434c1ae5",
+    "base": "develop",
+    "checks": [
+      {
+        "name": "test",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/40267624032/job/121393356952"
+      }
+    ]
+  },
+  "kaupamex-docs": {
+    "number": 154,
+    "url": "https://github.com/jcg-admin/kaupamex-docs/pull/154",
+    "state": "open",
+    "merged": false,
+    "head": "4286222002e326fc1cbb00d43838928582a3ae36",
+    "base": "develop",
+    "checks": []
+  },
+  "observed_at": "2026-10-26T04:27:50.796387+00:00"
+}

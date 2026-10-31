@@ -1,0 +1,16 @@
+{
+  "source_revision": "4b29e40e242b55ae49443609f6364331fce9bed0",
+  "make_exit": 2,
+  "command": "make ci-verify",
+  "execution_status": "COMPLETED_FAILURE",
+  "pytest_exit": 1,
+  "passed": 1850,
+  "skipped": 1,
+  "failed": 1,
+  "seconds": 832.74,
+  "first_failure": "tests/integration/sale/test_product_expiry.py::test_display_name_carries_the_expiration_and_relays_without_it",
+  "classification": "BASELINE_FAILURE: exact093cdfd7 focused test reproduces same StockLot compute failure, exit1",
+  "baseline_evidence": "stock-lot-display-baseline-093.junit.xml",
+  "later_tests": "NOT_EVALUATED",
+  "whole_head_acceptance": false
+}

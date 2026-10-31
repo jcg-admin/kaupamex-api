@@ -1,0 +1,23 @@
+{
+  "interface": "plan_items_from_rows; claims_ledger_rows; node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "inputs": [
+    {
+      "id": "TASK-API-0383.isolation_fixture_ownership",
+      "taskId": "TASK-API-0383",
+      "prompt": "Prevent legacy fixture dropping preexisting or never-created databases; delegate migration to existing provisioner without unskipping cases",
+      "verify": "Negative fixture setup controls prove preexisting/raced creation is not deleted and later failure cleans only owned resources",
+      "route": "local",
+      "owned": [
+        "tests/integration/company/test_multidb_isolation.py",
+        "tests/unit/service/test_isolation_fixture_safety.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "claims_count": 310,
+  "selected": [
+    "TASK-API-0383.isolation_fixture_ownership"
+  ],
+  "basis": "Existing738 explicitly owns qualification/reactivation of3isolation cases; actual fixture finally drops both fixed names after any setup failure. Safety verification independent from acceptance of policy/login/whole fixture."
+}

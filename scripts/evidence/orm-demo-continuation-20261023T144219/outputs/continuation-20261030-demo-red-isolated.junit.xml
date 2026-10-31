@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="4" time="0.124" timestamp="2026-10-30T17:54:47.344491" hostname="211a47b6160b"><testcase classname="" name="test_demo_logs_start_before_loading[False]" time="0.020"><failure message="AssertionError: assert False is True&#10; +  where False = &lt;function load_demo at 0x7fa6e315ade0&gt;(&lt;Environment uid=42 su=False company=None&gt;, namespace(name='demo_contract', id=17, manifest={'demo': ['demo.sql']}), {}, 'init')&#10; +    where &lt;function load_demo at 0x7fa6e315ade0&gt; = loading.load_demo&#10; +    and   &lt;Environment uid=42 su=False company=None&gt; = environment()">caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7fa6e30d07a0&gt;
+legacy_only = False
+
+    @pytest.mark.parametrize('legacy_only', [False, True])
+    def test_demo_logs_start_before_loading(caplog, legacy_only):
+        caplog.set_level('INFO', logger='modules.loading')
+    
+        def load(*args, **kwargs):
+            assert 'Module demo_contract: loading demo' in caplog.messages
+    
+        selected = (
+            package(demo=[], demo_xml=['legacy.xml']) if legacy_only else package()
+        )
+        with (
+            unit_transaction(),
+            mock.patch('modules.loading.load_data', side_effect=load),
+            mock.patch.object(Environment, 'ref', return_value=None),
+        ):
+&gt;           assert loading.load_demo(environment(), selected, {}, 'init') is True
+E           AssertionError: assert False is True
+E            +  where False = &lt;function load_demo at 0x7fa6e315ade0&gt;(&lt;Environment uid=42 su=False company=None&gt;, namespace(name='demo_contract', id=17, manifest={'demo': ['demo.sql']}), {}, 'init')
+E            +    where &lt;function load_demo at 0x7fa6e315ade0&gt; = loading.load_demo
+E            +    and   &lt;Environment uid=42 su=False company=None&gt; = environment()
+
+tests/unit/modules/test_loading_demo.py:57: AssertionError</failure></testcase><testcase classname="" name="test_demo_logs_start_before_loading[True]" time="0.002"><failure message="AssertionError: assert False is True&#10; +  where False = &lt;function load_demo at 0x7fa6e315ade0&gt;(&lt;Environment uid=42 su=False company=None&gt;, namespace(name='demo_contract', id=17, manifest={'demo': [], 'demo_xml': ['legacy.xml']}), {}, 'init')&#10; +    where &lt;function load_demo at 0x7fa6e315ade0&gt; = loading.load_demo&#10; +    and   &lt;Environment uid=42 su=False company=None&gt; = environment()">caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7fa6e2fb3dd0&gt;
+legacy_only = True
+
+    @pytest.mark.parametrize('legacy_only', [False, True])
+    def test_demo_logs_start_before_loading(caplog, legacy_only):
+        caplog.set_level('INFO', logger='modules.loading')
+    
+        def load(*args, **kwargs):
+            assert 'Module demo_contract: loading demo' in caplog.messages
+    
+        selected = (
+            package(demo=[], demo_xml=['legacy.xml']) if legacy_only else package()
+        )
+        with (
+            unit_transaction(),
+            mock.patch('modules.loading.load_data', side_effect=load),
+            mock.patch.object(Environment, 'ref', return_value=None),
+        ):
+&gt;           assert loading.load_demo(environment(), selected, {}, 'init') is True
+E           AssertionError: assert False is True
+E            +  where False = &lt;function load_demo at 0x7fa6e315ade0&gt;(&lt;Environment uid=42 su=False company=None&gt;, namespace(name='demo_contract', id=17, manifest={'demo': [], 'demo_xml': ['legacy.xml']}), {}, 'init')
+E            +    where &lt;function load_demo at 0x7fa6e315ade0&gt; = loading.load_demo
+E            +    and   &lt;Environment uid=42 su=False company=None&gt; = environment()
+
+tests/unit/modules/test_loading_demo.py:57: AssertionError</failure></testcase><testcase classname="" name="test_no_demo_does_not_log_loading_or_failure" time="0.000" /><testcase classname="" name="test_demo_failure_log_preserves_optional_failure_meaning" time="0.002"><failure message="AssertionError: assert 'Module demo_...ed to install' == 'Module demo_...out demo data'&#10;  Skipping 37 identical leading characters in diff, use -v to show&#10;  -  to install, installed without demo data&#10;  +  to install">caplog = &lt;_pytest.logging.LogCaptureFixture object at 0x7fa6e3088fb0&gt;
+
+    def test_demo_failure_log_preserves_optional_failure_meaning(caplog):
+        with (
+            unit_transaction(),
+            mock.patch('modules.loading.load_data', side_effect=ValueError('bad')),
+            mock.patch.object(Environment, 'ref', return_value=None),
+        ):
+            assert loading.load_demo(
+                environment(), package(), {}, 'init'
+            ) is False
+        failures = [
+            record for record in caplog.records
+            if record.name == 'modules.loading' and record.levelname == 'WARNING'
+        ]
+        assert len(failures) == 1
+&gt;       assert failures[0].getMessage() == (
+            'Module demo_contract demo data failed to install, '
+            'installed without demo data'
+        )
+E       AssertionError: assert 'Module demo_...ed to install' == 'Module demo_...out demo data'
+E         Skipping 37 identical leading characters in diff, use -v to show
+E         -  to install, installed without demo data
+E         +  to install
+
+tests/unit/modules/test_loading_demo.py:85: AssertionError</failure></testcase></testsuite></testsuites>

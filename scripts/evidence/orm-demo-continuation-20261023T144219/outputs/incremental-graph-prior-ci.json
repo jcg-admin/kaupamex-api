@@ -1,0 +1,33 @@
+{
+  "run": 40037369272,
+  "job": 120700035367,
+  "source_revision": "479f02c636e7167e31fed0f04714ad35bd4c9439",
+  "state": "completed",
+  "conclusion": "failure",
+  "interface": "gh run view --json; gh run download --name api-tests-40037369272-1",
+  "artifact": "outputs/incremental-graph-prior-ci.junit.xml",
+  "suites": [
+    {
+      "name": "pytest",
+      "errors": "1",
+      "failures": "0",
+      "skipped": "1",
+      "tests": "79",
+      "time": "458.158",
+      "timestamp": "2026-10-23T17:03:46.164204",
+      "hostname": "runnervm8k3b6"
+    }
+  ],
+  "first_error": {
+    "test": {
+      "classname": "tests.integration.test_v2_cart_wishlist_notifications.TestCartSnapshotsV2",
+      "name": "test_saves_cart_and_returns_200",
+      "time": "0.520"
+    },
+    "kind": "error",
+    "message": "failed on setup with \"ValueError: Compute method failed to assign product.ProductProduct(1,).display_name\"",
+    "text": "tests/integration/test_v2_cart_wishlist_notifications.py:65: in cart_with_item\n    add_item_to_draft(order, product_f2, quantity=1)\naddons/sale/services.py:125: in add_item_to_draft\n    'name': _line_snapshot_name(product),\naddons/sale/services.py:91: in _line_snapshot_name\n    return str(product)\naddons/product/models/product_product.py:178: in __str__\n    return f'[{self.default_code}] {self.display_name}' \\\nsrc/orm/fields.py:1657: in __get__\n    raise ValueError(\nE   ValueError: Compute method failed to assign product.ProductProduct(1,).display_name"
+  },
+  "log_retrieval": "gh run view --log-failed returned no log content; empty output retained, not used as cause evidence",
+  "classification": "BASELINE_FAILURE"
+}

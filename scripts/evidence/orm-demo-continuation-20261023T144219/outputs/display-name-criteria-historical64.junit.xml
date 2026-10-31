@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="44" skipped="0" tests="64" time="5.234" timestamp="2026-10-25T15:46:47.591083" hostname="c8a29a030cff"><testcase classname="tests.unit.orm.test_create.TestTheStepsOfTheSource" name="test_without_a_user_the_acl_denies" time="4.024" /><testcase classname="tests.unit.orm.test_default_get.TestNameCreateGuardIsObservable" name="test_without_an_email_in_the_name_the_context_one_lands" time="0.042" /><testcase classname="tests.unit.orm.test_default_get.TestNameCreateGuardIsObservable" name="test_with_an_email_in_the_name_the_guard_shields_the_context" time="0.015" /><testcase classname="tests.unit.orm.test_default_get.TestNameCreateGuardIsObservable" name="test_name_create_writes_through_rec_name" time="0.014" /><testcase classname="tests.unit.orm.test_display_name.TestTheFieldAdmitsAssignment" name="test_it_reads_the_computed_value" time="0.003" /><testcase classname="tests.unit.orm.test_display_name.TestTheFieldAdmitsAssignment" name="test_deleting_it_falls_back_to_the_computed_value" time="0.003" /><testcase classname="tests.unit.orm.test_display_name.TestTheComputeFallsBackToTheDottedName" name="test_a_model_without_rec_name_gets_the_dotted_form" time="0.003" /><testcase classname="tests.unit.orm.test_field_lifecycle_methods.TestCompanyDependentFallback" name="test_it_returns_the_default_that_ir_default_holds" time="0.008" /><testcase classname="tests.unit.orm.test_field_search_method.TestFieldResolutionReachesTheNonStored" name="test_the_non_stored_display_name_resolves" time="0.002"><failure message="assert False&#10; +  where False = isinstance(&lt;django.db.models.fields.CharField: display_name&gt;, NonStored)">tests/unit/orm/test_field_search_method.py:97: in test_the_non_stored_display_name_resolves
+    assert isinstance(field, NonStored)
+E   assert False
+E    +  where False = isinstance(&lt;django.db.models.fields.CharField: display_name&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_field_search_method.TestTheFallbackLadder" name="test_a_search_that_only_knows_equality_is_decomposed_for_in" time="0.002"><failure message="AttributeError: &lt;orm.fields.ComputedFieldDescriptor object at 0x7f00acb9af90&gt; has no attribute 'search'">tests/unit/orm/test_field_search_method.py:180: in test_a_search_that_only_knows_equality_is_decomposed_for_in
+    monkeypatch.setattr(descriptor, 'search', only_equality)
+E   AttributeError: &lt;orm.fields.ComputedFieldDescriptor object at 0x7f00acb9af90&gt; has no attribute 'search'</failure></testcase><testcase classname="tests.unit.orm.test_field_search_method.TestTheFallbackLadder" name="test_a_search_that_supports_nothing_raises_naming_the_field" time="0.002"><failure message="AttributeError: &lt;orm.fields.ComputedFieldDescriptor object at 0x7f00acb9af90&gt; has no attribute 'search'">tests/unit/orm/test_field_search_method.py:189: in test_a_search_that_supports_nothing_raises_naming_the_field
+    monkeypatch.setattr(descriptor, 'search',
+E   AttributeError: &lt;orm.fields.ComputedFieldDescriptor object at 0x7f00acb9af90&gt; has no attribute 'search'</failure></testcase><testcase classname="tests.unit.orm.test_field_update_db.TestUpdateDb" name="test_a_field_without_column_is_left_alone" time="0.010" /><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestTheChainResolvesForEachShape" name="test_a_many2one_chain_gives_the_instance_at_the_end" time="0.016"><failure message="AttributeError: 'ForeignKey' object has no attribute 'resolve_related'">tests/unit/orm/test_related_in_every_field_type.py:143: in test_a_many2one_chain_gives_the_instance_at_the_end
+    assert descriptor.resolve_related(account).code == 'MX'
+E   AttributeError: 'ForeignKey' object has no attribute 'resolve_related'</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestTheChainResolvesForEachShape" name="test_a_one2many_chain_gives_the_manager_at_the_end" time="0.014"><failure message="AttributeError: 'One2many' object has no attribute 'resolve_related'">tests/unit/orm/test_related_in_every_field_type.py:150: in test_a_one2many_chain_gives_the_manager_at_the_end
+    assert descriptor.resolve_related(account).count() == 1
+E   AttributeError: 'One2many' object has no attribute 'resolve_related'</failure></testcase><testcase classname="tests.unit.orm.test_related_write_reaches_the_far_end.TestTheWriteReachesTheEndOfTheChain" name="test_writing_bank_name_renames_the_bank" time="0.016"><failure message="AssertionError: assert 'Banco original' == 'Banco corregido'&#10;  - Banco corregido&#10;  + Banco original">tests/unit/orm/test_related_write_reaches_the_far_end.py:47: in test_writing_bank_name_renames_the_bank
+    assert account.bank.name == 'Banco corregido'
+E   AssertionError: assert 'Banco original' == 'Banco corregido'
+E     - Banco corregido
+E     + Banco original</failure></testcase><testcase classname="tests.unit.orm.test_related_write_reaches_the_far_end.TestTheWriteReachesTheEndOfTheChain" name="test_writing_bank_bic_reaches_the_bank_too" time="0.014"><failure message="AssertionError: assert 'ORIGMXMM' == 'FIXDMXMM'&#10;  - FIXDMXMM&#10;  + ORIGMXMM">tests/unit/orm/test_related_write_reaches_the_far_end.py:53: in test_writing_bank_bic_reaches_the_bank_too
+    assert account.bank.bic == 'FIXDMXMM'
+E   AssertionError: assert 'ORIGMXMM' == 'FIXDMXMM'
+E     - FIXDMXMM
+E     + ORIGMXMM</failure></testcase><testcase classname="tests.unit.orm.test_related_write_reaches_the_far_end.TestTheRelationalShape" name="test_writing_a_manager_end_uses_the_django_api" time="0.021"><failure message="assert False&#10; +  where False = isinstance(One2many(None, None), NonStored)">tests/unit/orm/test_related_write_reaches_the_far_end.py:136: in test_writing_a_manager_end_uses_the_django_api
+    assert isinstance(descriptor, NonStored)
+E   assert False
+E    +  where False = isinstance(One2many(None, None), NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_related_write_reaches_the_far_end.TestResCompanyBankIds" name="test_the_company_reads_the_accounts_of_its_partner" time="0.054"><failure message="AttributeError: 'NoneType' object has no attribute 'split'">tests/unit/orm/test_related_write_reaches_the_far_end.py:171: in test_the_company_reads_the_accounts_of_its_partner
+    assert company.bank_ids.count() == 1
+src/orm/fields_relational.py:376: in __get__
+    comodel, inverse = self._inverse_field()
+src/orm/fields_relational.py:365: in _inverse_field
+    comodel = apps.get_model(self.comodel_name)
+.venv/lib/python3.12/site-packages/django/apps/registry.py:206: in get_model
+    app_label, model_name = app_label.split(".")
+E   AttributeError: 'NoneType' object has no attribute 'split'</failure></testcase><testcase classname="tests.unit.orm.test_related_write_reaches_the_far_end.TestResCompanyBankIds" name="test_writing_from_the_company_reaches_the_partner" time="0.053"><failure message="AttributeError: 'NoneType' object has no attribute 'split'">tests/unit/orm/test_related_write_reaches_the_far_end.py:190: in test_writing_from_the_company_reaches_the_partner
+    company.bank_ids = [account_of_another]
+src/orm/fields_relational.py:418: in __set__
+    comodel, inverse = self._inverse_field()
+src/orm/fields_relational.py:365: in _inverse_field
+    comodel = apps.get_model(self.comodel_name)
+.venv/lib/python3.12/site-packages/django/apps/registry.py:206: in get_model
+    app_label, model_name = app_label.split(".")
+E   AttributeError: 'NoneType' object has no attribute 'split'</failure></testcase><testcase classname="tests.unit.orm.test_bare_store_false_declaration.TestTheRouterReadsTheResolvedStore" name="test_a_bare_store_false_has_no_column[Html]" time="0.002"><failure message="AssertionError: Html&#10;assert False&#10; +  where False = isinstance(&lt;orm.fields_textual.Html&gt;, NonStored)">tests/unit/orm/test_bare_store_false_declaration.py:40: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Html
+E   assert False
+E    +  where False = isinstance(&lt;orm.fields_textual.Html&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_bare_store_false_declaration.TestTheRouterReadsTheResolvedStore" name="test_a_bare_store_false_has_no_column[Binary]" time="0.001"><failure message="AssertionError: Binary&#10;assert False&#10; +  where False = isinstance(&lt;orm.fields_binary.Binary&gt;, NonStored)">tests/unit/orm/test_bare_store_false_declaration.py:40: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Binary
+E   assert False
+E    +  where False = isinstance(&lt;orm.fields_binary.Binary&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_bare_store_false_declaration.TestTheRouterReadsTheResolvedStore" name="test_a_bare_store_false_has_no_column[Image]" time="0.001"><failure message="AssertionError: Image&#10;assert False&#10; +  where False = isinstance(&lt;orm.fields_binary.Image&gt;, NonStored)">tests/unit/orm/test_bare_store_false_declaration.py:40: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Image
+E   assert False
+E    +  where False = isinstance(&lt;orm.fields_binary.Image&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_bare_store_false_declaration.TestTheRouterReadsTheResolvedStore" name="test_a_bare_store_false_has_no_column[PropertiesDefinition]" time="0.001"><failure message="AssertionError: PropertiesDefinition&#10;assert False&#10; +  where False = isinstance(&lt;orm.fields_properties.PropertiesDefinition&gt;, NonStored)">tests/unit/orm/test_bare_store_false_declaration.py:40: in test_a_bare_store_false_has_no_column
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: PropertiesDefinition
+E   assert False
+E    +  where False = isinstance(&lt;orm.fields_properties.PropertiesDefinition&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_bare_store_false_declaration.TestTheRouterReadsTheResolvedStore" name="test_the_many_to_many_does_not_need_its_comodel" time="0.001"><failure message="TypeError: missing a required argument: 'to'">tests/unit/orm/test_bare_store_false_declaration.py:46: in test_the_many_to_many_does_not_need_its_comodel
+    field = fields.Many2many(store=False, compute='_compute_x')
+src/orm/fields_relational.py:530: in Many2many
+    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
+src/orm/fields.py:1113: in initialize
+    declared = dict(signature.bind(self, *args, **kwargs).arguments)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/inspect.py:3280: in bind
+    return self._bind(args, kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/inspect.py:3193: in _bind
+    raise TypeError(msg) from None
+E   TypeError: missing a required argument: 'to'</failure></testcase><testcase classname="tests.unit.orm.test_bare_store_false_declaration.TestTheRouterReadsTheResolvedStore" name="test_the_properties_field_has_no_column_either" time="0.001"><failure message="AssertionError: Properties&#10;assert False&#10; +  where False = isinstance(&lt;orm.fields_properties.Properties&gt;, NonStored)">tests/unit/orm/test_bare_store_false_declaration.py:52: in test_the_properties_field_has_no_column_either
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: Properties
+E   assert False
+E    +  where False = isinstance(&lt;orm.fields_properties.Properties&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_company_dependent.TestDispatcher" name="test_store_false_is_still_non_stored" time="0.001"><failure message="assert False&#10; +  where False = isinstance(&lt;django.db.models.fields.CharField&gt;, NonStored)&#10; +    where &lt;django.db.models.fields.CharField&gt; = &lt;function Char at 0x7f00ad220400&gt;(store=False)&#10; +      where &lt;function Char at 0x7f00ad220400&gt; = fields.Char">tests/unit/orm/test_company_dependent.py:38: in test_store_false_is_still_non_stored
+    assert isinstance(fields.Char(store=False), NonStored)
+E   assert False
+E    +  where False = isinstance(&lt;django.db.models.fields.CharField&gt;, NonStored)
+E    +    where &lt;django.db.models.fields.CharField&gt; = &lt;function Char at 0x7f00ad220400&gt;(store=False)
+E    +      where &lt;function Char at 0x7f00ad220400&gt; = fields.Char</failure></testcase><testcase classname="tests.unit.orm.test_company_dependent.TestABareStoreFalseGivesANonStoredField" name="test_integer_with_store_false_is_non_stored" time="0.001"><failure message="assert False&#10; +  where False = isinstance(&lt;django.db.models.fields.IntegerField&gt;, NonStored)&#10; +    where &lt;django.db.models.fields.IntegerField&gt; = &lt;function Integer at 0x7f00ad30d620&gt;(store=False)&#10; +      where &lt;function Integer at 0x7f00ad30d620&gt; = fields.Integer">tests/unit/orm/test_company_dependent.py:326: in test_integer_with_store_false_is_non_stored
+    assert isinstance(fields.Integer(store=False), NonStored)
+E   assert False
+E    +  where False = isinstance(&lt;django.db.models.fields.IntegerField&gt;, NonStored)
+E    +    where &lt;django.db.models.fields.IntegerField&gt; = &lt;function Integer at 0x7f00ad30d620&gt;(store=False)
+E    +      where &lt;function Integer at 0x7f00ad30d620&gt; = fields.Integer</failure></testcase><testcase classname="tests.unit.orm.test_company_dependent.TestABareStoreFalseGivesANonStoredField" name="test_float_with_store_false_is_non_stored" time="0.001"><failure message="assert False&#10; +  where False = isinstance(&lt;django.db.models.fields.FloatField&gt;, NonStored)&#10; +    where &lt;django.db.models.fields.FloatField&gt; = &lt;function Float at 0x7f00ad30d6c0&gt;(store=False)&#10; +      where &lt;function Float at 0x7f00ad30d6c0&gt; = fields.Float">tests/unit/orm/test_company_dependent.py:329: in test_float_with_store_false_is_non_stored
+    assert isinstance(fields.Float(store=False), NonStored)
+E   assert False
+E    +  where False = isinstance(&lt;django.db.models.fields.FloatField&gt;, NonStored)
+E    +    where &lt;django.db.models.fields.FloatField&gt; = &lt;function Float at 0x7f00ad30d6c0&gt;(store=False)
+E    +      where &lt;function Float at 0x7f00ad30d6c0&gt; = fields.Float</failure></testcase><testcase classname="tests.unit.orm.test_compute_declaration.TestTheDefaultsFollowTheSource" name="test_a_computed_field_has_no_column_by_default" time="0.001"><failure message="assert False&#10; +  where False = isinstance(&lt;django.db.models.fields.CharField&gt;, NonStored)">tests/unit/orm/test_compute_declaration.py:98: in test_a_computed_field_has_no_column_by_default
+    assert isinstance(field, NonStored)
+E   assert False
+E    +  where False = isinstance(&lt;django.db.models.fields.CharField&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_declared_source_vocabulary.TestTheClassDefaultIsNotStamped" name="test_the_universe_of_the_control_is_the_measured_one[compute]" time="0.001"><failure message="AssertionError: compute ya no viaja en attrs: el control de no-estampado dejó de medirlo&#10;assert 'compute' in {'declared_keys': frozenset(), 'store': True}">tests/unit/orm/test_declared_source_vocabulary.py:178: in test_the_universe_of_the_control_is_the_measured_one
+    assert attribute in attrs, (
+E   AssertionError: compute ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E   assert 'compute' in {'declared_keys': frozenset(), 'store': True}</failure></testcase><testcase classname="tests.unit.orm.test_declared_source_vocabulary.TestTheClassDefaultIsNotStamped" name="test_the_universe_of_the_control_is_the_measured_one[inverse]" time="0.001"><failure message="AssertionError: inverse ya no viaja en attrs: el control de no-estampado dejó de medirlo&#10;assert 'inverse' in {'declared_keys': frozenset(), 'store': True}">tests/unit/orm/test_declared_source_vocabulary.py:178: in test_the_universe_of_the_control_is_the_measured_one
+    assert attribute in attrs, (
+E   AssertionError: inverse ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E   assert 'inverse' in {'declared_keys': frozenset(), 'store': True}</failure></testcase><testcase classname="tests.unit.orm.test_declared_source_vocabulary.TestTheClassDefaultIsNotStamped" name="test_the_universe_of_the_control_is_the_measured_one[precompute]" time="0.001"><failure message="AssertionError: precompute ya no viaja en attrs: el control de no-estampado dejó de medirlo&#10;assert 'precompute' in {'declared_keys': frozenset(), 'store': True}">tests/unit/orm/test_declared_source_vocabulary.py:178: in test_the_universe_of_the_control_is_the_measured_one
+    assert attribute in attrs, (
+E   AssertionError: precompute ya no viaja en attrs: el control de no-estampado dejó de medirlo
+E   assert 'precompute' in {'declared_keys': frozenset(), 'store': True}</failure></testcase><testcase classname="tests.unit.orm.test_display_name.TestUniversalAdoption" name="test_none_declares_it_as_something_other_than_the_field" time="0.003" /><testcase classname="tests.unit.orm.test_display_name.TestTheFieldAdmitsAssignment" name="test_the_descriptor_is_the_one_of_the_mixin" time="0.001" /><testcase classname="tests.unit.orm.test_display_name.TestTheGateDiscriminates" name="test_it_names_a_model_that_declares_display_name_as_a_property" time="0.003" /><testcase classname="tests.unit.orm.test_domain_in_required.TestTheThirdConsumerAsksTheSameQuestion" name="test_the_count_over_a_fixed_population" time="0.002"><failure message="AssertionError: 119 discrepancias en base, se esperaban 27. Es evidencia fechada al portar #247; si cambia, se re-mide y se actualiza con su razón — no se relaja la aserción&#10;assert 119 == 27&#10; +  where 119 = len(['base.IrModuleCategory.display_name', 'base.IrModule.display_name', 'base.IrModuleDependency.display_name', 'base.IrModuleExclusion.display_name', 'base.ResGroupsPrivilege.display_name', 'base.ResDeviceLog.display_name', ...])">tests/unit/orm/test_domain_in_required.py:492: in test_the_count_over_a_fixed_population
+    assert len(discrepan) == 27, (
+E   AssertionError: 119 discrepancias en base, se esperaban 27. Es evidencia fechada al portar #247; si cambia, se re-mide y se actualiza con su razón — no se relaja la aserción
+E   assert 119 == 27
+E    +  where 119 = len(['base.IrModuleCategory.display_name', 'base.IrModule.display_name', 'base.IrModuleDependency.display_name', 'base.IrModuleExclusion.display_name', 'base.ResGroupsPrivilege.display_name', 'base.ResDeviceLog.display_name', ...])</failure></testcase><testcase classname="tests.unit.orm.test_field_conversion" name="test_column_order_of_a_field_without_column_is_zero" time="0.001" /><testcase classname="tests.unit.orm.test_field_to_sql.TestFieldsRegistry" name="test_it_maps_concrete_field_names" time="0.001"><failure message="AssertionError: assert {'created_at'...ield_id', ...} == {'created_at'... 'updated_at'}&#10;  Extra items in the left set:&#10;  'properties_field_id'&#10;  Use -v to get more diff">tests/unit/orm/test_field_to_sql.py:100: in test_it_maps_concrete_field_names
+    assert set(definition._fields) == {
+E   AssertionError: assert {'created_at'...ield_id', ...} == {'created_at'... 'updated_at'}
+E     Extra items in the left set:
+E     'properties_field_id'
+E     Use -v to get more diff</failure></testcase><testcase classname="tests.unit.orm.test_fields_char_signature_aliases.TestTheAliasesComposeAsTheSourceDeclaresThem" name="test_size_and_store_false_do_not_meet" time="0.001"><failure message="AssertionError: assert not True&#10; +  where True = isinstance(&lt;django.db.models.fields.CharField&gt;, &lt;class 'django.db.models.fields.CharField'&gt;)&#10; +    where &lt;class 'django.db.models.fields.CharField'&gt; = django_models.CharField">tests/unit/orm/test_fields_char_signature_aliases.py:126: in test_size_and_store_false_do_not_meet
+    assert not isinstance(field, django_models.CharField)
+E   AssertionError: assert not True
+E    +  where True = isinstance(&lt;django.db.models.fields.CharField&gt;, &lt;class 'django.db.models.fields.CharField'&gt;)
+E    +    where &lt;class 'django.db.models.fields.CharField'&gt; = django_models.CharField</failure></testcase><testcase classname="tests.unit.orm.test_nonstored_compute_dispatch.TestTheDeclaredComputeIsDispatched" name="test_the_read_returns_what_the_compute_produces" time="0.001" /><testcase classname="tests.unit.orm.test_nonstored_compute_dispatch.TestTheDeclaredComputeIsDispatched" name="test_the_value_tracks_the_compute_and_not_a_constant[uno]" time="0.001" /><testcase classname="tests.unit.orm.test_nonstored_compute_dispatch.TestTheDeclaredComputeIsDispatched" name="test_the_value_tracks_the_compute_and_not_a_constant[otro distinto]" time="0.001" /><testcase classname="tests.unit.orm.test_nonstored_compute_dispatch.TestTheDeclaredComputeIsDispatched" name="test_the_facade_routes_a_bare_compute_to_the_descriptor" time="0.001" /><testcase classname="tests.unit.orm.test_nonstored_compute_dispatch.TestTheDeclaredComputeIsDispatched" name="test_a_callable_compute_is_dispatched_too" time="0.001" /><testcase classname="tests.unit.orm.test_nonstored_compute_dispatch.TestWhatTheBranchDoesNotChange" name="test_a_field_without_compute_still_reads_its_default" time="0.001" /><testcase classname="tests.unit.orm.test_nonstored_compute_dispatch.TestWhatTheBranchDoesNotChange" name="test_a_field_with_neither_reads_false" time="0.001" /><testcase classname="tests.unit.orm.test_related_field_declaration.TestTheConstructorAcceptsTheDeclaration" name="test_a_related_is_not_stored_by_default" time="0.001"><failure message="AssertionError: CharField&#10;assert False&#10; +  where False = isinstance(&lt;django.db.models.fields.CharField&gt;, NonStored)">tests/unit/orm/test_related_field_declaration.py:40: in test_a_related_is_not_stored_by_default
+    assert isinstance(field, NonStored), type(field).__name__
+E   AssertionError: CharField
+E   assert False
+E    +  where False = isinstance(&lt;django.db.models.fields.CharField&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_related_field_declaration.TestTheConstructorAcceptsTheDeclaration" name="test_the_dispatcher_family_accepts_it_too" time="0.001"><failure message="AssertionError: Boolean&#10;assert False&#10; +  where False = isinstance(&lt;django.db.models.fields.BooleanField&gt;, NonStored)">tests/unit/orm/test_related_field_declaration.py:70: in test_the_dispatcher_family_accepts_it_too
+    assert isinstance(field, NonStored), constructor.__name__
+E   AssertionError: Boolean
+E   assert False
+E    +  where False = isinstance(&lt;django.db.models.fields.BooleanField&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_related_field_declaration.TestTheFourDeclaredInResBank" name="test_none_of_the_four_took_a_column" time="0.001"><failure message="AssertionError: ResPartnerBank.bank_name tomó columna&#10;assert 'bank_name' not in {'acc_holder_name', 'acc_number', 'acc_type', 'active', 'allow_out_payment', 'bank', ...}">tests/unit/orm/test_related_field_declaration.py:170: in test_none_of_the_four_took_a_column
+    assert field_name not in columns, (
+E   AssertionError: ResPartnerBank.bank_name tomó columna
+E   assert 'bank_name' not in {'acc_holder_name', 'acc_number', 'acc_type', 'active', 'allow_out_payment', 'bank', ...}</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestEveryConstructorAcceptsTheKey" name="test_the_constructor_takes_related[Many2many-arguments1]" time="0.001"><failure message="TypeError: missing a required argument: 'to'">tests/unit/orm/test_related_in_every_field_type.py:51: in test_the_constructor_takes_related
+    field = getattr(fields, type_name)(*arguments, related='partner.name')
+src/orm/fields_relational.py:530: in Many2many
+    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
+src/orm/fields.py:1113: in initialize
+    declared = dict(signature.bind(self, *args, **kwargs).arguments)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/inspect.py:3280: in bind
+    return self._bind(args, kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/inspect.py:3193: in _bind
+    raise TypeError(msg) from None
+E   TypeError: missing a required argument: 'to'</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestEveryConstructorAcceptsTheKey" name="test_without_store_the_carrier_is_the_non_stored_one[Many2one-arguments0]" time="0.001"><failure message="AssertionError: Many2one devolvió ForeignKey&#10;assert False&#10; +  where False = isinstance(&lt;django.db.models.fields.related.ForeignKey&gt;, NonStored)">tests/unit/orm/test_related_in_every_field_type.py:60: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(field, NonStored), (
+E   AssertionError: Many2one devolvió ForeignKey
+E   assert False
+E    +  where False = isinstance(&lt;django.db.models.fields.related.ForeignKey&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestEveryConstructorAcceptsTheKey" name="test_without_store_the_carrier_is_the_non_stored_one[Many2many-arguments1]" time="0.001"><failure message="TypeError: missing a required argument: 'to'">tests/unit/orm/test_related_in_every_field_type.py:59: in test_without_store_the_carrier_is_the_non_stored_one
+    field = getattr(fields, type_name)(*arguments, related='partner.name')
+src/orm/fields_relational.py:530: in Many2many
+    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
+src/orm/fields.py:1113: in initialize
+    declared = dict(signature.bind(self, *args, **kwargs).arguments)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/inspect.py:3280: in bind
+    return self._bind(args, kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/inspect.py:3193: in _bind
+    raise TypeError(msg) from None
+E   TypeError: missing a required argument: 'to'</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestEveryConstructorAcceptsTheKey" name="test_without_store_the_carrier_is_the_non_stored_one[One2many-arguments2]" time="0.001"><failure message="AssertionError: One2many devolvió One2many&#10;assert False&#10; +  where False = isinstance(One2many(None, None), NonStored)">tests/unit/orm/test_related_in_every_field_type.py:60: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(field, NonStored), (
+E   AssertionError: One2many devolvió One2many
+E   assert False
+E    +  where False = isinstance(One2many(None, None), NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestEveryConstructorAcceptsTheKey" name="test_without_store_the_carrier_is_the_non_stored_one[Binary-arguments3]" time="0.001"><failure message="AssertionError: Binary devolvió Binary&#10;assert False&#10; +  where False = isinstance(&lt;orm.fields_binary.Binary&gt;, NonStored)">tests/unit/orm/test_related_in_every_field_type.py:60: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(field, NonStored), (
+E   AssertionError: Binary devolvió Binary
+E   assert False
+E    +  where False = isinstance(&lt;orm.fields_binary.Binary&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestEveryConstructorAcceptsTheKey" name="test_without_store_the_carrier_is_the_non_stored_one[Image-arguments4]" time="0.001"><failure message="AssertionError: Image devolvió Image&#10;assert False&#10; +  where False = isinstance(&lt;orm.fields_binary.Image&gt;, NonStored)">tests/unit/orm/test_related_in_every_field_type.py:60: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(field, NonStored), (
+E   AssertionError: Image devolvió Image
+E   assert False
+E    +  where False = isinstance(&lt;orm.fields_binary.Image&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestEveryConstructorAcceptsTheKey" name="test_without_store_the_carrier_is_the_non_stored_one[Html-arguments5]" time="0.001"><failure message="AssertionError: Html devolvió Html&#10;assert False&#10; +  where False = isinstance(&lt;orm.fields_textual.Html&gt;, NonStored)">tests/unit/orm/test_related_in_every_field_type.py:60: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(field, NonStored), (
+E   AssertionError: Html devolvió Html
+E   assert False
+E    +  where False = isinstance(&lt;orm.fields_textual.Html&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestEveryConstructorAcceptsTheKey" name="test_without_store_the_carrier_is_the_non_stored_one[Monetary-arguments6]" time="0.001"><failure message="AssertionError: Monetary devolvió DecimalField&#10;assert False&#10; +  where False = isinstance(&lt;django.db.models.fields.DecimalField&gt;, NonStored)">tests/unit/orm/test_related_in_every_field_type.py:60: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(field, NonStored), (
+E   AssertionError: Monetary devolvió DecimalField
+E   assert False
+E    +  where False = isinstance(&lt;django.db.models.fields.DecimalField&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestEveryConstructorAcceptsTheKey" name="test_without_store_the_carrier_is_the_non_stored_one[Json-arguments7]" time="0.001"><failure message="AssertionError: Json devolvió JSONField&#10;assert False&#10; +  where False = isinstance(&lt;django.db.models.fields.json.JSONField&gt;, NonStored)">tests/unit/orm/test_related_in_every_field_type.py:60: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(field, NonStored), (
+E   AssertionError: Json devolvió JSONField
+E   assert False
+E    +  where False = isinstance(&lt;django.db.models.fields.json.JSONField&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestEveryConstructorAcceptsTheKey" name="test_without_store_the_carrier_is_the_non_stored_one[Properties-arguments8]" time="0.001"><failure message="AssertionError: Properties devolvió Properties&#10;assert False&#10; +  where False = isinstance(&lt;orm.fields_properties.Properties&gt;, NonStored)">tests/unit/orm/test_related_in_every_field_type.py:60: in test_without_store_the_carrier_is_the_non_stored_one
+    assert isinstance(field, NonStored), (
+E   AssertionError: Properties devolvió Properties
+E   assert False
+E    +  where False = isinstance(&lt;orm.fields_properties.Properties&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestEveryConstructorAcceptsTheKey" name="test_the_four_defaults_of_the_source_apply[Many2many-arguments1]" time="0.001"><failure message="TypeError: missing a required argument: 'to'">tests/unit/orm/test_related_in_every_field_type.py:66: in test_the_four_defaults_of_the_source_apply
+    field = getattr(fields, type_name)(*arguments, related='partner.name')
+src/orm/fields_relational.py:530: in Many2many
+    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
+src/orm/fields.py:1113: in initialize
+    declared = dict(signature.bind(self, *args, **kwargs).arguments)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/inspect.py:3280: in bind
+    return self._bind(args, kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/inspect.py:3193: in _bind
+    raise TypeError(msg) from None
+E   TypeError: missing a required argument: 'to'</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestEveryConstructorAcceptsTheKey" name="test_the_four_defaults_of_the_source_apply[One2many-arguments2]" time="0.001"><failure message="AttributeError: 'One2many' object has no attribute 'store'">tests/unit/orm/test_related_in_every_field_type.py:68: in test_the_four_defaults_of_the_source_apply
+    == (False, True, False, True), type_name
+E   AttributeError: 'One2many' object has no attribute 'store'</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestTheRelationalArgumentsBecomeOptional" name="test_many2one_needs_no_comodel_when_it_is_a_projection" time="0.001"><failure message="assert False&#10; +  where False = isinstance(&lt;django.db.models.fields.related.ForeignKey&gt;, NonStored)">tests/unit/orm/test_related_in_every_field_type.py:78: in test_many2one_needs_no_comodel_when_it_is_a_projection
+    assert isinstance(field, NonStored)
+E   assert False
+E    +  where False = isinstance(&lt;django.db.models.fields.related.ForeignKey&gt;, NonStored)</failure></testcase><testcase classname="tests.unit.orm.test_related_in_every_field_type.TestTheRelationalArgumentsBecomeOptional" name="test_many2many_needs_no_comodel_either" time="0.001"><failure message="TypeError: missing a required argument: 'to'">tests/unit/orm/test_related_in_every_field_type.py:97: in test_many2many_needs_no_comodel_either
+    field = fields.Many2many(related='lead.tags', readonly=True)
+src/orm/fields_relational.py:530: in Many2many
+    field = _mark_check_company(models.ManyToManyField(*args, **kwargs),
+src/orm/fields.py:1113: in initialize
+    declared = dict(signature.bind(self, *args, **kwargs).arguments)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/inspect.py:3280: in bind
+    return self._bind(args, kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/inspect.py:3193: in _bind
+    raise TypeError(msg) from None
+E   TypeError: missing a required argument: 'to'</failure></testcase><testcase classname="tests.unit.orm.test_related_write_reaches_the_far_end.TestResCompanyBankIds" name="test_it_took_no_column" time="0.009"><failure message="AssertionError: assert False&#10; +  where False = isinstance(One2many(None, None), NonStored)&#10; +    where One2many(None, None) = &lt;class 'addons.base.models.res_company.ResCompany'&gt;.bank_ids">tests/unit/orm/test_related_write_reaches_the_far_end.py:179: in test_it_took_no_column
+    assert isinstance(company_model.bank_ids, NonStored)
+E   AssertionError: assert False
+E    +  where False = isinstance(One2many(None, None), NonStored)
+E    +    where One2many(None, None) = &lt;class 'addons.base.models.res_company.ResCompany'&gt;.bank_ids</failure></testcase></testsuite></testsuites>

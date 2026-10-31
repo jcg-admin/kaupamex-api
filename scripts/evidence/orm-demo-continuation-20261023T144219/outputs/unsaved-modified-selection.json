@@ -1,0 +1,25 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "command": "uv run --frozen --project /workspace/thyrox python, full actual ledger",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.unsaved_modified",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Correct demonstrated shared-setter regression on unsaved Django rows without suppressing own compute invalidation; qualify reverse collection PK boundary and reuse existing contextual field-cache identity",
+      "verify": "Exactae949PASS/currentFAIL predecessor evidence, unchanged item-access case, actual unsaved cached labels and separate identities0SQL, saved collection and cached direct-relation positive controls; no BaseModel class rewrite",
+      "route": "local",
+      "owned": [
+        "src/orm/models.py",
+        "tests/unit/orm/test_unsaved_modified.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "claims_count": 451,
+  "states": {},
+  "selected": [
+    "TASK-GEN-0633.unsaved_modified"
+  ],
+  "scope": "Bounded existing owned task, not global coverage/acceptance or managed local-model inference"
+}

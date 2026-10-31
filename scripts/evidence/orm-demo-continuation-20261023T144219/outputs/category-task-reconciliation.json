@@ -1,0 +1,32 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet/TaskUpdate(description only)/TaskGet",
+  "command": "bun -e native task_id452 description-only reconciliation",
+  "before": {
+    "task_id": "452",
+    "citation_id": "TASK-API-0267",
+    "subject": "Poblar el árbol de categorías: IrModuleCategory es un porte huérfano (H-API-649)",
+    "description": "Medido 2026-08-18: `ir_module_category` tiene **0 filas** y **ningún campo apunta a él**. `IrModuleCategory` está portado (`api: src/addons/base/models/ir_module.py:39`) con su árbol `parent` self-FK, pero `IrModule.category` es un `Char` — mientras la referencia declara `category_id = fields.Many2one('ir.module.category')` (`odoo19c: odoo/addons/base/models/ir_module.py:275`) y lo escribe con `_update_category` (`:862`) sobre `modules.db.create_categories` (`odoo19c: odoo/modules/db.py:127`), que parte la ruta por `/` y crea un nivel por tramo.\n\nEs un porte **estructuralmente huérfano** — misma clase que #294 (`auto_installable` portado sin llamador).\n\nPoblación que espera: los 94 manifiestos declaran **25 rutas** distintas — `Sales/Sales` 22, `Hidden/Tools` 14, `Accounting/Accounting` 13, `Hidden` 8, `Accounting/Payment Providers` 7, `Supply Chain/Inventory` 4, `Website/Website` 4, y 18 más. Son exactamente las categorías de la barra lateral de la pantalla de aplicaciones.\n\nAlcance:\n1. `create_categories` en `src/modules/db.py` — el hogar que la referencia le da. Ese archivo no existe aún; la tarea #298 porta sus otros 5 símbolos, así que este pase declara su cobertura parcial (`porte-completo-no-parcial.md`) o se coordina con #298.\n2. Cambiar `IrModule.category` de `Char` a `Many2one('base.IrModuleCategory')` + migración. La referencia no guarda la cadena cruda: sólo el FK.\n3. Cablearlo en `update_module_list`, con test de regresión que mida filas de categoría y profundidad del árbol.\n\nPrecondición cerrada: el registro de módulos ya tiene sus 94 filas (`api@6945cc1`).",
+    "status": "pending",
+    "owner": "codex-module-lifecycle",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "update": {
+    "content": "{\"task_id\":\"452\",\"updated\":true}",
+    "isError": false
+  },
+  "after": {
+    "task_id": "452",
+    "citation_id": "TASK-API-0267",
+    "subject": "Poblar el árbol de categorías: IrModuleCategory es un porte huérfano (H-API-649)",
+    "description": "Medido 2026-08-18: `ir_module_category` tiene **0 filas** y **ningún campo apunta a él**. `IrModuleCategory` está portado (`api: src/addons/base/models/ir_module.py:39`) con su árbol `parent` self-FK, pero `IrModule.category` es un `Char` — mientras la referencia declara `category_id = fields.Many2one('ir.module.category')` (`odoo19c: odoo/addons/base/models/ir_module.py:275`) y lo escribe con `_update_category` (`:862`) sobre `modules.db.create_categories` (`odoo19c: odoo/modules/db.py:127`), que parte la ruta por `/` y crea un nivel por tramo.\n\nEs un porte **estructuralmente huérfano** — misma clase que #294 (`auto_installable` portado sin llamador).\n\nPoblación que espera: los 94 manifiestos declaran **25 rutas** distintas — `Sales/Sales` 22, `Hidden/Tools` 14, `Accounting/Accounting` 13, `Hidden` 8, `Accounting/Payment Providers` 7, `Supply Chain/Inventory` 4, `Website/Website` 4, y 18 más. Son exactamente las categorías de la barra lateral de la pantalla de aplicaciones.\n\nAlcance:\n1. `create_categories` en `src/modules/db.py` — el hogar que la referencia le da. Ese archivo no existe aún; la tarea #298 porta sus otros 5 símbolos, así que este pase declara su cobertura parcial (`porte-completo-no-parcial.md`) o se coordina con #298.\n2. Cambiar `IrModule.category` de `Char` a `Many2one('base.IrModuleCategory')` + migración. La referencia no guarda la cadena cruda: sólo el FK.\n3. Cablearlo en `update_module_list`, con test de regresión que mida filas de categoría y profundidad del árbol.\n\nPrecondición cerrada: el registro de módulos ya tiene sus 94 filas (`api@6945cc1`).\n\nCurrent verified continuation 2026-10-25: actual modules.db already contains FunctionStatus/has_unaccent/has_trigram; historical absent-file assertion is obsolete. Native298 in this session is TASK-GEN-0058, broader full-file scope, pending ownerNULL, not executed or closed here. Owned TASK-API-0267 implements create_categories with existing Django models, cursor alias, stable native XMLIDs and transaction ownership. Initial9tree controls RED;24tree/XMLID/unaccent controls PASS. Migration0090 retains original category text as category_path and introduces category FK; five real PostgreSQL historical-schema controls PASS for data/state/version/identity preservation, collision rollback, guarded reverse and foreign XMLID. Source refresh/HTTP preserve original category text/filter; runtime catalogue/bootstrap/fullCI pending. makemigrations detects only inherited ResPartner.tz drift, reproduced at ae949aa8; no new migration generated for it. No whole-file acceptance, integration, official state change or local-model inference.",
+    "status": "pending",
+    "owner": "codex-module-lifecycle",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "invariants": "owner/status/dependencies unchanged"
+}

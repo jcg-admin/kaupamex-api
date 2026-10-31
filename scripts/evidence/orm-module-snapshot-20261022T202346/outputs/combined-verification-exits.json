@@ -1,0 +1,5 @@
+{
+  "ci_make_exit": 2,
+  "independent_company_verifier_exit": 1,
+  "policy": "CI failure preserved; company verification is independent and cannot turn acceptance green"
+}

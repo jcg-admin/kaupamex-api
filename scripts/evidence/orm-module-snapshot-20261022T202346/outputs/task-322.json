@@ -1,0 +1,36 @@
+{
+  "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet.run",
+  "command": "THYROX_ROOT=<declared Provider root> bun run probes/native_task_snapshot.ts",
+  "invocation": {
+    "argv": [
+      "/workspace/.cache/npm/_npx/214ebe133ee6a004/node_modules/bun/bin/bun.exe",
+      "/workspace/kaupamex-api/scripts/evidence/orm-module-snapshot-20261022T202346/probes/native_task_snapshot.ts"
+    ],
+    "cwd": "/workspace/kaupamex-api",
+    "THYROX_ROOT": "/workspace/thyrox"
+  },
+  "observed_at": "2026-10-23T05:43:34.812Z",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "input": {
+    "task_id": "322"
+  },
+  "task": {
+    "task_id": "322",
+    "citation_id": "TASK-API-0173",
+    "subject": "Romper el ciclo base ↔ authz que atrapa 89 de 91 addons",
+    "description": "Medido al derivar `depends` (#296): `base -> ['authz']` y `authz -> [..., 'base', ...]`. Con ese ciclo sólo 2 de 91 addons son ordenables topológicamente; 89 quedan atrapados. En la referencia `odoo19c: odoo/addons/base/__manifest__.py` NO declara `depends` — es la raíz.\n\nTres sitios cierran el ciclo desde `base`:\n- `src/addons/base/authz_catalog.py:25` — importa `addons.authz.declaration`\n- `src/addons/base/management/commands/update_module_list.py:54` — ídem\n- `src/addons/base/models/ir_ui_menu.py:290` — constante `'authz.Capability'`\n\nDesenlaces a MEDIR, no a preferir:\n1. Mover el mecanismo de declaración de capacidades a `base` (donde la referencia pone `ir.model.access` / `res.groups`) y dejar `authz` como consumidor.\n2. Invertir sólo `ir_ui_menu.py:290` si el resto resulta ser el mecanismo legítimo.\n3. Declarar el ciclo aceptado y retirar (a) y (b) de #320, dejando `LOCAL_APPS` mantenida a mano con su orden anotado — el estado de hoy, pero decidido.\n\nBloquea a #320 (orden de INSTALLED_APPS): un grafo con un ciclo de 89 nodos no tiene orden topológico, así que ni reordenar ni derivar del grafo son posibles hoy.\n\nHallazgo: H-API-562 en docs `pm/api/iniciativas/completar-familia-base/hallazgos/`.",
+    "status": "pending",
+    "owner": null,
+    "blocked_by": [],
+    "blocks": [
+      {
+        "task_id": "320",
+        "subject": "El orden de INSTALLED_APPS no es topológico: base va a media lista",
+        "status": "completed"
+      }
+    ],
+    "blocked": false
+  },
+  "scope": "Native read only; export is evidence, not replacement TaskStore authority"
+}

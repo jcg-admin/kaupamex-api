@@ -1,0 +1,2207 @@
+{
+  "extends": "module-graph-pilot.json",
+  "reference_inventory": "module-graph-pilot.json#reference_inventory; unchanged source hash verified, no duplicate extraction",
+  "supplemental_reference": "module-graph-pilot.json#supplemental_source_review; conditional alias/imports/logger/bases/attributes retained",
+  "consumer_inventory": {
+    "name": "module_graph.py",
+    "lines": 387,
+    "classes": [
+      {
+        "name": "ModuleGraphCycle",
+        "lineno": 32,
+        "decorators": [],
+        "methods": [
+          {
+            "kind": "method",
+            "owner": "ModuleGraphCycle",
+            "name": "__init__",
+            "lineno": 35,
+            "signature": {
+              "params": [
+                "cycle"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ]
+      },
+      {
+        "name": "ModuleNode",
+        "lineno": 40,
+        "decorators": [],
+        "methods": [
+          {
+            "kind": "method",
+            "owner": "ModuleNode",
+            "name": "__init__",
+            "lineno": 46,
+            "signature": {
+              "params": [
+                "name",
+                "module_graph"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleNode",
+            "name": "demo_installable",
+            "lineno": 59,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "property"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleNode",
+            "name": "phase",
+            "lineno": 64,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "property"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleNode",
+            "name": "depth",
+            "lineno": 72,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "property"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleNode",
+            "name": "order_name",
+            "lineno": 81,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "property"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleNode",
+            "name": "__repr__",
+            "lineno": 94,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ]
+      },
+      {
+        "name": "ModuleGraph",
+        "lineno": 98,
+        "decorators": [],
+        "methods": [
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "__init__",
+            "lineno": 101,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [
+                "mode"
+              ],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "from_database",
+            "lineno": 109,
+            "signature": {
+              "params": [
+                "names"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [
+                "using",
+                "mode"
+              ],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": [
+              "classmethod"
+            ]
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "_update_from_database",
+            "lineno": 125,
+            "signature": {
+              "params": [
+                "names"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [
+                "using"
+              ],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "__contains__",
+            "lineno": 152,
+            "signature": {
+              "params": [
+                "name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "__getitem__",
+            "lineno": 155,
+            "signature": {
+              "params": [
+                "name"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "__iter__",
+            "lineno": 158,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "_phase",
+            "lineno": 169,
+            "signature": {
+              "params": [
+                "node",
+                "memo"
+              ],
+              "has_default": [
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "_depth",
+            "lineno": 186,
+            "signature": {
+              "params": [
+                "node",
+                "memo",
+                "path"
+              ],
+              "has_default": [
+                false,
+                false,
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "__len__",
+            "lineno": 206,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "extend",
+            "lineno": 209,
+            "signature": {
+              "params": [
+                "names"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "_remove",
+            "lineno": 240,
+            "signature": {
+              "params": [
+                "name",
+                "log_dependents"
+              ],
+              "has_default": [
+                false,
+                true
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "_update_depends",
+            "lineno": 257,
+            "signature": {
+              "params": [
+                "names"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "_update_depth",
+            "lineno": 276,
+            "signature": {
+              "params": [
+                "names"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "missing",
+            "lineno": 288,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "cycles",
+            "lineno": 308,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "auto_installable",
+            "lineno": 332,
+            "signature": {
+              "params": [
+                "present"
+              ],
+              "has_default": [
+                false
+              ],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "order",
+            "lineno": 375,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          },
+          {
+            "kind": "method",
+            "owner": "ModuleGraph",
+            "name": "__repr__",
+            "lineno": 379,
+            "signature": {
+              "params": [],
+              "has_default": [],
+              "vararg": null,
+              "kwonly": [],
+              "kwarg": null
+            },
+            "body": "substantive",
+            "decorators": []
+          }
+        ]
+      }
+    ],
+    "functions": [
+      {
+        "kind": "function",
+        "owner": null,
+        "name": "build_graph",
+        "lineno": 383,
+        "signature": {
+          "params": [
+            "names"
+          ],
+          "has_default": [
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "body": "substantive",
+        "decorators": []
+      }
+    ],
+    "raw": 29,
+    "unique": 26
+  },
+  "consumer_sha256": "9cc75624ff4e0342ad2d3fa3fcb7c20064193af408f04512e1b24e1424946390",
+  "named_reference_declarations": 19,
+  "contract_records": [
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleNode",
+      "behavior": "Manifest/dependency node plus database load snapshot and computed ordering/phase/demo attributes",
+      "execution_flow": "ModuleNode snapshot attributes; IrModule.installed_version nullable persistence; explicit from_database preparation",
+      "inputs_outputs": {
+        "source_header": "class ModuleNode:",
+        "signature": null,
+        "decorators": [],
+        "behavior": "Manifest/dependency node plus database load snapshot and computed ordering/phase/demo attributes"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "ModuleNode snapshot attributes; IrModule.installed_version nullable persistence; explicit from_database preparation"
+      ],
+      "installed_mechanism": "ModuleNode snapshot attributes; IrModule.installed_version nullable persistence; explicit from_database preparation",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 137,
+      "symbol_kind": "class",
+      "owner": "odoo.modules.module_graph"
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleNode.__init__",
+      "behavior": "Input name and graph; resolve/parse manifest; initialize id0, uninstalled states, demoFalse, versionNone and empty dependency set",
+      "execution_flow": "ModuleNode.__init__ initializes id0, state/load_state uninstalled, demoFalse and both version snapshotsNone",
+      "inputs_outputs": {
+        "source_header": "    def __init__(self, name: str, module_graph: ModuleGraph) -> None:",
+        "signature": {
+          "params": [
+            "name",
+            "module_graph"
+          ],
+          "has_default": [
+            false,
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [],
+        "behavior": "Input name and graph; resolve/parse manifest; initialize id0, uninstalled states, demoFalse, versionNone and empty dependency set"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "ModuleNode.__init__ initializes id0, state/load_state uninstalled, demoFalse and both version snapshotsNone"
+      ],
+      "installed_mechanism": "ModuleNode.__init__ initializes id0, state/load_state uninstalled, demoFalse and both version snapshotsNone",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 141,
+      "symbol_kind": "method",
+      "owner": "ModuleNode"
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleNode.order_name",
+      "behavior": "Normal name unchanged; test_* uses greatest dependency by depth/order key followed by space and own name; no anchor raises ValueError",
+      "execution_flow": "ModuleNode.order_name; ModuleGraph._depth",
+      "inputs_outputs": {
+        "source_header": "    def order_name(self) -> str:",
+        "signature": {
+          "params": [],
+          "has_default": [],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [
+          "functools.cached_property"
+        ],
+        "behavior": "Normal name unchanged; test_* uses greatest dependency by depth/order key followed by space and own name; no anchor raises ValueError"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Bounded value conformance; Odoo cached_property invalidation lifecycle and complete executable loader not accepted"
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "ModuleNode.order_name; ModuleGraph._depth"
+      ],
+      "installed_mechanism": "ModuleNode.order_name; ModuleGraph._depth",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "test_ordinary_depth_and_order_key_agree; test_test_addon_placement_matches_reference; test_test_addon_ties_and_nested_anchors; empty/cycle/mutation controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Bounded value conformance; Odoo cached_property invalidation lifecycle and complete executable loader not accepted"
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Bounded value conformance; Odoo cached_property invalidation lifecycle and complete executable loader not accepted",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 166,
+      "symbol_kind": "method",
+      "owner": "ModuleNode"
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleNode.depth",
+      "behavior": "Normal node returns max dependency depth+1 or0; test_* shares greatest dependency depth; empty test dependency set raises ValueError",
+      "execution_flow": "ModuleNode.depth -> ModuleGraph._depth",
+      "inputs_outputs": {
+        "source_header": "    def depth(self) -> int:",
+        "signature": {
+          "params": [],
+          "has_default": [],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [
+          "functools.cached_property"
+        ],
+        "behavior": "Normal node returns max dependency depth+1 or0; test_* shares greatest dependency depth; empty test dependency set raises ValueError"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Consumer raises explicit ModuleGraphCycle instead of reference graph prune policy; load graph pruning pending"
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "ModuleNode.depth -> ModuleGraph._depth"
+      ],
+      "installed_mechanism": "ModuleNode.depth -> ModuleGraph._depth",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "Pinned class differential controls; existing graph diamond/cycle/single-evaluation/mutation tests",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Consumer raises explicit ModuleGraphCycle instead of reference graph prune policy; load graph pruning pending"
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Consumer raises explicit ModuleGraphCycle instead of reference graph prune policy; load graph pruning pending",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 175,
+      "symbol_kind": "method",
+      "owner": "ModuleNode"
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleNode.phase",
+      "behavior": "base0; load mode nonbase1; update mode max(dependency phase + to-install XOR + base dependency bonus); empty update anchor raises ValueError",
+      "execution_flow": "ModuleGraph._phase consumes mode and explicit state; from_database populates state from selected alias",
+      "inputs_outputs": {
+        "source_header": "    def phase(self) -> int:",
+        "signature": {
+          "params": [],
+          "has_default": [],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [
+          "functools.cached_property"
+        ],
+        "behavior": "base0; load mode nonbase1; update mode max(dependency phase + to-install XOR + base dependency bonus); empty update anchor raises ValueError"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "ModuleGraph._phase consumes mode and explicit state; from_database populates state from selected alias"
+      ],
+      "installed_mechanism": "ModuleGraph._phase consumes mode and explicit state; from_database populates state from selected alias",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 184,
+      "symbol_kind": "method",
+      "owner": "ModuleNode",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleNode.demo_installable",
+      "behavior": "Return all dependency demo flags, vacuously True without dependencies; no mutation or database write",
+      "execution_flow": "Dependency node.demo flags now populated from the selected database; no demo data load",
+      "inputs_outputs": {
+        "source_header": "    def demo_installable(self) -> bool:",
+        "signature": {
+          "params": [],
+          "has_default": [],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [
+          "property"
+        ],
+        "behavior": "Return all dependency demo flags, vacuously True without dependencies; no mutation or database write"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "Dependency node.demo flags now populated from the selected database; no demo data load"
+      ],
+      "installed_mechanism": "Dependency node.demo flags now populated from the selected database; no demo data load",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 202,
+      "symbol_kind": "method",
+      "owner": "ModuleNode",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph",
+      "behavior": "Cursor-bound mode-aware module set supports dependency preparation, state filtering, pruning and ordered loading",
+      "execution_flow": "ModuleGraph.from_database -> transitive manifest closure -> explicit dependency/depth preparation -> selected DB snapshot -> ordering",
+      "inputs_outputs": {
+        "source_header": "class ModuleGraph:",
+        "signature": null,
+        "decorators": [],
+        "behavior": "Cursor-bound mode-aware module set supports dependency preparation, state filtering, pruning and ordered loading"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "ModuleGraph.from_database -> transitive manifest closure -> explicit dependency/depth preparation -> selected DB snapshot -> ordering"
+      ],
+      "installed_mechanism": "from_database binds the explicit alias and delegates to extend; every nonempty new bound batch reuses manifest/dependency/cycle preparation and selected-alias snapshot",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 206,
+      "symbol_kind": "class",
+      "owner": "odoo.modules.module_graph",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph.__init__",
+      "behavior": "Retain cursor, load/update mode and empty module mapping; default load",
+      "execution_flow": "Static default constructor retained; mode validated; usingNone until explicit from_database factory binds alias",
+      "inputs_outputs": {
+        "source_header": "    def __init__(self, cr: BaseCursor, mode: Literal['load', 'update'] = 'load') -> None:",
+        "signature": {
+          "params": [
+            "cr",
+            "mode"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [],
+        "behavior": "Retain cursor, load/update mode and empty module mapping; default load"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "Static default constructor retained; mode validated; usingNone until explicit from_database factory binds alias"
+      ],
+      "installed_mechanism": "Static default constructor retained; mode validated; usingNone until explicit from_database factory binds alias",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 211,
+      "symbol_kind": "method",
+      "owner": "ModuleGraph"
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph.__contains__",
+      "behavior": "Input module name; Boolean membership in graph mapping; no mutation",
+      "execution_flow": "ModuleGraph.__contains__ -> _nodes",
+      "inputs_outputs": {
+        "source_header": "    def __contains__(self, name: str) -> bool:",
+        "signature": {
+          "params": [
+            "name"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [],
+        "behavior": "Input module name; Boolean membership in graph mapping; no mutation"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Verified static protocol only; membership of database-filtered graph pending"
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "ModuleGraph.__contains__ -> _nodes"
+      ],
+      "installed_mechanism": "ModuleGraph.__contains__ -> _nodes",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "test_static_graph_membership_lookup_and_cardinality: present/absent controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Verified static protocol only; membership of database-filtered graph pending"
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Verified static protocol only; membership of database-filtered graph pending",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 218,
+      "symbol_kind": "method",
+      "owner": "ModuleGraph"
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph.__getitem__",
+      "behavior": "Input module name; return its node or raise KeyError; no mutation",
+      "execution_flow": "ModuleGraph.__getitem__ -> _nodes",
+      "inputs_outputs": {
+        "source_header": "    def __getitem__(self, name: str) -> ModuleNode:",
+        "signature": {
+          "params": [
+            "name"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [],
+        "behavior": "Input module name; return its node or raise KeyError; no mutation"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Verified static protocol only; graph contents differ until load filtering exists"
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "ModuleGraph.__getitem__ -> _nodes"
+      ],
+      "installed_mechanism": "ModuleGraph.__getitem__ -> _nodes",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "test_static_graph_membership_lookup_and_cardinality: lookup and missing KeyError",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Verified static protocol only; graph contents differ until load filtering exists"
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Verified static protocol only; graph contents differ until load filtering exists",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 221,
+      "symbol_kind": "method",
+      "owner": "ModuleGraph"
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph.__iter__",
+      "behavior": "Return iterator sorted by phase, depth and dependency-aware order_name; no persistent state changes",
+      "execution_flow": "Phase/depth/dependency ordering reads retained database snapshot nodes; two actual databases produce different load orders",
+      "inputs_outputs": {
+        "source_header": "    def __iter__(self) -> Iterator[ModuleNode]:",
+        "signature": {
+          "params": [],
+          "has_default": [],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [],
+        "behavior": "Return iterator sorted by phase, depth and dependency-aware order_name; no persistent state changes"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "Phase/depth/dependency ordering reads retained database snapshot nodes; two actual databases produce different load orders"
+      ],
+      "installed_mechanism": "Phase/depth/dependency ordering reads retained database snapshot nodes; two actual databases produce different load orders",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 224,
+      "symbol_kind": "method",
+      "owner": "ModuleGraph"
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph.__len__",
+      "behavior": "Return cardinality of current graph mapping without mutation or IO",
+      "execution_flow": "ModuleGraph.__len__ -> _nodes",
+      "inputs_outputs": {
+        "source_header": "    def __len__(self) -> int:",
+        "signature": {
+          "params": [],
+          "has_default": [],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [],
+        "behavior": "Return cardinality of current graph mapping without mutation or IO"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Does not establish correct database-specific population"
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "ModuleGraph.__len__ -> _nodes"
+      ],
+      "installed_mechanism": "ModuleGraph.__len__ -> _nodes",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "test_static_graph_membership_lookup_and_cardinality",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Does not establish correct database-specific population"
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Does not establish correct database-specific population",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 227,
+      "symbol_kind": "method",
+      "owner": "ModuleGraph"
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph.extend",
+      "behavior": "Reset existing node cached properties; add only requested new names; prune un-installable nodes; update dependency links/depth/database state",
+      "execution_flow": "Static transitive closure retained for administrative requests; from_database composes preparation/filtering, not literal reference extend equivalence",
+      "inputs_outputs": {
+        "source_header": "    def extend(self, names: Collection[str]) -> None:",
+        "signature": {
+          "params": [
+            "names"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [],
+        "behavior": "Reset existing node cached properties; add only requested new names; prune un-installable nodes; update dependency links/depth/database state"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "Static transitive closure retained for administrative requests; from_database composes preparation/filtering, not literal reference extend equivalence"
+      ],
+      "installed_mechanism": "src/modules/module_graph.py::extend now composes existing preparation/snapshot stages when using is bound; from_database delegates once",
+      "existing_adaptation": "Two graph modes retained, static transitive closure retained; explicit alias replaces bound Odoo cursor. No new coordinator, schema, persisted field or taxonomy",
+      "verification": {
+        "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+        "current_incremental_evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/incremental-graph-summary.json"
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 230,
+      "symbol_kind": "method",
+      "owner": "ModuleGraph",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph._imported_modules",
+      "behavior": "Cache ordered names studio_customization plus database imported rows when optional imported column exists",
+      "execution_flow": "No demonstrated equivalent; module get_modules enumerates code, not imported database modules",
+      "inputs_outputs": {
+        "source_header": "    def _imported_modules(self) -> OrderedSet[str]:",
+        "signature": {
+          "params": [],
+          "has_default": [],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [
+          "functools.cached_property"
+        ],
+        "behavior": "Cache ordered names studio_customization plus database imported rows when optional imported column exists"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Optional-column/query/order/cache reference controls verified with mocked cursor; Consumer imported provenance producer/field and native DB fixture absent. No Consumer equivalence; remains pending0382"
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "No demonstrated equivalent; module get_modules enumerates code, not imported database modules"
+      ],
+      "installed_mechanism": "No demonstrated equivalent; module get_modules enumerates code, not imported database modules",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "test_reference_imported_modules_optional_column_and_cache:2PASS; imported-module-contract.json actual Consumer model metadata without DB IO",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Optional-column/query/order/cache reference controls verified with mocked cursor; Consumer imported provenance producer/field and native DB fixture absent. No Consumer equivalence; remains pending0382"
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Optional-column/query/order/cache reference controls verified with mocked cursor; Consumer imported provenance producer/field and native DB fixture absent. No Consumer equivalence; remains pending0382",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 250,
+      "symbol_kind": "method",
+      "owner": "ModuleGraph"
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph._update_depends",
+      "behavior": "Resolve declared dependencies to nodes already in graph; missing dependency removes node and dependent nodes",
+      "execution_flow": "Existing pure preparation now used by from_database; dependency pruning precedes the snapshot",
+      "inputs_outputs": {
+        "source_header": "    def _update_depends(self, names: Iterable[str]) -> None:",
+        "signature": {
+          "params": [
+            "names"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [],
+        "behavior": "Resolve declared dependencies to nodes already in graph; missing dependency removes node and dependent nodes"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "Existing pure preparation now used by from_database; dependency pruning precedes the snapshot"
+      ],
+      "installed_mechanism": "Shared dependency preparation invoked by database-bound extend for new names, including initial from_database; static closure remains separate",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 257,
+      "symbol_kind": "method",
+      "owner": "ModuleGraph",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph._update_depth",
+      "behavior": "Force depth evaluation for new nodes; on recursive cycle remove affected node and its dependents",
+      "execution_flow": "Existing cycle pruning now used only by explicit from_database preparation; static request cycle rejection retained",
+      "inputs_outputs": {
+        "source_header": "    def _update_depth(self, names: Iterable[str]) -> None:",
+        "signature": {
+          "params": [
+            "names"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [],
+        "behavior": "Force depth evaluation for new nodes; on recursive cycle remove affected node and its dependents"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "Existing cycle pruning now used only by explicit from_database preparation; static request cycle rejection retained"
+      ],
+      "installed_mechanism": "Shared cycle pruning invoked by database-bound extend for new names, including initial from_database; static request cycles still reject at ordering",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 271,
+      "symbol_kind": "method",
+      "owner": "ModuleGraph",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph._update_from_database",
+      "behavior": "Select name,id,state,demo,latest_version AS installed_version for retained new nodes; prune uninstallable always and uninstalled/to-install in load; copy snapshot and load-state/version",
+      "execution_flow": "Django apps.get_model(base,IrModule).objects.using(explicit_alias).filter(name__in=...).values_list(name,id,state,demo,installed_version); one read query; skip/prune according to mode; copy load snapshots",
+      "inputs_outputs": {
+        "source_header": "    def _update_from_database(self, names: Iterable[str]) -> None:",
+        "signature": {
+          "params": [
+            "names"
+          ],
+          "has_default": [
+            false
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [],
+        "behavior": "Select name,id,state,demo,latest_version AS installed_version for retained new nodes; prune uninstallable always and uninstalled/to-install in load; copy snapshot and load-state/version"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "Django apps.get_model(base,IrModule).objects.using(explicit_alias).filter(name__in=...).values_list(name,id,state,demo,installed_version); one read query; skip/prune according to mode; copy load snapshots"
+      ],
+      "installed_mechanism": "Native IrModule explicit-alias values_list snapshot invoked for newly retained bound extensions; preserves existing node snapshots and caller-mutated states",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 280,
+      "symbol_kind": "method",
+      "owner": "ModuleGraph",
+      "current_incremental_verification": {
+        "authority": "incremental_extension in this existing file",
+        "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "result": "bounded verification PASS; mandatory CI pending; acceptance not_verified"
+      }
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph._remove",
+      "behavior": "Remove named node and recursively remove graph nodes depending on it; optional logging affects diagnostics, not selection",
+      "execution_flow": "Recursive in-memory pruning used by explicit preparation and database state filter; no persistent state change",
+      "inputs_outputs": {
+        "source_header": "    def _remove(self, name: str, log_dependents: bool = True) -> None:",
+        "signature": {
+          "params": [
+            "name",
+            "log_dependents"
+          ],
+          "has_default": [
+            false,
+            true
+          ],
+          "vararg": null,
+          "kwonly": [],
+          "kwarg": null
+        },
+        "decorators": [],
+        "behavior": "Remove named node and recursively remove graph nodes depending on it; optional logging affects diagnostics, not selection"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "Recursive in-memory pruning used by explicit preparation and database state filter; no persistent state change"
+      ],
+      "installed_mechanism": "Recursive in-memory pruning used by explicit preparation and database state filter; no persistent state change",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "20PostgreSQL snapshot/preparation controls;12pinned-body differential cases;two-database alias/demo/version isolation;version migration forward/reverse and3catalogue controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance."
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Read-only graph preparation, not execution of schema/data/hooks, installed-version finalization, effective registry or worker consistency. Official0382 pending, no merge or acceptance.",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "source_location": 311,
+      "symbol_kind": "method",
+      "owner": "ModuleGraph"
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_symbol": "odoo/modules/module_graph.py::ModuleNode.phase.not_in_the_same_phase",
+      "behavior": "Boolean XOR of module and dependency state equal to to install; pure nested helper used by phase",
+      "execution_flow": "Inline XOR-equivalent inequality in ModuleGraph._phase, distributed from ModuleNode.phase",
+      "inputs_outputs": {
+        "source_header": "def not_in_the_same_phase(module: ModuleNode, dependency: ModuleNode) -> bool",
+        "behavior": "Boolean XOR of module and dependency state equal to to install; pure nested helper used by phase"
+      },
+      "side_effects": "As specified in behavior; graph construction/state reads and pruning are not equivalent to administrative catalogue writes",
+      "dependencies": [
+        "Existing ModuleNode/ModuleGraph/manifest parser",
+        "TASK-API-0382",
+        "Pure explicit-state truth table verified; database snapshot integration pending"
+      ],
+      "consumers": [
+        "Reference ModuleGraph.extend/iteration and module loader",
+        "Inline XOR-equivalent inequality in ModuleGraph._phase, distributed from ModuleNode.phase"
+      ],
+      "installed_mechanism": "Inline XOR-equivalent inequality in ModuleGraph._phase, distributed from ModuleNode.phase",
+      "existing_adaptation": "Qualified correspondence above; source-header/signature from historical pinned pilot, not simple-name matching",
+      "verification": {
+        "specific_controls": "Four state-boundary comparisons and phase mutation controls",
+        "current_evidence": "scripts/evidence/orm-module-snapshot-20261022T202346",
+        "positive_negative_limits": "Pure explicit-state truth table verified; database snapshot integration pending"
+      },
+      "equivalence": "Bounded observations only; not_verified for remaining contract",
+      "limitations": "Pure explicit-state truth table verified; database snapshot integration pending",
+      "integration": {
+        "task": "TASK-API-0382",
+        "official_status": "pending",
+        "acceptance": "not_verified",
+        "merge": false,
+        "PR": 109
+      },
+      "owner": "ModuleNode.phase",
+      "symbol_kind": "nested_function",
+      "source_location": 191
+    }
+  ],
+  "supplemental_dispositions": {
+    "STATES": "Conditional type alias, not a persisted enum; IrModule.STATES is existing choice metadata. Whole vocabulary compatibility remains not_verified.",
+    "_logger": "Consumer logger now emits explicit prune diagnostics. Removal logs verified against reference for equal ordered mappings. Imported-module logging/loader context still pending.",
+    "imports": "Historical ledger distinguishes runtime imports from TYPE_CHECKING imports. CPython functools.cached_property differs from Consumer property; fresh values tested, cache lifecycle not accepted.",
+    "dynamic_definitions": "No class factory/metaclass/overload declarations in this pinned file; cached descriptors and nested phase helper explicitly accounted for. Lambda/local bindings remain in source, not new durable contract IDs.",
+    "consumer_nested": "ModuleGraph.cycles.walk and ModuleNode.__slots__ remain Consumer-only source-reviewed declarations outside the historical extractor."
+  },
+  "scope": "One unchanged reference file and changed Consumer counterpart; not global ORM coverage",
+  "acceptance": "No file-level contract acceptance. Pending symbols remain visible; completed0391/0392 are instrument TASKs only.",
+  "extends_previous_current_revision": "API e84d348c: previous current observations remain recoverable by Git; immutable pinned pilot unchanged",
+  "consumer_only_current_adaptation": {
+    "ModuleGraph.from_database": "Binds explicit alias and delegates preparation to extend; subsequent bound extensions snapshot only new nodes",
+    "ModuleGraph.using": "Ephemeral source database alias, not a taxonomy or persistent field",
+    "ModuleNode.snapshot_attributes": "id,state,demo,installed_version,load_version,load_state now populated from retained catalogue rows"
+  },
+  "pending_specific_boundaries": [
+    "Full loader and installed-version commit after successful installation",
+    "Imported module provenance/diagnostic exception",
+    "Schema/data/hooks/model registry/worker execution and acceptance",
+    "Cached-property reset lifecycle remains adapted to recomputing properties"
+  ],
+  "incremental_extension": {
+    "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "reference_symbol": "odoo/modules/module_graph.py::ModuleGraph.extend",
+    "reference_sha256": "584f0e71063b36211147bc8190a5e348d0674153ba7b981d71179a85d753b8c5",
+    "source_revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+    "task": "TASK-API-0382",
+    "official_owner": "codex-module-lifecycle",
+    "official_status": "pending",
+    "behavior": "Prepare newly extended database-bound graph nodes from the selected catalogue and preserve prior snapshots/caller-mutated states",
+    "execution_flow": [
+      "Bind alias once in from_database",
+      "Extend transitive manifest closure; track only genuinely new names",
+      "For bound graphs, prune absent/uninstallable manifests, invalid dependencies and cycles",
+      "Read known newly retained catalogue rows with the same explicit alias",
+      "Populate identity/state/demo/version snapshots; load/update filtering and ordering remain native graph operations"
+    ],
+    "inputs_outputs": "Initial snapshot plus addon names -> extended/pruned graph whose new nodes reflect the selected catalogue; None return, catalogue errors propagate",
+    "side_effects": "In-memory node mutation and one SELECT for nonempty retained additions; no catalogue writes, schema/data/hook execution, commits, installed-version finalization or TASK state changes",
+    "dependencies": [
+      "Existing manifest resolver and transitive closure adaptation",
+      "Existing _remove/_update_depends/_update_depth/_update_from_database",
+      "Django explicit alias/queryset",
+      "IrModule persisted state/demo/installed_version",
+      "Recomputed properties instead of Odoo cached_property invalidation"
+    ],
+    "consumers": [
+      "Reference loading.load_modules fixed-point graph extensions",
+      "Consumer ModuleGraph.from_database public bound entry point and subsequent extend",
+      "Consumer build_graph and IrModule administrative request graphs remain static/unbound; no effective loader integration inferred"
+    ],
+    "installed_mechanism": "src/modules/module_graph.py::extend now composes existing preparation/snapshot stages when using is bound; from_database delegates once",
+    "existing_adaptation": "Two graph modes retained, static transitive closure retained; explicit alias replaces bound Odoo cursor. No new coordinator, schema, persisted field or taxonomy",
+    "verification": {
+      "red": "3FAIL13PASS exit1: stale new snapshots, unpruned uninstallable manifest and new cycle",
+      "green": "16PASS exit0",
+      "neighbors": "65PASS exit0, including existing graph reference-body and loading-stage contracts; separate run, not summed as one suite",
+      "postgres": "Six bounded catalogue/alias/snapshot/order/read-only controls PASS on two schemas of one owned DB; not N>1 productive installation",
+      "differential": "12 incremental mode/state combinations PASS using unmodified pinned classes from existing fixture extractor",
+      "adapters": "Manifest fixtures, Consumer OrderedSet/reset_cached_properties, false imported-column probe, cursor IN/ANY and latest_version/installed_version protocol adaptation; not native Odoo runtime",
+      "negative": "Bypass bound extension -> FAIL expected1; force default alias -> FAIL expected1",
+      "instrument_failures": "First differential NameError OrderedSet; second import from tools failed; corrected tools.misc import; all raw logs retained and resources cleaned",
+      "mandatory_ci": {
+        "revision": "312b7fb62a400e229a79f27b0bbfa28449952c90",
+        "classification": "BASELINE_FAILURE",
+        "passed": 77,
+        "skipped": 1,
+        "errors": 1,
+        "seconds": 429.67,
+        "pytest_exit": 1,
+        "make_exit": 2,
+        "harness_exit": 2,
+        "cleanup": "Own database and role removed successfully after failure",
+        "first_failure": "ProductProduct.display_name in TestCartSnapshotsV2.test_saves_cart_and_returns_200",
+        "log": "outputs/incremental-graph-ci.log",
+        "junit": "outputs/incremental-graph-ci.junit.xml",
+        "comparison": "Same first failure as prior remote479f02c6 JUnit; no regression demonstrated by evaluated cases",
+        "remaining_tests": "NOT_EVALUATED after maxfail=1",
+        "acceptance": "not_verified"
+      }
+    },
+    "equivalence": "Bounded adapted incremental preparation verified; no whole file/loader/Registry acceptance",
+    "limitations": [
+      "Imported module provenance/diagnostic exception remains pending",
+      "Global model composition, schema/data/hooks, installed-version producer and worker invalidation remain pending",
+      "Unknown catalogue rows retain pinned defaults, not installation acceptance",
+      "Two schema aliases do not demonstrate two productive company databases",
+      "Official acceptance and integration require their own gates"
+    ],
+    "integration": {
+      "PR": 109,
+      "merged": false,
+      "acceptance": "not_verified",
+      "official_states_changed": false
+    },
+    "physical_database_qualification": {
+      "result": "PASS",
+      "evidence": "physical-catalogue-positive.json",
+      "negative": "wrong physical alias fails expected1",
+      "partial_failure": "after first acquisition fails expected1; no owned candidates remain",
+      "scope": "Two physical DB catalogues only; no schema completeness, effective Registry/auth/installation acceptance"
+    }
+  },
+  "applicable_responsibility_reconciliation": {
+    "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+    "representation": "Composite observable obligations over existing qualified-symbol contracts; not new durable contract IDs, TASKs, taxonomy or acceptance denominator",
+    "structural_authority": "Existing reference_inventory,19named declarations, contract_records and supplemental_dispositions; no re-inventory",
+    "responsibilities": [
+      {
+        "responsibility": "Node initialization and catalogue snapshots",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleNode",
+          "odoo/modules/module_graph.py::ModuleNode.__init__",
+          "odoo/modules/module_graph.py::ModuleGraph._update_from_database"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "ModuleNode defaults plus explicit-alias persisted identity/state/demo/installed_version snapshots",
+        "verification": "Existing snapshot controls and incremental65contracts; physical-catalogue-positive.json",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "limitations": "Catalogue snapshot is not model composition or installation"
+      },
+      {
+        "responsibility": "Mapping and graph identity",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleGraph",
+          "odoo/modules/module_graph.py::ModuleGraph.__init__",
+          "odoo/modules/module_graph.py::ModuleGraph.__contains__",
+          "odoo/modules/module_graph.py::ModuleGraph.__getitem__",
+          "odoo/modules/module_graph.py::ModuleGraph.__len__"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "Native Python mapping and validated load/update mode; explicit using binding",
+        "verification": "Existing qualified-name mapping tests in65neighbor contracts",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "limitations": "Native cursor binding adapted; no new database or state authority"
+      },
+      {
+        "responsibility": "Dependency ordering and state boundaries",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleNode.order_name",
+          "odoo/modules/module_graph.py::ModuleNode.depth",
+          "odoo/modules/module_graph.py::ModuleNode.phase",
+          "odoo/modules/module_graph.py::ModuleGraph.__iter__",
+          "odoo/modules/module_graph.py::ModuleNode.phase.not_in_the_same_phase"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "Mode/phase/depth/dependency-anchor ordering with recomputed properties",
+        "verification": "65neighbor contracts;12incremental pinned-body differential cases",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "limitations": "No full module load execution, actual Registry or worker invalidation"
+      },
+      {
+        "responsibility": "Incremental closure and preparation",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleGraph.extend",
+          "odoo/modules/module_graph.py::ModuleGraph._update_depends",
+          "odoo/modules/module_graph.py::ModuleGraph._update_depth"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "Static transitive closure retained; bound additions prepare/filter/snapshot only new nodes",
+        "verification": "16focused;12incremental differential; two physical catalogues; wrong-alias negative",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "limitations": "Manifest fixtures controlled; not all productive module arrangements or loader acceptance"
+      },
+      {
+        "responsibility": "Recursive pruning and error surfaces",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleGraph._remove",
+          "odoo/modules/module_graph.py::ModuleGraph._update_depends",
+          "odoo/modules/module_graph.py::ModuleGraph._update_depth",
+          "odoo/modules/module_graph.py::ModuleGraph._update_from_database"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "Remove dependents, prune invalid/cyclic/noninstalled nodes, propagate query/name failures",
+        "verification": "Existing removal/differential controls and current physical catalogue pruning",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "limitations": "Imported-module diagnostic exception and full runtime consumer acceptance pending"
+      },
+      {
+        "responsibility": "Demo dependency eligibility",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleNode.demo_installable"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "All dependency demo flags govern eligibility; persisted flags selected by alias",
+        "verification": "Existing pinned-body demo eligibility; current physical demo flags",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "verified_bounded",
+        "acceptance": "not_verified",
+        "limitations": "Eligibility does not execute demo or force_demo/rebuild"
+      },
+      {
+        "responsibility": "Imported-module provenance and diagnostics",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleGraph._imported_modules",
+          "odoo/modules/module_graph.py::ModuleGraph.extend"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "Reference imported-column/studio_customization diagnostic exemption has no qualified Consumer equivalent",
+        "verification": "Source review; current IrModule has no imported field or qualified imported-addon loader",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "not_verified",
+        "acceptance": "not_verified",
+        "limitations": "No automatic field creation or authorized exclusion inferred; TASK-API-0382 and related0269 remain pending"
+      },
+      {
+        "responsibility": "Descriptor freshness during extension",
+        "reference_symbols": [
+          "odoo/modules/module_graph.py::ModuleNode.order_name",
+          "odoo/modules/module_graph.py::ModuleNode.depth",
+          "odoo/modules/module_graph.py::ModuleNode.phase",
+          "odoo/modules/module_graph.py::ModuleGraph.extend"
+        ],
+        "contract_details_authority": "Existing contract_records for these exact qualified symbols;14elements retained",
+        "implementation": "Consumer recomputes properties rather than resetting Odoo cached_property entries",
+        "verification": "Mutation/state-boundary controls and incremental comparisons",
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219",
+        "task": "TASK-API-0382",
+        "owner": "codex-module-lifecycle",
+        "status": "partial",
+        "acceptance": "not_verified",
+        "limitations": "Bounded freshness verified; full loader/registry/cache lifecycle not accepted"
+      }
+    ],
+    "unmapped_qualified_declarations": [],
+    "supplemental_scope": "Existing imports, TYPE_CHECKING STATES alias, logger and nested/dynamic declarations reviewed; no new enum or reference modifications",
+    "file_acceptance": "not_verified"
+  },
+  "current_authorized_related_units": {
+    "tasks": {
+      "TASK-API-0265": {
+        "native_id": "449",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "HTTP55PASS5a84f1ff; required CI Make2 baseline display_name; acceptance pending"
+      },
+      "TASK-API-0269": {
+        "native_id": "456",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "Startup app/model admission 5744db36; 21 PASS; whole TASK not accepted"
+      },
+      "TASK-API-0267": {
+        "native_id": "452",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "unit": "Category tree/FK/source path metadata/guarded historical migration/HTTP adapter implemented and bounded verified",
+        "contract": "orm-demo-continuation-20261023T144219/outputs/category-tree-contract-14.json",
+        "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798",
+        "verification": {
+          "catalogue_tests": 78,
+          "catalogue_exit": 0,
+          "historical_schema_controls": 5,
+          "historical_schema_exit": 0,
+          "alias_guard_red_exit": 1,
+          "alias_guard_green_exit": 0,
+          "alias_scope": "two connections/namespaces, one owned physical DB; not productive N>1",
+          "error_storage_controls": 2,
+          "error_storage_exit": 0,
+          "bootstrap_exit": 0,
+          "global_ci": {
+            "make_exit": 2,
+            "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798",
+            "command": "make ci-verify",
+            "acceptance": false,
+            "pytest_exit": 1,
+            "passed": 146,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 474.59,
+            "first_failure": "ResCountry.DoesNotExist through ResCompany.country_code, TestRecalculateTaxTagsErrors.test_child_tax_shared_by_two_parents_is_422",
+            "classification": "BASELINE_FAILURE: exact ae949aa8 focused case reproduces same ResCountry.DoesNotExist; new computed-group KeyError fixed separately",
+            "later_suite": "NOT_EVALUATED",
+            "new_regression_scope": "Related-setup stale group and category alias fallback found and fixed by bounded controls; unexecuted suite not declared regression-free"
+          },
+          "preserved_probes": "16names differential and reset SQL controls exit0, own resource cleanup independently0"
+        },
+        "acceptance": "pending",
+        "integration": "published source5943be0c in PR109; no merge or acceptance",
+        "broader_task": "TASK-GEN-0058 ownerNULL not executed or closed"
+      },
+      "TASK-GEN-0633": {
+        "native_id": "1203",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "source_revision": "c2d0d10d5ead906cd5241e0286de9a0e97692926",
+        "unit": "Five historical assignment failures corrected;13new discriminating cases plus existing regressions; shared setter notifications and cache invalidation reconciled",
+        "verification": {
+          "refined": {
+            "tests": 50,
+            "exit": 0
+          },
+          "defaults": {
+            "tests": 40,
+            "exit": 0
+          },
+          "neighbors": {
+            "tests": 165,
+            "exit": 0
+          },
+          "native_unittest_recompute": {
+            "tests": 16,
+            "exit": 0
+          },
+          "historical64": {
+            "passed": 14,
+            "failed": 50,
+            "exit": 1
+          },
+          "global_ci": {
+            "source_revision": "c2d0d10d5ead906cd5241e0286de9a0e97692926",
+            "make_exit": 2,
+            "pytest_exit": 1,
+            "passed": 77,
+            "skipped": 1,
+            "errors": 1,
+            "seconds": 438.32,
+            "first_error": "ProductProduct.display_name, setup TestCartSnapshotsV2.test_saves_cart_and_returns_200",
+            "classification": "BASELINE_FAILURE: same first error in prior local and remote JUnit; later suite NOT_EVALUATED",
+            "evidence": [
+              "display-name-assignment-ci.log",
+              "display-name-assignment-ci.junit.xml"
+            ]
+          }
+        },
+        "qualified_symbols": {
+          "odoo19c:BaseModel._compute_display_name": "orm.models.DisplayNameMixin._compute_display_name",
+          "odoo19c:ResPartner._compute_display_name": "addons.base.models.res_partner.ResPartner._compute_display_name",
+          "odoo19c:Field.__set__": "orm.fields.FieldDescriptor.__set__ (inherited by ComputedFieldDescriptor)",
+          "odoo19c:Field.__get__": "orm.fields.FieldDescriptor.__get__"
+        },
+        "evidence": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/display-name-assignment-contract-14.json",
+        "limits": "Historical64 now20PASS44FAIL, same stable population; no whole-file acceptance, official state change, merge or managed inference",
+        "product_followup": {
+          "source_revision": "2b249be82a8acec2fd2f280342d13a7fc505c189",
+          "task_reconciliation": "orm-demo-continuation-20261023T144219/outputs/product-display-name-task-reconciliation.json",
+          "implementation": [
+            "addons/product/models/product_product.py:ProductProduct._compute_display_name",
+            "src/orm/models.py:_notify_m2m_modified"
+          ],
+          "reference": [
+            "odoo19c:addons/product/models/product_product.py:ProductProduct._compute_display_name",
+            "odoo19c:odoo/orm/fields.py:Field.__get__/compute_value"
+          ],
+          "verification": {
+            "contract": {
+              "tests": 12,
+              "exit": 0
+            },
+            "consumers": {
+              "tests": 54,
+              "exit": 0
+            },
+            "regression": {
+              "tests": 106,
+              "exit": 0
+            },
+            "global_ci": {
+              "source_revision": "2b249be82a8acec2fd2f280342d13a7fc505c189",
+              "make_exit": 2,
+              "pytest_exit": 1,
+              "passed": 146,
+              "skipped": 1,
+              "failed": 1,
+              "seconds": 469.44,
+              "first_failure": "ResCompany.country_code KeyError in field_computed; TestRecalculateTaxTagsErrors.test_child_tax_shared_by_two_parents_is_422",
+              "classification": "Distinct current failure under diagnosis: exact ae949aa8 targeted baseline fails with ResCountry.DoesNotExist, not this KeyError. Do not conflate error identities.",
+              "later_suite": "NOT_EVALUATED"
+            }
+          },
+          "equivalence": "Bounded Consumer assignment/invalidation, not full product formatting or whole-file acceptance",
+          "acceptance": "pending",
+          "integration": "local commit, PR109 open, no merge"
+        },
+        "related_setup_followup": {
+          "source_revision": "f1e2386f",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/related-setup-contract-14.json",
+          "new_controls": 3,
+          "broad_passed": 92,
+          "broad_inherited_failed": 3,
+          "acceptance": "pending"
+        },
+        "current_historical64": {
+          "source_revision": "5943be0cf23900a856072cb246abf0fd0e23f798",
+          "passed": 14,
+          "failed": 50,
+          "exit": 1,
+          "evidence": "orm-demo-continuation-20261023T144219/outputs/category-historical64.junit.xml"
+        },
+        "schema_fixture_reconciliation": {
+          "source_revision": "093cdfd708c02b9043b39f36e0bed09b628f3d73",
+          "full_files_pass": 61,
+          "historical64": {
+            "passed": 16,
+            "failed": 48,
+            "exit": 1
+          },
+          "qualification": "two fixture criteria corrected after pinned-source proof, not two runtime bugs fixed; denominator unchanged",
+          "evidence": "orm-demo-continuation-20261023T144219/outputs/historical-64-reconciliation.json"
+        },
+        "computed_many2one_followup": {
+          "source_revision": "09974556a9e0cc53674693d80ad71a396b452bd7",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/computed-many2one-contract-14.json",
+          "focused": {
+            "passed": 89,
+            "exit": 0
+          },
+          "expanded": {
+            "passed": 45,
+            "failed": 4,
+            "exit": 1,
+            "classification": "same four historical display-name controls"
+          },
+          "full_ci": {
+            "source_revision": "09974556a9e0cc53674693d80ad71a396b452bd7",
+            "make_exit": 2,
+            "command": "make ci-verify",
+            "pytest_exit": 1,
+            "passed": 826,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 621.45,
+            "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+            "classification": "BASELINE_FAILURE: executable exact093cdfd7 focused comparison fails same Incoterm assertion",
+            "later_tests": "NOT_EVALUATED",
+            "acceptance": false,
+            "evidence": [
+              "computed-many2one-ci.log",
+              "computed-many2one-ci.junit.xml",
+              "incoterm-current.junit.xml",
+              "incoterm-baseline-093-executable.junit.xml"
+            ]
+          },
+          "scope": "optional nonstored relation absence and native Django FK cache invalidation; no constructor/public scalar protocol/persistent schema change",
+          "acceptance": "pending",
+          "integration": "local source09974556; no merge/acceptance"
+        },
+        "historical_verifier_reconciliation": {
+          "source_revision": "875a4aeb72c9458db662ae541bccbb6b387b8034",
+          "tests_passed": 23,
+          "checker_models": 391,
+          "checker_exit": 0,
+          "historical64": {
+            "passed": 20,
+            "failed": 44,
+            "exit": 1
+          },
+          "scope": "Pinned criterion reconciliation; negative property/metadata/foreign descriptor/read-only cases retained; no productive compute change",
+          "full_head_ci": "NOT_EVALUATED; latest complete09974556 remains FAIL, not transferable whole-head PASS"
+        },
+        "related_inverse_followup": {
+          "scope": "Generic related inverse actual Django shape/snapshot and real stored scalar persistence at explicit dispatch",
+          "source_commit": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/related-inverse-contract-14.json",
+          "native_reconciliation": "orm-demo-continuation-20261023T144219/outputs/related-inverse-native-reconciliation.json",
+          "verification": {
+            "initial_red": {
+              "passed": 1,
+              "failed": 8,
+              "exit": 1
+            },
+            "normalized_red": {
+              "passed": 1,
+              "failed": 8,
+              "exit": 1
+            },
+            "initial_green": {
+              "passed": 9,
+              "exit": 0
+            },
+            "regression": {
+              "passed": 109,
+              "new_controls": 12,
+              "exit": 0
+            },
+            "independent_sql_cases": 2,
+            "independent_sql_exit": 0,
+            "historical64": {
+              "passed": 20,
+              "failed": 44,
+              "exit": 1
+            },
+            "final_combined_regression": {
+              "passed": 180,
+              "exit": 0
+            },
+            "final_full_ci": {
+              "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+              "make_exit": 2,
+              "execution_status": "COMPLETED_FAILURE",
+              "command": "make ci-verify",
+              "pytest_exit": 1,
+              "passed": 838,
+              "skipped": 1,
+              "failed": 1,
+              "seconds": 607.55,
+              "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+              "classification": "BASELINE_FAILURE relative2137fad6, exact093cdfd7 targeted reproduction preserved",
+              "new_related_inverse_cases_in_full_ci": 12,
+              "later_tests": "NOT_EVALUATED",
+              "whole_head_acceptance": false,
+              "binary_diagnostic": "Direct compiled helper preserves Incoterm; no stale-helper defect demonstrated"
+            }
+          },
+          "identity": "Native1203 owned;0412 completed predecessor not reopened;0418/0419 unowned not executed",
+          "limitations": "No ordinary-assignment SQL, BaseModel rewrite, whole inverse/Field acceptance, full caller atomicity or physical N>1 claim",
+          "acceptance": "pending",
+          "integration": "local source commit, hooks PASS; full CI RUNNING",
+          "protocol_followup": {
+            "source_revision": "b87396fa",
+            "new_regression": "c4055e1c queried pk on existing non-Django protocol target; current1FAIL1PASS, parent-method2PASS, fixed2PASS",
+            "interrupted_ci": {
+              "source_revision": "c4055e1c4ed81af402d62e5c28a95e4db07470fe",
+              "passed": 310,
+              "skipped": 1,
+              "pytest_exit": 2,
+              "make_exit": 2,
+              "status": "INTERRUPTED after independent NEW_REGRESSION proof"
+            },
+            "original_tests_changed": false
+          }
+        },
+        "unsaved_modified_followup": {
+          "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/unsaved-modified-contract-14.json",
+          "classification": "NEW_REGRESSION of session/shared setter; ae949targetPASS,093targetFAIL, not accepted inherited debt",
+          "verification": {
+            "red_refined": {
+              "passed": 3,
+              "failed": 6,
+              "exit": 1
+            },
+            "manager_boundary": {
+              "passed": 7,
+              "failed": 2,
+              "exit": 1
+            },
+            "green": {
+              "passed": 32,
+              "new_controls": 9,
+              "exit": 0
+            },
+            "regression": {
+              "passed": 180,
+              "exit": 0
+            },
+            "historical64": {
+              "passed": 20,
+              "failed": 44,
+              "exit": 1
+            }
+          },
+          "BaseModel_class_AST_unchanged": true,
+          "scope": "Existing global Django event/cache bridge, no new store/IDs/schema or complete recordset claim",
+          "full_ci": {
+            "source_revision": "2137fad635d543681a9bc4d917e7603c1333944b",
+            "make_exit": 2,
+            "execution_status": "COMPLETED_FAILURE",
+            "command": "make ci-verify",
+            "pytest_exit": 1,
+            "passed": 838,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 607.55,
+            "first_failure": "tests/integration/base/test_report_engine.py::TestPlantillaSembrada::test_incoterm_de_sale_stock_llega_al_papel",
+            "classification": "BASELINE_FAILURE relative2137fad6, exact093cdfd7 targeted reproduction preserved",
+            "new_related_inverse_cases_in_full_ci": 12,
+            "later_tests": "NOT_EVALUATED",
+            "whole_head_acceptance": false,
+            "binary_diagnostic": "Direct compiled helper preserves Incoterm; no stale-helper defect demonstrated"
+          },
+          "integration": "Local source2137, full gate failure preserved; publication verification pending"
+        },
+        "category_display_followup": {
+          "source_revision": "c2d8fce8c482c0a9816e6d58bbfd782e0d768a69",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/category-display-contract-14.json",
+          "verification": "122PASS, no final source-specific whole CI acceptance",
+          "acceptance": "not_verified"
+        },
+        "fiscal_fields_followup": {
+          "source_revision": "f3623e313f67f5a2c010987db26e054540fe0db9",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/fiscal-fields-contract-14.json",
+          "verification": "Actual fresh PostgreSQL114PASS, all prior39fiscal/47cache cases retained; required4b29 CI1850PASS1SKIP1FAIL at proven inherited StockLot label",
+          "block": "Prior cleanup block resolved by explicit user authorization; old resource independently absent0/0; current harness active",
+          "acceptance": "not_verified"
+        },
+        "stock_lot_display_followup": {
+          "source_revision": "3806ec77c3090419871999becf711cb4f906c613",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/stock-lot-display-contract-14.json",
+          "verification": "RED10FAIL1PASS plus new-rowRED1FAIL; assignment-only11FAIL1PASS demonstrates stale format; complete30PASS; neighborhood297PASS after move correction",
+          "acceptance": "not_verified"
+        },
+        "stock_move_display_followup": {
+          "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+          "contract": "orm-demo-continuation-20261023T144219/outputs/stock-move-display-contract-14.json",
+          "verification": "Exact093 baselineFAIL;4REDFAIL;16persistencePASS and297stock/expiryPASS; supplier context not qualified",
+          "acceptance": "not_verified"
+        },
+        "current_required_ci": {
+          "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+          "make_exit": 2,
+          "command": "make ci-verify",
+          "execution_status": "COMPLETED_FAILURE",
+          "pytest_exit": 1,
+          "passed": 2224,
+          "skipped": 1,
+          "failed": 1,
+          "seconds": 901.47,
+          "first_failure": "tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_creates_no_column",
+          "classification": "BASELINE_FAILURE: exact093 reproduces same metadata assertion; metadata visibility is not physical-column proof",
+          "baseline_evidence": "prefix-placeholder-baseline-093.junit.xml",
+          "later_tests": "NOT_EVALUATED",
+          "whole_head_acceptance": false
+        },
+        "historical64_current": {
+          "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+          "passed": 20,
+          "failed": 44,
+          "pytest_exit": 1,
+          "identity_changes": 0,
+          "junit": "current-historical64-replay.junit.xml",
+          "related_unowned": "Current0397/0417in_progressNULL and0418/0419pendingNULL; no execution inferred"
+        },
+        "current_block": {
+          "task": "TASK-API-0305",
+          "native_id": "520",
+          "status": "in_progress",
+          "owner": null,
+          "proposal": "analytic-prefix-ownership-proposal.json",
+          "proposal_executed": false,
+          "evidence": "Actual prefix metadata/physical introspectionPASS; old criterion fails; existing runtime reads4FAIL11PASS due default_get route",
+          "scope": "No unowned analytic block changes; no claim of global frontier exhaustion"
+        }
+      },
+      "TASK-API-0383": {
+        "native_id": "738",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "source_revision": "ebb08d9388214bd61578408d8c94a9898d33468a",
+        "unit": "App-owned late report seed repair completes existing base0070 canonical mapping without altering history, enum/schema or resolver",
+        "contract": "orm-demo-continuation-20261023T144219/outputs/view-seed-contract-14.json",
+        "verification": {
+          "focused_passed": 22,
+          "focused_exit": 0,
+          "alias_exit": 0,
+          "alias_scope": "Two connections on one owned PostgreSQL; not N>1 acceptance",
+          "global_ci": {
+            "source_revision": "ebb08d9388214bd61578408d8c94a9898d33468a",
+            "make_exit": 2,
+            "command": "make ci-verify",
+            "execution_status": "COMPLETED_FAILURE",
+            "pytest_exit": 1,
+            "passed": 1230,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 646.59,
+            "first_failure": "tests/integration/company/test_base_vat.py::test_partner_full_clean_rejects_bad_rfc",
+            "cause": "partner_fiscal_country_codes callable missing self in default_get -> field.get_default",
+            "classification": "BASELINE_FAILURE: exact093cdfd7 focused test reproduces same TypeError, exit1",
+            "later_tests": "NOT_EVALUATED",
+            "whole_head_acceptance": false,
+            "report_incoterm_in_full_ci": "PASS",
+            "baseline_evidence": "fiscal-default-baseline-093.junit.xml"
+          }
+        },
+        "acceptance": "not_verified",
+        "integration": "Local ebb08d93, required gate completed failure at proven inherited fiscal default after1230PASS; pending publication/acceptance",
+        "other_obligations": "Existing isolation fixture5PASS and cleanup retained, no rerun; whole authentication, authorization, metadata policy and historical recovery not accepted"
+      },
+      "TASK-API-0382": {
+        "native_id": "737",
+        "owner": "codex-module-lifecycle",
+        "status": "pending",
+        "source_revision": "ec089c9a598183a53292421c14c1a55daf2c6f30",
+        "unit": "Reject unsupported lifecycle requests before Registry metadata initialization/replacement; preserve no-request path",
+        "contract": "orm-demo-continuation-20261023T144219/outputs/registry-readiness-contract-14.json",
+        "verification": {
+          "red_failed": 7,
+          "red_passed": 30,
+          "class_passed": 37,
+          "native_probe_exit": 0,
+          "registry_family_passed": 143,
+          "registry_family_exit": 0,
+          "global_ci": {
+            "source_revision": "621aaf83afc284d36f42e553099e500cc23ce84c",
+            "make_exit": 2,
+            "command": "make ci-verify",
+            "execution_status": "COMPLETED_FAILURE",
+            "pytest_exit": 1,
+            "passed": 2224,
+            "skipped": 1,
+            "failed": 1,
+            "seconds": 901.47,
+            "first_failure": "tests/unit/account/test_account_analytic_distribution_model.py::TestTheFieldWasApplied::test_prefix_placeholder_creates_no_column",
+            "classification": "BASELINE_FAILURE: exact093 reproduces same metadata assertion; metadata visibility is not physical-column proof",
+            "baseline_evidence": "prefix-placeholder-baseline-093.junit.xml",
+            "later_tests": "NOT_EVALUATED",
+            "whole_head_acceptance": false
+          }
+        },
+        "acceptance": "not_verified",
+        "remaining": "Effective per-base composition, full loader/hook/version/state cycle and installed module provenance remain not_verified; no unaccepted isolation state fabricated"
+      }
+    },
+    "authority": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/contractual-additional-ownership-assignment.json and contractual-ownership-assignment.json",
+    "scope": "Explicit user-approved owner-only updates through native TaskUpdate; statuses/dependencies preserved; older NULL-owner observations historical",
+    "contract": "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/technical-catalogue-contract-14.json",
+    "acceptance": "No completed status, merge, per-base Registry acceptance or local model qualification implied"
+  }
+}

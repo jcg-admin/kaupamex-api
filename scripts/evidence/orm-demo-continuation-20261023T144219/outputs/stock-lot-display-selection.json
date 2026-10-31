@@ -1,0 +1,24 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.stock_lot_display_contract",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Reconcile StockLot expiry display compute assignment and historical always-date criterion with pinned context/use-expiry/expired/alert behavior through existing chain_method",
+      "verify": "Exact093 baseline same Compute failed to assign; pinned decorators/body and actual formatted context callers prove stale criterion. Preserve fallback and metadata, native Datetime.to_string/translation, no new fields; test boundaries/context/cache/new-row consumers",
+      "route": "local",
+      "owned": [
+        "addons/product_expiry/models/production_lot.py",
+        "tests/integration/sale/test_product_expiry.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "claims_count": 469,
+  "selected": [
+    "TASK-GEN-0633.stock_lot_display_contract"
+  ],
+  "scope": "Bounded current global-verifier dependency under existing native1203, not original64 denominator change or whole product_expiry acceptance"
+}

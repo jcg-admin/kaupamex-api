@@ -1,0 +1,24 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "inputs": [
+    {
+      "id": "TASK-GEN-0633.fiscal_field_contract",
+      "taskId": "TASK-GEN-0633",
+      "prompt": "Reconcile actual fiscal country field defaults versus computes with pinned source; complete existing seven field declarations without changing generic default_get or schema",
+      "verify": "Exact baseline093 full_clean TypeError, three session defaults/four record-context computes, existing fiscal tests, cache dependencies and active-company context controls",
+      "route": "local",
+      "owned": [
+        "addons/account/models/res_company.py",
+        "tests/unit/account/test_account_fiscal_country.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "claims_count": 460,
+  "selected": [
+    "TASK-GEN-0633.fiscal_field_contract"
+  ],
+  "scope": "Bounded dependency of owned global-error triage, not enlargement of original64 denominator or execution of unowned0307/0321/0420; no local inference"
+}

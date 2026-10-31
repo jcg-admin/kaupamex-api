@@ -1,0 +1,12 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+pre-push REFUSE — rama de trabajo fuera del push
+
+Se publica `HEAD` y la rama de trabajo `feature/codex-workspace-bootstrap` queda con 2 commit(s) sin publicar.
+
+Git dirá «Everything up-to-date» si `HEAD` ya estaba al día — y será cierto sobre esa rama, no sobre tu trabajo.
+
+La rama se DERIVA, no se teclea:
+
+    git -C <repo> push -u origin "$(git -C <repo> branch --show-current)"
+
+error: failed to push some refs to 'https://github.com/jcg-admin/kaupamex-api.git'

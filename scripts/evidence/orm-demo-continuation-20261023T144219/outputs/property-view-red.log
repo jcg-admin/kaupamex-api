@@ -1,0 +1,92 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFFFFFF                                                                  [100%]
+=================================== FAILURES ===================================
+___________ test_registry_getter_and_setter_are_one_logical_property ___________
+
+    def test_registry_getter_and_setter_are_one_logical_property():
+        rows = accessors('registry.py', 'Registry', 'registry_invalidated')
+>       result = VIEW.logical_property_groups(rows)
+E       AttributeError: module 'orm_property_view' has no attribute 'logical_property_groups'
+
+tests/unit/scripts/test_orm_property_view.py:48: AttributeError
+________ test_homonymous_properties_in_different_classes_stay_distinct _________
+
+    def test_homonymous_properties_in_different_classes_stay_distinct():
+        rows = accessors('fields.py', 'Field', 'column_type')
+        rows += accessors('fields_binary.py', 'Binary', 'column_type')
+>       assert len(VIEW.logical_property_groups(rows)) == 2
+E       AttributeError: module 'orm_property_view' has no attribute 'logical_property_groups'
+
+tests/unit/scripts/test_orm_property_view.py:57: AttributeError
+_______________ test_different_reference_revisions_do_not_merge ________________
+
+    def test_different_reference_revisions_do_not_merge():
+        rows = accessors('registry.py', 'Registry', 'registry_invalidated')[:1]
+        other = deepcopy(rows[0])
+        other['reference_revision'] = 'other-reference'
+        other['identity'][0] = 'other-reference'
+>       assert len(VIEW.logical_property_groups(rows + [other])) == 2
+E       AttributeError: module 'orm_property_view' has no attribute 'logical_property_groups'
+
+tests/unit/scripts/test_orm_property_view.py:65: AttributeError
+_________________ test_duplicate_accessor_identity_is_rejected _________________
+
+    def test_duplicate_accessor_identity_is_rejected():
+        rows = accessors('registry.py', 'Registry', 'registry_invalidated')
+        with pytest.raises(ValueError, match='duplicate'):
+>           VIEW.logical_property_groups(rows + [rows[0]])
+E           AttributeError: module 'orm_property_view' has no attribute 'logical_property_groups'
+
+tests/unit/scripts/test_orm_property_view.py:71: AttributeError
+_____ test_unverified_or_ambiguous_accessor_role_is_rejected[decorators0] ______
+
+decorators = []
+
+    @pytest.mark.parametrize('decorators', [[], ['unknown_descriptor'],
+                                          ['property', 'flag.setter']])
+    def test_unverified_or_ambiguous_accessor_role_is_rejected(decorators):
+        row = accessors('registry.py', 'Registry', 'registry_invalidated')[0]
+        row['decorators'] = decorators
+        with pytest.raises(ValueError, match='role'):
+>           VIEW.logical_property_groups([row])
+E           AttributeError: module 'orm_property_view' has no attribute 'logical_property_groups'
+
+tests/unit/scripts/test_orm_property_view.py:80: AttributeError
+_____ test_unverified_or_ambiguous_accessor_role_is_rejected[decorators1] ______
+
+decorators = ['unknown_descriptor']
+
+    @pytest.mark.parametrize('decorators', [[], ['unknown_descriptor'],
+                                          ['property', 'flag.setter']])
+    def test_unverified_or_ambiguous_accessor_role_is_rejected(decorators):
+        row = accessors('registry.py', 'Registry', 'registry_invalidated')[0]
+        row['decorators'] = decorators
+        with pytest.raises(ValueError, match='role'):
+>           VIEW.logical_property_groups([row])
+E           AttributeError: module 'orm_property_view' has no attribute 'logical_property_groups'
+
+tests/unit/scripts/test_orm_property_view.py:80: AttributeError
+_____ test_unverified_or_ambiguous_accessor_role_is_rejected[decorators2] ______
+
+decorators = ['property', 'flag.setter']
+
+    @pytest.mark.parametrize('decorators', [[], ['unknown_descriptor'],
+                                          ['property', 'flag.setter']])
+    def test_unverified_or_ambiguous_accessor_role_is_rejected(decorators):
+        row = accessors('registry.py', 'Registry', 'registry_invalidated')[0]
+        row['decorators'] = decorators
+        with pytest.raises(ValueError, match='role'):
+>           VIEW.logical_property_groups([row])
+E           AttributeError: module 'orm_property_view' has no attribute 'logical_property_groups'
+
+tests/unit/scripts/test_orm_property_view.py:80: AttributeError
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-red.junit.xml -
+=========================== short test summary info ============================
+FAILED ../../dev/::test_registry_getter_and_setter_are_one_logical_property
+FAILED ../../dev/::test_homonymous_properties_in_different_classes_stay_distinct
+FAILED ../../dev/::test_different_reference_revisions_do_not_merge - Attribut...
+FAILED ../../dev/::test_duplicate_accessor_identity_is_rejected - AttributeEr...
+FAILED ../../dev/::test_unverified_or_ambiguous_accessor_role_is_rejected[decorators0]
+FAILED ../../dev/::test_unverified_or_ambiguous_accessor_role_is_rejected[decorators1]
+FAILED ../../dev/::test_unverified_or_ambiguous_accessor_role_is_rejected[decorators2]
+7 failed in 0.07s

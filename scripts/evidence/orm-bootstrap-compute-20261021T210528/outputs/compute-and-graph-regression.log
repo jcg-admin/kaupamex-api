@@ -1,0 +1,32 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+...............FF....................................................... [ 81%]
+................                                                         [100%]
+=================================== FAILURES ===================================
+_ TestWhatTheBranchDoesNotChange.test_a_field_without_compute_still_reads_its_default _
+tests/unit/orm/test_nonstored_compute_dispatch.py:67: in test_a_field_without_compute_still_reads_its_default
+    assert ComputeDispatchProbe().plain_label == 'del default'
+src/orm/fields.py:1641: in __get__
+    defaults = instance.default_get([field.name])
+E   AttributeError: 'ComputeDispatchProbe' object has no attribute 'default_get'
+_____ TestWhatTheBranchDoesNotChange.test_a_field_with_neither_reads_none ______
+tests/unit/orm/test_nonstored_compute_dispatch.py:70: in test_a_field_with_neither_reads_none
+    assert ComputeDispatchProbe().empty_label is False
+src/orm/fields.py:1641: in __get__
+    defaults = instance.default_get([field.name])
+E   AttributeError: 'ComputeDispatchProbe' object has no attribute 'default_get'
+=============================== warnings summary ===============================
+tests/unit/orm/test_res_groups_compute_contract.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+  /workspace/kaupamex-api/src/orm/fields.py:4120: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_res_groups_compute_contract.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+  /workspace/kaupamex-api/src/orm/fields.py:4120: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_nonstored_compute_dispatch.py::TestWhatTheBranchDoesNotChange::test_a_field_without_compute_still_reads_its_default
+FAILED tests/unit/orm/test_nonstored_compute_dispatch.py::TestWhatTheBranchDoesNotChange::test_a_field_with_neither_reads_none
+2 failed, 86 passed, 30 warnings in 1.27s

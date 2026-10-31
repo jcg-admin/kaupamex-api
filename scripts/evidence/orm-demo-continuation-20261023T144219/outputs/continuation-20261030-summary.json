@@ -1,0 +1,28 @@
+{
+  "observed_at": "2026-10-31T00:05:50.369530+00:00",
+  "instruction": "Continuation integral, contractual reconciliation and verifiable termination",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "consumer_contract_commit": "573bff5418ad2c597f265b06fc20176b0c5620a7",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "results": {
+    "A": "Existing branches/index/stashes/operations recovered; existing changes and worktrees preserved. Own loading claims acquired/released.",
+    "B": "Eleven existing instrument families reconciled; seven reference-inventory tests PASS; differing populations/limits retained.",
+    "C": "23 reference files,59classes,87functions,766methods,42property accessors;954unique declaration identities. Partial Field attributes66base/148overrides/8computed; not summed. Whole applicable counts not_verified.",
+    "D": "Existing15obligation population partial; new bounded demo diagnostics contract14 and acceptance criteria recorded. Whole contractual denominator unavailable.",
+    "E": "Native TaskGet/List/Update plus actual claims and node_frontier. List default50 not exhaustive; explicit limit10000 returned1437sessionrows.0397/0420unowned not selected.",
+    "F": "Demo logs delta RED3FAIL1PASS thenGREEN20PASS, no SQL; exact pinned logger formats; actual ordinary commit/push0.",
+    "G": "Whole ORM incomplete. CIglobalFAIL; integration/acceptance pending. Scoped selector still returns implemented/unaccepted preflight; no fabricated accepted states or global exhaustion."
+  },
+  "independent_results": {
+    "increment_admission": "PASS",
+    "global_style": "FAIL at required remote CI",
+    "contract_verification": "20PASS bounded data/demo; not global acceptance",
+    "ci_verification": "FAIL run41147677023 check-style1/ci-verify2",
+    "publication": "PR109 remote verified",
+    "integration": "PENDING",
+    "acceptance": "PENDING"
+  },
+  "new_claims_released": true,
+  "managed_model_inference": false,
+  "objective_complete": false
+}
