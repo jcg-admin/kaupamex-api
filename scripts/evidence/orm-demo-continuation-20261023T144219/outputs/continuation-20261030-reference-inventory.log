@@ -1,0 +1,64 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+root: /workspace/kaupamex-api/../.cache/references/odoo-tools-git/abe4040ec1a45beee90fb694e4eae4453e46b389/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm
+file                  lines  cls  fn  met  raw  unique  default  *args  kwonly  **kw
+------------------------------------------------------------------------------------
+__init__.py              20    0   0    0    0       0        0      0       0     0
+commands.py             130    1   0    7    8       8        0      0       0     0
+decorators.py           372    0  15    0   15      11        0      6       1     0
+domains.py             2023    9  39   94  142      88        6      2       3     0
+environments.py         964    4   0   84   88      78       13      1       0     1
+fields.py              1937    1   2   72   75      75        9      1       0     1
+fields_binary.py        365    2   0   17   19      17        2      0       0     0
+fields_misc.py          135    3   0   14   17      13        6      0       0     0
+fields_numeric.py       315    3   0   30   33      24       10      0       0     2
+fields_properties.py   1063    3   1   38   42      37        9      0       0     0
+fields_reference.py     118    2   0    9   11      10        4      0       0     0
+fields_relational.py   1779    7   0   79   86      50       15      0       0     3
+fields_selection.py     241    1   0   12   13      13        3      0       0     1
+fields_temporal.py      294    3   0   20   23      17        4      3       0     0
+fields_textual.py       777    5   0   46   51      45        9      0       0     1
+identifiers.py           56    1   0    7    8       8        1      0       0     0
+model_classes.py        633    0  16    0   16      16        0      0       0     0
+models.py              7130    5   8  206  219     202       53      2       6     2
+models_transient.py      82    1   0    3    4       4        0      0       0     0
+registry.py            1269    3   1   53   57      56        8      4       1     2
+table_objects.py        205    4   0   14   18      11        3      0       0     0
+types.py                 27    0   0    0    0       0        0      0       0     0
+utils.py                149    1   5    3    9       9        0      0       0     0
+------------------------------------------------------------------------------------
+TOTAL                 20084   59  87  808  954     792      155     19      11    13
+
+clases con >= 10 metodos, por archivo:
+  domains.py
+    Domain                               31 methods   :196
+    DomainCondition                      16 methods   :787
+    DomainNary                           13 methods   :576
+    DomainBool                           11 methods   :475
+    DomainNot                            10 methods   :531
+  environments.py
+    Environment                          49 methods   :40
+    Cache                                28 methods   :638
+  fields.py
+    Field                                72 methods   :92
+  fields_binary.py
+    Binary                               11 methods   :29
+  fields_numeric.py
+    Monetary                             13 methods   :184
+    Float                                10 methods   :60
+  fields_properties.py
+    Properties                           26 methods   :32
+  fields_relational.py
+    Many2one                             21 methods   :213
+    _RelationalMulti                     19 methods   :556
+    One2many                             13 methods   :843
+    _Relational                          11 methods   :33
+  fields_selection.py
+    Selection                            12 methods   :20
+  fields_textual.py
+    BaseString                           26 methods   :33
+  models.py
+    BaseModel                           194 methods   :334
+  registry.py
+    Registry                             43 methods   :84
+
+JSON con todas las firmas: scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-reference-inventory.json

@@ -1,0 +1,61 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": "odoo/modules/loading.py::load_demo",
+  "reference_sha256": "9df2022f6f7e62eb7628736df4c334dc4fa1ab85154a8f6c80d9b8169fdf6e50",
+  "behavior": "Start log precedes demo load; optional failure warning states installed without demo data and retains exception information.",
+  "execution_flow": "nonempty demo/demo_xml -> INFO -> existing transaction/scope/load_data -> True; exception -> rollback -> WARNING -> existing optional failure reporting -> False",
+  "inputs_outputs": "Unchanged Environment/package/idref/mode; no-demo returns True without loading log; actual diagnostics checked for normal and legacy manifest.",
+  "side_effects": "Adds logging only. Existing demo transaction/reporting effects unchanged.",
+  "dependencies": [
+    "Existing load_data, Environment, Django atomic, logger",
+    "TASK-API-0382 native737 owned codex-module-lifecycle; native443 completed"
+  ],
+  "consumers": [
+    "Module operators diagnosing optional demo loading",
+    "Existing caller-owned demo orchestration"
+  ],
+  "installed_mechanism": "Existing modules.loading logger and Python logging capture; no additional runtime or coordinator.",
+  "existing_adaptation": "Explicit Django alias, optional model label and caller-owned transaction checks preserved.",
+  "verification": {
+    "red": {
+      "failed": 3,
+      "passed": 1,
+      "exit_code": 1,
+      "log": "continuation-20261030-demo-red-isolated.log"
+    },
+    "green": {
+      "passed": 20,
+      "failed": 0,
+      "exit_code": 0,
+      "log": "continuation-20261030-demo-green.log"
+    },
+    "reference_comparison": {
+      "logger_formats_equal": true,
+      "formats": {
+        "info": "Module %s: loading demo",
+        "warning": "Module %s demo data failed to install, installed without demo data"
+      },
+      "scope": "Independent pinned AST extraction of logger formats, not native Odoo runtime"
+    },
+    "sql": "Prohibited for these diagnostic tests",
+    "style": "Affected working files and imports checked; global compliance not inferred"
+  },
+  "equivalence": "Bounded log ordering/levels/messages; no whole-loader equivalence.",
+  "limitations": [
+    "No native Odoo runtime execution",
+    "No physical persistence test needed or claimed for logging-only delta",
+    "Whole loader, per-base composition, state finalization and acceptance not_verified"
+  ],
+  "integration": {
+    "commit": "573bff5418ad2c597f265b06fc20176b0c5620a7",
+    "publication": "PR109 remote HEAD verified",
+    "merge": "NOT_PERFORMED",
+    "acceptance": "PENDING"
+  },
+  "acceptance_criteria": [
+    "Normal and demo_xml-only starts emit INFO before load_data",
+    "Empty manifests emit no loading/failure logs",
+    "Failed demo remains optional False and preserves traceback warning",
+    "No changed transaction, SQL, module-state or loader acceptance semantics"
+  ]
+}

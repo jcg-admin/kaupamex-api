@@ -1,0 +1,45 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "consumer_revision": "1662b8af9724a76d08b776ef58ac5257a9d953c4",
+  "interface": "check_field_class_attributes.declared_in_reference(reference_roots.tree(odoo19c))",
+  "base_field_literal_attributes": 66,
+  "concrete_literal_overrides": 148,
+  "computed_property_declarations": 8,
+  "property_pairs": [
+    [
+      "_column_type",
+      "Char"
+    ],
+    [
+      "_column_type",
+      "Float"
+    ],
+    [
+      "_description_searchable",
+      "Field"
+    ],
+    [
+      "_related_domain",
+      "_Relational"
+    ],
+    [
+      "base_field",
+      "Field"
+    ],
+    [
+      "column_order",
+      "Field"
+    ],
+    [
+      "column_type",
+      "Binary"
+    ],
+    [
+      "column_type",
+      "Field"
+    ]
+  ],
+  "scope": "Only fields*.py literal class attributes and recognized properties. No runtime value equivalence, applicability or whole ORM denominator. Instance assignments, other descriptors and dynamic properties not_verified.",
+  "applicable_total": null,
+  "satisfied_total": null
+}

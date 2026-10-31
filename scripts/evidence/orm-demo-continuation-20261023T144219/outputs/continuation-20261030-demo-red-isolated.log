@@ -1,0 +1,141 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FF.F                                                                     [100%]
+=================================== FAILURES ===================================
+__________________ test_demo_logs_start_before_loading[False] __________________
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7fa6e30d07a0>
+legacy_only = False
+
+    @pytest.mark.parametrize('legacy_only', [False, True])
+    def test_demo_logs_start_before_loading(caplog, legacy_only):
+        caplog.set_level('INFO', logger='modules.loading')
+    
+        def load(*args, **kwargs):
+            assert 'Module demo_contract: loading demo' in caplog.messages
+    
+        selected = (
+            package(demo=[], demo_xml=['legacy.xml']) if legacy_only else package()
+        )
+        with (
+            unit_transaction(),
+            mock.patch('modules.loading.load_data', side_effect=load),
+            mock.patch.object(Environment, 'ref', return_value=None),
+        ):
+>           assert loading.load_demo(environment(), selected, {}, 'init') is True
+E           AssertionError: assert False is True
+E            +  where False = <function load_demo at 0x7fa6e315ade0>(<Environment uid=42 su=False company=None>, namespace(name='demo_contract', id=17, manifest={'demo': ['demo.sql']}), {}, 'init')
+E            +    where <function load_demo at 0x7fa6e315ade0> = loading.load_demo
+E            +    and   <Environment uid=42 su=False company=None> = environment()
+
+tests/unit/modules/test_loading_demo.py:57: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  modules.loading:loading.py:150 Module demo_contract demo data failed to install
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/modules/loading.py", line 144, in load_demo
+    load_data(idref, mode, 'demo', package, using=using)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/modules/test_loading_demo.py", line 47, in load
+    assert 'Module demo_contract: loading demo' in caplog.messages
+AssertionError: assert 'Module demo_contract: loading demo' in []
+ +  where [] = <_pytest.logging.LogCaptureFixture object at 0x7fa6e30d07a0>.messages
+__________________ test_demo_logs_start_before_loading[True] ___________________
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7fa6e2fb3dd0>
+legacy_only = True
+
+    @pytest.mark.parametrize('legacy_only', [False, True])
+    def test_demo_logs_start_before_loading(caplog, legacy_only):
+        caplog.set_level('INFO', logger='modules.loading')
+    
+        def load(*args, **kwargs):
+            assert 'Module demo_contract: loading demo' in caplog.messages
+    
+        selected = (
+            package(demo=[], demo_xml=['legacy.xml']) if legacy_only else package()
+        )
+        with (
+            unit_transaction(),
+            mock.patch('modules.loading.load_data', side_effect=load),
+            mock.patch.object(Environment, 'ref', return_value=None),
+        ):
+>           assert loading.load_demo(environment(), selected, {}, 'init') is True
+E           AssertionError: assert False is True
+E            +  where False = <function load_demo at 0x7fa6e315ade0>(<Environment uid=42 su=False company=None>, namespace(name='demo_contract', id=17, manifest={'demo': [], 'demo_xml': ['legacy.xml']}), {}, 'init')
+E            +    where <function load_demo at 0x7fa6e315ade0> = loading.load_demo
+E            +    and   <Environment uid=42 su=False company=None> = environment()
+
+tests/unit/modules/test_loading_demo.py:57: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  modules.loading:loading.py:150 Module demo_contract demo data failed to install
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/modules/loading.py", line 144, in load_demo
+    load_data(idref, mode, 'demo', package, using=using)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kaupamex-api/tests/unit/modules/test_loading_demo.py", line 47, in load
+    assert 'Module demo_contract: loading demo' in caplog.messages
+AssertionError: assert 'Module demo_contract: loading demo' in []
+ +  where [] = <_pytest.logging.LogCaptureFixture object at 0x7fa6e2fb3dd0>.messages
+___________ test_demo_failure_log_preserves_optional_failure_meaning ___________
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7fa6e3088fb0>
+
+    def test_demo_failure_log_preserves_optional_failure_meaning(caplog):
+        with (
+            unit_transaction(),
+            mock.patch('modules.loading.load_data', side_effect=ValueError('bad')),
+            mock.patch.object(Environment, 'ref', return_value=None),
+        ):
+            assert loading.load_demo(
+                environment(), package(), {}, 'init'
+            ) is False
+        failures = [
+            record for record in caplog.records
+            if record.name == 'modules.loading' and record.levelname == 'WARNING'
+        ]
+        assert len(failures) == 1
+>       assert failures[0].getMessage() == (
+            'Module demo_contract demo data failed to install, '
+            'installed without demo data'
+        )
+E       AssertionError: assert 'Module demo_...ed to install' == 'Module demo_...out demo data'
+E         Skipping 37 identical leading characters in diff, use -v to show
+E         -  to install, installed without demo data
+E         +  to install
+
+tests/unit/modules/test_loading_demo.py:85: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  modules.loading:loading.py:150 Module demo_contract demo data failed to install
+Traceback (most recent call last):
+  File "/workspace/kaupamex-api/src/modules/loading.py", line 144, in load_demo
+    load_data(idref, mode, 'demo', package, using=using)
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+ValueError: bad
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-demo-red-isolated.junit.xml -
+=========================== short test summary info ============================
+FAILED ../../dev/::test_demo_logs_start_before_loading[False] - AssertionErro...
+FAILED ../../dev/::test_demo_logs_start_before_loading[True] - AssertionError...
+FAILED ../../dev/::test_demo_failure_log_preserves_optional_failure_meaning
+3 failed, 1 passed, 16 deselected in 0.12s

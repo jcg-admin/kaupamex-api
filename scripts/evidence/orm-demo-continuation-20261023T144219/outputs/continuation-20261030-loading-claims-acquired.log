@@ -1,0 +1,2 @@
+reservado: {"id":"c-d7f0c634-78d4-48c5-aaba-e3ef359ce907","op":"claim","path":"src/modules/loading.py","owner":"codex-module-lifecycle","branch":"feature/codex-workspace-bootstrap","at":"2026-10-30T23:53:41.035Z","task":"TASK-API-0382"}
+reservado: {"id":"c-546f6ff4-a8eb-4c73-bdd4-24b0ff7abf8c","op":"claim","path":"tests/unit/modules/test_loading_demo.py","owner":"codex-module-lifecycle","branch":"feature/codex-workspace-bootstrap","at":"2026-10-30T23:53:41.040Z","task":"TASK-API-0382"}
