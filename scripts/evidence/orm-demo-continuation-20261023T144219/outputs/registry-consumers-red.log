@@ -1,0 +1,118 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+______ test_unflagged_consumer_preserves_another_registry[signal_changes] ______
+
+registries = (<orm.registry.Registry object at 0x7f836a621220>, <orm.registry.Registry object at 0x7f836ae881a0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f836a6211c0>
+operation = 'signal_changes'
+
+    @pytest.mark.parametrize('operation', ['signal_changes', 'reset_changes'])
+    def test_unflagged_consumer_preserves_another_registry(
+        registries, monkeypatch, operation
+    ):
+        first, second = registries
+        first.registry_invalidated = True
+        second.ready = True
+        cursor = Mock(side_effect=AssertionError('Unexpected SQL cursor'))
+        monkeypatch.setattr(second, 'cursor', cursor)
+    
+>       getattr(second, operation)()
+
+tests/unit/orm/test_registry_invalidation_scope.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/registry-scope-candidate-522zd29y/registry.py:2526: in signal_changes
+    with self.cursor() as cr:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock id='140202464615632'>, args = (), kwargs = {}
+effect = AssertionError('Unexpected SQL cursor')
+
+    def _execute_mock_call(self, /, *args, **kwargs):
+        # separate from _increment_mock_call so that awaited functions are
+        # executed separately from their call, also AsyncMock overrides this method
+    
+        effect = self.side_effect
+        if effect is not None:
+            if _is_exception(effect):
+>               raise effect
+E               AssertionError: Unexpected SQL cursor
+
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1198: AssertionError
+______ test_unflagged_consumer_preserves_another_registry[reset_changes] _______
+
+registries = (<orm.registry.Registry object at 0x7f836a4ff1d0>, <orm.registry.Registry object at 0x7f836a4ff2c0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f836a4ff410>
+operation = 'reset_changes'
+
+    @pytest.mark.parametrize('operation', ['signal_changes', 'reset_changes'])
+    def test_unflagged_consumer_preserves_another_registry(
+        registries, monkeypatch, operation
+    ):
+        first, second = registries
+        first.registry_invalidated = True
+        second.ready = True
+        cursor = Mock(side_effect=AssertionError('Unexpected SQL cursor'))
+        monkeypatch.setattr(second, 'cursor', cursor)
+    
+>       getattr(second, operation)()
+
+tests/unit/orm/test_registry_invalidation_scope.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/registry-scope-candidate-522zd29y/registry.py:2552: in reset_changes
+    with closing(self.cursor()) as cr:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1139: in __call__
+    return self._mock_call(*args, **kwargs)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1143: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Mock id='140202401069248'>, args = (), kwargs = {}
+effect = AssertionError('Unexpected SQL cursor')
+
+    def _execute_mock_call(self, /, *args, **kwargs):
+        # separate from _increment_mock_call so that awaited functions are
+        # executed separately from their call, also AsyncMock overrides this method
+    
+        effect = self.side_effect
+        if effect is not None:
+            if _is_exception(effect):
+>               raise effect
+E               AssertionError: Unexpected SQL cursor
+
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:1198: AssertionError
+_________________ test_reset_consumer_clears_only_its_own_flag _________________
+
+registries = (<orm.registry.Registry object at 0x7f836a4fda60>, <orm.registry.Registry object at 0x7f836a4fda90>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f836a4fd820>
+
+    def test_reset_consumer_clears_only_its_own_flag(registries, monkeypatch):
+        first, second = registries
+        first.registry_invalidated = True
+        second.registry_invalidated = True
+        cursor = Mock()
+        setup = Mock()
+        monkeypatch.setattr(first, 'cursor', Mock(return_value=cursor))
+        monkeypatch.setattr(first, '_setup_models__', setup)
+    
+        first.reset_changes()
+    
+        setup.assert_called_once_with(cursor)
+        cursor.close.assert_called_once_with()
+        cursor.execute.assert_not_called()
+        assert first.registry_invalidated is False
+>       assert second.registry_invalidated is True
+E       assert False is True
+E        +  where False = <orm.registry.Registry object at 0x7f836a4fda90>.registry_invalidated
+
+tests/unit/orm/test_registry_invalidation_scope.py:130: AssertionError
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-consumers-red.junit.xml -
+=========================== short test summary info ============================
+FAILED ../../dev/::test_unflagged_consumer_preserves_another_registry[signal_changes]
+FAILED ../../dev/::test_unflagged_consumer_preserves_another_registry[reset_changes]
+FAILED ../../dev/::test_reset_consumer_clears_only_its_own_flag - assert Fals...
+3 failed, 44 deselected in 0.35s
+{"head": "a8952d778b3416b80f2fb1bb12811b6785a819d9", "index_tree": "a1b1b18d1148a2eaf48da79e992f6d19c85ed829", "staged_registry_sha256": "3a3243ba9911ac852158284cea06bf4f2050648b2de7a9a3c0cf3560ccdbaf4c", "pytest_exit_code": 1, "git_provenance_unchanged": true, "scope": "Exact staged Registry; other Consumer sources remain working-tree dependencies; SQL prohibited; no acceptance"}

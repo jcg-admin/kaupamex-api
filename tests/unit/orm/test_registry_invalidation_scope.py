@@ -5,6 +5,7 @@ Process-level cache invalidation retains its existing separate contract.
 """
 
 import threading
+from unittest.mock import Mock
 
 import pytest
 
@@ -92,3 +93,38 @@ def test_shared_cache_invalidator_remains_connected(registries):
     clear_cache('default')
     assert 'default' in first.cache_invalidated
     assert 'default' in second.cache_invalidated
+
+
+@pytest.mark.parametrize('operation', ['signal_changes', 'reset_changes'])
+def test_unflagged_consumer_preserves_another_registry(
+    registries, monkeypatch, operation
+):
+    first, second = registries
+    first.registry_invalidated = True
+    second.ready = True
+    cursor = Mock(side_effect=AssertionError('Unexpected SQL cursor'))
+    monkeypatch.setattr(second, 'cursor', cursor)
+
+    getattr(second, operation)()
+
+    cursor.assert_not_called()
+    assert first.registry_invalidated is True
+    assert second.registry_invalidated is False
+
+
+def test_reset_consumer_clears_only_its_own_flag(registries, monkeypatch):
+    first, second = registries
+    first.registry_invalidated = True
+    second.registry_invalidated = True
+    cursor = Mock()
+    setup = Mock()
+    monkeypatch.setattr(first, 'cursor', Mock(return_value=cursor))
+    monkeypatch.setattr(first, '_setup_models__', setup)
+
+    first.reset_changes()
+
+    setup.assert_called_once_with(cursor)
+    cursor.close.assert_called_once_with()
+    cursor.execute.assert_not_called()
+    assert first.registry_invalidated is False
+    assert second.registry_invalidated is True

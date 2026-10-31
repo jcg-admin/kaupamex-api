@@ -41,7 +41,13 @@
     "annulment": "Expected FAIL exit1 when old property restored in process memory; source files unchanged",
     "sql": "Prohibited throughout focused verification",
     "admission": "Real hooks PASS; initial rejected working-tree candidate and one invalidated comment retained as evidence",
-    "index_safety": "Exact tested index blobs committed with ordinary pathspec hooks, original claimed working bytes restored in finally"
+    "index_safety": "Exact tested index blobs committed with ordinary pathspec hooks, original claimed working bytes restored in finally",
+    "consumer_paths": {
+      "evidence": "registry-consumers-summary.json",
+      "red_failed": 3,
+      "green_passed": 3,
+      "scope": "signal_changes/reset_changes per-registry dispatch and reset, with SQL blocked; no database signaling acceptance"
+    }
   },
   "equivalence": "Verified bounded registry flag initialization/get/set/replacement/thread behavior. Not whole property/caches/loader acceptance.",
   "limitations": [
