@@ -1,0 +1,51 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+....FFF...                                                               [100%]
+=================================== FAILURES ===================================
+____ test_inconsistent_accessor_provenance_is_rejected[reference_revision] _____
+
+field = 'reference_revision'
+
+    @pytest.mark.parametrize(
+        'field', ['reference_revision', 'reference_path', 'qualified_symbol'],
+    )
+    def test_inconsistent_accessor_provenance_is_rejected(field):
+        row = accessors('registry.py', 'Registry', 'registry_invalidated')[0]
+        row[field] = 'different-reference'
+>       with pytest.raises(ValueError, match='identity'):
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+tests/unit/scripts/test_orm_property_view.py:81: Failed
+______ test_inconsistent_accessor_provenance_is_rejected[reference_path] _______
+
+field = 'reference_path'
+
+    @pytest.mark.parametrize(
+        'field', ['reference_revision', 'reference_path', 'qualified_symbol'],
+    )
+    def test_inconsistent_accessor_provenance_is_rejected(field):
+        row = accessors('registry.py', 'Registry', 'registry_invalidated')[0]
+        row[field] = 'different-reference'
+>       with pytest.raises(ValueError, match='identity'):
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+tests/unit/scripts/test_orm_property_view.py:81: Failed
+_____ test_inconsistent_accessor_provenance_is_rejected[qualified_symbol] ______
+
+field = 'qualified_symbol'
+
+    @pytest.mark.parametrize(
+        'field', ['reference_revision', 'reference_path', 'qualified_symbol'],
+    )
+    def test_inconsistent_accessor_provenance_is_rejected(field):
+        row = accessors('registry.py', 'Registry', 'registry_invalidated')[0]
+        row[field] = 'different-reference'
+>       with pytest.raises(ValueError, match='identity'):
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+tests/unit/scripts/test_orm_property_view.py:81: Failed
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-provenance-red.junit.xml -
+=========================== short test summary info ============================
+FAILED ../../dev/::test_inconsistent_accessor_provenance_is_rejected[reference_revision]
+FAILED ../../dev/::test_inconsistent_accessor_provenance_is_rejected[reference_path]
+FAILED ../../dev/::test_inconsistent_accessor_provenance_is_rejected[qualified_symbol]
+3 failed, 7 passed in 0.07s

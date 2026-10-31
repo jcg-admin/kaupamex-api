@@ -1,0 +1,73 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": [
+    "odoo/orm/registry.py::Registry.init",
+    "odoo/orm/registry.py::Registry.registry_invalidated getter/setter"
+  ],
+  "behavior": "Each metadata Registry owns a thread-local invalidation flag; constructing, writing, clearing or replacing one cannot erase or leak another flag.",
+  "execution_flow": "Registry.new -> init creates own thread-local -> property reads/writes current-thread flag -> existing signaling/reset consumers read that registry flag.",
+  "inputs_outputs": "Two registry metadata keys and two threads; fresh/lookup/replacement and setter transitions match the pinned reference property bodies.",
+  "side_effects": "Only instance/thread flag storage changes; cache invalidator remains process/thread scoped; no SQL, migration, module state update or loader implementation.",
+  "dependencies": [
+    "Native TASK-API-0382/session168b0fdf-bfe4-590b-b6c0-b6be124c124a/id737 owned codex-module-lifecycle",
+    "Decision TASK-API-0264/native443 completed",
+    "Existing Registry factory, LRU/reentrant lock and threading.local"
+  ],
+  "consumers": [
+    "Registry._setup_models__",
+    "Registry.signal_changes",
+    "Registry.reset_changes",
+    "Metadata registry factories and singleton callers"
+  ],
+  "installed_mechanism": "Existing Registry class and thread-local storage; no new store, scheduler, registry or Provider change.",
+  "existing_adaptation": "Module cache state stays shared with its actual process-level invalidator; this unit separates the registry-change flag only.",
+  "verification": {
+    "red": {
+      "failed": 5,
+      "passed": 2,
+      "exit_code": 1
+    },
+    "working_green": {
+      "passed": 44,
+      "exit_code": 0
+    },
+    "exact_staged_source_green": {
+      "passed": 44,
+      "exit_code": 0,
+      "registry_sha256": "3a3243ba9911ac852158284cea06bf4f2050648b2de7a9a3c0cf3560ccdbaf4c",
+      "git_provenance_unchanged": true
+    },
+    "reference_comparison": "PASS: extracted pinned init assignment/getter/setter traces match; no native Odoo runtime claim",
+    "annulment": "Expected FAIL exit1 when old property restored in process memory; source files unchanged",
+    "sql": "Prohibited throughout focused verification",
+    "admission": "Real hooks PASS; initial rejected working-tree candidate and one invalidated comment retained as evidence",
+    "index_safety": "Exact tested index blobs committed with ordinary pathspec hooks, original claimed working bytes restored in finally"
+  },
+  "equivalence": "Verified bounded registry flag initialization/get/set/replacement/thread behavior. Not whole property/caches/loader acceptance.",
+  "limitations": [
+    "No physical PostgreSQL or cross-process signaling acceptance",
+    "Shared process cache lifecycle is retained, not declared equivalent per database",
+    "Other unpublished Registry edits remain preserved and excluded from the functional commit",
+    "Whole ORM structural and contractual populations remain incomplete"
+  ],
+  "integration": {
+    "commit": "8630713f141cd47c678cdbbccceb634da0e8361d",
+    "publication": "Normal push exit0 to existing PR109; remote observation separate",
+    "merge": "NOT_PERFORMED",
+    "acceptance": "PENDING",
+    "remote_head_verified": "8630713f141cd47c678cdbbccceb634da0e8361d",
+    "ci_run": 41159107993,
+    "ci_result": "FAIL",
+    "check_style_exit_code": 1,
+    "ci_verify_exit_code": 2
+  },
+  "acceptance_criteria": [
+    "Fresh and cached metadata factory preserve intended instance identity",
+    "Second registry construction and replacement do not erase another flag",
+    "Writes and clears remain independent by registry and thread",
+    "Module cache invalidator remains connected to Registry.cache_invalidated",
+    "No unsupported loader request can be treated as installed/accepted"
+  ],
+  "task": "TASK-API-0382",
+  "finding": "H-API-1121"
+}

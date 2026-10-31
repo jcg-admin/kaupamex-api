@@ -1,0 +1,16 @@
+{
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "input_authority": "schema-preflight-native-continuation.json",
+  "states": {},
+  "claims_count": 591,
+  "selected": [
+    "TASK-API-0383.applied_schema_preflight"
+  ],
+  "execution_decision": "Do not repeat implemented/verified preflight or fabricate acceptance; integration and acceptance obligations remain separate",
+  "source_evidence_authority": "Existing preflight controls and current CI gate evidence, not native TASK pending status alone",
+  "scope": "Three declared units only; not a global selector or proof of exhaustion",
+  "new_independent_work_this_batch": "Discovered and admitted registry flag scope from actual code/reference;44exact-candidate tests and publication, not rerunning preflight",
+  "field_task_scope": "0322/0225/0420 read-only current native observations retain ownerNULL; no automatic ownership or defect assignment",
+  "whole_objective_complete": false
+}

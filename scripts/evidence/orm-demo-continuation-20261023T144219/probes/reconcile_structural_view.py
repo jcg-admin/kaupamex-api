@@ -6,6 +6,7 @@ applicability, functional equivalence, integration or acceptance.
 """
 
 from collections import Counter
+import argparse
 import hashlib
 import importlib.util
 import json
@@ -30,7 +31,59 @@ PROPERTY_DECORATORS = {
 }
 
 
+def logical_property_groups(rows):
+    """Group recognized accessors without asserting runtime equivalence."""
+    groups = {}
+    seen = set()
+    for row in rows:
+        if row['declaration_kind'] != 'property_accessor':
+            continue
+        identity = tuple(row['identity'])
+        prefix = (row['reference_revision'], row['reference_path'],
+                  row['qualified_symbol'], 'property_accessor')
+        owner = row['declaring_owner']
+        if (
+            len(identity) != 5 or identity[:4] != prefix
+            or type(identity[-1]) is not int or identity[-1] <= 0
+            or not all(isinstance(value, str) and value
+                       for value in (*prefix[:3], owner))
+            or row['qualified_symbol'].rsplit('.', 1)[0] != owner
+        ):
+            raise ValueError('inconsistent property accessor identity')
+        if identity in seen:
+            raise ValueError('duplicate property accessor identity')
+        seen.add(identity)
+        decorators = set(row['decorators'])
+        roles = set()
+        if decorators & PROPERTY_DECORATORS:
+            roles.add('getter')
+        if any(name.endswith('.setter') for name in decorators):
+            roles.add('setter')
+        if any(name.endswith('.deleter') for name in decorators):
+            roles.add('deleter')
+        if len(roles) != 1:
+            raise ValueError('unverified or ambiguous property accessor role')
+        key = (row['reference_revision'], row['reference_path'],
+               row['declaring_owner'], row['qualified_symbol'])
+        group = groups.setdefault(key, {
+            'identity': list(key), 'accessors': [],
+            'applicability': 'not_verified', 'equivalence': 'not_verified',
+            'integration': 'not_verified', 'acceptance': 'not_verified',
+        })
+        group['accessors'].append({
+            'declaration_identity': list(identity),
+            'role': roles.pop(), 'decorators': sorted(decorators),
+        })
+    return [groups[key] for key in sorted(groups)]
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        '--output', type=Path,
+        default=JOB / 'outputs/continuation-20261030-structural-view.json',
+    )
+    arguments = parser.parse_args()
     revision = subprocess.check_output(
         ['git', '-C', str(TOOLS_ROOT), 'rev-parse', 'HEAD'], text=True
     ).strip()
@@ -67,6 +120,10 @@ def main():
             ).hexdigest(),
             'consumer_path': target.relative_to(ROOT).as_posix(),
             'consumer_exists': target.is_file(),
+            'consumer_sha256': (
+                hashlib.sha256(target.read_bytes()).hexdigest()
+                if target.is_file() else None
+            ),
             'completeness': 'not_verified',
         })
         declarations = [(record, '', 'function')
@@ -92,6 +149,7 @@ def main():
                 'reference_path': relative,
                 'qualified_symbol': qualified,
                 'declaration_kind': kind,
+                'decorators': record.get('decorators', []),
                 'declaring_owner': owner,
                 'applicability': 'not_verified',
                 'consumer_candidates': matches.get(record['lineno'], []),
@@ -103,11 +161,15 @@ def main():
     identities = [tuple(row['identity']) for row in rows]
     assert len(identities) == len(set(identities))
     assert len(rows) == inventory['totals']['symbols']
+    properties = logical_property_groups(rows)
     result = {
         'source_revision': revision,
         'consumer_revision': subprocess.check_output(
             ['git', 'rev-parse', 'HEAD'], text=True
         ).strip(),
+        'consumer_revision_scope': (
+            'HEAD plus per-file working-tree hashes; no acceptance inferred'
+        ),
         'interfaces': ['inventory_reference_orm.inventory',
                        'counterpart_body.pair_declarations'],
         'instrument_sha256': hashlib.sha256(
@@ -121,6 +183,8 @@ def main():
         )),
         'files': file_rows,
         'population': rows,
+        'logical_properties': properties,
+        'logical_property_count': len(properties),
         'applicable_contract_denominator': None,
         'structurally_satisfied': None,
         'functional_coverage': None,
@@ -132,11 +196,12 @@ def main():
             'test_orm and other families retain separate populations',
         ],
     }
-    output = JOB / 'outputs/continuation-20261030-structural-view.json'
+    output = arguments.output
     output.write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps({
         'output': str(output), 'files': len(file_rows),
         'observed_counts': result['observed_counts'],
+        'logical_property_count': len(properties),
         'identities_unique': True, 'contract_denominator': None,
     }))
 

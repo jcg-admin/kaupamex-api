@@ -1,0 +1,11 @@
+{
+  "commit": "8630713f141cd47c678cdbbccceb634da0e8361d",
+  "candidate_index": "4eb1695c11b022467204fcc68a0cbb8724c7b6ac",
+  "ordinary_hooks_exit_code": 0,
+  "working_bytes_restored": true,
+  "candidate_blobs_committed_exactly": true,
+  "paths": [
+    "src/orm/registry.py",
+    "tests/unit/orm/test_registry_invalidation_scope.py"
+  ]
+}

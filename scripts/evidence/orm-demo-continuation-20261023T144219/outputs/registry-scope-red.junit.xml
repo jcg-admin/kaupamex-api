@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="7" time="0.380" timestamp="2026-10-30T19:58:19.808569" hostname="211a47b6160b"><testcase classname="" name="test_constructing_another_registry_preserves_existing_flag" time="0.073"><failure message="assert False is True&#10; +  where False = &lt;orm.registry.Registry object at 0x7f48d59bb410&gt;.registry_invalidated">registries = (&lt;orm.registry.Registry object at 0x7f48d59bb410&gt;, &lt;orm.registry.Registry object at 0x7f48d24a2900&gt;)
+
+    def test_constructing_another_registry_preserves_existing_flag(registries):
+        first, second = registries
+        first.registry_invalidated = True
+        replacement = Registry.new(second.db_name)
+&gt;       assert first.registry_invalidated is True
+E       assert False is True
+E        +  where False = &lt;orm.registry.Registry object at 0x7f48d59bb410&gt;.registry_invalidated
+
+tests/unit/orm/test_registry_invalidation_scope.py:32: AssertionError</failure></testcase><testcase classname="" name="test_setting_one_registry_does_not_invalidate_another" time="0.035"><failure message="assert True is False&#10; +  where True = &lt;orm.registry.Registry object at 0x7f48d1e1e270&gt;.registry_invalidated">registries = (&lt;orm.registry.Registry object at 0x7f48d1e1e1e0&gt;, &lt;orm.registry.Registry object at 0x7f48d1e1e270&gt;)
+
+    def test_setting_one_registry_does_not_invalidate_another(registries):
+        first, second = registries
+        first.registry_invalidated = True
+        assert first.registry_invalidated is True
+&gt;       assert second.registry_invalidated is False
+E       assert True is False
+E        +  where True = &lt;orm.registry.Registry object at 0x7f48d1e1e270&gt;.registry_invalidated
+
+tests/unit/orm/test_registry_invalidation_scope.py:40: AssertionError</failure></testcase><testcase classname="" name="test_clearing_one_registry_preserves_anothers_flag" time="0.033"><failure message="assert False is True&#10; +  where False = &lt;orm.registry.Registry object at 0x7f48d59b9ca0&gt;.registry_invalidated">registries = (&lt;orm.registry.Registry object at 0x7f48d59b9ca0&gt;, &lt;orm.registry.Registry object at 0x7f48d59bb4a0&gt;)
+
+    def test_clearing_one_registry_preserves_anothers_flag(registries):
+        first, second = registries
+        first.registry_invalidated = True
+        second.registry_invalidated = False
+&gt;       assert first.registry_invalidated is True
+E       assert False is True
+E        +  where False = &lt;orm.registry.Registry object at 0x7f48d59b9ca0&gt;.registry_invalidated
+
+tests/unit/orm/test_registry_invalidation_scope.py:47: AssertionError</failure></testcase><testcase classname="" name="test_replacing_a_registry_resets_only_its_own_flag" time="0.048"><failure message="assert False is True&#10; +  where False = &lt;orm.registry.Registry object at 0x7f48d1e1f530&gt;.registry_invalidated">registries = (&lt;orm.registry.Registry object at 0x7f48d1e1f500&gt;, &lt;orm.registry.Registry object at 0x7f48d1e1f530&gt;)
+
+    def test_replacing_a_registry_resets_only_its_own_flag(registries):
+        first, second = registries
+        first.registry_invalidated = True
+        second.registry_invalidated = True
+        replacement = Registry.new(first.db_name)
+        assert replacement is not first
+        assert replacement.registry_invalidated is False
+&gt;       assert second.registry_invalidated is True
+E       assert False is True
+E        +  where False = &lt;orm.registry.Registry object at 0x7f48d1e1f530&gt;.registry_invalidated
+
+tests/unit/orm/test_registry_invalidation_scope.py:58: AssertionError</failure></testcase><testcase classname="" name="test_flags_are_independent_in_each_thread" time="0.034"><failure message="assert [(False, False), (True, True)] == [(False, Fals...(True, False)]&#10;  At index 1 diff: (True, True) != (True, False)&#10;  Use -v to get more diff">registries = (&lt;orm.registry.Registry object at 0x7f48d1e21280&gt;, &lt;orm.registry.Registry object at 0x7f48d1e21310&gt;)
+
+    def test_flags_are_independent_in_each_thread(registries):
+        first, second = registries
+        first.registry_invalidated = True
+        observed = []
+    
+        def read_and_write():
+            observed.append((first.registry_invalidated,
+                             second.registry_invalidated))
+            first.registry_invalidated = True
+            observed.append((first.registry_invalidated,
+                             second.registry_invalidated))
+    
+        worker = threading.Thread(target=read_and_write)
+        worker.start()
+        worker.join(timeout=5)
+        assert not worker.is_alive()
+&gt;       assert observed == [(False, False), (True, False)]
+E       assert [(False, False), (True, True)] == [(False, Fals...(True, False)]
+E         At index 1 diff: (True, True) != (True, False)
+E         Use -v to get more diff
+
+tests/unit/orm/test_registry_invalidation_scope.py:77: AssertionError</failure></testcase><testcase classname="" name="test_existing_singleton_lookup_preserves_flag" time="0.032" /><testcase classname="" name="test_shared_cache_invalidator_remains_connected" time="0.031" /></testsuite></testsuites>

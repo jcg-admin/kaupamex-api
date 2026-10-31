@@ -1,0 +1,46 @@
+{
+  "scope": "Current exhaustive-continuation instruction, bounded implementation batch; objective not complete",
+  "code_commit": "8630713f141cd47c678cdbbccceb634da0e8361d",
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "functional_change": "Registry flag isolation by instance and thread",
+  "focused_verification": {
+    "red_failed": 5,
+    "red_passed": 2,
+    "working_green": 44,
+    "exact_staged_green": 44,
+    "reference_trace": "PASS",
+    "annulment_exit_code": 1,
+    "annulment_expected_failure": true
+  },
+  "structural_refinement": "Same954declarations;41logical properties contain42accessors,11controlsPASS;4new provenance negatives demonstrated before fix; no global denominator",
+  "attribute_observation": "297comparisons/45installed attribute names;9legacy mismatches/0new; native gate0, not full agreement or acceptance",
+  "field_property_behavior_controls": {
+    "passed": 3,
+    "sql": "prohibited",
+    "scope": "Existing Char/Float/PK behavior subset only"
+  },
+  "native_coordination": "TaskGet737/443, node_frontier and claims qualified before edit; TaskUpdate description only; own source claims released",
+  "task": "TASK-API-0382 pending ownercodex-module-lifecycle unchanged",
+  "finding": "H-API-1121 registered through native interfaces; RST and index generated, acceptance pending",
+  "independent_results": {
+    "increment_admission": "PASS",
+    "code_publication": "PR109 remote8630713f verified",
+    "global_style": "FAIL",
+    "ci": "FAIL run41159107993 check-style1/ci-verify2",
+    "integration": "PENDING",
+    "acceptance": "PENDING"
+  },
+  "preservation": "Verified source index committed exactly; exclusive working bytes restored in finally; unrelated _register/label edits preserved and excluded",
+  "remaining": "Whole structural/contract applicability, attributes/dynamic descriptors, effective loader, integration and acceptance remain unqualified; no global exhaustion claim",
+  "execution": "Codex authorized engineering; no managed local or remote inference",
+  "objective_complete": false,
+  "observed_at": "2026-10-31T02:48:08.443276+00:00",
+  "analysis_sources": {
+    "scripts/evidence/orm-demo-continuation-20261023T144219/probes/reconcile_structural_view.py": "d988f9a980f4b7227a3f299714b067f49bf9ac2e611a46a27fd9a2c4c9978191",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/probes/compare_registry_invalidation_scope.py": "8e4ce08e9ebb3d03e93c8e633136f488d8d48dcc7c1f77204906d28b477038ef",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_registry_scope_candidate.py": "561a788ffa87d31b1f8dab134b88266cf58924277af386104addfcc4725ad11c",
+    "tests/unit/scripts/test_orm_property_view.py": "7386ef07343f77cae643f27b4a24cab33a518c0f4cd0de7f8e01315066c5d7a3"
+  },
+  "historical_manifest_scope": "Prior continuation-20261030 artifact manifest remains bound to its published commit da475beb; changed analysis sources are bound by the new manifest, without rewriting history."
+}
