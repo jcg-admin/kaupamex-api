@@ -1,0 +1,81 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "consumer_head": "bceddc72b8775e3a67e277c5ff4c9a8e6514ee08",
+  "scope": "Progressive attribute observation in two existing captured files only; not a new whole ORM inventory or behavioral implementation",
+  "interface": "Existing reconcile_structural_view.py --attribute-snapshot <property-view-structural.json> --output <static-attributes-view.json>; original default interface unchanged",
+  "reproduction": "UV_CACHE_DIR=<sibling-cache>/uv ODOO_TOOLS=<pinned-reference-cache> PYTHONPATH=scripts uv run --offline --frozen python scripts/evidence/orm-demo-continuation-20261023T144219/probes/reconcile_structural_view.py --attribute-snapshot scripts/evidence/orm-demo-continuation-20261023T144219/outputs/property-view-structural.json --output <result.json>",
+  "reused_interfaces": [
+    "counterpart_body.parse_file",
+    "counterpart_body.declarations_of"
+  ],
+  "mapping_interface_correction": "pair_declarations yields function-only pairs with AST bodies, not Declaration owners or assignment pairs. Initial attempt failed exit1 and is retained; attributes now reuse declarations_of on both sides. Existing function-pair interface unchanged.",
+  "tests": {
+    "initial_red_failed": 3,
+    "redeclared_class_red_failed": 1,
+    "qualified_passed": 18,
+    "qualified_exit_code": 0,
+    "reasons": "Source corruption, source revision/hash drift, occurrence-preserving scope, static candidates with differing values remain not_verified; original 11 property controls preserved"
+  },
+  "files": [
+    {
+      "reference_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py",
+      "observed_assignments": 7,
+      "with_static_candidate": 6,
+      "without_static_candidate_not_missing": 1
+    },
+    {
+      "reference_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+      "observed_assignments": 25,
+      "with_static_candidate": 3,
+      "without_static_candidate_not_missing": 22
+    }
+  ],
+  "applicable_contract_denominator": null,
+  "functional_contracts_created": 0,
+  "existing_954_declarations": "Unchanged capture and classification; these observations are separate and are not added to that count",
+  "logical_property_capture": "41 logical groups /42 accessors remain prior partial capture, not whole current acceptance",
+  "adaptation_example": {
+    "reference_symbol": "Field._setup_done",
+    "static_candidate": "none in the bounded class-assignment view",
+    "consumer_source": "src/orm/fields.py",
+    "source_sha256": "2eeb673521ede8201ade7f6f3b3d2ea81a4b198675f954818ae1a660192b5fe9",
+    "mechanism": "_FIELD_CLASS_ATTRIBUTES dictionary is installed onto models.Field and NonStored with setattr; later setup controls instance values",
+    "evidence_lines": [
+      2649,
+      2694,
+      2696,
+      2715,
+      4309,
+      4330
+    ],
+    "consequence": "No direct static class assignment does not prove missing attribute; no new TASK or functional defect inferred",
+    "runtime_acceptance": "not_verified; prior Field runtime comparison retains its historical source/provenance limit"
+  },
+  "task": {
+    "interface": "taskTools({dbPath:storePath(),sessionId}).TaskGet.run",
+    "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+    "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+    "task_id": "1203",
+    "citation_id": "TASK-GEN-0633",
+    "owner": "codex-module-lifecycle",
+    "status": "pending",
+    "blocked_by": [],
+    "changes": "none"
+  },
+  "claim": {
+    "interface": "claimsCommand --who-has/--claim",
+    "test_claim": "c-b167dc4f-695f-40e5-ac01-b15adf90f2ef",
+    "analysis_job_parent_claim": "c-b29dc89b-fd0b-4e0c-9f7f-cf838d6ca602"
+  },
+  "source_sha256": {
+    "scripts/evidence/orm-demo-continuation-20261023T144219/probes/reconcile_structural_view.py": "aebf0d63d845f1cfae06d4fdfb9aeec3ceb17f8a041190bc49aea8124d349ee4",
+    "tests/unit/scripts/test_orm_property_view.py": "c0fafac77973ae241464c5e915ca4987aa202f145e23bed5e176b2f206940f77",
+    "scripts/counterpart_body.py": "9fc4d32cc4d15e076cf9645c54f65535897d0a8f352b400e1d141c64ab0fde51"
+  },
+  "native_frontier": "Read-only review selected[]; own_owner VM identity boundary recorded, not qualified dispatch for Codex claims",
+  "global_style": "FAIL in last published CI, not rerun as a census",
+  "integration": "pending",
+  "acceptance": "not_verified",
+  "whole_objective_complete": false,
+  "style_correction": "Two introduced E501 diagnostics rejected by real hooks; scoped line wrapping preserves exact executable AST, no repeat of valid 18 controls"
+}

@@ -1,0 +1,21 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___________ test_redeclared_class_attributes_retain_both_occurrences ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-24/test_redeclared_class_attribut0')
+
+    def test_redeclared_class_attributes_retain_both_occurrences(tmp_path):
+        source = tmp_path / 'source.py'
+        source.write_text('class Same:\n    value = 1\n'
+                          'class Same:\n    value = 2\n')
+        rows = VIEW.static_attribute_rows(source, REVISION, 'source.py')['rows']
+>       assert len(rows) == 2
+E       AssertionError: assert 1 == 2
+E        +  where 1 = len([{'acceptance': 'not_verified', 'applicability': 'not_verified', 'declaring_owner': 'Same', 'equivalence': 'not_verified', ...}])
+
+tests/unit/scripts/test_orm_property_view.py:138: AssertionError
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/static-attributes-occurrence-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/scripts/test_orm_property_view.py::test_redeclared_class_attributes_retain_both_occurrences
+1 failed, 14 deselected in 0.08s

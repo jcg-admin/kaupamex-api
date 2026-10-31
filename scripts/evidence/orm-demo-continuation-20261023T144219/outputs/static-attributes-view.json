@@ -1,0 +1,673 @@
+{
+  "source_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "snapshot_sha256": "267215080f2d8bd56f0281c300a298688a9f5fcd5faa562f976cda19577d00a9",
+  "consumer_revision": "bceddc72b8775e3a67e277c5ff4c9a8e6514ee08",
+  "consumer_revision_scope": "HEAD plus observed working source hashes",
+  "files": [
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py",
+      "source_sha256": "b97c87be3c90948f3b28aed599863aa1b6480fcf65eeb17bc3e7c05c88092695",
+      "interface": "counterpart_body.declarations_of/parse_file",
+      "rows": [
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py",
+            "Registry.registries",
+            "static_assignment",
+            94
+          ],
+          "qualified_symbol": "Registry.registries",
+          "declaring_owner": "Registry",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": [
+            {
+              "path": "src/orm/registry.py",
+              "symbol": "Registry.registries",
+              "owner": "Registry",
+              "line": 1886,
+              "route": "same qualified static assignment; candidate only",
+              "equivalence": "not_verified"
+            }
+          ]
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py",
+            "TriggerTree.__slots__",
+            "static_assignment",
+            1222
+          ],
+          "qualified_symbol": "TriggerTree.__slots__",
+          "declaring_owner": "TriggerTree",
+          "value_expression_kind": "List",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": [
+            {
+              "path": "src/orm/registry.py",
+              "symbol": "TriggerTree.__slots__",
+              "owner": "TriggerTree",
+              "line": 1692,
+              "route": "same qualified static assignment; candidate only",
+              "equivalence": "not_verified"
+            }
+          ]
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py",
+            "_logger",
+            "static_assignment",
+            47
+          ],
+          "qualified_symbol": "_logger",
+          "declaring_owner": "",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": [
+            {
+              "path": "src/orm/registry.py",
+              "symbol": "_logger",
+              "owner": "",
+              "line": 95,
+              "route": "same qualified static assignment; candidate only",
+              "equivalence": "not_verified"
+            }
+          ]
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py",
+            "_schema",
+            "static_assignment",
+            48
+          ],
+          "qualified_symbol": "_schema",
+          "declaring_owner": "",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": [
+            {
+              "path": "src/orm/registry.py",
+              "symbol": "_schema",
+              "owner": "",
+              "line": 99,
+              "route": "same qualified static assignment; candidate only",
+              "equivalence": "not_verified"
+            }
+          ]
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py",
+            "_REGISTRY_CACHES",
+            "static_assignment",
+            51
+          ],
+          "qualified_symbol": "_REGISTRY_CACHES",
+          "declaring_owner": "",
+          "value_expression_kind": "Dict",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": [
+            {
+              "path": "src/orm/registry.py",
+              "symbol": "_REGISTRY_CACHES",
+              "owner": "",
+              "line": 139,
+              "route": "same qualified static assignment; candidate only",
+              "equivalence": "not_verified"
+            }
+          ]
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py",
+            "_CACHES_BY_KEY",
+            "static_assignment",
+            64
+          ],
+          "qualified_symbol": "_CACHES_BY_KEY",
+          "declaring_owner": "",
+          "value_expression_kind": "Dict",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": [
+            {
+              "path": "src/orm/registry.py",
+              "symbol": "_CACHES_BY_KEY",
+              "owner": "",
+              "line": 152,
+              "route": "same qualified static assignment; candidate only",
+              "equivalence": "not_verified"
+            }
+          ]
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/registry.py",
+            "_REPLICA_RETRY_TIME",
+            "static_assignment",
+            73
+          ],
+          "qualified_symbol": "_REPLICA_RETRY_TIME",
+          "declaring_owner": "",
+          "value_expression_kind": "BinOp",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        }
+      ],
+      "applicable_contract_denominator": null,
+      "limitations": [
+        "annotated assignments",
+        "conditional assignments",
+        "inherited and dynamic members",
+        "runtime values and descriptor behavior",
+        "only direct module and module-level class assignments"
+      ],
+      "consumer_path": "src/orm/registry.py",
+      "consumer_sha256": "81a7c8bfce6b0e7662f2e27612ef2dd8f039d2df0b604efff7e4f80564f73850"
+    },
+    {
+      "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+      "reference_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+      "source_sha256": "48bc4e496ff98a3c2d33b06248549681041b5791323380c6d73ce6dd8a0ebb6e",
+      "interface": "counterpart_body.declarations_of/parse_file",
+      "rows": [
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._setup_done",
+            "static_assignment",
+            264
+          ],
+          "qualified_symbol": "Field._setup_done",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Constant",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field.change_default",
+            "static_assignment",
+            300
+          ],
+          "qualified_symbol": "Field.change_default",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Constant",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._related_comodel_name",
+            "static_assignment",
+            774
+          ],
+          "qualified_symbol": "Field._related_comodel_name",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._related_string",
+            "static_assignment",
+            775
+          ],
+          "qualified_symbol": "Field._related_string",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._related_help",
+            "static_assignment",
+            776
+          ],
+          "qualified_symbol": "Field._related_help",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._related_groups",
+            "static_assignment",
+            777
+          ],
+          "qualified_symbol": "Field._related_groups",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._related_aggregator",
+            "static_assignment",
+            778
+          ],
+          "qualified_symbol": "Field._related_aggregator",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._description_name",
+            "static_assignment",
+            889
+          ],
+          "qualified_symbol": "Field._description_name",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._description_type",
+            "static_assignment",
+            890
+          ],
+          "qualified_symbol": "Field._description_type",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._description_store",
+            "static_assignment",
+            891
+          ],
+          "qualified_symbol": "Field._description_store",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._description_manual",
+            "static_assignment",
+            892
+          ],
+          "qualified_symbol": "Field._description_manual",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._description_related",
+            "static_assignment",
+            893
+          ],
+          "qualified_symbol": "Field._description_related",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._description_company_dependent",
+            "static_assignment",
+            894
+          ],
+          "qualified_symbol": "Field._description_company_dependent",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._description_readonly",
+            "static_assignment",
+            895
+          ],
+          "qualified_symbol": "Field._description_readonly",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._description_required",
+            "static_assignment",
+            896
+          ],
+          "qualified_symbol": "Field._description_required",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._description_groups",
+            "static_assignment",
+            897
+          ],
+          "qualified_symbol": "Field._description_groups",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._description_change_default",
+            "static_assignment",
+            898
+          ],
+          "qualified_symbol": "Field._description_change_default",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._description_default_export_compatible",
+            "static_assignment",
+            899
+          ],
+          "qualified_symbol": "Field._description_default_export_compatible",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "Field._description_exportable",
+            "static_assignment",
+            900
+          ],
+          "qualified_symbol": "Field._description_exportable",
+          "declaring_owner": "Field",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "T",
+            "static_assignment",
+            35
+          ],
+          "qualified_symbol": "T",
+          "declaring_owner": "",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": [
+            {
+              "path": "src/orm/fields.py",
+              "symbol": "T",
+              "owner": "",
+              "line": 2334,
+              "route": "same qualified static assignment; candidate only",
+              "equivalence": "not_verified"
+            }
+          ]
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "IR_MODELS",
+            "static_assignment",
+            37
+          ],
+          "qualified_symbol": "IR_MODELS",
+          "declaring_owner": "",
+          "value_expression_kind": "Tuple",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "COMPANY_DEPENDENT_FIELDS",
+            "static_assignment",
+            42
+          ],
+          "qualified_symbol": "COMPANY_DEPENDENT_FIELDS",
+          "declaring_owner": "",
+          "value_expression_kind": "Tuple",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "PYTHON_INEQUALITY_OPERATOR",
+            "static_assignment",
+            45
+          ],
+          "qualified_symbol": "PYTHON_INEQUALITY_OPERATOR",
+          "declaring_owner": "",
+          "value_expression_kind": "Dict",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": [
+            {
+              "path": "src/orm/fields.py",
+              "symbol": "PYTHON_INEQUALITY_OPERATOR",
+              "owner": "",
+              "line": 2351,
+              "route": "same qualified static assignment; candidate only",
+              "equivalence": "not_verified"
+            }
+          ]
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "_logger",
+            "static_assignment",
+            47
+          ],
+          "qualified_symbol": "_logger",
+          "declaring_owner": "",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": [
+            {
+              "path": "src/orm/fields.py",
+              "symbol": "_logger",
+              "owner": "",
+              "line": 2621,
+              "route": "same qualified static assignment; candidate only",
+              "equivalence": "not_verified"
+            }
+          ]
+        },
+        {
+          "identity": [
+            "abe4040ec1a45beee90fb694e4eae4453e46b389",
+            "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/fields.py",
+            "_global_seq",
+            "static_assignment",
+            89
+          ],
+          "qualified_symbol": "_global_seq",
+          "declaring_owner": "",
+          "value_expression_kind": "Call",
+          "applicability": "not_verified",
+          "equivalence": "not_verified",
+          "integration": "not_verified",
+          "acceptance": "not_verified",
+          "consumer_candidates": []
+        }
+      ],
+      "applicable_contract_denominator": null,
+      "limitations": [
+        "annotated assignments",
+        "conditional assignments",
+        "inherited and dynamic members",
+        "runtime values and descriptor behavior",
+        "only direct module and module-level class assignments"
+      ],
+      "consumer_path": "src/orm/fields.py",
+      "consumer_sha256": "2eeb673521ede8201ade7f6f3b3d2ea81a4b198675f954818ae1a660192b5fe9"
+    }
+  ],
+  "observed_static_assignments": 32,
+  "scope": "Two captured files only; no repeated reference inventory",
+  "applicable_contract_denominator": null,
+  "functional_coverage": null
+}

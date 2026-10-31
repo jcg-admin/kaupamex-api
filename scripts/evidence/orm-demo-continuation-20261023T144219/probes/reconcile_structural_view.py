@@ -14,7 +14,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from counterpart_body import pair_declarations
+from counterpart_body import declarations_of, pair_declarations, parse_file
 from reference_roots import TOOLS_ROOT, tree
 
 REVISION = 'abe4040ec1a45beee90fb694e4eae4453e46b389'
@@ -29,6 +29,67 @@ PROPERTY_DECORATORS = {
     'property', 'cached_property', 'functools.cached_property',
     'classproperty',
 }
+
+
+def static_attribute_rows(path, revision, relative):
+    """Project direct assignments from the existing declaration extractor.
+
+    This is an observation population, separate from the 954 declarations.
+    It neither resolves inherited members nor evaluates assigned values.
+    """
+    path = Path(path)
+    try:
+        source = path.read_bytes()
+        source.decode('utf-8')
+    except (OSError, UnicodeError) as error:
+        raise ValueError('unreadable attribute source') from error
+    parsed = parse_file(path)
+    if parsed is None:
+        raise ValueError('invalid attribute source')
+    declarations = declarations_of(path, tree=parsed)
+    owners = [
+        declaration
+        for declaration in declarations
+        if declaration.kind == 'class' and declaration.node in parsed.body
+    ]
+    rows = []
+    for declaration in declarations:
+        if declaration.kind != 'assign':
+            continue
+        direct = (
+            any(declaration.node in owner.node.body
+                for owner in owners if owner.name == declaration.owner)
+            if declaration.owner else declaration.node in parsed.body
+        )
+        if not direct:
+            continue
+        qualified = (f'{declaration.owner}.{declaration.name}'
+                     if declaration.owner else declaration.name)
+        rows.append({
+            'identity': [revision, relative, qualified,
+                         'static_assignment', declaration.lineno],
+            'qualified_symbol': qualified,
+            'declaring_owner': declaration.owner,
+            'value_expression_kind': type(declaration.node.value).__name__,
+            'applicability': 'not_verified',
+            'equivalence': 'not_verified',
+            'integration': 'not_verified',
+            'acceptance': 'not_verified',
+        })
+    return {
+        'reference_revision': revision,
+        'reference_path': relative,
+        'source_sha256': hashlib.sha256(source).hexdigest(),
+        'interface': 'counterpart_body.declarations_of/parse_file',
+        'rows': rows,
+        'applicable_contract_denominator': None,
+        'limitations': [
+            'annotated assignments', 'conditional assignments',
+            'inherited and dynamic members',
+            'runtime values and descriptor behavior',
+            'only direct module and module-level class assignments',
+        ],
+    }
 
 
 def logical_property_groups(rows):
@@ -77,18 +138,96 @@ def logical_property_groups(rows):
     return [groups[key] for key in sorted(groups)]
 
 
+def attribute_snapshot(snapshot):
+    """Extend only two captured files, without rerunning the inventory."""
+    captured = json.loads(snapshot.read_text())
+    if captured['source_revision'] != REVISION:
+        raise ValueError('Reconcile changed snapshot reference')
+    files = []
+    for name in ('registry.py', 'fields.py'):
+        entries = [entry for entry in captured['files']
+                   if entry['consumer_path'] == f'src/orm/{name}']
+        if len(entries) != 1:
+            raise ValueError('Missing or ambiguous captured source')
+        entry = entries[0]
+        source = tree('odoo19c') / 'odoo/orm' / name
+        relative = source.relative_to(TOOLS_ROOT).as_posix()
+        if relative != entry['reference_path']:
+            raise ValueError('Captured source path disagrees with resolver')
+        view = static_attribute_rows(source, REVISION, relative)
+        if view['source_sha256'] != entry['reference_sha256']:
+            raise ValueError('Captured source revision or bytes changed')
+        target = ROOT / entry['consumer_path']
+        before = target.read_bytes() if target.is_file() else None
+        matches = {}
+        if before is not None:
+            candidates = static_attribute_rows(
+                target, 'working-source', entry['consumer_path']
+            )
+            for candidate in candidates['rows']:
+                matches.setdefault(
+                    candidate['qualified_symbol'], []
+                ).append({
+                    'path': entry['consumer_path'],
+                    'symbol': candidate['qualified_symbol'],
+                    'owner': candidate['declaring_owner'],
+                    'line': candidate['identity'][-1],
+                    'route': ('same qualified static assignment; '
+                              'candidate only'),
+                    'equivalence': 'not_verified',
+                })
+        after = target.read_bytes() if target.is_file() else None
+        if before != after:
+            raise ValueError('Consumer source changed during observation')
+        for row in view['rows']:
+            row['consumer_candidates'] = matches.get(
+                row['qualified_symbol'], []
+            )
+        view['consumer_path'] = entry['consumer_path']
+        view['consumer_sha256'] = (
+            hashlib.sha256(before).hexdigest() if before is not None else None
+        )
+        files.append(view)
+    return {
+        'source_revision': REVISION,
+        'snapshot_sha256': hashlib.sha256(snapshot.read_bytes()).hexdigest(),
+        'consumer_revision': subprocess.check_output(
+            ['git', 'rev-parse', 'HEAD'], text=True
+        ).strip(),
+        'consumer_revision_scope': 'HEAD plus observed working source hashes',
+        'files': files,
+        'observed_static_assignments': sum(len(f['rows']) for f in files),
+        'scope': 'Two captured files only; no repeated reference inventory',
+        'applicable_contract_denominator': None,
+        'functional_coverage': None,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         '--output', type=Path,
         default=JOB / 'outputs/continuation-20261030-structural-view.json',
     )
+    parser.add_argument('--attribute-snapshot', type=Path)
     arguments = parser.parse_args()
     revision = subprocess.check_output(
         ['git', '-C', str(TOOLS_ROOT), 'rev-parse', 'HEAD'], text=True
     ).strip()
     if revision != REVISION:
         raise ValueError('Reconcile changed reference before measuring')
+    if arguments.attribute_snapshot is not None:
+        result = attribute_snapshot(arguments.attribute_snapshot)
+        arguments.output.write_text(json.dumps(result, indent=2) + '\n')
+        print(json.dumps({
+            'output': str(arguments.output),
+            'files': len(result['files']),
+            'observed_static_assignments': result[
+                'observed_static_assignments'
+            ],
+            'applicable_contract_denominator': None,
+        }))
+        return
     spec = importlib.util.spec_from_file_location('reference_view', INSTRUMENT)
     instrument = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = instrument
