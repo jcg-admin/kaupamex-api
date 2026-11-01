@@ -86,7 +86,7 @@ from tools.translate import _
 _ACCOUNT_PREFIX_DELIMITER = re.compile(r'[;,]\s*')
 
 
-def _default_prefix_placeholder(instance):
+def _compute_prefix_placeholder(instance):
     """≙ ``_compute_prefix_placeholder`` (odoo19c: :53-70), ver docstring del
     módulo para la sustitución de ``self.env.company`` por ``self.company``.
     """
@@ -100,13 +100,17 @@ def _default_prefix_placeholder(instance):
         prefix_base = expense_account.code[:2]
         try:
             prefix_num = int(prefix_base)
-            account_prefixes = f'{prefix_num}, {prefix_num + 1}, {prefix_num + 2}'
+            account_prefixes = (
+                f'{prefix_num}, {prefix_num + 1}, {prefix_num + 2}'
+            )
         except ValueError:
             # silent OK because un código no numérico (odoo19c: :64-68) deja
             # el placeholder por defecto; la referencia hace exactamente lo
             # mismo (try/except ValueError: pass, sin log).
             pass
-    return _('e.g. %(prefix)s', prefix=account_prefixes)
+    instance.prefix_placeholder = _(
+        'e.g. %(prefix)s', prefix=account_prefixes
+    )
 
 
 def _add_if_absent(model, name, field):
@@ -176,10 +180,12 @@ def apply_account_extensions():
     _add_if_absent(
         AccountAnalyticDistributionModel, 'prefix_placeholder',
         fields.Char(
-            store=False, default=_default_prefix_placeholder,
-            help_text='Odoo prefix_placeholder (compute, store=False). '
-                       'Ejemplo de prefijo de cuenta según la cuenta de '
-                       'gasto de la compañía del registro.',
+            store=False, compute=_compute_prefix_placeholder,
+            help_text=(
+                'Odoo prefix_placeholder (compute, store=False). '
+                'Ejemplo de prefijo de cuenta según la cuenta de '
+                'gasto de la compañía del registro.'
+            ),
         ),
     )
     _add_if_absent(
