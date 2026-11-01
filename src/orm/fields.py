@@ -5096,7 +5096,7 @@ def _recompute_native_recordset(field, records):
         try:
             callback(batch)
             return
-        except MissingError:
+        except (MissingError, ObjectDoesNotExist):
             # silent OK because existence is checked and one retry follows.
             pass
         existing = batch.exists()

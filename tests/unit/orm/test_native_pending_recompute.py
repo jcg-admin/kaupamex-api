@@ -81,7 +81,12 @@ def test_no_pending_work_does_not_invoke_compute():
     assert NativePendingProbe.calls == []
 
 
-def test_missing_batch_retries_existing_and_clears_missing(monkeypatch):
+@pytest.mark.parametrize(
+    'missing_error', [MissingError, NativePendingProbe.DoesNotExist]
+)
+def test_missing_batch_retries_existing_and_clears_missing(
+    monkeypatch, missing_error
+):
     records, field = pending()
     observed = []
     lookups = []
@@ -89,7 +94,7 @@ def test_missing_batch_retries_existing_and_clears_missing(monkeypatch):
     def compute(batch):
         observed.append(batch._ids)
         if 32 in batch._ids:
-            raise MissingError('missing row')
+            raise missing_error('missing row')
         for record in batch:
             record.value = 'existing'
 
@@ -106,10 +111,15 @@ def test_missing_batch_retries_existing_and_clears_missing(monkeypatch):
     assert dict(field._get_cache(env())) == {31: 'existing'}
 
 
-def test_persistent_missing_error_has_only_one_retry(monkeypatch):
+@pytest.mark.parametrize(
+    'missing_error', [MissingError, NativePendingProbe.DoesNotExist]
+)
+def test_persistent_missing_error_has_only_one_retry(
+    monkeypatch, missing_error
+):
     records, field = pending()
     observed = []
-    error = MissingError('persistent absence')
+    error = missing_error('persistent absence')
 
     def compute(batch):
         observed.append(batch._ids)
@@ -117,7 +127,7 @@ def test_persistent_missing_error_has_only_one_retry(monkeypatch):
 
     monkeypatch.setattr(field, 'compute', compute)
     monkeypatch.setattr(NativePendingProbe, 'exists', lambda batch: batch)
-    with pytest.raises(MissingError) as caught:
+    with pytest.raises(missing_error) as caught:
         field.recompute(records)
     assert caught.value is error
     assert observed == [(31, 32), (31, 32)]
