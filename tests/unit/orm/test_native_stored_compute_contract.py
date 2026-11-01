@@ -37,6 +37,22 @@ class LegacyStoredRow(models.Model):
         self.computed = str(self.pk)
 
 
+class NativeStoredRelationProbe(BaseModel):
+    _name = 'orm.native.stored.relation.probe'
+    members = fields.Many2many(
+        'contenttypes.NativeStoredProbe',
+        compute='_compute_members', store=True
+    )
+
+    class Meta:
+        app_label = 'contenttypes'
+        managed = False
+
+    def _compute_members(self):
+        for record in self:
+            record.members.set([record._ids[0] + 100])
+
+
 @pytest.fixture(autouse=True)
 def isolated_stored_compute_environment():
     with transaction_scope():
@@ -87,3 +103,25 @@ def test_legacy_stored_readback_retains_distinct_row_values():
     field.compute_value(rows)
     assert dict(field._get_cache(env())) == {31: '31', 32: '32'}
     assert not env().transaction.tocompute.get(field)
+
+
+@pytest.mark.parametrize('ids', [(31,), (31, 32)])
+def test_native_m2m_readback_keeps_manager_values(ids, monkeypatch):
+    records = NativeStoredRelationProbe._from_ids(env(), ids, ids)
+    field = NativeStoredRelationProbe._meta.get_field('members')
+    manager_class = type(next(iter(records)).members)
+    persisted = {}
+
+    def simulated_set(manager, values):
+        persisted[manager.instance._ids[0]] = list(values)
+
+    def simulated_all(manager):
+        return persisted[manager.instance._ids[0]]
+
+    monkeypatch.setattr(manager_class, 'set', simulated_set)
+    monkeypatch.setattr(manager_class, 'all', simulated_all)
+    env().add_to_compute(field, ids)
+    field.compute_value(records)
+    assert persisted == {id_: [id_ + 100] for id_ in ids}
+    assert dict(field._get_cache(env())) == persisted
+    assert env().transaction.field_dirty[field] == set(ids)

@@ -4969,14 +4969,15 @@ def _cache_computed_values(fields, records):
     devuelve el manager, no lo que contiene. ``list(...)`` lo materializa a lo
     que ``.set()`` espera al volcarlo.
     """
-    if getattr(records, '_ids', None) is not None:
-        # Native recordset assignments already populate each field cache.
-        return
-    rows = as_record_list(records)
+    native_recordset = getattr(records, '_ids', None) is not None
+    rows = list(records) if native_recordset else as_record_list(records)
     for field in fields:
         if not _is_persisted(field):
             continue
         many_to_many = getattr(field, 'many_to_many', False)
+        if native_recordset and not many_to_many:
+            # Native scalar assignments already populated the field cache.
+            continue
         for row in rows:
             if many_to_many:
                 if row.pk is None:
