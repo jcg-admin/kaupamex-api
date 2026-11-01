@@ -5059,15 +5059,15 @@ def _in_record_environment(method):
     transaction rather than sharing scope frames across worker threads.
     """
     @wraps(method)
-    def operate(descriptor, instance, *args, **kwargs):
+    def operate(self, instance, *args, **kwargs):
         attached = getattr(instance, 'env', None)
         if (
             isinstance(attached, Environment)
             and attached is not get_environment()
         ):
             with attached():
-                return method(descriptor, instance, *args, **kwargs)
-        return method(descriptor, instance, *args, **kwargs)
+                return method(self, instance, *args, **kwargs)
+        return method(self, instance, *args, **kwargs)
 
     return operate
 

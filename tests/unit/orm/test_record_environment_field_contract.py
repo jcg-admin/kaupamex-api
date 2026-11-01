@@ -215,3 +215,16 @@ def test_compute_sudo_assignment_keeps_the_elevated_channel(
     assert ordinary.sudo_value is True
     assert observed == [True]
     assert is_su() is False
+
+
+@pytest.mark.parametrize('operation', ['read', 'write'])
+def test_explicit_descriptor_self_keyword_remains_compatible(operation):
+    descriptor = RecordEnvironmentProbe.rendered
+    if operation == 'read':
+        assert FieldDescriptor.__get__(
+            self=descriptor, instance=None, cls=RecordEnvironmentProbe
+        ) is descriptor
+    else:
+        assert FieldDescriptor.__set__(
+            self=descriptor, instance=record(), value='assigned'
+        ) is None
