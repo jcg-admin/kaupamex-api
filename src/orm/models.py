@@ -4564,7 +4564,8 @@ class BaseModel(DefaultGetMixin, Model):
 
     __slots__ = ['env', '_ids', '_prefetch_ids']
 
-    #: **Divergencia de mecanismo.** La fuente cuelga el registro completo de la
+    #: **Divergencia de mecanismo.** La fuente cuelga el registro completo
+    #: de la
     #: clase (``pool: Registry``, ``:362``) porque su metaclase lo construye.
     #: Aquí el registro de Django vive en ``_meta.apps`` y el nuestro en
     #: :mod:`orm.registry`; la anotación se conserva para que el nombre exista
@@ -4572,7 +4573,8 @@ class BaseModel(DefaultGetMixin, Model):
     pool: 'registry.Registry'
 
     _fields__: dict
-    #: ≙ ``BaseModel._fields`` (``:368``). **No se duplica el mecanismo**: es el
+    #: ≙ ``BaseModel._fields`` (``:368``). **No se duplica el mecanismo**:
+    #: es el
     #: mismo :class:`~orm.utils.FieldRegistryDescriptor` que
     #: :class:`FieldSqlMixin` ya declara en ``:1612``, respaldado por
     #: :func:`~orm.utils.model_field_registry`. Aquí es además el sitio fiel:
@@ -4635,7 +4637,8 @@ class BaseModel(DefaultGetMixin, Model):
     _depends: ReadonlyDict = ReadonlyDict({})
     """dependencies of models backed up by SQL views ``{model_name: field_names}``."""
 
-    #: ``id = Id()`` (``:472``) **se porta como descriptor instalado en la clase
+    #: ``id = Id()`` (``:472``) **se porta como descriptor instalado
+    #: en la clase
     #: concreta**, no como asignación en este cuerpo: ``ModelBase`` pone su
     #: propio ``DeferredAttribute`` sobre ``id`` al preparar la subclase y
     #: sombrea cualquier descriptor de la base — medido en
@@ -5351,15 +5354,17 @@ class BaseModel(DefaultGetMixin, Model):
         self._table, self._table_sql)`` y ejecuta el ``SELECT``;
         ``_table_sql`` no tiene contraparte aquí (declarado en
         ``orm/environments.py:1831``). El stack trae el mecanismo: el manager
-        por defecto del modelo emite el mismo ``id IN (…)`` y devuelve los ids
-        reales, sin SQL a mano.
+        base del modelo emite el mismo ``id IN (…)`` sin aplicar filtros
+        del manager público y devuelve los ids reales, sin SQL a mano.
         """
         new_ids, ids = partition(lambda i: isinstance(i, NewId), self._ids)
         if not ids:
             return self
-        real_ids = (type(self)._default_manager
-                    .filter(pk__in=tuple(ids))
-                    .values_list('pk', flat=True))
+        real_ids = (
+            type(self)
+            ._base_manager.filter(pk__in=tuple(ids))
+            .values_list('pk', flat=True)
+        )
         valid_ids = {*real_ids, *new_ids}
         return self.browse(i for i in self._ids if i in valid_ids)
 
@@ -5465,7 +5470,8 @@ class AbstractModel:
     _abstract = True        #: es abstracto
 
 
-#: ``Model`` — ≙ ``class Model(AbstractModel)`` (``odoo19c: odoo/orm/models.py:7049``).
+#: ``Model`` — ≙ ``class Model(AbstractModel)``
+#: (``odoo19c: odoo/orm/models.py:7049``).
 #:
 #: **Ya existe, y es el de Django**: este módulo re-exporta el ORM completo
 #: (``from django.db.models import *``, arriba), así que ``orm.models.Model``
