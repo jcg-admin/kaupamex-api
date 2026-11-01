@@ -1,0 +1,35 @@
+{
+  "task": "TASK-API-0174",
+  "functional_role": "backend",
+  "executor": "VM-b501 Codex authorized engineering, not managed local inference",
+  "owner": "codex-module-lifecycle",
+  "status": "pending",
+  "code_commit": "c58010a15f1bd2268b9cd05c49ff6cd4e62a0198",
+  "candidate_sha256": "894fd58b85afd886dcd8ed022863b1b037e221195fa26f340655eb62c8a2fb8c",
+  "exact_candidate_passed": 25,
+  "annulment_failed": 2,
+  "annulment_surviving": 23,
+  "reference_cases_passed": 6,
+  "candidate_scope": "Only _depth plus new test; signatures unchanged",
+  "working_preservation": "Original unrelated executable AST and all claimed working bytes preserved; existing test formatting-only delta preserved",
+  "provider_interfaces": [
+    "TaskGet323",
+    "Pre-claim node_frontier bounded admission",
+    "claimsCommand who-has/claim/release",
+    "TaskUpdate description-only with status/owner/edges/citation unchanged"
+  ],
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "qualification_boundary": "Native admission before claims is recorded, not claimed as qualified ongoing own-claim Codex dispatch or local inference",
+  "commands": {
+    "candidate": "PYTHONPATH=src:scripts UV_CACHE_DIR=<sibling-cache>/uv uv run --offline --frozen python scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_graph_depth_candidate.py --result <result.json>",
+    "negative": "Same command with --annul-depth; expected exit1",
+    "initial_red": "uv run --offline --frozen pytest --noconftest -c pyproject.toml -o addopts= --import-mode=importlib -q --tb=short tests/unit/modules/test_module_graph_depth_limits.py"
+  },
+  "whole_objective_complete": false,
+  "integration": "pending",
+  "acceptance": "not_verified",
+  "source_sha256": {
+    "scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_graph_depth_candidate.py": "450bd220ccb2a717b39953efb20a17cd3d5280a31c2e9d800c9b748dc2999227",
+    "tests/unit/modules/test_module_graph_depth_limits.py": "52a3a6a03b489f530b6a7c8ad5bd1a7b2a356cdb74b0bc8d70fd0593abeb1549"
+  }
+}

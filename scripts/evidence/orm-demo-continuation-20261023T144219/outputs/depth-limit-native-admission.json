@@ -1,0 +1,26 @@
+{
+  "interface": "plan_items_from_rows;claims_ledger_rows;node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "input": [
+    {
+      "id": "TASK-API-0174.deep_cycle_depth",
+      "taskId": "TASK-API-0174",
+      "prompt": "Preserve ModuleGraphCycle and depth semantics beyond Python recursion depth without SQL or lifecycle state changes",
+      "verify": "Long cycle raises ModuleGraphCycle with exact route; long DAG computes and orders; preserve memo and caller path cleanup; exact candidate and existing graph controls",
+      "route": "local",
+      "owned": [
+        "src/modules/module_graph.py",
+        "tests/unit/modules/test_module_graph_depth_limits.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "states": {},
+  "claims_count": 595,
+  "selected": [
+    "TASK-API-0174.deep_cycle_depth"
+  ],
+  "node": "b501",
+  "scope": "Pre-claim bounded source admission only; not own-claim dispatch qualification or managed inference",
+  "dependencies": "Native323 pending owned; existing in-memory graph/depth consumers available; no SQL/full-loader acceptance prerequisite"
+}

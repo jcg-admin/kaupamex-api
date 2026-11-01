@@ -1,0 +1,119 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_path": "19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/modules/module_graph.py",
+  "reference_sha256": "584f0e71063b36211147bc8190a5e348d0674153ba7b981d71179a85d753b8c5",
+  "candidate_sha256": "894fd58b85afd886dcd8ed022863b1b037e221195fa26f340655eb62c8a2fb8c",
+  "source_fixture": "Only pinned ModuleNode.depth/order_name property bodies executed; not native Odoo runtime",
+  "cases": [
+    {
+      "dependencies": {
+        "base": []
+      },
+      "reference_depths": {
+        "base": 0
+      },
+      "candidate_depths": {
+        "base": 0
+      }
+    },
+    {
+      "dependencies": {
+        "a": [
+          "b"
+        ],
+        "b": [
+          "base"
+        ],
+        "base": []
+      },
+      "reference_depths": {
+        "a": 2,
+        "b": 1,
+        "base": 0
+      },
+      "candidate_depths": {
+        "a": 2,
+        "b": 1,
+        "base": 0
+      }
+    },
+    {
+      "dependencies": {
+        "a": [
+          "left",
+          "right"
+        ],
+        "left": [
+          "base"
+        ],
+        "right": [
+          "base"
+        ],
+        "base": []
+      },
+      "reference_depths": {
+        "a": 2,
+        "left": 1,
+        "right": 1,
+        "base": 0
+      },
+      "candidate_depths": {
+        "a": 2,
+        "left": 1,
+        "right": 1,
+        "base": 0
+      }
+    },
+    {
+      "dependencies": {
+        "test_a": [
+          "base"
+        ],
+        "base": []
+      },
+      "reference_depths": {
+        "test_a": 0,
+        "base": 0
+      },
+      "candidate_depths": {
+        "test_a": 0,
+        "base": 0
+      }
+    },
+    {
+      "dependencies": {
+        "a": [
+          "test_a"
+        ],
+        "test_a": [
+          "base"
+        ],
+        "base": []
+      },
+      "reference_depths": {
+        "a": 1,
+        "test_a": 0,
+        "base": 0
+      },
+      "candidate_depths": {
+        "a": 1,
+        "test_a": 0,
+        "base": 0
+      }
+    },
+    {
+      "dependencies": {
+        "test_empty": []
+      },
+      "reference_depths": {
+        "test_empty": "ValueError"
+      },
+      "candidate_depths": {
+        "test_empty": "ValueError"
+      }
+    }
+  ],
+  "equivalent_bounded_depths": true,
+  "intentional_extension": "TASK-API-0174 domain cycle error with route beyond interpreter recursion limit; not attributed to native Odoo execution",
+  "sql": "No database access required"
+}

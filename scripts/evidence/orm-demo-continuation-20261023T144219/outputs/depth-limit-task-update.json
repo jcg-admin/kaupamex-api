@@ -1,0 +1,28 @@
+{
+  "interface": "TaskGet/TaskUpdate description only",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "before": {
+    "task_id": "323",
+    "citation_id": "TASK-API-0174",
+    "subject": "ModuleGraph.depth revienta con RecursionError ante un ciclo declarado",
+    "description": "`src/modules/module_graph.py:46-52` calcula la profundidad recursivamente y su única guarda es `d != self.name` — atrapa el auto-ciclo y ningún otro. Un 2-ciclo declarado en `depends` (medido: `sale ↔ delivery`, cerrado en api@50cc8c1) produce `RecursionError: maximum recursion depth exceeded` en vez de un error que nombre el ciclo.\n\nLa referencia no tiene este modo de fallo porque su instalador valida el grafo antes (`odoo/modules/graph.py` construye por niveles y deja fuera lo irresoluble, sin recursión sobre `depends`).\n\nQué hacer: dar a `depth` memoización con detección de ciclo (conjunto de visitados en la pila) y que lance un error del dominio con la ruta del ciclo — `ModuleGraphCycle: sale -> delivery -> sale`. Un ciclo en el grafo declarado es un defecto que hay que nombrar, no un crash del intérprete.\n\nPrecondición: ninguna. Hoy el grafo declarado está acíclico (91 de 91 ordenables), así que el arreglo es preventivo y su test necesita un grafo sintético.\n\nHallazgo: H-API-563.",
+    "status": "pending",
+    "owner": "codex-module-lifecycle",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "after": {
+    "task_id": "323",
+    "citation_id": "TASK-API-0174",
+    "subject": "ModuleGraph.depth revienta con RecursionError ante un ciclo declarado",
+    "description": "`src/modules/module_graph.py:46-52` calcula la profundidad recursivamente y su única guarda es `d != self.name` — atrapa el auto-ciclo y ningún otro. Un 2-ciclo declarado en `depends` (medido: `sale ↔ delivery`, cerrado en api@50cc8c1) produce `RecursionError: maximum recursion depth exceeded` en vez de un error que nombre el ciclo.\n\nLa referencia no tiene este modo de fallo porque su instalador valida el grafo antes (`odoo/modules/graph.py` construye por niveles y deja fuera lo irresoluble, sin recursión sobre `depends`).\n\nQué hacer: dar a `depth` memoización con detección de ciclo (conjunto de visitados en la pila) y que lance un error del dominio con la ruta del ciclo — `ModuleGraphCycle: sale -> delivery -> sale`. Un ciclo en el grafo declarado es un defecto que hay que nombrar, no un crash del intérprete.\n\nPrecondición: ninguna. Hoy el grafo declarado está acíclico (91 de 91 ordenables), así que el arreglo es preventivo y su test necesita un grafo sintético.\n\nHallazgo: H-API-563.\n\n[Depth-limit continuation 2026-10-31] Published c58010a15f1bd2268b9cd05c49ff6cd4e62a0198 in PR109 with ordinary hooks and exact-index source verification. Explicit DFS removes interpreter-stack dependency from ModuleGraph._depth while preserving memo, test anchors and caller-path cleanup. RED2RecursionError/1PASS; exact candidate25PASS with SQL blocked; annulment restores2FAIL/23PASS;6 pinned Odoo property-body cases match, not native Odoo runtime. Contract/evidence: scripts/evidence/orm-demo-continuation-20261023T144219/outputs/depth-limit-contract-14.json. Other recursive graph operations, full loader, global style/CI, merge and acceptance remain separate. Existing unrelated working bytes restored and source claims released; no owner/state/dependency change or managed inference.",
+    "status": "pending",
+    "owner": "codex-module-lifecycle",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "invariants_preserved": true
+}

@@ -1,0 +1,3888 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FF.                                                                      [100%]
+=================================== FAILURES ===================================
+_________ test_deep_cycle_reports_its_route_instead_of_recursion_error _________
+tests/unit/modules/test_module_graph_depth_limits.py:35: in test_deep_cycle_reports_its_route_instead_of_recursion_error
+    _ = graph[names[0]].depth
+src/modules/module_graph.py:89: in depth
+    return self._graph._depth(self, {}, {})
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+E   RecursionError: maximum recursion depth exceeded
+_____________ test_deep_acyclic_path_has_unchanged_depth_and_order _____________
+tests/unit/modules/test_module_graph_depth_limits.py:44: in test_deep_acyclic_path_has_unchanged_depth_and_order
+    assert graph[names[0]].depth == len(names) - 1
+src/modules/module_graph.py:89: in depth
+    return self._graph._depth(self, {}, {})
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+src/modules/module_graph.py:231: in _depth
+    self._depth(self._nodes[dep], memo, path)
+E   RecursionError: maximum recursion depth exceeded
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/depth-limit-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/modules/test_module_graph_depth_limits.py::test_deep_cycle_reports_its_route_instead_of_recursion_error
+FAILED tests/unit/modules/test_module_graph_depth_limits.py::test_deep_acyclic_path_has_unchanged_depth_and_order
+2 failed, 1 passed in 3.34s

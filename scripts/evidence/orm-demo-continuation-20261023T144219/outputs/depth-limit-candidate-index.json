@@ -1,0 +1,8 @@
+{
+  "base": "f6b2e552dc47387ece9788ae8ebd1ef2064ad86e",
+  "blob": "bb3bd437f1a4ec7ce4b25e719a3b67ee673781b7",
+  "source_sha256": "894fd58b85afd886dcd8ed022863b1b037e221195fa26f340655eb62c8a2fb8c",
+  "only_depth_executable_ast_changed": true,
+  "working_sha256": "50e3fa6c635349de9ecd7072656a9540951c67a20390bd6a7040e1cd03400710",
+  "preserved_pending_changes": true
+}

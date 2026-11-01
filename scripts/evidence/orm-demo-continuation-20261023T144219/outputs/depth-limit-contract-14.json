@@ -1,0 +1,52 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": [
+    "odoo/modules/module_graph.py::ModuleNode.depth",
+    "odoo/modules/module_graph.py::ModuleNode.order_name"
+  ],
+  "behavior": "Consumer TASK-API-0174 requires a named domain cycle diagnostic rather than RecursionError. Explicit DFS also preserves depth and load-mode order for long acyclic paths, without changing Python recursion limits.",
+  "execution_flow": "ModuleNode.depth or ModuleGraph.__iter__ -> _depth with per-traversal memo/path -> explicit frames for dependency iteration/postorder depth -> cycle route or depth -> existing load-mode phase/name ordering",
+  "inputs_outputs": "Manifest-only graph fixtures, paths longer than sys.getrecursionlimit(), exact cycle tuple, diamond/shared dependencies, missing dependency, test-addon anchor and caller path cleanup. No catalogue mutation.",
+  "side_effects": "Caller memo receives computed depths as before; added active path entries are removed on normal/error exit. No SQL, migration, module state/version write or global recursion-limit change.",
+  "dependencies": [
+    "Native TaskGet323 TASK-API-0174 pending owner codex-module-lifecycle",
+    "Existing ModuleGraph/ModuleNode and manifest lookup fixture",
+    "Existing graph unit fixtures; minimal Django PostgreSQL settings for alias access, actual SQL prohibited"
+  ],
+  "consumers": [
+    "ModuleNode.depth",
+    "ModuleGraph.__iter__/order (load mode qualified)",
+    "ModuleGraph._update_depth calls the depth property; full pruning lifecycle not qualified"
+  ],
+  "installed_mechanism": "Existing _depth implementation now uses a Python list of DFS frames; same graph class, exceptions, memo dictionary and public signatures. No Provider/coordinator/store implementation.",
+  "existing_adaptation": "Consumer already raises ModuleGraphCycle with an explicit route; reference uses cached node properties and loader pruning. This increment completes that Consumer diagnostic for deep traversal and keeps bounded acyclic depth equivalence.",
+  "verification": {
+    "initial_red": "2FAIL RecursionError /1PASS; exit1",
+    "initial_combined": "20PASS/5 fixture setup errors due absent Django settings; not algorithm failures",
+    "exact_candidate": "25PASS exit0; graph imported from exact staged bytes; SQL connection acquisition prohibited; HEAD/index/test hashes stable",
+    "annulment": "Restoring old _depth only in memory gives2FAIL/23PASS exit1; no working source mutation",
+    "reference": "6bounded acyclic/test-anchor cases match extracted pinned depth/order_name property bodies; not native Odoo runtime",
+    "style_hooks": "Actual ordinary pre-commit and commit exit0; no bypass; staged source matches tested SHA",
+    "test_preservation": "Existing working test formatting differs from HEAD but executable AST is identical; existing test not committed"
+  },
+  "equivalence": "Bounded depth/order cases match fixed reference bodies. Long-cycle route is an existing Consumer TASK requirement, not a claim that native Odoo runtime passed that case.",
+  "limitations": [
+    "Other recursive operations (_phase, order_name, cycles and _remove) remain outside this bounded depth increment; update-mode/deep test-addon ordering and loader pruning are not accepted",
+    "No full Django bootstrap, PostgreSQL signaling, effective per-base Registry composition or module installation acceptance",
+    "Global style/required CI remain separate; prior CI failed before functional acceptance",
+    "Existing unrelated working source bytes were preserved and excluded from functional commit"
+  ],
+  "integration": {
+    "commit": "c58010a15f1bd2268b9cd05c49ff6cd4e62a0198",
+    "publication": "Normal push exit0 to existing PR109",
+    "merge": "NOT_PERFORMED",
+    "acceptance": "not_verified",
+    "task_status": "pending unchanged"
+  },
+  "acceptance_criteria": [
+    "Long cycle produces ModuleGraphCycle with complete route",
+    "Long DAG depth and load-mode order are preserved",
+    "Memo, test-anchor failure semantics and caller path cleanup preserve existing controls",
+    "Required CI, review/integration and acceptance authority remain unsatisfied by local subset alone"
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "command": [
+    "/workspace/kaupamex-api/.venv/bin/python",
+    "/workspace/kaupamex-api/scripts/check_python_style_increment.py",
+    "--base",
+    "f6b2e552dc47387ece9788ae8ebd1ef2064ad86e",
+    "--index-tree",
+    "e9245873f610b05c958f2d979ec9fa7f10d013cb",
+    "--qualify-checkers",
+    "--report",
+    "/workspace/kaupamex-api/scripts/evidence/ci-local-fail-fast-20261022T004947/outputs/pre-commit-admission.json"
+  ],
+  "files": [
+    {
+      "path": "src/modules/module_graph.py",
+      "old_path": "src/modules/module_graph.py",
+      "status": "M",
+      "old_mode": "100644",
+      "new_mode": "100644",
+      "old_blob": "6233d47dc257705dba275ef5bd9df7fec9ba46e6",
+      "new_blob": "bb3bd437f1a4ec7ce4b25e719a3b67ee673781b7",
+      "inherited": [
+        {
+          "line": 1,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "6c51df9656e45545292ecb0209b7763c275c59206cfe1eccb6b03e6a3b0cf9a7"
+        },
+        {
+          "line": 88,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "ffe5acb4a8dc68231e80e1b2644141fc94689720d325d6622cc59897df3c9b16"
+        },
+        {
+          "line": 99,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (88 > 79 characters)",
+          "fingerprint": "9cd4ee10c1047e9055bea7481538923110ed7d8d2bc18152c5fe49ce8f139559"
+        },
+        {
+          "line": 109,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (86 > 79 characters)",
+          "fingerprint": "6b307e3124fee2f89e4914033cbee84640aa1a354c843e1a8b05409d3a283dc7"
+        },
+        {
+          "line": 119,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (84 > 79 characters)",
+          "fingerprint": "f50051a424800a39b6324b80e581ef75af343af4a31f8257da2bcb37c21a84bf"
+        },
+        {
+          "line": 138,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (88 > 79 characters)",
+          "fingerprint": "8a37774eba63527d26befa4dcf6cc3b4623a797d3d533eeda9c17bd3676c903f"
+        },
+        {
+          "line": 186,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (95 > 79 characters)",
+          "fingerprint": "007cedffa1f170678cce9ef0999669119d6a2911cc8823ccb55f51900cf585b6"
+        },
+        {
+          "line": 240,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "01cef8bb58b7aa467c8044139de45cff1dc0523d1719c932215ac11eaa7e3617"
+        },
+        {
+          "line": 287,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (88 > 79 characters)",
+          "fingerprint": "5cf909d99c5e7bf549159c7b2d8cdf0c0ca6d4eeae0ab70dfb6491b3988839a9"
+        },
+        {
+          "line": 293,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "87aa25bcd730ef180b19e241fe00fd33db8b6a4093b9e4087d922e6d1d42b14b"
+        },
+        {
+          "line": 320,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "4c992308a38fdadbc955699ae5a7bc9ffe83f65edfe3f3afc6c7cdc114b2ff0b"
+        },
+        {
+          "line": 331,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "a9a934cf9fa9e0149d47dda8270271cfa42a504fee2f672de7b067f6c88d4f83"
+        }
+      ],
+      "introduced": [],
+      "corrected": [],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 1,
+        "imports_exit": 0
+      },
+      "base_checks": {
+        "compilation_exit": 0,
+        "style_exit": 1,
+        "imports_exit": 0
+      },
+      "decision": "PASS"
+    },
+    {
+      "path": "tests/unit/modules/test_module_graph_depth_limits.py",
+      "old_path": "tests/unit/modules/test_module_graph_depth_limits.py",
+      "status": "A",
+      "old_mode": "000000",
+      "new_mode": "100644",
+      "old_blob": "0000000000000000000000000000000000000000",
+      "new_blob": "d0786772d62d430e2cb3c36f1d9044058fd8d03f",
+      "inherited": [],
+      "introduced": [],
+      "corrected": [],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 0,
+        "imports_exit": 0
+      },
+      "decision": "PASS",
+      "comparison": "STRICT_NEW_OR_MOVED_FILE"
+    }
+  ],
+  "reasons": [],
+  "increment_admission": "PASS",
+  "global_style_compliance": "NOT_EVALUATED",
+  "ci_verification": "NOT_EVALUATED",
+  "contract_verification": "NOT_EVALUATED",
+  "integration": "NOT_EVALUATED",
+  "acceptance": "NOT_EVALUATED",
+  "activation": "EXPLICIT_INCREMENT_EVALUATION",
+  "base": "f6b2e552dc47387ece9788ae8ebd1ef2064ad86e",
+  "candidate": {
+    "index_tree": "e9245873f610b05c958f2d979ec9fa7f10d013cb",
+    "head": "f6b2e552dc47387ece9788ae8ebd1ef2064ad86e"
+  },
+  "verifiers": {
+    "/workspace/kaupamex-api/scripts/check_python_style_increment.py": "33fcd7d40a59acebfaf0e4b54894b1a9b07591bb0197b866761d3393e78eeaf4",
+    "/workspace/kaupamex-api/scripts/check_no_lazy_imports.py": "278a21b0fcd8fc17b1103c09e7437f116767173b84168fb1991c98dad9fed223",
+    "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/pycodestyle.py": "a14c299bb9f2251f7327fce593e7986b3bbb472e07b5d6b8ce3f2a0750325c00"
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "pycodestyle": "2.14.0",
+  "native_checks": {
+    "style": "pycodestyle.Checker.check_all; native defaults, ignore=W503",
+    "imports": "check_no_lazy_imports.find_misplaced_imports",
+    "compilation": "compile(exec), SyntaxWarning treated as error"
+  },
+  "python_scope": "CHANGED",
+  "exit_code": 0
+}
