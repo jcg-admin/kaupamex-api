@@ -18,7 +18,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import django
-from django.db import connection
+from django.db import connection, transaction
 from django.test.utils import CaptureQueriesContext
 
 from verify_record_environment_candidate import RecordEnvironmentSnapshot
@@ -205,7 +205,14 @@ def main():
             if args.m2m_only:
                 for module, path in paths.items():
                     assert Path(sys.modules[module].__file__) == path, module
-                result = verify_stored_m2m(revision, sources, directory)
+                with transaction.atomic():
+                    result = verify_stored_m2m(revision, sources, directory)
+                    transaction.set_rollback(True)
+                result['outer_transaction_rolled_back'] = True
+                result['commit_flush_qualification'] = (
+                    'BLOCKED by missing bootstrap fixture; preserved '
+                    'non-rollback attempt in bootstrap-boundary receipt'
+                )
                 (JOB / 'outputs/native-stored-postgresql.json').write_text(
                     json.dumps(result, indent=2) + '\n'
                 )

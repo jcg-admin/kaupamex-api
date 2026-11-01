@@ -7,5 +7,6 @@
   "parent_equivalence": "not_verified",
   "parent_acceptance": "not_verified",
   "global_contract_denominator": "not established",
-  "historical_population_rewritten": false
+  "historical_population_rewritten": false,
+  "actual_SQL_qualification": "native-stored-postgresql.json validates managers/read-back in rollback-scoped TEMP fixture; full commit remains blocked, no parent acceptance promotion"
 }

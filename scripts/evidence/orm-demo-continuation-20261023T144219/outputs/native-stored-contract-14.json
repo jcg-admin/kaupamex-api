@@ -27,10 +27,20 @@
     "original_revision_annulment": "3expectedFAIL4PASS; sourceSHA matches6e9aab72; native-stored-original-readback.json",
     "broad_guard_annulment": "2expectedFAIL5PASS; sourceSHA matches4166b38d; native-stored-m2m-annulled.json",
     "legacy_m2m_singleton": "Original passes, broad guard fails, final passes: own NEW_REGRESSION corrected before push",
-    "SQL": "Prohibited for these tests; M2M set/all explicitly simulated; no actual relation persistence acceptance"
+    "SQL": "Prohibited for these tests; M2M set/all explicitly simulated; no actual relation persistence acceptance",
+    "actual_M2M_SQL": {
+      "receipt": "native-stored-postgresql.json",
+      "resource_receipt": "native-stored-postgresql-container.json",
+      "scope": "Actual set/all, join-table writes, read-back and dirty marks inside an explicit outer transaction with normal rollback",
+      "positive": "Links31->131 and32->132, matching cache and dirty IDs",
+      "negative": "Old4166b38d read-back guard leaves cache/dirty empty while actual links remain correct",
+      "commit_flush": "Separate non-rollback attempt failed missing ir_model_data at base.public_user resolution; failure and resource cleanup preserved",
+      "hooks": "Unmodified; rollback uses native Django hooks",
+      "acceptance": "not_verified"
+    }
   },
   "equivalence": "Bounded native stored compute cache/read-back bridge only; not whole Field or ORM equivalence",
-  "limitations": "Queued recompute selection/batching, recursive ordering, missing-record retry integration, ACL, actual SQL M2M/flush, database routing and acceptance not_verified. Existing dependency warnings retained. Counts are test observations, not contractual denominators",
+  "limitations": "Complete commit/flush integration is blocked in minimal fixture by ir_model_data/base.public_user bootstrap dependency. Manager SQL and read-back inside normal rollback transaction now qualified. Production routing, full permissions, prefetch IO and independent acceptance remain not_verified.",
   "integration": {
     "commits": [
       "4166b38d4b06fb7af77acfa5d458c84cffdc2fda",
