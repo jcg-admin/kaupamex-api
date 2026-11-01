@@ -4969,6 +4969,9 @@ def _cache_computed_values(fields, records):
     devuelve el manager, no lo que contiene. ``list(...)`` lo materializa a lo
     que ``.set()`` espera al volcarlo.
     """
+    if getattr(records, '_ids', None) is not None:
+        # Native recordset assignments already populate each field cache.
+        return
     rows = as_record_list(records)
     for field in fields:
         if not _is_persisted(field):
