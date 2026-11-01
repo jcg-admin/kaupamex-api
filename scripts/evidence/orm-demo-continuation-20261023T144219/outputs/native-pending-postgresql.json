@@ -1,0 +1,54 @@
+{
+  "source_revision": "adf2cd6a60c02a3dcc1331b666a82db5e50081bb",
+  "source_sha256": {
+    "orm.fields": "e397812b330c57f2f5a21190450b4bdcb5418fbcd73409006d41751696b5cae9",
+    "orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f",
+    "orm.models": "05201fc9a4842ffeb0a04701af681efe6b4f2d464009adfd754f60be372a866f"
+  },
+  "fixture_sha256": "dfc43324f097d1c73ac0ba1c4fca478720fb9fb0171dc08462ebe742b99640a4",
+  "postgresql_version": "PostgreSQL 16.15 (Debian 16.15-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+  "actual_storage_lookup_and_exists": true,
+  "positive_calls": [
+    [
+      31,
+      32,
+      33
+    ],
+    [
+      31,
+      33
+    ]
+  ],
+  "positive_cache": {
+    "31": "computed:row31",
+    "33": "computed:row33"
+  },
+  "positive_sql": [
+    "SELECT \"contenttypes_nativependingprobe\".\"id\", \"contenttypes_nativependingprobe\".\"value\" FROM \"contenttypes_nativependingprobe\" WHERE \"contenttypes_nativependingprobe\".\"id\" = 31 LIMIT 21",
+    "SELECT \"contenttypes_nativependingprobe\".\"id\", \"contenttypes_nativependingprobe\".\"value\" FROM \"contenttypes_nativependingprobe\" WHERE \"contenttypes_nativependingprobe\".\"id\" = 32 LIMIT 21",
+    "SELECT \"contenttypes_nativependingprobe\".\"id\" AS \"pk\" FROM \"contenttypes_nativependingprobe\" WHERE \"contenttypes_nativependingprobe\".\"id\" IN (31, 32, 33)",
+    "SELECT \"contenttypes_nativependingprobe\".\"id\", \"contenttypes_nativependingprobe\".\"value\" FROM \"contenttypes_nativependingprobe\" WHERE \"contenttypes_nativependingprobe\".\"id\" = 31 LIMIT 21",
+    "SELECT \"contenttypes_nativependingprobe\".\"id\", \"contenttypes_nativependingprobe\".\"value\" FROM \"contenttypes_nativependingprobe\" WHERE \"contenttypes_nativependingprobe\".\"id\" = 33 LIMIT 21"
+  ],
+  "all_missing_sql": [
+    "SELECT \"contenttypes_nativependingprobe\".\"id\", \"contenttypes_nativependingprobe\".\"value\" FROM \"contenttypes_nativependingprobe\" WHERE \"contenttypes_nativependingprobe\".\"id\" = 41 LIMIT 21",
+    "SELECT \"contenttypes_nativependingprobe\".\"id\" AS \"pk\" FROM \"contenttypes_nativependingprobe\" WHERE \"contenttypes_nativependingprobe\".\"id\" IN (41, 42)"
+  ],
+  "negative_revision": "92a84833f01d5d4c54aaf5df3a9ba74cdd0c4773",
+  "negative_source_sha256": "ea2e13b311a6c98704a15e1e245e554c85d756fc8725aeb56bfbabcfb7cbe828",
+  "negative_error": "DoesNotExist",
+  "negative_pending_preserved": true,
+  "database_rows_unchanged": [
+    [
+      31,
+      "row31"
+    ],
+    [
+      33,
+      "row33"
+    ]
+  ],
+  "temporary_tables_only": true,
+  "public_tables": 0,
+  "acceptance": "Bounded SQL absence/retry qualification; no full TASK, flush, prefetch IO or ORM acceptance"
+}

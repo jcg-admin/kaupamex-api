@@ -5,5 +5,6 @@
   "evidence": "native-pending-contract-14.json",
   "parent_acceptance": "not_verified",
   "historical_population_rewritten": false,
-  "global_denominator": "not established"
+  "global_denominator": "not established",
+  "additional_verification": "native-pending-postgresql.json: actual SQL get/exists and bounded missing cleanup; no parent acceptance promotion"
 }

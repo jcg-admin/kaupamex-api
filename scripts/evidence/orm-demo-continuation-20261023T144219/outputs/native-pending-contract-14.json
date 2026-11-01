@@ -21,12 +21,20 @@
     "negative_retry": "Persistent MissingError one retry; all missing IDs cleared for each computed field",
     "legacy": "native-pending-legacy-path-proof.json",
     "style": "native-pending-final-style.json PASS; formatting/doc changes preserve executable AST",
-    "storage_IO": "SQL prohibited; exists lookup explicitly simulated",
+    "storage_IO": "Original unit tests simulate exists with SQL prohibited; bounded real SQL get/exists and retries now qualified separately on owned PostgreSQL TEMP fixture.",
     "intermediate": "102PASS before adding two Django absence cases",
-    "Django_absence": "2FAIL12PASS before adaptation; annulment2expectedFAIL12PASS matches92a84833 source hash"
+    "Django_absence": "2FAIL12PASS before adaptation; annulment2expectedFAIL12PASS matches92a84833 source hash",
+    "actual_postgresql": {
+      "receipt": "native-pending-postgresql.json",
+      "container": "native-pending-postgresql-container.json",
+      "source_revision": "adf2cd6a60c02a3dcc1331b666a82db5e50081bb",
+      "result": "PASS PostgreSQL16.15 actual get/exists, subset retry and all-missing cleanup; old helper raises DoesNotExist and preserves pending",
+      "storage": "TEMP fixture only; database rows unchanged; public tables0; owned container removed",
+      "limits": "No actual flush, broad production fixtures or prefetch IO acceptance"
+    }
   },
   "equivalence": "Bounded native Field.recompute control-flow contract, not all recompute/prefetch IO, validation or ORM acceptance",
-  "limitations": "Actual SQL existence/retry integration, relation flush, prefetch IO cost, new-ID/precompute variants, database routing, full permissions and independent QA/acceptance not_verified. No global denominator",
+  "limitations": "Complete production retry scenarios, relation flush, prefetch IO cost, new-ID/precompute variants, database routing, full permissions and independent QA/acceptance remain not_verified. Bounded actual SQL absence/retry fixture qualified; no global denominator.",
   "integration": {
     "functional_commit": "92a84833f01d5d4c54aaf5df3a9ba74cdd0c4773",
     "publication": "Normal feature push recorded separately",
