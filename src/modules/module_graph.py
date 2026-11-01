@@ -196,19 +196,42 @@ class ModuleGraph:
             raise ModuleGraphCycle(cycle)
         if node.name in memo:
             return memo[node.name]
+        # Explicit DFS frames preserve the dependency traversal without using
+        # the interpreter stack: a long cycle must still name its route.
+        stack = [(node, iter(node.depends), [])]
         path[node.name] = len(path)
         try:
-            depths = [self._depth(self._nodes[dep], memo, path)
-                      for dep in node.depends if dep in self._nodes]
-            if node.name.startswith('test_'):
-                # As in the pinned source, a test addon without dependencies
-                # has no insertion anchor and max() raises ValueError.
-                memo[node.name] = max(depths)
-            else:
-                memo[node.name] = 1 + max(depths) if depths else 0
+            while stack:
+                current, dependencies, depths = stack[-1]
+                try:
+                    dependency = next(dependencies)
+                except StopIteration:
+                    if current.name.startswith('test_'):
+                        # A test without an anchor retains max()'s ValueError.
+                        memo[current.name] = max(depths)
+                    else:
+                        memo[current.name] = 1 + max(depths) if depths else 0
+                    del path[current.name]
+                    stack.pop()
+                    if stack:
+                        stack[-1][2].append(memo[current.name])
+                    continue
+                if dependency not in self._nodes:
+                    continue
+                if dependency in path:
+                    cycle = tuple(path)[path[dependency]:] + (dependency,)
+                    raise ModuleGraphCycle(cycle)
+                if dependency in memo:
+                    depths.append(memo[dependency])
+                    continue
+                child = self._nodes[dependency]
+                frame = (child, iter(child.depends), [])
+                path[dependency] = len(path)
+                stack.append(frame)
             return memo[node.name]
         finally:
-            del path[node.name]
+            for current, _, _ in stack:
+                path.pop(current.name, None)
 
     def __len__(self) -> int:
         return len(self._nodes)
