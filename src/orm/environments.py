@@ -645,7 +645,8 @@ def transaction_scope(using=None):
 #: La fuente los declara uno a uno en ``odoo19c: odoo/sql_db.py``:
 #:
 #: =================  =========================================================
-#: ``commit()``       ``self.flush()`` y **luego** ``self.clear()`` (``:560-564``)
+#: ``commit()``       ``self.flush()`` y **luego** ``self.clear()``
+#: (``:560-564``)
 #: ``rollback()``     el rollback del savepoint llama ``self._cr.clear()``
 #:                    (``:137-139``)
 #: ``close()``        ``self.cache.clear()`` (``:534``)
@@ -657,7 +658,8 @@ def transaction_scope(using=None):
 #: nada.
 #:
 #: Con el criterio de las dos categorías: el cursor **lo trae hecho** el stack
-#: (``django.db.connection`` es por hilo y expone los tres métodos); el corte en
+#: (``django.db.connection`` es por hilo y expone los tres métodos); el corte
+#: en
 #: esos puntos **hay con qué construirlo** —Django no emite señal de rollback,
 #: pero los métodos son públicos y se envuelven sin dependencia de fuera—.
 #:
@@ -1428,7 +1430,9 @@ class Environment:
             if name == 'company':
                 keys.append(self.company_id)
             elif name == 'uid':
-                keys.append(self.uid)
+                keys.append(
+                    self.uid if field.compute_sudo else (self.uid, self.su)
+                )
             elif name == 'active_test':
                 keys.append(self.context.get('active_test', True))
             elif name == 'allowed_company_ids':
@@ -1449,7 +1453,7 @@ class Environment:
         """≙ ``Environment.clear`` (``:350``)."""
         self.transaction.clear()
 
-    # --- consultas ------------------------------------------------------------
+    # --- consultas ---
 
     def execute_query(self, query):
         """≙ ``Environment.execute_query`` (``:527``)."""
