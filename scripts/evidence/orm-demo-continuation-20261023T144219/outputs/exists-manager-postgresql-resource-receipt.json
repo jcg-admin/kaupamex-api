@@ -1,0 +1,42 @@
+{
+  "resource_name": "orm-exists-3b5d998ceb23",
+  "container_id": "ab451c9d3a91fd43707b96d5bbd7de92342721339b60f527ba7ecb2064f6c9f6",
+  "image": "postgres:16-bookworm",
+  "label": "org.kaupamex.contract=TASK-API-0397.exists-postgresql",
+  "bind_host": "127.0.0.1",
+  "bind_port": 32768,
+  "verification_command": [
+    "uv",
+    "run",
+    "--offline",
+    "--frozen",
+    "python",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_exists_manager_postgresql.py"
+  ],
+  "verification_exit": 0,
+  "outer_operation_exit": 1,
+  "outer_failure": "Immediate post-stop absence assertion raced Docker --rm; functional verifier succeeded",
+  "cleanup_command": [
+    "docker",
+    "--host=unix:///var/run/docker.sock",
+    "stop",
+    "--time",
+    "5",
+    "ab451c9d3a91fd43707b96d5bbd7de92342721339b60f527ba7ecb2064f6c9f6"
+  ],
+  "cleanup_followup_command": [
+    "docker",
+    "--host=unix:///var/run/docker.sock",
+    "ps",
+    "-a",
+    "--filter",
+    "id=ab451c9d3a91fd43707b96d5bbd7de92342721339b60f527ba7ecb2064f6c9f6",
+    "--format",
+    "{{.ID}}\t{{.Names}}\t{{.Status}}"
+  ],
+  "cleanup_followup_exit": 0,
+  "cleanup_followup_output": "",
+  "cleanup_verified": true,
+  "replayed_test": false,
+  "shared_resources_changed": false
+}

@@ -1,0 +1,25 @@
+{
+  "command": [
+    "/workspace/kaupamex-api/.venv/bin/python",
+    "/workspace/kaupamex-api/scripts/check_python_style_increment.py",
+    "--base",
+    "HEAD",
+    "--index-tree",
+    "9f07eed0b2dd08df97f621586aab4205341067b3",
+    "--qualify-checkers",
+    "--report",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/exists-manager-preflight-admission.json"
+  ],
+  "files": [],
+  "reasons": [
+    "A full lowercase SHA-1 is required"
+  ],
+  "increment_admission": "ERROR",
+  "global_style_compliance": "NOT_EVALUATED",
+  "ci_verification": "NOT_EVALUATED",
+  "contract_verification": "NOT_EVALUATED",
+  "integration": "NOT_EVALUATED",
+  "acceptance": "NOT_EVALUATED",
+  "activation": "EXPLICIT_INCREMENT_EVALUATION",
+  "exit_code": 2
+}

@@ -1,0 +1,12 @@
+{
+  "revision": "bf468b936338045fff846a09655b5d72d57c6691",
+  "source_sha256": "05201fc9a4842ffeb0a04701af681efe6b4f2d464009adfd754f60be372a866f",
+  "postgresql_version": "PostgreSQL 16.15 (Debian 16.15-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+  "actual_hidden_row_retained": true,
+  "order_duplicates_new_ids_preserved": true,
+  "missing_rows_removed": true,
+  "empty_and_new_only_no_query": true,
+  "annulled_manager_loses_hidden_row": true,
+  "temporary_table_only": true,
+  "acceptance": "not_verified: full routing/security/ORM excluded"
+}

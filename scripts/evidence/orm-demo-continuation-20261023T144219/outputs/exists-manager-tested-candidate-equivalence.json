@@ -1,0 +1,6 @@
+{
+  "tested_source_sha256": "8f45f6aeb3e5dbaf410f0f8e07804d9f6a3b8d6be04439ef22448d57d907a0e2",
+  "published_candidate_sha256": "05201fc9a4842ffeb0a04701af681efe6b4f2d464009adfd754f60be372a866f",
+  "ast_equal": true,
+  "reason": "Only reported comments wrapped; original literal formatting restored"
+}

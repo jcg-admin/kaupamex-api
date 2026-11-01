@@ -1,0 +1,15 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FF.FF                                                                    [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/tests/unit/orm/test_exists_manager_contract.py:56: assert () == (11,)
+/workspace/kaupamex-api/tests/unit/orm/test_exists_manager_contract.py:68: assert (<NewId 0x7fceab392540>,) == (11, <NewId 0...ab392540>, 11)
+/workspace/kaupamex-api/tests/unit/orm/test_exists_manager_contract.py:83: Failed: DID NOT RAISE <class 'RuntimeError'>
+/workspace/kaupamex-api/tests/unit/orm/test_exists_manager_contract.py:90: assert () == (11,)
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/exists-manager-annulled.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_exists_manager_contract.py::test_existing_hidden_row_survives_public_visibility_filter
+FAILED tests/unit/orm/test_exists_manager_contract.py::test_missing_ids_removed_without_reordering_duplicates_or_new_ids
+FAILED tests/unit/orm/test_exists_manager_contract.py::test_existence_query_error_is_propagated
+FAILED tests/unit/orm/test_exists_manager_contract.py::test_query_cannot_add_records_outside_the_input
+4 failed, 1 passed in 0.05s
+{"head": "9ffbdbd91bf2701769f72633615f25150be4be3c", "index_tree": "774b640a7c9d7d3a7fe41e443b0cfd4539017b49", "source_sha256": "103f3413e79fec9644f1d6fbf44a58fe1bf4d0e41cf60b66c9429c368e4ff62f", "test_sha256": "84e66483ecfcb7e297b2379ee5a0b34072326e49fee632e8b3bd349842e9edd7", "annulled_manager": true, "pytest_exit_code": 1, "provenance_unchanged": true, "baseline": false, "scope": "Declared model source, native manager metadata, mocked query transport; SQL prohibited; not acceptance"}
