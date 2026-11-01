@@ -1,0 +1,156 @@
+{
+  "at": "2026-11-01T21:46:07.675490+00:00",
+  "name": "orm-filtered-flush-5779c832bbe5",
+  "container_id": "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55",
+  "label_token": "5779c832bbe544168b5d76177a29d0bb",
+  "commands": [
+    {
+      "command": [
+        "docker",
+        "run",
+        "--pull",
+        "never",
+        "--rm",
+        "--detach",
+        "--name",
+        "orm-filtered-flush-5779c832bbe5",
+        "--label",
+        "kaupamex.orm.filtered-flush=5779c832bbe544168b5d76177a29d0bb",
+        "--env",
+        "POSTGRES_PASSWORD",
+        "--publish",
+        "127.0.0.1::5432",
+        "--tmpfs",
+        "/var/lib/postgresql/data:rw",
+        "sha256:e8538db784b854a9baac5c1be6d059dcf0db257af2d94c8c5807b5fc15f11222"
+      ],
+      "exit_code": 0,
+      "stdout": "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "exec",
+        "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55",
+        "pg_isready",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres"
+      ],
+      "exit_code": 2,
+      "stdout": "/var/run/postgresql:5432 - no response",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "exec",
+        "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55",
+        "pg_isready",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres"
+      ],
+      "exit_code": 2,
+      "stdout": "/var/run/postgresql:5432 - no response",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "exec",
+        "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55",
+        "pg_isready",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres"
+      ],
+      "exit_code": 2,
+      "stdout": "/var/run/postgresql:5432 - no response",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "exec",
+        "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55",
+        "pg_isready",
+        "-U",
+        "postgres",
+        "-d",
+        "postgres"
+      ],
+      "exit_code": 0,
+      "stdout": "/var/run/postgresql:5432 - accepting connections",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{(index (index .NetworkSettings.Ports \"5432/tcp\") 0).HostPort}}",
+        "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55"
+      ],
+      "exit_code": 0,
+      "stdout": "32776",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{.Id}} {{index .Config.Labels \"kaupamex.orm.filtered-flush\"}}",
+        "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55"
+      ],
+      "exit_code": 0,
+      "stdout": "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55 5779c832bbe544168b5d76177a29d0bb",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "stop",
+        "--timeout",
+        "5",
+        "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55"
+      ],
+      "exit_code": 0,
+      "stdout": "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{.Id}}",
+        "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55"
+      ],
+      "exit_code": 0,
+      "stdout": "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{.Id}}",
+        "f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Error: No such object: f3b87f6ebe2316733a5eef4ba63e891d0c5a64c384deebdb91de79df4dbfef55"
+    }
+  ],
+  "probe_sha256": "609150ed76764e9b23c8f59c38ddc6ba70a8970763978340a95a86b6a5a6ec07",
+  "probe_exit_code": 1,
+  "owned_container_removed": true,
+  "shared_resources_touched": false
+}

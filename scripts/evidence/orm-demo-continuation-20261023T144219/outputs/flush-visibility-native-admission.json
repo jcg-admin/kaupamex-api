@@ -1,0 +1,29 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows/claims_ledger_rows/node_frontier",
+  "input": [
+    {
+      "id": "TASK-API-0397.flush_physical_dirty_rows",
+      "taskId": "TASK-API-0397",
+      "prompt": "Prevent a public visibility manager from silently dropping existing dirty row IDs during physical flush; preserve write/save/M2M guard paths",
+      "verify": "Real PostgreSQL filtered/unfiltered cache-only commit controls; no-op flush negative; targeted manager transport/absence/error regressions; existing write paths retained",
+      "route": "local",
+      "owned": [
+        "src/orm/models.py",
+        "tests/unit/orm/test_flush_manager_contract.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-API-0397.flush_physical_dirty_rows"
+  ],
+  "claims_count": 638,
+  "native_task": "flush-visibility-native-1167.json",
+  "related_tasks": [
+    "flush-visibility-native-96.json completed preserved",
+    "flush-visibility-native-486.json ownerNULL preserved, not treated as available"
+  ],
+  "dependencies": "Published native cache/recompute; real unfiltered commit qualified; actual filtered commit loses32 and clears dirty state; pinned Odoo _flush writes explicit dirty IDs. Existing write/save/M2M paths must remain unchanged. No new routing or ACL policy",
+  "managed_inference": false
+}

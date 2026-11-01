@@ -16,6 +16,7 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
+from contextlib import nullcontext
 
 import django
 from django.db import connection, transaction
@@ -37,7 +38,9 @@ def git_source(revision, path):
     return subprocess.check_output(['git', 'show', revision + ':' + path])
 
 
-def verify_stored_m2m(revision, sources, directory):
+def verify_stored_m2m(
+    revision, sources, directory, flush_only=False, filter_parent=False
+):
     fixture_name = 'tests/unit/orm/test_native_stored_compute_contract.py'
     fixture_source = git_source(revision, fixture_name)
     fixture_path = Path(directory) / 'stored_fixture.py'
@@ -81,6 +84,11 @@ def verify_stored_m2m(revision, sources, directory):
             'VALUES (131, %s), (132, %s)', ['target131', 'target132']
         )
         cursor.execute(f'INSERT INTO {parent_table} (id) VALUES (31), (32)')
+    if flush_only:
+        return verify_m2m_commit(
+            fixture, revision, sources, fixture_source, model, target, field,
+            through, through_table, version, filter_parent
+        )
     expected = {31: [131], 32: [132]}
     fixture.registry.clear_field_depends()
     with fixture.transaction_scope():
@@ -170,10 +178,124 @@ def verify_stored_m2m(revision, sources, directory):
     }
 
 
+def verify_m2m_commit(
+    fixture, revision, sources, fixture_source, model, target, field,
+    through, through_table, version, filter_parent
+):
+    environment = sys.modules['orm.environments'].Environment(uid=7)
+    left = connection.ops.quote_name(
+        through._meta.get_field(field.m2m_field_name()).column
+    )
+    right = connection.ops.quote_name(
+        through._meta.get_field(field.m2m_reverse_field_name()).column
+    )
+    expected_links = [(31, 131), (32, 132)]
+    original_queryset = model.objects.get_queryset
+    parent_filter = patch.object(
+        model.objects, 'get_queryset',
+        lambda: original_queryset().filter(pk=31)
+    ) if filter_parent else nullcontext()
+
+    def no_compute(_records):
+        raise AssertionError('Flush proof must not invoke compute callback')
+
+    with environment(), parent_filter, patch.object(
+        model, '_compute_members', no_compute
+    ):
+        targets = {
+            id_: target._base_manager.get(pk=id_ + 100) for id_ in (31, 32)
+        }
+
+        def seed_dirty_cache():
+            for id_, value in targets.items():
+                record = model._from_ids(fixture.env(), (id_,), (id_,))
+                field._update_cache(record, [value], dirty=True)
+
+        with fixture.transaction_scope() as state:
+            assert state.default_env is environment
+            with CaptureQueriesContext(connection) as queries:
+                with transaction.atomic():
+                    seed_dirty_cache()
+                    with connection.cursor() as cursor:
+                        cursor.execute(f'SELECT count(*) FROM {through_table}')
+                        assert cursor.fetchone()[0] == 0
+            positive_sql = [query['sql'] for query in queries]
+            pending_after = sorted(state.field_dirty.get(field, set()))
+            cache_after = dict(field._get_cache(fixture.env()))
+            assert not connection.in_atomic_block
+            assert connection.get_autocommit()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f'SELECT {left}, {right} FROM {through_table} '
+                f'ORDER BY {left}, {right}'
+            )
+            actual_links = cursor.fetchall()
+            cursor.execute(f'DELETE FROM {through_table}')
+        physical_parents = list(
+            model._base_manager.order_by('pk').values_list('pk', flat=True)
+        )
+        with patch.object(
+            sys.modules['orm.models'], '_flush_m2m', lambda *_args: None
+        ), fixture.transaction_scope():
+            with transaction.atomic():
+                seed_dirty_cache()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f'SELECT {left}, {right} FROM {through_table} '
+                f'ORDER BY {left}, {right}'
+            )
+            annulled_links = cursor.fetchall()
+            assert annulled_links == []
+            cursor.execute(
+                'SELECT count(*) FROM pg_tables WHERE schemaname = %s',
+                ['public']
+            )
+            assert cursor.fetchone()[0] == 0
+    return {
+        'source_revision': revision,
+        'source_sha256': {
+            module: hashlib.sha256(source).hexdigest()
+            for module, source in sources.items()
+        },
+        'fixture_sha256': hashlib.sha256(fixture_source).hexdigest(),
+        'postgresql_version': version,
+        'logical_context_uid': 7,
+        'default_environment_created_by_public_constructor': True,
+        'user_row_or_authentication_qualified': False,
+        'cache_seeded_without_compute_callback': True,
+        'public_parent_manager_filtered': filter_parent,
+        'physical_parent_ids': physical_parents,
+        'expected_links': expected_links, 'actual_links': actual_links,
+        'dirty_after_commit': pending_after,
+        'cache_after_commit': cache_after,
+        'positive_sql': positive_sql,
+        'annulled_flush_links': annulled_links,
+        'real_database_commit': True,
+        'contract_pass': (
+            actual_links == expected_links and not pending_after
+            and not cache_after and physical_parents == [31, 32]
+        ),
+        'temporary_tables_only': True, 'public_tables': 0,
+        'acceptance': (
+            'Fixture default-environment commit/flush only; no full '
+            'security, bootstrap fallback or ORM acceptance'
+        ),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--m2m-only', action='store_true')
+    parser.add_argument('--m2m-flush-only', action='store_true')
+    parser.add_argument('--filter-parent', action='store_true')
+    parser.add_argument('--index-models', action='store_true')
+    parser.add_argument('--annul-flush-visibility', action='store_true')
     args = parser.parse_args()
+    if args.m2m_only and args.m2m_flush_only:
+        parser.error('Select only one M2M mode')
+    if (args.filter_parent or args.index_models
+            or args.annul_flush_visibility) and not args.m2m_flush_only:
+        parser.error('Parent filter requires the flush mode')
     os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.testing'
     os.environ['SECRET_KEY'] = secrets.token_urlsafe(50)
     for prefix in ('DB_', 'DB_QA_'):
@@ -191,6 +313,26 @@ def main():
         module: git_source(revision, path)
         for module, path in SOURCES.items()
     }
+    index_tree = None
+    if args.index_models:
+        index_tree = subprocess.check_output(
+            ['git', 'write-tree'], text=True
+        ).strip()
+        sources['orm.models'] = subprocess.check_output(
+            ['git', 'show', ':src/orm/models.py']
+        )
+    if args.annul_flush_visibility:
+        source = sources['orm.models']
+        start = source.index(b'\ndef _flush(self):')
+        end = source.index(b'\ndef _flush_m2m(', start)
+        body = source[start:end]
+        physical = b'model._base_manager.filter('
+        if body.count(physical) != 1:
+            raise RuntimeError('Physical flush selector not unique')
+        sources['orm.models'] = (
+            source[:start] + body.replace(physical, b'model.objects.filter(')
+            + source[end:]
+        )
     fixture_source = git_source(revision, FIXTURE)
     with TemporaryDirectory(prefix='native-pending-pg-source-') as directory:
         paths = {}
@@ -202,6 +344,40 @@ def main():
         sys.meta_path.insert(0, finder)
         try:
             django.setup()
+            if args.m2m_flush_only:
+                for module, path in paths.items():
+                    assert Path(sys.modules[module].__file__) == path, module
+                result = verify_stored_m2m(
+                    revision, sources, directory, flush_only=True,
+                    filter_parent=args.filter_parent
+                )
+                result['models_origin'] = (
+                    ':src/orm/models.py' if args.index_models
+                    else revision + ':src/orm/models.py'
+                )
+                result['annulled_physical_selector'] = (
+                    args.annul_flush_visibility
+                )
+                if index_tree is not None:
+                    after = subprocess.check_output(
+                        ['git', 'write-tree'], text=True
+                    ).strip()
+                    result['index_tree'] = index_tree
+                    result['index_provenance_unchanged'] = after == index_tree
+                    assert after == index_tree
+                suffix = '-filtered' if args.filter_parent else ''
+                if args.index_models:
+                    suffix += '-candidate'
+                if args.annul_flush_visibility:
+                    suffix += '-annulled'
+                result_path = JOB / (
+                    'outputs/native-stored-flush-postgresql' + suffix + '.json'
+                )
+                result_path.write_text(json.dumps(result, indent=2) + '\n')
+                print(json.dumps(result))
+                if not result['contract_pass']:
+                    raise AssertionError('M2M cache-to-commit contract failed')
+                return
             if args.m2m_only:
                 for module, path in paths.items():
                     assert Path(sys.modules[module].__file__) == path, module

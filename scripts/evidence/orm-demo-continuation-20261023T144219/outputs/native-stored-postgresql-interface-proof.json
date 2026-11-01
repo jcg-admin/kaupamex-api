@@ -1,7 +1,7 @@
 {
   "original_revision": "dc960cb2",
   "original_sha256": "a86ecc22e21c235ebca42764a2b332368ec0c51f38a2df1bc288b21a152d442e",
-  "extended_sha256": "564a965a47878786d514f1ed38dfa4dea5dc8bf3add0a0051d7b34dac7658b25",
+  "extended_sha256": "fc79d1bbff57ed8cc303bf70b28a1409a7c1ff8b89c3c7351142a3841552f599",
   "new_interface": "--m2m-only; separate native-stored outputs; explicit outer rollback, complete commit qualification separate",
   "default_main_AST_preserved_after_removing_parser_and_new_mode_branch": true,
   "consumer_search_exit": 0,
@@ -10,5 +10,13 @@
     ".claude/coordination/claims.jsonl"
   ],
   "matches_classification": "claims.jsonl records a reservation for the probe; not a CLI execution consumer",
-  "tracked_execution_consumers_outside_evidence": []
+  "tracked_execution_consumers_outside_evidence": [],
+  "new_interfaces": [
+    "--m2m-only: explicit outer rollback, separate commit boundary",
+    "--m2m-flush-only: cache-only real commit via provided default_env",
+    "--filter-parent: valid public visibility fixture",
+    "--index-models: exact index source and tree provenance",
+    "--annul-flush-visibility: isolated physical-selector negative"
+  ],
+  "default_main_AST_preserved_after_removing_parser_and_new_mode_branches": true
 }

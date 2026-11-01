@@ -1,0 +1,14 @@
+{
+  "existing_population": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+  "existing_parent_descriptors": [
+    "flush_recompute_fixpoint",
+    "cursor_transaction_lifecycle"
+  ],
+  "bounded_unit": "TASK-API-0397.flush_physical_dirty_rows",
+  "evidence": "flush-visibility-contract-14.json",
+  "parent_equivalence": "not_verified",
+  "parent_acceptance": "not_verified",
+  "historical_population_rewritten": false,
+  "global_contract_denominator": "not established",
+  "discovery": "Real SQL qualification exposed existing physical-row loss; not a defect inferred from a symbol count"
+}

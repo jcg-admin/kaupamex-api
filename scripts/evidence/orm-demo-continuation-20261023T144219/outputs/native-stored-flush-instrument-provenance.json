@@ -1,0 +1,6 @@
+{
+  "archived_source": "native-stored-flush-probe-pre-index.py.txt",
+  "sha256": "609150ed76764e9b23c8f59c38ddc6ba70a8970763978340a95a86b6a5a6ec07",
+  "matches_both_recorded_experiment_hashes": true,
+  "scope": "Exact pre-index instrument reconstructed by reversing documented later option additions; bytes verified against original execution receipts, not merely AST similarity"
+}

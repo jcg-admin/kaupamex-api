@@ -1,0 +1,17 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows/claims_ledger_rows/node_frontier",
+  "input_authority": "flush-visibility-native-admission.json",
+  "states": {},
+  "claims_count": 643,
+  "selected": [
+    "TASK-API-0397.flush_physical_dirty_rows"
+  ],
+  "verified_unit": "TASK-API-0397.flush_physical_dirty_rows",
+  "functional_commit": "52e29264febd2d2f6e1bc6a78653dbf7cfd4575d",
+  "execution_decision": "No reimplementation of verified unit; no fabricated accepted state. Publication, mandatory CI and independent acceptance separate",
+  "coverage_limit": "One declared unit, not complete applicable ORM population;33existing descriptors and unknown global denominator remain",
+  "remaining_work": "Independent permission/routing/prefetch/other contract qualification; public fallback bootstrap fixture; no global eligibility/exhaustion inferred",
+  "whole_objective_complete": false,
+  "managed_inference": false
+}

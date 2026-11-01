@@ -73,6 +73,8 @@ def main():
     parser.add_argument('--batch-only', action='store_true')
     parser.add_argument('--stored-only', action='store_true')
     parser.add_argument('--pending-only', action='store_true')
+    parser.add_argument('--flush-only', action='store_true')
+    parser.add_argument('--annul-flush-visibility', action='store_true')
     parser.add_argument('--annul-native-pending', action='store_true')
     parser.add_argument('--annul-django-absence', action='store_true')
     parser.add_argument('--annul-stored-guard', action='store_true')
@@ -81,16 +83,33 @@ def main():
     args = parser.parse_args()
     if args.uid_only and args.annul_descriptor:
         parser.error('UID-only mode has no staged descriptor to annul')
-    if settings.configured or any(name in sys.modules for name in SOURCES):
+    selected_sources = dict(SOURCES)
+    if args.flush_only:
+        selected_sources['orm.models'] = 'src/orm/models.py'
+    if settings.configured or any(
+        name in sys.modules for name in selected_sources
+    ):
         raise RuntimeError('Candidate verification needs a fresh process')
     head, index = git('rev-parse', 'HEAD'), git('write-tree')
     snapshots = {}
     origins = {}
-    for module, path in SOURCES.items():
+    for module, path in selected_sources.items():
         origin = 'HEAD:' if args.uid_only and module == 'orm.fields' else ':'
         origins[module] = origin + path
         snapshots[module] = subprocess.check_output(
             ['git', 'show', origin + path]
+        )
+    if args.annul_flush_visibility:
+        source = snapshots['orm.models']
+        start = source.index(b'\ndef _flush(self):')
+        end = source.index(b'\ndef _flush_m2m(', start)
+        body = source[start:end]
+        physical = b'model._base_manager.filter('
+        if body.count(physical) != 1:
+            raise RuntimeError('Physical flush selector not unique')
+        snapshots['orm.models'] = (
+            source[:start] + body.replace(physical, b'model.objects.filter(')
+            + source[end:]
         )
     if args.annul_django_absence:
         source = snapshots['orm.fields']
@@ -222,6 +241,17 @@ def main():
                 'tests/unit/orm/test_native_stored_compute_contract.py',
                 'tests/unit/orm/test_field_cache.py',
             ]
+    if args.flush_only:
+        tests = ['tests/unit/orm/test_flush_manager_contract.py']
+        if args.regression:
+            tests += [
+                RECORD_TEST, UID_TEST, *COMPANY_CASES, *REGRESSIONS,
+                'tests/unit/orm/test_native_compute_batch_dispatch.py',
+                'tests/unit/orm/test_native_stored_compute_contract.py',
+                'tests/unit/orm/test_native_pending_recompute.py',
+                'tests/unit/orm/test_exists_manager_contract.py',
+                'tests/unit/orm/test_field_cache.py',
+            ]
     test_hashes = {
         path: hashlib.sha256(Path(path).read_bytes()).hexdigest()
         for path in {test.split('::')[0] for test in tests}
@@ -281,6 +311,8 @@ def main():
         'batch_only': args.batch_only,
         'stored_only': args.stored_only,
         'pending_only': args.pending_only,
+        'flush_only': args.flush_only,
+        'annul_flush_visibility': args.annul_flush_visibility,
         'annul_native_pending': args.annul_native_pending,
         'annul_django_absence': args.annul_django_absence,
         'annul_stored_guard': args.annul_stored_guard,
