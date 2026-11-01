@@ -1,0 +1,26 @@
+{
+  "source_revision": "dc960cb2",
+  "instrument_sha256": "a2bb51ceed2a02c343ff07d5a439cd1d0c57253c48c472ce576353bde9a39ac3",
+  "mode": "--m2m-only",
+  "probe_exit": 1,
+  "owned_container_removed": true,
+  "log": "native-stored-postgresql-bootstrap-failure.log",
+  "container_receipt": "native-stored-postgresql-bootstrap-failure-container.json",
+  "failure": "ProgrammingError UndefinedTable ir_model_data during native transaction commit flush, before M2M cache read-back completes",
+  "dependency_chain": [
+    "Django M2M set atomic commit",
+    "Transaction.flush",
+    "Environment.ref(base.public_user)",
+    "IrModelData._xmlid_lookup",
+    "ir_model_data table / base identity bootstrap"
+  ],
+  "evidence_limit": "Missing metadata table is demonstrated. Absence of a particular user row is not demonstrated; no new TASK, identity or production change justified by this alone",
+  "classification": "Fixture/bootstrap boundary; no complete M2M qualification or acceptance",
+  "hooks": "Unmodified; source _wrap_cursor_cut flushes only commit and clears rollback",
+  "comparison_next": "Consult existing bootstrap fixtures; any rollback-scoped read-back test must remain separate from commit/flush acceptance",
+  "related_TASK_review": {
+    "TASK-API-0265": "Module catalog, not public identity seed",
+    "TASK-API-0269": "installable selection, not public identity seed",
+    "source": "Existing integral-native-task-population.json; no reassignment or new task"
+  }
+}

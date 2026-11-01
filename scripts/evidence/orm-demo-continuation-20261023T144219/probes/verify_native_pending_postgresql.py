@@ -4,6 +4,7 @@ The terminal provisions a disposable server. This probe creates only a TEMP
 fixture table and loads declared Git source snapshots, without migrations.
 """
 
+import argparse
 import ast
 import hashlib
 import importlib.util
@@ -36,7 +37,143 @@ def git_source(revision, path):
     return subprocess.check_output(['git', 'show', revision + ':' + path])
 
 
+def verify_stored_m2m(revision, sources, directory):
+    fixture_name = 'tests/unit/orm/test_native_stored_compute_contract.py'
+    fixture_source = git_source(revision, fixture_name)
+    fixture_path = Path(directory) / 'stored_fixture.py'
+    fixture_path.write_bytes(fixture_source)
+    spec = importlib.util.spec_from_file_location(
+        'native_stored_pg_fixture', fixture_path
+    )
+    fixture = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fixture)
+    target = fixture.NativeStoredProbe
+    model = fixture.NativeStoredRelationProbe
+    field = model._meta.get_field('members')
+    through = field.remote_field.through
+    names = {item._meta.db_table for item in (target, model, through)}
+    assert all(name.startswith('contenttypes_native') for name in names)
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT version()')
+        version = cursor.fetchone()[0]
+        assert version.startswith('PostgreSQL 16.')
+    with connection.schema_editor(collect_sql=True) as editor:
+        editor.create_model(target)
+        editor.create_model(model)
+    executed_schema = []
+    with connection.cursor() as cursor:
+        for statement in editor.collected_sql:
+            if statement.startswith('CREATE TABLE '):
+                statement = statement.replace(
+                    'CREATE TABLE ', 'CREATE TEMP TABLE ', 1
+                )
+            elif not statement.startswith((
+                'ALTER TABLE ', 'CREATE INDEX ', 'CREATE UNIQUE INDEX '
+            )):
+                raise RuntimeError('Unexpected fixture SQL: ' + statement)
+            cursor.execute(statement)
+            executed_schema.append(statement)
+        target_table = connection.ops.quote_name(target._meta.db_table)
+        parent_table = connection.ops.quote_name(model._meta.db_table)
+        through_table = connection.ops.quote_name(through._meta.db_table)
+        cursor.execute(
+            f'INSERT INTO {target_table} (id, computed) '
+            'VALUES (131, %s), (132, %s)', ['target131', 'target132']
+        )
+        cursor.execute(f'INSERT INTO {parent_table} (id) VALUES (31), (32)')
+    expected = {31: [131], 32: [132]}
+    fixture.registry.clear_field_depends()
+    with fixture.transaction_scope():
+        records = model._from_ids(fixture.env(), (31, 32), (31, 32))
+        with CaptureQueriesContext(connection) as queries:
+            field.compute_value(records)
+        actual = {
+            id_: [item.pk for item in values]
+            for id_, values in field._get_cache(fixture.env()).items()
+        }
+        assert actual == expected, actual
+        assert fixture.env().transaction.field_dirty[field] == {31, 32}
+        positive_sql = [query['sql'] for query in queries]
+    left = connection.ops.quote_name(
+        through._meta.get_field(field.m2m_field_name()).column
+    )
+    right = connection.ops.quote_name(
+        through._meta.get_field(field.m2m_reverse_field_name()).column
+    )
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f'SELECT {left}, {right} FROM {through_table} '
+            f'ORDER BY {left}, {right}'
+        )
+        positive_links = cursor.fetchall()
+        assert positive_links == [(31, 131), (32, 132)]
+        cursor.execute(f'DELETE FROM {through_table}')
+    old_revision = '4166b38d4b06fb7af77acfa5d458c84cffdc2fda'
+    old_source = git_source(old_revision, SOURCES['orm.fields'])
+    old_helper = next(
+        node for node in ast.parse(old_source).body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == '_cache_computed_values'
+    )
+    isolated = dict(sys.modules['orm.fields'].__dict__)
+    exec(compile(
+        ast.Module(body=[old_helper], type_ignores=[]),
+        old_revision + ':native_stored_readback', 'exec'
+    ), isolated)
+    with patch.object(
+        sys.modules['orm.fields'], '_cache_computed_values',
+        isolated['_cache_computed_values']
+    ), fixture.transaction_scope():
+        records = model._from_ids(fixture.env(), (31, 32), (31, 32))
+        field.compute_value(records)
+        negative_cache = {
+            id_: [item.pk for item in values]
+            for id_, values in field._get_cache(fixture.env()).items()
+        }
+        assert negative_cache != expected, 'Read-back annulment did not fail'
+        negative_dirty = sorted(
+            fixture.env().transaction.field_dirty.get(field, set())
+        )
+    fixture.registry.clear_field_depends()
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f'SELECT {left}, {right} FROM {through_table} '
+            f'ORDER BY {left}, {right}'
+        )
+        negative_links = cursor.fetchall()
+        assert negative_links == positive_links
+        cursor.execute(
+            'SELECT count(*) FROM pg_tables WHERE schemaname = %s', ['public']
+        )
+        assert cursor.fetchone()[0] == 0
+    return {
+        'source_revision': revision,
+        'source_sha256': {
+            module: hashlib.sha256(source).hexdigest()
+            for module, source in sources.items()
+        },
+        'fixture_sha256': hashlib.sha256(fixture_source).hexdigest(),
+        'postgresql_version': version,
+        'actual_m2m_set_and_all': True,
+        'temporary_schema': executed_schema,
+        'positive_cache': actual, 'positive_links': positive_links,
+        'positive_dirty': [31, 32], 'positive_sql': positive_sql,
+        'negative_revision': old_revision,
+        'negative_source_sha256': hashlib.sha256(old_source).hexdigest(),
+        'negative_cache': negative_cache, 'negative_dirty': negative_dirty,
+        'negative_links_preserved': negative_links,
+        'temporary_tables_only': True, 'public_tables': 0,
+        'acceptance': (
+            'Actual M2M manager SQL and read-back qualified for fixture; '
+            'not complete flush, permissions or ORM acceptance'
+        ),
+    }
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--m2m-only', action='store_true')
+    args = parser.parse_args()
     os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.testing'
     os.environ['SECRET_KEY'] = secrets.token_urlsafe(50)
     for prefix in ('DB_', 'DB_QA_'):
@@ -65,6 +202,15 @@ def main():
         sys.meta_path.insert(0, finder)
         try:
             django.setup()
+            if args.m2m_only:
+                for module, path in paths.items():
+                    assert Path(sys.modules[module].__file__) == path, module
+                result = verify_stored_m2m(revision, sources, directory)
+                (JOB / 'outputs/native-stored-postgresql.json').write_text(
+                    json.dumps(result, indent=2) + '\n'
+                )
+                print(json.dumps(result))
+                return
             fixture_path = Path(directory) / 'pending_fixture.py'
             fixture_path.write_bytes(fixture_source)
             spec = importlib.util.spec_from_file_location(
