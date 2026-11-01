@@ -70,8 +70,13 @@ from django.utils.timezone import localtime
 from psycopg.types.json import Jsonb
 
 from exceptions import MissingError
-from orm.environments import (env as get_environment, get_current_company,
-                             get_transaction, sudo as elevate_privileges)
+from orm.environments import (
+    Environment,
+    env as get_environment,
+    get_current_company,
+    get_transaction,
+    sudo as elevate_privileges,
+)
 from tools.constants import PREFETCH_MAX
 from tools.misc import SENTINEL, OrderedSet, remove_accents, unique
 from tools.translate import _
@@ -146,7 +151,8 @@ __all__ = [
 #
 # Django no tiene con qué expresarlo. ``__contains`` envuelve en ``%…%`` y
 # **escapa** ``%`` y ``_`` del valor (``django/db/models/lookups.py``), así que
-# un ``=like`` con comodín propio saldría literal. Por eso se construyen los dos
+# un ``=like`` con comodín propio saldría literal. Por eso se construyen los
+# dos
 # lookups —el camino 1 de ``porte-completo-no-parcial.md``: API pública del
 # stack antes que rodeo.
 #
@@ -439,7 +445,8 @@ _NEGATIVE_LIKE_OPERATORS = frozenset([
     'not like', 'not ilike', 'not =like', 'not =ilike',
 ])
 
-#: Los nueve operadores de semántica negativa — ≙ ``NEGATIVE_CONDITION_OPERATORS``
+#: Los nueve operadores de semántica negativa — ≙
+#: ``NEGATIVE_CONDITION_OPERATORS``
 #: (``odoo19c: odoo/orm/domains.py``). Es la misma segunda copia que
 #: ``_NEGATIVE_LIKE_OPERATORS`` declara arriba y por el mismo motivo: el hogar
 #: de la fuente es ``domains``, que ya importa de aquí, y un import dentro de
@@ -757,7 +764,8 @@ models.Field.property_to_sql = _field_property_to_sql
 # ``odoo19c: odoo/orm/fields.py:1249-1377`` declara **tres** símbolos, no uno,
 # y el reparto es el contrato:
 #
-# - ``condition_to_sql`` (``:1249-1260``) — la **fachada de dos pasos**: compone
+# - ``condition_to_sql`` (``:1249-1260``) — la **fachada de dos pasos**:
+# compone
 #   el cuerpo de la condición con la optimización de índice del campo
 #   dependiente de empresa. Es lo que ``Domain`` llama (``domains.py:1096``), y
 #   lo que un tipo de campo sobreescribe cuando necesita otra forma:
@@ -1413,7 +1421,8 @@ models.Field.set_attributes_from_name = _field_set_attributes_from_name
 #: escribía sus campos calculados, ``Field.write`` llamaba a
 #: ``remove_to_compute`` y **borraba la marca de recálculo pendiente** justo
 #: antes de que ``recompute`` la leyera. El resultado era un ``recompute`` con
-#: ``pendientes=OrderedSet([])`` que no computaba nada y un volcado que escribía
+#: ``pendientes=OrderedSet([])`` que no computaba nada y un volcado que
+#: escribía
 #: el valor viejo en la columna — 3 casos de ``tests/unit/orm/``.
 #:
 #: El envoltorio marca la instancia mientras ``__init__`` corre; ``__set__`` lo
@@ -2031,7 +2040,8 @@ models.Field.contribute_to_class = _field_contribute_to_class
 
 # ---------------------------------------------------------------------------
 # La compuerta relacional de ``store`` — ≙ ``if self.store:`` en
-# ``odoo19c: odoo/orm/fields_relational.py:1279`` (``Many2many.setup_nonrelated``
+# ``odoo19c: odoo/orm/fields_relational.py:1279``
+# (``Many2many.setup_nonrelated``
 # crea la tabla de relación SÓLO si el campo está almacenado; ``:1517`` y
 # ``:1554`` la tocan al escribir sólo bajo la misma guarda). La fuente no tiene
 # accessor inverso: un relacional sin ``store`` es un campo calculado que
@@ -2196,7 +2206,8 @@ def resolve_mro(model, name, predicate):
 
 
 #: Centinela propio de :func:`resolve_mro`: distingue *"la clase no declara el
-#: atributo"* de *"lo declara con valor ``None``"*. La fuente usa su ``SENTINEL``
+#: atributo"* de *"lo declara con valor ``None``"*. La fuente usa su
+#: ``SENTINEL``
 #: de ``odoo.tools``.
 _MRO_SENTINEL = object()
 
@@ -2340,7 +2351,8 @@ def type_for(field):
 # Reproducibles con ``uv run python scripts/census_field_contract.py``:
 #
 # 1. **140 símbolos** declara la fuente (68 atributos + 72 métodos).
-# 2. **4 colisionan** con ``django.db.models.Field``: ``__init__``, ``__str__``,
+# 2. **4 colisionan** con ``django.db.models.Field``: ``__init__``,
+# ``__str__``,
 #    ``__repr__`` y ``__init_subclass__``. Los cuatro son de Django y se
 #    respetan — instalar los de la fuente encima rompería el ORM anfitrión.
 #    Los otros **136** se instalan sin pisar nada.
@@ -2900,7 +2912,8 @@ models.Field.is_editable = _field_is_editable
 # Cuatro adaptaciones de firma, cada una con su causa, y valen para toda la
 # sección:
 #
-# 1. ``record.env.transaction.field_data`` → :func:`~orm.environments.get_transaction`
+# 1. ``record.env.transaction.field_data`` →
+# :func:`~orm.environments.get_transaction`
 #    y :func:`~orm.environments.env`. No hay ``env`` colgado de la fila: aquí
 #    una fila es una instancia de Django y el entorno es ambiente.
 # 2. ``record.env.company.id`` → :func:`~orm.environments.get_current_company`,
@@ -3512,8 +3525,10 @@ models.Field.column_type = _field_column_type
 #: es lo que el cuerpo lee; lo que faltaba era el lector publico.
 #:
 #: Lo destapo ``Registry.check_indexes`` (tarea #342), que recorre
-#: ``model._fields.values()`` y filtra por ``field.column_type and field.store``
-#: —``odoo19c: odoo/orm/registry.py:814`` verbatim—. Sin esta linea el recorrido
+#: ``model._fields.values()`` y filtra por ``field.column_type and
+#: field.store``
+#: —``odoo19c: odoo/orm/registry.py:814`` verbatim—. Sin esta linea el
+#: recorrido
 #: reventaba en el primer campo sin columna del modelo.
 #: Se adjunta **el objeto ya decorado**, no ``property(_field_column_type)``:
 #: la funcion de arriba lleva su propio ``@property``, asi que envolverla otra
@@ -4037,7 +4052,8 @@ models.Field.setup = _field_setup
 
 #: La resolucion vive en ``orm/utils.py`` desde la tarea #324: la comparte con
 #: ``Environment._recompute_all`` y ``flush_all``, que no pueden importar este
-#: archivo porque este importa ``orm.environments``. El alias conserva el nombre
+#: archivo porque este importa ``orm.environments``. El alias conserva el
+#: nombre
 #: con que lo citan los consumidores de aqui.
 _model_of = model_of_field
 
@@ -4887,21 +4903,19 @@ def recompute(self, records):
 
 
 def compute_value(self, records):
-    """Invoca el método de cómputo; el resultado queda en caché.
+    """Invoca el cómputo y conserva sus valores en la caché existente.
 
-    ≙ ``Field.compute_value`` (``:1897``).
+    ≙ ``Field.compute_value`` (``:1897``). Se desmarca el trabajo antes del
+    callback para impedir recursión; un error restaura los pendientes.
 
-    El orden importa, y la fuente lo razona: desmarca el cómputo **antes** de
-    correrlo *"just in case the compute method does not assign a value"* y
-    porque el propio método puede leer el valor viejo, lo que dispararía una
-    lectura que volvería a computar el campo — recursión infinita. Si el
-    cómputo revienta, se vuelve a marcar y se relanza.
-
-    ``compute_sudo`` no eleva aquí con ``records.sudo()`` —no hay recordset
-    que elevar— sino con el alcance de elevación del entorno, que es el
-    mecanismo equivalente de este stack (``orm.environments.sudo``).
+    Los recordsets nativos elevan su entorno con ``records.sudo()``, como
+    la fuente. Las filas Django conservan el alcance ambiental existente:
+    no se inventa un recordset sustituto para ellas. Ambos caminos usan la
+    protección y el canal de privilegios del Environment actual.
     """
     env = get_environment()
+    if self.compute_sudo and getattr(records, '_ids', None) is not None:
+        records = records.sudo()
     ids = record_ids(records)
     fields = registry_field_computed[self]
 
@@ -5034,3 +5048,29 @@ for _cache_method in (_get_cache, _get_cache_impl, _invalidate_cache,
                       _filter_not_equal, _filter_not_equal_ids,
                       _insert_cache, _update_cache):
     setattr(NonStored, _cache_method.__name__, _cache_method)
+
+
+def _in_record_environment(method):
+    """Activate a record's native environment for descriptor operations.
+
+    Odoo uses record.env throughout field access. Consumer field helpers use
+    ambient channels, so activate the attached values with the existing
+    Environment scope. Canonicalize through its call interface in the current
+    transaction rather than sharing scope frames across worker threads.
+    """
+    @wraps(method)
+    def operate(descriptor, instance, *args, **kwargs):
+        attached = getattr(instance, 'env', None)
+        if (
+            isinstance(attached, Environment)
+            and attached is not get_environment()
+        ):
+            with attached():
+                return method(descriptor, instance, *args, **kwargs)
+        return method(descriptor, instance, *args, **kwargs)
+
+    return operate
+
+
+FieldDescriptor.__get__ = _in_record_environment(FieldDescriptor.__get__)
+FieldDescriptor.__set__ = _in_record_environment(FieldDescriptor.__set__)
