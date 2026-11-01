@@ -1,0 +1,43 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": [
+    "odoo19c:odoo/orm/fields.py Field.compute_value",
+    "odoo19c:odoo/orm/models.py BaseModel._compute_field_value"
+  ],
+  "behavior": "Native scalar descriptor writes retain distinct per-record stored compute cache values; stored M2M bridge retains per-record manager read-back and dirty marks",
+  "execution_flow": "compute_value protects/removes pending IDs -> native callback assigns scalar descriptors or M2M managers -> existing _cache_computed_values skips native scalar reread and reads M2M per native singleton; legacy Django path unchanged",
+  "inputs_outputs": "Scalar multi/single/empty, failing callback pending restoration, distinct legacy row values; M2M native single/multi with simulated storage set/all produce distinct cache values and dirty IDs",
+  "side_effects": "Existing in-memory field cache, dirty IDs, protection and pending queue. No schema, migrations, DB creation, Provider state changes or new coordinator",
+  "dependencies": [
+    "TASK-GEN-0558/session29a5e555-e34f-5a20-8c39-ad6cf2f19961/task306/pending/VM-b501",
+    "Existing native descriptor protected write and direct native batch dispatch",
+    "Existing M2M manager/field cache bridge; SQL persistence independent"
+  ],
+  "consumers": [
+    "Native stored-compute recordsets including empty and multi-ID",
+    "Existing Django stored-compute rows",
+    "Native M2M bridge with actual model/manager and simulated set/all storage boundary"
+  ],
+  "installed_mechanism": "Existing _cache_computed_values plus existing native TaskGet, node_frontier and claims; Consumer snapshot verifier reused",
+  "existing_adaptation": "Django scalar callback read-back remains. Native scalar descriptors already populate cache; fresh native singleton objects must not reread stored columns. M2M manager values still require read-back; no wholesale native bypass",
+  "verification": {
+    "initial": "2FAIL3PASS scalar/empty RED",
+    "initial_local_correction": "88PASS then added M2M controls found2FAIL5PASS before publication",
+    "final": "90PASS exact final source/index/test hashes in native-stored-final.json",
+    "original_revision_annulment": "3expectedFAIL4PASS; sourceSHA matches6e9aab72; native-stored-original-readback.json",
+    "broad_guard_annulment": "2expectedFAIL5PASS; sourceSHA matches4166b38d; native-stored-m2m-annulled.json",
+    "legacy_m2m_singleton": "Original passes, broad guard fails, final passes: own NEW_REGRESSION corrected before push",
+    "SQL": "Prohibited for these tests; M2M set/all explicitly simulated; no actual relation persistence acceptance"
+  },
+  "equivalence": "Bounded native stored compute cache/read-back bridge only; not whole Field or ORM equivalence",
+  "limitations": "Queued recompute selection/batching, recursive ordering, missing-record retry integration, ACL, actual SQL M2M/flush, database routing and acceptance not_verified. Existing dependency warnings retained. Counts are test observations, not contractual denominators",
+  "integration": {
+    "commits": [
+      "4166b38d4b06fb7af77acfa5d458c84cffdc2fda",
+      "6038b50e891233c1e262a2495672ab61ad1b5201"
+    ],
+    "publication": "Normal feature branch push recorded separately",
+    "merge": "not performed",
+    "acceptance": "not_verified"
+  }
+}

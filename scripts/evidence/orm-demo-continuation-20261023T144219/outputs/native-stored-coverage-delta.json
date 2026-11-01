@@ -1,0 +1,11 @@
+{
+  "existing_population": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+  "descriptor": "protected_compute_scope",
+  "task": "TASK-GEN-0558",
+  "bounded_unit": "native_stored_compute_readback",
+  "evidence": "native-stored-contract-14.json",
+  "parent_equivalence": "not_verified",
+  "parent_acceptance": "not_verified",
+  "global_contract_denominator": "not established",
+  "historical_population_rewritten": false
+}

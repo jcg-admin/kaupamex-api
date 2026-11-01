@@ -1,0 +1,25 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "plan_items_from_rows/claims_ledger_rows/node_frontier",
+  "input": [
+    {
+      "id": "TASK-GEN-0558.native_stored_compute_readback",
+      "taskId": "TASK-GEN-0558",
+      "prompt": "Verify native stored compute cache readback preserves per-record values without treating a native recordset as a Django row",
+      "verify": "Actual native model/field descriptors, multiple IDs, queue removal/restoration and legacy Django readback regression controls; SQL prohibited",
+      "route": "local",
+      "owned": [
+        "src/orm/fields.py",
+        "tests/unit/orm/test_native_stored_compute_contract.py"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "selected": [
+    "TASK-GEN-0558.native_stored_compute_readback"
+  ],
+  "claims_count": 629,
+  "native_identity": "record-env-successor-native-task.json, native306/session29a5e555-e34f-5a20-8c39-ad6cf2f19961; latest description-only update preserves owner/state",
+  "dependencies": "Native recordset iteration, descriptor protected write, existing field cache and pending queue. Direct batch dispatch qualified in c904f188; no DB prefetch or queued batching prerequisite claimed",
+  "managed_inference": false
+}

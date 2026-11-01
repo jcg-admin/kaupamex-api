@@ -71,6 +71,9 @@ def main():
     parser.add_argument('--annul-record-sudo', action='store_true')
     parser.add_argument('--keyword-only', action='store_true')
     parser.add_argument('--batch-only', action='store_true')
+    parser.add_argument('--stored-only', action='store_true')
+    parser.add_argument('--annul-stored-guard', action='store_true')
+    parser.add_argument('--annul-m2m-readback', action='store_true')
     parser.add_argument('--annul-native-batch', action='store_true')
     args = parser.parse_args()
     if args.uid_only and args.annul_descriptor:
@@ -85,6 +88,26 @@ def main():
         origins[module] = origin + path
         snapshots[module] = subprocess.check_output(
             ['git', 'show', origin + path]
+        )
+    if args.annul_stored_guard and args.annul_m2m_readback:
+        parser.error('Select only one stored read-back revision')
+    if args.annul_stored_guard or args.annul_m2m_readback:
+        revision = (
+            '6e9aab72966d8e6f18a6cc52eded41c1e37a2272'
+            if args.annul_stored_guard else
+            '4166b38d4b06fb7af77acfa5d458c84cffdc2fda'
+        )
+        original = subprocess.check_output(
+            ['git', 'show', revision + ':src/orm/fields.py']
+        )
+        source = snapshots['orm.fields']
+        marker = b'def _cache_computed_values('
+        following = b'\ndef _value_left_by_compute('
+        start, old_start = source.index(marker), original.index(marker)
+        end = source.index(following, start)
+        old_end = original.index(following, old_start)
+        snapshots['orm.fields'] = (
+            source[:start] + original[old_start:old_end] + source[end:]
         )
     if args.annul_native_batch:
         source = snapshots['orm.fields']
@@ -159,6 +182,14 @@ def main():
                  'test_explicit_descriptor_self_keyword_remains_compatible']
     if args.batch_only:
         tests = ['tests/unit/orm/test_native_compute_batch_dispatch.py']
+    if args.stored_only:
+        tests = ['tests/unit/orm/test_native_stored_compute_contract.py']
+        if args.regression:
+            tests += [
+                RECORD_TEST, UID_TEST, *COMPANY_CASES, *REGRESSIONS,
+                'tests/unit/orm/test_native_compute_batch_dispatch.py',
+                'tests/unit/orm/test_field_cache.py',
+            ]
     test_hashes = {
         path: hashlib.sha256(Path(path).read_bytes()).hexdigest()
         for path in {test.split('::')[0] for test in tests}
@@ -216,6 +247,9 @@ def main():
         'annul_record_sudo': args.annul_record_sudo,
         'keyword_only': args.keyword_only,
         'batch_only': args.batch_only,
+        'stored_only': args.stored_only,
+        'annul_stored_guard': args.annul_stored_guard,
+        'annul_m2m_readback': args.annul_m2m_readback,
         'annul_native_batch': args.annul_native_batch,
         'pytest_exit': int(code), 'provenance_unchanged': stable,
         'scope': 'Exact declared source snapshots and hashed Consumer tests; '
