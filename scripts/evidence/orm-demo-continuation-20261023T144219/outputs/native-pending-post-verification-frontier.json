@@ -1,0 +1,19 @@
+{
+  "interface": "plan_items_from_rows/claims_ledger_rows/node_frontier",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "input_authority": "native-pending-admission.json",
+  "states": {},
+  "claims_count": 637,
+  "selected": [
+    "TASK-GEN-0558.native_pending_batch_recompute"
+  ],
+  "verified_units": [
+    "TASK-GEN-0558.native_pending_batch_recompute"
+  ],
+  "evidence": "native-pending-django-final.json104PASS; native-pending-contract-14.json",
+  "execution_decision": "Do not repeat verified implementation because acceptance is pending. No native TASK states or synthetic accepted item states written. Publication/CI and remaining SQL qualification are separate",
+  "coverage_limit": "One bounded unit only; existing33descriptors and unknown global denominator not exhausted",
+  "remaining_qualification": "Actual SQL exists/retry integration, prefetch IO, new-ID/precompute variants, independent QA and acceptance; not represented or declared eligible by this one-row selector",
+  "whole_objective_complete": false,
+  "managed_inference": false
+}
