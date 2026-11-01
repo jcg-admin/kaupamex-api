@@ -1,0 +1,222 @@
+{
+  "kind": "Concrete policy proposal, not assignment authority or executable coordinator",
+  "instruction_authority": "Current request section13 AssignmentAllowed; no authorization found for these9 assignments",
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet -> TaskUpdate(owner only) -> TaskGet in each listed native session",
+  "proposed_owner": "VM-b501",
+  "owner_rationale": "Existing operative identity already used for TASK-API-0283 and current Codex executor; backend cohort only, not universal owner or role value. Replaces unsupported analytic assignment to module-lifecycle identity. Requires explicit approval.",
+  "role_owner_executor_separation": {
+    "functional_responsibility": "backend",
+    "task_owner_proposed": "VM-b501",
+    "execution_identity": "Current authorized Codex VM-b501 engineering session",
+    "claim_owner_if_approved": "VM-b501, checked before each operation",
+    "native_node_identity_compatibility": "own_owner(b501) lowercases to vm-b501; no claim that managed inference/execution is qualified",
+    "qa": "Independent verification/acceptance authority remains separate; TASK-API-0398 and QA-only work excluded"
+  },
+  "updates": [
+    {
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "520",
+        "citation_id": "TASK-API-0305"
+      },
+      "subject": "Retomar el bloque analytic de account con apps.py y analytic/migrations en alcance",
+      "functional_responsibility": "backend",
+      "before": {
+        "owner": null,
+        "status": "in_progress",
+        "blocked_by": [],
+        "blocks": []
+      },
+      "proposed_input": {
+        "task_id": "520",
+        "owner": "VM-b501"
+      },
+      "execution_admission": "Separate per-unit contract/dependency/claim/verifier check still required; assignment is not acceptance or admission"
+    },
+    {
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1167",
+        "citation_id": "TASK-API-0397"
+      },
+      "subject": "Construir BaseModel propio desde el contrato medido de la referencia",
+      "functional_responsibility": "backend",
+      "before": {
+        "owner": null,
+        "status": "in_progress",
+        "blocked_by": [],
+        "blocks": []
+      },
+      "proposed_input": {
+        "task_id": "1167",
+        "owner": "VM-b501"
+      },
+      "execution_admission": "Separate per-unit contract/dependency/claim/verifier check still required; assignment is not acceptance or admission"
+    },
+    {
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1192",
+        "citation_id": "TASK-API-0417"
+      },
+      "subject": "Retirar el enrutado de las fachadas: la costura decide, no el constructor",
+      "functional_responsibility": "backend",
+      "before": {
+        "owner": null,
+        "status": "in_progress",
+        "blocked_by": [],
+        "blocks": []
+      },
+      "proposed_input": {
+        "task_id": "1192",
+        "owner": "VM-b501"
+      },
+      "execution_admission": "Separate per-unit contract/dependency/claim/verifier check still required; assignment is not acceptance or admission"
+    },
+    {
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1193",
+        "citation_id": "TASK-API-0418"
+      },
+      "subject": "Retirar NonStored como clase: el eje es store, no el tipo",
+      "functional_responsibility": "backend",
+      "before": {
+        "owner": null,
+        "status": "pending",
+        "blocked_by": [],
+        "blocks": []
+      },
+      "proposed_input": {
+        "task_id": "1193",
+        "owner": "VM-b501"
+      },
+      "execution_admission": "Separate per-unit contract/dependency/claim/verifier check still required; assignment is not acceptance or admission"
+    },
+    {
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1194",
+        "citation_id": "TASK-API-0419"
+      },
+      "subject": "Reconstruir un campo relacional desde _args__: to y on_delete no llegan a Field.__init__",
+      "functional_responsibility": "backend",
+      "before": {
+        "owner": null,
+        "status": "pending",
+        "blocked_by": [],
+        "blocks": []
+      },
+      "proposed_input": {
+        "task_id": "1194",
+        "owner": "VM-b501"
+      },
+      "execution_admission": "Separate per-unit contract/dependency/claim/verifier check still required; assignment is not acceptance or admission"
+    },
+    {
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1195",
+        "citation_id": "TASK-API-0420"
+      },
+      "subject": "El default literal de fields.Json dispara E010: la fuente lo copia por registro",
+      "functional_responsibility": "backend",
+      "before": {
+        "owner": null,
+        "status": "pending",
+        "blocked_by": [],
+        "blocks": []
+      },
+      "proposed_input": {
+        "task_id": "1195",
+        "owner": "VM-b501"
+      },
+      "execution_admission": "Separate per-unit contract/dependency/claim/verifier check still required; assignment is not acceptance or admission"
+    },
+    {
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1199",
+        "citation_id": "TASK-API-0424"
+      },
+      "subject": "El campo sin columna de una cadena related no es buscable: el recompute no puede hallar las filas",
+      "functional_responsibility": "backend",
+      "before": {
+        "owner": null,
+        "status": "pending",
+        "blocked_by": [],
+        "blocks": []
+      },
+      "proposed_input": {
+        "task_id": "1199",
+        "owner": "VM-b501"
+      },
+      "execution_admission": "Separate per-unit contract/dependency/claim/verifier check still required; assignment is not acceptance or admission"
+    },
+    {
+      "native_identity": {
+        "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "task_id": "306",
+        "citation_id": "TASK-GEN-0558"
+      },
+      "subject": "Dar al computo un QuerySet en vez de una fila, y recuperar el lote de prelectura",
+      "functional_responsibility": "backend",
+      "before": {
+        "owner": null,
+        "status": "pending",
+        "blocked_by": null,
+        "blocks": null
+      },
+      "proposed_input": {
+        "task_id": "306",
+        "owner": "VM-b501"
+      },
+      "execution_admission": "Separate per-unit contract/dependency/claim/verifier check still required; assignment is not acceptance or admission"
+    },
+    {
+      "native_identity": {
+        "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "task_id": "307",
+        "citation_id": "TASK-GEN-0559"
+      },
+      "subject": "Portar apply_except_missing: desmarcar el computo de la fila que ya no existe",
+      "functional_responsibility": "backend",
+      "before": {
+        "owner": null,
+        "status": "pending",
+        "blocked_by": null,
+        "blocks": null
+      },
+      "proposed_input": {
+        "task_id": "307",
+        "owner": "VM-b501"
+      },
+      "execution_admission": "Separate per-unit contract/dependency/claim/verifier check still required; assignment is not acceptance or admission"
+    }
+  ],
+  "known_source_paths_reviewed": [
+    "src/orm/fields.py",
+    "src/orm/models.py",
+    "src/orm/fields_nonstored.py",
+    "src/orm/fields_relational.py",
+    "addons/account/models/account_analytic_distribution_model.py",
+    "addons/analytic/models/analytic_distribution_model.py"
+  ],
+  "overlapping_active_claims": [],
+  "claim_review_scope": "Only listed core/analytic paths; all concrete unit resource lists must be rechecked before execution",
+  "excluded": [
+    "All currently assigned TASK owners",
+    "Architecture decisions without resolved authority",
+    "QA/acceptance assignments",
+    "Provider TASK or foreign claimed Provider code",
+    "Native states, dependencies, citation IDs and TaskStore location"
+  ],
+  "supersedes_proposal": "analytic-prefix-ownership-proposal.json was not executed; do not blindly apply that individual proposal",
+  "approval": "pending",
+  "executed": false,
+  "official_writes": false,
+  "historical_interpretation_superseded": true,
+  "current_disposition": "Not approved or used as authority. Earlier conditional delegation recovered; nine individual assignments recorded in integral-native-owner-assignment.json and revalidated with TaskGet.",
+  "superseding_authority": "integral-ownership-delegation-recovery.json"
+}

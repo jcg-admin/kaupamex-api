@@ -1,0 +1,151 @@
+{
+  "command": [
+    "/workspace/kaupamex-api/.venv/bin/python",
+    "/workspace/kaupamex-api/scripts/check_python_style_increment.py",
+    "--base",
+    "27a195a8d966319480dbee9a6484ae3bd602e8ae",
+    "--index-tree",
+    "fb6eb973c63bc5b36c16abf17dd39f90a13963c9",
+    "--qualify-checkers",
+    "--report",
+    "/workspace/kaupamex-api/scripts/evidence/ci-local-fail-fast-20261022T004947/outputs/pre-commit-admission.json"
+  ],
+  "files": [
+    {
+      "path": "addons/account/models/account_analytic_distribution_model.py",
+      "old_path": "addons/account/models/account_analytic_distribution_model.py",
+      "status": "M",
+      "old_mode": "100644",
+      "new_mode": "100644",
+      "old_blob": "79eac7fa4a28e4c90647a4ff4a715524fd0fc73f",
+      "new_blob": "308e522e2122de49339d9914a05518d3fcfbea35",
+      "inherited": [
+        {
+          "line": 117,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "17195d29596069bf149bc7b94dd68310b4c0784f509f876a303b539c0834ac85"
+        },
+        {
+          "line": 156,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "b90a1b4fa7562471a0be4da0842eda7020ac4d605fcc5e57b631cfe238334671"
+        },
+        {
+          "line": 168,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "73e07d181394dd2ba7185a60ce2852cb9c2f5d4b0f3a24a67a922b956ab66387"
+        },
+        {
+          "line": 178,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "7de436ac9ccf2f6ffac0643ab952ac0c4d0f474ce989350395a54c43246de66b"
+        },
+        {
+          "line": 196,
+          "column": 24,
+          "code": "E131",
+          "message": "continuation line unaligned for hanging indent",
+          "fingerprint": "226d39affd27db41d555087363b54804aa5be4f1a66e7180d91a512e03975422"
+        },
+        {
+          "line": 206,
+          "column": 24,
+          "code": "E131",
+          "message": "continuation line unaligned for hanging indent",
+          "fingerprint": "d068a9b1dcb4d90a485fc0d2ceaa38deded859ab50358a47d4b583ebad433a81"
+        },
+        {
+          "line": 215,
+          "column": 24,
+          "code": "E131",
+          "message": "continuation line unaligned for hanging indent",
+          "fingerprint": "557dd20d3a90fad4d887fdb9025d7a40411ef2464e4e797b16598cbbe39a15e7"
+        }
+      ],
+      "introduced": [],
+      "corrected": [
+        {
+          "line": 103,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "c185e0363ba4bf23540f319b09a8fc5acfdc44bda446f9d0b1102875239b8bca"
+        },
+        {
+          "line": 181,
+          "column": 24,
+          "code": "E131",
+          "message": "continuation line unaligned for hanging indent",
+          "fingerprint": "474cdb59f6a17283e52c1e7be99390afa0cd5a26fae9da2395e2cd43670019a9"
+        }
+      ],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 1,
+        "imports_exit": 0
+      },
+      "base_checks": {
+        "compilation_exit": 0,
+        "style_exit": 1,
+        "imports_exit": 0
+      },
+      "decision": "PASS"
+    },
+    {
+      "path": "tests/unit/account/test_analytic_prefix_compute_contract.py",
+      "old_path": "tests/unit/account/test_analytic_prefix_compute_contract.py",
+      "status": "A",
+      "old_mode": "000000",
+      "new_mode": "100644",
+      "old_blob": "0000000000000000000000000000000000000000",
+      "new_blob": "11aa1629956ec7b274b5d310a84a8525703af0ac",
+      "inherited": [],
+      "introduced": [],
+      "corrected": [],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 0,
+        "imports_exit": 0
+      },
+      "decision": "PASS",
+      "comparison": "STRICT_NEW_OR_MOVED_FILE"
+    }
+  ],
+  "reasons": [],
+  "increment_admission": "PASS",
+  "global_style_compliance": "NOT_EVALUATED",
+  "ci_verification": "NOT_EVALUATED",
+  "contract_verification": "NOT_EVALUATED",
+  "integration": "NOT_EVALUATED",
+  "acceptance": "NOT_EVALUATED",
+  "activation": "EXPLICIT_INCREMENT_EVALUATION",
+  "base": "27a195a8d966319480dbee9a6484ae3bd602e8ae",
+  "candidate": {
+    "index_tree": "fb6eb973c63bc5b36c16abf17dd39f90a13963c9",
+    "head": "27a195a8d966319480dbee9a6484ae3bd602e8ae"
+  },
+  "verifiers": {
+    "/workspace/kaupamex-api/scripts/check_python_style_increment.py": "33fcd7d40a59acebfaf0e4b54894b1a9b07591bb0197b866761d3393e78eeaf4",
+    "/workspace/kaupamex-api/scripts/check_no_lazy_imports.py": "278a21b0fcd8fc17b1103c09e7437f116767173b84168fb1991c98dad9fed223",
+    "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/pycodestyle.py": "a14c299bb9f2251f7327fce593e7986b3bbb472e07b5d6b8ce3f2a0750325c00"
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "pycodestyle": "2.14.0",
+  "native_checks": {
+    "style": "pycodestyle.Checker.check_all; native defaults, ignore=W503",
+    "imports": "check_no_lazy_imports.find_misplaced_imports",
+    "compilation": "compile(exec), SyntaxWarning treated as error"
+  },
+  "python_scope": "CHANGED",
+  "exit_code": 0
+}

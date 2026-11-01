@@ -1,0 +1,12 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/tests/unit/scripts/test_orm_property_view.py:203: TypeError: static_attribute_rows() got an unexpected keyword argument 'include_annotations'
+/workspace/kaupamex-api/tests/unit/scripts/test_orm_property_view.py:219: TypeError: attribute_snapshot() got an unexpected keyword argument 'all_captured'
+/workspace/kaupamex-api/tests/unit/scripts/test_orm_property_view.py:236: TypeError: attribute_snapshot() got an unexpected keyword argument 'all_captured'
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/integral-attributes-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/scripts/test_orm_property_view.py::test_annotated_bindings_and_unbound_annotations_are_distinct
+FAILED tests/unit/scripts/test_orm_property_view.py::test_all_captured_scope_preserves_the_default_scope
+FAILED tests/unit/scripts/test_orm_property_view.py::test_all_captured_scope_rejects_duplicate_sources
+3 failed, 18 deselected in 0.07s

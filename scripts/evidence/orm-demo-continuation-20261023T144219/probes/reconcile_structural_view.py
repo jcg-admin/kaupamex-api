@@ -7,6 +7,7 @@ applicability, functional equivalence, integration or acceptance.
 
 from collections import Counter
 import argparse
+import ast
 import hashlib
 import importlib.util
 import json
@@ -14,7 +15,10 @@ from pathlib import Path
 import subprocess
 import sys
 
-from counterpart_body import declarations_of, pair_declarations, parse_file
+from check_model_class_attributes import class_underscore_attrs
+from counterpart_body import (
+    Declaration, declarations_of, pair_declarations, parse_file,
+)
 from reference_roots import TOOLS_ROOT, tree
 
 REVISION = 'abe4040ec1a45beee90fb694e4eae4453e46b389'
@@ -31,7 +35,8 @@ PROPERTY_DECORATORS = {
 }
 
 
-def static_attribute_rows(path, revision, relative):
+def static_attribute_rows(path, revision, relative, *,
+                          include_annotations=False):
     """Project direct assignments from the existing declaration extractor.
 
     This is an observation population, separate from the 954 declarations.
@@ -52,6 +57,41 @@ def static_attribute_rows(path, revision, relative):
         for declaration in declarations
         if declaration.kind == 'class' and declaration.node in parsed.body
     ]
+    buckets = {}
+    for owner in owners:
+        classified = class_underscore_attrs(owner.node)
+        for bucket, attributes in zip(('orm', 'table', 'other'), classified):
+            for name, line in attributes.items():
+                buckets[(owner.name, name, line)] = bucket
+    annotation_only = []
+    if include_annotations:
+        bodies = [('', parsed.body)] + [
+            (owner.name, owner.node.body) for owner in owners
+        ]
+        # The existing declaration extractor omits AnnAssign. Supplement this
+        # measured gap using its parsed scopes, not another parser or census.
+        for owner, body in bodies:
+            for statement in body:
+                if not (isinstance(statement, ast.AnnAssign)
+                        and isinstance(statement.target, ast.Name)):
+                    continue
+                name = statement.target.id
+                if statement.value is None:
+                    qualified = f'{owner}.{name}' if owner else name
+                    annotation_only.append({
+                        'identity': [revision, relative, qualified,
+                                     'annotation_only', statement.lineno],
+                        'qualified_symbol': qualified,
+                        'annotation_expression': ast.unparse(
+                            statement.annotation
+                        ),
+                        'runtime_binding': 'not_established_by_annotation',
+                        'applicability': 'not_verified',
+                    })
+                else:
+                    declarations.append(Declaration(
+                        name, owner, statement.lineno, statement, (), 'assign'
+                    ))
     rows = []
     for declaration in declarations:
         if declaration.kind != 'assign':
@@ -65,29 +105,48 @@ def static_attribute_rows(path, revision, relative):
             continue
         qualified = (f'{declaration.owner}.{declaration.name}'
                      if declaration.owner else declaration.name)
+        kind = ('annotated_value_binding'
+                if isinstance(declaration.node, ast.AnnAssign)
+                else 'static_assignment')
         rows.append({
             'identity': [revision, relative, qualified,
-                         'static_assignment', declaration.lineno],
+                         kind, declaration.lineno],
             'qualified_symbol': qualified,
             'declaring_owner': declaration.owner,
             'value_expression_kind': type(declaration.node.value).__name__,
+            'model_checker_bucket': buckets.get(
+                (declaration.owner, declaration.name, declaration.lineno),
+                'not_classified',
+            ),
             'applicability': 'not_verified',
             'equivalence': 'not_verified',
             'integration': 'not_verified',
             'acceptance': 'not_verified',
         })
+    identities = [tuple(row['identity']) for row in rows]
+    if len(identities) != len(set(identities)):
+        raise ValueError('Duplicate attribute declaration identity')
     return {
         'reference_revision': revision,
         'reference_path': relative,
         'source_sha256': hashlib.sha256(source).hexdigest(),
         'interface': 'counterpart_body.declarations_of/parse_file',
         'rows': rows,
+        'annotation_only': annotation_only,
+        'annotations_included': include_annotations,
+        'classification_interface': (
+            'check_model_class_attributes.class_underscore_attrs; '
+            'detector buckets do not establish contractual applicability'
+        ),
         'applicable_contract_denominator': None,
-        'limitations': [
-            'annotated assignments', 'conditional assignments',
+        'limitations': ([] if include_annotations else [
+            'annotated assignments',
+        ]) + [
+            'conditional assignments', 'destructuring assignment targets',
             'inherited and dynamic members',
             'runtime values and descriptor behavior',
-            'only direct module and module-level class assignments',
+            'only direct simple-name module and module-level class bindings',
+            'contractual roles of constants/type aliases not established',
         ],
     }
 
@@ -138,13 +197,20 @@ def logical_property_groups(rows):
     return [groups[key] for key in sorted(groups)]
 
 
-def attribute_snapshot(snapshot):
-    """Extend only two captured files, without rerunning the inventory."""
+def attribute_snapshot(snapshot, *, all_captured=False,
+                       include_annotations=False):
+    """Extend captured files without rerunning the reference inventory."""
     captured = json.loads(snapshot.read_text())
     if captured['source_revision'] != REVISION:
         raise ValueError('Reconcile changed snapshot reference')
+    names = ['registry.py', 'fields.py']
+    if all_captured:
+        names = [Path(entry['consumer_path']).name
+                 for entry in captured['files']]
+        if not names or len(names) != len(set(names)):
+            raise ValueError('Missing or duplicate captured sources')
     files = []
-    for name in ('registry.py', 'fields.py'):
+    for name in names:
         entries = [entry for entry in captured['files']
                    if entry['consumer_path'] == f'src/orm/{name}']
         if len(entries) != 1:
@@ -154,7 +220,10 @@ def attribute_snapshot(snapshot):
         relative = source.relative_to(TOOLS_ROOT).as_posix()
         if relative != entry['reference_path']:
             raise ValueError('Captured source path disagrees with resolver')
-        view = static_attribute_rows(source, REVISION, relative)
+        view = static_attribute_rows(
+            source, REVISION, relative,
+            include_annotations=include_annotations,
+        )
         if view['source_sha256'] != entry['reference_sha256']:
             raise ValueError('Captured source revision or bytes changed')
         target = ROOT / entry['consumer_path']
@@ -162,7 +231,8 @@ def attribute_snapshot(snapshot):
         matches = {}
         if before is not None:
             candidates = static_attribute_rows(
-                target, 'working-source', entry['consumer_path']
+                target, 'working-source', entry['consumer_path'],
+                include_annotations=include_annotations,
             )
             for candidate in candidates['rows']:
                 matches.setdefault(
@@ -196,8 +266,23 @@ def attribute_snapshot(snapshot):
         ).strip(),
         'consumer_revision_scope': 'HEAD plus observed working source hashes',
         'files': files,
-        'observed_static_assignments': sum(len(f['rows']) for f in files),
-        'scope': 'Two captured files only; no repeated reference inventory',
+        'observed_static_assignments': sum(
+            row['identity'][3] == 'static_assignment'
+            for file in files for row in file['rows']
+        ),
+        'observed_annotated_bindings': sum(
+            row['identity'][3] == 'annotated_value_binding'
+            for file in files for row in file['rows']
+        ),
+        'observed_value_bindings_total': sum(len(f['rows']) for f in files),
+        'annotation_only_declarations': sum(
+            len(file['annotation_only']) for file in files
+        ),
+        'scope': (
+            ('All captured files' if all_captured else 'Two captured files')
+            + '; direct simple-name bindings, no repeated inventory'
+        ),
+        'annotations_included': include_annotations,
         'applicable_contract_denominator': None,
         'functional_coverage': None,
     }
@@ -210,14 +295,25 @@ def main():
         default=JOB / 'outputs/continuation-20261030-structural-view.json',
     )
     parser.add_argument('--attribute-snapshot', type=Path)
+    parser.add_argument('--all-captured-attributes', action='store_true')
+    parser.add_argument('--include-annotations', action='store_true')
     arguments = parser.parse_args()
+    attribute_options = (
+        arguments.all_captured_attributes or arguments.include_annotations
+    )
+    if attribute_options and arguments.attribute_snapshot is None:
+        parser.error('Attribute options require --attribute-snapshot')
     revision = subprocess.check_output(
         ['git', '-C', str(TOOLS_ROOT), 'rev-parse', 'HEAD'], text=True
     ).strip()
     if revision != REVISION:
         raise ValueError('Reconcile changed reference before measuring')
     if arguments.attribute_snapshot is not None:
-        result = attribute_snapshot(arguments.attribute_snapshot)
+        result = attribute_snapshot(
+            arguments.attribute_snapshot,
+            all_captured=arguments.all_captured_attributes,
+            include_annotations=arguments.include_annotations,
+        )
         arguments.output.write_text(json.dumps(result, indent=2) + '\n')
         print(json.dumps({
             'output': str(arguments.output),

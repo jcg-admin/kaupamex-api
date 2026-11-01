@@ -1,0 +1,6 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+usage: reconcile_structural_view.py [-h] [--output OUTPUT]
+                                    [--attribute-snapshot ATTRIBUTE_SNAPSHOT]
+                                    [--all-captured-attributes]
+                                    [--include-annotations]
+reconcile_structural_view.py: error: Attribute options require --attribute-snapshot

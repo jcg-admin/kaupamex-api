@@ -1,0 +1,2841 @@
+{
+  "kind": "Derived audit projection, not TaskStore/scheduler/new master plan",
+  "native_snapshot": "integral-native-task-population.json",
+  "native_snapshot_sha256": "60aba19c8d2e021c90824613fd114282d1361b1a2e63dcc47933b179d8e9106a",
+  "task_reviews": [
+    {
+      "citation_id": "TASK-API-0092",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "156"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [
+          "155"
+        ],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0115",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "191"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "architecture/reference decision authority; backend analysis",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0173",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "322"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": [
+          "320"
+        ]
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0174",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "323"
+      },
+      "native_status": "pending",
+      "native_owner": "codex-module-lifecycle",
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "A",
+      "assignment_authority": "depth-limit-task-update.json",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0187",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "342"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0216",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "383"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0217",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "384"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0239",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "410"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "architecture/reference decision authority; backend analysis",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0240",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "411"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0241",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "412"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0264",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "443"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0265",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "449"
+      },
+      "native_status": "pending",
+      "native_owner": "codex-module-lifecycle",
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "A",
+      "assignment_authority": "contractual-ownership-assignment.json",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0267",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "452"
+      },
+      "native_status": "pending",
+      "native_owner": "codex-module-lifecycle",
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "A",
+      "assignment_authority": "contractual-additional-ownership-assignment.json",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0269",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "456"
+      },
+      "native_status": "pending",
+      "native_owner": "codex-module-lifecycle",
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "A",
+      "assignment_authority": "contractual-ownership-assignment.json",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0283",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "487"
+      },
+      "native_status": "pending",
+      "native_owner": "VM-b501",
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "A",
+      "assignment_authority": "Docs decisiones responsibilities;78520aae",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0305",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "520"
+      },
+      "native_status": "in_progress",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0379",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "729"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0381",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "736"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0382",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "737"
+      },
+      "native_status": "pending",
+      "native_owner": "codex-module-lifecycle",
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "A",
+      "assignment_authority": "registry-scope-task-update.json",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0383",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "738"
+      },
+      "native_status": "pending",
+      "native_owner": "codex-module-lifecycle",
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "A",
+      "assignment_authority": "contractual-ownership-assignment.json",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0391",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1153"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0392",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1154"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0393",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1155"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0397",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1167"
+      },
+      "native_status": "in_progress",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0398",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1168"
+      },
+      "native_status": "in_progress",
+      "native_owner": null,
+      "functional_responsibility": "qa verification/instrumentation; implementation actor not assigned",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0399",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1170"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0400",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1171"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0401",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1172"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0402",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1173"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0403",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1174"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "architecture/reference decision authority; backend analysis",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0404",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1179"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0405",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1180"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0406",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1181"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "qa verification/instrumentation; implementation actor not assigned",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0407",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1182"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0408",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1183"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "qa verification/instrumentation; implementation actor not assigned",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0409",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1184"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "qa verification/instrumentation; implementation actor not assigned",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0410",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1185"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0411",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1186"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0412",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1187"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0413",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1188"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "qa verification/instrumentation; implementation actor not assigned",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0414",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1189"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0415",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1190"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0416",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1191"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0417",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1192"
+      },
+      "native_status": "in_progress",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0418",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1193"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0419",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1194"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0420",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1195"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0421",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1196"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0422",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1197"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0423",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1198"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0424",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1199"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0427",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1207"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-API-0478",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1441"
+      },
+      "native_status": "pending",
+      "native_owner": "codex-ci-local",
+      "functional_responsibility": "devops implementation; qa independent verification",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "A",
+      "assignment_authority": "Docs decisiones responsibilities;CI contract",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-GEN-0058",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "298"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-GEN-0060",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "333"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": [
+          "400"
+        ]
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-GEN-0062",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "400"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [
+          "333"
+        ],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-GEN-0073",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "485"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-GEN-0312",
+      "native_identity": {
+        "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "task_id": "60"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": null,
+        "blocks": null
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-GEN-0558",
+      "native_identity": {
+        "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "task_id": "306"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": null,
+        "blocks": null
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-GEN-0559",
+      "native_identity": {
+        "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "task_id": "307"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": null,
+        "blocks": null
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-GEN-0563",
+      "native_identity": {
+        "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "task_id": "311"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": null,
+        "blocks": null
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-GEN-0575",
+      "native_identity": {
+        "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "task_id": "323"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": null,
+        "blocks": null
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-GEN-0578",
+      "native_identity": {
+        "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+        "task_id": "326"
+      },
+      "native_status": "completed",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "completed_not_reopened",
+      "assignment_authority": "Native status only; does not certify contract acceptance",
+      "native_dependencies": {
+        "blocked_by": null,
+        "blocks": null
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-GEN-0633",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1203"
+      },
+      "native_status": "pending",
+      "native_owner": "codex-module-lifecycle",
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "A",
+      "assignment_authority": "contractual-additional-ownership-assignment.json",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-GEN-0634",
+      "native_identity": {
+        "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+        "task_id": "1204"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "backend implementation/analysis; qa acceptance remains separate",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-THYROX-1025",
+      "native_identity": {
+        "session_id": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+        "task_id": "93"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "Provider engineering; outside Consumer ownership",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-THYROX-1072",
+      "native_identity": {
+        "session_id": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+        "task_id": "140"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "Provider engineering; outside Consumer ownership",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    },
+    {
+      "citation_id": "TASK-THYROX-1111",
+      "native_identity": {
+        "session_id": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+        "task_id": "176"
+      },
+      "native_status": "pending",
+      "native_owner": null,
+      "functional_responsibility": "Provider engineering; outside Consumer ownership",
+      "role_scope": "Analytical scope relationship; not persistent field or assignment authority",
+      "ownership_classification": "C",
+      "assignment_authority": "No affirmative applicable assignment recovered; no owner write",
+      "native_dependencies": {
+        "blocked_by": [],
+        "blocks": []
+      },
+      "functional_dependency_status": "Contract/resource checks required; empty edges are not independence",
+      "owner_liveness": "not_verified by native text; no inactivity inferred",
+      "contract_acceptance": "not_inferred_from_task_status"
+    }
+  ],
+  "task_counts": {
+    "C": 43,
+    "A": 9,
+    "completed_not_reopened": 16
+  },
+  "scope": {
+    "known_native_tasks": 68,
+    "consumer_tasks": 65,
+    "provider_boundary_tasks": 3,
+    "task_population_not_contract_denominator": true
+  },
+  "contract_relationships": [
+    {
+      "descriptor": "record_identity_singleton",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/orm/fields_misc.py::Id.__get__;odoo/orm/models.py::BaseModel.ensure_one:5931",
+      "family": [
+        "BaseModel",
+        "Recordsets"
+      ],
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-API-0397",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1167",
+          "status": "in_progress",
+          "owner": null
+        },
+        {
+          "citation_id": "TASK-API-0398",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1168",
+          "status": "in_progress",
+          "owner": null
+        },
+        {
+          "citation_id": "TASK-API-0401",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1172",
+          "status": "pending",
+          "owner": null
+        },
+        {
+          "citation_id": "TASK-API-0402",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1173",
+          "status": "pending",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "tests/unit/orm/test_base_model_recordset.py::TestEnsureOne",
+          "scripts/workbench/basemodel-id-access-20260911T035612/"
+        ],
+        "evidence": [
+          "Docs existing analysis singleton/id sections",
+          "scripts/evidence/orm-contract-history-audit-20261019T220449/"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "exists_recordset_semantics",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/addons/base/tests/test_orm.py::TestORM.test_exists:138-153",
+      "family": [
+        "Recordsets",
+        "Persistence"
+      ],
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-API-0397",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1167",
+          "status": "in_progress",
+          "owner": null
+        },
+        {
+          "citation_id": "TASK-API-0398",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1168",
+          "status": "in_progress",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "src/orm/models.py:5269-5290;test_base_model_recordset.py:476-481 checks empty returns same object"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs/reference-obligations-mapping.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "cache_value_and_miss",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/addons/base/tests/test_cache.py::TestRecordCache.test_cache:24-33,44-64",
+      "family": [
+        "Cache"
+      ],
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-GEN-0575",
+          "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+          "task_id": "323",
+          "status": "completed",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "src/orm/environments.py::Cache.get:1588,set:1598;tests/unit/orm/test_environments_cache.py:138-219"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs/reference-obligations-mapping.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "cache_across_user_environments",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/addons/base/tests/test_cache.py::TestRecordCache.test_cache:40-85",
+      "family": [
+        "Cache",
+        "Environment"
+      ],
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-GEN-0575",
+          "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+          "task_id": "323",
+          "status": "completed",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "tests/unit/orm/test_field_cache.py:62-97 stable mappings/plain/context bucket;test_environments_cache.py:125-136 transaction-owned cache"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs/reference-obligations-mapping.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "selective_invalidation",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/addons/base/tests/test_cache.py::TestRecordCache.test_cache:87-99",
+      "family": [
+        "Cache",
+        "Fields"
+      ],
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-GEN-0575",
+          "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+          "task_id": "323",
+          "status": "completed",
+          "owner": null
+        },
+        {
+          "citation_id": "TASK-GEN-0578",
+          "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+          "task_id": "326",
+          "status": "completed",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "tests/unit/orm/test_environments_cache.py:236-260;test_field_cache.py:99-137;test_environments_transaction.py:167-190;src/orm/environments.py:1796-1817"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs/reference-obligations-mapping.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "row_rule_access",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/addons/base/tests/test_orm.py::TestORM.test_access_filtered_records:55-95",
+      "family": [
+        "CRUD",
+        "Search",
+        "Security"
+      ],
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "src/orm/models.py::AccessQuerySet._check_access/check_access/has_access/_filtered_access:232-282;tests/unit/orm/test_access_manager.py:55-85 structural adoption;tests/unit/base/test_ir_rule.py:60-165;test_ir_rule_access_error.py:91-182, latercacheinvalidation tests"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-corpus-delimitation-20261020T145932/outputs/reference-obligations-mapping.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "cursor_transaction_lifecycle",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/orm/registry.py::Registry.cursor:1165;odoo/sql_db.py::BaseCursor.__exit__,Cursor.commit/rollback/_close",
+      "family": [
+        "Registry",
+        "Persistence"
+      ],
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "tests/unit/orm/test_registry_signaling_axis.py::TestCursor",
+          "Prior cursor_transaction_contract.py"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-real-contracts-20261020T015333/outputs/cursor-contract.json",
+          "scripts/evidence/orm-contract-continuation-20261020T045110/outputs/cursor-replica-observations.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "cursor_replica_selection",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/orm/registry.py::Registry.cursor:1165-1186",
+      "family": [
+        "Registry"
+      ],
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "Prior probe_cursor_fallback.py exact extracted bodies,6scenarios/2mutants"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-contract-continuation-20261020T045110/outputs/cursor-replica-observations.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "inverse_dependency_navigation",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/orm/registry.py::field_inverses,is_modifying_relations;fields_relational.py::One2many.setup_inverses",
+      "family": [
+        "Registry",
+        "Fields",
+        "Relations"
+      ],
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-API-0424",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1199",
+          "status": "pending",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "tests/unit/orm/test_field_triggers.py",
+          "Prior real_registry_classifier_cases.py"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-real-contracts-20261020T015333/outputs/field-trigger-tests.log",
+          "scripts/evidence/orm-real-contracts-20261020T015333/outputs/real-classifier-cases.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "domain_any_rights_optimization",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/orm/domains.py::_optimize_any_with_rights:1833-1836",
+      "family": [
+        "Domains",
+        "Search",
+        "Security"
+      ],
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "Prior domain_reference_predicate.py with2negative controls"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-real-contracts-20261020T015333/outputs/domain-reference-predicate.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "invalidate_all_flush_before_invalidate",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/orm/environments.py::Environment.invalidate_all:357-366",
+      "family": [
+        "Environment",
+        "Cache",
+        "Recompute"
+      ],
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "Prior probe_invalidate_all_flow.py4cases+mutant"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-flow-audit-20261020T042342/outputs/invalidate-all-observations.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "flush_recompute_fixpoint",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/orm/environments.py::Environment.flush_all:380-390;_recompute_all:368",
+      "family": [
+        "Environment",
+        "Recompute",
+        "Persistence"
+      ],
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-API-0424",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1199",
+          "status": "pending",
+          "owner": null
+        },
+        {
+          "citation_id": "TASK-GEN-0575",
+          "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+          "task_id": "323",
+          "status": "completed",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "Prior probe_flush_fixpoint.py6cases/2mutants",
+          "test_environments_pooling_and_flush.py::TestTheModelScopedFlush,TestTheFixpointCeiling"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-contract-continuation-20261020T045110/outputs/flush-fixpoint-observations.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "relational_field_reconstruction",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/orm/fields.py field-definition chain setup;fields_relational.py relational constructors",
+      "family": [
+        "Fields",
+        "Relations"
+      ],
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-API-0417",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1192",
+          "status": "in_progress",
+          "owner": null
+        },
+        {
+          "citation_id": "TASK-API-0418",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1193",
+          "status": "pending",
+          "owner": null
+        },
+        {
+          "citation_id": "TASK-API-0419",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1194",
+          "status": "pending",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "Existing Field chain suites;exact ForeignKey to/on_delete acceptance case specified in TASK0419"
+        ],
+        "evidence": [
+          "Docs authority relation sections",
+          "scripts/evidence/orm-flow-audit-20261020T042342/outputs/tasks.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "recompute_dependent_record_discovery",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/orm/fields.py::Field.resolve_depends;registry.py dependency triggers;models.py modified/_recompute_field",
+      "family": [
+        "Recompute",
+        "Relations",
+        "Search"
+      ],
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-API-0424",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1199",
+          "status": "pending",
+          "owner": null
+        },
+        {
+          "citation_id": "TASK-GEN-0558",
+          "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+          "task_id": "306",
+          "status": "pending",
+          "owner": null
+        },
+        {
+          "citation_id": "TASK-GEN-0559",
+          "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+          "task_id": "307",
+          "status": "pending",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "test_field_triggers.py existing22passes",
+          "TASK0424 original warnings and bounded repeat requirement"
+        ],
+        "evidence": [
+          "scripts/evidence/orm-real-contracts-20261020T015333/outputs/field-trigger-tests.log",
+          "scripts/evidence/orm-flow-audit-20261020T042342/outputs/tasks.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "translated_record_storage_query",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": "odoo/orm/fields_textual.py translated storage/column_type and language-sensitive query behavior",
+      "family": [
+        "Translations",
+        "Persistence",
+        "Search"
+      ],
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-API-0283",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "487",
+          "status": "pending",
+          "owner": "VM-b501"
+        },
+        {
+          "citation_id": "TASK-GEN-0060",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "333",
+          "status": "pending",
+          "owner": null
+        },
+        {
+          "citation_id": "TASK-GEN-0062",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "400",
+          "status": "pending",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "existing_tests_or_instruments": [
+          "Prior translation datatype probe",
+          "Existingfields/query tests;DB read/write/search acceptance stillneeded"
+        ],
+        "evidence": [
+          "Docs existingtranslation analysis",
+          "scripts/evidence/orm-real-contracts-20261020T015333/README.md",
+          "scripts/evidence/orm-flow-audit-20261020T042342/outputs/tasks.json"
+        ],
+        "this_lot": "No tests or experiments rerun;consolidation of existing results"
+      },
+      "contract_integration": {
+        "source_revision": "5183ac7bc41039748aed5af1982aee8b2ffe6460",
+        "merge": "No new merge",
+        "acceptance": "not_verified per obligation unless explicit evidence below"
+      },
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "company_relation_consistency",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_company_checks.py",
+          "test": "test_company_and_different_company",
+          "lines": [
+            54,
+            67
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_company_checks.py",
+            "test": "test_company_and_different_company",
+            "lines": [
+              54,
+              67
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "contract_integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "domain_null_boolean_partition",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_domain.py",
+          "test": "test_00_test_bool_undefined",
+          "lines": [
+            19,
+            49
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_domain.py",
+            "test": "test_00_test_bool_undefined",
+            "lines": [
+              19,
+              49
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "contract_integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "protected_compute_scope",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_fields.py",
+          "test": "test_11_stored_protected",
+          "lines": [
+            367,
+            405
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-API-0424",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1199",
+          "status": "pending",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_fields.py",
+            "test": "test_11_stored_protected",
+            "lines": [
+              367,
+              405
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "contract_integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "json_value_isolation_roundtrip",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_json_field.py",
+          "test": "test_json_field_read_write",
+          "lines": [
+            13,
+            36
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_json_field.py",
+            "test": "test_json_field_read_write",
+            "lines": [
+              13,
+              36
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "contract_integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "relation_command_membership",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_many2many.py",
+          "test": "test_not_in_relation",
+          "lines": [
+            23,
+            26
+          ]
+        },
+        {
+          "file": "tests/test_one2many.py",
+          "test": "test_create_with_commands",
+          "lines": [
+            281,
+            305
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-API-0417",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1192",
+          "status": "in_progress",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_many2many.py",
+            "test": "test_not_in_relation",
+            "lines": [
+              23,
+              26
+            ]
+          },
+          {
+            "file": "tests/test_one2many.py",
+            "test": "test_create_with_commands",
+            "lines": [
+              281,
+              305
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "contract_integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "virtual_onchange_delta",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_onchange.py",
+          "test": "test_onchange",
+          "lines": [
+            55,
+            110
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_onchange.py",
+            "test": "test_onchange",
+            "lines": [
+              55,
+              110
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "contract_integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "prefetch_batch_reuse",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_performance.py",
+          "test": "test_read_base",
+          "lines": [
+            50,
+            68
+          ]
+        },
+        {
+          "file": "tests/test_timeit.py",
+          "test": "test_perf_field_get",
+          "lines": [
+            135,
+            136
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-API-0399",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1170",
+          "status": "pending",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_performance.py",
+            "test": "test_read_base",
+            "lines": [
+              50,
+              68
+            ]
+          },
+          {
+            "file": "tests/test_timeit.py",
+            "test": "test_perf_field_get",
+            "lines": [
+              135,
+              136
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "contract_integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "property_definition_authority",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_properties.py",
+          "test": "test_base_properties_model_access",
+          "lines": [
+            122,
+            153
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_properties.py",
+            "test": "test_base_properties_model_access",
+            "lines": [
+              122,
+              153
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "contract_integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "field_storage_reflection",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_schema.py",
+          "test": "test_10_many2one",
+          "lines": [
+            595,
+            621
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_schema.py",
+            "test": "test_10_many2one",
+            "lines": [
+              595,
+              621
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "contract_integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "relational_domain_query_semantics",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_search.py",
+          "test": "test_and_many2one_with_subfield",
+          "lines": [
+            10,
+            25
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_search.py",
+            "test": "test_and_many2one_with_subfield",
+            "lines": [
+              10,
+              25
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment.",
+        "source_assertion_type": "Selected test_and_many2one_with_subfield asserts exact SQL shape through assertQueries; it does not assert returned rowset values in that selected body."
+      },
+      "contract_integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "recordset_sort_order",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_sort.py",
+          "test": "test_basic",
+          "lines": [
+            27,
+            37
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [
+        {
+          "citation_id": "TASK-API-0400",
+          "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+          "task_id": "1171",
+          "status": "completed",
+          "owner": null
+        }
+      ],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_sort.py",
+            "test": "test_basic",
+            "lines": [
+              27,
+              37
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "contract_integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "web_projection_access",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_unity_read.py",
+          "test": "test_read_many2one_throws_if_it_cannot_read_extra_fields",
+          "lines": [
+            87,
+            96
+          ]
+        },
+        {
+          "file": "tests/test_web_save.py",
+          "test": "test_web_save_create",
+          "lines": [
+            8,
+            23
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_unity_read.py",
+            "test": "test_read_many2one_throws_if_it_cannot_read_extra_fields",
+            "lines": [
+              87,
+              96
+            ]
+          },
+          {
+            "file": "tests/test_web_save.py",
+            "test": "test_web_save_create",
+            "lines": [
+              8,
+              23
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "Related source/test candidates only; no discriminant test executed or port-equivalence certified in this increment."
+      },
+      "contract_integration": "Audit/planning evidence only; no functional admission, acceptance or merge.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "record_attribute_boundary",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_attributes.py",
+          "test": "test_we_cannot_add_attributes",
+          "lines": [
+            6,
+            11
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_attributes.py",
+            "test": "test_we_cannot_add_attributes",
+            "lines": [
+              6,
+              11
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "not_verified: candidate path/source role only; no discriminant Consumer execution or independent verification"
+      },
+      "contract_integration": "Analytical candidate only; no acceptance/admission/merge or functional authorization.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "autovacuum_expiration",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_autovacuum.py",
+          "test": "test_api_autovacuum",
+          "lines": [
+            7,
+            17
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_autovacuum.py",
+            "test": "test_api_autovacuum",
+            "lines": [
+              7,
+              17
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "not_verified: candidate path/source role only; no discriminant Consumer execution or independent verification"
+      },
+      "contract_integration": "Analytical candidate only; no acceptance/admission/merge or functional authorization.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "index_method_reconciliation",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_index_method.py",
+          "test": "test_index_rebuilt_when_method_changes",
+          "lines": [
+            24,
+            48
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_index_method.py",
+            "test": "test_index_rebuilt_when_method_changes",
+            "lines": [
+              24,
+              48
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "not_verified: candidate path/source role only; no discriminant Consumer execution or independent verification"
+      },
+      "contract_integration": "Analytical candidate only; no acceptance/admission/merge or functional authorization.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "float_render_precision",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_qweb_float.py",
+          "test": "test_basic_float",
+          "lines": [
+            14,
+            37
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_qweb_float.py",
+            "test": "test_basic_float",
+            "lines": [
+              14,
+              37
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "not_verified: candidate path/source role only; no discriminant Consumer execution or independent verification"
+      },
+      "contract_integration": "Analytical candidate only; no acceptance/admission/merge or functional authorization.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "browser_x2many_constraint_integration",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_ui.py",
+          "test": "test_01_admin_widget_x2many",
+          "lines": [
+            10,
+            19
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_ui.py",
+            "test": "test_01_admin_widget_x2many",
+            "lines": [
+              10,
+              19
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "not_verified: candidate path/source role only; no discriminant Consumer execution or independent verification"
+      },
+      "contract_integration": "Analytical candidate only; no acceptance/admission/merge or functional authorization.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    },
+    {
+      "descriptor": "default_view_field_projection",
+      "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+      "reference_symbol": [
+        {
+          "file": "tests/test_views.py",
+          "test": "test_default_form_view",
+          "lines": [
+            11,
+            23
+          ]
+        }
+      ],
+      "family": "not_classified_in_source",
+      "native_task_relationships": [],
+      "task_links_missing_in_native_snapshot": [],
+      "relationship_semantics": "Existing related task, not exclusive ownership/admission",
+      "contract_verification": {
+        "reference_test_sources": [
+          {
+            "file": "tests/test_views.py",
+            "test": "test_default_form_view",
+            "lines": [
+              11,
+              23
+            ]
+          }
+        ],
+        "executed": false,
+        "consumer": "not_verified: candidate path/source role only; no discriminant Consumer execution or independent verification"
+      },
+      "contract_integration": "Analytical candidate only; no acceptance/admission/merge or functional authorization.",
+      "acceptance": "not_verified unless separately qualified by existing authority"
+    }
+  ],
+  "existing_contract_population": {
+    "descriptors_observed": 33,
+    "global_applicable_denominator": null,
+    "source": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+    "source_sha256": "557b5b205a7573285563bdf5e72e7c4edc7e27d484b5c5476796de8db7969bec",
+    "known_extension": "66characterizations in existing source; not disjoint contract denominator"
+  },
+  "declared_frontier_review": {
+    "sources_examined": [
+      "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-loading-frontier.json",
+      "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-next-frontier.json",
+      "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-frontier.json",
+      "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/depth-limit-native-admission.json",
+      "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/fiscal-resumed-native-admission.json",
+      "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/incremental-graph-native-continuation.json",
+      "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/isolation-native-continuation.json",
+      "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-frontier.json",
+      "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-next-frontier.json",
+      "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/schema-preflight-native-continuation.json",
+      "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/verified-checkpoint-native-continuation.json"
+    ],
+    "unit_rows": [
+      {
+        "id": "TASK-API-0382.demo_diagnostics",
+        "taskId": "TASK-API-0382",
+        "sources": [
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-loading-frontier.json"
+        ]
+      },
+      {
+        "id": "TASK-API-0383.company_schema_verification",
+        "taskId": "TASK-API-0383",
+        "sources": [
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-frontier.json"
+        ]
+      },
+      {
+        "id": "TASK-API-0382.per_company_module_graph_execution",
+        "taskId": "TASK-API-0382",
+        "sources": [
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-frontier.json"
+        ]
+      },
+      {
+        "id": "TASK-API-0174.deep_cycle_depth",
+        "taskId": "TASK-API-0174",
+        "sources": [
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/depth-limit-native-admission.json"
+        ]
+      },
+      {
+        "id": "TASK-API-0382.incremental_graph_snapshot",
+        "taskId": "TASK-API-0382",
+        "sources": [
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/incremental-graph-native-continuation.json"
+        ]
+      },
+      {
+        "id": "TASK-API-0383.applied_schema_preflight",
+        "taskId": "TASK-API-0383",
+        "sources": [
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/incremental-graph-native-continuation.json",
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/schema-preflight-native-continuation.json"
+        ]
+      },
+      {
+        "id": "TASK-API-0383.isolation_qualification",
+        "taskId": "TASK-API-0383",
+        "sources": [
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/incremental-graph-native-continuation.json",
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/isolation-native-continuation.json",
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/schema-preflight-native-continuation.json"
+        ]
+      },
+      {
+        "id": "TASK-API-0382.per_company_loader_acceptance",
+        "taskId": "TASK-API-0382",
+        "sources": [
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/incremental-graph-native-continuation.json",
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/isolation-native-continuation.json",
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/schema-preflight-native-continuation.json"
+        ]
+      },
+      {
+        "id": "TASK-API-0382.registry_invalidation_scope",
+        "taskId": "TASK-API-0382",
+        "sources": [
+          "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/registry-scope-frontier.json"
+        ]
+      }
+    ],
+    "represented_task_citations": [
+      "TASK-API-0174",
+      "TASK-API-0382",
+      "TASK-API-0383"
+    ],
+    "consumer_tasks_not_in_examined_unit_inputs": [
+      "TASK-API-0092",
+      "TASK-API-0115",
+      "TASK-API-0173",
+      "TASK-API-0187",
+      "TASK-API-0216",
+      "TASK-API-0217",
+      "TASK-API-0239",
+      "TASK-API-0240",
+      "TASK-API-0241",
+      "TASK-API-0264",
+      "TASK-API-0265",
+      "TASK-API-0267",
+      "TASK-API-0269",
+      "TASK-API-0283",
+      "TASK-API-0305",
+      "TASK-API-0379",
+      "TASK-API-0381",
+      "TASK-API-0391",
+      "TASK-API-0392",
+      "TASK-API-0393",
+      "TASK-API-0397",
+      "TASK-API-0398",
+      "TASK-API-0399",
+      "TASK-API-0400",
+      "TASK-API-0401",
+      "TASK-API-0402",
+      "TASK-API-0403",
+      "TASK-API-0404",
+      "TASK-API-0405",
+      "TASK-API-0406",
+      "TASK-API-0407",
+      "TASK-API-0408",
+      "TASK-API-0409",
+      "TASK-API-0410",
+      "TASK-API-0411",
+      "TASK-API-0412",
+      "TASK-API-0413",
+      "TASK-API-0414",
+      "TASK-API-0415",
+      "TASK-API-0416",
+      "TASK-API-0417",
+      "TASK-API-0418",
+      "TASK-API-0419",
+      "TASK-API-0420",
+      "TASK-API-0421",
+      "TASK-API-0422",
+      "TASK-API-0423",
+      "TASK-API-0424",
+      "TASK-API-0427",
+      "TASK-API-0478",
+      "TASK-GEN-0058",
+      "TASK-GEN-0060",
+      "TASK-GEN-0062",
+      "TASK-GEN-0073",
+      "TASK-GEN-0312",
+      "TASK-GEN-0558",
+      "TASK-GEN-0559",
+      "TASK-GEN-0563",
+      "TASK-GEN-0575",
+      "TASK-GEN-0578",
+      "TASK-GEN-0633",
+      "TASK-GEN-0634"
+    ],
+    "scope": "Versioned typed PlanItem inputs in current job only, not all Provider banks or global exhaustion"
+  },
+  "repeat_guard": {
+    "TASK-API-0174": "Depth unit published25PASS; integration/acceptance queue",
+    "TASK-API-0283": "translate=True78520aae and3valid controls retained; no repeat",
+    "TASK-API-0478": "Published local/CI mechanism; global debt is not missing mechanism",
+    "TASK-API-0382": "Verified graph/demo/registry subsets do not accept full loader",
+    "TASK-API-0383": "Isolation/preflight verified; no invented accepted state to unblock loader"
+  },
+  "common_pending_decision": "integral-ownership-policy-proposal.json;9backend assignments proposed, none executed",
+  "official_task_writes": false,
+  "store_migration": false,
+  "global_exhaustion": false
+}

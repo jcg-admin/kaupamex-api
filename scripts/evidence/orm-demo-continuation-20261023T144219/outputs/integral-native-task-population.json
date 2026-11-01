@@ -1,0 +1,1629 @@
+{
+  "kind": "Read-only observation, not TaskStore or assignment authority",
+  "interfaces": [
+    "resolve_store_dir(create=False)",
+    "connect_readonly",
+    "mapping_from_store/resolve/lookup"
+  ],
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "resolved_store": "/workspace/thyrox/agent-results/agent_store.sqlite3",
+  "consumer_repository_store_present": false,
+  "consumer_legacy_store_present": false,
+  "schema_columns": [
+    "task_id",
+    "subject",
+    "description",
+    "status",
+    "active_form",
+    "owner",
+    "blocks_json",
+    "blocked_by_json",
+    "session_id",
+    "source",
+    "metadata_json",
+    "created_at",
+    "updated_at",
+    "submodule",
+    "submodule_source",
+    "opened_at",
+    "opened_at_source",
+    "citation_id",
+    "board_ordinal",
+    "layer_citation_id"
+  ],
+  "persistent_functional_role_column": false,
+  "initiative_rst_citations": 65,
+  "scope": "All citations in existing initiative RST plus existing15/33contract relationship sources and explicit current instruction list; not global applicable-contract denominator",
+  "scope_source_sha256": {
+    "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json": "bfd4bfebfa49d7c8e4f0c9fad20a9728a0f7e64da7ad7098651e397e492c4ef8",
+    "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json": "557b5b205a7573285563bdf5e72e7c4edc7e27d484b5c5476796de8db7969bec"
+  },
+  "tasks": [
+    {
+      "task_id": "156",
+      "citation_id": "TASK-API-0092",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Reconciliar seed_l0_chart con chart.template (H-API-348 abre)",
+      "description": "Hay dos mecanismos para poblar la contabilidad de una empresa y no est\u00e1 decidido cu\u00e1l gobierna:\n\n1. `sale_subscription/management/commands/seed_l0_chart.py` \u2014 comando manual, 3 filas (diario VEN + cuentas 105/401), s\u00f3lo para la system company L0, sin impuestos por decisi\u00f3n declarada.\n2. `account.chart.template` (`api@901e820`) \u2014 cargador por plantilla, 54 registros, cualquier empresa, con impuestos y posiciones fiscales.\n\nLo medido que acota la decisi\u00f3n:\n\n- `create_invoice_from_subscription` (`account/services.py:163`) busca el diario por `filter(company=..., type='sale', active=True).order_by('code').first()` \u2014 **por tipo, no por el c\u00f3digo 'VEN'**. As\u00ed que un diario creado por otra v\u00eda lo satisface.\n- Los 4 CSV de `generic_coa` son `account.account`, `account.tax`, `account.tax.group` y `account.fiscal.position`: **ninguno crea diarios**. La referencia los crea en `_setup_utility_bank_accounts` / `_create_outstanding_accounts`, dos de los 13 m\u00e9todos no portados (tarea #155).\n\nConsecuencia: hoy `chart.template` NO puede sustituir a `seed_l0_chart` \u2014 le falta el diario. Las salidas posibles son (a) portar la creaci\u00f3n de diarios como parte de #155 y retirar el comando, o (b) conservar el comando como el sembrador espec\u00edfico de L0 y declarar por qu\u00e9 L0 no usa una plantilla. Decidir con la referencia, no por conveniencia.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0092"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-recuperacion-del-control-y-admision-contractual.rst"
+      ],
+      "blocked_by": [
+        "155"
+      ],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "191",
+      "citation_id": "TASK-API-0115",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "DECISI\u00d3N de arquitectura: construir el motor de @api.depends (H-API-363)",
+      "description": "Medido (H-API-363): 26 anotaciones @api.depends en 21 archivos de src/addons, 0 lectores. El decorador (orm/decorators.py:23) s\u00f3lo hace func._depends = fields; nadie recomputa. La referencia tiene 3335 anotaciones, todas vivas.\n\nEl motor ES construible: _depends ya est\u00e1 anotado y Django da el enganche (save()/post_save). Lo que lo hace decisi\u00f3n del ejecutor es el alcance: (1) cambia el ciclo de vida de 21 archivos de modelo a la vez; (2) los c\u00f3mputos vivos ya tienen disparador manual cableado (sale_order_line.py:96-105), as\u00ed que encender el motor sin retirarlos produce doble ejecuci\u00f3n; (3) la parte dif\u00edcil es la propagaci\u00f3n inversa (order_line.price_subtotal \u2192 order.amount_total), que exige resolver el camino inverso de cada ruta anotada.\n\nAlternativas a evaluar: (a) motor completo con propagaci\u00f3n inversa; (b) motor s\u00f3lo del mismo registro, dejando la propagaci\u00f3n cross-model manual; (c) no construirlo y hacer gate de que todo @api.depends nuevo declare su disparador cableado. Sucesor de H-API-363.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0115"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1103-la-declaracion-del-autor-no-aterriza-en-el-campo-llano.rst",
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-antecedentes-rojos-y-sucesores.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "322",
+      "citation_id": "TASK-API-0173",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Romper el ciclo base \u2194 authz que atrapa 89 de 91 addons",
+      "description": "Medido al derivar `depends` (#296): `base -> ['authz']` y `authz -> [..., 'base', ...]`. Con ese ciclo s\u00f3lo 2 de 91 addons son ordenables topol\u00f3gicamente; 89 quedan atrapados. En la referencia `odoo19c: odoo/addons/base/__manifest__.py` NO declara `depends` \u2014 es la ra\u00edz.\n\nTres sitios cierran el ciclo desde `base`:\n- `src/addons/base/authz_catalog.py:25` \u2014 importa `addons.authz.declaration`\n- `src/addons/base/management/commands/update_module_list.py:54` \u2014 \u00eddem\n- `src/addons/base/models/ir_ui_menu.py:290` \u2014 constante `'authz.Capability'`\n\nDesenlaces a MEDIR, no a preferir:\n1. Mover el mecanismo de declaraci\u00f3n de capacidades a `base` (donde la referencia pone `ir.model.access` / `res.groups`) y dejar `authz` como consumidor.\n2. Invertir s\u00f3lo `ir_ui_menu.py:290` si el resto resulta ser el mecanismo leg\u00edtimo.\n3. Declarar el ciclo aceptado y retirar (a) y (b) de #320, dejando `LOCAL_APPS` mantenida a mano con su orden anotado \u2014 el estado de hoy, pero decidido.\n\nBloquea a #320 (orden de INSTALLED_APPS): un grafo con un ciclo de 89 nodos no tiene orden topol\u00f3gico, as\u00ed que ni reordenar ni derivar del grafo son posibles hoy.\n\nHallazgo: H-API-562 en docs `pm/api/iniciativas/completar-familia-base/hallazgos/`.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0173"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-solicitudes-por-base-y-estado-persistido.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [
+        "320"
+      ],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "323",
+      "citation_id": "TASK-API-0174",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "ModuleGraph.depth revienta con RecursionError ante un ciclo declarado",
+      "description": "`src/modules/module_graph.py:46-52` calcula la profundidad recursivamente y su \u00fanica guarda es `d != self.name` \u2014 atrapa el auto-ciclo y ning\u00fan otro. Un 2-ciclo declarado en `depends` (medido: `sale \u2194 delivery`, cerrado en api@50cc8c1) produce `RecursionError: maximum recursion depth exceeded` en vez de un error que nombre el ciclo.\n\nLa referencia no tiene este modo de fallo porque su instalador valida el grafo antes (`odoo/modules/graph.py` construye por niveles y deja fuera lo irresoluble, sin recursi\u00f3n sobre `depends`).\n\nQu\u00e9 hacer: dar a `depth` memoizaci\u00f3n con detecci\u00f3n de ciclo (conjunto de visitados en la pila) y que lance un error del dominio con la ruta del ciclo \u2014 `ModuleGraphCycle: sale -> delivery -> sale`. Un ciclo en el grafo declarado es un defecto que hay que nombrar, no un crash del int\u00e9rprete.\n\nPrecondici\u00f3n: ninguna. Hoy el grafo declarado est\u00e1 ac\u00edclico (91 de 91 ordenables), as\u00ed que el arreglo es preventivo y su test necesita un grafo sint\u00e9tico.\n\nHallazgo: H-API-563.\n\n[Depth-limit continuation 2026-10-31] Published c58010a15f1bd2268b9cd05c49ff6cd4e62a0198 in PR109 with ordinary hooks and exact-index source verification. Explicit DFS removes interpreter-stack dependency from ModuleGraph._depth while preserving memo, test anchors and caller-path cleanup. RED2RecursionError/1PASS; exact candidate25PASS with SQL blocked; annulment restores2FAIL/23PASS;6 pinned Odoo property-body cases match, not native Odoo runtime. Contract/evidence: scripts/evidence/orm-demo-continuation-20261023T144219/outputs/depth-limit-contract-14.json. Other recursive graph operations, full loader, global style/CI, merge and acceptance remain separate. Existing unrelated working bytes restored and source claims released; no owner/state/dependency change or managed inference.",
+      "status": "pending",
+      "owner": "codex-module-lifecycle",
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0174"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-modulos-por-base-y-preservacion.rst",
+        "docs:progreso/bitacora-profundidad-de-grafo-sin-limite-recursivo.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "assigned_authority_to_reconcile"
+    },
+    {
+      "task_id": "342",
+      "citation_id": "TASK-API-0187",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Los 11 fallos de stock_location y stock_quant que la suite destap\u00f3 (H-API-585)",
+      "description": "Con la suite de stock ya coleccionando (H-API-583 cerrado), 11 tests fallan por deuda de otros portes: (a) test_stock.py llama complete_name() como m\u00e9todo y el porte lo declara campo fields.Char \u2014 el test qued\u00f3 atr\u00e1s; (b) StockQuant.set_on_hand revienta con TypeError: fromisoformat: argument must be str al escribir inventory_date, que _compute_inventory_date asigna desde location.get_next_inventory_date(). Cada uno se compara contra su archivo de la referencia antes de tocarlo.",
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0187"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-validacion-de-nombres-y-recuperacion-de-estados.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "383",
+      "citation_id": "TASK-API-0216",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Gate: orm.fields.__all__ s\u00f3lo contiene clases de campo",
+      "description": "`src/addons/base/models/ir_model.py:147,164` deriva `FIELD_TYPES` \u2014el vocabulario de `IrModelFields.ttype`\u2014 de `orm.fields.__all__`. Un nombre que no sea una clase de campo entra al vocabulario y ensucia el modelo EN SILENCIO: la \u00fanica se\u00f1al es una migraci\u00f3n inesperada (`~ Alter field ttype on irmodelfields`), y ning\u00fan gate est\u00e1tico lo ve.\n\nYa ocurri\u00f3: `api@4c85830` a\u00f1adi\u00f3 `falsy_value`, `condition_to_q`, `SqlLike` y `SqlILike`. Ver H-API-616.\n\nEntregable: check que importe `orm.fields` y verifique que cada nombre de `__all__` resuelve a una subclase de `django.db.models.Field`. Es una comprobaci\u00f3n de una l\u00ednea sobre el m\u00f3dulo ya importado; convierte un defecto silencioso en fallo de arranque.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0216"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:progreso/bitacora-aceptacion-json-y-reconstruccion-relacional.rst",
+        "docs:tareas-completar-raiz-orm.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "384",
+      "citation_id": "TASK-API-0217",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Gate: las tres formas de traducci\u00f3n del recordset (H-API-617)",
+      "description": "Tres descuidos de traducci\u00f3n del recordset de la referencia al ORM de Django sobrevivieron al gate de porte, `manage.py check` y `makemigrations`; los destap\u00f3 el primer test. Ver H-API-617.\n\nFormas decidibles por AST + `_meta` del modelo:\n\n1. `self.<campo> is None` donde `<campo>` es una FK **no nulable** del propio modelo \u2192 el descriptor lanza `RelatedObjectDoesNotExist`; la guarda correcta es `<campo>_id`.\n2. `list(...)` o `for` sobre el atributo de un Many2many sin `.all()`/`.values_list()` \u2192 el atributo es el **gestor**, no un iterable (y siempre es *truthy*, as\u00ed que un `or []` de seguridad nunca dispara).\n3. Acotada: `getattr` sobre el resultado de `get_current_company()`, que devuelve la **PK** y no el registro (`src/orm/environments.py:153-161`). No se generaliza \u2014 eso ser\u00eda an\u00e1lisis de tipos.\n\nDenominador obligatorio en la salida (`hallazgo-abierto-genera-sucesor.md`): archivos medidos, no s\u00f3lo incumplidores.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0217"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "410",
+      "citation_id": "TASK-API-0239",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "DECISI\u00d3N: cu\u00e1l de las tres ra\u00edces es Enterprise 18",
+      "description": "La convencion declara odoo18e: = 18.x/odoo.enterprise (1171 manifiestos) y afirma que 18.x/odoo-18/enterprise/odoo/addons (1292) es \"la misma poblacion empaquetada distinto\". Medido: FALSO \u2014 1102 comunes, 70 solo en la declarada, 196 solo en la otra. Hay una tercera, 18.x/my-odoo-enterprise-18.0 (593), sin medir contra las dos.\n\nDecidir cual es la referencia de Enterprise 18, si las otras merecen alias propio, y corregir la afirmacion de la convencion. Cambia que es \"la referencia\" para 18, asi que es del ejecutor.\n\nAbierta por H-API-632.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0239"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "411",
+      "citation_id": "TASK-API-0240",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Gate: la ra\u00edz usada contra la ra\u00edz que el alias declara",
+      "description": "H-API-632: us\u00e9 18.x/odoo-18/enterprise/odoo/addons donde la convencion declara odoo18e: = 18.x/odoo.enterprise. Ningun gate lo vio \u2014 el de citas (H-DOCS-20) verifica que haya un alias junto a la cifra, no que la ruta detras del alias sea la correcta.\n\nMecanizable: un artefacto que cite odoo18e:/odoo19c:/etc y muestre en un code-block un comando con otra ruta es greppeable contra la tabla de la convencion.\n\nCondicion de cierre: el patron debe ver el positivo conocido de H-API-632 (el censo del 2026-08-15 citando odoo18e con la ruta excluida) antes de declararse util. Imprimir denominador.\n\nAbierta por H-API-632.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0240"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "412",
+      "citation_id": "TASK-API-0241",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Barrer los artefactos que midieron 18e sobre la ra\u00edz sin alias",
+      "description": "H-API-632 corrigio los tres artefactos del 2026-08-15. Falta barrer el resto de source/ buscando mediciones contra 18.x/odoo-18/enterprise/odoo/addons o contra $ODOO18E sin declarar su expansion.\n\nCaso conocido: analisis-familia-observability (iniciativa adaptar-familias-odoo-monolito-modular) midio sobre la raiz CORRECTA pero escribio $ODOO18E sin declarar a que ruta expande \u2014 su veredicto se sostiene, su reproducibilidad no.\n\nAbierta por H-API-632.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0241"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "443",
+      "citation_id": "TASK-API-0264",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "DECIDIDA (DEC-AISL-05) \u2014 no se reparte esquema; toda app migra a toda base",
+      "description": "DECIDIDA por el ejecutor 2026-08-21: \"queremos que nuestra api sea igual a la referencia, en donde la referencia no reparte esquema entre bases. Cada base es una instalaci\u00f3n completa: su propio res_company, su propio res_users, su propio ir_module_module\".\n\nRegistrada como DEC-AISL-05 en decisiones-implementar-aislamiento-multi-db-per-company. Cierra el punto \"Abierta (capa-3 de 091)\" de ADR-021.\n\nEn una l\u00ednea: toda app de dominio migra a TODA base; los tres base* salen de MULTIDB_CONTROL_PLANE_APPS; allow_migrate deja de partir el dominio y pasa a consultar el roster; las 79 FK a res_users quedan intra-base sin cortar ninguna.\n\nQueda DESCARTADA la opci\u00f3n 1 de H-API-646 (core s\u00f3lo en default, dominio s\u00f3lo en company_<N>_db), que adem\u00e1s se justificaba atribuyendo el reparto a la referencia \u2014 falso, ver H-API-783.\n\nImplementaci\u00f3n: #738. Granularidad de instalaci\u00f3n por base (ir_module_module.state vs INSTALLED_APPS, H-API-784): #737.\n\nMedici\u00f3n que la aliment\u00f3: analisis-multidb-en-la-referencia (odoo19c @ odoo-tools@622ddc2a).",
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0264"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-catalogos-fisicos-y-reconciliacion-por-archivo.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "449",
+      "citation_id": "TASK-API-0265",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Sembrar el registro de m\u00f3dulos para que la pantalla de aplicaciones sea visible (H-API-647/649)",
+      "description": "**RE-ENCUADRADA 2026-08-18 por directiva del ejecutor.** El encuadre anterior era \u00absembrar datos de demostraci\u00f3n de producto \u2014 producto \u2192 carrito \u2192 orden \u2192 env\u00edo\u00bb, y era falso: *\"est\u00e1s pensando en el L1 es un ecommerce y ya no es as\u00ed; lo que dices de la siembra es poder ver los m\u00f3dulos, quiz\u00e1 como se ven en la imagen\"* (captura de la pantalla de aplicaciones de Odoo: tarjetas por m\u00f3dulo + barra lateral de categor\u00edas con su conteo).\n\nKaupamex es el operador **L0**. Lo que tiene que ser consultable primero no es un cat\u00e1logo de productos de una empresa L1 \u2014 es el **registro de m\u00f3dulos** de la plataforma.\n\n**Mitad (a) \u2014 CERRADA en `api@6945cc1`.** `update_module_list` recorr\u00eda una sola ra\u00edz de addons y registraba 1 m\u00f3dulo de 94 (:ref:`h-api-649`). Corregido: 94 filas en `ir_module_module`, todas con su nombre t\u00e9cnico, resumen, licencia, versi\u00f3n, `application`, `auto_install` y estado derivado de `INSTALLED_APPS`.\n\n**Mitad (b) \u2014 la barra lateral.** El \u00e1rbol de categor\u00edas sigue vac\u00edo: tarea **#452**.\n\n**Mitad (c) \u2014 el canal HTTP.** Ning\u00fan endpoint sirve hoy la lista de aplicaciones: los dos hits de `ir.module.module` en controladores son menciones de docstring. Sin \u00e9l, las 94 filas existen y nadie las ve desde fuera. Falta medir qu\u00e9 expone la referencia (`odoo19c: addons/base/\u2026`) y decidir su forma DRF.\n\nLo que **sale** del alcance: sembrar productos, carritos y \u00f3rdenes de un L1. Eso es data de demostraci\u00f3n de una empresa cliente, no del operador, y su decisi\u00f3n es aparte.",
+      "status": "pending",
+      "owner": "codex-module-lifecycle",
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0265"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-catalogos-fisicos-y-reconciliacion-por-archivo.rst",
+        "current instruction section28"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "assigned_authority_to_reconcile"
+    },
+    {
+      "task_id": "452",
+      "citation_id": "TASK-API-0267",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Poblar el \u00e1rbol de categor\u00edas: IrModuleCategory es un porte hu\u00e9rfano (H-API-649)",
+      "description": "Medido 2026-08-18: `ir_module_category` tiene **0 filas** y **ning\u00fan campo apunta a \u00e9l**. `IrModuleCategory` est\u00e1 portado (`api: src/addons/base/models/ir_module.py:39`) con su \u00e1rbol `parent` self-FK, pero `IrModule.category` es un `Char` \u2014 mientras la referencia declara `category_id = fields.Many2one('ir.module.category')` (`odoo19c: odoo/addons/base/models/ir_module.py:275`) y lo escribe con `_update_category` (`:862`) sobre `modules.db.create_categories` (`odoo19c: odoo/modules/db.py:127`), que parte la ruta por `/` y crea un nivel por tramo.\n\nEs un porte **estructuralmente hu\u00e9rfano** \u2014 misma clase que #294 (`auto_installable` portado sin llamador).\n\nPoblaci\u00f3n que espera: los 94 manifiestos declaran **25 rutas** distintas \u2014 `Sales/Sales` 22, `Hidden/Tools` 14, `Accounting/Accounting` 13, `Hidden` 8, `Accounting/Payment Providers` 7, `Supply Chain/Inventory` 4, `Website/Website` 4, y 18 m\u00e1s. Son exactamente las categor\u00edas de la barra lateral de la pantalla de aplicaciones.\n\nAlcance:\n1. `create_categories` en `src/modules/db.py` \u2014 el hogar que la referencia le da. Ese archivo no existe a\u00fan; la tarea #298 porta sus otros 5 s\u00edmbolos, as\u00ed que este pase declara su cobertura parcial (`porte-completo-no-parcial.md`) o se coordina con #298.\n2. Cambiar `IrModule.category` de `Char` a `Many2one('base.IrModuleCategory')` + migraci\u00f3n. La referencia no guarda la cadena cruda: s\u00f3lo el FK.\n3. Cablearlo en `update_module_list`, con test de regresi\u00f3n que mida filas de categor\u00eda y profundidad del \u00e1rbol.\n\nPrecondici\u00f3n cerrada: el registro de m\u00f3dulos ya tiene sus 94 filas (`api@6945cc1`).\n\nCurrent verified continuation 2026-10-25: actual modules.db already contains FunctionStatus/has_unaccent/has_trigram; historical absent-file assertion is obsolete. Native298 in this session is TASK-GEN-0058, broader full-file scope, pending ownerNULL, not executed or closed here. Owned TASK-API-0267 implements create_categories with existing Django models, cursor alias, stable native XMLIDs and transaction ownership. Initial9tree controls RED;24tree/XMLID/unaccent controls PASS. Migration0090 retains original category text as category_path and introduces category FK; five real PostgreSQL historical-schema controls PASS for data/state/version/identity preservation, collision rollback, guarded reverse and foreign XMLID. Source refresh/HTTP preserve original category text/filter; runtime catalogue/bootstrap/fullCI pending. makemigrations detects only inherited ResPartner.tz drift, reproduced at ae949aa8; no new migration generated for it. No whole-file acceptance, integration, official state change or local-model inference.\n\nVerified checkpoint source5943be0c: local full CI Make2,146PASS1SKIP1FAIL in474.59s, ResCountry.DoesNotExist; exact ae949aa8 focused comparison reproduces same exception. Later suite NOT_EVALUATED. New derived-map regression corrected in f1e2386f; no acceptance/merge/local-model inference. Category final78cases PASS;5PG historical-schema controls PASS; alias RED1/GREEN0 with validated existing FK cache, two connections/namespaces in one own DB, not N>1 acceptance. Error-storage2controls PASS. Preserved names16cases and reset rollback/differential probes pass with FK dependency; independent temporary resource cleanup0. Module source path and HTTP string/filter preserved. Task remains pending for review/integration/acceptance.",
+      "status": "pending",
+      "owner": "codex-module-lifecycle",
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0267"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-catalogos-fisicos-y-reconciliacion-por-archivo.rst",
+        "docs:progreso/bitacora-etiqueta-de-producto-y-consumidores.rst",
+        "docs:progreso/bitacora-setup-derivado-y-arbol-de-categorias.rst",
+        "current instruction section28"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "assigned_authority_to_reconcile"
+    },
+    {
+      "task_id": "456",
+      "citation_id": "TASK-API-0269",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "installable: False no tiene efecto en la carga (H-API-654)",
+      "description": "_local_apps() (src/config/settings/base.py:89-118) deriva LOCAL_APPS de todo lo que get_modules() encuentra bajo ADDONS_PATHS: presencia en disco es carga. La clave installable la lee un solo sitio \u2014 update_module_list.py:175 \u2014 y para mostrar el cat\u00e1logo, no para decidir la carga. Hoy 0 addons la declaran, as\u00ed que nada est\u00e1 roto; decide el d\u00eda que un addon a medias necesite estar en disco sin cargarse. Arreglo acotado (_local_apps consulta installable antes de incluir) pero toca el arranque de los 94 addons. Ver hallazgo-H-API-654.",
+      "status": "pending",
+      "owner": "codex-module-lifecycle",
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0269"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-catalogos-fisicos-y-reconciliacion-por-archivo.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "assigned_authority_to_reconcile"
+    },
+    {
+      "task_id": "487",
+      "citation_id": "TASK-API-0283",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "field_description sin translate= mientras la referencia lo declara translate=True",
+      "description": "Cap. 11 del Cookbook, desenlace (a) \u2014 bug de una l\u00ednea. `api: src/addons/base/models/ir_model.py:414` declara `field_description` como `fields.Char` SIN el kwarg `translate=`; la referencia lo declara `translate=True` (`odoo19c: addons/base/models/ir_model.py:525`). El despachador de `Char()` ya sabe anotar la bandera \u2014lo hace en otros 19 usos del \u00e1rbol\u2014 as\u00ed que es una omisi\u00f3n, no una capacidad ausente, y nada la bloquea.\n\nImporta porque `field_description` es precisamente donde aterrizan las traducciones de etiquetas de campo al importar un .po (lo documenta la propia receta del cap\u00edtulo). Sin la bandera, ese destino queda fuera del motor de traducci\u00f3n antes de empezar a construirlo.\n\n[VM-b501 contractual integration] Functional responsibility: backend; operational owner VM-b501 is the user-identified execution context, not a separate local-model worker. One translate=True keyword and the three existing source-branch tests applied to the API working tree; real-path pytest3PASS with DB prohibited. Char executable factory matches target HEAD. Exact two-file index extraction attempted through normal hooks: commit exit1, no commit created; full-index style debt26326 findings, changed source76 identical diagnostic fingerprints before/after, new test stylePASS. Initial URLConf SECRET_KEY precondition resolved independently via existing wrapper:246patternsPASS, no DB; reference checker configured at pinned Odoo revision measured0calls, not whole coverage. No gate bypass, closure, merge or managed inference. Review evidence: Docs existing auditar-estado-vm-y-continuidad-20261016T100835/trazabilidad-20261027 outputs/babok-continuation-*; code remains uncommitted pending required style/policy resolution. Editing reservations released after preservation; reacquire before further edits.\n\n[Controlled publication2026-10-29] Published bounded contract2026-10-29: commit78520aae93bb3ccee634b773d28dc4b9160d8452 in PR109, confirmed remote descendant0ce23373ad0f36d2bba9918b583126079702f7ae. Only field_description translate=True declaration layout and its67-line test committed; unrelated working tree preserved. Three prior passing tests reused with executable AST/hash provenance. Ordinary real hooks exit0; initial rejected inherited suppression and changed logical-call E501 retained as negative evidence. Odoo19Community authority abe4040ec1a45beee90fb694e4eae4453e46b389 unchanged. Functional responsibility backend; ownerVM-b501 unchanged. Global CI remains separate, latest run in progress; no multilingual persistence, merge or acceptance.",
+      "status": "pending",
+      "owner": "VM-b501",
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0283"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:decisiones-completar-raiz-orm.rst",
+        "docs:progreso/bitacora-activacion-incremental-y-publicacion-contractual.rst",
+        "docs:progreso/bitacora-asignacion-operativa-y-contrato-de-traduccion.rst",
+        "docs:progreso/bitacora-gobierno-adaptativo-y-metadata-traducible.rst",
+        "docs:progreso/bitacora-recuperacion-del-control-y-admision-contractual.rst",
+        "docs:progreso/bitacora-saneamiento-y-admision-de-integraciones.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+        "current instruction section28"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "assigned_authority_to_reconcile"
+    },
+    {
+      "task_id": "520",
+      "citation_id": "TASK-API-0305",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Retomar el bloque analytic de account con apps.py y analytic/migrations en alcance",
+      "description": "H-API-684: 21 de 25 def del bloque anal\u00edtico quedaron BLOQUEADOS por el ALCANCE DE ESCRITURA del tramo, no por capacidad del ORM. Faltaban dos piezas en la lista de escribibles: addons/account/apps.py (para cablear las 4 funciones apply_*_extensions() ya escritas en AccountConfig._EXTENSIONES) y addons/analytic/migrations/ (para la columna move_line_id y account_prefix/product/product_categ, porque account.analytic.line vive en la app analytic). Retomar account_analytic_account.py y account_analytic_line.py con ambas en alcance. Depende adem\u00e1s de AccountMove.get_sale_types/get_purchase_types y AccountMoveLine.analytic_distribution.",
+      "status": "in_progress",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0305"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-recuperacion-qa-y-contratos-fiscales-registry-stock.rst",
+        "current instruction section28"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "729",
+      "citation_id": "TASK-API-0379",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Portar el usuario p\u00fablico: AllowAny deja AnonymousUser, no un actor (H-API-774)",
+      "description": "La referencia declara `auth='public'` como un NIVEL que sustituye el actor, no como un permiso: `_auth_method_public` hace `request.update_env(user=env.ref('base.public_user').id)` (`odoo19c: odoo/addons/base/models/ir_http.py:265-269`). As\u00ed una ruta p\u00fablica sigue corriendo COMO un usuario y las record rules se aplican por el mismo camino que en una ruta autenticada.\n\nAqu\u00ed `AllowAny` deja `AnonymousUser`. Medido 2026-08-21: 0 menciones de `public_user` en `src/addons/base/`; 62 usos de `AllowAny` en 27 archivos, cada uno acotando sus filas a mano o sin acotarlas. `website.is_public_user()` compara contra `website.user_id` \u2014 el campo existe y no hay usuario sembrado detr\u00e1s.\n\nAlcance: sembrar el usuario p\u00fablico en `base` (external ID `base.public_user`), decidir si se sustituye el actor por middleware/permission class o por vista, y medir qu\u00e9 cambia en las 62 rutas. Hermana de #133 (row-scoping L1 ad hoc). No confundir con #490, que es `auth='bearer'` (claves de API).\n\nOrigen: pregunta del ejecutor 2026-08-21 sobre el docstring de `authz_totp/controllers/main.py`, que justificaba nuestro `AllowAny` citando `auth='public'` sin declarar que el mecanismo no est\u00e1 portado entero.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0379"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-recalculo-dependientes-y-cursor.rst",
+        "docs:tareas-completar-raiz-orm.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "736",
+      "citation_id": "TASK-API-0381",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Cablear la resoluci\u00f3n de base POR PETICI\u00d3N: db_list_for_host y db_monodb tienen 0 consumidores",
+      "description": "Origen: H-API-781, y la correcci\u00f3n del ejecutor 2026-08-21 sobre la divergencia 1 de addons/web/controllers/session.py.\n\nEl mecanismo host\u2192base est\u00e1 portado fielmente y probado: service.db.db_filter (== odoo/http.py::db_filter, con %h/%d, quita :puerto y www.), db_list_for_host (== http.db_list) y db_monodb, con tests en tests/unit/service/test_db_resolution.py. La iniciativa implementar-aislamiento-multi-db-per-company est\u00e1 :estado: en-ejecucion y su an\u00e1lisis lo declara IMPLEMENTADO.\n\nLo que NO est\u00e1: nadie lo llama en el camino de la petici\u00f3n. Medido 2026-08-21 sobre src/ y addons/, excluyendo src/service/db.py y tests: db_list_for_host \u2192 0 consumidores, db_monodb \u2192 0, db_filter \u2192 2 (y las dos son prosa de docstring, no llamadas). La base la elige hoy CompanyDatabaseRouter por app/modelo (MULTIDB_CONTROL_PLANE_APPS), no el host de la petici\u00f3n.\n\nConsecuencia concreta: /web/session/* no acepta el par\u00e1metro db de la referencia, y esa omisi\u00f3n se document\u00f3 como \"aqu\u00ed la base es una\" \u2014 falso: el \u00e1rbol declara DATABASE_ROUTERS, install_company_aliases, company_create, company_migrate_all y un cron que itera list_company_db_names.\n\nEntregable: decidir y cablear qui\u00e9n resuelve la base por petici\u00f3n (middleware sobre el host vs par\u00e1metro expl\u00edcito vs sesi\u00f3n), y luego reponer o declarar con fundamento el par\u00e1metro db de session.py.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0381"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-aislamiento-y-cobertura-del-cargador.rst",
+        "docs:progreso/bitacora-catalogos-fisicos-y-reconciliacion-por-archivo.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "737",
+      "citation_id": "TASK-API-0382",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Mecanismo: la instalaci\u00f3n se decide por base, no por proceso (H-API-784)",
+      "description": "Medido 2026-08-21 (H-API-784): `ir_module_module.state` existe y su propio help_text declara \"Derivado de INSTALLED_APPS; no hay instalador que lo escriba\". `grep -rn IrModule src/config/ src/orm/` \u2192 0 hits. La direcci\u00f3n est\u00e1 invertida respecto a la referencia, donde `odoo/modules/db.py:88` ESCRIBE el estado y el cargador lo LEE, por base.\n\nConsecuencia: dos bases no pueden diferir en qu\u00e9 addons tienen instalados, porque INSTALLED_APPS es del proceso.\n\nEmparenta con #456 (H-API-654, installable: False sin efecto en la carga) y #449 (sembrar el registro de m\u00f3dulos) \u2014 las tres son la misma carencia vista desde tres sitios.\n\nBloqueada por la decisi\u00f3n de #443 sobre el reparto.\n\nContractual continuation2026-10-25: native TaskGet443 confirms TASK-API-0264 completed; the description above saying blocked by that decision is historical, not an active blocker. Current source09974556 Registry.new retains install/upgrade/reinit arguments but calls only _ensure_seeded; Registry.load adds imported app models, and Environment.registry returns the global module. These source observations do not demonstrate per-database effective model composition or loader execution. Whole loader remains unaccepted; no new coordinator, completed-state fabrication or blanket absence claim. Existing graph/loading reconciliation and AS IS remain the authorities; registry-dependency-native-443.json and registry-continuation-native-tasks.json preserve identity evidence. Historical #342 is not present in the checked legacy session; no replacement identity invented.\n\nBounded readiness unit2026-10-26: pinned Registry.new invokes load_modules183 before readyTrue210. Current Consumer retains lifecycle request arguments but does not execute loader, then returns readyTrue and replaces cached registry. Native frontier admits pure unsupported-request rejection before replacement, preserving existing no-request metadata registry behavior and RLock. Verify update/install/upgrade/reinit/demo/model-check requests cannot report readiness, previous registry/cache survives, no load/default result fabrication and no DB side effects. This unit does not implement or accept full per-base model composition, installer, hooks, versions or isolation; unaccepted full-loader dependencies are not fabricated. No source edits while fiscal4b29 full gate runs. No official state/owner/dependency or local inference change.\n\nBounded guard sourceec089c9a hooksPASS: qualified RED7FAIL30PASS; GREEN37PASS and real factory probe rejected request/preserved prior object; PostgreSQL registry family143PASS. Empty-request behavior and RLock preserved. No installed-state, loader, per-base composition or Task acceptance claimed; shared621aaf83 required gate currentlyRUNNING. Contract14 registry-readiness-contract-14.json retains exact source/consumers/limits.\n\nVerified checkpoint after required621aaf83 gate:2224PASS1SKIP1FAIL901.47s Make2/Pytest1; first legacy analytic prefix metadata assertion reproduced093. Actual PostgreSQL introspection confirms no physical prefix column, metadata private/nonconcrete registration correct; full analytic file4FAIL11PASS also exposes default_get route. Native0305in_progress ownerNULL is not available: owner-only proposal saved and requested, not executed; no analytic source/test edits. Exact original64 replay621 confirms20PASS44FAIL with zero result identity changes, current0397/0417/0418/0419 ownersNULL preserved. Existing QA harness completed0; exact new database/role/HBA independently absent0/0/0. Completed source editing claims released, evidence job retained. No whole task/Registry/ORM acceptance, official state change, merge or managed local inference; publication verification follows source checkpoint.\n\n[2026-10-27 root pruning diagnostics] Reference abe4040ec1a45beee90fb694e4eae4453e46b389 exposes root discard messages absent from Consumer manifest/catalogue pruning. Restored ordinary WARNING not-installable and INFO not-installed diagnostics without changing selection, snapshots, SQL or persisted states. RED4FAIL18PASS;GREEN22PASS;neighbors48PASS;independent pinned-body comparison6PASS with database connections blocked. Three affected files PEP8/import gatesPASS. Contract14: scripts/evidence/orm-demo-continuation-20261023T144219/outputs/graph-diagnostics-contract-14.json. Imported provenance producer/exemption remains not_verified; no full loader/Registry/CI/head acceptance, commit or merge. Original62/64 populations unchanged. Global style debt remains pending.\n\n[Controlled publication2026-10-29] Published bounded graph diagnostics2026-10-29: commit0ce23373ad0f36d2bba9918b583126079702f7ae in open PR109. Native TaskGet443 confirms decision0264completed; source/test claims checked then acquired. Only root pruning WARNING/INFO diagnostics and associated tests, plus necessary local context formatting; no selection, SQL, snapshot or state changes. Initial conservative admission rejected18 invalidated diagnostics; scoped format preserves executable AST, final real hooks exit0. Reused22graph+48neighborPASS with exact observed hashes and AST proof; no repeat valid functional experiments. Contract14 graph-diagnostics-contract-14.json remains authority. Imported provenance/full loader/per-base composition unaccepted; pending/owner/dependency identities unchanged. CI in progress at publication observation; no merge, acceptance or managed local inference.\n\n[Contractual continuation2026-10-30] Published573bff5418ad2c597f265b06fc20176b0c5620a7 in PR109 after native node_frontier admission and uncontested claims. Bounded load_demo diagnostics match pinned Odoo19Community abe4040: startINFO before load_data and optional failureWARNING with traceback; no-demo emits neither. RED3FAIL1PASS;GREEN20PASS with SQL prohibited. Independent pinned logger format comparison matches; transactions/module state/persistence unchanged. Scoped formatting preserves executable AST, initial conservative admissionFAIL retained, final actual hooks0 and push0. Global CI41147677023FAIL remains separate, no merge or acceptance. Evidence: existing scripts/evidence/orm-demo-continuation-20261023T144219/outputs/continuation-20261030-*. Structural view954declarations from qualified existing inventory is partial, not contractual coverage. Codex engineering, no managed local inference.\n\n[Registry flag scope2026-10-30] H-API-1121: real metadata factories demonstrated cross-registry flag erasure/leakage in one thread and in a second thread. RED5FAIL2PASS; per-instance threading.local flag correction then44PASS including37existing factory cases. Exact staged Registry separately44PASS with unchanged Git provenance; pinned init/getter/setter differential matches, in-memory old-property annulment returns1. Process cache invalidator remains connected; physical isolation, SQL signaling and whole loader acceptance are not claimed. Normal hook PASS; one invalidated historical comment wrapped. Ordinary pathspec attempt correctly rejected full working source; preserved own claimed bytes, committed exactly verified index blobs, restored working bytes in finally. Published8630713f141cd47c678cdbbccceb634da0e8361d in PR109 through ordinary push0, no merge or acceptance. Native selection/claims/source proof and14element contract live in existing job outputs/registry-scope-*. Logical property view separately qualifies41logical properties/42accessors with7controls; no whole ORM denominator. No official state/owner/dependency change or managed inference.",
+      "status": "pending",
+      "owner": "codex-module-lifecycle",
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0382"
+      ],
+      "scope_sources": [
+        "docs:decisiones-completar-raiz-orm.rst",
+        "docs:hallazgos/hallazgo-H-API-1121-la-invalidacion-de-registry-se-compartia-entre-registros.rst",
+        "docs:progreso/bitacora-activacion-incremental-y-publicacion-contractual.rst",
+        "docs:progreso/bitacora-aislamiento-y-cobertura-del-cargador.rst",
+        "docs:progreso/bitacora-ampliacion-incremental-del-grafo.rst",
+        "docs:progreso/bitacora-consumidores-de-invalidacion.rst",
+        "docs:progreso/bitacora-continuacion-contractual-y-medicion-parcial.rst",
+        "docs:progreso/bitacora-migraciones-y-metadatos-por-base.rst",
+        "docs:progreso/bitacora-modulos-por-base-y-preservacion.rst",
+        "docs:progreso/bitacora-orden-de-addons-de-prueba.rst",
+        "docs:progreso/bitacora-piloto-del-grafo-de-modulos.rst",
+        "docs:progreso/bitacora-propiedades-y-aislamiento-de-invalidacion.rst",
+        "docs:progreso/bitacora-recuperacion-del-control-y-admision-contractual.rst",
+        "docs:progreso/bitacora-recuperacion-qa-y-contratos-fiscales-registry-stock.rst",
+        "docs:progreso/bitacora-solicitudes-por-base-y-estado-persistido.rst",
+        "docs:progreso/bitacora-validacion-de-nombres-y-recuperacion-de-estados.rst",
+        "docs:progreso/bitacora-version-instalada-y-snapshot-por-base.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "current instruction section28"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "assigned_authority_to_reconcile"
+    },
+    {
+      "task_id": "738",
+      "citation_id": "TASK-API-0383",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Implementar DEC-AISL-05: toda app de dominio migra a toda base",
+      "description": "Decisi\u00f3n del ejecutor 2026-08-21 (DEC-AISL-05): \"queremos que nuestra api sea igual a la referencia \u2026 cada base es una instalaci\u00f3n completa: su propio res_company, su propio res_users, su propio ir_module_module\". Cierra #443.\n\nPiezas medidas que cambian:\n\n1. `src/config/settings/base.py:328` \u2014 MULTIDB_CONTROL_PLANE_APPS pierde los tres base*: `base`, `base_address_extended`, `base_geolocalize`. Queda ('sessions', 'contenttypes'), que es el default del router (routers.py:57-58).\n2. `src/orm/routers.py:149-153` \u2014 allow_migrate deja de partir el dominio, Y consulta el roster como hace _target (hoy fija `db == DEFAULT_DB_ALIAS or db.startswith('company_')` sin consultarlo; H-API-783).\n3. Las 79 FK de dominio a res_users quedan intra-base \u2014 no se corta ninguna.\n4. Reactivar los 3 skip que citan H-API-262.\n5. Verificar migrate \u00d7N sobre una company_<N>_db real (hoy MULTIDB_COMPANY_DATABASES est\u00e1 en default='' y no hay alias company_* en settings.DATABASES).\n\nAlcance del cambio: 21 apps romp\u00edan bajo el reparto actual (22 mencionan base.rescompany en migraciones, menos `base`), sobre 120 apps addons.* en INSTALLED_APPS.\n\nNO incluye la granularidad de instalaci\u00f3n por base (ir_module_module.state) \u2014 eso es #737.\n\nVer decisiones-implementar-aislamiento-multi-db-per-company (DEC-AISL-05), analisis-multidb-en-la-referencia, h-api-783, h-api-784. Toca ADR-021 (cierra su punto \"Abierta (capa-3 de 091)\").\n\nBounded bootstrap/data-coherence follow-up after local CI2137fad6:838PASS1SKIP1FAIL. Pipeline probe identifies stored sale primary typeqweb while existing canonical resolver/model choices requiretemplate; direct C helper and XML combination retain Incoterm, report falls back because no canonical view selected. Base0070 already authoritatively renamesqweb->template (DEC-FW-05), but historicalsale0002/sale_stock0003 freezeqweb without an edge placing them before that rename. Actual fresh bootstrap leaves late seeds incompatible. Next unit completes the existing mapping using app-owned forward data repair migrations after own seed/current leaf andbase0070, historical models and selected alias. Do not edit old migrations/recorder/runtime resolver, introduce new enum/field/schema choice or reverse the accepted vocabulary. Preserve identity, XML, inheritance, visibility and unrelated types/keys; idempotence and caller transaction/alias controls, original PDF endpoint and fresh/historical bootstrap verification required. This is coherent full-domain migration/bootstrap under0383, not per-base installation granularity0382 or whole TASK acceptance. Use existing Django migration mechanism, no alternate loader/coordinator. No official state/owner/dependency change or local inference.",
+      "status": "pending",
+      "owner": "codex-module-lifecycle",
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0383"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-aislamiento-y-cobertura-del-cargador.rst",
+        "docs:progreso/bitacora-default-del-equipo-comercial.rst",
+        "docs:progreso/bitacora-migraciones-y-metadatos-por-base.rst",
+        "docs:progreso/bitacora-modulos-por-base-y-preservacion.rst",
+        "docs:progreso/bitacora-preflight-de-esquemas-historicos.rst",
+        "docs:progreso/bitacora-seguridad-del-fixture-sin-parches.rst",
+        "docs:progreso/bitacora-version-instalada-y-snapshot-por-base.rst",
+        "docs:progreso/bitacora-vistas-sembradas-y-continuacion.rst",
+        "docs:progreso/index.rst",
+        "current instruction section28"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "assigned_authority_to_reconcile"
+    },
+    {
+      "task_id": "1153",
+      "citation_id": "TASK-API-0391",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Censo de presencia con firma de src/orm y src/tools contra la referencia",
+      "description": "Medir el estado REAL de lo implementado en src/orm y src/tools: por archivo, sus clases y funciones con FIRMA y CLASE DE CUERPO (stub vs sustantivo), unidas a su homologo de la referencia (odoo19c). Los cinco instrumentos existentes miden AUSENCIA; su criterio de cierre lo satisfacen simbolos vacios. El eje nuevo es la presencia con firma, y la columna que discrimina es el stub. Salida en scripts/workbench/orm-symbol-presence-census-20260910T175850/.",
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0391"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1112-verificar-por-mensaje-de-commit-en-vez-de-por-diff-dio-falso-negativo.rst",
+        "docs:progreso/bitacora-piloto-del-grafo-de-modulos.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "current instruction section28"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "1154",
+      "citation_id": "TASK-API-0392",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Inventory the reference ORM in odoo-tools",
+      "description": "Medir el lado de la REFERENCIA por si mismo: archivos, clases, funciones y firmas de funciones de $ODOO19C/odoo/orm. La unidad es la ocurrencia cruda con su clase duenia, no el nombre deduplicado del censo de presencia (TASK-API-0391) \u2014 este run NO extiende cobertura, cambia la unidad y el desglose. El eje de version se persiste como probe: odoo/orm solo existe en 19c; el ORM de 18c vive plano en odoo/{models,fields,api}.py; Enterprise no trae directorio odoo/.",
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0392"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-piloto-del-grafo-de-modulos.rst",
+        "current instruction section28"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "1155",
+      "citation_id": "TASK-API-0393",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "El gate de idioma de api apuntaba a src/gates y el mecanismo vive en src/verify",
+      "description": "El shim `kaupamex-api/scripts/check_identifier_language.py` resolvia el mecanismo del proveedor en `thyrox/src/gates/check_identifier_language.py`, en sus DOS ramas (variable declarada y clon hermano). Medido: `ls /home/user/thyrox/src/gates/` -> No such file or directory; el archivo vive en `src/verify/`. Consecuencia: el gate 4 del `.githooks/pre-commit` de api REHUSABA siempre con exit 2 \u2014 nunca daba veredicto, ni verde ni rojo. No era un verde falso (el guard de h-docs-1145 funcionaba) sino un gate muerto en silencio: su propio mensaje de error ya decia `src/verify/`, asi que el literal y su mensaje se contradecian. Corregidos los dos literales; verificadas las dos ramas de resolucion (exit 0, \u00abMedido: 2 archivos\u00bb) y el control de h-docs-1145 (THYROX_ROOT=/no/existe sigue rehusando con exit 2, sin cifra).",
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0393"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1097-mudar-el-mecanismo-y-no-reapuntar-su-control.rst",
+        "docs:hallazgos/index.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "1167",
+      "citation_id": "TASK-API-0397",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Construir BaseModel propio desde el contrato medido de la referencia",
+      "description": "La referencia declara BaseModel con 194 metodos y __slots__ = ['env','_ids','_prefetch_ids'] (odoo19c: odoo/orm/models.py:334-7004). Portarlo con el criterio de dos niveles: (1) el stack lo trae hecho \u2014 hay simbolo instalado y basta llamarlo; (2) el stack tiene con que construirlo \u2014 no hay simbolo, si primitivas, sin dependencia de fuera.\n\nMedido en el banco api scripts/workbench/basemodel-contract-20260911T030334:\n- nivel 1 por NOMBRE: 21 sobre Django pristino. NO es veredicto: create/exists/update/__eq__ existen con OTRA semantica (exists() da bool, la fuente da recordset \u2014 H-API-1084).\n- nuestro arbol YA colgo: 14 sobre models.Model.\n- por construir: 159.\n- el bloque raiz es el protocolo de recordset: ids, ensure_one, with_env/sudo/with_user/with_company/with_context/with_prefetch, mapped, filtered, grouped, sorted, exists, concat, _cache, _convert_to_record, _convert_to_write \u2014 AUSENTES; sus 'presentes' del localizador son homonimos en otros archivos.\n\nPrimitivas medidas en los binarios instalados (django 6.0.5):\n- ModelBase.__new__ :97-389 y add_to_class :391-395 \u2014 el gancho de clase.\n- Model.__init__ :482-595, from_db :598-608 \u2014 el portal de instancia.\n- QuerySet.__init__(model, query, using, hints) :286-300, _clone :1979-1996, _fetch_all :1998-2002, __iter__ :375-391, __getitem__ :407-442.\n\nTDD: la mitad roja primero. Sin declarar divergencia donde toca construir.",
+      "status": "in_progress",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0397"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:hallazgos/hallazgo-H-API-1089-la-sonda-midio-el-stack-mas-nuestros-parches.rst",
+        "docs:hallazgos/hallazgo-H-API-1090-el-control-de-ensure-one-no-discriminaba.rst",
+        "docs:hallazgos/hallazgo-H-API-1103-la-declaracion-del-autor-no-aterriza-en-el-campo-llano.rst",
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-continuacion-contractual-y-medicion-parcial.rst",
+        "docs:progreso/bitacora-setup-derivado-y-arbol-de-categorias.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1168",
+      "citation_id": "TASK-API-0398",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Verificar contrato por contrato los 21 del cubo TRAE de BaseModel",
+      "description": "H-API-1089 corrigi\u00f3 el instrumento (Django pr\u00edstino en subproceso) y dej\u00f3 el cubo TRAE en 21 nombres. Ese 21 es por NOMBRE, no por contrato: `exists` (bool vs recordset), `create` (una instancia vs recordset de N), `update` (filas afectadas vs escritura en cach\u00e9) y `__eq__`/`__lt__` (pk vs conjunto de ids) son hom\u00f3nimos con contrato distinto \u2014 sub-patr\u00f3n C de metrica-decide-la-conclusion.md.\n\nEntregable: por cada uno de los 21, leer su cuerpo en el binario instalado (.venv/lib/python3.12/site-packages/django) y en la referencia (odoo19c: odoo/orm/models.py:334-7004), y publicar su veredicto: LLAMABLE tal cual \u00b7 ADAPTABLE con envoltura \u00b7 HOM\u00d3NIMO (hay que construirlo, y el nombre colisiona).\n\nEl instrumento ya existe: scripts/workbench/basemodel-contract-20260911T030334/census_class.py, que censa una clase de cualquiera de los dos \u00e1rboles con el mismo formato.\n\nSin este veredicto, el cubo TRAE no autoriza a llamar y el conteo 21/14/159 no se puede usar para repartir trabajo.",
+      "status": "in_progress",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0398"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:analisis-veredicto-contrato-de-los-21-del-cubo-trae.rst",
+        "docs:hallazgos/hallazgo-H-API-1089-la-sonda-midio-el-stack-mas-nuestros-parches.rst",
+        "docs:hallazgos/index.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1170",
+      "citation_id": "TASK-API-0399",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Portar BaseModel.fetch \u2014 mapped por ruta de campo sobre PREFETCH_MAX lo exige",
+      "description": "`mapped(func: str)` de la referencia (odoo19c: odoo/orm/models.py:6163-6165) llama `records.fetch([field_name])` cuando `len(records) > PREFETCH_MAX`. El puerto de `mapped` deja esa rama con su cuerpo declarado y un puntero a esta tarea; por debajo de PREFETCH_MAX el camino es completo.\n\nEL HUECO, RE-MEDIDO 2026-09-11 POR CONDUCTA (banco api scripts/workbench/fetch-contract-20260911T093329). La medicion anterior era del SIGNIFICANTE \u2014contar `def <simbolo>`\u2014 y publico cinco piezas ausentes; tres de las cinco estaban, porque son atributos que el `__init__` fija y un recorrido de declaraciones es ciego a ellas por construccion.\n\nMedido preguntandole a campos concretos de `base.ResPartner` las nueve preguntas que `_determine_fields_to_fetch` y `_fetch_query` hacen: **0 de 9 sin respuesta**. `column_type` lo responde `db_type(connection)` de Django (`bigint`, `varchar(100)`, y `None` para la relacion inversa de control); `store`, `prefetch`, `translate`, `copy`, `inherited`, `read`, `_insert_cache` y `_cache_missing_ids` estan en nuestro campo. El control negativo \u2014`category_ids`, relacion inversa\u2014 falla las nueve, asi que la sonda discrimina.\n\nLO QUE FALTA son TRES METODOS mas `fetch`, 224 lineas de referencia, y todas sus dependencias estan presentes:\n- `fetch` :3775-3818 (44 lineas)\n- `_determine_fields_to_fetch` :3820-3878 (59)\n- `_fetch_query` :3879-3989 (111)\n- `_as_query` :5396-5449 (54)\n\nFLUJO MEDIDO, que es lo que gobierna el porte: `fetch()` devuelve `None` y NO construye registros \u2014 llena la CACHE de los ids que ya estan en `self`. `_fetch_query` devuelve `fetched` solo para calcular la diferencia de acceso. En la referencia leer de la base NUNCA construye un objeto registro: los nueve sitios de construccion pasan todos por `BaseModel.__init__(env, ids, prefetch_ids)`, unica asignacion de la terna en todo `odoo/orm`.\n\nCierre: los cuatro portados con su suite, y la rama de `mapped` invocandolos sin puntero.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0399"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1171",
+      "citation_id": "TASK-API-0400",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Portar _sorted_order_to_function \u2014 sorted() por cadena y por _order lo exige",
+      "description": "`sorted(key)` de la referencia (odoo19c: odoo/orm/models.py:6286-6289) resuelve dos de sus tres formas de clave con `self._sorted_order_to_function(...)`: cuando `key` es una cadena (`'name DESC, id'`) y cuando es `None` (cae al `_order` del modelo). La tercera \u2014`key` callable\u2014 no lo necesita.\n\n`_sorted_order_to_function` es uno de los 194 del contrato de BaseModel (:6294-6344, api.model, firma `(self, order: str)`) y NO est\u00e1 en los 36 del n\u00facleo que TASK-API-0397 porta.\n\nMedido: `grep -rn \"_sorted_order_to_function\" src/orm/*.py src/tools/*.py` \u2192 0. El puerto de `sorted` acepta callable y `None`/cadena se\u00f1alan la rama pendiente con puntero a esta tarea.\n\nCierre: `_sorted_order_to_function` portado con su suite \u2014incluido el tramo de `NULLS FIRST|LAST` y `ASC|DESC` que la referencia parsea\u2014 y `sorted()` resolviendo sus tres formas.",
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0400"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "1172",
+      "citation_id": "TASK-API-0401",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Extender la guarda de tama\u00f1o al acceso llano rs.label",
+      "description": "BaseModel._read_field (api: src/orm/models.py) porta la guarda de tres reg\u00edmenes de Field.__get__ (odoo19c: odoo/orm/fields.py:1641-1661), pero s\u00f3lo act\u00faa por __getitem__('label') y por filtered/mapped. El acceso llano rs.label sobre un recordset de N sigue cayendo en el DeferredAttribute de Django, que ignora _ids.\n\nExtenderlo exige instalar FieldDescriptor en TODOS los campos, no s\u00f3lo en los que declaran compute. Coste medido: 42.6 ns contra 132.9 ns (3.12x) al volverlo descriptor de datos. Es decisi\u00f3n del ejecutor, no derivable.\n\nAdem\u00e1s: el docstring de api: src/orm/fields.py:1236 declara hoy que la rama record_len != 1 \"no tiene receptor\" \u2014 con BaseModel s\u00ed lo tiene, as\u00ed que esa nota queda rancia y se corrige en el mismo pase.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0401"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:hallazgos/hallazgo-H-API-1092-la-guarda-de-tamano-no-alcanza-el-acceso-llano.rst",
+        "docs:hallazgos/index.rst",
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1173",
+      "citation_id": "TASK-API-0402",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Hacer que las filas que Django construye lleven la terna del recordset",
+      "description": "La opci\u00f3n 2 de H-API-1083 (los modelos portados DERIVAN de BaseModel) es hoy s\u00f3lo NOMINAL: BaseModel._from_ids instala env/_ids/_prefetch_ids, pero una fila que Django construye por Model.__init__ (queryset, create, refresh_from_db) NO los lleva. Consecuencias medidas:\n\n- mapped() por ruta relacional no puede unir recordsets: el comodelo devuelve filas de Django sin _ids (api: src/orm/models.py, rama `field.relational`, que hoy levanta NotImplementedError citando esta tarea).\n- IdFromIds releva al descriptor original justo para ese caso.\n\nEl trabajo: decidir e implementar d\u00f3nde se inyecta la terna \u2014 candidato medido: TimeStampedModel, que es el ancestro com\u00fan de los modelos portados. Se abre con su propia mitad ROJA y su propio sucesor, no como ap\u00e9ndice de TASK-API-0397.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0402"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:hallazgos/hallazgo-H-API-1093-la-fila-de-django-no-lleva-la-terna.rst",
+        "docs:hallazgos/hallazgo-H-API-1106-el-descriptor-base-no-tiene-set-y-el-related-lo-necesita.rst",
+        "docs:hallazgos/hallazgo-H-API-1108-create-se-porto-el-paso-y-no-la-firma-ni-el-contenido.rst",
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-aceptacion-json-y-reconstruccion-relacional.rst",
+        "docs:progreso/bitacora-create-por-contenido-lista-de-dicts-a-recordset.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1174",
+      "citation_id": "TASK-API-0403",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Decidir si la protecci\u00f3n de Id.__set__ se recupera por otra v\u00eda",
+      "description": "H-API-1091. `IdFromIds` porta `Id.__get__` verbatim y NO declara `__set__`: declararlo lo convierte en descriptor de datos, que precede al `instance.__dict__`, y `Model.__init__` de Django asigna la pk por `setattr` \u2014 medido, `Sujeto(id=99)` levanta `TypeError: field 'id' cannot be assigned` y la construcci\u00f3n normal de una fila deja de funcionar (banco `basemodel-id-access-20260911T035612/outputs/id_setter.txt`).\n\nConsecuencia aceptada hoy: `rs.id = 5` sobre un recordset NO levanta el `TypeError` de la fuente (`odoo19c: odoo/orm/fields_misc.py:102-114`); escribe en el `__dict__`.\n\nQu\u00e9 decidir: si esa protecci\u00f3n se recupera, y por cu\u00e1l v\u00eda. Candidata: marcar el tramo de construcci\u00f3n como ya hace `_model_init_marking_the_load` en `src/orm/fields.py`, y que el `__set__` reh\u00fase s\u00f3lo FUERA de \u00e9l. Precondici\u00f3n de la decisi\u00f3n: medir el coste sobre el camino caliente antes de a\u00f1adir un descriptor de datos a `id` \u2014 es el mismo eje que midi\u00f3 el 3.12\u00d7 (42.6 ns contra 132.9 ns sobre 300 000 lecturas) de H-API-1092.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0403"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:hallazgos/hallazgo-H-API-1091-id-set-no-se-porta-verbatim.rst",
+        "docs:hallazgos/index.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1179",
+      "citation_id": "TASK-API-0404",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "La guarda :289 de ondelete es ciega al segundo vocabulario",
+      "description": "`:289` de la fuente compara la cadena declarada contra IR_MODELS, que lleva `_name` de la fuente. Nuestro \u00e1rbol tiene DOS vocabularios: `fields.Many2one('base.IrModel', ondelete='restrict')` no lo atrapa. Medido al dejarlo as\u00ed: 0 declaraciones del \u00e1rbol combinan etiqueta de Django con `ondelete=` (grep -rnE \"Many2one\\(\\s*['\\\"][a-z_]+\\.[A-Z]\" src/ --include=*.py | grep -c ondelete), as\u00ed que el caso es hoy INALCANZABLE. La fuente no lo necesita: all\u00e1 s\u00f3lo existe el nombre punteado, y un puente de 7 entradas escrito a mano se RETIR\u00d3 por inventar un caso que la fuente nunca alcanza. El s\u00edmbolo construido que lo cerrar\u00eda es `orm.registry.model_by_key`, que resuelve ambos vocabularios \u2014 pero su `_ensure_seeded()` barre `apps.get_models()` y el modelo puede no estar cargado al construir el campo. Condici\u00f3n de cierre: medir si `model_by_key` resuelve durante la definici\u00f3n de clases, o adoptar la regla de que un `Many2one` hacia un modelo de IR_MODELS se declara con el `_name` de la fuente, y cablear el gate que lo verifique.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0404"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1098-el-contrato-de-ondelete-no-estaba-portado.rst",
+        "docs:hallazgos/index.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1180",
+      "citation_id": "TASK-API-0405",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "La rama is_transient() de ondelete no se simula: el momento del stack no la alcanza",
+      "description": "La fuente resuelve la pol\u00edtica de `ondelete` en `setup_nonrelated` (`odoo19c: odoo/orm/fields_relational.py:274-282`) y su primer caso consulta el MODELO: `if model.is_transient() and not comodel.is_transient()` (`:275`) \u2192 `'cascade'`. Aqu\u00ed la resoluci\u00f3n ocurre en `__init__` porque `ForeignKey.__init__` de Django exige `on_delete` posicional, y en ese momento el campo a\u00fan no se ha asociado a ninguna clase: no hay `model`. Un `Many2one` declarado en un modelo transitorio recibe hoy el default de la rama NO transitoria (`:282`, `'restrict' if required else 'set null'`). Est\u00e1 declarado en el docstring de `_apply_ondelete`, no inventado. Condici\u00f3n de cierre: medir si `contribute_to_class` puede re-resolver la pol\u00edtica cuando el modelo ya existe (Django lo llama con `cls`), y si el `remote_field.on_delete` admite reasignaci\u00f3n despu\u00e9s de la construcci\u00f3n; si s\u00ed, portar el caso 1 entero; si no, medir por qu\u00e9 y declararlo con su cita.",
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0405"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1098-el-contrato-de-ondelete-no-estaba-portado.rst",
+        "docs:hallazgos/index.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "1181",
+      "citation_id": "TASK-API-0406",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Censar las aserciones negativas que el barrido invirti\u00f3 en los cinco clones",
+      "description": "Sucesor real de :ref:`h-api-1095`. El barrido del 2026-09-05 (api@709eef67) sustituy\u00f3 el nombre del L1 por \u00abKaupamex\u00bb DENTRO de aserciones cuyo predicado era que ese nombre NO aparece. La que se corrigi\u00f3 (tests/integration/auto_backup/test_backups.py:211) se delat\u00f3 con un rojo; las que hoy pasan por casualidad \u2014porque el valor bajo prueba no contiene \u00abkaupamex\u00bb\u2014 no producen rojo y son invisibles. Censar cu\u00e1ntas aserciones negativas toc\u00f3 el barrido en los cinco clones y cu\u00e1ntas quedaron invertidas sin delatarse. La cita TASK-API-0327 que el hallazgo llevaba resuelve en el store a otro sujeto (\u00abDar identidad de clase a fields.Html\u00bb): era un ordinal de board escrito como cita durable.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0406"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1095-el-barrido-invirtio-la-asercion-que-vigilaba-el-l1.rst",
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-corpus-completo-test-orm.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1182",
+      "citation_id": "TASK-API-0407",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Resolutor de ra\u00edz por marcador y su gate: el \u00edndice correcto hoy caduca al mover el archivo",
+      "description": "Sucesor real de :ref:`h-api-1096`. Un parents[N] correcto hoy se invalida en silencio cuando el archivo se mueve de profundidad: no hay rojo que lo delate. El desenlace es un resolutor por MARCADOR (buscar hacia arriba un archivo ancla) m\u00e1s el gate que rechace la aritm\u00e9tica por \u00edndice. Su ceguera declarada: la aritm\u00e9tica escrita de otra forma (.parent.parent.parent, os.path.dirname anidado) que el patr\u00f3n no ve. La cita TASK-API-0328 que el hallazgo llevaba resuelve en el store a otro sujeto (\u00abCrear src/tools/urls.py\u00bb): era un ordinal de board escrito como cita durable.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0407"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1096-el-off-by-one-de-parents-no-tiene-control.rst",
+        "docs:hallazgos/index.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1183",
+      "citation_id": "TASK-API-0408",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Censar las citas a src/gates en los cinco clones tras la mudanza a src/verify",
+      "description": "Sucesor real de :ref:`h-api-1097`. La mudanza de src/gates a src/verify (TASK-API-0301) dej\u00f3 consumidores que siguen nombrando la ruta vieja. Los que tienen test se delataron con un rojo; los que no lo tienen son invisibles. Censar las citas a src/gates en los cinco clones y reapuntarlas. La cita TASK-API-0329 que el hallazgo llevaba resuelve en el store a otro sujeto (\u00abReescritor de idioma en URL\u00bb): era un ordinal de board escrito como cita durable.\n\nM\u00c9TODO \u2014 no reinventar el instrumento: #41 es el barrido hermano (citas en prosa a guiones mudados por d566c180) y su descripci\u00f3n ya trae el reparto medido, la clase de \u00absin hogar, exige juicio y no sed\u00bb, y un CONTROL POSITIVO que discrimina (inject-coherence-audit.sh, inject-flow-selection.sh y save-agent-result.mjs S\u00cd existen, as\u00ed que un instrumento que los marque como muertos est\u00e1 roto). Reusar esa forma: censar, repartir en \u00abreapuntable con sed\u00bb contra \u00abexige juicio\u00bb, y verificar el instrumento contra rutas que s\u00ed existen antes de creer ning\u00fan cero.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0408"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1097-mudar-el-mecanismo-y-no-reapuntar-su-control.rst",
+        "docs:hallazgos/index.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1184",
+      "citation_id": "TASK-API-0409",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Barrer los 5 bancos de api que resuelven la ra\u00edz por parents[N]",
+      "description": "Medido 2026-09-11 sobre scripts/workbench/ de kaupamex-api: 6 de 33 piezas resuelven la ra\u00edz del consumidor por aritm\u00e9tica de ruta (`parents[2]` o `parents[3]`). Una ya se corrigi\u00f3 (orm-body-axis-blindness-20260911T021435, 2 guiones) al marcador + THYROX_CONSUMER; quedan 5 archivos en 5 piezas: class_attr_parity.py (parents[2]), measure_spanish_identifier_debt.py, inventory_reference_orm.py, census_symbol_presence.py, measure_trigger_graph.py.\n\nPor qu\u00e9 es defecto y no estilo: el hogar del banco es DECLARABLE (`THYROX_WORKBENCH_DIR`, thyrox: src/workbench/paths.py), as\u00ed que la profundidad de una pieza dentro de \u00e9l no es fija. Un `parents[3]` resuelve la ra\u00edz correcta s\u00f3lo mientras el banco viva donde viv\u00eda al escribirlo; movido el banco, el `sys.path.insert` apunta a un directorio sin el m\u00f3dulo \u2014 o peor, al `scripts/` de OTRO clon, y el guion mide el \u00e1rbol equivocado sin avisar.\n\nEs la forma Python del defecto que #228 ya cerr\u00f3 en el lado TypeScript de thyrox, y hermana de #248 (install.sh desde un directorio hondo).\n\nLa forma correcta, ya ejercida en la pieza corregida: entrada declarada primero (`THYROX_CONSUMER`, thyrox: src/paths/reach.py:612) y si no, marcador subiendo por `parents` hasta hallar `scripts/counterpart_body.py` (o el marcador propio de cada pieza) \u2014 la forma del BOOTSTRAP de reach.py, que sobrevive a la copia. Sin marcador, rehusar con exit y SIN emitir conteo: un 0 ah\u00ed ser\u00eda un verde falso.\n\nNO aplica a tests/unit/scripts/ \u2014 ah\u00ed `parents[3]` es la convenci\u00f3n dominante (23 hits) y no cruza distribuci\u00f3n: el test y su objetivo viven en el mismo repo a profundidad fija, y ese hogar no es declarable.\n\nSucesor natural: un gate que rechace `parents[N]` en scripts/workbench/**, con los 5 heredados en baseline.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0409"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1096-el-off-by-one-de-parents-no-tiene-control.rst",
+        "docs:hallazgos/index.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1185",
+      "citation_id": "TASK-API-0410",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "One2many resuelve con apps.get_model y falla igual ante 2+ puntos",
+      "description": "`fields_relational.py:354` resuelve el comodelo de One2many con `apps.get_model(self.comodel_name)`, que es OTRO mecanismo que el de Many2one/Many2many (los dos comparten `_translate_comodel`). Un `_name` de la fuente con dos o m\u00e1s puntos rompe ah\u00ed por la misma causa (make_model_tuple parte por el punto) y el resolutor diferido NO lo cubre. Medir cu\u00e1ntas declaraciones del \u00e1rbol lo alcanzan hoy y portar la traducci\u00f3n a esa v\u00eda, con su control de anulaci\u00f3n.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0410"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1099-el-nombre-punteado-de-la-fuente-no-llega-a-django.rst",
+        "docs:hallazgos/hallazgo-H-API-1100-el-censo-por-linea-midio-14-y-el-arbol-tiene-580.rst",
+        "docs:hallazgos/index.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1186",
+      "citation_id": "TASK-API-0411",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Portar la asercion de comodelo de setup_nonrelated como system check",
+      "description": "La referencia asegura la existencia del comodelo en una fase: `assert self.comodel_name in model.pool` (`odoo19c: odoo/orm/fields_relational.py:92-94`, dentro de `setup_nonrelated`). Nuestro puerto NO tiene esa fase, as\u00ed que un `_name` mal escrito queda como centinela colgado y s\u00f3lo se ve si alguien mira `_pending_operations`. Medir ANTES de portar si el setup de base de pytest-django corre system checks \u2014 hoy `res.users` est\u00e1 muerto y un Error abortar\u00eda `migrate`. Si lo corre, el check tiene que nacer como Warning o quedar fuera del conjunto por defecto.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0411"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1099-el-nombre-punteado-de-la-fuente-no-llega-a-django.rst",
+        "docs:hallazgos/index.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1187",
+      "citation_id": "TASK-API-0412",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Despachar el inverse declarado al escribir el campo",
+      "description": "CERRADA en api@775c674e (TASK-API-0412). Las dos v\u00edas portadas, en tres piezas: (1) `RecordLoaderMixin.write` envuelve la escritura en `env().protecting(protected, self)` y despacha `fields[0].determine_inverse(self)` al final del bloque \u2014 \u2259 `odoo19c: odoo/orm/models.py:4334,4493`; (2) `ComputedFieldDescriptor.__set__` marca el campo en `instance.__dict__[PENDING_INVERSE_FIELDS]` en sus tres cubos de escritura (fila nueva, fila real, y el cubo `_orm_building` S\u00d3LO si el campo no tiene columna \u2014 un campo sin columna s\u00f3lo llega al `__init__` por el bucle de kwargs sobrantes, o sea porque el llamador lo pas\u00f3); (3) `RecordLoaderMixin.save` vac\u00eda esa marca tras `super().save()` y despacha. Adem\u00e1s `model_field_registry` responde ahora al attname y al name (895 attnames, 0 choques), que es lo que el KeyError 'company_id' destap\u00f3. Aceptaci\u00f3n por CONTENIDO (columna del partner rele\u00edda de la DB, no `hasattr`): 4/4 caminos. Banco: scripts/workbench/fachadas-construyen-una-vez-20260911T193801/probe_declared_address_dispatches_its_inverse.py. Hallazgo: H-API-1111 (docs@d84ac6acd). Sucesores abiertos: #358 (64 rojos alcanzables), #359 (los ocho @property restantes de ResCompany).",
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0412"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:analisis-el-campo-ausente-y-el-despacho-en-masa-no-usado.rst",
+        "docs:hallazgos/hallazgo-H-API-1103-la-declaracion-del-autor-no-aterriza-en-el-campo-llano.rst",
+        "docs:hallazgos/hallazgo-H-API-1106-el-descriptor-base-no-tiene-set-y-el-related-lo-necesita.rst",
+        "docs:hallazgos/hallazgo-H-API-1110-un-campo-ausente-en-rescompany-aborta-la-costura-entera.rst",
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-antecedentes-rojos-y-sucesores.rst",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "1188",
+      "citation_id": "TASK-API-0413",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "El fixture de tabla de sonda no sobrevive a una corrida interrumpida",
+      "description": "tests/unit/orm/test_modified_engine.py:85-103 crea `orm_engine_owner` y `orm_engine_probe` con `schema_editor` en un fixture de ambito de sesion y las borra en el teardown. Si la corrida se interrumpe, las tablas quedan en la base del worker y la corrida SIGUIENTE muere en el setup con `DuplicateTable: relation \"orm_engine_owner\" already exists` \u2014 10 ERROR que se leen como regresion del cambio en curso. Medido 2026-09-11: residuo solo en kaupamex_core_qa_gw3; las otras cuatro bases limpias. El fixture debe ser idempotente al crear (borrar primero, o `if not exists`), que es la misma forma que ya exigen los provisioners de db. Y el caso que discrimina: dejar la tabla a mano, correr el archivo, y ver que pasa en vez de erroar.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0413"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1104-el-fixture-de-tabla-no-sobrevive-a-una-ejecucion-interrumpida.rst",
+        "docs:hallazgos/hallazgo-H-API-1110-un-campo-ausente-en-rescompany-aborta-la-costura-entera.rst",
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-antecedentes-rojos-y-sucesores.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1189",
+      "citation_id": "TASK-API-0414",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Un NonStored no tiene atributo editable, y su hermano con columna s\u00ed",
+      "description": "Medido al cerrar H-API-1101 (M15 del workbench fusion-de-declaraciones-de-campo): `fields.Char(compute='_c')` sale NonStored y pedirle `.editable` levanta AttributeError; `fields.Char(readonly=True)` sale CharField con `editable=False`.\n\nHoy es inocuo: un NonStored no est\u00e1 en `_meta.get_fields()`, as\u00ed que el mapeo autom\u00e1tico de ModelSerializer nunca lo alcanza \u2014 `get_field_kwargs` (rest_framework/utils/field_mapping.py:124-128) no llega a preguntar. Deja de serlo el d\u00eda que un serializer lo declare a mano en `Meta.fields`.\n\nQu\u00e9 medir antes de decidir: (1) si la referencia declara un equivalente de `editable` sobre su campo no almacenado, o si el eje es nuestro; (2) cu\u00e1ntos serializers del \u00e1rbol declaran a mano un campo que resuelve a NonStored. Si (2) es 0, el desenlace puede ser declarar el DESCONOCIDO con su condici\u00f3n de cierre en vez de construir el atributo.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0414"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1103-la-declaracion-del-autor-no-aterriza-en-el-campo-llano.rst",
+        "docs:progreso/bitacora-antecedentes-rojos-y-sucesores.rst",
+        "current instruction section28"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1190",
+      "citation_id": "TASK-API-0415",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Despachar el compute declarado al leer un NonStored",
+      "description": "CERRADA en `api@a95c11fb`. TASK-API-0415.\n\n`NonStored.__get__` gana su tercera rama \u2014entre `related` y `default`\u2014 que llama `determine_compute`, instalado desde `fields.py` como sus hermanos `determine_domain`/`determine_inverse` (el import inverso ser\u00eda ciclo). Los dos sitios declaran ahora la forma de la referencia: `display_name = Char('Display Name', compute='_compute_display_name', search='_search_display_name')` y `full_name = fields.Char('Group Name', compute='_compute_full_name', search='_search_full_name')`; el envoltorio `_display_name_default` retirado, y la etiqueta movida de `help_text=` (alias de `help=`) al primer posicional (`verbose_name` en Django, `string` en la fuente).\n\nFlujo medido antes de escribir: `Field.__get__` abre la rama en `odoo19c: odoo/orm/fields.py:1736-1737`; su cuerpo llega a `_compute_field_value` (`odoo/orm/models.py:4953`), cuyo cuerpo entero es `determine(field.compute, self)` m\u00e1s un `if field.store:` que un campo sin columna nunca alcanza. `determine` ya estaba portado (`orm/fields.py:1699`).\n\nTDD con su rojo persistido: `scripts/evidence/rojo-compute-dispatch-2026-09-11T17-33-32.log` (2 failed, 6 passed) \u2192 verde (9 passed). Control de anulaci\u00f3n: deshabilitada la rama caen EXACTAMENTE los cuatro casos que la miden (4 failed, 5 passed) y no se mueve ninguno de precedencia ni de regresi\u00f3n. Suite completa tras el porte: 3 failed, 10553 passed, 30 skipped en 317.63 s \u2014 los tres rojos son los heredados.\n\nEl control de control original NO discriminaba (`label != plain_label` era verde en los dos estados); se sustituy\u00f3 por uno parametrizado con dos c\u00f3mputos distintos, que ninguna constante satisface.",
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0415"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-el-compute-declarado-se-despacha-al-leer.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "1191",
+      "citation_id": "TASK-API-0416",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Portar la fase que recoge las definiciones de campo por clase",
+      "description": "BLOQUEO CORREGIDO 2026-09-11. Esta tarea declaraba \u00abdepende de #318 (MetaModel) y de _setup/_setup_fields\u00bb. **Falso, y la conclusi\u00f3n sal\u00eda del censo de s\u00edmbolos \u2014 significante \u2014 en vez de medir c\u00f3mo funciona.**\n\nMedido por conducta (`scripts/workbench/recoleccion-de-definiciones-*/`):\n\n1. La referencia recorre `_model_classes__`, y eso ES `mro()`: `model_cls._model_classes__ = tuple(c for c in model_cls.mro() if getattr(c,'pool',None) is None)` (`odoo19c: odoo/orm/model_classes.py:358`). No es un registro propio \u2014 es el MRO filtrado a clases de definici\u00f3n. Python lo trae hecho.\n2. Las DOS ocurrencias sobreviven distinguibles en las dos formas de herencia de este \u00e1rbol, medido con sondas: base abstracta de Django \u2192 `_meta.local_fields` de cada clase da `[('HoldsBase',10),('HoldsChild',20)]`; mixin llano \u2192 `vars(mixin)` y `vars(hija)` dan dos `NonStored` distintos, cada uno con su `compute`.\n3. `ModelBase.__new__(cls, name, bases, attrs, **kwargs)` recibe el cuerpo de clase igual que `MetaModel.__new__`, y `contribute_to_class` dispara una vez por ocurrencia en orden base\u2192hija.\n\nVeredicto INVENTORY: la **recolecci\u00f3n** es *el stack lo trae hecho* (mro + `_meta.local_fields` + `vars`); la **fusi\u00f3n** es *tiene con qu\u00e9 construirlo* (`_get_attrs` ya portado, `orm/fields.py:1105-1128`). No hace falta `MetaModel` ni ninguna dependencia de fuera.\n\nCASO DE ACEPTACI\u00d3N, medido sobre el modelo real (`probe_the_override_loses_the_base.py`):\n\n    la base (DisplayNameMixin)  compute='_compute_display_name' search='_search_display_name' -> NonStored\n    el override (TestOrmCategory) compute=None search=None inverse='_inverse_display_name' recursive=True -> CharField\n\nEl override se porta verbatim de `odoo19c: odoo/addons/test_orm/models/test_orm.py:28-31`. All\u00e1 no significa \u00abcampo con columna\u00bb: significa override, y la fusi\u00f3n le trae el `compute` de la base, del que el bloque compute deriva `store=False`. Aqu\u00ed, sin fusi\u00f3n, `store` cae a su defecto `True`.\n\nCierra los dos rojos heredados de `tests/unit/orm/test_display_name.py`.",
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0416"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1105-la-fusion-de-campos-esta-construida-y-sin-entrada.rst",
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-el-compute-declarado-se-despacha-al-leer.rst",
+        "docs:progreso/bitacora-la-costura-recoge-fusiona-y-deriva-store.rst",
+        "docs:tareas-completar-raiz-orm.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "1192",
+      "citation_id": "TASK-API-0417",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Retirar el enrutado de las fachadas: la costura decide, no el constructor",
+      "description": "Cierra la duplicaci\u00f3n que TASK-API-0416 declar\u00f3 en el docstring de `_field_get_attrs` (src/orm/fields.py). Los tres bloques de derivaci\u00f3n de la fuente (`compute`/`related`/`precompute`, odoo19c: odoo/orm/fields.py:443-465) viven hoy DOS veces: en `_field_get_attrs`, portados verbatim, y en `apply_source_defaults` de src/orm/fields_nonstored.py, que es lo que las fachadas consultan al construir. Mientras `make_dispatcher`/`Char`/`Json`/`Monetary`/`projection_or_none` enruten por clase en el constructor, la copia de `fields_nonstored` no se puede retirar: es lo \u00fanico que decide qu\u00e9 clase se instancia. El trabajo es retirar ese enrutado para que las fachadas devuelvan UNA sola clase y la derivaci\u00f3n de `store` la haga la costura al contribuir (que es el orden de la fuente). Verificaci\u00f3n: `apply_source_defaults` deja de contener los tres bloques y la suite de tests/unit/orm sigue verde.",
+      "status": "in_progress",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0417"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:hallazgos/hallazgo-H-API-1105-la-fusion-de-campos-esta-construida-y-sin-entrada.rst",
+        "docs:hallazgos/hallazgo-H-API-1106-el-descriptor-base-no-tiene-set-y-el-related-lo-necesita.rst",
+        "docs:hallazgos/hallazgo-H-API-1107-default-get-vive-en-un-mixin-que-basemodel-no-hereda.rst",
+        "docs:hallazgos/hallazgo-H-API-1112-verificar-por-mensaje-de-commit-en-vez-de-por-diff-dio-falso-negativo.rst",
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-aceptacion-json-y-reconstruccion-relacional.rst",
+        "docs:progreso/bitacora-antecedentes-rojos-y-sucesores.rst",
+        "docs:progreso/bitacora-create-por-contenido-lista-de-dicts-a-recordset.rst",
+        "docs:progreso/bitacora-la-compuerta-relacional-de-store-y-default-get-en-la-base.rst",
+        "docs:progreso/bitacora-la-costura-recoge-fusiona-y-deriva-store.rst",
+        "docs:progreso/bitacora-la-forma-sin-columna-se-construye-con-column-none.rst",
+        "docs:progreso/bitacora-solicitudes-por-base-y-estado-persistido.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1193",
+      "citation_id": "TASK-API-0418",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Retirar NonStored como clase: el eje es store, no el tipo",
+      "description": "Citada por TASK-API-0416 en el docstring de `_collect_field_definitions` (src/orm/fields.py) como la condici\u00f3n que vuelve ALCANZABLE la rama de fusi\u00f3n: hoy `NonStored` es una clase suelta y por eso no cuenta como definici\u00f3n de campo en la MRO. La fuente no tiene una clase por almacenamiento \u2014 `store` es un atributo derivado, no un tipo (odoo19c: odoo/orm/fields.py:459-465). Radio medido: 317 menciones en ~80 archivos; 7 declaraciones directas en 5 archivos; 35 sitios `isinstance`/`issubclass`; 27 imports. Los 3 sitios de producci\u00f3n son src/orm/domains.py:234, src/orm/fields_nonstored.py:224 y :718, que pasan a `not getattr(f, 'store', True)`. Adem\u00e1s: el export de src/fields/__init__.py, scripts/check_display_name.py:101, addons/base_sparse_field/models/fields.py, y ~25 aserciones de test que van a un helper \u00fanico. Bloqueada por TASK-API-0417.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0418"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:hallazgos/hallazgo-H-API-1105-la-fusion-de-campos-esta-construida-y-sin-entrada.rst",
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-antecedentes-rojos-y-sucesores.rst",
+        "docs:progreso/bitacora-catalogos-fisicos-y-reconciliacion-por-archivo.rst",
+        "docs:progreso/bitacora-la-costura-recoge-fusiona-y-deriva-store.rst",
+        "docs:progreso/bitacora-la-forma-sin-columna-se-construye-con-column-none.rst",
+        "docs:progreso/bitacora-validacion-de-nombres-y-recuperacion-de-estados.rst",
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1194",
+      "citation_id": "TASK-API-0419",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Reconstruir un campo relacional desde _args__: to y on_delete no llegan a Field.__init__",
+      "description": "Cota declarada por TASK-API-0416 en el docstring de `_merge_field_definitions` (src/orm/fields.py). La fusi\u00f3n reconstruye el campo con `type(chain[-1])(**merged)`, y `merged` sale de `_args__`, que s\u00f3lo guarda lo que pas\u00f3 por `Field.__init__` (el parche `_field_init_with_copy`). Una relacional entrega `to` y `on_delete` a `ForeignKey.__init__`/`ManyToManyField.__init__` y nunca al de `Field`, as\u00ed que su reconstrucci\u00f3n sale sin destino ni pol\u00edtica de borrado. Hoy no se alcanza \u2014la rama de fusi\u00f3n entera es inalcanzable hasta que cierre TASK-API-0418\u2014 pero al abrirse ser\u00e1 el primer caso que rompa. Dos caminos a medir contra la referencia antes de elegir: capturar los kwargs en el `__init__` de cada relacional, o reconstruir desde `deconstruct()` en vez de desde `_args__`. Verificaci\u00f3n: un caso con una cadena de dos declaraciones sobre un ForeignKey que conserve `to` y `on_delete`.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0419"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:analisis-el-campo-ausente-y-el-despacho-en-masa-no-usado.rst",
+        "docs:hallazgos/hallazgo-H-API-1110-un-campo-ausente-en-rescompany-aborta-la-costura-entera.rst",
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-aceptacion-json-y-reconstruccion-relacional.rst",
+        "docs:progreso/bitacora-antecedentes-rojos-y-sucesores.rst",
+        "docs:progreso/bitacora-as-is-y-recalculo-ausentes.rst",
+        "docs:progreso/bitacora-la-costura-recoge-fusiona-y-deriva-store.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1195",
+      "citation_id": "TASK-API-0420",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "El default literal de fields.Json dispara E010: la fuente lo copia por registro",
+      "description": "Medido con `kaupamex-bin makemigrations --check --dry-run`: `test_orm.TestOrmDiscussion.history: (fields.E010) JSONField default should be a callable instead of an instance so that it's not shared between all field instances`. El porte es FIEL \u2014 `odoo19c: odoo/addons/test_orm/models/test_orm.py:108` declara exactamente `history = fields.Json('History', default={'delete_messages': []})`, y su suite lo ejercita (`tests/test_json_field.py:17,22,24,26`). El defecto no es del porte: es que **nuestro** `fields.Json` entrega el mismo objeto a todas las instancias, mientras la fuente copia el `default` por registro. Por eso NO se resuelve cambiando el porte a `default=dict` (perder\u00eda el contenido `{'delete_messages': []}` que los tests exigen) ni declarando divergencia: se construye el copiado por registro en el mecanismo de default, que es lo que `porte-completo-no-parcial.md` manda cuando el stack no trae la conducta. Verificaci\u00f3n: `makemigrations --check` sin E010, y un caso que escriba en el default de un registro y lea el de otro sin contaminaci\u00f3n. Pre-existente desde api@0ddc7ab0; hallado al correr el gate de migraciones de TASK-API-0416.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0420"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-aceptacion-json-y-reconstruccion-relacional.rst",
+        "docs:progreso/bitacora-admision-default-json.rst",
+        "docs:progreso/bitacora-antecedentes-rojos-y-sucesores.rst",
+        "docs:progreso/bitacora-as-is-y-recalculo-ausentes.rst",
+        "docs:progreso/bitacora-continuacion-contractual-y-medicion-parcial.rst",
+        "docs:progreso/bitacora-implementacion-default-json.rst",
+        "docs:progreso/bitacora-la-costura-recoge-fusiona-y-deriva-store.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "current instruction section28"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1196",
+      "citation_id": "TASK-API-0421",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Portar BaseModel.create por contenido: lista de dicts \u2192 recordset, dict \u2192 singleton",
+      "description": "BLOQUEO CORREGIDO: DefaultGetMixin.create(cls, **values) (src/orm/models.py:685) declaraba \u00ablo que se porta es el paso, no la firma\u00bb apoyado en \u00ablos seis create de clase del \u00e1rbol\u00bb. Medido por conducta: grep -rn \"def create(cls\" src/ addons/ da 25 definiciones, 9 con la forma de la referencia (vals_list; decimal_precision.py ya lleva @api.model_create_multi) y 13 con **vals; los callers list/dict suman 22 contra 20 kwargs (casi todos tests). La premisa contaba, no le\u00eda. Referencia: odoo19c odoo/orm/models.py:4611-4770 (create), :4849-4948 (_create), :4772-4812 (_prepare_create_values), decorators.py:357 (model_create_multi: Mapping \u2192 [vals]). Veredicto INVENTORY ('django','recorrido del \u00e1rbol a dict'): lo trae hecho \u2014 @api.model_create_multi ya existe en el \u00e1rbol; el flujo se construye con las primitivas ya portadas (check_access :263, _check_field_access :1642, _add_missing_default_values :605, _add_precomputed_values :3735, modified :3320, _validate_fields :3791, browse :4180). CASO DE ACEPTACI\u00d3N: sonda de contenido en scripts/workbench/fachadas-construyen-una-vez-20260911T193801/ con claves declaradas \u2014 create({...}) devuelve recordset de 1; create([a,b]) devuelve recordset de 2 en orden; campo desconocido \u2192 ValueError \u00abInvalid field\u00bb; defaults de default_get aplicados; M2M por Command.set tras el alta; kwargs form rechazada; los 9 create(vals_list) del \u00e1rbol siguen verdes; los 13 **vals se migran al mismo pase.",
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0421"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-antecedentes-rojos-y-sucesores.rst",
+        "docs:progreso/bitacora-create-por-contenido-lista-de-dicts-a-recordset.rst",
+        "docs:tareas-completar-raiz-orm.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "1197",
+      "citation_id": "TASK-API-0422",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Portar bypass_search_access al create: la fuente lo propaga a los padres _inherits",
+      "description": "BaseModel.create (odoo19c: odoo/orm/models.py:4611-4770) hace `self.env.context.get('bypass_search_access')` y lo transmite al `parent_model.create` de cada padre `_inherits` para saltar las record rules del padre. El porte por contenido de H-API-1108 (TASK #351) lo declar\u00f3 como divergencia con 0 usos medidos en el \u00e1rbol (`grep -rn bypass_search_access src addons tests`). Cuando `ir.rule` se cablee al `search`, portar la clave del contexto y su propagaci\u00f3n, con un test que cree un modelo `_inherits` bajo una regla que niegue el padre y verifique que con la clave el alta pasa y sin ella falla.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0422"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1108-create-se-porto-el-paso-y-no-la-firma-ni-el-contenido.rst",
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-antecedentes-rojos-y-sucesores.rst",
+        "docs:progreso/bitacora-create-por-contenido-lista-de-dicts-a-recordset.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1198",
+      "citation_id": "TASK-API-0423",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "La costura aborta en company_country_code y deja la suite roja",
+      "description": "CERRADA en api@775c674e, junto con #341 del que depend\u00eda. Los seis campos de direcci\u00f3n de ResCompany (street, street2, city, zip, state, country) dejaron de ser @property y se declaran `compute='_compute_address'` + `inverse='_inverse_<campo>'`; `country_code` es `related='country.code'`. Con eso la cadena `company_id.country.code` de `company_country_code` resuelve y `ensure_field_setup()` ya no aborta. Medici\u00f3n pareada con `git stash` sobre tests/unit/orm: ANTES 0 passed / 2205 errors \u2014 la suite mor\u00eda en import; DESPU\u00c9S 2141 passed / 64 failed. El censo de cadenas pas\u00f3 de 14 medidas con 2 rotas a 15 con 0 rotas (scripts/evidence/uno-353-2026-09-12T08-58-46-001.log). Los 64 rojos NO son de este cambio: eran inalcanzables porque nada llegaba a correr; su triaje es #358. El `related=` NO regres\u00f3 la persistencia \u2014 la escritura la sostiene el inverso despachado, verificado por contenido contra la columna del partner.",
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0423"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1110-un-campo-ausente-en-rescompany-aborta-la-costura-entera.rst",
+        "docs:hallazgos/index.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "1199",
+      "citation_id": "TASK-API-0424",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "El campo sin columna de una cadena related no es buscable: el recompute no puede hallar las filas",
+      "description": "Medido al declarar ResCompany.country como Many2one(compute='_compute_address', inverse='_inverse_country') en proceso (scripts/evidence/direccion2-2026-09-12T07-52-24-001.log): la costura emite DOS UserWarning de src/orm/fields.py:4020 \u2014 \u00abField country in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified\u00bb. Lo mismo para company_country_group_codes. La forma es la de la referencia (odoo19c: addons/base/models/res_company.py:69-78), asi que el aviso puede ser fiel y no un defecto; lo que falta es el veredicto: o el campo declara `search=`, o la dependencia se simplifica, o se declara la divergencia. Ademas, en la sonda el recolector de delete() sobre ResPartner revent\u00f3 con TypeError: argument of type 'NoneType' is not iterable al consultar la columna None del campo \u2014 pendiente de re-medir con el campo declarado en el cuerpo de la clase (donde la costura lo contribuye con private_only), no por contribute_to_class manual.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0424"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:hallazgos/hallazgo-H-API-1110-un-campo-ausente-en-rescompany-aborta-la-costura-entera.rst",
+        "docs:hallazgos/index.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1207",
+      "citation_id": "TASK-API-0427",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "La suite completa de api se cuelga en espera de lock: una conexi\u00f3n queda idle in transaction",
+      "description": "Medido 2026-09-12T09:52:19. La corrida lanzada a las 09:07:19 NO midi\u00f3 la suite: midi\u00f3 una espera de lock. NO es citable como baseline.\n\nEvidencia: scripts/evidence/suite-colgada-por-lock-2026-09-12T09-52-19.log\n\nS\u00edntoma: el proceso de pytest (19495) llevaba 43:37 de reloj y 12:36 de CPU,\ncon 0 ticks de CPU en una ventana de 3 s, bloqueado en poll_schedule_timeout.\nEl log no avanzaba desde las 09:22:23, parado en 59 %.\n\nMecanismo: pg_stat_activity da cinco backends sobre kaupamex_core_qa. El\nbackend 23200 (abierto 09:12:36, state_change 09:22:23 \u2014 el mismo instante en\nque el log dej\u00f3 de avanzar) est\u00e1 `idle in transaction` / ClientRead, y\npg_blocking_pids se\u00f1ala que bloquea a los otros cuatro:\n\n  752, 921, 1516  ->  SELECT ... FROM ir_cron ...\n  1609            ->  select number_next from ir_sequence where id=327 for update nowait\n\nPregunta abierta que el diagn\u00f3stico NO responde: pytest corr\u00eda en serie y el\nproceso s\u00f3lo ten\u00eda TRES sockets, as\u00ed que dos de los cinco backends pertenecen a\notro cliente que no se identific\u00f3. Sin eso no se puede afirmar si es un\nautobloqueo del propio proceso o contenci\u00f3n con un cliente ajeno \u2014 y ese es el\nprimer paso del cierre, no una conclusi\u00f3n que se pueda derivar de lo medido.\n\nCiega a: qu\u00e9 caso concreto estaba corriendo. La corrida usaba `--tb=no -q`, que\nno nombra el test en curso. Re-medir con `--tb=line` y, si hace falta,\n`-p no:cacheprovider --timeout` para que el cuelgue falle en vez de esperar.\n\nCierre: identificar al due\u00f1o de los backends hu\u00e9rfanos, y que la suite no pueda\nquedarse esperando un lock indefinidamente (timeout por test o lock_timeout en\nla conexi\u00f3n de pruebas).",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0427"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-as-is-y-recalculo-ausentes.rst",
+        "docs:tareas-completar-raiz-orm.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "1441",
+      "citation_id": "TASK-API-0478",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Validate API locally with the same fail-fast CI contract",
+      "description": "Solicitud explicita del usuario 2026-10-22: detectar errores antes del push, detener al primer fallo y registrar la TASK. Alcance Consumer: un mismo target Make local/GitHub, uv frozen, PostgreSQL desechable con consentimiento por nombre exacto, pytest maxfail=1, JUnit incluso al fallar, timeout CI. Sin ORM, hooks, protecciones ni otro coordinador. Relacion: TASK-API-0136 (PDF/CI completed), TASK-API-0093 (drift de migraciones pendiente: no imponer makemigrations como nuevo gate), TASK-API-0415 y H-API-1120 (bootstrap). No equivalen a este contrato. Dependencias de ejecucion: Python compatible, uv, libpng/zlib, PostgreSQL exclusivo. Aceptacion: controles negativos contra QA compartida y propagacion de fallo sin ejecutar pasos posteriores; ejecucion real con la misma orden en DB propia; distinguir fallo de suite y fallo del mecanismo; conservar resultados CI. Cierre remoto requiere aceptacion/integracion. Evidencia: scripts/evidence/ci-local-fail-fast-20261022T004947/.\n\n[VM-b501 incremental-admission qualification] Functional responsibility devops, verification responsibility qa; execution Codex authorized engineering, not managed local inference. Existing check_python_style.sh now exposes an explicit --increment interface backed by check_python_style_increment.py; --staged/--all, pre-commit, Makefile, Actions and global policy retain their original semantics. Exact base/index or commit provenance, native pycodestyle2.14.0/import/compile checks, AST context and diagnostic multiplicities, strict new/moved files and fail-closed context/evidence checks.87qualified tests include real isolated Git repositories, unchanged global modes, hook style wiring, CI orchestration fixtures, concurrent index/verifier changes and negative regressions. No hook/CI activation or publication authorization claimed; global style remains knownFAIL and ci-verify is not reportedPASS.0283 source/test untouched. Four-file recovery patch validated without changing real index. Evidence in existing Docs event auditar-estado-vm-y-continuidad-20261016T100835/trazabilidad-20261027 outputs/increment-admission-*; source lives in API. Owner/status/dependencies retained; no duplicate Task or owner migration. A separate decision is required to change the full-index publication gate and authorize using this mode for pending PRs.\n\n[Controlled publication2026-10-29] Controlled activation authorized2026-10-29: a3741a88621803ce8c68d094772d759c6f9739e7 wires explicit incremental admission into real pre-commit; 4c3a992e qualifies anchored inherited suppression provenance without ignoring latent debt. Bound qualification99PASS, real positive/negative hook cases and actual commits exit0. --staged/--all/check-style retain global semantics. Actions unchanged; run40946709078 at a3741a88 failed check-style1/ci-verify2. PR109 remote0ce23373ad0f36d2bba9918b583126079702f7ae open; latest CI in progress at observation. Functional responsibility devops; qa verification separate; Codex executor is not Thyrox local inference. Source and reproducible reports: existing CI job outputs/increment-activation-*. No global compliance/integration/acceptance claim.\n\n[Recheck1662b8af] Published strengthened real-hook invalid-provenance assertions: hook1/reportERROR2/reason/globalNOT_EVALUATED. Focused1PASS and actual-hook bound qualification99PASS; full hooks0. No policy/runtime/ORM change. Twelve activation criteria reconciled with published evidence. Global CI at0ce23373 run40950074233FAIL check-style1/ci-verify2; new-head CI tracked separately. Native-block visibility still unresolved; command/exec notifications connection-scoped, no client adapter exposed, no binary/config modifications. No Task acceptance or model inference.",
+      "status": "pending",
+      "owner": "codex-ci-local",
+      "submodule": "api",
+      "source_citations": [
+        "TASK-API-0478"
+      ],
+      "scope_sources": [
+        "docs:decisiones-completar-raiz-orm.rst",
+        "docs:progreso/bitacora-politica-adaptativa-aprobada-y-alcance-del-gate.rst",
+        "current instruction section28"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "assigned_authority_to_reconcile"
+    },
+    {
+      "task_id": "298",
+      "citation_id": "TASK-GEN-0058",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Ola 1 \u00b7 portar odoo/modules/db.py (6 s\u00edmbolos) \u2014 n\u00facleo de m\u00f3dulos",
+      "description": "Iniciativa completar-nucleo-modules. Portar odoo19c: odoo/modules/db.py entero: initialize, is_initialized, create_categories, has_trigram, has_unaccent, FunctionStatus (200 l\u00edneas, LGPL-3). No depende de nada del n\u00facleo y desbloquea la detecci\u00f3n de extensiones de PostgreSQL que #96 (GIN) y #98 (unaccent real) dan por hecha. Medido 2026-08-13 sobre odoo-tools@622ddc2a: el archivo NO existe en api/src/modules/. Criterio: porte completo o desenlace declarado por s\u00edmbolo (porte-completo-no-parcial.md) + prueba en tests/unit con control positivo.",
+      "status": "pending",
+      "owner": null,
+      "submodule": null,
+      "source_citations": [
+        "TASK-GEN-0058"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-etiqueta-de-producto-y-consumidores.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "333",
+      "citation_id": "TASK-GEN-0060",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Construir el almacenamiento jsonb de translate=True",
+      "description": "La referencia almacena un campo translate=True como columna jsonb {lang: valor} y resuelve el idioma en el ORM (odoo19c: odoo/orm/fields_textual.py:53 \u2014 'if self.store and self.translate'; :66 \u2014 column['udt_name'] == 'jsonb'). Aqu\u00ed fields.Char(translate=True) s\u00f3lo ANOTA la bandera en el campo (field.odoo_translate) para que la declaraci\u00f3n sea fiel y greppeable; la columna sigue siendo varchar y guarda un solo idioma. Construir: (a) el campo jsonb con lectura/escritura por idioma activo, (b) la reescritura de consulta para filtrar/ordenar por el idioma, (c) la migraci\u00f3n de los varchar existentes. PostgreSQL ya soporta jsonb y django.contrib.postgres est\u00e1 cableado (#94), as\u00ed que no hay bloqueo de motor. Medir primero cu\u00e1ntos campos del \u00e1rbol lo declaran (grep odoo_translate / translate=True).",
+      "status": "pending",
+      "owner": null,
+      "submodule": null,
+      "source_citations": [
+        "TASK-GEN-0060"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [],
+      "blocks": [
+        "400"
+      ],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "400",
+      "citation_id": "TASK-GEN-0062",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Construir el motor de traducci\u00f3n: import/export de .po",
+      "description": "Construir el motor de traducci\u00f3n: import/export de .po.\n\nRE-ENCUADRADA 2026-08-18 por el cap. 11 del Cookbook. La tarea declara como \u00fanica dependencia la #333 (almacenamiento jsonb de los valores traducibles de registro), y con ese alcance cerrar\u00eda PARCIAL bajo su propio criterio: la receta de importar del cap\u00edtulo documenta un TERCER destino que no depende de #333 en absoluto \u2014 `ir_model_fields.field_description`, las etiquetas de campo. Medido: 0 de 1831 `verbose_name`/`help_text` envueltos en `gettext_lazy`, sin `locale/` ni `LOCALE_PATHS` declarados.\n\nLos tres destinos de un .po importado son distintos y s\u00f3lo uno est\u00e1 cubierto por la dependencia declarada:\n1. valores de registro traducibles \u2192 jsonb en la propia columna (#333)\n2. etiquetas de campo \u2192 `ir_model_fields.field_description` (bloqueado adem\u00e1s por #487, que le falta el `translate=`)\n3. arquitectura de vista \u2192 `ir_ui_view.arch_db`\n\nSub-piezas medidas que tampoco est\u00e1n en el tablero y son alcance natural de esta tarea: el despachador `translate=` no existe para `Text`/`Html` (prerrequisito de #333); el eje de idioma base `es.po`\u2192`es_MX.po` (`get_base_langs`); y `i18n_extra/` como segunda capa de .po.",
+      "status": "pending",
+      "owner": null,
+      "submodule": null,
+      "source_citations": [
+        "TASK-GEN-0062"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": [
+        "333"
+      ],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "485",
+      "citation_id": "TASK-GEN-0073",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Construir base.automation: reglas declarativas por tiempo y por evento",
+      "description": "Cap. 12 del Cookbook mide que el motor `base.automation` de la referencia \u2014reglas declarativas que disparan una acci\u00f3n por CONDICI\u00d3N DE TIEMPO (X d\u00edas antes/despu\u00e9s de una fecha del registro) o por EVENTO (al crear, al escribir un campo, al entrar en un dominio)\u2014 est\u00e1 completamente AUSENTE del \u00e1rbol, y no tiene ninguna fila en el tablero.\n\nNo lo cubre el ir.cron ya portado (#122/#123): ir.cron da la periodicidad \u2014cada N horas corre este m\u00e9todo\u2014 pero no el dominio declarativo ni el disparo por evento de escritura. Son mecanismos complementarios; la referencia tiene los dos y nosotros s\u00f3lo uno.\n\nPrecondici\u00f3n a medir antes de tomarla: el motor necesita evaluar un dominio sobre el registro y ejecutar una acci\u00f3n de servidor, as\u00ed que se cruza con la fila AUSENTE de `ir.actions.server` sin evaluador (mismo cap\u00edtulo) y con la clase Domain ya portada (#356).",
+      "status": "completed",
+      "owner": null,
+      "submodule": null,
+      "source_citations": [
+        "TASK-GEN-0073"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-migraciones-y-metadatos-por-base.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "60",
+      "citation_id": "TASK-GEN-0312",
+      "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "subject": "Dar migraciones a cada app propia AL CERRAR su porte, no antes",
+      "description": null,
+      "status": "pending",
+      "owner": null,
+      "submodule": null,
+      "source_citations": [
+        "TASK-GEN-0312"
+      ],
+      "scope_sources": [
+        "docs:tareas-completar-raiz-orm.rst"
+      ],
+      "blocked_by": null,
+      "blocks": null,
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "306",
+      "citation_id": "TASK-GEN-0558",
+      "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "subject": "Dar al computo un QuerySet en vez de una fila, y recuperar el lote de prelectura",
+      "description": null,
+      "status": "pending",
+      "owner": null,
+      "submodule": null,
+      "source_citations": [
+        "TASK-GEN-0558"
+      ],
+      "scope_sources": [
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": null,
+      "blocks": null,
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "307",
+      "citation_id": "TASK-GEN-0559",
+      "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "subject": "Portar apply_except_missing: desmarcar el computo de la fila que ya no existe",
+      "description": null,
+      "status": "pending",
+      "owner": null,
+      "submodule": null,
+      "source_citations": [
+        "TASK-GEN-0559"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-as-is-y-recalculo-ausentes.rst",
+        "docs:tareas-completar-raiz-orm.rst",
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": null,
+      "blocks": null,
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "311",
+      "citation_id": "TASK-GEN-0563",
+      "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "subject": "Ejecutar el inverse declarado al escribir el campo calculado",
+      "description": null,
+      "status": "completed",
+      "owner": null,
+      "submodule": null,
+      "source_citations": [
+        "TASK-GEN-0563"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1103-la-declaracion-del-autor-no-aterriza-en-el-campo-llano.rst"
+      ],
+      "blocked_by": null,
+      "blocks": null,
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "323",
+      "citation_id": "TASK-GEN-0575",
+      "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "subject": "Portar Cache (28 metodos) y Starred a src/orm/environments.py",
+      "description": null,
+      "status": "completed",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-GEN-0575"
+      ],
+      "scope_sources": [
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": null,
+      "blocks": null,
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "326",
+      "citation_id": "TASK-GEN-0578",
+      "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+      "subject": "Portar Field._filter_not_equal y _update_inverse, que Cache delega",
+      "description": null,
+      "status": "completed",
+      "owner": null,
+      "submodule": null,
+      "source_citations": [
+        "TASK-GEN-0578"
+      ],
+      "scope_sources": [
+        "scripts/evidence/orm-contract-plan-20261020T202045/outputs/task-contract-reverse-map.json",
+        "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json"
+      ],
+      "blocked_by": null,
+      "blocks": null,
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "completed_not_reopened"
+    },
+    {
+      "task_id": "1203",
+      "citation_id": "TASK-GEN-0633",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Triar los 64 rojos de tests/unit/orm que TASK-API-0412 volvi\u00f3 alcanzables",
+      "description": "TASK-API-0412 (api@775c674e) hizo que `tests/unit/orm` pasara de 0 passed / 2205 errors \u2014la suite mor\u00eda en import\u2014 a 2141 passed / 64 failed. Los 64 NO son regresiones del cambio: eran inalcanzables porque nada llegaba a correr. Esto es una L\u00cdNEA BASE NUEVA, no una comparaci\u00f3n contra los 5371 de 2026-08-28.\n\nAgrupaci\u00f3n medida (`scripts/evidence/triage-64-2026-09-12T09-02-05-001.log`): **26 grupos que cubren 31 de los 64**. Los 33 restantes NO est\u00e1n atribuidos \u2014 el instrumento agrupa por la l\u00ednea `file:line: Error` del resumen y esos rojos no la llevan bajo `--tb=no`. \u00c9se es su punto ciego, y el triaje empieza por cerrarlo (re-correr el subconjunto con `--tb=line`, que s\u00ed emite una l\u00ednea por rojo).\n\nLos grupos medidos, por due\u00f1o:\n\n- **5** \u2014 `src/orm/fields_relational.py:530` `ManyToManyField.__init__() missing 'to'` \u2192 es **#349** (reconstruir el relacional desde `_args__`), no de aqu\u00ed.\n- **6** \u2014 `src/orm/fields.py:1593` `Compute method failed to assign \u2026display_name` (grupo #3, clave.uno, Cliente, Cliente Sin Correo, Cliente Con Nombre, y `ComputeDispatchProbe.label`). Un compute que DEVUELVE en vez de ASIGNAR: `_invoke_compute_method` descarta el retorno de `determine()` y `__get__` lee `instance.__dict__[attname]` despu\u00e9s. Candidato a cerrar en este mismo triaje.\n- **8** \u2014 `tests/unit/orm/test_related_in_every_field_type.py:60` \u00abX devolvi\u00f3 Y\u00bb (Properties, One2many, Monetary, Many2one, Json, Image, Html) m\u00e1s `:68` `'One2many' object has no attribute 'store'` y `:78`. Es el eje **`related=` por tipo de campo**, hermano de #348 (retirar NonStored como clase: el eje es `store`, no el tipo).\n- **4** \u2014 `tests/unit/orm/test_related_write_reaches_the_far_end.py` (`:47`, `:53`, `:136`, `:179`). Escritura que no llega al extremo lejano de la cadena \u2014 el mismo mecanismo que TASK-API-0412 cerr\u00f3 para la direcci\u00f3n de ResCompany, sin cerrar para el resto.\n- **2** \u2014 `test_nonstored_compute_dispatch.py:123` `'CharField' object has no attribute '__get__'` \u2192 **#343** (un NonStored no tiene atributo editable y su hermano con columna s\u00ed).\n- **2** \u2014 `django/apps/registry.py:206` `'NoneType' object has no attribute 'split'` \u2014 resoluci\u00f3n de modelo por cadena mal formada.\n- **1 + 1 + 1** \u2014 `src/tools/sql.py:338` `'NoneType' has no attribute 'isidentifier'`; `src/orm/fields.py:1610` `'ComputeDispatchProbe' object has no attribute 'default_get'`; `res_partner.py:1222` 'Another partner already has this barcode' (contaminaci\u00f3n de estado entre casos, no defecto de porte).\n\nCondici\u00f3n de cierre: cada uno de los 64 termina en (a) cerrado aqu\u00ed, (b) reasignado a la tarea que ya lo posee con su cita, o (c) DESCONOCIDO con su condici\u00f3n de cierre escrita. Ninguno se queda sin due\u00f1o.\n\nActualizaci\u00f3n contractual c2d0d10d\nLa poblaci\u00f3n hist\u00f3rica conserva64 nodeid exactos (un sucesor demostrado en8b6ea823). La repetici\u00f3n anterior dio9PASS/55FAIL; la actual da14PASS/50FAIL: se corrigen aqu\u00ed los cinco fallos actuales de asignaci\u00f3n en DisplayNameMixin y ResPartner. Se preservan rechazo de retornos sin asignaci\u00f3n y propagaci\u00f3n de errores.\nLa correcci\u00f3n incluye dependencias/cubos de contexto y la notificaci\u00f3n compartida del descriptor, preservando construcci\u00f3n, identidad PK, valores ordinarios Django y asignaci\u00f3n sin UPDATE. Verificaciones disjuntas:50,40,165 y16 casos PASS. Medici\u00f3n escalar aislada:228.82ns frente a22.70ns de bypass no-data;0SQL, sin extrapolar rendimiento de aplicaci\u00f3n.\nAutoridad: scripts/evidence/orm-demo-continuation-20261023T144219/outputs/display-name-assignment-contract-14.json e historical-64-reconciliation.json. Los50FAIL restantes mantienen criterio de cierre y relaci\u00f3n con TASK existentes; no se declaran defectos autom\u00e1ticamente las expectativas hist\u00f3ricas de NonStored. CI requerido en ejecuci\u00f3n; integraci\u00f3n/aceptaci\u00f3n y TASK pendientes. El error global ProductProduct.display_name sigue fuera de la unidad acotada y requiere resolver su ownership/alcance. No hubo cambio de estado ni inferencia local de Thyrox.\n\nContinuidad del Consumer ProductProduct tras CI c2d0d10d\nEl gate requerido de c2d0d10d termina77PASS/1SKIP/1ERROR, Make2: ProductProduct._compute_display_name retorna sin asignar y rompe el snapshot de carrito. Es el mismo contrato Field.compute que esta TASK reconcilia, demostrado por ejecuci\u00f3n real y referencia fijada abe4040ec1, no una deducci\u00f3n por nombres. Se vincula aqu\u00ed como unidad Consumer necesaria para verificar el ORM; la poblaci\u00f3n hist\u00f3rica64 permanece separada y sus50FAIL no se dan por cerrados.\nAlcance de esta unidad: asignar el resultado mediante el descriptor existente, preservar el formato actual y retorno compatible, declarar/verificar dependencias efectivas y cambios de relaci\u00f3n, y verificar el consumidor de carrito. El comportamiento de proveedor, contextos de negocio y exclusi\u00f3n de atributos de Odoo se registra separadamente, sin aceptar todo product.product ni convertirlo autom\u00e1ticamente en trabajo obligatorio del ORM.\nTASK-GEN-0386 es antecedente completado sin descripci\u00f3n/owner, no una tarea nueva disponible ni aceptaci\u00f3n actual. La ejecuci\u00f3n sigue en esta TASK pendiente y owned. Verificador: pruebas PostgreSQL discriminantes de lectura, repetici\u00f3n, modificaci\u00f3n y snapshot; controles de excepci\u00f3n/asignaci\u00f3n y CI requerido. Sin cambio de estado, propietario ni dependencias.\n\nCurrent follow-up 2026-10-25: Product source2b249be8 passes12 contract/54 consumer/106 regression cases. Required CI advances to146PASS1SKIP1FAIL, ResCompany.country_code KeyError in computed grouper. Exact ae949aa8 targeted baseline also fails but with ResCountry.DoesNotExist; these are distinct failures. Diagnose and correct stale derived maps caused by constructor setter consulting field_computed before lazy related-field setup, using existing clear_field_depends. Verify build-before-setup positive, no-work idempotency and noncomputed-negative; preserve separate inherited missing-country failure. No whole-file acceptance or TASK state change.\n\nVerified checkpoint source5943be0c: local full CI Make2,146PASS1SKIP1FAIL in474.59s, ResCountry.DoesNotExist; exact ae949aa8 focused comparison reproduces same exception. Later suite NOT_EVALUATED. New derived-map regression corrected in f1e2386f; no acceptance/merge/local-model inference. Exact historical64 stays14PASS50FAIL. Extracted pinned Field.column_type/column_order and SQL table match current three input cases (nonstored Char remains varchar/order2); native BaseModel._auto_init skips nonstored fields before update_db. Existing fixtures assuming nonstored Char has column_typeNone/order0 contradict this source precondition. Next owned triage unit reconciles those fixtures using actual no-SQL-type Field controls and a separate stored-schema absence control, retaining applicable obligations and stable historical nodeids. No production property change or relaxed blanket assertion; see nonstored-schema-expectations.json. Empty computed Many2one remains distinct diagnostic; unowned API0397 not resumed.\n\nSchema-fixture unit broader verifier:58PASS2FAIL exposed cache-fixture setup assumptions. Current diagnostics (schema-cache-fixture-diagnostics.json) prove constructor fills label cache, ordinary assignment updates it, a later cache value is authoritative, explicit absence raises KeyError, and getter AST matches ae949aa8. Reconcile fixture ordering and explicitly invalidate the tested cache entry; retain result and KeyError assertions and add a normal-assignment cache-update control. No production getter/constructor change or full API0397 acceptance. First old-source PG attempt cannot execute bodies because old category schema disagrees with current0090; retained as instrument/precondition error, not historical failure attribution.\n\nNext bounded global-failure unit: empty optional nonstored Many2one descriptor boundary, demonstrated by repeated current fiscal CI and ae949aa8 reproduction. Effective ResCompany.country flags requiredFalse/nullFalse/storeFalse/concreteFalse, standard Django forward accessor and computed raw-ID descriptor. Pinned Many2one.convert_to_record maps cache None to an empty recordset; existing Consumer related traversal expects Django None. Verify empty direct/cached/derived reads without SQL PKFalse, valid references, real dangling-reference errors and stored-required relations; actual tax-tag endpoint must return its expected422. Reuse ensure_field_setup and Django accessor/field metadata, adapt only raw-ID attribute boundary. No public base convert_to_record protocol change, missing-country data insertion, schema migration or BaseModel constructor rebuild; unowned API0397 not resumed. Full-file acceptance remains pending.\n\nVerified continuation2026-10-25: source093cdfd7 reconciles schema/cache fixtures after pinned property/caller proof;61PASS, exact historical64 now16PASS48FAIL with stable nodeids. Two fixture criteria corrected, not two runtime bugs fixed. Source09974556 fixes optional nonstored Many2one absence at Django accessor/raw-ID boundary and reuses native FK object-cache invalidation;89PostgreSQL controls PASS including fiscal endpoint; expanded45PASS4FAIL match known historical display_name nodes. First nine-case attempt8PASS1FAIL expected False incorrectly where existing textual empty value is empty string; retained and corrected only new assertion. Migration check finds only inherited ResPartner.tz drift. Full required CI for09974556 is running; no PASS/acceptance/merge/model inference claimed. Contract14 and logs in existing orm-demo-continuation outputs. Source commit initial hook rejected absent ODOO_TOOLS, retry with exact pinned root passed; no bypass.\n\nNext bounded historical64 criterion unit: display-name-criterion-source-comparison.json demonstrates pinned BaseModel.display_name and current DisplayNameMixin both declare computed/searchable Char; checker still requires superseded NonStored class. Pinned Field(typing.Generic[T]) declares get/set but no deletion protocol. Reconcile structural checker using actual registered typed field plus assignable descriptor bound to that exact metadata, preserving rejection of property, missing/wrong metadata and foreign descriptor. Preserve original historical nodeids; reconcile deletion fixture to native lack of deletion plus existing Field._invalidate_cache recomputation rather than adding unsupported __delete__. Use PostgreSQL behavioral controls and negative checker mutations; no blanket acceptance or production compute change. Native frontier selects bounded candidate; no states/owners/dependency mutation.\n\nRelated-write continuation: native1187 TASK-API-0412 is completed and describes inverse dispatch at save/write, not direct-assignment SQL. Native1193/1194 remain unowned pending and are not executed. Actual owned-PostgreSQL probe related-inverse-persistence-before.log demonstrates account.bank_name assignment0SQL then account.save TypeError ResPartnerBank[0] because Field._inverse_related iterates a Django scalar instance. This is a demonstrated functional difference under existing four historical related-write cases, not only stale NonStored assertions. Next bounded GEN0633 unit normalizes the existing Consumer record shapes through as_record_list, verifies actual persisted scalar related targets at explicit save/dispatch, respects both-new/both-real guard, readonly/nonstored targets and alias/exception boundaries. No BaseModel constructor rewrite or reopening/completing0412; no assumption target.write exists universally. Verify SQL result, not only cache, with negative controls. Required global CI remains failing inherited Incoterm; no acceptance inferred.\n\nShared-setter follow-up: expanded inverse verification exposes existing TestTheKeyAccess.test_it_writes_the_field_by_name failing on unsaved ResPartner in _traverse_inverse -> related manager requires PK. Exact093cdfd7 pure control FAIL, exactae949aa8(before shared setter) pure control PASS, so this is a NEW_REGRESSION of the session/shared setter, not accepted inherited debt. Next bounded unit must retain ordinary unsaved assignment without SQL, direct compute invalidation and independent identities; qualify reverse collection PK preconditions from installed Django and reuse existing field cache identity, without replacing NewId/store or editing the BaseModel class. Verify real saved reverse traversal and cached direct relations continue; no blanket skip of modified notifications. Existing fields_related protocol regressionc4055e1c is fixed in b87396fa; original recorder tests untouched. No 0397/0417/0418/0419 unowned work or TASK state change. Required full CI will be rerun after identified regressions are addressed, not while code is known bad.\n\nNext bounded category display unit: pinned res.partner.category._compute_display_name assigns full ancestor label with parent dependency; actual Consumer returns label without assignment, existing hierarchy test requires descriptor value. Native bounded frontier selected; source/tests claims clear. Demonstrate unsaved descriptor failure without DB before implementing assignment and metadata dependencies, preserve full chain/search and existing cache/notification mechanism; verify reparent/name invalidation and actual rows. No broad parent-store rewrite, unowned TASK execution, state mutation or local inference. Full ebb08d93 gate remains running; no production edits during it.\n\nCategory RED3FAIL, assignment+parent dependency44PASS1FAIL discriminates stale label after assigning native stored FK parent. Exact native ForeignKeyDeferredAttribute is excluded by existing descriptor installer, so dependency metadata alone cannot notify. Bounded admitted extension reuses existing FieldDescriptor setter for ordinary stored noncomputed/nonrelated FK raw IDs, retains native Django raw-ID reads and cached-object invalidation, initialization guards, protection/inverse/cache semantics. Do not replace custom or computed relation descriptors. Verify object/raw-ID assignment, cached object refresh, no SQL, hydration and existing inverse/field/notification consumers. Native frontier/claims evidence recorded; no new state or model inference.\n\nFull ebb08d93 gate1230PASS1SKIP1FAIL reaches fiscal_country_codes default TypeError; exact093 focused test reproduces, inherited. Existing account extension wrongly declares all seven fields default=function(self). Pinned declarations distinguish ResCurrency/Bank/PartnerBank session defaults versus computed Uom/ProductTemplate/AccountPaymentTerm/ResPartner. Bounded current global-verifier dependency: retain pure helpers and session defaults with true zero-arg getter, assign computed fields via existing descriptor with actual dependencies/context. Preserve own-company precedence, partner-country deduplication and active-company cache separation. No generic default_get rewrite, schema/migration change, new TASK or original64 denominator expansion. Native0307/0321/0420 descriptions inspected; unowned scopes not executed. Native frontier selects source/tests, claims clear. Required global CI remains unaccepted; verify actual full_clean and fiscal consumers before acceptance.\n\nFiscal declaration phase36PASS3FAIL proves remaining dependencies independently: country_group_codes returns without assigning; ResBank plain Django class lacks default_get though sibling ResPartnerBank already uses DefaultGetMixin; same-primary active-company set cache collision. Pinned country compute assigns with group dependency and Environment.cache_key normalizes list context. Native frontier admits bounded existing runtime dependencies: add existing DefaultGetMixin to ResBank without persistent fields/model identity change, assign country group compute with native M2M dependency, and qualify allowed_company_ids cache key using validated existing company channel when explicit context absent, list normalization when supplied. Preserve other cache-key branches and do not claim full Environment equivalence. Source/tests paths selected and claimed through native interfaces; no unowned broad TASK execution or official state change.\n\nAuthorized QA recovery2026-10-26: exact prior orm_bootstrap_5404af94c0df owner/zero connections revalidated, existing harness cleanup completed and absence independently0/0. New existing harness lease recorded without credentials. Actual own fresh PostgreSQL fiscal runtime run114PASS exit0 in453.15s on sourcef3623e31 included4b29e40e; all prior39fiscal cases and47cache cases retained, including16RED failures,3declaration-phase failures and7previous PG setup errors nowPASS by exact JUnit classname/name join. Eight native model table/concrete-column layouts equal093 baseline; not whole schema acceptance. Seven pinned field declarations recorded, including reference UomUom versus Consumer Uom. Required full make ci-verify4b29e40e currentlyRUNNING, no PASS/acceptance inferred. Existing contracts/evidence bank updated; original62rows and64historical denominator unchanged; no official state/dependency/owner change, merge or local-model inference.\n\nFull4b29 gate1850PASS1SKIP1FAIL832.74s now reaches StockLot.display_name unassigned; exact093 same test reproduces. Pinned product_expiry StockLot._compute_display_name26 conditions on formatted_display_name, use_expiration_date and expiration_date; it assigns Expired at/after expiry, Expire on formatted datetime at/after alert, otherwise name; nonhandled records delegate. Historical Consumer test always-date criterion and no-context header conflict with actual installed context_scope, ResPartner and stock-package consumers. Reconcile that existing criterion rather than preserving invented format. Use existing chain_method return-value relay, api dependency/context metadata, native temporal formatter and translation; actual dependency follows product.product_tmpl.use_expiration_date, not unregistered property. Verify context toggling, flag disabled, expiry/alert boundaries, fallback and field invalidation, preserve existing node identity and consumers; no generic chain coordinator, fields/schema or official TASK state changes. Native frontier selected bounded current-verifier dependency, no original64 denominator enlargement or whole stock/expiry acceptance.\n\nStock neighborhood after expiry30PASS reaches StockMove label at177PASS1FAIL; exact093 same case reproduces. Pinned StockMove787 assigns origin/code/source>destination and depends on picking/product/location/location_dest relations. Existing Consumer preserves label through code_for(None) adapter but returns without assigning. Admit bounded descriptor assignment plus real relation dependencies, preserve empty prefix and return compatibility, verify existing persistence consumers and relation/new-row controls. Supplier-specific product code context is not claimed qualified; do not add nonexistent code property or change business persistence. Native selection/claim evidence recorded; no original64 denominator or official states changed.\n\nSource3806ec77 expiry contract: baseline093FAIL; RED10FAIL1PASS plus new-rowFAIL; assignment-only11FAIL1PASS proves old unconditional date suffix remains wrong; complete30PASS including priority, context, template flag and new row0SQL. Broader stock177PASS1FAIL exposes separate StockMove assignment, exact093FAIL. Source621aaf83 fixes existing label assignment/real relation dependencies without changing code_for(None), four REDFAIL ->16persistencePASS including destination change and two new rows0SQL. Whole stock/expiry neighborhood297PASS. Exact11used reference files equal pinned Git blobs; qualified contracts recorded. Shared621aaf83 required full gateRUNNING; no official state, full-file/whole-task acceptance, merge or local-model inference. Original62rows/64historical denominator preserved; last64replay remains older source, not extrapolated to this head.\n\nVerified checkpoint after required621aaf83 gate:2224PASS1SKIP1FAIL901.47s Make2/Pytest1; first legacy analytic prefix metadata assertion reproduced093. Actual PostgreSQL introspection confirms no physical prefix column, metadata private/nonconcrete registration correct; full analytic file4FAIL11PASS also exposes default_get route. Native0305in_progress ownerNULL is not available: owner-only proposal saved and requested, not executed; no analytic source/test edits. Exact original64 replay621 confirms20PASS44FAIL with zero result identity changes, current0397/0417/0418/0419 ownersNULL preserved. Existing QA harness completed0; exact new database/role/HBA independently absent0/0/0. Completed source editing claims released, evidence job retained. No whole task/Registry/ORM acceptance, official state change, merge or managed local inference; publication verification follows source checkpoint.\n\n[2026-10-27 bounded analytic schema criterion] Corrected the existing prefix_placeholder schema criterion: private metadata visibility is legitimate; native Django ModelState must exclude the virtual field and include persistent positive controls. RED 2FAIL/5PASS; GREEN 7PASS including injected persistent-field negative control; no database connection. Evidence: scripts/evidence/orm-demo-continuation-20261023T144219/outputs/analytic-schema-criterion-contract-14.json. No analytic compute/default implementation, no physical database acceptance, no original64 population change. TASK-API-0305 remains unowned and excluded. Current global style gate FAIL; published CI remains FAIL; no whole-TASK acceptance or merge.",
+      "status": "pending",
+      "owner": "codex-module-lifecycle",
+      "submodule": "api",
+      "source_citations": [
+        "TASK-GEN-0633"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:hallazgos/hallazgo-H-API-1111-el-inverso-declarado-no-tenia-donde-despacharse.rst",
+        "docs:hallazgos/index.rst",
+        "docs:progreso/bitacora-atributos-estaticos-y-limites-de-la-frontera.rst",
+        "docs:progreso/bitacora-catalogos-fisicos-y-reconciliacion-por-archivo.rst",
+        "docs:progreso/bitacora-conservacion-del-saneamiento-y-recuperacion-del-entorno.rst",
+        "docs:progreso/bitacora-etiqueta-de-producto-y-consumidores.rst",
+        "docs:progreso/bitacora-etiquetas-computadas-y-cache.rst",
+        "docs:progreso/bitacora-gate-de-ejecutables-python.rst",
+        "docs:progreso/bitacora-inversas-y-notificaciones-de-registros-nuevos.rst",
+        "docs:progreso/bitacora-recuperacion-qa-y-contratos-fiscales-registry-stock.rst",
+        "docs:progreso/bitacora-relaciones-computadas-y-criterios-de-fixtures.rst",
+        "docs:progreso/bitacora-saneamiento-documental-y-fallos-historicos.rst",
+        "docs:progreso/bitacora-saneamiento-y-admision-de-integraciones.rst",
+        "docs:progreso/bitacora-validacion-de-nombres-y-recuperacion-de-estados.rst",
+        "docs:progreso/bitacora-vistas-sembradas-y-continuacion.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "assigned_authority_to_reconcile"
+    },
+    {
+      "task_id": "1204",
+      "citation_id": "TASK-GEN-0634",
+      "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+      "subject": "Portar como campo los ocho @property de ResCompany que delegan al partner",
+      "description": "TASK-API-0412 cerr\u00f3 los SEIS de la direcci\u00f3n (street, street2, zip, city, state, country) declar\u00e1ndolos `compute='_compute_address'` + `inverse`. Quedan ocho delegaciones al partner que siguen siendo `@property` y que **ninguna cadena `related=` puede navegar**, por la misma raz\u00f3n: un `@property` no vive en `_meta`.\n\nLa referencia los declara como campo (`odoo19c: addons/base/models/res_company.py`):\n\n- `:48`  name = fields.Char(related='partner_id.name', string='Company Name', required=True, store=True, readonly=False)\n- `:62`  logo = fields.Binary(related='partner_id.image_1920', readonly=False)\n- `:81`  email = fields.Char(related='partner_id.email', store=True, readonly=False)\n- `:82`  phone = fields.Char(related='partner_id.phone', store=True, readonly=False)\n- `:83`  website = fields.Char(related='partner_id.website', readonly=False)\n- `:84`  vat = fields.Char(related='partner_id.vat', string=\"Tax ID\", readonly=False)\n- `:85`  company_registry = fields.Char(related='partner_id.company_registry', readonly=False)\n- `:86`  company_registry_placeholder = fields.Char(related='partner_id.company_registry_placeholder')\n\nm\u00e1s `billing_name`, que aqu\u00ed deriva de `partner.commercial_company_name` y all\u00e1 no existe con ese nombre.\n\nMedido: con la direcci\u00f3n ya cerrada, una cadena que pida `ResCompany.name` muere con *\u00abla ruta related 'company_id.name' pide 'name' sobre ResCompany, que no lo declara\u00bb* \u2014 2205 casos de `tests/unit/orm` en el import (`scripts/evidence/diag2-353-*-001.log`). Se esquiv\u00f3 apuntando la sonda a `code`, que s\u00ed es columna; el defecto sigue.\n\nLo que NO es trivial y hay que decidir antes de escribir: `name`, `email` y `phone` llevan `store=True` en la fuente, o sea COLUMNA. Declararlos as\u00ed aqu\u00ed es una migraci\u00f3n, y `name` adem\u00e1s es el `__str__`, el `Meta.ordering` y lo que `ResCompanyManager.create` escribe en el partner. El porte se hace con esa decisi\u00f3n tomada, no a ciegas.\n\nTRAMPA MEDIDA, a resolver EN ESTE PORTE \u2014 el despacho fantasma tras `refresh_from_db()`. El cubo `real_row` de `ComputedFieldDescriptor.__set__` (api@775c674e) marca el campo como inverso pendiente ante CUALQUIER asignaci\u00f3n a un campo `compute` + `inverse` sobre una fila ya cargada. `Model.refresh_from_db` de Django hace `setattr(self, field.attname, getattr(db_instance, field.attname))` para cada campo concreto (`django/db/models/base.py`, dentro de `refresh_from_db`) \u2014 fuera de `_orm_building` y fuera de todo `protecting`. Consecuencia: un campo `store=True` + `inverse` quedar\u00eda marcado al refrescar, y el siguiente `save()` despachar\u00eda su inverso escribiendo al partner un valor que acaba de venir de la DB. HOY NO DISPARA porque ning\u00fan campo del \u00e1rbol es `store=True` + `inverse` a la vez \u2014 pero `name`, `email` y `phone` de esta tarea son exactamente `related=\u2026, store=True, readonly=False`, y un `related` no-readonly gana inverso impl\u00edcito. El porte necesita que el marcado distinga \u00abasignaci\u00f3n del llamador\u00bb de \u00abrelleno desde la fila\u00bb, o que `refresh_from_db` entre bajo `protecting`; el control que lo prueba es una sonda que refresque y guarde sin tocar el campo, y afirme que el partner NO cambi\u00f3.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "api",
+      "source_citations": [
+        "TASK-GEN-0634"
+      ],
+      "scope_sources": [
+        "docs:hallazgos/hallazgo-H-API-1111-el-inverso-declarado-no-tenia-donde-despacharse.rst",
+        "docs:hallazgos/index.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "93",
+      "citation_id": "TASK-THYROX-1025",
+      "session_id": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+      "subject": "Refuse a real task as a workflow qualification suite",
+      "description": "H-THYROX-540 (latent): 25 qualification rows are real TASK attempts run with --workflow-suite. local-models-qualify must refuse a suite whose id is a task citation (task-<layer>-NNNN@k) before admission, naming headless-pool. RED in src/packages/local-models/__tests__/qualifyCommand.test.ts (1 fails).",
+      "status": "pending",
+      "owner": null,
+      "submodule": "thyrox",
+      "source_citations": [
+        "TASK-THYROX-1025"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "140",
+      "citation_id": "TASK-THYROX-1072",
+      "session_id": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+      "subject": "Read the task universe from the store in task_source",
+      "description": "task_source.records_from_store(store, layer) + load_records(.sqlite3); ids = citation number per layer; blocked_by ordinals resolved within the row's session; no prose edges from store rows. implementation_order unchanged. RED: tests/task/test_task_source_store.py (12 fallos), includes 1067 not re-proposed and 1065 rejected kept pending.",
+      "status": "pending",
+      "owner": null,
+      "submodule": "thyrox",
+      "source_citations": [
+        "TASK-THYROX-1072"
+      ],
+      "scope_sources": [
+        "docs:analisis-contrato-de-basemodel-trae-o-construye.rst",
+        "docs:progreso/bitacora-as-is-y-recalculo-ausentes.rst",
+        "docs:progreso/bitacora-reconciliacion-documental-de-trazabilidad.rst",
+        "docs:progreso/bitacora-recuperacion-del-control-y-admision-contractual.rst",
+        "docs:progreso/bitacora-saneamiento-y-admision-de-integraciones.rst",
+        "docs:progreso/bitacora-validacion-de-nombres-y-recuperacion-de-estados.rst",
+        "docs:tareas-completar-raiz-orm.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    },
+    {
+      "task_id": "176",
+      "citation_id": "TASK-THYROX-1111",
+      "session_id": "844a0a13-9fd8-5607-beb0-74daab7018a3",
+      "subject": "Recover the persistent goal and its state as the first step of task_continuation",
+      "description": "Section 5.15 criterion 1 has no TASK (VM M, 6f5abaf60): nothing reads END_TO_END_LOCAL_AUTONOMY and its open criteria before selecting work. Search Existing first (agent_store, continuation_frontier, task_source).",
+      "status": "pending",
+      "owner": null,
+      "submodule": "thyrox",
+      "source_citations": [
+        "TASK-THYROX-1111"
+      ],
+      "scope_sources": [
+        "docs:progreso/bitacora-contratos-por-archivo.rst"
+      ],
+      "blocked_by": [],
+      "blocks": [],
+      "explicit_native_responsibility_metadata": {},
+      "ownership_observation": "C"
+    }
+  ],
+  "unresolved_citations": [],
+  "counts": {
+    "native_tasks": 68,
+    "by_status": {
+      "pending": 48,
+      "completed": 16,
+      "in_progress": 4
+    },
+    "active_unowned": 43,
+    "active_assigned": 9
+  },
+  "writes_performed": false,
+  "migration_performed": false,
+  "new_task_ids": false
+}

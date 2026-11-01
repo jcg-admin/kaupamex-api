@@ -140,21 +140,21 @@ def test_redeclared_class_attributes_retain_both_occurrences(tmp_path):
     assert rows[0]['identity'] != rows[1]['identity']
 
 
-@pytest.mark.parametrize('fault', [None, 'revision', 'source_hash'])
-def test_attribute_snapshot_reuses_only_bound_sources(
-    tmp_path, monkeypatch, fault
-):
+@pytest.fixture
+def attribute_capture(tmp_path, monkeypatch):
     reference = tmp_path / 'reference'
     consumer = tmp_path / 'consumer'
     files = []
-    for name in ('registry.py', 'fields.py'):
+    for name in ('registry.py', 'fields.py', 'models.py'):
         relative = 'odoo/orm/' + name
         source = reference / relative
         target = consumer / 'src/orm' / name
         source.parent.mkdir(parents=True, exist_ok=True)
         target.parent.mkdir(parents=True, exist_ok=True)
-        source.write_text('class Sample:\n    enabled = True\n')
-        target.write_text('class Sample:\n    enabled = False\n')
+        source.write_text('class Sample:\n    enabled = True\n'
+                          '    _auto: bool = False\n    typed: object\n')
+        target.write_text('class Sample:\n    enabled = False\n'
+                          '    _auto: bool = False\n')
         files.append({
             'reference_path': relative,
             'reference_sha256': hashlib.sha256(
@@ -164,14 +164,23 @@ def test_attribute_snapshot_reuses_only_bound_sources(
         })
     snapshot = tmp_path / 'capture.json'
     captured = {'source_revision': REVISION, 'files': files}
-    if fault == 'revision':
-        captured['source_revision'] = 'different-reference'
-    elif fault == 'source_hash':
-        files[0]['reference_sha256'] = 'wrong'
     snapshot.write_text(json.dumps(captured))
     monkeypatch.setattr(VIEW, 'TOOLS_ROOT', reference)
     monkeypatch.setattr(VIEW, 'ROOT', consumer)
     monkeypatch.setattr(VIEW, 'tree', lambda alias: reference)
+    return snapshot, captured
+
+
+@pytest.mark.parametrize('fault', [None, 'revision', 'source_hash'])
+def test_attribute_snapshot_reuses_only_bound_sources(
+    attribute_capture, fault
+):
+    snapshot, captured = attribute_capture
+    if fault == 'revision':
+        captured['source_revision'] = 'different-reference'
+    elif fault == 'source_hash':
+        captured['files'][0]['reference_sha256'] = 'wrong'
+    snapshot.write_text(json.dumps(captured))
     if fault:
         with pytest.raises(ValueError, match='snapshot|revision|bytes'):
             VIEW.attribute_snapshot(snapshot)
@@ -183,3 +192,47 @@ def test_attribute_snapshot_reuses_only_bound_sources(
         assert len(row['consumer_candidates']) == 1
         assert row['consumer_candidates'][0]['equivalence'] == 'not_verified'
         assert file['consumer_sha256'] != file['source_sha256']
+
+
+def test_annotated_bindings_and_unbound_annotations_are_distinct(tmp_path):
+    source = tmp_path / 'source.py'
+    source.write_text('DECLARED: object\n'
+                      'class Sample:\n'
+                      '    _auto: bool = False\n'
+                      '    value: object = None\n'
+                      '    only_typed: object\n'
+                      '    _rule = models.Constraint("check")\n')
+    result = VIEW.static_attribute_rows(
+        source, REVISION, 'source.py', include_annotations=True
+    )
+    bindings = {row['qualified_symbol']: row for row in result['rows']}
+    assert set(bindings) == {'Sample._auto', 'Sample.value', 'Sample._rule'}
+    assert bindings['Sample._auto']['model_checker_bucket'] == 'orm'
+    assert bindings['Sample._rule']['model_checker_bucket'] == 'table'
+    assert bindings['Sample.value']['identity'][3] == 'annotated_value_binding'
+    assert {row['qualified_symbol'] for row in result['annotation_only']} == {
+        'DECLARED', 'Sample.only_typed',
+    }
+
+
+def test_all_captured_scope_preserves_the_default_scope(attribute_capture):
+    snapshot, captured = attribute_capture
+    default = VIEW.attribute_snapshot(snapshot)
+    expanded = VIEW.attribute_snapshot(
+        snapshot, all_captured=True, include_annotations=True
+    )
+    assert len(default['files']) == 2
+    assert default['observed_static_assignments'] == 2
+    assert len(expanded['files']) == len(captured['files']) == 3
+    assert expanded['observed_static_assignments'] == 3
+    assert expanded['observed_annotated_bindings'] == 3
+    assert expanded['observed_value_bindings_total'] == 6
+    assert expanded['annotation_only_declarations'] == 3
+
+
+def test_all_captured_scope_rejects_duplicate_sources(attribute_capture):
+    snapshot, captured = attribute_capture
+    captured['files'].append(deepcopy(captured['files'][0]))
+    snapshot.write_text(json.dumps(captured))
+    with pytest.raises(ValueError, match='ambiguous|duplicate'):
+        VIEW.attribute_snapshot(snapshot, all_captured=True)

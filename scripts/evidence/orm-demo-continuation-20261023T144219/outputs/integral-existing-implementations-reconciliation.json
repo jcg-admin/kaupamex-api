@@ -1,0 +1,51 @@
+[
+  {
+    "task": "TASK-GEN-0559",
+    "implementation_commit": "3ffa958e9f30a0ae6b00647ba66c51896795227a",
+    "ancestor": true,
+    "path": "src/orm/fields.py",
+    "current_sha256": "2eeb673521ede8201ade7f6f3b3d2ea81a4b198675f954818ae1a660192b5fe9",
+    "body_checks": [
+      {
+        "symbol": "recompute",
+        "executable_ast_equal": true
+      }
+    ],
+    "test_rerun": "NOT_EVALUATED; historical results retain original scope",
+    "acceptance": "not_verified"
+  },
+  {
+    "task": "TASK-API-0419",
+    "implementation_commit": "6c11dddefb0a3bc7f003724ee44f92a3ba8434c3",
+    "ancestor": true,
+    "path": "src/orm/fields.py",
+    "current_sha256": "2eeb673521ede8201ade7f6f3b3d2ea81a4b198675f954818ae1a660192b5fe9",
+    "body_checks": [
+      {
+        "symbol": "_capture_relational_init",
+        "executable_ast_equal": true
+      },
+      {
+        "symbol": "_merge_field_definitions",
+        "executable_ast_equal": true
+      }
+    ],
+    "test_rerun": "NOT_EVALUATED; historical results retain original scope",
+    "acceptance": "not_verified"
+  },
+  {
+    "task": "TASK-API-0417",
+    "implementation_commit": "20dc122ba73da889e4c2ec52fcfc3c9aece0d22d",
+    "ancestor": true,
+    "path": "src/orm/fields_misc.py",
+    "current_sha256": "a86ce81da069e092f7d8d610c956e179ec1a59b11b90f24c7990a3859ddf7a63",
+    "body_checks": [
+      {
+        "symbol": "Json",
+        "executable_ast_equal": false
+      }
+    ],
+    "test_rerun": "NOT_EVALUATED; historical results retain original scope",
+    "acceptance": "not_verified"
+  }
+]

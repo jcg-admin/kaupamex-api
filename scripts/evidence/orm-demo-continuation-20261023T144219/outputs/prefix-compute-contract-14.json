@@ -1,0 +1,36 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "integration": "Published60c9557cd82bd1d8616f7ed832aad8c43a103991 in PR109; no merge or acceptance",
+  "source_revision": "60c9557cd82bd1d8616f7ed832aad8c43a103991",
+  "reference_symbol": {
+    "path": "odoo19c:addons/account/models/account_analytic_distribution_model.py",
+    "qualified_symbol": "AccountAnalyticDistributionModel._compute_prefix_placeholder",
+    "sha256": "493effce5095ae11e078f7dab6a8d85140e9e953219061f5b049d91e2881c2d9"
+  },
+  "behavior": "Nonstored prefix placeholder is calculated by assignment, not a default_get fallback.",
+  "execution_flow": "Django model field -> FieldDescriptor -> existing compute dispatcher -> callable -> field assignment -> cached descriptor read.",
+  "inputs_outputs": "Missing/empty/nonnumeric account code -> e.g.60,61,62;550100 -> e.g.55,56,57. Tests preserve actual spaces. Two unsaved records yield distinct values.",
+  "side_effects": "Existing account queries unchanged and explicitly mocked; only virtual field cache assigned; no SQL, migrations or schema changes.",
+  "dependencies": [
+    "TASK-API-0305 native520 ownerVM-b501 in_progress",
+    "Actual analytic Django model, existing account query path and compute dispatcher",
+    "No root cache modification: predicted collision not reproduced"
+  ],
+  "consumers": [
+    "Account analytic distribution model prefix_placeholder descriptor",
+    "Existing account extension installation in AppConfig.ready"
+  ],
+  "installed_mechanism": "Existing fields.Char(compute=callable), FieldDescriptor, compute dispatcher; nativeTaskGet/TaskUpdate/claims/node_frontier reused",
+  "existing_adaptation": "Preserves per-record company_id filter and deterministic code ordering; no claim these equal reference active-company search semantics.",
+  "verification": {
+    "initial_red": "7FAIL exit1",
+    "callback_only": "7PASS exit0",
+    "exact_final_candidate": "7PASS exit0, prefix-compute-candidate-final.json",
+    "annul_compute": "7expectedFAIL exit1, prefix-compute-annulled.json",
+    "context_format": "AST unchanged; local E131 fixed after first hook rejection",
+    "increment_admission": "PASS ordinary pre-commit; prefix-compute-published-admission.json",
+    "database": "NOT_EVALUATED; connections prohibited"
+  },
+  "equivalence": "Bounded assignment-compute contract verified; full Odoo account-company/dependency parity not_verified.",
+  "limitations": "Source @depends(analytic_precision) is not copied blindly: Consumer analytic_precision is currently a property, not a declared Field. Company switching/recompute/persistence/full loader/security and QA acceptance remain not_verified."
+}
