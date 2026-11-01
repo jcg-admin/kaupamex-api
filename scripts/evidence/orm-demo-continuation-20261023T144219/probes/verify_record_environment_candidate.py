@@ -72,6 +72,9 @@ def main():
     parser.add_argument('--keyword-only', action='store_true')
     parser.add_argument('--batch-only', action='store_true')
     parser.add_argument('--stored-only', action='store_true')
+    parser.add_argument('--pending-only', action='store_true')
+    parser.add_argument('--annul-native-pending', action='store_true')
+    parser.add_argument('--annul-django-absence', action='store_true')
     parser.add_argument('--annul-stored-guard', action='store_true')
     parser.add_argument('--annul-m2m-readback', action='store_true')
     parser.add_argument('--annul-native-batch', action='store_true')
@@ -89,6 +92,26 @@ def main():
         snapshots[module] = subprocess.check_output(
             ['git', 'show', origin + path]
         )
+    if args.annul_django_absence:
+        source = snapshots['orm.fields']
+        start = source.index(b'def _recompute_native_recordset(')
+        tail = source[start:]
+        adaptation = b'except (MissingError, ObjectDoesNotExist):'
+        if tail.count(adaptation) != 1:
+            raise RuntimeError('Native absence adaptation not unique')
+        snapshots['orm.fields'] = (
+            source[:start] + tail.replace(adaptation, b'except MissingError:')
+        )
+    if args.annul_native_pending:
+        source = snapshots['orm.fields']
+        branch = (
+            b"    if getattr(records, '_ids', None) is not None:\n"
+            b"        with records.env():\n"
+            b"            return _recompute_native_recordset(self, records)\n"
+        )
+        if source.count(branch) != 1:
+            raise RuntimeError('Native pending branch not uniquely identified')
+        snapshots['orm.fields'] = source.replace(branch, b'')
     if args.annul_stored_guard and args.annul_m2m_readback:
         parser.error('Select only one stored read-back revision')
     if args.annul_stored_guard or args.annul_m2m_readback:
@@ -190,6 +213,15 @@ def main():
                 'tests/unit/orm/test_native_compute_batch_dispatch.py',
                 'tests/unit/orm/test_field_cache.py',
             ]
+    if args.pending_only:
+        tests = ['tests/unit/orm/test_native_pending_recompute.py']
+        if args.regression:
+            tests += [
+                RECORD_TEST, UID_TEST, *COMPANY_CASES, *REGRESSIONS,
+                'tests/unit/orm/test_native_compute_batch_dispatch.py',
+                'tests/unit/orm/test_native_stored_compute_contract.py',
+                'tests/unit/orm/test_field_cache.py',
+            ]
     test_hashes = {
         path: hashlib.sha256(Path(path).read_bytes()).hexdigest()
         for path in {test.split('::')[0] for test in tests}
@@ -248,6 +280,9 @@ def main():
         'keyword_only': args.keyword_only,
         'batch_only': args.batch_only,
         'stored_only': args.stored_only,
+        'pending_only': args.pending_only,
+        'annul_native_pending': args.annul_native_pending,
+        'annul_django_absence': args.annul_django_absence,
         'annul_stored_guard': args.annul_stored_guard,
         'annul_m2m_readback': args.annul_m2m_readback,
         'annul_native_batch': args.annul_native_batch,

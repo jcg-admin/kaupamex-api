@@ -1,0 +1,943 @@
+{
+  "command": [
+    "/workspace/kaupamex-api/.venv/bin/python",
+    "/workspace/kaupamex-api/scripts/check_python_style_increment.py",
+    "--base",
+    "2f42c4cf10a5ed4246cfa3f920c0e2d592360144",
+    "--index-tree",
+    "a1265096c6de345cc8acd8bb24fa3ac8a6154517",
+    "--qualify-checkers",
+    "--report",
+    "scripts/evidence/orm-demo-continuation-20261023T144219/outputs/native-pending-admission-style.json"
+  ],
+  "files": [
+    {
+      "path": "src/orm/fields.py",
+      "old_path": "src/orm/fields.py",
+      "status": "M",
+      "old_mode": "100644",
+      "new_mode": "100644",
+      "old_blob": "7b613f5b1b9bc7782f83d21c4971e35a530953a4",
+      "new_blob": "b85daac3975ffa08c512163b5090e320f9ebe75a",
+      "inherited": [
+        {
+          "line": 7,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "bbc9fe5cfd2d799a821c59195bf299b5818e651a3a44067574fe82914096b01e"
+        },
+        {
+          "line": 25,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "a8ff2c50a784ea8c33597c4d38a8f6e0688b36bb760e3f8af09c39b96d2a1cb5"
+        },
+        {
+          "line": 26,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "f419b04eba4b679dca95fa9fcc5f9f1ad159eacaf4b23c8d718d30c6ea468d6c"
+        },
+        {
+          "line": 27,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "b283999455fe21ee143d00e2aa0b857049ceb5c2c33b5e1a150e125795968fb9"
+        },
+        {
+          "line": 87,
+          "column": 26,
+          "code": "E128",
+          "message": "continuation line under-indented for visual indent",
+          "fingerprint": "bd53eb5e47e4652b4f36b07b9911f6c4e8875cc39ea41a6e863aac0cc7b75a9c"
+        },
+        {
+          "line": 84,
+          "column": 55,
+          "code": "E241",
+          "message": "multiple spaces after ','",
+          "fingerprint": "8180411c0fb087c0c3faebaeb45cbb92c832ce9da35a6b254e4d8b99bc68bc74"
+        },
+        {
+          "line": 96,
+          "column": 5,
+          "code": "E128",
+          "message": "continuation line under-indented for visual indent",
+          "fingerprint": "bc21df0b4a019559301a6e9045e2ce4330bc85a37e058802fdde1b67bcfd0285"
+        },
+        {
+          "line": 97,
+          "column": 5,
+          "code": "E128",
+          "message": "continuation line under-indented for visual indent",
+          "fingerprint": "c46dd844eaae4e3ec02db37c1f0c027958b0f0368b5ed177e1133cf284b8aaf6"
+        },
+        {
+          "line": 98,
+          "column": 5,
+          "code": "E128",
+          "message": "continuation line under-indented for visual indent",
+          "fingerprint": "da0b58b2445040db20e3c2bb7de232276ee31fe2c57b03b65503e323452a8b5b"
+        },
+        {
+          "line": 99,
+          "column": 1,
+          "code": "E124",
+          "message": "closing bracket does not match visual indentation",
+          "fingerprint": "b2bf56704effdeeac1fadea3150103a4292db752d3b8b856682c22f340f75d7b"
+        },
+        {
+          "line": 95,
+          "column": 35,
+          "code": "E201",
+          "message": "whitespace after '('",
+          "fingerprint": "312ef5844429d2f531444e8b0a2824113a37de6e18530c9005911564e7ce50ec"
+        },
+        {
+          "line": 101,
+          "column": 5,
+          "code": "E128",
+          "message": "continuation line under-indented for visual indent",
+          "fingerprint": "a3b13ea435b3bb545ae466ca09d46558cb1c172b4c5b4e81129135d4574157a1"
+        },
+        {
+          "line": 102,
+          "column": 5,
+          "code": "E128",
+          "message": "continuation line under-indented for visual indent",
+          "fingerprint": "f84dbdd5667856a5cd19e9a3ce2b54b19dcc164d2ae33eb919f97f92ef25983b"
+        },
+        {
+          "line": 103,
+          "column": 1,
+          "code": "E124",
+          "message": "closing bracket does not match visual indentation",
+          "fingerprint": "eca7edf96a440a3757f053e379fedf54790817f0a35f2d33171909cd4de0d4e3"
+        },
+        {
+          "line": 100,
+          "column": 36,
+          "code": "E201",
+          "message": "whitespace after '('",
+          "fingerprint": "2560e98ee68ab70cf1144c32f31156572df215f92d02bbfdf1c688806877f74d"
+        },
+        {
+          "line": 311,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "6ec881fb50f2f5ea959d509a2a6030ce9df7e0c490c08d15846a1491d59a135c"
+        },
+        {
+          "line": 339,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "f6762ae3b0f8b0abd6482f3c1fe39a1dc80f14fcbea44931acbc45970de51665"
+        },
+        {
+          "line": 346,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "0cb907bd98a55321f5336da2980306458405cd00a92831a4a64b12aee07a61ab"
+        },
+        {
+          "line": 356,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "663b30093bd4b5ebdec6bbc22e02a7e2bf56bb9193a085980ac390fdd4d493df"
+        },
+        {
+          "line": 367,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "acb59498b1a4851a939a51cb7839a74eb9bc94b857367eca2d360cb62f51cff5"
+        },
+        {
+          "line": 373,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "f70f215ace0b9226aab882000f33a9f860fad1a2d86d0e525f87b7800f7274ea"
+        },
+        {
+          "line": 378,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "74f4ff88a2b765c79f3fdef38e011b640c570a34ec9bfa0da34b06bcf11fac4b"
+        },
+        {
+          "line": 478,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "03f666cf5b633702471128948670ca63078d1ad0b1885e18a57ffb43b0c2e069"
+        },
+        {
+          "line": 528,
+          "column": 1,
+          "code": "E303",
+          "message": "too many blank lines (3)",
+          "fingerprint": "250c1eb8e51cdcc13e2260352b86d8730bafbd20c6e0185c2f57915021697d70"
+        },
+        {
+          "line": 531,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "a53c47be91eb50308e0fc1fbebf6547d65686c784192b919eb4dde7928b81fab"
+        },
+        {
+          "line": 533,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "e49cd4d4fca87c9cd0c735ba78059671d212dbf2ca35eed16e6ab73fee2be8f2"
+        },
+        {
+          "line": 598,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "8a96fd4bdda1bb68c29803c87a6a2c23060bd0c4696effd77bfd8d4b784fad9f"
+        },
+        {
+          "line": 660,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "52dabe7b49be7539246e4ebb7d5dea627135e484b43669e3c53cf453a0ac8713"
+        },
+        {
+          "line": 726,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "e676146d04eaefefec909ed5a14dea36f93b553f51b7c2744a31b8ceb38659cd"
+        },
+        {
+          "line": 727,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "77297b126c759ae6da33fe32921003d25cdc902f5227bdd3fea646afff41a41f"
+        },
+        {
+          "line": 747,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "74b1972f0c9b8f3aa9e6824c9e94dae00e554e9d0526fe387a6e146c50d1341b"
+        },
+        {
+          "line": 810,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "fcb0e384877b88eca072a3777588692bdc88e1068fd7d96299906d12b50a1966"
+        },
+        {
+          "line": 1115,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "e3c594b7f02a5daf95391a50d9384094989575cb8f2c616664541d653c360e83"
+        },
+        {
+          "line": 1130,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "05a76c54ee5ad592f206adc89377868cf5e6f0b27752e29d49f2a5945926811e"
+        },
+        {
+          "line": 1131,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (91 > 79 characters)",
+          "fingerprint": "ff5702cc943a023e47fb8e0c468383bd180dea164dd24fb4fafadbe0ee790200"
+        },
+        {
+          "line": 1214,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "e07146309836cf379313b444158d818d93ec66a146eaf1381c33fd8edb82a464"
+        },
+        {
+          "line": 1307,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "168fd4acfdfb11837c5ea65438abed7c66743fa2ada07d9fd87d3ce74901c5b4"
+        },
+        {
+          "line": 1316,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "b08c2ddddae2db472727df34d6824a22273cb4e4d851257ae7be71a07b4c6aee"
+        },
+        {
+          "line": 1493,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "0786214fefcd505c3e8994f9a2300720e4bd33257b9e3b21927d4cc101bbabda"
+        },
+        {
+          "line": 1553,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "f8d434f1dc30a08a0ab77a4362a4e88b6002c43ef6f656b43239a3fa14f9db35"
+        },
+        {
+          "line": 1554,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (83 > 79 characters)",
+          "fingerprint": "09f1cce16c9f4d4a99543f7172120fa483db059c9a8120e9cff730ce41b7b1fd"
+        },
+        {
+          "line": 1632,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "238f75966fbbdebb9c5f0a3b0083bd200322746de320f3f869a98dc875d69b9d"
+        },
+        {
+          "line": 1635,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "c6c83eb2eee69cf7956b69803b8107a727440eabb95e4d67610a72a8a3a0d12b"
+        },
+        {
+          "line": 1637,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (84 > 79 characters)",
+          "fingerprint": "979afa888006c68753608f0fad1d1a4781723b42413272a4b72a84690f6ea0e3"
+        },
+        {
+          "line": 1647,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "dd6a8134f8b0ad6a3a086b315ac8c1111cf9560967eeaa0672a2ff3624558b5f"
+        },
+        {
+          "line": 1657,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "9ff7aaa976c39661b91c2cebf7689404e53a4b7edf68a1f9ad3409051acb2150"
+        },
+        {
+          "line": 1679,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (83 > 79 characters)",
+          "fingerprint": "1cf8dfd8dd6a10b1cf30d39c8d7cc12efe36582b1d0e155c90213fb377e1b9db"
+        },
+        {
+          "line": 1683,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "79a6525b3de0499560448ffd11193508945804f576154b72177fa7cadbab99cb"
+        },
+        {
+          "line": 1685,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "329e5d12be98e1a9086cf51284e5704b1850ee8a295559e3aedcc224897a8fc7"
+        },
+        {
+          "line": 1691,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "eae24404e3e451b144783af6d51212d55a25a56f14246fa7b0a76191e01ffeb6"
+        },
+        {
+          "line": 1693,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "c67c53a088380900bb7f6a8838ada78443d8737e9b03137650cbf1ee83ecb24a"
+        },
+        {
+          "line": 1706,
+          "column": 5,
+          "code": "E303",
+          "message": "too many blank lines (2)",
+          "fingerprint": "a1d511826268ae1e2d0c38ae00ae24f48043de2bfb1d9c2fe1abd90747f25dcb"
+        },
+        {
+          "line": 1734,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "8ca995184d813519c95cb69348678d017dd0239a18f1899bab57f6f1ba85791f"
+        },
+        {
+          "line": 1735,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "caf07a07a5162948e5f854bfa1915941232e446f55f3007c9e240c6670d75404"
+        },
+        {
+          "line": 1740,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "7c41a505befd2bb6e8f741194e0262ab3e28df431476ca39ea3a5ed0d8a918fe"
+        },
+        {
+          "line": 1748,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "5d8f9cf792e9a471c95ed61089e641b51e913edaa80d09188ee26626efbe26f8"
+        },
+        {
+          "line": 1810,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "45bafca055cc0b2736e1f035646f502dca88259a4b5a08f79fc9f3c9b0867bc3"
+        },
+        {
+          "line": 1959,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "2706e2efc347a1816f7e8994f5ae440e57137894323bb0896a30d9907262a7a8"
+        },
+        {
+          "line": 1961,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "365e87558bb2538004eb6369e1c60447f15f10468746e4ac449ddb0f60e8396b"
+        },
+        {
+          "line": 1962,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "cb5584309687a750b011d4aea058d0725ca5752cf4e35bcb224f930007aa7695"
+        },
+        {
+          "line": 1978,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (83 > 79 characters)",
+          "fingerprint": "8d8e64e7e179e82f7eb4a32ece1f0c7bee7031aafbe9b807da7997a0292ff049"
+        },
+        {
+          "line": 2079,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "3e4f35e29341f97a93099a7d25ff1bcba1ffcdc587e5b2ba709444ff9aa12e0e"
+        },
+        {
+          "line": 2093,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "315b530c79f6fe4c06d10e3abbbaad429bc1856952b874adfa824173d307ba1d"
+        },
+        {
+          "line": 2164,
+          "column": 1,
+          "code": "E302",
+          "message": "expected 2 blank lines, found 1",
+          "fingerprint": "4791e586b1d3112694c349651e88fbeb7db271d5ce816770512662721dbf17e7"
+        },
+        {
+          "line": 2165,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "648d05f90daa69d8c28a425b6ae6703d0a1fcbb7c4269a065c95fde58bdfdb73"
+        },
+        {
+          "line": 2441,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "45c4fa725ae4430b1485e99c3c9c589f255e2497cc23735aebbf1176bc92bc88"
+        },
+        {
+          "line": 2442,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "9ce1fcd568947a02fb8f59ac9e3308dd3fcb721ca93c151e5dbd3e176d326814"
+        },
+        {
+          "line": 2448,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "5dd2c2d7ea03d4bd45968e4ff3735d2532032b422b758cf2089ac06296b5a716"
+        },
+        {
+          "line": 2516,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "ecdbeff91d0d995514b79df5a3b0599baf88a9994685a3fa8c47475d7e0af1e3"
+        },
+        {
+          "line": 2607,
+          "column": 1,
+          "code": "E302",
+          "message": "expected 2 blank lines, found 1",
+          "fingerprint": "650d57b1d8f3add23a6235f70d5229f29c497c1b25564bcc9553e5463b370010"
+        },
+        {
+          "line": 2619,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "c3e79ae02dd72bdfa11263422d5a65e0c6d5d6db88e49c57829146cd35668377"
+        },
+        {
+          "line": 2738,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (90 > 79 characters)",
+          "fingerprint": "eee94b9f65df99c668f6c08d6a97822c1449bf2d9d07ad653e71b5e28ca48108"
+        },
+        {
+          "line": 2872,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "c0a58baec8c730ac5c019e2374e803cd427bbb7a5f1d95ff2647383708338bc0"
+        },
+        {
+          "line": 2963,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (85 > 79 characters)",
+          "fingerprint": "41c20b6b0b306e52cdeaf940ceb3574a987932664de7e96cb352fa331a6432f4"
+        },
+        {
+          "line": 3044,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "41c9bf95126a2933bc23fc95b82c6bcdd10841acb127fe1b7e99b0b36a08a6ee"
+        },
+        {
+          "line": 3233,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (87 > 79 characters)",
+          "fingerprint": "4591eca6e8ad1ff93c787efc4ece186ebfa9c5becfe386d70e617cbf4362b1e5"
+        },
+        {
+          "line": 3293,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "6eec173ea46317f7a88dc342a87c5af989e35ccf3ea7fb9b36ada37b8b320d0d"
+        },
+        {
+          "line": 3303,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "1618e67d5810b7c82aba6977412499b19365b744c776fd299aac838b81bd33de"
+        },
+        {
+          "line": 3304,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "ca9d1adcb8240d19c3413586f6f0374df9e81fe924eb802ae99a9d55761ee387"
+        },
+        {
+          "line": 3352,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (84 > 79 characters)",
+          "fingerprint": "a4b8bbded16c92ba99e15ec29fdd6ec76d2d021d1e452435d2aa00e296e94087"
+        },
+        {
+          "line": 3383,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "b3a54c9dd2e9544de6447507ff25244cc0430a43121fe5bdf6451e8537e4b215"
+        },
+        {
+          "line": 3494,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (86 > 79 characters)",
+          "fingerprint": "5465892fa0cf0391c805791fe5f625140b323965be40343a5e885b40a7a18188"
+        },
+        {
+          "line": 3558,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (84 > 79 characters)",
+          "fingerprint": "78d8f6c020a2cb18e5703cb872274e5f622febe5f352b47ba4a26dd4af6d78f9"
+        },
+        {
+          "line": 3845,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "8ed4ce9543628d15b1a64a4e1d576dd0b138bc2b4f8231a7be777f87231723e0"
+        },
+        {
+          "line": 3887,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (83 > 79 characters)",
+          "fingerprint": "8f6fa81b654395ceeccbd49e4b6d8aeb6ba4c2314c703aba646c3ec6a5967250"
+        },
+        {
+          "line": 4038,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (84 > 79 characters)",
+          "fingerprint": "6ac6b83a73babd4ab4a91aabd5351899a8e17f155b1a1889406bb200108bc8dc"
+        },
+        {
+          "line": 4041,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (86 > 79 characters)",
+          "fingerprint": "48694d25d9e10c257a0909892e85a3e0e61064e3ded53d433828b3aba152effa"
+        },
+        {
+          "line": 4044,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "8724f786158e51d74143c7da573effb752305fb602cf2ac9cb66f32a36b744a6"
+        },
+        {
+          "line": 4112,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "818a0a50c495627c05d3766cb19913a09a1e5cdd301091737329c5e7266e976b"
+        },
+        {
+          "line": 4128,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "d64bab6a77e3408ccefbdb7f9d2f1d2c7f8eca6d3664092ccefce8cf0d92c1f5"
+        },
+        {
+          "line": 4198,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "260c450102782973b92430e70eae6e77774c5239c92a75586522ee9966ee28db"
+        },
+        {
+          "line": 4227,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "6f19787a7ab805f7a8cff2f29310ba7b935eef55f6fe6cc6c637a1107c6731b9"
+        },
+        {
+          "line": 4230,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "ff78dfda91a233379bb8c716f2bf16917238a43d2fbc92af1e3531a479573c39"
+        },
+        {
+          "line": 4231,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "62e95096bb19e343810c881958d63f26f5ad54174893758d5b93d2c1b08efc7e"
+        },
+        {
+          "line": 4238,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "d360122f52c561b98e1040d4acda8bbf7d182a113b595f462c9f3f0470577a03"
+        },
+        {
+          "line": 4248,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "be3fa47262c9b1f9fc986cabebee3f5c8e80d89129c3aab3665a7214e243d672"
+        },
+        {
+          "line": 4352,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "4c78ef09290d989b1a0fb80bff98e167128cc0b5b82212a02c2ffc5c5a5ec066"
+        },
+        {
+          "line": 4481,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "74f9bc9cddc3920e1d4f872ecabe358c4b56ff9c0612b103f4781c34fcaca5e4"
+        },
+        {
+          "line": 4534,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (83 > 79 characters)",
+          "fingerprint": "987620a1aed88a3850497c3cb461b631b2765486c5b8396667ddf419a71b8668"
+        },
+        {
+          "line": 4546,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "6884140cb79458046838f3c0b6e70acfee5d1d2eeb8a5142df179a5f9f06c72b"
+        },
+        {
+          "line": 4547,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "b41f61dfcf41c3ac6ceb202c389c5a9b8e7bffaee8da96ac8207f3741012634b"
+        },
+        {
+          "line": 4555,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "1c2a99a8e73fb462e23712a9672304727d9b085a9783eaa915ba4e5211263ab7"
+        },
+        {
+          "line": 4556,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (81 > 79 characters)",
+          "fingerprint": "c7e307f5d3761a5c41f92e5f2223c74c957f2b8dcff2171ccfc3464eda1c557b"
+        },
+        {
+          "line": 4634,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "6f5c7b141b336b0aa240aef727cb81c4fbc0bfe383b1accd0198bc1389daabc5"
+        },
+        {
+          "line": 4736,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (82 > 79 characters)",
+          "fingerprint": "7ceb4d8553812ec4ba313467ccd91f0e7378ed85a549f0ac42f536c7ed4b1031"
+        },
+        {
+          "line": 4810,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "f644149f40c00b6f29e18ad3802da3302338b8ed33abafb2f8e77d990ea70a47"
+        },
+        {
+          "line": 4834,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "84bb5cd398fe20a878617130633e4c8860ebf2983b33069ffe6c1d6df7297eee"
+        },
+        {
+          "line": 4999,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "9c9ec613c0cee4b3f38daa2afd0e57c55e03e290afac99e0e61b2ed1247fa8ba"
+        },
+        {
+          "line": 84,
+          "column": 58,
+          "code": "SUPPRESSION",
+          "message": "# noqa: F401",
+          "fingerprint": "7b8647a330f51aab42234dc55f89dbb2a8e28cc87a6bf297a109e5f04eace41f"
+        },
+        {
+          "line": 92,
+          "column": 64,
+          "code": "SUPPRESSION",
+          "message": "# noqa: F401",
+          "fingerprint": "dd058ae0436b86fb34d0a2d9d6df751d37d42e4ca8b533c67075347ee87bee4e"
+        },
+        {
+          "line": 93,
+          "column": 64,
+          "code": "SUPPRESSION",
+          "message": "# noqa: F401",
+          "fingerprint": "b37e720bbb347243727b10d2a058e46a590010825830d1c0089f24cb3fc5e29c"
+        },
+        {
+          "line": 94,
+          "column": 64,
+          "code": "SUPPRESSION",
+          "message": "# noqa: F401",
+          "fingerprint": "bf7da2d24b3951c6769739037821bc803b6d40e656423675c6150344f5c92458"
+        },
+        {
+          "line": 95,
+          "column": 61,
+          "code": "SUPPRESSION",
+          "message": "# noqa: F401",
+          "fingerprint": "d13c925f92582664b43a2377f06c844fd68b0ae87bff647f6a2ce273e2fda75d"
+        },
+        {
+          "line": 100,
+          "column": 64,
+          "code": "SUPPRESSION",
+          "message": "# noqa: F401",
+          "fingerprint": "c9acb5570a5071cef9b7c234ec45b56eee0f0f2236ec171231f90a8883b70139"
+        },
+        {
+          "line": 105,
+          "column": 64,
+          "code": "SUPPRESSION",
+          "message": "# noqa: F401",
+          "fingerprint": "4cc01a95fe25f9816fe4d8c08323cae5bac19b3288824090c7cb575914118fe8"
+        },
+        {
+          "line": 106,
+          "column": 66,
+          "code": "SUPPRESSION",
+          "message": "# noqa: F401",
+          "fingerprint": "764fa3dfd52b950eeaa8d7ed3d92a19c99e76a84306776ec2469acfd411661f9"
+        },
+        {
+          "line": 107,
+          "column": 64,
+          "code": "SUPPRESSION",
+          "message": "# noqa: F401",
+          "fingerprint": "5c345593e28e749215c8b93f1a3c29b0ffebd02ea6d67cb954ccda5bae46b0af"
+        },
+        {
+          "line": 108,
+          "column": 64,
+          "code": "SUPPRESSION",
+          "message": "# noqa: F401",
+          "fingerprint": "a89f9160ddfd01d63241a4181da559d9267490f2c5d60f2159cfda556acf4249"
+        },
+        {
+          "line": 109,
+          "column": 64,
+          "code": "SUPPRESSION",
+          "message": "# noqa: F401",
+          "fingerprint": "a3cd70c660a4228247346aa0dbba45a1d32628eebcab5478117ea7dff09b091f"
+        }
+      ],
+      "introduced": [
+        {
+          "line": 4888,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (109 > 79 characters)",
+          "fingerprint": "9b8d3225fb9d75397d22c5508768246e6e90813d8042c600f0e8a0a3dee68025"
+        },
+        {
+          "line": 5087,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (80 > 79 characters)",
+          "fingerprint": "57aa374456669411398db55d8cf471af180d6593c2cf0425796271adc6c15404"
+        }
+      ],
+      "corrected": [],
+      "invalidated_context": [
+        {
+          "line": 4885,
+          "column": 80,
+          "code": "E501",
+          "message": "line too long (109 > 79 characters)",
+          "fingerprint": "1bd26992c28f6deb6b9ac636a6c0a0fa6d591ff9c5e1140f229f26058d0b85f9"
+        }
+      ],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 1,
+        "imports_exit": 0
+      },
+      "base_checks": {
+        "compilation_exit": 0,
+        "style_exit": 1,
+        "imports_exit": 0
+      },
+      "decision": "FAIL"
+    },
+    {
+      "path": "tests/unit/orm/test_native_pending_recompute.py",
+      "old_path": "tests/unit/orm/test_native_pending_recompute.py",
+      "status": "A",
+      "old_mode": "000000",
+      "new_mode": "100644",
+      "old_blob": "0000000000000000000000000000000000000000",
+      "new_blob": "d54e416d40ad80c18c36c4ea0d1711c1de31204e",
+      "inherited": [],
+      "introduced": [],
+      "corrected": [],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 0,
+        "imports_exit": 0
+      },
+      "decision": "PASS",
+      "comparison": "STRICT_NEW_OR_MOVED_FILE"
+    }
+  ],
+  "reasons": [],
+  "increment_admission": "FAIL",
+  "global_style_compliance": "NOT_EVALUATED",
+  "ci_verification": "NOT_EVALUATED",
+  "contract_verification": "NOT_EVALUATED",
+  "integration": "NOT_EVALUATED",
+  "acceptance": "NOT_EVALUATED",
+  "activation": "EXPLICIT_INCREMENT_EVALUATION",
+  "base": "2f42c4cf10a5ed4246cfa3f920c0e2d592360144",
+  "candidate": {
+    "index_tree": "a1265096c6de345cc8acd8bb24fa3ac8a6154517",
+    "head": "2f42c4cf10a5ed4246cfa3f920c0e2d592360144"
+  },
+  "verifiers": {
+    "/workspace/kaupamex-api/scripts/check_python_style_increment.py": "33fcd7d40a59acebfaf0e4b54894b1a9b07591bb0197b866761d3393e78eeaf4",
+    "/workspace/kaupamex-api/scripts/check_no_lazy_imports.py": "278a21b0fcd8fc17b1103c09e7437f116767173b84168fb1991c98dad9fed223",
+    "/workspace/kaupamex-api/.venv/lib/python3.12/site-packages/pycodestyle.py": "a14c299bb9f2251f7327fce593e7986b3bbb472e07b5d6b8ce3f2a0750325c00"
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "pycodestyle": "2.14.0",
+  "native_checks": {
+    "style": "pycodestyle.Checker.check_all; native defaults, ignore=W503",
+    "imports": "check_no_lazy_imports.find_misplaced_imports",
+    "compilation": "compile(exec), SyntaxWarning treated as error"
+  },
+  "python_scope": "CHANGED",
+  "exit_code": 1
+}

@@ -1,0 +1,7 @@
+{
+  "baseline_revision": "2f42c4cf10a5ed4246cfa3f920c0e2d592360144",
+  "candidate_revision": "c143190d8688b321cf4b9130038b1f79c9e572c8",
+  "baseline_source_sha256": "7ac19125176d396f40f136cd5ff7e591b4f00c3562eb86dc63260a8f9e284b5a",
+  "candidate_source_sha256": "e397812b330c57f2f5a21190450b4bdcb5418fbcd73409006d41751696b5cae9",
+  "Django_executable_body_AST_equal_after_removing_native_branch_and_docstring": true
+}

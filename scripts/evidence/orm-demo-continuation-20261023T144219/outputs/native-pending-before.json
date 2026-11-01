@@ -1,0 +1,31 @@
+{
+  "head": "2f42c4cf10a5ed4246cfa3f920c0e2d592360144",
+  "index_tree": "691b9a00d63a926e78d00f11b4351567cc4407c1",
+  "origins": {
+    "orm.environments": ":src/orm/environments.py",
+    "orm.fields": ":src/orm/fields.py"
+  },
+  "source_sha256": {
+    "orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f",
+    "orm.fields": "7ac19125176d396f40f136cd5ff7e591b4f00c3562eb86dc63260a8f9e284b5a"
+  },
+  "test_sha256": {
+    "tests/unit/orm/test_native_pending_recompute.py": "b8ee22d5dd181b05fc4e44c25ad5921edc4334d4a163a275fc3fff73dcb14cfc"
+  },
+  "uid_only": false,
+  "annul_descriptor": false,
+  "annul_uid": false,
+  "regression": false,
+  "annul_canonical_scope": false,
+  "annul_record_sudo": false,
+  "keyword_only": false,
+  "batch_only": false,
+  "stored_only": false,
+  "pending_only": true,
+  "annul_stored_guard": false,
+  "annul_m2m_readback": false,
+  "annul_native_batch": false,
+  "pytest_exit": 1,
+  "provenance_unchanged": true,
+  "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"
+}
