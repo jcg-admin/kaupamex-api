@@ -4032,7 +4032,10 @@ def _flush(self):
     #: virtual, que se recalcula al leerla y no tiene columna que escribir.
     wanted_ids = OrderedSet(record_id for ids in dirty_field_ids.values()
                             for record_id in ids if isinstance(record_id, int))
-    rows = {row.pk: row for row in model.objects.filter(pk__in=list(wanted_ids))}
+    rows = {
+        row.pk: row
+        for row in model._base_manager.filter(pk__in=list(wanted_ids))
+    }
 
     for record_id in wanted_ids:
         row = rows.get(record_id)
