@@ -1,0 +1,41 @@
+{
+  "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+  "reference_symbol": {
+    "symbol": "Field.resolve_depends; ResConfigSettings; ResCompany.country_id",
+    "sources": {
+      "odoo19c:odoo/orm/fields.py": "48bc4e496ff98a3c2d33b06248549681041b5791323380c6d73ce6dd8a0ebb6e",
+      "odoo19c:odoo/addons/base/models/res_config.py": "d36bcca19a16eb43a9918cb44b6ce3ff2f6c92c29f78354f8ffcf87fa34dcc4f"
+    }
+  },
+  "behavior": "A class-declared nonstored Many2one must not cause a physical NULL update during target deletion. Unsearchable dependency warnings remain visible where the native traversal rules generate them.",
+  "execution_flow": "fields.Many2one -> existing store derivation -> private_only contribution -> native Django Collector skips DO_NOTHING -> target DELETE. resolve_depends separately traverses real SiteConfigSettings dependency paths.",
+  "inputs_outputs": "Actual class-body declaration with compute/inverse and declared set-null policy; existing target row deleted, source row retained. In-memory SET_NULL annulment causes FieldError and rollback preserves target. Both actual company-country fields emit expected warnings under current nontransient metadata.",
+  "side_effects": "Three TEMP fixture tables on own PostgreSQL container: two unit models plus empty automation-rule table. Application signals remain enabled. No shared DB, migration, schema, source policy or search changes.",
+  "dependencies": [
+    "TASK-API-0424 native session168b0fdf-bfe4-590b-b6c0-b6be124c124a ownerVM-b501 pending",
+    "Existing Many2one factory, private-field setup, Collector and Django signals",
+    "TASK-GEN-0453 session29a5e555-e34f-5a20-8c39-ad6cf2f19961 task201 is the historical transient task; same ordinal in API session is unrelated completedGEN0050 and was not reopened",
+    "TASK-API-0152 native278 and TASK-DOCS-0111 native469 relate to stale ResConfigSettings claims; no assignment or state change inferred"
+  ],
+  "consumers": [
+    "Class-body private relation deletion fixture",
+    "Actual ResCompany.country",
+    "Actual SiteConfigSettings.company_country_code/company_country_group_codes",
+    "BaseAutomation pre_delete signal with empty rule fixture"
+  ],
+  "installed_mechanism": "Existing native TaskGet, claimsCommand, plan_items_from_rows/node_frontier; native Django Collector and Field.resolve_depends; own local PostgreSQL image fixed by sha256",
+  "existing_adaptation": "Declared Odoo-style ondelete retained; only Django collector policy becomes DO_NOTHING because no physical FK column exists. SiteConfigSettings unmanaged-form lifecycle is a separate adaptation from native transient persistence, not equivalent solely by managed=False.",
+  "verification": {
+    "metadata": "4PASS with SQL prohibited",
+    "postgresql": "PASS PostgreSQL16.15, published factory exact source imported; positive delete plus negative FieldError",
+    "cleanup": "PASS each of3owned containers removed; resource receipts preserved",
+    "initial_fixture_failure": "Missing base_automation table, exit1; preserved separately",
+    "minimal_fixture_failure": "Cold import cycle before delete, exit1; preserved separately; not attributed to relation logic",
+    "final_fixture": "Full startup/signals and empty temporary automation-rule table; no signal suppression",
+    "style": "Both new Python files pycodestyle exit0",
+    "actual_dependency_paths": "nonstored-delete-actual-consumers.json"
+  },
+  "equivalence": "Bounded class-body delete adaptation verified. Warning algorithm agrees with pinned Odoo; consumer lifecycle differs, so identical full warning/recompute behavior is not claimed.",
+  "limitations": "Not full TASK acceptance. Actual business automation rules, concurrent deletion, inverse persistence, every ondelete policy, settings transient lifecycle and full reverse recompute still not_verified. No arbitrary search method or transient marker added.",
+  "integration": "New test/probe and evidence staged for existing PR109; current product factory is already published atdae481b4. Commit/push recorded by subsequent native task update."
+}

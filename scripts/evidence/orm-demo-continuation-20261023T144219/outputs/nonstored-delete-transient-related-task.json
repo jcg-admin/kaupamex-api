@@ -1,0 +1,12 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "session_id": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "input": {
+    "task_id": "201"
+  },
+  "interface": "TaskGet.run",
+  "result": {
+    "content": "{\"task_id\":\"201\",\"citation_id\":\"TASK-GEN-0050\",\"subject\":\"Triar los 34 addons cáscara (&lt;15% de la masa de su contraparte)\",\"description\":\"CERRADA por DEC-FW-04 (directiva del ejecutor 2026-08-07): no hay triaje ni subconjunto — los 34 se portan completos, identificadores en inglés y comentarios en español. El desenlace de esta tarea era la decisión de alcance; está tomada. La ejecución vive en #202..#209, una por capa topológica.\",\"status\":\"completed\",\"owner\":null,\"blocked_by\":[],\"blocks\":[{\"task_id\":\"199\",\"subject\":\"Portar project_account y corregir los dos docstrings de H-API-368\",\"status\":\"completed\"}],\"blocked\":false}",
+    "isError": false
+  }
+}
