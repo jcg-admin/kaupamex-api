@@ -1,0 +1,15 @@
+{
+  "run_id": 41334552516,
+  "job_id": 124931487227,
+  "url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/41334552516/job/124931487227",
+  "revision": "bb72edcd07ec6608c98b8c23f26f1896103e660a",
+  "conclusion": "failure",
+  "check_style_exit": 1,
+  "ci_verify_exit": 2,
+  "later_stages": "not credited",
+  "local_full_log": "/tmp/record-env-ci-failed.log",
+  "acceptance": "not_verified",
+  "scope": "CI for declared published revision, not later revisions",
+  "log_sha256": "98fbc459ca99950e1f944556bb3af593216d851832a6190f8313cec21ac01080",
+  "log_bytes": 4487305
+}

@@ -1,0 +1,8 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+F                                                                        [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/tests/unit/orm/test_record_environment_field_contract.py:136: KeyError: 'probe_key'
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/record-env-thread-red.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_record_environment_field_contract.py::test_shared_attached_environment_scopes_are_local_to_each_thread
+1 failed in 0.09s

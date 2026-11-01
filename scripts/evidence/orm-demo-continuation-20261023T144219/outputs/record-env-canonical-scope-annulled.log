@@ -1,0 +1,9 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+F                                                                        [100%]
+=================================== FAILURES ===================================
+/tmp/record-env-candidate-zfq84_dk/environments.py:992: ValueError: <Token var=<ContextVar name='su' default=False at 0x7fa8d6123380> at 0x7fa8cfdcfa80> was created in a different Context
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/record-env-canonical-scope-annulled.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_record_environment_field_contract.py::test_shared_attached_environment_scopes_are_local_to_each_thread
+1 failed in 0.09s
+{"head": "f17fca957391868e9194a98fbe4ffc8d384758d6", "index_tree": "4bcd3163a33d4a8d9fa6ca70b7de0cfba1f30264", "origins": {"orm.environments": ":src/orm/environments.py", "orm.fields": ":src/orm/fields.py"}, "source_sha256": {"orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f", "orm.fields": "19267dd67d9235e36a6a20c4e51f04138293d12eb2a5d8f290f30360022c2184"}, "test_sha256": {"tests/unit/orm/test_record_environment_field_contract.py": "f61d5e69a979c8b7ceeee7eef23fa227b811738699334b8334571ab5b46b634a"}, "uid_only": false, "annul_descriptor": false, "annul_uid": false, "regression": false, "annul_canonical_scope": true, "pytest_exit": 1, "provenance_unchanged": true, "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"}

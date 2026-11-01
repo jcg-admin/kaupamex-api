@@ -1,0 +1,27 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FFF.F..F.......                                                          [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/tests/unit/orm/test_record_environment_field_contract.py:80: AssertionError: assert 'red' == 'blue'
+/workspace/kaupamex-api/tests/unit/orm/test_record_environment_field_contract.py:89: AssertionError: assert 'ambient' == 'attached'
+/workspace/kaupamex-api/tests/unit/orm/test_record_environment_field_contract.py:97: KeyError: 31
+/workspace/kaupamex-api/tests/unit/orm/test_record_environment_field_contract.py:113: assert False is True
+/workspace/kaupamex-api/tests/unit/orm/test_record_environment_field_contract.py:136: KeyError: 'probe_key'
+=============================== warnings summary ===============================
+tests/unit/orm/test_record_environment_field_contract.py::test_explicit_assignment_uses_the_attached_cache_bucket
+  /tmp/record-env-candidate-pntf2izy/fields.py:4205: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_record_environment_field_contract.py::test_explicit_assignment_uses_the_attached_cache_bucket
+  /tmp/record-env-candidate-pntf2izy/fields.py:4205: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/record-env-descriptor-annulled.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_record_environment_field_contract.py::test_with_context_separates_computed_values_for_the_same_id
+FAILED tests/unit/orm/test_record_environment_field_contract.py::test_ambient_helpers_see_attached_context_during_compute_only
+FAILED tests/unit/orm/test_record_environment_field_contract.py::test_explicit_assignment_uses_the_attached_cache_bucket
+FAILED tests/unit/orm/test_record_environment_field_contract.py::test_sudo_bucket_and_channel_do_not_leak_to_the_ambient_record
+FAILED tests/unit/orm/test_record_environment_field_contract.py::test_shared_attached_environment_scopes_are_local_to_each_thread
+5 failed, 10 passed, 2 warnings in 0.21s
+{"head": "f17fca957391868e9194a98fbe4ffc8d384758d6", "index_tree": "ed7bda4f0894e950e84ace3191b4870b4e7b1d70", "origins": {"orm.environments": ":src/orm/environments.py", "orm.fields": ":src/orm/fields.py"}, "source_sha256": {"orm.environments": "254ef0348b6fa118e5962150662fb69bb7fab6baeb2959d2593e692546460446", "orm.fields": "62561055fda4bd5c9ff435d68ae3616bc04029c163cc96acd175649b5d17cf26"}, "test_sha256": {"tests/unit/orm/test_environments_cache.py": "e2520e7a005a9bfe743aa5f40f4d8a8b6d550ec1e3002003a5205ac383df77f1", "tests/unit/orm/test_record_environment_field_contract.py": "4546c94eca9ea7fa1fa65f33c9850f85e6f3f344d20d22861231c867d8262d1a", "tests/unit/orm/test_uid_cache_key_contract.py": "3c7bddba9df9d9520c42ebecc731c30a3b592a6e35c224c63996e3af379f69f1"}, "uid_only": false, "annul_descriptor": true, "annul_uid": false, "regression": false, "pytest_exit": 1, "provenance_unchanged": true, "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"}
