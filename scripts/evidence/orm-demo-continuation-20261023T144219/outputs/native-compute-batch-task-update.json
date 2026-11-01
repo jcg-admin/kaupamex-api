@@ -1,0 +1,35 @@
+{
+  "provider_revision": "9b13f2d7a1f070bfd293f9fb8acc7c4ea8f9555f",
+  "interface": "TaskGet/TaskUpdate(description only)/TaskGet",
+  "session_id": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+  "before": {
+    "task_id": "306",
+    "citation_id": "TASK-GEN-0558",
+    "subject": "Dar al computo un QuerySet en vez de una fila, y recuperar el lote de prelectura",
+    "description": null,
+    "status": "pending",
+    "owner": "VM-b501",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  },
+  "input": {
+    "task_id": "306",
+    "description": "Verified continuation 2026-11-01: c904f188 characterizes direct native compute dispatch, 6PASS; temporary native recordset fragmentation yields4expectedFAIL2PASS. as_record_list preserves BaseModel because it inherits models.Model; initial direct-dispatch defect hypothesis refuted, no production change required. Existing job outputs/native-compute-batch-contract-14.json. Queued recompute still iterates rows; queue selection, recursion, missing-row retry, stored cache readback/persistence and actual prefetch IO remain not_verified. No full TASK completion/merge/acceptance."
+  },
+  "result": {
+    "content": "{\"task_id\":\"306\",\"updated\":true}",
+    "isError": false
+  },
+  "after": {
+    "task_id": "306",
+    "citation_id": "TASK-GEN-0558",
+    "subject": "Dar al computo un QuerySet en vez de una fila, y recuperar el lote de prelectura",
+    "description": "Verified continuation 2026-11-01: c904f188 characterizes direct native compute dispatch, 6PASS; temporary native recordset fragmentation yields4expectedFAIL2PASS. as_record_list preserves BaseModel because it inherits models.Model; initial direct-dispatch defect hypothesis refuted, no production change required. Existing job outputs/native-compute-batch-contract-14.json. Queued recompute still iterates rows; queue selection, recursion, missing-row retry, stored cache readback/persistence and actual prefetch IO remain not_verified. No full TASK completion/merge/acceptance.",
+    "status": "pending",
+    "owner": "VM-b501",
+    "blocked_by": [],
+    "blocks": [],
+    "blocked": false
+  }
+}

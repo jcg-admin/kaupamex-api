@@ -1,0 +1,74 @@
+{
+  "revision": "c4917a8ae39e11cd0f3201e0c5692abf1eb45d7f",
+  "run_id": 41336501877,
+  "job_id": 124937346794,
+  "url": "https://github.com/jcg-admin/kaupamex-api/actions/runs/41336501877/job/124937346794",
+  "status": "completed",
+  "conclusion": "failure",
+  "log_download_exit": 0,
+  "local_full_log": "/tmp/record-env-keyword-ci-failed.log",
+  "log_sha256": "1b35776c6b1493c61f07ff4676875628be4f2c6b8347552562b7ac6c86da6a5f",
+  "log_bytes": 4487305,
+  "check_style_exit": 1,
+  "ci_verify_exit": 2,
+  "first_distinct_diagnostic_files": [
+    {
+      "path": ".claude/hooks/inject_drf_skill_gate.py",
+      "line": 14,
+      "column": 80,
+      "code": "E501",
+      "message": "line too long (80 > 79 characters)",
+      "blobs": {
+        "parent": {
+          "exit": 0,
+          "blob": "78c0a79b6c5139da97cfec1df2c4bbbd554ff2e3"
+        },
+        "candidate": {
+          "exit": 0,
+          "blob": "78c0a79b6c5139da97cfec1df2c4bbbd554ff2e3"
+        }
+      },
+      "classification": "BASELINE_FAILURE"
+    },
+    {
+      "path": ".claude/scripts/bound_detector.py",
+      "line": 15,
+      "column": 80,
+      "code": "E501",
+      "message": "line too long (80 > 79 characters)",
+      "blobs": {
+        "parent": {
+          "exit": 0,
+          "blob": "6c10741d09f8eb1f29136feb6124626e63cedc61"
+        },
+        "candidate": {
+          "exit": 0,
+          "blob": "6c10741d09f8eb1f29136feb6124626e63cedc61"
+        }
+      },
+      "classification": "BASELINE_FAILURE"
+    },
+    {
+      "path": ".claude/scripts/convert_broken_references.py",
+      "line": 8,
+      "column": 80,
+      "code": "E501",
+      "message": "line too long (89 > 79 characters)",
+      "blobs": {
+        "parent": {
+          "exit": 0,
+          "blob": "03f2c02c2260a6ab41f70be975bbee0272e9ddca"
+        },
+        "candidate": {
+          "exit": 0,
+          "blob": "03f2c02c2260a6ab41f70be975bbee0272e9ddca"
+        }
+      },
+      "classification": "BASELINE_FAILURE"
+    }
+  ],
+  "scope": "Three unchanged files prove inherited failures only for these files, not global absence of regressions",
+  "later_stages": "not credited",
+  "merge": "not performed",
+  "acceptance": "not_verified"
+}
