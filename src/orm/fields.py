@@ -69,7 +69,7 @@ from django.db.models.query_utils import DeferredAttribute
 from django.utils.timezone import localtime
 from psycopg.types.json import Jsonb
 
-from exceptions import MissingError
+from exceptions import AccessError, MissingError
 from orm.environments import (
     Environment,
     env as get_environment,
@@ -4858,13 +4858,17 @@ def recompute(self, records):
     ≙ ``Field.recompute`` (``:1850``). Sólo se llama si el campo es calculado
     y almacenado.
 
-    La adaptación conserva el cómputo por fila; la prelectura por lotes sigue
-    siendo TASK-GEN-0558. TASK-GEN-0559 conserva el reintento acotado de
+    La rama nativa conserva lotes, orden recursivo y fallback de la fuente.
+    Las filas Django conservan el cómputo por fila de TASK-GEN-0558.
+    TASK-GEN-0559 conserva el reintento acotado de
     ``apply_except_missing``: ante ausencia, comprueba la fila sin el filtro
     del manager público, reintenta una vez si existe y desmarca el grupo si
     desapareció. Django ``ObjectDoesNotExist`` y el ``MissingError`` ya
     existente expresan esa ausencia; cualquier otro error se propaga.
     """
+    if getattr(records, '_ids', None) is not None:
+        with records.env():
+            return _recompute_native_recordset(self, records)
     to_compute_ids = get_environment().transaction.tocompute.get(self)
     if not to_compute_ids:
         return
@@ -4882,7 +4886,9 @@ def recompute(self, records):
             # La segunda invocación queda fuera del try: un error persistente
             # se propaga y compute_value conserva el trabajo pendiente.
             pass  # silent OK because la ausencia se comprueba y resuelve abajo
-        if not record.pk or type(record)._base_manager.using(record._state.db).filter(pk=record.pk).exists():
+        if not record.pk or type(record)._base_manager.using(
+            record._state.db
+        ).filter(pk=record.pk).exists():
             self.compute_value(record)
         else:
             for field in registry_field_computed[self]:
@@ -5078,3 +5084,47 @@ def _in_record_environment(method):
 
 FieldDescriptor.__get__ = _in_record_environment(FieldDescriptor.__get__)
 FieldDescriptor.__set__ = _in_record_environment(FieldDescriptor.__set__)
+
+
+def _recompute_native_recordset(field, records):
+    """Recompute native recordsets with the pinned source algorithm."""
+    to_compute_ids = records.env.transaction.tocompute.get(field)
+    if not to_compute_ids:
+        return
+
+    def apply_except_missing(callback, batch):
+        try:
+            callback(batch)
+            return
+        except MissingError:
+            # silent OK because existence is checked and one retry follows.
+            pass
+        existing = batch.exists()
+        if existing:
+            callback(existing)
+        missing = batch - existing
+        for computed in registry_field_computed[field]:
+            records.env.remove_to_compute(computed, record_ids(missing))
+
+    if field.recursive:
+        def recursive_compute(batch):
+            for record in batch:
+                if record._ids[0] in to_compute_ids:
+                    field.compute_value(record)
+
+        apply_except_missing(recursive_compute, records)
+        return
+
+    for record in records:
+        record_id = record._ids[0]
+        if record_id not in to_compute_ids:
+            continue
+        ids = expand_ids(record_id, to_compute_ids)
+        batch = record.browse(itertools.islice(ids, PREFETCH_MAX))
+        try:
+            apply_except_missing(field.compute_value, batch)
+            continue
+        except AccessError:
+            # silent OK because the singleton computation below must succeed.
+            pass
+        field.compute_value(record)
