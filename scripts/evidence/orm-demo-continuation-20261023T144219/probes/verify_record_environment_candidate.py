@@ -70,6 +70,8 @@ def main():
     parser.add_argument('--annul-canonical-scope', action='store_true')
     parser.add_argument('--annul-record-sudo', action='store_true')
     parser.add_argument('--keyword-only', action='store_true')
+    parser.add_argument('--batch-only', action='store_true')
+    parser.add_argument('--annul-native-batch', action='store_true')
     args = parser.parse_args()
     if args.uid_only and args.annul_descriptor:
         parser.error('UID-only mode has no staged descriptor to annul')
@@ -83,6 +85,22 @@ def main():
         origins[module] = origin + path
         snapshots[module] = subprocess.check_output(
             ['git', 'show', origin + path]
+        )
+    if args.annul_native_batch:
+        source = snapshots['orm.fields']
+        start = source.index(b'def _invoke_compute_method(')
+        end = source.index(b'\ndef recompute(', start)
+        body = source[start:end]
+        original = b'for record in as_record_list(records):'
+        replacement = (
+            b'for record in (list(records) if '
+            b'getattr(records, "_ids", None) is not None '
+            b'else as_record_list(records)):'
+        )
+        if body.count(original) != 1:
+            raise RuntimeError('Native dispatch not uniquely identified')
+        snapshots['orm.fields'] = (
+            source[:start] + body.replace(original, replacement) + source[end:]
         )
     if args.annul_uid:
         source = snapshots['orm.environments']
@@ -139,6 +157,8 @@ def main():
     if args.keyword_only:
         tests = [RECORD_TEST + '::'
                  'test_explicit_descriptor_self_keyword_remains_compatible']
+    if args.batch_only:
+        tests = ['tests/unit/orm/test_native_compute_batch_dispatch.py']
     test_hashes = {
         path: hashlib.sha256(Path(path).read_bytes()).hexdigest()
         for path in {test.split('::')[0] for test in tests}
@@ -195,6 +215,8 @@ def main():
         'annul_canonical_scope': args.annul_canonical_scope,
         'annul_record_sudo': args.annul_record_sudo,
         'keyword_only': args.keyword_only,
+        'batch_only': args.batch_only,
+        'annul_native_batch': args.annul_native_batch,
         'pytest_exit': int(code), 'provenance_unchanged': stable,
         'scope': 'Exact declared source snapshots and hashed Consumer tests; '
                  'SQL prohibited; no whole-head CI/integration/acceptance',
