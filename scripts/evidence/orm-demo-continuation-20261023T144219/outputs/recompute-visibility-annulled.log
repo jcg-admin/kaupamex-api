@@ -1,0 +1,15 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+FF.F.F                                                                   [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/tests/unit/orm/test_recompute_visibility_contract.py:85: assert [31] == [31, 32]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:960: AssertionError: Expected 'mock' to be called once. Called 0 times.
+/workspace/kaupamex-api/tests/unit/orm/test_recompute_visibility_contract.py:120: Failed: DID NOT RAISE <class 'RuntimeError'>
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:960: AssertionError: Expected 'mock' to be called once. Called 0 times.
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/recompute-visibility-annulled.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_recompute_visibility_contract.py::test_hidden_existing_pending_row_is_computed
+FAILED tests/unit/orm/test_recompute_visibility_contract.py::test_requested_subset_preserves_other_pending_rows
+FAILED tests/unit/orm/test_recompute_visibility_contract.py::test_physical_lookup_failure_preserves_pending
+FAILED tests/unit/orm/test_recompute_visibility_contract.py::test_virtual_pending_ids_are_not_classified_as_missing
+4 failed, 2 passed in 0.10s
+{"head": "918ac836fdd3344866a1aa3534cfa2109c7a0f53", "index_tree": "66f00538ca5b71c952d86d2935aca105b8ff435a", "origins": {"orm.environments": ":src/orm/environments.py", "orm.fields": ":src/orm/fields.py", "orm.models": ":src/orm/models.py"}, "source_sha256": {"orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f", "orm.fields": "e397812b330c57f2f5a21190450b4bdcb5418fbcd73409006d41751696b5cae9", "orm.models": "cc6fad58ff6c9f7e879da6ec2a6347fd0c013e60dd260c0927864877bbf0836b"}, "test_sha256": {"tests/unit/orm/test_recompute_visibility_contract.py": "52734cca9825154550d46f28604bffb4317e1ee1ff4571f4c54c493aebbfac45"}, "uid_only": false, "annul_descriptor": false, "annul_uid": false, "regression": false, "annul_canonical_scope": false, "annul_record_sudo": false, "keyword_only": false, "batch_only": false, "stored_only": false, "pending_only": false, "flush_only": false, "recompute_visibility_only": true, "annul_recompute_visibility": true, "annul_flush_visibility": false, "annul_native_pending": false, "annul_django_absence": false, "annul_stored_guard": false, "annul_m2m_readback": false, "annul_native_batch": false, "pytest_exit": 1, "provenance_unchanged": true, "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"}

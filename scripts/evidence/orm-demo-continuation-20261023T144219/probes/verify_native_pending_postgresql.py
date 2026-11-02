@@ -22,7 +22,10 @@ import django
 from django.db import connection, transaction
 from django.test.utils import CaptureQueriesContext
 
-from verify_record_environment_candidate import RecordEnvironmentSnapshot
+from verify_record_environment_candidate import (
+    RecordEnvironmentSnapshot,
+    annul_recompute_order,
+)
 
 JOB = Path(__file__).resolve().parents[1]
 SOURCES = {
@@ -36,6 +39,106 @@ OLD_REVISION = '92a84833f01d5d4c54aaf5df3a9ba74cdd0c4773'
 
 def git_source(revision, path):
     return subprocess.check_output(['git', 'show', revision + ':' + path])
+
+
+def verify_recompute_visibility(revision, sources, directory, ordered=False):
+    name = 'tests/unit/orm/test_recompute_visibility_contract.py'
+    fixture_source = git_source('', name)
+    path = Path(directory) / 'recompute_visibility_fixture.py'
+    path.write_bytes(fixture_source)
+    spec = importlib.util.spec_from_file_location(
+        'recompute_visibility_pg_fixture', path
+    )
+    fixture = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fixture)
+    model = fixture.RecomputeVisibilityProbe
+    table = connection.ops.quote_name(model._meta.db_table)
+    with connection.schema_editor(collect_sql=True) as editor:
+        editor.create_model(model)
+    with connection.cursor() as cursor:
+        for statement in editor.collected_sql:
+            assert statement.startswith('CREATE TABLE '), statement
+            cursor.execute(statement.replace(
+                'CREATE TABLE ', 'CREATE TEMP TABLE ', 1
+            ))
+        cursor.execute(
+            f'INSERT INTO {table} '
+            '(id, source, visible, value, sibling, unrelated) '
+            'VALUES (31, 7, true, NULL, NULL, NULL), '
+            '(32, 11, false, NULL, NULL, NULL)'
+        )
+        cursor.execute('SELECT version()')
+        version = cursor.fetchone()[0]
+        assert version.startswith('PostgreSQL 16.')
+    public_ids = list(model.objects.values_list('pk', flat=True))
+    physical_ids = list(model._base_manager.values_list('pk', flat=True))
+    assert public_ids == [31] and sorted(physical_ids) == [31, 32]
+    fixture.registry.clear_field_depends()
+    model.calls.clear()
+    field = model._meta.get_field('value')
+    sibling = model._meta.get_field('sibling')
+    unrelated = model._meta.get_field('unrelated')
+    requested_ids = [32, 31, 32, 99] if ordered else None
+    if ordered:
+        field.recursive = True
+    manager = model._base_manager
+    original_query = manager.get_queryset
+    query_context = (
+        patch.object(
+            manager, 'get_queryset',
+            lambda: original_query().order_by('pk'),
+        ) if ordered else nullcontext()
+    )
+    with fixture.transaction_scope():
+        for computed in (field, sibling):
+            fixture.env().add_to_compute(computed, [31, 32, 99])
+        fixture.env().add_to_compute(unrelated, [99])
+        with query_context, CaptureQueriesContext(connection) as queries:
+            sys.modules['orm.models']._recompute_field(
+                model, field, requested_ids
+            )
+        actual = dict(field._get_cache(fixture.env()))
+        grouped = dict(sibling._get_cache(fixture.env()))
+        pending = list(fixture.env().transaction.tocompute.get(field, ()))
+        sibling_pending = list(
+            fixture.env().transaction.tocompute.get(sibling, ())
+        )
+        other_pending = list(
+            fixture.env().transaction.tocompute.get(unrelated, ())
+        )
+    with connection.cursor() as cursor:
+        cursor.execute(f'SELECT id, value, sibling FROM {table} ORDER BY id')
+        stored = cursor.fetchall()
+        cursor.execute(
+            "SELECT count(*) FROM information_schema.tables "
+            "WHERE table_schema='public'"
+        )
+        public_tables = cursor.fetchone()[0]
+    passed = (
+        actual == {31: 14, 32: 22} and grouped == {31: 21, 32: 33}
+        and not pending and not sibling_pending and other_pending == [99]
+        and stored == [(31, None, None), (32, None, None)]
+        and public_tables == 0
+        and (not ordered or model.calls == [32, 31])
+    )
+    return {
+        'revision': revision, 'postgresql': version,
+        'source_sha256': {
+            module: hashlib.sha256(source).hexdigest()
+            for module, source in sources.items()
+        },
+        'fixture_sha256': hashlib.sha256(fixture_source).hexdigest(),
+        'public_ids': public_ids, 'physical_ids': physical_ids,
+        'computed_ids': model.calls, 'value_cache': actual,
+        'requested_ids': requested_ids,
+        'physical_query_order': 'pk ASC (fixture)' if ordered else 'default',
+        'sibling_cache': grouped, 'pending': pending,
+        'sibling_pending': sibling_pending, 'unrelated_pending': other_pending,
+        'stored_rows_unchanged': stored, 'public_tables': public_tables,
+        'sql': [query['sql'] for query in queries], 'contract_pass': passed,
+        'scope': 'Actual physical selection and cache recompute; '
+                 'TEMP fixture only; flush/routing/ACL acceptance excluded',
+    }
 
 
 def verify_stored_m2m(
@@ -290,12 +393,28 @@ def main():
     parser.add_argument('--filter-parent', action='store_true')
     parser.add_argument('--index-models', action='store_true')
     parser.add_argument('--annul-flush-visibility', action='store_true')
+    parser.add_argument('--recompute-visibility-only', action='store_true')
+    parser.add_argument('--recompute-request-order', action='store_true')
+    parser.add_argument('--annul-recompute-order', action='store_true')
     args = parser.parse_args()
     if args.m2m_only and args.m2m_flush_only:
         parser.error('Select only one M2M mode')
-    if (args.filter_parent or args.index_models
-            or args.annul_flush_visibility) and not args.m2m_flush_only:
+    if args.recompute_visibility_only and (
+        args.m2m_only or args.m2m_flush_only
+    ):
+        parser.error('Select only one verification mode')
+    if (
+        args.recompute_request_order or args.annul_recompute_order
+    ) and not args.recompute_visibility_only:
+        parser.error('Recompute order controls require recompute mode')
+    if (
+        args.filter_parent or args.annul_flush_visibility
+    ) and not args.m2m_flush_only:
         parser.error('Parent filter requires the flush mode')
+    if args.index_models and not (
+        args.m2m_flush_only or args.recompute_visibility_only
+    ):
+        parser.error('Index models requires flush or recompute mode')
     os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.testing'
     os.environ['SECRET_KEY'] = secrets.token_urlsafe(50)
     for prefix in ('DB_', 'DB_QA_'):
@@ -333,6 +452,8 @@ def main():
             source[:start] + body.replace(physical, b'model.objects.filter(')
             + source[end:]
         )
+    if args.annul_recompute_order:
+        sources['orm.models'] = annul_recompute_order(sources['orm.models'])
     fixture_source = git_source(revision, FIXTURE)
     with TemporaryDirectory(prefix='native-pending-pg-source-') as directory:
         paths = {}
@@ -344,6 +465,37 @@ def main():
         sys.meta_path.insert(0, finder)
         try:
             django.setup()
+            if args.recompute_visibility_only:
+                for module, path in paths.items():
+                    assert Path(sys.modules[module].__file__) == path, module
+                with transaction.atomic():
+                    result = verify_recompute_visibility(
+                        revision, sources, directory,
+                        ordered=args.recompute_request_order,
+                    )
+                    transaction.set_rollback(True)
+                result['outer_transaction_rolled_back'] = True
+                suffix = '-candidate' if args.index_models else '-baseline'
+                if args.recompute_request_order:
+                    suffix += '-ordered'
+                if args.annul_recompute_order:
+                    suffix += '-annulled'
+                if index_tree is not None:
+                    after = subprocess.check_output(
+                        ['git', 'write-tree'], text=True
+                    ).strip()
+                    result['index_tree'] = index_tree
+                    result['index_provenance_unchanged'] = after == index_tree
+                    assert after == index_tree
+                result_path = JOB / (
+                    'outputs/recompute-visibility-postgresql' + suffix
+                    + '.json'
+                )
+                result_path.write_text(json.dumps(result, indent=2) + '\n')
+                print(json.dumps(result))
+                if not result['contract_pass']:
+                    raise AssertionError('Physical pending recompute failed')
+                return
             if args.m2m_flush_only:
                 for module, path in paths.items():
                     assert Path(sys.modules[module].__file__) == path, module

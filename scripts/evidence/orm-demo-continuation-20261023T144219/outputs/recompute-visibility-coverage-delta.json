@@ -1,0 +1,19 @@
+{
+  "population_authority": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+  "existing_descriptor_count": 33,
+  "global_contract_denominator": "unknown",
+  "existing_descriptor_links": [
+    {
+      "descriptor": "flush_recompute_fixpoint",
+      "relation": "Supporting physical pending-selection and ordering obligation; no whole descriptor acceptance"
+    }
+  ],
+  "newly_explicit_obligation": "BaseModel._recompute_field physical pending membership and recursive requested-order preservation",
+  "contract_authority": "recompute-visibility-contract-14.json",
+  "task": "TASK-GEN-0559",
+  "new_task_ids": false,
+  "historical_population_overwritten": false,
+  "coverage_gain": "Two real functional differences identified and corrected with independent negative controls and actual SQL",
+  "remaining_uncertainty": "68known TASK identities and33descriptors are bounded populations, not exhaustive applicable ORM obligations",
+  "verification": "121PASS plus actual SQL; integration/acceptance separate"
+}

@@ -1,0 +1,11 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+......FF                                                                 [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/tests/unit/orm/test_recompute_visibility_contract.py:163: assert [32, 31] == [31, 32]
+/workspace/kaupamex-api/tests/unit/orm/test_recompute_visibility_contract.py:172: assert [31, 32] == [32, 31]
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/recompute-order-before.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_recompute_visibility_contract.py::test_recursive_compute_preserves_requested_order
+FAILED tests/unit/orm/test_recompute_visibility_contract.py::test_requested_duplicate_ids_are_computed_only_once
+2 failed, 6 passed in 0.12s
+{"head": "918ac836fdd3344866a1aa3534cfa2109c7a0f53", "index_tree": "e4cabf1f224fb0cc9490759a9fa2b9936d5288b4", "origins": {"orm.environments": ":src/orm/environments.py", "orm.fields": ":src/orm/fields.py", "orm.models": ":src/orm/models.py"}, "source_sha256": {"orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f", "orm.fields": "e397812b330c57f2f5a21190450b4bdcb5418fbcd73409006d41751696b5cae9", "orm.models": "d5b2cf1dc9a5a3c0ad6d394c27dff5009219b3869ad9c460c3ca51f87f79f9ac"}, "test_sha256": {"tests/unit/orm/test_recompute_visibility_contract.py": "cfe7475e93a0fd351c102b26e0572be53016582f777c318082b2f01ed4512093"}, "uid_only": false, "annul_descriptor": false, "annul_uid": false, "regression": false, "annul_canonical_scope": false, "annul_record_sudo": false, "keyword_only": false, "batch_only": false, "stored_only": false, "pending_only": false, "flush_only": false, "recompute_visibility_only": true, "annul_recompute_visibility": false, "annul_flush_visibility": false, "annul_native_pending": false, "annul_django_absence": false, "annul_stored_guard": false, "annul_m2m_readback": false, "annul_native_batch": false, "pytest_exit": 1, "provenance_unchanged": true, "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"}

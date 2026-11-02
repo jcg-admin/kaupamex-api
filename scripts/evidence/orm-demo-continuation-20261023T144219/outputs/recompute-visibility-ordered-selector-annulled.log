@@ -1,0 +1,19 @@
+FF.F.FFF                                                                 [100%]
+=================================== FAILURES ===================================
+/workspace/kaupamex-api/tests/unit/orm/test_recompute_visibility_contract.py:85: assert [31] == [31, 32]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:960: AssertionError: Expected 'mock' to be called once. Called 0 times.
+/workspace/kaupamex-api/tests/unit/orm/test_recompute_visibility_contract.py:120: Failed: DID NOT RAISE <class 'RuntimeError'>
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py:960: AssertionError: Expected 'mock' to be called once. Called 0 times.
+/workspace/kaupamex-api/tests/unit/orm/test_recompute_visibility_contract.py:163: assert [31] == [31, 32]
+/workspace/kaupamex-api/tests/unit/orm/test_recompute_visibility_contract.py:172: assert [31] == [32, 31]
+- generated xml file: /workspace/kaupamex-api/scripts/evidence/orm-demo-continuation-20261023T144219/outputs/recompute-visibility-ordered-selector-annulled.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_recompute_visibility_contract.py::test_hidden_existing_pending_row_is_computed
+FAILED tests/unit/orm/test_recompute_visibility_contract.py::test_requested_subset_preserves_other_pending_rows
+FAILED tests/unit/orm/test_recompute_visibility_contract.py::test_physical_lookup_failure_preserves_pending
+FAILED tests/unit/orm/test_recompute_visibility_contract.py::test_virtual_pending_ids_are_not_classified_as_missing
+FAILED tests/unit/orm/test_recompute_visibility_contract.py::test_recursive_compute_preserves_requested_order
+FAILED tests/unit/orm/test_recompute_visibility_contract.py::test_requested_duplicate_ids_are_computed_only_once
+6 failed, 2 passed in 0.12s
+{"head": "918ac836fdd3344866a1aa3534cfa2109c7a0f53", "index_tree": "8d6ca7d8c7409da9209d253cf874e0b9e9ee7628", "origins": {"orm.environments": ":src/orm/environments.py", "orm.fields": ":src/orm/fields.py", "orm.models": ":src/orm/models.py"}, "source_sha256": {"orm.environments": "0ac5e8a903416edd42495168296405ed17efd72eaf64022a758cc5c64894634f", "orm.fields": "e397812b330c57f2f5a21190450b4bdcb5418fbcd73409006d41751696b5cae9", "orm.models": "b0c85a8cf77c771fcd154d3f90168d06c1f782b71b74cd9f9ef0a72856c21fa0"}, "test_sha256": {"tests/unit/orm/test_recompute_visibility_contract.py": "cfe7475e93a0fd351c102b26e0572be53016582f777c318082b2f01ed4512093"}, "uid_only": false, "annul_descriptor": false, "annul_uid": false, "regression": false, "annul_canonical_scope": false, "annul_record_sudo": false, "keyword_only": false, "batch_only": false, "stored_only": false, "pending_only": false, "flush_only": false, "recompute_visibility_only": true, "annul_recompute_visibility": true, "annul_recompute_order": false, "annul_flush_visibility": false, "annul_native_pending": false, "annul_django_absence": false, "annul_stored_guard": false, "annul_m2m_readback": false, "annul_native_batch": false, "pytest_exit": 1, "provenance_unchanged": true, "scope": "Exact declared source snapshots and hashed Consumer tests; SQL prohibited; no whole-head CI/integration/acceptance"}
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.

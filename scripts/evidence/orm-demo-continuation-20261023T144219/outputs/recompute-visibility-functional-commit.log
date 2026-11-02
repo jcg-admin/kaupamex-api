@@ -1,0 +1,18 @@
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+Increment admission: PASS; global style, CI, integration and acceptance are NOT_EVALUATED
+Global style compliance: NOT_EXECUTED here; use make check-style/ci-verify.
+OK: sin lazy imports (2 archivos medidos).
+check_canon_language: OK — sin violaciones.
+OK: todo silencio de excepción está justificado (2 archivos medidos).
+OK: identificadores en inglés (2 archivos medidos, 3531 en deuda heredada).
+OK: ningun identificador lleva el nombre de la referencia (2 archivos medidos).
+OK: 0 marca(s) nueva(s) sin forma fija (alcance medido: 2 archivos, 0 marcas informes, 332 congeladas en baseline)
+OK: 0 marca(s) caducada(s) nueva(s) · 0 caducada(s) en 0 clave(s) · 0 viva(s) · 1 de forma no medible (alcance medido: 1 aristas bien formadas; 19 clave(s) en baseline)
+OK: sin secuencias de escape inválidas (alcance medido: 2 archivos pedidos por ruta).
+OK: ningún modelo concreto choca con el lookup (alcance medido: 2 archivos).
+OK: ningun chain_method nuevo sin combine donde la referencia combina (alcance medido: 0 llamada(s); 0 sin contraparte en la referencia, 0 con el metodo no declarado alli, 0 que la referencia no extiende; 8 en baseline)
+check_write_path: 0 hallazgo(s) nuevo(s) (1 en total; 17 en baseline) (alcance medido: 7 par(es) de metodo que escriben en ambos lados, sobre 1 archivo(s) con contraparte de 2 recorrido(s); 1 indeterminado(s) por granularidad de metodo)
+[feature/codex-workspace-bootstrap 768d5616] Preserve physical pending rows and compute order
+ Author: Nestor Monroy <46802445+NestorMonroy@users.noreply.github.com>
+ 2 files changed, 182 insertions(+), 2 deletions(-)
+ create mode 100644 tests/unit/orm/test_recompute_visibility_contract.py

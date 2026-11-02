@@ -60,6 +60,31 @@ def git(*args):
     return subprocess.check_output(['git', *args]).decode().strip()
 
 
+def annul_recompute_order(source):
+    ordered = (
+        b'    rows_by_id = {\n'
+        b'        row.pk: row\n'
+        b'        for row in model._base_manager.filter('
+        b'pk__in=persisted_ids)\n'
+        b'    }\n'
+        b'    records = [\n'
+        b'        rows_by_id[record_id]\n'
+        b'        for record_id in dict.fromkeys(persisted_ids)\n'
+        b'        if record_id in rows_by_id\n'
+        b'    ]\n'
+        b'    missing_ids = set(persisted_ids).difference(rows_by_id)'
+    )
+    unordered = (
+        b'    records = list(model._base_manager.filter('
+        b'pk__in=persisted_ids))\n'
+        b'    missing_ids = set(persisted_ids).difference('
+        b'record.pk for record in records)'
+    )
+    if source.count(ordered) != 1:
+        raise RuntimeError('Ordered recompute projection not unique')
+    return source.replace(ordered, unordered)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--result', type=Path, required=True)
@@ -74,6 +99,9 @@ def main():
     parser.add_argument('--stored-only', action='store_true')
     parser.add_argument('--pending-only', action='store_true')
     parser.add_argument('--flush-only', action='store_true')
+    parser.add_argument('--recompute-visibility-only', action='store_true')
+    parser.add_argument('--annul-recompute-visibility', action='store_true')
+    parser.add_argument('--annul-recompute-order', action='store_true')
     parser.add_argument('--annul-flush-visibility', action='store_true')
     parser.add_argument('--annul-native-pending', action='store_true')
     parser.add_argument('--annul-django-absence', action='store_true')
@@ -84,7 +112,7 @@ def main():
     if args.uid_only and args.annul_descriptor:
         parser.error('UID-only mode has no staged descriptor to annul')
     selected_sources = dict(SOURCES)
-    if args.flush_only:
+    if args.flush_only or args.recompute_visibility_only:
         selected_sources['orm.models'] = 'src/orm/models.py'
     if settings.configured or any(
         name in sys.modules for name in selected_sources
@@ -98,6 +126,22 @@ def main():
         origins[module] = origin + path
         snapshots[module] = subprocess.check_output(
             ['git', 'show', origin + path]
+        )
+    if args.annul_recompute_order:
+        snapshots['orm.models'] = annul_recompute_order(
+            snapshots['orm.models']
+        )
+    if args.annul_recompute_visibility:
+        source = snapshots['orm.models']
+        start = source.index(b'\ndef _recompute_field(')
+        end = source.index(b'\ndef _recompute_model(', start)
+        body = source[start:end]
+        selector = b'model._base_manager.filter('
+        if body.count(selector) != 1:
+            raise RuntimeError('Physical recompute selector not unique')
+        snapshots['orm.models'] = (
+            source[:start] + body.replace(selector, b'model.objects.filter(')
+            + source[end:]
         )
     if args.annul_flush_visibility:
         source = snapshots['orm.models']
@@ -252,6 +296,18 @@ def main():
                 'tests/unit/orm/test_exists_manager_contract.py',
                 'tests/unit/orm/test_field_cache.py',
             ]
+    if args.recompute_visibility_only:
+        tests = ['tests/unit/orm/test_recompute_visibility_contract.py']
+        if args.regression:
+            tests += [
+                RECORD_TEST, UID_TEST, *COMPANY_CASES, *REGRESSIONS,
+                'tests/unit/orm/test_flush_manager_contract.py',
+                'tests/unit/orm/test_native_compute_batch_dispatch.py',
+                'tests/unit/orm/test_native_stored_compute_contract.py',
+                'tests/unit/orm/test_native_pending_recompute.py',
+                'tests/unit/orm/test_exists_manager_contract.py',
+                'tests/unit/orm/test_field_cache.py',
+            ]
     test_hashes = {
         path: hashlib.sha256(Path(path).read_bytes()).hexdigest()
         for path in {test.split('::')[0] for test in tests}
@@ -312,6 +368,9 @@ def main():
         'stored_only': args.stored_only,
         'pending_only': args.pending_only,
         'flush_only': args.flush_only,
+        'recompute_visibility_only': args.recompute_visibility_only,
+        'annul_recompute_visibility': args.annul_recompute_visibility,
+        'annul_recompute_order': args.annul_recompute_order,
         'annul_flush_visibility': args.annul_flush_visibility,
         'annul_native_pending': args.annul_native_pending,
         'annul_django_absence': args.annul_django_absence,

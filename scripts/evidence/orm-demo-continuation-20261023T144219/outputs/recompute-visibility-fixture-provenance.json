@@ -1,0 +1,7 @@
+{
+  "sql_fixture_sha256": "52734cca9825154550d46f28604bffb4317e1ee1ff4571f4c54c493aebbfac45",
+  "original_index_tree": "66f00538ca5b71c952d86d2935aca105b8ff435a",
+  "preserved_fixture": "recompute-visibility-postgresql-fixture.py.txt",
+  "model_and_manager_classes_ast_unchanged": true,
+  "post_sql_test_change": "Replace mocked field.recompute denial with actual compute callback AccessError; production fixture unchanged"
+}
