@@ -102,6 +102,8 @@ def main():
     parser.add_argument('--recompute-visibility-only', action='store_true')
     parser.add_argument('--annul-recompute-visibility', action='store_true')
     parser.add_argument('--annul-recompute-order', action='store_true')
+    parser.add_argument('--reentry-only', action='store_true')
+    parser.add_argument('--annul-reentry', action='store_true')
     parser.add_argument('--annul-flush-visibility', action='store_true')
     parser.add_argument('--annul-native-pending', action='store_true')
     parser.add_argument('--annul-django-absence', action='store_true')
@@ -112,7 +114,7 @@ def main():
     if args.uid_only and args.annul_descriptor:
         parser.error('UID-only mode has no staged descriptor to annul')
     selected_sources = dict(SOURCES)
-    if args.flush_only or args.recompute_visibility_only:
+    if args.flush_only or args.recompute_visibility_only or args.reentry_only:
         selected_sources['orm.models'] = 'src/orm/models.py'
     if settings.configured or any(
         name in sys.modules for name in selected_sources
@@ -126,6 +128,22 @@ def main():
         origins[module] = origin + path
         snapshots[module] = subprocess.check_output(
             ['git', 'show', origin + path]
+        )
+    if args.annul_reentry:
+        source = snapshots['orm.fields']
+        guard = (
+            b'        for record in pending:\n'
+            b'            if record.pk in to_compute_ids:\n'
+            b'                apply_except_missing(record)\n'
+            b'        return'
+        )
+        if source.count(guard) != 1:
+            raise RuntimeError('Reentrant pending guard not unique')
+        snapshots['orm.fields'] = source.replace(
+            guard,
+            b'        for record in pending:\n'
+            b'            apply_except_missing(record)\n'
+            b'        return',
         )
     if args.annul_recompute_order:
         snapshots['orm.models'] = annul_recompute_order(
@@ -308,6 +326,19 @@ def main():
                 'tests/unit/orm/test_exists_manager_contract.py',
                 'tests/unit/orm/test_field_cache.py',
             ]
+    if args.reentry_only:
+        tests = ['tests/unit/orm/test_recompute_reentry_contract.py']
+        if args.regression:
+            tests += [
+                RECORD_TEST, UID_TEST, *COMPANY_CASES, *REGRESSIONS,
+                'tests/unit/orm/test_recompute_visibility_contract.py',
+                'tests/unit/orm/test_flush_manager_contract.py',
+                'tests/unit/orm/test_native_compute_batch_dispatch.py',
+                'tests/unit/orm/test_native_stored_compute_contract.py',
+                'tests/unit/orm/test_native_pending_recompute.py',
+                'tests/unit/orm/test_exists_manager_contract.py',
+                'tests/unit/orm/test_field_cache.py',
+            ]
     test_hashes = {
         path: hashlib.sha256(Path(path).read_bytes()).hexdigest()
         for path in {test.split('::')[0] for test in tests}
@@ -371,6 +402,8 @@ def main():
         'recompute_visibility_only': args.recompute_visibility_only,
         'annul_recompute_visibility': args.annul_recompute_visibility,
         'annul_recompute_order': args.annul_recompute_order,
+        'reentry_only': args.reentry_only,
+        'annul_reentry': args.annul_reentry,
         'annul_flush_visibility': args.annul_flush_visibility,
         'annul_native_pending': args.annul_native_pending,
         'annul_django_absence': args.annul_django_absence,

@@ -1,0 +1,56 @@
+[
+  {
+    "id": "c-7419d19c-83e2-45d7-a8d5-d041c4169cc1",
+    "op": "claim",
+    "path": "src/orm/fields.py",
+    "owner": "VM-b501",
+    "branch": "feature/codex-workspace-bootstrap",
+    "at": "2026-11-02T07:00:49.881Z",
+    "task": "TASK-GEN-0558"
+  },
+  {
+    "id": "c-61b31854-13d7-4e36-8a0c-9879abf21cc5",
+    "op": "claim",
+    "path": "tests/unit/orm/test_recompute_reentry_contract.py",
+    "owner": "VM-b501",
+    "branch": "feature/codex-workspace-bootstrap",
+    "at": "2026-11-02T07:00:49.886Z",
+    "task": "TASK-GEN-0558"
+  },
+  {
+    "id": "c-a5a30211-74cb-4beb-adf0-022d637a8cbf",
+    "op": "claim",
+    "path": "scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_record_environment_candidate.py",
+    "owner": "codex-module-lifecycle",
+    "branch": "feature/codex-workspace-bootstrap",
+    "at": "2026-11-02T07:00:49.889Z",
+    "task": "TASK-GEN-0558"
+  },
+  {
+    "id": "c-365ef789-892a-4c53-86ac-f86c7f6f2a4d",
+    "op": "release",
+    "path": "src/orm/fields.py",
+    "owner": "VM-b501",
+    "branch": "feature/codex-workspace-bootstrap",
+    "at": "2026-11-02T07:46:21.372Z",
+    "task": "TASK-GEN-0558"
+  },
+  {
+    "id": "c-a26fe72c-29e4-4688-ab19-d64bd49529e8",
+    "op": "release",
+    "path": "tests/unit/orm/test_recompute_reentry_contract.py",
+    "owner": "VM-b501",
+    "branch": "feature/codex-workspace-bootstrap",
+    "at": "2026-11-02T07:46:21.376Z",
+    "task": "TASK-GEN-0558"
+  },
+  {
+    "id": "c-df55c140-981e-4ba7-aff0-657ab00a7e3e",
+    "op": "release",
+    "path": "scripts/evidence/orm-demo-continuation-20261023T144219/probes/verify_record_environment_candidate.py",
+    "owner": "codex-module-lifecycle",
+    "branch": "feature/codex-workspace-bootstrap",
+    "at": "2026-11-02T07:46:21.378Z",
+    "task": "TASK-GEN-0558"
+  }
+]

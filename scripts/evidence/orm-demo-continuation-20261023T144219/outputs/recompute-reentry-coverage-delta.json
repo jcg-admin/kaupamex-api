@@ -1,0 +1,20 @@
+{
+  "existing_population": "scripts/evidence/orm-contract-plan-testorm-20261020T202537/outputs/functional-contract-coverage.json",
+  "existing_descriptor_count": 33,
+  "global_contract_denominator": "unknown",
+  "existing_descriptor_links": [
+    {
+      "descriptor": "protected_compute_scope",
+      "relation": "Supporting recursive callback/protection and pending coalescence behavior; descriptor-wide acceptance not inferred"
+    },
+    {
+      "descriptor": "flush_recompute_fixpoint",
+      "relation": "Avoid duplicate recursive pending work; no full fixed-point acceptance"
+    }
+  ],
+  "newly_explicit_obligation": "Recursive Field.recompute live pending-ID membership after reentrant callback",
+  "task": "TASK-GEN-0558",
+  "new_task_ids": false,
+  "contract_authority": "recompute-reentry-contract-14.json",
+  "historical_population_overwritten": false
+}
