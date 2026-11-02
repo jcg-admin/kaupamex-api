@@ -615,3 +615,30 @@ class TestOrmRelatedInherits(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_related_inherits'
+
+
+class TestOrmMixed(TestOrmModel):
+    """≙ ``test_orm.mixed`` (``odoo19c: odoo/addons/test_orm/models/
+    test_orm.py:362-402``), sujeto de ``TestDomain``.
+
+    pendiente: ``number2`` (``digits='ORM Precision'``, que exige el registro
+    de ``decimal.precision`` del addon), ``now``, ``lang``, ``reference``, los
+    seis ``Html`` y el defecto ``base.EUR`` de ``currency_id``; entran con los
+    casos de ``TestDomain`` que los usan.
+    """
+
+    _name = 'test_orm.mixed'
+    _description = 'Test ORM Mixed'
+
+    foo = fields.Char(null=True)
+    text = fields.Text(null=True)
+    truth = fields.Boolean(default=False)
+    count = fields.Integer(null=True)
+    number = fields.Float(digits=(10, 2), default=3.14)
+    date = fields.Date(null=True)
+    moment = fields.Datetime(null=True)
+    currency_id = fields.Many2one('res.currency', null=True,
+                                  related_name='+')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_mixed'
