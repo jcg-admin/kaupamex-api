@@ -15,6 +15,7 @@ fuente (``odoo19c: odoo/orm/fields.py:42-44``), y además un campo por empresa
 YA es un ``jsonb`` — anidarlo no tendría dónde poner el mapa de empresas.
 """
 
+import json
 from copy import deepcopy
 from functools import partial
 
@@ -104,6 +105,47 @@ def _json_convert_to_column(self, value, record, values=None, validate=True):
 
 
 models.JSONField.convert_to_column = _json_convert_to_column
+
+
+def _json_convert_to_cache(self, value, record, validate=True):
+    """``Json.convert_to_cache`` — ≙ ``odoo19c: odoo/orm/fields_misc.py:70-73``.
+
+    La caché guarda la forma JSON del valor: la ida y vuelta por ``json``
+    convierte una tupla en lista y separa el valor de cualquier referencia que
+    conserve quien lo asignó.
+
+    **Divergencia declarada:** la fuente lleva todo valor falso a ``None``.
+    Aquí el falso se conserva tal cual, porque las columnas ``JSONField`` de
+    Django son ``NOT NULL`` por omisión y un ``{}`` convertido en ``NULL``
+    fallaría al volcar. La condición de cierre es medir la nulabilidad de las
+    columnas JSON portadas contra sus declaraciones de la referencia.
+
+    **Segunda divergencia, de mecanismo:** la fuente serializa con
+    ``tools.json.json_default``; aquí con el ``encoder``/``decoder`` del propio
+    campo, que es lo que ``JSONField.get_prep_value`` usa al volcar (la misma
+    delegación que ``convert_to_column`` declara arriba). Así la caché guarda
+    exactamente lo que persistirá. Importar ``tools.json`` desde este módulo
+    cierra un ciclo con ``orm.domains``.
+    """
+    if not value:
+        return value
+    return json.loads(
+        json.dumps(value, cls=self.encoder, ensure_ascii=False),
+        cls=self.decoder)
+
+
+def _json_convert_to_record(self, value, record):
+    """``Json.convert_to_record`` — ≙ ``:66-68``: el registro recibe una copia.
+
+    La fuente documenta que ``Json`` no admite mutar el valor leído; la copia
+    profunda es lo que hace cierta esa frase, porque modificar lo devuelto no
+    toca la caché ni la fila.
+    """
+    return False if value is None else deepcopy(value)
+
+
+models.JSONField.convert_to_cache = _json_convert_to_cache
+models.JSONField.convert_to_record = _json_convert_to_record
 
 
 def _id_convert_to_column(self, value, record, values=None, validate=True):

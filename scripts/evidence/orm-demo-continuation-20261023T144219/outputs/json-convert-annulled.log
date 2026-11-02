@@ -1,0 +1,40 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.FFF.......                                                              [100%]
+=================================== FAILURES ===================================
+________________ test_read_returns_a_copy_not_the_cached_value _________________
+tests/integration/test_orm/test_json_field.py:67: in test_read_returns_a_copy_not_the_cached_value
+    assert value is not cached
+E   AssertionError: assert {'delete_messages': []} is not {'delete_messages': []}
+___________ test_mutating_the_read_value_does_not_change_the_record ____________
+tests/integration/test_orm/test_json_field.py:74: in test_mutating_the_read_value_does_not_change_the_record
+    assert discussion.history == {'delete_messages': []}
+E   AssertionError: assert {'delete_mess...iNbWHt2hq13']} == {'delete_messages': []}
+E     Differing items:
+E     {'delete_messages': ['tVpajMuSvaR94DwSRVtRSLGNkKViNbWHt2hq13']} != {'delete_messages': []}
+E     Use -v to get more diff
+________________________ test_write_read_cycle_persists ________________________
+tests/integration/test_orm/test_json_field.py:91: in test_write_read_cycle_persists
+    assert discussion.history == [RANDOM_STR, RANDOM_STR_2]
+E   AssertionError: assert ('tVpajMuSvaR...o-money base') == ['tVpajMuSvaR...o-money base']
+E     Use -v to get more diff
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:109
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:109: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TimeStampedModel):
+
+tests/integration/test_orm/test_json_field.py::test_default_is_the_declared_literal
+  /home/user/kaupamex-api/src/orm/fields.py:4194: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_json_field.py::test_default_is_the_declared_literal
+  /home/user/kaupamex-api/src/orm/fields.py:4194: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/json-annulled.junit.xml -
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_json_field.py::test_read_returns_a_copy_not_the_cached_value
+FAILED tests/integration/test_orm/test_json_field.py::test_mutating_the_read_value_does_not_change_the_record
+FAILED tests/integration/test_orm/test_json_field.py::test_write_read_cycle_persists
+3 failed, 8 passed, 3 warnings in 7.60s

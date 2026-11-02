@@ -1,0 +1,41 @@
+{
+ "reference_revision": "abe4040ec1a45beee90fb694e4eae4453e46b389",
+ "reference_symbol": "odoo19c:odoo/orm/fields_misc.py Json.convert_to_record/convert_to_cache (55-87); test odoo/addons/test_orm/tests/test_json_field.py",
+ "behavior": "A read of a Json field returns a deep copy of the cached value; the cache holds the JSON form of the assigned value (tuple becomes list); mutating a read value does not change the record",
+ "execution_flow": "FieldDescriptor.__set__ -> JSONField.convert_to_cache (JSON roundtrip with the field encoder/decoder) -> instance store; FieldDescriptor.__get__ loaded-column branch and cache branch -> JSONField.convert_to_record (deepcopy)",
+ "inputs_outputs": "TestOrmDiscussion.history default {'delete_messages': []}; assigned dicts persist; assigned tuple reads and persists as list; two reads are distinct objects",
+ "side_effects": "No SQL change; persisted jsonb unchanged in content; per-read deepcopy cost on Json fields only",
+ "dependencies": [
+  "TASK-API-0420 per-record default (8aca3900) already published",
+  "FieldDescriptor loaded-column fast path",
+  "JSONField.get_prep_value persistence"
+ ],
+ "consumers": "13 Json attributes measured by declaration grep; zero in-place mutation patterns found on attribute access",
+ "installed_mechanism": "models.JSONField.convert_to_cache/convert_to_record patches in src/orm/fields_misc.py; JSONField branches in FieldDescriptor.__get__/__set__",
+ "existing_adaptation": "convert_to_column already delegates serialization to Django JSONField",
+ "verification": {
+  "red": "json-convert-red.log: 4 ERROR at fixture creation (attributes_definition NOT NULL) before any Json assertion; the Json contract red is the annulment",
+  "final": "json-convert-final.log: 11 PASS (4 integration PostgreSQL + 7 unit TASK-API-0420)",
+  "annulled": "json-convert-annulled.log: Json changes in fields.py/fields_misc.py removed -> exactly 3 contract tests FAIL, 8 PASS",
+  "derived_subset": "json-convert-derived.log vs json-convert-baseline.log: identical inherited FAILED/ERROR set (15 failed, 6 errors); 448 vs 444 passed",
+  "derivation_command": "grep -rlE 'fields\\.Json|JSONField|PropertiesDefinition|properties_definition|Properties\\(|fields_misc|fields_properties' --include=*.py tests/ + tests/integration/stock + tests/unit/orm/test_field_cache.py",
+  "regression_caught": "isinstance(JSONField) branches broke Properties (2 NEW failures); narrowed to type(field) is models.JSONField before publication",
+  "database": "own role orm_x2hokp / database orm_x2hokp_qa on local PostgreSQL 16, no shared QA"
+ },
+ "equivalence": "Copy-on-read and JSON-form cache equivalent; falsy values kept (not mapped to None) and None kept as Django absence on loaded-column branch",
+ "limitations": [
+  "Falsy->None of the source not ported: Django JSONField columns are NOT NULL by default; closing condition: measure nullability of ported Json columns",
+  "Serialization of non-JSON types follows the field encoder, not tools.json.json_default (import cycle tools.json->orm.domains)",
+  "convert_to_export not covered"
+ ],
+ "integration": "Published on feature/codex-workspace-bootstrap; PR109 open, no merge; acceptance not_verified",
+ "task": "TASK-API-0420 (session 168b0fdf-bfe4-590b-b6c0-b6be124c124a native 1195), functional responsibility backend, owner VM-x2hokp",
+ "additional_fix": "PropertiesDefinition null=True: convert_to_column returns None for empty definition (odoo19c fields_properties.py:872-873); migrations stock 0021 and test_orm 0002 AlterField null=True",
+ "finding": "H-API-1122: Many2one without null= is NOT NULL in Consumer (required by default) while optional in source; fixture supplies moderator",
+ "source_sha256": {
+  "src/orm/fields.py": "a8ce7e1d30da2df06470e81da1f6b31673e500a2e7cad5f5dfadf2ca26640877",
+  "src/orm/fields_misc.py": "8232898c1f563abe54da5fe3cfd523ef2f19ca7c1ab4c4ba3d21e53b4a666a0d",
+  "src/orm/fields_properties.py": "41473d834e6ab5bc8abf2b61117a766c7b001242ed5e8e8d482f13e493feab97",
+  "tests/integration/test_orm/test_json_field.py": "1db0be266944a33e889f7fd6d41fa62d872fd9b5f0bc143af95a9ecb43ea3854"
+ }
+}

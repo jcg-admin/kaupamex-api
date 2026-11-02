@@ -1,0 +1,173 @@
+[
+ {
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "task_id": "520",
+  "before": {
+   "citation_id": "TASK-API-0305",
+   "owner": "VM-b501",
+   "status": "in_progress",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "after": {
+   "citation_id": "TASK-API-0305",
+   "owner": "VM-x2hokp",
+   "status": "in_progress",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "unchanged_status_deps": true
+ },
+ {
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "task_id": "1167",
+  "before": {
+   "citation_id": "TASK-API-0397",
+   "owner": "VM-b501",
+   "status": "in_progress",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "after": {
+   "citation_id": "TASK-API-0397",
+   "owner": "VM-x2hokp",
+   "status": "in_progress",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "unchanged_status_deps": true
+ },
+ {
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "task_id": "1192",
+  "before": {
+   "citation_id": "TASK-API-0417",
+   "owner": "VM-b501",
+   "status": "in_progress",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "after": {
+   "citation_id": "TASK-API-0417",
+   "owner": "VM-x2hokp",
+   "status": "in_progress",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "unchanged_status_deps": true
+ },
+ {
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "task_id": "1193",
+  "before": {
+   "citation_id": "TASK-API-0418",
+   "owner": "VM-b501",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "after": {
+   "citation_id": "TASK-API-0418",
+   "owner": "VM-x2hokp",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "unchanged_status_deps": true
+ },
+ {
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "task_id": "1194",
+  "before": {
+   "citation_id": "TASK-API-0419",
+   "owner": "VM-b501",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "after": {
+   "citation_id": "TASK-API-0419",
+   "owner": "VM-x2hokp",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "unchanged_status_deps": true
+ },
+ {
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "task_id": "1195",
+  "before": {
+   "citation_id": "TASK-API-0420",
+   "owner": "VM-b501",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "after": {
+   "citation_id": "TASK-API-0420",
+   "owner": "VM-x2hokp",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "unchanged_status_deps": true
+ },
+ {
+  "sessionId": "168b0fdf-bfe4-590b-b6c0-b6be124c124a",
+  "task_id": "1199",
+  "before": {
+   "citation_id": "TASK-API-0424",
+   "owner": "VM-b501",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "after": {
+   "citation_id": "TASK-API-0424",
+   "owner": "VM-x2hokp",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "unchanged_status_deps": true
+ },
+ {
+  "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+  "task_id": "306",
+  "before": {
+   "citation_id": "TASK-GEN-0558",
+   "owner": "VM-b501",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "after": {
+   "citation_id": "TASK-GEN-0558",
+   "owner": "VM-x2hokp",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "unchanged_status_deps": true
+ },
+ {
+  "sessionId": "29a5e555-e34f-5a20-8c39-ad6cf2f19961",
+  "task_id": "307",
+  "before": {
+   "citation_id": "TASK-GEN-0559",
+   "owner": "VM-b501",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "after": {
+   "citation_id": "TASK-GEN-0559",
+   "owner": "VM-x2hokp",
+   "status": "pending",
+   "blocked_by": [],
+   "blocks": []
+  },
+  "unchanged_status_deps": true
+ }
+]

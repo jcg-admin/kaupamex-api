@@ -1506,7 +1506,15 @@ class FieldDescriptor(DeferredAttribute):
             if field.store and not field.compute and not field.related:
                 ids = getattr(instance, '_ids', None)
                 if ids is None or len(ids) == 1:
-                    return instance.__dict__[field.attname]
+                    value = instance.__dict__[field.attname]
+                    # ``Json.convert_to_record`` entrega una copia también
+                    # aquí: esta rama es el acierto de caché del almacén
+                    # Django. ``None`` se conserva como ausencia Django,
+                    # igual que en las demás columnas de esta rama. Tipo
+                    # exacto: las subclases de propiedades tienen su contrato.
+                    if value is not None and type(field) is models.JSONField:
+                        return field.convert_to_record(value, instance)
+                    return value
 
         # El primer consumidor tras ``apps.ready`` dispara la fase de setup
         # que la fuente corre desde su cargador (``ensure_field_setup``): sin
@@ -1750,6 +1758,13 @@ class FieldDescriptor(DeferredAttribute):
         if isinstance(field, models.ForeignKey):
             ForeignKeyDeferredAttribute.__set__(self, instance, value)
         else:
+            # El tipo EXACTO: ``Properties`` y ``PropertiesDefinition`` heredan
+            # de ``JSONField`` y tienen su propio contrato de caché.
+            if (type(field) is models.JSONField
+                    and not instance.__dict__.get('_orm_building')):
+                # ``Field.__set__`` de la fuente pasa por ``convert_to_cache``:
+                # el valor asignado se guarda en forma JSON, no por referencia.
+                value = field.convert_to_cache(value, instance, validate=False)
             instance.__dict__[field.attname] = value
 
         # Django asigna la identidad tras INSERT y al refrescar la fila. No

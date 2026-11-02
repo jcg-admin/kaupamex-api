@@ -1172,6 +1172,13 @@ class PropertiesDefinition(models.JSONField):
         """
         if store is not _UNSET:
             kwargs['store'] = store
+        # La columna admite ``NULL``: ``convert_to_column`` entrega ``None``
+        # para la definición vacía (``odoo19c: :872-873``), y en la fuente
+        # ninguna columna es ``NOT NULL`` salvo ``required``. Con el
+        # ``null=False`` de Django, crear un ``test_orm.discussion`` sólo con
+        # ``name`` —lo que hace ``test_json_field.py:9-11``— violaba la
+        # restricción.
+        kwargs.setdefault('null', True)
         related_attrs = apply_source_defaults(related, kwargs)
         super().__init__(*args, **kwargs)
         annotate_related(self, related, related_attrs)

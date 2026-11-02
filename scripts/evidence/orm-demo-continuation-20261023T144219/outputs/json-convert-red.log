@@ -1,0 +1,214 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+EEEE                                                                     [100%]
+==================================== ERRORS ====================================
+____________ ERROR at setup of test_default_is_the_declared_literal ____________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "attributes_definition" of relation "test_orm_testormdiscussion" violates not-null constraint
+E   DETAIL:  Failing row contains (1, 2026-11-02 11:13:12.376687+00, 2026-11-02 11:13:12.376772+00, Test Discussion JSON field, , {"delete_messages": []}, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_json_field.py:30: in discussion
+    return TestOrmDiscussion.objects.create(name='Test Discussion JSON field')
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "attributes_definition" of relation "test_orm_testormdiscussion" violates not-null constraint
+E   DETAIL:  Failing row contains (1, 2026-11-02 11:13:12.376687+00, 2026-11-02 11:13:12.376772+00, Test Discussion JSON field, , {"delete_messages": []}, null, null).
+---------------------------- Captured stderr setup -----------------------------
+Got an error creating the test database: database "orm_x2hokp_qa" already exists
+_______ ERROR at setup of test_read_returns_a_copy_not_the_cached_value ________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "attributes_definition" of relation "test_orm_testormdiscussion" violates not-null constraint
+E   DETAIL:  Failing row contains (2, 2026-11-02 11:13:12.65225+00, 2026-11-02 11:13:12.652343+00, Test Discussion JSON field, , {"delete_messages": []}, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_json_field.py:30: in discussion
+    return TestOrmDiscussion.objects.create(name='Test Discussion JSON field')
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "attributes_definition" of relation "test_orm_testormdiscussion" violates not-null constraint
+E   DETAIL:  Failing row contains (2, 2026-11-02 11:13:12.65225+00, 2026-11-02 11:13:12.652343+00, Test Discussion JSON field, , {"delete_messages": []}, null, null).
+__ ERROR at setup of test_mutating_the_read_value_does_not_change_the_record ___
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "attributes_definition" of relation "test_orm_testormdiscussion" violates not-null constraint
+E   DETAIL:  Failing row contains (3, 2026-11-02 11:13:12.872225+00, 2026-11-02 11:13:12.872316+00, Test Discussion JSON field, , {"delete_messages": []}, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_json_field.py:30: in discussion
+    return TestOrmDiscussion.objects.create(name='Test Discussion JSON field')
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "attributes_definition" of relation "test_orm_testormdiscussion" violates not-null constraint
+E   DETAIL:  Failing row contains (3, 2026-11-02 11:13:12.872225+00, 2026-11-02 11:13:12.872316+00, Test Discussion JSON field, , {"delete_messages": []}, null, null).
+_______________ ERROR at setup of test_write_read_cycle_persists _______________
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.NotNullViolation: null value in column "attributes_definition" of relation "test_orm_testormdiscussion" violates not-null constraint
+E   DETAIL:  Failing row contains (4, 2026-11-02 11:13:13.059345+00, 2026-11-02 11:13:13.059434+00, Test Discussion JSON field, , {"delete_messages": []}, null, null).
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_orm/test_json_field.py:30: in discussion
+    return TestOrmDiscussion.objects.create(name='Test Discussion JSON field')
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/models.py:2552: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1368: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: null value in column "attributes_definition" of relation "test_orm_testormdiscussion" violates not-null constraint
+E   DETAIL:  Failing row contains (4, 2026-11-02 11:13:13.059345+00, 2026-11-02 11:13:13.059434+00, Test Discussion JSON field, , {"delete_messages": []}, null, null).
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:109
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:109: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TimeStampedModel):
+
+tests/integration/test_orm/test_json_field.py::test_default_is_the_declared_literal
+  /home/user/kaupamex-api/src/orm/fields.py:4194: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    and not getattr(field, 'precompute', False)):
+
+tests/integration/test_orm/test_json_field.py::test_default_is_the_declared_literal
+  /home/user/kaupamex-api/src/orm/fields.py:4194: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    and not getattr(field, 'precompute', False)):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR tests/integration/test_orm/test_json_field.py::test_default_is_the_declared_literal
+ERROR tests/integration/test_orm/test_json_field.py::test_read_returns_a_copy_not_the_cached_value
+ERROR tests/integration/test_orm/test_json_field.py::test_mutating_the_read_value_does_not_change_the_record
+ERROR tests/integration/test_orm/test_json_field.py::test_write_read_cycle_persists
+3 warnings, 4 errors in 563.48s (0:09:23)
