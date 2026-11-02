@@ -75,3 +75,58 @@ def test_many2many_applies_the_field_domain(env):
     multi = Multi.create({'tags': [with_a.id, without_a.id]})
     assert _found(env, [('tags.name', 'like', 'jack')]) == {multi.id}
     assert _found(env, [('tags.name', 'like', '01234')]) == set()
+
+
+def test_mixed_and_or_many2one_with_subfield(env, partners, multis):
+    Partner = env['res.partner']
+    colonel = Partner.objects.create(name='jack', phone='5', email='o@sgc.us')
+    phone_only = Partner.objects.create(name='sam', phone='01234',
+                                        email='c@sgc.us')
+    other = Partner.objects.create(name='jack', phone='5', email='x@y.z')
+    Multi = env['test_orm.multi']
+    ids = {Multi.create({'partner': p.id}).id for p in (colonel, phone_only)}
+    Multi.create({'partner': other.id})
+    assert _found(env, [('partner.email', 'like', '@sgc.us'), '|',
+                        ('partner.name', 'like', 'jack'),
+                        ('partner.phone', 'like', '01234')]) == ids
+
+
+def _multi_with_lines(env, *names):
+    multi = env['test_orm.multi'].create({})
+    for name in names:
+        env['test_orm.multi.line'].create({'multi': multi.id, 'name': name})
+    return multi
+
+
+def test_or_one2many_with_subfield(env):
+    x, y = _multi_with_lines(env, 'x'), _multi_with_lines(env, 'y')
+    _multi_with_lines(env, 'w')
+    assert _found(env, ['|', ('lines.name', 'like', 'x'),
+                        ('lines.name', 'like', 'y')]) == {x.id, y.id}
+
+
+def test_mixed_and_or_one2many_with_subfield(env):
+    """``x AND (y OR z)``: cada término puede cumplirlo una línea distinta."""
+    split = _multi_with_lines(env, 'x', 'z')
+    _multi_with_lines(env, 'x')
+    _multi_with_lines(env, 'z')
+    assert _found(env, [('lines.name', 'like', 'x'), '|',
+                        ('lines.name', 'like', 'y'),
+                        ('lines.name', 'like', 'z')]) == {split.id}
+
+
+def test_mixed_and_or_many2many_with_subfield(env):
+    Tag = env['test_orm.multi.tag']
+    xa, za = Tag.create({'name': 'xa'}), Tag.create({'name': 'za'})
+    Multi = env['test_orm.multi']
+    split = Multi.create({'tags': [xa.id, za.id]})
+    Multi.create({'tags': [xa.id]})
+    assert _found(env, [('tags.name', 'like', 'x'), '|',
+                        ('tags.name', 'like', 'y'),
+                        ('tags.name', 'like', 'z')]) == {split.id}
+
+
+def test_empty_many2many(env, multis):
+    """``('tags', 'any', <consulta vacía>)`` no devuelve nada."""
+    empty = env['test_orm.multi.tag']._search([('id', '=', 0)])
+    assert _found(env, [('tags', 'any', empty)]) == set()
