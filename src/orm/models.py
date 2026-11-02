@@ -3353,7 +3353,16 @@ def search_display_name(model_cls, operator, value):
     funciona por los dos caminos.
     """
     cls = model_cls
-    search_fnames = (getattr(cls, '_rec_names_search', None)
+    rec_names = getattr(cls, '_rec_names_search', None)
+    if isinstance(rec_names, property):
+        # La fuente lo declara a veces como propiedad (``sale.order``,
+        # ``odoo19c: sale_order.py:46-50``) y la lee sobre el recordset. Aquí
+        # el método recibe la clase, que es lo que ``env['x']`` devuelve, y
+        # leer el atributo sobre la clase da el objeto ``property``: la
+        # búsqueda moría con ``'property' object is not iterable``. Se evalúa
+        # sobre la clase; el cuerpo de la fuente sólo lee el contexto.
+        rec_names = rec_names.fget(cls)
+    search_fnames = (rec_names
                      or ([cls._rec_name] if getattr(cls, '_rec_name', None)
                          else []))
     if not search_fnames:

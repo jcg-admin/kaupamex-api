@@ -57,10 +57,12 @@ class SaleOrderLine(AnalyticMixin, TimeStampedModel):
 
     #: ≙ ``_rec_names_search = ['name', 'order_id.name']`` (``:16``). Aquí es
     #: atributo y no propiedad —la fuente tampoco la hace propiedad en este
-    #: modelo, a diferencia de ``sale.order``— y el segundo término se escribe
-    #: con la travesía de Django (``order__name``) porque el símbolo de la FK
-    #: sigue en forma A: su paso a forma C es la tarea #986.
-    _rec_names_search = ['name', 'order__name']
+    #: modelo, a diferencia de ``sale.order``— y el segundo término es la ruta
+    #: con punto de la fuente sobre el símbolo de la FK, que sigue en forma A
+    #: (``order`` y no ``order_id``: su paso a forma C es la tarea #986). Con
+    #: la travesía de Django (``order__name``) la búsqueda por nombre moría
+    #: con ``Invalid field``: el dominio resuelve el punto, no el ``__``.
+    _rec_names_search = ['name', 'order.name']
 
     #: ≙ ``_order = 'order_id, sequence, id'`` (``:17``), y
     #: ``Meta.ordering`` lo
