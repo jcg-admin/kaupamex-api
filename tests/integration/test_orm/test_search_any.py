@@ -130,3 +130,19 @@ def test_related_sudo_decides_the_rule(records, ruled_user, fname,
                                        reaches_hidden):
     found = _found_as(ruled_user, [(fname, '=', 'a')])
     assert found == ({records['via_hidden'].id} if reaches_hidden else set())
+
+
+# ``TestSearchRelated.test_related_many2one`` (``tests/test_search.py:474``):
+# lo mismo sobre un Many2one ``related``, por igualdad y por ruta.
+
+
+@pytest.mark.parametrize(('fname', 'reaches_hidden'), [
+    ('foo_bar_id', False),
+    ('foo_bar_sudo_id', True),
+])
+def test_related_many2one_by_id_and_by_path(records, ruled_user, fname,
+                                            reaches_hidden):
+    hidden_bar = records['via_hidden'].foo_id.bar_id
+    expected = {records['via_hidden'].id} if reaches_hidden else set()
+    assert _found_as(ruled_user, [(fname, '=', hidden_bar.id)]) == expected
+    assert _found_as(ruled_user, [(f'{fname}.name', '=', 'a')]) == expected

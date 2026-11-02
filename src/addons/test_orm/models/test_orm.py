@@ -556,6 +556,13 @@ class TestOrmRelated(TestOrmModel):
                                     related='foo_id.bar_id.name',
                                     related_sudo=True)
 
+    foo_bar_id = fields.Many2one('test_orm.related_bar',
+                                 related='foo_id.bar_id', related_sudo=False,
+                                 string='Bar')
+    foo_bar_sudo_id = fields.Many2one('test_orm.related_bar',
+                                      related='foo_id.bar_id',
+                                      related_sudo=True, string='Bar Sudo')
+
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_related'
 

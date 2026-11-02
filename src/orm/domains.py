@@ -1120,8 +1120,10 @@ class DomainCondition(Domain):
         pasa a ``('lines', 'any', [('name', 'like', x)])``. Sobre un x2many
         eso es lo que da un ``EXISTS`` por condición en vez de una unión
         compartida (:func:`_owners_q`), y lo que inyecta el ``domain`` del
-        campo. Sólo para relaciones con columna o reversas: un campo no
-        almacenado no tiene ruta en la base y sigue su propio camino.
+        campo. Para relaciones con columna, reversas o con ``search`` (un
+        ``related`` no almacenado resuelve el ``any`` con su
+        ``_search_related``); una sin ninguna de las tres no tiene ruta en la
+        base y sigue su propio camino.
         """
         if model is not None and level == OptimizationLevel.BASIC:
             path = self._inherited_as_any(model) or self._path_as_any(model)
@@ -1196,7 +1198,8 @@ class DomainCondition(Domain):
                 or getattr(field, 'related_model', None) is None
                 or not (getattr(field, 'concrete', False)
                         or getattr(field, 'many_to_many', False)
-                        or getattr(field, 'auto_created', False))):
+                        or getattr(field, 'auto_created', False)
+                        or getattr(field, 'search', None) is not None)):
             return None
         return DomainCondition(
             head, 'any', DomainCondition(rest, self.operator, self.value))
