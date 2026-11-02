@@ -111,3 +111,22 @@ def test_many2many_any_applies_the_rule_of_the_comodel(
         'bar_ids', 'any', Domain('name', '=', 'a'))) == set()
     assert _foos_as(ruled_user, Domain(
         'bar_ids', 'any!', Domain('name', '=', 'a'))) == {foo.id}
+
+
+# ---------------------------------------------------------------------------
+# ``TestSearchRelated.test_related_simple`` (``tests/test_search.py:437``):
+# un ``related`` con ``related_sudo=False`` busca con ``any`` (aplica la regla
+# del comodelo) y uno con ``related_sudo=True``, con ``any!``.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(('fname', 'reaches_hidden'), [
+    ('foo_name', False),
+    ('foo_name_sudo', True),
+    ('foo_bar_name', False),
+    ('foo_bar_name_sudo', True),
+])
+def test_related_sudo_decides_the_rule(records, ruled_user, fname,
+                                       reaches_hidden):
+    found = _found_as(ruled_user, [(fname, '=', 'a')])
+    assert found == ({records['via_hidden'].id} if reaches_hidden else set())

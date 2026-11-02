@@ -500,9 +500,10 @@ class TestOrmMultiLine(TestOrmModel):
 # ``TestSearchAny`` (``tests/test_search.py:1360``): ``any`` aplica las reglas
 # de fila del comodelo y ``any!`` las salta.
 #
-# pendiente: los campos ``related=`` de los tres modelos, ``message`` y los
-# binarios de ``related_foo``; los usa ``TestSearchRelated``, que no está
-# portado todavía.
+# pendiente: los demás campos ``related=`` de ``related`` (Many2one,
+# Many2many, One2many y binarios), ``message`` y los binarios de
+# ``related_foo``; los usan los casos de ``TestSearchRelated`` aún no
+# portados.
 # ---------------------------------------------------------------------------
 
 
@@ -544,6 +545,16 @@ class TestOrmRelated(TestOrmModel):
     name = fields.Char(null=True)
     foo_id = fields.Many2one('test_orm.related_foo', null=True,
                              related_name='foo_ids')
+
+    foo_name = fields.Char('foo_name', related='foo_id.name',
+                           related_sudo=False)
+    foo_name_sudo = fields.Char('foo_name_sudo', related='foo_id.name',
+                                related_sudo=True)
+    foo_bar_name = fields.Char('foo_bar_name', related='foo_id.bar_id.name',
+                               related_sudo=False)
+    foo_bar_name_sudo = fields.Char('foo_bar_name_sudo',
+                                    related='foo_id.bar_id.name',
+                                    related_sudo=True)
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_related'
