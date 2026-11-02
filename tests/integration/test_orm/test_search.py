@@ -72,3 +72,50 @@ def test_hierarchy(env):
     on_child = Head.create({'node_id': nodes[0].id})
     found = Head.search([('node_id', 'child_of', parent_node.ids)])
     assert set(found.ids) == {head.id, on_child.id}
+
+
+# ---------------------------------------------------------------------------
+# ``TestSearchRelated.test_related_null`` (``tests/test_search.py:1046``). La
+# fuente afirma el SQL de cada operador; aquí cada operador se compara contra
+# el valor efectivo del ``related``: sin ``foo`` o con nombre nulo, el valor
+# es ``False``, y un Char nulo es ``False`` en la fuente.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def related_rows(env):
+    Foo, Related = env['test_orm.related_foo'], env['test_orm.related']
+    rows = {
+        'no_foo': Related.create({'name': 'no_foo'}),
+        'null_name': Related.create(
+            {'name': 'null_name', 'foo_id': Foo.create({}).id}),
+        'a': Related.create(
+            {'name': 'a', 'foo_id': Foo.create({'name': 'a'}).id}),
+        'b': Related.create(
+            {'name': 'b', 'foo_id': Foo.create({'name': 'b'}).id}),
+    }
+    values = {'no_foo': False, 'null_name': False, 'a': 'a', 'b': 'b'}
+    return rows, values
+
+
+_PREDICATES = {
+    '=': lambda v, x: v == x,
+    '!=': lambda v, x: v != x,
+    'in': lambda v, x: v in x,
+    'not in': lambda v, x: v not in x,
+}
+
+
+@pytest.mark.parametrize('fname', ['foo_name', 'foo_name_sudo'])
+@pytest.mark.parametrize(('operator', 'value'), [
+    ('=', 'a'), ('!=', 'a'), ('=', False), ('!=', False),
+    ('in', ['a', 'b']), ('not in', ['a', 'b']),
+    ('in', ['a', False]), ('not in', ['a', False]),
+])
+def test_related_null(env, related_rows, fname, operator, value):
+    rows, values = related_rows
+    expected = {rows[key].id for key, current in values.items()
+                if _PREDICATES[operator](current, value)}
+    ids = {row.id for row in rows.values()}
+    found = set(env['test_orm.related'].search([(fname, operator, value)]).ids)
+    assert found & ids == expected
