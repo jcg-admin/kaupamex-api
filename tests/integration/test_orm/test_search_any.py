@@ -14,6 +14,7 @@ from addons.base.models.ir_model import IrModel, IrModelAccess
 from addons.base.models.ir_rule import IrRule
 from orm.domains import Domain
 from orm.environments import Environment
+from orm.utils import SUPERUSER_ID
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
@@ -47,8 +48,15 @@ def ruled_user(db):
     IrRule.objects.create(
         name='related_foo sin a', model_name='test_orm.TestOrmRelatedFoo',
         domain_force="[('name', '!=', 'a')]")
-    return get_user_model().objects.create_user(
+    user = get_user_model().objects.create_user(
         login='search.any@kaupamex.mx', password='SearchAny123!')
+    if user.pk == SUPERUSER_ID:
+        # Una base recién creada no siembra usuarios y el primero recibe el
+        # pk del super-usuario, que eleva (``Environment``: ``uid == 1``). La
+        # fuente prueba con ``base.user_admin``, que no lo es.
+        user = get_user_model().objects.create_user(
+            login='search.any.2@kaupamex.mx', password='SearchAny123!')
+    return user
 
 
 def _found_as(user, domain):
