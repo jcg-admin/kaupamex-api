@@ -2032,8 +2032,13 @@ class StoredMany2oneIdDescriptor(FieldDescriptor):
         # ``record.company_id = x`` es ``write`` en la fuente, y ``write``
         # comprueba la empresa cuando el modelo declara ``_check_company_auto``
         # (``odoo19c: odoo/orm/models.py``, ``BaseModel.write``). Sólo sobre
-        # una fila ya guardada: construir no es asignar.
+        # una fila ya guardada: construir no es asignar. Sólo en los modelos
+        # que exponen ``_check_company`` (``CheckCompanyMixin``): un
+        # ``models.Model`` que declara ``_check_company_auto`` sin el mixin
+        # (``AccountMoveLine``) nunca tuvo la comprobación, y asignarle una
+        # FK moría con ``AttributeError``.
         if (getattr(type(instance), '_check_company_auto', False)
+                and hasattr(instance, '_check_company')
                 and not instance.__dict__.get('_orm_building')
                 and not instance.__dict__.get(WRITING_VALUES)
                 and _is_saved_record(instance)):
