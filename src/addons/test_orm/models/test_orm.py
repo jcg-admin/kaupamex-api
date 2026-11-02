@@ -263,3 +263,57 @@ class TestOrmModelChildNocheck(TestOrmModel):
     parent = fields.Many2one(
         'test_orm.model_parent', check_company=False, null=True,
         related_name='+')
+
+
+# ---------------------------------------------------------------------------
+# Orden — ≙ ``TestOrmCountry``, ``TestOrmCity`` y ``TestOrmModel_Active_Field``
+# (``odoo19c: odoo/addons/test_orm/models/test_orm.py``). Los Many2one son
+# opcionales como en la fuente (H-API-1122).
+# ---------------------------------------------------------------------------
+
+
+class TestOrmCountry(TestOrmModel):
+    """≙ ``test_orm.country``."""
+
+    _name = 'test_orm.country'
+    _description = 'Country, ordered by name'
+    _order = 'name, id'
+
+    name = fields.Char()
+
+
+class TestOrmCity(TestOrmModel):
+    """≙ ``test_orm.city``."""
+
+    _name = 'test_orm.city'
+    _description = 'City, ordered by country then name'
+    _order = 'country_id, name, id'
+
+    # La fuente no declara ``required``: el nombre admite ``NULL``, y
+    # ``test_sort.test_nulls`` lo crea con ``False``. Aquí un ``Char`` es
+    # ``NOT NULL`` por omisión (H-API-1125).
+    name = fields.Char(null=True)
+    country = fields.Many2one('test_orm.country', null=True, related_name='+')
+
+
+class TestOrmModelActiveField(TestOrmModel):
+    """≙ ``test_orm.model_active_field``."""
+
+    _name = 'test_orm.model_active_field'
+    _description = 'A model with active field'
+
+    name = fields.Char()
+    active = fields.Boolean(default=True)
+    parent = fields.Many2one(
+        'test_orm.model_active_field', null=True, related_name='+')
+    children_ids = fields.One2many('test_orm.model_active_field', 'parent')
+    all_children_ids = fields.One2many(
+        'test_orm.model_active_field', 'parent',
+        context={'active_test': False})
+    active_children_ids = fields.One2many(
+        'test_orm.model_active_field', 'parent',
+        context={'active_test': True})
+    relatives_ids = fields.Many2many(
+        'test_orm.model_active_field',
+        'model_active_field_relatives_rel', 'source_id', 'dest_id',
+    )

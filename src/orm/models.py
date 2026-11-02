@@ -87,6 +87,7 @@ from orm.commands import (ManyToManyLink, ManyToManySet, One2manyChild,
 from orm import registry
 from orm.domains import Domain, to_q
 from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, FieldDescriptor,
+                        StoredMany2oneIdDescriptor,
                         _field_cache_record_id,
                         convert_to_display_name, determine_inverse)
 from orm.fields_textual import Char
@@ -4495,6 +4496,83 @@ def _run_ondelete_on_delete(sender, instance, **_ignored):
 Model._add_precomputed_values = _add_precomputed_values
 
 
+def _ordering(expression, direction, nulls):
+    """Dirección y nulos de un término — los literales de la fuente."""
+    options = {}
+    if nulls == 'NULLS FIRST':
+        options['nulls_first'] = True
+    elif nulls == 'NULLS LAST':
+        options['nulls_last'] = True
+    if direction == 'DESC':
+        return expression.desc(**options)
+    return expression.asc(**options)
+
+
+def order_to_django(model, order, reverse=False, prefix='', seen=frozenset()):
+    """Una cláusula de orden de la fuente como ``order_by`` de Django.
+
+    ≙ ``_order_to_sql`` + ``_order_field_to_sql``
+    (``odoo19c: odoo/orm/models.py:5224-5322``): cada término se valida con
+    ``regex_order``; ``reverse`` invierte dirección y nulos; un ``Many2one``
+    se ordena por el ``_order`` de su comodelo (salvo ``x_id.id`` o un
+    comodelo ordenado por ``id``), con una guarda contra ciclos y, para
+    ``NULLS FIRST``/``NULLS LAST``, el término ``IS NOT NULL``/``IS NULL``
+    delante. El ``LEFT JOIN`` de la fuente es el que Django emite al cruzar
+    una clave anulable.
+
+    **No portado:** el orden por una propiedad (``campo.propiedad`` sobre un
+    ``Properties``) y por una función (``campo:func``); se rehúsan con
+    ``ValueError`` en vez de ignorarse.
+    """
+    if not order:
+        return []
+    if not regex_order.match(order):
+        raise UserError(
+            'Orden inválido (%s). Un orden válido es una lista de nombres '
+            'de campo separados por coma, cada uno seguido opcionalmente '
+            'de asc o desc.' % order)
+    registry_ = model_field_registry(model)
+    terms = []
+    for part in order.split(','):
+        match = regex_order.match(part)
+        fname = match['field']
+        direction = (match['direction'] or '').upper()
+        nulls = (match['nulls'] or '').upper()
+        if reverse:
+            direction = 'ASC' if direction == 'DESC' else 'DESC'
+            if nulls:
+                nulls = 'NULLS LAST' if nulls == 'NULLS FIRST' else 'NULLS FIRST'
+        field = registry_.get(fname)
+        if field is None:
+            raise ValueError(
+                f'Invalid field {fname!r} on model {registry.name_of(model) or model}')
+        prop = match['property']
+        if match['func'] or (prop and not isinstance(field, ForeignKey)):
+            raise ValueError(f'Orden no portado: {part.strip()!r}')
+        if isinstance(field, ForeignKey):
+            if field in seen:
+                continue
+            comodel = field.related_model
+            coorder = 'id' if prop == 'id' else (getattr(comodel, '_order', None) or 'id')
+            if coorder == 'id':
+                terms.append(_ordering(F(prefix + field.attname), direction, nulls))
+                continue
+            path = prefix + field.name
+            if nulls == 'NULLS FIRST':
+                terms.append(ExpressionWrapper(
+                    Q(**{path + '__isnull': False}), output_field=BooleanField()).asc())
+            elif nulls == 'NULLS LAST':
+                terms.append(ExpressionWrapper(
+                    Q(**{path + '__isnull': True}), output_field=BooleanField()).asc())
+            terms.extend(order_to_django(
+                comodel, coorder, reverse=direction == 'DESC',
+                prefix=path + '__', seen=seen | {field}))
+            continue
+        column = 'pk' if fname == 'id' and not prefix else prefix + getattr(field, 'attname', fname)
+        terms.append(_ordering(F(column), direction, nulls))
+    return terms
+
+
 _DJANGO_MANY2MANY_SET = _related_descriptors.ManyToManyDescriptor.__set__
 
 
@@ -4853,6 +4931,78 @@ class BaseModel(DefaultGetMixin, Model):
         record._prefetch_ids = prefetch_ids
         return record
 
+    # === búsqueda =======================================================
+
+    @classmethod
+    def _active_field_name(cls):
+        """``_active_name`` — ``'active'`` o ``'x_active'`` si el modelo lo declara.
+
+        ≙ el ``_active_name`` que la fuente fija en el setup del modelo
+        (``odoo19c: odoo/orm/model_classes.py``): un modelo con campo
+        ``active`` filtra sus registros archivados al buscar.
+        """
+        if cls._active_name:
+            return cls._active_name
+        registry_ = model_field_registry(cls)
+        for name in ('active', 'x_active'):
+            if name in registry_:
+                return name
+        return None
+
+    @classmethod
+    def _search(cls, domain, offset=0, limit=None, order=None, *,
+                active_test=True, bypass_access=False):
+        """El ``QuerySet`` de las filas que cumplen ``domain`` — ≙ ``:5324``.
+
+        Mismos pasos que la fuente: ACL de lectura, filtro de archivados
+        salvo que el dominio nombre el campo ``active`` o el contexto lo
+        apague, el dominio (vía :func:`~orm.domains.to_q`), las reglas de
+        fila, el orden y la ventana.
+
+        **Divergencias de mecanismo:** la fuente devuelve un ``Query`` y aquí
+        se devuelve el ``QuerySet`` de Django, que es su equivalente perezoso.
+        Las reglas de fila se aplican con
+        :meth:`AccessQuerySet._filtered_access` (una exclusión por clave) en
+        vez de añadirse al ``WHERE``. Sin ``order`` no se impone ninguno, como
+        en la fuente.
+        """
+        check = not (is_su() or bypass_access)
+        records = AccessQuerySet(model=cls)
+        if check:
+            records.none().check_access('read')
+        domain = Domain(domain)
+        active = cls._active_field_name()
+        if (active and active_test
+                and get_context().get('active_test', True)
+                and not any(getattr(leaf, 'field_expr', None) == active
+                            for leaf in domain.iter_conditions())):
+            domain &= Domain(active, '=', True)
+        records = records.filter(to_q(domain, cls))
+        if check:
+            records = records._filtered_access('read')
+        if order:
+            records = records.order_by(*order_to_django(cls, order))
+        if offset or limit:
+            records = records[offset:(offset + limit) if limit else None]
+        return records
+
+    @classmethod
+    def search(cls, domain, offset=0, limit=None, order=None):
+        """Los registros que cumplen ``domain`` — ≙ ``search`` (``:1363``).
+
+        Devuelve el recordset de ``BaseModel`` en el orden pedido, o en el
+        ``_order`` del modelo si no se pide ninguno, como ``search_fetch``.
+        """
+        records = cls._search(domain, offset=offset, limit=limit,
+                              order=order or cls._order)
+        ids = tuple(records.values_list('pk', flat=True))
+        return cls._from_ids(env(), ids, ids)
+
+    @classmethod
+    def search_count(cls, domain, limit=None):
+        """Cuántos registros cumplen ``domain`` — ≙ ``search_count`` (``:1347``)."""
+        return cls._search(domain, limit=limit).count()
+
     @api.private
     def browse(self, ids=()):
         """Return a recordset for the ids provided as parameter in the current
@@ -5091,7 +5241,11 @@ class BaseModel(DefaultGetMixin, Model):
         # columna; se prefiere sólo cuando es el nuestro.
         attname = getattr(field, 'attname', None) or field.name
         descriptor = getattr(type(self), attname, None)
-        if not isinstance(descriptor, FieldDescriptor):
+        # El descriptor del id de un Many2one almacenado también es un
+        # ``FieldDescriptor`` y devuelve el entero; la fila la da el de
+        # ``field.name``.
+        if (not isinstance(descriptor, FieldDescriptor)
+                or isinstance(descriptor, StoredMany2oneIdDescriptor)):
             descriptor = getattr(type(self), field.name, None)
         if descriptor is None or not hasattr(descriptor, '__get__'):
             return getattr(self, field.name)

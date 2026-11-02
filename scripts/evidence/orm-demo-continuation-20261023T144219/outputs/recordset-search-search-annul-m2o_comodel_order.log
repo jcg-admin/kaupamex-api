@@ -1,0 +1,90 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+warning: The `native-tls` setting is deprecated and will be removed in a future release. Use `system-certs` instead.
+.............................F.FFFFFFF.............                      [100%]
+=================================== FAILURES ===================================
+________________________________ test_basic_m2o ________________________________
+tests/integration/test_orm/test_sort.py:56: in test_basic_m2o
+    assert db_result.ids == cities.sorted().ids
+E   assert [369, 370, 372, 373, 371, 368] == [372, 373, 369, 370, 371, 368]
+E     At index 0 diff: 369 != 372
+E     Use -v to get more diff
+_______________________________ test_custom_m2o ________________________________
+tests/integration/test_orm/test_sort.py:74: in test_custom_m2o
+    assert db_result.ids == cities.sorted(order).ids
+E   assert [374, 377, 378, 379, 375, 376] == [374, 377, 375, 376, 378, 379]
+E     At index 2 diff: 378 != 375
+E     Use -v to get more diff
+________________________ test_nulls[country_id ASC, id] ________________________
+tests/integration/test_orm/test_sort.py:103: in test_nulls
+    assert (env['test_orm.city'].search(
+E   AssertionError: assert ['not null 0'...2', '', False] == [False, 'not ...2', '', False]
+E     At index 0 diff: 'not null 0' != False
+E     Use -v to get more diff
+_______________________ test_nulls[country_id DESC, id] ________________________
+tests/integration/test_orm/test_sort.py:103: in test_nulls
+    assert (env['test_orm.city'].search(
+E   AssertionError: assert ['', False, '... 'not null 0'] == ['', False, '... 'not null 1']
+E     At index 3 diff: False != 'not null 0'
+E     Use -v to get more diff
+__________________ test_nulls[country_id ASC NULLS FIRST, id] __________________
+tests/integration/test_orm/test_sort.py:103: in test_nulls
+    assert (env['test_orm.city'].search(
+E   AssertionError: assert ['', False, '... 'not null 2'] == ['', False, F... 'not null 2']
+E     At index 2 diff: 'not null 0' != False
+E     Use -v to get more diff
+_________________ test_nulls[country_id DESC NULLS FIRST, id] __________________
+tests/integration/test_orm/test_sort.py:103: in test_nulls
+    assert (env['test_orm.city'].search(
+E   AssertionError: assert ['', False, '... 'not null 0'] == ['', False, '... 'not null 1']
+E     At index 3 diff: False != 'not null 0'
+E     Use -v to get more diff
+__________________ test_nulls[country_id ASC NULLS LAST, id] ___________________
+tests/integration/test_orm/test_sort.py:103: in test_nulls
+    assert (env['test_orm.city'].search(
+E   AssertionError: assert ['not null 0'...2', '', False] == [False, 'not ...2', '', False]
+E     At index 0 diff: 'not null 0' != False
+E     Use -v to get more diff
+__________________ test_nulls[country_id DESC NULLS LAST, id] __________________
+tests/integration/test_orm/test_sort.py:103: in test_nulls
+    assert (env['test_orm.city'].search(
+E   AssertionError: assert ['not null 2'...0', '', False] == ['not null 2'...1', '', False]
+E     At index 1 diff: False != 'not null 0'
+E     Use -v to get more diff
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:47
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:47: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_create_recordset.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:133
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:47
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:47: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:133
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/addons/test_orm/models/test_orm.py:133: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_attributes.py::test_we_cannot_add_attributes
+tests/integration/test_orm/test_company_checks.py::test_check_company_auto
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/api-dev/src/orm/fields.py:4245: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_sort.py::test_basic_m2o - assert [369,...
+FAILED tests/integration/test_orm/test_sort.py::test_custom_m2o - assert [374...
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id ASC, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id DESC, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id ASC NULLS FIRST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id DESC NULLS FIRST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id ASC NULLS LAST, id]
+FAILED tests/integration/test_orm/test_sort.py::test_nulls[country_id DESC NULLS LAST, id]
+8 failed, 43 passed, 8 warnings in 9.90s
