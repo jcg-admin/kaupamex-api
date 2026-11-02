@@ -1124,7 +1124,7 @@ class DomainCondition(Domain):
         almacenado no tiene ruta en la base y sigue su propio camino.
         """
         if model is not None and level == OptimizationLevel.BASIC:
-            path = self._path_as_any(model)
+            path = self._inherited_as_any(model) or self._path_as_any(model)
             if path is not None:
                 return path
         if model is not None:
@@ -1160,6 +1160,27 @@ class DomainCondition(Domain):
                     if domain != self:
                         return domain
         return self
+
+    def _inherited_as_any(self, model):
+        """Un campo delegado por ``_inherits`` como ``any`` sobre el padre.
+
+        ≙ ``:946-953``: *"resolve inherited fields"* — la fuente reescribe
+        ``(campo, op, v)`` como ``(<fk>, 'any', [(campo, op, v)])`` cuando el
+        campo es ``inherited``. Aquí Django no copia los campos del padre al
+        hijo (``ResUsers`` no tiene ``name``), así que el campo heredado se
+        reconoce por su ausencia en el modelo y su presencia en un padre de
+        ``_inherits``. Un campo propio del modelo nunca se delega.
+        """
+        head = self.field_expr.partition('.')[0]
+        if _has_field(model, head):
+            return None
+        for parent_name, fk_name in (getattr(model, '_inherits', None)
+                                     or {}).items():
+            parent = registry.MODELS_BY_NAME.get(parent_name)
+            if parent is not None and _has_field(parent, head):
+                return DomainCondition(fk_name, 'any', DomainCondition(
+                    self.field_expr, self.operator, self.value))
+        return None
 
     def _path_as_any(self, model):
         """``a.b op v`` como ``a any [b op v]``, o ``None`` si no aplica."""
@@ -2930,6 +2951,15 @@ def OR(domains):
 def NOT(domain):
     """Negación de un filtro ``Q`` — ≙ ``expression.NOT``."""
     return ~domain
+
+
+def _has_field(model, name):
+    """Si ``model`` declara ``name``, con columna o sin ella."""
+    try:
+        model._meta.get_field(name)
+    except FieldDoesNotExist:
+        return _non_stored_field(model, name) is not None
+    return True
 
 
 def _is_x2many(field):
