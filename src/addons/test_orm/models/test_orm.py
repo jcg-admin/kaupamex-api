@@ -217,6 +217,9 @@ class TestOrmDiscussion(TestOrmModel):
             ["%s:%s" % (m.name, m.body) for m in self.messages]
         )
 
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_discussion'
+
 
 # ---------------------------------------------------------------------------
 # Multicompañía — ≙ ``odoo19c: odoo/addons/test_orm/models/test_orm.py``
@@ -226,9 +229,6 @@ class TestOrmDiscussion(TestOrmModel):
 # ``attname`` ``company_id``, que es el nombre por el que ``create`` y
 # ``_fields`` responden también.
 # ---------------------------------------------------------------------------
-
-    class Meta(TestOrmModel.Meta):
-        db_table = 'test_orm_discussion'
 
 
 class TestOrmModelParent(TestOrmModel):
@@ -277,15 +277,15 @@ class TestOrmModelChildNocheck(TestOrmModel):
         'test_orm.model_parent', check_company=False, null=True,
         related_name='+')
 
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_child_nocheck'
+
 
 # ---------------------------------------------------------------------------
 # Orden — ≙ ``TestOrmCountry``, ``TestOrmCity`` y ``TestOrmModel_Active_Field``
 # (``odoo19c: odoo/addons/test_orm/models/test_orm.py``). Los Many2one son
 # opcionales como en la fuente (H-API-1122).
 # ---------------------------------------------------------------------------
-
-    class Meta(TestOrmModel.Meta):
-        db_table = 'test_orm_model_child_nocheck'
 
 
 class TestOrmCountry(TestOrmModel):
@@ -364,6 +364,9 @@ class TestOrmAutovacuumed(TestOrmModel):
         records.unlink()
         return len(records), len(records) == limit
 
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_autovacuumed'
+
 
 # ---------------------------------------------------------------------------
 # Una tabla, dos relaciones — ≙ ``TestOrmCrew``, ``TestOrmShip``,
@@ -372,9 +375,6 @@ class TestOrmAutovacuumed(TestOrmModel):
 # ``crew``: *"the union of two relations pirate/ship and prisoner/ship, where
 # some of the many2one fields can be NULL"*.
 # ---------------------------------------------------------------------------
-
-    class Meta(TestOrmModel.Meta):
-        db_table = 'test_orm_autovacuumed'
 
 
 class TestOrmCrew(TestOrmModel):
