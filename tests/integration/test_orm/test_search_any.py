@@ -52,10 +52,10 @@ def ruled_user(db):
 
 
 def _found_as(user, domain):
-    # ``su=False`` explícito: es el defecto de la fuente
-    # (``odoo19c: odoo/orm/environments.py:64``); aquí el defecto ``None``
-    # hereda la elevación del entorno exterior del fixture.
-    with Environment(None, user.pk, {}, su=False) as environment:
+    # Sin ``su``: con un usuario declarado el defecto es no elevar, como en la
+    # fuente (``odoo19c: odoo/orm/environments.py:64``), aunque el fixture
+    # haya abierto un entorno de super-usuario.
+    with Environment(None, user.pk, {}) as environment:
         return set(environment['test_orm.related'].search(domain).ids)
 
 
@@ -89,7 +89,7 @@ def x2many_rules(db):
 
 
 def _foos_as(user, domain):
-    with Environment(None, user.pk, {}, su=False) as environment:
+    with Environment(None, user.pk, {}) as environment:
         return set(environment['test_orm.related_foo'].search(domain).ids)
 
 

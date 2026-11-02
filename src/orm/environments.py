@@ -843,6 +843,11 @@ class Environment:
             'cr nombra la conexión por su alias; %r no está declarado' % (cr,))
         if uid == SUPERUSER_ID:
             su = True
+        elif uid is not None and su is None:
+            # ≙ ``su: bool = False`` (``odoo19c: :64``): un usuario declarado
+            # no hereda la elevación del bloque exterior. Sin ``uid`` el
+            # entorno sigue heredando los tres ejes del canal.
+            su = False
 
         transaction = get_transaction()
 
