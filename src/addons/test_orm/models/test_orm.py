@@ -339,3 +339,62 @@ class TestOrmAutovacuumed(TestOrmModel):
         records = self.search([('expire_at', '<', datetime.datetime.now() - datetime.timedelta(days=1))], limit=limit)
         records.unlink()
         return len(records), len(records) == limit
+
+
+# ---------------------------------------------------------------------------
+# Una tabla, dos relaciones — ≙ ``TestOrmCrew``, ``TestOrmShip``,
+# ``TestOrmPirate`` y ``TestOrmPrisoner`` (``odoo19c: odoo/addons/test_orm/
+# models/test_orm.py:1960-1995``). ``test_orm_crew`` es la tabla del modelo
+# ``crew``: *"the union of two relations pirate/ship and prisoner/ship, where
+# some of the many2one fields can be NULL"*.
+# ---------------------------------------------------------------------------
+
+
+class TestOrmCrew(TestOrmModel):
+    """≙ ``test_orm.crew``."""
+
+    _name = 'test_orm.crew'
+    _description = 'All yaaaaaarrrrr by ship'
+    _table = 'test_orm_crew'
+
+    pirate = fields.Many2one('test_orm.pirate', null=True, related_name='+')
+    prisoner = fields.Many2one('test_orm.prisoner', null=True, related_name='+')
+    ship = fields.Many2one('test_orm.ship', null=True, related_name='+')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_crew'
+
+
+class TestOrmShip(TestOrmModel):
+    """≙ ``test_orm.ship``."""
+
+    _name = 'test_orm.ship'
+    _description = 'Yaaaarrr machine'
+
+    name = fields.Char('Name', null=True)
+    pirate_ids = fields.Many2many(
+        'test_orm.pirate', 'test_orm_crew', 'ship_id', 'pirate_id')
+    prisoner_ids = fields.Many2many(
+        'test_orm.prisoner', 'test_orm_crew', 'ship_id', 'prisoner_id')
+
+
+class TestOrmPirate(TestOrmModel):
+    """≙ ``test_orm.pirate``."""
+
+    _name = 'test_orm.pirate'
+    _description = 'Yaaarrr'
+
+    name = fields.Char('Name', null=True)
+    ship_ids = fields.Many2many(
+        'test_orm.ship', 'test_orm_crew', 'pirate_id', 'ship_id')
+
+
+class TestOrmPrisoner(TestOrmModel):
+    """≙ ``test_orm.prisoner``."""
+
+    _name = 'test_orm.prisoner'
+    _description = 'Yaaarrr minions'
+
+    name = fields.Char('Name', null=True)
+    ship_ids = fields.Many2many(
+        'test_orm.ship', 'test_orm_crew', 'prisoner_id', 'ship_id')

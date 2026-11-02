@@ -564,16 +564,65 @@ class Many2manyField(models.ManyToManyField):
         """Conserva ``column1``/``column2``: sin ellos la migración nombraría
         las columnas a la manera de Django."""
         name, path, args, kwargs = super().deconstruct()
-        if self.column1 is None and self.column2 is None:
+        through = self.remote_field.through
+        explicit = through is not None and not isinstance(through, str) and \
+            not through._meta.auto_created
+        if explicit or (self.column1 is None and self.column2 is None):
+            # Con ``through`` explícito la tabla y las columnas son las del
+            # modelo intermedio, y Django las reconstruye solo; ``db_table``
+            # no puede acompañar a ``through``.
+            if explicit:
+                kwargs.pop('db_table', None)
             return name, path, args, kwargs
         kwargs['column1'] = self.column1
         kwargs['column2'] = self.column2
         return name, 'orm.fields_relational.Many2manyField', args, kwargs
 
+    def _relation_key(self, cls, swapped=False):
+        """La tabla y el par de columnas que identifican una relación.
+
+        Una tabla puede servir a más de una relación (``test_orm_crew`` sirve a
+        pirata↔barco y a prisionero↔barco), así que el par de columnas forma
+        parte de la clave. ``swapped`` es la clave del otro extremo.
+        """
+        columns = ((self.column2, self.column1) if swapped
+                   else (self.column1, self.column2))
+        return (cls._meta.apps, self.relation, columns)
+
+    def _explicit_through(self, cls):
+        """El modelo declarado cuya tabla es ``relation``, si lo hay.
+
+        En la fuente la tabla de un ``Many2many`` puede ser la de un modelo
+        propio: ``test_orm.crew`` declara ``_table = 'test_orm_crew'`` con tres
+        ``Many2one`` anulables, y ``ship.pirate_ids``/``prisoner_ids`` la usan
+        con su par de columnas. En Django eso es un ``through`` explícito con
+        ``through_fields``.
+        """
+        if self.relation is None:
+            return None
+        for models_of_app in cls._meta.apps.all_models.values():
+            for model in models_of_app.values():
+                if (model._meta.db_table == self.relation
+                        and not model._meta.auto_created):
+                    return model
+        return None
+
+    def _explicit_through_fields(self, through):
+        """Los campos del ``through`` cuyas columnas son ``column1``/``column2``."""
+        by_column = {field.column: field.name
+                     for field in through._meta.local_fields
+                     if isinstance(field, models.ForeignKey)}
+        try:
+            return by_column[self.column1], by_column[self.column2]
+        except KeyError as missing:
+            raise ValueError(
+                f'{through._meta.label} no declara la columna {missing} que '
+                f'pide la relación {self.relation!r}') from None
+
     def _owner_for_mirror(self, cls):
         if self.relation is None:
             return None
-        owner = _RELATION_OWNERS.get((cls._meta.apps, self.relation))
+        owner = _RELATION_OWNERS.get(self._relation_key(cls, swapped=True))
         if owner is None or owner is self:
             return None
         crossed = (
@@ -594,9 +643,15 @@ class Many2manyField(models.ManyToManyField):
             owner.remote_field.related_name = name
             owner._related_name = name
             return
+        explicit = self._explicit_through(cls)
+        if explicit is not None:
+            self.remote_field.through = explicit
+            self.remote_field.through_fields = self._explicit_through_fields(
+                explicit)
+            self.db_table = None
         super().contribute_to_class(cls, name, *args, **kwargs)
         if self.relation is not None and not cls._meta.abstract:
-            _RELATION_OWNERS[(cls._meta.apps, self.relation)] = self
+            _RELATION_OWNERS[self._relation_key(cls)] = self
         through = self.remote_field.through
         if (self.column1 is not None and not isinstance(through, str)
                 and through._meta.auto_created):

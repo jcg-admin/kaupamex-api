@@ -1291,6 +1291,8 @@ class DomainCondition(Domain):
         Un verde en la construcción que no distingue «compila» de «el
         compilador no conoce el operador».
         """
+        if isinstance(value, models.QuerySet):
+            return self._queryset_to_q(field, operator, value)
         if field is None or not getattr(field, 'is_relation', False):
             self._raise(
                 "No se puede usar '%s' sobre un campo no relacional", operator
@@ -1301,6 +1303,36 @@ class DomainCondition(Domain):
         subdomain = value if isinstance(value, Domain) else Domain(value)
         rows = comodel.objects.filter(subdomain._to_q(comodel)).values('pk')
         q = Q(**{f'{_django_path(self.field_expr)}__in': rows})
+        return ~q if operator.startswith('not ') else q
+
+    def _queryset_to_q(self, field, operator, value):
+        """La pertenencia a un ``QuerySet`` — ≙ la rama ``Query`` de
+        ``:1096-1112``.
+
+        La fuente recibe el ``Query`` que devuelve ``_search`` y emite
+        ``columna IN (SELECT id FROM comodelo WHERE ...)``. Aquí ``_search``
+        devuelve el ``QuerySet`` de Django, su equivalente perezoso, y la
+        subconsulta es ``value.values('pk')``. Sobre la clave primaria la
+        columna es la propia ``pk``; sobre una relación, la ruta del campo.
+
+        El ``QuerySet`` tiene que ser del comodelo: una consulta de otro
+        modelo compararía ids de tablas distintas sin error, que es el fallo
+        que esta guarda rechaza.
+        """
+        if field is not None and getattr(field, 'primary_key', False):
+            path, comodel = 'pk', field.model
+        elif field is not None and getattr(field, 'is_relation', False):
+            path, comodel = _django_path(self.field_expr), field.related_model
+        else:
+            self._raise(
+                "No se puede usar '%s' sobre un campo no relacional", operator
+            )
+        if comodel is not None and not issubclass(value.model, comodel):
+            self._raise(
+                "La consulta es de %s y la relación espera %s"
+                % (value.model._meta.label, comodel._meta.label)
+            )
+        q = Q(**{f'{path}__in': value.values('pk')})
         return ~q if operator.startswith('not ') else q
 
     def _to_q(self, model=None):
@@ -1618,7 +1650,7 @@ def nary_condition_optimization(operators, field_types=None):
 # ≙ ``odoo19c: odoo/orm/domains.py:1250-1319``
 # ---------------------------------------------------------------------------
 
-ANY_TYPES = (Domain, Query, SQL)
+ANY_TYPES = (Domain, Query, SQL, models.QuerySet)
 """Los valores que hacen de una condición una **travesía de relación**.
 
 Un dominio, una consulta o un SQL en el lado del valor no son

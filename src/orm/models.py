@@ -4680,6 +4680,36 @@ class RecordCache(collections.abc.Mapping):
         return sum(1 for name in self)
 
 
+class _on_empty_recordset:
+    """Un método de recordset que también se llama sobre la clase.
+
+    ``env['x']`` devuelve aquí la **clase** del modelo, no el recordset vacío
+    que devuelve la fuente (``odoo19c: odoo/orm/environments.py:105``). Con
+    eso ``env['x'].browse(ids)`` —la forma más corriente de la fuente— llegaba
+    al método sin ``self`` y moría con ``AttributeError``. Este descriptor
+    cierra esa diferencia: llamado sobre la clase, el método recibe el
+    recordset vacío del entorno activo, que es exactamente lo que la fuente
+    le pasa. Llamado sobre un recordset, se comporta como un método normal.
+
+    El recordset vacío se construye al **llamar**, no al leer el atributo,
+    para que inspeccionar la clase no exija un entorno activo.
+    """
+
+    def __init__(self, func):
+        self.func = func
+        functools.update_wrapper(self, func)
+
+    def __get__(self, instance, owner):
+        if instance is not None:
+            return self.func.__get__(instance, owner)
+        func = self.func
+
+        @functools.wraps(func)
+        def on_empty(*args, **kwargs):
+            return func(owner._from_ids(env(), (), ()), *args, **kwargs)
+        return on_empty
+
+
 class BaseModel(DefaultGetMixin, Model):
     """El recordset — ≙ ``BaseModel`` (``odoo19c: odoo/orm/models.py:334-7004``).
 
@@ -5033,6 +5063,7 @@ class BaseModel(DefaultGetMixin, Model):
         """Cuántos registros cumplen ``domain`` — ≙ ``search_count`` (``:1347``)."""
         return cls._search(domain, limit=limit).count()
 
+    @_on_empty_recordset
     @api.private
     def browse(self, ids=()):
         """Return a recordset for the ids provided as parameter in the current
